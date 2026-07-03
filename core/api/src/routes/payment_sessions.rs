@@ -84,6 +84,14 @@ async fn fetch_session(pool: &sqlx::PgPool, id: Uuid) -> Result<serde_json::Valu
         None => None,
     };
 
+    // Merchant-safe refundable-source discovery (operator extension). Present
+    // only once a wallet payment has COMPLETED for this session's interface and
+    // this merchant; absent before paid / for a non-owning merchant. This id is
+    // exactly the typed `source_id` the public Refunds endpoint already accepts.
+    let refund_source =
+        super::refund_source::resolve_by_interface(pool, r.merchant_id, r.payment_link_id, r.qr_code_id)
+            .await;
+
     Ok(serde_json::json!({
         "session_id": r.id,
         "merchant_id": r.merchant_id,
@@ -103,6 +111,7 @@ async fn fetch_session(pool: &sqlx::PgPool, id: Uuid) -> Result<serde_json::Valu
         "expires_at": r.expires_at,
         "metadata": r.metadata,
         "created_at": r.created_at,
+        "refund_source": refund_source,
     }))
 }
 
@@ -298,6 +307,12 @@ pub async fn settle_for_interface(
         return; // not found, already terminal, or a transient error — no-op
     };
 
+    // Additive merchant-safe refund source, resolved from the settling transfer
+    // (the most precise anchor). Delivered only to this merchant's own signed
+    // webhook subscription. Absent if the wallet payment is not yet recorded.
+    let refund_source =
+        super::refund_source::resolve_by_transfer(&state.pool, merchant_id, transfer_id).await;
+
     let _ = super::webhooks::emit(
         &state.pool,
         merchant_id,
@@ -311,6 +326,7 @@ pub async fn settle_for_interface(
             "destination_account_ref": wallet_account_id,
             "reference_type": reference_type,
             "reference_id": reference_id,
+            "refund_source": refund_source,
         }),
     )
     .await;

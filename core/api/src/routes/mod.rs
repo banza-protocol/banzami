@@ -38,10 +38,13 @@ pub mod pricing_rules;
 pub mod payouts;
 pub mod qr;
 pub mod reconciliation;
+pub mod refund_source;
 pub mod refunds;
 pub mod restitution;
 #[cfg(test)]
 mod refunds_disputes_tests;
+#[cfg(test)]
+mod refund_source_tests;
 pub mod risk;
 pub mod settlements;
 pub mod splits;
