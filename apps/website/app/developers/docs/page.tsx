@@ -75,7 +75,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     title: 'Webhooks',
     desc: 'Eventos assinados no seu servidor.',
     href: '#webhooks',
-    tone: 'val',
+    tone: 'ok',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
@@ -481,17 +481,17 @@ export default function DocsPage() {
 
             {/* ------------------------------------------------ WEBHOOKS */}
             <Section id="webhooks">
-              <H2>Webhooks <Badge tone="val" /></H2>
+              <H2>Webhooks <Badge tone="ok" /></H2>
               <P>
                 Use webhooks para confirmar eventos no seu servidor sem depender apenas do browser ou de polling. O Banzami entrega
                 cada evento assinado; o seu endpoint verifica a assinatura e reage de forma idempotente.
               </P>
               <Callout>
-                <strong>Verificação de assinatura operacional em Sandbox.</strong> A validação do header canónico <Code>banza-signature</Code>
-                foi confirmada de ponta a ponta contra o endpoint DOA implementado: assinatura canónica aceite, assinatura inválida
-                rejeitada, janela de repetição de 5 minutos aplicada e confirmação idempotente. A jornada completa — desde a emissão
-                real de <Code>payment_session.paid</Code> até à confirmação automática da doação e ao comprovativo no DOA — é um item de
-                validação em curso.
+                <strong>Jornada completa verificada em Sandbox.</strong> A entrega ponta a ponta foi confirmada contra o endpoint DOA
+                implementado: uma <Code>payment_session.paid</Code> real emitida pelo operador foi entregue pelo outbox, o header canónico
+                <Code>banza-signature</Code> foi aceite, a doação foi confirmada <strong>uma única vez</strong> e o comprovativo foi
+                registado — sem entrega de email. A reentrega do mesmo evento foi <strong>deduplicada</strong> (sem efeito duplicado).
+                Nunca há dinheiro real — <em>Produção em preparação</em>.
               </Callout>
               <H3>Como funciona</H3>
               <UL>
