@@ -96,9 +96,11 @@ describe('Public Developer Docs (/docs) — full content', () => {
     expect(screen.getAllByText('application_settlement.completed').length).toBeGreaterThan(0);
     // the former log-line name must NOT appear as a documented event
     expect(screen.queryByText('application_settlement.executed')).toBeNull();
-    // only the five verified events are catalogued — not the unverified ones
-    for (const unverified of ['payment.completed', 'transfer.completed', 'wallet.credit', 'transfer.initiated']) {
-      expect(screen.queryByText(unverified)).toBeNull();
+    // only the five verified events are catalogued — not the unverified ones,
+    // anywhere on the page (events list, prose, or code samples)
+    const text = container.textContent ?? '';
+    for (const unverified of ['application_settlement.executed', 'payment.completed', 'transfer.completed', 'wallet.credit', 'transfer.initiated']) {
+      expect(text).not.toContain(unverified);
     }
   });
 

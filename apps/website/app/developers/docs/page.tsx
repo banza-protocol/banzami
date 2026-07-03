@@ -156,11 +156,11 @@ const sig = req.headers['banza-signature'];          // header de assinatura
 const event = banzami.webhooks.constructEvent(rawBody, sig);
 
 switch (event.type) {
-  case 'payment_link.paid':               /* marcar como pago (idempotente) */ break;
-  case 'application_settlement.executed': /* registar a liquidação */         break;
+  case 'payment_session.paid':             /* confirmar a doação (idempotente) */ break;
+  case 'application_settlement.completed': /* registar a liquidação */            break;
 }
 
-// Responda 2xx rapidamente; falhas são reentregues com recuo exponencial.`;
+// Responda 2xx rapidamente; a entrega é at-least-once, sem garantia de ordem.`;
 
 // -- Small presentational helpers ----------------------------------------------
 const P = ({ children, style }: { children: ReactNode; style?: React.CSSProperties }) => (
