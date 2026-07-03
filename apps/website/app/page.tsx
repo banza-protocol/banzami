@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { AppDemo } from '@/components/app/AppDemo';
+import { AppJourney } from '@/components/produto/AppJourney';
 import { HowItWorks } from '@/components/site/HowItWorks';
 import {
   homepageEntities,
@@ -150,13 +151,15 @@ export default function HomePage() {
             </div>
             <div className="mt-[30px] max-w-[540px]">
               <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">COMERCIANTES &amp; EMPRESAS</p>
-              <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
-                <div className="anim-marquee flex w-max gap-[10px]">
-                  {[...ENTITY_CHIPS, ...ENTITY_CHIPS].map((m, i) => (
-                    <EntityChip key={i} m={m} />
-                  ))}
-                </div>
-              </div>
+              {/* Auto-scroll marquee — same behaviour as the produto "A APP" rail
+                  (AppJourney): pauses on hover, touch or keyboard focus, resumes
+                  after, and honours reduced-motion. Chips duplicated so there is
+                  enough width to scroll. */}
+              <AppJourney className="flex gap-[10px] overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+                {[...ENTITY_CHIPS, ...ENTITY_CHIPS].map((m, i) => (
+                  <EntityChip key={i} m={m} />
+                ))}
+              </AppJourney>
             </div>
           </div>
 
