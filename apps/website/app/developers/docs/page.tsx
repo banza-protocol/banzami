@@ -1,86 +1,86 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { BrandTile } from '@/components/developers/portal/icons';
 
 // Public Developer Documentation (developers.banzami.com/docs).
 //
-// PUBLIC + STATIC: no PortalPage/auth guard, no session, no developer-api fetch,
-// no browser storage. Renders the Sandbox developer-platform docs from the
-// repo's official sources (README, ADR-033, docs/developer/SANDBOX_REQUIREMENTS,
-// docs/sandbox/sandbox-vs-production) and the developer-api implementation.
-//
-// Honest scope: this is a SANDBOX developer platform — test keys only
-// (bz_test_*), no real money, no production activation. Live capabilities are
-// listed explicitly as NOT available. Reuses the handoff §11 visual system
-// (docs sidebar + dark code blocks) with public chrome (back links).
+// Faithful rebuild of the Banzami Developers handoff §11 "Documentação" screen
+// (210px docs sidebar · Introdução + 2×2 cards · dark cURL block · blush help
+// card). PUBLIC + STATIC: no auth guard, no session, no developer-api fetch. The
+// only additions to the designed screen are the minimal public header links
+// (back to Banzami, enter Console) that replace the console shell around it, and
+// concise Sandbox-honesty labels (cards "Em breve", cURL preview) — no redesign.
 
 const RED = '#B5101F';
 const INK = '#2a2024';
-const MUT = '#8a7a7e';
 const mono = "'JetBrains Mono', ui-monospace, monospace";
-const CODE_BG = '#2A1E20';
 const BANZAMI_URL = 'https://banzami.com';
 
-const SECTIONS: { id: string; label: string }[] = [
-  { id: 'overview', label: 'Visão geral' },
-  { id: 'getting-started', label: 'Começar' },
-  { id: 'auth', label: 'Autenticação e sessões' },
-  { id: 'api-keys', label: 'Chaves Sandbox' },
-  { id: 'projects', label: 'Projetos e workspaces' },
-  { id: 'api-reference', label: 'Referência de API' },
-  { id: 'errors', label: 'Erros e segurança' },
-  { id: 'limitations', label: 'Ambiente e limitações' },
+const DOC_NAV = ['Introdução', 'Quickstart', 'API Reference', 'SDKs', 'Webhooks', 'Errors', 'Changelog'];
+
+// Four designed capability cards with the handoff's exact inline SVG icons.
+const CARDS: { title: string; desc: string; icon: React.ReactNode }[] = [
+  {
+    title: 'Criar cobrança',
+    desc: 'Aceite pagamentos via API.',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M4 8h13l-3-3M20 16H7l3 3" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Transferências',
+    desc: 'Envie dinheiro entre contas.',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M4 12h13l-3-3M20 12H7" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Webhooks',
+    desc: 'Reaja a eventos em tempo real.',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
+        <circle cx="6" cy="17" r="2.2" stroke={RED} strokeWidth="1.8" />
+        <circle cx="18" cy="17" r="2.2" stroke={RED} strokeWidth="1.8" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Reembolsos',
+    desc: 'Devolva pagamentos.',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M20 11a8 8 0 10-1 5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M20 5v5h-5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
 ];
 
-// Capabilities deliberately deferred — never presented as usable.
-const NOT_AVAILABLE = [
-  'Chaves Live (bz_live_) e ativação de produção',
-  'Cobrança de pagamentos reais (money-in / money-out)',
-  'Webhooks de produção',
-  'Fluxos de verificação KYB',
-  'Ligação/execução de conta de negócio (merchant/business linking)',
-  'Liquidação (settlement)',
-  'Integração EMIS / Multicaixa Express e rails financeiros de produção',
-  'Acesso ao núcleo financeiro (Core)',
-  'Sessão única entre portais (cross-portal SSO)',
-];
-
-const SCOPES = [
-  'payments:read',
-  'payments:write',
-  'transfers:read',
-  'transfers:write',
-  'refunds:write',
-  'webhooks:read',
-  'webhooks:write',
-  'customers:read',
-];
-
-const ROLES: [string, string][] = [
-  ['Owner', 'Controlo total do workspace. Não pode ser removido se for o único Owner.'],
-  ['Admin', 'Gere membros e projetos; não pode alterar ou remover Owners.'],
-  ['Developer', 'Cria projetos e emite chaves Sandbox.'],
-  ['Finance', 'Acesso orientado a faturação (Sandbox).'],
-  ['Viewer', 'Acesso apenas de leitura.'],
-];
-
-// Preview of the FUTURE payment API — clearly marked as not yet available.
-const CHARGES_PREVIEW = `# Pré-visualização da futura API de pagamentos — AINDA NÃO DISPONÍVEL
-curl https://api.banzami.com/v1/charges \\
-  -H "Authorization: Bearer bz_test_sk_exemplo" \\
+// Exact designed payload. Preview of the FUTURE payments API — not callable today.
+const CURL_RAW = `curl -X POST https://api.banzami.com/v1/charges \\
+  -H "Authorization: Bearer sk_test_sua_chave_secreta" \\
   -H "Content-Type: application/json" \\
-  -d '{ "amount": 25000, "currency": "AOA", "description": "Pedido #123" }'`;
+  -d '{
+    "amount": 25000,
+    "currency": "AOA",
+    "description": "Pagamento do pedido #123",
+    "metadata": {
+      "order_id": "123"
+    }
+  }'`;
 
-const KEY_SHAPE = `# Uma chave publicável (segura no cliente) e uma secreta (apenas no servidor)
-bz_test_pk_XXXXXXXXXXXXXXXX   # publicável
-bz_test_sk_XXXXXXXXXXXXXXXX   # secreta — revelada uma única vez`;
+const S = { str: '#8ED6A8', key: '#F5A9A5', num: '#F0C98A' };
 
-function CodeBlock({ label, raw }: { label: string; raw: string }) {
+function CurlBlock() {
   const [copied, setCopied] = useState(false);
   const copy = () => {
-    // Clipboard only — no network. Guarded for environments without it.
-    navigator?.clipboard?.writeText(raw).then(
+    navigator?.clipboard?.writeText(CURL_RAW).then(
       () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1400);
@@ -89,56 +89,38 @@ function CodeBlock({ label, raw }: { label: string; raw: string }) {
     );
   };
   return (
-    <div style={{ background: CODE_BG, borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 50px -34px rgba(0,0,0,.5)' }}>
+    <div style={{ background: '#2A1E20', borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 50px -34px rgba(0,0,0,.5)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#E8434B' }} />
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#FBD2D0' }} />
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#5a4a4e' }} />
-        <span style={{ marginLeft: 6, fontFamily: mono, fontSize: 11.5, color: '#b8a4a6', fontWeight: 600 }}>{label}</span>
+        <span style={{ marginLeft: 6, fontFamily: mono, fontSize: 11.5, color: '#b8a4a6', fontWeight: 600 }}>cURL · criar cobrança · pré-visualização</span>
         <button
           type="button"
           onClick={copy}
+          className="bz-icobtn"
           style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
         >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+            <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#fff" strokeWidth="1.9" />
+            <path d="M5 15V5a2 2 0 012-2h8" stroke="#fff" strokeWidth="1.9" />
+          </svg>
           {copied ? 'Copiado' : 'Copiar'}
         </button>
       </div>
-      <pre style={{ margin: 0, padding: 20, fontFamily: mono, fontSize: 12.5, lineHeight: 1.7, color: '#EDE3E1', overflowX: 'auto', whiteSpace: 'pre' }}>{raw}</pre>
-    </div>
-  );
-}
-
-function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return (
-    <section id={id} style={{ scrollMarginTop: 96, marginBottom: 40 }}>
-      <h2 style={{ margin: '0 0 12px', fontSize: 22, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>{title}</h2>
-      {children}
-    </section>
-  );
-}
-
-const P = ({ children, style }: { children: ReactNode; style?: React.CSSProperties }) => (
-  <p style={{ margin: '0 0 12px', fontSize: 14.5, lineHeight: 1.65, color: '#5a4a4e', fontWeight: 500, maxWidth: 640, ...style }}>{children}</p>
-);
-
-const UL = ({ children }: { children: ReactNode }) => (
-  <ul style={{ margin: '0 0 14px', padding: '0 0 0 18px', maxWidth: 640, display: 'flex', flexDirection: 'column', gap: 6 }}>{children}</ul>
-);
-const LI = ({ children }: { children: ReactNode }) => (
-  <li style={{ fontSize: 14, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>{children}</li>
-);
-const Code = ({ children }: { children: ReactNode }) => (
-  <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>{children}</code>
-);
-
-function Callout({ tone = 'info', children }: { tone?: 'info' | 'warn'; children: ReactNode }) {
-  const c =
-    tone === 'warn'
-      ? { bg: '#FDF3E2', bd: '#F7E4CB', fg: '#B8770A' }
-      : { bg: '#FFF1F0', bd: '#F7DAD7', fg: '#9A1B22' };
-  return (
-    <div style={{ background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 14, padding: '14px 16px', margin: '0 0 16px', maxWidth: 640 }}>
-      <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: c.fg, fontWeight: 700 }}>{children}</p>
+      <pre style={{ margin: 0, padding: 20, fontFamily: mono, fontSize: 12.5, lineHeight: 1.75, color: '#EDE3E1', overflowX: 'auto' }}>
+        <span style={{ color: S.key }}>curl</span> -X POST <span style={{ color: S.str }}>https://api.banzami.com/v1/charges</span> {'\\'}
+        {'\n'}  -H <span style={{ color: S.str }}>&quot;Authorization: Bearer sk_test_sua_chave_secreta&quot;</span> {'\\'}
+        {'\n'}  -H <span style={{ color: S.str }}>&quot;Content-Type: application/json&quot;</span> {'\\'}
+        {'\n'}  -d &apos;{'{'}
+        {'\n'}    <span style={{ color: S.key }}>&quot;amount&quot;</span>: <span style={{ color: S.num }}>25000</span>,
+        {'\n'}    <span style={{ color: S.key }}>&quot;currency&quot;</span>: <span style={{ color: S.str }}>&quot;AOA&quot;</span>,
+        {'\n'}    <span style={{ color: S.key }}>&quot;description&quot;</span>: <span style={{ color: S.str }}>&quot;Pagamento do pedido #123&quot;</span>,
+        {'\n'}    <span style={{ color: S.key }}>&quot;metadata&quot;</span>: {'{'}
+        {'\n'}      <span style={{ color: S.key }}>&quot;order_id&quot;</span>: <span style={{ color: S.str }}>&quot;123&quot;</span>
+        {'\n'}    {'}'}
+        {'\n'}  {'}'}&apos;
+      </pre>
     </div>
   );
 }
@@ -158,22 +140,9 @@ const backLinkStyle: React.CSSProperties = {
 export default function DocsPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#FFF9F8', display: 'flex', flexDirection: 'column' }}>
-      {/* Sandbox status banner — always visible */}
-      <div
-        role="status"
-        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, flexWrap: 'wrap', padding: '9px 16px', background: '#FDF3E2', borderBottom: '1px solid #F7E4CB', fontSize: 13, fontWeight: 700, color: '#B8770A', textAlign: 'center' }}
-      >
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#E0930F' }} />
-          SANDBOX
-        </span>
-        <span style={{ fontWeight: 600 }}>
-          Plataforma de developers em ambiente de testes — apenas chaves de teste, sem dinheiro real, sem ativação de produção.
-        </span>
-      </div>
-
-      {/* Public header: back to banzami.com + brand + back to Console login */}
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1160, width: '100%', margin: '0 auto' }}>
+      {/* Minimal public header — replaces the console shell chrome. Back to the
+          public site + enter the Console. (No full-width Sandbox banner.) */}
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1200, width: '100%', margin: '0 auto' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
           <a href={BANZAMI_URL} aria-label="Voltar ao Banzami" className="bz-toplink" style={backLinkStyle}>
             <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
@@ -192,198 +161,72 @@ export default function DocsPage() {
         </a>
       </header>
 
-      <main style={{ flex: 1, maxWidth: 1160, width: '100%', margin: '0 auto', padding: '10px 28px 64px' }}>
-        <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 34, alignItems: 'start' }}>
-          {/* Docs section nav (sticky) */}
-          <aside style={{ position: 'sticky', top: 20 }}>
+      <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 60px' }}>
+        <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 26, alignItems: 'start' }}>
+          {/* Docs sidebar (sticky) — the seven designed items */}
+          <aside style={{ position: 'sticky', top: 24 }}>
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#a89a9e' }}>DOCUMENTAÇÃO</p>
-            <nav aria-label="Secções da documentação" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {SECTIONS.map((s, i) => (
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {DOC_NAV.map((n, i) => (
                 <a
-                  key={s.id}
-                  href={`#${s.id}`}
-                  className="bz-toplink"
+                  key={n}
+                  href="#introducao"
                   style={{ padding: '8px 12px', borderRadius: 10, background: i === 0 ? '#FFF1F0' : 'transparent', color: i === 0 ? RED : '#6a5a5e', fontSize: 13.5, fontWeight: i === 0 ? 800 : 700, textDecoration: 'none' }}
                 >
-                  {s.label}
+                  {n}
                 </a>
               ))}
             </nav>
           </aside>
 
-          <article style={{ minWidth: 0 }}>
-            <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Documentação</h1>
-            <p style={{ margin: '0 0 30px', fontSize: 15.5, color: MUT, fontWeight: 600, maxWidth: 640 }}>
-              Guia da plataforma de developers do Banzami. Tudo aqui descreve o ambiente <strong>Sandbox</strong>.
+          <div id="introducao" style={{ minWidth: 0 }}>
+            <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Introdução</h1>
+            <p style={{ margin: '10px 0 24px', fontSize: 15, color: '#8a7a7e', fontWeight: 600, maxWidth: 560 }}>
+              Comece a integrar Banzami em poucos minutos. Todas as chamadas usam o ambiente Sandbox por defeito.
             </p>
 
-            <Section id="overview" title="Visão geral">
-              <P>
-                O <strong>Banzami Developers</strong> é a plataforma onde as equipas exploram a integração de pagamentos
-                em Kwanza (AOA) do Banzami. Hoje é um <strong>ambiente Sandbox</strong>: serve para testar e integrar,
-                não para movimentar dinheiro real.
-              </P>
-              <Callout tone="warn">
-                Estado atual: <strong>Sandbox · plataforma de developers · apenas chaves de teste (bz_test_) · sem dinheiro
-                real · sem ativação de produção.</strong>
-              </Callout>
-              <P>O que pode testar já hoje, na Consola Sandbox:</P>
-              <UL>
-                <LI>Entrar com email e código (OTP) — sem palavra-passe.</LI>
-                <LI>Criar um workspace e convidar a equipa.</LI>
-                <LI>Criar um projeto Sandbox.</LI>
-                <LI>Emitir, rodar e revogar chaves de API de teste.</LI>
-              </UL>
-              <P>
-                As APIs de pagamento que consomem estas chaves estão em preparação e ainda não estão disponíveis — ver
-                <a href="#limitations" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}> Ambiente e limitações</a>.
-              </P>
-            </Section>
-
-            <Section id="getting-started" title="Começar">
-              <P>Não precisa de empresa registada, documentos KYC nem de falar com ninguém para explorar o Sandbox.</P>
-              <UL>
-                <LI>Aceda à Consola em <Code>developers.banzami.com/login</Code> e introduza o seu email.</LI>
-                <LI>Receba um código de verificação de 6 dígitos por email e confirme.</LI>
-                <LI>Crie um <strong>workspace</strong> para a sua equipa.</LI>
-                <LI>Crie um <strong>projeto Sandbox</strong>.</LI>
-                <LI>Crie uma <strong>chave de API de teste</strong>.</LI>
-              </UL>
-              <Callout tone="warn">
-                A chave <strong>secreta</strong> é revelada <strong>uma única vez</strong>, no momento da criação. Copie-a
-                e guarde-a num local seguro. Se a perder, não é possível voltar a mostrá-la — rode a chave para gerar uma nova.
-              </Callout>
-              <CodeBlock label="chaves de teste" raw={KEY_SHAPE} />
-            </Section>
-
-            <Section id="auth" title="Autenticação e sessões">
-              <P>
-                A autenticação é por <strong>email + código (OTP)</strong>. Introduz o email, recebe um código de 6 dígitos
-                e confirma. Não há palavra-passe, telefone nem login social.
-              </P>
-              <UL>
-                <LI>A sessão do navegador é gerida por cookies seguros (HttpOnly, apenas para o host da Consola) e protegida contra CSRF.</LI>
-                <LI>O programador <strong>não</strong> manipula tokens de sessão nem códigos OTP em bruto — o navegador e a Consola tratam disso.</LI>
-                <LI>Nunca cole códigos OTP nem cookies de sessão em código, logs ou capturas de ecrã.</LI>
-              </UL>
-            </Section>
-
-            <Section id="api-keys" title="Chaves de API Sandbox">
-              <P>
-                Só são emitidas chaves de teste. Cada chave tem um prefixo que indica o tipo e o ambiente:
-              </P>
-              <UL>
-                <LI><Code>bz_test_pk_</Code> — chave <strong>publicável</strong> (identificador, seguro no cliente).</LI>
-                <LI><Code>bz_test_sk_</Code> — chave <strong>secreta</strong> (apenas no servidor).</LI>
-              </UL>
-              <P>Cada chave transporta um conjunto fechado de <strong>scopes</strong> (privilégio mínimo):</P>
-              <UL>
-                {SCOPES.map((s) => (
-                  <LI key={s}><Code>{s}</Code></LI>
-                ))}
-              </UL>
-              <UL>
-                <LI><strong>Rotação:</strong> invalida a chave atual e gera uma nova.</LI>
-                <LI><strong>Revogação:</strong> desativa a chave imediatamente.</LI>
-                <LI><strong>Revelar uma vez:</strong> o valor secreto aparece só na criação.</LI>
-              </UL>
-              <Callout>
-                Nunca publique chaves <strong>secretas</strong> em código de frontend, browser ou mobile. As chaves secretas
-                são exclusivamente de servidor.
-              </Callout>
-            </Section>
-
-            <Section id="projects" title="Projetos e workspaces">
-              <P>
-                Um <strong>workspace</strong> agrupa a sua equipa e os seus projetos. Um <strong>projeto</strong> vive dentro
-                de um workspace e é sempre <strong>Sandbox</strong> — não existem projetos Live.
-              </P>
-              <P>Papéis do workspace:</P>
-              <UL>
-                {ROLES.map(([r, d]) => (
-                  <LI key={r}><strong>{r}</strong> — {d}</LI>
-                ))}
-              </UL>
-              <UL>
-                <LI>Criar projetos e emitir chaves: Owner, Admin e Developer.</LI>
-                <LI>Gerir membros: Owner e Admin.</LI>
-                <LI><strong>Proteção do último Owner:</strong> não é possível remover nem despromover o único Owner.</LI>
-              </UL>
-            </Section>
-
-            <Section id="api-reference" title="Referência de API">
-              <P>
-                O Banzami é <strong>SDK-first</strong>: a integração oficial faz-se através dos SDKs (servidor: TypeScript/Node,
-                PHP, Python, Go; cliente: Flutter, JavaScript). As chaves secretas usam-se apenas no servidor.
-              </P>
-              <Callout tone="warn">
-                As APIs de pagamento (cobranças, transferências, reembolsos, webhooks) são a superfície de integração
-                <strong> futura</strong> e <strong>ainda não estão disponíveis</strong>. O host <Code>api.banzami.com</Code> é
-                o <strong>endpoint público de integração planeado</strong> para essa capacidade futura — não é uma API
-                disponível nem chamável hoje. O exemplo abaixo é apenas uma pré-visualização do formato previsto.
-              </Callout>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 12px' }}>
-                {['Pré-visualização', 'Ainda não disponível', 'Sandbox sem pagamentos reais'].map((t) => (
-                  <span
-                    key={t}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 11px', borderRadius: 30, background: '#FDF3E2', border: '1px solid #F7E4CB', fontSize: 12, fontWeight: 800, color: '#B8770A' }}
-                  >
-                    <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: '#E0930F' }} />
-                    {t}
+            {/* 2×2 capability cards — designed treatment, with a native "Em breve"
+                badge because these APIs are not yet available. */}
+            <div className="bz-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 26 }}>
+              {CARDS.map((c) => (
+                <div
+                  key={c.title}
+                  style={{ position: 'relative', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 16, padding: 18, boxShadow: '0 14px 40px -34px rgba(181,16,31,.35)' }}
+                >
+                  <span style={{ position: 'absolute', top: 14, right: 14, padding: '3px 9px', borderRadius: 30, background: '#FDF3E2', border: '1px solid #F7E4CB', fontSize: 10, fontWeight: 800, letterSpacing: '.02em', color: '#B8770A' }}>
+                    Em breve
                   </span>
-                ))}
+                  <span style={{ width: 34, height: 34, borderRadius: 10, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, color: RED }}>
+                    {c.icon}
+                  </span>
+                  <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: INK }}>{c.title}</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 600 }}>{c.desc}</p>
+                </div>
+              ))}
+            </div>
+
+            <p style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 900, color: INK }}>Exemplo rápido</p>
+            <p style={{ margin: '0 0 12px', fontSize: 12.5, color: '#a08a8c', fontWeight: 600, maxWidth: 560 }}>
+              Pré-visualização da futura API de pagamentos. <code style={{ fontFamily: mono, fontSize: 12 }}>api.banzami.com</code> é o
+              endpoint público de integração planeado — ainda não disponível hoje e sem dinheiro real (Sandbox).
+            </p>
+            <CurlBlock />
+
+            {/* Blush help card */}
+            <div style={{ marginTop: 22, display: 'flex', alignItems: 'center', gap: 14, background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 16, padding: '18px 20px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: INK }}>Precisa de ajuda?</p>
+                <p style={{ margin: '3px 0 0', fontSize: 13, color: '#a08a8c', fontWeight: 600 }}>A nossa equipa de suporte está disponível.</p>
               </div>
-              <CodeBlock label="pré-visualização · api.banzami.com · ainda não disponível" raw={CHARGES_PREVIEW} />
-              <P>
-                A gestão de conta, workspaces, projetos e chaves é feita pela própria Consola Sandbox. Essas rotas internas
-                de gestão não fazem parte de um contrato público para integração direta e não são documentadas para chamada
-                por terceiros.
-              </P>
-            </Section>
-
-            <Section id="errors" title="Erros e segurança">
-              <P>Estados de resposta que pode encontrar na Consola Sandbox:</P>
-              <UL>
-                <LI><strong>400</strong> — pedido inválido (validação).</LI>
-                <LI><strong>401</strong> — não autenticado; a sessão expirou, inicie sessão novamente.</LI>
-                <LI><strong>403</strong> — sem permissão (autorização ou verificação CSRF).</LI>
-                <LI><strong>409</strong> — conflito; inclui a proteção do último Owner.</LI>
-                <LI><strong>410</strong> — convite inválido, expirado ou já usado.</LI>
-                <LI><strong>429</strong> — demasiados pedidos (limite de taxa); tente novamente daqui a pouco.</LI>
-                <LI><strong>Código OTP inválido</strong> — volte a introduzir ou peça um novo código.</LI>
-                <LI><strong>Chave revogada</strong> — emita uma nova chave de teste.</LI>
-              </UL>
-              <Callout>
-                Trate as chaves secretas como palavras-passe. Nunca coloque chaves secretas, códigos OTP, cookies de sessão
-                ou tokens em logs, mensagens de erro ou capturas de ecrã.
-              </Callout>
-            </Section>
-
-            <Section id="limitations" title="Ambiente e limitações atuais">
-              <P>
-                Todo o ambiente é <strong>Sandbox</strong>. Os pagamentos são simulados — <strong>nenhum dinheiro real</strong> se
-                move. Não existe rota nem ativação de produção.
-              </P>
-              <P style={{ fontWeight: 800, color: INK }}>Ainda não disponível (deliberadamente adiado):</P>
-              <UL>
-                {NOT_AVAILABLE.map((x) => (
-                  <LI key={x}>{x}</LI>
-                ))}
-              </UL>
-              <P>Estas capacidades estão planeadas para mais tarde e não estão acessíveis nesta fase.</P>
-            </Section>
-
-            {/* Footer: repeat the required navigation back to site + Console */}
-            <footer style={{ marginTop: 8, paddingTop: 20, borderTop: '1px solid #F2E2E0', display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center' }}>
-              <a href={BANZAMI_URL} className="bz-toplink" style={backLinkStyle}>
-                <span aria-hidden="true">←</span> Voltar ao Banzami
+              <a
+                href="/suporte"
+                className="bz-cta"
+                style={{ padding: '11px 18px', border: 'none', borderRadius: 12, background: 'linear-gradient(160deg,#B5101F,#7C1016)', color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', textDecoration: 'none', boxShadow: '0 12px 24px -12px rgba(181,16,31,.5)' }}
+              >
+                Abrir suporte
               </a>
-              <a href="/login" className="bz-toplink" style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
-                Entrar na Consola <span aria-hidden="true">→</span>
-              </a>
-              <a href="/suporte" className="bz-toplink" style={backLinkStyle}>Suporte</a>
-            </footer>
-          </article>
+            </div>
+          </div>
         </div>
       </main>
     </div>
