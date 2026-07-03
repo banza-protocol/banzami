@@ -135,6 +135,7 @@ fn refund_body(seed: &Seed, amount: i64, key: &str) -> refunds::CreateRefundBody
         transaction_id: Some(seed.transaction_id.to_string()),
         merchant_id: seed.merchant_id.to_string(),
         amount_minor: amount,
+        currency: Some("AOA".into()),
         reason: Some("test".into()),
         idempotency_key: key.to_string(),
     }
@@ -218,6 +219,7 @@ fn wp_refund_body(s: &WalletPaymentSeed, amount: i64, key: &str) -> refunds::Cre
         transaction_id: None,
         merchant_id: s.merchant_id.to_string(),
         amount_minor: amount,
+        currency: Some("AOA".into()),
         reason: Some("wallet-native refund".into()),
         idempotency_key: key.to_string(),
     }
@@ -478,6 +480,7 @@ async fn p2p_transfer_is_not_refundable(pool: PgPool) {
         transaction_id: None,
         merchant_id: Uuid::new_v4().to_string(),
         amount_minor: 100,
+        currency: Some("AOA".into()),
         reason: None,
         idempotency_key: "p2p".into(),
     };
@@ -734,6 +737,8 @@ async fn won_by_consumer_posts_balanced_refund(pool: PgPool) {
 
     let d = open_dispute(&state, seed.transaction_id, consumer).await;
     let did = Uuid::parse_str(&d.id).unwrap();
+    // ADR-030 §5: an acquiring (transaction) restitution credits transit, not a wallet.
+    let transit = state.transit_account_id.as_uuid();
 
     let _ = disputes::resolve(
         State(state),
@@ -758,21 +763,19 @@ async fn won_by_consumer_posts_balanced_refund(pool: PgPool) {
     assert_eq!(credit, 2_000, "consumer credited the disputed amount");
     assert_eq!(debit, credit, "no money creation: debits == credits");
 
-    // Consumer receives the credit on their available account.
-    let consumer_credit = sqlx::query_scalar::<_, i64>(
+    // Source-aware (ADR-030 §5): the acquiring restitution credit lands on transit.
+    let transit_credit = sqlx::query_scalar::<_, i64>(
         "SELECT COALESCE(SUM(e.amount_minor),0)::BIGINT FROM ledger_entries e
          JOIN ledger_postings p ON p.id = e.posting_id
          WHERE p.idempotency_key = $1 AND e.entry_type='CREDIT' AND e.account_id = $2",
     )
     .bind(&key)
-    .bind(c_avail)
+    .bind(transit)
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(
-        consumer_credit, 2_000,
-        "credit lands on consumer available account"
-    );
+    assert_eq!(transit_credit, 2_000, "acquiring restitution credit lands on transit");
+    let _ = (c_avail, c_reserved);
 }
 
 // Auditability: opening and resolving a dispute both write immutable audit-log
@@ -847,4 +850,240 @@ async fn dispute_emits_opened_and_resolved_events(pool: PgPool) {
         webhook_events_for(&pool, "dispute.opened", Uuid::new_v4()).await,
         0
     );
+}
+
+// ═══════════════ ADR-034 — shared restitution ceiling (Workstream B) ═══════════════
+
+async fn alloc_sum(pool: &PgPool, st: &str, sid: Uuid) -> i64 {
+    sqlx::query_scalar::<_, i64>(
+        "SELECT COALESCE(SUM(amount_minor),0)::BIGINT FROM restitution_allocations
+         WHERE source_type = $1 AND source_id = $2",
+    )
+    .bind(st)
+    .bind(sid)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+async fn seed_proof(pool: &PgPool, tx: Uuid) {
+    sqlx::query(
+        "INSERT INTO transaction_proofs (proof_reference, transaction_id, environment, amount_minor, currency, status)
+         VALUES ($1, $2, 'SANDBOX', 1000, 'AOA', 'CONFIRMED')",
+    )
+    .bind(format!("BZM-{}", &Uuid::new_v4().to_string()[..8]))
+    .bind(tx.to_string())
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+async fn proof_status(pool: &PgPool, tx: Uuid) -> String {
+    sqlx::query_scalar::<_, String>("SELECT status FROM transaction_proofs WHERE transaction_id = $1")
+        .bind(tx.to_string())
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+fn resolve_body() -> disputes::ResolveDisputeBody {
+    disputes::ResolveDisputeBody {
+        outcome: "WON_BY_CONSUMER".into(),
+        resolution_notes: None,
+        resolved_by: Uuid::new_v4().to_string(),
+    }
+}
+
+async fn dispute_restitution(pool: &PgPool, did: Uuid) -> (Option<i64>, Option<String>, String) {
+    sqlx::query_as::<_, (Option<i64>, Option<String>, String)>(
+        "SELECT restitution_amount_minor, restitution_reason, status FROM disputes WHERE id = $1",
+    )
+    .bind(did)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+// Source-derived currency: a supplied currency that differs from the source is rejected.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_rejects_currency_mismatch(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let mut body = refund_body(&seed, 500, "cm");
+    body.currency = Some("USD".into());
+    let err = refunds::create(State(state), Json(body)).await.expect_err("mismatch");
+    assert_eq!(err.code, "CURRENCY_MISMATCH");
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 0, "no allocation on rejection");
+}
+
+// A source_type of TRANSFER is never a valid refund source.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn transfer_source_type_rejected(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let mut body = refund_body(&seed, 500, "tf");
+    body.source_type = Some("TRANSFER".into());
+    body.source_id = Some(seed.transaction_id.to_string());
+    let err = refunds::create(State(state), Json(body)).await.expect_err("transfer rejected");
+    assert_eq!(err.code, "BAD_REQUEST");
+}
+
+// Reusing an idempotency key with a different amount is a conflict (not a silent replay).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_idempotency_conflict_on_incompatible_reuse(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "dup"))).await.unwrap();
+    let err = refunds::create(State(state), Json(refund_body(&seed, 500, "dup"))).await.expect_err("conflict");
+    assert_eq!(err.code, "IDEMPOTENCY_KEY_CONFLICT");
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 400, "only the original allocation");
+}
+
+// A rejected over-refund leaves NO allocation, NO posting and NO refund row.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn rejected_refund_leaves_no_partial_mutation(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let err = refunds::create(State(state), Json(refund_body(&seed, 1_500, "over"))).await.expect_err("over");
+    assert_eq!(err.code, "REFUND_EXCEEDS_CAPTURED");
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 0);
+    let refunds_n: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM refunds WHERE source_id = $1")
+        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(refunds_n, 0, "no refund row");
+}
+
+// Combined ceiling: refund then dispute — the dispute restitutes only the remaining.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_then_dispute_shares_ceiling(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 600, "r"))).await.unwrap();
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let did = Uuid::parse_str(&d.id).unwrap();
+    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "combined never exceeds captured");
+    let (ra, reason, status) = dispute_restitution(&pool, did).await;
+    assert_eq!(ra, Some(400), "dispute restitutes the remaining 400");
+    assert_eq!(reason.as_deref(), Some("PARTIALLY_REFUNDED_NET_SETTLED"));
+    assert_eq!(status, "WON_BY_CONSUMER");
+}
+
+// Fully refunded, then consumer wins the dispute: zero additional restitution, still WON.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fully_refunded_then_dispute_zero_restitution(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 1_000, "full"))).await.unwrap();
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let did = Uuid::parse_str(&d.id).unwrap();
+    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
+
+    // (1) NO restitution_allocations row for this dispute.
+    let dispute_allocs: i64 = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM restitution_allocations WHERE origin='DISPUTE' AND origin_id=$1",
+    )
+    .bind(did).fetch_one(&pool).await.unwrap();
+    assert_eq!(dispute_allocs, 0, "zero-restitution dispute creates NO allocation row");
+
+    // (2) NO financial posting.
+    assert_eq!(count_postings(&pool, &format!("dispute-refund-{did}")).await, 0, "no dispute posting");
+
+    // (3)+(4)+(5) restitution_amount_minor = 0, ALREADY_MADE_WHOLE, outcome persisted
+    // atomically (all three fields consistent in the single committed dispute row).
+    let (ra, reason, status) = dispute_restitution(&pool, did).await;
+    assert_eq!(ra, Some(0), "restitution_amount_minor = 0");
+    assert_eq!(reason.as_deref(), Some("ALREADY_MADE_WHOLE"));
+    assert_eq!(status, "WON_BY_CONSUMER", "dispute outcome persisted, not misrepresented as failed");
+
+    // The combined ceiling still holds — only the earlier full refund counts.
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "≤ captured, refund only");
+}
+
+// Dispute won (full), then a later refund is rejected — nothing remains.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn dispute_then_refund_rejected(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let _ = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
+    let err = refunds::create(State(state), Json(refund_body(&seed, 100, "late"))).await.expect_err("nothing left");
+    assert_eq!(err.code, "REFUND_EXCEEDS_CAPTURED");
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000);
+}
+
+// Concurrency: two parallel refunds can never over-restitute (advisory lock serializes).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_refunds_never_over_restitute(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let f1 = refunds::create(State(state.clone()), Json(refund_body(&seed, 600, "a")));
+    let f2 = refunds::create(State(state.clone()), Json(refund_body(&seed, 600, "b")));
+    let (r1, r2) = tokio::join!(f1, f2);
+    let oks = [r1.is_ok(), r2.is_ok()].iter().filter(|x| **x).count();
+    assert_eq!(oks, 1, "exactly one of two 600 refunds succeeds against a 1000 cap");
+    assert!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await <= 1_000, "never over captured");
+}
+
+// Concurrency: a refund and a dispute race on one source — combined stays ≤ captured.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_refund_and_dispute_share_ceiling(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let f_refund = refunds::create(State(state.clone()), Json(refund_body(&seed, 700, "rc")));
+    let f_dispute = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body()));
+    let (_r, _d) = tokio::join!(f_refund, f_dispute);
+    assert!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await <= 1_000, "combined never exceeds captured");
+}
+
+// Concurrency: two parallel resolves of one dispute produce a single posting.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_dispute_resolves_single_posting(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let did = Uuid::parse_str(&d.id).unwrap();
+    let f1 = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body()));
+    let f2 = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body()));
+    let _ = tokio::join!(f1, f2);
+    assert_eq!(count_postings(&pool, &format!("dispute-refund-{did}")).await, 1, "single dispute posting");
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000);
+}
+
+// Proof: partial restitution keeps CONFIRMED; full cumulative → REVERSED (no PARTIALLY_REVERSED).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn proof_confirmed_on_partial_reversed_on_full(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    seed_proof(&pool, seed.transaction_id).await;
+
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "p1"))).await.unwrap();
+    assert_eq!(proof_status(&pool, seed.transaction_id).await, "CONFIRMED", "partial keeps CONFIRMED");
+
+    let _ = refunds::create(State(state), Json(refund_body(&seed, 600, "p2"))).await.unwrap();
+    assert_eq!(proof_status(&pool, seed.transaction_id).await, "REVERSED", "full cumulative → REVERSED");
+}
+
+// Operator-facing separation: a refund is a refund, a dispute is a dispute — never crossed.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_and_dispute_remain_separate(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 500, "sep"))).await.unwrap();
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
+
+    let refunds_n: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM refunds WHERE source_id = $1")
+        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    let disputes_n: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM disputes WHERE source_id = $1")
+        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    let alloc_refund: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM restitution_allocations WHERE origin='REFUND' AND source_id=$1")
+        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    let alloc_dispute: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM restitution_allocations WHERE origin='DISPUTE' AND source_id=$1")
+        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(refunds_n, 1, "one refund object");
+    assert_eq!(disputes_n, 1, "one dispute object");
+    assert_eq!(alloc_refund, 1, "one REFUND allocation");
+    assert_eq!(alloc_dispute, 1, "one DISPUTE allocation");
+    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "combined ≤ captured");
 }

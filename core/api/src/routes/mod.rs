@@ -39,6 +39,7 @@ pub mod payouts;
 pub mod qr;
 pub mod reconciliation;
 pub mod refunds;
+pub mod restitution;
 #[cfg(test)]
 mod refunds_disputes_tests;
 pub mod risk;

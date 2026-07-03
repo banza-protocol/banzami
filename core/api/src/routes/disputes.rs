@@ -5,11 +5,12 @@ use axum::{
 };
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::Row;
 use uuid::Uuid;
 
 use crate::{
     error::{ApiError, ApiResult},
-    routes::risk,
+    routes::{restitution, risk},
     state::AppState,
 };
 
@@ -122,22 +123,25 @@ pub async fn open(
     let dispute_id = Uuid::new_v4();
     let evidence_deadline = Utc::now() + Duration::days(7);
 
-    sqlx::query!(
+    // Every dispute references a typed payment source (BANZA disputes.md §41-43,
+    // mirroring refund ADR-030). Disputes opened here are acquiring/transaction
+    // disputes, so the source is the transaction itself.
+    sqlx::query(
         r#"
         INSERT INTO disputes
-            (id, transaction_id, merchant_id, consumer_id, amount_minor, currency,
-             reason, status, evidence_deadline)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 'OPEN', $8)
+            (id, transaction_id, source_type, source_id, merchant_id, consumer_id,
+             amount_minor, currency, reason, status, evidence_deadline)
+        VALUES ($1, $2, 'TRANSACTION', $2, $3, $4, $5, $6, $7, 'OPEN', $8)
         "#,
-        dispute_id,
-        transaction_id,
-        merchant_id,
-        consumer_id,
-        amount_minor,
-        currency,
-        body.reason.trim(),
-        evidence_deadline,
     )
+    .bind(dispute_id)
+    .bind(transaction_id)
+    .bind(merchant_id)
+    .bind(consumer_id)
+    .bind(amount_minor)
+    .bind(&currency)
+    .bind(body.reason.trim())
+    .bind(evidence_deadline)
     .execute(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
@@ -391,136 +395,149 @@ pub async fn resolve(
         ));
     }
 
-    let dispute = sqlx::query!(
-        r#"
-        SELECT id, transaction_id, merchant_id, consumer_id, amount_minor, currency, status
-        FROM disputes
-        WHERE id = $1
-        "#,
-        dispute_id,
+    // Runtime query — reads the source-typed columns (0097).
+    let d = sqlx::query(
+        "SELECT merchant_id, consumer_id, amount_minor, currency, status, source_type, source_id
+         FROM disputes WHERE id = $1",
     )
+    .bind(dispute_id)
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("dispute not found"))?;
 
-    if ["WON_BY_CONSUMER", "WON_BY_MERCHANT", "CLOSED"].contains(&dispute.status.as_str()) {
+    let d_status: String = d.get("status");
+    if ["WON_BY_CONSUMER", "WON_BY_MERCHANT", "CLOSED"].contains(&d_status.as_str()) {
         return Err(ApiError::unprocessable(
             "DISPUTE_ALREADY_RESOLVED",
             "dispute is already resolved",
         ));
     }
 
+    let merchant_id: Uuid = d.get("merchant_id");
+    let consumer_id: Uuid = d.get("consumer_id");
+    let claim_amount: i64 = d.get("amount_minor");
+    let currency: String = d.get("currency");
+    let source_type: String = d.get("source_type");
+    let source_id: Uuid = d.get("source_id");
     let now = Utc::now();
 
-    // If consumer wins, issue a refund posting (merchant DR, consumer CR)
+    let mut restitution_amount: i64 = 0;
+    let mut restitution_reason: Option<String> = None;
+    let mut fully_reversed = false;
+    let mut restitution_tx_id: Option<Uuid> = None;
+
     if body.outcome == "WON_BY_CONSUMER" {
-        let ledger_key = format!("dispute-refund-{dispute_id}");
-
-        let merchant_account: Option<Uuid> = sqlx::query_scalar!(
-            r#"
-            SELECT available_account_id FROM wallets
-            WHERE merchant_id = $1 AND currency = $2 AND status = 'ACTIVE'
-            LIMIT 1
-            "#,
-            dispute.merchant_id,
-            dispute.currency,
-        )
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
-
-        let consumer_account: Option<Uuid> = sqlx::query_scalar!(
-            r#"
-            SELECT cw.available_account_id
-            FROM consumer_wallets cw
-            WHERE cw.consumer_id = $1 AND cw.currency = $2 AND cw.status = 'ACTIVE'
-            "#,
-            dispute.consumer_id,
-            dispute.currency,
-        )
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
-
-        if let (Some(ma), Some(ca)) = (merchant_account, consumer_account) {
-            let posting_id = Uuid::new_v4();
-            sqlx::query!(
-                "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
-                 VALUES ($1, $2, $3, $4) ON CONFLICT (idempotency_key) DO NOTHING",
-                posting_id,
-                format!("dispute-refund:{dispute_id}"),
-                ledger_key,
-                now,
-            )
-            .execute(&state.pool)
-            .await
-            .ok();
-
-            let pid: Uuid = sqlx::query_scalar!(
-                "SELECT id FROM ledger_postings WHERE idempotency_key = $1",
-                ledger_key,
-            )
-            .fetch_one(&state.pool)
+        // Source-aware restitution through the SHARED ceiling (Banzami ADR-034).
+        // A dispute restitutes only the remaining capped amount — 0 if prior
+        // refunds already made the consumer whole. The consumer STILL WINS.
+        let mut tx = state
+            .pool
+            .begin()
             .await
             .map_err(|e| ApiError::internal(e.to_string()))?;
+        let result = restitution::apply_restitution(
+            &mut tx,
+            restitution::ApplyParams {
+                source_type: source_type.clone(),
+                source_id,
+                merchant_id,
+                amount_minor: claim_amount,
+                supplied_currency: currency.clone(),
+                origin: restitution::Origin::Dispute,
+                origin_id: dispute_id,
+                idempotency_key: format!("dispute-{dispute_id}"),
+                over_ceiling: restitution::OverCeiling::CapToRemaining,
+                posting_key: format!("dispute-refund-{dispute_id}"),
+                posting_description: format!("dispute-refund:{dispute_id}"),
+                transit_account_id: state.transit_account_id.as_uuid(),
+            },
+        )
+        .await
+        .map_err(map_dispute_restitution_err)?;
 
-            sqlx::query!(
-                "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-                 VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6) ON CONFLICT DO NOTHING",
-                Uuid::new_v4(), pid, ma, dispute.amount_minor, dispute.currency, now,
-            ).execute(&state.pool).await.ok();
+        restitution_amount = result.effective_amount;
+        fully_reversed = result.fully_reversed;
+        restitution_tx_id = result.transaction_id;
+        restitution_reason = Some(if restitution_amount == 0 {
+            "ALREADY_MADE_WHOLE".to_string()
+        } else if restitution_amount < claim_amount {
+            "PARTIALLY_REFUNDED_NET_SETTLED".to_string()
+        } else {
+            "FULL_RESTITUTION".to_string()
+        });
 
-            sqlx::query!(
-                "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-                 VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6) ON CONFLICT DO NOTHING",
-                Uuid::new_v4(), pid, ca, dispute.amount_minor, dispute.currency, now,
-            ).execute(&state.pool).await.ok();
-        }
+        sqlx::query(
+            "UPDATE disputes SET status = $1, resolution_notes = $2, resolved_by = $3,
+                resolved_at = $4, updated_at = $4,
+                restitution_amount_minor = $5, restitution_reason = $6
+             WHERE id = $7",
+        )
+        .bind(&body.outcome)
+        .bind(&body.resolution_notes)
+        .bind(resolved_by)
+        .bind(now)
+        .bind(restitution_amount)
+        .bind(&restitution_reason)
+        .bind(dispute_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+        tx.commit()
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+    } else {
+        // No restitution — status transition only.
+        sqlx::query(
+            "UPDATE disputes SET status = $1, resolution_notes = $2, resolved_by = $3,
+                resolved_at = $4, updated_at = $4 WHERE id = $5",
+        )
+        .bind(&body.outcome)
+        .bind(&body.resolution_notes)
+        .bind(resolved_by)
+        .bind(now)
+        .bind(dispute_id)
+        .execute(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
     }
 
-    sqlx::query!(
-        r#"
-        UPDATE disputes
-        SET status = $1, resolution_notes = $2, resolved_by = $3,
-            resolved_at = $4, updated_at = $4
-        WHERE id = $5
-        "#,
-        body.outcome,
-        body.resolution_notes,
-        resolved_by,
-        now,
-        dispute_id,
-    )
-    .execute(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    // Proof correction (acquiring source): REVERSED only on full cumulative reversal.
+    if fully_reversed {
+        if let Some(tid) = restitution_tx_id {
+            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str()).await;
+        }
+    }
 
     risk::audit(
         &state.pool,
         "ADMIN",
         "DISPUTE_RESOLVED",
         &format!("dispute:{dispute_id}"),
-        serde_json::json!({ "outcome": body.outcome, "resolved_by": resolved_by }),
+        serde_json::json!({
+            "outcome": body.outcome,
+            "resolved_by": resolved_by,
+            "restitution_amount_minor": restitution_amount,
+            "restitution_reason": restitution_reason,
+        }),
         None,
     )
     .await;
 
-    // Emit dispute.resolved to the outbox (delivered to the affected merchant
-    // only). Idempotent on the dispute id — no duplicate on replay (a second
-    // resolve is rejected earlier as DISPUTE_ALREADY_RESOLVED).
     let _ = super::webhooks::emit(
         &state.pool,
-        dispute.merchant_id,
+        merchant_id,
         "dispute.resolved",
         &format!("dispute.resolved:{dispute_id}"),
         serde_json::json!({
             "dispute_id": dispute_id,
             "resolution": body.outcome,
-            "merchant_id": dispute.merchant_id,
-            "consumer_id": dispute.consumer_id,
-            "amount_minor": dispute.amount_minor,
-            "currency": dispute.currency,
+            "merchant_id": merchant_id,
+            "consumer_id": consumer_id,
+            "amount_minor": claim_amount,
+            "restitution_amount_minor": restitution_amount,
+            "currency": currency,
             "status": body.outcome,
             "trace_id": dispute_id,
             "resolved_at": now,
@@ -529,6 +546,34 @@ pub async fn resolve(
     .await;
 
     Ok(Json(fetch_dispute(&state.pool, dispute_id).await?))
+}
+
+fn map_dispute_restitution_err(e: restitution::RestitutionError) -> ApiError {
+    use restitution::RestitutionError::*;
+    match e {
+        SourceNotFound => ApiError::not_found("dispute source not found"),
+        NotAuthorized => ApiError::unprocessable(
+            "RESTITUTION_NOT_AUTHORIZED",
+            "source belongs to a different merchant",
+        ),
+        InvalidTransactionStatus(s) | InvalidPaymentStatus(s) => {
+            ApiError::unprocessable("SOURCE_NOT_ELIGIBLE", format!("source status {s} is not eligible"))
+        }
+        CurrencyMismatch { .. } => ApiError::unprocessable("CURRENCY_MISMATCH", "currency mismatch"),
+        AccountFrozen => ApiError::unprocessable("ACCOUNT_FROZEN", "merchant account is frozen"),
+        WalletNotFound => ApiError::unprocessable("WALLET_NOT_FOUND", "merchant wallet not found"),
+        ConsumerWalletNotFound => {
+            ApiError::unprocessable("CONSUMER_WALLET_NOT_FOUND", "payer wallet not found")
+        }
+        InvalidSourceType => ApiError::bad_request("invalid dispute source_type"),
+        IdempotencyKeyConflict => {
+            ApiError::conflict("IDEMPOTENCY_KEY_CONFLICT", "dispute restitution key conflict")
+        }
+        ExceedsCaptured { .. } => {
+            ApiError::unprocessable("RESTITUTION_EXCEEDS_CAPTURED", "restitution exceeds captured")
+        }
+        Db(m) => ApiError::internal(m),
+    }
 }
 
 // ---------------------------------------------------------------------------

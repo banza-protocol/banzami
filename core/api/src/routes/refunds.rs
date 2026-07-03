@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::{
     error::{ApiError, ApiResult},
-    routes::risk,
+    routes::{restitution, risk},
     state::AppState,
 };
 
@@ -54,23 +54,17 @@ pub struct CreateRefundBody {
     pub transaction_id: Option<String>,
     pub merchant_id: String,
     pub amount_minor: i64,
+    /// Validation assertion only (Banzami ADR-034). The authoritative refund
+    /// currency is the source's; a differing supplied currency is rejected.
+    pub currency: Option<String>,
     pub reason: Option<String>,
     pub idempotency_key: String,
 }
 
-/// The merchant/credit accounts and original amount resolved from a typed source.
-struct ResolvedSource {
-    merchant_wallet_id: Uuid,
-    merchant_account_id: Uuid,
-    /// Where the refund credit lands: transit (acquiring) or the payer's
-    /// consumer wallet (wallet-native).
-    credit_account_id: Uuid,
-    currency: String,
-    consumer_id: Option<Uuid>,
-    transaction_id: Option<Uuid>,
-    original_amount: i64,
-}
-
+/// A refund is a REFUND-origin restitution against a typed source: it routes
+/// through the single shared `apply_restitution` primitive (Banzami ADR-034), so
+/// the ceiling is shared with dispute restitution and enforced atomically. The
+/// refund object itself remains a distinct refund.
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateRefundBody>,
@@ -81,31 +75,15 @@ pub async fn create(
     if body.idempotency_key.is_empty() {
         return Err(ApiError::bad_request("idempotency_key is required"));
     }
-
     let merchant_id: Uuid = body
         .merchant_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
-    // Idempotency first: a replay of an already-recorded key returns the existing
-    // refund verbatim, BEFORE the over-refund ceiling check.
-    if let Some(existing_id) =
-        sqlx::query_scalar::<_, Uuid>("SELECT id FROM refunds WHERE idempotency_key = $1")
-            .bind(&body.idempotency_key)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?
-    {
-        let refund = fetch_refund(&state.pool, existing_id).await?;
-        return Ok((StatusCode::CREATED, Json(refund)));
-    }
-
-    // Resolve the typed source (ADR-030): never a generic transfer.
-    let source_type = body
+    let source_type_raw = body
         .source_type
-        .as_deref()
-        .unwrap_or("TRANSACTION")
-        .to_uppercase();
+        .clone()
+        .unwrap_or_else(|| "TRANSACTION".to_string());
     let source_id_str = body
         .source_id
         .clone()
@@ -115,184 +93,109 @@ pub async fn create(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid source_id"))?;
 
-    // Account freezes block refunds for either source.
-    if risk::is_frozen(&state.pool, "MERCHANT", merchant_id).await {
-        return Err(ApiError::unprocessable(
-            "ACCOUNT_FROZEN",
-            "merchant account is frozen — refunds are blocked",
-        ));
-    }
-
-    let resolved = match source_type.as_str() {
-        "TRANSACTION" => resolve_transaction_source(&state, merchant_id, source_id).await?,
-        "WALLET_PAYMENT" => resolve_wallet_payment_source(&state, merchant_id, source_id).await?,
-        _ => {
-            return Err(ApiError::bad_request(
-                "source_type must be TRANSACTION or WALLET_PAYMENT",
-            ))
-        }
-    };
-
-    // Over-refund ceiling — scoped by typed source (no cross-path double refund).
-    let already_refunded: i64 = sqlx::query_scalar::<_, i64>(
-        "SELECT COALESCE(SUM(amount_minor), 0)::BIGINT FROM refunds
-         WHERE source_type = $1 AND source_id = $2
-           AND status IN ('PENDING', 'PROCESSING', 'SUCCEEDED')",
-    )
-    .bind(&source_type)
-    .bind(source_id)
-    .fetch_one(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
-
-    if already_refunded + body.amount_minor > resolved.original_amount {
-        return Err(ApiError::unprocessable(
-            "REFUND_EXCEEDS_CAPTURED",
-            format!(
-                "cannot refund {} — only {} remaining of original {}",
-                body.amount_minor,
-                resolved.original_amount - already_refunded,
-                resolved.original_amount,
-            ),
-        ));
-    }
-
-    // Idempotent insert of the refund row.
     let refund_id = Uuid::new_v4();
-    let inserted: Option<Uuid> = sqlx::query_scalar::<_, Uuid>(
-        "INSERT INTO refunds
-            (id, source_type, source_id, transaction_id, merchant_id, wallet_id,
-             consumer_id, amount_minor, currency, reason, status, idempotency_key)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'PENDING', $11)
-         ON CONFLICT (idempotency_key) DO NOTHING
-         RETURNING id",
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let result = restitution::apply_restitution(
+        &mut tx,
+        restitution::ApplyParams {
+            source_type: source_type_raw.clone(),
+            source_id,
+            merchant_id,
+            amount_minor: body.amount_minor,
+            supplied_currency: body.currency.clone().unwrap_or_default(),
+            origin: restitution::Origin::Refund,
+            origin_id: refund_id,
+            idempotency_key: body.idempotency_key.clone(),
+            over_ceiling: restitution::OverCeiling::Reject,
+            posting_key: format!("refund-{refund_id}"),
+            posting_description: format!("refund:{refund_id}"),
+            transit_account_id: state.transit_account_id.as_uuid(),
+        },
     )
-    .bind(refund_id)
-    .bind(&source_type)
-    .bind(source_id)
-    .bind(resolved.transaction_id)
-    .bind(merchant_id)
-    .bind(resolved.merchant_wallet_id)
-    .bind(resolved.consumer_id)
-    .bind(body.amount_minor)
-    .bind(&resolved.currency)
-    .bind(&body.reason)
-    .bind(&body.idempotency_key)
-    .fetch_optional(&state.pool)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    .map_err(map_restitution_err)?;
 
-    let actual_id = match inserted {
-        Some(id) => id,
-        None => sqlx::query_scalar::<_, Uuid>("SELECT id FROM refunds WHERE idempotency_key = $1")
-            .bind(&body.idempotency_key)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?,
+    // Idempotent replay — return the ORIGINAL refund; create nothing new.
+    if result.replayed {
+        tx.rollback().await.ok();
+        let refund = fetch_refund(&state.pool, result.origin_id).await?;
+        return Ok((StatusCode::CREATED, Json(refund)));
+    }
+
+    let stored_source_type = if source_type_raw.eq_ignore_ascii_case("WALLET_PAYMENT") {
+        "WALLET_PAYMENT"
+    } else {
+        "TRANSACTION"
     };
-
-    // Balanced double-entry posting: merchant.available DR → credit account CR.
-    // The credit account is transit (acquiring) or the payer's wallet
-    // (wallet-native). Idempotent on the posting key.
-    let ledger_key = format!("refund-{actual_id}");
     let now = Utc::now();
 
+    // The refund object (distinct from the internal allocation), linked to the
+    // committed posting. Source is never mutated.
     sqlx::query(
-        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
-         VALUES ($1, $2, $3, $4) ON CONFLICT (idempotency_key) DO NOTHING",
+        "INSERT INTO refunds
+            (id, source_type, source_id, transaction_id, merchant_id, wallet_id, consumer_id,
+             amount_minor, currency, reason, status, idempotency_key, processed_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'SUCCEEDED', $11, $12, $12)",
     )
-    .bind(Uuid::new_v4())
-    .bind(format!("refund:{actual_id}"))
-    .bind(&ledger_key)
+    .bind(refund_id)
+    .bind(stored_source_type)
+    .bind(source_id)
+    .bind(result.transaction_id)
+    .bind(merchant_id)
+    .bind(result.merchant_wallet_id)
+    .bind(result.consumer_id)
+    .bind(result.effective_amount)
+    .bind(&result.currency)
+    .bind(&body.reason)
+    .bind(&body.idempotency_key)
     .bind(now)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let posting_id: Uuid =
-        sqlx::query_scalar::<_, Uuid>("SELECT id FROM ledger_postings WHERE idempotency_key = $1")
-            .bind(&ledger_key)
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
+    tx.commit()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    sqlx::query(
-        "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6) ON CONFLICT DO NOTHING",
-    )
-    .bind(Uuid::new_v4())
-    .bind(posting_id)
-    .bind(resolved.merchant_account_id)
-    .bind(body.amount_minor)
-    .bind(&resolved.currency)
-    .bind(now)
-    .execute(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    // ── side effects (best-effort, after commit) ──
+    sqlx::query("INSERT INTO refund_events (refund_id, event_type, payload) VALUES ($1, 'refund.succeeded', $2)")
+        .bind(refund_id)
+        .bind(serde_json::json!({ "amount_minor": result.effective_amount, "currency": result.currency }))
+        .execute(&state.pool)
+        .await
+        .ok();
 
-    sqlx::query(
-        "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6) ON CONFLICT DO NOTHING",
-    )
-    .bind(Uuid::new_v4())
-    .bind(posting_id)
-    .bind(resolved.credit_account_id)
-    .bind(body.amount_minor)
-    .bind(&resolved.currency)
-    .bind(now)
-    .execute(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
-
-    sqlx::query(
-        "UPDATE refunds SET status = 'SUCCEEDED', processed_at = $1, updated_at = $1
-         WHERE id = $2 AND status = 'PENDING'",
-    )
-    .bind(now)
-    .bind(actual_id)
-    .execute(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
-
-    sqlx::query(
-        "INSERT INTO refund_events (refund_id, event_type, payload)
-         VALUES ($1, 'refund.succeeded', $2)",
-    )
-    .bind(actual_id)
-    .bind(serde_json::json!({ "amount_minor": body.amount_minor, "currency": resolved.currency }))
-    .execute(&state.pool)
-    .await
-    .ok(); // fire-and-forget
-
-    // Immutable audit log — subject is the typed source.
     risk::audit(
         &state.pool,
         "MERCHANT",
         "REFUND_PROCESSED",
-        &format!("{}:{}", source_type.to_lowercase(), source_id),
+        &format!("{}:{}", stored_source_type.to_lowercase(), source_id),
         serde_json::json!({
-            "refund_id": actual_id,
-            "amount_minor": body.amount_minor,
-            "source_type": source_type,
+            "refund_id": refund_id,
+            "amount_minor": result.effective_amount,
+            "source_type": stored_source_type,
         }),
         None,
     )
     .await;
 
-    // Emit refund.completed to the outbox (delivered to the source merchant only).
-    // Fires only here, after the refund SUCCEEDED; idempotent on the refund id.
     let _ = super::webhooks::emit(
         &state.pool,
         merchant_id,
         "refund.completed",
-        &format!("refund.completed:{actual_id}"),
+        &format!("refund.completed:{refund_id}"),
         serde_json::json!({
-            "refund_id": actual_id,
-            "source_type": source_type,
+            "refund_id": refund_id,
+            "source_type": stored_source_type,
             "source_id": source_id,
             "merchant_id": merchant_id,
-            "amount_minor": body.amount_minor,
-            "currency": resolved.currency,
+            "amount_minor": result.effective_amount,
+            "currency": result.currency,
             "status": "SUCCEEDED",
             "trace_id": body.idempotency_key,
             "created_at": now,
@@ -300,127 +203,64 @@ pub async fn create(
     )
     .await;
 
-    let refund = fetch_refund(&state.pool, actual_id).await?;
+    // Proof correction: mark the acquiring proof REVERSED ONLY when the source is
+    // fully reversed (cumulative restitution == captured). A partial refund keeps
+    // the proof CONFIRMED — no PARTIALLY_REVERSED state.
+    if result.fully_reversed {
+        if let Some(tid) = result.transaction_id {
+            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str()).await;
+        }
+    }
+
+    let refund = fetch_refund(&state.pool, refund_id).await?;
     Ok((StatusCode::CREATED, Json(refund)))
 }
 
-/// Acquiring source: refund credit goes to transit (no consumer wallet exists).
-async fn resolve_transaction_source(
-    state: &AppState,
-    merchant_id: Uuid,
-    transaction_id: Uuid,
-) -> ApiResult<ResolvedSource> {
-    let row = sqlx::query(
-        "SELECT wallet_id, amount_minor, currency, status
-         FROM transactions WHERE id = $1 AND merchant_id = $2",
-    )
-    .bind(transaction_id)
-    .bind(merchant_id)
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| ApiError::not_found("transaction not found"))?;
-
-    let status: String = row.get("status");
-    if !["CAPTURED", "SETTLED"].contains(&status.as_str()) {
-        return Err(ApiError::unprocessable(
+fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
+    use restitution::RestitutionError::*;
+    match e {
+        InvalidSourceType => {
+            ApiError::bad_request("source_type must be ACQUIRING_PAYMENT/TRANSACTION or WALLET_PAYMENT")
+        }
+        SourceNotFound => ApiError::not_found("refund source not found"),
+        InvalidTransactionStatus(s) => ApiError::unprocessable(
             "INVALID_TRANSACTION_STATUS",
-            format!("transaction status {status} is not refundable"),
-        ));
-    }
-    let wallet_id: Uuid = row.get("wallet_id");
-    let merchant_account_id: Uuid =
-        sqlx::query_scalar::<_, Uuid>("SELECT available_account_id FROM wallets WHERE id = $1")
-            .bind(wallet_id)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?
-            .ok_or_else(|| {
-                ApiError::unprocessable("WALLET_NOT_FOUND", "merchant wallet not found")
-            })?;
-
-    Ok(ResolvedSource {
-        merchant_wallet_id: wallet_id,
-        merchant_account_id,
-        credit_account_id: state.transit_account_id.as_uuid(),
-        currency: row.get("currency"),
-        consumer_id: None,
-        transaction_id: Some(transaction_id),
-        original_amount: row.get("amount_minor"),
-    })
-}
-
-/// Wallet-native source: refund credit goes to the original payer's wallet.
-async fn resolve_wallet_payment_source(
-    state: &AppState,
-    merchant_id: Uuid,
-    wallet_payment_id: Uuid,
-) -> ApiResult<ResolvedSource> {
-    let row = sqlx::query(
-        "SELECT merchant_id, consumer_id, amount_minor, currency, status
-         FROM wallet_payments WHERE id = $1",
-    )
-    .bind(wallet_payment_id)
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| ApiError::not_found("wallet payment not found"))?;
-
-    // Authorization: only the owning merchant may refund its wallet payment.
-    let wp_merchant: Uuid = row.get("merchant_id");
-    if wp_merchant != merchant_id {
-        return Err(ApiError::unprocessable(
+            format!("transaction status {s} is not refundable"),
+        ),
+        InvalidPaymentStatus(s) => ApiError::unprocessable(
+            "INVALID_PAYMENT_STATUS",
+            format!("wallet payment status {s} is not refundable"),
+        ),
+        NotAuthorized => ApiError::unprocessable(
             "REFUND_NOT_AUTHORIZED",
             "this wallet payment belongs to a different merchant",
-        ));
+        ),
+        AccountFrozen => ApiError::unprocessable(
+            "ACCOUNT_FROZEN",
+            "merchant account is frozen — refunds are blocked",
+        ),
+        CurrencyMismatch { supplied, source } => ApiError::unprocessable(
+            "CURRENCY_MISMATCH",
+            format!("supplied currency {supplied} does not match source currency {source}"),
+        ),
+        ExceedsCaptured {
+            remaining,
+            requested,
+            captured,
+        } => ApiError::unprocessable(
+            "REFUND_EXCEEDS_CAPTURED",
+            format!("cannot refund {requested} — only {remaining} remaining of original {captured}"),
+        ),
+        IdempotencyKeyConflict => ApiError::conflict(
+            "IDEMPOTENCY_KEY_CONFLICT",
+            "idempotency key reused with incompatible parameters",
+        ),
+        WalletNotFound => ApiError::unprocessable("WALLET_NOT_FOUND", "merchant wallet not found"),
+        ConsumerWalletNotFound => {
+            ApiError::unprocessable("CONSUMER_WALLET_NOT_FOUND", "payer wallet not found")
+        }
+        Db(m) => ApiError::internal(m),
     }
-
-    let status: String = row.get("status");
-    if status != "COMPLETED" {
-        return Err(ApiError::unprocessable(
-            "INVALID_PAYMENT_STATUS",
-            format!("wallet payment status {status} is not refundable"),
-        ));
-    }
-
-    let consumer_id: Uuid = row.get("consumer_id");
-    let currency: String = row.get("currency");
-
-    // Merchant wallet to debit.
-    let merchant_wallet = sqlx::query(
-        "SELECT id, available_account_id FROM wallets
-         WHERE merchant_id = $1 AND currency = $2 AND status = 'ACTIVE' LIMIT 1",
-    )
-    .bind(merchant_id)
-    .bind(&currency)
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| ApiError::unprocessable("WALLET_NOT_FOUND", "merchant wallet not found"))?;
-
-    // Payer's consumer wallet to credit.
-    let consumer_account_id: Uuid = sqlx::query_scalar::<_, Uuid>(
-        "SELECT available_account_id FROM consumer_wallets
-         WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
-    )
-    .bind(consumer_id)
-    .bind(&currency)
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| {
-        ApiError::unprocessable("CONSUMER_WALLET_NOT_FOUND", "payer wallet not found")
-    })?;
-
-    Ok(ResolvedSource {
-        merchant_wallet_id: merchant_wallet.get("id"),
-        merchant_account_id: merchant_wallet.get("available_account_id"),
-        credit_account_id: consumer_account_id,
-        currency,
-        consumer_id: Some(consumer_id),
-        transaction_id: None,
-        original_amount: row.get("amount_minor"),
-    })
 }
 
 // ---------------------------------------------------------------------------
@@ -455,8 +295,6 @@ pub async fn list(
     Query(q): Query<ListRefundsQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let limit = q.limit.unwrap_or(20).clamp(1, 100);
-    // A caller may filter by source_id or the legacy transaction_id (same value
-    // for acquiring refunds).
     let source_filter = q
         .source_id
         .as_deref()
