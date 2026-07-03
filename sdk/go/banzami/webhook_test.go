@@ -123,3 +123,15 @@ func TestGenerateTestEvent(t *testing.T) {
 		t.Fatalf("round-trip failed: %v", err)
 	}
 }
+
+// TestSignatureHeader_Canonical pins the canonical header name emitted by the
+// operator (services/api-gateway/internal/webhook/signer.go) — never the former
+// "Banzami-Signature".
+func TestSignatureHeader_Canonical(t *testing.T) {
+	if banzami.SignatureHeader != "banza-signature" {
+		t.Fatalf("expected canonical header %q, got %q", "banza-signature", banzami.SignatureHeader)
+	}
+	if banzami.SignatureHeader == "Banzami-Signature" {
+		t.Fatal("SignatureHeader still uses the former Banzami-Signature name")
+	}
+}

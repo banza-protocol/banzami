@@ -246,7 +246,7 @@ match ($event['type']) {
 ### Signature format
 
 ```
-Banzami-Signature: t=<unix_timestamp>,v1=<hmac_sha256_hex>
+banza-signature: t=<unix_timestamp>,v1=<hmac_sha256_hex>
 ```
 
 The signed payload is `"${timestamp}.${raw_body}"`. Timestamps older than 5 minutes are rejected.

@@ -10,7 +10,7 @@ use Banzami\Exceptions\WebhookSignatureException;
  * Banzami webhook signature verification.
  *
  * Implements the canonical signature format:
- *   Banzami-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
+ *   banza-signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
  *
  * The HMAC is computed over: "{timestamp}.{raw_body}"
  *
@@ -18,14 +18,14 @@ use Banzami\Exceptions\WebhookSignatureException;
  */
 final class Webhooks
 {
-    public const SIGNATURE_HEADER   = 'Banzami-Signature';
+    public const SIGNATURE_HEADER   = 'banza-signature';
     public const TOLERANCE_SECONDS  = 300;
 
     /**
      * Verify the webhook signature and return the decoded event payload.
      *
      * @param  string $rawBody   Raw HTTP request body (do NOT JSON-decode first).
-     * @param  string $signature Value of the Banzami-Signature header.
+     * @param  string $signature Value of the banza-signature header.
      * @param  string $secret    Webhook signing secret from the Banzami dashboard.
      * @return array<string, mixed>
      *
@@ -63,7 +63,7 @@ final class Webhooks
         $v1        = $parts['v1'] ?? null;
 
         if ($timestamp === null || $v1 === null) {
-            throw new WebhookSignatureException('Malformed Banzami-Signature header — missing t or v1.');
+            throw new WebhookSignatureException('Malformed banza-signature header — missing t or v1.');
         }
 
         $timestampInt = (int) $timestamp;

@@ -26,7 +26,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
     def do_POST(self):  # noqa: N802
         length    = int(self.headers.get("Content-Length", 0))
         raw       = self.rfile.read(length)
-        signature = self.headers.get("X-Banzami-Signature", "")
+        signature = self.headers.get("banza-signature", "")
 
         try:
             event = _client.webhooks.construct_event(raw, signature)

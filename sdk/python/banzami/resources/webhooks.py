@@ -87,7 +87,7 @@ class WebhooksResource(AsyncResource):
         payload:
             Raw HTTP request body bytes (or string).
         signature:
-            Value of the ``Banzami-Signature`` header.
+            Value of the ``banza-signature`` header.
         webhook_secret:
             Override the secret configured on the client. Useful when
             handling events from multiple endpoints with different secrets.
@@ -124,7 +124,7 @@ class WebhooksResource(AsyncResource):
         webhook_secret: str | None = None,
         timestamp: int | None = None,
     ) -> str:
-        """Generate a valid Banzami-Signature header value for local testing.
+        """Generate a valid banza-signature header value for local testing.
 
         Use in test suites to simulate Banzami webhook deliveries without a
         real Banzami account.
@@ -141,7 +141,7 @@ class WebhooksResource(AsyncResource):
         Returns
         -------
         str
-            A ``Banzami-Signature`` header value, e.g.
+            A ``banza-signature`` header value, e.g.
             ``"t=1716000000,v1=abc123..."``
         """
         secret = webhook_secret or self._webhook_secret or ""

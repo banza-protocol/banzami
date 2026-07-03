@@ -67,7 +67,7 @@ client = Banzami(api_key="...", webhook_secret="whsec_...")
 try:
     event = client.webhooks.construct_event(
         payload=raw_body,
-        signature=request.headers["Banzami-Signature"],
+        signature=request.headers["banza-signature"],
     )
     print(event.type, event.payload)
 except BanzamiWebhookSignatureError:

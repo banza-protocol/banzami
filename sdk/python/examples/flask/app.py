@@ -44,7 +44,7 @@ def create_payment():
 @app.post("/webhooks/banzami")
 def handle_webhook():
     raw = request.get_data()
-    sig = request.headers.get("X-Banzami-Signature", "")
+    sig = request.headers.get("banza-signature", "")
 
     c = _client()
     try:

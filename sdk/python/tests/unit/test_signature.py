@@ -46,7 +46,7 @@ VALID_SIG = _make_sig(PAYLOAD, SECRET, TIMESTAMP)
 # ---------------------------------------------------------------------------
 
 def test_signature_header_constant():
-    assert SIGNATURE_HEADER == "Banzami-Signature"
+    assert SIGNATURE_HEADER == "banza-signature"
 
 
 def test_tolerance_constant():

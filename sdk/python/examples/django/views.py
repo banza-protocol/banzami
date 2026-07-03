@@ -68,7 +68,7 @@ def create_qr_checkout(request):
 @require_POST
 def banzami_webhook(request):
     """Receive and verify Banzami webhook events."""
-    signature = request.headers.get("X-Banzami-Signature", "")
+    signature = request.headers.get("banza-signature", "")
     raw       = request.body
 
     webhook_secret = getattr(settings, "BANZAMI_WEBHOOK_SECRET", os.environ.get("BANZAMI_WEBHOOK_SECRET", ""))

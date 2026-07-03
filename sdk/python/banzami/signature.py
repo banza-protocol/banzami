@@ -2,14 +2,14 @@
 
 Banzami signs every webhook delivery with:
 
-    Banzami-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
+    banza-signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
 
 The HMAC is computed over the concatenation of the timestamp string, a
 literal period, and the raw request body bytes:
 
     hmac_input = f"{unix_seconds}.".encode() + raw_body_bytes
 
-Pass the *raw* request body (bytes) and the full ``Banzami-Signature``
+Pass the *raw* request body (bytes) and the full ``banza-signature``
 header value to :func:`verify_signature`.  Never decode or JSON-parse the
 body before verification — doing so can alter the byte sequence and
 invalidate the signature.
@@ -24,7 +24,7 @@ import hmac
 import time as _time
 from typing import NamedTuple
 
-SIGNATURE_HEADER = "Banzami-Signature"
+SIGNATURE_HEADER = "banza-signature"
 TOLERANCE_SECONDS = 300
 
 
@@ -34,7 +34,7 @@ class _ParsedHeader(NamedTuple):
 
 
 def _parse_header(header: str) -> _ParsedHeader:
-    """Parse the Banzami-Signature header into (timestamp, v1).
+    """Parse the banza-signature header into (timestamp, v1).
 
     Raises ValueError on malformed input.
     """
@@ -53,14 +53,14 @@ def _parse_header(header: str) -> _ParsedHeader:
                 ts = int(val)
             except ValueError as exc:
                 raise ValueError(
-                    f"Banzami-Signature: invalid timestamp value {val!r}"
+                    f"banza-signature: invalid timestamp value {val!r}"
                 ) from exc
         elif key == "v1":
             v1 = val
 
     if ts is None or not v1:
         raise ValueError(
-            "Banzami-Signature header is malformed: expected 't=<unix>,v1=<hex>'"
+            "banza-signature header is malformed: expected 't=<unix>,v1=<hex>'"
         )
     return _ParsedHeader(timestamp=ts, v1=v1)
 
@@ -73,14 +73,14 @@ def verify_signature(
     tolerance: int = TOLERANCE_SECONDS,
     current_timestamp: int | None = None,
 ) -> bool:
-    """Return True when the Banzami-Signature is valid.
+    """Return True when the banza-signature is valid.
 
     Parameters
     ----------
     raw_body:
         Raw HTTP request body exactly as received — do not JSON-parse first.
     signature:
-        Full value of the ``Banzami-Signature`` header.
+        Full value of the ``banza-signature`` header.
     secret:
         Webhook secret obtained from the Banzami dashboard.
     tolerance:
@@ -126,7 +126,7 @@ def generate_test_signature(
     *,
     timestamp: int | None = None,
 ) -> str:
-    """Generate a valid ``Banzami-Signature`` header value for local testing.
+    """Generate a valid ``banza-signature`` header value for local testing.
 
     Use this in test suites to simulate incoming Banzami webhooks without
     making real API calls.
@@ -143,7 +143,7 @@ def generate_test_signature(
     Returns
     -------
     str
-        A ``Banzami-Signature`` header value, e.g.
+        A ``banza-signature`` header value, e.g.
         ``"t=1716000000,v1=abc123..."``
     """
     ts = timestamp if timestamp is not None else int(_time.time())
