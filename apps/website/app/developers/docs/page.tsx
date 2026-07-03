@@ -508,7 +508,8 @@ export default function DocsPage() {
                 <strong>Jornada completa verificada em Sandbox.</strong> A entrega ponta a ponta foi confirmada contra o endpoint DOA
                 implementado: uma <Code>payment_session.paid</Code> real emitida pelo operador foi entregue pelo outbox, o header canónico
                 <Code>banza-signature</Code> foi aceite, a doação foi confirmada <strong>uma única vez</strong> e o comprovativo foi
-                registado — sem entrega de email. A reentrega do mesmo evento foi <strong>deduplicada</strong> (sem efeito duplicado).
+                registado. No teste controlado, não foi enviado email externo; nos fluxos normais com contacto por email, o DOA
+                entrega o recibo ao doador. A reentrega do mesmo evento foi <strong>deduplicada</strong> (sem efeito duplicado).
                 Nunca há dinheiro real — <em>Produção em preparação</em>.
               </Callout>
               <H3>Como funciona</H3>

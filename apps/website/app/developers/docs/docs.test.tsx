@@ -104,6 +104,26 @@ describe('Public Developer Docs (/docs) — full content', () => {
     }
   });
 
+  it('Webhooks callout does not overstate "no email" — controlled-test only, normal DOA flows deliver the receipt', () => {
+    const { container } = render(<DocsPage />);
+    const text = container.textContent ?? '';
+    // Normal DOA flows with an email contact DELIVER the receipt to the donor.
+    expect(text).toContain('nos fluxos normais com contacto por email, o DOA entrega o recibo ao doador');
+    // The "no external email" claim may only appear scoped to the controlled test.
+    expect(text).toContain('No teste controlado, não foi enviado email externo');
+    // The old, misleading unscoped phrasing must never come back.
+    expect(text).not.toContain('registado — sem entrega de email');
+    // Any "sem entrega de email" wording, if ever present, must carry the controlled-test context.
+    if (text.includes('sem entrega de email')) {
+      expect(text).toContain('No teste controlado');
+      expect(text).toContain('nos fluxos normais com contacto por email');
+    }
+    // The verified-journey + replay-dedup facts remain.
+    expect(text).toContain('Jornada completa verificada em Sandbox');
+    expect(text).toContain('deduplicada');
+    expect(screen.getAllByText(/banza-signature/i).length).toBeGreaterThan(0);
+  });
+
   it('copy button copies and shows an accessible toast', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', { clipboard: { writeText } });
