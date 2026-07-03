@@ -15,6 +15,34 @@ use crate::{
 };
 
 // ---------------------------------------------------------------------------
+// Error hardening (D0) — the refund route family must NEVER leak sqlx/postgres/
+// constraint/table/SQL text to a public response. Raw detail is logged
+// server-side only; the caller gets a neutral message or the established
+// controlled conflict.
+// ---------------------------------------------------------------------------
+
+/// Neutral internal error for the refund flow — no DB/SQL/constraint text. The
+/// raw error is logged server-side (a refund DB error carries no secret).
+pub(crate) fn refund_internal(context: &'static str, e: impl std::fmt::Display) -> ApiError {
+    tracing::error!(context, error = %e, "refund flow database error");
+    ApiError::internal("refund could not be processed")
+}
+
+/// Maps a refunds-write DB error: a source-scoped idempotency uniqueness
+/// collision (SQLSTATE 23505) resolves to the established `409` conflict; any
+/// other failure is a neutral internal error. Never leaks the constraint name.
+pub(crate) fn refund_write_err(e: sqlx::Error) -> ApiError {
+    if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("23505") {
+        tracing::warn!(error = %e, "refund idempotency uniqueness collision (source-scoped)");
+        return ApiError::conflict(
+            "IDEMPOTENCY_KEY_CONFLICT",
+            "a refund with this idempotency key already exists for this source",
+        );
+    }
+    refund_internal("refund write", e)
+}
+
+// ---------------------------------------------------------------------------
 // Response types
 // ---------------------------------------------------------------------------
 
@@ -98,7 +126,7 @@ pub async fn create(
         .pool
         .begin()
         .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+        .map_err(|e| refund_internal("begin", e))?;
 
     let result = restitution::apply_restitution(
         &mut tx,
@@ -156,11 +184,11 @@ pub async fn create(
     .bind(now)
     .execute(&mut *tx)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    .map_err(refund_write_err)?;
 
     tx.commit()
         .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+        .map_err(|e| refund_internal("commit", e))?;
 
     // ── side effects (best-effort, after commit) ──
     sqlx::query("INSERT INTO refund_events (refund_id, event_type, payload) VALUES ($1, 'refund.succeeded', $2)")
@@ -255,7 +283,7 @@ fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
         ConsumerWalletNotFound => {
             ApiError::unprocessable("CONSUMER_WALLET_NOT_FOUND", "payer wallet not found")
         }
-        Db(m) => ApiError::internal(m),
+        Db(m) => refund_internal("restitution", m),
     }
 }
 
@@ -339,7 +367,7 @@ pub async fn list(
     .bind(limit)
     .fetch_all(&state.pool)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    .map_err(|e| refund_internal("list", e))?;
 
     let data: Vec<serde_json::Value> = rows.iter().map(row_to_json).collect();
     Ok(Json(serde_json::json!({ "data": data })))
@@ -388,7 +416,7 @@ async fn fetch_refund(
     .bind(merchant_id)
     .fetch_optional(pool)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
+    .map_err(|e| refund_internal("fetch", e))?
     .ok_or_else(|| ApiError::not_found("refund not found"))?;
 
     let transaction_id: Option<Uuid> = r.get("transaction_id");

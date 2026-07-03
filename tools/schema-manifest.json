@@ -69,6 +69,13 @@
       ], "indexes": ["restitution_alloc_origin_unique", "restitution_alloc_idem_unique", "idx_restitution_alloc_source"] } ]
     },
     {
+      "feature": "refunds-source-scoped-idempotency (0098 / Banzami D0)",
+      "$note": "The global refunds_idempotency_key_key was replaced by a source-scoped unique; the manifest expects the scoped index and no longer the global constraint.",
+      "tables": [
+        { "name": "refunds", "columns": [], "indexes": ["refunds_source_idem_unique"] }
+      ]
+    },
+    {
       "feature": "disputes-source-typed (0097 / Banzami ADR-034)",
       "tables": [ { "name": "disputes", "columns": [
         { "name": "source_type", "nullable": false },

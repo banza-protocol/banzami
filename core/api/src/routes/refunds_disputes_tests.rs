@@ -8,6 +8,7 @@
 
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     Json,
 };
 use sqlx::PgPool;
@@ -1175,4 +1176,132 @@ async fn refund_list_fails_closed_without_merchant(pool: PgPool) {
     .await
     .unwrap();
     assert_eq!(other["data"].as_array().unwrap().len(), 0, "other merchant sees nothing");
+}
+
+// ═══════════════ D0 — source-scoped refund idempotency (0098) ═══════════════
+
+/// Insert a second CAPTURED acquiring source under an EXISTING merchant, reusing
+/// the merchant's single per-currency wallet (wallets are unique on merchant+currency).
+async fn seed_extra_tx(pool: &PgPool, merchant_id: Uuid, amount: i64) -> Uuid {
+    let wallet_id: Uuid =
+        sqlx::query_scalar("SELECT id FROM wallets WHERE merchant_id = $1 AND currency = 'AOA' LIMIT 1")
+            .bind(merchant_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    let tx = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO transactions (id, idempotency_key, transaction_type, status, amount_minor, fee_minor, currency, merchant_id, wallet_id)
+         VALUES ($1, $2, 'PAYMENT', 'CAPTURED', $3, 0, 'AOA', $4, $5)",
+    )
+    .bind(tx).bind(format!("extra-{tx}")).bind(amount).bind(merchant_id).bind(wallet_id)
+    .execute(pool).await.unwrap();
+    tx
+}
+
+fn typed_refund_body(mid: Uuid, stype: Option<&str>, sid: Uuid, amount: i64, key: &str) -> refunds::CreateRefundBody {
+    refunds::CreateRefundBody {
+        source_type: stype.map(String::from),
+        source_id: Some(sid.to_string()),
+        transaction_id: None,
+        merchant_id: mid.to_string(),
+        amount_minor: amount,
+        currency: Some("AOA".into()),
+        reason: None,
+        idempotency_key: key.to_string(),
+    }
+}
+
+// Same idempotency key on DIFFERENT sources — same merchant, another merchant,
+// and a different source TYPE — is INDEPENDENT (no global collision, no 500, no
+// cross-tenant key-usage signal). Pre-0098 the 2nd+ of these 500'd.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_idempotency_is_source_scoped_across_sources_and_merchants(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let a = seed_captured_tx(&pool, 1_000).await; // merchant A, acquiring A1
+    let a2 = seed_extra_tx(&pool, a.merchant_id, 1_000).await; // same merchant A, source A2
+    let b = seed_captured_tx(&pool, 1_000).await; // merchant B, acquiring B1
+    let wp = seed_wallet_payment(&pool, 1_000).await; // wallet-native source
+
+    let key = "SHARED-IDEMPOTENCY-KEY";
+    let cases: Vec<(&str, Uuid, Option<&str>, Uuid)> = vec![
+        ("A1 acquiring", a.merchant_id, None, a.transaction_id),
+        ("A2 same-merchant diff-source", a.merchant_id, None, a2),
+        ("B1 another merchant", b.merchant_id, None, b.transaction_id),
+        ("WP wallet source", wp.merchant_id, Some("WALLET_PAYMENT"), wp.wallet_payment_id),
+    ];
+    for (label, mid, stype, sid) in cases {
+        match refunds::create(State(state.clone()), Json(typed_refund_body(mid, stype, sid, 200, key))).await {
+            Ok((code, _)) => assert_eq!(code, StatusCode::CREATED, "{label} should succeed"),
+            Err(e) => panic!("{label} must be independent success, got {} {}", e.code, e.message),
+        }
+    }
+    // Four independent refunds, all sharing the same key, on different sources.
+    let n: i64 = sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM refunds WHERE idempotency_key = $1")
+        .bind(key).fetch_one(&pool).await.unwrap();
+    assert_eq!(n, 4, "same key on 4 distinct sources → 4 independent refunds");
+}
+
+// Concurrent use of the same key by two merchants on their own sources: both
+// succeed, no global collision, all postings balanced.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_same_key_different_sources_both_succeed(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let a = seed_captured_tx(&pool, 1_000).await;
+    let b = seed_captured_tx(&pool, 1_000).await;
+    let key = "CONCURRENT-SHARED-KEY";
+    let f1 = refunds::create(State(state.clone()), Json(refund_body(&a, 300, key)));
+    let f2 = refunds::create(State(state.clone()), Json(refund_body(&b, 300, key)));
+    let (r1, r2) = tokio::join!(f1, f2);
+    assert!(r1.is_ok(), "merchant A concurrent refund failed: {:?}", r1.err().map(|e| e.code));
+    assert!(r2.is_ok(), "merchant B concurrent refund failed: {:?}", r2.err().map(|e| e.code));
+    // both postings balanced (global check over refund postings)
+    let unbal: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*)::BIGINT FROM (
+           SELECT p.id FROM ledger_postings p JOIN ledger_entries e ON e.posting_id=p.id
+           WHERE p.idempotency_key LIKE 'refund-%'
+           GROUP BY p.id HAVING SUM(CASE WHEN e.entry_type='DEBIT' THEN e.amount_minor ELSE -e.amount_minor END) <> 0) x")
+        .fetch_one(&pool).await.unwrap();
+    assert_eq!(unbal, 0, "all refund postings balanced");
+}
+
+// The refund write mapper resolves a real uniqueness collision to the controlled
+// 409 and NEVER leaks constraint/table/SQL/DB text; other DB errors → neutral.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_write_err_maps_unique_to_409_and_never_leaks(pool: PgPool) {
+    let mid = Uuid::new_v4();
+    let sid = Uuid::new_v4();
+    let wid = Uuid::new_v4();
+    let insert = |id: Uuid| {
+        sqlx::query(
+            "INSERT INTO refunds (id, source_type, source_id, merchant_id, wallet_id, amount_minor, currency, status, idempotency_key, processed_at, updated_at)
+             VALUES ($1, 'TRANSACTION', $2, $3, $4, 100, 'AOA', 'SUCCEEDED', 'dupkey', now(), now())",
+        )
+        .bind(id).bind(sid).bind(mid).bind(wid)
+    };
+    insert(Uuid::new_v4()).execute(&pool).await.expect("first insert ok");
+    // duplicate (source_type, source_id, idempotency_key) → real 23505
+    let dup = insert(Uuid::new_v4()).execute(&pool).await.expect_err("duplicate must fail");
+    let api = refunds::refund_write_err(dup);
+    assert_eq!(api.status, StatusCode::CONFLICT);
+    assert_eq!(api.code, "IDEMPOTENCY_KEY_CONFLICT");
+
+    let leak = api.message.to_lowercase();
+    for bad in [
+        "refunds_idempotency_key_key", "refunds_source_idem_unique", "postgres", "sqlx",
+        "duplicate key", "constraint", "insert ", "23505", "relation", "refunds",
+    ] {
+        assert!(!leak.contains(bad), "409 message leaked '{bad}': {}", api.message);
+    }
+
+    // A non-unique DB failure (NOT NULL violation) → neutral internal, no leak.
+    let generic = sqlx::query("INSERT INTO refunds (id) VALUES ($1)")
+        .bind(Uuid::new_v4()).execute(&pool).await.expect_err("not-null violation");
+    let api2 = refunds::refund_write_err(generic);
+    assert_eq!(api2.code, "INTERNAL_ERROR");
+    assert_eq!(api2.message, "refund could not be processed");
+    let leak2 = api2.message.to_lowercase();
+    for bad in ["null value", "not-null", "column", "postgres", "sqlx", "refunds"] {
+        assert!(!leak2.contains(bad), "internal message leaked '{bad}': {}", api2.message);
+    }
 }
