@@ -1,0 +1,16 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 02",
+  "test": "SDK clean tarball-install E2E (@banzami/sdk/sandbox)",
+  "date": "2026-07-05",
+  "deployed_gateway": "https://sandbox-api.banzami.com",
+  "steps": {
+    "build": "npm run build OK",
+    "pack": "npm pack → banzami-sdk-0.3.0.tgz",
+    "clean_install": "npm install ./tarball in fresh project OK",
+    "me_call": "import { BanzamiClient } from '@banzami/sdk/sandbox'; client.me() → {environment:SANDBOX, workspace_id, scopes:[identity:read]} against deployed Gateway with a fresh Console key",
+    "reduced_surface": "./sandbox exports only BanzamiClient + errors + env helpers — NO payment/refund/payout/session/link/QR/webhook methods",
+    "env_safety": "bz_live_+sandbox → BanzamiConfigError"
+  },
+  "distribution_blocker": "PUBLICATION requires a Banzami-owned registry: npm @banzami org publish access (npm whoami=ENEEDAUTH, scope inaccessible) OR GitHub Packages write:packages (gh token lacks it). External ownership decision required — see report.",
+  "disposition": "CAP-SDK-001 code-ready + install-E2E green; HOLD on registry publication (external)."
+}

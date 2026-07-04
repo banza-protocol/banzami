@@ -24,8 +24,13 @@ func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required")
 		return
 	}
-	// identity:read is implicitly granted to every issued key; the endpoint
-	// exposes only the caller's own resolved context.
+	// Least-privilege: GET /v1/me requires the identity:read scope (the only
+	// scope backed by a released route). A key without it is neutrally denied.
+	if !p.HasScope("identity:read") {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "insufficient scope")
+		return
+	}
+	// The endpoint exposes only the caller's own resolved context.
 	writeJSON(w, http.StatusOK, map[string]any{
 		"environment":  p.Environment,
 		"workspace_id": p.WorkspaceID,

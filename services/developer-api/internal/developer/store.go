@@ -36,7 +36,11 @@ const (
 )
 
 // AllowedScopes is the closed set of scopes a sandbox key may carry (Slice 1).
+// identity:read is the only scope backed by a RELEASED public route (GET /v1/me,
+// ADR-046). The rest are recorded but not enforced by any public route — their
+// capabilities are pending-e2e and dev keys cannot reach them.
 var AllowedScopes = map[string]bool{
+	"identity:read":   true,
 	"payments:read":   true,
 	"payments:write":  true,
 	"transfers:read":  true,

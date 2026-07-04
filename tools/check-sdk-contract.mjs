@@ -56,21 +56,38 @@ function collect(dir, acc = []) {
 }
 const srcText = collect(join(SDK, 'src')).map(f => readFileSync(f, 'utf-8')).join('\n');
 
-// Which unreleased capabilities does the SDK expose?
-const shippedUnreleased = SURFACES
-  .filter(([re]) => re.test(srcText))
-  .filter(([, cap]) => !released(cap))
-  .map(([, cap, label]) => `${label} (${cap}:${dispOf(cap)})`);
+// The EXTERNAL Sandbox surface is the curated ./sandbox entry (ADR-046/RT02).
+// Release is judged on THAT entry, not the full internal/vendored index.
+const sandboxEntry = join(SDK, 'src/sandbox.ts');
+const stripComments = s => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+const sandboxText = existsSync(sandboxEntry) ? stripComments(readFileSync(sandboxEntry, 'utf-8')) : '';
+if (!sandboxText) fail('SDK missing curated external entry src/sandbox.ts');
+else pass('curated external entry src/sandbox.ts present');
 
-// 1. Release rule.
+// The external entry must NOT re-export methods for unreleased capabilities.
+const externalUnreleased = SURFACES
+  .filter(([re]) => re.test(sandboxText))
+  .filter(([, cap]) => !released(cap))
+  .map(([, cap, label]) => `${label} (${cap})`);
+if (externalUnreleased.length) fail(`./sandbox entry exposes UNRELEASED capabilities: ${externalUnreleased.join(', ')}`);
+else pass('./sandbox entry exposes no unreleased-capability methods');
+
+// me() must exist (the released consumption surface) for a releasable SDK.
+if (!/\bme\s*\(\s*\)\s*:/.test(srcText) && !/async me\s*\(/.test(srcText))
+  fail('SDK client is missing me() — the released consumption method');
+else pass('SDK client exposes me() (released consumption surface)');
+
+// Release rule: released requires the external entry clean AND a distribution
+// verification (published + installable). Distribution evidence is a published
+// package marker; a local tarball install is necessary but not sufficient.
 if (sdkCap && sdkCap.disposition === 'released') {
-  if (shippedUnreleased.length)
-    fail(`SDK marked released but ships public methods for UNRELEASED capabilities: ${shippedUnreleased.join(', ')}`);
-  // 2. Distributable when released.
+  if (externalUnreleased.length) fail('SDK released but ./sandbox exposes unreleased capabilities');
   const pkg = JSON.parse(readFileSync(join(SDK, 'package.json'), 'utf-8'));
-  if (pkg.private === true) fail('SDK released but package.json private:true (not distributable)');
+  if (pkg.private === true) fail('SDK released but package.json private:true');
+  const published = (sdkCap.evidence || []).some(e => /published|registry|npm-publish/i.test(e));
+  if (!published) fail('SDK released but no publication evidence (registry install) registered');
 } else {
-  pass(`SDK is ${sdkCap?.disposition} (not released) — ships ${shippedUnreleased.length} unreleased-capability surface(s): ${shippedUnreleased.join(', ') || 'none'}`);
+  pass(`SDK is ${sdkCap?.disposition} (not released) — publication to a Banzami-owned registry is the remaining external blocker`);
 }
 
 // 3. No secret / prod-host-only / core-route literals in src.

@@ -20,6 +20,11 @@
       "import": "./dist/money.js",
       "require": "./dist/cjs/money.js",
       "types": "./dist/money.d.ts"
+    },
+    "./sandbox": {
+      "import": "./dist/sandbox.js",
+      "require": "./dist/cjs/sandbox.js",
+      "types": "./dist/sandbox.d.ts"
     }
   },
   "files": [

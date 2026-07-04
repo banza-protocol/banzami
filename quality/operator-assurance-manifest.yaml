@@ -383,33 +383,36 @@ capabilities:
     authority: internal
     authority_ref: operator policy
     implementation:
-      - services/developer-api (developer.dev_api_keys)
+      - services/developer-api (developer.dev_api_keys — single key authority)
+      - services/api-gateway (DeveloperKeyAuth + GET /v1/me, ADR-046)
     api_surface:
       - developer console key management (create/reveal-once/list/rotate/revoke)
+      - GET /v1/me (deployed Gateway consumption surface, scope identity:read)
     threat_category: identity-auth
     tests:
       unit:
         - services/developer-api key crypto + authz tests
+        - services/api-gateway DeveloperKeyAuth fail-closed test
       integration: []
       e2e_sandbox:
         - tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-002.* management lifecycle)
+        - tools/e2e/dev-console/dev-key-gateway-e2e.mjs (RT02.* gateway consumption, 19/19)
       negative_security:
-        - reveal-once, list-no-raw-secret, revoke→REVOKED, cross-tenant 403, bz_test_-only, audit-no-raw-secret
+        - reveal-once, list-no-raw-secret, revoke/rotate rejected-by-Gateway, cross-tenant 403, scope-deny, bz_live/malformed/unknown fail-closed, no-mutation-on-denied, audit-no-raw-secret
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-needs-remediation
+    cleanup_disposition: active-required
     evidence:
       - evidence/assurance/dev-foundation/e2e-1783197561.json
+      - evidence/assurance/dev-foundation/dev-key-gateway-1783203197.json
+      - docs/adr/ADR-046-unified-developer-sandbox-api-key-authority.md
     surface: public
-    disposition: pending-e2e
-    status: in-audit
-    # HOLD blocker (Release Train 01): the key MANAGEMENT lifecycle
-    # (create/reveal-once/list/rotate/revoke/cross-tenant/audit) is deployed-E2E
-    # verified and sound. But dev-console keys (developer.dev_api_keys, bz_test_sk_/
-    # bz_test_pk_) have NO deployed consumption path — the api-gateway authenticates
-    # a SEPARATE merchant-key system, and developer-api's AuthorizeKey is mounted
-    # nowhere. So "revoked key rejected by the Gateway" / "active key works at the
-    # Gateway" cannot be proven, and a developer cannot yet integrate using these
-    # keys. Released only when a gateway consumption path exists and is E2E-verified.
+    disposition: released
+    status: verified
+    # Release Train 02 (ADR-046): the RT01 blocker is resolved. developer-api is
+    # the single external key authority; the Gateway delegates verification and a
+    # Console-issued bz_test_sk_ key now authenticates the deployed public Gateway
+    # (GET /v1/me) with tenant isolation, scope enforcement, and revoke/rotate
+    # reflected at the Gateway.
 
   - id: CAP-DOCS-001
     name: Developer documentation site
@@ -455,30 +458,35 @@ capabilities:
     implementation:
       - sdk/typescript
     api_surface:
-      - npm @banzami/sdk
+      - "@banzami/sdk/sandbox (curated external Sandbox entry): BanzamiClient.me() + config/errors/env helpers"
     threat_category: identity-auth
     tests:
       unit:
         - sdk/typescript env-resolution + webhook-signature tests
       integration: []
-      e2e_sandbox: []
+      e2e_sandbox:
+        - SDK clean tarball-install E2E → BanzamiClient.me() against deployed Gateway with a fresh Console key (evidence artifact)
       negative_security:
-        - bz_live_+sandbox rejected (BanzamiConfigError); tools/check-sdk-contract.mjs
+        - bz_live_+sandbox rejected (BanzamiConfigError); ./sandbox exposes no unreleased-capability methods; tools/check-sdk-contract.mjs
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-needs-remediation
     evidence:
       - tools/check-sdk-contract.mjs
+      - evidence/assurance/dev-foundation/sdk-clean-install-1783203531.json
     surface: public
     disposition: pending-e2e
     status: in-audit
-    # HOLD blocker (Release Train 01): (1) the package ships public methods for
-    # UNRELEASED capabilities (payment sessions/links/QR/refunds/payouts/webhooks —
-    # all pending-e2e) without deployed E2E, which the release rule forbids; and
-    # (2) it is NOT published to a registry (npm view @banzami/sdk → 404), so an
-    # external developer cannot install it. Env-safety (bz_live_ rejection), build
-    # and no-secret checks pass. Released only when its shipped public surface is
-    # limited to released capabilities (or those methods are E2E-verified) AND it
-    # is distributable. Enforced by tools/check-sdk-contract.mjs.
+    # HOLD blocker (Release Train 02): code-ready. RT01 blocker (1) resolved — a
+    # curated ./sandbox entry now exposes ONLY the released surface (me() +
+    # config/errors/env), no unreleased-capability methods. A clean tarball
+    # install + BanzamiClient.me() against the deployed Gateway with a Console key
+    # is GREEN. The ONE remaining blocker is EXTERNAL: publication to a
+    # Banzami-owned registry. npm publish is unavailable (npm whoami=ENEEDAUTH,
+    # @banzami scope inaccessible) and the GitHub token lacks write:packages.
+    # DECISION REQUIRED (owner: fm65 / Banzami org): provision npm publish access
+    # to a Banzami-owned @banzami org (or GitHub Packages write:packages under
+    # banza-protocol), then publish the reduced sandbox package from a controlled
+    # release workflow. Do NOT publish under an unverified/misleading name.
 
   - id: CAP-SDK-002
     name: Flutter SDK (banzami_flutter)

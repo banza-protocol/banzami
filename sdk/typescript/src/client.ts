@@ -207,6 +207,42 @@ export class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Identity — the released developer-key consumption surface (ADR-046)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Resolve the identity of the configured Sandbox API key: its environment,
+   * workspace, project and scopes. This authenticates directly with the raw
+   * Console-issued key (GET /v1/me), not the merchant JWT-exchange path, and is
+   * the canonical way to verify an integration is wired correctly.
+   */
+  async me(): Promise<{
+    environment: string;
+    workspace_id: string;
+    project_id: string;
+    scopes: string[];
+    key_id: string;
+  }> {
+    const res = await fetch(`${this.base}/v1/me`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${this.apiKey}`, Accept: 'application/json' },
+    });
+    if (!res.ok) {
+      let code = 'REQUEST_FAILED';
+      let message = `request failed with status ${res.status}`;
+      try {
+        const body = (await res.json()) as { code?: string; message?: string };
+        if (body.code) code = body.code;
+        if (body.message) message = body.message;
+      } catch { /* non-JSON error body — keep neutral defaults */ }
+      throw new BanzamiApiError(res.status, code, message);
+    }
+    return res.json() as Promise<{
+      environment: string; workspace_id: string; project_id: string; scopes: string[]; key_id: string;
+    }>;
+  }
+
+  // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
 

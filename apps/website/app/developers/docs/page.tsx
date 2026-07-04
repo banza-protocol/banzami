@@ -395,6 +395,7 @@ export default function DocsPage() {
                 <LI>Crie um <strong>projeto Sandbox</strong>.</LI>
                 <LI>Crie uma <strong>chave de teste</strong>.</LI>
                 <LI>Guarde a chave <strong>secreta</strong> quando ela aparece — é mostrada uma única vez.</LI>
+                <LI><strong>Verifique a chave</strong> contra a API Sandbox: <Code>GET /v1/me</Code> com <Code>Authorization: Bearer bz_test_sk_…</Code> devolve o ambiente, workspace, projeto e scopes resolvidos da chave.</LI>
                 <LI>Use a camada de integração Banzami na sua aplicação (via SDK).</LI>
                 <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm> e apresente o link/QR.</LI>
                 <LI>Acompanhe a confirmação e emita o comprovativo.</LI>
