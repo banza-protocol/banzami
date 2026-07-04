@@ -25,6 +25,18 @@
 //! This is a Banzami OPERATOR extension, not a BANZA-normative field (see the
 //! uncommitted ADR-045 draft). The public vocabulary is `WALLET_PAYMENT` /
 //! `ACQUIRING_PAYMENT`; the internal `TRANSACTION` token is never exposed.
+//!
+//! Current coverage (exact truth — do not overstate):
+//! * Payment Session and Payment Link settlement flows currently produce ONLY
+//!   `WALLET_PAYMENT` (they settle as a wallet transfer → `wallet_payments`).
+//! * `refund_source` discovery is fully implemented and tested for every
+//!   currently supported session/link settlement path (all `WALLET_PAYMENT`).
+//! * `ACQUIRING_PAYMENT` is a supported typed source of the Refunds API itself,
+//!   but `ACQUIRING_PAYMENT` *discovery through a Session/Link* is NOT applicable
+//!   until an actual Session/Link acquiring settlement path exists. If one is
+//!   ever added, discovery MUST be extended to emit an `ACQUIRING_PAYMENT`
+//!   source for it — the structural guard in `refund_source_tests` fails the
+//!   moment such a linkage appears, so it cannot silently bypass discovery.
 
 use sqlx::PgPool;
 use uuid::Uuid;

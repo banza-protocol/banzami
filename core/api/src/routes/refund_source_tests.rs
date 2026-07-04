@@ -104,6 +104,40 @@ async fn resolve_by_transfer_exact_and_scoped(pool: PgPool) {
         .is_none());
 }
 
+/// STRUCTURAL REGRESSION GUARD (WS1 closure). Today, Payment Sessions and Payment
+/// Links settle only as wallet transfers → `wallet_payments` → `WALLET_PAYMENT`,
+/// so refund_source discovery is WALLET_PAYMENT-only for sessions/links. If a
+/// future migration links an acquiring `transactions` row to a payment
+/// link/session/QR (a new acquiring settlement path), refund_source discovery
+/// MUST be extended to emit an `ACQUIRING_PAYMENT` typed source for it. This test
+/// fails loudly the moment such a linking column appears, so acquiring settlement
+/// can never silently bypass refundable-source discovery.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn structural_acquiring_settlement_cannot_bypass_refund_source(pool: PgPool) {
+    let linking: Vec<String> = sqlx::query_scalar(
+        "SELECT column_name FROM information_schema.columns
+          WHERE table_name = 'transactions'
+            AND column_name = ANY($1)",
+    )
+    .bind(vec![
+        "payment_link_id".to_string(),
+        "payment_session_id".to_string(),
+        "session_id".to_string(),
+        "qr_code_id".to_string(),
+    ])
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+
+    assert!(
+        linking.is_empty(),
+        "`transactions` gained session/link linkage column(s) {linking:?} — an acquiring \
+         settlement path for sessions/links now exists. You MUST extend \
+         refund_source::resolve to emit an ACQUIRING_PAYMENT typed source for it before \
+         this guard can pass (WS1 refundable-source discovery must not be bypassed)."
+    );
+}
+
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn resolve_by_interface_matches_qr_interface(pool: PgPool) {
     let merchant = Uuid::new_v4();
