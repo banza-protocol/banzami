@@ -33,10 +33,17 @@ import { execFileSync } from 'child_process';
 import {
   parseManifest, MANIFEST_PATH,
   VALID_STATUS, VALID_AUTHORITY, VALID_PUBLIC_STATUS, VALID_DISPOSITION, VALID_GATE,
+  VALID_SURFACE, VALID_EXT_DISPOSITION,
 } from './assurance-manifest-lib.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-const RELEASE = process.argv.includes('--release');
+// Gate modes:
+//   (default)          structural integrity only
+//   --reference        reference-path readiness (reference_path capabilities released)
+//   --sandbox-launch   FULL external Sandbox launch (every public surface released)
+//   --release          alias of --sandbox-launch (the strict external gate)
+const REFERENCE = process.argv.includes('--reference');
+const SANDBOX_LAUNCH = process.argv.includes('--sandbox-launch') || process.argv.includes('--release');
 const GENERATED_DOC = 'docs/quality/BANZAMI_OPERATOR_ASSURANCE.md';
 
 let failures = 0;
@@ -51,7 +58,8 @@ try {
   process.exit(1);
 }
 const caps = manifest.capabilities;
-console.log(`Assurance manifest: ${caps.length} capabilities (${RELEASE ? 'RELEASE' : 'structural'} mode)\n`);
+const MODE = SANDBOX_LAUNCH ? 'SANDBOX-LAUNCH' : REFERENCE ? 'REFERENCE' : 'structural';
+console.log(`Assurance manifest: ${caps.length} capabilities (${MODE} mode)\n`);
 
 // 1. Structural validity
 const seen = new Set();
@@ -73,8 +81,28 @@ for (const c of caps) {
     fail(`${at}: environments.sandbox/live must be explicit true|false`);
   if (c.implementation.length === 0 && c.status !== 'removed')
     fail(`${at}: missing implementation locations`);
+  if (!VALID_SURFACE.includes(c.surface)) fail(`${at}: missing/invalid surface (${VALID_SURFACE.join('|')})`);
+  if (!VALID_EXT_DISPOSITION.includes(c.disposition)) fail(`${at}: missing/invalid disposition (${VALID_EXT_DISPOSITION.join('|')})`);
 }
-if (failures === 0) pass('structural validity');
+if (failures === 0) pass('structural validity (incl. surface + disposition)');
+
+// 1b. surface/disposition coherence
+for (const c of caps) {
+  // A public surface must not be quarantined/removed/internal_only (those mean
+  // NOT externally reachable — the surface would then be internal/none).
+  if (c.surface === 'public' && ['quarantined', 'removed', 'internal_only'].includes(c.disposition))
+    fail(`${c.id}: surface=public but disposition=${c.disposition} — set surface=internal/none if it is not externally reachable`);
+  // internal_only must not carry a public surface.
+  if (c.disposition === 'internal_only' && c.surface === 'public')
+    fail(`${c.id}: internal_only must not be surface=public`);
+  // released must carry deployed E2E evidence with provenance.
+  if (c.disposition === 'released') {
+    if (c.tests.e2e_sandbox.length === 0 && c.deployment_gate === 'sandbox-e2e-required')
+      fail(`${c.id}: released + sandbox-e2e-required but no e2e_sandbox test IDs`);
+    if (c.evidence.length === 0) fail(`${c.id}: released but no evidence artifact`);
+  }
+}
+if (failures === 0) pass('surface/disposition coherence');
 
 // 2. Live authorization gate — Live money movement must carry explicit evidence
 for (const c of caps) {
@@ -132,18 +160,36 @@ for (const c of caps) {
 }
 if (failures === 0) pass('launch-scope integrity');
 
-// 7. Release mode — enforce only on the sandbox launch surface. Excluded items
-//    (out-of-launch surfaces, disabled Live rails) are reported, never block.
-if (RELEASE) {
-  const inScope = caps.filter(c => (c.launch_scope || 'sandbox') === 'sandbox');
-  const excluded = caps.filter(c => (c.launch_scope || 'sandbox') === 'excluded');
-  for (const c of inScope) {
-    if (c.status === 'in-audit') fail(`RELEASE: ${c.id} still in-audit`);
-    if (c.status === 'blocked') fail(`RELEASE: ${c.id} blocked — resolve or reclassify with owner+decision`);
-    if (c.cleanup_disposition === 'obsolete-candidate') fail(`RELEASE: ${c.id} remains obsolete-candidate — remove or justify`);
+// 7a. REFERENCE gate — the reference financial path must be released/verified.
+if (REFERENCE) {
+  const ref = caps.filter(c => c.reference_path === 'true' || c.reference_path === true);
+  if (ref.length === 0) fail('REFERENCE: no capability marked reference_path: true');
+  for (const c of ref) {
+    if (c.disposition !== 'released') fail(`REFERENCE: ${c.id} is not released (disposition=${c.disposition})`);
+    if (c.status !== 'verified') fail(`REFERENCE: ${c.id} status ${c.status} (want verified)`);
   }
-  if (excluded.length) console.log(`  · ${excluded.length} capability(ies) explicitly excluded from this launch: ${excluded.map(c => c.id).join(', ')}`);
-  if (failures === 0) pass(`release readiness (${inScope.length} in-scope capabilities clean)`);
+  if (failures === 0) pass(`reference-path readiness (${ref.length} capabilities released+verified)`);
+}
+
+// 7b. SANDBOX-LAUNCH gate — the FULL external launch. FAILS unless every
+//     public surface is released with deployed E2E. A public capability left
+//     pending-e2e (or in-audit/blocked) HOLDS the launch. This gate must never
+//     pass a broad external launch on real-DB/audit evidence alone.
+if (SANDBOX_LAUNCH) {
+  const publicCaps = caps.filter(c => c.surface === 'public');
+  const holds = [];
+  for (const c of publicCaps) {
+    if (c.disposition !== 'released')
+      holds.push(`${c.id} (${c.disposition}) — public surface not released`);
+    if (c.status === 'in-audit' || c.status === 'blocked')
+      holds.push(`${c.id} status=${c.status} — public surface must be verified`);
+  }
+  holds.forEach(h => fail(`SANDBOX-LAUNCH: ${h}`));
+  const quarantined = caps.filter(c => c.disposition === 'quarantined');
+  const internal = caps.filter(c => c.disposition === 'internal_only');
+  console.log(`  · public released: ${publicCaps.filter(c => c.disposition === 'released').length}/${publicCaps.length}` +
+    ` · quarantined: ${quarantined.length} · internal_only: ${internal.length}`);
+  if (failures === 0) pass('FULL external Sandbox launch readiness (every public surface released)');
 }
 
 // 8. Generated doc freshness

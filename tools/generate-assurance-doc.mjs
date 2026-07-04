@@ -47,11 +47,23 @@ P(`| **total** | **${capabilities.length}** |`);
 P('');
 P('## Capabilities');
 P('');
-P('| ID | Name | Owner | Public status | Sandbox | Live | Authority | Gate | Disposition | Status |');
-P('|---|---|---|---|---|---|---|---|---|---|');
+P('| ID | Name | Owner | Surface | Disposition | Sandbox | Live | Gate | Status |');
+P('|---|---|---|---|---|---|---|---|---|');
 for (const c of capabilities) {
-  P(`| ${c.id} | ${c.name} | ${c.owner} | ${c.public_status} | ${c.environments.sandbox ? '✅' : '—'} | ${c.environments.live ? '⚠️ yes' : '🔒 no'} | ${c.authority} (${c.authority_ref}) | ${c.deployment_gate} | ${c.cleanup_disposition} | **${c.status}** |`);
+  P(`| ${c.id} | ${c.name} | ${c.owner} | ${c.surface || '—'} | **${c.disposition || '—'}** | ${c.environments.sandbox ? '✅' : '—'} | ${c.environments.live ? '⚠️ yes' : '🔒 no'} | ${c.deployment_gate} | ${c.status} |`);
 }
+P('');
+P('## External-Sandbox disposition summary');
+P('');
+const byDisp = {};
+for (const c of capabilities) byDisp[c.disposition || 'unset'] = (byDisp[c.disposition || 'unset'] || 0) + 1;
+P('| Disposition | Count |');
+P('|---|---|');
+for (const [k, v] of Object.entries(byDisp).sort()) P(`| ${k} | ${v} |`);
+const pubReleased = capabilities.filter(c => c.surface === 'public' && c.disposition === 'released').length;
+const pubTotal = capabilities.filter(c => c.surface === 'public').length;
+P('');
+P(`Public surfaces released: **${pubReleased}/${pubTotal}**. Full external launch requires ${pubTotal}/${pubTotal}.`);
 P('');
 P('## Detail');
 P('');
@@ -68,6 +80,7 @@ for (const c of capabilities) {
   P(`- **Tests:** unit [${c.tests.unit.join(', ')}] · integration [${c.tests.integration.join(', ')}] · e2e_sandbox [${c.tests.e2e_sandbox.join(', ')}] · negative/security [${c.tests.negative_security.join(', ')}]`);
   P(`- **Evidence:** ${c.evidence.join(', ') || '—'}`);
   P(`- **Cleanup disposition:** ${c.cleanup_disposition}`);
+  P(`- **External surface:** ${c.surface || '—'} · **Disposition:** **${c.disposition || '—'}**${(c.reference_path === 'true' || c.reference_path === true) ? ' · reference-path' : ''}`);
   P(`- **Launch scope:** ${c.launch_scope || 'sandbox'}`);
   P(`- **Status:** **${c.status}**`);
   P('');

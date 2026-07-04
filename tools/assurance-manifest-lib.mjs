@@ -21,6 +21,19 @@ export const VALID_PUBLIC_STATUS = ['public-sandbox', 'public-live', 'internal',
 export const VALID_DISPOSITION = ['active-required', 'active-needs-remediation', 'legacy-compat-justified', 'obsolete-candidate', 'removed'];
 export const VALID_GATE = ['sandbox-e2e-required', 'integration-required', 'static-only', 'none-docs-only'];
 
+// External-Sandbox surface: is this capability reachable by / claimed to
+// external sandbox users (public), reachable only via server-side authorized
+// internal callers (internal), or not exposed at all (none)?
+export const VALID_SURFACE = ['public', 'internal', 'none'];
+
+// Definitive external-Sandbox disposition (one per capability):
+//   released      — deployed-E2E verified AND publicly documented
+//   quarantined   — intentionally unreachable externally + absent from public docs/SDK
+//   removed       — code/routes/build/docs/tests/config removed
+//   internal_only — no public route/SDK/doc claim; server-side authz + tested
+//   pending-e2e   — public + reachable but NOT yet deployed-E2E verified (HOLD)
+export const VALID_EXT_DISPOSITION = ['released', 'quarantined', 'removed', 'internal_only', 'pending-e2e'];
+
 const LIST_FIELDS = ['implementation', 'api_surface', 'evidence'];
 const TEST_KINDS = ['unit', 'integration', 'e2e_sandbox', 'negative_security'];
 

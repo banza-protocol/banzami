@@ -283,18 +283,24 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release
+.PHONY: check-all test-all check-repo-layout check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
 
 # Canonical assurance manifest gate (quality/operator-assurance-manifest.yaml).
-# Structural mode runs in check-all; release mode is the Sandbox launch gate.
+# Structural mode runs in check-all. Two launch gates:
+#   check-assurance-reference — reference financial path readiness (can pass now)
+#   check-assurance-release   — FULL external Sandbox launch (HOLD until every
+#                               public surface is deployed-E2E released)
 check-assurance:
 	node tools/check-assurance-manifest.mjs
 
+check-assurance-reference:
+	node tools/check-assurance-manifest.mjs --reference
+
 check-assurance-release:
-	node tools/check-assurance-manifest.mjs --release
+	node tools/check-assurance-manifest.mjs --sandbox-launch
 
 # Enforce that the Flutter SDK is the single source of truth for payment flows
 # (docs/adr/SDK_PAYMENT_SOURCE_OF_TRUTH.md).
@@ -311,7 +317,16 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-release assure-inventory
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory
+
+# Reference financial path gate — passes on the verified reference path alone.
+assure-reference: check-assurance check-assurance-reference
+	@printf "\nReference-path assurance passed.\n"
+
+# FULL external Sandbox launch gate — HOLDs until every public surface is
+# deployed-E2E released. This is the gate that authorises an external launch.
+assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory
+	@printf "\nFULL external Sandbox launch gate passed.\n"
 
 # Fast local assurance — seconds; suitable for pre-commit.
 assure-fast: check-repo-layout check-assurance check-sdk-payment-boundary
@@ -326,8 +341,8 @@ assure-full: check-all test-all
 assure-sandbox:
 	BANZAMI_E2E=RUN node tools/e2e/transfer-sandbox-e2e.mjs
 
-# Release-readiness gate — the Sandbox launch gate.
-assure-release: check-assurance-release check-repo-layout
+# Release-readiness gate — alias of the FULL external Sandbox launch gate.
+assure-release: assure-sandbox-launch
 	@printf "\nRelease-readiness gate passed.\n"
 
 # Cleanup / inventory assurance — asset inventory + disposition sanity.

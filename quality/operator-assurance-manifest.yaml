@@ -77,6 +77,9 @@ capabilities:
     evidence:
       - docs/quality/REPAIR_LOG.md#RA-019
       - evidence/assurance/transfer-sandbox-e2e-20260704.json
+    surface: internal
+    disposition: released
+    reference_path: true
     status: verified
 
   - id: CAP-WALLET-001
@@ -107,6 +110,9 @@ capabilities:
     cleanup_disposition: active-required
     evidence:
       - evidence/assurance/transfer-sandbox-e2e-20260704.json
+    surface: public
+    disposition: released
+    reference_path: true
     status: verified
 
   - id: CAP-PAY-001
@@ -132,6 +138,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-PAY-002
@@ -156,6 +164,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-PAY-003
@@ -181,6 +191,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-REFUND-001
@@ -206,6 +218,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-PAYOUT-001
@@ -230,6 +244,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-COLLECT-001
@@ -257,6 +273,8 @@ capabilities:
     launch_scope: excluded   # frozen in Phase 2 pending BANZA ADR-036 ratification
     evidence:
       - docs/architecture/protocol-integration.md
+    surface: none
+    disposition: quarantined
     status: blocked
 
   # ─── Events, webhooks, proofs ──────────────────────────────────────────────
@@ -283,6 +301,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-PROOF-001
@@ -314,6 +334,9 @@ capabilities:
     cleanup_disposition: active-required
     evidence:
       - evidence/assurance/transfer-sandbox-e2e-20260704.json
+    surface: public
+    disposition: released
+    reference_path: true
     status: verified
 
   # ─── Developer platform ────────────────────────────────────────────────────
@@ -340,6 +363,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-DEV-002
@@ -365,6 +390,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-DOCS-001
@@ -389,6 +416,8 @@ capabilities:
     deployment_gate: static-only
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-SDK-001
@@ -413,6 +442,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   - id: CAP-SDK-002
@@ -437,6 +468,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   # ─── Apps ──────────────────────────────────────────────────────────────────
@@ -463,6 +496,8 @@ capabilities:
     deployment_gate: integration-required
     cleanup_disposition: active-required
     evidence: []
+    surface: none
+    disposition: quarantined
     status: in-audit
 
   - id: CAP-APP-002
@@ -489,6 +524,8 @@ capabilities:
     launch_scope: excluded
     evidence:
       - docs/quality/REPAIR_LOG.md#RA-003
+    surface: none
+    disposition: quarantined
     status: blocked
 
   - id: CAP-APP-003
@@ -514,6 +551,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: internal
+    disposition: internal_only
     status: in-audit
 
   - id: CAP-APP-004
@@ -539,6 +578,8 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
+    surface: public
+    disposition: pending-e2e
     status: in-audit
 
   # ─── Live rails (prepared, disabled) ───────────────────────────────────────
@@ -567,4 +608,6 @@ capabilities:
     launch_scope: excluded   # Live rails are intentionally disabled (fail closed) pending authorization
     evidence:
       - docs/quality/ENVIRONMENT_MATRIX.md
+    surface: none
+    disposition: quarantined
     status: blocked

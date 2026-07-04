@@ -20,28 +20,39 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 ## Capabilities
 
-| ID | Name | Owner | Public status | Sandbox | Live | Authority | Gate | Disposition | Status |
-|---|---|---|---|---|---|---|---|---|---|
-| CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | ✅ | 🔒 no | protocol (BANZA_REFERENCE ledger invariants) | integration-required | active-required | **verified** |
-| CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public-sandbox | ✅ | 🔒 no | protocol (BANZA_REFERENCE wallet model) | sandbox-e2e-required | active-required | **verified** |
-| CAP-PAY-001 | Payment sessions | operator-payments | public-sandbox | ✅ | 🔒 no | protocol (BANZA ADR-043) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-PAY-002 | Payment links | operator-payments | public-sandbox | ✅ | 🔒 no | protocol (BANZA payment link contract) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public-sandbox | ✅ | 🔒 no | operator-extension (Banzami QR engine spec (project_qr_engine)) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public-sandbox | ✅ | 🔒 no | protocol (BANZA refund/restitution rules) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public-sandbox | ✅ | 🔒 no | operator-extension (Banzami ADR-031 pricing dimension) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | preview-disabled | ✅ | 🔒 no | protocol (BANZA ADR-036 (pending ratification)) | sandbox-e2e-required | legacy-compat-justified | **blocked** |
-| CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public-sandbox | ✅ | 🔒 no | protocol (BANZA webhook signing contract) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public-sandbox | ✅ | 🔒 no | protocol (BANZA ADR-033, ADR-044) | sandbox-e2e-required | active-required | **verified** |
-| CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (operator policy) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (operator policy) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-DOCS-001 | Developer documentation site | developer-platform | public-sandbox | ✅ | 🔒 no | internal (operator policy) | static-only | active-required | **in-audit** |
-| CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (SDK-first policy (CLAUDE.md §13)) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (SDK-first policy (CLAUDE.md §13)) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-APP-001 | Mobile apps (consumer + merchant flavors) | mobile | preview-disabled | ✅ | 🔒 no | internal (operator product) | integration-required | active-required | **in-audit** |
-| CAP-APP-002 | Merchant dashboard (Banzami Business) | web | preview-disabled | — | 🔒 no | internal (operator product) | sandbox-e2e-required | active-needs-remediation | **blocked** |
-| CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | ✅ | ⚠️ yes | internal (operator product) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-APP-004 | Pay page + checkout | web | public-sandbox | ✅ | 🔒 no | internal (operator product) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-LIVE-001 | Live payments / EMIS / Multicaixa rails | operator-payments | not-exposed | — | 🔒 no | protocol (pending regulatory authorization — MUST fail closed) | sandbox-e2e-required | active-required | **blocked** |
+| ID | Name | Owner | Surface | Disposition | Sandbox | Live | Gate | Status |
+|---|---|---|---|---|---|---|---|---|
+| CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | **released** | ✅ | 🔒 no | integration-required | verified |
+| CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-PAY-001 | Payment sessions | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAY-002 | Payment links | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-DOCS-001 | Developer documentation site | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | static-only | in-audit |
+| CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-APP-001 | Mobile apps (consumer + merchant flavors) | mobile | none | **quarantined** | ✅ | 🔒 no | integration-required | in-audit |
+| CAP-APP-002 | Merchant dashboard (Banzami Business) | web | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | **internal_only** | ✅ | ⚠️ yes | sandbox-e2e-required | in-audit |
+| CAP-APP-004 | Pay page + checkout | web | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-LIVE-001 | Live payments / EMIS / Multicaixa rails | operator-payments | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
+
+## External-Sandbox disposition summary
+
+| Disposition | Count |
+|---|---|
+| internal_only | 1 |
+| pending-e2e | 12 |
+| quarantined | 4 |
+| released | 3 |
+
+Public surfaces released: **2/14**. Full external launch requires 14/14.
 
 ## Detail
 
@@ -57,6 +68,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [core/ledger/tests/integration.rs (balanced posting, idempotent replay, immutability), 0099 audit-immutability verified (UPDATE/DELETE raise on deployed banzami_staging)] · e2e_sandbox [] · negative/security [ledger + audit_log DB triggers reject UPDATE/DELETE (fail-closed)]
 - **Evidence:** docs/quality/REPAIR_LOG.md#RA-019, evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
+- **External surface:** internal · **Disposition:** **released** · reference-path
 - **Launch scope:** sandbox
 - **Status:** **verified**
 
@@ -72,6 +84,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [core/transfers TransferEngine integration tests] · e2e_sandbox [tools/e2e/transfer-sandbox-e2e.mjs] · negative/security [transfer-sandbox-e2e negatives (unauthorized→401, cross-tenant/invalid recipient→404, insufficient→422)]
 - **Evidence:** evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released** · reference-path
 - **Launch scope:** sandbox
 - **Status:** **verified**
 
@@ -87,6 +100,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -102,6 +116,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -117,6 +132,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -132,6 +148,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -147,6 +164,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -162,6 +180,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** docs/architecture/protocol-integration.md
 - **Cleanup disposition:** legacy-compat-justified
+- **External surface:** none · **Disposition:** **quarantined**
 - **Launch scope:** excluded
 - **Status:** **blocked**
 
@@ -177,6 +196,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -192,6 +212,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [transfer-sandbox-e2e receipt.pdf render (deployed, non-root Chromium)] · negative/security [non-existent proof ref → clean 404 (no 500/leak) on deployed sandbox]
 - **Evidence:** evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released** · reference-path
 - **Launch scope:** sandbox
 - **Status:** **verified**
 
@@ -207,6 +228,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -222,6 +244,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -237,6 +260,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -252,6 +276,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -267,6 +292,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -282,6 +308,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** none · **Disposition:** **quarantined**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -297,6 +324,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** docs/quality/REPAIR_LOG.md#RA-003
 - **Cleanup disposition:** active-needs-remediation
+- **External surface:** none · **Disposition:** **quarantined**
 - **Launch scope:** excluded
 - **Status:** **blocked**
 
@@ -312,6 +340,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** internal · **Disposition:** **internal_only**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -327,6 +356,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
@@ -342,6 +372,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** docs/quality/ENVIRONMENT_MATRIX.md
 - **Cleanup disposition:** active-required
+- **External surface:** none · **Disposition:** **quarantined**
 - **Launch scope:** excluded
 - **Status:** **blocked**
 
