@@ -352,3 +352,64 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 - **Remediation:** 23 divergent local-only branches deleted; SHAs snapshotted
   in ops/deleted-branches-snapshot.txt (restore: `git branch <name> <sha>`).
 - **Disposition:** **fixed** (reversible).
+
+## RA-029 — Overstated single "GO" gate (integrity correction)
+
+- **Severity:** HIGH (assurance integrity — the gate must not conceal the gap)
+- **Finding:** the first pass issued one "GO" and a single release gate that
+  passed with only 3 capabilities verified, understating that most public
+  surfaces lacked deployed E2E.
+- **Remediation:** two-gate model. `assure-reference` (reference path) passes;
+  `assure-sandbox-launch` FAILS unless every `surface: public` capability is
+  `released` with deployed E2E. Added per-capability `surface`/`disposition`.
+  Launch package + README rewritten to Reference-GO / Full-launch-HOLD.
+- **Disposition:** **fixed** — the gate now enforces the honest HOLD.
+
+## RA-030 — Mobile: static review is not launch evidence
+
+- **Severity:** HIGH (mobile launch claim)
+- **Finding:** mobile was "static-verified" without deployed iOS E2E.
+- **Remediation:** split into CAP-APP-001 (Consumer) + CAP-APP-005 (Merchant),
+  both **quarantined**. Authored MOBILE_E2E_REQUIREMENTS.md (consumer/merchant/
+  cross-app matrices), `check-mobile-sandbox-config.mjs` (static guard, CI+gate),
+  and `tools/mobile/run-ios-e2e.sh` + `make assure-mobile-*` (fail-closed until
+  integration_test suites + registered evidence exist). Proved the iOS Simulator
+  build is feasible (consumer sandbox build exit 0 — no MLKit/arm64 blocker;
+  neither app uses camera QR scanning). Bundle contains the prod host string
+  literal, so only runtime E2E can prove isolation.
+- **Disposition:** apps **quarantined**; deployed iOS E2E matrices + macOS
+  release runner are the tracked path to `released-sandbox`.
+
+## RA-031 — Live activation envelope sealed
+
+- **Severity:** HIGH (real-money safety)
+- **Remediation:** docs/operations/LIVE_ACTIVATION_GATE.md (fail-closed 12-step
+  protocol; no single flag/deploy enables Live) + `check-live-fail-closed.mjs`
+  guarding the code-level invariants (core LIVE default, requireSandbox,
+  EnvGate/ENVIRONMENT_MISMATCH, bz_live/bz_test binding, EMIS fail-closed).
+- **Disposition:** **fixed** (guard passes; wired into CI + deploy gate).
+
+## RA-032 — Backup DR hardened (restore-verified)
+
+- **Severity:** was CRITICAL (RA-006)
+- **Remediation:** pg-backup.sh now restore-VERIFIES each run (restore latest
+  dump into a scratch DB, assert schema materializes — 85 tables, then drop) +
+  asymmetric encryption + off-host hooks, both fail-loud when unset.
+  BACKUP_DR_RUNBOOK.md documents restore + Live prerequisites.
+- **Disposition:** **fixed** for sandbox; encrypted off-host bucket is a tracked
+  Live prerequisite (ops provisioning).
+
+## RA-033 — Deploy-time enforcement (not local-only)
+
+- **Severity:** HIGH (RA-007 follow-through)
+- **Remediation:** deploy.sh runs the assurance gates before every deploy and
+  ABORTS on failure (manifest, layout, inventory, live-fail-closed). Enforcement
+  no longer depends on GitHub-hosted Actions. Emergency override documented.
+- **Disposition:** **fixed**.
+
+## RA-034 — Origin stale branches removed
+
+- **Severity:** LOW
+- **Remediation:** 18 stale origin branches deleted (no open PRs; SHAs in
+  ops/deleted-branches-snapshot.txt). Origin now has only `main`.
+- **Disposition:** **fixed**.
