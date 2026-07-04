@@ -16,7 +16,7 @@ func TestPrimitivesRenderSharedAnatomy(t *testing.T) {
 		Button("Abrir", "https://x/y") + URLFallback("ou:", "https://x/y")
 	html := RenderLayout(LayoutOpts{Subtitle: "Developers", BadgeKind: "security", SafetyKind: "security", Preheader: "pre", Body: body})
 
-	for _, m := range []string{"'Nunito'", "border-collapse:separate", "Pagamentos modernos para África", "banzami.com", "Segurança"} {
+	for _, m := range []string{"'Nunito'", "border-collapse:separate", "O novo caminho do Kwanza.", "banzami.com", "Segurança"} {
 		if !strings.Contains(html, m) {
 			t.Errorf("missing shared anatomy %q", m)
 		}

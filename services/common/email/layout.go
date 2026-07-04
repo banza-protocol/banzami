@@ -33,7 +33,7 @@ func footer(safetyKind string) string {
           <td style="vertical-align:middle;padding-right:8px;"><img src="` + logoURL + `" width="22" height="22" alt="Banzami" style="display:block;width:22px;height:22px;border-radius:7px;"></td>
           <td style="vertical-align:middle;font-family:` + fSans + `;">
             <span style="font-size:14px;font-weight:900;letter-spacing:-.01em;color:` + cInk + `;">Banzami</span>
-            <span style="font-size:13px;font-weight:700;color:` + cLabel + `;">&nbsp;— Pagamentos modernos para África</span>
+            <span style="font-size:13px;font-weight:700;color:` + cLabel + `;">&nbsp;— O novo caminho do Kwanza.</span>
           </td>
         </tr></table>
         <div style="font-family:` + fMono + `;font-size:12.5px;font-weight:600;color:` + cLabel + `;margin-bottom:14px;">` + ContactEmail + `&nbsp;&nbsp;·&nbsp;&nbsp;` + SiteURL + `</div>

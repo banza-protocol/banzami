@@ -22,6 +22,6 @@ func TextDoc(title string, paras []string, lines []InfoRow, ctaLabel, url, safet
 	if safety != "" {
 		b.WriteString(safety + "\n")
 	}
-	b.WriteString("\n— Banzami · Pagamentos modernos para África\n" + ContactEmail + " · " + SiteURL + "\n")
+	b.WriteString("\n— Banzami · O novo caminho do Kwanza.\n" + ContactEmail + " · " + SiteURL + "\n")
 	return b.String()
 }

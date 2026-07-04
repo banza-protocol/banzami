@@ -70,7 +70,7 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 				t.Errorf("%s: missing %q", name, m)
 			}
 		}
-		for _, m := range []string{"Banzami", "Pagamentos modernos para África", "banzami.com"} {
+		for _, m := range []string{"Banzami", "O novo caminho do Kwanza.", "banzami.com"} {
 			if !strings.Contains(html, m) {
 				t.Errorf("%s: missing shared anatomy %q", name, m)
 			}
