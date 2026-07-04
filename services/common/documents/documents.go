@@ -293,6 +293,10 @@ func GeneratePDF(ctx context.Context, d ReceiptData) ([]byte, error) {
 
 	args := []string{
 		"--headless", "--disable-gpu", "--no-sandbox",
+		// Keep Chromium's profile/cache inside the per-render temp dir so it
+		// never needs a writable $HOME. Required when the service runs as an
+		// unprivileged, home-less user (Assurance RA-024 non-root containers).
+		"--user-data-dir=" + dir,
 		"--no-pdf-header-footer", "--print-to-pdf-no-header",
 		"--run-all-compositor-stages-before-draw", "--virtual-time-budget=4000",
 		"--print-to-pdf=" + pdfPath, "file://" + htmlPath,
