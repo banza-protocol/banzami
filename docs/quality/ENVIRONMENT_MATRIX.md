@@ -5,9 +5,17 @@ Programme: BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 · audited 2026-07-04
 Topology note: the platform currently operates in **platform mode SANDBOX**
 (`GET /v1/platform-mode` on api.banzami.com returns SANDBOX with public
 banner). The "main stack" is the production infrastructure running in sandbox
-platform mode; the "staging stack" is the internal pre-production plane
-(banzami_staging DB) where features (e.g. payment sessions) are staged before
-main-stack deploy. Live money movement is not authorized anywhere.
+platform mode; the "staging stack" is the internal pre-production plane where
+features (e.g. payment sessions) are staged before main-stack deploy. Live
+money movement is not authorized anywhere.
+
+**Verified 2026-07-04 (server inspection):** the VM Postgres contains exactly
+two databases: `postgres` and `banzami_staging`. **No live data plane exists
+yet** — both stacks operate on sandbox data. The live database, live rail
+credentials and live key issuance would all be created at Live activation;
+until then "Live rejects test keys" is enforced by code but has no deployed
+plane to violate. This is the strongest possible Sandbox/Live separation:
+Live does not exist.
 
 Control classes: **ENFORCED** (violation impossible by code/config) ·
 **CHECKED** (runtime-validated with error) · **CONVENTION** (operational
