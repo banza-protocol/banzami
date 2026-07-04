@@ -59,18 +59,25 @@ capabilities:
     authority_ref: BANZA_REFERENCE ledger invariants
     implementation:
       - core/ledger
+      - db/migrations/0033_ledger_immutability.sql
+      - db/migrations/0099_audit_log_immutability.sql
     api_surface:
       - none
     threat_category: financial-money-movement
     tests:
       unit: []
-      integration: []
+      integration:
+        - core/ledger/tests/integration.rs (balanced posting, idempotent replay, immutability)
+        - 0099 audit-immutability verified (UPDATE/DELETE raise on deployed banzami_staging)
       e2e_sandbox: []
-      negative_security: []
+      negative_security:
+        - ledger + audit_log DB triggers reject UPDATE/DELETE (fail-closed)
     deployment_gate: integration-required
     cleanup_disposition: active-required
-    evidence: []
-    status: in-audit
+    evidence:
+      - docs/quality/REPAIR_LOG.md#RA-019
+      - evidence/assurance/transfer-sandbox-e2e-20260704.json
+    status: verified
 
   - id: CAP-WALLET-001
     name: Wallet accounts and balances
@@ -83,18 +90,24 @@ capabilities:
     authority_ref: BANZA_REFERENCE wallet model
     implementation:
       - core/wallets
+      - core/transfers
     api_surface:
+      - /v1/transfers
       - /v1/wallets
     threat_category: financial-money-movement
     tests:
       unit: []
-      integration: []
-      e2e_sandbox: []
-      negative_security: []
+      integration:
+        - core/transfers TransferEngine integration tests
+      e2e_sandbox:
+        - tools/e2e/transfer-sandbox-e2e.mjs
+      negative_security:
+        - transfer-sandbox-e2e negatives (unauthorized→401, cross-tenant/invalid recipient→404, insufficient→422)
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
-    status: in-audit
+    evidence:
+      - evidence/assurance/transfer-sandbox-e2e-20260704.json
+    status: verified
 
   - id: CAP-PAY-001
     name: Payment sessions
@@ -230,8 +243,9 @@ capabilities:
     authority_ref: BANZA ADR-036 (pending ratification)
     implementation:
       - services/api-gateway
+      - db/migrations.phase2 (frozen)
     api_surface:
-      - /v1/collections
+      - none (frozen; legacy /v1/splits returns 410 at edge)
     threat_category: financial-money-movement
     tests:
       unit: []
@@ -239,9 +253,11 @@ capabilities:
       e2e_sandbox: []
       negative_security: []
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-required
-    evidence: []
-    status: in-audit
+    cleanup_disposition: legacy-compat-justified
+    launch_scope: excluded   # frozen in Phase 2 pending BANZA ADR-036 ratification
+    evidence:
+      - docs/architecture/protocol-integration.md
+    status: blocked
 
   # ─── Events, webhooks, proofs ──────────────────────────────────────────────
 
@@ -280,19 +296,25 @@ capabilities:
     authority_ref: BANZA ADR-033, ADR-044
     implementation:
       - services/api-gateway
+      - services/common/documents
       - apps/website
     api_surface:
       - /r/{ref}
+      - /v1/public/proofs/{ref}
+      - receipt.pdf
     threat_category: financial-read
     tests:
       unit: []
       integration: []
-      e2e_sandbox: []
-      negative_security: []
+      e2e_sandbox:
+        - transfer-sandbox-e2e receipt.pdf render (deployed, non-root Chromium)
+      negative_security:
+        - non-existent proof ref → clean 404 (no 500/leak) on deployed sandbox
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
-    status: in-audit
+    evidence:
+      - evidence/assurance/transfer-sandbox-e2e-20260704.json
+    status: verified
 
   # ─── Developer platform ────────────────────────────────────────────────────
 

@@ -13,24 +13,25 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| blocked | 2 |
-| in-audit | 18 |
+| blocked | 3 |
+| in-audit | 14 |
+| verified | 3 |
 | **total** | **20** |
 
 ## Capabilities
 
 | ID | Name | Owner | Public status | Sandbox | Live | Authority | Gate | Disposition | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | ✅ | 🔒 no | protocol (BANZA_REFERENCE ledger invariants) | integration-required | active-required | **in-audit** |
-| CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public-sandbox | ✅ | 🔒 no | protocol (BANZA_REFERENCE wallet model) | sandbox-e2e-required | active-required | **in-audit** |
+| CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | ✅ | 🔒 no | protocol (BANZA_REFERENCE ledger invariants) | integration-required | active-required | **verified** |
+| CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public-sandbox | ✅ | 🔒 no | protocol (BANZA_REFERENCE wallet model) | sandbox-e2e-required | active-required | **verified** |
 | CAP-PAY-001 | Payment sessions | operator-payments | public-sandbox | ✅ | 🔒 no | protocol (BANZA ADR-043) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-PAY-002 | Payment links | operator-payments | public-sandbox | ✅ | 🔒 no | protocol (BANZA payment link contract) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public-sandbox | ✅ | 🔒 no | operator-extension (Banzami QR engine spec (project_qr_engine)) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public-sandbox | ✅ | 🔒 no | protocol (BANZA refund/restitution rules) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public-sandbox | ✅ | 🔒 no | operator-extension (Banzami ADR-031 pricing dimension) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | preview-disabled | ✅ | 🔒 no | protocol (BANZA ADR-036 (pending ratification)) | sandbox-e2e-required | active-required | **in-audit** |
+| CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | preview-disabled | ✅ | 🔒 no | protocol (BANZA ADR-036 (pending ratification)) | sandbox-e2e-required | legacy-compat-justified | **blocked** |
 | CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public-sandbox | ✅ | 🔒 no | protocol (BANZA webhook signing contract) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public-sandbox | ✅ | 🔒 no | protocol (BANZA ADR-033, ADR-044) | sandbox-e2e-required | active-required | **in-audit** |
+| CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public-sandbox | ✅ | 🔒 no | protocol (BANZA ADR-033, ADR-044) | sandbox-e2e-required | active-required | **verified** |
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (operator policy) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (operator policy) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public-sandbox | ✅ | 🔒 no | internal (operator policy) | static-only | active-required | **in-audit** |
@@ -50,14 +51,14 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Public status:** internal · **Sandbox:** true · **Live:** false
 - **Authority:** protocol — BANZA_REFERENCE ledger invariants
 - **Threat category:** financial-money-movement
-- **Implementation:** core/ledger
+- **Implementation:** core/ledger, db/migrations/0033_ledger_immutability.sql, db/migrations/0099_audit_log_immutability.sql
 - **API/UI surface:** none
 - **Deployment gate:** integration-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [core/ledger/tests/integration.rs (balanced posting, idempotent replay, immutability), 0099 audit-immutability verified (UPDATE/DELETE raise on deployed banzami_staging)] · e2e_sandbox [] · negative/security [ledger + audit_log DB triggers reject UPDATE/DELETE (fail-closed)]
+- **Evidence:** docs/quality/REPAIR_LOG.md#RA-019, evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-WALLET-001 — Wallet accounts and balances
 
@@ -65,14 +66,14 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** protocol — BANZA_REFERENCE wallet model
 - **Threat category:** financial-money-movement
-- **Implementation:** core/wallets
-- **API/UI surface:** /v1/wallets
+- **Implementation:** core/wallets, core/transfers
+- **API/UI surface:** /v1/transfers, /v1/wallets
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [core/transfers TransferEngine integration tests] · e2e_sandbox [tools/e2e/transfer-sandbox-e2e.mjs] · negative/security [transfer-sandbox-e2e negatives (unauthorized→401, cross-tenant/invalid recipient→404, insufficient→422)]
+- **Evidence:** evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-PAY-001 — Payment sessions
 
@@ -155,14 +156,14 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Public status:** preview-disabled · **Sandbox:** true · **Live:** false
 - **Authority:** protocol — BANZA ADR-036 (pending ratification)
 - **Threat category:** financial-money-movement
-- **Implementation:** services/api-gateway
-- **API/UI surface:** /v1/collections
+- **Implementation:** services/api-gateway, db/migrations.phase2 (frozen)
+- **API/UI surface:** none (frozen; legacy /v1/splits returns 410 at edge)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
-- **Cleanup disposition:** active-required
-- **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Evidence:** docs/architecture/protocol-integration.md
+- **Cleanup disposition:** legacy-compat-justified
+- **Launch scope:** excluded
+- **Status:** **blocked**
 
 ### CAP-WEBHOOK-001 — Signed webhooks (banza-signature)
 
@@ -185,14 +186,14 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** protocol — BANZA ADR-033, ADR-044
 - **Threat category:** financial-read
-- **Implementation:** services/api-gateway, apps/website
-- **API/UI surface:** /r/{ref}
+- **Implementation:** services/api-gateway, services/common/documents, apps/website
+- **API/UI surface:** /r/{ref}, /v1/public/proofs/{ref}, receipt.pdf
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [] · e2e_sandbox [transfer-sandbox-e2e receipt.pdf render (deployed, non-root Chromium)] · negative/security [non-existent proof ref → clean 404 (no 500/leak) on deployed sandbox]
+- **Evidence:** evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-DEV-001 — Developer Console (login, OTP, workspaces, projects)
 
