@@ -19,8 +19,10 @@ import (
 type DeveloperKeyContext struct {
 	KeyID       string   `json:"key_id"`
 	Environment string   `json:"environment"`
-	WorkspaceID string   `json:"workspace_id"`
-	ProjectID   string   `json:"project_id"`
+	WorkspaceID string   `json:"workspace_id"`  // internal: tenant enforcement only, never exposed
+	ProjectID   string   `json:"project_id"`    // internal: tenant enforcement only, never exposed
+	ProjectSlug string   `json:"project_slug"`  // project-safe public identifier
+	KeyStatus   string   `json:"key_status"`
 	Scopes      []string `json:"scopes"`
 }
 

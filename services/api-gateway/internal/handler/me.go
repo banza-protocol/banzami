@@ -30,12 +30,14 @@ func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "insufficient scope")
 		return
 	}
-	// The endpoint exposes only the caller's own resolved context.
+	// Public contract (RT02.1): the MINIMUM integration identity only — API
+	// environment, project-safe identifier, allowed scopes, key status. It never
+	// exposes internal Core/database identifiers (workspace_id, project UUID, key
+	// UUID), workspace members, service topology, PII, or raw key material.
 	writeJSON(w, http.StatusOK, map[string]any{
-		"environment":  p.Environment,
-		"workspace_id": p.WorkspaceID,
-		"project_id":   p.ProjectID,
-		"scopes":       p.Scopes,
-		"key_id":       p.KeyID,
+		"environment": p.Environment,
+		"project":     p.ProjectSlug,
+		"scopes":      p.Scopes,
+		"key_status":  p.KeyStatus,
 	})
 }

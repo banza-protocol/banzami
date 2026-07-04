@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -197,16 +198,23 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		r.Get("/internal/v1/notifications/summary", notificationsHandler.Summary)
 	})
 
-	// ADR-046 external developer-key surface. Additive + feature-flagged: mounted
-	// only when developer-api introspection is configured. Authenticated by a
-	// Console-issued Sandbox key (NOT the merchant JWT). GET /v1/me is the
-	// released consumption surface (CAP-DEV-002). Rate-limited on the key id.
-	if devKeyClient := service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey); devKeyClient != nil {
+	// ADR-046 external developer-key surface (RT02.1 fail-closed activation).
+	// Mounted ONLY when DeveloperKeyAuthActive() holds: DEVELOPER_KEY_AUTH_ENABLED
+	// set, ENVIRONMENT=SANDBOX, non-empty internal credential, canonical Sandbox
+	// Developer API host. A URL variable alone never activates it. Authenticated
+	// by a Console-issued Sandbox key (NOT the merchant JWT); rate-limited on the
+	// non-secret key id. GET /v1/me is the released consumption surface (CAP-DEV-002).
+	if active, reason := cfg.DeveloperKeyAuthActive(); active {
+		devKeyClient := service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey)
 		meHandler := handler.NewMeHandler()
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.DeveloperKeyAuth(devKeyClient))
+			r.Use(middleware.DeveloperKeyRateLimit(deps.Redis))
 			r.Get("/v1/me", meHandler.Me)
 		})
+		slog.Info("developer-key auth active", "surface", "GET /v1/me")
+	} else {
+		slog.Info("developer-key auth disabled", "reason", reason)
 	}
 
 	r.Group(func(r chi.Router) {

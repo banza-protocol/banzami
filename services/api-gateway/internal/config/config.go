@@ -2,8 +2,10 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
@@ -44,10 +46,14 @@ type Config struct {
 
 	// DeveloperAPIURL + DeveloperInternalKey wire the ADR-046 external
 	// developer-key path: the Gateway delegates key verification to developer-api
-	// (the single key authority). Both empty → the developer-key path (and
-	// GET /v1/me) is disabled (feature-flagged off; existing flows unaffected).
-	DeveloperAPIURL     string
+	// (the single key authority).
+	DeveloperAPIURL      string
 	DeveloperInternalKey string
+	// DeveloperKeyAuthEnabled is the EXPLICIT activation flag (RT02.1). The
+	// developer-key path (GET /v1/me) is mounted ONLY when this is true AND the
+	// activation invariants hold (see DeveloperKeyAuthActive). A URL variable
+	// alone must never activate developer-key authentication. Fail-closed.
+	DeveloperKeyAuthEnabled bool
 
 	// KYB document storage (Track 3). All empty → storage disabled and the
 	// document endpoints respond 503 STORAGE_NOT_CONFIGURED (no startup panic).
@@ -119,6 +125,9 @@ func Load() (*Config, error) {
 	if v := os.Getenv("DEVELOPER_INTERNAL_KEY"); v != "" {
 		cfg.DeveloperInternalKey = v
 	}
+	if v := os.Getenv("DEVELOPER_KEY_AUTH_ENABLED"); v == "true" || v == "1" {
+		cfg.DeveloperKeyAuthEnabled = v == "true" || v == "1"
+	}
 	if cfg.CoreAPIURL == "" {
 		cfg.CoreAPIURL = "http://127.0.0.1:8081"
 	}
@@ -168,4 +177,36 @@ func (c *Config) IsDevelopment() bool {
 
 func (c *Config) IsProduction() bool {
 	return c.Environment == "production"
+}
+
+// DeveloperKeyAuthActive reports whether the ADR-046 developer-key path (GET
+// /v1/me) may be mounted. Fail-closed activation (RT02.1): every invariant must
+// hold. The returned reason is safe to log (no secrets). A URL variable alone is
+// NEVER sufficient — DeveloperKeyAuthEnabled must be explicitly set.
+func (c *Config) DeveloperKeyAuthActive() (bool, string) {
+	if !c.DeveloperKeyAuthEnabled {
+		return false, "DEVELOPER_KEY_AUTH_ENABLED not set — developer-key path disabled"
+	}
+	// SANDBOX only. Developer-key auth must never activate on a Live-mode path
+	// unless a separate future Live activation gate explicitly enables it.
+	if !strings.EqualFold(c.Environment, "SANDBOX") {
+		return false, "developer-key auth requires ENVIRONMENT=SANDBOX"
+	}
+	if c.DeveloperInternalKey == "" {
+		return false, "DEVELOPER_INTERNAL_KEY is empty"
+	}
+	u, err := url.Parse(c.DeveloperAPIURL)
+	if err != nil || u.Host == "" {
+		return false, "DEVELOPER_API_URL is missing or malformed"
+	}
+	// Canonical Sandbox Developer API host only: an internal service host, never
+	// a public/live/arbitrary host. Accept the in-cluster name or the sandbox
+	// developer-api hostname; reject anything else (SSRF / wrong-host guard).
+	host := strings.ToLower(u.Hostname())
+	okHost := host == "developer-api" || host == "developer-api.banzami.com" ||
+		host == "localhost" || host == "127.0.0.1"
+	if !okHost {
+		return false, "DEVELOPER_API_URL host is not the canonical Sandbox Developer API"
+	}
+	return true, "active"
 }

@@ -218,10 +218,9 @@ export class BanzamiClient {
    */
   async me(): Promise<{
     environment: string;
-    workspace_id: string;
-    project_id: string;
+    project: string;
     scopes: string[];
-    key_id: string;
+    key_status: string;
   }> {
     const res = await fetch(`${this.base}/v1/me`, {
       method: 'GET',
@@ -238,7 +237,7 @@ export class BanzamiClient {
       throw new BanzamiApiError(res.status, code, message);
     }
     return res.json() as Promise<{
-      environment: string; workspace_id: string; project_id: string; scopes: string[]; key_id: string;
+      environment: string; project: string; scopes: string[]; key_status: string;
     }>;
   }
 

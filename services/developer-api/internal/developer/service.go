@@ -461,12 +461,17 @@ func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action
 }
 
 // KeyIntrospection is the resolved authorization context of a verified external
-// developer key (ADR-046). It carries no raw secret.
+// developer key (ADR-046). It carries no raw secret. WorkspaceID/ProjectID are
+// internal (used by the Gateway for future tenant enforcement) and MUST NOT be
+// exposed on the public /v1/me contract; ProjectSlug is the project-safe public
+// identifier.
 type KeyIntrospection struct {
 	KeyID       string   `json:"key_id"`
 	Environment string   `json:"environment"`
 	WorkspaceID string   `json:"workspace_id"`
 	ProjectID   string   `json:"project_id"`
+	ProjectSlug string   `json:"project_slug"`
+	KeyStatus   string   `json:"key_status"`
 	Scopes      []string `json:"scopes"`
 }
 
@@ -488,6 +493,8 @@ func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrosp
 		Environment: auth.Environment,
 		WorkspaceID: proj.WorkspaceID,
 		ProjectID:   auth.ProjectID,
+		ProjectSlug: proj.Slug,
+		KeyStatus:   "active", // AuthorizeKey already required status == ACTIVE
 		Scopes:      auth.Scopes,
 	}, nil
 }

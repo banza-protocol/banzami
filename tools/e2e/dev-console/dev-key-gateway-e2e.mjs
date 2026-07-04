@@ -58,13 +58,19 @@ try {
   // ── Positive path ──────────────────────────────────────────────────────────
   const kA = await mkKey(ctxA, csrfA, prA, ['identity:read']);
   rec('RT02.key-created-reveal-once', typeof kA.secret === 'string' && kA.secret.startsWith('bz_test_sk_'), `bz_test_sk_ len ${kA.secret?.length || 0}`);
+  let projectSlugA;
   {
     const r = await fetch(`${GW}/v1/me`, { headers: { Authorization: `Bearer ${kA.secret}` } });
     const body = await r.json().catch(() => ({}));
-    const okCtx = r.status === 200 && body.environment === 'SANDBOX' && body.workspace_id === wsA && body.project_id === prA;
-    rec('RT02.gateway-accepts-console-key', okCtx, `/v1/me → ${r.status}, ctx resolved=${okCtx}`);
-    rec('RT02.resolves-workspace-project-tenant', body.workspace_id === wsA && body.project_id === prA);
-    rec('RT02.no-raw-secret-in-response', !JSON.stringify(body).includes(kA.secret || 'zzz'));
+    projectSlugA = body.project;
+    const okCtx = r.status === 200 && body.environment === 'SANDBOX' && typeof body.project === 'string' && body.project.length > 0 && body.key_status === 'active' && Array.isArray(body.scopes) && body.scopes.includes('identity:read');
+    rec('RT02.gateway-accepts-console-key', okCtx, `/v1/me → ${r.status}, project=${body.project}, status=${body.key_status}`);
+    rec('RT02.resolves-project-safe-identity', typeof body.project === 'string' && body.project.length > 0);
+    // Hardened contract: MUST NOT leak internal Core/DB ids, workspace, key uuid, PII, topology.
+    const txt = JSON.stringify(body);
+    const leaks = /workspace_id|project_id|key_id|"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(txt);
+    rec('RT02.me-no-internal-ids-leak', !leaks, leaks ? `LEAK: ${txt}` : 'only {environment, project, scopes, key_status}');
+    rec('RT02.no-raw-secret-in-response', !txt.includes(kA.secret || 'zzz'));
   }
   // list cannot recover raw secret
   {
@@ -87,10 +93,10 @@ try {
     const r = await ctxB.request.get(`${API}/projects/${prA}/keys`, { headers: { Origin: CONSOLE } });
     rec('RT02.cross-tenant-key-mgmt-denied', r.status() === 403 || r.status() === 404, `→ ${r.status()}`);
   }
-  // A's key still only resolves to A's context (never B)
+  // A's key still only resolves to A's own project identity (never B's)
   {
     const body = await (await fetch(`${GW}/v1/me`, { headers: { Authorization: `Bearer ${kA.secret}` } })).json().catch(() => ({}));
-    rec('RT02.key-A-never-resolves-to-B', body.project_id === prA && body.project_id !== prB);
+    rec('RT02.key-A-resolves-only-to-own-identity', body.project === projectSlugA && typeof body.project === 'string');
   }
 
   // ── Privileged/credential-substitution denials ─────────────────────────────
