@@ -413,3 +413,41 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 - **Remediation:** 18 stale origin branches deleted (no open PRs; SHAs in
   ops/deleted-branches-snapshot.txt). Origin now has only `main`.
 - **Disposition:** **fixed**.
+
+## RT01 — Release Train 01: Developer Integration Foundation
+
+- **Scope:** CAP-DEV-001 Console, CAP-DEV-002 API-key lifecycle, CAP-DOCS-001
+  Docs, CAP-SDK-001 TypeScript SDK. No payments/mobile/Live work.
+- **Deployed:** developer-api + website-frontend redeployed to sandbox at
+  commit 63e1ab8b (deploy-time assurance gate ran). Evidence matches deployed
+  revision.
+- **RELEASED (deployed-Sandbox E2E, 29/29 green):**
+  - CAP-DEV-001 Developer Console — auth/OTP-single-use/invalid-OTP/session/
+    `__Host-` cookie/CSRF-block/workspace+project create/cross-tenant-403/
+    logout-invalidates/no-secret-in-storage/mobile+keyboard a11y.
+  - CAP-DOCS-001 Developer Docs — static/no-auth/no-management-API-fetch/
+    #conceitos+#glossario anchors/no-internal-host-leak/legacy-route-safe +
+    badge reconciliation (cobranca/webhooks/reembolsos downgraded to
+    "Em validação"; only released caps show "Disponível em Sandbox").
+- **HOLD (pending-e2e, precise blockers):**
+  - CAP-DEV-002 API-key lifecycle — management lifecycle (create/reveal-once/
+    list-no-secret/rotate/revoke/cross-tenant/audit-no-secret) E2E-PROVEN, but
+    dev-console keys (`developer.dev_api_keys`, bz_test_sk_/pk_) have NO deployed
+    consumption path: the gateway authenticates a SEPARATE merchant-key system
+    and developer-api's `AuthorizeKey` is mounted nowhere. "Revoked key rejected
+    by the Gateway" (#6) / "active key works at Gateway" (#7) are unprovable and
+    a developer cannot yet integrate with these keys. Owner: developer-platform.
+    Safe fallback: keys manageable but non-consumable; released once a gateway
+    consumption path exists + is E2E-verified.
+  - CAP-SDK-001 TypeScript SDK — ships public methods for UNRELEASED
+    capabilities (sessions/links/QR/refunds/payouts/webhooks) without deployed
+    E2E, and is NOT published to npm (404). Env-safety/build/no-secret pass.
+    Owner: developer-platform. Safe fallback: source-vendored only; released
+    once its public surface is limited to released caps (or those are E2E'd)
+    AND it is distributable. Enforced by tools/check-sdk-contract.mjs.
+- **New gates:** make assure-developer-foundation (HOLDs 2/4);
+  check-docs-claims + check-sdk-contract wired into deploy gate + CI +
+  assure-sandbox-launch. Controlled OTP via server-side HMAC recovery (no
+  inbox provisioned); no OTP/pepper/session/CSRF/raw-key ever printed.
+- **Verdict:** Developer Integration Foundation: HOLD (2/4 released).
+  assure-sandbox-launch remains HOLD.
