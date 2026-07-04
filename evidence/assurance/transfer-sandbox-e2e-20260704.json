@@ -1,0 +1,16 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001",
+  "test": "tools/e2e/transfer-sandbox-e2e.mjs",
+  "date": "2026-07-04",
+  "environment": "deployed sandbox (sandbox-api.banzami.com/consumer)",
+  "result": {
+    "ok": true,
+    "valid_transfer": "COMPLETED, balances moved by exactly 250000",
+    "idempotent_replay": "deduped, same transfer_id, balances unchanged",
+    "receipt_pdf": true,
+    "negatives_rejected": 7,
+    "negatives": ["insufficient_funds→422","invalid_recipient→404","self_transfer→400","invalid_amount→400","unsupported_currency→400","missing_idem_key→400","unauthorized→401"],
+    "atomicity": "all negatives left balances exactly intact"
+  },
+  "note": "Deployed-sandbox E2E. Caught and confirmed the fix for the RA-024 non-root Chromium receipt regression (documents.go HOME + user-data-dir)."
+}

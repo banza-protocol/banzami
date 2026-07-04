@@ -271,6 +271,9 @@ jobs:
       - name: Repository layout gate
         run: node tools/check-repository-layout.mjs
 
+      - name: Asset inventory gate (cleanup dispositions + secret hygiene)
+        run: node tools/check-asset-inventory.mjs
+
   # ─── Migration governance ───────────────────────────────────────────────────
   # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
   # migration that does not apply from scratch, leftover pending migrations, a

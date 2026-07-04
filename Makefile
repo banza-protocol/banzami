@@ -310,6 +310,30 @@ banza-conformance-l0:
 check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance
 	@printf "\nAll checks passed.\n"
 
+# ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
+.PHONY: assure-fast assure-full assure-sandbox assure-release assure-inventory
+
+# Fast local assurance — seconds; suitable for pre-commit.
+assure-fast: check-repo-layout check-assurance check-sdk-payment-boundary
+	@printf "\nFast assurance passed.\n"
+
+# Full local assurance — everything that does not need the deployed sandbox.
+assure-full: check-all test-all
+	@printf "\nFull local assurance passed.\n"
+
+# Deployed-sandbox E2E — real flows against sandbox-api.banzami.com.
+# Guarded, opt-in, sandbox-only (tools/e2e/README.md).
+assure-sandbox:
+	BANZAMI_E2E=RUN node tools/e2e/transfer-sandbox-e2e.mjs
+
+# Release-readiness gate — the Sandbox launch gate.
+assure-release: check-assurance-release check-repo-layout
+	@printf "\nRelease-readiness gate passed.\n"
+
+# Cleanup / inventory assurance — asset inventory + disposition sanity.
+assure-inventory:
+	node tools/check-asset-inventory.mjs
+
 sdk-test:
 	cd sdk/typescript && npm ci && npm test
 
