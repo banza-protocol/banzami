@@ -139,3 +139,95 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   (no phantom success) rather than simulating success.
 - **Disposition:** open — verify fail-closed behavior + negative tests
   (Phase 2/3). Real rail activation is out of scope (regulatory).
+  **Update 2026-07-04:** fail-closed VERIFIED by Phase 3 audit — EMIS provider
+  errors without credentials (core/acquiring/src/providers/emis.rs:70-86);
+  test-confirm endpoints reject in LIVE env; core defaults to LIVE when
+  ENVIRONMENT unset (safe). Remaining: negative E2E + RA-017.
+
+## RA-013 — nginx config drift between repo and server
+
+- **Severity:** MEDIUM (provenance)
+- **Finding:** Server has `zz-developer-api.conf` (developer-api.banzami.com)
+  and `banzami.conf.bak.preadmin_20260626_012959` not present in
+  `infra/nginx/`; repo config lacks the developer-api host.
+- **Disposition:** open — import server config into repo (repo becomes source
+  of truth), delete stale .bak (Phase 6).
+
+## RA-014 — Git-history secret scan: no credible active exposure
+
+- **Severity:** LOW (verified clean)
+- **Finding:** gitleaks over 2433 commits: 47 hits, all triaged as
+  docs/test placeholders, removed historical example pages, a Podfile.lock
+  checksum, and Firebase Android **client** config keys
+  (`google-services.json` — designed to ship in app binaries).
+- **Remediation:** none required; recommendation: confirm Firebase API key
+  restrictions (package name + SHA-1) in Firebase console.
+- **Disposition:** **accepted-justified** (evidence:
+  scratchpad gitleaks-banzami.json, redacted).
+
+## RA-015 — Pay frontend sandbox-link routing needs deployed E2E
+
+- **Severity:** MEDIUM
+- **Finding:** apps/pay routes sandbox links server-side to
+  STAGING_GATEWAY_URL (apps/pay/lib/api.ts:126) — architecture is sound
+  (client only calls its own /api routes), but no deployed E2E proves a
+  staging payment link resolves+pays via pay.banzami.com. CSP connect-src
+  allows only api.banzami.com, which is correct iff all data flows through
+  the pay app's own routes.
+- **Disposition:** open (Phase 7 E2E).
+
+## RA-016 — Sandbox email delivery is convention-only
+
+- **Severity:** MEDIUM
+- **Finding:** EmailDryRun exists but staging deploys don't enforce it; a
+  staging stack with the live Resend key and dry-run unset would email real
+  recipients.
+- **Disposition:** open — enforce dry-run or dedicated sandbox sender in
+  staging compose + deploy gate (Phase 6/7).
+
+## RA-017 — ACQUIRING_WEBHOOK_SECRET per-environment uniqueness unverified
+
+- **Severity:** MEDIUM
+- **Finding:** callback HMAC secret separation between environments is not
+  enforced by any check; identical secrets would allow sandbox→live callback
+  replay once rails activate.
+- **Disposition:** open — add boot/deploy guard (Phase 6/7). Not exploitable
+  today (rails stubbed, fail-closed).
+
+## RA-018 — Platform-mode propagation drift unmonitored
+
+- **Severity:** MEDIUM
+- **Finding:** admin-api propagates platform_mode to both DBs; a propagation
+  failure would leave stacks in different modes with no alert.
+- **Disposition:** open — startup/periodic consistency check (Phase 6/7).
+
+## RA-019 — Audit log was mutable at DB level (Phase 2 defect D1)
+
+- **Severity:** HIGH (audit integrity)
+- **Root cause:** 0025 declared audit_log append-only but only by convention.
+- **Remediation:** migration `0099_audit_log_immutability.sql` — fail-closed
+  UPDATE/DELETE triggers (same pattern as ledger 0033).
+- **Tests/evidence:** full migration run from scratch passes (assurance_check
+  DB); UPDATE and DELETE both raise. No legitimate code path mutates
+  audit_log (grep verified).
+- **Disposition:** **fixed** locally; deploy to sandbox via
+  `./deploy.sh staging` rollout gate (pending in Phase 6 batch).
+
+## RA-020 — Phase 2 test-coverage gaps (defects D3–D6, D9)
+
+- **Severity:** HIGH (assurance completeness — core code itself audited SOUND)
+- **Gaps:** concurrent refund+dispute ceiling race test; proof REVERSED after
+  full restitution test; gateway timeout/replay semantics test; deployed
+  webhook-delivery E2E; unauthorized-refund E2E.
+- **Disposition:** open — implemented under Phase 7 unified E2E methodology.
+
+## RA-021 — QR payload lacks BANZA-SBX: prefix (protocol L2 gap)
+
+- **Severity:** MEDIUM (no false claim exists — operator is L0)
+- **Finding:** INV-QR-ENV-001 mandates environment prefixes; Banzami QR uses
+  operator-native base64url/deep-link format. Adopting the prefix breaks
+  printed QR compatibility.
+- **Disposition:** **blocked** (owner: BANZA governance + Banzami product;
+  decision: adopt prefix vs. protocol amendment; safe fallback: claim only
+  L0/L1 conformance — currently true). See
+  docs/quality/PROTOCOL_CONFORMANCE_MATRIX.md governance item 1.
