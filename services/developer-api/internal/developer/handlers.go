@@ -23,6 +23,39 @@ func NewHandlers(svc *Service) *Handlers { return &Handlers{svc: svc} }
 // from the request body, verified, and never logged or echoed.
 func (h *Handlers) MountInternal(r chi.Router) {
 	r.Post("/internal/v1/keys/authorize", h.authorizeKey)
+	// Operator-controlled Project→Merchant binding (ADR-047). Guarded by the same
+	// shared internal key; NOT a public self-service route. The caller (operator
+	// tooling) provisions the Sandbox merchant + wallet in Core first, then binds.
+	r.Post("/internal/v1/projects/{projID}/binding", h.bindProjectSandbox)
+}
+
+// bindProjectSandbox records an operator-provisioned SANDBOX payee binding for a
+// project. Body: {"merchant_id","wallet_id","wallet_account_id","actor_user_id"}.
+// All ids are opaque core ids the operator already created. One ACTIVE binding
+// per project (409 on conflict). Never accepts or trusts a client-supplied
+// project payee for a payment — this only records the operator's binding.
+func (h *Handlers) bindProjectSandbox(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		MerchantID      string `json:"merchant_id"`
+		WalletID        string `json:"wallet_id"`
+		WalletAccountID string `json:"wallet_account_id"`
+		ActorUserID     string `json:"actor_user_id"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
+		return
+	}
+	ip, rid := reqMeta(r)
+	b, err := h.svc.BindProjectSandbox(r.Context(), chi.URLParam(r, "projID"),
+		in.MerchantID, in.WalletID, in.WalletAccountID, in.ActorUserID, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, map[string]any{
+		"binding_id": b.ID, "project_id": b.ProjectID, "state": b.State,
+		"artifact_created": b.ArtifactCreated, "created_at": b.CreatedAt,
+	})
 }
 
 // authorizeKey delegates external developer-key verification for the Gateway.

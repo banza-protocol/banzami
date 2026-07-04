@@ -35,20 +35,27 @@ const (
 	EnvLive         = "LIVE"
 )
 
-// AllowedScopes is the closed set of scopes a sandbox key may carry (Slice 1).
-// identity:read is the only scope backed by a RELEASED public route (GET /v1/me,
-// ADR-046). The rest are recorded but not enforced by any public route — their
-// capabilities are pending-e2e and dev keys cannot reach them.
+// AllowedScopes is the closed set of scopes a sandbox key may carry.
+// identity:read is backed by a RELEASED public route (GET /v1/me, ADR-046).
+// payment_sessions:* and payment_links:* are the ADR-047 payment scopes: a dev
+// key may reach a payment route only if it holds the matching scope AND its
+// Project has an ACTIVE binding (the Gateway enforces both). read and write are
+// distinct — a read scope never authorizes a mutation. The remaining scopes are
+// recorded but not yet enforced by any released route (pending-e2e).
 var AllowedScopes = map[string]bool{
-	"identity:read":   true,
-	"payments:read":   true,
-	"payments:write":  true,
-	"transfers:read":  true,
-	"transfers:write": true,
-	"refunds:write":   true,
-	"webhooks:read":   true,
-	"webhooks:write":  true,
-	"customers:read":  true,
+	"identity:read":          true,
+	"payment_sessions:read":  true,
+	"payment_sessions:write": true,
+	"payment_links:read":     true,
+	"payment_links:write":    true,
+	"payments:read":          true,
+	"payments:write":         true,
+	"transfers:read":         true,
+	"transfers:write":        true,
+	"refunds:write":          true,
+	"webhooks:read":          true,
+	"webhooks:write":         true,
+	"customers:read":         true,
 }
 
 var (
@@ -150,6 +157,16 @@ type Store interface {
 	// revokes the old key.
 	RotateAPIKey(ctx context.Context, oldID string, replacement APIKeyInsert) (APIKey, error)
 
+	// Project→Merchant Sandbox binding (ADR-047).
+	// CreateBinding inserts an ACTIVE binding; the DB partial unique index rejects
+	// a second ACTIVE binding for the same project (→ ErrConflict).
+	CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error)
+	// ActiveBindingForProject returns the project's ACTIVE binding, or nil.
+	ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error)
+	// MarkBindingArtifactCreated flips artifact_created true (idempotent), sealing
+	// the binding against rebinding. Called when the first payment artifact is made.
+	MarkBindingArtifactCreated(ctx context.Context, bindingID string) error
+
 	InsertAudit(ctx context.Context, ev AuditEvent) error
 }
 
@@ -200,4 +217,28 @@ type APIKeyAuth struct {
 	Environment string
 	Status      string
 	Scopes      []string
+}
+
+// SandboxBinding is a Project→Merchant payee binding (ADR-047). merchant_id,
+// wallet_id and wallet_account_id are OPAQUE core ids (no FK); developer-api
+// never interprets them beyond passing them to the Gateway via introspection.
+type SandboxBinding struct {
+	ID              string
+	ProjectID       string
+	Environment     string
+	MerchantID      string
+	WalletID        string
+	WalletAccountID string
+	State           string
+	ArtifactCreated bool
+	CreatedByUserID string
+	CreatedAt       time.Time
+}
+
+type BindingInsert struct {
+	ProjectID       string
+	MerchantID      string
+	WalletID        string
+	WalletAccountID string
+	CreatedByUserID string
 }

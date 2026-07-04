@@ -404,6 +404,57 @@ func (s *pgStore) RotateAPIKey(ctx context.Context, oldID string, replacement AP
 	return nk, tx.Commit(ctx)
 }
 
+// ── project→merchant sandbox binding (ADR-047) ───────────────────────────────
+
+const bindingCols = `id, project_id, environment, merchant_id, wallet_id, wallet_account_id,
+	state, artifact_created, created_by_user_id, created_at`
+
+func scanBinding(row pgx.Row) (*SandboxBinding, error) {
+	var b SandboxBinding
+	err := row.Scan(&b.ID, &b.ProjectID, &b.Environment, &b.MerchantID, &b.WalletID,
+		&b.WalletAccountID, &b.State, &b.ArtifactCreated, &b.CreatedByUserID, &b.CreatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &b, nil
+}
+
+func (s *pgStore) CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error) {
+	b, err := scanBinding(s.pool.QueryRow(ctx,
+		`INSERT INTO developer.dev_project_sandbox_binding
+		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id)
+		 VALUES ($1,$2,$3,$4,$5) RETURNING `+bindingCols,
+		in.ProjectID, in.MerchantID, in.WalletID, in.WalletAccountID, in.CreatedByUserID))
+	if err != nil {
+		if isUnique(err) {
+			return SandboxBinding{}, ErrConflict // one ACTIVE binding per project
+		}
+		return SandboxBinding{}, err
+	}
+	return *b, nil
+}
+
+func (s *pgStore) ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error) {
+	b, err := scanBinding(s.pool.QueryRow(ctx,
+		`SELECT `+bindingCols+` FROM developer.dev_project_sandbox_binding
+		 WHERE project_id = $1 AND state = 'ACTIVE'`, projectID))
+	if errors.Is(err, ErrNotFound) {
+		return nil, nil // no active binding is not an error
+	}
+	return b, err
+}
+
+func (s *pgStore) MarkBindingArtifactCreated(ctx context.Context, bindingID string) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE developer.dev_project_sandbox_binding
+		    SET artifact_created = true, updated_at = now()
+		  WHERE id = $1`, bindingID)
+	return err
+}
+
 // ── audit ────────────────────────────────────────────────────────────────────
 
 func (s *pgStore) InsertAudit(ctx context.Context, ev AuditEvent) error {

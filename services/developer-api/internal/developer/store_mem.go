@@ -19,6 +19,7 @@ type memStore struct {
 	inviteHash map[string]string // tokenHash -> inviteID
 	projects   map[string]*Project
 	apiKeys    []*apiKeyRec
+	bindings   []*SandboxBinding
 
 	Audits []AuditEvent
 }
@@ -335,4 +336,48 @@ func (m *memStore) RotateAPIKey(_ context.Context, oldID string, replacement API
 	nk := m.insertKey(replacement)
 	old.Status = "REVOKED" // atomic in the mem model (under lock)
 	return nk, nil
+}
+
+// ── project→merchant sandbox binding (ADR-047) ───────────────────────────────
+
+func (m *memStore) CreateBinding(_ context.Context, in BindingInsert) (SandboxBinding, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, b := range m.bindings { // mirror the DB partial-unique index
+		if b.ProjectID == in.ProjectID && b.State == "ACTIVE" {
+			return SandboxBinding{}, ErrConflict
+		}
+	}
+	b := &SandboxBinding{
+		ID: m.id("bnd_"), ProjectID: in.ProjectID, Environment: "SANDBOX",
+		MerchantID: in.MerchantID, WalletID: in.WalletID, WalletAccountID: in.WalletAccountID,
+		State: "ACTIVE", ArtifactCreated: false, CreatedByUserID: in.CreatedByUserID,
+		CreatedAt: time.Now(),
+	}
+	m.bindings = append(m.bindings, b)
+	return *b, nil
+}
+
+func (m *memStore) ActiveBindingForProject(_ context.Context, projectID string) (*SandboxBinding, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, b := range m.bindings {
+		if b.ProjectID == projectID && b.State == "ACTIVE" {
+			cp := *b
+			return &cp, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *memStore) MarkBindingArtifactCreated(_ context.Context, bindingID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, b := range m.bindings {
+		if b.ID == bindingID {
+			b.ArtifactCreated = true
+			return nil
+		}
+	}
+	return ErrNotFound
 }

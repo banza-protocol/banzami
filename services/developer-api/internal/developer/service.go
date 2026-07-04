@@ -453,6 +453,51 @@ func (s *Service) AuthorizeKey(ctx context.Context, rawKey, requiredScope string
 	return auth, nil
 }
 
+// ── project→merchant sandbox binding (ADR-047) ───────────────────────────────
+
+// BindProjectSandbox records an operator-provisioned Project→Merchant SANDBOX
+// binding. This is an OPERATOR action (invoked over the internal, X-Internal-Key
+// guarded surface) — never public self-service. The caller supplies opaque core
+// ids (merchant/wallet/wallet_account) it already provisioned in Core; this
+// method only records + authorizes the binding, enforcing one ACTIVE binding per
+// project (the DB partial-unique index is the hard guarantee; ErrConflict here).
+// It never overwrites an existing ACTIVE binding — rebinding is a separate,
+// audited operation and is refused once a payment artifact exists.
+func (s *Service) BindProjectSandbox(ctx context.Context, projectID, merchantID, walletID, walletAccountID, actorUserID, ip, reqID string) (SandboxBinding, error) {
+	if projectID == "" || merchantID == "" || walletID == "" || walletAccountID == "" || actorUserID == "" {
+		return SandboxBinding{}, ErrValidation
+	}
+	proj, err := s.store.Project(ctx, projectID)
+	if err != nil || proj == nil {
+		return SandboxBinding{}, ErrNotFound
+	}
+	b, err := s.store.CreateBinding(ctx, BindingInsert{
+		ProjectID: projectID, MerchantID: merchantID, WalletID: walletID,
+		WalletAccountID: walletAccountID, CreatedByUserID: actorUserID,
+	})
+	if err == ErrConflict {
+		return SandboxBinding{}, ErrConflict
+	}
+	if err != nil {
+		return SandboxBinding{}, ErrUnavailable
+	}
+	// Audit records only non-secret ids (merchant/wallet are opaque core ids).
+	s.audit(ctx, &actorUserID, &proj.WorkspaceID, &projectID, "project.sandbox_bound",
+		"BINDING:"+b.ID, ip, reqID, map[string]any{"merchant_id": merchantID, "wallet_account_id": walletAccountID})
+	return b, nil
+}
+
+// SealBindingArtifact marks the project's ACTIVE binding immutable once its first
+// payment artifact is created (idempotent). After this, the binding's payee can
+// never change — no retroactive reattribution (ADR-047 §3.2).
+func (s *Service) SealBindingArtifact(ctx context.Context, projectID string) error {
+	b, err := s.store.ActiveBindingForProject(ctx, projectID)
+	if err != nil || b == nil {
+		return ErrNotFound
+	}
+	return s.store.MarkBindingArtifactCreated(ctx, b.ID)
+}
+
 func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action, subject, ip, reqID string, meta map[string]any) {
 	_ = s.store.InsertAudit(ctx, AuditEvent{
 		ActorUserID: actor, WorkspaceID: wsID, ProjectID: projID,
@@ -473,6 +518,16 @@ type KeyIntrospection struct {
 	ProjectSlug string   `json:"project_slug"`
 	KeyStatus   string   `json:"key_status"`
 	Scopes      []string `json:"scopes"`
+
+	// Binding (ADR-047) — the operator-provisioned SANDBOX payee for this key's
+	// Project, or nil when the Project is not yet bound. These are OPAQUE core
+	// ids the Gateway uses to derive the payee; they are INTERNAL and MUST NOT be
+	// exposed on any payer-facing response. `Bound` lets the Gateway distinguish
+	// "no binding" (→ payments unavailable) from a resolved payee.
+	Bound           bool   `json:"bound"`
+	MerchantID      string `json:"merchant_id,omitempty"`
+	WalletID        string `json:"wallet_id,omitempty"`
+	WalletAccountID string `json:"wallet_account_id,omitempty"`
 }
 
 // IntrospectKey verifies a presented raw key against the canonical dev-key
@@ -488,7 +543,7 @@ func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrosp
 	if err != nil || proj == nil {
 		return nil, ErrForbidden
 	}
-	return &KeyIntrospection{
+	out := &KeyIntrospection{
 		KeyID:       auth.ID,
 		Environment: auth.Environment,
 		WorkspaceID: proj.WorkspaceID,
@@ -496,5 +551,16 @@ func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrosp
 		ProjectSlug: proj.Slug,
 		KeyStatus:   "active", // AuthorizeKey already required status == ACTIVE
 		Scopes:      auth.Scopes,
-	}, nil
+	}
+	// Attach the Project's ACTIVE payee binding (ADR-047) when present. A missing
+	// binding is NOT an auth failure — the key is valid but cannot transact until
+	// the operator binds a payee (the Gateway turns Bound=false into a controlled
+	// "payments unavailable", never a default/fallback merchant).
+	if b, berr := s.store.ActiveBindingForProject(ctx, auth.ProjectID); berr == nil && b != nil {
+		out.Bound = true
+		out.MerchantID = b.MerchantID
+		out.WalletID = b.WalletID
+		out.WalletAccountID = b.WalletAccountID
+	}
+	return out, nil
 }
