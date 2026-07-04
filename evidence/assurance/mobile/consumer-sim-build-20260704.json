@@ -1,0 +1,12 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001",
+  "artifact": "iOS Simulator build (feasibility)",
+  "app": "consumer",
+  "date": "2026-07-04",
+  "build": "flutter build ios --simulator --flavor consumer -t lib/main_consumer.dart --dart-define=PUBLIC_API_URL=https://sandbox-api.banzami.com/consumer --dart-define=ENVIRONMENT=sandbox --debug",
+  "result": "SUCCESS (exit 0) — build/ios/iphonesimulator/Runner.app produced",
+  "simulator": "iPhone 17 (iOS 26 simulator), arm64",
+  "significance": "Confirms iOS Simulator E2E is feasible — no mobile_scanner/MLKit arm64 blocker (neither app uses camera QR scanning).",
+  "NOT_launch_evidence": "This is a BUILD only. Bundle kernel_blob.bin contains the production host string literal (the String.fromEnvironment default const), so static analysis cannot prove runtime isolation — a deployed-Sandbox runtime E2E matrix is required. Apps remain QUARANTINED until integration_test suites run on the simulator against deployed Sandbox with registered evidence (docs/quality/MOBILE_E2E_REQUIREMENTS.md).",
+  "disposition": "quarantined (Consumer CAP-APP-001, Merchant CAP-APP-005)"
+}
