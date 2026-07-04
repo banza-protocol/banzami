@@ -8,6 +8,7 @@ package middleware
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -70,7 +71,22 @@ func DeveloperKeyAuth(client devKeyAuthorizer) func(http.Handler) http.Handler {
 				return
 			}
 			kc, err := client.Authorize(r.Context(), raw)
-			if err != nil || kc == nil || kc.Environment != "SANDBOX" {
+			// A complete, SANDBOX context is the ONLY success. A dependency fault
+			// OR an integrity problem (200 but incomplete/non-SANDBOX payload — a
+			// valid key always yields a complete SANDBOX context) is treated as
+			// AUTHORIZATION_UNAVAILABLE, never as an invalid key.
+			unavailable := errors.Is(err, service.ErrAuthorizationUnavailable) ||
+				(err == nil && (kc == nil || kc.KeyID == "" || kc.Environment != "SANDBOX"))
+			if unavailable {
+				// Controlled, generic, retryable (RT04 §1). No Developer API host,
+				// credential, body fragment or topology leaks.
+				w.Header().Set("Retry-After", "2")
+				apierror.Respond(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_UNAVAILABLE",
+					"authorization is temporarily unavailable — retry shortly")
+				return
+			}
+			if err != nil {
+				// Definitive key rejection (403): missing/invalid/forged/revoked/rotated.
 				apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a valid Sandbox API key is required")
 				return
 			}

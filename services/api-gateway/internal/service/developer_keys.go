@@ -26,8 +26,15 @@ type DeveloperKeyContext struct {
 	Scopes      []string `json:"scopes"`
 }
 
-// ErrDeveloperKeyInvalid is returned for any unverified/forbidden key.
-var ErrDeveloperKeyInvalid = errors.New("developer key invalid")
+// ErrDeveloperKeyInvalid is returned when the Developer API definitively rejects
+// a key (403) — an authentication failure. ErrAuthorizationUnavailable is
+// returned when the authority itself could not be reached or answered usably
+// (timeout, network, 5xx, config/credential problem, malformed body) — a
+// dependency failure that must NOT be reported as an invalid key (RT04 §1).
+var (
+	ErrDeveloperKeyInvalid       = errors.New("developer key invalid")
+	ErrAuthorizationUnavailable  = errors.New("developer authorization unavailable")
+)
 
 // DeveloperKeyClient calls developer-api's internal introspection endpoint.
 type DeveloperKeyClient struct {
@@ -48,27 +55,36 @@ func NewDeveloperKeyClient(baseURL, internalKey string) *DeveloperKeyClient {
 	}
 }
 
-// Authorize verifies a raw key and returns its resolved context. It returns
-// ErrDeveloperKeyInvalid for any non-2xx (neutral — no internal detail).
+// Authorize verifies a raw key and returns its resolved context. It distinguishes
+// a definitive key rejection (403 → ErrDeveloperKeyInvalid) from an authority
+// dependency failure (network/timeout/5xx/config/malformed →
+// ErrAuthorizationUnavailable). Errors carry no internal detail.
 func (c *DeveloperKeyClient) Authorize(ctx context.Context, rawKey string) (*DeveloperKeyContext, error) {
 	body, _ := json.Marshal(map[string]string{"api_key": rawKey})
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+"/internal/v1/keys/authorize", bytes.NewReader(body))
 	if err != nil {
-		return nil, ErrDeveloperKeyInvalid
+		return nil, ErrAuthorizationUnavailable
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Internal-Key", c.internalKey)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, ErrDeveloperKeyInvalid
+		return nil, ErrAuthorizationUnavailable // timeout / DNS / connection refused
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, ErrDeveloperKeyInvalid
+	switch {
+	case resp.StatusCode == http.StatusOK:
+		// fall through to decode
+	case resp.StatusCode == http.StatusForbidden:
+		return nil, ErrDeveloperKeyInvalid // authority definitively rejected the key
+	default:
+		// 5xx, 401 (internal-credential problem), 400, etc. — the authority could
+		// not usably answer; treat as unavailable, not an invalid key.
+		return nil, ErrAuthorizationUnavailable
 	}
 	var out DeveloperKeyContext
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return nil, ErrDeveloperKeyInvalid
+		return nil, ErrAuthorizationUnavailable // malformed introspection body
 	}
 	return &out, nil
 }

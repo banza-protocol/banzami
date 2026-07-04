@@ -30,7 +30,10 @@ func TestDeveloperKeyAuth_FailsClosed(t *testing.T) {
 		{"bz_live rejected", "Bearer bz_live_sk_abc", ok, 401},
 		{"non-dev prefix rejected", "Bearer bz_test_plainmerchant", ok, 401},
 		{"introspection error", "Bearer bz_test_sk_abc", &fakeDevAuthorizer{err: errors.New("x")}, 401},
-		{"live env from introspection rejected", "Bearer bz_test_sk_abc", &fakeDevAuthorizer{ctx: &service.DeveloperKeyContext{Environment: "LIVE"}}, 401},
+		// A 200 introspection with a non-SANDBOX/incomplete payload is an authority
+		// integrity problem (a valid key always yields a complete SANDBOX context),
+		// so it fails closed as 503 AUTHORIZATION_UNAVAILABLE, not an invalid key.
+		{"live env from introspection → 503", "Bearer bz_test_sk_abc", &fakeDevAuthorizer{ctx: &service.DeveloperKeyContext{KeyID: "k", Environment: "LIVE"}}, 503},
 		{"valid sandbox dev key", "Bearer bz_test_sk_abc", ok, 200},
 	}
 	for _, c := range cases {

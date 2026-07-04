@@ -41,17 +41,22 @@ func doReq(h http.Handler, key string) *httptest.ResponseRecorder {
 	return rr
 }
 
-func assertFailClosed(t *testing.T, rr *httptest.ResponseRecorder, called *int32, name string) {
+// assertClosed verifies fail-closed with the EXPECTED status: 503
+// AUTHORIZATION_UNAVAILABLE for a dependency fault, 401 for an invalid key. In
+// both cases the business handler must not run and no internal detail may leak.
+func assertClosed(t *testing.T, rr *httptest.ResponseRecorder, called *int32, wantStatus int, name string) {
 	t.Helper()
-	if rr.Code != http.StatusUnauthorized {
-		t.Errorf("%s: got %d, want 401 (fail closed)", name, rr.Code)
+	if rr.Code != wantStatus {
+		t.Errorf("%s: got %d, want %d (fail closed)", name, rr.Code, wantStatus)
+	}
+	if wantStatus == http.StatusServiceUnavailable && !strings.Contains(rr.Body.String(), "AUTHORIZATION_UNAVAILABLE") {
+		t.Errorf("%s: 503 must carry AUTHORIZATION_UNAVAILABLE code: %s", name, rr.Body.String())
 	}
 	if atomic.LoadInt32(called) != 0 {
 		t.Errorf("%s: business handler ran on a fault (must not)", name)
 	}
 	body := rr.Body.String()
-	// No internal detail: no host, stack trace, SQL, credential, or the dev-api URL.
-	for _, leak := range []string{"httptest", "internal-key", "127.0.0.1", "SQLSTATE", "goroutine", "panic:", "pq:"} {
+	for _, leak := range []string{"httptest", "internal-key", "127.0.0.1", "SQLSTATE", "goroutine", "panic:", "pq:", "developer-api"} {
 		if strings.Contains(body, leak) {
 			t.Errorf("%s: response leaks internal detail %q: %s", name, leak, body)
 		}
@@ -66,14 +71,14 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 			time.Sleep(6 * time.Second) // exceeds the 5s client timeout
 			w.WriteHeader(200)
 		})
-		assertFailClosed(t, doReq(h, valid), called, "timeout")
+		assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "timeout")
 	})
 
 	t.Run("3_5xx", func(t *testing.T) {
 		h, called := harness(t, func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"sql":"SELECT * FROM dev_api_keys — pq: connection refused"}`, 500)
 		})
-		assertFailClosed(t, doReq(h, valid), called, "5xx")
+		assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "5xx")
 	})
 
 	t.Run("4_malformed", func(t *testing.T) {
@@ -81,7 +86,7 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 			w.WriteHeader(200)
 			w.Write([]byte(`{"environment": "SANDBOX", not valid json`))
 		})
-		assertFailClosed(t, doReq(h, valid), called, "malformed")
+		assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "malformed")
 	})
 
 	t.Run("4b_incomplete", func(t *testing.T) {
@@ -90,14 +95,14 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 			w.WriteHeader(200)
 			w.Write([]byte(`{}`))
 		})
-		assertFailClosed(t, doReq(h, valid), called, "incomplete")
+		assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "incomplete")
 	})
 
 	t.Run("5_invalid_environment_live", func(t *testing.T) {
 		h, called := harness(t, func(w http.ResponseWriter, r *http.Request) {
 			_ = json.NewEncoder(w).Encode(service.DeveloperKeyContext{KeyID: "k", Environment: "LIVE", Scopes: []string{"identity:read"}})
 		})
-		assertFailClosed(t, doReq(h, valid), called, "invalid-env-live")
+		assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "invalid-env-live")
 	})
 
 	t.Run("2_network_unreachable", func(t *testing.T) {
@@ -107,7 +112,7 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 		h := DeveloperKeyAuth(client)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			atomic.AddInt32(&called, 1); w.WriteHeader(200)
 		}))
-		assertFailClosed(t, doReq(h, valid), &called, "network-unreachable")
+		assertClosed(t, doReq(h, valid), &called, http.StatusServiceUnavailable, "network-unreachable")
 	})
 
 	t.Run("6_concurrent_unavailable", func(t *testing.T) {
@@ -115,7 +120,7 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 		var wg sync.WaitGroup
 		for i := 0; i < 25; i++ {
 			wg.Add(1)
-			go func() { defer wg.Done(); assertFailClosed(t, doReq(h, valid), called, "concurrent") }()
+			go func() { defer wg.Done(); assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "concurrent") }()
 		}
 		wg.Wait()
 	})
@@ -126,7 +131,7 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 			atomic.AddInt32(&hit, 1) // must NOT be reached — bz_live rejected first
 			w.WriteHeader(200)
 		})
-		assertFailClosed(t, doReq(h, "bz_live_sk_forged"), called, "bz_live")
+		assertClosed(t, doReq(h, "bz_live_sk_forged"), called, http.StatusUnauthorized, "bz_live")
 		if atomic.LoadInt32(&hit) != 0 {
 			t.Error("bz_live_ key reached the Developer API (must be rejected before introspection)")
 		}
