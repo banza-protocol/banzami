@@ -55,7 +55,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     title: 'Criar cobrança',
     desc: 'Links de pagamento, sessões e QR.',
     href: '#cobranca',
-    tone: 'ok',
+    tone: 'val',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M4 8h13l-3-3M20 16H7l3 3" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -77,7 +77,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     title: 'Webhooks',
     desc: 'Eventos assinados no seu servidor.',
     href: '#webhooks',
-    tone: 'ok',
+    tone: 'val',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
@@ -90,7 +90,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     title: 'Reembolsos',
     desc: 'Devolva pagamentos processados.',
     href: '#reembolsos',
-    tone: 'ok',
+    tone: 'val',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M20 11a8 8 0 10-1 5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" />
@@ -435,7 +435,7 @@ export default function DocsPage() {
               <CodeBlock label="ts · criar sessão de pagamento" raw={SAMPLE_SESSION} onCopy={copy} />
               <CodeBlock label="http · endpoint real" raw={SAMPLE_HTTP} onCopy={copy} />
 
-              <H3 id="cobranca">Criar cobrança <Badge tone="ok" /></H3>
+              <H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>
               <P>
                 Uma cobrança nasce de um <strong>link de pagamento</strong> ou de uma <strong>sessão de pagamento</strong>: cria a
                 intenção, apresenta o link/QR ao pagador e acompanha a confirmação (por polling e/ou webhook). No modelo Banzami,
@@ -457,7 +457,7 @@ export default function DocsPage() {
                 ponta no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
               </P>
 
-              <H3 id="reembolsos">Reembolsos <Badge tone="ok" /></H3>
+              <H3 id="reembolsos">Reembolsos <Badge tone="val" /></H3>
               <P>
                 Reembolsos Banzami permitem devolver, total ou parcialmente, o valor de um pagamento elegível confirmado no Sandbox.
                 Cada pedido identifica a origem do pagamento, respeita o valor já capturado e é processado de forma idempotente.
