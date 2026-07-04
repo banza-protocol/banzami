@@ -1,0 +1,162 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 01",
+  "test": "tools/e2e/dev-console/developer-foundation-e2e.mjs",
+  "date_stamp": "1783197561",
+  "console_host": "https://developers.banzami.com",
+  "api_host": "https://developer-api.banzami.com",
+  "deployed_commit": "63e1ab8b",
+  "schema": "banzami_staging (account_identity + developer schemas)",
+  "fixture_namespace": "rt01-*-1783197561@banzami-e2e.test",
+  "otp_delivery": "controlled server-side recovery (no inbox provisioned); email sent via Resend",
+  "total": 29,
+  "passed": 29,
+  "failed": 0,
+  "matrix": [
+    {
+      "id": "DEV-001.unauth-protected-redirects",
+      "ok": true,
+      "note": "/login"
+    },
+    {
+      "id": "DEV-001.login-renders-mobile",
+      "ok": true,
+      "note": "email input visible @375px"
+    },
+    {
+      "id": "DEV-001.login-keyboard-focus",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "DEV-002.otp-single-use",
+      "ok": true,
+      "note": "reuse → 401"
+    },
+    {
+      "id": "DEV-001.invalid-otp-fails",
+      "ok": true,
+      "note": "→ 401"
+    },
+    {
+      "id": "DEV-001.session-cookie-attrs",
+      "ok": true,
+      "note": "__Host-bz_dev_session httpOnly=true secure=true sameSite=Lax"
+    },
+    {
+      "id": "DEV-001.session-authenticated",
+      "ok": true,
+      "note": "me → 200"
+    },
+    {
+      "id": "DEV-001.session-survives-refresh",
+      "ok": true,
+      "note": "/dashboard"
+    },
+    {
+      "id": "DEV-001.no-secret-in-storage",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "DEV-001.csrf-blocks-without-token",
+      "ok": true,
+      "note": "→ 403"
+    },
+    {
+      "id": "DEV-001.workspace-create",
+      "ok": true,
+      "note": "→ 201"
+    },
+    {
+      "id": "DEV-001.project-create",
+      "ok": true,
+      "note": "→ 201"
+    },
+    {
+      "id": "DEV-002.key-create-reveal-once",
+      "ok": true,
+      "note": "secret revealed (len 54, bz_test_ prefix)"
+    },
+    {
+      "id": "DEV-002.list-no-raw-secret",
+      "ok": true,
+      "note": "metadata only"
+    },
+    {
+      "id": "DEV-002.key-rotate-reveal-once",
+      "ok": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "DEV-002.key-revoke",
+      "ok": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "DEV-002.revoked-key-status",
+      "ok": true,
+      "note": "status=REVOKED"
+    },
+    {
+      "id": "DEV-002.rotated-away-key-gone",
+      "ok": true,
+      "note": "stale delete → 404"
+    },
+    {
+      "id": "DEV-001.cross-tenant-workspace-denied",
+      "ok": true,
+      "note": "→ 403"
+    },
+    {
+      "id": "DEV-001.cross-tenant-project-denied",
+      "ok": true,
+      "note": "→ 403"
+    },
+    {
+      "id": "DEV-002.cross-tenant-keys-denied",
+      "ok": true,
+      "note": "→ 403"
+    },
+    {
+      "id": "DEV-001.logout",
+      "ok": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "DEV-001.session-invalid-after-logout",
+      "ok": true,
+      "note": "me → 401"
+    },
+    {
+      "id": "DOCS-001.reachable-no-login",
+      "ok": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "DOCS-001.no-management-api-fetch",
+      "ok": true,
+      "note": "0 developer-api mgmt calls"
+    },
+    {
+      "id": "DOCS-001.conceitos-anchor",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "DOCS-001.glossario-anchor",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "DOCS-001.no-internal-host-leak",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "DOCS-001.legacy-route-safe",
+      "ok": true,
+      "note": "/docs"
+    }
+  ],
+  "secrets_note": "No OTP, session token, CSRF token or raw API key was printed or stored in this artifact."
+}

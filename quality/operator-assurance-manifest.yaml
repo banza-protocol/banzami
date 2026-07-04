@@ -352,20 +352,26 @@ capabilities:
     authority_ref: operator policy
     implementation:
       - services/developer-api
+      - apps/website/app/developers
     api_surface:
-      - developer console UI + /developer API
+      - developer console UI (developers.banzami.com) + developer-api auth/workspace/project
     threat_category: identity-auth
     tests:
-      unit: []
-      integration: []
-      e2e_sandbox: []
-      negative_security: []
+      unit:
+        - services/developer-api/internal/accountidentity (flow, crypto, email)
+      integration:
+        - services/developer-api workspace/project authz tests
+      e2e_sandbox:
+        - tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*)
+      negative_security:
+        - unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/dev-foundation/e2e-1783197561.json
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   - id: CAP-DEV-002
     name: API key lifecycle (sandbox keys, one-time secret reveal)
@@ -377,22 +383,33 @@ capabilities:
     authority: internal
     authority_ref: operator policy
     implementation:
-      - services/developer-api
-      - services/api-gateway
+      - services/developer-api (developer.dev_api_keys)
     api_surface:
-      - developer console key management
+      - developer console key management (create/reveal-once/list/rotate/revoke)
     threat_category: identity-auth
     tests:
-      unit: []
+      unit:
+        - services/developer-api key crypto + authz tests
       integration: []
-      e2e_sandbox: []
-      negative_security: []
+      e2e_sandbox:
+        - tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-002.* management lifecycle)
+      negative_security:
+        - reveal-once, list-no-raw-secret, revoke→REVOKED, cross-tenant 403, bz_test_-only, audit-no-raw-secret
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-required
-    evidence: []
+    cleanup_disposition: active-needs-remediation
+    evidence:
+      - evidence/assurance/dev-foundation/e2e-1783197561.json
     surface: public
     disposition: pending-e2e
     status: in-audit
+    # HOLD blocker (Release Train 01): the key MANAGEMENT lifecycle
+    # (create/reveal-once/list/rotate/revoke/cross-tenant/audit) is deployed-E2E
+    # verified and sound. But dev-console keys (developer.dev_api_keys, bz_test_sk_/
+    # bz_test_pk_) have NO deployed consumption path — the api-gateway authenticates
+    # a SEPARATE merchant-key system, and developer-api's AuthorizeKey is mounted
+    # nowhere. So "revoked key rejected by the Gateway" / "active key works at the
+    # Gateway" cannot be proven, and a developer cannot yet integrate using these
+    # keys. Released only when a gateway consumption path exists and is E2E-verified.
 
   - id: CAP-DOCS-001
     name: Developer documentation site
@@ -404,21 +421,27 @@ capabilities:
     authority: internal
     authority_ref: operator policy
     implementation:
-      - apps/website
+      - apps/website/app/developers/docs
     api_surface:
-      - docs site
+      - developers.banzami.com/docs (static, public)
     threat_category: content
     tests:
-      unit: []
+      unit:
+        - apps/website/app/developers/docs/page.test.tsx
+        - apps/website/lib/console-routing.test.ts
       integration: []
-      e2e_sandbox: []
-      negative_security: []
+      e2e_sandbox:
+        - tools/e2e/dev-console/developer-foundation-e2e.mjs (DOCS-001.*)
+      negative_security:
+        - no-auth, no-management-api-fetch, no-internal-host-leak, legacy-route-safe
     deployment_gate: static-only
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/dev-foundation/e2e-1783197561.json
+      - tools/check-docs-claims.mjs (docs↔manifest badge consistency)
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   - id: CAP-SDK-001
     name: TypeScript SDK (@banzami/sdk)
@@ -435,16 +458,27 @@ capabilities:
       - npm @banzami/sdk
     threat_category: identity-auth
     tests:
-      unit: []
+      unit:
+        - sdk/typescript env-resolution + webhook-signature tests
       integration: []
       e2e_sandbox: []
-      negative_security: []
+      negative_security:
+        - bz_live_+sandbox rejected (BanzamiConfigError); tools/check-sdk-contract.mjs
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-required
-    evidence: []
+    cleanup_disposition: active-needs-remediation
+    evidence:
+      - tools/check-sdk-contract.mjs
     surface: public
     disposition: pending-e2e
     status: in-audit
+    # HOLD blocker (Release Train 01): (1) the package ships public methods for
+    # UNRELEASED capabilities (payment sessions/links/QR/refunds/payouts/webhooks —
+    # all pending-e2e) without deployed E2E, which the release rule forbids; and
+    # (2) it is NOT published to a registry (npm view @banzami/sdk → 404), so an
+    # external developer cannot install it. Env-safety (bz_live_ rejection), build
+    # and no-secret checks pass. Released only when its shipped public surface is
+    # limited to released capabilities (or those methods are E2E-verified) AND it
+    # is distributable. Enforced by tools/check-sdk-contract.mjs.
 
   - id: CAP-SDK-002
     name: Flutter SDK (banzami_flutter)

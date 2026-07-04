@@ -325,7 +325,7 @@ assure-reference: check-assurance check-assurance-reference
 
 # FULL external Sandbox launch gate — HOLDs until every public surface is
 # deployed-E2E released. This is the gate that authorises an external launch.
-assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory check-live-fail-closed check-mobile-config
+assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory check-live-fail-closed check-mobile-config check-docs-claims check-sdk-contract
 	@printf "\nFULL external Sandbox launch gate passed.\n"
 
 .PHONY: check-live-fail-closed
@@ -334,6 +334,18 @@ check-live-fail-closed:
 
 check-mobile-config:
 	node tools/check-mobile-sandbox-config.mjs
+
+.PHONY: check-docs-claims check-sdk-contract assure-developer-foundation
+check-docs-claims:
+	node tools/check-docs-claims.mjs
+
+check-sdk-contract:
+	node tools/check-sdk-contract.mjs
+
+# Release Train 01 dedicated gate — HOLDs until Console, API-key lifecycle,
+# Docs and TypeScript SDK are all released with deployed evidence.
+assure-developer-foundation:
+	node tools/check-developer-foundation.mjs
 
 # ─── Mobile iOS Simulator E2E (docs/quality/MOBILE_E2E_REQUIREMENTS.md) ───────
 # These run the deployed-Sandbox simulator matrices. They FAIL until the

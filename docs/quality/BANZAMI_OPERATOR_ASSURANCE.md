@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 13 |
-| verified | 3 |
+| in-audit | 11 |
+| verified | 5 |
 | **total** | **21** |
 
 ## Capabilities
@@ -32,9 +32,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
-| CAP-DOCS-001 | Developer documentation site | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | static-only | in-audit |
+| CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
 | CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
@@ -49,11 +49,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| pending-e2e | 12 |
+| pending-e2e | 10 |
 | quarantined | 5 |
-| released | 3 |
+| released | 5 |
 
-Public surfaces released: **2/14**. Full external launch requires 14/14.
+Public surfaces released: **4/14**. Full external launch requires 14/14.
 
 ## Detail
 
@@ -223,15 +223,15 @@ Public surfaces released: **2/14**. Full external launch requires 14/14.
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** internal — operator policy
 - **Threat category:** identity-auth
-- **Implementation:** services/developer-api
-- **API/UI surface:** developer console UI + /developer API
+- **Implementation:** services/developer-api, apps/website/app/developers
+- **API/UI surface:** developer console UI (developers.banzami.com) + developer-api auth/workspace/project
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [services/developer-api/internal/accountidentity (flow, crypto, email)] · integration [services/developer-api workspace/project authz tests] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*)] · negative/security [unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage]
+- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-DEV-002 — API key lifecycle (sandbox keys, one-time secret reveal)
 
@@ -239,12 +239,12 @@ Public surfaces released: **2/14**. Full external launch requires 14/14.
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** internal — operator policy
 - **Threat category:** identity-auth
-- **Implementation:** services/developer-api, services/api-gateway
-- **API/UI surface:** developer console key management
+- **Implementation:** services/developer-api (developer.dev_api_keys)
+- **API/UI surface:** developer console key management (create/reveal-once/list/rotate/revoke)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
-- **Cleanup disposition:** active-required
+- **Tests:** unit [services/developer-api key crypto + authz tests] · integration [] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-002.* management lifecycle)] · negative/security [reveal-once, list-no-raw-secret, revoke→REVOKED, cross-tenant 403, bz_test_-only, audit-no-raw-secret]
+- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json
+- **Cleanup disposition:** active-needs-remediation
 - **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
@@ -255,15 +255,15 @@ Public surfaces released: **2/14**. Full external launch requires 14/14.
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** internal — operator policy
 - **Threat category:** content
-- **Implementation:** apps/website
-- **API/UI surface:** docs site
+- **Implementation:** apps/website/app/developers/docs
+- **API/UI surface:** developers.banzami.com/docs (static, public)
 - **Deployment gate:** static-only
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [apps/website/app/developers/docs/page.test.tsx, apps/website/lib/console-routing.test.ts] · integration [] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DOCS-001.*)] · negative/security [no-auth, no-management-api-fetch, no-internal-host-leak, legacy-route-safe]
+- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, tools/check-docs-claims.mjs (docs↔manifest badge consistency)
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-SDK-001 — TypeScript SDK (@banzami/sdk)
 
@@ -274,9 +274,9 @@ Public surfaces released: **2/14**. Full external launch requires 14/14.
 - **Implementation:** sdk/typescript
 - **API/UI surface:** npm @banzami/sdk
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
-- **Cleanup disposition:** active-required
+- **Tests:** unit [sdk/typescript env-resolution + webhook-signature tests] · integration [] · e2e_sandbox [] · negative/security [bz_live_+sandbox rejected (BanzamiConfigError); tools/check-sdk-contract.mjs]
+- **Evidence:** tools/check-sdk-contract.mjs
+- **Cleanup disposition:** active-needs-remediation
 - **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
