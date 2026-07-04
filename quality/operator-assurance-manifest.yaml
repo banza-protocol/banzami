@@ -128,7 +128,7 @@ capabilities:
       - services/api-gateway
       - core/transactions
     api_surface:
-      - /v1/payment_sessions
+      - /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
     threat_category: financial-money-movement
     tests:
       unit: []
@@ -137,10 +137,17 @@ capabilities:
       negative_security: []
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
+      - docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
     surface: public
     disposition: pending-e2e
     status: in-audit
+    # RT03: functions end-to-end for merchant-JWT holders (real core/ledger/proof),
+    # but developer keys cannot reach payment routes — no Project→Merchant binding
+    # (ADR-046 deferred it). BLOCKER: implement ADR-047 (per-project sandbox
+    # merchant/wallet + payment_sessions:* scopes + route wiring) then run the
+    # RT03 §5 deployed E2E. Released only then.
 
   - id: CAP-PAY-002
     name: Payment links
@@ -154,19 +161,25 @@ capabilities:
     implementation:
       - services/api-gateway
     api_surface:
-      - /v1/payment_links
+      - /v1/payment-links + public /public/pay/{slug} (merchant-JWT today; dev-key path pending ADR-047)
     threat_category: financial-money-movement
     tests:
       unit: []
       integration: []
       e2e_sandbox: []
-      negative_security: []
+      negative_security:
+        - RT03 §4: public payer view redacts internal UUIDs (deployed)
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
+      - docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
     surface: public
     disposition: pending-e2e
     status: in-audit
+    # RT03: functions for merchant-JWT holders; developer-facing release HELD on
+    # the Project→Merchant binding (ADR-047). §4 public-payer UUID redaction
+    # deployed. Released only after ADR-047 + RT03 §6 deployed E2E.
 
   - id: CAP-PAY-003
     name: QR payment flows (Banzami QR)
@@ -649,16 +662,22 @@ capabilities:
       - apps/pay
       - apps/checkout
     api_surface:
-      - pay/checkout UI
+      - pay/checkout UI + /public/pay/{slug}
     threat_category: financial-money-movement
     tests:
       unit: []
       integration: []
       e2e_sandbox: []
-      negative_security: []
+      negative_security:
+        - RT03 §4: public payer view redacts internal UUIDs (deployed); strict CSP; no client secrets
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-required
-    evidence: []
+    cleanup_disposition: active-needs-remediation
+    evidence:
+      - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
+    # RT03: functions for merchant-JWT holders; the DEVELOPER-facing release is
+    # HELD on the Project→Merchant binding (ADR-047). RT03 §4 security fix
+    # (public-payer UUID redaction) is deployed. Released only after ADR-047 is
+    # implemented and the §5/§6/§7 deployed E2E matrices pass.
     surface: public
     disposition: pending-e2e
     status: in-audit

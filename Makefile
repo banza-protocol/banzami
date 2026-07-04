@@ -351,6 +351,10 @@ sdk-release-prepare:
 assure-developer-foundation:
 	node tools/check-developer-foundation.mjs
 
+.PHONY: assure-payments-foundation
+assure-payments-foundation:
+	node tools/check-payments-foundation.mjs
+
 # ─── Mobile iOS Simulator E2E (docs/quality/MOBILE_E2E_REQUIREMENTS.md) ───────
 # These run the deployed-Sandbox simulator matrices. They FAIL until the
 # integration_test/ suites + registered evidence exist — that is the gate that

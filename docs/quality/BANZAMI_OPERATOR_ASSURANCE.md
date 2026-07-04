@@ -97,10 +97,10 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 - **Authority:** protocol — BANZA ADR-043
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway, core/transactions
-- **API/UI surface:** /v1/payment_sessions
+- **API/UI surface:** /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Evidence:** docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
@@ -113,10 +113,10 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 - **Authority:** protocol — BANZA payment link contract
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway
-- **API/UI surface:** /v1/payment_links
+- **API/UI surface:** /v1/payment-links + public /public/pay/{slug} (merchant-JWT today; dev-key path pending ADR-047)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security [RT03 §4: public payer view redacts internal UUIDs (deployed)]
+- **Evidence:** docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
@@ -369,11 +369,11 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 - **Authority:** internal — operator product
 - **Threat category:** financial-money-movement
 - **Implementation:** apps/pay, apps/checkout
-- **API/UI surface:** pay/checkout UI
+- **API/UI surface:** pay/checkout UI + /public/pay/{slug}
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
-- **Cleanup disposition:** active-required
+- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security [RT03 §4: public payer view redacts internal UUIDs (deployed); strict CSP; no client secrets]
+- **Evidence:** docs/quality/PAYMENTS_CONTRACT_AUDIT.md
+- **Cleanup disposition:** active-needs-remediation
 - **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
