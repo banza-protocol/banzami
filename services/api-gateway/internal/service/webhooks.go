@@ -19,6 +19,9 @@ import (
 
 var (
 	ErrEndpointNotFound = errors.New("webhook endpoint not found")
+	// ErrInvalidWebhookURL is returned when a merchant-supplied webhook URL
+	// fails SSRF validation (non-https or non-public host). See webhook_ssrf.go.
+	ErrInvalidWebhookURL = errors.New("invalid webhook URL")
 )
 
 // WebhookEndpoint is a merchant-registered delivery target.

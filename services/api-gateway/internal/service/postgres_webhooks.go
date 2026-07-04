@@ -40,7 +40,7 @@ type PostgresWebhookService struct {
 func NewPostgresWebhookService(pool *pgxpool.Pool, cipher *crypto.SecretCipher) *PostgresWebhookService {
 	return &PostgresWebhookService{
 		pool:   pool,
-		client: &http.Client{Timeout: 30 * time.Second},
+		client: newSafeWebhookClient(30 * time.Second),
 		cipher: cipher,
 	}
 }
@@ -72,6 +72,10 @@ func (s *PostgresWebhookService) RegisterEndpoint(
 	ctx context.Context,
 	req RegisterEndpointRequest,
 ) (*WebhookEndpoint, error) {
+	if err := ValidateWebhookURL(req.URL); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrInvalidWebhookURL, err)
+	}
+
 	secret := generateWebhookSecret()
 	id := uuid.NewString()
 	now := time.Now().UTC()

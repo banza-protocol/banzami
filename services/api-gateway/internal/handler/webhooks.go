@@ -62,6 +62,11 @@ func (h *WebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
 		Events:     body.Events,
 	})
 	if err != nil {
+		if errors.Is(err, service.ErrInvalidWebhookURL) {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_WEBHOOK_URL",
+				"url must be a public https endpoint")
+			return
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"endpoint could not be registered")
 		return
