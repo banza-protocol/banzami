@@ -1,0 +1,14 @@
+[Unit]
+Description=Banzami PostgreSQL automated backup (all databases, full data)
+Documentation=https://github.com/banza-protocol/banzami/blob/main/infra/deployment/pg-backup.sh
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=BACKUP_DIR=/srv/banzami/backups/auto
+Environment=KEEP_DAYS=14
+ExecStart=/usr/bin/env bash /srv/banzami/scripts/pg-backup.sh
+# Best-effort: a failed run must alert (journal) but not brick the timer.
+Nice=10
+IOSchedulingClass=idle

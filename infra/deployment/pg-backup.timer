@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Banzami PostgreSQL backup every 6 hours
+Documentation=https://github.com/banza-protocol/banzami/blob/main/infra/deployment/pg-backup.sh
+
+[Timer]
+# Every 6 hours, with a randomized delay to avoid load spikes, and catch-up
+# if the machine was off at the scheduled time.
+OnCalendar=00/6:00:00
+RandomizedDelaySec=300
+Persistent=true
+
+[Install]
+WantedBy=timers.target

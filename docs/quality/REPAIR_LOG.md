@@ -81,8 +81,19 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 - **Finding:** `0.0.0.0:3005->3005` published directly on the host; all other
   app traffic flows through the nginx edge. Also `8443` is a second public
   TLS entry (website-nginx) — necessity to be verified.
-- **Disposition:** open — bind to loopback/internal network and route via
-  nginx (Phase 6), after confirming no external consumer depends on :3005.
+- **Update 2026-07-04 (measured):** ufw allows only 22/80/443. Direct
+  `http://IP:3005` **times out** from the internet (blocked) — not an active
+  exposure. The main API origin (`:443` direct-IP with spoofed Host) is
+  **refused** (Cloudflare-locked). The one real origin exposure is
+  **`:8443`**, directly reachable and serving the **static marketing site**
+  (banzami.com) — Docker's iptables bypasses ufw for published ports. Low
+  severity (static, no auth/secrets), but it permits a Cloudflare bypass.
+- **Recommended fix (tracked, needs a careful ops window — not executed blind
+  on the live host):** restrict `:8443` and `:3005` to Cloudflare IP ranges
+  (or bind them to the docker network and route via the main nginx). Do NOT
+  change ufw/iptables without SSH-lockout safeguards.
+- **Disposition:** downgraded to LOW; `:3005`/API origins already
+  effectively protected; `:8443` static-site origin exposure tracked.
 
 ## RA-006 — No database backup automation found on the host
 
