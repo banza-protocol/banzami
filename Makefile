@@ -325,12 +325,33 @@ assure-reference: check-assurance check-assurance-reference
 
 # FULL external Sandbox launch gate — HOLDs until every public surface is
 # deployed-E2E released. This is the gate that authorises an external launch.
-assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory check-live-fail-closed
+assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory check-live-fail-closed check-mobile-config
 	@printf "\nFULL external Sandbox launch gate passed.\n"
 
 .PHONY: check-live-fail-closed
 check-live-fail-closed:
 	node tools/check-live-fail-closed.mjs
+
+check-mobile-config:
+	node tools/check-mobile-sandbox-config.mjs
+
+# ─── Mobile iOS Simulator E2E (docs/quality/MOBILE_E2E_REQUIREMENTS.md) ───────
+# These run the deployed-Sandbox simulator matrices. They FAIL until the
+# integration_test/ suites + registered evidence exist — that is the gate that
+# keeps a mobile app out of `released-sandbox` until it is genuinely proven.
+.PHONY: check-mobile-config assure-mobile-consumer-ios assure-mobile-merchant-ios assure-mobile-cross-app-ios assure-mobile-ios
+
+assure-mobile-consumer-ios:
+	@bash tools/mobile/run-ios-e2e.sh consumer
+
+assure-mobile-merchant-ios:
+	@bash tools/mobile/run-ios-e2e.sh merchant
+
+assure-mobile-cross-app-ios:
+	@bash tools/mobile/run-ios-e2e.sh cross-app
+
+assure-mobile-ios: check-mobile-config assure-mobile-consumer-ios assure-mobile-merchant-ios assure-mobile-cross-app-ios
+	@printf "\nMobile iOS Simulator assurance passed.\n"
 
 # Fast local assurance — seconds; suitable for pre-commit.
 assure-fast: check-repo-layout check-assurance check-sdk-payment-boundary

@@ -475,7 +475,7 @@ capabilities:
   # ─── Apps ──────────────────────────────────────────────────────────────────
 
   - id: CAP-APP-001
-    name: Mobile apps (consumer + merchant flavors)
+    name: Consumer mobile app (Flutter, com.banzami.consumer)
     owner: mobile
     public_status: preview-disabled
     environments:
@@ -484,21 +484,53 @@ capabilities:
     authority: internal
     authority_ref: operator product
     implementation:
-      - apps/mobile
+      - apps/mobile (main_consumer.dart)
     api_surface:
-      - mobile UI
+      - consumer mobile UI (deep-link inbound payments; no camera QR scan)
     threat_category: tenant-data
     tests:
-      unit: []
+      unit:
+        - apps/mobile/test (env_config, session, widget)
       integration: []
       e2e_sandbox: []
       negative_security: []
-    deployment_gate: integration-required
-    cleanup_disposition: active-required
-    evidence: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-needs-remediation
+    launch_scope: excluded
+    evidence:
+      - docs/quality/MOBILE_E2E_REQUIREMENTS.md
     surface: none
     disposition: quarantined
-    status: in-audit
+    status: blocked
+
+  - id: CAP-APP-005
+    name: Merchant mobile app (Flutter, com.banzami.merchant)
+    owner: mobile
+    public_status: preview-disabled
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator product
+    implementation:
+      - apps/mobile (main_merchant.dart)
+    api_surface:
+      - merchant mobile UI (QR render, payment links, payout, refunds if exposed)
+    threat_category: tenant-data
+    tests:
+      unit:
+        - apps/mobile/test/merchant (session, handle-login, dashboard, KYB)
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-needs-remediation
+    launch_scope: excluded
+    evidence:
+      - docs/quality/MOBILE_E2E_REQUIREMENTS.md
+    surface: none
+    disposition: quarantined
+    status: blocked
 
   - id: CAP-APP-002
     name: Merchant dashboard (Banzami Business)

@@ -13,10 +13,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| blocked | 3 |
-| in-audit | 14 |
+| blocked | 5 |
+| in-audit | 13 |
 | verified | 3 |
-| **total** | **20** |
+| **total** | **21** |
 
 ## Capabilities
 
@@ -37,7 +37,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | static-only | in-audit |
 | CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
-| CAP-APP-001 | Mobile apps (consumer + merchant flavors) | mobile | none | **quarantined** | ✅ | 🔒 no | integration-required | in-audit |
+| CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-002 | Merchant dashboard (Banzami Business) | web | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | **internal_only** | ✅ | ⚠️ yes | sandbox-e2e-required | in-audit |
 | CAP-APP-004 | Pay page + checkout | web | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
@@ -49,7 +50,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | internal_only | 1 |
 | pending-e2e | 12 |
-| quarantined | 4 |
+| quarantined | 5 |
 | released | 3 |
 
 Public surfaces released: **2/14**. Full external launch requires 14/14.
@@ -296,21 +297,37 @@ Public surfaces released: **2/14**. Full external launch requires 14/14.
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 
-### CAP-APP-001 — Mobile apps (consumer + merchant flavors)
+### CAP-APP-001 — Consumer mobile app (Flutter, com.banzami.consumer)
 
 - **Owner:** mobile
 - **Public status:** preview-disabled · **Sandbox:** true · **Live:** false
 - **Authority:** internal — operator product
 - **Threat category:** tenant-data
-- **Implementation:** apps/mobile
-- **API/UI surface:** mobile UI
-- **Deployment gate:** integration-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
-- **Cleanup disposition:** active-required
+- **Implementation:** apps/mobile (main_consumer.dart)
+- **API/UI surface:** consumer mobile UI (deep-link inbound payments; no camera QR scan)
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [apps/mobile/test (env_config, session, widget)] · integration [] · e2e_sandbox [] · negative/security []
+- **Evidence:** docs/quality/MOBILE_E2E_REQUIREMENTS.md
+- **Cleanup disposition:** active-needs-remediation
 - **External surface:** none · **Disposition:** **quarantined**
-- **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Launch scope:** excluded
+- **Status:** **blocked**
+
+### CAP-APP-005 — Merchant mobile app (Flutter, com.banzami.merchant)
+
+- **Owner:** mobile
+- **Public status:** preview-disabled · **Sandbox:** true · **Live:** false
+- **Authority:** internal — operator product
+- **Threat category:** tenant-data
+- **Implementation:** apps/mobile (main_merchant.dart)
+- **API/UI surface:** merchant mobile UI (QR render, payment links, payout, refunds if exposed)
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [apps/mobile/test/merchant (session, handle-login, dashboard, KYB)] · integration [] · e2e_sandbox [] · negative/security []
+- **Evidence:** docs/quality/MOBILE_E2E_REQUIREMENTS.md
+- **Cleanup disposition:** active-needs-remediation
+- **External surface:** none · **Disposition:** **quarantined**
+- **Launch scope:** excluded
+- **Status:** **blocked**
 
 ### CAP-APP-002 — Merchant dashboard (Banzami Business)
 
