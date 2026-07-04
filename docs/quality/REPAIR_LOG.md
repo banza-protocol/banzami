@@ -481,3 +481,33 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   distribution). assure-developer-foundation: HOLD (3/4 released).
   assure-sandbox-launch: HOLD. Public released surfaces 4→5/14.
 - **Verdict:** Developer Integration Foundation: HOLD (SDK publication external).
+
+## RT02.1 — Developer Key Hardening + SDK Publication Readiness
+
+- **Scope:** harden the RT02 developer-key path; make CAP-SDK-001 publication-ready.
+- **Dev-key activation hardened (fail-closed):** explicit DEVELOPER_KEY_AUTH_ENABLED
+  flag + Config.DeveloperKeyAuthActive() startup validation (SANDBOX only,
+  non-empty internal credential, canonical Sandbox Developer API host). A URL
+  variable alone no longer activates the path; malformed/wrong-host/wrong-env/
+  missing-credential fail closed; bz_live_ rejected before introspection. Config
+  tests cover all negative configs. Deployed with DEVELOPER_KEY_AUTH_ENABLED=true.
+- **/v1/me contract hardened:** returns only {environment, project (safe slug),
+  scopes, key_status} — NO workspace/project/key UUIDs, PII, service topology or
+  internal ids. Rate-limited on the non-secret key id. Re-E2E 20/20 (incl.
+  me-no-internal-ids-leak). Fixtures cleaned; audit 0 raw secrets.
+- **SDK publication readiness (CAP-SDK-001 → blocked-external):**
+  - docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md — exact npm-org
+    ownership + least-privilege publisher action package (owner: fm65/Banzami).
+  - .github/workflows/sdk-publish.yml + tools/sdk-release.mjs — guarded release
+    (release tag / approved dispatch only) that FAILS CLOSED without npm auth;
+    runs contract gate + tarball inspection + clean-install E2E before publish,
+    provenance + external re-verify after.
+  - Packaging fix (caught by the release gate): excluded .d.ts.map + test files
+    from the published tarball.
+  - check-sdk-contract extended: SDK↔Gateway route + docs↔distribution divergence.
+- **External blocker (unchanged, now documented + tooled):** publication needs a
+  Banzami-owned registry (npm @banzami org publish access or GitHub Packages
+  write). npm whoami=ENEEDAUTH; gh token lacks write:packages.
+- **Gates:** assure-developer-foundation HOLD (3/4 released; SDK blocked-external).
+  assure-sandbox-launch HOLD. Public released 5/14 (unchanged).
+- **Verdict:** Developer Integration Foundation: HOLD (SDK publication external).
