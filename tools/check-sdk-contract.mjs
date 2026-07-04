@@ -90,6 +90,27 @@ if (sdkCap && sdkCap.disposition === 'released') {
   pass(`SDK is ${sdkCap?.disposition} (not released) — publication to a Banzami-owned registry is the remaining external blocker`);
 }
 
+// 2b. SDK↔Gateway route: the released me() must map to a real gateway route,
+//     and the released consumption scope must exist.
+const gwServer = join(ROOT, 'services/api-gateway/internal/server/server.go');
+if (existsSync(gwServer)) {
+  const s = readFileSync(gwServer, 'utf-8');
+  if (!/["']\/v1\/me["']/.test(s)) fail('gateway does not expose GET /v1/me (SDK me() would 404)');
+  else pass('SDK me() maps to a real gateway route (GET /v1/me)');
+}
+
+// 2c. Docs↔distribution: while the SDK is not released, docs must NOT present an
+//     external `npm install @banzami/sdk` as available.
+const docs = join(ROOT, 'apps/website/app/developers/docs/page.tsx');
+if (existsSync(docs) && sdkCap && sdkCap.disposition !== 'released') {
+  const d = readFileSync(docs, 'utf-8');
+  // The docs already say the package is NOT published; ensure they don't also
+  // present a bare install command as a working step.
+  const claimsInstall = /Corra\s+<Code>npm install @banzami\/sdk/.test(d) || />npm install @banzami\/sdk<\/Code>\s*(para|to)\b/.test(d);
+  if (claimsInstall) fail('docs present `npm install @banzami/sdk` as available while SDK is not released');
+  else pass('docs do not present external npm install as available (SDK not released)');
+}
+
 // 3. No secret / prod-host-only / core-route literals in src.
 const SECRET_RE = /(bz_live_[A-Za-z0-9]{8,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|sk_live_[A-Za-z0-9]{8,})/;
 if (SECRET_RE.test(srcText)) fail('SDK source contains a secret-looking literal');

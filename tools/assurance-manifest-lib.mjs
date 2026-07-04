@@ -32,7 +32,9 @@ export const VALID_SURFACE = ['public', 'internal', 'none'];
 //   removed       — code/routes/build/docs/tests/config removed
 //   internal_only — no public route/SDK/doc claim; server-side authz + tested
 //   pending-e2e   — public + reachable but NOT yet deployed-E2E verified (HOLD)
-export const VALID_EXT_DISPOSITION = ['released', 'quarantined', 'removed', 'internal_only', 'pending-e2e'];
+//   blocked-external — code-ready + verified, HELD only on an external decision
+//                    (e.g. registry ownership) that no in-repo work can resolve
+export const VALID_EXT_DISPOSITION = ['released', 'quarantined', 'removed', 'internal_only', 'pending-e2e', 'blocked-external'];
 
 const LIST_FIELDS = ['implementation', 'api_surface', 'evidence'];
 const TEST_KINDS = ['unit', 'integration', 'e2e_sandbox', 'negative_security'];

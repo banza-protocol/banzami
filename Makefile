@@ -342,6 +342,10 @@ check-docs-claims:
 check-sdk-contract:
 	node tools/check-sdk-contract.mjs
 
+.PHONY: sdk-release-prepare
+sdk-release-prepare:
+	node tools/sdk-release.mjs
+
 # Release Train 01 dedicated gate — HOLDs until Console, API-key lifecycle,
 # Docs and TypeScript SDK are all released with deployed evidence.
 assure-developer-foundation:

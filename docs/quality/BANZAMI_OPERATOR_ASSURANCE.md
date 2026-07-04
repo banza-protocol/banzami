@@ -35,7 +35,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
-| CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **blocked-external** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
@@ -48,8 +48,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Disposition | Count |
 |---|---|
+| blocked-external | 1 |
 | internal_only | 1 |
-| pending-e2e | 9 |
+| pending-e2e | 8 |
 | quarantined | 5 |
 | released | 6 |
 
@@ -242,8 +243,8 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 - **Implementation:** services/developer-api (developer.dev_api_keys — single key authority), services/api-gateway (DeveloperKeyAuth + GET /v1/me, ADR-046)
 - **API/UI surface:** developer console key management (create/reveal-once/list/rotate/revoke), GET /v1/me (deployed Gateway consumption surface, scope identity:read)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [services/developer-api key crypto + authz tests, services/api-gateway DeveloperKeyAuth fail-closed test] · integration [] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-002.* management lifecycle), tools/e2e/dev-console/dev-key-gateway-e2e.mjs (RT02.* gateway consumption, 19/19)] · negative/security [reveal-once, list-no-raw-secret, revoke/rotate rejected-by-Gateway, cross-tenant 403, scope-deny, bz_live/malformed/unknown fail-closed, no-mutation-on-denied, audit-no-raw-secret]
-- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/dev-key-gateway-1783203197.json, docs/adr/ADR-046-unified-developer-sandbox-api-key-authority.md
+- **Tests:** unit [services/developer-api key crypto + authz tests, services/api-gateway DeveloperKeyAuth fail-closed test] · integration [] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-002.* management lifecycle), tools/e2e/dev-console/dev-key-gateway-e2e.mjs (RT02.* gateway consumption, 20/20 hardened)] · negative/security [reveal-once, list-no-raw-secret, revoke/rotate rejected-by-Gateway, cross-tenant 403, scope-deny, bz_live/malformed/unknown fail-closed, no-mutation-on-denied, /v1/me no-internal-ids-leak, audit-no-raw-secret]
+- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/dev-key-gateway-1783205605.json, docs/adr/ADR-046-unified-developer-sandbox-api-key-authority.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
@@ -275,9 +276,9 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 - **API/UI surface:** "@banzami/sdk/sandbox (curated external Sandbox entry): BanzamiClient.me() + config/errors/env helpers"
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [sdk/typescript env-resolution + webhook-signature tests] · integration [] · e2e_sandbox [SDK clean tarball-install E2E → BanzamiClient.me() against deployed Gateway with a fresh Console key (evidence artifact)] · negative/security [bz_live_+sandbox rejected (BanzamiConfigError); ./sandbox exposes no unreleased-capability methods; tools/check-sdk-contract.mjs]
-- **Evidence:** tools/check-sdk-contract.mjs, evidence/assurance/dev-foundation/sdk-clean-install-1783203531.json
+- **Evidence:** tools/check-sdk-contract.mjs, evidence/assurance/dev-foundation/sdk-clean-install-1783203531.json, docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md, .github/workflows/sdk-publish.yml, tools/sdk-release.mjs
 - **Cleanup disposition:** active-needs-remediation
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **blocked-external**
 - **Launch scope:** sandbox
 - **Status:** **in-audit**
 

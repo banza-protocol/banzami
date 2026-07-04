@@ -1,0 +1,56 @@
+name: SDK Publish
+
+# Controlled, GUARDED publication of @banzami/sdk (RT02.1). This workflow does
+# NOT publish automatically. It runs only on an explicit release tag
+# (sdk-v*) OR a manual dispatch, and only from the protected `sdk-release`
+# environment (required reviewers). Publication additionally fail-closes inside
+# tools/sdk-release.mjs unless npm authentication/ownership is present.
+#
+# Until the Banzami owner provisions @banzami org publish access (trusted
+# publishing or a granular NPM_TOKEN on the sdk-release environment), the
+# publish step fails closed and CAP-SDK-001 stays blocked-external.
+
+on:
+  push:
+    tags: ['sdk-v*']
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Set to "true" to attempt publication (requires registry auth)'
+        required: true
+        default: 'false'
+
+permissions:
+  contents: read
+  id-token: write   # npm provenance via OIDC / trusted publishing
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: sdk-release   # protect with required reviewers in repo settings
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install SDK deps
+        working-directory: sdk/typescript
+        run: npm ci
+
+      # Prepare + verify (build, contract gate, tarball inspection, surface). No
+      # publish here — proves the release is clean regardless of registry access.
+      - name: Prepare + verify (no publish)
+        run: node tools/sdk-release.mjs
+
+      # Publish ONLY on a release tag or an explicit dispatch input, and only
+      # when a credential exists. NODE_AUTH_TOKEN is empty until the owner adds
+      # the NPM_TOKEN secret to the sdk-release environment (or trusted publishing
+      # is configured), so this fails closed by design.
+      - name: Publish (guarded, fail-closed)
+        if: startsWith(github.ref, 'refs/tags/sdk-v') || github.event.inputs.publish == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node tools/sdk-release.mjs --publish
