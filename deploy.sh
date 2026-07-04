@@ -351,6 +351,24 @@ printf "\n${BOLD}Banzami deploy${NC} → ${CYAN}%s${NC}\n" "$REMOTE"
 printf "Services: ${BOLD}%s${NC}\n" "${SERVICES[*]}"
 [[ -n "$NO_CACHE" ]] && printf "${YELLOW}Mode: --no-cache (full rebuild)${NC}\n"
 
+# ─── Deploy-time assurance gate ───────────────────────────────────────────────
+# Mandatory quality gates run at deploy time on the deploy host, so enforcement
+# does not depend on GitHub-hosted Actions (billing-blocked). A failing gate
+# ABORTS the deploy. Set BANZAMI_SKIP_ASSURANCE=1 only for a documented
+# emergency (recorded in the repair log).
+if [ "${BANZAMI_SKIP_ASSURANCE:-0}" != "1" ]; then
+  printf "\n${BOLD}Deploy-time assurance gate${NC}\n"
+  if command -v node >/dev/null 2>&1; then
+    node "$REPO_ROOT/tools/check-assurance-manifest.mjs"      >/dev/null || die "Deploy blocked: assurance manifest gate failed (run: node tools/check-assurance-manifest.mjs)"
+    node "$REPO_ROOT/tools/check-repository-layout.mjs"       >/dev/null || die "Deploy blocked: repository layout gate failed"
+    node "$REPO_ROOT/tools/check-asset-inventory.mjs"         >/dev/null || die "Deploy blocked: asset inventory gate failed"
+    node "$REPO_ROOT/tools/check-live-fail-closed.mjs"        >/dev/null || die "Deploy blocked: Live fail-closed guard failed"
+    ok "Assurance gate passed (manifest · layout · inventory · live-fail-closed)"
+  else
+    die "Deploy blocked: node not available for the assurance gate (set BANZAMI_SKIP_ASSURANCE=1 only for a documented emergency)"
+  fi
+fi
+
 START=$(date +%s)
 
 for svc in "${SERVICES[@]}"; do

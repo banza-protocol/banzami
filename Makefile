@@ -325,8 +325,12 @@ assure-reference: check-assurance check-assurance-reference
 
 # FULL external Sandbox launch gate — HOLDs until every public surface is
 # deployed-E2E released. This is the gate that authorises an external launch.
-assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory
+assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout check-asset-inventory check-live-fail-closed
 	@printf "\nFULL external Sandbox launch gate passed.\n"
+
+.PHONY: check-live-fail-closed
+check-live-fail-closed:
+	node tools/check-live-fail-closed.mjs
 
 # Fast local assurance — seconds; suitable for pre-commit.
 assure-fast: check-repo-layout check-assurance check-sdk-payment-boundary

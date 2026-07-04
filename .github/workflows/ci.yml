@@ -274,6 +274,9 @@ jobs:
       - name: Asset inventory gate (cleanup dispositions + secret hygiene)
         run: node tools/check-asset-inventory.mjs
 
+      - name: Live fail-closed guard
+        run: node tools/check-live-fail-closed.mjs
+
   # ─── Migration governance ───────────────────────────────────────────────────
   # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
   # migration that does not apply from scratch, leftover pending migrations, a
