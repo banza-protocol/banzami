@@ -1,0 +1,544 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Banzami Operator Assurance Manifest — CANONICAL SOURCE OF TRUTH
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Programme: BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 (started 2026-07-04)
+#
+# This file is the single authoritative registry of every material Banzami
+# capability. docs/quality/BANZAMI_OPERATOR_ASSURANCE.md is GENERATED from
+# this file (tools/generate-assurance-doc.mjs) — never edit the doc directly.
+# Capability status MUST NOT be duplicated manually in other documents.
+#
+# Enforced by: tools/check-assurance-manifest.mjs  (make check-assurance)
+#
+# Schema (strict subset of YAML — 2-space indent, no anchors/aliases):
+#   id                  CAP-<AREA>-<NNN>, unique
+#   name                human name
+#   owner               owning component/team identifier
+#   public_status       one of: public-sandbox | public-live | internal |
+#                       preview-disabled | not-exposed
+#   environments        sandbox: true|false / live: true|false
+#                       (live: true requires live_authorization_evidence)
+#   authority           protocol | operator-extension | internal
+#   authority_ref       ADR/RFC or governance reference
+#   implementation      list of repo-relative code locations
+#   api_surface         list of public API routes / SDK methods / UI / docs
+#                       surfaces ("none" if not exposed)
+#   threat_category     financial-money-movement | financial-read |
+#                       identity-auth | tenant-data | infrastructure | content
+#   tests               unit / integration / e2e_sandbox / negative_security —
+#                       lists of test IDs (paths or named suites)
+#   deployment_gate     sandbox-e2e-required | integration-required |
+#                       static-only | none-docs-only
+#   cleanup_disposition active-required | active-needs-remediation |
+#                       legacy-compat-justified | obsolete-candidate | removed
+#   evidence            list of evidence artifact references
+#   status              verified | in-audit | blocked | deprecated | removed
+#
+# Release rule: Sandbox launch readiness requires zero entries with status
+# in-audit or blocked, and zero cleanup_disposition of obsolete-candidate.
+# ═══════════════════════════════════════════════════════════════════════════
+
+manifest_version: 1
+programme: BANZAMI-SANDBOX-RELEASE-ASSURANCE-001
+updated: 2026-07-04
+
+capabilities:
+
+  # ─── Financial core ────────────────────────────────────────────────────────
+
+  - id: CAP-LEDGER-001
+    name: Double-entry ledger (append-only postings)
+    owner: core-ledger
+    public_status: internal
+    environments:
+      sandbox: true
+      live: false   # live:true is reserved for real-money authorization
+
+    authority: protocol
+    authority_ref: BANZA_REFERENCE ledger invariants
+    implementation:
+      - core/ledger
+    api_surface:
+      - none
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: integration-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-WALLET-001
+    name: Wallet accounts and balances
+    owner: core-wallets
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA_REFERENCE wallet model
+    implementation:
+      - core/wallets
+    api_surface:
+      - /v1/wallets
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-PAY-001
+    name: Payment sessions
+    owner: operator-payments
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA ADR-043
+    implementation:
+      - services/api-gateway
+      - core/transactions
+    api_surface:
+      - /v1/payment_sessions
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-PAY-002
+    name: Payment links
+    owner: operator-payments
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA payment link contract
+    implementation:
+      - services/api-gateway
+    api_surface:
+      - /v1/payment_links
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-PAY-003
+    name: QR payment flows (Banzami QR)
+    owner: operator-payments
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: operator-extension
+    authority_ref: Banzami QR engine spec (project_qr_engine)
+    implementation:
+      - services/api-gateway
+      - apps/mobile
+    api_surface:
+      - /v1/qr
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-REFUND-001
+    name: Typed-source refunds (refund_source)
+    owner: core-refunds
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA refund/restitution rules
+    implementation:
+      - core/transactions
+      - services/api-gateway
+    api_surface:
+      - /v1/refunds
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-PAYOUT-001
+    name: Wallet withdrawal / payouts (0.75% fee, paired postings)
+    owner: core-payouts
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: operator-extension
+    authority_ref: Banzami ADR-031 pricing dimension
+    implementation:
+      - core/payouts
+    api_surface:
+      - /v1/payouts
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-COLLECT-001
+    name: Collections (split charge, merchant-only)
+    owner: operator-payments
+    public_status: preview-disabled
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA ADR-036 (pending ratification)
+    implementation:
+      - services/api-gateway
+    api_surface:
+      - /v1/collections
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  # ─── Events, webhooks, proofs ──────────────────────────────────────────────
+
+  - id: CAP-WEBHOOK-001
+    name: Signed webhooks (banza-signature)
+    owner: operator-events
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA webhook signing contract
+    implementation:
+      - services/api-gateway
+    api_surface:
+      - webhook delivery + banza-signature header
+    threat_category: identity-auth
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-PROOF-001
+    name: Receipts, proofs and verification pages (/r/{ref})
+    owner: operator-proofs
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA ADR-033, ADR-044
+    implementation:
+      - services/api-gateway
+      - apps/website
+    api_surface:
+      - /r/{ref}
+    threat_category: financial-read
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  # ─── Developer platform ────────────────────────────────────────────────────
+
+  - id: CAP-DEV-001
+    name: Developer Console (login, OTP, workspaces, projects)
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator policy
+    implementation:
+      - services/developer-api
+    api_surface:
+      - developer console UI + /developer API
+    threat_category: identity-auth
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-DEV-002
+    name: API key lifecycle (sandbox keys, one-time secret reveal)
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator policy
+    implementation:
+      - services/developer-api
+      - services/api-gateway
+    api_surface:
+      - developer console key management
+    threat_category: identity-auth
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-DOCS-001
+    name: Developer documentation site
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator policy
+    implementation:
+      - apps/website
+    api_surface:
+      - docs site
+    threat_category: content
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: static-only
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-SDK-001
+    name: TypeScript SDK (@banzami/sdk)
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: SDK-first policy (CLAUDE.md §13)
+    implementation:
+      - sdk/typescript
+    api_surface:
+      - npm @banzami/sdk
+    threat_category: identity-auth
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-SDK-002
+    name: Flutter SDK (banzami_flutter)
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: SDK-first policy (CLAUDE.md §13)
+    implementation:
+      - sdk/flutter
+    api_surface:
+      - pub banzami_flutter
+    threat_category: identity-auth
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  # ─── Apps ──────────────────────────────────────────────────────────────────
+
+  - id: CAP-APP-001
+    name: Mobile apps (consumer + merchant flavors)
+    owner: mobile
+    public_status: preview-disabled
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator product
+    implementation:
+      - apps/mobile
+    api_surface:
+      - mobile UI
+    threat_category: tenant-data
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: integration-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-APP-002
+    name: Merchant dashboard (Banzami Business)
+    owner: web
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator product
+    implementation:
+      - apps/dashboard
+    api_surface:
+      - dashboard UI
+    threat_category: tenant-data
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-needs-remediation
+    evidence: []
+    status: in-audit
+
+  - id: CAP-APP-003
+    name: Admin portal (BANZADMIN)
+    owner: web
+    public_status: internal
+    environments:
+      sandbox: true
+      live: true
+    authority: internal
+    authority_ref: operator product
+    implementation:
+      - apps/admin
+      - services/admin-api
+    api_surface:
+      - admin UI (internal operators only)
+    threat_category: identity-auth
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  - id: CAP-APP-004
+    name: Pay page + checkout
+    owner: web
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator product
+    implementation:
+      - apps/pay
+      - apps/checkout
+    api_surface:
+      - pay/checkout UI
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit
+
+  # ─── Live rails (prepared, disabled) ───────────────────────────────────────
+
+  - id: CAP-LIVE-001
+    name: Live payments / EMIS / Multicaixa rails
+    owner: operator-payments
+    public_status: not-exposed
+    environments:
+      sandbox: false
+      live: false
+    authority: protocol
+    authority_ref: pending regulatory authorization — MUST fail closed
+    implementation:
+      - services/api-gateway
+    api_surface:
+      - none
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration: []
+      e2e_sandbox: []
+      negative_security: []
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence: []
+    status: in-audit

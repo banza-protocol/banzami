@@ -29,7 +29,7 @@ webhooks, so that applications never have to.
 
 ## Strategic positioning
 
-Read [Banzami — Posicionamento Competitivo em Angola](./Banzami_Posicionamento_Competitivo_Angola.md) for the official strategic comparison with the Angolan payments market, the QR-without-TPA positioning, verifiable payment-proof model, and the BANZA ↔ Banzami ecosystem distinction.
+Read [Banzami — Posicionamento Competitivo em Angola](./docs/Banzami_Posicionamento_Competitivo_Angola.md) for the official strategic comparison with the Angolan payments market, the QR-without-TPA positioning, verifiable payment-proof model, and the BANZA ↔ Banzami ecosystem distinction.
 
 It is a **strategic positioning and communication reference — target positioning, not a claim of production readiness or BANZA certification.** For real launch and certification status, see [Status](#status) and [BANZA protocol conformance](#banza-protocol-conformance) below.
 
@@ -307,6 +307,33 @@ knowledge system — it does not operate payments and is not part of the operato
 | `docs/` | Operator documentation |
 | `tools/` | Internal tooling |
 | `evidence/` | Conformance and audit evidence artifacts (e.g. BANZA conformance reports) |
+| `quality/` | Canonical operator assurance manifest (single source of truth for capability status) |
+| `ops/` | Authoritative non-secret asset inventory (infrastructure, services, lifecycle) |
+
+---
+
+## Release assurance
+
+Every material Banzami capability is registered in the **canonical assurance
+manifest**: [`quality/operator-assurance-manifest.yaml`](quality/operator-assurance-manifest.yaml).
+The human-readable view, [`docs/quality/BANZAMI_OPERATOR_ASSURANCE.md`](docs/quality/BANZAMI_OPERATOR_ASSURANCE.md),
+is generated from it — the manifest is authoritative and status is never
+duplicated manually elsewhere.
+
+**Standard for new capabilities:** before release, every new functional
+capability must be (1) registered in the manifest with owner, environment
+applicability, protocol/operator authority, and threat category; (2) covered
+by the declared unit/integration/deployed-Sandbox-E2E and negative/security
+test IDs; (3) gated (`deployment_gate`) and evidenced. Enforced by:
+
+```bash
+make check-assurance           # structural gate (part of make check-all)
+make check-assurance-release   # Sandbox launch-readiness gate
+```
+
+The infrastructure/resource registry lives at
+[`ops/asset-inventory.yaml`](ops/asset-inventory.yaml); the programme repair
+log at [`docs/quality/REPAIR_LOG.md`](docs/quality/REPAIR_LOG.md).
 
 ---
 

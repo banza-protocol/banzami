@@ -740,12 +740,18 @@ Both brand names are grammatically **masculine** in Portuguese:
 
 ## 15.7 Canonical names (BANZAMI-INSTITUTIONAL-SEPARATION-001, 2026-05-30)
 
-The institutional separation is complete. These are the current canonical names:
+The institutional separation is decided and largely executed (domain, emails,
+branding); the GitHub org transfer remains pending. Current canonical names:
 
 * `@banza` — permanent handle identity; the Banzami term for "handle"/username (NOT the BANZA protocol)
 * `banzami.com` — **active** primary domain
 * `contact@banzami.com`, `security@banzami.com` — **active** contact emails
-* `github.com/banzami/banzami` — **active** GitHub repo (post-transfer)
+* `github.com/banza-protocol/banzami` — **current** GitHub repo (private). The
+  transfer to a dedicated `banzami` org is **pending manual GitHub action** —
+  it was never executed. WARNING: `github.com/banzami/banzami` currently
+  redirects to the PUBLIC protocol repo (`banza-protocol/banza`) via rename
+  residue; never add it as a push remote (see docs/quality/REPAIR_LOG.md
+  RA-001/RA-002).
 * `github.com/banza-protocol` — BANZA protocol organization (not Banzami)
 * Rust crate names (`banzami-types`, `banzami-ledger`, etc.) — out of scope (deferred)
 
@@ -860,6 +866,8 @@ The repository layout is frozen. The semantic zones below are binding architectu
 | `infra/` | Docker, Terraform, monitoring, deployment |
 | `tools/` | Internal tooling and scripts |
 | `evidence/` | Conformance and audit evidence artifacts (e.g. BANZA conformance reports). Generated evidence only — never a source of truth and never protocol authority. Passing a BANZA conformance suite is evidence, not certification: BANZA owns the certification framework. |
+| `quality/` | Canonical operator assurance manifest (`operator-assurance-manifest.yaml`) — the single authoritative registry of capability status. `docs/quality/BANZAMI_OPERATOR_ASSURANCE.md` is generated from it. Enforced by `make check-assurance`. |
+| `ops/` | Authoritative non-secret asset inventory (`asset-inventory.yaml`) — infrastructure/resource registry with owner, purpose, environment and lifecycle. Never contains secrets. |
 
 ## 19.2 Frozen Rules
 

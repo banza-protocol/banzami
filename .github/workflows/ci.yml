@@ -261,6 +261,16 @@ jobs:
       - name: Drift-guard self-test (all violation classes caught)
         run: node tools/check-sdk-refund-contract.selftest.mjs
 
+      # Canonical assurance manifest gate — every material capability must be
+      # registered, environment-consistent, and never claim Live money movement
+      # without explicit live-authorization evidence. The generated assurance
+      # doc must match the manifest (no manual duplication of status).
+      - name: Assurance manifest gate
+        run: node tools/check-assurance-manifest.mjs
+
+      - name: Repository layout gate
+        run: node tools/check-repository-layout.mjs
+
   # ─── Migration governance ───────────────────────────────────────────────────
   # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
   # migration that does not apply from scratch, leftover pending migrations, a

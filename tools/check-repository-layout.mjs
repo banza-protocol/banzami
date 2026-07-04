@@ -57,6 +57,8 @@ const REQUIRED_TOP_LEVEL = [
   ['infra',         'infra/  — Infrastructure as code'],
   ['docs',          'docs/  — Technical documentation'],
   ['tools',         'tools/  — Developer tooling'],
+  ['quality',       'quality/  — Canonical operator assurance manifest'],
+  ['ops',           'ops/  — Authoritative asset inventory (non-secret)'],
 ];
 
 for (const [dir, label] of REQUIRED_TOP_LEVEL) {
@@ -123,12 +125,15 @@ const ACCEPTED_TOP_LEVEL = new Set([
   'core', 'services', 'apps', 'sdk', 'plugins',
   'db', 'infra', 'docs', 'tools', 'assets',
   'evidence',            // conformance / audit evidence artifacts (not a source of truth)
+  'quality',             // canonical assurance manifest (operator-assurance-manifest.yaml)
+  'ops',                 // authoritative non-secret asset inventory (asset-inventory.yaml)
   '.git', '.github', '.gitignore', '.env', '.env.example',
   '.claude',             // Claude Code project config (memory, commands)
   '.DS_Store',           // macOS filesystem artifact
   '.tmux.conf',          // tmux developer config
   'CLAUDE.md', 'README.md', 'Makefile', 'deploy.sh', 'dev.sh',
   'Cargo.lock',          // root Cargo.lock if present
+  'go.work', 'go.work.sum', // Go multi-module workspace (ties services/ together)
   'node_modules',        // gitignored dependency tree (present locally)
   // Operator top-level documents
   'BANZAMI_ARCHITECTURE.md', 'BANZAMI_DEPLOYMENT.md', 'BANZAMI_GOVERNANCE.md',

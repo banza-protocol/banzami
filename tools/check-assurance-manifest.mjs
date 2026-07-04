@@ -1,0 +1,146 @@
+#!/usr/bin/env node
+/**
+ * check-assurance-manifest.mjs
+ *
+ * CI/release gate for the canonical assurance manifest
+ * (quality/operator-assurance-manifest.yaml). Fails when:
+ *
+ *   1. the manifest is unparsable, has duplicate IDs, or invalid enum values;
+ *   2. a capability claims Live support (environments.live: true) for a
+ *      money-movement capability without explicit live-authorization evidence;
+ *   3. a capability with deployment_gate: sandbox-e2e-required and status
+ *      "verified" has no e2e_sandbox test IDs or no evidence artifacts;
+ *   4. a public capability (public_status: public-*) has an empty api_surface
+ *      or zero test IDs of any kind while claiming "verified";
+ *   5. a deprecated/removed capability lacks a cleanup_disposition;
+ *   6. environment flags are inconsistent (live: true while public_status is
+ *      public-sandbox-only wording, or sandbox: false for public-sandbox);
+ *   7. RELEASE MODE ONLY (--release): any capability is still in-audit or
+ *      blocked, or any cleanup_disposition is obsolete-candidate;
+ *   8. the generated doc is stale (docs/quality/BANZAMI_OPERATOR_ASSURANCE.md
+ *      does not match regeneration output).
+ *
+ * Usage:
+ *   node tools/check-assurance-manifest.mjs             # structural gate
+ *   node tools/check-assurance-manifest.mjs --release   # launch-readiness gate
+ *   make check-assurance / make check-assurance-release
+ */
+
+import { readFileSync, existsSync } from 'fs';
+import { join, resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { execFileSync } from 'child_process';
+import {
+  parseManifest, MANIFEST_PATH,
+  VALID_STATUS, VALID_AUTHORITY, VALID_PUBLIC_STATUS, VALID_DISPOSITION, VALID_GATE,
+} from './assurance-manifest-lib.mjs';
+
+const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
+const RELEASE = process.argv.includes('--release');
+const GENERATED_DOC = 'docs/quality/BANZAMI_OPERATOR_ASSURANCE.md';
+
+let failures = 0;
+const fail = m => { console.error(`  ✗ ${m}`); failures++; };
+const pass = m => console.log(`  ✓ ${m}`);
+
+let manifest;
+try {
+  manifest = parseManifest(ROOT);
+} catch (e) {
+  console.error(`✗ Cannot parse ${MANIFEST_PATH}: ${e.message}`);
+  process.exit(1);
+}
+const caps = manifest.capabilities;
+console.log(`Assurance manifest: ${caps.length} capabilities (${RELEASE ? 'RELEASE' : 'structural'} mode)\n`);
+
+// 1. Structural validity
+const seen = new Set();
+for (const c of caps) {
+  const at = `${c.id} (line ${c._line})`;
+  if (seen.has(c.id)) fail(`duplicate capability id: ${at}`);
+  seen.add(c.id);
+  if (!/^CAP-[A-Z]+-\d{3}$/.test(c.id)) fail(`invalid id format: ${at}`);
+  if (!c.name) fail(`${at}: missing name`);
+  if (!c.owner) fail(`${at}: missing owner`);
+  if (!VALID_STATUS.includes(c.status)) fail(`${at}: invalid status "${c.status}"`);
+  if (!VALID_AUTHORITY.includes(c.authority)) fail(`${at}: invalid authority "${c.authority}"`);
+  if (!VALID_PUBLIC_STATUS.includes(c.public_status)) fail(`${at}: invalid public_status "${c.public_status}"`);
+  if (!VALID_DISPOSITION.includes(c.cleanup_disposition)) fail(`${at}: invalid cleanup_disposition "${c.cleanup_disposition}"`);
+  if (!VALID_GATE.includes(c.deployment_gate)) fail(`${at}: invalid deployment_gate "${c.deployment_gate}"`);
+  if (!c.authority_ref) fail(`${at}: missing authority_ref (protocol authority or operator-extension authority)`);
+  if (!c.threat_category) fail(`${at}: missing threat_category`);
+  if (typeof c.environments.sandbox !== 'boolean' || typeof c.environments.live !== 'boolean')
+    fail(`${at}: environments.sandbox/live must be explicit true|false`);
+  if (c.implementation.length === 0 && c.status !== 'removed')
+    fail(`${at}: missing implementation locations`);
+}
+if (failures === 0) pass('structural validity');
+
+// 2. Live authorization gate — Live money movement must carry explicit evidence
+for (const c of caps) {
+  if (c.environments.live === true && c.threat_category === 'financial-money-movement') {
+    const hasAuth = c.evidence.some(e => /live-authorization/i.test(e));
+    if (!hasAuth) fail(`${c.id}: claims live:true for money movement without a "live-authorization" evidence artifact`);
+  }
+  if (c.public_status === 'public-live' && c.environments.live !== true)
+    fail(`${c.id}: public_status public-live but environments.live is false`);
+}
+if (failures === 0) pass('live-authorization gate');
+
+// 3/4. Verified capabilities must carry their required tests + evidence
+for (const c of caps) {
+  if (c.status !== 'verified') continue;
+  const at = c.id;
+  if (c.deployment_gate === 'sandbox-e2e-required') {
+    if (c.tests.e2e_sandbox.length === 0) fail(`${at}: verified + sandbox-e2e-required but no e2e_sandbox test IDs`);
+    if (c.evidence.length === 0) fail(`${at}: verified but no evidence artifacts`);
+  }
+  if (c.public_status.startsWith('public')) {
+    const total = Object.values(c.tests).reduce((n, l) => n + l.length, 0);
+    if (total === 0) fail(`${at}: public capability verified with zero test IDs`);
+    if (c.api_surface.length === 0 || c.api_surface[0] === 'none')
+      fail(`${at}: public capability with no declared api_surface`);
+    if (c.threat_category !== 'content' && c.tests.negative_security.length === 0)
+      fail(`${at}: public non-content capability verified without negative/security test IDs`);
+  }
+}
+if (failures === 0) pass('verified-capability test/evidence coverage');
+
+// 5. Deprecated/removed need a disposition
+for (const c of caps) {
+  if ((c.status === 'deprecated' || c.status === 'removed') &&
+      !['legacy-compat-justified', 'obsolete-candidate', 'removed'].includes(c.cleanup_disposition))
+    fail(`${c.id}: ${c.status} without matching cleanup_disposition`);
+}
+if (failures === 0) pass('deprecation dispositions');
+
+// 6. Environment consistency
+for (const c of caps) {
+  if (c.public_status === 'public-sandbox' && c.environments.sandbox !== true)
+    fail(`${c.id}: public-sandbox but environments.sandbox is false`);
+}
+if (failures === 0) pass('environment consistency');
+
+// 7. Release mode
+if (RELEASE) {
+  for (const c of caps) {
+    if (c.status === 'in-audit') fail(`RELEASE: ${c.id} still in-audit`);
+    if (c.status === 'blocked') fail(`RELEASE: ${c.id} blocked — resolve or reclassify with owner+decision`);
+    if (c.cleanup_disposition === 'obsolete-candidate') fail(`RELEASE: ${c.id} remains obsolete-candidate — remove or justify`);
+  }
+  if (failures === 0) pass('release readiness (no in-audit/blocked/obsolete-candidate)');
+}
+
+// 8. Generated doc freshness
+if (existsSync(join(ROOT, GENERATED_DOC))) {
+  const current = readFileSync(join(ROOT, GENERATED_DOC), 'utf-8');
+  const regen = execFileSync('node', [join(ROOT, 'tools/generate-assurance-doc.mjs'), '--stdout'], { encoding: 'utf-8' });
+  if (current.trim() !== regen.trim())
+    fail(`${GENERATED_DOC} is stale — run: node tools/generate-assurance-doc.mjs`);
+  else pass('generated assurance doc is fresh');
+} else {
+  fail(`${GENERATED_DOC} missing — run: node tools/generate-assurance-doc.mjs`);
+}
+
+console.log(failures ? `\n✗ Assurance manifest check FAILED (${failures})` : '\n✓ Assurance manifest check passed');
+process.exit(failures ? 1 : 0);

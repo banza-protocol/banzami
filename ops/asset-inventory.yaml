@@ -1,0 +1,163 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# Banzami Asset Inventory — AUTHORITATIVE infrastructure/resource registry
+# ═══════════════════════════════════════════════════════════════════════════
+# Programme: BANZAMI-SANDBOX-RELEASE-ASSURANCE-001
+# NO SECRETS in this file — safe identifiers, purpose, owner, lifecycle only.
+#
+# lifecycle values:
+#   active-required | active-needs-remediation | legacy-compat-justified |
+#   obsolete-candidate | removed
+# No asset may remain "unknown".
+# ═══════════════════════════════════════════════════════════════════════════
+
+inventory_version: 1
+updated: 2026-07-04
+owner_default: fm65 (founder/operator)
+
+repositories:
+  - id: repo-banzami
+    kind: git
+    location: github.com/banza-protocol/banzami (private)
+    local: ~/banzami
+    purpose: Banzami operator monorepo (Go services, Rust core, apps, SDKs)
+    environment: all
+    lifecycle: active-required
+    note: >
+      GitHub transfer to github.com/banzami org NOT completed despite
+      CLAUDE.md §15.7 claim. github.com/banzami/banzami currently REDIRECTS
+      to the public protocol repo banza-protocol/banza (rename residue).
+      The local "canonical" remote pointing there was removed 2026-07-04
+      (REPAIR RA-001) because pushing to it would have published the private
+      operator codebase publicly.
+  - id: repo-banza
+    kind: git
+    location: github.com/banza-protocol/banza (public)
+    local: ~/banza
+    purpose: BANZA protocol (ADRs, contracts, reference)
+    environment: all
+    lifecycle: active-required
+  - id: repo-banzai
+    kind: git
+    location: github.com/banza-protocol/banzai (public)
+    local: ~/banzai
+    purpose: BanzAI — AI governance/knowledge layer
+    environment: all
+    lifecycle: active-required
+    note: audit in progress (Phase 5)
+  - id: repo-doa
+    kind: git
+    location: (Vercel-linked; local ~/doa)
+    local: ~/doa
+    purpose: DOA donation platform — Banzami API consumer
+    environment: prod + sandbox (separate Vercel projects/Supabase)
+    lifecycle: active-required
+    note: audit in progress (Phase 5)
+
+git_branches_local_banzami:
+  # 23 non-main local branches exist; all are merged-or-stale candidates.
+  # Disposition per branch recorded in Phase 6 cleanup (REPAIR log).
+  - id: branches-local-stale
+    purpose: historical feature/fix branches
+    lifecycle: obsolete-candidate
+    note: verify merged into main, then delete (Phase 6)
+
+hosts:
+  - id: vm-ionos-main
+    kind: vm
+    location: 217.160.9.248 (IONOS)
+    purpose: single production+sandbox host (Docker, nginx edge)
+    environment: live + sandbox (two-stack topology on one host)
+    owner: fm65
+    lifecycle: active-needs-remediation
+    note: >
+      disk 80% used; docker build cache 88.5GB (85.5GB reclaimable);
+      no crontab; NO database backup job found on host (RA-006);
+      fail2ban active; certbot via cron.d.
+
+containers_vm_ionos_main:
+  live_stack:
+    - { id: banzami-nginx-1, image: nginx:1.27-alpine, purpose: edge reverse proxy 80/443, lifecycle: active-required }
+    - { id: banzami-postgres-1, image: postgres:16-alpine, purpose: PostgreSQL (live + staging DBs), data: /srv/banzami/data/postgres (bind mount), lifecycle: active-required }
+    - { id: banzami-redis-1, image: redis:7-alpine, purpose: cache/rate-limit/idempotency, lifecycle: active-required }
+    - { id: banzami-admin-api-1, image: banzami/admin-api:latest, port: 8082, lifecycle: active-required }
+    - { id: banzami-admin-frontend-1, image: banzami/admin-frontend:latest, port: 3002, lifecycle: active-required }
+    - { id: banzami-dashboard-frontend-1, image: banzami/dashboard-frontend:latest, port: 3001, lifecycle: active-needs-remediation, note: "UNHEALTHY for 3 days (RA-003); image 6 weeks old" }
+    - { id: banzami-checkout-frontend-1, image: banzami/checkout-frontend:latest, port: 3003, lifecycle: active-required }
+    - { id: banzami-pay-frontend-1, image: banzami/pay-frontend:latest, port: 3002, lifecycle: active-required }
+    - { id: banzami-website-frontend-1, image: banzami/website-frontend:latest, port: 3000, lifecycle: active-required }
+    - { id: banzami-website-nginx-1, image: nginx:1.27-alpine, port: "8443 public", lifecycle: active-needs-remediation, note: "second public TLS entry point — verify necessity vs main nginx (Phase 6)" }
+    - { id: banzami-developer-api-1, image: banzami/developer-api:latest, port: 8086, purpose: developer platform (sandbox-only service), lifecycle: active-required }
+  sandbox_stack:
+    - { id: banzami-core-api-staging-1, image: "banzami/core-api:adr021-staging", port: 8081, db: banzami_staging, lifecycle: active-required }
+    - { id: banzami-api-gateway-staging-1, image: "banzami/api-gateway:payment-session-staging", port: 8080, lifecycle: active-needs-remediation, note: "running feature-branch tag payment-session-staging, not a canonical staging tag (RA-008)" }
+    - { id: banzami-public-api-staging-1, image: "banzami/public-api:latest", port: 8083, lifecycle: active-needs-remediation, note: "staging container running :latest (live) tag — tag discipline violation (RA-008)" }
+    - { id: banzami-admin-api-staging-1, image: "banzami/admin-api:adr021-staging", port: "127.0.0.1:8092->8082", lifecycle: active-required }
+    - { id: banzami-sandbox-operator-1, image: banzami/sandbox-operator:latest, port: 8085, purpose: BANZA L0 conformance runtime (stateless simulated), lifecycle: active-required }
+  other:
+    - { id: banza-docs, image: banza/docs-frontend:latest, port: "0.0.0.0:3005 PUBLIC", purpose: docs frontend, lifecycle: active-needs-remediation, note: "port 3005 exposed publicly, bypasses nginx/Cloudflare (RA-005)" }
+    - { id: banzai-api, image: banzai-api:latest, port: 4001 internal, purpose: BanzAI API, lifecycle: active-needs-remediation, note: "scope/authority audit pending (Phase 5)" }
+
+docker_images_vm:
+  - id: images-stale-staging-sha
+    pattern: "banzami/*:staging-<sha>, banzami/*:payment-session-staging, :rollback, :adr021-staging superseded builds"
+    lifecycle: obsolete-candidate
+    note: consolidate to one canonical staging tag; prune after verifying running containers (Phase 6)
+  - id: image-banzamia-api
+    pattern: "banzami/banzamia-api:latest"
+    lifecycle: obsolete-candidate
+    note: apparent typo/legacy duplicate of banzai-api — prove unused, then remove
+  - id: image-banzami-docs-frontend
+    pattern: "banzami/docs-frontend:latest (4 weeks old)"
+    lifecycle: obsolete-candidate
+    note: superseded by banza/docs-frontend? prove, then remove
+  - id: docker-build-cache
+    pattern: "88.55GB build cache, 85.48GB reclaimable"
+    lifecycle: obsolete-candidate
+    note: prune with retention window (Phase 6, RA-004)
+
+compose_files_vm:
+  - { id: compose-main, path: /srv/banzami/docker-compose.yml, lifecycle: active-required }
+  - { id: compose-sandbox-gateway, path: /srv/banzami/docker-compose.sandbox-gateway.yml, lifecycle: active-needs-remediation, note: overlay sprawl — consolidate (Phase 6) }
+  - { id: compose-staging-kyb, path: /srv/banzami/docker-compose.staging-kyb.yml, lifecycle: obsolete-candidate }
+  - { id: compose-staging-kyc, path: /srv/banzami/docker-compose.staging-kyc.yml, lifecycle: obsolete-candidate }
+  - { id: compose-staging-collections, path: /srv/banzami/docker-compose.staging-collections.yml, lifecycle: obsolete-candidate }
+  - { id: compose-payment-session-staging, path: /srv/banzami/docker-compose.payment-session-staging.yml, lifecycle: obsolete-candidate, note: in use by running gateway-staging container — must consolidate before removal }
+  - { id: compose-banza, path: /srv/banza/docker-compose.yml, lifecycle: active-required, note: banza-docs stack }
+
+databases:
+  - { id: db-banzami-live, host: banzami-postgres-1, name: banzami (live), environment: live, lifecycle: active-required, note: "no automated backup found (RA-006)" }
+  - { id: db-banzami-staging, host: banzami-postgres-1, name: banzami_staging, environment: sandbox, lifecycle: active-required }
+  - { id: db-supabase-doa-prod, kind: supabase, purpose: DOA production, environment: live, lifecycle: active-required, note: credential rotation PAUSED by explicit instruction — do not touch }
+  - { id: db-supabase-doa-sandbox, kind: supabase, project: njhcaahxlffexfxdmswc, purpose: DOA sandbox, environment: sandbox, lifecycle: active-required }
+
+ci_cd:
+  - id: gh-workflow-ci
+    path: .github/workflows/ci.yml
+    lifecycle: active-needs-remediation
+    note: >
+      automatic triggers DISABLED (org GitHub Actions billing unresolved,
+      RA-007). Quality gates enforced locally via make check-all + deploy.sh
+      rollout gates. Restoring auto CI is blocked on a billing decision
+      (owner: fm65, external authority).
+  - id: deploy-script
+    path: deploy.sh
+    lifecycle: active-required
+    note: rsync+build on remote; rollout gate migrate-and-verify.sh for core-api/staging
+
+edge_and_dns:
+  - id: cloudflare-zone-banzami-com
+    purpose: banzami.com DNS + proxy
+    lifecycle: active-required
+    note: full record/rule audit pending (Phase 3/6)
+  - id: dns-banza-network
+    purpose: BANZA protocol site
+    lifecycle: active-required
+
+third_party:
+  - { id: svc-vercel-doa-prod, purpose: DOA production hosting, lifecycle: active-required, note: never deploy --prod from ~/doa (deploy guards in place) }
+  - { id: svc-vercel-doa-sandbox, purpose: DOA sandbox hosting (doa-sandbox project), lifecycle: active-required }
+  - { id: svc-resend, purpose: transactional email (admin-api, developer-api), lifecycle: active-required }
+  - { id: svc-mailosaur, purpose: OTP/email E2E testing, lifecycle: active-required, note: verify active use in E2E suites (Phase 7) }
+  - { id: svc-r2-kyc-live, purpose: KYC evidence storage (banzami-kyc), lifecycle: active-required }
+  - { id: svc-r2-kyc-sandbox, purpose: KYC evidence storage sandbox (banzami-kyc-sandbox), lifecycle: active-required }
+  - { id: svc-firebase, purpose: push notifications (gateway/public-api), lifecycle: active-required }
