@@ -73,8 +73,8 @@ describe('GlossaryTerm — accessible popover', () => {
     expect(pop.getAttribute('aria-hidden')).toBeNull(); // in the a11y tree
     expect(pop.getAttribute('role')).toBe('group');
     expect(pop.getAttribute('aria-label')).toBe('QR');
-    const link = within(pop).getByRole('link', { name: /Ver no glossário/i });
-    expect(link.getAttribute('href')).toBe('#glossario-qr');
+    const link = within(pop).getByRole('link', { name: /Ver nos conceitos/i });
+    expect(link.getAttribute('href')).toBe('#glossario-qr'); // internal per-term anchor unchanged
   });
 
   it('has no focusable descendant inside any aria-hidden container', () => {

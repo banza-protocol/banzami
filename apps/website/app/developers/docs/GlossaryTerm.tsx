@@ -250,7 +250,7 @@ export function GlossaryTerm({
                 onKeyDown={onLinkKeyDown}
                 onBlur={onWidgetBlur}
               >
-                Ver no glossário →
+                Ver nos conceitos →
               </a>
             </div>,
             document.body,

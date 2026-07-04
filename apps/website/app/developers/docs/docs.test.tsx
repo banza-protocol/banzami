@@ -152,11 +152,13 @@ describe('Public Developer Docs (/docs) — full content', () => {
     }
   });
 
-  it('avoids forbidden phrasings (mock / conceito / Live no futuro / npm install)', () => {
+  it('avoids forbidden phrasings (mock / prova de conceito / Live no futuro / npm install)', () => {
     const { container } = render(<DocsPage />);
     const t = (container.textContent ?? '').toLowerCase();
     expect(t).not.toContain('apenas um mock');
-    expect(t).not.toContain('conceito');
+    // "prova de conceito" (proof-of-concept hype) stays forbidden; the approved
+    // "Conceitos" glossary section is legitimate and must not trip this lint.
+    expect(t).not.toContain('prova de conceito');
     expect(t).not.toContain('live no futuro');
     expect(t).not.toContain('demonstração fictícia');
     // it explicitly tells developers NOT to run the (unpublished) install

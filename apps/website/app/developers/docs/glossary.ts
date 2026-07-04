@@ -1,12 +1,13 @@
 // Canonical glossary for the Banzami Developers documentation.
 //
 // SINGLE SOURCE OF TRUTH: every contextual definition (inline popovers) and the
-// Glossário section read from this array, so wording stays consistent. Keep each
+// Conceitos section read from this array, so wording stays consistent. Keep each
 // definition concise, plain-language and contextual to Banzami — it explains why
 // the term matters, not an abstract dictionary entry.
 //
-// `id`   — stable anchor slug; the Glossário section renders `glossario-<id>` and
-//          the popover's "Ver no glossário" link deep-links to it.
+// `id`   — stable anchor slug; the Conceitos section renders `glossario-<id>`
+//          (internal per-term anchor, kept for deep-link back-compat) and the
+//          popover's "Ver nos conceitos" link deep-links to it.
 // `code` — render the trigger + heading in monospace (for header/handle-like terms).
 
 export type GlossaryEntry = {

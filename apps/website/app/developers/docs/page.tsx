@@ -236,6 +236,11 @@ export default function DocsPage() {
       const el = document.getElementById(s.id);
       if (el) obs.observe(el);
     });
+    // The Conceitos appendix sits outside SECTIONS but must still drive scroll-spy
+    // (highlight the sidebar item when the section is in view, via #conceitos or
+    // the legacy #glossario anchor which lands on the same section).
+    const conceitosEl = document.getElementById('conceitos');
+    if (conceitosEl) obs.observe(conceitosEl);
     // Deep link on load: honour an existing #hash.
     const h = window.location.hash.replace('#', '');
     if (h) {
@@ -299,15 +304,17 @@ export default function DocsPage() {
                 );
               })}
             </nav>
-            {/* Secondary appendix link — deliberately outside the seven-item nav. */}
+            {/* Secondary appendix link — deliberately outside the seven-item nav.
+                Canonical anchor is #conceitos; #glossario stays a working legacy anchor. */}
             <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F2E2E0' }}>
               <a
-                href="#glossario"
-                onClick={go('glossario')}
+                href="#conceitos"
+                onClick={go('conceitos')}
+                aria-current={active === 'conceitos' ? 'true' : undefined}
                 className="bz-toplink"
-                style={{ display: 'block', padding: '8px 12px', borderRadius: 10, color: '#8a7a7e', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}
+                style={{ display: 'block', padding: '8px 12px', borderRadius: 10, background: active === 'conceitos' ? '#FFF1F0' : 'transparent', color: active === 'conceitos' ? RED : '#8a7a7e', fontSize: 12.5, fontWeight: active === 'conceitos' ? 800 : 700, textDecoration: 'none' }}
               >
-                Glossário
+                Conceitos
               </a>
             </div>
           </aside>
@@ -595,10 +602,14 @@ export default function DocsPage() {
               </ul>
             </Section>
 
-            {/* ------------------------------------------------ GLOSSÁRIO */}
-            {/* Secondary appendix (NOT one of the seven primary sidebar items). */}
-            <section id="glossario" style={{ scrollMarginTop: 72, marginBottom: 40 }}>
-              <H2>Glossário</H2>
+            {/* ------------------------------------------------ CONCEITOS */}
+            {/* Secondary appendix (NOT one of the seven primary sidebar items).
+                Canonical anchor is #conceitos. The legacy #glossario anchor below
+                is preserved so previously-shared /docs#glossario links keep working
+                (both land on this same section). */}
+            <section id="conceitos" style={{ scrollMarginTop: 72, marginBottom: 40 }}>
+              <span id="glossario" aria-hidden="true" style={{ display: 'block', height: 0, scrollMarginTop: 72 }} />
+              <H2>Conceitos</H2>
               <P>Definições rápidas dos termos usados nesta documentação, no contexto do Banzami.</P>
               <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {GLOSSARY.map((e) => (
