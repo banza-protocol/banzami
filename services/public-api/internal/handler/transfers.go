@@ -271,8 +271,6 @@ func (h *TransferHandler) Get(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required")
 		return
 	}
-	_ = consumer // ownership check deferred to core when ACL layer matures
-
 	id := chi.URLParam(r, "id")
 	transfer, err := h.core.GetTransfer(r.Context(), id)
 	if err != nil {
@@ -281,6 +279,15 @@ func (h *TransferHandler) Get(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch transfer")
+		return
+	}
+
+	// Owner-scoped read: the authenticated consumer must be a party to the
+	// transfer (sender or recipient). A non-party is answered with 404 — the
+	// same response as a non-existent id, so transfer ids are not enumerable.
+	// (Assurance RA-022 — IDOR fix. Defence in depth: core should also scope.)
+	if transfer.SenderID != consumer.ID && transfer.RecipientID != consumer.ID {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "transfer not found")
 		return
 	}
 

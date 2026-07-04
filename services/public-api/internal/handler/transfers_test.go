@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
@@ -581,5 +582,62 @@ func TestSend_NoInternalIDsInResponse(t *testing.T) {
 		if _, exists := got[field]; !exists {
 			t.Errorf("required field %q missing from public response", field)
 		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// GET /v1/transfers/{id} — owner-scoped read (IDOR guard, Assurance RA-022)
+// ---------------------------------------------------------------------------
+
+func transferForParties(sender, recipient string) *service.Transfer {
+	return &service.Transfer{
+		ID:          "transfer-uuid-777",
+		SenderID:    sender,
+		RecipientID: recipient,
+		Currency:    "AOA",
+		Status:      "COMPLETED",
+	}
+}
+
+func getTransferByID(t *testing.T, h *TransferHandler, consumerID, id string) *httptest.ResponseRecorder {
+	t.Helper()
+	router := chi.NewRouter()
+	router.Get("/v1/transfers/{id}", h.Get)
+	req := requestWithAuth(httptest.NewRequest(http.MethodGet, "/v1/transfers/"+id, nil), consumerID)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	return w
+}
+
+func TestGetTransfer_SenderCanRead(t *testing.T) {
+	sender := &fakeP2pSender{getTransferFn: func(_ context.Context, _ string) (*service.Transfer, error) {
+		return transferForParties("consumer-A", "consumer-B"), nil
+	}}
+	h := buildHandler(t, sender, &fakeHandleResolver{handle: "@a"}, defaultLimiter())
+	w := getTransferByID(t, h, "consumer-A", "transfer-uuid-777")
+	if w.Code != http.StatusOK {
+		t.Fatalf("sender should read own transfer: got %d", w.Code)
+	}
+}
+
+func TestGetTransfer_RecipientCanRead(t *testing.T) {
+	sender := &fakeP2pSender{getTransferFn: func(_ context.Context, _ string) (*service.Transfer, error) {
+		return transferForParties("consumer-A", "consumer-B"), nil
+	}}
+	h := buildHandler(t, sender, &fakeHandleResolver{handle: "@b"}, defaultLimiter())
+	w := getTransferByID(t, h, "consumer-B", "transfer-uuid-777")
+	if w.Code != http.StatusOK {
+		t.Fatalf("recipient should read the transfer: got %d", w.Code)
+	}
+}
+
+func TestGetTransfer_NonPartyGets404(t *testing.T) {
+	sender := &fakeP2pSender{getTransferFn: func(_ context.Context, _ string) (*service.Transfer, error) {
+		return transferForParties("consumer-A", "consumer-B"), nil
+	}}
+	h := buildHandler(t, sender, &fakeHandleResolver{handle: "@c"}, defaultLimiter())
+	w := getTransferByID(t, h, "consumer-C", "transfer-uuid-777")
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("non-party must not read the transfer (IDOR): got %d, want 404", w.Code)
 	}
 }
