@@ -1,0 +1,2 @@
+{ "name": "banzami-dev-console-e2e", "private": true, "type": "module",
+  "dependencies": { "playwright": "1.61.1" } }

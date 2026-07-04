@@ -99,3 +99,7 @@ apps/docs/data/
 # Website origin TLS certs (never commit)
 infra/docker/website-certs/*.pem
 infra/docker/website-certs/*.key
+
+# Release Train 01 E2E local deps (playwright + browser)
+tools/e2e/dev-console/node_modules/
+tools/e2e/dev-console/package-lock.json
