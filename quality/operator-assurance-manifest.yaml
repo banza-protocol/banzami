@@ -446,16 +446,16 @@ capabilities:
   - id: CAP-APP-002
     name: Merchant dashboard (Banzami Business)
     owner: web
-    public_status: public-sandbox
+    public_status: preview-disabled
     environments:
-      sandbox: true
+      sandbox: false
       live: false
     authority: internal
     authority_ref: operator product
     implementation:
       - apps/dashboard
     api_surface:
-      - dashboard UI
+      - none (not routed; dashboard.banzami.com is NXDOMAIN)
     threat_category: tenant-data
     tests:
       unit: []
@@ -464,8 +464,10 @@ capabilities:
       negative_security: []
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-needs-remediation
-    evidence: []
-    status: in-audit
+    launch_scope: excluded
+    evidence:
+      - docs/quality/REPAIR_LOG.md#RA-003
+    status: blocked
 
   - id: CAP-APP-003
     name: Admin portal (BANZADMIN)
@@ -540,5 +542,7 @@ capabilities:
       negative_security: []
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
-    status: in-audit
+    launch_scope: excluded   # Live rails are intentionally disabled (fail closed) pending authorization
+    evidence:
+      - docs/quality/ENVIRONMENT_MATRIX.md
+    status: blocked

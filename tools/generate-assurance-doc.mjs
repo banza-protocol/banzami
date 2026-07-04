@@ -68,6 +68,7 @@ for (const c of capabilities) {
   P(`- **Tests:** unit [${c.tests.unit.join(', ')}] · integration [${c.tests.integration.join(', ')}] · e2e_sandbox [${c.tests.e2e_sandbox.join(', ')}] · negative/security [${c.tests.negative_security.join(', ')}]`);
   P(`- **Evidence:** ${c.evidence.join(', ') || '—'}`);
   P(`- **Cleanup disposition:** ${c.cleanup_disposition}`);
+  P(`- **Launch scope:** ${c.launch_scope || 'sandbox'}`);
   P(`- **Status:** **${c.status}**`);
   P('');
 }

@@ -121,14 +121,29 @@ for (const c of caps) {
 }
 if (failures === 0) pass('environment consistency');
 
-// 7. Release mode
+// 6b. launch_scope integrity: an excluded capability must not also advertise
+//     itself as public sandbox/live surface (that would be a false claim).
+for (const c of caps) {
+  const scope = c.launch_scope || 'sandbox';
+  if (scope !== 'sandbox' && scope !== 'excluded')
+    fail(`${c.id}: invalid launch_scope "${scope}" (sandbox|excluded)`);
+  if (scope === 'excluded' && (c.public_status === 'public-sandbox' || c.public_status === 'public-live'))
+    fail(`${c.id}: launch_scope excluded but public_status ${c.public_status} — excluded items must not claim public surface`);
+}
+if (failures === 0) pass('launch-scope integrity');
+
+// 7. Release mode — enforce only on the sandbox launch surface. Excluded items
+//    (out-of-launch surfaces, disabled Live rails) are reported, never block.
 if (RELEASE) {
-  for (const c of caps) {
+  const inScope = caps.filter(c => (c.launch_scope || 'sandbox') === 'sandbox');
+  const excluded = caps.filter(c => (c.launch_scope || 'sandbox') === 'excluded');
+  for (const c of inScope) {
     if (c.status === 'in-audit') fail(`RELEASE: ${c.id} still in-audit`);
     if (c.status === 'blocked') fail(`RELEASE: ${c.id} blocked — resolve or reclassify with owner+decision`);
     if (c.cleanup_disposition === 'obsolete-candidate') fail(`RELEASE: ${c.id} remains obsolete-candidate — remove or justify`);
   }
-  if (failures === 0) pass('release readiness (no in-audit/blocked/obsolete-candidate)');
+  if (excluded.length) console.log(`  · ${excluded.length} capability(ies) explicitly excluded from this launch: ${excluded.map(c => c.id).join(', ')}`);
+  if (failures === 0) pass(`release readiness (${inScope.length} in-scope capabilities clean)`);
 }
 
 // 8. Generated doc freshness

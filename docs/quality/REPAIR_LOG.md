@@ -48,9 +48,22 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 - **Severity:** HIGH (reliability, merchant-facing)
 - **Environment:** VM 217.160.9.248, container `banzami-dashboard-frontend-1`
-- **Finding:** Container flagged `unhealthy` for ~3 days; image is 6 weeks
-  old while sibling frontends were rebuilt days ago.
-- **Disposition:** open — diagnose healthcheck, rebuild/redeploy (Phase 6).
+- **Finding:** Container flagged `unhealthy` for ~3 days; unrouted
+  (dashboard.banzami.com is NXDOMAIN, no nginx route) so serving nobody.
+- **Root cause:** pre-existing build break — apps/dashboard depends on
+  `"@banzami/sdk": "file:../../sdk/typescript"`, but `_deploy_frontend` only
+  rsyncs `apps/dashboard/`, so the SDK is absent from the Docker build
+  context and `next build` fails "Cannot resolve @banzami/sdk". `npm ci` also
+  failed separately until the lockfiles were regenerated (RA-025).
+- **Remediation:** container stopped (reversible) to clear unhealthy noise;
+  CAP-APP-002 reclassified `launch_scope: excluded`, status `blocked` — the
+  merchant dashboard is NOT part of the sandbox launch surface.
+- **Concrete fix (tracked, out of sandbox scope):** give dashboard a
+  sibling build context (mirror public-api's common/ pattern): rsync
+  sdk/typescript alongside apps/dashboard and COPY it in the Dockerfile, or
+  publish/vendor the built SDK. Owner: web.
+- **Disposition:** **accepted-justified for Sandbox (excluded surface)**;
+  deploy-pipeline fix tracked.
 
 ## RA-004 — Host disk 80% full; 85.5 GB reclaimable Docker build cache
 
@@ -250,7 +263,9 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   defence in depth.
 - **Tests:** TestGetTransfer_SenderCanRead / _RecipientCanRead / _NonPartyGets404
   (all pass).
-- **Disposition:** **fixed**; deploy public-api to sandbox (Phase 6 batch).
+- **Deployed:** public-api:latest rebuilt; banzami-public-api-staging-1
+  recreated & healthy 2026-07-04; api.banzami.com/health ok.
+- **Disposition:** **fixed + deployed to sandbox**.
 
 ## RA-023 — SSRF: webhook endpoint URL unvalidated (Phase 4 CRITICAL)
 
@@ -267,7 +282,10 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   the resolved IP at delivery time (defeats DNS rebinding). Handler returns
   400 INVALID_WEBHOOK_URL.
 - **Tests:** TestValidateWebhookURL_RejectsNonPublic / _AllowsPublicHTTPS (pass).
-- **Disposition:** **fixed**; deploy api-gateway to sandbox (Phase 6 batch).
+- **Deployed:** api-gateway:latest rebuilt; banzami-api-gateway-staging-1
+  recreated via canonical sandbox-gateway overlay (ENVIRONMENT=SANDBOX) &
+  healthy 2026-07-04. Auth-before-body confirmed (unauth probe → 401).
+- **Disposition:** **fixed + deployed to sandbox**.
 
 ## RA-024 — Go service containers ran as root (Phase 4 HIGH)
 

@@ -13,7 +13,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| in-audit | 20 |
+| blocked | 2 |
+| in-audit | 18 |
 | **total** | **20** |
 
 ## Capabilities
@@ -36,10 +37,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (SDK-first policy (CLAUDE.md §13)) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public-sandbox | ✅ | 🔒 no | internal (SDK-first policy (CLAUDE.md §13)) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-APP-001 | Mobile apps (consumer + merchant flavors) | mobile | preview-disabled | ✅ | 🔒 no | internal (operator product) | integration-required | active-required | **in-audit** |
-| CAP-APP-002 | Merchant dashboard (Banzami Business) | web | public-sandbox | ✅ | 🔒 no | internal (operator product) | sandbox-e2e-required | active-needs-remediation | **in-audit** |
+| CAP-APP-002 | Merchant dashboard (Banzami Business) | web | preview-disabled | — | 🔒 no | internal (operator product) | sandbox-e2e-required | active-needs-remediation | **blocked** |
 | CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | ✅ | ⚠️ yes | internal (operator product) | sandbox-e2e-required | active-required | **in-audit** |
 | CAP-APP-004 | Pay page + checkout | web | public-sandbox | ✅ | 🔒 no | internal (operator product) | sandbox-e2e-required | active-required | **in-audit** |
-| CAP-LIVE-001 | Live payments / EMIS / Multicaixa rails | operator-payments | not-exposed | — | 🔒 no | protocol (pending regulatory authorization — MUST fail closed) | sandbox-e2e-required | active-required | **in-audit** |
+| CAP-LIVE-001 | Live payments / EMIS / Multicaixa rails | operator-payments | not-exposed | — | 🔒 no | protocol (pending regulatory authorization — MUST fail closed) | sandbox-e2e-required | active-required | **blocked** |
 
 ## Detail
 
@@ -55,6 +56,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-WALLET-001 — Wallet accounts and balances
@@ -69,6 +71,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-PAY-001 — Payment sessions
@@ -83,6 +86,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-PAY-002 — Payment links
@@ -97,6 +101,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-PAY-003 — QR payment flows (Banzami QR)
@@ -111,6 +116,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-REFUND-001 — Typed-source refunds (refund_source)
@@ -125,6 +131,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-PAYOUT-001 — Wallet withdrawal / payouts (0.75% fee, paired postings)
@@ -139,6 +146,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-COLLECT-001 — Collections (split charge, merchant-only)
@@ -153,6 +161,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-WEBHOOK-001 — Signed webhooks (banza-signature)
@@ -167,6 +176,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-PROOF-001 — Receipts, proofs and verification pages (/r/{ref})
@@ -181,6 +191,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-DEV-001 — Developer Console (login, OTP, workspaces, projects)
@@ -195,6 +206,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-DEV-002 — API key lifecycle (sandbox keys, one-time secret reveal)
@@ -209,6 +221,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-DOCS-001 — Developer documentation site
@@ -223,6 +236,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-SDK-001 — TypeScript SDK (@banzami/sdk)
@@ -237,6 +251,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-SDK-002 — Flutter SDK (banzami_flutter)
@@ -251,6 +266,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-APP-001 — Mobile apps (consumer + merchant flavors)
@@ -265,21 +281,23 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-APP-002 — Merchant dashboard (Banzami Business)
 
 - **Owner:** web
-- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
+- **Public status:** preview-disabled · **Sandbox:** false · **Live:** false
 - **Authority:** internal — operator product
 - **Threat category:** tenant-data
 - **Implementation:** apps/dashboard
-- **API/UI surface:** dashboard UI
+- **API/UI surface:** none (not routed; dashboard.banzami.com is NXDOMAIN)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Evidence:** docs/quality/REPAIR_LOG.md#RA-003
 - **Cleanup disposition:** active-needs-remediation
-- **Status:** **in-audit**
+- **Launch scope:** excluded
+- **Status:** **blocked**
 
 ### CAP-APP-003 — Admin portal (BANZADMIN)
 
@@ -293,6 +311,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-APP-004 — Pay page + checkout
@@ -307,6 +326,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** —
 - **Cleanup disposition:** active-required
+- **Launch scope:** sandbox
 - **Status:** **in-audit**
 
 ### CAP-LIVE-001 — Live payments / EMIS / Multicaixa rails
@@ -319,9 +339,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 - **API/UI surface:** none
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Evidence:** docs/quality/ENVIRONMENT_MATRIX.md
 - **Cleanup disposition:** active-required
-- **Status:** **in-audit**
+- **Launch scope:** excluded
+- **Status:** **blocked**
 
 ---
 
