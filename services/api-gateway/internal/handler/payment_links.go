@@ -176,9 +176,33 @@ func (h *PaymentLinkHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
 // publicPaymentLink is the response shape for GET /public/pay/{slug}.
 // It extends PaymentLink with the merchant name so the checkout page can
 // show "Paying: <Merchant Name>" without a separate API call.
+// publicPaymentLink is the payer-safe view of a payment link (RT03 §4). It
+// exposes ONLY what an unauthenticated payer needs and never leaks internal
+// database identifiers (link/merchant/wallet UUIDs), the wallet account, or the
+// operator refund_source. The payer POST derives merchant/wallet from the slug
+// server-side, so these ids are not needed client-side.
 type publicPaymentLink struct {
-	*service.PaymentLink
-	MerchantName string `json:"merchant_name"`
+	Slug         string     `json:"slug"`
+	AmountMinor  *int64     `json:"amount_minor"`
+	Currency     string     `json:"currency"`
+	Description  *string    `json:"description"`
+	Status       string     `json:"status"`
+	ExpiresAt    *time.Time `json:"expires_at"`
+	PaidAt       *time.Time `json:"paid_at"`
+	MerchantName string     `json:"merchant_name"`
+}
+
+func toPublicPaymentLink(link *service.PaymentLink, merchantName string) publicPaymentLink {
+	return publicPaymentLink{
+		Slug:         link.Slug,
+		AmountMinor:  link.AmountMinor,
+		Currency:     link.Currency,
+		Description:  link.Description,
+		Status:       link.Status,
+		ExpiresAt:    link.ExpiresAt,
+		PaidAt:       link.PaidAt,
+		MerchantName: merchantName,
+	}
 }
 
 // GET /public/pay/{slug}
@@ -200,7 +224,7 @@ func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, http.StatusOK, publicPaymentLink{PaymentLink: link, MerchantName: merchant.Name})
+	respond(w, http.StatusOK, toPublicPaymentLink(link, merchant.Name))
 }
 
 // GET /public/pay/{slug}/status
