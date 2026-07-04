@@ -280,6 +280,12 @@ jobs:
       - name: Mobile sandbox-config guard
         run: node tools/check-mobile-sandbox-config.mjs
 
+      - name: Docs claim consistency guard
+        run: node tools/check-docs-claims.mjs
+
+      - name: SDK contract guard
+        run: node tools/check-sdk-contract.mjs
+
   # ─── Migration governance ───────────────────────────────────────────────────
   # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
   # migration that does not apply from scratch, leftover pending migrations, a

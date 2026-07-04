@@ -363,6 +363,8 @@ if [ "${BANZAMI_SKIP_ASSURANCE:-0}" != "1" ]; then
     node "$REPO_ROOT/tools/check-repository-layout.mjs"       >/dev/null || die "Deploy blocked: repository layout gate failed"
     node "$REPO_ROOT/tools/check-asset-inventory.mjs"         >/dev/null || die "Deploy blocked: asset inventory gate failed"
     node "$REPO_ROOT/tools/check-live-fail-closed.mjs"        >/dev/null || die "Deploy blocked: Live fail-closed guard failed"
+    node "$REPO_ROOT/tools/check-docs-claims.mjs"             >/dev/null || die "Deploy blocked: docs↔manifest claim check failed"
+    node "$REPO_ROOT/tools/check-sdk-contract.mjs"            >/dev/null || die "Deploy blocked: SDK↔manifest contract check failed"
     ok "Assurance gate passed (manifest · layout · inventory · live-fail-closed)"
   else
     die "Deploy blocked: node not available for the assurance gate (set BANZAMI_SKIP_ASSURANCE=1 only for a documented emergency)"
