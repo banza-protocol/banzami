@@ -18,6 +18,10 @@ RUN apk --no-cache add ca-certificates curl
 
 COPY --from=builder /app/sandbox-operator /usr/local/bin/sandbox-operator
 
+# Run as an unprivileged user (Assurance RA-024 — container hardening).
+RUN addgroup -S banzami && adduser -S -G banzami -H -s /sbin/nologin banzami
+USER banzami
+
 ENV SANDBOX_OPERATOR_PORT=8085
 
 EXPOSE 8085

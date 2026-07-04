@@ -24,6 +24,10 @@ ENV BANZAMI_CHROME_BIN=/usr/bin/chromium-browser
 
 COPY --from=builder /app/bin/api-gateway /usr/local/bin/api-gateway
 
+# Run as an unprivileged user (Assurance RA-024 — container hardening).
+RUN addgroup -S banzami && adduser -S -G banzami -H -s /sbin/nologin banzami
+USER banzami
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \

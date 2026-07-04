@@ -21,6 +21,10 @@ RUN apk --no-cache add ca-certificates curl
 
 COPY --from=builder /app/bin/developer-api /usr/local/bin/developer-api
 
+# Run as an unprivileged user (Assurance RA-024 — container hardening).
+RUN addgroup -S banzami && adduser -S -G banzami -H -s /sbin/nologin banzami
+USER banzami
+
 EXPOSE 8086
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
