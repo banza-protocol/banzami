@@ -11,7 +11,7 @@
   "dependencies": {
     "@banzami/sdk": "file:../../sdk/typescript",
     "lucide-react": "^0.363.0",
-    "next": "^14.2.0",
+    "next": "14.2.35",
     "qr-code-styling": "^1.9.2",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
