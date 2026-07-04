@@ -28,6 +28,11 @@ type PaymentLink struct {
 	PaidAt      *time.Time `json:"paid_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   time.Time  `json:"updated_at"`
+	// Merchant-safe refundable-source discovery (operator extension). Set by Core
+	// only after a wallet payment has settled for this link; surfaced to the
+	// owning merchant only (Get strips it for non-owners) and carried on the
+	// payment_link.paid webhook. Never the internal TRANSACTION token.
+	RefundSource *RefundSource `json:"refund_source,omitempty"`
 }
 
 type CreatePaymentLinkRequest struct {

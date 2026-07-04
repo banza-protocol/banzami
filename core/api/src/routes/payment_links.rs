@@ -5,6 +5,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use banzami_payment_links::{CreatePaymentLinkRequest, PaymentLinkEngine, PaymentLinkError};
 use banzami_types::{MerchantId, PaymentLinkId, WalletId};
@@ -45,6 +46,11 @@ pub struct PaymentLinkResponse {
     pub paid_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    // Merchant-safe refundable-source discovery (operator extension). Present
+    // only after a wallet payment has settled for this link; carries the PUBLIC
+    // typed source. Omitted (not null) before paid / when absent.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub refund_source: Option<serde_json::Value>,
 }
 
 impl From<banzami_payment_links::PaymentLink> for PaymentLinkResponse {
@@ -63,8 +69,27 @@ impl From<banzami_payment_links::PaymentLink> for PaymentLinkResponse {
             paid_at: l.paid_at,
             created_at: l.created_at,
             updated_at: l.updated_at,
+            refund_source: None,
         }
     }
+}
+
+/// Build a link response with merchant-safe refund_source resolved (owner-scoped
+/// by the link's own merchant). Used by the authenticated GET + mark-used paths.
+async fn link_response_with_refund_source(
+    pool: &sqlx::PgPool,
+    link: banzami_payment_links::PaymentLink,
+) -> PaymentLinkResponse {
+    // The domain ids are newtypes; go through their string form to the raw Uuid
+    // the resolver expects.
+    let merchant_id = Uuid::parse_str(&link.merchant_id.to_string()).ok();
+    let link_id = Uuid::parse_str(&link.id.to_string()).ok();
+    let mut resp: PaymentLinkResponse = link.into();
+    if let (Some(m), Some(l)) = (merchant_id, link_id) {
+        resp.refund_source =
+            super::refund_source::resolve_by_interface(pool, m, Some(l), None).await;
+    }
+    resp
 }
 
 #[derive(Deserialize)]
@@ -178,7 +203,7 @@ pub async fn get(
         .parse::<PaymentLinkId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
     let link = state.payment_links.get(id).await.map_err(map_err)?;
-    Ok(Json(link.into()))
+    Ok(Json(link_response_with_refund_source(&state.pool, link).await))
 }
 
 pub async fn get_by_slug(
@@ -212,5 +237,6 @@ pub async fn mark_used(
         .parse::<PaymentLinkId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
     let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
-    Ok(Json(link.into()))
+    // Carry refund_source so the gateway's payment_link.paid webhook includes it.
+    Ok(Json(link_response_with_refund_source(&state.pool, link).await))
 }

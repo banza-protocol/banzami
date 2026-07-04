@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -107,6 +108,11 @@ func (h *PaymentLinkHandler) Get(w http.ResponseWriter, r *http.Request) {
 		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch payment link")
 		return
+	}
+	// refund_source is a merchant-private field: surface it only to the owning
+	// merchant. A non-owner (or an unauthenticated caller) never sees it.
+	if p, ok := middleware.GetPrincipal(r.Context()); !ok || p.MerchantID != link.MerchantID {
+		link.RefundSource = nil
 	}
 	respond(w, http.StatusOK, link)
 }
