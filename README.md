@@ -333,7 +333,10 @@ make check-assurance-release   # Sandbox launch-readiness gate
 
 The infrastructure/resource registry lives at
 [`ops/asset-inventory.yaml`](ops/asset-inventory.yaml); the programme repair
-log at [`docs/quality/REPAIR_LOG.md`](docs/quality/REPAIR_LOG.md).
+log at [`docs/quality/REPAIR_LOG.md`](docs/quality/REPAIR_LOG.md); the testing
+methodology at [`docs/quality/E2E_METHODOLOGY.md`](docs/quality/E2E_METHODOLOGY.md).
+The Sandbox launch summary is
+[`docs/quality/SANDBOX_LAUNCH_ASSURANCE_PACKAGE.md`](docs/quality/SANDBOX_LAUNCH_ASSURANCE_PACKAGE.md).
 
 ---
 
