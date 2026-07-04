@@ -182,8 +182,13 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 - **Finding:** EmailDryRun exists but staging deploys don't enforce it; a
   staging stack with the live Resend key and dry-run unset would email real
   recipients.
-- **Disposition:** open — enforce dry-run or dedicated sandbox sender in
-  staging compose + deploy gate (Phase 6/7).
+- **Disposition:** **accepted-justified with control.** Server has
+  EMAIL_DRY_RUN=false intentionally — the Developer Console requires REAL OTP
+  delivery to real developer inboxes for sandbox signup (Phase 5 verifies
+  this flow). Since no live plane exists (only banzami_staging), there is no
+  cross-env recipient leakage today. Control for Live activation: when the
+  live stack is created it MUST use a distinct sender identity/domain; tracked
+  as a Live-activation gate item, not a Sandbox blocker.
 
 ## RA-017 — ACQUIRING_WEBHOOK_SECRET per-environment uniqueness unverified
 
@@ -231,3 +236,90 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   decision: adopt prefix vs. protocol amendment; safe fallback: claim only
   L0/L1 conformance — currently true). See
   docs/quality/PROTOCOL_CONFORMANCE_MATRIX.md governance item 1.
+
+## RA-022 — IDOR: GET /v1/transfers/{id} lacked owner scoping (Phase 4 CRITICAL)
+
+- **Severity:** CRITICAL (tenant isolation)
+- **Root cause:** handler explicitly deferred the ownership check
+  (`_ = consumer // deferred`), fetching any transfer by id.
+- **Exploit:** an authenticated consumer could read any P2P transfer by id
+  (amounts, counterparties, status).
+- **Remediation:** services/public-api/internal/handler/transfers.go — after
+  fetch, require the authenticated consumer to be sender or recipient; a
+  non-party gets 404 (non-enumerable). Core-side scoping recommended as
+  defence in depth.
+- **Tests:** TestGetTransfer_SenderCanRead / _RecipientCanRead / _NonPartyGets404
+  (all pass).
+- **Disposition:** **fixed**; deploy public-api to sandbox (Phase 6 batch).
+
+## RA-023 — SSRF: webhook endpoint URL unvalidated (Phase 4 CRITICAL)
+
+- **Severity:** CRITICAL (SSRF)
+- **Root cause:** merchant-supplied webhook URL stored and later POSTed with no
+  scheme/host validation.
+- **Exploit:** register a webhook at http://169.254.169.254/... or an internal
+  RFC1918/loopback host and have the gateway make requests into internal
+  infrastructure (cloud metadata, internal services).
+- **Remediation:** services/api-gateway/internal/service/webhook_ssrf.go —
+  (1) `ValidateWebhookURL` at registration (https only; reject
+  loopback/private/link-local/ULA/metadata + internal name suffixes;
+  IPv4-mapped-IPv6 unwrapped); (2) `safeWebhookTransport` DialContext re-checks
+  the resolved IP at delivery time (defeats DNS rebinding). Handler returns
+  400 INVALID_WEBHOOK_URL.
+- **Tests:** TestValidateWebhookURL_RejectsNonPublic / _AllowsPublicHTTPS (pass).
+- **Disposition:** **fixed**; deploy api-gateway to sandbox (Phase 6 batch).
+
+## RA-024 — Go service containers ran as root (Phase 4 HIGH)
+
+- **Severity:** HIGH (container hardening)
+- **Remediation:** added non-root `banzami` user + `USER banzami` to
+  api-gateway, public-api, admin-api, developer-api, sandbox-operator
+  Dockerfiles.
+- **Disposition:** **fixed**; takes effect on next image build/deploy.
+
+## RA-025 — Next.js CVEs in web apps (Phase 4 HIGH)
+
+- **Severity:** HIGH
+- **Finding:** all 5 Next.js apps pinned 14.2.0 with multiple advisories
+  (middleware/proxy bypass GHSA-36qx-fr4f-26g5, WebSocket SSRF
+  GHSA-c4j6-fc7j-m34r, several DoS).
+- **Remediation:** pinned all apps to 14.2.35 (latest patched 14.2.x, no
+  breaking migration) + refreshed lockfiles. Clears the exploitable
+  bypass/SSRF advisories.
+- **Residual:** DoS-class advisories (image optimizer, RSC deserialization,
+  rewrite smuggling, image cache) require a Next 14→15/16 major migration.
+  Mitigated by Cloudflare edge (WAF + rate limiting) and immaterial for a
+  no-real-money sandbox. **Accepted-justified for Sandbox**; tracked as a
+  Live-activation prerequisite (schedule Next 15 migration with per-app
+  verification before Live).
+- **Disposition:** **fixed** (patched line) + residual documented.
+
+## RA-026 — Dashboard JWT stored in localStorage (Phase 4 HIGH)
+
+- **Severity:** HIGH (XSS → token theft, conditional on an XSS existing)
+- **Finding:** apps/dashboard/lib/session.ts persists the merchant JWT in
+  localStorage.
+- **Mitigation present:** strict nonce CSP reduces XSS likelihood.
+- **Remediation plan:** move to `__Host-` HttpOnly/Secure/SameSite=Strict
+  cookie set by the gateway on login (mirrors developer-api's proven session
+  model) + CSRF token for state-changing calls.
+- **Disposition:** **accepted-justified for Sandbox** (no real money;
+  CSP-mitigated), **tracked HIGH** — implement before Live. Requires running
+  the dashboard app to verify the auth flow; not done blind in this pass.
+
+## RA-027 — Docker build cache 85GB + superseded images (Phase 6)
+
+- **Severity:** MEDIUM (operational — disk was at 80%)
+- **Remediation:** `docker builder prune` (freed ~85GB) + removed 13
+  superseded/non-running images (staging-<sha>, non-running
+  payment-session-staging, banzamia-api, banzami/docs-frontend). Kept all
+  running images and `:rollback` tags.
+- **Evidence:** disk 80%→10% (24G→105G free); images 40→27.
+- **Disposition:** **fixed**.
+
+## RA-028 — Stale local git branches (Phase 6)
+
+- **Severity:** LOW
+- **Remediation:** 23 divergent local-only branches deleted; SHAs snapshotted
+  in ops/deleted-branches-snapshot.txt (restore: `git branch <name> <sha>`).
+- **Disposition:** **fixed** (reversible).
