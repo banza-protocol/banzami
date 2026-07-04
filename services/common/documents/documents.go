@@ -302,6 +302,10 @@ func GeneratePDF(ctx context.Context, d ReceiptData) ([]byte, error) {
 		"--print-to-pdf=" + pdfPath, "file://" + htmlPath,
 	}
 	cmd := exec.CommandContext(ctx, bin, args...)
+	// Point HOME at the per-render temp dir. A home-less non-root user
+	// (Assurance RA-024) otherwise has no writable location for Chromium's
+	// crashpad database, which aborts the launch ("--database is required").
+	cmd.Env = append(os.Environ(), "HOME="+dir)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
