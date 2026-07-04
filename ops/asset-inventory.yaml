@@ -56,13 +56,14 @@ repositories:
 git_branches_local_banzami:
   # 23 non-main local branches exist; all are merged-or-stale candidates.
   # Disposition per branch recorded in Phase 6 cleanup (REPAIR log).
-  - id: branches-local-stale
-    purpose: historical feature/fix branches
+  - id: branches-stale
+    purpose: historical feature/fix branches (local + origin)
     lifecycle: removed
     note: >
-      23 divergent local-only branches deleted 2026-07-04 (RA-028); SHAs
-      snapshotted in ops/deleted-branches-snapshot.txt (restore:
-      git branch <name> <sha>). Only main remains.
+      23 divergent local branches + 18 stale origin branches deleted
+      2026-07-04 (RA-028). SHAs snapshotted in
+      ops/deleted-branches-snapshot.txt (restore: git branch <name> <sha>).
+      No open PRs referenced them. Only main remains locally and on origin.
 
 hosts:
   - id: vm-ionos-main

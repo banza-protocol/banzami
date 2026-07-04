@@ -326,15 +326,28 @@ applicability, protocol/operator authority, and threat category; (2) covered
 by the declared unit/integration/deployed-Sandbox-E2E and negative/security
 test IDs; (3) gated (`deployment_gate`) and evidenced. Enforced by:
 
+Two launch gates enforce the truth (a public capability may not pass the launch
+gate on real-DB/audit evidence alone):
+
 ```bash
-make check-assurance           # structural gate (part of make check-all)
-make check-assurance-release   # Sandbox launch-readiness gate
+make check-assurance            # structural gate (part of make check-all)
+make assure-reference           # Reference financial path readiness — PASS
+make assure-sandbox-launch      # FULL external launch — HOLDs until every public
+                                # surface is deployed-E2E released (12 pending)
+make assure-mobile-ios          # iOS Simulator E2E (fail-closed until authored)
+make check-live-fail-closed     # Live activation stays fail-closed
 ```
+
+**Current state:** `Banzami Sandbox Reference Financial Path: GO` ·
+`Banzami Full External Sandbox Launch: HOLD`. See the launch package for the
+per-surface disposition.
 
 The infrastructure/resource registry lives at
 [`ops/asset-inventory.yaml`](ops/asset-inventory.yaml); the programme repair
 log at [`docs/quality/REPAIR_LOG.md`](docs/quality/REPAIR_LOG.md); the testing
-methodology at [`docs/quality/E2E_METHODOLOGY.md`](docs/quality/E2E_METHODOLOGY.md).
+methodology at [`docs/quality/E2E_METHODOLOGY.md`](docs/quality/E2E_METHODOLOGY.md);
+mobile E2E requirements at [`docs/quality/MOBILE_E2E_REQUIREMENTS.md`](docs/quality/MOBILE_E2E_REQUIREMENTS.md);
+the Live activation gate at [`docs/operations/LIVE_ACTIVATION_GATE.md`](docs/operations/LIVE_ACTIVATION_GATE.md).
 The Sandbox launch summary is
 [`docs/quality/SANDBOX_LAUNCH_ASSURANCE_PACKAGE.md`](docs/quality/SANDBOX_LAUNCH_ASSURANCE_PACKAGE.md).
 
