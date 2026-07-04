@@ -451,3 +451,33 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   inbox provisioned); no OTP/pepper/session/CSRF/raw-key ever printed.
 - **Verdict:** Developer Integration Foundation: HOLD (2/4 released).
   assure-sandbox-launch remains HOLD.
+
+## RT02 — Release Train 02: Unified Developer Key Authority + SDK Distribution
+
+- **Scope:** CAP-DEV-002 (API-key lifecycle), CAP-SDK-001 (TypeScript SDK).
+- **ADR:** docs/adr/ADR-046 — developer-api is the single external key authority;
+  the Gateway delegates verification; merchant keys retained as legacy compat
+  (DOA), no new public issuance.
+- **Implemented + deployed (63e1ab8b→bbe831f7 range; developer-api + gateway-staging):**
+  - developer-api: POST /internal/v1/keys/authorize (X-Internal-Key guarded)
+    resolving env/workspace/project/scopes; identity:read scope added.
+  - gateway: DeveloperKeyAuth middleware (additive, feature-flagged on
+    DEVELOPER_API_URL) + released GET /v1/me consumption surface.
+- **CAP-DEV-002 → RELEASED:** dev-key-gateway E2E 19/19 green against deployed
+  Sandbox — Console key authenticates the Gateway (/v1/me) with resolved context;
+  scope-deny (403); cross-tenant deny; dev key can't hit internal/merchant-JWT
+  routes; rotate/revoke rejected at the Gateway; bz_live/malformed/unknown fail
+  closed; no-mutation-on-denied; audit has 0 raw secrets. Fixtures cleaned.
+- **CAP-SDK-001 → HOLD (external decision):** code-ready. Added BanzamiClient.me()
+  and a curated @banzami/sdk/sandbox entry exposing ONLY the released surface
+  (no unreleased-capability methods). Clean tarball-install E2E → me() against the
+  deployed Gateway with a Console key is GREEN; bz_live rejected. **Sole blocker:
+  registry publication requires a Banzami-owned registry** — npm publish
+  unavailable (whoami=ENEEDAUTH, @banzami scope inaccessible), gh token lacks
+  write:packages. **DECISION REQUIRED (owner: fm65/Banzami):** provision npm
+  @banzami publish access (or GitHub Packages write:packages under banza-protocol),
+  then publish the reduced sandbox package from a controlled workflow.
+- **Gates:** check-sdk-contract upgraded (validates ./sandbox surface + me() +
+  distribution). assure-developer-foundation: HOLD (3/4 released).
+  assure-sandbox-launch: HOLD. Public released surfaces 4→5/14.
+- **Verdict:** Developer Integration Foundation: HOLD (SDK publication external).
