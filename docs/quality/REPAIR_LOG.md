@@ -511,3 +511,29 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 - **Gates:** assure-developer-foundation HOLD (3/4 released; SDK blocked-external).
   assure-sandbox-launch HOLD. Public released 5/14 (unchanged).
 - **Verdict:** Developer Integration Foundation: HOLD (SDK publication external).
+
+## RT03 — Payment Sessions, Links, Checkout (Payments Foundation: HOLD)
+
+- **§1 dev-key resilience (precondition) — PASS:** fault-injection at the
+  Gateway→Developer-API seam (timeout/DNS/5xx/malformed/incomplete/invalid-env/
+  concurrent-unavailable) all fail closed (neutral 401, business handler never
+  runs, no legacy-merchant/anonymous fallback, no internal-detail leak); per-IP
+  pre-introspection rate limit added (auth-amplification protection); ADR-046
+  addendum documents the no-cache/immediate-revocation model. Deployed.
+- **Discovery:** Payment sessions/links function end-to-end for merchant-JWT
+  holders (real core/ledger/proof). **Developer keys CANNOT reach payment
+  routes** — the ADR-046 dev-key path mounts only /v1/me; payment routes require
+  principal.MerchantID which a dev key lacks. No Project→Merchant binding exists.
+- **§4 security fix (deployed):** the public payer view (GET /public/pay/{slug})
+  leaked internal DB UUIDs (merchant_id/wallet_id/wallet_account_id/link-id) to
+  unauthenticated payers. Replaced with a payer-safe DTO (slug/amount/currency/
+  description/status/expiry/paid_at/merchant_name only). Verified clean; edge healthy.
+- **Blocker (ADR-047):** releasing the three capabilities for external developers
+  requires a per-project sandbox merchant/wallet binding + payment_sessions:*/
+  payment_links:* scopes + payment-route dev-key wiring + full financial E2E — a
+  money-path build deferred to its own controlled train (RT03 rule: resolve
+  ambiguity in an ADR first; do not corner-cut money paths).
+- **Deliverables:** ADR-047 (binding design), PAYMENTS_CONTRACT_AUDIT.md (§2/§3/§4),
+  make assure-payments-foundation (HOLD 0/3), UUID-leak fix deployed.
+- **Gates:** assure-payments-foundation HOLD; assure-sandbox-launch HOLD; public
+  released 5/14 (unchanged). Verdict: Payments Foundation: HOLD.
