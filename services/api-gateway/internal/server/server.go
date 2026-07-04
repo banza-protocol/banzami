@@ -208,6 +208,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		devKeyClient := service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey)
 		meHandler := handler.NewMeHandler()
 		r.Group(func(r chi.Router) {
+			// Per-IP limit BEFORE introspection — caps how many keys an
+			// unauthenticated caller can bounce off the Developer API, protecting
+			// it from auth-amplification (RT03 §1). Then the resolved key-id
+			// limit after auth.
+			r.Use(middleware.RateLimitPerIP(deps.Redis, 60, "devkey"))
 			r.Use(middleware.DeveloperKeyAuth(devKeyClient))
 			r.Use(middleware.DeveloperKeyRateLimit(deps.Redis))
 			r.Get("/v1/me", meHandler.Me)

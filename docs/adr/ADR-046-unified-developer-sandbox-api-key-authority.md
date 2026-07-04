@@ -137,3 +137,31 @@ public issuance marketing**. Rules:
 - *Migrate merchant keys into dev authority now*: rejected for this train —
   DOA is an active consumer; unsafe to migrate without a separate train.
 - *Add a third key system*: explicitly rejected.
+
+## Addendum (RT03 §1) — runtime resilience of the Gateway → Developer API auth
+
+The Gateway delegates every developer-key verification to developer-api with
+**no authorization cache**: each request performs one internal introspection
+round-trip (`DeveloperKeyClient`, 5s timeout). Consequences and guarantees:
+
+- **No cache → immediate revocation.** A revoked or rotated-away key is rejected
+  at the Gateway on the very next request (proven in the deployed E2E). There is
+  no propagation window in which a revoked/rotated key stays valid.
+- **Trade-off:** one internal call per request (latency) and a hard dependency on
+  developer-api availability. This is accepted for a Sandbox diagnostic surface;
+  a bounded cache may be introduced later ONLY with an explicitly documented
+  lifetime and a revocation-propagation bound.
+- **Fail-closed on every fault** (fault-injection tested at the client seam —
+  `developer_auth_resilience_test.go`): Developer API timeout, network/DNS
+  failure, 5xx, malformed/incomplete body, or an invalid environment/tenant/
+  scope all yield a neutral **401**; the business handler never runs; there is
+  **no fallback to legacy merchant-key auth and no fallback to an anonymous or
+  default tenant**; no internal host/credential/stack-trace/SQL detail leaks.
+- **bz_live_ rejected before introspection** — never reaches developer-api.
+- **Auth-amplification protection:** a per-IP rate limit runs BEFORE
+  introspection on the developer-key path, capping how many keys an
+  unauthenticated caller can bounce off developer-api; a per-key-id limit runs
+  after auth.
+
+This gate must pass before any developer-key-authenticated payment capability is
+released.

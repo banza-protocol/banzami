@@ -1,0 +1,19 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 03 §1",
+  "test": "services/api-gateway/internal/middleware/developer_auth_resilience_test.go (controlled fault-injection at the Gateway→Developer API seam)",
+  "date": "2026-07-05",
+  "scenarios": {
+    "timeout": "6s>5s → 401 fail-closed, handler not run",
+    "network_dns_fail": "closed port → 401 fail-closed",
+    "5xx": "500 (with SQL-ish body) → 401, no leak",
+    "malformed": "invalid JSON → 401",
+    "incomplete": "{} → env!=SANDBOX → 401",
+    "invalid_environment": "LIVE from dev-api → 401",
+    "concurrent_unavailable": "25 concurrent 503 → all 401, handler never run",
+    "revoked_key": "deployed E2E: revoke → immediate 401 at Gateway (no cache)",
+    "rotated_away_key": "deployed E2E: rotate → old key 401 at Gateway",
+    "bz_live": "rejected before introspection (never reaches dev-api)"
+  },
+  "guarantees": "fail-closed; no legacy-merchant fallback; no anonymous/default tenant; no business action/ledger/audit-success on fault; no internal detail leak; per-IP pre-introspection rate limit protects dev-api; no auth cache → immediate revocation",
+  "result": "PASS"
+}
