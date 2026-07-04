@@ -18,6 +18,32 @@ type Handlers struct{ svc *Service }
 
 func NewHandlers(svc *Service) *Handlers { return &Handlers{svc: svc} }
 
+// MountInternal registers the service-to-service /internal routes (ADR-046).
+// The parent must guard these with a shared internal key. The raw key is read
+// from the request body, verified, and never logged or echoed.
+func (h *Handlers) MountInternal(r chi.Router) {
+	r.Post("/internal/v1/keys/authorize", h.authorizeKey)
+}
+
+// authorizeKey delegates external developer-key verification for the Gateway.
+// POST body: {"api_key": "bz_test_sk_..."}. Returns the resolved context or a
+// neutral 403. No raw secret is logged or returned.
+func (h *Handlers) authorizeKey(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		APIKey string `json:"api_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.APIKey == "" {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
+		return
+	}
+	res, err := h.svc.IntrospectKey(r.Context(), in.APIKey)
+	if err != nil {
+		httpx.Error(w, http.StatusForbidden, "FORBIDDEN", "invalid key")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, res)
+}
+
 // Mount registers the developer routes. The parent router must already apply the
 // session guard (RequireAuth). `csrf` wraps state-changing routes with Origin +
 // CSRF enforcement.

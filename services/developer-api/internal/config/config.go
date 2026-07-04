@@ -30,6 +30,10 @@ type Config struct {
 	// APIKeyPepper is the environment-specific HMAC pepper for secret API keys.
 	// NEVER stored in PostgreSQL. Empty → secret-key creation is disabled.
 	APIKeyPepper string
+	// InternalAPIKey guards the service-to-service /internal/* routes (ADR-046
+	// key introspection, called by the Gateway). Distinct from every developer
+	// credential. Empty → the internal routes are not mounted (fail closed).
+	InternalAPIKey string
 	// SessionSecret backs opaque session-token generation/hashing. Empty →
 	// sessions cannot be issued (fail closed).
 	SessionSecret string
@@ -96,6 +100,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("API_KEY_PEPPER"); v != "" {
 		cfg.APIKeyPepper = v
+	}
+	if v := os.Getenv("DEVELOPER_INTERNAL_KEY"); v != "" {
+		cfg.InternalAPIKey = v
 	}
 	if v := os.Getenv("SESSION_SECRET"); v != "" {
 		cfg.SessionSecret = v

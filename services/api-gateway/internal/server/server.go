@@ -197,6 +197,18 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		r.Get("/internal/v1/notifications/summary", notificationsHandler.Summary)
 	})
 
+	// ADR-046 external developer-key surface. Additive + feature-flagged: mounted
+	// only when developer-api introspection is configured. Authenticated by a
+	// Console-issued Sandbox key (NOT the merchant JWT). GET /v1/me is the
+	// released consumption surface (CAP-DEV-002). Rate-limited on the key id.
+	if devKeyClient := service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey); devKeyClient != nil {
+		meHandler := handler.NewMeHandler()
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.DeveloperKeyAuth(devKeyClient))
+			r.Get("/v1/me", meHandler.Me)
+		})
+	}
+
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
 		r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))

@@ -459,3 +459,35 @@ func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action
 		Action: action, Subject: subject, Metadata: meta, RequestIP: ip, RequestID: reqID,
 	})
 }
+
+// KeyIntrospection is the resolved authorization context of a verified external
+// developer key (ADR-046). It carries no raw secret.
+type KeyIntrospection struct {
+	KeyID       string   `json:"key_id"`
+	Environment string   `json:"environment"`
+	WorkspaceID string   `json:"workspace_id"`
+	ProjectID   string   `json:"project_id"`
+	Scopes      []string `json:"scopes"`
+}
+
+// IntrospectKey verifies a presented raw key against the canonical dev-key
+// authority and resolves its full context (ADR-046). This is what the Gateway
+// delegates to — no key material is copied out of developer-api. Returns
+// ErrForbidden for unknown/revoked/rotated-away/live/non-sandbox keys.
+func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrospection, error) {
+	auth, err := s.AuthorizeKey(ctx, rawKey, "") // validates active + sandbox + not-live
+	if err != nil {
+		return nil, err
+	}
+	proj, err := s.store.Project(ctx, auth.ProjectID)
+	if err != nil || proj == nil {
+		return nil, ErrForbidden
+	}
+	return &KeyIntrospection{
+		KeyID:       auth.ID,
+		Environment: auth.Environment,
+		WorkspaceID: proj.WorkspaceID,
+		ProjectID:   auth.ProjectID,
+		Scopes:      auth.Scopes,
+	}, nil
+}

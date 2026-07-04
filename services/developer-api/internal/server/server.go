@@ -3,6 +3,7 @@ package server
 
 import (
 	"context"
+	"crypto/subtle"
 	"net/http"
 	"time"
 
@@ -37,6 +38,15 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 
 	r.Get("/health", health(cfg, deps.Pool))
 
+	// Service-to-service key introspection (ADR-046) — guarded by a shared
+	// internal key. Fail closed: no internal key configured → route not mounted.
+	if deps.Dev != nil && cfg.InternalAPIKey != "" {
+		r.Group(func(gr chi.Router) {
+			gr.Use(internalKeyGuard(cfg.InternalAPIKey))
+			deps.Dev.MountInternal(gr)
+		})
+	}
+
 	// Account Identity auth surface (developer-api.banzami.com).
 	if deps.Auth != nil {
 		deps.Auth.Register(r.Get, r.Post)
@@ -51,6 +61,21 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 	}
 
 	return r
+}
+
+// internalKeyGuard enforces a constant-time match of the X-Internal-Key header
+// against the configured shared key. Neutral 401 on mismatch; never logs the key.
+func internalKeyGuard(expected string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			got := r.Header.Get("X-Internal-Key")
+			if subtle.ConstantTimeCompare([]byte(got), []byte(expected)) != 1 {
+				httpx.Error(w, http.StatusUnauthorized, "UNAUTHORIZED", "internal auth required")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 // health reports liveness and, when a DB pool is present, readiness (a quick

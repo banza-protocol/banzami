@@ -42,6 +42,13 @@ type Config struct {
 	// the gateway→Core boundary is separate from the admin-api→gateway boundary.
 	CoreInternalKey string
 
+	// DeveloperAPIURL + DeveloperInternalKey wire the ADR-046 external
+	// developer-key path: the Gateway delegates key verification to developer-api
+	// (the single key authority). Both empty → the developer-key path (and
+	// GET /v1/me) is disabled (feature-flagged off; existing flows unaffected).
+	DeveloperAPIURL     string
+	DeveloperInternalKey string
+
 	// KYB document storage (Track 3). All empty → storage disabled and the
 	// document endpoints respond 503 STORAGE_NOT_CONFIGURED (no startup panic).
 	KYBStorageProvider     string // "r2" | "s3"
@@ -105,6 +112,12 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_INTERNAL_KEY"); v != "" {
 		cfg.CoreInternalKey = v
+	}
+	if v := os.Getenv("DEVELOPER_API_URL"); v != "" {
+		cfg.DeveloperAPIURL = v
+	}
+	if v := os.Getenv("DEVELOPER_INTERNAL_KEY"); v != "" {
+		cfg.DeveloperInternalKey = v
 	}
 	if cfg.CoreAPIURL == "" {
 		cfg.CoreAPIURL = "http://127.0.0.1:8081"
