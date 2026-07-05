@@ -26,32 +26,60 @@ Capability **release** and **financial E2E** are **separate follow-on gates**.
   performs **no** git state change.
 
 ## Source-to-runtime mapping (declared in `rt04e-sandbox-target-contract.yaml`)
-| Service | Compose file / overlay | Deploy op |
+| Service | Compose file / overlay | Immutable release reference |
 |---|---|---|
-| core-api-staging | `docker-compose.yml` | build core (labelled) → retag `:adr021-staging` → up |
-| public-api-staging | `docker-compose.yml` | build (labelled) → up |
-| developer-api | `docker-compose.yml` | build (labelled) → up |
-| api-gateway-staging | `docker-compose.sandbox-gateway.yml` (overlay) | overlay build (labelled) → up |
+| core-api-staging | `docker-compose.yml` | `banzami/core-api:rt04e-<rev>` |
+| public-api-staging | `docker-compose.yml` | `banzami/public-api:rt04e-<rev>` |
+| developer-api | `docker-compose.yml` | `banzami/developer-api:rt04e-<rev>` |
+| api-gateway-staging | `docker-compose.sandbox-gateway.yml` (overlay) | `banzami/api-gateway:rt04e-<rev>` |
 
-The runner + adapter fail closed if the target is not `sandbox`, a service is
-outside the allowlist, a prohibited service resolves, a required service is
-unmapped, or the compose mapping is incomplete/ambiguous.
+`<rev>` is the strict-hex canonical release revision (`RT04E_RELEASE_REV`). The
+runner + adapter fail closed if the target is not `sandbox`, a service is outside
+the allowlist, a prohibited service resolves, a required service is unmapped, or the
+compose mapping is incomplete/ambiguous.
 
-## Build-to-runtime continuity (derived, not inferred)
-Each service builds **its own** image repository (`core-api-staging→banzami/core-api`,
-`public-api-staging→banzami/public-api`, `developer-api→banzami/developer-api`,
-`api-gateway-staging→banzami/api-gateway`) from its canonical build context, labels
-it, and tags it to the **exact Compose-declared image reference** — derived
-structurally at runtime by `rt04e-sandbox-lib.sh` (never inferred from the service
-name). The adapter **fails closed** if the Compose-declared repo ≠ the build repo.
+## Immutable release references (no mutable tags)
+The active RT04E path uses **only** the immutable reference
+`banzami/<repo>:rt04e-<rev>`. Mutable runtime tags (`latest`, `adr021-staging`,
+generic staging tags, service-name-derived repos) are **never** part of the
+replacement path. Each service builds **its own** image repository
+(`core-api-staging→banzami/core-api`, `public-api-staging→banzami/public-api`,
+`developer-api→banzami/developer-api`, `api-gateway-staging→banzami/api-gateway`)
+from its canonical build context, labels it with the canonical revision, and tags it
+**only** to that immutable reference — derived structurally by `rt04e-sandbox-lib.sh`
+(`rt04e_release_ref`), never inferred loosely from the service name.
 
-## Pre-mutation Compose structural attestation
-`rt04e-sandbox-attest.sh` runs **before** any migration, image build, or service
-replacement, and fails closed unless: every allowlisted service exists in its
-declared Compose file; `api-gateway-staging` resolves **only** through the overlay
-(absent from base); no prohibited service resolves; the mapping is unambiguous; and
-each service's Compose-declared image repo equals the expected build repo. It
-reports only PASS/FAIL categories (no Compose content/values).
+## Source-controlled image override
+The immutable references are bound to Compose through a **source-controlled
+template** (`infra/deployment/rt04e-sandbox-images.override.template.yml`). At run
+time the runner substitutes the validated revision **literally** (`sed`, never shell
+eval) into a **root-owned temp override generated OUTSIDE the repo** (`0600`),
+`export`s `RT04E_OVERRIDE`, refuses any unresolved placeholder, and **removes it on
+completion** via an `EXIT/INT/TERM/HUP` trap. Every Compose operation uses the
+**fixed file order** `docker-compose.yml` + `docker-compose.sandbox-gateway.yml` +
+generated override (never caller input).
+
+## Pre-mutation SEMANTIC Compose attestation
+`rt04e-sandbox-attest.sh` runs **before** any migration checkpoint, migration, image
+build, service replacement, or rollback decision. It uses the **Docker Compose
+engine** as the authority — `docker compose <fixed files> config --no-interpolate
+--format json` — **not** grep/awk on Compose text. It first verifies Compose
+**supports the required safe flags** (`config --no-interpolate/--format`, `up
+--no-build/--pull/--force-recreate/--no-deps`) and **fails closed** if any is
+unavailable. The resolved JSON is piped **directly** to a constrained parser
+(`tools/rt04e-attest-parser.mjs`) that reads stdin only, never writes the config to
+disk, and emits **only** PASS/FAIL categories per service (never an image value or
+any Compose field). It fails closed unless every allowlisted service resolves to the
+**literal** immutable reference `banzami/<repo>:rt04e-<rev>`, with **no unresolved
+`${…}` interpolation marker**, no ambiguity, no prohibited service, and no missing
+service; unexpected JSON shape exits non-zero.
+
+## Exact, isolated service replacement
+Replacement is exactly `docker compose <fixed files> up -d --no-build --pull never
+--force-recreate --no-deps <single-allowlisted-service>`: **no build** (the image is
+pre-built and tagged), **no pull** (never fetch a mutable remote tag), **forced
+recreation** of only the target, **no dependency mutation**, and **no
+`--remove-orphans`**. One service per operation, under the exclusive lock.
 
 ## Revision provenance requirement
 Every deployed image carries `org.opencontainers.image.revision=<RT04E_RELEASE_REV>`.
@@ -80,8 +108,10 @@ ever placed in argv, logs, stdout, manifests, Git, Compose or shell history.
 
 ## Rollback limits
 See `RT04E_SANDBOX_ROLLBACK.md`. Application-image rollback restores the four
-Sandbox services only; **database migrations are forward-only and are not
-automatically reversed**.
+Sandbox services only from **retained, prune-proof pre-state tags**; **database
+migrations are forward-only and are not automatically reversed**. RT04E performs
+**no** `docker image/container/system/volume prune` or `rmi` anywhere — pre-state
+images are retained until the approved rollback window closes (manual).
 
 ## Evidence
 Sanitised evidence (deployed revisions, per-service image ID + revision label,
@@ -99,4 +129,7 @@ revision. It does **not** enable `PAYMENT_CAPABILITY_RELEASED` or run any financ
 flow — those are distinct, separately-approved gates.
 
 ## Enforcement
-`make check-rt04e-rollout-safety` — 16 static checks; `make check-rollout-secret-hygiene`.
+`make check-rt04e-rollout-safety` — 16 static checks + behavioural/continuity checks
+17–41 (immutable-tag, isolation-flag, prune-proof, override-generation and
+constrained-parser fixtures, all Docker/DB/secret-free); `make
+check-rollout-secret-hygiene`.
