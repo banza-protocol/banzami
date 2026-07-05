@@ -362,6 +362,12 @@ assure-payments-foundation:
 assure-project-payment-binding:
 	node tools/check-project-payment-binding.mjs
 
+# RT04E secure-rollout static hygiene — rejects migration/payee-credential leakage
+# patterns at rest (docs/operations/RT04E_SECURE_OPERATOR_ROLLOUT.md).
+.PHONY: check-rollout-secret-hygiene
+check-rollout-secret-hygiene:
+	node tools/check-rollout-secret-hygiene.mjs
+
 # ─── Mobile iOS Simulator E2E (docs/quality/MOBILE_E2E_REQUIREMENTS.md) ───────
 # These run the deployed-Sandbox simulator matrices. They FAIL until the
 # integration_test/ suites + registered evidence exist — that is the gate that
