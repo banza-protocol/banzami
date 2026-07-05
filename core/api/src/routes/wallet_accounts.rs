@@ -240,3 +240,111 @@ pub async fn resolve(
     .ok_or_else(|| ApiError::not_found("wallet account not found"))?;
     Ok(Json(fetch_json(&state.pool, id).await?))
 }
+
+// ── Payee validation (ADR-047 / RT04B §3) ────────────────────────────────────
+//
+// The Developer API calls this over the internal boundary BEFORE recording a
+// Project→Merchant Sandbox binding. Core is independently authoritative for the
+// merchant→wallet→wallet_account relationship — the Developer API must NOT trust
+// arbitrary submitted Core identifiers. This endpoint proves:
+//   * the wallet_account exists and is ACTIVE;
+//   * it is owned by the asserted wallet AND merchant (no cross-owner payee);
+//   * the wallet exists, is ACTIVE, owned by the merchant, same currency;
+//   * the merchant exists and is ACTIVE;
+//   * this Core is SANDBOX (a binding may never resolve to a Live payee).
+// It returns only the MINIMUM validated relationship info (valid + currency), or
+// a stable machine reason when invalid. It moves no money and mutates nothing.
+
+#[derive(Deserialize)]
+pub struct ValidatePayeeBody {
+    pub merchant_id: String,
+    pub wallet_id: String,
+    pub wallet_account_id: String,
+}
+
+pub async fn validate_payee(
+    State(state): State<AppState>,
+    Json(body): Json<ValidatePayeeBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    // A Sandbox binding must never resolve to a Live payee. This endpoint exists
+    // only to validate Sandbox payees; refuse outright on a LIVE core.
+    if state.environment.is_live() {
+        tracing::error!("validate_payee called on a LIVE core — rejected");
+        return Err(ApiError::forbidden(
+            "payee validation is a sandbox-only operation",
+        ));
+    }
+
+    let merchant_id =
+        Uuid::parse_str(&body.merchant_id).map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let wallet_id =
+        Uuid::parse_str(&body.wallet_id).map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
+    let wa_id = Uuid::parse_str(&body.wallet_account_id)
+        .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
+
+    let invalid = |reason: &str| -> ApiResult<Json<serde_json::Value>> {
+        Ok(Json(serde_json::json!({ "valid": false, "reason": reason })))
+    };
+
+    // 1) wallet_account: existence + ownership chain + ACTIVE.
+    let wa: Option<(Uuid, Uuid, String, String)> = sqlx::query_as(
+        "SELECT wallet_id, merchant_id, currency, status FROM wallet_accounts WHERE id = $1",
+    )
+    .bind(wa_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+    let Some((wa_wallet, wa_merchant, wa_currency, wa_status)) = wa else {
+        return invalid("WALLET_ACCOUNT_NOT_FOUND");
+    };
+    if wa_merchant != merchant_id {
+        return invalid("MERCHANT_MISMATCH");
+    }
+    if wa_wallet != wallet_id {
+        return invalid("WALLET_MISMATCH");
+    }
+    if wa_status != "ACTIVE" {
+        return invalid("WALLET_ACCOUNT_INACTIVE");
+    }
+
+    // 2) wallet: existence + owner + ACTIVE + currency parity.
+    let w: Option<(Uuid, String, String)> =
+        sqlx::query_as("SELECT merchant_id, status, currency FROM wallets WHERE id = $1")
+            .bind(wallet_id)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+    let Some((w_merchant, w_status, w_currency)) = w else {
+        return invalid("WALLET_NOT_FOUND");
+    };
+    if w_merchant != merchant_id {
+        return invalid("WALLET_OWNER_MISMATCH");
+    }
+    if w_status != "ACTIVE" {
+        return invalid("WALLET_INACTIVE");
+    }
+    if w_currency != wa_currency {
+        return invalid("CURRENCY_MISMATCH");
+    }
+
+    // 3) merchant: existence + ACTIVE.
+    let m: Option<(String,)> =
+        sqlx::query_as("SELECT status FROM merchants WHERE id = $1")
+            .bind(merchant_id)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+    let Some((m_status,)) = m else {
+        return invalid("MERCHANT_NOT_FOUND");
+    };
+    if m_status != "ACTIVE" {
+        return invalid("MERCHANT_INACTIVE");
+    }
+
+    // Minimum validated relationship info: enough for the binding, nothing more.
+    Ok(Json(serde_json::json!({
+        "valid": true,
+        "currency": wa_currency,
+        "environment": state.environment.as_str(),
+    })))
+}

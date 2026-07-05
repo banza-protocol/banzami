@@ -185,8 +185,9 @@ async fn main() {
     // refund group only via a nested router + route_layer — no other internal
     // route group is gated in this stage.
     let core_internal_key = env::var("CORE_INTERNAL_KEY").ok();
+    let refund_key = core_internal_key.clone();
     let refund_service_auth = axum_middleware::from_fn(move |req: axum::extract::Request, next: axum_middleware::Next| {
-        let key = core_internal_key.clone();
+        let key = refund_key.clone();
         async move { middleware::internal_service_auth(key, req, next).await }
     });
     let refund_routes = Router::new()
@@ -196,6 +197,21 @@ async fn main() {
         )
         .route("/internal/v1/refunds/:id", get(routes::refunds::get))
         .route_layer(refund_service_auth);
+
+    // Payee validation (ADR-047 / RT04B §3) — the Developer API calls this over
+    // the authenticated internal boundary before recording a Project→Merchant
+    // binding. Same fail-closed X-Internal-Key guard as refunds.
+    let payee_key = core_internal_key.clone();
+    let payee_service_auth = axum_middleware::from_fn(move |req: axum::extract::Request, next: axum_middleware::Next| {
+        let key = payee_key.clone();
+        async move { middleware::internal_service_auth(key, req, next).await }
+    });
+    let payee_routes = Router::new()
+        .route(
+            "/internal/v1/wallet-accounts/validate-payee",
+            post(routes::wallet_accounts::validate_payee),
+        )
+        .route_layer(payee_service_auth);
 
     let app = Router::new()
         // Health
@@ -810,6 +826,7 @@ async fn main() {
         )
         // Service-authenticated refund route group (CORE_INTERNAL_KEY, F4).
         .merge(refund_routes)
+        .merge(payee_routes)
         .with_state(state)
         .layer(axum_middleware::from_fn(middleware::request_id))
         // Outermost: enter the correlation span first so request_id + handlers log
