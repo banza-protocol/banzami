@@ -355,6 +355,13 @@ assure-developer-foundation:
 assure-payments-foundation:
 	node tools/check-payments-foundation.mjs
 
+# RT04C — controlled deployment + full deployed E2E gate for the ADR-047 payment
+# binding. Enforces the build-level controls now and HOLDs until the deployed
+# Sandbox E2E evidence is registered and the three capabilities are released.
+.PHONY: assure-project-payment-binding
+assure-project-payment-binding:
+	node tools/check-project-payment-binding.mjs
+
 # ─── Mobile iOS Simulator E2E (docs/quality/MOBILE_E2E_REQUIREMENTS.md) ───────
 # These run the deployed-Sandbox simulator matrices. They FAIL until the
 # integration_test/ suites + registered evidence exist — that is the gate that
