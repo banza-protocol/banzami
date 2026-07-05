@@ -444,3 +444,9 @@ website-docker-build:
 
 website-docker-run: website-docker-build
 	docker run --rm -p 3000:3000 banzami/website-frontend:latest
+
+# GitHub App canonical source-access plan — static gate
+# (docs/operations/GITHUB_APP_CANONICAL_SOURCE_ACCESS.md).
+.PHONY: check-github-app-source-access
+check-github-app-source-access:
+	node tools/check-github-app-source-access.mjs
