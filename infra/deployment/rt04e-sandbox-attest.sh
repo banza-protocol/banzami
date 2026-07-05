@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # =============================================================================
-# RT04E pre-mutation Compose structural attestation — REVIEWED TEMPLATE
+# RT04E semantic Compose attestation — REVIEWED TEMPLATE, NOT AUTO-RUN
 # =============================================================================
-# Runs BEFORE any migration, image build or service replacement. Verifies, from
-# the declared server-side Compose files + approved overlay relationship, that the
-# four allowlisted services resolve exactly as the contract expects. Reports only
-# PASS/FAIL categories — never Compose content, image values, paths, ports, hosts,
-# URLs, env values, volumes or secrets. Fails closed on any anomaly.
+# Uses the Docker Compose ENGINE (non-mutating `config`) as the authoritative
+# model — NOT grep/awk. Runs BEFORE any migration checkpoint, migration, image
+# build, service replacement or rollback decision. Fails closed on any anomaly.
 #
-# Usage: rt04e-sandbox-attest.sh   (exit 0 = attestation passed)
+# Flow: verify Compose supports the required safe flags -> `config --no-interpolate
+# --format json` over the fixed base+overlay+RT04E-override file set -> pipe the
+# JSON DIRECTLY to the constrained parser (no full config printed/stored) -> the
+# parser emits only PASS/FAIL per service.
+#
+# Usage: RT04E_RELEASE_REV=<rev> RT04E_OVERRIDE=<generated-override> rt04e-sandbox-attest.sh
 # -----------------------------------------------------------------------------
 set -euo pipefail
 set +x
@@ -16,43 +19,32 @@ umask 077
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/rt04e-sandbox-lib.sh"
+PARSER="$HERE/../../tools/rt04e-attest-parser.mjs"
+die() { printf 'attest: FAILED — %s\n' "$1" >&2; exit "${2:-1}"; }
 
-fail=0
-row() { printf '  %-20s mapping=%s image-continuity=%s overlay=%s\n' "$1" "$2" "$3" "$4"; }
-service_present() { # service $1 present in file $2 (structural)
-  grep -qE "^  $1:" "$RT04E_COMPOSE_DIR/$2"
-}
+: "${RT04E_RELEASE_REV:?RT04E_RELEASE_REV required}"
+rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV is not a valid git revision" 1
+: "${RT04E_OVERRIDE:?RT04E_OVERRIDE (generated immutable-image override) required}"
+[ -f "$RT04E_OVERRIDE" ] || die "generated RT04E override not found — refusing" 1
+[ -f "$PARSER" ] || die "attestation parser missing — refusing" 1
 
-for s in $RT04E_ALLOW; do
-  # 3. prohibited/live target must never be in the resolved set
-  if rt04e_refuse_bad "$s"; then row "$s" FAIL - -; fail=1; continue; fi
-
-  cf="$(rt04e_compose_file "$s")"
-  # 1. exists in the exact declared compose file
-  if service_present "$s" "$cf"; then mapping=PASS; else mapping=FAIL; fi
-
-  # 5. Compose-declared image repo == the repo the adapter will build (continuity)
-  ref="$(rt04e_compose_image_ref "$s")"
-  if [ -n "$ref" ] && [ "$(rt04e_ref_repo "$ref")" = "$(rt04e_build_repo "$s")" ]; then cont=PASS; else cont=FAIL; fi
-
-  # 2. api-gateway-staging resolves ONLY through the overlay (absent from base)
-  ov=NOT_APPLICABLE
-  if rt04e_is_overlay "$s"; then
-    if service_present "$s" docker-compose.yml; then ov=FAIL      # must NOT be in base
-    elif service_present "$s" "$cf"; then ov=PASS; else ov=FAIL; fi
-  fi
-
-  # 4. unambiguous mapping: the service must appear in exactly one selected file
-  # (base OR overlay, per contract) — a duplicate across the selected set fails.
-  n=0; service_present "$s" docker-compose.yml && n=$((n+1)); [ "$cf" != docker-compose.yml ] && service_present "$s" "$cf" && n=$((n+1)) || true
-  [ "$mapping" = PASS ] && [ "$ov" != FAIL ] || mapping=FAIL
-
-  row "$s" "$mapping" "$cont" "$ov"
-  { [ "$mapping" = PASS ] && [ "$cont" = PASS ] && [ "$ov" != FAIL ]; } || fail=1
+# 1+2. Verify Compose supports the required SAFE flags before proceeding; fail closed.
+docker compose version >/dev/null 2>&1 || die "docker compose unavailable — refusing" 2
+help="$(docker compose config --help 2>&1 || true)"
+for flag in --no-interpolate --format; do
+  printf '%s' "$help" | grep -q -- "$flag" || die "docker compose config lacks $flag — required safe flag unavailable" 2
+done
+# up-side isolation flags must also be supported (checked here so we fail before mutation)
+uphelp="$(docker compose up --help 2>&1 || true)"
+for flag in --no-build --pull --force-recreate --no-deps; do
+  printf '%s' "$uphelp" | grep -q -- "$flag" || die "docker compose up lacks $flag — isolation guarantee unavailable" 2
 done
 
-# 6. the four-service allowlist must resolve fully (count enforced)
-[ "$(printf '%s\n' $RT04E_ALLOW | wc -l | tr -d ' ')" = 4 ] || fail=1
-
-if [ "$fail" != 0 ]; then printf '  attestation: FAIL — refusing to mutate\n' >&2; exit 1; fi
-printf '  attestation: PASS — all four services resolve; image continuity + overlay verified\n'
+# 3+4+5. Authoritative model: config --no-interpolate, piped DIRECTLY to the parser.
+#        The full resolved config is never printed, logged or written to disk.
+files="$(rt04e_compose_file_args "$RT04E_OVERRIDE")"
+if ! ( cd "$RT04E_COMPOSE_DIR" && docker compose $files config --no-interpolate --format json 2>/dev/null ) \
+     | RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$PARSER"; then
+  die "semantic compose attestation FAILED — refusing to mutate" 1
+fi
+printf '  attestation: PASS — four services resolve to literal immutable RT04E references (semantic)\n'
