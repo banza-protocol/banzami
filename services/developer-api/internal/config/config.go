@@ -38,6 +38,13 @@ type Config struct {
 	// sessions cannot be issued (fail closed).
 	SessionSecret string
 
+	// CoreAPIURL + CoreInternalKey are the outbound internal boundary to Core
+	// (ADR-047 payee validation, RT04B §3). Distinct from InternalAPIKey (which
+	// guards THIS service's inbound /internal routes). Empty → the payee validator
+	// is not wired and operator binding fails closed.
+	CoreAPIURL      string
+	CoreInternalKey string
+
 	SessionTTLHours int
 	OTLPEndpoint    string // optional; tracing no-op when empty
 
@@ -106,6 +113,12 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("SESSION_SECRET"); v != "" {
 		cfg.SessionSecret = v
+	}
+	if v := os.Getenv("CORE_API_URL"); v != "" {
+		cfg.CoreAPIURL = v
+	}
+	if v := os.Getenv("CORE_INTERNAL_KEY"); v != "" {
+		cfg.CoreInternalKey = v
 	}
 	if v := os.Getenv("SESSION_TTL_HOURS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {

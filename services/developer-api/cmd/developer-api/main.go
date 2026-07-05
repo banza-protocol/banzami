@@ -22,6 +22,7 @@ import (
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
 	"github.com/banzami/banzami/services/developer-api/internal/config"
+	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 	"github.com/banzami/banzami/services/developer-api/internal/developer"
 	"github.com/banzami/banzami/services/developer-api/internal/server"
 )
@@ -100,6 +101,13 @@ func main() {
 		devStore = developer.NewMemStore()
 	}
 	devSvc := developer.NewService(devStore, cfg.SessionSecret, cfg.APIKeyPepper, 0)
+	// Wire the Core payee-validation boundary (ADR-047 §3). When unset, operator
+	// binding fails closed — no binding is recorded on an unverified payee.
+	if pv := coreclient.New(cfg.CoreAPIURL, cfg.CoreInternalKey); pv != nil {
+		devSvc.SetPayeeValidator(pv)
+	} else {
+		slog.Warn("CORE_API_URL / CORE_INTERNAL_KEY not set — project binding fails closed until configured")
+	}
 	devH := developer.NewHandlers(devSvc)
 
 	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth, Dev: devH})

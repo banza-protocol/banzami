@@ -1,9 +1,33 @@
 package developer
 
 import (
+	"context"
+	"errors"
 	"strings"
 	"testing"
 )
+
+// fakePayee is a stub Core payee validator for tests.
+type fakePayee struct {
+	valid  bool
+	reason string
+	err    error
+	calls  int
+}
+
+func (f *fakePayee) ValidatePayee(_ context.Context, _, _, _ string) (bool, string, error) {
+	f.calls++
+	return f.valid, f.reason, f.err
+}
+
+// boundSvc returns a service whose payee validator accepts (valid) by default,
+// so binding tests exercise the record/authorize path.
+func boundSvc(t *testing.T) (*Service, *memStore, string) {
+	t.Helper()
+	s, st, ws := wsWithRoles(t)
+	s.SetPayeeValidator(&fakePayee{valid: true})
+	return s, st, ws
+}
 
 // ADR-047 (RT04 §2/§3) — Project→Merchant Sandbox binding authority.
 //
@@ -22,7 +46,7 @@ const (
 )
 
 func TestBinding_OneActivePerProject(t *testing.T) {
-	s, _, ws := wsWithRoles(t)
+	s, _, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
@@ -34,8 +58,61 @@ func TestBinding_OneActivePerProject(t *testing.T) {
 	}
 }
 
-func TestBinding_RequiresAllIdsAndProject(t *testing.T) {
+func TestBinding_FailsClosedWithoutCoreValidation(t *testing.T) {
+	// No validator configured → binding must fail closed (never record on an
+	// unverified payee), even though everything else is well-formed.
 	s, _, ws := wsWithRoles(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != ErrUnavailable {
+		t.Fatalf("no Core validator: want ErrUnavailable (fail closed), got %v", err)
+	}
+}
+
+func TestBinding_CoreUnavailableFailsClosed(t *testing.T) {
+	s, st, ws := wsWithRoles(t)
+	s.SetPayeeValidator(&fakePayee{err: errors.New("core down")})
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != ErrUnavailable {
+		t.Fatalf("Core unavailable: want ErrUnavailable, got %v", err)
+	}
+	if b, _ := st.ActiveBindingForProject(bg, pid); b != nil {
+		t.Error("no binding may be recorded when Core is unavailable")
+	}
+}
+
+func TestBinding_CoreRejectsInvalidPayee(t *testing.T) {
+	s, st, ws := wsWithRoles(t)
+	fp := &fakePayee{valid: false, reason: "MERCHANT_MISMATCH"}
+	s.SetPayeeValidator(fp)
+	pid := mkProject(t, s, "u_owner", ws)
+	// A submitted-but-invalid Core relationship (cross-merchant wallet, inactive,
+	// Live) must be rejected before any binding is recorded.
+	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != ErrValidation {
+		t.Fatalf("invalid payee: want ErrValidation, got %v", err)
+	}
+	if fp.calls != 1 {
+		t.Errorf("Core must be consulted exactly once, got %d", fp.calls)
+	}
+	if b, _ := st.ActiveBindingForProject(bg, pid); b != nil {
+		t.Error("no binding may be recorded for an invalid payee")
+	}
+	// The rejection is audited with the machine reason (no secrets).
+	var rejected bool
+	for _, ev := range st.Audits {
+		if ev.Action == "project.sandbox_bind_rejected" {
+			rejected = true
+			if ev.Metadata["reason"] != "MERCHANT_MISMATCH" {
+				t.Errorf("rejection audit must carry the reason, got %v", ev.Metadata["reason"])
+			}
+		}
+	}
+	if !rejected {
+		t.Error("invalid-payee binding must emit a rejection audit event")
+	}
+}
+
+func TestBinding_RequiresAllIdsAndProject(t *testing.T) {
+	s, _, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 
 	if _, err := s.BindProjectSandbox(bg, pid, "", wID, waID, "u_owner", "", ""); err != ErrValidation {
@@ -51,7 +128,7 @@ func TestBinding_RequiresAllIdsAndProject(t *testing.T) {
 }
 
 func TestIntrospect_UnboundProjectIsBoundFalse(t *testing.T) {
-	s, _, ws := wsWithRoles(t)
+	s, _, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 	_, raw, err := s.CreateAPIKey(bg, "u_owner", pid, KindSecret, "srv", []string{"payment_sessions:write"}, "", "")
 	if err != nil {
@@ -67,7 +144,7 @@ func TestIntrospect_UnboundProjectIsBoundFalse(t *testing.T) {
 }
 
 func TestIntrospect_BoundProjectSurfacesPayee(t *testing.T) {
-	s, _, ws := wsWithRoles(t)
+	s, _, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
 		t.Fatal(err)
@@ -84,7 +161,7 @@ func TestIntrospect_BoundProjectSurfacesPayee(t *testing.T) {
 }
 
 func TestBinding_SealArtifactIdempotentAndPreservesBinding(t *testing.T) {
-	s, st, ws := wsWithRoles(t)
+	s, st, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
 		t.Fatal(err)
@@ -106,7 +183,7 @@ func TestBinding_SealArtifactIdempotentAndPreservesBinding(t *testing.T) {
 }
 
 func TestBinding_AuditRecordsNoSecretsAndIdentifiesMerchant(t *testing.T) {
-	s, st, ws := wsWithRoles(t)
+	s, st, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "1.2.3.4", "req-1"); err != nil {
 		t.Fatal(err)

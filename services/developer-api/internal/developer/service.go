@@ -14,6 +14,15 @@ type Service struct {
 	inviteSecret string
 	apiKeyPepper string
 	inviteTTL    time.Duration
+	payee        PayeeValidator
+}
+
+// PayeeValidator validates a merchant→wallet→wallet_account payee against the
+// independently-authoritative Core before a binding is recorded (ADR-047 §3).
+// Returns (valid, reason); a non-nil error means Core was unavailable → the
+// caller MUST fail closed.
+type PayeeValidator interface {
+	ValidatePayee(ctx context.Context, merchantID, walletID, walletAccountID string) (bool, string, error)
 }
 
 func NewService(store Store, inviteSecret, apiKeyPepper string, inviteTTL time.Duration) *Service {
@@ -22,6 +31,11 @@ func NewService(store Store, inviteSecret, apiKeyPepper string, inviteTTL time.D
 	}
 	return &Service{store: store, inviteSecret: inviteSecret, apiKeyPepper: apiKeyPepper, inviteTTL: inviteTTL}
 }
+
+// SetPayeeValidator wires the Core payee-validation boundary. Until set,
+// BindProjectSandbox fails closed (no binding may be recorded on an unverified
+// payee).
+func (s *Service) SetPayeeValidator(v PayeeValidator) { s.payee = v }
 
 // canBuild reports whether a role may create projects / issue API keys.
 func canBuild(role string) bool {
@@ -470,6 +484,22 @@ func (s *Service) BindProjectSandbox(ctx context.Context, projectID, merchantID,
 	proj, err := s.store.Project(ctx, projectID)
 	if err != nil || proj == nil {
 		return SandboxBinding{}, ErrNotFound
+	}
+	// Core is independently authoritative for the payee relationship. Fail closed:
+	// no validator configured, Core unavailable, or an invalid/inactive/non-sandbox
+	// payee → no binding is recorded. This is what stops arbitrary submitted Core
+	// ids (cross-merchant wallet, inactive account, Live identity) from binding.
+	if s.payee == nil {
+		return SandboxBinding{}, ErrUnavailable
+	}
+	valid, reason, verr := s.payee.ValidatePayee(ctx, merchantID, walletID, walletAccountID)
+	if verr != nil {
+		return SandboxBinding{}, ErrUnavailable
+	}
+	if !valid {
+		s.audit(ctx, &actorUserID, &proj.WorkspaceID, &projectID, "project.sandbox_bind_rejected",
+			"PROJECT:"+projectID, ip, reqID, map[string]any{"reason": reason})
+		return SandboxBinding{}, ErrValidation
 	}
 	b, err := s.store.CreateBinding(ctx, BindingInsert{
 		ProjectID: projectID, MerchantID: merchantID, WalletID: walletID,
