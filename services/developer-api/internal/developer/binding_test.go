@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -55,6 +56,47 @@ func TestBinding_OneActivePerProject(t *testing.T) {
 	// A second ACTIVE binding for the same project must be refused.
 	if _, err := s.BindProjectSandbox(bg, pid, "9", "9", "9", "u_owner", "", ""); err != ErrConflict {
 		t.Fatalf("second active bind: want ErrConflict, got %v", err)
+	}
+}
+
+func TestBinding_ConcurrentBindsExactlyOneWins(t *testing.T) {
+	// Two+ concurrent binds on the same project must yield EXACTLY one ACTIVE
+	// binding — no ambiguous authority. The mem store enforces one-active under a
+	// mutex (mirroring the DB partial unique index, which is the production
+	// guarantee: dev_project_sandbox_binding_one_active).
+	s, st, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+
+	const n = 12
+	errs := make(chan error, n)
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			_, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", "")
+			errs <- err
+		}()
+	}
+	wg.Wait()
+	close(errs)
+	var ok, conflict int
+	for err := range errs {
+		switch err {
+		case nil:
+			ok++
+		case ErrConflict:
+			conflict++
+		default:
+			t.Errorf("unexpected error: %v", err)
+		}
+	}
+	if ok != 1 || conflict != n-1 {
+		t.Fatalf("want exactly 1 winner and %d conflicts, got ok=%d conflict=%d", n-1, ok, conflict)
+	}
+	// The store holds exactly one ACTIVE binding.
+	if b, _ := st.ActiveBindingForProject(bg, pid); b == nil {
+		t.Fatal("expected exactly one ACTIVE binding after the race")
 	}
 }
 
