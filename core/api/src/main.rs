@@ -198,12 +198,16 @@ async fn main() {
         .route("/internal/v1/refunds/:id", get(routes::refunds::get))
         .route_layer(refund_service_auth);
 
-    // Payee validation (ADR-047 / RT04B §3) — the Developer API calls this over
-    // the authenticated internal boundary before recording a Project→Merchant
-    // binding. Same fail-closed X-Internal-Key guard as refunds.
-    let payee_key = core_internal_key.clone();
+    // Payee validation (ADR-047 / RT04C §3) — least-privilege, service-bound
+    // credential. Guarded by a DEDICATED key (CORE_PAYEE_VALIDATION_KEY), NOT the
+    // broad CORE_INTERNAL_KEY: only the Developer API's payee-validation identity
+    // holds it; it authorizes ONLY this path (no settle/refund/transfer/wallet
+    // mutation/other internal route); a caller holding merely the generic internal
+    // key is rejected here. Unset → 503 fail-closed (boundary disabled until the
+    // credential is provisioned). The header is never logged.
+    let payee_validation_key = env::var("CORE_PAYEE_VALIDATION_KEY").ok();
     let payee_service_auth = axum_middleware::from_fn(move |req: axum::extract::Request, next: axum_middleware::Next| {
-        let key = payee_key.clone();
+        let key = payee_validation_key.clone();
         async move { middleware::internal_service_auth(key, req, next).await }
     });
     let payee_routes = Router::new()

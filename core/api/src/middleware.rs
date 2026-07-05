@@ -132,6 +132,27 @@ mod internal_auth_tests {
         assert_eq!(body_str(resp).await, "REACHED_HANDLER");
     }
 
+    // RT04C §3 — least-privilege: a route guarded by a DEDICATED credential (the
+    // payee-validation key) rejects EVERY other credential, including the broad
+    // generic internal key, a merchant JWT, a webhook secret and a consumer JWT.
+    // None reach the handler; each is a distinct value from the expected key, so
+    // the constant-time compare fails closed with a neutral 401.
+    #[tokio::test]
+    async fn dedicated_key_rejects_every_other_credential() {
+        let payee_key = "payee-validation-secret";
+        for other in [
+            "core-internal-generic-secret", // the broad generic internal key
+            "Bearer eyJhbGciOiJIUzI1NiJ9.merchant.jwt", // merchant JWT
+            "whsec_webhook_signing_secret", // webhook secret
+            "Bearer eyJhbGciOiJIUzI1NiJ9.consumer.jwt", // consumer JWT
+            "bz_test_sk_developerkey", // external developer key
+        ] {
+            let resp = app(Some(payee_key.into())).oneshot(req(Some(other))).await.unwrap();
+            assert_eq!(resp.status(), StatusCode::UNAUTHORIZED, "credential {other:?} must be rejected");
+            assert!(!body_str(resp).await.contains("REACHED_HANDLER"), "handler must not run for {other:?}");
+        }
+    }
+
     #[tokio::test]
     async fn error_bodies_leak_no_credential_or_detail() {
         for (key, hdr) in [(None, Some("x")), (Some("secret".to_string()), Some("wrong")), (Some("secret".to_string()), None)] {

@@ -103,7 +103,7 @@ func main() {
 	devSvc := developer.NewService(devStore, cfg.SessionSecret, cfg.APIKeyPepper, 0)
 	// Wire the Core payee-validation boundary (ADR-047 §3). When unset, operator
 	// binding fails closed — no binding is recorded on an unverified payee.
-	if pv := coreclient.New(cfg.CoreAPIURL, cfg.CoreInternalKey); pv != nil {
+	if pv := coreclient.New(cfg.CoreAPIURL, cfg.CorePayeeValidationKey); pv != nil {
 		devSvc.SetPayeeValidator(pv)
 	} else {
 		slog.Warn("CORE_API_URL / CORE_INTERNAL_KEY not set — project binding fails closed until configured")
