@@ -83,6 +83,46 @@
         { "name": "restitution_amount_minor", "nullable": true },
         { "name": "restitution_reason", "nullable": true }
       ], "indexes": ["idx_disputes_source"] } ]
+    },
+    {
+      "feature": "developer-platform (ADR-033 / ADR-046) — schema=developer",
+      "$note": "The developer.* schema is the external Developer Platform + API-key authority (developer-api). It is now under the same rollout gate as the financial core (RT04B §1): a missing developer.* migration must FAIL the gate. Table presence is checked for the whole schema; the ADR-047 binding table below is checked at column+index granularity.",
+      "tables": [
+        { "name": "developer.dev_workspaces", "columns": [], "indexes": [] },
+        { "name": "developer.dev_workspace_members", "columns": [], "indexes": [] },
+        { "name": "developer.dev_workspace_invites", "columns": [], "indexes": [] },
+        { "name": "developer.dev_projects", "columns": [], "indexes": [] },
+        { "name": "developer.dev_project_business_link", "columns": [], "indexes": [] },
+        { "name": "developer.dev_api_keys", "columns": [], "indexes": [] },
+        { "name": "developer.audit_events", "columns": [], "indexes": [] }
+      ]
+    },
+    {
+      "feature": "developer-project-sandbox-binding (0100 / ADR-047) — schema=developer",
+      "$note": "The Project→Merchant SANDBOX payee binding authority (RT04B). Column+index granularity: the one-ACTIVE-binding-per-project partial unique index is a load-bearing financial-authority constraint.",
+      "tables": [ { "name": "developer.dev_project_sandbox_binding", "columns": [
+        { "name": "project_id", "nullable": false },
+        { "name": "environment", "nullable": false },
+        { "name": "merchant_id", "nullable": false },
+        { "name": "wallet_id", "nullable": false },
+        { "name": "wallet_account_id", "nullable": false },
+        { "name": "state", "nullable": false },
+        { "name": "artifact_created", "nullable": false },
+        { "name": "created_by_user_id", "nullable": false }
+      ], "indexes": [
+        "developer.dev_project_sandbox_binding_one_active",
+        "developer.dev_project_sandbox_binding_project"
+      ] } ]
+    },
+    {
+      "feature": "account-identity (ADR-033) — schema=account_identity",
+      "$note": "The account_identity.* schema backs Developer Console authentication (developer-api). Under the rollout gate (RT04B §1) at table-presence granularity.",
+      "tables": [
+        { "name": "account_identity.identity_users", "columns": [], "indexes": [] },
+        { "name": "account_identity.identity_sessions", "columns": [], "indexes": [] },
+        { "name": "account_identity.identity_otp_codes", "columns": [], "indexes": [] },
+        { "name": "account_identity.audit_events", "columns": [], "indexes": [] }
+      ]
     }
   ]
 }
