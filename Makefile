@@ -450,3 +450,9 @@ website-docker-run: website-docker-build
 .PHONY: check-github-app-source-access
 check-github-app-source-access:
 	node tools/check-github-app-source-access.mjs
+
+# RT04E Sandbox rollout safety gate — 16 static checks over the RT04E deployment
+# definitions (docs/operations/RT04E_SANDBOX_ROLLOUT.md).
+.PHONY: check-rt04e-rollout-safety
+check-rt04e-rollout-safety:
+	node tools/check-rt04e-rollout-safety.mjs
