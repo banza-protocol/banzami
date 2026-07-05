@@ -67,6 +67,21 @@ rt04e_sandbox_target_contract:
     developer-api: banzami/developer-api
     api-gateway-staging: banzami/api-gateway
 
+  # IMMUTABLE release reference — the ONLY deployed reference. Never a mutable tag.
+  immutable_release_reference_rule: "banzami/<image_build_repo>:rt04e-<canonical_release_revision>"
+  prohibited_image_tags: [latest, adr021-staging, generic-staging-tags, service-name-derived-repos]
+  canonical_release_revision_rule: "required; strict git revision; equals verified canonical HEAD; never inferred from an arbitrary directory; never shell-evaluated"
+
+  # RT04E image override (source-controlled template → generated root-owned override).
+  image_override_template: infra/deployment/rt04e-sandbox-images.override.template.yml
+  image_override_required: true
+  service_image_resolution: literal_after_semantic_compose_config   # docker compose config, not grep/awk
+
+  # Fixed Compose file order per operation (never caller input) + mandatory isolation.
+  compose_file_order: [docker-compose.yml, docker-compose.sandbox-gateway.yml, generated-rt04e-override]
+  deploy_isolation_flags: ["--no-build", "--pull never", "--force-recreate", "--no-deps"]
+  no_automatic_prune: true    # RT04E never prunes; pre-state rollback tags are retained
+
   # Only unauthenticated local liveness is permitted during RT04E.
   required_health_endpoint_categories:
     - unauthenticated_local_liveness           # /health, no auth, no mutation
