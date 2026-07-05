@@ -1,0 +1,77 @@
+# RT04E Sandbox target contract (declarative, non-secret).
+#
+# The single authoritative allowlist + source-to-runtime mapping the RT04E runner
+# MUST load and enforce. It contains no credentials, hostnames, URLs, database
+# names or secret paths. The runner fails closed if the selected target is not
+# sandbox, if any requested service is outside the allowlist, if a prohibited
+# service resolves, if a required sandbox service is unmapped, or if the compose
+# mapping is incomplete/ambiguous.
+version: 1
+rt04e_sandbox_target_contract:
+  permitted_environment: sandbox            # the ONLY permitted environment
+  canonical_source_root: /srv/banzami/src   # the ONLY permitted build source root
+
+  # The exact RT04E sandbox service set — deploy these four and NO others.
+  approved_service_allowlist:
+    - core-api-staging
+    - api-gateway-staging
+    - developer-api
+    - public-api-staging
+
+  # Never deploy these (live/non-staging/out-of-scope). Also any name containing
+  # prod/production/live is rejected by pattern, plus the bare non-staging names.
+  prohibited_services:
+    - core-api
+    - api-gateway
+    - public-api
+    - admin-api
+    - admin-api-staging
+  prohibited_name_patterns:
+    - prod
+    - production
+    - live
+
+  # Explicit, reviewable source-to-runtime mapping. Each approved service names the
+  # canonical build context category and the compose file/overlay it is deployed
+  # into (structural categories only — no host paths beyond the canonical root).
+  service_mapping:
+    core-api-staging:
+      build_context: canonical_source_root:/core
+      compose_file: docker-compose.yml            # sandbox base stack
+      deploy_op: staging_retag_and_up             # build :latest (labelled) -> retag :adr021-staging -> up
+    public-api-staging:
+      build_context: canonical_service_build_dir:public-api
+      compose_file: docker-compose.yml
+      deploy_op: staging_retag_and_up
+    developer-api:
+      build_context: canonical_service_build_dir:developer-api
+      compose_file: docker-compose.yml
+      deploy_op: build_and_up
+    api-gateway-staging:
+      build_context: canonical_service_build_dir:api-gateway
+      compose_file: docker-compose.sandbox-gateway.yml   # canonical sandbox overlay
+      deploy_op: overlay_build_and_up
+
+  # Immutable provenance: every deployed image must carry this label = the required
+  # canonical revision; the post-deploy gate fails otherwise.
+  revision_label_key: org.opencontainers.image.revision
+
+  # Only unauthenticated local liveness is permitted during RT04E.
+  required_health_endpoint_categories:
+    - unauthenticated_local_liveness           # GET /health, no auth, no mutation
+
+  rollback:
+    eligible_services:                          # rollback restores ONLY these
+      - core-api-staging
+      - api-gateway-staging
+      - developer-api
+      - public-api-staging
+    application_image_rollback: allowed_sandbox_only
+    database_migration_rollback: forbidden_forward_only
+
+  # RT04E scope is provenance + deployment integrity ONLY.
+  financial_e2e_in_scope: false
+  scope_statement: >-
+    RT04E proves canonical Sandbox runtime provenance and deployment integrity only.
+    It does not prove feature release, authentication, developer-console access,
+    payment, transfer, refund, webhook, QR, mobile or financial E2E behaviour.
