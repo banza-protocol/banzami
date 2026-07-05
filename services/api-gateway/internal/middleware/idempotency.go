@@ -44,14 +44,21 @@ func Idempotency(rdb *redis.Client) func(http.Handler) http.Handler {
 				return
 			}
 
-			principal, ok := GetPrincipal(r.Context())
-			if !ok || principal.MerchantID == "" {
-				// Without a principal we cannot scope the key; let auth reject the request.
+			// Scope the idempotency key to the authenticated tenant. A merchant JWT
+			// scopes by merchant id; a developer key scopes by its non-secret key id
+			// (ADR-047 dual-credential routes). Without either we cannot scope it —
+			// let auth reject the request.
+			var scope string
+			if principal, ok := GetPrincipal(r.Context()); ok && principal.MerchantID != "" {
+				scope = "m:" + principal.MerchantID
+			} else if dp, ok := GetDeveloperPrincipal(r.Context()); ok && dp.KeyID != "" {
+				scope = "dk:" + dp.KeyID
+			} else {
 				next.ServeHTTP(w, r)
 				return
 			}
 
-			cacheKey := idempotencyCacheKey(principal.MerchantID, r.Method, r.URL.Path, idemKey)
+			cacheKey := idempotencyCacheKey(scope, r.Method, r.URL.Path, idemKey)
 			lockKey := "lock:" + cacheKey
 
 			// Fast path: replay a previously cached response without acquiring the lock.

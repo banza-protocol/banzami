@@ -204,8 +204,12 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// Developer API host. A URL variable alone never activates it. Authenticated
 	// by a Console-issued Sandbox key (NOT the merchant JWT); rate-limited on the
 	// non-secret key id. GET /v1/me is the released consumption surface (CAP-DEV-002).
+	// Hoisted so the canonical payment routes can accept the SAME developer key
+	// (ADR-047 dual-credential auth). nil when developer-key auth is inactive —
+	// the payment routes then fall back to merchant-JWT-only.
+	var devKeyClient *service.DeveloperKeyClient
 	if active, reason := cfg.DeveloperKeyAuthActive(); active {
-		devKeyClient := service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey)
+		devKeyClient = service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey)
 		meHandler := handler.NewMeHandler()
 		r.Group(func(r chi.Router) {
 			// Per-IP limit BEFORE introspection — caps how many keys an
@@ -328,15 +332,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/{id}", walletAccountHandler.Get)
 			})
 
-			// Payment Sessions (BANZA ADR-043) — one financial object, link + QR
-			// interfaces, all crediting one wallet_account. The app displays them.
-			r.Route("/business/payment-sessions", func(r chi.Router) {
-				r.Post("/", paymentSessionHandler.Create)
-				r.Get("/", paymentSessionHandler.List)
-				r.Get("/{id}", paymentSessionHandler.Get)
-				r.Get("/{id}/link", paymentSessionHandler.Link)
-				r.Get("/{id}/qr", paymentSessionHandler.Qr)
-			})
+			// Payment Sessions + Payment Links are mounted separately under
+			// dual-credential auth (merchant JWT OR developer key) — see the
+			// canonical payment group below. Not registered here.
 
 			r.Route("/payouts", func(r chi.Router) {
 				r.Post("/", payoutHandler.Create)
@@ -384,14 +382,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Handle("/splits", splitsSuperseded)
 			r.Handle("/splits/*", splitsSuperseded)
 
-			// Payment links
-			r.Route("/payment-links", func(r chi.Router) {
-				r.Post("/", paymentLinkHandler.Create)
-				r.Get("/", paymentLinkHandler.List)
-				r.Get("/{id}", paymentLinkHandler.Get)
-				r.Delete("/{id}", paymentLinkHandler.Cancel)
-				r.Post("/{id}/mark-used", paymentLinkHandler.MarkUsed)
-			})
+			// Payment Links are mounted under dual-credential auth below.
 
 			// Collections (BANZA ADR-036) + PaymentIntent (ADR-037).
 			// merchant_id + environment are derived from the principal; the core
@@ -442,6 +433,38 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/instruments", sandboxHandler.ListInstruments)
 				r.Post("/fund", sandboxHandler.FundWallet)
 				r.Post("/simulate/payment", sandboxHandler.SimulatePayment)
+			})
+		})
+	})
+
+	// Canonical payment surface (ADR-047 §5) — a SINGLE mount per resource that
+	// accepts EITHER a merchant JWT or a Console developer key via strictly
+	// separated dual-credential auth (no /v1/dev/* duplicate, no cross-credential
+	// fallback). A developer key derives its payee ONLY from the Project binding;
+	// a merchant JWT retains its existing identity behavior. When developer-key
+	// auth is inactive, these routes fall back to merchant-JWT-only.
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RateLimitPerIP(deps.Redis, 120, "pay"))
+		if devKeyClient != nil {
+			r.Use(middleware.DualAuth(cfg, devKeyClient))
+		} else {
+			r.Use(middleware.Auth(cfg))
+		}
+		r.Use(middleware.Idempotency(deps.Redis))
+		r.Route("/v1", func(r chi.Router) {
+			r.Route("/business/payment-sessions", func(r chi.Router) {
+				r.Post("/", paymentSessionHandler.Create)
+				r.Get("/", paymentSessionHandler.List)
+				r.Get("/{id}", paymentSessionHandler.Get)
+				r.Get("/{id}/link", paymentSessionHandler.Link)
+				r.Get("/{id}/qr", paymentSessionHandler.Qr)
+			})
+			r.Route("/payment-links", func(r chi.Router) {
+				r.Post("/", paymentLinkHandler.Create)
+				r.Get("/", paymentLinkHandler.List)
+				r.Get("/{id}", paymentLinkHandler.Get)
+				r.Delete("/{id}", paymentLinkHandler.Cancel)
+				r.Post("/{id}/mark-used", paymentLinkHandler.MarkUsed)
 			})
 		})
 	})

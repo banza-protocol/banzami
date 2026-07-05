@@ -24,6 +24,15 @@ type DeveloperKeyContext struct {
 	ProjectSlug string   `json:"project_slug"`  // project-safe public identifier
 	KeyStatus   string   `json:"key_status"`
 	Scopes      []string `json:"scopes"`
+
+	// Binding (ADR-047) — the Project's resolved SANDBOX payee. Bound=false means
+	// the Project has no payee authority (payments must be refused). The ids are
+	// OPAQUE and INTERNAL — used only to derive the payee for Core, NEVER exposed
+	// on any payer-facing response.
+	Bound           bool   `json:"bound"`
+	MerchantID      string `json:"merchant_id"`
+	WalletID        string `json:"wallet_id"`
+	WalletAccountID string `json:"wallet_account_id"`
 }
 
 // ErrDeveloperKeyInvalid is returned when the Developer API definitively rejects

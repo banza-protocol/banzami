@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -97,10 +98,36 @@ func (h *PaymentSessionHandler) authedActiveMerchant(w http.ResponseWriter, r *h
 	return principal.MerchantID, true
 }
 
+// resolveActor resolves the acting merchant for a payment-session request from
+// EITHER a bound developer key (payee from the Project binding, scope-enforced)
+// or a merchant JWT (existing behavior). For a developer key it returns the
+// binding's payee; for a merchant JWT `dev` is nil.
+func (h *PaymentSessionHandler) resolveActor(w http.ResponseWriter, r *http.Request, scope string) (merchantID string, dev *developerPayee, ok bool) {
+	payee, handled, isDev := developerPaymentAuthority(w, r, scope)
+	if handled {
+		return "", nil, false // response already written
+	}
+	if isDev {
+		return payee.merchantID, payee, true
+	}
+	mID, ok := h.authedActiveMerchant(w, r)
+	return mID, nil, ok
+}
+
 // POST /v1/business/payment-sessions
 func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
-	merchantID, ok := h.authedActiveMerchant(w, r)
+	merchantID, dev, ok := h.resolveActor(w, r, "payment_sessions:write")
 	if !ok {
+		return
+	}
+	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "could not read request body")
+		return
+	}
+	// A developer request may never carry a payee — it derives ONLY from the
+	// Project binding. Reject any client-supplied merchant/wallet/payee field.
+	if dev != nil && rejectClientPayeeFields(w, r, raw) {
 		return
 	}
 	var body struct {
@@ -114,18 +141,28 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ExpiresAt       *string        `json:"expires_at"`
 		Metadata        map[string]any `json:"metadata"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
-		return
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &body); err != nil {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+			return
+		}
 	}
-	if body.WalletAccountID == "" {
+
+	// Payee: from the binding for a developer key; from the (owner-validated) body
+	// for a merchant JWT.
+	walletAccountID := body.WalletAccountID
+	if dev != nil {
+		walletAccountID = dev.walletAccountID
+	} else if walletAccountID == "" {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "wallet_account_id is required")
 		return
 	}
-	// Core re-validates that the wallet_account is owned by this merchant + ACTIVE.
+
+	// Core independently re-validates that the wallet_account is owned by this
+	// merchant + ACTIVE — a second authority check at settlement-relevant time.
 	sess, err := h.sessions.Create(r.Context(), service.CreatePaymentSessionInput{
 		MerchantID:      merchantID,
-		WalletAccountID: body.WalletAccountID,
+		WalletAccountID: walletAccountID,
 		Purpose:         body.Purpose,
 		ReferenceType:   body.ReferenceType,
 		ReferenceID:     body.ReferenceID,
@@ -144,7 +181,7 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/business/payment-sessions?status=&limit=
 func (h *PaymentSessionHandler) List(w http.ResponseWriter, r *http.Request) {
-	merchantID, ok := h.authedActiveMerchant(w, r)
+	merchantID, _, ok := h.resolveActor(w, r, "payment_sessions:read")
 	if !ok {
 		return
 	}
@@ -163,7 +200,7 @@ func (h *PaymentSessionHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PaymentSessionHandler) load(w http.ResponseWriter, r *http.Request) (*service.PaymentSession, bool) {
-	merchantID, ok := h.authedActiveMerchant(w, r)
+	merchantID, _, ok := h.resolveActor(w, r, "payment_sessions:read")
 	if !ok {
 		return nil, false
 	}
@@ -172,6 +209,8 @@ func (h *PaymentSessionHandler) load(w http.ResponseWriter, r *http.Request) (*s
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment session not found")
 		return nil, false
 	}
+	// Tenant isolation: a caller (merchant or bound project) only sees its own
+	// merchant's sessions. Cross-tenant reads are indistinguishable from missing.
 	if sess.MerchantID != merchantID {
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment session not found")
 		return nil, false

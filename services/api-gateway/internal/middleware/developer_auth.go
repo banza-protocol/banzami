@@ -32,6 +32,14 @@ type DeveloperPrincipal struct {
 	ProjectSlug string
 	KeyStatus   string
 	Scopes      []string
+
+	// Binding (ADR-047) — the Project's resolved SANDBOX payee, INTERNAL only.
+	// Bound=false ⇒ no payment authority even if the key holds payment scopes.
+	// The ids derive the payee for Core and MUST NOT be serialized to any payer.
+	Bound           bool
+	MerchantID      string
+	WalletID        string
+	WalletAccountID string
 }
 
 type devPrincipalKey struct{}
@@ -59,41 +67,9 @@ func looksLikeDevKey(k string) bool {
 func DeveloperKeyAuth(client devKeyAuthorizer) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if client == nil {
-				apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "developer key auth unavailable")
-				return
-			}
-			raw := extractDevKey(r)
-			// Fail closed: reject bz_live_ and anything not a sandbox dev key
-			// BEFORE any network call or business logic.
-			if raw == "" || strings.HasPrefix(raw, "bz_live_") || !looksLikeDevKey(raw) {
-				apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a valid Sandbox API key is required")
-				return
-			}
-			kc, err := client.Authorize(r.Context(), raw)
-			// A complete, SANDBOX context is the ONLY success. A dependency fault
-			// OR an integrity problem (200 but incomplete/non-SANDBOX payload — a
-			// valid key always yields a complete SANDBOX context) is treated as
-			// AUTHORIZATION_UNAVAILABLE, never as an invalid key.
-			unavailable := errors.Is(err, service.ErrAuthorizationUnavailable) ||
-				(err == nil && (kc == nil || kc.KeyID == "" || kc.Environment != "SANDBOX"))
-			if unavailable {
-				// Controlled, generic, retryable (RT04 §1). No Developer API host,
-				// credential, body fragment or topology leaks.
-				w.Header().Set("Retry-After", "2")
-				apierror.Respond(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_UNAVAILABLE",
-					"authorization is temporarily unavailable — retry shortly")
-				return
-			}
-			if err != nil {
-				// Definitive key rejection (403): missing/invalid/forged/revoked/rotated.
-				apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a valid Sandbox API key is required")
-				return
-			}
-			p := &DeveloperPrincipal{
-				KeyID: kc.KeyID, Environment: kc.Environment,
-				WorkspaceID: kc.WorkspaceID, ProjectID: kc.ProjectID,
-				ProjectSlug: kc.ProjectSlug, KeyStatus: kc.KeyStatus, Scopes: kc.Scopes,
+			p, ok := resolveDeveloperPrincipal(w, r, client)
+			if !ok {
+				return // resolveDeveloperPrincipal already wrote the response
 			}
 			ctx := context.WithValue(r.Context(), devPrincipalKey{}, p)
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -101,10 +77,77 @@ func DeveloperKeyAuth(client devKeyAuthorizer) func(http.Handler) http.Handler {
 	}
 }
 
+// resolveDeveloperPrincipal runs the full ADR-046 developer-key authorization for
+// the presented credential and returns the principal, or writes a fail-closed
+// response and returns false. It is the SINGLE source of truth for developer-key
+// auth — shared by DeveloperKeyAuth and DualAuth so the two can never diverge.
+// The caller MUST have already decided this request is a developer-key attempt
+// (see isDeveloperKeyAttempt) so a JWT never reaches here.
+func resolveDeveloperPrincipal(w http.ResponseWriter, r *http.Request, client devKeyAuthorizer) (*DeveloperPrincipal, bool) {
+	if client == nil {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "developer key auth unavailable")
+		return nil, false
+	}
+	raw := extractDevKey(r)
+	// Fail closed: reject bz_live_ and anything not a sandbox dev key BEFORE any
+	// network call or business logic.
+	if raw == "" || strings.HasPrefix(raw, "bz_live_") || !looksLikeDevKey(raw) {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a valid Sandbox API key is required")
+		return nil, false
+	}
+	kc, err := client.Authorize(r.Context(), raw)
+	// A complete, SANDBOX context is the ONLY success. A dependency fault OR an
+	// integrity problem (200 but incomplete/non-SANDBOX payload — a valid key
+	// always yields a complete SANDBOX context) is AUTHORIZATION_UNAVAILABLE,
+	// never an invalid key.
+	unavailable := errors.Is(err, service.ErrAuthorizationUnavailable) ||
+		(err == nil && (kc == nil || kc.KeyID == "" || kc.Environment != "SANDBOX"))
+	if unavailable {
+		w.Header().Set("Retry-After", "2")
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_UNAVAILABLE",
+			"authorization is temporarily unavailable — retry shortly")
+		return nil, false
+	}
+	if err != nil {
+		// Definitive key rejection (403): missing/invalid/forged/revoked/rotated.
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a valid Sandbox API key is required")
+		return nil, false
+	}
+	return &DeveloperPrincipal{
+		KeyID: kc.KeyID, Environment: kc.Environment,
+		WorkspaceID: kc.WorkspaceID, ProjectID: kc.ProjectID,
+		ProjectSlug: kc.ProjectSlug, KeyStatus: kc.KeyStatus, Scopes: kc.Scopes,
+		Bound: kc.Bound, MerchantID: kc.MerchantID,
+		WalletID: kc.WalletID, WalletAccountID: kc.WalletAccountID,
+	}, true
+}
+
+// isDeveloperKeyAttempt reports whether the request presents a developer-platform
+// credential (by prefix or the X-API-Key transport) rather than a merchant JWT.
+// This is the EXPLICIT credential-type decision that keeps the two auth paths
+// separate: a bz_-prefixed credential (test OR live OR forged) is always handled
+// by the developer-key path — it can never silently fall through to JWT — and a
+// JWT (no bz_ prefix, no X-API-Key) is never sent to developer-key introspection.
+func isDeveloperKeyAttempt(r *http.Request) bool {
+	if strings.TrimSpace(r.Header.Get("X-API-Key")) != "" {
+		return true
+	}
+	raw := extractDevKey(r)
+	return strings.HasPrefix(raw, "bz_test_") || strings.HasPrefix(raw, "bz_live_") ||
+		strings.HasPrefix(raw, "bz_sk_") || strings.HasPrefix(raw, "bz_pk_")
+}
+
 // GetDeveloperPrincipal returns the authenticated developer principal.
 func GetDeveloperPrincipal(ctx context.Context) (*DeveloperPrincipal, bool) {
 	p, ok := ctx.Value(devPrincipalKey{}).(*DeveloperPrincipal)
 	return p, ok
+}
+
+// ContextWithDeveloperPrincipal returns a context carrying the given developer
+// principal. Used by tests and by dual-credential routing to inject a resolved
+// principal without re-running introspection.
+func ContextWithDeveloperPrincipal(ctx context.Context, p *DeveloperPrincipal) context.Context {
+	return context.WithValue(ctx, devPrincipalKey{}, p)
 }
 
 // HasScope reports whether the principal holds the given scope.

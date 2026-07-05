@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -27,6 +28,22 @@ func NewPaymentLinkHandler(svc service.PaymentLinkService, merchantSvc service.M
 
 // POST /v1/payment-links
 func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
+	// Developer-key authority (payee from the Project binding) OR merchant JWT
+	// (existing body-supplied identity). Scope enforced before business logic.
+	dev, handled, isDev := developerPaymentAuthority(w, r, "payment_links:write")
+	if handled {
+		return
+	}
+	raw, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "could not read request body")
+		return
+	}
+	// A developer request may never carry a payee — it derives ONLY from the
+	// Project binding.
+	if isDev && rejectClientPayeeFields(w, r, raw) {
+		return
+	}
 	var body struct {
 		MerchantID  string     `json:"merchant_id"`
 		WalletID    string     `json:"wallet_id"`
@@ -35,15 +52,34 @@ func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Description *string    `json:"description"`
 		ExpiresAt   *time.Time `json:"expires_at"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
-		return
+	if len(raw) > 0 {
+		if err := json.Unmarshal(raw, &body); err != nil {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+			return
+		}
 	}
+
+	req := service.CreatePaymentLinkRequest{
+		AmountMinor: body.AmountMinor,
+		Currency:    body.Currency,
+		Description: body.Description,
+		ExpiresAt:   body.ExpiresAt,
+	}
+	if isDev {
+		// Payee derives exclusively from the binding.
+		req.MerchantID = dev.merchantID
+		req.WalletID = dev.walletID
+		req.WalletAccountID = dev.walletAccountID
+	} else {
+		req.MerchantID = body.MerchantID
+		req.WalletID = body.WalletID
+	}
+
 	switch {
-	case body.MerchantID == "":
+	case req.MerchantID == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "merchant_id is required")
 		return
-	case body.WalletID == "":
+	case req.WalletID == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "wallet_id is required")
 		return
 	case body.Currency == "":
@@ -57,14 +93,7 @@ func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	link, err := h.svc.Create(r.Context(), service.CreatePaymentLinkRequest{
-		MerchantID:  body.MerchantID,
-		WalletID:    body.WalletID,
-		AmountMinor: body.AmountMinor,
-		Currency:    body.Currency,
-		Description: body.Description,
-		ExpiresAt:   body.ExpiresAt,
-	})
+	link, err := h.svc.Create(r.Context(), req)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not create payment link")
 		return
@@ -99,6 +128,12 @@ func (h *PaymentLinkHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/payment-links/{id}
 func (h *PaymentLinkHandler) Get(w http.ResponseWriter, r *http.Request) {
+	// A developer key must hold payment_links:read and may only read links of its
+	// bound merchant (tenant isolation) — enforced before the record is exposed.
+	dev, handled, isDev := developerPaymentAuthority(w, r, "payment_links:read")
+	if handled {
+		return
+	}
 	id := chi.URLParam(r, "id")
 	link, err := h.svc.Get(r.Context(), id)
 	if err != nil {
@@ -109,8 +144,13 @@ func (h *PaymentLinkHandler) Get(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch payment link")
 		return
 	}
+	if isDev && link.MerchantID != dev.merchantID {
+		// Cross-tenant read is indistinguishable from missing.
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment link not found")
+		return
+	}
 	// refund_source is a merchant-private field: surface it only to the owning
-	// merchant. A non-owner (or an unauthenticated caller) never sees it.
+	// merchant JWT. Developer keys and non-owners never see it.
 	if p, ok := middleware.GetPrincipal(r.Context()); !ok || p.MerchantID != link.MerchantID {
 		link.RefundSource = nil
 	}
