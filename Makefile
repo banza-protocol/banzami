@@ -363,10 +363,17 @@ assure-project-payment-binding:
 	node tools/check-project-payment-binding.mjs
 
 # RT04E secure-rollout static hygiene — rejects migration/payee-credential leakage
-# patterns at rest (docs/operations/RT04E_SECURE_OPERATOR_ROLLOUT.md).
+# patterns across the whole chain + compose boundary
+# (docs/operations/RT04E_SECURE_OPERATOR_ROLLOUT.md).
 .PHONY: check-rollout-secret-hygiene
 check-rollout-secret-hygiene:
 	node tools/check-rollout-secret-hygiene.mjs
+
+# RT04E rollout runner canary/lock/revision harness — runs the real runner against
+# a fake sentinel + stubbed chain in an isolated temp dir (no real service/secret).
+.PHONY: test-rollout-runner
+test-rollout-runner:
+	bash tools/test/rt04e-rollout-verify.sh
 
 # ─── Mobile iOS Simulator E2E (docs/quality/MOBILE_E2E_REQUIREMENTS.md) ───────
 # These run the deployed-Sandbox simulator matrices. They FAIL until the

@@ -5,36 +5,43 @@
 # Purpose
 #   Execute the sanctioned RT04E Sandbox payment-binding rollout while the
 #   sanctioned migration credential (BANZAMI_MIGRATE_URL) is handed off ONCE,
-#   ephemerally, through protected stdin — never as an argv, never persisted,
-#   never printed, never placed in a shared .env / Docker Compose runtime env /
-#   shell profile / repo file / log / evidence, and never exposed to the general
-#   Claude/Bash execution context.
+#   ephemerally, through protected stdin — never as an argv, never persisted to
+#   disk, never placed in a shared .env / Docker Compose runtime env / shell
+#   profile / repo file / log / evidence, never propagated to an application
+#   container, and never exposed to the general Claude/Bash execution context.
 #
+# Credential memory handling (precise — no overclaim)
 #   The credential is required by exactly ONE subprocess (tools/migrate-and-verify.sh,
-#   which reads DATABASE_URL). It is held in a shell variable in THIS process only,
-#   injected into that single subprocess's environment for the minimum time, and
-#   cleared immediately afterwards. The subsequent deploy / fixture / E2E / release
-#   phases use ordinary runtime configuration and do NOT receive this credential.
+#   which reads DATABASE_URL). It is held ONLY TRANSIENTLY, in a shell variable in
+#   THIS runner process, and is injected into that single subprocess's environment
+#   for the minimum time. On exit (success, error, or signal) an EXIT/INT/TERM/HUP
+#   trap unsets the variable, removing it from the runner environment. This is a
+#   scope/lifetime control: Bash CANNOT provide a cryptographic guarantee of
+#   physical memory zeroization, and this runner does not claim to. It guarantees
+#   only that the value is not persisted to disk, runtime config, logs, arguments
+#   or shared environment, and does not outlive the process.
 #
 # Install (operator, on the approved Sandbox deploy host):
 #   install -o root -g root -m 0700 rt04e-secure-rollout.sh /root/rt04e-secure-rollout.sh
 #
 # Invoke (operator, from the secure credential environment — see the runbook):
-#   # from an approved secret manager (no echo, no history, no argv):
-#   BANZAMI_DB_TARGET=banzami_staging /root/rt04e-secure-rollout.sh < <(operator-secret-get banzami/staging/migrate_url)
+#   RT04E_RELEASE_REV=<approved-git-sha> BANZAMI_DB_TARGET=banzami_staging \
+#     /root/rt04e-secure-rollout.sh < <(operator-secret-get banzami/staging/migrate_url)
 #   # or interactively (input hidden):
-#   BANZAMI_DB_TARGET=banzami_staging /root/rt04e-secure-rollout.sh
+#   RT04E_RELEASE_REV=<approved-git-sha> BANZAMI_DB_TARGET=banzami_staging \
+#     /root/rt04e-secure-rollout.sh
 #
 # Output: sanitised status lines only. Exit non-zero = fail closed, nothing released.
 # -----------------------------------------------------------------------------
 set -euo pipefail
-set +x                   # NEVER trace — tracing would echo the credential
+set +x                   # NEVER trace — tracing would render the credential
 export PS4=''            # belt-and-braces if xtrace is ever forced on
 umask 077                # any transient file is owner-only
 
-REPO_ROOT="${BANZAMI_REPO_ROOT:-/srv/banzami/repo}"   # operator-configured checkout
+REPO_ROOT="${BANZAMI_REPO_ROOT:-/srv/banzami/repo}"        # operator-configured checkout
+LOCK_FILE="${RT04E_LOCK_FILE:-/run/lock/rt04e-rollout.lock}" # override only for isolated tests
 
-status()  { printf '  %s\n' "$1"; }                    # sanitised only
+status()  { printf '  %s\n' "$1"; }                         # sanitised only
 die()     { printf 'rollout: FAILED — %s\n' "$1" >&2; exit "${2:-1}"; }
 
 # ── 0. Refuse argv secrets, Production/Live, wrong target ─────────────────────
@@ -47,7 +54,26 @@ case "$BANZAMI_DB_TARGET" in
 esac
 [ "${I_ACK_PRODUCTION_TARGET:-}" = "" ] || die "production acknowledgement flag must NOT be set for this sandbox runner" 3
 
-# ── 1. Protected, ephemeral credential handoff (stdin ONLY) ───────────────────
+# ── 1. Exclusive rollout lock (fail closed on contention) ─────────────────────
+# One rollout at a time. The lock is held for the whole run and auto-released when
+# fd 9 closes at process exit. The public message reveals no host path.
+# The stderr redirection is SCOPED to the group so it never permanently silences
+# die() (a bare `exec … 2>/dev/null` would redirect stderr for the whole script).
+{ exec 9>"$LOCK_FILE"; } 2>/dev/null || die "cannot acquire rollout lock — refusing" 10
+flock -n 9 || die "another rollout is already in progress — refusing" 10
+
+# ── 2. Pin the deployment revision (non-secret, immutable, approved) ──────────
+: "${RT04E_RELEASE_REV:?set RT04E_RELEASE_REV (the approved immutable release revision)}"
+cd "$REPO_ROOT" || die "repo checkout not found — refusing" 11
+[ -z "$(git status --porcelain 2>/dev/null)" ] || die "worktree is dirty — refusing (deploy only a clean approved revision)" 11
+_head="$(git rev-parse HEAD 2>/dev/null || true)"
+[ -n "$_head" ] || die "cannot resolve HEAD revision — refusing" 11
+[ "$_head" = "$RT04E_RELEASE_REV" ] || die "checked-out revision does not match the approved release revision — refusing" 11
+# NB: the runner performs NO unbounded repository update of any kind — the operator
+# checks out the approved revision beforehand; the runner only verifies it matches.
+status "release revision: pinned (${RT04E_RELEASE_REV:0:12}) · worktree=clean · Core/Dev-API/Gateway/Checkout from one reviewed set"
+
+# ── 3. Protected, ephemeral credential handoff (stdin ONLY) ───────────────────
 if [ -t 0 ]; then
   printf 'Paste sanctioned Sandbox migration credential (input hidden): ' >&2
   IFS= read -rs BANZAMI_MIGRATE_URL || die "no credential provided" 2
@@ -56,37 +82,40 @@ else
   IFS= read -rs BANZAMI_MIGRATE_URL || die "no credential on protected stdin" 2
 fi
 [ -n "${BANZAMI_MIGRATE_URL:-}" ] || die "credential absent — cannot proceed (fail closed)" 2
+# Reject an obviously argv-smuggled / already-set secret: it MUST come from stdin.
+# (If it were exported into the environment, `read` above would still overwrite it;
+#  this guard documents intent and rejects an empty read.)
 
-# Guarantee the credential is cleared on ANY exit path (success, error, signal).
-_clear() { BANZAMI_MIGRATE_URL='x'; unset BANZAMI_MIGRATE_URL 2>/dev/null || true; }
+# Best-effort scope/lifetime control — NOT a memory wipe (see header). Clears the
+# variable from the runner environment on any exit path.
+_clear() { BANZAMI_MIGRATE_URL=''; unset BANZAMI_MIGRATE_URL 2>/dev/null || true; }
 trap _clear EXIT INT TERM HUP
 
-# ── 2. Validate the credential WITHOUT printing it ───────────────────────────
+# ── 4. Validate the credential WITHOUT rendering it ──────────────────────────
 # Pure bash parameter expansion — the value is never passed to echo/printf and
 # never rendered to a terminal, file or log. sandbox-only: the database name (the
 # last path segment, minus any ?query) must be exactly banzami_staging.
 _tail="${BANZAMI_MIGRATE_URL##*/}"        # everything after the final '/'
 _db="${_tail%%\?*}"                        # strip a trailing ?query, if any
-[ "$_db" = "banzami_staging" ] || die "credential does not target banzami_staging — refusing" 3
+[ "$_db" = "banzami_staging" ] || die "target invalid — credential does not target banzami_staging" 3
 # Contamination scan via a here-string (fed to grep's stdin, never printed).
 if grep -qiE 'prod|banzami_live|(^|[^a-z])live([^a-z]|$)' <<<"$BANZAMI_MIGRATE_URL"; then
-  die "credential references a live/prod marker — refusing" 3
+  die "target invalid — credential references a live/prod marker" 3
 fi
-# reachability (no value emitted)
-PGCONNECT_TIMEOUT=5 psql "$BANZAMI_MIGRATE_URL" -tAc 'SELECT 1' >/dev/null 2>&1 \
-  || die "cannot reach the sandbox database with the supplied credential — refusing" 4
-status "authorized rollout credential: present · target=banzami_staging · reachable · runtime-exposure=absent"
+# NB: the runner performs NO separate psql reachability probe — passing the URL to
+# psql would place the credential in a process argv (ps-visible). The migration
+# gate below opens the only connection; an unreachable target or a rejected
+# credential is surfaced there as the sanitised category "migration failed".
+status "authorized rollout credential: present · target=banzami_staging · runtime-exposure=absent"
 
-# ── 3. Pre-release quarantine gate (refuse if already released) ───────────────
-# Checked against the deployed Developer API runtime state, NOT by reading a secret.
+# ── 5. Pre-release quarantine gate (refuse if already released) ───────────────
 if [ "${RT04E_ASSERT_QUARANTINED:-1}" = "1" ]; then
-  # Operator hook: must return non-zero if PAYMENT_CAPABILITY_RELEASED is already true.
   if command -v rt04e_release_state >/dev/null 2>&1 && rt04e_release_state | grep -qi '^released$'; then
     die "PAYMENT_CAPABILITY_RELEASED already true before the E2E release decision — refusing" 5
   fi
 fi
 
-# ── 4. Refuse destructive / down migrations ──────────────────────────────────
+# ── 6. Refuse destructive / down migrations (forward-only) ───────────────────
 if grep -rilE 'DROP +TABLE|DROP +COLUMN|TRUNCATE +|DROP +SCHEMA|ALTER +TABLE .* DROP' \
      "$REPO_ROOT/db/migrations/0100_dev_project_sandbox_binding.sql" >/dev/null 2>&1; then
   die "migration 0100 contains destructive DDL — refusing" 6
@@ -95,32 +124,34 @@ if ls "$REPO_ROOT"/db/migrations/*down*.sql "$REPO_ROOT"/db/migrations/*.down.sq
   die "down migrations present in db/migrations — refusing (forward-only)" 6
 fi
 
-# ── 5. Step 1 — migrate + verify (credential injected into THIS subprocess only) ─
+# ── 7. Step 1 — migrate + verify (credential injected into THIS subprocess only) ─
+# Output is DISCARDED (not written to a temp file): the gate's own log may embed a
+# redacted URL; the runner surfaces only a sanitised category on failure.
 status "step 1/6: migrate-and-verify (0100) → schema drift detector"
-(
+if ! (
   cd "$REPO_ROOT"
   DATABASE_URL="$BANZAMI_MIGRATE_URL" BANZAMI_DB_TARGET="$BANZAMI_DB_TARGET" \
     bash tools/migrate-and-verify.sh
-) >/tmp/.rt04e-migrate.$$ 2>&1 || { rm -f /tmp/.rt04e-migrate.$$; die "migrate-and-verify failed (migration error or schema drift) — BLOCKED" 7; }
-rm -f /tmp/.rt04e-migrate.$$   # the gate's own log may embed the URL — never surface it
+) >/dev/null 2>&1; then
+  die "migration failed — target unreachable, credential rejected, or schema drift — BLOCKED, nothing deployed" 7
+fi
 status "step 1/6: migration 0100 applied · checksum + all-schema drift verified"
 
-# ── 6. Credential no longer required — clear it BEFORE any deploy ─────────────
+# ── 8. Credential no longer required — clear it BEFORE any deploy ─────────────
 _clear
-trap - EXIT INT TERM HUP
-status "migration credential cleared from memory (deploy phase requires no migration secret)"
+status "migration credential removed from the runner environment (deploy phase needs no migration secret)"
 
-# ── 7. Steps 2–6 — deploys use runtime config only (NO migration credential) ──
-# These call the standard deploy path; each service reads its own runtime env.
-# CORE_PAYEE_VALIDATION_KEY + CORE_API_URL come from per-service runtime config,
-# NOT from this runner. PAYMENT_CAPABILITY_RELEASED stays false until step 6.
-run() { status "step $1"; ( cd "$REPO_ROOT" && shift && "$@" ) || die "step failed: $*" 8; }
+# ── 9. Steps 2–4 — deploys use runtime config only (NO migration credential) ──
+# Each service reads its own per-service runtime env. CORE_PAYEE_VALIDATION_KEY +
+# CORE_API_URL come from per-service runtime config, NOT this runner.
+# PAYMENT_CAPABILITY_RELEASED stays false throughout.
+run() { status "step $1"; ( cd "$REPO_ROOT" && shift && "$@" ) || die "step failed" 8; }
 
 run "2/6: deploy Sandbox Core (dedicated payee-validation boundary)"      ./deploy.sh core-api
 run "3/6: deploy Sandbox Developer API (immutable binding authority)"     ./deploy.sh developer-api
 run "4/6: deploy Sandbox Gateway (payment authz — externally quarantined)" ./deploy.sh api-gateway
 
-# ── 8. Deployed E2E (fixture-only) — release ONLY if every item passes ────────
+# ── 10. Deployed E2E (fixture-only) — release ONLY if every item passes ───────
 status "step 5/6: deployed 58-item payment E2E (fixture-only, quarantined)"
 ( cd "$REPO_ROOT" && bash tools/e2e/dev-console/rt04e-payment-e2e.sh ) \
   || die "deployed payment E2E FAILED — keeping PAYMENT_CAPABILITY_RELEASED=false, revoking fixtures" 9

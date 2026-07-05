@@ -66,10 +66,18 @@ Security design (enforced by `make check-rollout-secret-hygiene`):
 3. **No leakage surface.** `set +x` (never `set -x`); `PS4=''`; `umask 077`; the
    value is validated with pure bash parameter expansion and a `grep <<<` here-string
    — it is **never** given to `echo`/`printf`, never rendered to a terminal/file/log.
-4. **In-memory, minimum lifetime.** Held in one shell variable in the runner
-   process only; injected into the single `migrate-and-verify` subprocess via an
-   inline `DATABASE_URL=…` assignment; then **cleared** (`unset`, plus an
-   `EXIT/INT/TERM/HUP` trap that clears on any exit path) before any deploy runs.
+4. **Transient, minimum lifetime — not a memory wipe.** The credential is held
+   only transiently, in one shell variable in the runner process, and injected
+   into the single `migrate-and-verify` subprocess via an inline `DATABASE_URL=…`
+   **environment** assignment (never an argv). On exit (success, error, or signal)
+   an `EXIT/INT/TERM/HUP` trap `unset`s the variable, **removing it from the runner
+   environment**. This is a scope/lifetime control: **Bash cannot provide a
+   cryptographic guarantee of physical memory zeroization**, and the runner does
+   not claim to. It guarantees only that the value is not persisted to disk,
+   runtime configuration, logs, arguments or shared environment, and does not
+   outlive the process. The runner opens **no** separate `psql` connection (that
+   would place the URL in a process argv); the migration gate opens the only
+   connection.
 5. **Fail-closed validation.** Aborts (non-zero, nothing released) if the credential
    is absent/empty, does not target `banzami_staging`, carries a live/prod marker,
    or cannot reach the Sandbox database.
@@ -77,8 +85,20 @@ Security design (enforced by `make check-rollout-secret-hygiene`):
    `DROP/TRUNCATE/ALTER…DROP` DDL or if any `*down*.sql` exists (forward-only).
 7. **Refuses pre-released state.** Aborts if the payment capability is already
    released before the E2E release decision (operator `rt04e_release_state` hook).
-8. **Sanitised output only.** Emits `present/absent`, target class, reachability and
-   step status — never a value.
+8. **Exclusive lock (§4).** Acquires a root-owned `flock` (`exec 9>…; flock -n 9`,
+   default `/run/lock/rt04e-rollout.lock`) before any action and holds it for the
+   whole run (auto-released when fd 9 closes at exit). A second concurrent rollout
+   **fails closed** (`another rollout is already in progress`) with no host path in
+   the message. The lock's stderr redirection is scoped so it never silences
+   `die()`.
+9. **Revision pinning (§5).** Requires `RT04E_RELEASE_REV` (a non-secret approved
+   git SHA); verifies `git rev-parse HEAD` matches it and the worktree is clean
+   (`git status --porcelain` empty); **never** runs an unbounded repository update;
+   records the pinned short SHA in sanitised evidence, so Core/Dev-API/Gateway/
+   Checkout all build from one reviewed release set.
+10. **Sanitised output only.** Emits `present/absent`, target class and step status
+   — never a value; connection failures reduce to `migration failed — target
+   unreachable, credential rejected, or schema drift`.
 
 Root-owned install, restrictive permissions:
 
@@ -104,12 +124,16 @@ never sees the value.
    secret manager (preferred) or the hidden prompt:
 
    ```bash
+   # check out the approved revision first (the runner verifies, never pulls):
+   git -C /srv/banzami/repo checkout <approved-git-sha>
+
    # preferred — from an approved secret manager, no echo/argv/history:
-   BANZAMI_DB_TARGET=banzami_staging /root/rt04e-secure-rollout.sh \
-     < <(operator-secret-get banzami/staging/migrate_url)
+   RT04E_RELEASE_REV=<approved-git-sha> BANZAMI_DB_TARGET=banzami_staging \
+     /root/rt04e-secure-rollout.sh < <(operator-secret-get banzami/staging/migrate_url)
 
    # or interactively (input hidden, not stored in history):
-   BANZAMI_DB_TARGET=banzami_staging /root/rt04e-secure-rollout.sh
+   RT04E_RELEASE_REV=<approved-git-sha> BANZAMI_DB_TARGET=banzami_staging \
+     /root/rt04e-secure-rollout.sh
    ```
 4. The runner applies `0100` via `migrate-and-verify`, clears the credential, then
    deploys Core → Developer-API → Gateway (quarantined), runs the deployed E2E, and
@@ -156,9 +180,11 @@ scoped to named services.
 
 | Vector | Mitigation |
 |---|---|
-| **Command-line leakage** (argv in `ps`) | Credential is never an argument; runner refuses `$#>0`; static check **C**. |
+| **Command-line leakage** (argv in `ps`) | The runner never accepts the credential as an argv (refuses `$#>0`, check **C**) and never passes it as an argv — it opens no `psql` of its own; it hands the value to `migrate-and-verify` only through an **environment** assignment. |
 | **Shell-history leakage** | Read via `read -rs` from stdin/secret-manager pipe; never typed as a command with the value; interactive input hidden. |
-| **Process-list leakage** | Only `migrate-and-verify` receives it, via inline env assignment (visible in `/proc/<pid>/environ` to **root only**, for the migration's lifetime); no wrapper prints it. |
+| **Process-list leakage** | Only `migrate-and-verify` receives it, via inline **env** assignment (visible in `/proc/<pid>/environ` to **root only**, for the migration's lifetime). Its internal libpq connection is standard; the runner adds no additional argv exposure. |
+| **Concurrent rollout** | Exclusive `flock`; a second run fails closed (`another rollout is already in progress`), no host path leaked; checks **I**, harness Test 2. |
+| **Unapproved / dirty revision** | Runner pins `RT04E_RELEASE_REV`, rejects a mismatched HEAD or dirty worktree, never pulls; checks **J**, harness Tests 3–4. |
 | **Shared-env leakage** | Never written to `/srv/banzami/.env` or any app env; static checks **A/B**. |
 | **Docker inspection leakage** | Never placed in any Compose runtime env; `docker inspect`/`printenv` on Core/Gateway/Dev-API never shows it; static check **B**. |
 | **Log leakage** | `set +x`; value never echoed/printf'd; the `migrate-and-verify` log (which may embed the URL) is discarded, never surfaced; static check **D**. |
@@ -173,17 +199,33 @@ scoped to named services.
 
 ---
 
-## 6. Static gate
+## 6. Static gate + canary harness
 
 ```bash
-make check-rollout-secret-hygiene
+make check-rollout-secret-hygiene      # static gate over the whole chain + compose
+make test-rollout-runner               # harmless canary / lock / revision harness
 ```
 
-Rejects, across all tracked files: (A) a literal `BANZAMI_MIGRATE_URL` connection
-string; (B) `BANZAMI_MIGRATE_URL` in any Compose service; (C) a runner that takes the
-credential as argv instead of protected stdin; (D) a runner that traces or prints the
-credential; (E) `CORE_PAYEE_VALIDATION_KEY` referenced by Gateway/frontend/SDK/plugin
-surfaces; (F) payment release enabled by default.
+**Static gate** (`tools/check-rollout-secret-hygiene.mjs`) rejects, across all tracked
+files and the whole chain (runner + `migrate-and-verify.sh` + `deploy.sh`): (A) a
+literal `BANZAMI_MIGRATE_URL` connection string; (B) `BANZAMI_MIGRATE_URL` in any
+Compose service; (C) argv intake; (D) tracing/printing the credential; (E)
+`CORE_PAYEE_VALIDATION_KEY` on Gateway/frontend/SDK/plugin; (F) default-on release;
+(G) any chain script enabling tracing; (H) any chain script echoing an **unredacted**
+credential; (I) missing exclusive lock; (J) missing revision pin / dirty-worktree
+rejection / an unbounded pull; (K) a runner that fails to discard the migrate output
+or writes a temp file holding the credential; and the §6 compose boundary — (L)
+`CORE_PAYEE_VALIDATION_KEY` on Gateway/frontend, (M) `BANZAMI_MIGRATE_URL` on any
+service, (N) `CORE_API_URL` on a browser-frontend.
+
+**Canary harness** (`tools/test/rt04e-rollout-verify.sh`) runs the **real** runner
+against a clearly-fake sentinel URL and a fully **stubbed** chain in an isolated temp
+dir (no DB / VM / Docker / Sandbox service, no runner modification, no `--dry-run`
+backdoor). It proves: (T1) the canary never appears in stdout/stderr/temp files even
+when the stubbed migration deliberately over-shares its `DATABASE_URL` (the runner
+discards it); (T2) lock contention fails closed; (T3) an unapproved revision and (T4)
+a dirty worktree fail closed; (T5) an argv-smuggled secret is refused; (T6) an absent
+stdin credential fails closed.
 
 ## 7. Manual operator handoff prerequisites (summary)
 
