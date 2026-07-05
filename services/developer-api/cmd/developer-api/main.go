@@ -108,6 +108,10 @@ func main() {
 	} else {
 		slog.Warn("CORE_API_URL / CORE_INTERNAL_KEY not set — project binding fails closed until configured")
 	}
+	// Deploy-vs-release control (RT04C §1): logged without secrets. Config already
+	// forces this false outside a sandbox environment.
+	devSvc.SetPaymentCapabilityReleased(cfg.PaymentCapabilityReleased)
+	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "env", cfg.Environment)
 	devH := developer.NewHandlers(devSvc)
 
 	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth, Dev: devH})

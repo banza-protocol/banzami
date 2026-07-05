@@ -45,6 +45,15 @@ type Config struct {
 	CoreAPIURL      string
 	CoreInternalKey string
 
+	// PaymentCapabilityReleased is the deploy-vs-release control (ADR-047 / RT04C
+	// §1). Deploying the payment code does NOT make payment scopes publicly
+	// available: until this is explicitly set (a separate operator action, AFTER
+	// the deployed E2E passes), payment scopes cannot be issued to ordinary
+	// external keys via the Console. Fail-closed (default false) and hard-forced
+	// false outside a sandbox environment — it can never activate in Live.
+	// Operator-provisioned E2E fixture keys bypass this via the internal path.
+	PaymentCapabilityReleased bool
+
 	SessionTTLHours int
 	OTLPEndpoint    string // optional; tracing no-op when empty
 
@@ -119,6 +128,12 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_INTERNAL_KEY"); v != "" {
 		cfg.CoreInternalKey = v
+	}
+	// Deploy-vs-release: only honoured in a sandbox environment; can NEVER
+	// activate in production/Live (fail-closed).
+	if os.Getenv("PAYMENT_CAPABILITY_RELEASED") == "true" &&
+		(cfg.Environment == "sandbox" || cfg.Environment == "SANDBOX") {
+		cfg.PaymentCapabilityReleased = true
 	}
 	if v := os.Getenv("SESSION_TTL_HOURS"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {

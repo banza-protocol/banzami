@@ -10,11 +10,12 @@ import (
 // call takes the authenticated actor's user id (from Account Identity); no
 // client-supplied workspace/user id is trusted without a membership check.
 type Service struct {
-	store        Store
-	inviteSecret string
-	apiKeyPepper string
-	inviteTTL    time.Duration
-	payee        PayeeValidator
+	store           Store
+	inviteSecret    string
+	apiKeyPepper    string
+	inviteTTL       time.Duration
+	payee           PayeeValidator
+	paymentReleased bool // deploy-vs-release control (RT04C §1)
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the
@@ -36,6 +37,17 @@ func NewService(store Store, inviteSecret, apiKeyPepper string, inviteTTL time.D
 // BindProjectSandbox fails closed (no binding may be recorded on an unverified
 // payee).
 func (s *Service) SetPayeeValidator(v PayeeValidator) { s.payee = v }
+
+// SetPaymentCapabilityReleased sets the deploy-vs-release control (RT04C §1).
+// When false (the fail-closed default), payment scopes cannot be issued to
+// ordinary external keys through the public Console path — the code may be
+// deployed and exercised by operator E2E fixtures without being publicly
+// available. Config already forces this false outside a sandbox environment.
+func (s *Service) SetPaymentCapabilityReleased(released bool) { s.paymentReleased = released }
+
+// PaymentCapabilityReleased reports the current public-release state (for the
+// Console scope-catalog + status surfaces).
+func (s *Service) PaymentCapabilityReleased() bool { return s.paymentReleased }
 
 // canBuild reports whether a role may create projects / issue API keys.
 func canBuild(role string) bool {
@@ -315,9 +327,26 @@ func (s *Service) GetProject(ctx context.Context, actor, projectID string) (Proj
 
 // ── API keys ─────────────────────────────────────────────────────────────────
 
-func validScopes(scopes []string) bool {
+// PaymentScopes are the ADR-047 payment scopes. They are gated by the deploy-vs-
+// release control (RT04C §1): a scope being in AllowedScopes means it is a valid
+// string, NOT that it may be issued to an ordinary external key while the
+// capability is unreleased.
+var PaymentScopes = map[string]bool{
+	"payment_sessions:read":  true,
+	"payment_sessions:write": true,
+	"payment_links:read":     true,
+	"payment_links:write":    true,
+}
+
+// validScopes checks that every scope is known and, unless allowPayment, that no
+// payment scope is present. allowPayment is true only when the payment capability
+// is released (public issuance) or for operator-provisioned E2E fixtures.
+func validScopes(scopes []string, allowPayment bool) bool {
 	for _, sc := range scopes {
 		if !AllowedScopes[sc] {
+			return false
+		}
+		if PaymentScopes[sc] && !allowPayment {
 			return false
 		}
 	}
@@ -335,7 +364,10 @@ func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name
 	if !canBuild(role) {
 		return APIKey{}, "", ErrForbidden
 	}
-	if (kind != KindPublishable && kind != KindSecret) || strings.TrimSpace(name) == "" || !validScopes(scopes) {
+	// Public (Console) issuance: payment scopes are allowed ONLY once the payment
+	// capability is released (RT04C §1). While unreleased, requesting a payment
+	// scope here is rejected — the scope is not selectable to ordinary developers.
+	if (kind != KindPublishable && kind != KindSecret) || strings.TrimSpace(name) == "" || !validScopes(scopes, s.paymentReleased) {
 		return APIKey{}, "", ErrValidation
 	}
 	if s.apiKeyPepper == "" {
@@ -363,6 +395,41 @@ func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name
 	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "apikey.created", "APIKEY:"+key.ID, ip, reqID,
 		map[string]any{"kind": kind, "prefix": prefix}) // never the raw key
 	return key, rawSecret, nil
+}
+
+// CreateFixtureAPIKey issues an operator-controlled SANDBOX SECRET key that MAY
+// carry payment scopes even while the payment capability is unreleased (RT04C
+// §1). This is the ONLY way payment scopes reach a key before public release, and
+// it exists solely so operator-provisioned isolated E2E fixtures can exercise the
+// under-test payment path. It is reached only over the internal, X-Internal-Key
+// guarded surface (no session actor, no self-service) and is audited as a fixture.
+func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name string, scopes []string, createdBy, ip, reqID string) (APIKey, string, error) {
+	proj, err := s.store.Project(ctx, projectID)
+	if err != nil || proj == nil {
+		return APIKey{}, "", ErrNotFound
+	}
+	// allowPayment=true: a fixture key is exactly the controlled test path.
+	if strings.TrimSpace(name) == "" || !validScopes(scopes, true) {
+		return APIKey{}, "", ErrValidation
+	}
+	if s.apiKeyPepper == "" {
+		return APIKey{}, "", ErrUnavailable
+	}
+	raw, prefix, err := newAPIKey(KindSecret)
+	if err != nil {
+		return APIKey{}, "", ErrValidation
+	}
+	key, err := s.store.CreateAPIKey(ctx, APIKeyInsert{
+		ProjectID: proj.ID, Environment: EnvSandbox, Kind: KindSecret, Name: strings.TrimSpace(name),
+		KeyPrefix: prefix, KeyHash: hashKey(raw, s.apiKeyPepper), HashVersion: 1,
+		Scopes: scopes, CreatedBy: createdBy,
+	})
+	if err != nil {
+		return APIKey{}, "", ErrUnavailable
+	}
+	s.audit(ctx, &createdBy, &proj.WorkspaceID, &proj.ID, "apikey.fixture_created", "APIKEY:"+key.ID, ip, reqID,
+		map[string]any{"kind": KindSecret, "prefix": prefix, "e2e_fixture": true})
+	return key, raw, nil
 }
 
 func (s *Service) ListAPIKeys(ctx context.Context, actor, projectID string) ([]APIKey, error) {

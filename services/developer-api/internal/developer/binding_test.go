@@ -27,6 +27,7 @@ func boundSvc(t *testing.T) (*Service, *memStore, string) {
 	t.Helper()
 	s, st, ws := wsWithRoles(t)
 	s.SetPayeeValidator(&fakePayee{valid: true})
+	s.SetPaymentCapabilityReleased(true) // these tests exercise the released path
 	return s, st, ws
 }
 

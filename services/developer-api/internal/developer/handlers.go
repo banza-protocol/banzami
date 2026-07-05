@@ -27,6 +27,35 @@ func (h *Handlers) MountInternal(r chi.Router) {
 	// shared internal key; NOT a public self-service route. The caller (operator
 	// tooling) provisions the Sandbox merchant + wallet in Core first, then binds.
 	r.Post("/internal/v1/projects/{projID}/binding", h.bindProjectSandbox)
+	// Operator-controlled E2E fixture key with payment scopes (RT04C §1). The ONLY
+	// way payment scopes reach a key before public release — for isolated E2E
+	// fixtures. Internal-key guarded; not public self-service.
+	r.Post("/internal/v1/projects/{projID}/fixture-keys", h.createFixtureKey)
+}
+
+// createFixtureKey issues an operator-controlled fixture key that may carry
+// payment scopes while the capability is unreleased. Body:
+// {"name","scopes":[...],"created_by"}. The raw secret is returned once and is
+// never logged.
+func (h *Handlers) createFixtureKey(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Name      string   `json:"name"`
+		Scopes    []string `json:"scopes"`
+		CreatedBy string   `json:"created_by"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
+		return
+	}
+	ip, rid := reqMeta(r)
+	key, secret, err := h.svc.CreateFixtureAPIKey(r.Context(), chi.URLParam(r, "projID"), in.Name, in.Scopes, in.CreatedBy, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	resp := keyView(key)
+	resp["secret"] = secret // reveal-once
+	httpx.JSON(w, http.StatusCreated, resp)
 }
 
 // bindProjectSandbox records an operator-provisioned SANDBOX payee binding for a
