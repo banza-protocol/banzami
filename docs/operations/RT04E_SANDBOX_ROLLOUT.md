@@ -37,13 +37,36 @@ The runner + adapter fail closed if the target is not `sandbox`, a service is
 outside the allowlist, a prohibited service resolves, a required service is
 unmapped, or the compose mapping is incomplete/ambiguous.
 
+## Build-to-runtime continuity (derived, not inferred)
+Each service builds **its own** image repository (`core-api-staging→banzami/core-api`,
+`public-api-staging→banzami/public-api`, `developer-api→banzami/developer-api`,
+`api-gateway-staging→banzami/api-gateway`) from its canonical build context, labels
+it, and tags it to the **exact Compose-declared image reference** — derived
+structurally at runtime by `rt04e-sandbox-lib.sh` (never inferred from the service
+name). The adapter **fails closed** if the Compose-declared repo ≠ the build repo.
+
+## Pre-mutation Compose structural attestation
+`rt04e-sandbox-attest.sh` runs **before** any migration, image build, or service
+replacement, and fails closed unless: every allowlisted service exists in its
+declared Compose file; `api-gateway-staging` resolves **only** through the overlay
+(absent from base); no prohibited service resolves; the mapping is unambiguous; and
+each service's Compose-declared image repo equals the expected build repo. It
+reports only PASS/FAIL categories (no Compose content/values).
+
 ## Revision provenance requirement
 Every deployed image carries `org.opencontainers.image.revision=<RT04E_RELEASE_REV>`.
-After replacement, a **provenance gate** inspects each running service's image
-revision label and **fails** unless it exactly equals the required revision (and
-fails if a service is healthy but unlabelled, or was not built by the RT04E path).
-The provenance gate runs **before** any health-success conclusion. **No E2E or
-authenticated request** is made in this gate.
+After replacement, a **provenance gate** inspects each running container's **actual
+image** revision label and **fails** unless it exactly equals the required revision
+(and fails if a service is healthy but unlabelled, or not built by the RT04E path).
+It runs **before** any health-success conclusion. **No E2E/authenticated request.**
+
+## Health requirement
+Real, **non-authenticated local liveness** via each container's Docker HEALTHCHECK
+status (the container's own `/health` probe) — non-mutating, no business/financial
+endpoint, no external redirect, fail-closed on non-`healthy`. Runs **after**
+provenance. The rollout success condition requires **both** the running-image
+revision-label match **and** local health PASS; a healthy-but-unlabelled container
+is a failure.
 
 ## Migration checkpoint requirement (`rt04e-migration-checkpoint.sh`)
 The runner **cannot reach** `migrate-and-verify.sh` without the checkpoint gate

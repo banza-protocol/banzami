@@ -16,17 +16,26 @@ Database migrations are forward-only and are NOT automatically reversed.
 Rollback **refuses** any other service and anything matching `prod`/`production`/`live`
 or the non-staging `core-api`/`api-gateway`/`public-api`/`admin-api`.
 
+## Mechanism (image-ID retag of the exact declared reference)
+Image-ID retagging of the **exact Compose-declared reference IS sufficient** for
+this tag-based compose model — so that is what rollback does. It does **not** use a
+generic `banzami/<service>:rollback` tag (Compose resolves the declared tag, not a
+generic one, and the service name is not the image namespace).
+
 ## Flow
-1. **capture** (before any replacement) — records each eligible service's current
-   image ID into a root-owned, restrictive **pre-state manifest OUTSIDE the repo**
-   and runtime app directories (`/root/banzami-forensics/rt04e-rollback/`), with a
-   release id, timestamp, service name and prior image identity. **No secret value
-   is captured or printed.**
-2. **restore** — restores the captured images for the eligible Sandbox services
-   only. Requires **explicit operator confirmation** (`RT04E_ROLLBACK_CONFIRMED=yes`).
-   **Fails closed** if a required pre-state image reference is missing. Never
-   targets Live/Production/unspecified services. **Never reverses a migration.**
-3. **verify** — confirms restored image identities against the manifest.
+1. **capture** (before any replacement) — records, per service, the **Compose-declared
+   image reference**, the current **immutable image ID**, the current revision label,
+   timestamp and release id, into a root-owned, restrictive **pre-state manifest
+   OUTSIDE the repo** and runtime app dirs (`/root/banzami-forensics/rt04e-rollback/`).
+   **No secret/URL/env value is captured or printed.**
+2. **restore** — for each eligible service: require **explicit operator confirmation**
+   (`RT04E_ROLLBACK_CONFIRMED=yes`); confirm the captured declared reference still
+   matches the live contract; **re-point that exact Compose-declared reference to the
+   captured image ID**; bring up only that service; then **verify the restored running
+   image ID equals the captured ID** (fail otherwise). **Fails closed** if a captured
+   image ID is missing. Never targets Live/Production/unspecified services. **Never
+   reverses a migration.**
+3. **verify** — confirms restored running image IDs against the manifest (PASS/FAIL).
 
 ## Rules
 - Only the four allowlisted Sandbox services may be restored.
