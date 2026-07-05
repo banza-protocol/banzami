@@ -1,6 +1,6 @@
 # ADR-047 — Project→Merchant Binding for Developer Payment Capabilities
 
-- **Status:** Accepted (design) — implementation deferred to its own controlled release train
+- **Status:** Accepted — implemented (RT04/04B); controlled Sandbox deployment + public release pending deployed E2E (RT04C). See **Implementation status** below.
 - **Date:** 2026-07-05
 - **Programme:** BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 03
 - **Layer:** Banzami operator policy (how the operator maps its own Console
@@ -74,6 +74,51 @@ in an ADR"). Until then CAP-PAY-001/002/APP-004 remain `pending-e2e`.
   §5/§6/§7 E2E matrices, then flips the three capabilities to `released`.
 - `make assure-payments-foundation` HOLDs until that evidence exists.
 - Merchant-JWT payment flows are unaffected and continue to function.
+
+## Implementation status (RT04 / 04B / 04C)
+
+The design above is implemented, with one refinement to step 1: the binding lives
+in a **dedicated `developer.dev_project_sandbox_binding` table** (migration 0100),
+not a `merchant_id` column on `dev_projects`. This gives the binding its own
+identity, state, provenance and audit surface, and a DB-enforced one-ACTIVE-per-
+project constraint. As-built:
+
+- **Binding authority:** `developer-api` is the single authority
+  (`BindProjectSandbox`); it validates the merchant→wallet→wallet_account
+  relationship against **Core** (independently authoritative, dedicated
+  least-privilege credential — RT04C §3) **before** persisting, and **fails
+  closed** on any inability to validate.
+- **Resolution:** key introspection returns the resolved payee (internal-only ids
+  + `Bound`); a valid key with no binding is `Bound=false` — never a default
+  merchant.
+- **Gateway:** dual-credential auth on the canonical routes derives the payee
+  ONLY from the binding, rejects client-supplied merchant/wallet/payee, enforces
+  scope + `Bound` + tenant isolation, and never falls back between credentials.
+- **Deploy vs release (RT04C §1):** deploying the code does not make payment
+  scopes public; a fail-closed, sandbox-only, operator-controlled release control
+  gates public scope issuance, separate from deployment.
+
+### Binding immutability — decision (RT04C §2)
+
+For the current Sandbox release scope, a Project Sandbox payment binding is
+**immutable once created**:
+
+- **No operator rebind endpoint exists** in this release.
+- **No binding disable endpoint exists** in this release.
+- Concurrent bind attempts leave **exactly one** ACTIVE binding (DB partial
+  unique index `dev_project_sandbox_binding_one_active`; concurrency-tested).
+- Payment Sessions persist an immutable payee snapshot (`merchant_id`,
+  `wallet_id`, `wallet_account_id`) at creation; Payment Links persist the
+  equivalent. Because bindings are immutable and there is no rebind/disable path,
+  an artifact's settlement interpretation is fixed forever **by construction** —
+  no route can alter a binding used by an existing artifact.
+
+A future rebind/disable capability (with reason, controlled action and immutable
+audit, plus a transactional artifact seal) is **explicitly out of scope** here and
+will be designed in its own ADR + release train — it is deliberately *absent*,
+not a partial/incomplete implementation. A per-artifact `binding_id`/`version`
+provenance column is a possible future enhancement; it is not required for
+correctness while bindings are immutable and single-active.
 
 ## Alternatives considered
 
