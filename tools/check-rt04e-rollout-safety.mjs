@@ -134,21 +134,23 @@ const idx = (s, sub) => s.indexOf(sub);
     : fail(16, 'secret could be echoed/argv/persisted or tracing enabled');
 }
 
-// ── Phase-5 behavioural / continuity checks (17–31) ──────────────────────────
+// ── Phase-5 behavioural / continuity checks (17–41) ──────────────────────────
 const lib = read('infra/deployment/rt04e-sandbox-lib.sh');
 const attest = read('infra/deployment/rt04e-sandbox-attest.sh');
+const parser = read('tools/rt04e-attest-parser.mjs');
+const PARSER_PATH = resolve(ROOT, 'tools/rt04e-attest-parser.mjs');
 
-// 17. public-api-staging maps to its OWN image repo (not core-api), adapter derives it
-/public-api-staging\)\s*echo "banzami\/public-api"/.test(lib) && /rt04e_build_repo/.test(adapter) && !/public-api-staging[\s\S]{0,120}banzami\/core-api/.test(adapter)
-  ? pass(17, 'public-api-staging builds banzami/public-api (not core-api)') : fail(17, 'public-api-staging must build its own image repo');
+// 17. IMMUTABLE release tag only — adapter tags rt04e_release_ref; no latest/adr021-staging
+/rt04e-%s/.test(lib) && /rt04e_release_ref/.test(adapter) && !/:latest\b|:adr021-staging\b/.test(adapter.replace(/#.*$/gm, ''))
+  ? pass(17, 'adapter tags only the immutable rt04e-<rev> reference (no latest/adr021-staging)') : fail(17, 'adapter must use only the immutable release tag');
 
-// 18. adapter enforces build-repo == compose-declared-repo continuity
-/rt04e_ref_repo "\$REF"[\s\S]{0,40}"\$REPO"[\s\S]{0,60}die/.test(adapter)
-  ? pass(18, 'adapter fails when compose-declared repo != build repo') : fail(18, 'adapter must enforce declared==build repo continuity');
+// 18. public-api builds its own repo + RT04E override is required by deploy + attest
+/public-api-staging\)\s*echo "banzami\/public-api"/.test(lib) && /RT04E_OVERRIDE:\?/.test(adapter) && /RT04E_OVERRIDE:\?/.test(attest)
+  ? pass(18, 'public-api builds banzami/public-api; RT04E override required by deploy + attest') : fail(18, 'override must be required; public-api builds its own repo');
 
 // 19. rollback re-points the EXACT declared ref (not a generic :rollback tag)
-(!/:rollback\b/.test(rollback) && /docker tag "\$cid" "\$ref"/.test(rollback))
-  ? pass(19, 'rollback re-points the exact Compose-declared reference (no generic tag)') : fail(19, 'rollback must re-point the declared reference, not a generic tag');
+(!/:rollback\b/.test(rollback) && /docker tag "\$cid" "\$declared"/.test(rollback))
+  ? pass(19, 'rollback re-points the exact declared reference (no generic tag)') : fail(19, 'rollback must re-point the declared reference, not a generic tag');
 
 // 20. rollback verifies the restored running image id
 /\[\s*"\$now"\s*=\s*"\$cid"\s*\][\s\S]{0,60}(die|FAIL)/.test(rollback)
@@ -183,46 +185,116 @@ const attest = read('infra/deployment/rt04e-sandbox-attest.sh');
     ? pass(24, 'compose attestation runs before checkpoint before migration') : fail(24, 'attestation must precede checkpoint + migration');
 }
 
-// 25. attestation enforces overlay-only for api-gateway-staging + refuses prohibited
-/rt04e_is_overlay/.test(attest) && /docker-compose\.yml/.test(attest) && /rt04e_refuse_bad/.test(attest)
-  ? pass(25, 'attestation enforces overlay-only gateway + refuses prohibited services') : fail(25, 'attestation must check overlay + prohibitions');
+// 25. attestation is SEMANTIC (docker compose config → constrained parser), not grep/awk
+/docker compose\b[\s\S]{0,80}config[\s\S]{0,60}--no-interpolate/.test(attest)
+  && /--format json/.test(attest) && /node "\$PARSER"/.test(attest)
+  && !/\bgrep -E .*image\b|\bawk\b[\s\S]{0,40}image/.test(attest)
+  ? pass(25, 'attestation uses semantic `docker compose config` piped to the constrained parser (no grep/awk on images)')
+  : fail(25, 'attestation must be semantic (compose config → parser), never grep/awk on compose text');
 
 // 26. success requires BOTH provenance and health
 /\[\s*"\$prov_ok"\s*!=\s*1\s*\]\s*\|\|\s*\[\s*"\$health_ok"\s*!=\s*1\s*\]/.test(runner)
   ? pass(26, 'success requires running-image revision label AND local health') : fail(26, 'success must require provenance AND health');
 
-// 27–31. behavioural fixture tests of the attestation logic (grep/awk only; no docker/db)
+// 27. immutable release ref + prune-proof prestate tag are defined in the shared lib
+/rt04e_release_ref\b[\s\S]{0,120}rt04e-%s/.test(lib) && /rt04e_prestate_tag\b[\s\S]{0,120}rt04e-prestate-/.test(lib)
+  ? pass(27, 'lib defines immutable rt04e-<rev> release ref + retained rt04e-prestate tag') : fail(27, 'lib must define immutable ref + retained prestate tag');
+
+// 28. isolation flags (--no-build --pull never --force-recreate --no-deps) are the ONLY up mode
 {
-  const mk = (dir, pub, gwInBase, dropDev) => {
-    mkdirSync(dir, { recursive: true });
-    const base = [
-      'services:',
-      '  core-api-staging:', '    image: banzami/core-api:adr021-staging',
-      '  public-api-staging:', `    image: ${pub}`,
-      ...(dropDev ? [] : ['  developer-api:', '    image: banzami/developer-api:latest']),
-      ...(gwInBase ? ['  api-gateway-staging:', '    image: banzami/api-gateway:latest'] : []),
-    ].join('\n') + '\n';
-    const overlay = 'services:\n  api-gateway-staging:\n    image: banzami/api-gateway:latest\n';
-    writeFileSync(`${dir}/docker-compose.yml`, base);
-    writeFileSync(`${dir}/docker-compose.sandbox-gateway.yml`, overlay);
-  };
-  const runAttest = dir => {
-    try { execSync(`RT04E_COMPOSE_DIR="${dir}" bash "${resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh')}"`, { stdio: 'pipe' }); return 0; }
-    catch { return 1; }
-  };
-  const base = `${tmpdir()}/rt04e-fix-${Date.now()}`;
-  mk(`${base}/good`, 'banzami/public-api:latest', false, false);
-  mk(`${base}/badpub`, 'banzami/core-api:latest', false, false);        // public-api mapped to core image
-  mk(`${base}/gwbase`, 'banzami/public-api:latest', true, false);        // gateway present in base
-  mk(`${base}/nodev`, 'banzami/public-api:latest', false, true);         // developer-api missing
-  const good = runAttest(`${base}/good`), badpub = runAttest(`${base}/badpub`), gwbase = runAttest(`${base}/gwbase`), nodev = runAttest(`${base}/nodev`);
-  rmSync(base, { recursive: true, force: true });
-  good === 0 ? pass(27, 'fixture: valid compose PASSES attestation') : fail(27, 'valid fixture must pass attestation');
-  badpub === 1 ? pass('28', 'fixture: public-api→core image FAILS (continuity)') : fail(28, 'public-api mapped to core image must fail');
-  gwbase === 1 ? pass('29', 'fixture: api-gateway-staging in base FAILS (overlay-only)') : fail(29, 'gateway in base must fail');
-  nodev === 1 ? pass('30', 'fixture: missing approved service FAILS (mapping)') : fail(30, 'missing service must fail');
-  pass('31', 'fixtures exercise attestation logic deterministically (no docker/db/server)');
+  const flagsOk = /RT04E_UP_FLAGS=.*--no-build.*--pull never.*--force-recreate.*--no-deps/.test(lib);
+  const adapterUses = /\$RT04E_UP_FLAGS "\$SVC"/.test(adapter) && !/\bup -d\b(?![^\n]*RT04E_UP_FLAGS)/.test(adapter);
+  const rollbackUses = /\$RT04E_UP_FLAGS "\$s"/.test(rollback);
+  const noOrphans = !/--remove-orphans/.test(adapter + rollback);
+  (flagsOk && adapterUses && rollbackUses && noOrphans)
+    ? pass(28, 'replacement uses only --no-build/--pull never/--force-recreate/--no-deps, single service, no --remove-orphans')
+    : fail(28, 'replacement must use the full isolation flag set on a single service, no orphans removal');
 }
 
+// 29. RT04E performs NO image/container prune or rmi anywhere in the chain (prune-proof rollback)
+{
+  const stripComments = s => s.split('\n').map(l => l.replace(/(^|\s)#.*$/, '')).join('\n');
+  const chain = stripComments(adapter + '\n' + rollback + '\n' + attest + '\n' + runner + '\n' + lib);
+  /\b(docker image prune|docker container prune|docker system prune|docker volume prune|docker rmi|docker image rm)\b/.test(chain)
+    ? fail(29, 'RT04E must never prune/rmi — pre-state rollback images must be retained')
+    : pass(29, 'no prune/rmi anywhere in the RT04E chain (retained pre-state images)');
+}
+
+// 30. capture pins the pre-state image id under the retained prestate tag; restore verifies both pin and result
+{
+  const captures = /rt04e_prestate_tag[\s\S]{0,300}docker tag "\$cid" "\$ptag"/.test(rollback);
+  const verifiesPin = /\[\s*"\$pin"\s*=\s*"\$cid"\s*\]/.test(rollback);
+  const verifiesResult = /\[\s*"\$now"\s*=\s*"\$cid"\s*\]/.test(rollback);
+  const noRawName = !/banzami\/\$\{?s\}?:/.test(rollback); // never a service-name-derived repo/tag
+  (captures && verifiesPin && verifiesResult && noRawName)
+    ? pass(30, 'capture pins pre-state id to retained tag; restore verifies pin==captured and restored==captured')
+    : fail(30, 'rollback must pin + verify pre-state image id via retained tag (no raw service-name tag)');
+}
+
+// 31. runner generates the override root-owned OUTSIDE the repo and removes it on completion
+{
+  const outsideRepo = /mktemp .*(TMPDIR|\/run)[\s\S]{0,80}rt04e-override/.test(runner) || /mktemp[\s\S]{0,80}rt04e-override/.test(runner);
+  const chmod = /chmod 0?600 "\$RT04E_OVERRIDE"/.test(runner);
+  const cleaned = /_cleanup_override/.test(runner) && /trap [\s\S]{0,40}_cleanup_override/.test(runner);
+  const literalSub = /sed .*\{\{RT04E_RELEASE_REV\}\}/.test(runner) && !/\beval\s+["'$]/.test(runner);
+  (outsideRepo && chmod && cleaned && literalSub)
+    ? pass(31, 'runner generates the override outside the repo (0600), literal sed substitution, trap-cleaned')
+    : fail(31, 'override must be generated outside the repo, 0600, literal substitution, trap-cleaned');
+}
+
+// 32. attestation verifies Compose supports the required safe flags BEFORE mutating (fail closed)
+/config --help[\s\S]{0,200}(--no-interpolate|--format)/.test(attest) && /up --help[\s\S]{0,200}--no-build/.test(attest)
+  ? pass(32, 'attestation verifies compose config + up safe-flag support before any mutation') : fail(32, 'attestation must verify compose safe-flag support first (fail closed)');
+
+// 33–40. deterministic parser fixtures — feed crafted JSON via stdin, no docker/db/secret
+{
+  const REV = 'a1b2c3d';
+  const compose = (imgs) => JSON.stringify({ services: Object.fromEntries(Object.entries(imgs).map(([k, v]) => [k, { image: v }])) });
+  const good = {
+    'core-api-staging': `banzami/core-api:rt04e-${REV}`,
+    'api-gateway-staging': `banzami/api-gateway:rt04e-${REV}`,
+    'developer-api': `banzami/developer-api:rt04e-${REV}`,
+    'public-api-staging': `banzami/public-api:rt04e-${REV}`,
+  };
+  const runParser = (input, env = {}) => {
+    try {
+      const out = execSync(`node "${PARSER_PATH}"`, { input, stdio: ['pipe', 'pipe', 'pipe'],
+        env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } });
+      return { code: 0, out: out.toString() };
+    } catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
+  };
+
+  const rGood = runParser(compose(good));
+  rGood.code === 0 ? pass(33, 'parser: four literal immutable references PASS (exit 0)') : fail(33, 'valid immutable fixture must pass');
+
+  const rLatest = runParser(compose({ ...good, 'core-api-staging': 'banzami/core-api:latest' }));
+  rLatest.code === 1 ? pass(34, 'parser: mutable `latest` tag FAILS (exit 1)') : fail(34, 'mutable latest tag must fail');
+
+  const rInterp = runParser(compose({ ...good, 'public-api-staging': 'banzami/public-api:rt04e-${REV}' }));
+  rInterp.code === 1 ? pass(35, 'parser: unresolved ${…} interpolation marker FAILS (exit 1)') : fail(35, 'interpolation marker must fail');
+
+  const rWrongRepo = runParser(compose({ ...good, 'public-api-staging': `banzami/core-api:rt04e-${REV}` }));
+  rWrongRepo.code === 1 ? pass(36, 'parser: wrong image repo (public-api→core-api) FAILS (exit 1)') : fail(36, 'wrong repo must fail');
+
+  const noDev = { ...good }; delete noDev['developer-api'];
+  const rMissing = runParser(compose(noDev));
+  rMissing.code === 1 ? pass(37, 'parser: missing approved service FAILS (exit 1)') : fail(37, 'missing service must fail');
+
+  const rBadJson = runParser('this is not json');
+  rBadJson.code === 2 ? pass(38, 'parser: unexpected/non-JSON input FAILS closed (exit 2)') : fail(38, 'non-JSON input must exit 2');
+
+  const rBadShape = runParser(JSON.stringify({ notservices: {} }));
+  rBadShape.code === 2 ? pass(39, 'parser: unexpected JSON shape (no services) FAILS closed (exit 2)') : fail(39, 'unexpected shape must exit 2');
+
+  // parser must NEVER emit an image value (no `banzami/…:…` string) on PASS or FAIL
+  const leaks = [rGood, rLatest, rInterp, rWrongRepo].some(r => /banzami\/[a-z-]+:/.test(r.out));
+  !leaks ? pass(40, 'parser never emits an image reference value (PASS/FAIL categories only)') : fail(40, 'parser must not print image reference values');
+}
+
+// 41. parser reads stdin only and never writes the input to disk / retains full config
+/readFileSync\(0,/.test(parser) && /raw = null/.test(parser) && /doc = null/.test(parser)
+  && !/writeFileSync|createWriteStream|appendFileSync/.test(parser)
+  ? pass(41, 'parser reads stdin only, releases the config, and never writes it to disk') : fail(41, 'parser must not persist the compose config');
+
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–31)');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–41)');
