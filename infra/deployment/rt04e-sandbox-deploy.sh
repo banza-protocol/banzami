@@ -3,13 +3,13 @@
 # RT04E canonical Sandbox deploy adapter — REVIEWED TEMPLATE, NOT AUTO-RUN
 # =============================================================================
 # Deploys EXACTLY ONE allowlisted Sandbox service, built ONLY from canonical
-# source with the revision label, tagged to the EXACT Compose-declared image
-# reference (derived structurally — never inferred from the service name).
-# Fixes build-to-runtime continuity: each service builds ITS OWN image repository
-# and refuses to proceed if the built repo != the Compose-declared repo.
+# source, tagged ONLY with the IMMUTABLE RT04E release reference
+# banzami/<repo>:rt04e-<rev> (never latest/adr021-staging), and brought up with
+# full isolation: --no-build --pull never --force-recreate --no-deps, over the
+# FIXED base+overlay+RT04E-override file set (never caller-supplied).
 #
-# Usage: RT04E_RELEASE_REV=<sha> REPO_ROOT=/srv/banzami/src \
-#          rt04e-sandbox-deploy.sh <core-api-staging|api-gateway-staging|developer-api|public-api-staging>
+# Usage: RT04E_RELEASE_REV=<rev> REPO_ROOT=/srv/banzami/src RT04E_OVERRIDE=<override> \
+#          rt04e-sandbox-deploy.sh <allowlisted-service>
 # -----------------------------------------------------------------------------
 set -euo pipefail
 set +x
@@ -22,31 +22,27 @@ SVC="${1:?usage: rt04e-sandbox-deploy.sh <allowlisted-sandbox-service>}"
 CANONICAL_ROOT="/srv/banzami/src"
 REPO_ROOT="${REPO_ROOT:-$CANONICAL_ROOT}"
 : "${RT04E_RELEASE_REV:?RT04E_RELEASE_REV required}"
-LABEL="--label org.opencontainers.image.revision=${RT04E_RELEASE_REV}"
+: "${RT04E_OVERRIDE:?RT04E_OVERRIDE (generated immutable-image override) required}"
 die() { printf 'deploy-adapter: FAILED — %s\n' "$1" >&2; exit "${2:-1}"; }
 
 [ "$REPO_ROOT" = "$CANONICAL_ROOT" ] || die "build source must be $CANONICAL_ROOT" 1
+rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV not a valid git revision" 1
 rt04e_refuse_bad "$SVC" && die "service '$SVC' is prohibited (live/non-staging) — refusing" 2
 rt04e_in_allow "$SVC" || die "service '$SVC' is not in the RT04E allowlist — refusing" 2
+[ -f "$RT04E_OVERRIDE" ] || die "generated RT04E override missing — refusing" 1
 
-# Derive the EXACT Compose-declared image reference + the expected build repo.
-REF="$(rt04e_compose_image_ref "$SVC")"; [ -n "$REF" ] || die "cannot resolve Compose-declared image for $SVC — refusing" 2
 REPO="$(rt04e_build_repo "$SVC")"
 CTX="$REPO_ROOT/$(rt04e_build_context "$SVC")"
-CF="$(rt04e_compose_file "$SVC")"
-# Continuity guard: the Compose-declared repo MUST equal the repo we build.
-[ "$(rt04e_ref_repo "$REF")" = "$REPO" ] || die "Compose image repo != build repo for $SVC (declared=$(rt04e_ref_repo "$REF"), build=$REPO) — refusing" 2
+REF="$(rt04e_release_ref "$SVC" "$RT04E_RELEASE_REV")"     # IMMUTABLE banzami/<repo>:rt04e-<rev>
 [ -e "$CTX" ] || die "canonical build context missing for $SVC — refusing" 2
 
-# Build THIS service's own image (public-api builds public-api, NOT core-api),
-# labelled with the canonical revision, then tag to the exact declared ref.
-docker build $LABEL -f "$CTX/Dockerfile" -t "$REPO:latest" "$CTX"
-docker tag "$REPO:latest" "$REF"                      # exact Compose-declared reference
+# Build THIS service's own image, labelled with the canonical revision, then tag it
+# ONLY with the immutable RT04E release reference (no latest/adr021-staging).
+docker build --label "org.opencontainers.image.revision=${RT04E_RELEASE_REV}" \
+  -f "$CTX/Dockerfile" -t "$REF" "$CTX"
 
-# Bring up ONLY this service, via base compose or the sandbox overlay.
-if rt04e_is_overlay "$SVC"; then
-  ( cd "$RT04E_COMPOSE_DIR" && docker compose -f docker-compose.yml -f "$CF" up -d --force-recreate "$SVC" )
-else
-  ( cd "$RT04E_COMPOSE_DIR" && docker compose -f "$CF" up -d --force-recreate "$SVC" )
-fi
-printf '  deployed %s from canonical %s → image repo %s (revision %s)\n' "$SVC" "$(rt04e_build_context "$SVC")" "$REPO" "${RT04E_RELEASE_REV:0:12}"
+# Replace ONLY this service with full isolation, fixed file set (base+overlay+override),
+# no build, no pull, forced recreation of just this service, no dependency mutation.
+( cd "$RT04E_COMPOSE_DIR" && docker compose $(rt04e_compose_file_args "$RT04E_OVERRIDE") \
+    $RT04E_UP_FLAGS "$SVC" )
+printf '  deployed %s → %s (immutable RT04E release tag, isolated: no-build/no-pull/no-deps)\n' "$SVC" "$REPO"

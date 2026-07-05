@@ -75,6 +75,24 @@ _head="$(git rev-parse HEAD 2>/dev/null || true)"
 # the runner performs NO git state change (no pull/reset/clean/checkout/commit/push).
 status "revision pinned (${RT04E_RELEASE_REV:0:12}) · branch main · worktree clean · no remotes"
 
+# ── 2b. Generate the IMMUTABLE RT04E image override (root-owned, OUTSIDE repo) ──
+# Substitutes the strictly-validated hex revision literally (sed, never shell eval)
+# into the source-controlled template. This override pins each service image to
+# banzami/<repo>:rt04e-<rev> and is the FINAL Compose layer — no mutable tag is ever
+# the deployed reference. Removed on exit (or retained only as sanitised evidence).
+. "$REPO_ROOT/infra/deployment/rt04e-sandbox-lib.sh"
+rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV is not a valid git revision — refusing" 11
+OVERRIDE_TEMPLATE="$REPO_ROOT/infra/deployment/rt04e-sandbox-images.override.template.yml"
+[ -f "$OVERRIDE_TEMPLATE" ] || die "RT04E image override template missing — refusing" 12
+RT04E_OVERRIDE="$(mktemp "${TMPDIR:-/run}/rt04e-override.XXXXXX.yml" 2>/dev/null || mktemp)"
+chmod 600 "$RT04E_OVERRIDE"; export RT04E_OVERRIDE
+sed "s/{{RT04E_RELEASE_REV}}/${RT04E_RELEASE_REV}/g" "$OVERRIDE_TEMPLATE" > "$RT04E_OVERRIDE"
+grep -q '{{RT04E_RELEASE_REV}}' "$RT04E_OVERRIDE" && die "override still has an unresolved placeholder — refusing" 12
+_cleanup_override() { rm -f "$RT04E_OVERRIDE" 2>/dev/null || true; }
+_clear() { :; }   # redefined at credential handoff; referenced by the combined trap
+trap '_cleanup_override; _clear' EXIT INT TERM HUP
+status "generated immutable RT04E image override (rt04e-${RT04E_RELEASE_REV:0:12}, outside repo)"
+
 # ── 3. Load + validate the Sandbox target contract (R1/R7) ───────────────────
 [ -f "$CONTRACT" ] || die "sandbox target contract missing — refusing" 12
 grep -q 'permitted_environment: sandbox' "$CONTRACT" || die "contract environment is not sandbox — refusing" 12
@@ -94,8 +112,9 @@ status "target contract loaded · allowlist=[$ALLOW] · no prohibited/live targe
 
 # ── 3b. Pre-mutation Compose structural attestation (HIGH-2) — BEFORE any ─────
 #      migration, image build or service replacement. Fail closed on any anomaly.
-status "stage: pre-mutation compose structural attestation"
-RT04E_COMPOSE_DIR="/srv/banzami" bash "$ATTEST" || die "compose structural attestation failed — refusing to mutate" 12
+status "stage: pre-mutation semantic compose attestation (docker compose config)"
+RT04E_COMPOSE_DIR="/srv/banzami" RT04E_OVERRIDE="$RT04E_OVERRIDE" RT04E_RELEASE_REV="$RT04E_RELEASE_REV" \
+  bash "$ATTEST" || die "semantic compose attestation failed — refusing to mutate" 12
 
 # ── 4. Protected, ephemeral migration credential handoff (stdin ONLY) ────────
 if [ -t 0 ]; then
@@ -105,8 +124,8 @@ else
   IFS= read -rs BANZAMI_MIGRATE_URL || die "no credential on protected stdin" 2
 fi
 [ -n "${BANZAMI_MIGRATE_URL:-}" ] || die "credential absent — fail closed" 2
+# redefine _clear (the combined trap set in §2b references it by name at fire time)
 _clear() { BANZAMI_MIGRATE_URL=''; unset BANZAMI_MIGRATE_URL 2>/dev/null || true; }
-trap _clear EXIT INT TERM HUP
 # validate WITHOUT rendering (pure bash + here-string; never echo/printf the value)
 _tail="${BANZAMI_MIGRATE_URL##*/}"; _db="${_tail%%\?*}"
 [ "$_db" = "banzami_staging" ] || die "target invalid — credential does not target banzami_staging" 3
@@ -136,7 +155,8 @@ RT04E_RELEASE_REV="$RT04E_RELEASE_REV" bash "$ROLLBACK" capture $ALLOW || die "p
 # ── 8. Deploy ONLY the four allowlisted Sandbox services via the adapter (R1) ─
 for s in $ALLOW; do
   status "stage: deploy sandbox service '$s' (canonical, revision-labelled, quarantined)"
-  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" REPO_ROOT="$REPO_ROOT" bash "$DEPLOY_ADAPTER" "$s" \
+  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" REPO_ROOT="$REPO_ROOT" RT04E_OVERRIDE="$RT04E_OVERRIDE" \
+    bash "$DEPLOY_ADAPTER" "$s" \
     || { status "deploy failed for $s — entering rollback decision"; break; }
 done
 
