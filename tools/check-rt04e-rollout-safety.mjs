@@ -13,8 +13,10 @@
  *
  * Usage: node tools/check-rt04e-rollout-safety.mjs  (make check-rt04e-rollout-safety)
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -111,9 +113,9 @@ const idx = (s, sub) => s.indexOf(sub);
 /\*prod\*\|\*production\*\|\*live\*/.test(runner) && /banzami_staging\) : ;;/.test(runner)
   ? pass(13, 'target gate rejects prod/production/live markers') : fail(13, 'target gate must reject prod/production/live');
 
-// 14. unapproved compose service not targetable (adapter allowlist + default die)
-/core-api-staging\|api-gateway-staging\|developer-api\|public-api-staging\)/.test(adapter) && /\*\)\s*die .*allowlist/.test(adapter)
-  ? pass(14, 'deploy adapter enforces the allowlist and rejects unapproved services') : fail(14, 'adapter must reject unapproved services');
+// 14. unapproved compose service not targetable (adapter allowlist + prohibition)
+/rt04e_in_allow "\$SVC" \|\| die/.test(adapter) && /rt04e_refuse_bad "\$SVC" && die/.test(adapter)
+  ? pass(14, 'deploy adapter enforces the allowlist and rejects unapproved/prohibited services') : fail(14, 'adapter must reject unapproved services');
 
 // 15. required canonical compose/overlay mapping present + unambiguous
 {
@@ -132,5 +134,95 @@ const idx = (s, sub) => s.indexOf(sub);
     : fail(16, 'secret could be echoed/argv/persisted or tracing enabled');
 }
 
+// ── Phase-5 behavioural / continuity checks (17–31) ──────────────────────────
+const lib = read('infra/deployment/rt04e-sandbox-lib.sh');
+const attest = read('infra/deployment/rt04e-sandbox-attest.sh');
+
+// 17. public-api-staging maps to its OWN image repo (not core-api), adapter derives it
+/public-api-staging\)\s*echo "banzami\/public-api"/.test(lib) && /rt04e_build_repo/.test(adapter) && !/public-api-staging[\s\S]{0,120}banzami\/core-api/.test(adapter)
+  ? pass(17, 'public-api-staging builds banzami/public-api (not core-api)') : fail(17, 'public-api-staging must build its own image repo');
+
+// 18. adapter enforces build-repo == compose-declared-repo continuity
+/rt04e_ref_repo "\$REF"[\s\S]{0,40}"\$REPO"[\s\S]{0,60}die/.test(adapter)
+  ? pass(18, 'adapter fails when compose-declared repo != build repo') : fail(18, 'adapter must enforce declared==build repo continuity');
+
+// 19. rollback re-points the EXACT declared ref (not a generic :rollback tag)
+(!/:rollback\b/.test(rollback) && /docker tag "\$cid" "\$ref"/.test(rollback))
+  ? pass(19, 'rollback re-points the exact Compose-declared reference (no generic tag)') : fail(19, 'rollback must re-point the declared reference, not a generic tag');
+
+// 20. rollback verifies the restored running image id
+/\[\s*"\$now"\s*=\s*"\$cid"\s*\][\s\S]{0,60}(die|FAIL)/.test(rollback)
+  ? pass(20, 'rollback verifies restored image id == captured id') : fail(20, 'rollback must verify the restored image id');
+
+// 21. rollback restricts to the allowlist
+/rt04e_in_allow/.test(rollback) && /rt04e_refuse_bad/.test(rollback)
+  ? pass(21, 'rollback restricts to the four-service allowlist') : fail(21, 'rollback must enforce the allowlist');
+
+// 22. health is REAL (docker healthcheck status), not a no-op, not authenticated
+{
+  const healthBlock = runner.match(/local liveness[\s\S]{0,700}/)?.[0] || '';
+  const real = /State\.Health\.Status/.test(runner);
+  const noStub = !/for s in \$ALLOW; do\s*#[\s\S]{0,120}:\s*\n\s*done/.test(runner);
+  const noAuth = !/(Authorization|Bearer|api[-_]?key|payment|transfer|refund)/i.test(healthBlock);
+  (real && noStub && noAuth) ? pass(22, 'health uses real Docker healthcheck status, non-authenticated') : fail(22, 'health must be a real non-authenticated liveness check');
+}
+
+// 23. health runs AFTER provenance
+{
+  const p = runner.search(/post-deploy revision-provenance gate/i);
+  const h = runner.search(/local liveness/i);
+  (p >= 0 && h >= 0 && p < h) ? pass(23, 'health runs after provenance verification') : fail(23, 'health must run after provenance');
+}
+
+// 24. pre-mutation compose attestation exists + is invoked before checkpoint+migration
+{
+  const a = runner.search(/bash "\$ATTEST"/);           // the INVOCATION, not the path def
+  const c = runner.search(/bash "\$CHECKPOINT"/);
+  const m = runner.search(/bash tools\/migrate-and-verify\.sh/);
+  (existsSync(resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh')) && a >= 0 && c >= 0 && m >= 0 && a < c && c < m)
+    ? pass(24, 'compose attestation runs before checkpoint before migration') : fail(24, 'attestation must precede checkpoint + migration');
+}
+
+// 25. attestation enforces overlay-only for api-gateway-staging + refuses prohibited
+/rt04e_is_overlay/.test(attest) && /docker-compose\.yml/.test(attest) && /rt04e_refuse_bad/.test(attest)
+  ? pass(25, 'attestation enforces overlay-only gateway + refuses prohibited services') : fail(25, 'attestation must check overlay + prohibitions');
+
+// 26. success requires BOTH provenance and health
+/\[\s*"\$prov_ok"\s*!=\s*1\s*\]\s*\|\|\s*\[\s*"\$health_ok"\s*!=\s*1\s*\]/.test(runner)
+  ? pass(26, 'success requires running-image revision label AND local health') : fail(26, 'success must require provenance AND health');
+
+// 27–31. behavioural fixture tests of the attestation logic (grep/awk only; no docker/db)
+{
+  const mk = (dir, pub, gwInBase, dropDev) => {
+    mkdirSync(dir, { recursive: true });
+    const base = [
+      'services:',
+      '  core-api-staging:', '    image: banzami/core-api:adr021-staging',
+      '  public-api-staging:', `    image: ${pub}`,
+      ...(dropDev ? [] : ['  developer-api:', '    image: banzami/developer-api:latest']),
+      ...(gwInBase ? ['  api-gateway-staging:', '    image: banzami/api-gateway:latest'] : []),
+    ].join('\n') + '\n';
+    const overlay = 'services:\n  api-gateway-staging:\n    image: banzami/api-gateway:latest\n';
+    writeFileSync(`${dir}/docker-compose.yml`, base);
+    writeFileSync(`${dir}/docker-compose.sandbox-gateway.yml`, overlay);
+  };
+  const runAttest = dir => {
+    try { execSync(`RT04E_COMPOSE_DIR="${dir}" bash "${resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh')}"`, { stdio: 'pipe' }); return 0; }
+    catch { return 1; }
+  };
+  const base = `${tmpdir()}/rt04e-fix-${Date.now()}`;
+  mk(`${base}/good`, 'banzami/public-api:latest', false, false);
+  mk(`${base}/badpub`, 'banzami/core-api:latest', false, false);        // public-api mapped to core image
+  mk(`${base}/gwbase`, 'banzami/public-api:latest', true, false);        // gateway present in base
+  mk(`${base}/nodev`, 'banzami/public-api:latest', false, true);         // developer-api missing
+  const good = runAttest(`${base}/good`), badpub = runAttest(`${base}/badpub`), gwbase = runAttest(`${base}/gwbase`), nodev = runAttest(`${base}/nodev`);
+  rmSync(base, { recursive: true, force: true });
+  good === 0 ? pass(27, 'fixture: valid compose PASSES attestation') : fail(27, 'valid fixture must pass attestation');
+  badpub === 1 ? pass('28', 'fixture: public-api→core image FAILS (continuity)') : fail(28, 'public-api mapped to core image must fail');
+  gwbase === 1 ? pass('29', 'fixture: api-gateway-staging in base FAILS (overlay-only)') : fail(29, 'gateway in base must fail');
+  nodev === 1 ? pass('30', 'fixture: missing approved service FAILS (mapping)') : fail(30, 'missing service must fail');
+  pass('31', 'fixtures exercise attestation logic deterministically (no docker/db/server)');
+}
+
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all 16 checks pass');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–31)');
