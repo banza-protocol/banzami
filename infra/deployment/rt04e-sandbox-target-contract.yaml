@@ -53,12 +53,26 @@ rt04e_sandbox_target_contract:
       deploy_op: overlay_build_and_up
 
   # Immutable provenance: every deployed image must carry this label = the required
-  # canonical revision; the post-deploy gate fails otherwise.
+  # canonical revision; the post-deploy gate fails otherwise, inspecting the ACTUAL
+  # running container image (not merely a local tag).
   revision_label_key: org.opencontainers.image.revision
+
+  # Build-to-runtime continuity: the adapter builds each service's OWN image repo
+  # (below), labels it, and tags it to the EXACT Compose-declared image reference
+  # (derived structurally at runtime). The pre-mutation attestation fails if any
+  # Compose-declared image repo != the expected build repo.
+  image_build_repo:
+    core-api-staging: banzami/core-api
+    public-api-staging: banzami/public-api
+    developer-api: banzami/developer-api
+    api-gateway-staging: banzami/api-gateway
 
   # Only unauthenticated local liveness is permitted during RT04E.
   required_health_endpoint_categories:
-    - unauthenticated_local_liveness           # GET /health, no auth, no mutation
+    - unauthenticated_local_liveness           # /health, no auth, no mutation
+  health_probe_mechanism: docker_healthcheck_status   # container's own /health probe
+  health_path_category: local_health            # no host/URL/port stored here
+  success_requires: [running_image_revision_label_match, local_health_pass]
 
   rollback:
     eligible_services:                          # rollback restores ONLY these

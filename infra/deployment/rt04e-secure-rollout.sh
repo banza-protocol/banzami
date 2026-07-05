@@ -36,6 +36,7 @@ CONTRACT="$REPO_ROOT/infra/deployment/rt04e-sandbox-target-contract.yaml"
 DEPLOY_ADAPTER="$REPO_ROOT/infra/deployment/rt04e-sandbox-deploy.sh"
 ROLLBACK="$REPO_ROOT/infra/deployment/rt04e-sandbox-rollback.sh"
 CHECKPOINT="$REPO_ROOT/infra/deployment/rt04e-migration-checkpoint.sh"
+ATTEST="$REPO_ROOT/infra/deployment/rt04e-sandbox-attest.sh"
 LOCK_FILE="${RT04E_LOCK_FILE:-/run/lock/rt04e-rollout.lock}"
 
 status() { printf '  %s\n' "$1"; }
@@ -88,7 +89,13 @@ done
 [ -x "$DEPLOY_ADAPTER" ] || [ -f "$DEPLOY_ADAPTER" ] || die "sandbox deploy adapter missing — refusing" 12
 [ -f "$ROLLBACK" ] || die "rollback subsystem missing — refusing" 12
 [ -f "$CHECKPOINT" ] || die "migration checkpoint gate missing — refusing" 12
+[ -f "$ATTEST" ] || die "compose attestation stage missing — refusing" 12
 status "target contract loaded · allowlist=[$ALLOW] · no prohibited/live target"
+
+# ── 3b. Pre-mutation Compose structural attestation (HIGH-2) — BEFORE any ─────
+#      migration, image build or service replacement. Fail closed on any anomaly.
+status "stage: pre-mutation compose structural attestation"
+RT04E_COMPOSE_DIR="/srv/banzami" bash "$ATTEST" || die "compose structural attestation failed — refusing to mutate" 12
 
 # ── 4. Protected, ephemeral migration credential handoff (stdin ONLY) ────────
 if [ -t 0 ]; then
@@ -147,15 +154,21 @@ for s in $ALLOW; do
   fi
 done
 
-# ── 10. Unauthenticated local liveness ONLY (no auth, no financial calls) ─────
+# ── 10. Unauthenticated local liveness (HIGH-1) — real check, AFTER provenance ─
+# Uses each container's Docker HEALTHCHECK status (the container's own /health probe
+# per the contract's unauthenticated_local_liveness category). Non-authenticated,
+# non-mutating, no business/financial endpoint, no external redirect, no URL/port/
+# host in output. Fails closed on any non-healthy/unknown status.
 health_ok=1
 if [ "$prov_ok" = 1 ]; then
   for s in $ALLOW; do
-    # liveness is checked per the contract's unauthenticated_local_liveness category;
-    # the adapter records each service's local health port. No auth, no mutation.
-    :
+    cid="$(docker ps --filter "name=$s" --format '{{.Names}}' | head -1)"
+    hs="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid" 2>/dev/null)"
+    if [ "$hs" = "healthy" ]; then status "health PASS: $s (status=healthy)"
+    else status "health FAIL: $s (status=${hs:-unknown})"; health_ok=0; fi
   done
-  status "stage: unauthenticated local liveness checks (see adapter-recorded health)"
+else
+  health_ok=0
 fi
 
 # ── 11. Rollback decision gate (R3) ──────────────────────────────────────────
