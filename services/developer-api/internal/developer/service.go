@@ -16,6 +16,7 @@ type Service struct {
 	inviteTTL       time.Duration
 	payee           PayeeValidator
 	paymentReleased bool // deploy-vs-release control (RT04C §1)
+	fixturesEnabled bool // operator E2E fixture-key path, sandbox-only (RT04D §2)
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the
@@ -48,6 +49,11 @@ func (s *Service) SetPaymentCapabilityReleased(released bool) { s.paymentRelease
 // PaymentCapabilityReleased reports the current public-release state (for the
 // Console scope-catalog + status surfaces).
 func (s *Service) PaymentCapabilityReleased() bool { return s.paymentReleased }
+
+// SetFixturesEnabled hard-gates the operator E2E fixture-key path (RT04D §2).
+// Main sets this true ONLY in a sandbox/development environment, so the fixture
+// path is hard-disabled outside Sandbox regardless of any other configuration.
+func (s *Service) SetFixturesEnabled(enabled bool) { s.fixturesEnabled = enabled }
 
 // canBuild reports whether a role may create projects / issue API keys.
 func canBuild(role string) bool {
@@ -404,6 +410,12 @@ func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name
 // under-test payment path. It is reached only over the internal, X-Internal-Key
 // guarded surface (no session actor, no self-service) and is audited as a fixture.
 func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name string, scopes []string, createdBy, ip, reqID string) (APIKey, string, error) {
+	// Hard sandbox gate (RT04D §2 item 5): the fixture path is disabled outside a
+	// sandbox environment, independent of the internal-key guard. It can never be
+	// enabled by a browser flag, URL parameter or generic env toggle.
+	if !s.fixturesEnabled {
+		return APIKey{}, "", ErrForbidden
+	}
 	proj, err := s.store.Project(ctx, projectID)
 	if err != nil || proj == nil {
 		return APIKey{}, "", ErrNotFound

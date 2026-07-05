@@ -32,8 +32,18 @@ func TestReleaseControl_ReleasedAllowsPublicPaymentScopes(t *testing.T) {
 	}
 }
 
+func TestReleaseControl_FixtureDisabledOutsideSandbox(t *testing.T) {
+	// fixturesEnabled defaults false (hard-disabled outside sandbox, RT04D §2).
+	s, _, ws := wsWithRoles(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, _, err := s.CreateFixtureAPIKey(bg, pid, "e2e", []string{"payment_sessions:write"}, "op", "", ""); err != ErrForbidden {
+		t.Fatalf("fixture path must be hard-disabled when fixtures are off, got %v", err)
+	}
+}
+
 func TestReleaseControl_FixtureKeyBypassesWhileUnreleased(t *testing.T) {
 	s, st, ws := wsWithRoles(t) // unreleased
+	s.SetFixturesEnabled(true)  // sandbox
 	pid := mkProject(t, s, "u_owner", ws)
 
 	key, secret, err := s.CreateFixtureAPIKey(bg, pid, "e2e", []string{"payment_sessions:write", "payment_links:write"}, "operator", "", "")
@@ -64,6 +74,7 @@ func TestReleaseControl_FixtureKeyBypassesWhileUnreleased(t *testing.T) {
 
 func TestReleaseControl_FixtureKeyRejectsUnknownProjectAndScope(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
+	s.SetFixturesEnabled(true)
 	pid := mkProject(t, s, "u_owner", ws)
 	if _, _, err := s.CreateFixtureAPIKey(bg, "p_missing", "e2e", []string{"payment_sessions:write"}, "op", "", ""); err != ErrNotFound {
 		t.Errorf("unknown project: want ErrNotFound, got %v", err)

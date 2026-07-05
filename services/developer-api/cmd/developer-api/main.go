@@ -111,7 +111,11 @@ func main() {
 	// Deploy-vs-release control (RT04C §1): logged without secrets. Config already
 	// forces this false outside a sandbox environment.
 	devSvc.SetPaymentCapabilityReleased(cfg.PaymentCapabilityReleased)
-	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "env", cfg.Environment)
+	// Operator E2E fixture-key path is hard-enabled ONLY in a sandbox/development
+	// environment (RT04D §2); hard-disabled everywhere else regardless of config.
+	fixturesEnabled := cfg.Environment == "sandbox" || cfg.Environment == "SANDBOX" || cfg.Environment == "development"
+	devSvc.SetFixturesEnabled(fixturesEnabled)
+	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "fixtures", fixturesEnabled, "env", cfg.Environment)
 	devH := developer.NewHandlers(devSvc)
 
 	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth, Dev: devH})
