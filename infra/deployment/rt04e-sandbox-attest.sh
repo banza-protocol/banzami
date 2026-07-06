@@ -28,11 +28,13 @@ rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV is not a valid gi
 [ -f "$RT04E_OVERRIDE" ] || die "generated RT04E override not found — refusing" 1
 [ -f "$PARSER" ] || die "attestation parser missing — refusing" 1
 
-# 1+2. Verify Compose supports the required SAFE flags before proceeding; fail closed.
+# 1+2. Verify Compose supports the required CONFIDENTIALITY + SAFE flags before
+#       proceeding; fail closed if any is missing. --no-env-resolution keeps service
+#       env files unresolved and environment values out of the model entirely.
 docker compose version >/dev/null 2>&1 || die "docker compose unavailable — refusing" 2
 help="$(docker compose config --help 2>&1 || true)"
-for flag in --no-interpolate --format; do
-  printf '%s' "$help" | grep -q -- "$flag" || die "docker compose config lacks $flag — required safe flag unavailable" 2
+for flag in --no-interpolate --no-env-resolution --format; do
+  printf '%s' "$help" | grep -q -- "$flag" || die "docker compose config lacks $flag — required confidentiality/safe flag unavailable" 2
 done
 # up-side isolation flags must also be supported (checked here so we fail before mutation)
 uphelp="$(docker compose up --help 2>&1 || true)"
@@ -40,11 +42,27 @@ for flag in --no-build --pull --force-recreate --no-deps; do
   printf '%s' "$uphelp" | grep -q -- "$flag" || die "docker compose up lacks $flag — isolation guarantee unavailable" 2
 done
 
-# 3+4+5. Authoritative model: config --no-interpolate, piped DIRECTLY to the parser.
-#        The full resolved config is never printed, logged or written to disk.
-files="$(rt04e_compose_file_args "$RT04E_OVERRIDE")"
-if ! ( cd "$RT04E_COMPOSE_DIR" && docker compose $files config --no-interpolate --format json 2>/dev/null ) \
-     | RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$PARSER"; then
-  die "semantic compose attestation FAILED — refusing to mutate" 1
+# Hermeticity: refuse if any inherited COMPOSE_* control could steer file/project/
+# profile/orphan selection (the central wrapper also unsets them for the child).
+rt04e_assert_clean_compose_env || die "inherited COMPOSE_* control present — refusing (hermeticity)" 2
+
+# Authoritative model via the central hermetic wrapper. config --no-interpolate
+# --no-env-resolution --format json is piped DIRECTLY to the constrained parser;
+# the resolved config is never printed, logged or written to disk. Both projections
+# run: PROJECTION=base proves api-gateway-staging is overlay-only (absent from base),
+# PROJECTION=full proves the four services + literal immutable references.
+CFG="config --no-interpolate --no-env-resolution --format json"
+
+# Projection A — approved base ONLY (no overlay, no override).
+if ! rt04e_compose base "$RT04E_OVERRIDE" $CFG 2>/dev/null \
+     | RT04E_PROJECTION=base RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$PARSER"; then
+  die "base-only projection FAILED — overlay-provenance/structure invalid — refusing to mutate" 1
 fi
-printf '  attestation: PASS — four services resolve to literal immutable RT04E references (semantic)\n'
+printf '  attestation A (base-only): PASS — base services present, gateway overlay-only\n'
+
+# Projection B — full RT04E composition (base → gateway overlay → immutable override).
+if ! rt04e_compose full "$RT04E_OVERRIDE" $CFG 2>/dev/null \
+     | RT04E_PROJECTION=full RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$PARSER"; then
+  die "full-composition projection FAILED — refusing to mutate" 1
+fi
+printf '  attestation B (full): PASS — four services resolve to literal immutable RT04E references\n'
