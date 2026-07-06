@@ -1,0 +1,19 @@
+# RT04E immutable image override — TEMPLATE (source-controlled).
+#
+# The runtime runner generates a concrete, ROOT-OWNED override OUTSIDE the repo by
+# substituting the {{RT04E_RELEASE_REV}} placeholder with the strictly-validated
+# canonical release revision (literal, never shell-evaluated). It overrides ONLY the
+# `image` field of the four allowlisted Sandbox services, pinning each to the
+# IMMUTABLE RT04E release reference banzami/<repo>:rt04e-<rev>. This override is the
+# FINAL Compose layer (after base + sandbox overlay), so service→image resolution is
+# literal after Compose semantic resolution. It contains no credentials, hostnames,
+# URLs, ports, environment values, secret names, volumes or database configuration.
+services:
+  core-api-staging:
+    image: banzami/core-api:rt04e-{{RT04E_RELEASE_REV}}
+  public-api-staging:
+    image: banzami/public-api:rt04e-{{RT04E_RELEASE_REV}}
+  developer-api:
+    image: banzami/developer-api:rt04e-{{RT04E_RELEASE_REV}}
+  api-gateway-staging:
+    image: banzami/api-gateway:rt04e-{{RT04E_RELEASE_REV}}
