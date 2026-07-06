@@ -21,9 +21,14 @@ Capability **release** and **financial E2E** are **separate follow-on gates**.
 ## Canonical source requirement
 - Build source is **only** `/srv/banzami/src` (canonical checkout). The runner
   defaults `REPO_ROOT` to it and **refuses** legacy/`/srv/banzami/repo`/arbitrary roots.
-- The runner requires `RT04E_RELEASE_REV` (the approved revision), verifies the
-  checkout is `main`, clean, matches the revision, and has **no git remotes**. It
-  performs **no** git state change.
+- `RT04E_RELEASE_REV` must be the **full immutable canonical Git SHA** — exactly 40
+  lowercase hex characters. Abbreviated revisions, branch names, tags and symbolic
+  refs are **rejected** (`rt04e_valid_rev`, parser `^[0-9a-f]{40}$`). The runner
+  verifies the checkout is `main`, clean, has **no git remotes**, and that the SHA
+  **equals the verified canonical `HEAD`** (never inferred from an arbitrary
+  directory). It performs **no** git state change. The full SHA is used in the
+  immutable image tag, the OCI revision label, the override rendering, the rollback
+  manifest and evidence identifiers.
 
 ## Source-to-runtime mapping (declared in `rt04e-sandbox-target-contract.yaml`)
 | Service | Compose file / overlay | Immutable release reference |
@@ -33,7 +38,7 @@ Capability **release** and **financial E2E** are **separate follow-on gates**.
 | developer-api | `docker-compose.yml` | `banzami/developer-api:rt04e-<rev>` |
 | api-gateway-staging | `docker-compose.sandbox-gateway.yml` (overlay) | `banzami/api-gateway:rt04e-<rev>` |
 
-`<rev>` is the strict-hex canonical release revision (`RT04E_RELEASE_REV`). The
+`<rev>` is the full 40-hex canonical release SHA (`RT04E_RELEASE_REV`). The
 runner + adapter fail closed if the target is not `sandbox`, a service is outside
 the allowlist, a prohibited service resolves, a required service is unmapped, or the
 compose mapping is incomplete/ambiguous.
@@ -59,23 +64,49 @@ completion** via an `EXIT/INT/TERM/HUP` trap. Every Compose operation uses the
 **fixed file order** `docker-compose.yml` + `docker-compose.sandbox-gateway.yml` +
 generated override (never caller input).
 
-## Pre-mutation SEMANTIC Compose attestation
+## Pre-mutation SEMANTIC Compose attestation (confidential + two projections)
 `rt04e-sandbox-attest.sh` runs **before** any migration checkpoint, migration, image
 build, service replacement, or rollback decision. It uses the **Docker Compose
-engine** as the authority — `docker compose <fixed files> config --no-interpolate
---format json` — **not** grep/awk on Compose text. It first verifies Compose
-**supports the required safe flags** (`config --no-interpolate/--format`, `up
---no-build/--pull/--force-recreate/--no-deps`) and **fails closed** if any is
-unavailable. The resolved JSON is piped **directly** to a constrained parser
-(`tools/rt04e-attest-parser.mjs`) that reads stdin only, never writes the config to
-disk, and emits **only** PASS/FAIL categories per service (never an image value or
-any Compose field). It fails closed unless every allowlisted service resolves to the
-**literal** immutable reference `banzami/<repo>:rt04e-<rev>`, with **no unresolved
-`${…}` interpolation marker**, no ambiguity, no prohibited service, and no missing
-service; unexpected JSON shape exits non-zero.
+engine** as the authority — `docker compose … config --no-interpolate
+--no-env-resolution --format json` — **not** grep/awk on Compose text.
+
+**Confidentiality.** Both `--no-interpolate` **and** `--no-env-resolution` are
+required (and their support verified first — fail closed if unavailable, alongside
+the `up` isolation flags). `--no-env-resolution` keeps service **env files
+unresolved** and environment values **out of the model entirely**. The resolved JSON
+is piped **directly** to a constrained parser (`tools/rt04e-attest-parser.mjs`) that
+reads stdin only, **never writes the config to disk**, and emits **only** PASS/FAIL
+categories per service — never an image value, env value, host, URL, port or any
+Compose field. It rejects unexpected object shapes (exit 2).
+
+**Two projections** prove overlay provenance by contrast (source-file provenance is
+never inferred from a single merged model):
+- **Projection A — base only** (`docker-compose.yml` only): `core-api-staging`,
+  `public-api-staging`, `developer-api` **exist**; `api-gateway-staging` **does not
+  exist**; no prohibited service.
+- **Projection B — full composition** (base → gateway overlay → immutable override):
+  all four services **exist**; `api-gateway-staging` exists **only here**; each
+  service resolves to its **literal** immutable reference `banzami/<repo>:rt04e-<full
+  SHA>`; **no `${…}` interpolation marker**; no ambiguity/duplicate; no prohibited
+  service.
+
+The runner executes **both** projections before checkpoint/migration/build/
+replacement/rollback-decision.
+
+## Hermetic Compose invocation
+Every RT04E `docker compose` call (attestation, deployment, rollback) goes through a
+**single central wrapper** (`rt04e_compose` in `rt04e-sandbox-lib.sh`). The wrapper
+uses a **fixed approved file set + fixed order**, a **fixed project name**
+(`rt04e-sandbox`) and **fixed project directory** (`/srv/banzami`), never activates
+profiles, and **rejects/unsets inherited `COMPOSE_*` controls** that could steer file
+selection, project selection, profiles, path separation or orphan behaviour
+(`COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`, `COMPOSE_PROFILES`, `COMPOSE_PATH_SEPARATOR`,
+`COMPOSE_IGNORE_ORPHANS`, and related). It never accepts a caller-supplied Compose
+file path, project name, profile, service, env file, source root, image repo, tag or
+revision, and never passes `--remove-orphans`.
 
 ## Exact, isolated service replacement
-Replacement is exactly `docker compose <fixed files> up -d --no-build --pull never
+Replacement runs through the wrapper as exactly `up -d --no-build --pull never
 --force-recreate --no-deps <single-allowlisted-service>`: **no build** (the image is
 pre-built and tagged), **no pull** (never fetch a mutable remote tag), **forced
 recreation** of only the target, **no dependency mutation**, and **no
@@ -130,6 +161,7 @@ flow — those are distinct, separately-approved gates.
 
 ## Enforcement
 `make check-rt04e-rollout-safety` — 16 static checks + behavioural/continuity checks
-17–41 (immutable-tag, isolation-flag, prune-proof, override-generation and
-constrained-parser fixtures, all Docker/DB/secret-free); `make
-check-rollout-secret-hygiene`.
+17–61 (immutable-tag, isolation-flag, prune-proof, override-generation,
+`--no-env-resolution` confidentiality, base-only vs full projection, full-SHA
+identity, hermetic-wrapper + inherited-`COMPOSE_*` rejection, and constrained-parser
+fixtures — all Docker/DB/secret-free); `make check-rollout-secret-hygiene`.

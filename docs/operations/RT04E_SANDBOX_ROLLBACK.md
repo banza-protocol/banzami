@@ -38,9 +38,11 @@ RT04E never prunes/`rmi` anywhere.
    captured declared reference still equals `rt04e_release_ref` for the release;
    confirm the **retained prestate tag still resolves to the captured image ID**;
    **re-point that exact immutable declared reference to the captured image ID**; bring
-   up only that service with the **full isolation flags** (`--no-build --pull never
-   --force-recreate --no-deps`, fixed file order); then **verify the restored running
-   image ID equals the captured ID** (fail otherwise). **Fails closed** if a captured
+   up only that service through the **central hermetic Compose wrapper** (`rt04e_compose`
+   — fixed file set/order, fixed project scope, inherited `COMPOSE_*` rejected) with the
+   **full isolation flags** (`--no-build --pull never --force-recreate --no-deps`); then
+   **verify the restored running image ID equals the captured ID** (fail otherwise).
+   The release identifier is the **full 40-hex canonical SHA**. **Fails closed** if a captured
    image ID or retained pin is missing. Never targets Live/Production/unspecified
    services. **Never reverses a migration.**
 3. **verify** — confirms restored running image IDs against the manifest (PASS/FAIL).
