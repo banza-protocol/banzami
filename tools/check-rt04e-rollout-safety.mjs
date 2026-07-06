@@ -139,6 +139,7 @@ const lib = read('infra/deployment/rt04e-sandbox-lib.sh');
 const attest = read('infra/deployment/rt04e-sandbox-attest.sh');
 const parser = read('tools/rt04e-attest-parser.mjs');
 const PARSER_PATH = resolve(ROOT, 'tools/rt04e-attest-parser.mjs');
+const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
 
 // 17. IMMUTABLE release tag only — adapter tags rt04e_release_ref; no latest/adr021-staging
 /rt04e-%s/.test(lib) && /rt04e_release_ref/.test(adapter) && !/:latest\b|:adr021-staging\b/.test(adapter.replace(/#.*$/gm, ''))
@@ -185,11 +186,11 @@ const PARSER_PATH = resolve(ROOT, 'tools/rt04e-attest-parser.mjs');
     ? pass(24, 'compose attestation runs before checkpoint before migration') : fail(24, 'attestation must precede checkpoint + migration');
 }
 
-// 25. attestation is SEMANTIC (docker compose config → constrained parser), not grep/awk
-/docker compose\b[\s\S]{0,80}config[\s\S]{0,60}--no-interpolate/.test(attest)
-  && /--format json/.test(attest) && /node "\$PARSER"/.test(attest)
+// 25. attestation is SEMANTIC (compose config via wrapper → constrained parser), not grep/awk
+/config --no-interpolate --no-env-resolution --format json/.test(attest)
+  && /rt04e_compose (base|full)/.test(attest) && /node "\$PARSER"/.test(attest)
   && !/\bgrep -E .*image\b|\bawk\b[\s\S]{0,40}image/.test(attest)
-  ? pass(25, 'attestation uses semantic `docker compose config` piped to the constrained parser (no grep/awk on images)')
+  ? pass(25, 'attestation uses semantic `docker compose config` (via the hermetic wrapper) piped to the parser (no grep/awk on images)')
   : fail(25, 'attestation must be semantic (compose config → parser), never grep/awk on compose text');
 
 // 26. success requires BOTH provenance and health
@@ -203,9 +204,10 @@ const PARSER_PATH = resolve(ROOT, 'tools/rt04e-attest-parser.mjs');
 // 28. isolation flags (--no-build --pull never --force-recreate --no-deps) are the ONLY up mode
 {
   const flagsOk = /RT04E_UP_FLAGS=.*--no-build.*--pull never.*--force-recreate.*--no-deps/.test(lib);
-  const adapterUses = /\$RT04E_UP_FLAGS "\$SVC"/.test(adapter) && !/\bup -d\b(?![^\n]*RT04E_UP_FLAGS)/.test(adapter);
-  const rollbackUses = /\$RT04E_UP_FLAGS "\$s"/.test(rollback);
-  const noOrphans = !/--remove-orphans/.test(adapter + rollback);
+  const adapterUses = /rt04e_compose full "\$RT04E_OVERRIDE" \$RT04E_UP_FLAGS "\$SVC"/.test(adapter);
+  const rollbackUses = /rt04e_compose full "\$RT04E_OVERRIDE" \$RT04E_UP_FLAGS "\$s"/.test(rollback);
+  const stripC = s => s.split('\n').map(l => l.replace(/(^|\s)#.*$/, '')).join('\n');
+  const noOrphans = !/--remove-orphans/.test(stripC(adapter + '\n' + rollback + '\n' + lib + '\n' + attest));
   (flagsOk && adapterUses && rollbackUses && noOrphans)
     ? pass(28, 'replacement uses only --no-build/--pull never/--force-recreate/--no-deps, single service, no --remove-orphans')
     : fail(28, 'replacement must use the full isolation flag set on a single service, no orphans removal');
@@ -242,59 +244,178 @@ const PARSER_PATH = resolve(ROOT, 'tools/rt04e-attest-parser.mjs');
     : fail(31, 'override must be generated outside the repo, 0600, literal substitution, trap-cleaned');
 }
 
-// 32. attestation verifies Compose supports the required safe flags BEFORE mutating (fail closed)
-/config --help[\s\S]{0,200}(--no-interpolate|--format)/.test(attest) && /up --help[\s\S]{0,200}--no-build/.test(attest)
-  ? pass(32, 'attestation verifies compose config + up safe-flag support before any mutation') : fail(32, 'attestation must verify compose safe-flag support first (fail closed)');
+// 32. attestation verifies Compose supports the required flags BEFORE mutating (fail closed),
+//     including --no-env-resolution (confidentiality) and the up-side isolation flags.
+/config --help[\s\S]{0,240}--no-env-resolution/.test(attest) && /up --help[\s\S]{0,200}--no-build/.test(attest)
+  ? pass(32, 'attestation verifies compose config (incl --no-env-resolution) + up safe-flag support before any mutation') : fail(32, 'attestation must verify compose safe-flag support first (incl --no-env-resolution)');
 
-// 33–40. deterministic parser fixtures — feed crafted JSON via stdin, no docker/db/secret
+// 33. Compose config attestation requires BOTH --no-interpolate AND --no-env-resolution
+/--no-interpolate/.test(attest) && /--no-env-resolution/.test(attest)
+  && /for flag in --no-interpolate --no-env-resolution --format/.test(attest)
+  ? pass(33, 'attestation config command requires --no-interpolate AND --no-env-resolution (env confidentiality)')
+  : fail(33, 'attestation must require both --no-interpolate and --no-env-resolution');
+
+// 34. attestation runs BOTH projections (base-only + full) before mutation
+/rt04e_compose base /.test(attest) && /rt04e_compose full /.test(attest)
+  && /RT04E_PROJECTION=base/.test(attest) && /RT04E_PROJECTION=full/.test(attest)
+  ? pass(34, 'attestation runs base-only AND full-composition projections (overlay-provenance proof)')
+  : fail(34, 'attestation must run both base-only and full projections');
+
+// 35. central hermetic Compose wrapper exists in the shared lib (fixed files/order/project/dir)
 {
-  const REV = 'a1b2c3d';
-  const compose = (imgs) => JSON.stringify({ services: Object.fromEntries(Object.entries(imgs).map(([k, v]) => [k, { image: v }])) });
-  const good = {
+  const wrapper = /rt04e_compose\(\)\s*\{[\s\S]*?\n\}/.exec(lib)?.[0] || '';
+  const fixedProject = /RT04E_PROJECT_NAME="rt04e-sandbox"/.test(lib) && /RT04E_PROJECT_DIR="\/srv\/banzami"/.test(lib);
+  const fixedOrder = /-f docker-compose\.yml -f docker-compose\.sandbox-gateway\.yml -f "\$override"/.test(wrapper);
+  const fixedProjFlags = /--project-name "\$RT04E_PROJECT_NAME"/.test(wrapper) && /--project-directory "\$RT04E_PROJECT_DIR"/.test(wrapper);
+  const unsets = /unset \$RT04E_COMPOSE_ENV_VARS/.test(wrapper);
+  (wrapper && fixedProject && fixedOrder && fixedProjFlags && unsets)
+    ? pass(35, 'lib defines a hermetic Compose wrapper: fixed file order, fixed project name/dir, unsets COMPOSE_*')
+    : fail(35, 'lib must define a hermetic Compose wrapper with fixed scope + COMPOSE_* unsetting');
+}
+
+// 36. wrapper rejects inherited COMPOSE_* controls (assert guards the required set)
+{
+  const need = ['COMPOSE_FILE', 'COMPOSE_PROJECT_NAME', 'COMPOSE_PROFILES', 'COMPOSE_PATH_SEPARATOR', 'COMPOSE_IGNORE_ORPHANS'];
+  const listed = need.every(v => new RegExp(`\\b${v}\\b`).test(lib));
+  const guarded = /rt04e_assert_clean_compose_env\(\)\s*\{[\s\S]*?printenv[\s\S]*?return 1/.test(lib)
+    && /rt04e_compose\(\)[\s\S]{0,200}rt04e_assert_clean_compose_env \|\| return/.test(lib);
+  const usedByRunnerAndAttest = /rt04e_assert_clean_compose_env/.test(runner) && /rt04e_assert_clean_compose_env/.test(attest);
+  (listed && guarded && usedByRunnerAndAttest)
+    ? pass(36, 'hermeticity guard rejects inherited COMPOSE_* (file/project/profiles/path-sep/orphans) in wrapper + runner + attest')
+    : fail(36, 'COMPOSE_* rejection guard must cover the required set and gate the wrapper/runner/attest');
+}
+
+// 37. deploy + rollback go through the wrapper ONLY (no raw `docker compose` operation)
+!/docker compose\b/.test(adapter) && !/docker compose\b/.test(rollback)
+  && /rt04e_compose full /.test(adapter) && /rt04e_compose full /.test(rollback)
+  ? pass(37, 'deploy + rollback invoke Compose only via the hermetic wrapper (no raw docker compose)')
+  : fail(37, 'deploy/rollback must not bypass the hermetic Compose wrapper');
+
+// 38. attest's only raw `docker compose` are non-mutating probes (version / --help); ops via wrapper
+{
+  const rawOps = (attest.match(/docker compose\b[^\n]*/g) || [])
+    .filter(l => !/(version|config --help|up --help)/.test(l))
+    .filter(l => !/\bdie\b|lacks|refusing|unavailable/.test(l)); // drop error-message strings
+  rawOps.length === 0
+    ? pass(38, 'attest uses raw `docker compose` only for version/--help probes; config runs via the wrapper')
+    : fail(38, 'attest must not run raw docker compose operations outside the wrapper');
+}
+
+// 39. FULL canonical SHA required — lib validates exactly 40 hex; parser regex is 40-hex
+/rt04e_valid_rev\(\)[\s\S]{0,140}"\$\{#1\}"\s*-eq\s*40/.test(lib) && /\^\[0-9a-f\]\{40\}\$/.test(parser)
+  ? pass(39, 'release revision must be the full 40-hex canonical SHA (lib + parser)') : fail(39, 'RT04E_RELEASE_REV must be the full 40-hex SHA (no abbreviation)');
+
+// 40. immutable tag derivation embeds the full validated SHA (rt04e-<rev>, rev validated 40-hex)
+/rt04e_release_ref\(\)[\s\S]{0,120}rt04e_valid_rev "\$2" \|\| return 1[\s\S]{0,80}printf '%s:rt04e-%s'/.test(lib)
+  && /rt04e_prestate_tag\(\)[\s\S]{0,120}rt04e_valid_rev "\$2" \|\| return 1/.test(lib)
+  ? pass(40, 'immutable release + prestate tags embed the full validated canonical SHA (rev-guarded)') : fail(40, 'immutable tag must embed the full validated SHA');
+
+// 41–52. deterministic parser fixtures — crafted JSON via stdin, no docker/db/secret
+{
+  const REV = 'a'.repeat(40);                                  // full 40-hex canonical SHA
+  const SHORT = 'a1b2c3d';                                     // abbreviated (must be rejected)
+  const compose = (imgs) => JSON.stringify({ services: Object.fromEntries(Object.entries(imgs).map(([k, v]) => [k, v === null ? {} : { image: v }])) });
+  const fullGood = {
     'core-api-staging': `banzami/core-api:rt04e-${REV}`,
     'api-gateway-staging': `banzami/api-gateway:rt04e-${REV}`,
     'developer-api': `banzami/developer-api:rt04e-${REV}`,
     'public-api-staging': `banzami/public-api:rt04e-${REV}`,
   };
-  const runParser = (input, env = {}) => {
+  const baseGood = { 'core-api-staging': null, 'developer-api': null, 'public-api-staging': null };
+  const run = (input, env = {}) => {
     try {
       const out = execSync(`node "${PARSER_PATH}"`, { input, stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } });
+        env: { ...process.env, RT04E_RELEASE_REV: REV, RT04E_PROJECTION: 'full', ...env } });
       return { code: 0, out: out.toString() };
     } catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
   };
 
-  const rGood = runParser(compose(good));
-  rGood.code === 0 ? pass(33, 'parser: four literal immutable references PASS (exit 0)') : fail(33, 'valid immutable fixture must pass');
+  // full projection
+  const rFull = run(compose(fullGood));
+  rFull.code === 0 ? pass(41, 'parser[full]: four literal immutable references PASS (exit 0)') : fail(41, 'valid full fixture must pass');
 
-  const rLatest = runParser(compose({ ...good, 'core-api-staging': 'banzami/core-api:latest' }));
-  rLatest.code === 1 ? pass(34, 'parser: mutable `latest` tag FAILS (exit 1)') : fail(34, 'mutable latest tag must fail');
+  const rLatest = run(compose({ ...fullGood, 'core-api-staging': 'banzami/core-api:latest' }));
+  rLatest.code === 1 ? pass(42, 'parser[full]: mutable `latest` tag FAILS (exit 1)') : fail(42, 'mutable latest tag must fail');
 
-  const rInterp = runParser(compose({ ...good, 'public-api-staging': 'banzami/public-api:rt04e-${REV}' }));
-  rInterp.code === 1 ? pass(35, 'parser: unresolved ${…} interpolation marker FAILS (exit 1)') : fail(35, 'interpolation marker must fail');
+  const rInterp = run(compose({ ...fullGood, 'public-api-staging': 'banzami/public-api:rt04e-${REV}' }));
+  rInterp.code === 1 ? pass(43, 'parser[full]: unresolved ${…} interpolation marker FAILS (exit 1)') : fail(43, 'interpolation marker must fail');
 
-  const rWrongRepo = runParser(compose({ ...good, 'public-api-staging': `banzami/core-api:rt04e-${REV}` }));
-  rWrongRepo.code === 1 ? pass(36, 'parser: wrong image repo (public-api→core-api) FAILS (exit 1)') : fail(36, 'wrong repo must fail');
+  const rWrongRepo = run(compose({ ...fullGood, 'public-api-staging': `banzami/core-api:rt04e-${REV}` }));
+  rWrongRepo.code === 1 ? pass(44, 'parser[full]: wrong image repo FAILS (exit 1)') : fail(44, 'wrong repo must fail');
 
-  const noDev = { ...good }; delete noDev['developer-api'];
-  const rMissing = runParser(compose(noDev));
-  rMissing.code === 1 ? pass(37, 'parser: missing approved service FAILS (exit 1)') : fail(37, 'missing service must fail');
+  const noGw = { ...fullGood }; delete noGw['api-gateway-staging'];
+  const rNoGw = run(compose(noGw));
+  rNoGw.code === 1 ? pass(45, 'parser[full]: api-gateway-staging MISSING in full composition FAILS (exit 1)') : fail(45, 'missing gateway in full must fail');
 
-  const rBadJson = runParser('this is not json');
-  rBadJson.code === 2 ? pass(38, 'parser: unexpected/non-JSON input FAILS closed (exit 2)') : fail(38, 'non-JSON input must exit 2');
+  // base projection
+  const rBase = run(compose(baseGood), { RT04E_PROJECTION: 'base' });
+  rBase.code === 0 ? pass(46, 'parser[base]: base services present, gateway absent PASS (exit 0)') : fail(46, 'valid base fixture must pass');
 
-  const rBadShape = runParser(JSON.stringify({ notservices: {} }));
-  rBadShape.code === 2 ? pass(39, 'parser: unexpected JSON shape (no services) FAILS closed (exit 2)') : fail(39, 'unexpected shape must exit 2');
+  const rBaseGw = run(compose({ ...baseGood, 'api-gateway-staging': null }), { RT04E_PROJECTION: 'base' });
+  rBaseGw.code === 1 ? pass(47, 'parser[base]: api-gateway-staging PRESENT in base FAILS (overlay-only) (exit 1)') : fail(47, 'gateway in base must fail');
 
-  // parser must NEVER emit an image value (no `banzami/…:…` string) on PASS or FAIL
-  const leaks = [rGood, rLatest, rInterp, rWrongRepo].some(r => /banzami\/[a-z-]+:/.test(r.out));
-  !leaks ? pass(40, 'parser never emits an image reference value (PASS/FAIL categories only)') : fail(40, 'parser must not print image reference values');
+  const baseNoDev = { ...baseGood }; delete baseNoDev['developer-api'];
+  const rBaseNoDev = run(compose(baseNoDev), { RT04E_PROJECTION: 'base' });
+  rBaseNoDev.code === 1 ? pass(48, 'parser[base]: missing base service FAILS (exit 1)') : fail(48, 'missing base service must fail');
+
+  // prohibited service present in either projection
+  const rProhib = run(compose({ ...fullGood, 'core-api': `banzami/core-api:rt04e-${REV}` }));
+  rProhib.code === 1 ? pass(49, 'parser: prohibited service present in projection FAILS (exit 1)') : fail(49, 'prohibited service must fail');
+
+  // revision identity
+  const rShort = run(compose(fullGood), { RT04E_RELEASE_REV: SHORT });
+  rShort.code === 2 ? pass(50, 'parser: abbreviated (short) SHA REJECTED closed (exit 2)') : fail(50, 'short SHA must be rejected');
+
+  const rBranch = run(compose(fullGood), { RT04E_RELEASE_REV: 'main' });
+  rBranch.code === 2 ? pass(51, 'parser: branch/symbolic ref REJECTED closed (exit 2)') : fail(51, 'branch name must be rejected');
+
+  const rNoProj = run(compose(fullGood), { RT04E_PROJECTION: '' });
+  rNoProj.code === 2 ? pass(52, 'parser: missing/invalid RT04E_PROJECTION REJECTED closed (exit 2)') : fail(52, 'missing projection must be rejected');
+
+  // shape rejection + no leakage
+  const rBadJson = run('this is not json');
+  const rBadShape = run(JSON.stringify({ notservices: {} }));
+  (rBadJson.code === 2 && rBadShape.code === 2)
+    ? pass(53, 'parser: non-JSON + unexpected shape REJECTED closed (exit 2)') : fail(53, 'unexpected input must exit 2');
+
+  const leaks = [rFull, rLatest, rInterp, rWrongRepo, rBase, rBaseGw, rProhib].some(r => /banzami\/[a-z-]+:/.test(r.out));
+  !leaks ? pass(54, 'parser never emits an image reference value (PASS/FAIL categories only)') : fail(54, 'parser must not print image reference values');
 }
 
-// 41. parser reads stdin only and never writes the input to disk / retains full config
+// 55. parser reads stdin only and never writes the input to disk / retains full config
 /readFileSync\(0,/.test(parser) && /raw = null/.test(parser) && /doc = null/.test(parser)
   && !/writeFileSync|createWriteStream|appendFileSync/.test(parser)
-  ? pass(41, 'parser reads stdin only, releases the config, and never writes it to disk') : fail(41, 'parser must not persist the compose config');
+  ? pass(55, 'parser reads stdin only, releases the config, and never writes it to disk') : fail(55, 'parser must not persist the compose config');
+
+// 56–60. deterministic hermeticity fixtures — source the lib + call the guard (no docker)
+{
+  const cleanEnv = { ...process.env };
+  for (const k of Object.keys(cleanEnv)) if (/^COMPOSE_/.test(k)) delete cleanEnv[k];
+  const callGuard = (extra = {}) => {
+    try {
+      execSync(`bash -c '. "${LIB_PATH}"; rt04e_assert_clean_compose_env'`, { stdio: 'pipe', env: { ...cleanEnv, ...extra } });
+      return 0;
+    } catch (e) { return e.status ?? 1; }
+  };
+  callGuard() === 0 ? pass(56, 'hermeticity guard PASSES with a clean COMPOSE_* environment') : fail(56, 'clean env must pass the guard');
+  callGuard({ COMPOSE_FILE: '/x/evil.yml' }) !== 0 ? pass(57, 'inherited COMPOSE_FILE REJECTED by the guard') : fail(57, 'COMPOSE_FILE must be rejected');
+  callGuard({ COMPOSE_PROJECT_NAME: 'evil' }) !== 0 ? pass(58, 'inherited COMPOSE_PROJECT_NAME REJECTED by the guard') : fail(58, 'COMPOSE_PROJECT_NAME must be rejected');
+  callGuard({ COMPOSE_PROFILES: 'debug' }) !== 0 ? pass(59, 'inherited COMPOSE_PROFILES REJECTED by the guard') : fail(59, 'COMPOSE_PROFILES must be rejected');
+  callGuard({ COMPOSE_IGNORE_ORPHANS: '1' }) !== 0 ? pass(60, 'inherited COMPOSE_IGNORE_ORPHANS REJECTED by the guard') : fail(60, 'COMPOSE_IGNORE_ORPHANS must be rejected');
+
+  // wrapper rejects a bad projection + a missing override BEFORE reaching docker
+  const callWrap = (args, extra = {}) => {
+    try {
+      execSync(`bash -c '. "${LIB_PATH}"; rt04e_compose ${args}'`, { stdio: 'pipe', env: { ...cleanEnv, ...extra } });
+      return 0;
+    } catch (e) { return e.status ?? 1; }
+  };
+  const badProj = callWrap('bogus "" config');
+  const missOverride = callWrap('full /nonexistent/override.yml config');
+  (badProj === 6 && missOverride === 3)
+    ? pass(61, 'wrapper rejects a bad projection (6) and a missing override (3) before any docker call')
+    : fail(61, 'wrapper must fail closed on bad projection / missing override');
+}
 
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–41)');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–61)');
