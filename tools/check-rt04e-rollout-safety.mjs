@@ -13,7 +13,7 @@
  *
  * Usage: node tools/check-rt04e-rollout-safety.mjs  (make check-rt04e-rollout-safety)
  */
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
@@ -177,13 +177,20 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
   (p >= 0 && h >= 0 && p < h) ? pass(23, 'health runs after provenance verification') : fail(23, 'health must run after provenance');
 }
 
-// 24. pre-mutation compose attestation exists + is invoked before checkpoint+migration
+// 24. attestation runs (preamble) before the mode dispatch; within migration-only, checkpoint precedes migration
 {
-  const a = runner.search(/bash "\$ATTEST"/);           // the INVOCATION, not the path def
-  const c = runner.search(/bash "\$CHECKPOINT"/);
-  const m = runner.search(/bash tools\/migrate-and-verify\.sh/);
-  (existsSync(resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh')) && a >= 0 && c >= 0 && m >= 0 && a < c && c < m)
-    ? pass(24, 'compose attestation runs before checkpoint before migration') : fail(24, 'attestation must precede checkpoint + migration');
+  const attestCall = runner.search(/bash "\$ATTEST"/);          // the INVOCATION (preamble)
+  const dispatch = runner.lastIndexOf('case "$MODE" in');       // the mode DISPATCH (end)
+  const migStart = runner.indexOf('rt04e_run_migration_only()');
+  const svcStart = runner.indexOf('rt04e_run_service_replacement_only()');
+  const ck = migStart >= 0 ? runner.indexOf('bash "$CHECKPOINT"', migStart) : -1;
+  const mv = migStart >= 0 ? runner.indexOf('migrate-and-verify.sh', migStart) : -1;
+  const ok = existsSync(resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh'))
+    && attestCall >= 0 && dispatch > attestCall
+    && migStart >= 0 && svcStart > migStart
+    && ck >= 0 && mv >= 0 && ck < mv && ck < svcStart && mv < svcStart;
+  ok ? pass(24, 'attestation runs before mode dispatch; checkpoint precedes migration within migration-only')
+     : fail(24, 'attestation must precede dispatch; checkpoint must precede migration in migration-only');
 }
 
 // 25. attestation is SEMANTIC (compose config via wrapper → constrained parser), not grep/awk
@@ -459,5 +466,239 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
     : fail(61, 'wrapper must fail closed on bad projection / missing override');
 }
 
+// ── Phase-6 staged execution boundary (67–86): migration-only vs service-replacement-only ──
+const receipt = read('tools/rt04e-receipt.mjs');
+const receiptLib = read('infra/deployment/rt04e-receipt-lib.sh');
+const RECEIPT_PATH = resolve(ROOT, 'tools/rt04e-receipt.mjs');
+const RECEIPT_LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-receipt-lib.sh');
+let cnt = 0;
+const RUNNER_PATH = resolve(ROOT, 'infra/deployment/rt04e-secure-rollout.sh');
+// migration-only function body (between its definition and the service-replacement function)
+const migStart = runner.indexOf('rt04e_run_migration_only()');
+const svcStart = runner.indexOf('rt04e_run_service_replacement_only()');
+const preambleStart = runner.indexOf('COMMON PREAMBLE');
+const migBody = migStart >= 0 && svcStart > migStart ? runner.slice(migStart, svcStart) : '';
+const svcBody = svcStart >= 0 && preambleStart > svcStart ? runner.slice(svcStart, preambleStart) : '';
+
+// 67–71. behavioural mode-gate — run the real runner; invalid/missing mode fails closed
+//        BEFORE any git/docker/DB/credential step (mode gate precedes source-root gate).
+{
+  const runMode = (mode, args = '') => {
+    const env = { ...process.env, BANZAMI_REPO_ROOT: '/nonexistent-rt04e-test' };
+    if (mode === null) delete env.RT04E_EXECUTION_MODE; else env.RT04E_EXECUTION_MODE = mode;
+    try { execSync(`bash "${RUNNER_PATH}" ${args} < /dev/null`, { stdio: 'pipe', timeout: 8000, env }); return 0; }
+    catch (e) { return e.status ?? 1; }
+  };
+  runMode(null) === 20 ? pass(67, 'missing RT04E_EXECUTION_MODE fails closed (exit 20) before any sensitive step') : fail(67, 'missing mode must fail closed at the mode gate');
+  runMode('') === 20 ? pass(68, 'empty RT04E_EXECUTION_MODE fails closed (exit 20)') : fail(68, 'empty mode must fail closed');
+  (runMode('full') === 20 && runMode('all') === 20 && runMode('auto') === 20 && runMode('MIGRATION-ONLY') === 20)
+    ? pass(69, 'invalid/legacy/aliased/uppercase modes (full/all/auto/MIGRATION-ONLY) fail closed (exit 20)') : fail(69, 'invalid/alias/legacy modes must fail closed');
+  // a positional argument is rejected before the mode gate (argv guard, exit 2)
+  runMode('migration-only', 'stray-arg') === 2 ? pass(70, 'positional mode/argument rejected (exit 2) — no argv mode selection') : fail(70, 'positional arguments must be rejected');
+  // exactly the two modes are accepted keywords; no alias appears as a case LABEL (line-start)
+  (/migration-only\|service-replacement-only\)/.test(runner) && !/^\s*(full|all|auto|continue|deploy)\)/m.test(runner))
+    ? pass(71, 'only migration-only|service-replacement-only are accepted; no full/all/auto/continue/deploy case label') : fail(71, 'only the two explicit modes may be accepted');
+}
+
+// 72. migration-only has NO reachable path to capture/build/tag/replace/provenance/health/rollback
+{
+  const forbidden = /\$ROLLBACK" capture|\$DEPLOY_ADAPTER|docker build|docker compose|rt04e_compose |State\.Health|image\.revision"} '|prov_ok/;
+  migBody && !forbidden.test(migBody)
+    ? pass(72, 'migration-only body contains no rollback-capture/build/replace/provenance/health path') : fail(72, 'migration-only must never reach build/replace/provenance/health');
+}
+
+// 73. migration-only requires a direct TTY + the exact visible authorisation phrase
+/require_tty/.test(migBody) && /confirm_phrase "AUTHORISE RT04E SANDBOX MIGRATION"/.test(migBody)
+  ? pass(73, 'migration-only requires a TTY and the exact "AUTHORISE RT04E SANDBOX MIGRATION" phrase') : fail(73, 'migration-only must require TTY + exact migration phrase');
+
+// 74. migration-only rejects a caller-provided DATABASE_URL (credential only via read -rs)
+/\[ -z "\$\{DATABASE_URL:-\}" \]/.test(migBody)
+  ? pass(74, 'migration-only rejects a caller-provided DATABASE_URL') : fail(74, 'migration-only must reject caller DATABASE_URL');
+
+// 75. the protected read -rs credential prompt is CONFINED to migration-only
+{
+  const inMig = /read -rs BANZAMI_MIGRATE_URL/.test(migBody);
+  const inSvc = /read -rs/.test(svcBody);
+  const inPreamble = /read -rs/.test(runner.slice(preambleStart >= 0 ? preambleStart : 0));
+  (inMig && !inSvc && !inPreamble) ? pass(75, 'protected read -rs credential prompt is confined to migration-only') : fail(75, 'read -rs must exist only in migration-only');
+}
+
+// 76. the migration receipt is written ONLY after migration + checksum + drift pass,
+//     and only with explicitly-recorded PASS outcome states (not hardcoded literals).
+{
+  const mv = migBody.indexOf('migrate-and-verify.sh');
+  const wr = migBody.indexOf('rt04e_receipt_write "$RECEIPT_DIR"');
+  const outcomeRecorded = /st_mg=PASS; st_cs=PASS; st_dr=PASS/.test(migBody) && /st_ck=PASS/.test(migBody) && /st_bk=PASS; st_ac=PASS/.test(migBody);
+  const threaded = /rt04e_receipt_write "\$RECEIPT_DIR" "\$RT04E_RELEASE_REV" "\$RECEIPT_VALIDATOR"[\s\S]{0,120}"\$st_ck" "\$st_bk" "\$st_ac" "\$st_mg" "\$st_cs" "\$st_dr"/.test(migBody);
+  (mv >= 0 && wr >= 0 && mv < wr && outcomeRecorded && threaded)
+    ? pass(76, 'receipt written only after migration success, with explicitly-recorded PASS outcome states threaded in') : fail(76, 'receipt must be written only after migration success with controlled outcome states');
+}
+
+// 77. the receipt WRITER (lib) is safe: fixed subdirs, symlink-safe, atomic rename,
+//     0600 root, PASS-status-gated, self-validated, expired-retire, no fresh overwrite
+{
+  const l = receiptLib;
+  const dirs = /mkdir -p "\$root\/pending" "\$root\/consumed" "\$root\/expired"/.test(l);
+  const symlinkSafe = /\[ -L "\$root" \]/.test(l) && /\[ -L "\$pend" \]/.test(l) && /is a symlink/.test(l);
+  const atomic = /mktemp "\$root\/pending\/\.receipt\.XXXXXX"/.test(l) && /mv -f "\$tmp" "\$pend"/.test(l);
+  const perms = /chmod 600 "\$pend"/.test(l) && /chown root:root "\$tmp"/.test(l);
+  const passGated = /\[ "\$st" = PASS \] \|\|/.test(l);
+  const selfValidate = /node "\$validator" < "\$tmp"/.test(l);
+  const expiredRetire = /root\/expired\/rt04e-migration-receipt-\$sha-\$\(rt04e_receipt_token\)/.test(l) && /refusing to overwrite/.test(l);
+  const noCallerRoot = /rt04e_receipt_write\(\)\s*\{\s*local root="\$1"/.test(l); // root is a param, not env
+  (dirs && symlinkSafe && atomic && perms && passGated && selfValidate && expiredRetire && noCallerRoot)
+    ? pass(77, 'receipt writer: fixed subdirs, symlink-safe, atomic 0600 root, PASS-gated, self-validated, expired-retire, no fresh overwrite, root-by-param') : fail(77, 'receipt writer lib must be safe + single-use aware');
+}
+
+// 78–80 + 87–92. freshness-aware validator + lifecycle fixtures (no docker/db/secret)
+{
+  const REV = '7'.repeat(39) + 'b';
+  const isoAt = secs => new Date(Date.now() + secs * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const base = (over = {}) => ({
+    receipt_version: 1, release_revision: REV, target_category: 'Sandbox', execution_mode: 'migration-only',
+    receipt_state: 'pending', checkpoint_status: 'PASS', backup_status: 'PASS', migration_access_status: 'PASS',
+    migration_status: 'PASS', migration_level_before: 'recorded-forward-only', migration_level_after: '0100_dev_project_sandbox_binding',
+    checksum_status: 'PASS', drift_status: 'PASS', created_utc: isoAt(-100), ...over,
+  });
+  const runV = (obj, env = {}) => {
+    try { execSync(`node "${RECEIPT_PATH}"`, { input: JSON.stringify(obj), stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return { code: 0, out: '' }; }
+    catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
+  };
+  const rawV = (str, env = {}) => { try { execSync(`node "${RECEIPT_PATH}"`, { input: str, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return 0; } catch (e) { return e.status ?? 1; } };
+
+  // 78. structural field/status/mode/target rejections + fresh valid PASS
+  const ok = runV(base()).code === 0;
+  const wrongRev = runV(base({ release_revision: 'a'.repeat(40) })).code === 1;
+  const wrongTarget = runV(base({ target_category: 'Production' })).code === 1;
+  const wrongMode = runV(base({ execution_mode: 'service-replacement-only' })).code === 1;
+  const failedStatus = runV(base({ drift_status: 'FAIL' })).code === 1;
+  const unknownField = runV(base({ extra: 'x' })).code === 1;
+  const wrongState = runV(base({ receipt_state: 'consumed' })).code === 1;
+  (ok && wrongRev && wrongTarget && wrongMode && failedStatus && unknownField && wrongState)
+    ? pass(78, 'validator: fresh receipt PASSES; wrong-SHA/target/mode/state/failed-status/unknown-field FAIL (exit 1)') : fail(78, 'validator field/status/state checks incorrect');
+
+  // 79. unreadable / shape / short-SHA / duplicate-key
+  const shortSha = rawV(JSON.stringify(base()), { RT04E_RELEASE_REV: 'a1b2c3d' });
+  const badJson = rawV('not json');
+  const notObject = rawV('[1,2,3]');
+  const dupKey = rawV(`{"receipt_version":1,"receipt_version":1,"release_revision":"${REV}"}`);
+  (shortSha === 2 && badJson === 2 && notObject === 2 && dupKey === 1)
+    ? pass(79, 'validator: short-SHA/non-JSON/non-object exit 2; duplicate field exit 1') : fail(79, 'validator shape/duplicate handling incorrect');
+
+  // 80. secret-like content rejected and never echoed
+  const secretRes = runV(base({ migration_level_after: 'postgres://x' }));
+  (secretRes.code === 1 && !/postgres|:\/\//.test(secretRes.out))
+    ? pass(80, 'validator: secret-like content rejected and never echoed') : fail(80, 'validator must reject + not echo secret-like content');
+
+  // 87. FRESHNESS: fresh(<30m) valid; just-inside boundary valid; just-outside expired(3); expired(3); future(4); malformed-tz(1)
+  const fresh = runV(base({ created_utc: isoAt(-100) })).code === 0;
+  const justIn = runV(base({ created_utc: isoAt(-1799) })).code === 0;
+  const justOut = runV(base({ created_utc: isoAt(-1801) })).code === 3;
+  const expired = runV(base({ created_utc: isoAt(-3600) })).code === 3;
+  const future = runV(base({ created_utc: isoAt(600) })).code === 4;
+  const badTz = runV(base({ created_utc: '2026-07-06T07:00:00+00:00' })).code === 1;
+  (fresh && justIn && justOut && expired && future && badTz)
+    ? pass(87, 'validator freshness: fresh/just-inside PASS; boundary+beyond EXPIRED(3); future(4); malformed-tz(1)') : fail(87, 'validator freshness/boundary/future/tz handling incorrect');
+
+  // 88. the 30-minute maximum age is NOT caller-configurable (env cannot shorten/extend it)
+  const envCannotShrink = runV(base({ created_utc: isoAt(-100) }), { RT04E_MAX_AGE: '0', RT04E_RECEIPT_MAX_AGE_SECONDS: '1', MAX_AGE_SECONDS: '0' }).code === 0;
+  const envCannotExtend = runV(base({ created_utc: isoAt(-3600) }), { RT04E_MAX_AGE: '999999', RT04E_RECEIPT_MAX_AGE_SECONDS: '999999' }).code === 3;
+  (envCannotShrink && envCannotExtend && /MAX_AGE_SECONDS = 1800/.test(receipt) && !/process\.env\.[A-Z_]*MAX_AGE/.test(receipt))
+    ? pass(88, 'receipt maximum age is a fixed 1800s constant — not overridable via env/arg/input') : fail(88, 'maximum age must be a fixed non-caller-configurable constant');
+
+  // 89–92. LIFECYCLE via the sourceable lib with a TEMPORARY test root (never production)
+  const tmpRoot = () => { const d = resolve(tmpdir(), `rt04e-rcpt-${process.pid}-${cnt++}`); mkdirSync(d, { recursive: true }); return d; };
+  const libCall = (fnLine, root, env = {}) => {
+    try { const out = execSync(`bash -c '. "${LIB_PATH}"; . "${RECEIPT_LIB_PATH}"; ${fnLine}'`, { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, ...env } }); return { code: 0, out: out.toString() }; }
+    catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
+  };
+  const W = (root, sha, ...st) => libCall(`rt04e_receipt_write "${root}" "${sha}" "${RECEIPT_PATH}" "0100_head" "recorded-forward-only" ${st.map(s => `"${s}"`).join(' ')}`, root);
+  const C = (root, sha) => libCall(`rt04e_receipt_consume "${root}" "${sha}" "${RECEIPT_PATH}"`, root);
+
+  // 89. write pending; fresh-overwrite refused; non-PASS status refused
+  { const r = tmpRoot();
+    const w1 = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 0;
+    const w2 = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 25; // fresh exists
+    const wBad = W(tmpRoot(), REV, 'PASS', 'PASS', 'PASS', 'FAIL', 'PASS', 'PASS').code === 24; // non-PASS
+    (w1 && w2 && wBad) ? pass(89, 'lib write: creates fresh pending; refuses fresh-overwrite (25) and non-PASS status (24)') : fail(89, 'lib write overwrite/status handling incorrect');
+  }
+  // 90. atomic single-use consume; second consume fails; consumed retained; renewal allowed
+  { const r = tmpRoot(); W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS');
+    const c1 = C(r, REV).code === 0;
+    const pendGone = !existsSync(resolve(r, 'pending', `rt04e-migration-receipt-${REV}.json`));
+    const c2 = C(r, REV).code === 31;                       // single-use: nothing to consume
+    const retained = existsSync(resolve(r, 'consumed')) && readdirSync(resolve(r, 'consumed')).length === 1;
+    const renew = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 0; // consumed does not block a new pending
+    (c1 && pendGone && c2 && retained && renew) ? pass(90, 'lib consume: single-use (pending gone; 2nd consume fails 31); consumed retained; renewal after consume allowed') : fail(90, 'lib consume single-use/retain/renew incorrect');
+  }
+  // 91. expired pending is atomically retired to expired/ before a new pending is written
+  { const r = tmpRoot(); mkdirSync(resolve(r, 'pending'), { recursive: true });
+    const pend = resolve(r, 'pending', `rt04e-migration-receipt-${REV}.json`);
+    writeFileSync(pend, JSON.stringify(base({ created_utc: isoAt(-4000) }))); // expired pending planted
+    const w = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 0;
+    const retired = existsSync(resolve(r, 'expired')) && readdirSync(resolve(r, 'expired')).length === 1;
+    const freshNow = runV(JSON.parse(readFileSync(pend, 'utf8'))).code === 0;
+    (w && retired && freshNow) ? pass(91, 'lib write: expired pending atomically retired to expired/, then a fresh pending is written') : fail(91, 'expired-retire-then-write incorrect');
+  }
+  // 92. a malformed/unsafe existing pending is NOT overwritten (fail closed)
+  { const r = tmpRoot(); mkdirSync(resolve(r, 'pending'), { recursive: true });
+    writeFileSync(resolve(r, 'pending', `rt04e-migration-receipt-${REV}.json`), 'not-json{');
+    W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 25
+      ? pass(92, 'lib write: malformed existing pending is NOT overwritten (fail closed)') : fail(92, 'malformed pending must not be overwritten');
+  }
+}
+
+// 81. service-replacement-only NEVER runs migration/checkpoint/credential/receipt-WRITE code
+{
+  const forbidden = /migrate-and-verify\.sh|\$CHECKPOINT|read -rs|BANZAMI_MIGRATE_URL=|rt04e_receipt_write/;
+  svcBody && !forbidden.test(svcBody)
+    ? pass(81, 'service-replacement-only body contains no migration/checkpoint/credential/receipt-write code') : fail(81, 'service-replacement-only must never touch migration/checkpoint/credential/receipt-write');
+}
+
+// 82. service-replacement-only rejects a database credential marker before any operation
+/\[ -z "\$\{DATABASE_URL:-\}" \][\s\S]{0,120}refusing/.test(svcBody) && /\[ -z "\$\{BANZAMI_MIGRATE_URL:-\}" \]/.test(svcBody)
+  ? pass(82, 'service-replacement-only rejects DATABASE_URL and migration-credential markers') : fail(82, 'service-replacement-only must reject a DB credential marker');
+
+// 83. service-replacement-only requires a VALID FRESH PENDING receipt then atomically CONSUMES it
+{
+  const pendPath = /pending\/rt04e-migration-receipt-\$RT04E_RELEASE_REV\.json/.test(svcBody);
+  const validate = /node "\$RECEIPT_VALIDATOR" < "\$pend"/.test(svcBody);
+  const fsSafe = /\[ "\$owner" = root \]/.test(svcBody) && /\[ "\$mode" = 600 \]/.test(svcBody)
+    && /\[ ! -L "\$pend" \]/.test(svcBody) && /\[ "\$links" = 1 \]/.test(svcBody);
+  const consume = /rt04e_receipt_consume "\$RECEIPT_DIR" "\$RT04E_RELEASE_REV" "\$RECEIPT_VALIDATOR"/.test(svcBody);
+  (pendPath && validate && fsSafe && consume)
+    ? pass(83, 'service-replacement-only validates a fresh, release-bound, root-600, non-symlink, 1-link pending receipt then consumes it') : fail(83, 'service-replacement-only must validate + consume a valid canonical pending receipt');
+}
+
+// 84. TTY + exact phrase; ORDER: validate → phrase → CONSUME → capture → deploy; consume under the held lock
+{
+  const tty = /require_tty/.test(svcBody);
+  const phrase = /confirm_phrase "AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT"/.test(svcBody);
+  const valIx = svcBody.indexOf('node "$RECEIPT_VALIDATOR" < "$pend"');
+  const phraseIx = svcBody.indexOf('confirm_phrase "AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT"');
+  const consumeIx = svcBody.indexOf('rt04e_receipt_consume');
+  const capIx = svcBody.indexOf('bash "$ROLLBACK" capture');
+  const depIx = svcBody.indexOf('bash "$DEPLOY_ADAPTER"');
+  // lock is acquired in the preamble (flock 9) before the dispatch → held during consume
+  const lockInPreamble = /flock -n 9/.test(runner.slice(preambleStart >= 0 ? preambleStart : 0));
+  const order = [valIx, phraseIx, consumeIx, capIx, depIx].every(i => i >= 0)
+    && valIx < phraseIx && phraseIx < consumeIx && consumeIx < capIx && capIx < depIx;
+  (tty && phrase && order && lockInPreamble)
+    ? pass(84, 'order: validate → TTY phrase → atomic consume (under held lock) → capture → deploy') : fail(84, 'consume must follow the second TTY phrase + lock, and precede capture/deploy');
+}
+
+// 85. no legacy combined migration→deploy path: migration-only never deploys; the two modes are mutually exclusive
+{
+  const noDeployInMig = !/\$DEPLOY_ADAPTER/.test(migBody);
+  const noMigrateInSvc = !/migrate-and-verify\.sh/.test(svcBody);
+  const dispatchExclusive = /case "\$MODE" in[\s\S]{0,200}migration-only\)\s*rt04e_run_migration_only ;;[\s\S]{0,160}service-replacement-only\)\s*rt04e_run_service_replacement_only ;;/.test(runner);
+  (noDeployInMig && noMigrateInSvc && dispatchExclusive)
+    ? pass(85, 'no combined migration→deploy path; modes are mutually exclusive at dispatch') : fail(85, 'the legacy migration→deploy path must be unreachable');
+}
+
+// 86. receipt is audit evidence only — never a payment/financial-release approval
+/quarantined|SEPARATE follow-on|NOT.*(payment|financial)|payment capability/i.test(runner)
+  ? pass(86, 'runner keeps payment/financial capability quarantined (receipt is not a release approval)') : fail(86, 'runner must state financial capability stays quarantined');
+
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–66)');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–92)');

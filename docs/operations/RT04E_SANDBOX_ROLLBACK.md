@@ -3,7 +3,10 @@
 **Status:** design; **not executed**. Sandbox-only. **Version:** 1.0
 
 Application-image rollback for the RT04E Sandbox service set, implemented by
-`infra/deployment/rt04e-sandbox-rollback.sh`.
+`infra/deployment/rt04e-sandbox-rollback.sh`. Rollback anchors are captured and the
+rollback decision gate is reached **only** within the `service-replacement-only`
+execution mode — never during `migration-only`, which stops after migration
+verification and never touches images or containers (see RT04E_SANDBOX_ROLLOUT.md).
 
 ## Irreversible boundary (read first)
 ```

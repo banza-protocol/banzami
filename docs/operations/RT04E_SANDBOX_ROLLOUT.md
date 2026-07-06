@@ -12,6 +12,56 @@ canonical Sandbox runtime provenance and deployment integrity.
 
 Capability **release** and **financial E2E** are **separate follow-on gates**.
 
+## Two explicit execution modes (security boundary, not a workflow preference)
+RT04E execution is split into **two mutually-exclusive, fail-closed modes** selected
+**only** by the exact environment variable `RT04E_EXECUTION_MODE`. There is **no**
+implicit full rollout, **no** legacy default, **no** positional mode argument, and
+**no automatic continuation** from a completed migration into image build or service
+replacement. Missing/empty/aliased/uppercase/`full`/`all`/`auto`/`continue`/`deploy`
+values fail closed at the mode gate, which runs **before** any credential prompt, DB
+access, checkpoint, rollback capture, image build or Docker/Compose operation.
+
+| Mode | Does | Never does |
+|------|------|-----------|
+| `migration-only` | source/attestation gates → **direct-TTY** operator authorisation (`AUTHORISE RT04E SANDBOX MIGRATION`) + real-world confirmations → protected `read -rs` credential → checkpoint gate → **forward-only** migration + checksum + drift verification → sanitised **migration receipt** → clean exit | capture rollback anchors · build/tag images · replace services · provenance · health · rollback |
+| `service-replacement-only` | source/attestation gates → **fresh pending migration-receipt** validation → **direct-TTY** operator authorisation (`AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT`) → **atomic single-use receipt consumption** (under the held lock) → rollback-anchor capture → immutable four-service build → isolated replacement → provenance → health → rollback decision → sanitised evidence | prompt for / accept a DB credential · read `DATABASE_URL` · run migration/checkpoint tooling · inspect DB state · write a receipt · reuse a consumed/expired receipt |
+
+The two stages are bridged **only** by the release-bound **migration receipt** — a
+root-owned, `0600`, SHA-bound, atomically-written, symlink-safe JSON record validated
+by a constrained parser (`tools/rt04e-receipt.mjs`). The operator, at a direct
+interactive terminal, owns the credential via the protected `read -rs` prompt; the
+credential never enters argv, env exports, files, chat, history or logs.
+
+### Migration receipt — bounded freshness + single use
+- **A migration receipt is valid for at most 30 minutes.** If it expires, is
+  consumed, is malformed, or any uncertainty exists, run `migration-only` again and
+  obtain a new receipt before service replacement. The 1800-second maximum is a fixed
+  canonical constant — never caller-configurable via argument, environment, file or
+  shell expansion; the validator obtains the current time internally and fails closed
+  on an expired, future-dated or malformed timestamp (strict UTC RFC3339 ending `Z`).
+- **Single use.** `service-replacement-only` **atomically consumes** the pending
+  receipt (under the exclusive rollout lock, after the second TTY phrase) **before**
+  any rollback-anchor capture, image build or Compose operation. A second attempt
+  finds no pending receipt and fails closed; a consumed receipt is never restored to
+  pending, even if a later capture/build/replacement/health step fails. Any retry
+  requires a new `migration-only` run.
+- **Lifecycle states are filesystem-authoritative** (`pending` → `consumed`;
+  `pending` → `expired`), never inferred from receipt text alone. Consumed and expired
+  receipts are **retained as sanitised audit evidence** and are **never** pruned or
+  auto-deleted by RT04E. A consumed receipt records only that an *authorised
+  replacement attempt began* — it is **not** evidence of rollout success.
+- **Controlled outcome states.** Each receipt status is recorded only immediately
+  after the matching canonical gate succeeds (checkpoint, migration, checksum, drift;
+  backup/access from the validated operator-confirmation gates); receipt creation is
+  refused unless every required outcome is explicitly PASS. Statuses are never sourced
+  from caller environment variables, raw-output scraping or caller input.
+
+The receipt is **process-generated, local, permission-bound, single-use technical
+stage-handoff audit evidence — NOT cryptographically signed and NOT a
+payment/financial-release approval**. Financial capability stays quarantined and no
+BNA Regulatory Sandbox claim follows from RT04E. Migrations are **forward-only** and
+never reversed.
+
 ## Scope — approved Sandbox service allowlist (only these four)
 `core-api-staging` · `api-gateway-staging` · `developer-api` · `public-api-staging`
 
@@ -170,8 +220,11 @@ flow — those are distinct, separately-approved gates.
 
 ## Enforcement
 `make check-rt04e-rollout-safety` — 16 static checks + behavioural/continuity checks
-17–66 (immutable-tag, isolation-flag, prune-proof, override-generation,
+17–92 (immutable-tag, isolation-flag, prune-proof, override-generation,
 `--no-env-resolution` confidentiality, base-only vs full projection, full-SHA
 identity, hermetic-wrapper + inherited-`COMPOSE_*` rejection, target-scoped
-prohibited-service handling, and constrained-parser fixtures — all
+prohibited-service handling, the two-mode execution boundary
+(`migration-only`/`service-replacement-only`), migration-receipt writer + validator,
+the 30-minute freshness + single-use consume-on-use lifecycle
+(`pending`/`consumed`/`expired`), and constrained-parser fixtures — all
 Docker/DB/secret-free); `make check-rollout-secret-hygiene`.
