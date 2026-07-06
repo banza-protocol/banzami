@@ -177,13 +177,20 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
   (p >= 0 && h >= 0 && p < h) ? pass(23, 'health runs after provenance verification') : fail(23, 'health must run after provenance');
 }
 
-// 24. pre-mutation compose attestation exists + is invoked before checkpoint+migration
+// 24. attestation runs (preamble) before the mode dispatch; within migration-only, checkpoint precedes migration
 {
-  const a = runner.search(/bash "\$ATTEST"/);           // the INVOCATION, not the path def
-  const c = runner.search(/bash "\$CHECKPOINT"/);
-  const m = runner.search(/bash tools\/migrate-and-verify\.sh/);
-  (existsSync(resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh')) && a >= 0 && c >= 0 && m >= 0 && a < c && c < m)
-    ? pass(24, 'compose attestation runs before checkpoint before migration') : fail(24, 'attestation must precede checkpoint + migration');
+  const attestCall = runner.search(/bash "\$ATTEST"/);          // the INVOCATION (preamble)
+  const dispatch = runner.lastIndexOf('case "$MODE" in');       // the mode DISPATCH (end)
+  const migStart = runner.indexOf('rt04e_run_migration_only()');
+  const svcStart = runner.indexOf('rt04e_run_service_replacement_only()');
+  const ck = migStart >= 0 ? runner.indexOf('bash "$CHECKPOINT"', migStart) : -1;
+  const mv = migStart >= 0 ? runner.indexOf('migrate-and-verify.sh', migStart) : -1;
+  const ok = existsSync(resolve(ROOT, 'infra/deployment/rt04e-sandbox-attest.sh'))
+    && attestCall >= 0 && dispatch > attestCall
+    && migStart >= 0 && svcStart > migStart
+    && ck >= 0 && mv >= 0 && ck < mv && ck < svcStart && mv < svcStart;
+  ok ? pass(24, 'attestation runs before mode dispatch; checkpoint precedes migration within migration-only')
+     : fail(24, 'attestation must precede dispatch; checkpoint must precede migration in migration-only');
 }
 
 // 25. attestation is SEMANTIC (compose config via wrapper → constrained parser), not grep/awk
@@ -459,5 +466,155 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
     : fail(61, 'wrapper must fail closed on bad projection / missing override');
 }
 
+// ── Phase-6 staged execution boundary (67–86): migration-only vs service-replacement-only ──
+const receipt = read('tools/rt04e-receipt.mjs');
+const RECEIPT_PATH = resolve(ROOT, 'tools/rt04e-receipt.mjs');
+const RUNNER_PATH = resolve(ROOT, 'infra/deployment/rt04e-secure-rollout.sh');
+// migration-only function body (between its definition and the service-replacement function)
+const migStart = runner.indexOf('rt04e_run_migration_only()');
+const svcStart = runner.indexOf('rt04e_run_service_replacement_only()');
+const preambleStart = runner.indexOf('COMMON PREAMBLE');
+const migBody = migStart >= 0 && svcStart > migStart ? runner.slice(migStart, svcStart) : '';
+const svcBody = svcStart >= 0 && preambleStart > svcStart ? runner.slice(svcStart, preambleStart) : '';
+
+// 67–71. behavioural mode-gate — run the real runner; invalid/missing mode fails closed
+//        BEFORE any git/docker/DB/credential step (mode gate precedes source-root gate).
+{
+  const runMode = (mode, args = '') => {
+    const env = { ...process.env, BANZAMI_REPO_ROOT: '/nonexistent-rt04e-test' };
+    if (mode === null) delete env.RT04E_EXECUTION_MODE; else env.RT04E_EXECUTION_MODE = mode;
+    try { execSync(`bash "${RUNNER_PATH}" ${args} < /dev/null`, { stdio: 'pipe', timeout: 8000, env }); return 0; }
+    catch (e) { return e.status ?? 1; }
+  };
+  runMode(null) === 20 ? pass(67, 'missing RT04E_EXECUTION_MODE fails closed (exit 20) before any sensitive step') : fail(67, 'missing mode must fail closed at the mode gate');
+  runMode('') === 20 ? pass(68, 'empty RT04E_EXECUTION_MODE fails closed (exit 20)') : fail(68, 'empty mode must fail closed');
+  (runMode('full') === 20 && runMode('all') === 20 && runMode('auto') === 20 && runMode('MIGRATION-ONLY') === 20)
+    ? pass(69, 'invalid/legacy/aliased/uppercase modes (full/all/auto/MIGRATION-ONLY) fail closed (exit 20)') : fail(69, 'invalid/alias/legacy modes must fail closed');
+  // a positional argument is rejected before the mode gate (argv guard, exit 2)
+  runMode('migration-only', 'stray-arg') === 2 ? pass(70, 'positional mode/argument rejected (exit 2) — no argv mode selection') : fail(70, 'positional arguments must be rejected');
+  // exactly the two modes are accepted keywords; no alias appears as a case LABEL (line-start)
+  (/migration-only\|service-replacement-only\)/.test(runner) && !/^\s*(full|all|auto|continue|deploy)\)/m.test(runner))
+    ? pass(71, 'only migration-only|service-replacement-only are accepted; no full/all/auto/continue/deploy case label') : fail(71, 'only the two explicit modes may be accepted');
+}
+
+// 72. migration-only has NO reachable path to capture/build/tag/replace/provenance/health/rollback
+{
+  const forbidden = /\$ROLLBACK" capture|\$DEPLOY_ADAPTER|docker build|docker compose|rt04e_compose |State\.Health|image\.revision"} '|prov_ok/;
+  migBody && !forbidden.test(migBody)
+    ? pass(72, 'migration-only body contains no rollback-capture/build/replace/provenance/health path') : fail(72, 'migration-only must never reach build/replace/provenance/health');
+}
+
+// 73. migration-only requires a direct TTY + the exact visible authorisation phrase
+/require_tty/.test(migBody) && /confirm_phrase "AUTHORISE RT04E SANDBOX MIGRATION"/.test(migBody)
+  ? pass(73, 'migration-only requires a TTY and the exact "AUTHORISE RT04E SANDBOX MIGRATION" phrase') : fail(73, 'migration-only must require TTY + exact migration phrase');
+
+// 74. migration-only rejects a caller-provided DATABASE_URL (credential only via read -rs)
+/\[ -z "\$\{DATABASE_URL:-\}" \]/.test(migBody)
+  ? pass(74, 'migration-only rejects a caller-provided DATABASE_URL') : fail(74, 'migration-only must reject caller DATABASE_URL');
+
+// 75. the protected read -rs credential prompt is CONFINED to migration-only
+{
+  const inMig = /read -rs BANZAMI_MIGRATE_URL/.test(migBody);
+  const inSvc = /read -rs/.test(svcBody);
+  const inPreamble = /read -rs/.test(runner.slice(preambleStart >= 0 ? preambleStart : 0));
+  (inMig && !inSvc && !inPreamble) ? pass(75, 'protected read -rs credential prompt is confined to migration-only') : fail(75, 'read -rs must exist only in migration-only');
+}
+
+// 76. the migration receipt is written ONLY after migration + checksum + drift pass
+{
+  const mv = migBody.indexOf('migrate-and-verify.sh');
+  const wr = migBody.indexOf('rt04e_write_migration_receipt "$head_after"');
+  (mv >= 0 && wr >= 0 && mv < wr) ? pass(76, 'migration receipt is written only after migrate/checksum/drift succeed') : fail(76, 'receipt must be written only after migration success');
+}
+
+// 77. receipt writer is safe: fixed location, symlink-safe, atomic rename, 0600 root, no mismatched overwrite, SHA-bound
+{
+  const w = runner;
+  const fixedLoc = /RECEIPT_DIR="\/root\/banzami-forensics\/rt04e-receipts"/.test(w);
+  const shaBound = /rt04e-migration-receipt-\$RT04E_RELEASE_REV\.json/.test(w);
+  const symlinkSafe = /\[ -L "\$final" \] && die/.test(w) && /\[ -L "\$RECEIPT_DIR" \] && die/.test(w);
+  const atomic = /mktemp "\$RECEIPT_DIR\/\.receipt\.XXXXXX"/.test(w) && /mv -f "\$tmp" "\$final"/.test(w);
+  const perms = /chmod 600 "\$final"/.test(w) && /chown root:root "\$tmp"/.test(w);
+  const noOverwrite = /does not validate — refusing to overwrite/.test(w);
+  const selfValidate = /node "\$RECEIPT_VALIDATOR" < "\$tmp"/.test(w);
+  (fixedLoc && shaBound && symlinkSafe && atomic && perms && noOverwrite && selfValidate)
+    ? pass(77, 'receipt writer: fixed SHA-bound location, symlink-safe, atomic 0600 root, no mismatched overwrite, self-validated') : fail(77, 'receipt writer must be fixed/symlink-safe/atomic/self-validated');
+}
+
+// 78–80. receipt validator fixtures — crafted JSON via stdin, no docker/db/secret
+{
+  const REV = '7'.repeat(39) + 'b'; // full 40-hex (arbitrary)
+  const base = {
+    receipt_version: 1, release_revision: REV, target_category: 'Sandbox', execution_mode: 'migration-only',
+    checkpoint_status: 'PASS', backup_status: 'PASS', migration_access_status: 'PASS', migration_status: 'PASS',
+    migration_level_before: 'recorded-forward-only', migration_level_after: '0100_dev_project_sandbox_binding',
+    checksum_status: 'PASS', drift_status: 'PASS', created_utc: '2026-07-06T07:00:00Z',
+  };
+  const runV = (obj, env = {}) => {
+    try { execSync(`node "${RECEIPT_PATH}"`, { input: JSON.stringify(obj), stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return { code: 0 }; }
+    catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
+  };
+  const rawV = (str, env = {}) => { try { execSync(`node "${RECEIPT_PATH}"`, { input: str, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return 0; } catch (e) { return e.status ?? 1; } };
+
+  const okReceipt = runV(base).code === 0;
+  const wrongRev = runV({ ...base, release_revision: 'a'.repeat(40) }).code === 1;
+  const wrongTarget = runV({ ...base, target_category: 'Production' }).code === 1;
+  const wrongMode = runV({ ...base, execution_mode: 'service-replacement-only' }).code === 1;
+  const failedStatus = runV({ ...base, drift_status: 'FAIL' }).code === 1;
+  const unknownField = runV({ ...base, extra: 'x' }).code === 1;
+  (okReceipt && wrongRev && wrongTarget && wrongMode && failedStatus && unknownField)
+    ? pass(78, 'validator: valid receipt PASSES; wrong-SHA/target/mode/failed-status/unknown-field FAIL (exit 1)') : fail(78, 'validator field/status checks incorrect');
+
+  const shortSha = rawV(JSON.stringify(base), { RT04E_RELEASE_REV: 'a1b2c3d' });
+  const badJson = rawV('not json');
+  const notObject = rawV('[1,2,3]');
+  (shortSha === 2 && badJson === 2 && notObject === 2)
+    ? pass(79, 'validator: short SHA env, non-JSON, and non-object all fail closed (exit 2)') : fail(79, 'validator must exit 2 on short SHA / non-JSON / non-object');
+
+  const secretish = runV({ ...base, migration_level_after: 'postgres://x' }).code === 1;
+  const noLeak = !/postgres|:\/\//.test(runV({ ...base, migration_level_after: 'postgres://x' }).out || '');
+  (secretish && noLeak) ? pass(80, 'validator: secret-like content rejected and never echoed') : fail(80, 'validator must reject + not echo secret-like content');
+}
+
+// 81. service-replacement-only NEVER runs migration/checkpoint/credential code
+{
+  const forbidden = /migrate-and-verify\.sh|\$CHECKPOINT|read -rs|BANZAMI_MIGRATE_URL=|rt04e_write_migration_receipt/;
+  svcBody && !forbidden.test(svcBody)
+    ? pass(81, 'service-replacement-only body contains no migration/checkpoint/credential code') : fail(81, 'service-replacement-only must never touch migration/checkpoint/credential');
+}
+
+// 82. service-replacement-only rejects a database credential marker before any operation
+/\[ -z "\$\{DATABASE_URL:-\}" \][\s\S]{0,120}refusing/.test(svcBody) && /\[ -z "\$\{BANZAMI_MIGRATE_URL:-\}" \]/.test(svcBody)
+  ? pass(82, 'service-replacement-only rejects DATABASE_URL and migration-credential markers') : fail(82, 'service-replacement-only must reject a DB credential marker');
+
+// 83. service-replacement-only requires a VALID matching receipt via the constrained validator
+/rt04e-migration-receipt-\$RT04E_RELEASE_REV\.json/.test(svcBody)
+  && /node "\$RECEIPT_VALIDATOR" < "\$receipt"/.test(svcBody)
+  && /\[ "\$owner" = root \]/.test(svcBody) && /\[ "\$mode" = 600 \]/.test(svcBody) && /\[ ! -L "\$receipt" \]/.test(svcBody)
+  ? pass(83, 'service-replacement-only requires a release-bound, root-600, non-symlink, validator-passing receipt') : fail(83, 'service-replacement-only must gate on a valid canonical receipt');
+
+// 84. service-replacement-only requires a TTY + the exact service-replacement phrase, capture before deploy
+{
+  const tty = /require_tty/.test(svcBody);
+  const phrase = /confirm_phrase "AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT"/.test(svcBody);
+  const capIx = svcBody.indexOf('bash "$ROLLBACK" capture');
+  const depIx = svcBody.indexOf('bash "$DEPLOY_ADAPTER"');   // the deploy INVOCATION, not the -f existence check
+  const capBeforeDeploy = capIx >= 0 && depIx > capIx;
+  (tty && phrase && capBeforeDeploy) ? pass(84, 'service-replacement-only requires TTY + exact replacement phrase; capture precedes deploy') : fail(84, 'service-replacement-only must require TTY + phrase and capture-before-deploy');
+}
+
+// 85. no legacy combined migration→deploy path: migration-only never deploys; the two modes are mutually exclusive
+{
+  const noDeployInMig = !/\$DEPLOY_ADAPTER/.test(migBody);
+  const noMigrateInSvc = !/migrate-and-verify\.sh/.test(svcBody);
+  const dispatchExclusive = /case "\$MODE" in[\s\S]{0,200}migration-only\)\s*rt04e_run_migration_only ;;[\s\S]{0,160}service-replacement-only\)\s*rt04e_run_service_replacement_only ;;/.test(runner);
+  (noDeployInMig && noMigrateInSvc && dispatchExclusive)
+    ? pass(85, 'no combined migration→deploy path; modes are mutually exclusive at dispatch') : fail(85, 'the legacy migration→deploy path must be unreachable');
+}
+
+// 86. receipt is audit evidence only — never a payment/financial-release approval
+/quarantined|SEPARATE follow-on|NOT.*(payment|financial)|payment capability/i.test(runner)
+  ? pass(86, 'runner keeps payment/financial capability quarantined (receipt is not a release approval)') : fail(86, 'runner must state financial capability stays quarantined');
+
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–66)');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–86)');
