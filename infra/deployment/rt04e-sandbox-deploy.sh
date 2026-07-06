@@ -41,8 +41,8 @@ REF="$(rt04e_release_ref "$SVC" "$RT04E_RELEASE_REV")"     # IMMUTABLE banzami/<
 docker build --label "org.opencontainers.image.revision=${RT04E_RELEASE_REV}" \
   -f "$CTX/Dockerfile" -t "$REF" "$CTX"
 
-# Replace ONLY this service with full isolation, fixed file set (base+overlay+override),
+# Replace ONLY this service with full isolation via the central hermetic wrapper
+# (fixed base+overlay+override file set + fixed project scope + COMPOSE_* rejection):
 # no build, no pull, forced recreation of just this service, no dependency mutation.
-( cd "$RT04E_COMPOSE_DIR" && docker compose $(rt04e_compose_file_args "$RT04E_OVERRIDE") \
-    $RT04E_UP_FLAGS "$SVC" )
+rt04e_compose full "$RT04E_OVERRIDE" $RT04E_UP_FLAGS "$SVC"
 printf '  deployed %s → %s (immutable RT04E release tag, isolated: no-build/no-pull/no-deps)\n' "$SVC" "$REPO"

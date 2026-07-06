@@ -70,17 +70,43 @@ rt04e_sandbox_target_contract:
   # IMMUTABLE release reference — the ONLY deployed reference. Never a mutable tag.
   immutable_release_reference_rule: "banzami/<image_build_repo>:rt04e-<canonical_release_revision>"
   prohibited_image_tags: [latest, adr021-staging, generic-staging-tags, service-name-derived-repos]
-  canonical_release_revision_rule: "required; strict git revision; equals verified canonical HEAD; never inferred from an arbitrary directory; never shell-evaluated"
+  # FULL immutable canonical SHA only — exactly 40 lowercase hex chars. Abbreviated
+  # revisions, branch names, tags and symbolic refs are rejected.
+  canonical_release_revision_rule: "required; full 40-hex lowercase git object SHA; equals verified canonical HEAD; abbreviated/branch/tag/symbolic refs rejected; never inferred from an arbitrary directory; never shell-evaluated"
 
   # RT04E image override (source-controlled template → generated root-owned override).
   image_override_template: infra/deployment/rt04e-sandbox-images.override.template.yml
   image_override_required: true
   service_image_resolution: literal_after_semantic_compose_config   # docker compose config, not grep/awk
 
+  # Semantic attestation confidentiality + projections. config runs with BOTH
+  # --no-interpolate (no interpolation) and --no-env-resolution (no service env-file
+  # resolution / no environment values in the model); fail closed if unavailable.
+  compose_config_flags: ["--no-interpolate", "--no-env-resolution", "--format json"]
+  attestation_projections:
+    base_only: "approved base ONLY — proves core/public/developer exist and api-gateway-staging is overlay-only (absent)"
+    full: "base -> gateway overlay -> immutable override — all four exist, gateway present, each resolves to the literal immutable reference"
+  attestation_projection_order: [base_only, full]   # both run before checkpoint/migration/build/replacement/rollback
+
   # Fixed Compose file order per operation (never caller input) + mandatory isolation.
   compose_file_order: [docker-compose.yml, docker-compose.sandbox-gateway.yml, generated-rt04e-override]
   deploy_isolation_flags: ["--no-build", "--pull never", "--force-recreate", "--no-deps"]
   no_automatic_prune: true    # RT04E never prunes; pre-state rollback tags are retained
+
+  # Compose hermeticity — every Compose invocation goes through one central wrapper.
+  compose_wrapper: rt04e_compose   # in rt04e-sandbox-lib.sh; sole path for real `docker compose`
+  compose_fixed_project_name: rt04e-sandbox
+  compose_fixed_project_directory: /srv/banzami
+  compose_profiles: disabled   # never activated; COMPOSE_PROFILES rejected
+  rejected_inherited_compose_vars:
+    - COMPOSE_FILE
+    - COMPOSE_PROJECT_NAME
+    - COMPOSE_PROFILES
+    - COMPOSE_PATH_SEPARATOR
+    - COMPOSE_IGNORE_ORPHANS
+    - COMPOSE_ENV_FILES
+    - COMPOSE_PROJECT_DIR
+    - COMPOSE_DISABLE_ENV_FILE
 
   # Only unauthenticated local liveness is permitted during RT04E.
   required_health_endpoint_categories:

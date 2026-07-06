@@ -81,7 +81,11 @@ status "revision pinned (${RT04E_RELEASE_REV:0:12}) · branch main · worktree c
 # banzami/<repo>:rt04e-<rev> and is the FINAL Compose layer — no mutable tag is ever
 # the deployed reference. Removed on exit (or retained only as sanitised evidence).
 . "$REPO_ROOT/infra/deployment/rt04e-sandbox-lib.sh"
-rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV is not a valid git revision — refusing" 11
+rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV is not the full 40-hex canonical SHA — refusing" 11
+# Hermeticity: refuse before any Compose op if an inherited COMPOSE_* control is set.
+rt04e_assert_clean_compose_env || die "inherited COMPOSE_* control present — refusing (hermeticity)" 11
+# The release revision must equal the verified canonical HEAD (never an arbitrary dir).
+[ "$(git rev-parse HEAD 2>/dev/null || true)" = "$RT04E_RELEASE_REV" ] || die "RT04E_RELEASE_REV must equal canonical HEAD — refusing" 11
 OVERRIDE_TEMPLATE="$REPO_ROOT/infra/deployment/rt04e-sandbox-images.override.template.yml"
 [ -f "$OVERRIDE_TEMPLATE" ] || die "RT04E image override template missing — refusing" 12
 RT04E_OVERRIDE="$(mktemp "${TMPDIR:-/run}/rt04e-override.XXXXXX.yml" 2>/dev/null || mktemp)"
@@ -112,8 +116,8 @@ status "target contract loaded · allowlist=[$ALLOW] · no prohibited/live targe
 
 # ── 3b. Pre-mutation Compose structural attestation (HIGH-2) — BEFORE any ─────
 #      migration, image build or service replacement. Fail closed on any anomaly.
-status "stage: pre-mutation semantic compose attestation (docker compose config)"
-RT04E_COMPOSE_DIR="/srv/banzami" RT04E_OVERRIDE="$RT04E_OVERRIDE" RT04E_RELEASE_REV="$RT04E_RELEASE_REV" \
+status "stage: pre-mutation semantic compose attestation (base-only + full projections)"
+RT04E_OVERRIDE="$RT04E_OVERRIDE" RT04E_RELEASE_REV="$RT04E_RELEASE_REV" \
   bash "$ATTEST" || die "semantic compose attestation failed — refusing to mutate" 12
 
 # ── 4. Protected, ephemeral migration credential handoff (stdin ONLY) ────────

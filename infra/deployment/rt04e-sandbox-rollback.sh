@@ -64,7 +64,7 @@ case "$CMD" in
       [ "$pin" = "$cid" ] || die "retained pre-state tag for $s no longer resolves to the captured image id — refusing" 3
       # Re-point the EXACT declared reference to the captured image id, then isolated up.
       docker tag "$cid" "$declared"
-      ( cd "$RT04E_COMPOSE_DIR" && docker compose $(rt04e_compose_file_args "$RT04E_OVERRIDE") $RT04E_UP_FLAGS "$s" )
+      rt04e_compose full "$RT04E_OVERRIDE" $RT04E_UP_FLAGS "$s"
       now="$(running_image_id "$s")"
       [ "$now" = "$cid" ] || die "restored image id for $s ($now) != captured ($cid) — rollback verification FAILED" 3
       printf '  restored %s to pre-state image %s\n' "$s" "${cid:0:12}"
