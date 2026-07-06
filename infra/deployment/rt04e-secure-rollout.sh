@@ -47,8 +47,9 @@ ROLLBACK="$REPO_ROOT/infra/deployment/rt04e-sandbox-rollback.sh"
 CHECKPOINT="$REPO_ROOT/infra/deployment/rt04e-migration-checkpoint.sh"
 ATTEST="$REPO_ROOT/infra/deployment/rt04e-sandbox-attest.sh"
 RECEIPT_VALIDATOR="$REPO_ROOT/tools/rt04e-receipt.mjs"
+RECEIPT_LIB="$REPO_ROOT/infra/deployment/rt04e-receipt-lib.sh"
 LOCK_FILE="${RT04E_LOCK_FILE:-/run/lock/rt04e-rollout.lock}"
-RECEIPT_DIR="/root/banzami-forensics/rt04e-receipts"   # FIXED, outside repo/runtime/compose
+RECEIPT_DIR="/root/banzami-forensics/rt04e-receipts"   # FIXED canonical root — never caller-supplied
 ALLOW="core-api-staging api-gateway-staging developer-api public-api-staging"
 
 status() { printf '  %s\n' "$1"; }
@@ -64,49 +65,6 @@ confirm_phrase() {
   status "operator authorisation confirmed"
 }
 
-# Sanitised, root-owned, release-bound migration receipt. Fixed location (never a
-# caller path). Atomic write/rename, symlink-safe, no overwrite of a mismatched receipt.
-rt04e_write_migration_receipt() {
-  local after="$1" before="${2:-unrecorded-pre-migration}"
-  [ -n "$after" ] || after="head-unresolved"
-  [ -L "$RECEIPT_DIR" ] && die "receipt directory is a symlink — refusing" 24
-  mkdir -p "$RECEIPT_DIR"; chmod 700 "$RECEIPT_DIR"; chown root:root "$RECEIPT_DIR" 2>/dev/null || true
-  local final="$RECEIPT_DIR/rt04e-migration-receipt-$RT04E_RELEASE_REV.json"
-  [ -L "$final" ] && die "receipt path is a symlink — refusing" 24
-  if [ -e "$final" ]; then
-    if RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$RECEIPT_VALIDATOR" < "$final" >/dev/null 2>&1; then
-      status "existing valid receipt for this release retained (idempotent)"; return 0
-    fi
-    die "an existing receipt for this release does not validate — refusing to overwrite" 24
-  fi
-  local ts tmp; ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  tmp="$(mktemp "$RECEIPT_DIR/.receipt.XXXXXX")"; chmod 600 "$tmp"
-  {
-    printf '{\n'
-    printf '  "receipt_version": 1,\n'
-    printf '  "release_revision": "%s",\n' "$RT04E_RELEASE_REV"
-    printf '  "target_category": "Sandbox",\n'
-    printf '  "execution_mode": "migration-only",\n'
-    printf '  "checkpoint_status": "PASS",\n'
-    printf '  "backup_status": "PASS",\n'
-    printf '  "migration_access_status": "PASS",\n'
-    printf '  "migration_status": "PASS",\n'
-    printf '  "migration_level_before": "%s",\n' "$before"
-    printf '  "migration_level_after": "%s",\n' "$after"
-    printf '  "checksum_status": "PASS",\n'
-    printf '  "drift_status": "PASS",\n'
-    printf '  "created_utc": "%s"\n' "$ts"
-    printf '}\n'
-  } > "$tmp"
-  # self-validate through the constrained parser BEFORE finalising (no grep/awk)
-  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$RECEIPT_VALIDATOR" < "$tmp" >/dev/null 2>&1 \
-    || { rm -f "$tmp"; die "generated receipt failed self-validation — refusing" 24; }
-  chown root:root "$tmp" 2>/dev/null || true
-  mv -f "$tmp" "$final"        # atomic rename on the same filesystem
-  chmod 600 "$final"
-  status "migration receipt written (root-owned 0600, bound to release SHA, self-validated)"
-}
-
 # ── MODE: migration-only — NEVER builds or replaces anything ─────────────────
 rt04e_run_migration_only() {
   [ -f "$CHECKPOINT" ] || die "migration checkpoint gate missing — refusing" 12
@@ -114,10 +72,14 @@ rt04e_run_migration_only() {
   # A caller-provided DB credential env is forbidden — the ONLY intake is read -rs.
   [ -z "${DATABASE_URL:-}" ] || die "DATABASE_URL must NOT be caller-provided — refusing" 22
   require_tty
-  # real-world operational confirmations (operator-asserted; checkpoint re-checks)
+  # Controlled outcome state — set ONLY after each canonical gate succeeds. Local, so
+  # an inherited env variable of the same name can never inject a status.
+  local st_ck='' st_bk='' st_ac='' st_mg='' st_cs='' st_dr=''
+  # real-world operational confirmations (operator-asserted; the checkpoint gate re-checks)
   [ "${RT04E_CHECKPOINT_CAPTURED:-}" = "yes" ]      || die "RT04E_CHECKPOINT_CAPTURED=yes required (checkpoint genuinely captured)" 23
   [ "${RT04E_BACKUP_CONFIRMED:-}" = "yes" ]          || die "RT04E_BACKUP_CONFIRMED=yes required (backup/rollback-equivalent genuinely exists)" 23
   [ "${RT04E_MIGRATION_ACCESS_APPROVED:-}" = "yes" ] || die "RT04E_MIGRATION_ACCESS_APPROVED=yes required (migration access genuinely sanctioned)" 23
+  st_bk=PASS; st_ac=PASS   # derived from the exact validated confirmation gates above
   # visible, exact-phrase authorisation (interactive TTY only) BEFORE the hidden prompt
   confirm_phrase "AUTHORISE RT04E SANDBOX MIGRATION" \
     "RT04E migration-only will apply the approved FORWARD-ONLY Sandbox migration to $BANZAMI_DB_TARGET only. NO images are built and NO services are replaced."
@@ -127,11 +89,14 @@ rt04e_run_migration_only() {
     RT04E_CHECKPOINT_CONFIRMED=yes RT04E_CHECKPOINT_CAPTURED=yes \
     RT04E_BACKUP_CONFIRMED=yes RT04E_MIGRATION_ACCESS_APPROVED=yes \
     bash "$CHECKPOINT" || die "migration checkpoint gate failed — migration BLOCKED" 6
+  st_ck=PASS   # recorded ONLY after the checkpoint gate succeeded
+  # establish the credential-clearing function BEFORE the hidden prompt so the
+  # already-installed EXIT/INT/TERM/HUP trap clears it on any interruption thereafter.
+  _clear() { BANZAMI_MIGRATE_URL=''; unset BANZAMI_MIGRATE_URL 2>/dev/null || true; }
   # existing PROTECTED credential handoff — hidden read -rs from the operator's TTY
   printf 'Paste sanctioned Sandbox migration credential (input hidden): ' >&2
   IFS= read -rs BANZAMI_MIGRATE_URL || die "no credential provided — refusing" 2; printf '\n' >&2
   [ -n "${BANZAMI_MIGRATE_URL:-}" ] || die "credential absent — fail closed" 2
-  _clear() { BANZAMI_MIGRATE_URL=''; unset BANZAMI_MIGRATE_URL 2>/dev/null || true; }
   # validate WITHOUT rendering (pure bash; never echo/printf the value)
   _tail="${BANZAMI_MIGRATE_URL##*/}"; _db="${_tail%%\?*}"
   [ "$_db" = "banzami_staging" ] || { _clear; die "target invalid — credential does not target banzami_staging" 3; }
@@ -145,9 +110,15 @@ rt04e_run_migration_only() {
     _clear; die "migration failed — target unreachable, credential rejected, or schema drift — nothing built or replaced" 7
   fi
   _clear
+  st_mg=PASS; st_cs=PASS; st_dr=PASS   # recorded ONLY after migrate-and-verify (migration+checksum+drift) succeeded
   status "stage: migration applied · checksum + drift verified · credential cleared from runner env"
-  # write the sanitised, release-bound receipt ONLY after all outcomes pass
-  rt04e_write_migration_receipt "$head_after" "recorded-forward-only" || die "migration receipt write/validate failed — refusing" 24
+  # write a FRESH PENDING receipt ONLY after all outcome states are explicitly PASS.
+  # Fixed canonical root (never caller-supplied); the writer retires an expired pending
+  # receipt to the expired category and refuses to overwrite a fresh/malformed one.
+  rt04e_receipt_write "$RECEIPT_DIR" "$RT04E_RELEASE_REV" "$RECEIPT_VALIDATOR" \
+    "$head_after" "recorded-forward-only" "$st_ck" "$st_bk" "$st_ac" "$st_mg" "$st_cs" "$st_dr" \
+    1>/dev/null || die "migration receipt write/validate failed — refusing" 24
+  status "migration receipt written (fresh PENDING, root-owned 0600, SHA-bound, 30-min validity, self-validated)"
   status "RT04E Migration-Only: COMPLETE — READY FOR SERVICE-REPLACEMENT AUTHORISATION"
   exit 0
 }
@@ -160,25 +131,37 @@ rt04e_run_service_replacement_only() {
   # NO database credential marker may be present — reject before any operation.
   [ -z "${DATABASE_URL:-}" ] || die "DATABASE_URL must NOT be present in service-replacement-only — refusing" 30
   [ -z "${BANZAMI_MIGRATE_URL:-}" ] || die "a migration credential marker is present — refusing in service-replacement-only" 30
-  # migration RECEIPT gate — fixed canonical location, ownership/perms/symlink, validator
-  local receipt="$RECEIPT_DIR/rt04e-migration-receipt-$RT04E_RELEASE_REV.json"
-  [ ! -L "$RECEIPT_DIR" ] || die "receipt directory is a symlink — refusing" 31
-  [ -e "$receipt" ] || die "no migration receipt for this release — run migration-only first — refusing" 31
-  [ ! -L "$receipt" ] || die "receipt is a symlink — refusing" 31
-  local owner mode
-  owner="$(stat -c '%U' "$receipt" 2>/dev/null || echo '?')"
-  mode="$(stat -c '%a' "$receipt" 2>/dev/null || echo '?')"
-  [ "$owner" = root ] || die "receipt not root-owned — refusing" 31
-  [ "$mode" = 600 ] || die "receipt permissions are not 600 — refusing" 31
-  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$RECEIPT_VALIDATOR" < "$receipt" >/dev/null 2>&1 \
-    || die "migration receipt failed validation (stale/mismatched/malformed/non-canonical) — refusing" 31
-  status "migration receipt: valid · release-bound · Sandbox · migration-only"
+  # migration RECEIPT gate — PENDING-state validation (fixed canonical root/dir,
+  # ownership/perms/symlink safe, constrained validator, fresh within 30 minutes).
+  local pend="$RECEIPT_DIR/pending/rt04e-migration-receipt-$RT04E_RELEASE_REV.json"
+  [ ! -L "$RECEIPT_DIR" ] || die "receipt root is a symlink — refusing" 31
+  [ ! -L "$RECEIPT_DIR/pending" ] || die "pending receipt directory is a symlink — refusing" 31
+  [ -e "$pend" ] || die "no fresh pending migration receipt for this release — run migration-only first — refusing" 31
+  [ ! -L "$pend" ] || die "pending receipt is a symlink — refusing" 31
+  local owner mode links
+  owner="$(stat -c '%U' "$pend" 2>/dev/null || echo '?')"
+  mode="$(stat -c '%a' "$pend" 2>/dev/null || echo '?')"
+  links="$(stat -c '%h' "$pend" 2>/dev/null || echo '?')"
+  [ "$owner" = root ] || die "pending receipt not root-owned — refusing" 31
+  [ "$mode" = 600 ] || die "pending receipt permissions are not 600 — refusing" 31
+  [ "$links" = 1 ] || die "pending receipt has an unexpected hard-link count — refusing" 31
+  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" node "$RECEIPT_VALIDATOR" < "$pend" >/dev/null 2>&1 \
+    || die "pending migration receipt failed validation (expired/stale/mismatched/malformed/non-canonical) — refusing" 31
+  status "pending migration receipt: valid · release-bound · Sandbox · migration-only · fresh"
+  # second, direct-TTY authorisation BEFORE consuming the receipt
   require_tty
   confirm_phrase "AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT" \
-    "RT04E service-replacement-only will build immutable images and replace ONLY core-api-staging, api-gateway-staging, developer-api, public-api-staging. Pre-state rollback images are retained. Migrations are NOT reversed."
-  # pre-state capture BEFORE any replacement
+    "RT04E service-replacement-only will consume the pending migration receipt (single-use), then build immutable images and replace ONLY core-api-staging, api-gateway-staging, developer-api, public-api-staging. Pre-state rollback images are retained. Migrations are NOT reversed."
+  # ATOMIC consume-on-use — the exclusive rollout lock is already held (acquired in the
+  # preamble). Revalidate freshness, atomically move pending -> consumed (single-use),
+  # then revalidate the reservation. The receipt is consumed BEFORE any capture/build.
+  status "stage: atomic receipt consumption (single-use reservation, under exclusive lock)"
+  rt04e_receipt_consume "$RECEIPT_DIR" "$RT04E_RELEASE_REV" "$RECEIPT_VALIDATOR" 1>/dev/null \
+    || die "receipt consumption failed — pending unavailable/expired/raced — run migration-only again — refusing" 32
+  status "migration receipt consumed (single-use; retained as audit evidence — NOT a rollout-success record)"
+  # pre-state capture BEFORE any replacement (AFTER receipt consumption)
   status "stage: pre-state image capture (rollback references)"
-  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" bash "$ROLLBACK" capture $ALLOW || die "pre-state capture failed — refusing to replace services" 8
+  RT04E_RELEASE_REV="$RT04E_RELEASE_REV" bash "$ROLLBACK" capture $ALLOW || die "pre-state capture failed — consumed receipt is NOT restored; migrations NOT reversed" 8
   # deploy ONLY the four allowlisted services, one at a time, via the canonical adapter
   for s in $ALLOW; do
     status "stage: deploy sandbox service '$s' (canonical, revision-labelled, isolated)"
@@ -258,6 +241,8 @@ cd "$REPO_ROOT" || die "canonical checkout not found — refusing" 11
 [ "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)" = "main" ] || die "not on branch main — refusing" 11
 [ -z "$(git remote 2>/dev/null)" ] || die "canonical checkout must have NO git remotes — refusing" 11
 . "$REPO_ROOT/infra/deployment/rt04e-sandbox-lib.sh"
+[ -f "$RECEIPT_LIB" ] || die "receipt lifecycle library missing — refusing" 12
+. "$RECEIPT_LIB"
 rt04e_valid_rev "$RT04E_RELEASE_REV" || die "RT04E_RELEASE_REV is not the full 40-hex canonical SHA — refusing" 11
 _head="$(git rev-parse HEAD 2>/dev/null || true)"
 [ -n "$_head" ] && [ "$_head" = "$RT04E_RELEASE_REV" ] || die "checked-out revision does not match RT04E_RELEASE_REV — refusing" 11
