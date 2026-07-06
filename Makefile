@@ -452,10 +452,11 @@ check-github-app-source-access:
 	node tools/check-github-app-source-access.mjs
 
 # RT04E Sandbox rollout safety gate — 16 static checks + behavioural/continuity
-# checks 17-66 over the RT04E deployment definitions (immutable tags, isolation,
+# checks 17-86 over the RT04E deployment definitions (immutable tags, isolation,
 # prune-proof rollback, --no-env-resolution confidentiality, base-only vs full
 # attestation projections, full-SHA identity, hermetic Compose wrapper + inherited
-# COMPOSE_* rejection, target-scoped prohibited-service handling, constrained-parser
+# COMPOSE_* rejection, target-scoped prohibited-service handling, the two-mode
+# execution boundary + migration-receipt writer/validator, constrained-parser
 # fixtures). Docker/DB/secret-free.
 # See docs/operations/RT04E_SANDBOX_ROLLOUT.md.
 .PHONY: check-rt04e-rollout-safety

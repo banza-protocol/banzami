@@ -12,6 +12,29 @@ canonical Sandbox runtime provenance and deployment integrity.
 
 Capability **release** and **financial E2E** are **separate follow-on gates**.
 
+## Two explicit execution modes (security boundary, not a workflow preference)
+RT04E execution is split into **two mutually-exclusive, fail-closed modes** selected
+**only** by the exact environment variable `RT04E_EXECUTION_MODE`. There is **no**
+implicit full rollout, **no** legacy default, **no** positional mode argument, and
+**no automatic continuation** from a completed migration into image build or service
+replacement. Missing/empty/aliased/uppercase/`full`/`all`/`auto`/`continue`/`deploy`
+values fail closed at the mode gate, which runs **before** any credential prompt, DB
+access, checkpoint, rollback capture, image build or Docker/Compose operation.
+
+| Mode | Does | Never does |
+|------|------|-----------|
+| `migration-only` | source/attestation gates → **direct-TTY** operator authorisation (`AUTHORISE RT04E SANDBOX MIGRATION`) + real-world confirmations → protected `read -rs` credential → checkpoint gate → **forward-only** migration + checksum + drift verification → sanitised **migration receipt** → clean exit | capture rollback anchors · build/tag images · replace services · provenance · health · rollback |
+| `service-replacement-only` | source/attestation gates → **valid migration-receipt** gate → **direct-TTY** operator authorisation (`AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT`) → rollback-anchor capture → immutable four-service build → isolated replacement → provenance → health → rollback decision → sanitised evidence | prompt for / accept a DB credential · read `DATABASE_URL` · run migration/checkpoint tooling · inspect DB state |
+
+The two stages are bridged **only** by the release-bound **migration receipt** — a
+root-owned, `0600`, SHA-bound, atomically-written, symlink-safe JSON record validated
+by a constrained parser (`tools/rt04e-receipt.mjs`). The operator, at a direct
+interactive terminal, owns the credential via the protected `read -rs` prompt; the
+credential never enters argv, env exports, files, chat, history or logs. The receipt
+is **technical stage-handoff audit evidence — never a payment/financial-release
+approval**; financial capability stays quarantined and no BNA Regulatory Sandbox
+claim follows from RT04E. Migrations are **forward-only** and never reversed.
+
 ## Scope — approved Sandbox service allowlist (only these four)
 `core-api-staging` · `api-gateway-staging` · `developer-api` · `public-api-staging`
 
@@ -170,8 +193,10 @@ flow — those are distinct, separately-approved gates.
 
 ## Enforcement
 `make check-rt04e-rollout-safety` — 16 static checks + behavioural/continuity checks
-17–66 (immutable-tag, isolation-flag, prune-proof, override-generation,
+17–86 (immutable-tag, isolation-flag, prune-proof, override-generation,
 `--no-env-resolution` confidentiality, base-only vs full projection, full-SHA
 identity, hermetic-wrapper + inherited-`COMPOSE_*` rejection, target-scoped
-prohibited-service handling, and constrained-parser fixtures — all
-Docker/DB/secret-free); `make check-rollout-secret-hygiene`.
+prohibited-service handling, the two-mode execution boundary
+(`migration-only`/`service-replacement-only`), migration-receipt writer + validator,
+and constrained-parser fixtures — all Docker/DB/secret-free); `make
+check-rollout-secret-hygiene`.
