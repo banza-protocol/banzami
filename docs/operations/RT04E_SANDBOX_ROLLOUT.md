@@ -79,16 +79,25 @@ reads stdin only, **never writes the config to disk**, and emits **only** PASS/F
 categories per service — never an image value, env value, host, URL, port or any
 Compose field. It rejects unexpected object shapes (exit 2).
 
+Attestation is **target-scoped**: an unrelated service (e.g. a server-owned
+administration service) may legitimately exist anywhere in the Compose model and is
+**ignored** — RT04E judges only the four approved services plus any prohibited-named
+service that is **RT04E-controlled** (carries this release's immutable
+`:rt04e-<SHA>` reference, i.e. the override/overlay selected, introduced, aliased or
+ambiguously resolved it as an RT04E target — which fails closed). Prohibited services
+can also never enter through the target contract allowlist or a deploy/rollback
+target (`rt04e_in_allow` + `rt04e_refuse_bad`).
+
 **Two projections** prove overlay provenance by contrast (source-file provenance is
 never inferred from a single merged model):
 - **Projection A — base only** (`docker-compose.yml` only): `core-api-staging`,
   `public-api-staging`, `developer-api` **exist**; `api-gateway-staging` **does not
-  exist**; no prohibited service.
+  exist**; no RT04E-controlled prohibited service.
 - **Projection B — full composition** (base → gateway overlay → immutable override):
   all four services **exist**; `api-gateway-staging` exists **only here**; each
   service resolves to its **literal** immutable reference `banzami/<repo>:rt04e-<full
-  SHA>`; **no `${…}` interpolation marker**; no ambiguity/duplicate; no prohibited
-  service.
+  SHA>`; **no `${…}` interpolation marker**; no ambiguity/duplicate; no
+  RT04E-controlled prohibited service.
 
 The runner executes **both** projections before checkpoint/migration/build/
 replacement/rollback-decision.
@@ -161,7 +170,8 @@ flow — those are distinct, separately-approved gates.
 
 ## Enforcement
 `make check-rt04e-rollout-safety` — 16 static checks + behavioural/continuity checks
-17–61 (immutable-tag, isolation-flag, prune-proof, override-generation,
+17–66 (immutable-tag, isolation-flag, prune-proof, override-generation,
 `--no-env-resolution` confidentiality, base-only vs full projection, full-SHA
-identity, hermetic-wrapper + inherited-`COMPOSE_*` rejection, and constrained-parser
-fixtures — all Docker/DB/secret-free); `make check-rollout-secret-hygiene`.
+identity, hermetic-wrapper + inherited-`COMPOSE_*` rejection, target-scoped
+prohibited-service handling, and constrained-parser fixtures — all
+Docker/DB/secret-free); `make check-rollout-secret-hygiene`.

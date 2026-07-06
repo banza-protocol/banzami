@@ -8,14 +8,21 @@
  * service — never an image value, an env value, a host/URL/port or any Compose
  * field. Does not write the input to disk. Rejects unexpected input shape (exit 2).
  *
+ * TARGET-SCOPED. An unrelated service (e.g. a server-owned administration service)
+ * may legitimately exist anywhere in the Compose model — its mere presence is NOT a
+ * failure. RT04E judges ONLY the four approved services plus any PROHIBITED-named
+ * service that is RT04E-controlled (i.e. carries THIS release's immutable RT04E
+ * reference, meaning the override/overlay selected, introduced, aliased or resolved
+ * it as an RT04E target).
+ *
  * Two projections (RT04E_PROJECTION):
- *   base : approved base ONLY. Verifies the three base services exist, that
- *          api-gateway-staging does NOT exist (overlay-only proof), and that no
- *          prohibited service is selected. No image assertion (override not applied).
+ *   base : approved base ONLY. Verifies the three base services exist and that
+ *          api-gateway-staging does NOT exist (overlay-only proof). No image
+ *          assertion (override not applied).
  *   full : base → gateway overlay → immutable override. Verifies all four services
  *          exist, api-gateway-staging is present, each resolves to the LITERAL
  *          immutable reference banzami/<repo>:rt04e-<full-sha>, with no unresolved
- *          interpolation marker, no ambiguity and no prohibited service.
+ *          interpolation marker and no ambiguity.
  *
  * Env: RT04E_RELEASE_REV (full 40-hex sha), RT04E_PROJECTION (base|full). Exit 0 = PASS.
  */
@@ -55,9 +62,21 @@ const names = Object.keys(services);
 
 let bad = 0;
 
-// No prohibited service may be selected in EITHER projection.
+// TARGET-SCOPED prohibited guard (both projections). An unrelated prohibited-named
+// service that is NOT RT04E-controlled is ignored — RT04E does not select, override,
+// deploy or roll it back. RT04E fails ONLY when a prohibited-named service carries
+// THIS release's immutable RT04E reference (:rt04e-<rev>): that means the override or
+// overlay introduced, selected, aliased or ambiguously resolved it as an RT04E
+// target. RT04E's own layers only ever assign that tag to the four approved services.
+const RT04E_TAG_SUFFIX = `:rt04e-${rev}`;
 for (const name of names) {
-  if (PROHIBITED.test(name)) { fail(`${name}: prohibited service present in projection`); bad++; }
+  if (!PROHIBITED.test(name)) continue;
+  const s = services[name];
+  const img = s && typeof s.image === 'string' ? s.image : '';
+  if (img.includes(RT04E_TAG_SUFFIX)) {
+    fail(`${name}: prohibited service carries an RT04E immutable reference (RT04E-controlled) — refusing`);
+    bad++;
+  }
 }
 
 if (projection === 'base') {
@@ -70,7 +89,7 @@ if (projection === 'base') {
     fail(`${OVERLAY_SERVICE}: present in base projection (must be overlay-only)`); bad++;
   }
   if (bad) { console.error(`✗ base projection: ${bad} failure(s)`); process.exit(1); }
-  console.log('✓ base projection: base services present · gateway overlay-only · no prohibited service');
+  console.log('✓ base projection: base services present · gateway overlay-only · no RT04E-controlled prohibited service');
   process.exit(0);
 }
 

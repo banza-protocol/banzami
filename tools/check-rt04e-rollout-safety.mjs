@@ -358,9 +358,25 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
   const rBaseNoDev = run(compose(baseNoDev), { RT04E_PROJECTION: 'base' });
   rBaseNoDev.code === 1 ? pass(48, 'parser[base]: missing base service FAILS (exit 1)') : fail(48, 'missing base service must fail');
 
-  // prohibited service present in either projection
-  const rProhib = run(compose({ ...fullGood, 'core-api': `banzami/core-api:rt04e-${REV}` }));
-  rProhib.code === 1 ? pass(49, 'parser: prohibited service present in projection FAILS (exit 1)') : fail(49, 'prohibited service must fail');
+  // TARGET-SCOPED prohibited handling ─────────────────────────────────────────
+  // 49. a prohibited service that is RT04E-CONTROLLED (carries the immutable rt04e
+  //     ref — i.e. introduced/selected/aliased via the override or overlay) FAILS.
+  const rProhibCtl = run(compose({ ...fullGood, 'core-api': `banzami/core-api:rt04e-${REV}` }));
+  rProhibCtl.code === 1 ? pass(49, 'parser[full]: prohibited service carrying an RT04E immutable ref (override-introduced) FAILS (exit 1)') : fail(49, 'RT04E-controlled prohibited service must fail');
+
+  // 62. an UNRELATED prohibited-named service (server-owned admin, NON-rt04e image)
+  //     may exist in the FULL model and does NOT fail — it is not selected/overridden.
+  const rAdminFull = run(compose({ ...fullGood, 'admin-api-staging': 'someregistry/admin:2026-07' }));
+  rAdminFull.code === 0 ? pass(62, 'parser[full]: unrelated admin-api-staging (non-rt04e image) is IGNORED (exit 0)') : fail(62, 'unrelated non-selected prohibited service must not fail');
+
+  // 63. same unrelated service present in the BASE projection also does NOT fail.
+  const rAdminBase = run(compose({ ...baseGood, 'admin-api-staging': 'someregistry/admin:2026-07' }), { RT04E_PROJECTION: 'base' });
+  rAdminBase.code === 0 ? pass(63, 'parser[base]: unrelated admin-api-staging (non-rt04e image) is IGNORED (exit 0)') : fail(63, 'unrelated base service must not fail');
+
+  // 64. a prohibited service ALIASED/substituted onto an RT04E immutable ref FAILS,
+  //     even alongside the four valid approved services (override-injection attempt).
+  const rAlias = run(compose({ ...fullGood, 'payments-live': `banzami/public-api:rt04e-${REV}` }));
+  rAlias.code === 1 ? pass(64, 'parser[full]: prohibited (`*live*`) service aliased to an RT04E immutable ref FAILS (exit 1)') : fail(64, 'prohibited service aliased to an RT04E ref must fail');
 
   // revision identity
   const rShort = run(compose(fullGood), { RT04E_RELEASE_REV: SHORT });
@@ -378,8 +394,34 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
   (rBadJson.code === 2 && rBadShape.code === 2)
     ? pass(53, 'parser: non-JSON + unexpected shape REJECTED closed (exit 2)') : fail(53, 'unexpected input must exit 2');
 
-  const leaks = [rFull, rLatest, rInterp, rWrongRepo, rBase, rBaseGw, rProhib].some(r => /banzami\/[a-z-]+:/.test(r.out));
+  const leaks = [rFull, rLatest, rInterp, rWrongRepo, rBase, rBaseGw, rProhibCtl, rAdminFull, rAlias].some(r => /banzami\/[a-z-]+:/.test(r.out));
   !leaks ? pass(54, 'parser never emits an image reference value (PASS/FAIL categories only)') : fail(54, 'parser must not print image reference values');
+}
+
+// 65–66. deterministic target-selection fixtures — source the lib, no docker/db/secret.
+// A prohibited service can never be an RT04E deploy/rollback target nor pass the
+// allowlist, while all four approved services are accepted.
+{
+  const clean = { ...process.env };
+  for (const k of Object.keys(clean)) if (/^COMPOSE_/.test(k)) delete clean[k];
+  const guardRefuses = (svc) => {
+    // rt04e_refuse_bad returns 0 (refuse) for prohibited; rt04e_in_allow returns non-0.
+    let refused = false, notAllowed = false;
+    try { execSync(`bash -c '. "${LIB_PATH}"; rt04e_refuse_bad "${svc}"'`, { stdio: 'pipe', env: clean }); refused = true; } catch { refused = false; }
+    try { execSync(`bash -c '. "${LIB_PATH}"; rt04e_in_allow "${svc}"'`, { stdio: 'pipe', env: clean }); notAllowed = false; } catch { notAllowed = true; }
+    return refused && notAllowed;
+  };
+  const allows = (svc) => {
+    let ok = false, notRefused = false;
+    try { execSync(`bash -c '. "${LIB_PATH}"; rt04e_in_allow "${svc}"'`, { stdio: 'pipe', env: clean }); ok = true; } catch { ok = false; }
+    try { execSync(`bash -c '. "${LIB_PATH}"; rt04e_refuse_bad "${svc}"'`, { stdio: 'pipe', env: clean }); notRefused = false; } catch { notRefused = true; }
+    return ok && notRefused;
+  };
+  const prohibitedTargets = ['core-api', 'api-gateway', 'public-api', 'admin-api', 'admin-api-staging', 'payments-live', 'core-prod'];
+  prohibitedTargets.every(guardRefuses)
+    ? pass(65, 'target guard: every prohibited service is refused AND outside the allowlist (deploy/rollback target)') : fail(65, 'prohibited services must be refused as targets');
+  ['core-api-staging', 'api-gateway-staging', 'developer-api', 'public-api-staging'].every(allows)
+    ? pass(66, 'target guard: the four approved services are allowlisted and not refused') : fail(66, 'approved services must be accepted');
 }
 
 // 55. parser reads stdin only and never writes the input to disk / retains full config
@@ -418,4 +460,4 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
 }
 
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–61)');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–66)');
