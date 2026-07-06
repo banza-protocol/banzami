@@ -13,7 +13,7 @@
  *
  * Usage: node tools/check-rt04e-rollout-safety.mjs  (make check-rt04e-rollout-safety)
  */
-import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, mkdirSync, rmSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
@@ -468,7 +468,10 @@ const LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-sandbox-lib.sh');
 
 // ── Phase-6 staged execution boundary (67–86): migration-only vs service-replacement-only ──
 const receipt = read('tools/rt04e-receipt.mjs');
+const receiptLib = read('infra/deployment/rt04e-receipt-lib.sh');
 const RECEIPT_PATH = resolve(ROOT, 'tools/rt04e-receipt.mjs');
+const RECEIPT_LIB_PATH = resolve(ROOT, 'infra/deployment/rt04e-receipt-lib.sh');
+let cnt = 0;
 const RUNNER_PATH = resolve(ROOT, 'infra/deployment/rt04e-secure-rollout.sh');
 // migration-only function body (between its definition and the service-replacement function)
 const migStart = runner.indexOf('rt04e_run_migration_only()');
@@ -520,87 +523,168 @@ const svcBody = svcStart >= 0 && preambleStart > svcStart ? runner.slice(svcStar
   (inMig && !inSvc && !inPreamble) ? pass(75, 'protected read -rs credential prompt is confined to migration-only') : fail(75, 'read -rs must exist only in migration-only');
 }
 
-// 76. the migration receipt is written ONLY after migration + checksum + drift pass
+// 76. the migration receipt is written ONLY after migration + checksum + drift pass,
+//     and only with explicitly-recorded PASS outcome states (not hardcoded literals).
 {
   const mv = migBody.indexOf('migrate-and-verify.sh');
-  const wr = migBody.indexOf('rt04e_write_migration_receipt "$head_after"');
-  (mv >= 0 && wr >= 0 && mv < wr) ? pass(76, 'migration receipt is written only after migrate/checksum/drift succeed') : fail(76, 'receipt must be written only after migration success');
+  const wr = migBody.indexOf('rt04e_receipt_write "$RECEIPT_DIR"');
+  const outcomeRecorded = /st_mg=PASS; st_cs=PASS; st_dr=PASS/.test(migBody) && /st_ck=PASS/.test(migBody) && /st_bk=PASS; st_ac=PASS/.test(migBody);
+  const threaded = /rt04e_receipt_write "\$RECEIPT_DIR" "\$RT04E_RELEASE_REV" "\$RECEIPT_VALIDATOR"[\s\S]{0,120}"\$st_ck" "\$st_bk" "\$st_ac" "\$st_mg" "\$st_cs" "\$st_dr"/.test(migBody);
+  (mv >= 0 && wr >= 0 && mv < wr && outcomeRecorded && threaded)
+    ? pass(76, 'receipt written only after migration success, with explicitly-recorded PASS outcome states threaded in') : fail(76, 'receipt must be written only after migration success with controlled outcome states');
 }
 
-// 77. receipt writer is safe: fixed location, symlink-safe, atomic rename, 0600 root, no mismatched overwrite, SHA-bound
+// 77. the receipt WRITER (lib) is safe: fixed subdirs, symlink-safe, atomic rename,
+//     0600 root, PASS-status-gated, self-validated, expired-retire, no fresh overwrite
 {
-  const w = runner;
-  const fixedLoc = /RECEIPT_DIR="\/root\/banzami-forensics\/rt04e-receipts"/.test(w);
-  const shaBound = /rt04e-migration-receipt-\$RT04E_RELEASE_REV\.json/.test(w);
-  const symlinkSafe = /\[ -L "\$final" \] && die/.test(w) && /\[ -L "\$RECEIPT_DIR" \] && die/.test(w);
-  const atomic = /mktemp "\$RECEIPT_DIR\/\.receipt\.XXXXXX"/.test(w) && /mv -f "\$tmp" "\$final"/.test(w);
-  const perms = /chmod 600 "\$final"/.test(w) && /chown root:root "\$tmp"/.test(w);
-  const noOverwrite = /does not validate — refusing to overwrite/.test(w);
-  const selfValidate = /node "\$RECEIPT_VALIDATOR" < "\$tmp"/.test(w);
-  (fixedLoc && shaBound && symlinkSafe && atomic && perms && noOverwrite && selfValidate)
-    ? pass(77, 'receipt writer: fixed SHA-bound location, symlink-safe, atomic 0600 root, no mismatched overwrite, self-validated') : fail(77, 'receipt writer must be fixed/symlink-safe/atomic/self-validated');
+  const l = receiptLib;
+  const dirs = /mkdir -p "\$root\/pending" "\$root\/consumed" "\$root\/expired"/.test(l);
+  const symlinkSafe = /\[ -L "\$root" \]/.test(l) && /\[ -L "\$pend" \]/.test(l) && /is a symlink/.test(l);
+  const atomic = /mktemp "\$root\/pending\/\.receipt\.XXXXXX"/.test(l) && /mv -f "\$tmp" "\$pend"/.test(l);
+  const perms = /chmod 600 "\$pend"/.test(l) && /chown root:root "\$tmp"/.test(l);
+  const passGated = /\[ "\$st" = PASS \] \|\|/.test(l);
+  const selfValidate = /node "\$validator" < "\$tmp"/.test(l);
+  const expiredRetire = /root\/expired\/rt04e-migration-receipt-\$sha-\$\(rt04e_receipt_token\)/.test(l) && /refusing to overwrite/.test(l);
+  const noCallerRoot = /rt04e_receipt_write\(\)\s*\{\s*local root="\$1"/.test(l); // root is a param, not env
+  (dirs && symlinkSafe && atomic && perms && passGated && selfValidate && expiredRetire && noCallerRoot)
+    ? pass(77, 'receipt writer: fixed subdirs, symlink-safe, atomic 0600 root, PASS-gated, self-validated, expired-retire, no fresh overwrite, root-by-param') : fail(77, 'receipt writer lib must be safe + single-use aware');
 }
 
-// 78–80. receipt validator fixtures — crafted JSON via stdin, no docker/db/secret
+// 78–80 + 87–92. freshness-aware validator + lifecycle fixtures (no docker/db/secret)
 {
-  const REV = '7'.repeat(39) + 'b'; // full 40-hex (arbitrary)
-  const base = {
+  const REV = '7'.repeat(39) + 'b';
+  const isoAt = secs => new Date(Date.now() + secs * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const base = (over = {}) => ({
     receipt_version: 1, release_revision: REV, target_category: 'Sandbox', execution_mode: 'migration-only',
-    checkpoint_status: 'PASS', backup_status: 'PASS', migration_access_status: 'PASS', migration_status: 'PASS',
-    migration_level_before: 'recorded-forward-only', migration_level_after: '0100_dev_project_sandbox_binding',
-    checksum_status: 'PASS', drift_status: 'PASS', created_utc: '2026-07-06T07:00:00Z',
-  };
+    receipt_state: 'pending', checkpoint_status: 'PASS', backup_status: 'PASS', migration_access_status: 'PASS',
+    migration_status: 'PASS', migration_level_before: 'recorded-forward-only', migration_level_after: '0100_dev_project_sandbox_binding',
+    checksum_status: 'PASS', drift_status: 'PASS', created_utc: isoAt(-100), ...over,
+  });
   const runV = (obj, env = {}) => {
-    try { execSync(`node "${RECEIPT_PATH}"`, { input: JSON.stringify(obj), stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return { code: 0 }; }
+    try { execSync(`node "${RECEIPT_PATH}"`, { input: JSON.stringify(obj), stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return { code: 0, out: '' }; }
     catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
   };
   const rawV = (str, env = {}) => { try { execSync(`node "${RECEIPT_PATH}"`, { input: str, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, RT04E_RELEASE_REV: REV, ...env } }); return 0; } catch (e) { return e.status ?? 1; } };
 
-  const okReceipt = runV(base).code === 0;
-  const wrongRev = runV({ ...base, release_revision: 'a'.repeat(40) }).code === 1;
-  const wrongTarget = runV({ ...base, target_category: 'Production' }).code === 1;
-  const wrongMode = runV({ ...base, execution_mode: 'service-replacement-only' }).code === 1;
-  const failedStatus = runV({ ...base, drift_status: 'FAIL' }).code === 1;
-  const unknownField = runV({ ...base, extra: 'x' }).code === 1;
-  (okReceipt && wrongRev && wrongTarget && wrongMode && failedStatus && unknownField)
-    ? pass(78, 'validator: valid receipt PASSES; wrong-SHA/target/mode/failed-status/unknown-field FAIL (exit 1)') : fail(78, 'validator field/status checks incorrect');
+  // 78. structural field/status/mode/target rejections + fresh valid PASS
+  const ok = runV(base()).code === 0;
+  const wrongRev = runV(base({ release_revision: 'a'.repeat(40) })).code === 1;
+  const wrongTarget = runV(base({ target_category: 'Production' })).code === 1;
+  const wrongMode = runV(base({ execution_mode: 'service-replacement-only' })).code === 1;
+  const failedStatus = runV(base({ drift_status: 'FAIL' })).code === 1;
+  const unknownField = runV(base({ extra: 'x' })).code === 1;
+  const wrongState = runV(base({ receipt_state: 'consumed' })).code === 1;
+  (ok && wrongRev && wrongTarget && wrongMode && failedStatus && unknownField && wrongState)
+    ? pass(78, 'validator: fresh receipt PASSES; wrong-SHA/target/mode/state/failed-status/unknown-field FAIL (exit 1)') : fail(78, 'validator field/status/state checks incorrect');
 
-  const shortSha = rawV(JSON.stringify(base), { RT04E_RELEASE_REV: 'a1b2c3d' });
+  // 79. unreadable / shape / short-SHA / duplicate-key
+  const shortSha = rawV(JSON.stringify(base()), { RT04E_RELEASE_REV: 'a1b2c3d' });
   const badJson = rawV('not json');
   const notObject = rawV('[1,2,3]');
-  (shortSha === 2 && badJson === 2 && notObject === 2)
-    ? pass(79, 'validator: short SHA env, non-JSON, and non-object all fail closed (exit 2)') : fail(79, 'validator must exit 2 on short SHA / non-JSON / non-object');
+  const dupKey = rawV(`{"receipt_version":1,"receipt_version":1,"release_revision":"${REV}"}`);
+  (shortSha === 2 && badJson === 2 && notObject === 2 && dupKey === 1)
+    ? pass(79, 'validator: short-SHA/non-JSON/non-object exit 2; duplicate field exit 1') : fail(79, 'validator shape/duplicate handling incorrect');
 
-  const secretish = runV({ ...base, migration_level_after: 'postgres://x' }).code === 1;
-  const noLeak = !/postgres|:\/\//.test(runV({ ...base, migration_level_after: 'postgres://x' }).out || '');
-  (secretish && noLeak) ? pass(80, 'validator: secret-like content rejected and never echoed') : fail(80, 'validator must reject + not echo secret-like content');
+  // 80. secret-like content rejected and never echoed
+  const secretRes = runV(base({ migration_level_after: 'postgres://x' }));
+  (secretRes.code === 1 && !/postgres|:\/\//.test(secretRes.out))
+    ? pass(80, 'validator: secret-like content rejected and never echoed') : fail(80, 'validator must reject + not echo secret-like content');
+
+  // 87. FRESHNESS: fresh(<30m) valid; just-inside boundary valid; just-outside expired(3); expired(3); future(4); malformed-tz(1)
+  const fresh = runV(base({ created_utc: isoAt(-100) })).code === 0;
+  const justIn = runV(base({ created_utc: isoAt(-1799) })).code === 0;
+  const justOut = runV(base({ created_utc: isoAt(-1801) })).code === 3;
+  const expired = runV(base({ created_utc: isoAt(-3600) })).code === 3;
+  const future = runV(base({ created_utc: isoAt(600) })).code === 4;
+  const badTz = runV(base({ created_utc: '2026-07-06T07:00:00+00:00' })).code === 1;
+  (fresh && justIn && justOut && expired && future && badTz)
+    ? pass(87, 'validator freshness: fresh/just-inside PASS; boundary+beyond EXPIRED(3); future(4); malformed-tz(1)') : fail(87, 'validator freshness/boundary/future/tz handling incorrect');
+
+  // 88. the 30-minute maximum age is NOT caller-configurable (env cannot shorten/extend it)
+  const envCannotShrink = runV(base({ created_utc: isoAt(-100) }), { RT04E_MAX_AGE: '0', RT04E_RECEIPT_MAX_AGE_SECONDS: '1', MAX_AGE_SECONDS: '0' }).code === 0;
+  const envCannotExtend = runV(base({ created_utc: isoAt(-3600) }), { RT04E_MAX_AGE: '999999', RT04E_RECEIPT_MAX_AGE_SECONDS: '999999' }).code === 3;
+  (envCannotShrink && envCannotExtend && /MAX_AGE_SECONDS = 1800/.test(receipt) && !/process\.env\.[A-Z_]*MAX_AGE/.test(receipt))
+    ? pass(88, 'receipt maximum age is a fixed 1800s constant — not overridable via env/arg/input') : fail(88, 'maximum age must be a fixed non-caller-configurable constant');
+
+  // 89–92. LIFECYCLE via the sourceable lib with a TEMPORARY test root (never production)
+  const tmpRoot = () => { const d = resolve(tmpdir(), `rt04e-rcpt-${process.pid}-${cnt++}`); mkdirSync(d, { recursive: true }); return d; };
+  const libCall = (fnLine, root, env = {}) => {
+    try { const out = execSync(`bash -c '. "${LIB_PATH}"; . "${RECEIPT_LIB_PATH}"; ${fnLine}'`, { stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, ...env } }); return { code: 0, out: out.toString() }; }
+    catch (e) { return { code: e.status ?? 1, out: `${e.stdout ?? ''}${e.stderr ?? ''}` }; }
+  };
+  const W = (root, sha, ...st) => libCall(`rt04e_receipt_write "${root}" "${sha}" "${RECEIPT_PATH}" "0100_head" "recorded-forward-only" ${st.map(s => `"${s}"`).join(' ')}`, root);
+  const C = (root, sha) => libCall(`rt04e_receipt_consume "${root}" "${sha}" "${RECEIPT_PATH}"`, root);
+
+  // 89. write pending; fresh-overwrite refused; non-PASS status refused
+  { const r = tmpRoot();
+    const w1 = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 0;
+    const w2 = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 25; // fresh exists
+    const wBad = W(tmpRoot(), REV, 'PASS', 'PASS', 'PASS', 'FAIL', 'PASS', 'PASS').code === 24; // non-PASS
+    (w1 && w2 && wBad) ? pass(89, 'lib write: creates fresh pending; refuses fresh-overwrite (25) and non-PASS status (24)') : fail(89, 'lib write overwrite/status handling incorrect');
+  }
+  // 90. atomic single-use consume; second consume fails; consumed retained; renewal allowed
+  { const r = tmpRoot(); W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS');
+    const c1 = C(r, REV).code === 0;
+    const pendGone = !existsSync(resolve(r, 'pending', `rt04e-migration-receipt-${REV}.json`));
+    const c2 = C(r, REV).code === 31;                       // single-use: nothing to consume
+    const retained = existsSync(resolve(r, 'consumed')) && readdirSync(resolve(r, 'consumed')).length === 1;
+    const renew = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 0; // consumed does not block a new pending
+    (c1 && pendGone && c2 && retained && renew) ? pass(90, 'lib consume: single-use (pending gone; 2nd consume fails 31); consumed retained; renewal after consume allowed') : fail(90, 'lib consume single-use/retain/renew incorrect');
+  }
+  // 91. expired pending is atomically retired to expired/ before a new pending is written
+  { const r = tmpRoot(); mkdirSync(resolve(r, 'pending'), { recursive: true });
+    const pend = resolve(r, 'pending', `rt04e-migration-receipt-${REV}.json`);
+    writeFileSync(pend, JSON.stringify(base({ created_utc: isoAt(-4000) }))); // expired pending planted
+    const w = W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 0;
+    const retired = existsSync(resolve(r, 'expired')) && readdirSync(resolve(r, 'expired')).length === 1;
+    const freshNow = runV(JSON.parse(readFileSync(pend, 'utf8'))).code === 0;
+    (w && retired && freshNow) ? pass(91, 'lib write: expired pending atomically retired to expired/, then a fresh pending is written') : fail(91, 'expired-retire-then-write incorrect');
+  }
+  // 92. a malformed/unsafe existing pending is NOT overwritten (fail closed)
+  { const r = tmpRoot(); mkdirSync(resolve(r, 'pending'), { recursive: true });
+    writeFileSync(resolve(r, 'pending', `rt04e-migration-receipt-${REV}.json`), 'not-json{');
+    W(r, REV, 'PASS', 'PASS', 'PASS', 'PASS', 'PASS', 'PASS').code === 25
+      ? pass(92, 'lib write: malformed existing pending is NOT overwritten (fail closed)') : fail(92, 'malformed pending must not be overwritten');
+  }
 }
 
-// 81. service-replacement-only NEVER runs migration/checkpoint/credential code
+// 81. service-replacement-only NEVER runs migration/checkpoint/credential/receipt-WRITE code
 {
-  const forbidden = /migrate-and-verify\.sh|\$CHECKPOINT|read -rs|BANZAMI_MIGRATE_URL=|rt04e_write_migration_receipt/;
+  const forbidden = /migrate-and-verify\.sh|\$CHECKPOINT|read -rs|BANZAMI_MIGRATE_URL=|rt04e_receipt_write/;
   svcBody && !forbidden.test(svcBody)
-    ? pass(81, 'service-replacement-only body contains no migration/checkpoint/credential code') : fail(81, 'service-replacement-only must never touch migration/checkpoint/credential');
+    ? pass(81, 'service-replacement-only body contains no migration/checkpoint/credential/receipt-write code') : fail(81, 'service-replacement-only must never touch migration/checkpoint/credential/receipt-write');
 }
 
 // 82. service-replacement-only rejects a database credential marker before any operation
 /\[ -z "\$\{DATABASE_URL:-\}" \][\s\S]{0,120}refusing/.test(svcBody) && /\[ -z "\$\{BANZAMI_MIGRATE_URL:-\}" \]/.test(svcBody)
   ? pass(82, 'service-replacement-only rejects DATABASE_URL and migration-credential markers') : fail(82, 'service-replacement-only must reject a DB credential marker');
 
-// 83. service-replacement-only requires a VALID matching receipt via the constrained validator
-/rt04e-migration-receipt-\$RT04E_RELEASE_REV\.json/.test(svcBody)
-  && /node "\$RECEIPT_VALIDATOR" < "\$receipt"/.test(svcBody)
-  && /\[ "\$owner" = root \]/.test(svcBody) && /\[ "\$mode" = 600 \]/.test(svcBody) && /\[ ! -L "\$receipt" \]/.test(svcBody)
-  ? pass(83, 'service-replacement-only requires a release-bound, root-600, non-symlink, validator-passing receipt') : fail(83, 'service-replacement-only must gate on a valid canonical receipt');
+// 83. service-replacement-only requires a VALID FRESH PENDING receipt then atomically CONSUMES it
+{
+  const pendPath = /pending\/rt04e-migration-receipt-\$RT04E_RELEASE_REV\.json/.test(svcBody);
+  const validate = /node "\$RECEIPT_VALIDATOR" < "\$pend"/.test(svcBody);
+  const fsSafe = /\[ "\$owner" = root \]/.test(svcBody) && /\[ "\$mode" = 600 \]/.test(svcBody)
+    && /\[ ! -L "\$pend" \]/.test(svcBody) && /\[ "\$links" = 1 \]/.test(svcBody);
+  const consume = /rt04e_receipt_consume "\$RECEIPT_DIR" "\$RT04E_RELEASE_REV" "\$RECEIPT_VALIDATOR"/.test(svcBody);
+  (pendPath && validate && fsSafe && consume)
+    ? pass(83, 'service-replacement-only validates a fresh, release-bound, root-600, non-symlink, 1-link pending receipt then consumes it') : fail(83, 'service-replacement-only must validate + consume a valid canonical pending receipt');
+}
 
-// 84. service-replacement-only requires a TTY + the exact service-replacement phrase, capture before deploy
+// 84. TTY + exact phrase; ORDER: validate → phrase → CONSUME → capture → deploy; consume under the held lock
 {
   const tty = /require_tty/.test(svcBody);
   const phrase = /confirm_phrase "AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT"/.test(svcBody);
+  const valIx = svcBody.indexOf('node "$RECEIPT_VALIDATOR" < "$pend"');
+  const phraseIx = svcBody.indexOf('confirm_phrase "AUTHORISE RT04E SANDBOX SERVICE REPLACEMENT"');
+  const consumeIx = svcBody.indexOf('rt04e_receipt_consume');
   const capIx = svcBody.indexOf('bash "$ROLLBACK" capture');
-  const depIx = svcBody.indexOf('bash "$DEPLOY_ADAPTER"');   // the deploy INVOCATION, not the -f existence check
-  const capBeforeDeploy = capIx >= 0 && depIx > capIx;
-  (tty && phrase && capBeforeDeploy) ? pass(84, 'service-replacement-only requires TTY + exact replacement phrase; capture precedes deploy') : fail(84, 'service-replacement-only must require TTY + phrase and capture-before-deploy');
+  const depIx = svcBody.indexOf('bash "$DEPLOY_ADAPTER"');
+  // lock is acquired in the preamble (flock 9) before the dispatch → held during consume
+  const lockInPreamble = /flock -n 9/.test(runner.slice(preambleStart >= 0 ? preambleStart : 0));
+  const order = [valIx, phraseIx, consumeIx, capIx, depIx].every(i => i >= 0)
+    && valIx < phraseIx && phraseIx < consumeIx && consumeIx < capIx && capIx < depIx;
+  (tty && phrase && order && lockInPreamble)
+    ? pass(84, 'order: validate → TTY phrase → atomic consume (under held lock) → capture → deploy') : fail(84, 'consume must follow the second TTY phrase + lock, and precede capture/deploy');
 }
 
 // 85. no legacy combined migration→deploy path: migration-only never deploys; the two modes are mutually exclusive
@@ -617,4 +701,4 @@ const svcBody = svcStart >= 0 && preambleStart > svcStart ? runner.slice(svcStar
   ? pass(86, 'runner keeps payment/financial capability quarantined (receipt is not a release approval)') : fail(86, 'runner must state financial capability stays quarantined');
 
 if (failures) { console.log(`\n✗ RT04E rollout safety: ${failures} check(s) failed`); process.exit(1); }
-console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–86)');
+console.log('\n✓ RT04E rollout safety: all checks pass (16 static + behavioural/continuity 17–92)');
