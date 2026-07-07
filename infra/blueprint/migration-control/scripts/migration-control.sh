@@ -185,7 +185,7 @@ cmd_verify() {
   failure_path_proof || rc=1
 
   echo "== ownership + privilege (2D verifier) =="
-  docker run --rm --network "$BZMC_NETWORK" -e "EXPECT_COUNT=$MIG_COUNT" -e "EXPECT_MAXVER=$MIG_MAXVER" \
+  docker run --rm --network "$BZMC_NETWORK" -e "EXPECT_COUNT=$MIG_COUNT" -e "EXPECT_MAXVER=$MIG_MAXVER" -e "EXPECT_CONNLIMIT=2" \
     -v "$BZMC_SECRET_DIR/mi_superuser:/run/secrets/mi_superuser:ro" -v "$VERIFY_IDENTITY:/lab/verify-identity.sh:ro" \
     --label "$LABEL=1" --label "$LABEL.runid=$RUNID" --entrypoint /bin/bash "$PG_IMAGE" /lab/verify-identity.sh || rc=1
 

@@ -68,6 +68,7 @@ services:
       MI_ADMIN_USER: miadmin
       MI_DB: blueprint_migration_lab
       MI_VALID_UNTIL: ${BZMC_VALID_UNTIL:?migration-control.sh must set BZMC_VALID_UNTIL}
+      MI_CONN_LIMIT: "2"
     secrets:
       - mi_superuser
       - mi_control

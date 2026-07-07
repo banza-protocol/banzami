@@ -24,6 +24,9 @@ printf '%s:%s:*:%s:%s\n' "$PGHOST" "$PGPORT" "$MI_ADMIN_USER" "$(cat "$SUPER_FIL
 export PGHOST PGPORT PGDATABASE="$MI_DB" PGUSER="$MI_ADMIN_USER"
 MI_CONTROL_PW="$(cat "$CONTROL_FILE")"; export MI_CONTROL_PW
 MI_MIGRATION_PW="$(cat "$MIG_FILE")"; export MI_MIGRATION_PW
+# connection budget for the migration login: 1 for a plain migration (2D); 2 for the
+# controlled path (2E) that HOLDS an advisory-lock session while sqlx migrates.
+MI_CONN_LIMIT="${MI_CONN_LIMIT:-1}"; export MI_CONN_LIMIT
 export MI_VALID_UNTIL
 
 echo "bootstrap: establishing short-lived migration-login model on disposable db"
@@ -32,6 +35,7 @@ psql -v ON_ERROR_STOP=1 --no-psqlrc -q <<'SQL'
 \getenv control_pw MI_CONTROL_PW
 \getenv migration_pw MI_MIGRATION_PW
 \getenv valid_until MI_VALID_UNTIL
+\getenv conn_limit MI_CONN_LIMIT
 
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='bl_schema_owner') THEN
@@ -56,7 +60,7 @@ ALTER ROLE bl_control_plane PASSWORD :'control_pw';
 DROP ROLE IF EXISTS bl_migration;
 CREATE ROLE bl_migration LOGIN
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS
-  CONNECTION LIMIT 1
+  CONNECTION LIMIT :conn_limit
   PASSWORD :'migration_pw'
   VALID UNTIL :'valid_until';
 

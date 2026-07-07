@@ -37,7 +37,7 @@ APP="nspname NOT IN ('pg_catalog','information_schema','pg_toast') AND nspname N
 # ---- short-lived migration login privilege attributes ----
 [ "$(q "SELECT (NOT rolsuper AND NOT rolcreatedb AND NOT rolcreaterole AND NOT rolreplication AND NOT rolbypassrls AND rolcanlogin) FROM pg_roles WHERE rolname='bl_migration'")" = "t" ] \
   && rep PRIV migration_login_least_privilege PASS || rep PRIV migration_login_least_privilege FAIL
-[ "$(q "SELECT rolconnlimit FROM pg_roles WHERE rolname='bl_migration'")" = "1" ] && rep PRIV migration_login_conn_limit_1 PASS || rep PRIV migration_login_conn_limit_1 FAIL
+[ "$(q "SELECT rolconnlimit FROM pg_roles WHERE rolname='bl_migration'")" = "${EXPECT_CONNLIMIT:-1}" ] && rep PRIV migration_login_conn_limit_bounded PASS || rep PRIV migration_login_conn_limit_bounded FAIL
 [ "$(q "SELECT (rolvaliduntil IS NOT NULL AND rolvaliduntil > now()) FROM pg_roles WHERE rolname='bl_migration'")" = "t" ] \
   && rep PRIV migration_login_valid_until_set PASS || rep PRIV migration_login_valid_until_set FAIL
 

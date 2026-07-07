@@ -54,7 +54,7 @@ const eviv = read(resolve(MI, 'scripts', 'validate-derived-evidence.mjs'));
 // 5. short-lived login: LOGIN, CONNECTION LIMIT 1, VALID UNTIL, restricted, owner-member; runtime/control NOT owner members; no superuser apply; no blanket grant
 {
   const login = /CREATE ROLE bl_migration LOGIN[\s\S]*?NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS/.test(boot);
-  const limits = /CONNECTION LIMIT 1/.test(boot) && /VALID UNTIL :'valid_until'/.test(boot);
+  const limits = /CONNECTION LIMIT/.test(boot) && /VALID UNTIL :'valid_until'/.test(boot);
   const ownerMember = /GRANT bl_schema_owner TO bl_migration/.test(boot) && /SET role = 'bl_schema_owner'/.test(boot);
   const notMembers = !/GRANT bl_schema_owner TO bl_app_runtime/.test(boot) && !/GRANT bl_schema_owner TO bl_control_plane/.test(boot);
   const noGrantAll = !/GRANT\s+ALL/i.test(boot);
@@ -70,7 +70,7 @@ const eviv = read(resolve(MI, 'scripts', 'validate-derived-evidence.mjs'));
 // 7. verifier separation: runtime/control not owner members; only migration is; least-privilege attrs
 {
   const ok = /runtime_control_not_owner_members/.test(vid) && /migration_login_is_owner_member/.test(vid)
-    && /migration_login_least_privilege/.test(vid) && /migration_login_conn_limit_1/.test(vid) && /migration_login_valid_until_set/.test(vid)
+    && /migration_login_least_privilege/.test(vid) && /migration_login_conn_limit_bounded/.test(vid) && /migration_login_valid_until_set/.test(vid)
     && /no_foreign_role_owns_objects/.test(vid);
   const derived = /EXPECT_COUNT/.test(vid) && !/\b97\b/.test(vid) && !/\b97\b/.test(orch);
   (ok && derived) ? pass(7, 'verifier proves privilege separation + least-privilege + no hardcoded count') : fail(7, `verifier (ok=${ok} derived=${derived})`);

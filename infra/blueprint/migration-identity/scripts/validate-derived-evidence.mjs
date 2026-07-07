@@ -29,11 +29,13 @@ att.length ? pass('derived_attestation_manifest_present') : fail('derived_attest
 // derived image config labels = own identity linkage
 let labels = {};
 try { const cfg = blob(blob(img[0].digest).config.digest); labels = (cfg.config && cfg.config.Labels) || {}; } catch { /* */ }
+// namespace-agnostic identity labels (migration-identity / migration-control both apply)
+const bySuffix = suf => { const k = Object.keys(labels).find(k => k.endsWith(suf)); return k ? labels[k] : undefined; };
 labels['org.opencontainers.image.revision'] === sha ? pass('label_source_revision_matches') : fail('label_source_revision_matches');
-labels['com.banzami.blueprint.migration-identity.parent-digest'] === parentDigest ? pass('label_parent_digest_matches') : fail('label_parent_digest_matches', 'parent digest mismatch/tag-only');
-labels['com.banzami.blueprint.migration-identity.migrations-digest'] === migDigest ? pass('label_embedded_migration_digest_matches') : fail('label_embedded_migration_digest_matches');
+bySuffix('.parent-digest') === parentDigest ? pass('label_parent_digest_matches') : fail('label_parent_digest_matches', 'parent digest mismatch/tag-only');
+bySuffix('.migrations-digest') === migDigest ? pass('label_embedded_migration_digest_matches') : fail('label_embedded_migration_digest_matches');
 /^sha256:[0-9a-f]{64}$/.test(parentDigest || '') ? pass('parent_digest_is_immutable_content_digest') : fail('parent_digest_is_immutable_content_digest');
-(labels['com.banzami.blueprint.migration-identity.dockerfile-digest'] || '').length === 64 ? pass('label_dockerfile_material_present') : fail('label_dockerfile_material_present');
+(bySuffix('.dockerfile-digest') || '').length === 64 ? pass('label_dockerfile_material_present') : fail('label_dockerfile_material_present');
 
 // gather in-toto predicates
 const preds = [];
