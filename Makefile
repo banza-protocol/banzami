@@ -614,3 +614,29 @@ blueprint-service-images-lab-clean:
 
 blueprint-service-images-lab-full:
 	bash infra/blueprint/service-lab/scripts/service-image-lab.sh full
+
+# ── Blueprint — Sandbox operational adapters (same-VM controlled rebuild tooling) ──
+# LOCAL rehearsal only in this repo; the VM apply is a later authorised operational step.
+# check-* are static (no-Docker) gates. Bootstrap adapter (Section A) is present; the
+# release-package / migration / deployment adapters land as subsequent focused increments.
+.PHONY: check-sandbox-operational check-sandbox-bootstrap sandbox-bootstrap-plan sandbox-bootstrap-apply sandbox-bootstrap-verify sandbox-bootstrap-clean sandbox-bootstrap-full
+check-sandbox-operational:
+	node infra/blueprint/validators/check-sandbox-operational.mjs
+
+check-sandbox-bootstrap:
+	node infra/blueprint/validators/check-sandbox-bootstrap.mjs
+
+sandbox-bootstrap-plan:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh plan
+
+sandbox-bootstrap-apply:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh apply
+
+sandbox-bootstrap-verify:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh verify
+
+sandbox-bootstrap-clean:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh clean
+
+sandbox-bootstrap-full:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh full
