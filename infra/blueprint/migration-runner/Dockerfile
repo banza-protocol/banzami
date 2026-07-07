@@ -10,13 +10,12 @@
 # credential reaches the entrypoint ONLY through a read-only mounted file
 # (/run/secrets/rt04e_migration_url) — never an env var, argv or build arg.
 #
-# Base images MUST be pinned by immutable digest at build time. The version tags
-# below are the source-of-truth versions; the resolved digests are recorded in
-# ./digests.lock and injected reproducibly by the build pipeline (no mutable
-# `latest` tag is ever used). See ./README.md.
+# Base images are pinned by IMMUTABLE DIGEST (tag + @sha256). The digests are the
+# content-addressed manifest digests recorded in ./digests.lock; a mutable `latest`
+# tag is never used. Re-resolve/verify with ./resolve-digests.sh. See ./README.md.
 # -----------------------------------------------------------------------------
-ARG RUST_BUILDER=rust:1.88-slim-bookworm
-ARG RUNTIME_BASE=debian:bookworm-slim
+ARG RUST_BUILDER=rust:1.88-slim-bookworm@sha256:38bc5a86d998772d4aec2348656ed21438d20fcdce2795b56ca434cf21430d89
+ARG RUNTIME_BASE=debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df
 
 # ── build stage: compile the SQLx CLI locked to the repo's sqlx = "0.7" line ──
 FROM ${RUST_BUILDER} AS build
