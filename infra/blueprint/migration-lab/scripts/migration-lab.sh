@@ -53,7 +53,8 @@ new_identity() {
   ARTROOT="$STATE_BASE/artifacts-${rid}"
   DERIVED_TAG="${RUNID}:migrate"
   RUNNER_TAG=""; RUNNER_RUNID=""   # populated by the 2B handoff
-  export RUNID BZML_PROJECT BZML_NETWORK BZML_VOLUME BZML_SECRET_DIR ARTROOT DERIVED_TAG RUNNER_TAG RUNNER_RUNID
+  SOURCE_REVISION=""; MIG_COUNT=0; MIG_MAXVER=0; MIG_DIGEST=""   # populated by resolve_inputs
+  export RUNID BZML_PROJECT BZML_NETWORK BZML_VOLUME BZML_SECRET_DIR ARTROOT DERIVED_TAG RUNNER_TAG RUNNER_RUNID SOURCE_REVISION MIG_COUNT MIG_MAXVER MIG_DIGEST
 }
 save_identity() {
   mkdir -p "$STATE_BASE"; chmod 0700 "$STATE_BASE"
@@ -244,11 +245,12 @@ verify_boundary() {
 cmd_run() {
   cap_check >/dev/null
   new_identity
+  # install the cleanup trap BEFORE any resource is created so no failure can orphan
+  trap 'echo "migration-lab: run failed — cleaning up"; do_clean >/dev/null 2>&1 || true; exit 1' ERR
+  echo "migration-lab: run $RUNID (local/synthetic/disposable; target blueprint_migration_lab)"
   resolve_inputs
   mkdir -p "$ARTROOT"; chmod 0700 "$ARTROOT"
   save_identity
-  echo "migration-lab: run $RUNID (local/synthetic/disposable; target blueprint_migration_lab)"
-  trap 'echo "migration-lab: run failed — cleaning up"; do_clean >/dev/null 2>&1 || true; exit 1' ERR
   gen_secrets
   build_handoff
   save_identity   # persist RUNNER_TAG/RUNNER_RUNID now that the handoff has resolved them
