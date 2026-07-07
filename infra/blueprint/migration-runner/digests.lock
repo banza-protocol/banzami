@@ -1,0 +1,12 @@
+# Banzami migration-runner base-image digest lock.
+#
+# Base images are pinned by IMMUTABLE DIGEST at build time. This file records the
+# source-of-truth version tags; the build pipeline resolves each to its immutable
+# sha256 digest (docker buildx / `docker manifest inspect`) and builds with the
+# digest-pinned reference. A mutable `latest` tag is NEVER used.
+#
+# Format:  <role> <version-tag> <resolved-sha256-digest-or-UNRESOLVED>
+#
+rust_builder   rust:1.88-slim-bookworm   UNRESOLVED-RESOLVE-AND-PIN-AT-BUILD
+runtime_base   debian:bookworm-slim      UNRESOLVED-RESOLVE-AND-PIN-AT-BUILD
+sqlx_cli       0.7.4                      cargo-install-locked

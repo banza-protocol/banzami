@@ -1,0 +1,26 @@
+{
+  "contract": "immutable-migration-runner",
+  "version": 1,
+  "description": "Source-controlled, immutable, ephemeral migration-runner image. Keeps the VM free of a global Rust/Cargo/SQLx/psql/PostgreSQL-server install: all migration tooling lives inside the runner image, compiled only in its build stage.",
+  "image": {
+    "build": "multi-stage",
+    "rust_tooling_scope": "build-stage-only",
+    "sqlx_cli_version": "0.7.4",
+    "sqlx_crate_line": "0.7",
+    "postgres_client": "pinned",
+    "locked_dependency_resolution": true,
+    "base_images_pinned_by": "immutable-digest",
+    "mutable_tags_allowed": false,
+    "runtime_contents": ["sqlx-cli", "postgresql-client", "minimal-runtime-deps", "migration entrypoint"],
+    "excludes": ["application-service runtime", "secrets", "host port"],
+    "identity": "source-revision+immutable-image-digest",
+    "sbom_provenance": "enabled-where-supported",
+    "execution_model": "ephemeral-one-purpose-container-removed-after-use",
+    "network": "internal-environment-data-network-only"
+  },
+  "entrypoint_secret_contract": {
+    "credential_source": "read-only mounted file only",
+    "container_secret_path": "/run/secrets/rt04e_migration_url",
+    "rejects_credential_via": ["environment variables", "compose environment", "command-line arguments", "build arguments", "source files", "logs", "terminal input"]
+  }
+}
