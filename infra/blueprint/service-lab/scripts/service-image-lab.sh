@@ -20,11 +20,13 @@ STATE_BASE="${TMPDIR:-/tmp}/banzami-blueprint-service-lab"
 STATE_FILE="$STATE_BASE/current.run"
 
 # APPROVED ALLOWLIST — exactly four services. name|context|dockerfile|binary|port
+# The Go services share the services/common module, so their build context is services/
+# (the Dockerfiles COPY common/ and <svc>/). core-api builds from the core/ context.
 ALLOWLIST=(
   "core-api-staging|core|core/Dockerfile|core-api|8081"
-  "api-gateway-staging|services/api-gateway|services/api-gateway/Dockerfile|api-gateway|8080"
-  "developer-api|services/developer-api|services/developer-api/Dockerfile|developer-api|8086"
-  "public-api-staging|services/public-api|services/public-api/Dockerfile|public-api|8083"
+  "api-gateway-staging|services|services/api-gateway/Dockerfile|api-gateway|8080"
+  "developer-api|services|services/developer-api/Dockerfile|developer-api|8086"
+  "public-api-staging|services|services/public-api/Dockerfile|public-api|8083"
 )
 
 unset DOCKER_DEFAULT_PLATFORM BUILDX_BUILDER DATABASE_URL BZSVC_RUNID BZSVC_ARTROOT BZSVC_BUILDER 2>/dev/null || true
