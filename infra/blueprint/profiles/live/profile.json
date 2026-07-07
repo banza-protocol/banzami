@@ -1,0 +1,42 @@
+{
+  "environment": "live",
+  "derives_from": "banzami-environment-blueprint@1",
+  "provisioned": false,
+  "unprovisioned_note": "STRUCTURALLY VALID BUT UNPROVISIONED. No live host, domain, credential, secret, endpoint or external-integration value exists here. Live is deployed in a SEPARATE infrastructure boundary and must never reuse any Sandbox isolation resource. All bindings below are distinct placeholders resolved only at a future, separately-authorised Live provisioning.",
+  "database": {
+    "name": "banzami_live",
+    "major_version": 16,
+    "host_published_port": null,
+    "instance_identity": "banzami-live-pg",
+    "volume_root": "banzami-live-pgdata",
+    "network": "banzami-live-data"
+  },
+  "isolation": {
+    "docker_host": "banzami-live-host",
+    "network": "banzami-live-data",
+    "database_instance": "banzami-live-pg",
+    "volume_root": "banzami-live-vol",
+    "secret_root": "UNPROVISIONED:external-secret-manager:live",
+    "runtime_identity_root": "banzami-live-runtime",
+    "receipt_root": "UNPROVISIONED:live/rt04e-receipts",
+    "authorisation_root": "UNPROVISIONED:live/rt04e-authorisations",
+    "rollback_anchor_root": "UNPROVISIONED:live/rt04e-rollback",
+    "log_root": "banzami-live-logs",
+    "backup_root": "banzami-live-backups",
+    "domain": "UNPROVISIONED:live-domain",
+    "external_integration_binding": "UNPROVISIONED:regulated-integration"
+  },
+  "secret_interface": { "type": "read-only-file", "env_injection": false, "mount_mode": "ro", "backend": "external-secret-manager" },
+  "migration_runner": { "image_ref_policy": "immutable-digest", "mutable_tags_allowed": false },
+  "services": ["core-api-live", "api-gateway-live", "developer-api-live", "public-api-live"],
+  "policy": {
+    "data": "regulated",
+    "autonomous_migration": "explicit-approval-only",
+    "dual_control_capable": true,
+    "maintenance_window_capable": true,
+    "verified_backup_restore_required": true,
+    "recovery_model": "encrypted-backup+point-in-time-recovery+restore-test",
+    "database_down_migrations": "forbidden",
+    "release_attestation": "immutable-release-attestation"
+  }
+}

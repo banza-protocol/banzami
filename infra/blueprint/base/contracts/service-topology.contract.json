@@ -1,0 +1,10 @@
+{
+  "contract": "service-topology",
+  "version": 1,
+  "description": "The four approved application services, identical logical topology in every environment. Concrete per-environment service names are formed from the logical service + environment suffix in the profile (e.g. core-api -> core-api-staging / core-api-live).",
+  "logical_services": ["core-api", "api-gateway", "developer-api", "public-api"],
+  "sandbox_service_names": ["core-api-staging", "api-gateway-staging", "developer-api", "public-api-staging"],
+  "never_in_scope": ["core-api", "api-gateway", "public-api", "admin-api", "admin-api-staging", "prod", "production", "live"],
+  "database_dependency": "one environment-dedicated PostgreSQL instance, no host-published port, private data network only",
+  "secret_dependency": "read-only file interface only"
+}

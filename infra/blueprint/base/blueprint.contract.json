@@ -1,0 +1,63 @@
+{
+  "blueprint": "banzami-environment-blueprint",
+  "version": 1,
+  "description": "Shared, immutable logical model instantiated once per environment profile. Sandbox and Live derive from this same base; only policy and environmental bindings may differ. No secret, host, domain, credential or endpoint value ever appears here.",
+  "shared_logical_model": {
+    "service_topology": ["core-api", "api-gateway", "developer-api", "public-api"],
+    "image_build_process": "immutable-multi-stage",
+    "image_identity": "source-revision+immutable-digest",
+    "postgres_major_version": 16,
+    "role_separation_model": "base/contracts/database-roles.contract.json",
+    "secret_injection_interface": "read-only-file",
+    "migration_runner_contract": "base/contracts/migration-runner.contract.json",
+    "migration_controller_contract": "base/contracts/migration-controller.contract.json",
+    "receipt_lifecycle_contract": "base/contracts/receipt-lifecycle.contract.json",
+    "migration_lock_model": "database-advisory-lock",
+    "provenance_requirements": "oci-revision-label+running-image-check",
+    "health_semantics": "docker-healthcheck-status",
+    "application_rollback_semantics": "pre-state-retained-image-tags",
+    "audit_reporting_model": "sanitised-categories-only"
+  },
+  "profile_overridable": [
+    "environment_identifier",
+    "resource_sizing",
+    "network_identifiers",
+    "secret_provider_backend",
+    "domains_and_certificates",
+    "observability_destination",
+    "backup_and_retention_policy",
+    "approval_policy",
+    "external_integration_binding"
+  ],
+  "must_never_share_between_environments": [
+    "docker_host",
+    "network",
+    "database_instance",
+    "volume_root",
+    "secret_root",
+    "credentials",
+    "runtime_identity_root",
+    "receipt_root",
+    "authorisation_root",
+    "rollback_anchor_root",
+    "log_root",
+    "backup_root",
+    "domain",
+    "external_integration_binding"
+  ],
+  "isolation_keys": [
+    "docker_host",
+    "network",
+    "database_instance",
+    "volume_root",
+    "secret_root",
+    "runtime_identity_root",
+    "receipt_root",
+    "authorisation_root",
+    "rollback_anchor_root",
+    "log_root",
+    "backup_root",
+    "domain",
+    "external_integration_binding"
+  ]
+}
