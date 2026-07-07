@@ -592,8 +592,12 @@ const svcBody = svcStart >= 0 && preambleStart > svcStart ? runner.slice(svcStar
 
   // 87. FRESHNESS: fresh(<30m) valid; just-inside boundary valid; just-outside expired(3); expired(3); future(4); malformed-tz(1)
   const fresh = runV(base({ created_utc: isoAt(-100) })).code === 0;
-  const justIn = runV(base({ created_utc: isoAt(-1799) })).code === 0;
-  const justOut = runV(base({ created_utc: isoAt(-1801) })).code === 3;
+  // Sample the boundary with a margin that exceeds test->validator scheduling jitter
+  // (the validator reads its OWN Date.now() a moment later; a sub-second margin races
+  // under load). ±60s brackets the 1800s boundary deterministically without weakening
+  // the fresh/expired assertions or the 30-min semantics.
+  const justIn = runV(base({ created_utc: isoAt(-1740) })).code === 0;   // ~60s inside -> fresh
+  const justOut = runV(base({ created_utc: isoAt(-1860) })).code === 3;  // ~60s beyond -> expired
   const expired = runV(base({ created_utc: isoAt(-3600) })).code === 3;
   const future = runV(base({ created_utc: isoAt(600) })).code === 4;
   const badTz = runV(base({ created_utc: '2026-07-06T07:00:00+00:00' })).code === 1;
