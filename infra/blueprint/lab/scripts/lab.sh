@@ -56,6 +56,28 @@ save_run_identity() {
 
 dc() { docker compose -f "$COMPOSE_FILE" -p "$BZLAB_PROJECT" "$@"; }
 
+# A2 hardening: fail-closed guarded removal of a generated secret root. Refuses to
+# delete anything that is not a current-run, non-symlink directory strictly under
+# the approved OS-temp base and outside the repository. Env is never the authority
+# (it is cleared at startup); the path must match the internally generated shape.
+REPO_ROOT="$(cd "$LAB_DIR/../../.." && pwd)"
+safe_rm_secret_root() {
+  local d="$1"
+  [ -n "$d" ] || { echo "lab: refusing secret-root removal — empty path" >&2; return 1; }
+  case "$d" in
+    "$STATE_BASE"/secrets-*) : ;;  # must be a generated run root under the approved base
+    *) echo "lab: refusing secret-root removal — not under approved temp base" >&2; return 1 ;;
+  esac
+  case "$d" in
+    /|/root|/home|/Users|"$REPO_ROOT"|"$REPO_ROOT"/*)
+      echo "lab: refusing secret-root removal — root-like or repository path" >&2; return 1 ;;
+  esac
+  [ -L "$d" ] && { echo "lab: refusing secret-root removal — path is a symlink" >&2; return 1; }
+  [ -e "$d" ] || return 0                      # already gone — nothing to do
+  [ -d "$d" ] || { echo "lab: refusing secret-root removal — not a directory" >&2; return 1; }
+  rm -rf "$d"
+}
+
 resolve_image() { # re-resolve the pinned digest (does not modify image.lock)
   require_compose
   docker pull -q postgres:16-alpine >/dev/null
@@ -78,7 +100,7 @@ cmd_up() {
   save_run_identity
   echo "lab: run project=$BZLAB_PROJECT (disposable/synthetic/local)"
   # trap: any failure during bring-up tears down this run's resources + secrets
-  trap 'echo "lab: up failed — cleaning up this run"; dc down --volumes --remove-orphans >/dev/null 2>&1 || true; remove_labelled "$BZLAB_PROJECT"; rm -rf "$BZLAB_SECRET_DIR" 2>/dev/null || true; exit 1' ERR
+  trap 'echo "lab: up failed — cleaning up this run"; dc down --volumes --remove-orphans >/dev/null 2>&1 || true; remove_labelled "$BZLAB_PROJECT"; safe_rm_secret_root "$BZLAB_SECRET_DIR" 2>/dev/null || true; exit 1' ERR
 
   "$LAB_DIR/scripts/gen-lab-secrets.sh" "$BZLAB_SECRET_DIR" >/dev/null
   echo "lab: secrets generated (protected 0700/0600, outside repo)"
@@ -155,6 +177,12 @@ verify_infra() {
   else echo "INFRA_CHECK secret_absent_from_logs          PASS"; fi
   unset sv
 
+  # A4 hardening: the EFFECTIVE secret mount must be read-only — proven by an
+  # actual in-container write attempt against the running mount, not compose syntax.
+  if docker exec -u root "$cid" sh -c 'echo x > /run/secrets/lab_pg_superuser' >/dev/null 2>&1; then
+    echo "INFRA_CHECK secret_mount_read_only           FAIL"; ok=1
+  else echo "INFRA_CHECK secret_mount_read_only           PASS"; fi
+
   echo "INFRA_VERIFY_RESULT: $([ "$ok" -eq 0 ] && echo PASS || echo FAIL)"
   return "$ok"
 }
@@ -165,7 +193,7 @@ cmd_down() {
   echo "lab: tearing down project=$BZLAB_PROJECT (scoped)"
   dc down --volumes --remove-orphans >/dev/null 2>&1 || true
   remove_labelled "$BZLAB_PROJECT"
-  rm -rf "$BZLAB_SECRET_DIR" 2>/dev/null || true
+  safe_rm_secret_root "$BZLAB_SECRET_DIR" 2>/dev/null || true
   rm -f "$STATE_FILE" 2>/dev/null || true
   echo "lab: teardown done"
 }
