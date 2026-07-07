@@ -479,3 +479,27 @@ check-blueprint:
 .PHONY: check-dockerfile-lint
 check-dockerfile-lint:
 	node infra/blueprint/validators/check-dockerfile.mjs
+
+# ── Blueprint Increment 2A — disposable local PostgreSQL runtime lab ──────────
+# LOCAL · DISPOSABLE · SYNTHETIC · non-Sandbox · non-LIVE · non-production.
+# Never contacts the VM. All resources are per-run, labelled, and torn down.
+# check-blueprint-lab is a static (no-Docker) gate; the blueprint-lab-* targets
+# require a local Docker Engine + Compose v2.
+.PHONY: check-blueprint-lab blueprint-lab-up blueprint-lab-verify blueprint-lab-down blueprint-lab-verify-clean blueprint-lab-full
+check-blueprint-lab:
+	node infra/blueprint/validators/check-blueprint-lab.mjs
+
+blueprint-lab-up:
+	bash infra/blueprint/lab/scripts/lab.sh up
+
+blueprint-lab-verify:
+	bash infra/blueprint/lab/scripts/lab.sh verify
+
+blueprint-lab-down:
+	bash infra/blueprint/lab/scripts/lab.sh down
+
+blueprint-lab-verify-clean:
+	bash infra/blueprint/lab/scripts/lab.sh verify-clean
+
+blueprint-lab-full:
+	bash infra/blueprint/lab/scripts/lab.sh full
