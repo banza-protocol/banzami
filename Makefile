@@ -565,3 +565,32 @@ blueprint-migration-identity-lab-clean:
 
 blueprint-migration-identity-lab-full:
 	bash infra/blueprint/migration-identity/scripts/migration-identity.sh full
+
+# ── Blueprint Increment 2E — controlled migration authorisation/receipt/lock/file-only ──
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Single-use authorisation record + receipt
+# lifecycle + REAL advisory-lock concurrency + file-only execution via the short-lived login.
+.PHONY: check-blueprint-migration-control blueprint-migration-control-lab-run blueprint-migration-control-lab-verify blueprint-migration-control-lab-clean blueprint-migration-control-lab-full
+check-blueprint-migration-control:
+	node infra/blueprint/validators/check-blueprint-migration-control.mjs
+
+blueprint-migration-control-lab-run:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh run
+
+blueprint-migration-control-lab-verify:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh verify
+
+blueprint-migration-control-lab-clean:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh clean
+
+blueprint-migration-control-lab-full:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh full
+
+# ── Blueprint Increment 2F — unified local completion lab ──────────────────────
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Runs every validated local Blueprint
+# phase (2A→2E) from clean state and proves host-wide zero residue across all categories.
+.PHONY: check-blueprint-complete blueprint-complete-lab
+check-blueprint-complete:
+	node infra/blueprint/validators/check-blueprint-complete.mjs
+
+blueprint-complete-lab:
+	bash infra/blueprint/complete-lab/complete-lab.sh full
