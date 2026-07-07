@@ -204,12 +204,12 @@ lifecycle_proof() {
   # role absent
   local present; present="$(docker run --rm --network "$BZMI_NETWORK" -v "$BZMI_SECRET_DIR/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
       export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:miadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
-      psql -h postgres -U miadmin -d blueprint_migration_lab -tAc "SELECT count(*) FROM pg_roles WHERE rolname=\047bl_migration\047"' 2>/dev/null | tr -d '[:space:]')"
+      psql -h postgres -U miadmin -d blueprint_migration_lab -tAc "SELECT count(*) FROM pg_roles WHERE rolname='\''bl_migration'\''"' 2>/dev/null | tr -d '[:space:]')"
   [ "$present" = "0" ] && echo "LIFECYCLE migration_login_removed PASS" || { echo "LIFECYCLE migration_login_removed FAIL"; ok=1; }
   # membership gone
   local mem; mem="$(docker run --rm --network "$BZMI_NETWORK" -v "$BZMI_SECRET_DIR/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
       export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:miadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
-      psql -h postgres -U miadmin -d blueprint_migration_lab -tAc "SELECT count(*) FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member WHERE r.rolname=\047bl_migration\047"' 2>/dev/null | tr -d '[:space:]')"
+      psql -h postgres -U miadmin -d blueprint_migration_lab -tAc "SELECT count(*) FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member WHERE r.rolname='\''bl_migration'\''"' 2>/dev/null | tr -d '[:space:]')"
   [ "$mem" = "0" ] && echo "LIFECYCLE no_membership_remains PASS" || { echo "LIFECYCLE no_membership_remains FAIL"; ok=1; }
   # credential unusable after removal: login attempt must FAIL
   if docker run --rm --network "$BZMI_NETWORK" -v "$BZMI_SECRET_DIR/mi_migration:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
