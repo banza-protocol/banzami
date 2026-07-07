@@ -1,0 +1,81 @@
+# Banzami Increment 2E — disposable controlled-migration lab database.
+# LOCAL · SYNTHETIC · DISPOSABLE · non-Sandbox · non-LIVE · non-production. pg16
+# (digest-pinned), no host port, per-run INTERNAL network, file-only secrets. Reuses the
+# Increment 2D short-lived-login bootstrap (same role model). Labelled migration-control.
+name: ${BZMC_PROJECT:?migration-control.sh must set BZMC_PROJECT}
+
+secrets:
+  mi_superuser:
+    file: ${BZMC_SECRET_DIR:?migration-control.sh must set BZMC_SECRET_DIR}/mi_superuser
+  mi_control:
+    file: ${BZMC_SECRET_DIR}/mi_control
+  mi_migration:
+    file: ${BZMC_SECRET_DIR}/mi_migration
+
+networks:
+  mcnet:
+    name: ${BZMC_NETWORK:?migration-control.sh must set BZMC_NETWORK}
+    driver: bridge
+    internal: true
+    labels:
+      com.banzami.blueprint.migration-control: "1"
+      com.banzami.blueprint.migration-control.kind: "network"
+
+volumes:
+  mcpg:
+    name: ${BZMC_VOLUME:?migration-control.sh must set BZMC_VOLUME}
+    labels:
+      com.banzami.blueprint.migration-control: "1"
+      com.banzami.blueprint.migration-control.kind: "volume"
+
+services:
+  postgres:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    labels:
+      com.banzami.blueprint.migration-control: "1"
+      com.banzami.blueprint.migration-control.kind: "database"
+    environment:
+      POSTGRES_USER: miadmin
+      POSTGRES_DB: blueprint_migration_lab
+      POSTGRES_PASSWORD_FILE: /run/secrets/mi_superuser
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets:
+      - mi_superuser
+    networks:
+      - mcnet
+    volumes:
+      - mcpg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miadmin -d blueprint_migration_lab -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+    restart: "no"
+
+  bootstrap:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    profiles: ["jobs"]
+    labels:
+      com.banzami.blueprint.migration-control: "1"
+      com.banzami.blueprint.migration-control.kind: "bootstrap"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      MI_ADMIN_USER: miadmin
+      MI_DB: blueprint_migration_lab
+      MI_VALID_UNTIL: ${BZMC_VALID_UNTIL:?migration-control.sh must set BZMC_VALID_UNTIL}
+    secrets:
+      - mi_superuser
+      - mi_control
+      - mi_migration
+    networks:
+      - mcnet
+    volumes:
+      # reuse the Increment 2D short-lived-login bootstrap (identical role model)
+      - ../migration-identity/scripts/bootstrap-migration-login.sh:/lab/bootstrap-migration-login.sh:ro
+    entrypoint: ["/bin/bash", "/lab/bootstrap-migration-login.sh"]
+    restart: "no"
