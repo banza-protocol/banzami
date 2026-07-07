@@ -1,0 +1,10 @@
+# Banzami Environment Blueprint — disposable runtime-lab image lock
+#
+# LOCAL · DISPOSABLE · SYNTHETIC · non-Sandbox · non-LIVE · non-production.
+# Immutable digest-pinned PostgreSQL 16 image for the Increment 2A runtime lab.
+# Resolved once from postgres:16-alpine (major version 16, per the Blueprint
+# PostgreSQL 16 contract) and referenced only by digest thereafter — never a
+# mutable tag. Re-resolve with: infra/blueprint/lab/scripts/lab.sh resolve-image
+#
+# role  tag             digest
+postgres  postgres:16-alpine  postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb

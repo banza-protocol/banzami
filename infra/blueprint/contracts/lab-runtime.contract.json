@@ -1,0 +1,66 @@
+{
+  "contract": "banzami.blueprint.lab-runtime",
+  "version": "1.0",
+  "status": "increment-2a",
+  "classification": ["local", "disposable", "synthetic", "non-sandbox", "non-live", "non-production"],
+  "purpose": "First runtime proof of the merged Blueprint contracts using a local, disposable Docker validation laboratory. Never contacts, inspects, modifies or depends on the VM.",
+  "database": {
+    "postgres_major_version": 16,
+    "image_reference_kind": "immutable-digest",
+    "mutable_tags_allowed": false,
+    "host_published_port": null,
+    "auth": "scram-sha-256",
+    "trust_auth_allowed": false,
+    "local_disposable_db_name": "blueprint_lab_local",
+    "forbidden_db_names": ["banzami_staging", "banzami_live", "prod", "production", "live"]
+  },
+  "isolation": {
+    "per_run_compose_project": true,
+    "per_run_network": true,
+    "per_run_named_volume": true,
+    "required_label": "com.banzami.blueprint.lab",
+    "network_external": false,
+    "attach_to_existing_networks": false,
+    "reuse_preexisting_resources": false
+  },
+  "secret_interface": {
+    "mode": "read-only-file",
+    "in_container_mount_root": "/run/secrets",
+    "env_injection_of_value": false,
+    "argv_injection": false,
+    "label_injection": false,
+    "source_controlled_credentials": false,
+    "file_path_only_env_permitted": ["POSTGRES_PASSWORD_FILE"],
+    "temp_secret_root_dir_mode": "0700",
+    "temp_secret_file_mode": "0600"
+  },
+  "roles": {
+    "created_this_increment": [
+      {"logical": "stable schema owner", "login": false, "owns_app_schema": true, "admin_caps": false},
+      {"logical": "runtime application role", "login": true, "owns_app_schema": false, "admin_caps": false},
+      {"logical": "control-plane role", "login": true, "owns_app_schema": false, "admin_caps": false, "isolated_from_app_runtime": true}
+    ],
+    "deferred": ["short-lived migration role (Increment 2D)"],
+    "forbidden_in_this_increment": ["migration role", "GRANT ALL", "runtime role schema ownership", "canonical migrations", "application schema"]
+  },
+  "lifecycle": {
+    "targets": ["blueprint-lab-up", "blueprint-lab-verify", "blueprint-lab-down", "blueprint-lab-verify-clean"],
+    "fail_closed": true,
+    "generated_identities_only": true,
+    "uncontrolled_env_override_allowed": false,
+    "cleanup_scope": "current-run-labelled-resources-only",
+    "global_prune_allowed": false,
+    "unscoped_down_v_allowed": false
+  },
+  "not_proven_here": [
+    "migration-runner image build",
+    "SQLx execution",
+    "canonical migration application",
+    "short-lived migration role",
+    "migration receipt lifecycle",
+    "advisory-lock runtime behaviour",
+    "application service deployment",
+    "Sandbox provisioning",
+    "LIVE provisioning"
+  ]
+}
