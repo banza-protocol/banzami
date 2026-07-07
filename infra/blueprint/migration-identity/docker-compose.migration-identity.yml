@@ -1,0 +1,83 @@
+# Banzami Increment 2D — disposable migration-identity lab database.
+# LOCAL · SYNTHETIC · DISPOSABLE · non-Sandbox · non-LIVE · non-production.
+# pg16 (digest-pinned), no host port, per-run INTERNAL isolated network, file-only
+# secrets. All resources labelled com.banzami.blueprint.migration-identity.
+name: ${BZMI_PROJECT:?migration-identity.sh must set BZMI_PROJECT}
+
+secrets:
+  mi_superuser:
+    file: ${BZMI_SECRET_DIR:?migration-identity.sh must set BZMI_SECRET_DIR}/mi_superuser
+  mi_control:
+    file: ${BZMI_SECRET_DIR}/mi_control
+  mi_migration:
+    file: ${BZMI_SECRET_DIR}/mi_migration
+
+networks:
+  minet:
+    name: ${BZMI_NETWORK:?migration-identity.sh must set BZMI_NETWORK}
+    driver: bridge
+    internal: true
+    labels:
+      com.banzami.blueprint.migration-identity: "1"
+      com.banzami.blueprint.migration-identity.kind: "network"
+
+volumes:
+  mipg:
+    name: ${BZMI_VOLUME:?migration-identity.sh must set BZMI_VOLUME}
+    labels:
+      com.banzami.blueprint.migration-identity: "1"
+      com.banzami.blueprint.migration-identity.kind: "volume"
+
+services:
+  postgres:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    labels:
+      com.banzami.blueprint.migration-identity: "1"
+      com.banzami.blueprint.migration-identity.kind: "database"
+    environment:
+      POSTGRES_USER: miadmin
+      POSTGRES_DB: blueprint_migration_lab
+      POSTGRES_PASSWORD_FILE: /run/secrets/mi_superuser
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets:
+      - mi_superuser
+    networks:
+      - minet
+    volumes:
+      - mipg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miadmin -d blueprint_migration_lab -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+    restart: "no"
+
+  # one-shot bootstrap: stable owner (NOLOGIN) + restricted runtime + restricted
+  # control-plane + a SHORT-LIVED least-privilege migration login (VALID UNTIL,
+  # CONNECTION LIMIT 1) that is the ONLY role granted owner membership + auto SET ROLE.
+  bootstrap:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    profiles: ["jobs"]
+    labels:
+      com.banzami.blueprint.migration-identity: "1"
+      com.banzami.blueprint.migration-identity.kind: "bootstrap"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      MI_ADMIN_USER: miadmin
+      MI_DB: blueprint_migration_lab
+      MI_VALID_UNTIL: ${BZMI_VALID_UNTIL:?migration-identity.sh must set BZMI_VALID_UNTIL}
+    secrets:
+      - mi_superuser
+      - mi_control
+      - mi_migration
+    networks:
+      - minet
+    volumes:
+      - ./scripts/bootstrap-migration-login.sh:/lab/bootstrap-migration-login.sh:ro
+    entrypoint: ["/bin/bash", "/lab/bootstrap-migration-login.sh"]
+    restart: "no"
