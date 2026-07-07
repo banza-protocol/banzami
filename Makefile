@@ -503,3 +503,24 @@ blueprint-lab-verify-clean:
 
 blueprint-lab-full:
 	bash infra/blueprint/lab/scripts/lab.sh full
+
+# ── Blueprint Increment 2B — migration-runner build/attestation/inspection lab ──
+# LOCAL · DISPOSABLE · non-deploying · non-migrating. Builds the runner image from
+# canonical source, generates real SBOM + provenance, inspects the image with the
+# network disabled, and tears everything down. check-blueprint-runner-build is a
+# static (no-Docker) gate; blueprint-runner-* require Docker Engine + Buildx.
+.PHONY: check-blueprint-runner-build blueprint-runner-build blueprint-runner-verify blueprint-runner-clean blueprint-runner-full
+check-blueprint-runner-build:
+	node infra/blueprint/validators/check-blueprint-runner-build.mjs
+
+blueprint-runner-build:
+	bash infra/blueprint/build-lab/scripts/runner-build-lab.sh build
+
+blueprint-runner-verify:
+	bash infra/blueprint/build-lab/scripts/runner-build-lab.sh verify
+
+blueprint-runner-clean:
+	bash infra/blueprint/build-lab/scripts/runner-build-lab.sh clean
+
+blueprint-runner-full:
+	bash infra/blueprint/build-lab/scripts/runner-build-lab.sh full
