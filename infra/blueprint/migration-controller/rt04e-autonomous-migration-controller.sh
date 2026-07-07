@@ -19,9 +19,16 @@ set -euo pipefail
 set +x
 umask 077
 
-# FIXED, non-caller-supplied contract values. Not read from argv or untrusted env.
+# FIXED, non-caller-supplied contract values. These are constants — the controller
+# NEVER reads the target, revision, source path, migration path, secret path or
+# Compose project from argv or an untrusted environment variable.
 AMC_MODE="sandbox-autonomous-migration-only"
-AMC_TARGET="banzami_staging"                 # the ONLY permitted target category
+AMC_TARGET="banzami_staging"                 # EXACT fixed value (not a pattern)
+AMC_COMPOSE_PROJECT="rt04e-sandbox"          # fixed
+AMC_SOURCE_ROOT="/srv/banzami/src"           # fixed canonical source root
+AMC_MIGRATIONS_REL="db/migrations"           # fixed, relative to source root
+AMC_SECRET_FILE="/run/secrets/rt04e_migration_url"   # fixed read-only mount path
+AMC_SERVICES="core-api-staging api-gateway-staging developer-api public-api-staging"  # fixed approved set
 AMC_ENABLE_SENTINEL="RT04E-SANDBOX-AUTONOMOUS-RUNTIME"   # only present in a future approved runtime
 
 amc_die() { printf 'autonomous-controller: REFUSED — %s\n' "$1" >&2; exit "${2:-1}"; }
@@ -29,6 +36,21 @@ amc_die() { printf 'autonomous-controller: REFUSED — %s\n' "$1" >&2; exit "${2
 # ── validation primitives (pure; unit-tested) ───────────────────────────────
 amc_valid_rev()   { case "$1" in ""|*[!0-9a-f]*) return 1 ;; esac; [ "${#1}" -eq 40 ]; }
 amc_target_ok()   { [ "$1" = "$AMC_TARGET" ]; }
+amc_service_set_ok() { [ "$1" = "$AMC_SERVICES" ]; }             # exact approved set only
+amc_image_ref_immutable() {   # 0 iff tag@sha256:<64hex> and no mutable :latest
+  case "$1" in *:latest|*:latest@*) return 1 ;; esac
+  case "$1" in *@sha256:*) : ;; *) return 1 ;; esac
+  local dg="${1##*@sha256:}"; case "$dg" in *[!0-9a-f]*|"") return 1 ;; esac; [ "${#dg}" -eq 64 ]
+}
+amc_provenance_ok() { [ "$1" = valid ]; }                        # runner provenance state
+amc_no_concurrent_lock() { [ ! -e "$1" ]; }                     # advisory migration lock absent
+amc_secret_file_contract_ok() {  # structural: regular, non-symlink, single hard link
+  local f="$1"
+  [ -e "$f" ] || return 1
+  [ ! -L "$f" ] || return 1
+  [ -f "$f" ] || return 1
+  [ "$(amc_hardlinks "$f")" = 1 ] || return 1
+}
 
 # deterministic digest of the canonical migration SET (order + content bound)
 amc_migration_digest() {
@@ -54,8 +76,11 @@ amc_authrecord_valid() { # $1=record $2=exp_rev $3=exp_target $4=exp_digest $5=n
   [ "$(amc_record_field "$r" source_revision)" = "$er" ] || { echo "authorisation revision binding mismatch" >&2; return 43; }
   [ "$(amc_record_field "$r" target)" = "$et" ]          || { echo "authorisation target binding mismatch" >&2; return 43; }
   [ "$(amc_record_field "$r" migration_directory_digest)" = "$ed" ] || { echo "authorisation migration-digest binding mismatch" >&2; return 43; }
+  local iss; iss="$(amc_record_field "$r" issued_epoch)"
+  { [ -n "$iss" ] && [ "$iss" -le "$now" ]; } || { echo "authorisation issued_epoch is missing or in the future" >&2; return 46; }
   local exp; exp="$(amc_record_field "$r" expires_epoch)"
   { [ -n "$exp" ] && [ "$now" -lt "$exp" ]; } || { echo "authorisation record expired" >&2; return 44; }
+  { [ "$exp" -gt "$iss" ]; } || { echo "authorisation expiry not after issue" >&2; return 46; }
   return 0
 }
 
