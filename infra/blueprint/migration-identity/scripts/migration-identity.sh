@@ -192,11 +192,14 @@ lifecycle_proof() {
     echo "LIFECYCLE migration_login_authenticates PASS"
   else echo "LIFECYCLE migration_login_authenticates FAIL"; ok=1; fi
 
-  # remove the short-lived login (superuser), post-run
+  # remove the short-lived login (superuser), post-run. DROP OWNED BY first revokes any
+  # privileges granted to it (e.g. database CONNECT) — it owns no application object, as
+  # migrations run AS the stable owner — so the subsequent DROP ROLE succeeds.
   docker run --rm --network "$BZMI_NETWORK" \
     -v "$BZMI_SECRET_DIR/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
       export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:miadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
-      psql -h postgres -U miadmin -d blueprint_migration_lab -v ON_ERROR_STOP=1 -q -c "DROP ROLE IF EXISTS bl_migration"' \
+      psql -h postgres -U miadmin -d blueprint_migration_lab -v ON_ERROR_STOP=1 -q \
+        -c "DROP OWNED BY bl_migration" -c "DROP ROLE bl_migration"' \
     > "$ARTROOT/drop-login.log" 2>&1 || { echo "LIFECYCLE migration_login_removed FAIL"; ok=1; }
   # role absent
   local present; present="$(docker run --rm --network "$BZMI_NETWORK" -v "$BZMI_SECRET_DIR/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
