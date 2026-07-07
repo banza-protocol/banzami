@@ -111,8 +111,10 @@ verify_infra() {
   local cid proj="$BZLAB_PROJECT" ok=0
   cid="$(dc ps -q postgres)"; [ -n "$cid" ] || die "postgres container not found for $proj"
 
-  # no host port published
-  if [ -z "$(docker inspect -f '{{json .NetworkSettings.Ports}}' "$cid" | tr -d '{}"null:[] ')" ]; then
+  # no host port PUBLISHED (an EXPOSEd-but-unpublished port has a null binding /
+  # no HostPort and is reported empty by `docker port`)
+  if [ -z "$(docker port "$cid" 2>/dev/null)" ] \
+     && ! docker inspect -f '{{json .NetworkSettings.Ports}}' "$cid" | grep -q 'HostPort'; then
     echo "INFRA_CHECK no_host_port                    PASS"
   else echo "INFRA_CHECK no_host_port                    FAIL"; ok=1; fi
 
