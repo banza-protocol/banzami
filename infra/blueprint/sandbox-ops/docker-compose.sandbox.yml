@@ -1,0 +1,94 @@
+# Banzami Environment Blueprint — concrete internal Sandbox topology (bootstrap adapter).
+#
+# Materialises the declarative Sandbox profile into ONE isolated project. Internal-only:
+# separate application and data networks, PostgreSQL 16 (digest-pinned) and Redis with NO
+# host-published ports, file-only secrets, no privileged/host-namespace/socket access. This
+# compose is the LOCAL-REHEARSAL topology; the same contract is what the VM apply will use.
+# All names/paths are generated per run by sandbox-bootstrap.sh (never ambient env).
+name: ${BZSB_PROJECT:?sandbox-bootstrap.sh must set BZSB_PROJECT}
+
+secrets:
+  mi_superuser:
+    file: ${BZSB_SECRET_ROOT:?sandbox-bootstrap.sh must set BZSB_SECRET_ROOT}/mi_superuser
+  mi_control:
+    file: ${BZSB_SECRET_ROOT}/mi_control
+  mi_migration:
+    file: ${BZSB_SECRET_ROOT}/mi_migration
+
+networks:
+  sb_data:            # data plane: db + redis + migration executor only
+    name: ${BZSB_DATA_NET:?sandbox-bootstrap.sh must set BZSB_DATA_NET}
+    driver: bridge
+    internal: true
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "data-network" }
+  sb_app:             # application plane: services + gateway
+    name: ${BZSB_APP_NET:?sandbox-bootstrap.sh must set BZSB_APP_NET}
+    driver: bridge
+    internal: true
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "app-network" }
+
+volumes:
+  sb_pg:
+    name: ${BZSB_PG_VOL:?sandbox-bootstrap.sh must set BZSB_PG_VOL}
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "pg-volume" }
+  sb_redis:
+    name: ${BZSB_REDIS_VOL:?sandbox-bootstrap.sh must set BZSB_REDIS_VOL}
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "redis-volume" }
+
+services:
+  postgres:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "database" }
+    environment:
+      POSTGRES_USER: sbadmin
+      POSTGRES_DB: banzami_staging
+      POSTGRES_PASSWORD_FILE: /run/secrets/mi_superuser
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets: [mi_superuser]
+    networks: [sb_data]
+    volumes: [ "sb_pg:/var/lib/postgresql/data" ]
+    # NO ports: — never host-published
+    security_opt: [ "no-new-privileges:true" ]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sbadmin -d banzami_staging -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+    restart: "no"
+
+  redis:
+    image: redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "cache" }
+    networks: [sb_data]
+    volumes: [ "sb_redis:/data" ]
+    # NO ports: — never host-published
+    security_opt: [ "no-new-privileges:true" ]
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+    restart: "no"
+
+  # one-shot role/owner-session bootstrap — reuses the validated 2D short-lived-login model
+  bootstrap:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    profiles: ["jobs"]
+    labels: { com.banzami.blueprint.sandbox: "1", com.banzami.blueprint.sandbox.kind: "bootstrap" }
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      MI_ADMIN_USER: sbadmin
+      MI_DB: banzami_staging
+      MI_VALID_UNTIL: ${BZSB_VALID_UNTIL:?sandbox-bootstrap.sh must set BZSB_VALID_UNTIL}
+      MI_CONN_LIMIT: "2"
+    secrets: [mi_superuser, mi_control, mi_migration]
+    networks: [sb_data]
+    volumes:
+      - ./scripts/bootstrap-sandbox-roles.sh:/lab/bootstrap-sandbox-roles.sh:ro
+    entrypoint: ["/bin/bash", "/lab/bootstrap-sandbox-roles.sh"]
+    restart: "no"
