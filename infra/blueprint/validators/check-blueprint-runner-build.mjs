@@ -72,8 +72,8 @@ const eviv = read(resolve(BL, 'scripts', 'validate-evidence.mjs'));
 
 // 11. evidence validator checks both SBOM and provenance for secrets + required content
 {
-  const sbom = /sbom_valid_spdx_document/.test(eviv) && /sbom_has_sqlx_evidence/.test(eviv) && /sbom_no_secret/.test(eviv);
-  const prov = /provenance_contains_full_revision/.test(eviv) && /provenance_agrees_base_digests/.test(eviv) && /provenance_no_secret/.test(eviv);
+  const sbom = /sbom_valid_spdx_document/.test(eviv) && /sbom_has_runtime_pg_toolchain/.test(eviv) && /sbom_no_secret/.test(eviv);
+  const prov = /provenance_contains_full_revision/.test(eviv) && /provenance_agrees_base_digests/.test(eviv) && /provenance_records_sqlx_version/.test(eviv) && /provenance_no_secret/.test(eviv);
   (sbom && prov) ? pass(11, 'evidence validator asserts SBOM + provenance content and secret-freedom') : fail(11, 'evidence validator incomplete');
 }
 
