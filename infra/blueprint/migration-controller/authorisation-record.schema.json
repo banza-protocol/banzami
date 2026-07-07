@@ -1,0 +1,32 @@
+{
+  "schema": "rt04e-sandbox-autonomous-migration-authorisation",
+  "version": 1,
+  "format": "KEY=VALUE text (one field per line); no JSON parser dependency on the host",
+  "storage": "root-protected directory outside the repository (per-environment authorisation_root)",
+  "file_requirements": {
+    "regular_file": true,
+    "non_symlink": true,
+    "single_hard_link": true,
+    "root_owned": true,
+    "mode": "0600 or stricter",
+    "contains_credential": false
+  },
+  "fields": {
+    "schema_version": "1",
+    "record_id": "opaque non-secret identifier",
+    "mode": "sandbox-autonomous-migration-only",
+    "target": "banzami_staging",
+    "source_revision": "full 40-hex canonical SHA (explicit, pinned)",
+    "migration_directory_digest": "sha256 of the canonical migration set (order+content bound)",
+    "state": "issued | consumed",
+    "issued_epoch": "unix seconds",
+    "expires_epoch": "unix seconds (short-lived)"
+  },
+  "semantics": {
+    "single_use": true,
+    "atomic_consumption": "issued -> consumed rename before migration start",
+    "bindings_enforced": ["source_revision", "target", "migration_directory_digest"],
+    "expiry_enforced": true,
+    "never_contains": ["password", "database URL", "username", "host", "port", "secret", "connection string"]
+  }
+}

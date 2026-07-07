@@ -1,0 +1,18 @@
+{
+  "contract": "migration-receipt-lifecycle",
+  "version": 1,
+  "description": "Reuses the shipped RT04E receipt lifecycle (tools/rt04e-receipt.mjs + infra/deployment/rt04e-receipt-lib.sh). Each environment has its own receipt_root (see isolation). The receipt is sanitised technical stage-handoff evidence — never a credential, never a payment-release approval, never cryptographically signed.",
+  "states": ["pending", "consumed", "expired"],
+  "state_authority": "filesystem-directory (never inferred from receipt text alone)",
+  "freshness_seconds": 1800,
+  "single_use": true,
+  "atomic_consume_before": ["rollback-anchor capture", "image build", "compose replacement"],
+  "content_fields": [
+    "receipt_version", "release_revision", "target_category", "execution_mode", "receipt_state",
+    "checkpoint_status", "backup_status", "migration_access_status", "migration_status",
+    "migration_level_before", "migration_level_after", "checksum_status", "drift_status", "created_utc"
+  ],
+  "must_never_contain": ["password", "database URL", "username", "host", "port", "secret", "raw SQL", "raw database output"],
+  "retained_as_audit": ["consumed", "expired"],
+  "auto_delete_or_prune": false
+}

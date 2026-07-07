@@ -1,0 +1,41 @@
+{
+  "environment": "sandbox",
+  "derives_from": "banzami-environment-blueprint@1",
+  "provisioned": true,
+  "database": {
+    "name": "banzami_staging",
+    "major_version": 16,
+    "host_published_port": null,
+    "instance_identity": "banzami-sandbox-pg",
+    "volume_root": "banzami-sandbox-pgdata",
+    "network": "banzami-sandbox-data"
+  },
+  "isolation": {
+    "docker_host": "banzami-sandbox-host",
+    "network": "banzami-sandbox-data",
+    "database_instance": "banzami-sandbox-pg",
+    "volume_root": "banzami-sandbox-vol",
+    "secret_root": "/root/banzami-secrets/sandbox",
+    "runtime_identity_root": "banzami-sandbox-runtime",
+    "receipt_root": "/root/banzami-forensics/sandbox/rt04e-receipts",
+    "authorisation_root": "/root/banzami-forensics/sandbox/rt04e-authorisations",
+    "rollback_anchor_root": "/root/banzami-forensics/sandbox/rt04e-rollback",
+    "log_root": "banzami-sandbox-logs",
+    "backup_root": "banzami-sandbox-backups",
+    "domain": "sandbox.banzami.invalid",
+    "external_integration_binding": "sandbox-none"
+  },
+  "secret_interface": { "type": "read-only-file", "env_injection": false, "mount_mode": "ro" },
+  "migration_runner": { "image_ref_policy": "immutable-digest", "mutable_tags_allowed": false },
+  "services": ["core-api-staging", "api-gateway-staging", "developer-api", "public-api-staging"],
+  "policy": {
+    "data": "synthetic",
+    "autonomous_migration": "controlled-single-authorisation",
+    "dual_control_capable": false,
+    "maintenance_window_capable": false,
+    "verified_backup_restore_required": false,
+    "recovery_model": "controlled-rebuild-from-canonical-migrations",
+    "database_down_migrations": "forbidden",
+    "release_attestation": "sanitised-receipt"
+  }
+}

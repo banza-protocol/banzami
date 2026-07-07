@@ -1,0 +1,16 @@
+{
+  "contract": "sqlx-cli-compatibility",
+  "version": 1,
+  "authoritative_source": "core/Cargo.lock (locked sqlx crate version)",
+  "project_sqlx_version": "0.7.4",
+  "migration_runner_sqlx_cli_version": "0.7.4",
+  "compatibility_family": "0.7.x",
+  "rule": "The migration-runner sqlx-cli version MUST equal the project's LOCKED sqlx version exactly. The validator re-reads core/Cargo.lock at check time and fails on any drift, staleness, or unjustified runner version.",
+  "justification": "sqlx-cli and the sqlx runtime share the `_sqlx_migrations` metadata table layout and the migration checksum algorithm within a minor series. Pinning the CLI to the exact locked runtime version (0.7.4) removes any format/checksum skew during `sqlx migrate run` and the subsequent drift verification. A network lookup is NOT the source of truth; core/Cargo.lock is.",
+  "enforced_points": [
+    "core/Cargo.lock sqlx == project_sqlx_version",
+    "migration_runner_sqlx_cli_version == project_sqlx_version",
+    "Dockerfile ARG SQLX_CLI_VERSION == project_sqlx_version",
+    "digests.lock sqlx_cli version == project_sqlx_version"
+  ]
+}

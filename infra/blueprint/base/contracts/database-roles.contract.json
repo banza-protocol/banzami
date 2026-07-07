@@ -1,0 +1,40 @@
+{
+  "contract": "database-role-separation",
+  "version": 1,
+  "description": "Permanent three-role separation, identical logical model in every environment. Role NAMES, passwords, connection URLs, hosts and secret paths are NEVER hard-coded here; they are environment-provisioned and injected only through the read-only file secret interface.",
+  "roles": {
+    "stable_schema_owner": {
+      "login": false,
+      "owns": ["schemas", "migration-created objects"],
+      "used_by_application_services": false,
+      "purpose": "Stable ownership context for all migration-created objects. Objects created by migrations remain owned by this role, not by any short-lived login."
+    },
+    "runtime_application_role": {
+      "login": true,
+      "privileges": "minimum required by approved services (DML + USAGE on owned schema)",
+      "schema_ownership": false,
+      "role_administration": false,
+      "createdb": false,
+      "superuser": false
+    },
+    "migration_role": {
+      "login": true,
+      "lifecycle": "generated-per-authorised-migration-operation",
+      "short_lived": true,
+      "superuser": false,
+      "createdb": false,
+      "createrole": false,
+      "replication": false,
+      "bypassrls": false,
+      "connection_limit": 1,
+      "scope": "environment-only",
+      "validity_max_hours": 24,
+      "ownership_compatibility": "acts through the stable_schema_owner (member of / SET ROLE) so migration-created objects are owned by stable_schema_owner; NEVER receives permanent ownership of objects"
+    }
+  },
+  "ownership_compatible_migration": {
+    "mechanism": "The migration login is granted membership in the stable_schema_owner role and runs with SET ROLE to that owner (or an equivalent owner-scoped run), so canonical SQLx structural migrations (CREATE/ALTER/DROP of owned objects) succeed while newly created objects remain owned by the stable_schema_owner.",
+    "note": "Plain DML grants are NOT sufficient for structural migrations. The migration role requires owner-equivalent structural capability via the stable owner, scoped to the environment, without SUPERUSER, CREATEROLE, CREATEDB, REPLICATION or BYPASSRLS.",
+    "forbidden": ["blind GRANT ALL", "permanent object ownership by the short-lived migration login", "cross-database privileges", "Production/Live access", "role-administration capability"]
+  }
+}

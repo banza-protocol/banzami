@@ -1,0 +1,11 @@
+# Banzami migration-runner base-image digest lock (content-addressed, immutable).
+#
+# Each base image is pinned by its manifest digest; the Dockerfile FROM references
+# use the tag joined to its sha256 manifest digest. A mutable `latest` tag is NEVER
+# used. Re-resolve/verify with ./resolve-digests.sh (registry v2, no tooling install).
+#
+# Format:  <role> <tag> <sha256-digest>
+#
+rust_builder rust:1.88-slim-bookworm sha256:38bc5a86d998772d4aec2348656ed21438d20fcdce2795b56ca434cf21430d89
+runtime_base debian:bookworm-slim sha256:60eac759739651111db372c07be67863818726f754804b8707c90979bda511df
+sqlx_cli 0.7.4 cargo-install-locked-matches-core-Cargo.lock-sqlx-0.7.4
