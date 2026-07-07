@@ -1,6 +1,6 @@
 # ADR-BLUEPRINT-003 — Immutable migration runner and read-only file secret contract
 
-**Status:** Accepted (Increment 1). **Version:** 1.0
+**Status:** Accepted (Increment 1.1 — source-only; digests resolved, SQLx pinned to locked 0.7.4). **Version:** 1.0
 
 ## Context
 The VM must not become a Rust/Cargo/SQLx/psql/PostgreSQL workstation, and database

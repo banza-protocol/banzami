@@ -1,6 +1,6 @@
 # ADR-BLUEPRINT-004 — Autonomous migration authorisation and receipt lifecycle
 
-**Status:** Accepted (Increment 1 — contract + validation layer only). **Version:** 1.0
+**Status:** Accepted (Increment 1.1 — contract + validation layer only; hard-disabled, non-deploying). **Version:** 1.0
 
 ## Context
 The shipped RT04E `migration-only` mode requires a human at an interactive TTY to

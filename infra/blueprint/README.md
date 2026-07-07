@@ -1,6 +1,25 @@
 # Banzami Environment Blueprint
 
-**Status:** Increment 1 — source foundation (reviewable; non-deploying). **Version:** 1.0
+**Status:** Increment 1.1 — hardened source foundation (reviewable; non-deploying). **Version:** 1.0
+
+> **Increment 1.1 is source-only.**
+> - **No Sandbox infrastructure exists yet.**
+> - **No migration-runner has been deployed** (or built against the VM).
+> - **No migration role model has been validated against a real disposable PostgreSQL database.**
+> - **No autonomous migration execution is enabled** (the controller is hard-disabled).
+> - **No Live environment exists or is implied.**
+
+## Next runtime increment (Increment 2)
+Runtime validation, still with **no VM reset or active Sandbox deployment** until every
+validation below passes:
+- local/disposable migration-runner **build**;
+- a **disposable PostgreSQL migration-test database**;
+- **runtime validation of SQLx migration ownership semantics** (objects owned by the
+  stable schema owner);
+- **role privilege proof** (runtime + migration roles at least/most privilege);
+- **secret-file mount proof** (read-only file interface end to end);
+- **SBOM/provenance generation proof** for the runner image.
+
 
 One shared, immutable logical architecture, instantiated per environment as an
 isolated **profile**. Sandbox is the first instance; **Live** is a structurally

@@ -1,10 +1,18 @@
 # Banzami Sandbox — Operator Lifecycle
 
-**Status:** Increment 1 (source foundation). **Version:** 1.0
+**Status:** Increment 1.1 (hardened source foundation). **Version:** 1.0
 
-The end-to-end lifecycle the Blueprint supports. Later increments wire each step to
-the shipped RT04E runner and the migration-runner image. This document contains no
-secret values, hosts, domains, ports, credentials or private locations.
+> **Source-only.** No Sandbox infrastructure exists yet; no migration-runner has been
+> deployed; no migration role model has been validated against a real disposable
+> PostgreSQL database; no autonomous migration execution is enabled; no Live
+> environment exists or is implied. The steps below describe the *intended* lifecycle
+> the Blueprint supports; later increments wire each step to the shipped RT04E runner
+> and the migration-runner image. Increment 2 performs runtime validation
+> (disposable runner build + migration-test DB + ownership/privilege/secret-mount/
+> SBOM proofs) **before** any VM reset or active Sandbox deployment.
+
+The end-to-end lifecycle the Blueprint supports. This document contains no secret
+values, hosts, domains, ports, credentials or private locations.
 
 ## 1. Fresh Sandbox bootstrap
 1. Create only new Banzami-exclusive Docker network, named volume and runtime roots
