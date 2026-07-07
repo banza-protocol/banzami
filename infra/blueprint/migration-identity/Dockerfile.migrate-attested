@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# Banzami Increment 2D — attested derived migration executor (LOCAL/DISPOSABLE).
+# =============================================================================
+# Built on a docker-container BuildKit builder with the attested Increment 2B
+# runner base supplied as an `oci-layout` build-context named `base-runner`, pinned
+# to the parent image's immutable content digest. Records its OWN identity (source
+# revision, parent content digest, embedded canonical migration digest, material
+# identity) and is built WITH its own SBOM + provenance. Never a deployment image.
+FROM base-runner
+ARG SOURCE_REVISION=unset
+ARG PARENT_DIGEST=unset
+ARG MIGRATIONS_DIGEST=unset
+ARG DOCKERFILE_DIGEST=unset
+ARG RUN_IDENTITY=unset
+USER root
+COPY migrations /work/db/migrations
+COPY lab-entrypoint.sh /usr/local/bin/bz-migration-lab-entrypoint
+RUN chmod -R 0444 /work/db/migrations \
+ && find /work/db/migrations -type d -exec chmod 0555 {} + \
+ && chmod 0555 /usr/local/bin/bz-migration-lab-entrypoint
+LABEL com.banzami.blueprint.migration-identity="1" \
+      com.banzami.blueprint.migration-identity.purpose="local-disposable-non-production-non-live" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      com.banzami.blueprint.migration-identity.parent-digest="${PARENT_DIGEST}" \
+      com.banzami.blueprint.migration-identity.migrations-digest="${MIGRATIONS_DIGEST}" \
+      com.banzami.blueprint.migration-identity.dockerfile-digest="${DOCKERFILE_DIGEST}" \
+      com.banzami.blueprint.migration-identity.run="${RUN_IDENTITY}"
+USER runner
+ENTRYPOINT ["/usr/local/bin/bz-migration-lab-entrypoint"]

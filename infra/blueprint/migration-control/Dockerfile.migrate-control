@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+# Banzami Increment 2E — attested derived controlled-migration executor (LOCAL/DISPOSABLE).
+# Extends the attested 2B runner (oci-layout base-runner, parent-content-digest pinned),
+# embeds the canonical migrations, and installs the advisory-lock control entrypoint.
+FROM base-runner
+ARG SOURCE_REVISION=unset
+ARG PARENT_DIGEST=unset
+ARG MIGRATIONS_DIGEST=unset
+ARG DOCKERFILE_DIGEST=unset
+ARG RUN_IDENTITY=unset
+USER root
+COPY migrations /work/db/migrations
+COPY control-entrypoint.sh /usr/local/bin/bz-migration-control-entrypoint
+RUN chmod -R 0444 /work/db/migrations \
+ && find /work/db/migrations -type d -exec chmod 0555 {} + \
+ && chmod 0555 /usr/local/bin/bz-migration-control-entrypoint
+LABEL com.banzami.blueprint.migration-control="1" \
+      com.banzami.blueprint.migration-control.purpose="local-disposable-non-production-non-live" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      com.banzami.blueprint.migration-control.parent-digest="${PARENT_DIGEST}" \
+      com.banzami.blueprint.migration-control.migrations-digest="${MIGRATIONS_DIGEST}" \
+      com.banzami.blueprint.migration-control.dockerfile-digest="${DOCKERFILE_DIGEST}" \
+      com.banzami.blueprint.migration-control.run="${RUN_IDENTITY}"
+USER runner
+ENTRYPOINT ["/usr/local/bin/bz-migration-control-entrypoint"]

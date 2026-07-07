@@ -545,3 +545,72 @@ blueprint-migration-lab-clean:
 
 blueprint-migration-lab-full:
 	bash infra/blueprint/migration-lab/scripts/migration-lab.sh full
+
+# ── Blueprint Increment 2D — final migration identity + derived executor attestation ──
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Attested derived executor + short-lived
+# least-privilege migration login. check-* is a static (no-Docker) gate; the lab targets
+# require Docker Engine + Buildx.
+.PHONY: check-blueprint-migration-identity blueprint-migration-identity-lab-run blueprint-migration-identity-lab-verify blueprint-migration-identity-lab-clean blueprint-migration-identity-lab-full
+check-blueprint-migration-identity:
+	node infra/blueprint/validators/check-blueprint-migration-identity.mjs
+
+blueprint-migration-identity-lab-run:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh run
+
+blueprint-migration-identity-lab-verify:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh verify
+
+blueprint-migration-identity-lab-clean:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh clean
+
+blueprint-migration-identity-lab-full:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh full
+
+# ── Blueprint Increment 2E — controlled migration authorisation/receipt/lock/file-only ──
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Single-use authorisation record + receipt
+# lifecycle + REAL advisory-lock concurrency + file-only execution via the short-lived login.
+.PHONY: check-blueprint-migration-control blueprint-migration-control-lab-run blueprint-migration-control-lab-verify blueprint-migration-control-lab-clean blueprint-migration-control-lab-full
+check-blueprint-migration-control:
+	node infra/blueprint/validators/check-blueprint-migration-control.mjs
+
+blueprint-migration-control-lab-run:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh run
+
+blueprint-migration-control-lab-verify:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh verify
+
+blueprint-migration-control-lab-clean:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh clean
+
+blueprint-migration-control-lab-full:
+	bash infra/blueprint/migration-control/scripts/migration-control.sh full
+
+# ── Blueprint Increment 2F — unified local completion lab ──────────────────────
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Runs every validated local Blueprint
+# phase (2A→2E) from clean state and proves host-wide zero residue across all categories.
+.PHONY: check-blueprint-complete blueprint-complete-lab
+check-blueprint-complete:
+	node infra/blueprint/validators/check-blueprint-complete.mjs
+
+blueprint-complete-lab:
+	bash infra/blueprint/complete-lab/complete-lab.sh full
+
+# ── Blueprint — attested Sandbox service-image lab ─────────────────────────────
+# LOCAL · DISPOSABLE · non-deploying. Builds attested immutable images for the four
+# approved Sandbox services, validates SBOM/provenance/inspection/secret-boundary, and
+# tears down. check-* is a static (no-Docker) gate; the lab targets require Docker + Buildx.
+.PHONY: check-blueprint-service-images blueprint-service-images-lab-run blueprint-service-images-lab-verify blueprint-service-images-lab-clean blueprint-service-images-lab-full
+check-blueprint-service-images:
+	node infra/blueprint/validators/check-blueprint-service-images.mjs
+
+blueprint-service-images-lab-run:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh run
+
+blueprint-service-images-lab-verify:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh verify
+
+blueprint-service-images-lab-clean:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh clean
+
+blueprint-service-images-lab-full:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh full
