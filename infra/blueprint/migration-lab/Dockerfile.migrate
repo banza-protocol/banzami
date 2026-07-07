@@ -1,0 +1,27 @@
+# syntax=docker/dockerfile:1
+# =============================================================================
+# Banzami Increment 2C — derived migration-lab image (LOCAL/DISPOSABLE ONLY).
+# =============================================================================
+# A NARROW extension of the attested Increment 2B migration-runner base image
+# (passed as BASE_RUNNER, built by the 2B build-lab with SBOM + provenance). It
+# EMBEDS the canonical SQLx migration set from the checked-out source and installs
+# a lab-only, file-only-secret entrypoint that applies the EMBEDDED migrations to a
+# disposable local database. It does NOT recompile sqlx, does NOT alter the runner
+# build procedure, and is never a deployment image.
+ARG BASE_RUNNER
+FROM ${BASE_RUNNER}
+ARG SOURCE_REVISION=unset
+ARG MIGRATIONS_DIGEST=unset
+USER root
+# embed the canonical migration set (no runtime source mount is ever used)
+COPY migrations /work/db/migrations
+COPY lab-entrypoint.sh /usr/local/bin/bz-migration-lab-entrypoint
+RUN chmod -R 0444 /work/db/migrations \
+ && find /work/db/migrations -type d -exec chmod 0555 {} + \
+ && chmod 0555 /usr/local/bin/bz-migration-lab-entrypoint
+LABEL com.banzami.blueprint.migration-lab="1" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      com.banzami.blueprint.migration-lab.migrations-digest="${MIGRATIONS_DIGEST}"
+USER runner
+# lab-only entrypoint override — NEVER the production/Sandbox RT04E entrypoint
+ENTRYPOINT ["/usr/local/bin/bz-migration-lab-entrypoint"]

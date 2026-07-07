@@ -524,3 +524,24 @@ blueprint-runner-clean:
 
 blueprint-runner-full:
 	bash infra/blueprint/build-lab/scripts/runner-build-lab.sh full
+
+# ── Blueprint Increment 2C — disposable canonical migration database lab ───────
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Applies the canonical migration
+# set to a throwaway pg16, proves integrity/drift/ownership, and tears down.
+# check-blueprint-migration-lab is a static (no-Docker) gate; blueprint-migration-lab-*
+# require Docker Engine + Buildx.
+.PHONY: check-blueprint-migration-lab blueprint-migration-lab-run blueprint-migration-lab-verify blueprint-migration-lab-clean blueprint-migration-lab-full
+check-blueprint-migration-lab:
+	node infra/blueprint/validators/check-blueprint-migration-lab.mjs
+
+blueprint-migration-lab-run:
+	bash infra/blueprint/migration-lab/scripts/migration-lab.sh run
+
+blueprint-migration-lab-verify:
+	bash infra/blueprint/migration-lab/scripts/migration-lab.sh verify
+
+blueprint-migration-lab-clean:
+	bash infra/blueprint/migration-lab/scripts/migration-lab.sh clean
+
+blueprint-migration-lab-full:
+	bash infra/blueprint/migration-lab/scripts/migration-lab.sh full

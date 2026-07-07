@@ -1,0 +1,85 @@
+# Banzami Increment 2C — disposable canonical migration database lab.
+#
+# LOCAL · SYNTHETIC · DISPOSABLE · non-Sandbox · non-LIVE · non-production ·
+# non-deploying. PostgreSQL 16 (digest-pinned), no host-published port, on a
+# per-run INTERNAL isolated bridge network. Credentials arrive only via read-only
+# mounted secret files. Every resource is labelled com.banzami.blueprint.migration-lab
+# and named with the current generated run identity (never taken from ambient env).
+
+name: ${BZML_PROJECT:?migration-lab.sh must set BZML_PROJECT}
+
+secrets:
+  ml_superuser:
+    file: ${BZML_SECRET_DIR:?migration-lab.sh must set BZML_SECRET_DIR}/ml_superuser
+  ml_control:
+    file: ${BZML_SECRET_DIR}/ml_control
+
+networks:
+  mlnet:
+    name: ${BZML_NETWORK:?migration-lab.sh must set BZML_NETWORK}
+    driver: bridge
+    internal: true
+    labels:
+      com.banzami.blueprint.migration-lab: "1"
+      com.banzami.blueprint.migration-lab.kind: "network"
+
+volumes:
+  mlpg:
+    name: ${BZML_VOLUME:?migration-lab.sh must set BZML_VOLUME}
+    labels:
+      com.banzami.blueprint.migration-lab: "1"
+      com.banzami.blueprint.migration-lab.kind: "volume"
+
+services:
+  postgres:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    labels:
+      com.banzami.blueprint.migration-lab: "1"
+      com.banzami.blueprint.migration-lab.kind: "database"
+    environment:
+      POSTGRES_USER: mladmin
+      POSTGRES_DB: blueprint_migration_lab
+      POSTGRES_PASSWORD_FILE: /run/secrets/ml_superuser
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets:
+      - ml_superuser
+    networks:
+      - mlnet
+    volumes:
+      - mlpg:/var/lib/postgresql/data
+    # NO ports: — never host-published
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mladmin -d blueprint_migration_lab -h 127.0.0.1"]
+      interval: 3s
+      timeout: 3s
+      retries: 25
+      start_period: 5s
+    restart: "no"
+
+  # one-shot owner-session bootstrap: stable owner (NOLOGIN) + restricted runtime +
+  # restricted control-plane; control-plane is granted owner MEMBERSHIP and an
+  # automatic SET ROLE to the owner so canonical migrations create objects OWNED BY
+  # the stable owner. No superuser is used to APPLY migrations.
+  bootstrap:
+    image: postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    profiles: ["jobs"]
+    labels:
+      com.banzami.blueprint.migration-lab: "1"
+      com.banzami.blueprint.migration-lab.kind: "bootstrap"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      ML_ADMIN_USER: mladmin
+      ML_DB: blueprint_migration_lab
+    secrets:
+      - ml_superuser
+      - ml_control
+    networks:
+      - mlnet
+    volumes:
+      - ./scripts/bootstrap-roles.sh:/lab/bootstrap-roles.sh:ro
+    entrypoint: ["/bin/bash", "/lab/bootstrap-roles.sh"]
+    restart: "no"
