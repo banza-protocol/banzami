@@ -59,7 +59,17 @@ q() { PGPASSFILE="$SUPER_PASS" psql -h "$PGHOST" -p "$PGPORT" -U "$LAB_ADMIN_USE
 [ "$(q "SELECT count(*) FROM pg_roles WHERE rolname IN ('bl_schema_owner','bl_app_runtime','bl_control_plane') AND rolsuper")" = "0" ] \
   && report no_app_role_is_superuser PASS || report no_app_role_is_superuser FAIL
 
-# 6. NEGATIVE: runtime role cannot create a role or a database
+# 6a. POSITIVE (A3 hardening): runtime role can actually authenticate and run a
+# benign query. This proves the subsequent negative tests fail on DENIAL, not on a
+# failed connection.
+if [ "$(PGPASSFILE="$RUNTIME_PASS" psql -h "$PGHOST" -p "$PGPORT" -U bl_app_runtime -d "$LAB_DB" \
+       -v ON_ERROR_STOP=1 -tAc "SELECT 1" 2>/dev/null | tr -d '[:space:]')" = "1" ]; then
+  report runtime_login_succeeds PASS
+else
+  report runtime_login_succeeds FAIL
+fi
+
+# 6b. NEGATIVE: runtime role cannot create a role or a database
 if PGPASSFILE="$RUNTIME_PASS" psql -h "$PGHOST" -p "$PGPORT" -U bl_app_runtime -d "$LAB_DB" \
      -v ON_ERROR_STOP=1 -tAc "CREATE ROLE bl_should_not_exist NOLOGIN" >/dev/null 2>&1; then
   report runtime_cannot_create_role FAIL
