@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+# Banzami Environment Blueprint — attested operational migration executor (banzami_staging).
+# Extends the attested 2B runner (oci-layout base-runner, parent-content-digest pinned),
+# embeds the canonical migrations, and installs the controlled OPERATIONAL entrypoint that
+# targets banzami_staging only inside a generated internal Sandbox project.
+FROM base-runner
+ARG SOURCE_REVISION=unset
+ARG PARENT_DIGEST=unset
+ARG MIGRATIONS_DIGEST=unset
+ARG DOCKERFILE_DIGEST=unset
+ARG RUN_IDENTITY=unset
+USER root
+COPY migrations /work/db/migrations
+COPY operational-entrypoint.sh /usr/local/bin/bz-sandbox-migration-entrypoint
+RUN chmod -R 0444 /work/db/migrations \
+ && find /work/db/migrations -type d -exec chmod 0555 {} + \
+ && chmod 0555 /usr/local/bin/bz-sandbox-migration-entrypoint
+LABEL com.banzami.blueprint.sandbox-executor="1" \
+      com.banzami.blueprint.sandbox-executor.purpose="controlled-banzami_staging-migration" \
+      org.opencontainers.image.revision="${SOURCE_REVISION}" \
+      com.banzami.blueprint.sandbox-executor.parent-digest="${PARENT_DIGEST}" \
+      com.banzami.blueprint.sandbox-executor.migrations-digest="${MIGRATIONS_DIGEST}" \
+      com.banzami.blueprint.sandbox-executor.dockerfile-digest="${DOCKERFILE_DIGEST}" \
+      com.banzami.blueprint.sandbox-executor.run="${RUN_IDENTITY}"
+USER runner
+ENTRYPOINT ["/usr/local/bin/bz-sandbox-migration-entrypoint"]
