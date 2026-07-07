@@ -545,3 +545,23 @@ blueprint-migration-lab-clean:
 
 blueprint-migration-lab-full:
 	bash infra/blueprint/migration-lab/scripts/migration-lab.sh full
+
+# ── Blueprint Increment 2D — final migration identity + derived executor attestation ──
+# LOCAL · SYNTHETIC · DISPOSABLE · non-deploying. Attested derived executor + short-lived
+# least-privilege migration login. check-* is a static (no-Docker) gate; the lab targets
+# require Docker Engine + Buildx.
+.PHONY: check-blueprint-migration-identity blueprint-migration-identity-lab-run blueprint-migration-identity-lab-verify blueprint-migration-identity-lab-clean blueprint-migration-identity-lab-full
+check-blueprint-migration-identity:
+	node infra/blueprint/validators/check-blueprint-migration-identity.mjs
+
+blueprint-migration-identity-lab-run:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh run
+
+blueprint-migration-identity-lab-verify:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh verify
+
+blueprint-migration-identity-lab-clean:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh clean
+
+blueprint-migration-identity-lab-full:
+	bash infra/blueprint/migration-identity/scripts/migration-identity.sh full
