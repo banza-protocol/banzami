@@ -594,3 +594,23 @@ check-blueprint-complete:
 
 blueprint-complete-lab:
 	bash infra/blueprint/complete-lab/complete-lab.sh full
+
+# ── Blueprint — attested Sandbox service-image lab ─────────────────────────────
+# LOCAL · DISPOSABLE · non-deploying. Builds attested immutable images for the four
+# approved Sandbox services, validates SBOM/provenance/inspection/secret-boundary, and
+# tears down. check-* is a static (no-Docker) gate; the lab targets require Docker + Buildx.
+.PHONY: check-blueprint-service-images blueprint-service-images-lab-run blueprint-service-images-lab-verify blueprint-service-images-lab-clean blueprint-service-images-lab-full
+check-blueprint-service-images:
+	node infra/blueprint/validators/check-blueprint-service-images.mjs
+
+blueprint-service-images-lab-run:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh run
+
+blueprint-service-images-lab-verify:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh verify
+
+blueprint-service-images-lab-clean:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh clean
+
+blueprint-service-images-lab-full:
+	bash infra/blueprint/service-lab/scripts/service-image-lab.sh full
