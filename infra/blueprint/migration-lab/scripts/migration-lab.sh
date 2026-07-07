@@ -52,7 +52,8 @@ new_identity() {
   BZML_SECRET_DIR="$STATE_BASE/secrets-${rid}"
   ARTROOT="$STATE_BASE/artifacts-${rid}"
   DERIVED_TAG="${RUNID}:migrate"
-  export RUNID BZML_PROJECT BZML_NETWORK BZML_VOLUME BZML_SECRET_DIR ARTROOT DERIVED_TAG
+  RUNNER_TAG=""; RUNNER_RUNID=""   # populated by the 2B handoff
+  export RUNID BZML_PROJECT BZML_NETWORK BZML_VOLUME BZML_SECRET_DIR ARTROOT DERIVED_TAG RUNNER_TAG RUNNER_RUNID
 }
 save_identity() {
   mkdir -p "$STATE_BASE"; chmod 0700 "$STATE_BASE"
@@ -250,6 +251,7 @@ cmd_run() {
   trap 'echo "migration-lab: run failed — cleaning up"; do_clean >/dev/null 2>&1 || true; exit 1' ERR
   gen_secrets
   build_handoff
+  save_identity   # persist RUNNER_TAG/RUNNER_RUNID now that the handoff has resolved them
   build_derived
   pg_up_bootstrap
   apply_migrations
