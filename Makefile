@@ -462,3 +462,13 @@ check-github-app-source-access:
 .PHONY: check-rt04e-rollout-safety
 check-rt04e-rollout-safety:
 	node tools/check-rt04e-rollout-safety.mjs
+
+# Banzami Environment Blueprint static validators (checks 1-13): shared-blueprint
+# derivation, Live structural-validity-but-unprovisioned, Sandbox/Live isolation,
+# no host-published Postgres port, no secret literals, read-only file secret
+# interface, immutable migration-runner contract, autonomous migration-controller
+# precondition contract. Docker/DB/network/secret-free.
+# See infra/blueprint/docs/.
+.PHONY: check-blueprint
+check-blueprint:
+	node infra/blueprint/validators/check-blueprint.mjs

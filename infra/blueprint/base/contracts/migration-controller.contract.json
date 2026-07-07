@@ -1,0 +1,43 @@
+{
+  "contract": "autonomous-migration-controller",
+  "version": 1,
+  "mode": "sandbox-autonomous-migration-only",
+  "status": "contract+validation-layer-only (NON-DEPLOYING, DISABLED outside a future approved Sandbox runtime boundary)",
+  "description": "A separately-governed autonomous migration mode. It NEVER uses fake TTYs, PTY injection, expect, keyboard simulation or hidden-input automation. It replaces the human hidden-prompt with an explicit, single-use, revision/target/migration-digest-bound authorisation RECORD and a controlled read-only secret file. The existing manual RT04E migration path is retained and unchanged.",
+  "preconditions_all_required": [
+    "target_is_exactly_banzami_staging",
+    "clean_source_checkout",
+    "full_explicit_source_revision",
+    "server_checkout_has_no_git_remotes",
+    "approved_service_set_unchanged",
+    "static_checks_pass",
+    "semantic_deployment_checks_pass",
+    "migration_runner_provenance_valid",
+    "migration_secret_file_contract_valid",
+    "single_use_authorisation_record_exists",
+    "authorisation_bound_to_revision",
+    "authorisation_bound_to_target",
+    "authorisation_bound_to_migration_directory_digest",
+    "authorisation_unexpired",
+    "no_concurrent_migration_lock"
+  ],
+  "rejects_arbitrary_values_for": [
+    "database URL", "secret file location", "source path", "migration directory",
+    "target", "service set", "revision", "compose project"
+  ],
+  "release_authorisation_record": {
+    "storage": "root-protected, outside the repository",
+    "file": "regular file, non-symlink, single hard link",
+    "single_use": true,
+    "consumption": "atomic-before-migration-start",
+    "expiry": "short-lived",
+    "bindings": ["source_revision", "target", "migration_directory_digest"],
+    "contains_credential": false
+  },
+  "temporary_migration_role": {
+    "generated_per_operation": true,
+    "removed_or_disabled_after": true
+  },
+  "concurrency_control": "database-advisory-lock-or-equivalent",
+  "receipt": "sanitised metadata only (release revision, migration digest, migration level, verification state, timestamps); never a secret"
+}
