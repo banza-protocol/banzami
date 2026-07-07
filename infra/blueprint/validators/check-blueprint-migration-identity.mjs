@@ -63,7 +63,7 @@ const eviv = read(resolve(MI, 'scripts', 'validate-derived-evidence.mjs'));
 }
 // 6. lifecycle proofs: authenticate, remove, membership-gone, credential-unusable
 {
-  const ok = /migration_login_authenticates/.test(orch) && /DROP ROLE IF EXISTS bl_migration/.test(orch)
+  const ok = /migration_login_authenticates/.test(orch) && /DROP OWNED BY bl_migration/.test(orch) && /DROP ROLE bl_migration/.test(orch)
     && /migration_login_removed/.test(orch) && /no_membership_remains/.test(orch) && /credential_unusable_after_cleanup/.test(orch);
   ok ? pass(6, 'lifecycle proofs: authenticate → remove → membership-gone → credential-unusable') : fail(6, 'lifecycle proofs incomplete');
 }
