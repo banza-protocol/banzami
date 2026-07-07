@@ -33,7 +33,7 @@ for (const [key, rel, label] of [
   ['migration', 'sandbox-ops/scripts/sandbox-migration.sh', 'controlled banzami_staging migration adapter'],
   ['deploy', 'sandbox-ops/scripts/sandbox-deploy.sh', 'provenance-first deployment adapter'],
 ]) {
-  const src = readIf(resolve(ROOT, '..', '..', rel));
+  const src = readIf(resolve(ROOT, rel));
   if (!src) { note(key, `${label}: not yet present (subsequent focused increment)`); continue; }
   // when present, it must never target LIVE/prod, never contact the VM in-source, never use the legacy path
   const safe = !/\b(banzami_live|production|prod|live)\b\s*(target|db|database)/i.test(src)
@@ -44,7 +44,7 @@ for (const [key, rel, label] of [
 
 // shared invariant: no adapter references the four-service allowlist with a forbidden service
 {
-  const deploy = readIf(resolve(ROOT, '..', '..', 'sandbox-ops/scripts/sandbox-deploy.sh'));
+  const deploy = readIf(resolve(ROOT, 'sandbox-ops/scripts/sandbox-deploy.sh'));
   if (deploy) {
     const forbidden = ['admin-api', 'website', 'checkout-frontend', 'pay-frontend', 'banzai'];
     forbidden.some(s => deploy.includes(s)) ? fail('allowlist', 'deployment adapter references a forbidden service') : pass('allowlist', 'deployment adapter references no forbidden service');

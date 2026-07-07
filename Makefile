@@ -640,3 +640,20 @@ sandbox-bootstrap-clean:
 
 sandbox-bootstrap-full:
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-bootstrap.sh full
+
+# ── Sandbox operational adapter B — verified release package ───────────────────
+.PHONY: check-sandbox-release-package sandbox-release-package sandbox-release-package-verify sandbox-release-package-clean sandbox-release-package-full
+check-sandbox-release-package:
+	node infra/blueprint/validators/check-sandbox-release-package.mjs
+
+sandbox-release-package:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh build
+
+sandbox-release-package-verify:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh verify
+
+sandbox-release-package-clean:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh clean
+
+sandbox-release-package-full:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh full
