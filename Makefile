@@ -704,7 +704,7 @@ sandbox-operational-rehearsal:
 .PHONY: check-vm-execution-adapter vm-execution-test \
 	vm-execution-preflight vm-release-transfer-plan vm-release-transfer-apply vm-dry-run \
 	vm-legacy-reset-plan vm-legacy-reset-apply vm-sandbox-bootstrap-apply \
-	vm-sandbox-migration-apply vm-sandbox-deploy-apply vm-sandbox-final-verify
+	vm-sandbox-migration-apply vm-sandbox-deploy-apply vm-sandbox-deploy-clean vm-sandbox-final-verify
 check-vm-execution-adapter:
 	node infra/blueprint/validators/check-vm-execution-adapter.mjs
 
@@ -737,6 +737,9 @@ vm-sandbox-migration-apply:
 
 vm-sandbox-deploy-apply:
 	bash infra/blueprint/vm-execution/vm-execute.sh sandbox-deploy-apply --apply
+
+vm-sandbox-deploy-clean:
+	bash infra/blueprint/vm-execution/vm-execute.sh sandbox-deploy-clean --apply
 
 vm-sandbox-final-verify:
 	bash infra/blueprint/vm-execution/vm-execute.sh final-verify
