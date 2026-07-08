@@ -1,0 +1,331 @@
+{
+  "suite": "Banzami Phase 0 — Internal Functional Sandbox Testing",
+  "plan": "Plano de Teste Detalhado Banzami V1.0",
+  "profile": "phase0-internal-sandbox",
+  "generated_at": "2026-07-08T20:49:06Z",
+  "scope_note": "Internal technical Sandbox only. Synthetic participants and synthetic balances only. No real money, customers, external providers, public access, LIVE, Production or BNA claim. Validation was performed at the operator code/test-suite level, via pilot-policy unit tests, a live read-only Sandbox safety inspection, and an evidence sanitisation check. Live-API end-to-end synthetic-traffic execution against the deployed Sandbox was NOT performed in this pass.",
+  "pilot_limits_minor": {
+    "consumer_per_payment": 2500000,
+    "consumer_daily": 5000000,
+    "consumer_max_balance": 5000000,
+    "merchant_per_receive": 2500000,
+    "merchant_daily_receive": 10000000,
+    "merchant_max_balance": 10000000,
+    "aggregate_funds": 50000000,
+    "aggregate_volume": 200000000
+  },
+  "executions": {
+    "pilot_limit_unit_tests": {
+      "command": "cargo test -p banzami-compliance --lib",
+      "passed": 45,
+      "failed": 0
+    },
+    "core_financial_suite": {
+      "command": "cargo test --lib",
+      "passed": 194,
+      "failed": 0
+    },
+    "vm_safety_inspection": {
+      "performed": true,
+      "method": "read-only"
+    }
+  },
+  "summary": {
+    "pass": 22,
+    "fail": 0,
+    "simulated": 2,
+    "not_run": 0,
+    "pending": 0,
+    "total": 24
+  },
+  "tests": [
+    {
+      "id": "F0-001",
+      "name": "Sandbox health and service allowlist",
+      "execution_level": "live-inspection",
+      "evidence_ref": "VM read-only inspection",
+      "result": "PASS",
+      "objective": "Validate sandbox health and service allowlist under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-002",
+      "name": "Synthetic consumer onboarding",
+      "execution_level": "core-suite",
+      "evidence_ref": "compliance/consumer-wallets lib tests + synthetic fixtures",
+      "result": "PASS",
+      "objective": "Validate synthetic consumer onboarding under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-003",
+      "name": "Synthetic merchant onboarding",
+      "execution_level": "core-suite",
+      "evidence_ref": "merchants/compliance lib tests + synthetic fixtures",
+      "result": "PASS",
+      "objective": "Validate synthetic merchant onboarding under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-004",
+      "name": "Wallet/account creation",
+      "execution_level": "core-suite",
+      "evidence_ref": "wallets/consumer-wallets lib tests",
+      "result": "PASS",
+      "objective": "Validate wallet/account creation under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-005",
+      "name": "Synthetic balance allocation",
+      "execution_level": "harness",
+      "evidence_ref": "synthetic fixtures (balances within pilot caps)",
+      "result": "PASS",
+      "objective": "Validate synthetic balance allocation under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-006",
+      "name": "QR payment success",
+      "execution_level": "core-suite",
+      "evidence_ref": "qr engine lib tests",
+      "result": "PASS",
+      "objective": "Validate qr payment success under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-007",
+      "name": "Payment link success",
+      "execution_level": "core-suite",
+      "evidence_ref": "payment-links engine lib tests",
+      "result": "PASS",
+      "objective": "Validate payment link success under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-008",
+      "name": "Payment intent create-confirm-complete",
+      "execution_level": "core-suite",
+      "evidence_ref": "transactions/collections lib tests",
+      "result": "PASS",
+      "objective": "Validate payment intent create-confirm-complete under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-009",
+      "name": "Ledger double-entry integrity",
+      "execution_level": "core-suite",
+      "evidence_ref": "ledger engine lib tests",
+      "result": "PASS",
+      "objective": "Validate ledger double-entry integrity under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-010",
+      "name": "Idempotent payment retry",
+      "execution_level": "core-suite",
+      "evidence_ref": "transactions/idempotency lib tests",
+      "result": "PASS",
+      "objective": "Validate idempotent payment retry under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-011",
+      "name": "Duplicate payment prevention",
+      "execution_level": "core-suite",
+      "evidence_ref": "transactions lib tests",
+      "result": "PASS",
+      "objective": "Validate duplicate payment prevention under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-012",
+      "name": "Insufficient balance rejection",
+      "execution_level": "core-suite",
+      "evidence_ref": "wallets lib tests",
+      "result": "PASS",
+      "objective": "Validate insufficient balance rejection under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-013",
+      "name": "Per-payment limit rejection",
+      "execution_level": "pilot-unit",
+      "evidence_ref": "pilot::tests (PILOT_LIMIT_PER_PAYMENT_EXCEEDED) + authorize_operation overlay",
+      "result": "PASS",
+      "objective": "Validate per-payment limit rejection under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-014",
+      "name": "Consumer daily limit rejection",
+      "execution_level": "pilot-unit",
+      "evidence_ref": "pilot::tests (PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED)",
+      "result": "PASS",
+      "objective": "Validate consumer daily limit rejection under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-015",
+      "name": "Merchant receiving limit rejection",
+      "execution_level": "pilot-unit",
+      "evidence_ref": "pilot::tests (PILOT_LIMIT_MERCHANT_RECEIVE/DAILY_EXCEEDED)",
+      "result": "PASS",
+      "objective": "Validate merchant receiving limit rejection under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-016",
+      "name": "Aggregate synthetic funds limit rejection",
+      "execution_level": "pilot-unit",
+      "evidence_ref": "pilot::tests (PILOT_LIMIT_AGGREGATE_FUNDS/VOLUME_EXCEEDED)",
+      "result": "PASS",
+      "objective": "Validate aggregate synthetic funds limit rejection under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-017",
+      "name": "Invalid QR/payment request rejection",
+      "execution_level": "core-suite",
+      "evidence_ref": "qr engine negative-path lib tests",
+      "result": "PASS",
+      "objective": "Validate invalid qr/payment request rejection under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-018",
+      "name": "Failed payment rollback",
+      "execution_level": "core-suite",
+      "evidence_ref": "ledger/transactions atomicity lib tests",
+      "result": "PASS",
+      "objective": "Validate failed payment rollback under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-019",
+      "name": "Service restart recovery",
+      "execution_level": "operational-sim",
+      "evidence_ref": "deploy-level health verified in same-VM rebuild; live restart drill deferred",
+      "result": "SIMULATED",
+      "objective": "Validate service restart recovery under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-020",
+      "name": "Daily reconciliation simulation",
+      "execution_level": "core-suite",
+      "evidence_ref": "reconciliation engine lib tests",
+      "result": "PASS",
+      "objective": "Validate daily reconciliation simulation under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-021",
+      "name": "Complaint/refund simulation (synthetic balance)",
+      "execution_level": "core-suite",
+      "evidence_ref": "refund operator-surface logic (ADR-034) lib coverage",
+      "result": "PASS",
+      "objective": "Validate complaint/refund simulation (synthetic balance) under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-022",
+      "name": "Incident material classification simulation",
+      "execution_level": "operational-sim",
+      "evidence_ref": "documented in PHASE0_INCIDENT_SIMULATION_LOG.md",
+      "result": "SIMULATED",
+      "objective": "Validate incident material classification simulation under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-023",
+      "name": "Evidence sanitisation check",
+      "execution_level": "harness",
+      "evidence_ref": "tests/phase0/sanitise.mjs over evidence/phase0",
+      "result": "PASS",
+      "objective": "Validate evidence sanitisation check under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    },
+    {
+      "id": "F0-024",
+      "name": "Phase 0 closure report",
+      "execution_level": "harness",
+      "evidence_ref": "PHASE0_FUNCTIONAL_TEST_REPORT.md",
+      "result": "PASS",
+      "objective": "Validate phase 0 closure report under the V1.0 pilot policy with synthetic data.",
+      "precondition": "Internal Sandbox; pilot-limit overlay enabled for phase0 profile; synthetic fixtures.",
+      "participants": "synthetic consumers/merchants only",
+      "amounts": "synthetic (minor units)",
+      "timestamp": "2026-07-08T20:49:06Z"
+    }
+  ]
+}
