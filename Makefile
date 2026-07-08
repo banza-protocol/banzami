@@ -696,3 +696,44 @@ sandbox-deploy-clean:
 .PHONY: sandbox-operational-rehearsal
 sandbox-operational-rehearsal:
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-operational-rehearsal.sh full
+
+# ── Gated same-VM execution adapter ────────────────────────────────────────────
+# Static gate + local synthetic validation (no VM). The vm-* apply targets contact
+# the VM ONLY through the adapter and require BZVM_SSH_TARGET / BZVM_REMOTE_ROOT
+# (runtime env, never committed) plus an explicit --apply and BZVM_AUTH_FILE.
+.PHONY: check-vm-execution-adapter vm-execution-test \
+	vm-execution-preflight vm-release-transfer-plan vm-release-transfer-apply \
+	vm-legacy-reset-plan vm-legacy-reset-apply vm-sandbox-bootstrap-apply \
+	vm-sandbox-migration-apply vm-sandbox-deploy-apply vm-sandbox-final-verify
+check-vm-execution-adapter:
+	node infra/blueprint/validators/check-vm-execution-adapter.mjs
+
+vm-execution-test:
+	bash infra/blueprint/vm-execution/test/vm-adapter-test.sh
+
+vm-execution-preflight:
+	bash infra/blueprint/vm-execution/vm-execute.sh preflight
+
+vm-release-transfer-plan:
+	bash infra/blueprint/vm-execution/vm-execute.sh release-transfer-plan
+
+vm-release-transfer-apply:
+	bash infra/blueprint/vm-execution/vm-execute.sh release-transfer-apply --apply
+
+vm-legacy-reset-plan:
+	bash infra/blueprint/vm-execution/vm-execute.sh legacy-reset-plan
+
+vm-legacy-reset-apply:
+	bash infra/blueprint/vm-execution/vm-execute.sh legacy-reset-apply --apply
+
+vm-sandbox-bootstrap-apply:
+	bash infra/blueprint/vm-execution/vm-execute.sh sandbox-bootstrap-apply --apply
+
+vm-sandbox-migration-apply:
+	bash infra/blueprint/vm-execution/vm-execute.sh sandbox-migration-apply --apply
+
+vm-sandbox-deploy-apply:
+	bash infra/blueprint/vm-execution/vm-execute.sh sandbox-deploy-apply --apply
+
+vm-sandbox-final-verify:
+	bash infra/blueprint/vm-execution/vm-execute.sh final-verify
