@@ -1,0 +1,334 @@
+{
+  "suite": "Banzami Phase 0 — Pilot Limit Policy Baseline and Synthetic Test Harness",
+  "plan": "Plano de Teste Detalhado Banzami V1.0",
+  "profile": "phase0-internal-sandbox",
+  "generated_at": "2026-07-08T21:02:18Z",
+  "completion": "PARTIAL — policy baseline + synthetic harness; live-API end-to-end DEFERRED",
+  "scope_note": "Internal technical Sandbox only. Synthetic participants and balances only. No real money, customers, external providers, public access, LIVE, Production or BNA claim. This pass validates the pilot-limit policy at the code/unit level, the operator core financial suite, a live read-only Sandbox safety inspection, and evidence sanitisation. Live-API end-to-end synthetic-traffic execution against the deployed Sandbox is DEFERRED to the follow-up (PHASE0_FOLLOWUP_LIVE_API.md). This is NOT a claim of full Phase 0 completion.",
+  "pilot_limits_minor": {
+    "consumer_per_payment": 2500000,
+    "consumer_daily": 5000000,
+    "consumer_max_balance": 5000000,
+    "merchant_per_receive": 2500000,
+    "merchant_daily_receive": 10000000,
+    "merchant_max_balance": 10000000,
+    "aggregate_funds": 50000000,
+    "aggregate_volume": 200000000
+  },
+  "runtime_enforcement": [
+    {
+      "limit": "consumer_per_payment",
+      "wiring": "runtime-authorization",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "consumer_daily",
+      "wiring": "runtime-authorization",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "consumer_max_balance",
+      "wiring": "policy-function",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "merchant_per_received",
+      "wiring": "policy-function",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "merchant_daily_receiving",
+      "wiring": "policy-function",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "merchant_max_balance",
+      "wiring": "policy-function",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "aggregate_funds",
+      "wiring": "policy-function",
+      "unit": true,
+      "live_api": "DEFERRED"
+    },
+    {
+      "limit": "aggregate_volume",
+      "wiring": "policy-function",
+      "unit": true,
+      "live_api": "DEFERRED"
+    }
+  ],
+  "executions": {
+    "pilot_limit_unit_tests": {
+      "command": "cargo test -p banzami-compliance --lib",
+      "passed": 45,
+      "failed": 0
+    },
+    "core_financial_suite": {
+      "command": "cargo test --lib",
+      "passed": 194,
+      "failed": 0
+    },
+    "vm_safety_inspection": {
+      "performed": true,
+      "method": "read-only"
+    }
+  },
+  "summary": {
+    "pass": 3,
+    "fail": 0,
+    "simulated": 2,
+    "deferred": 19,
+    "pending": 0,
+    "total": 24
+  },
+  "tests": [
+    {
+      "id": "F0-001",
+      "name": "Sandbox health and service allowlist",
+      "validation": "live read-only Sandbox safety inspection",
+      "result": "PASS",
+      "note": "four approved services; no host ports; internal networks; no LIVE/Production",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-002",
+      "name": "Synthetic consumer onboarding",
+      "validation": "core-suite (cargo) coverage; synthetic fixtures",
+      "result": "DEFERRED",
+      "note": "live-API onboarding not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-003",
+      "name": "Synthetic merchant onboarding",
+      "validation": "core-suite (cargo) coverage; synthetic fixtures",
+      "result": "DEFERRED",
+      "note": "live-API onboarding not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-004",
+      "name": "Wallet/account creation",
+      "validation": "core-suite (cargo) coverage",
+      "result": "DEFERRED",
+      "note": "live-API creation not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-005",
+      "name": "Synthetic balance allocation",
+      "validation": "synthetic fixtures generated",
+      "result": "DEFERRED",
+      "note": "live-API funding not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-006",
+      "name": "QR payment success",
+      "validation": "core-suite (qr) coverage",
+      "result": "DEFERRED",
+      "note": "live-API QR payment not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-007",
+      "name": "Payment link success",
+      "validation": "core-suite (payment-links) coverage",
+      "result": "DEFERRED",
+      "note": "live-API payment link not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-008",
+      "name": "Payment intent create-confirm-complete",
+      "validation": "core-suite (transactions/collections) coverage",
+      "result": "DEFERRED",
+      "note": "live-API intent lifecycle not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-009",
+      "name": "Ledger double-entry integrity",
+      "validation": "core-suite (ledger) coverage",
+      "result": "DEFERRED",
+      "note": "live-API ledger assertion not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-010",
+      "name": "Idempotent payment retry",
+      "validation": "core-suite (transactions) coverage",
+      "result": "DEFERRED",
+      "note": "live-API idempotency not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-011",
+      "name": "Duplicate payment prevention",
+      "validation": "core-suite (transactions) coverage",
+      "result": "DEFERRED",
+      "note": "live-API dedupe not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-012",
+      "name": "Insufficient balance rejection",
+      "validation": "core-suite (wallets) coverage",
+      "result": "DEFERRED",
+      "note": "live-API rejection not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-013",
+      "name": "Per-payment limit rejection",
+      "validation": "pilot-unit + runtime-authorization wiring",
+      "result": "DEFERRED",
+      "note": "policy wired at authorization + unit-tested; live-API rejection not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-014",
+      "name": "Consumer daily limit rejection",
+      "validation": "pilot-unit + runtime-authorization wiring",
+      "result": "DEFERRED",
+      "note": "policy wired at authorization + unit-tested; live-API rejection not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-015",
+      "name": "Merchant receiving limit rejection",
+      "validation": "pilot-unit (policy function)",
+      "result": "DEFERRED",
+      "note": "policy unit-tested; runtime wiring + live-API not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-016",
+      "name": "Aggregate synthetic funds limit rejection",
+      "validation": "pilot-unit (policy function)",
+      "result": "DEFERRED",
+      "note": "policy unit-tested; runtime wiring + live-API not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-017",
+      "name": "Invalid QR/payment request rejection",
+      "validation": "core-suite (qr negative-path) coverage",
+      "result": "DEFERRED",
+      "note": "live-API rejection not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-018",
+      "name": "Failed payment rollback",
+      "validation": "core-suite (ledger/transactions) coverage",
+      "result": "DEFERRED",
+      "note": "live-API rollback not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-019",
+      "name": "Service restart recovery",
+      "validation": "tabletop/deploy-level (services previously healthy)",
+      "result": "SIMULATED",
+      "note": "live restart drill deferred",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-020",
+      "name": "Daily reconciliation simulation",
+      "validation": "core-suite (reconciliation) coverage",
+      "result": "DEFERRED",
+      "note": "live-API reconciliation not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-021",
+      "name": "Complaint/refund simulation (synthetic balance)",
+      "validation": "core-suite (refund surface) coverage",
+      "result": "DEFERRED",
+      "note": "live-API refund not executed",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-022",
+      "name": "Incident material classification simulation",
+      "validation": "tabletop simulation (documented)",
+      "result": "SIMULATED",
+      "note": "not an operational PASS",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-023",
+      "name": "Evidence sanitisation check",
+      "validation": "sanitise.mjs over evidence/phase0",
+      "result": "PASS",
+      "note": "set after sanitisation runs",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-024",
+      "name": "Phase 0 closure report",
+      "validation": "this report (narrowed scope)",
+      "result": "PASS",
+      "note": "baseline + harness; live-API deferred",
+      "timestamp": "2026-07-08T21:02:18Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    }
+  ]
+}

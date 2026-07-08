@@ -449,6 +449,22 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
             ));
         }
 
+        // V1.0 pilot-limit overlay (internal Sandbox / Phase 0 only). Stricter than
+        // the KYC-tier model above; disabled by default and never active on a
+        // live/production environment. Applies to consumer outbound payments here;
+        // balance/merchant/aggregate caps are enforced at their own data layers.
+        let policy = crate::pilot::PilotLimitPolicy::from_env();
+        let is_consumer_payment =
+            matches!(operation, OperationType::Send | OperationType::PayMerchant);
+        if let Some(v) = crate::pilot::overlay_consumer_payment(
+            policy,
+            is_consumer_payment,
+            amount_minor,
+            daily_volume_minor,
+        ) {
+            return Ok(block(v.as_str(), None, v.message()));
+        }
+
         Ok(allow("OK"))
     }
 }
