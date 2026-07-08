@@ -84,6 +84,7 @@ cmd_build() {
   cp -R "$MIG_DIR" "$ectx/migrations"; cp "$SCRIPT_DIR/operational-entrypoint.sh" "$ectx/operational-entrypoint.sh"; cp "$EXEC_DOCKERFILE" "$ectx/Dockerfile"
   local edf; edf="$(sha256 "$EXEC_DOCKERFILE")"
   docker buildx build --builder "$builder" \
+    --platform "${BZ_TARGET_PLATFORM:-linux/amd64}" \
     --build-context "base-runner=oci-layout://$RUNNER_OCI@$PARENT_DIGEST" \
     --build-arg "SOURCE_REVISION=$SOURCE_REVISION" --build-arg "PARENT_DIGEST=$PARENT_DIGEST" \
     --build-arg "MIGRATIONS_DIGEST=$MIG_DIGEST" --build-arg "DOCKERFILE_DIGEST=$edf" --build-arg "RUN_IDENTITY=$RUNID" \
@@ -100,6 +101,7 @@ cmd_build() {
     dfd="$(sha256 "$REPO_ROOT/$df")"
     echo "release-package: building attested $name"
     docker buildx build --builder "$builder" --file "$REPO_ROOT/$df" \
+      --platform "${BZ_TARGET_PLATFORM:-linux/amd64}" \
       --label "org.opencontainers.image.revision=$SOURCE_REVISION" \
       --label "com.banzami.blueprint.service-lab=1" --label "com.banzami.blueprint.service-lab.service=$name" --label "com.banzami.blueprint.service-lab.run=$RUNID" \
       --sbom=true --provenance=mode=max \
