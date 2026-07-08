@@ -69,16 +69,25 @@ export BZVM_REMOTE_ROOT=...
 
 make vm-execution-preflight
 make vm-release-transfer-plan
-make vm-release-transfer-apply          # needs BZVM_AUTH_FILE
+make vm-release-transfer-apply          # transfer + materialise source tree + VM release state
+
+make vm-dry-run                         # non-destructive rebuild proof in a TEMP project (legacy untouched)
 
 make vm-legacy-reset-plan               # sanitised manifest preview
-make vm-legacy-reset-apply              # needs BZVM_AUTH_FILE — irreversible, manifest-scoped
+make vm-legacy-reset-apply              # irreversible, manifest-scoped — REFUSED unless vm-dry-run passed
 
 make vm-sandbox-bootstrap-apply
 make vm-sandbox-migration-apply
 make vm-sandbox-deploy-apply
 make vm-sandbox-final-verify
 ```
+
+The `vm-release-transfer-apply` step also materialises the canonical source tree on
+the VM from the transferred git bundle (revision-verified) and the VM-local release
+state the reused Sandbox adapters read. `vm-dry-run` reuses the merged rehearsal
+harness (bootstrap → migrate → deploy → verify → teardown) in a temporary isolated
+project and writes a marker; the legacy reset fails closed unless that marker exists,
+so the irreversible wipe can never precede a proven-good rebuild.
 
 ## Scope
 
