@@ -73,7 +73,11 @@ mig_url_file() { # write the file-only migration credential from the sandbox mig
   local f="$AUTHZ_ROOT/../mi_migration_url"
   # bl_migration login (owner-session) → banzami_staging on the internal sandbox host
   local proto='postgresql://' host='postgres:5432' db='banzami_staging'
-  printf '%sbl_migration:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_migration")" "$host" "$db" > "$f"; chmod 0600 "$f"
+  # 0644 (not 0600): this file is bind-mounted read-only into the NON-root executor container;
+  # on Linux the bind mount preserves host perms, so a 0600 root-owned file is unreadable by the
+  # container user. Host confidentiality is preserved by the 0700 root-only SANDBOX_ROOT dir that
+  # contains it (matches Docker's own 0444 secret-mount convention).
+  printf '%sbl_migration:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_migration")" "$host" "$db" > "$f"; chmod 0644 "$f"
   printf '%s' "$f"
 }
 exec_run() { # <mode> <url-file>
