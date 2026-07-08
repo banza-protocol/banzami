@@ -73,8 +73,8 @@ gen_secrets() {
   for f in mi_superuser mi_control mi_migration mi_runtime; do gen > "$BZSB_SECRET_ROOT/$f"; chmod 0600 "$BZSB_SECRET_ROOT/$f"; done
   for f in mi_superuser mi_control mi_migration mi_runtime; do local p="$BZSB_SECRET_ROOT/$f"
     [ -f "$p" ] && [ ! -L "$p" ] && [ -s "$p" ] || die "secret $f invalid"
-    [ "$(stat -f '%Lp' "$p" 2>/dev/null || stat -c '%a' "$p")" = "600" ] || die "secret $f mode!=0600"
-    [ "$(stat -f '%l' "$p" 2>/dev/null || stat -c '%h' "$p")" = "1" ] || die "secret $f hardlink!=1"; done
+    [ "$(stat -c '%a' "$p" 2>/dev/null || stat -f '%Lp' "$p")" = "600" ] || die "secret $f mode!=0600"
+    [ "$(stat -c '%h' "$p" 2>/dev/null || stat -f '%l' "$p")" = "1" ] || die "secret $f hardlink!=1"; done
   BZSB_VALID_UNTIL="$(future_ts)"; export BZSB_VALID_UNTIL
 }
 

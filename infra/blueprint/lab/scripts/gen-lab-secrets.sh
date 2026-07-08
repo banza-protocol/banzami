@@ -45,9 +45,9 @@ gen_one "$SECRET_DIR/lab_control_login"
 # sanity (fail-closed): three regular, non-symlink, non-empty, 0600, single-hard-link
 # files. Never print contents. (Increment 2B A1 hardening.)
 hardlinks() { # portable stat: BSD/macOS -f %l, GNU -c %h
-  stat -f '%l' "$1" 2>/dev/null || stat -c '%h' "$1" 2>/dev/null
+  stat -c '%h' "$1" 2>/dev/null || stat -f '%l' "$1" 2>/dev/null
 }
-filemode() { stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null; }
+filemode() { stat -c '%a' "$1" 2>/dev/null || stat -f '%Lp' "$1" 2>/dev/null; }
 for f in lab_pg_superuser lab_runtime_login lab_control_login; do
   p="$SECRET_DIR/$f"
   [ -f "$p" ] && [ ! -L "$p" ] || { echo "gen-lab-secrets: $f not a regular file" >&2; exit 3; }

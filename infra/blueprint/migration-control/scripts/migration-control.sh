@@ -86,8 +86,8 @@ gen_secrets() {
   local f p
   for f in mi_superuser mi_control mi_migration mi_migration_url; do p="$BZMC_SECRET_DIR/$f"
     [ -f "$p" ] && [ ! -L "$p" ] && [ -s "$p" ] || die "secret $f invalid"
-    [ "$(stat -f '%Lp' "$p" 2>/dev/null || stat -c '%a' "$p")" = "600" ] || die "secret $f mode!=0600"
-    [ "$(stat -f '%l' "$p" 2>/dev/null || stat -c '%h' "$p")" = "1" ] || die "secret $f hardlink!=1"; done
+    [ "$(stat -c '%a' "$p" 2>/dev/null || stat -f '%Lp' "$p")" = "600" ] || die "secret $f mode!=0600"
+    [ "$(stat -c '%h' "$p" 2>/dev/null || stat -f '%l' "$p")" = "1" ] || die "secret $f hardlink!=1"; done
 }
 capture_parent_digest() {
   PARENT_DIGEST="$(OCI_DIR="$RUNNER_OCI" node -e '
