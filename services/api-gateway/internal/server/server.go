@@ -226,12 +226,15 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		slog.Info("developer-key auth disabled", "reason", reason)
 	}
 
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(cfg))
-		r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))
-		r.Use(middleware.Idempotency(deps.Redis))
-
-		r.Route("/v1", func(r chi.Router) {
+	// Single /v1 mount (chi forbids mounting /v1 twice on the same router). The
+	// merchant surface and the ADR-047 canonical payment surface live under it as
+	// two sibling groups, each keeping its own middleware chain and routes.
+	r.Route("/v1", func(r chi.Router) {
+		// Merchant surface — merchant JWT auth, default rate limits, idempotency.
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Auth(cfg))
+			r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))
+			r.Use(middleware.Idempotency(deps.Redis))
 			// Claim/update the merchant @handle + PIN (already authenticated).
 			r.Post("/merchant/auth/claim", merchantAuthHandler.Claim)
 
@@ -435,23 +438,21 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/simulate/payment", sandboxHandler.SimulatePayment)
 			})
 		})
-	})
 
-	// Canonical payment surface (ADR-047 §5) — a SINGLE mount per resource that
-	// accepts EITHER a merchant JWT or a Console developer key via strictly
-	// separated dual-credential auth (no /v1/dev/* duplicate, no cross-credential
-	// fallback). A developer key derives its payee ONLY from the Project binding;
-	// a merchant JWT retains its existing identity behavior. When developer-key
-	// auth is inactive, these routes fall back to merchant-JWT-only.
-	r.Group(func(r chi.Router) {
-		r.Use(middleware.RateLimitPerIP(deps.Redis, 120, "pay"))
-		if devKeyClient != nil {
-			r.Use(middleware.DualAuth(cfg, devKeyClient))
-		} else {
-			r.Use(middleware.Auth(cfg))
-		}
-		r.Use(middleware.Idempotency(deps.Redis))
-		r.Route("/v1", func(r chi.Router) {
+		// Canonical payment surface (ADR-047 §5) — a SINGLE mount per resource that
+		// accepts EITHER a merchant JWT or a Console developer key via strictly
+		// separated dual-credential auth (no /v1/dev/* duplicate, no cross-credential
+		// fallback). A developer key derives its payee ONLY from the Project binding;
+		// a merchant JWT retains its existing identity behavior. When developer-key
+		// auth is inactive, these routes fall back to merchant-JWT-only.
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.RateLimitPerIP(deps.Redis, 120, "pay"))
+			if devKeyClient != nil {
+				r.Use(middleware.DualAuth(cfg, devKeyClient))
+			} else {
+				r.Use(middleware.Auth(cfg))
+			}
+			r.Use(middleware.Idempotency(deps.Redis))
 			r.Route("/business/payment-sessions", func(r chi.Router) {
 				r.Post("/", paymentSessionHandler.Create)
 				r.Get("/", paymentSessionHandler.List)
