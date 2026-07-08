@@ -36,23 +36,31 @@ payments. Decision record: `docs/adr/ADR-048-pilot-limit-policy-overlay.md`.
   default; never active on a live/production environment.
 - **No internal thresholds are exposed** in API responses (generic message only).
 
-## Runtime enforcement status (this pass)
+## Runtime enforcement status
 
-| Limit | Runtime wiring | Unit test | Live-API E2E |
-|-------|----------------|:---------:|:------------:|
-| Consumer per payment | wired at authorization point (pre-posting) | PASS | DEFERRED |
-| Consumer daily | wired at authorization point (pre-posting) | PASS | DEFERRED |
-| Consumer max balance | policy function (wiring deferred) | PASS | DEFERRED |
-| Merchant per received | policy function (wiring deferred) | PASS | DEFERRED |
-| Merchant daily receiving | policy function (wiring deferred) | PASS | DEFERRED |
-| Merchant max balance | policy function (wiring deferred) | PASS | DEFERRED |
-| Aggregate funds | policy function (wiring deferred) | PASS | DEFERRED |
-| Aggregate volume | policy function (wiring deferred) | PASS | DEFERRED |
+**Runtime wiring for all 8 pilot limits: implemented and tested locally. Live API
+E2E: still deferred until a pilot-enabled Sandbox redeploy.**
 
-Consumer per-payment/daily are enforced by the system at the compliance
-authorization point. The remaining six are deterministic, unit-tested policy
-functions whose runtime data-layer wiring and live-API end-to-end verification are
-**DEFERRED** and tracked in `PHASE0_FOLLOWUP_LIVE_API.md` and ADR-048. This
+| Limit | Runtime wiring (enforcement point) | Test | Live-API E2E |
+|-------|------------------------------------|:----:|:------------:|
+| Consumer per payment | compliance authorization point (QR pay) | unit | DEFERRED |
+| Consumer daily | compliance authorization point (QR pay) | unit | DEFERRED |
+| Consumer max balance | consumer deposit funding (pre-credit) | real-DB | DEFERRED |
+| Merchant per received | QR pay merchant receipt (pre-settle) | real-DB | DEFERRED |
+| Merchant daily receiving | QR pay merchant receipt (pre-settle) | real-DB | DEFERRED |
+| Merchant max balance | QR pay merchant receipt (pre-settle) | real-DB | DEFERRED |
+| Aggregate funds | consumer deposit funding (pre-credit) | real-DB | DEFERRED |
+| Aggregate volume | QR pay (pre-settle) | real-DB | DEFERRED |
+
+All eight caps are now enforced by the system at their runtime data-layer
+chokepoints before any irreversible ledger posting. The six added this pass are
+verified by **real-database integration tests** (`core/compliance/tests/
+pilot_enforcement_integration.rs`, `sqlx::test`, no mocks): each proves an
+allowed operation below the limit passes, an operation above the limit is rejected
+with the deterministic code, and a rejected check does not mutate the ledger.
+Consumer per-payment/daily remain enforced at the compliance authorization point.
+Live-API end-to-end verification is **DEFERRED** until a pilot-enabled Sandbox
+redeploy (tracked in `PHASE0_FOLLOWUP_LIVE_API.md` and ADR-048). This
 document does not claim these six are yet enforced end-to-end in the deployed
 Sandbox.
 

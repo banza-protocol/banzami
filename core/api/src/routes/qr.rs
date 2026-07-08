@@ -363,9 +363,14 @@ pub async fn pay(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
     if !auth.can_transact {
-        let code = match auth.reason.as_str() {
+        // Pass through the deterministic V1.0 pilot codes (consumer per-payment /
+        // daily are the only ones authorize_operation emits), otherwise map the
+        // KYC-tier reasons.
+        let code: &'static str = match auth.reason.as_str() {
             "LIMIT_EXCEEDED" => "LIMIT_EXCEEDED",
             "KYC_NOT_APPROVED" => "KYC_NOT_APPROVED",
+            "PILOT_LIMIT_PER_PAYMENT_EXCEEDED" => "PILOT_LIMIT_PER_PAYMENT_EXCEEDED",
+            "PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED" => "PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED",
             _ => "KYC_REQUIRED",
         };
         return Err(ApiError::unprocessable(code, auth.message));
@@ -399,6 +404,46 @@ pub async fn pay(
                 "high-value payment from a device not seen before",
             )
             .await;
+        }
+    }
+
+    // 4d. V1.0 pilot-limit overlay (internal Sandbox / Phase 0; disabled by
+    //     default, never active on live/production). Enforce the merchant-receipt
+    //     caps (per-received / daily / balance-after) and the aggregate volume cap
+    //     BEFORE any irreversible claim or settle. Consumer per-payment/daily are
+    //     already enforced above via authorize_operation.
+    {
+        let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
+        if policy.is_enabled() {
+            if target.owner_type == QrOwnerType::Merchant {
+                let avail: Option<uuid::Uuid> = sqlx::query_scalar(
+                    "SELECT available_account_id FROM wallets WHERE id = $1 AND status = 'ACTIVE'",
+                )
+                .bind(target.owner_id)
+                .fetch_optional(&state.pool)
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
+                if let Some(account) = avail {
+                    if let Some(v) = banzami_compliance::pilot_enforce::check_merchant_receipt(
+                        &state.pool,
+                        account,
+                        amount_minor,
+                        policy,
+                    )
+                    .await
+                    .map_err(|e| ApiError::internal(e.to_string()))?
+                    {
+                        return Err(ApiError::unprocessable(v.as_str(), v.message()));
+                    }
+                }
+            }
+            if let Some(v) =
+                banzami_compliance::pilot_enforce::check_volume(&state.pool, amount_minor, policy)
+                    .await
+                    .map_err(|e| ApiError::internal(e.to_string()))?
+            {
+                return Err(ApiError::unprocessable(v.as_str(), v.message()));
+            }
         }
     }
 

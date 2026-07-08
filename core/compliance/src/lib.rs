@@ -1,5 +1,6 @@
 pub mod engine;
 pub mod pilot;
+pub mod pilot_enforce;
 pub mod provider;
 pub mod providers;
 pub mod repository;

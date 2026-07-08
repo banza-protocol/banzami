@@ -412,6 +412,26 @@ pub async fn callback(
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
         if let Some(available_account_id) = available_account_id {
+            // V1.0 pilot-limit overlay (internal Sandbox / Phase 0; disabled by
+            // default, never active on live/production): enforce the consumer
+            // balance cap and the aggregate funds-in-circulation cap BEFORE the
+            // credit posts. A rejection leaves balances and the ledger unchanged.
+            {
+                let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
+                if let Some(v) = banzami_compliance::pilot_enforce::check_funding(
+                    &state.pool,
+                    banzami_compliance::pilot_enforce::Party::Consumer,
+                    available_account_id,
+                    dep_amount_minor,
+                    policy,
+                )
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?
+                {
+                    return Err(ApiError::unprocessable(v.as_str(), v.message()));
+                }
+            }
+
             let posting_id = LedgerPostingId::new();
 
             let _ = sqlx::query(
