@@ -44,7 +44,9 @@ require_target() {
   [ -n "${BZVM_REMOTE_ROOT:-}" ] || die "remote root not supplied at runtime (set BZVM_REMOTE_ROOT)"
 }
 # Non-interactive SSH only — no PTY automation, no embedded credentials. Target from env.
-remote()  { require_target; ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$BZVM_SSH_TARGET" "$@"; }
+# -n redirects ssh's stdin from /dev/null: without it, an ssh call inside a `while read … done
+# < file` loop (e.g. the reset delete loop) drains the loop's stdin and only the first item runs.
+remote()  { require_target; ssh -n -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$BZVM_SSH_TARGET" "$@"; }
 xfer()    { require_target; rsync -a --checksum "$@"; }
 
 # --- apply guard: explicit flag + per-execution authorisation file ------------------------
