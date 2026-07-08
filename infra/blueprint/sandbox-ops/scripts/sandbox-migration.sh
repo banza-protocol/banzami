@@ -39,6 +39,9 @@ load_context() {
   MANIFEST="$RELEASE_ROOT/manifest.txt"; [ -f "$MANIFEST" ] || die "release manifest missing"
   MIG_DIGEST="$(cat $(ls "$MIG_DIR"/*.sql | sort) | shasum -a 256 | awk '{print $1}')"
   EXEC_OCI="$RELEASE_ROOT/images/sandbox-executor.oci"; [ -d "$EXEC_OCI" ] || die "operational executor missing from package"
+  # resolve an already-loaded operational executor (set by a prior apply) for verify/concurrency
+  EXEC_TAG="${EXEC_TAG:-$(docker image ls --filter 'label=com.banzami.blueprint.sandbox-executor=1' --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1)}"
+  export EXEC_TAG
 }
 mget() { grep -E "^$1=" "$MANIFEST" | head -1 | cut -d= -f2-; }
 oci_digest() { OCI="$1" node -e 'const fs=require("fs"),p=require("path");const oci=process.env.OCI;const b=d=>JSON.parse(fs.readFileSync(p.join(oci,"blobs",d.split(":")[0],d.split(":")[1])));const t=JSON.parse(fs.readFileSync(p.join(oci,"index.json")));let img=null;const v=d=>{const m=d.mediaType||"";if(m.includes("image.index"))b(d.digest).manifests.forEach(v);else if(m.includes("image.manifest")&&(d.annotations||{})["vnd.docker.reference.type"]!=="attestation-manifest")img=img||d.digest;};t.manifests.forEach(v);process.stdout.write(img||"");'; }
@@ -146,6 +149,8 @@ cmd_verify() {
 
 concurrency_proof() {
   local ok=0
+  docker rm -f "${BZSB_PROJECT}-mholder" >/dev/null 2>&1 || true
+  [ -n "${EXEC_TAG:-}" ] || { echo "  second_attempt_refused FAIL (executor not loaded)"; return 1; }
   docker run -d --name "${BZSB_PROJECT}-mholder" --network "$BZSB_DATA_NET" --label "$LABEL=1" \
     -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
       export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
