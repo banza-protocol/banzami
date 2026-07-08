@@ -88,6 +88,8 @@ deploy_one() { # <name> <port> <binary> <tag>
     -v "$JWT_FILE:/run/secrets/jwt_secret:ro" \
     -e "CORE_API_PORT=$port" -e "PORT=$port" -e "ENVIRONMENT=sandbox" \
     -e "BANZAMI_PILOT_LIMITS=1" \
+    -e "CORE_API_URL=http://${BZSB_PROJECT}-core-api-staging:8081" \
+    -e "DEVELOPER_API_URL=http://${BZSB_PROJECT}-developer-api:8086" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
     --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; exec '"$bin" >/dev/null 2>&1 || return 1
