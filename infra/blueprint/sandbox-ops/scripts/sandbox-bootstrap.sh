@@ -117,11 +117,14 @@ cmd_verify() {
   [ "$(docker network inspect -f '{{.Internal}}' "$BZSB_DATA_NET" 2>/dev/null)" = "true" ] && [ "$(docker network inspect -f '{{.Internal}}' "$BZSB_APP_NET" 2>/dev/null)" = "true" ] && echo "SANDBOX networks_internal PASS" || { echo "SANDBOX networks_internal FAIL"; rc=1; }
   [ "$(docker inspect -f '{{index .HostConfig.SecurityOpt 0}}' "$cid" 2>/dev/null)" = "no-new-privileges:true" ] && echo "SANDBOX no_new_privileges PASS" || { echo "SANDBOX no_new_privileges FAIL"; rc=1; }
   { docker inspect -f '{{.HostConfig.Privileged}}{{.HostConfig.NetworkMode}}{{.HostConfig.PidMode}}{{.HostConfig.IpcMode}}' "$cid" | grep -qiE 'true|host'; } && { echo "SANDBOX no_host_namespaces FAIL"; rc=1; } || echo "SANDBOX no_host_namespaces PASS"
-  # role model present
+  # Persistent role model present. Only the three PERSISTENT roles are asserted:
+  # bl_migration is a short-lived login the migration adapter deliberately drops
+  # after use, so it is legitimately absent post-migration. Its create-and-drop
+  # lifecycle is asserted separately by the migration adapter (credential_unusable).
   local roles; roles="$(docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
     export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
-    psql -h postgres -U sbadmin -d banzami_staging -tAc "SELECT count(*) FROM pg_roles WHERE rolname IN ('"'"'bl_schema_owner'"'"','"'"'bl_app_runtime'"'"','"'"'bl_control_plane'"'"','"'"'bl_migration'"'"')"' 2>/dev/null | tr -d '[:space:]')"
-  [ "$roles" = "4" ] && echo "SANDBOX role_model_present PASS" || { echo "SANDBOX role_model_present FAIL"; rc=1; }
+    psql -h postgres -U sbadmin -d banzami_staging -tAc "SELECT count(*) FROM pg_roles WHERE rolname IN ('"'"'bl_schema_owner'"'"','"'"'bl_app_runtime'"'"','"'"'bl_control_plane'"'"')"' 2>/dev/null | tr -d '[:space:]')"
+  [ "$roles" = "3" ] && echo "SANDBOX role_model_present PASS" || { echo "SANDBOX role_model_present FAIL"; rc=1; }
   # secret boundary: value absent from inspectable env / compose config / logs
   local sv; sv="$(cat "$BZSB_SECRET_ROOT/mi_superuser")"
   if docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$cid" | grep -qF "$sv" || dc config 2>/dev/null | grep -qF "$sv" || docker logs "$cid" 2>&1 | grep -qF "$sv"; then echo "SANDBOX secret_absent_from_surfaces FAIL"; rc=1; else echo "SANDBOX secret_absent_from_surfaces PASS"; fi
