@@ -18,7 +18,7 @@ _file_ok() { # <file>
   [ -e "$f" ] || return 1
   [ ! -L "$f" ] || return 1
   [ -f "$f" ] || return 1
-  [ "$(stat -f '%l' "$f" 2>/dev/null || stat -c '%h' "$f")" = "1" ] || return 1
+  [ "$(stat -c '%h' "$f" 2>/dev/null || stat -f '%l' "$f")" = "1" ] || return 1
   # never a secret/URL/credential inside
   ! grep -qiE 'password|secret|://[^ ]*:[^ ]*@|BEGIN [A-Z ]*PRIVATE KEY' "$f" || return 1
   return 0

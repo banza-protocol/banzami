@@ -114,8 +114,8 @@ gen_secrets() {
   for f in ml_superuser ml_control ml_migration_url; do
     local p="$BZML_SECRET_DIR/$f"
     [ -f "$p" ] && [ ! -L "$p" ] && [ -s "$p" ] || die "secret $f invalid"
-    [ "$(stat -f '%Lp' "$p" 2>/dev/null || stat -c '%a' "$p")" = "600" ] || die "secret $f mode != 0600"
-    [ "$(stat -f '%l' "$p" 2>/dev/null || stat -c '%h' "$p")" = "1" ] || die "secret $f hard-link != 1"
+    [ "$(stat -c '%a' "$p" 2>/dev/null || stat -f '%Lp' "$p")" = "600" ] || die "secret $f mode != 0600"
+    [ "$(stat -c '%h' "$p" 2>/dev/null || stat -f '%l' "$p")" = "1" ] || die "secret $f hard-link != 1"
   done
 }
 
