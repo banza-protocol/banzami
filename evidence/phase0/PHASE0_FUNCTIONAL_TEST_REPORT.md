@@ -1,61 +1,77 @@
-# Phase 0 Functional Test Report
+# Phase 0 — Pilot Limit Policy Baseline and Synthetic Test Harness
 
 Version: 1.0
-Generated: 2026-07-08T20:49:06Z
+Generated: 2026-07-08T21:02:18Z
 Plan: Plano de Teste Detalhado Banzami V1.0
-Profile: phase0-internal-sandbox
+Completion: PARTIAL — policy baseline + synthetic harness; live-API end-to-end DEFERRED
 
 ## Scope
 
-Internal technical Sandbox only. Synthetic participants and synthetic balances only. No real money, customers, external providers, public access, LIVE, Production or BNA claim. Validation was performed at the operator code/test-suite level, via pilot-policy unit tests, a live read-only Sandbox safety inspection, and an evidence sanitisation check. Live-API end-to-end synthetic-traffic execution against the deployed Sandbox was NOT performed in this pass.
+Internal technical Sandbox only. Synthetic participants and balances only. No real money, customers, external providers, public access, LIVE, Production or BNA claim. This pass validates the pilot-limit policy at the code/unit level, the operator core financial suite, a live read-only Sandbox safety inspection, and evidence sanitisation. Live-API end-to-end synthetic-traffic execution against the deployed Sandbox is DEFERRED to the follow-up (PHASE0_FOLLOWUP_LIVE_API.md). This is NOT a claim of full Phase 0 completion.
 
-## Executions (genuine)
+## Genuine executions
 
 - Pilot-limit policy unit tests — `cargo test -p banzami-compliance --lib`: 45 passed, 0 failed.
 - Core financial test-suite — `cargo test --lib`: 194 passed, 0 failed.
 - Live Sandbox safety inspection: performed (read-only).
 
+## V1.0 pilot-limit runtime enforcement status
+
+| Limit | Runtime wiring | Unit test | Live-API |
+|-------|----------------|:---------:|:--------:|
+| consumer_per_payment | runtime-authorization | PASS | DEFERRED |
+| consumer_daily | runtime-authorization | PASS | DEFERRED |
+| consumer_max_balance | policy-function | PASS | DEFERRED |
+| merchant_per_received | policy-function | PASS | DEFERRED |
+| merchant_daily_receiving | policy-function | PASS | DEFERRED |
+| merchant_max_balance | policy-function | PASS | DEFERRED |
+| aggregate_funds | policy-function | PASS | DEFERRED |
+| aggregate_volume | policy-function | PASS | DEFERRED |
+
+- **runtime-authorization** = enforced at the compliance authorization point before ledger posting.
+- **policy-function** = deterministic policy implemented + unit-tested; runtime wiring at its data-layer boundary is DEFERRED (follow-up).
+- Live-API end-to-end verification is DEFERRED for all limits in this pass.
+
 ## Summary
 
-PASS 22 · FAIL 0 · SIMULATED 2 · NOT_RUN 0 · total 24
+PASS 3 · FAIL 0 · SIMULATED 2 · DEFERRED 19 · total 24
 
 ## Result matrix
 
-| ID | Test | Execution level | Result | Evidence reference |
-|----|------|-----------------|:------:|--------------------|
-| F0-001 | Sandbox health and service allowlist | live-inspection | PASS | VM read-only inspection |
-| F0-002 | Synthetic consumer onboarding | core-suite | PASS | compliance/consumer-wallets lib tests + synthetic fixtures |
-| F0-003 | Synthetic merchant onboarding | core-suite | PASS | merchants/compliance lib tests + synthetic fixtures |
-| F0-004 | Wallet/account creation | core-suite | PASS | wallets/consumer-wallets lib tests |
-| F0-005 | Synthetic balance allocation | harness | PASS | synthetic fixtures (balances within pilot caps) |
-| F0-006 | QR payment success | core-suite | PASS | qr engine lib tests |
-| F0-007 | Payment link success | core-suite | PASS | payment-links engine lib tests |
-| F0-008 | Payment intent create-confirm-complete | core-suite | PASS | transactions/collections lib tests |
-| F0-009 | Ledger double-entry integrity | core-suite | PASS | ledger engine lib tests |
-| F0-010 | Idempotent payment retry | core-suite | PASS | transactions/idempotency lib tests |
-| F0-011 | Duplicate payment prevention | core-suite | PASS | transactions lib tests |
-| F0-012 | Insufficient balance rejection | core-suite | PASS | wallets lib tests |
-| F0-013 | Per-payment limit rejection | pilot-unit | PASS | pilot::tests (PILOT_LIMIT_PER_PAYMENT_EXCEEDED) + authorize_operation overlay |
-| F0-014 | Consumer daily limit rejection | pilot-unit | PASS | pilot::tests (PILOT_LIMIT_CONSUMER_DAILY_EXCEEDED) |
-| F0-015 | Merchant receiving limit rejection | pilot-unit | PASS | pilot::tests (PILOT_LIMIT_MERCHANT_RECEIVE/DAILY_EXCEEDED) |
-| F0-016 | Aggregate synthetic funds limit rejection | pilot-unit | PASS | pilot::tests (PILOT_LIMIT_AGGREGATE_FUNDS/VOLUME_EXCEEDED) |
-| F0-017 | Invalid QR/payment request rejection | core-suite | PASS | qr engine negative-path lib tests |
-| F0-018 | Failed payment rollback | core-suite | PASS | ledger/transactions atomicity lib tests |
-| F0-019 | Service restart recovery | operational-sim | SIMULATED | deploy-level health verified in same-VM rebuild; live restart drill deferred |
-| F0-020 | Daily reconciliation simulation | core-suite | PASS | reconciliation engine lib tests |
-| F0-021 | Complaint/refund simulation (synthetic balance) | core-suite | PASS | refund operator-surface logic (ADR-034) lib coverage |
-| F0-022 | Incident material classification simulation | operational-sim | SIMULATED | documented in PHASE0_INCIDENT_SIMULATION_LOG.md |
-| F0-023 | Evidence sanitisation check | harness | PASS | tests/phase0/sanitise.mjs over evidence/phase0 |
-| F0-024 | Phase 0 closure report | harness | PASS | PHASE0_FUNCTIONAL_TEST_REPORT.md |
+| ID | Test | Validation this pass | Result |
+|----|------|----------------------|:------:|
+| F0-001 | Sandbox health and service allowlist | live read-only Sandbox safety inspection | PASS |
+| F0-002 | Synthetic consumer onboarding | core-suite (cargo) coverage; synthetic fixtures | DEFERRED |
+| F0-003 | Synthetic merchant onboarding | core-suite (cargo) coverage; synthetic fixtures | DEFERRED |
+| F0-004 | Wallet/account creation | core-suite (cargo) coverage | DEFERRED |
+| F0-005 | Synthetic balance allocation | synthetic fixtures generated | DEFERRED |
+| F0-006 | QR payment success | core-suite (qr) coverage | DEFERRED |
+| F0-007 | Payment link success | core-suite (payment-links) coverage | DEFERRED |
+| F0-008 | Payment intent create-confirm-complete | core-suite (transactions/collections) coverage | DEFERRED |
+| F0-009 | Ledger double-entry integrity | core-suite (ledger) coverage | DEFERRED |
+| F0-010 | Idempotent payment retry | core-suite (transactions) coverage | DEFERRED |
+| F0-011 | Duplicate payment prevention | core-suite (transactions) coverage | DEFERRED |
+| F0-012 | Insufficient balance rejection | core-suite (wallets) coverage | DEFERRED |
+| F0-013 | Per-payment limit rejection | pilot-unit + runtime-authorization wiring | DEFERRED |
+| F0-014 | Consumer daily limit rejection | pilot-unit + runtime-authorization wiring | DEFERRED |
+| F0-015 | Merchant receiving limit rejection | pilot-unit (policy function) | DEFERRED |
+| F0-016 | Aggregate synthetic funds limit rejection | pilot-unit (policy function) | DEFERRED |
+| F0-017 | Invalid QR/payment request rejection | core-suite (qr negative-path) coverage | DEFERRED |
+| F0-018 | Failed payment rollback | core-suite (ledger/transactions) coverage | DEFERRED |
+| F0-019 | Service restart recovery | tabletop/deploy-level (services previously healthy) | SIMULATED |
+| F0-020 | Daily reconciliation simulation | core-suite (reconciliation) coverage | DEFERRED |
+| F0-021 | Complaint/refund simulation (synthetic balance) | core-suite (refund surface) coverage | DEFERRED |
+| F0-022 | Incident material classification simulation | tabletop simulation (documented) | SIMULATED |
+| F0-023 | Evidence sanitisation check | sanitise.mjs over evidence/phase0 | PASS |
+| F0-024 | Phase 0 closure report | this report (narrowed scope) | PASS |
 
-## Execution-level legend
+## Status legend
 
-- **live-inspection** — read-only inspection of the running internal Sandbox.
-- **pilot-unit** — deterministic pilot-limit policy unit test (real `cargo` run) + live authorization-point overlay.
-- **core-suite** — the operator's own financial engine test-suite (real `cargo --lib` run). Validates the logic; NOT a live-API end-to-end run.
-- **operational-sim** — operational scenario documented/validated at deploy level; live drill deferred.
-- **harness** — produced/checked by this harness.
+- **PASS** — fully validated this pass without live-API traffic.
+- **DEFERRED** — requires live-API end-to-end synthetic traffic against the deployed Sandbox (see `PHASE0_FOLLOWUP_LIVE_API.md`).
+- **SIMULATED** — tabletop/simulated operational scenario (NOT an operational PASS).
+- **FAIL** — a genuine failure (none).
 
 ## Non-claims
 
-No LIVE, Production, real-money payment, external payment provider, customer data, public access, DNS/certificate/SMTP change, or BNA approval/admission is claimed. Phase 0 amounts are synthetic and non-monetary.
+This is NOT a claim of full Phase 0 completion. No LIVE, Production, real-money payment, external payment provider, customer data, public access, DNS/certificate/SMTP change, or BNA approval/admission is claimed. Phase 0 amounts are synthetic and non-monetary.

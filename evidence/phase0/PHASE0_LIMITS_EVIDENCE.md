@@ -36,6 +36,26 @@ payments. Decision record: `docs/adr/ADR-048-pilot-limit-policy-overlay.md`.
   default; never active on a live/production environment.
 - **No internal thresholds are exposed** in API responses (generic message only).
 
+## Runtime enforcement status (this pass)
+
+| Limit | Runtime wiring | Unit test | Live-API E2E |
+|-------|----------------|:---------:|:------------:|
+| Consumer per payment | wired at authorization point (pre-posting) | PASS | DEFERRED |
+| Consumer daily | wired at authorization point (pre-posting) | PASS | DEFERRED |
+| Consumer max balance | policy function (wiring deferred) | PASS | DEFERRED |
+| Merchant per received | policy function (wiring deferred) | PASS | DEFERRED |
+| Merchant daily receiving | policy function (wiring deferred) | PASS | DEFERRED |
+| Merchant max balance | policy function (wiring deferred) | PASS | DEFERRED |
+| Aggregate funds | policy function (wiring deferred) | PASS | DEFERRED |
+| Aggregate volume | policy function (wiring deferred) | PASS | DEFERRED |
+
+Consumer per-payment/daily are enforced by the system at the compliance
+authorization point. The remaining six are deterministic, unit-tested policy
+functions whose runtime data-layer wiring and live-API end-to-end verification are
+**DEFERRED** and tracked in `PHASE0_FOLLOWUP_LIVE_API.md` and ADR-048. This
+document does not claim these six are yet enforced end-to-end in the deployed
+Sandbox.
+
 ## Unit-test evidence (genuine `cargo` run)
 
 Command: `cargo test -p banzami-compliance --lib` — all pilot tests pass, alongside
