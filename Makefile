@@ -674,3 +674,25 @@ sandbox-migration-verify:
 
 sandbox-migration-clean:
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh clean
+
+# ── Sandbox operational adapter D — provenance-first deployment ────────────────
+.PHONY: check-sandbox-deploy sandbox-deploy-plan sandbox-deploy-apply sandbox-deploy-verify sandbox-deploy-clean
+check-sandbox-deploy:
+	node infra/blueprint/validators/check-sandbox-deploy.mjs
+
+sandbox-deploy-plan:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh plan
+
+sandbox-deploy-apply:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh apply
+
+sandbox-deploy-verify:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh verify
+
+sandbox-deploy-clean:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh clean
+
+# ── Sandbox operational adapter E — full local operational rehearsal ───────────
+.PHONY: sandbox-operational-rehearsal
+sandbox-operational-rehearsal:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-operational-rehearsal.sh full
