@@ -657,3 +657,20 @@ sandbox-release-package-clean:
 
 sandbox-release-package-full:
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh full
+
+# ── Sandbox operational adapter C — controlled banzami_staging migration ───────
+.PHONY: check-sandbox-migration sandbox-migration-plan sandbox-migration-apply sandbox-migration-verify sandbox-migration-clean
+check-sandbox-migration:
+	node infra/blueprint/validators/check-sandbox-migration.mjs
+
+sandbox-migration-plan:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh plan
+
+sandbox-migration-apply:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh apply
+
+sandbox-migration-verify:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh verify
+
+sandbox-migration-clean:
+	bash infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh clean
