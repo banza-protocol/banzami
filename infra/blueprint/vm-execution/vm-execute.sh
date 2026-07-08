@@ -57,6 +57,9 @@ guard_apply() { # <scope>
   # File-only, fail-closed: must authorise this scope (or 'all') and be marked active.
   grep -Eq '^BZVM_APPLY=yes$' "$BZVM_AUTH_FILE" || die "refusing $scope: authorisation not active"
   grep -Eq "^BZVM_APPLY_SCOPE=($scope|all)$" "$BZVM_AUTH_FILE" || die "refusing $scope: authorisation scope mismatch"
+  # A runtime target is mandatory for every apply — assert it here so all downstream BZVM_*
+  # references are bound (fail closed cleanly instead of a set -u crash).
+  require_target
 }
 
 # --- read-only remote inventory → TSV (kind,id,name,project,image,extra) -------------------
@@ -102,7 +105,7 @@ cmd_preflight() {
 cmd_release_transfer() { # <plan|apply>
   local act="$1"
   [ -f "$RELEASE_STATE" ] || die "no verified release package (build + verify locally first)"
-  . "$RELEASE_STATE"; : "${RELEASE_ROOT:?}" "${SOURCE_REVISION:?}"
+  . "$RELEASE_STATE"; : "${RELEASE_ROOT:?}" "${SOURCE_REVISION:?}" "${PARENT_DIGEST:?}"
   local man="$RELEASE_ROOT/manifest.txt" sums="$RELEASE_ROOT/checksums.txt"
   [ -f "$man" ] && [ -f "$sums" ] || die "release manifest/checksums missing"
   if [ "$act" = plan ]; then
@@ -111,16 +114,57 @@ cmd_release_transfer() { # <plan|apply>
     echo "VM_RELEASE_TRANSFER_PLAN: PASS"; return 0
   fi
   guard_apply release-transfer
-  local rroot="$BZVM_REMOTE_ROOT/release"
+  local rroot="$BZVM_REMOTE_ROOT/release" vmtmp="$BZVM_REMOTE_ROOT/tmp"
   remote "mkdir -p '$rroot' && chmod 0700 '$rroot'" || die "remote staging prep failed"
+  # 1) transfer the verified release package (no build, no pull).
   xfer "$RELEASE_ROOT"/ "$BZVM_SSH_TARGET:$rroot"/ >/dev/null 2>&1 || die "release transfer failed"
   remote "cd '$rroot' && sha256sum -c checksums.txt >/dev/null 2>&1" || hold "BLOCKER — VM RELEASE CHECKSUM MISMATCH" 47
   local remote_rev; remote_rev="$(remote "grep -E '^source_revision=' '$rroot/manifest.txt' | cut -d= -f2-" || true)"
   [ "$remote_rev" = "$SOURCE_REVISION" ] || hold "BLOCKER — VM CANONICAL REVISION MISMATCH" 47
+  # 2) materialise the canonical source tree on the VM from the transferred bundle, pinned to rev.
+  remote "rm -rf '$rroot/source' && git clone -q '$rroot/source.bundle' '$rroot/source' && git -C '$rroot/source' -c advice.detachedHead=false checkout -q '$SOURCE_REVISION'" || hold "BLOCKER — VM SOURCE MATERIALISATION FAILED" 47
+  # 3) verify the materialised tree is EXACTLY the canonical revision.
+  local src_rev; src_rev="$(remote "git -C '$rroot/source' rev-parse HEAD" || true)"
+  [ "$src_rev" = "$SOURCE_REVISION" ] || hold "BLOCKER — VM SOURCE TREE REVISION MISMATCH" 47
+  # 4) materialise the VM-local release state the reused Sandbox adapters read (RELEASE_ROOT on VM).
+  remote "mkdir -p '$vmtmp/banzami-blueprint-release' && chmod -R 0700 '$vmtmp'"
+  remote "umask 077; printf 'RUNID=%s\nBUILDER=%s\nRELEASE_ROOT=%s\nSOURCE_REVISION=%s\nPARENT_DIGEST=%s\n' '${RUNID:-vmrel}' '${BUILDER:-vmrel}' '$rroot' '$SOURCE_REVISION' '$PARENT_DIGEST' > '$vmtmp/banzami-blueprint-release/current.run'"
+  # verify the VM-local release state resolves (state file + manifest + executor image all present).
+  remote "test -f '$vmtmp/banzami-blueprint-release/current.run' && test -f '$rroot/manifest.txt' && test -d '$rroot/images/sandbox-executor.oci'" || hold "BLOCKER — VM RELEASE STATE INCOMPLETE" 47
   echo "  release_transferred PASS"
   echo "  remote_checksums_match PASS"
   echo "  remote_revision_matches_canonical PASS"
+  echo "  source_tree_materialised PASS"
+  echo "  source_tree_revision_matches PASS"
+  echo "  vm_release_state_materialised PASS"
   echo "VM_RELEASE_TRANSFER_APPLY: PASS"
+}
+
+# Non-destructive VM rebuild proof: reuse the merged rehearsal harness (no build — package
+# already transferred) to bootstrap → migrate → deploy → verify → teardown in a TEMPORARY
+# isolated Sandbox project. It never touches legacy resources. On success it writes a marker
+# that the legacy reset requires before it may run.
+cmd_vm_dry_run() {
+  guard_apply dry-run
+  local rroot="$BZVM_REMOTE_ROOT/release" vmtmp="$BZVM_REMOTE_ROOT/tmp"
+  remote "test -d '$rroot/source' && test -f '$vmtmp/banzami-blueprint-release/current.run'" || hold "BLOCKER — VM RELEASE STATE INCOMPLETE" 47
+  echo "  dry-run: bootstrap + migrate + deploy + verify in a temporary isolated project (legacy untouched)"
+  local reh="infra/blueprint/sandbox-ops/scripts/sandbox-operational-rehearsal.sh"
+  if ! remote "cd '$rroot/source' && TMPDIR='$vmtmp' bash '$reh' run"; then
+    remote "cd '$rroot/source' && TMPDIR='$vmtmp' bash '$reh' clean" >/dev/null 2>&1 || true
+    hold "BLOCKER — VM DRY-RUN REBUILD FAILED" 47
+  fi
+  local vr; vr="$(remote "cd '$rroot/source' && TMPDIR='$vmtmp' bash '$reh' verify" 2>&1 | tail -1 || true)"
+  remote "cd '$rroot/source' && TMPDIR='$vmtmp' bash '$reh' clean" >/dev/null 2>&1 || true
+  local res; res="$(remote "cd '$rroot/source' && TMPDIR='$vmtmp' bash '$reh' residue" 2>&1 | tail -1 || true)"
+  case "$vr"  in *PASS*) : ;; *) hold "BLOCKER — VM DRY-RUN VERIFY FAILED" 47 ;; esac
+  case "$res" in *PASS*) : ;; *) hold "BLOCKER — VM DRY-RUN RESIDUE REMAINS" 47 ;; esac
+  remote "umask 077; date -u +%Y-%m-%dT%H:%M:%SZ > '$vmtmp/dry-run.ok'"
+  echo "  vm_dry_run_rebuild PASS"
+  echo "  vm_dry_run_health PASS"
+  echo "  vm_dry_run_teardown PASS"
+  echo "  vm_dry_run_zero_residue PASS"
+  echo "VM_DRY_RUN_RESULT: PASS"
 }
 
 cmd_legacy_reset() { # <plan|apply>
@@ -144,6 +188,9 @@ cmd_legacy_reset() { # <plan|apply>
   if grep -Eiq 'prune|system|-a$|\$\(' "$plan"; then hold "BLOCKER — RESET PLAN CONTAINS AN UNSCOPED OR PRUNE OPERATION" 47; fi
   if [ "$act" = plan ]; then echo "VM_LEGACY_RESET_PLAN: PASS"; return 0; fi
   guard_apply legacy-reset
+  # Safe order: the irreversible reset may run ONLY after a non-destructive VM dry-run has
+  # proven a full rebuild works. No marker → refuse (fail-closed).
+  remote "test -f '$BZVM_REMOTE_ROOT/tmp/dry-run.ok'" || hold "BLOCKER — VM DRY-RUN NOT PROVEN BEFORE RESET" 47
   [ -s "$plan" ] || { echo "  nothing in authorised scope to delete"; echo "VM_LEGACY_RESET_APPLY: PASS"; return 0; }
   # Execute ONLY manifest tokens, one scoped docker command each. No prune. No unscoped rm.
   local kind id
@@ -212,11 +259,12 @@ case "$SUB" in
   preflight)                cmd_preflight ;;
   release-transfer-plan)    cmd_release_transfer plan ;;
   release-transfer-apply)   cmd_release_transfer apply ;;
+  dry-run)                  cmd_vm_dry_run ;;
   legacy-reset-plan)        cmd_legacy_reset plan ;;
   legacy-reset-apply)       cmd_legacy_reset apply ;;
   sandbox-bootstrap-apply)  cmd_sandbox_bootstrap_apply ;;
   sandbox-migration-apply)  cmd_sandbox_migration_apply ;;
   sandbox-deploy-apply)     cmd_sandbox_deploy_apply ;;
   final-verify)             cmd_final_verify ;;
-  *) die "usage: vm-execute.sh {preflight|release-transfer-plan|release-transfer-apply|legacy-reset-plan|legacy-reset-apply|sandbox-bootstrap-apply|sandbox-migration-apply|sandbox-deploy-apply|final-verify} [--apply]" ;;
+  *) die "usage: vm-execute.sh {preflight|release-transfer-plan|release-transfer-apply|dry-run|legacy-reset-plan|legacy-reset-apply|sandbox-bootstrap-apply|sandbox-migration-apply|sandbox-deploy-apply|final-verify} [--apply]" ;;
 esac

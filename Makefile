@@ -702,7 +702,7 @@ sandbox-operational-rehearsal:
 # the VM ONLY through the adapter and require BZVM_SSH_TARGET / BZVM_REMOTE_ROOT
 # (runtime env, never committed) plus an explicit --apply and BZVM_AUTH_FILE.
 .PHONY: check-vm-execution-adapter vm-execution-test \
-	vm-execution-preflight vm-release-transfer-plan vm-release-transfer-apply \
+	vm-execution-preflight vm-release-transfer-plan vm-release-transfer-apply vm-dry-run \
 	vm-legacy-reset-plan vm-legacy-reset-apply vm-sandbox-bootstrap-apply \
 	vm-sandbox-migration-apply vm-sandbox-deploy-apply vm-sandbox-final-verify
 check-vm-execution-adapter:
@@ -719,6 +719,9 @@ vm-release-transfer-plan:
 
 vm-release-transfer-apply:
 	bash infra/blueprint/vm-execution/vm-execute.sh release-transfer-apply --apply
+
+vm-dry-run:
+	bash infra/blueprint/vm-execution/vm-execute.sh dry-run --apply
 
 vm-legacy-reset-plan:
 	bash infra/blueprint/vm-execution/vm-execute.sh legacy-reset-plan

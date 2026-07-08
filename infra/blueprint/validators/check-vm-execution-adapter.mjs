@@ -97,6 +97,28 @@ const all = Object.values(src).join('\n');
   (approved && reusesMergedDeploy && noForbidden) ? pass(7, 'deployment restricted to the four approved services via the merged provenance-first deploy adapter') : fail(7, `deploy scope (approved=${approved} reuse=${reusesMergedDeploy} noForbidden=${noForbidden})`);
 }
 
+// 8. remote wiring: source tree materialised + revision-verified; VM-local release state
+//    materialised; non-destructive dry-run reuses the merged rehearsal harness; and the
+//    irreversible reset is gated on a proven dry-run (safe order).
+{
+  const materialise = /git clone -q '\$rroot\/source\.bundle' '\$rroot\/source'/.test(exec)
+    && /checkout -q '\$SOURCE_REVISION'/.test(exec);
+  const revVerify = /git -C '\$rroot\/source' rev-parse HEAD/.test(exec) && /VM SOURCE TREE REVISION MISMATCH/.test(exec);
+  const releaseState = /banzami-blueprint-release\/current\.run/.test(exec) && /RELEASE_ROOT=%s/.test(exec) && /VM RELEASE STATE INCOMPLETE/.test(exec);
+  const dryRun = /cmd_vm_dry_run\(\)/.test(exec)
+    && /reh="infra\/blueprint\/sandbox-ops\/scripts\/sandbox-operational-rehearsal\.sh"/.test(exec)
+    && /bash '\$reh' run/.test(exec)
+    && /bash '\$reh' verify/.test(exec) && /bash '\$reh' clean/.test(exec) && /bash '\$reh' residue/.test(exec)
+    && /VM DRY-RUN REBUILD FAILED/.test(exec);
+  const resetGatedOnDryRun = /test -f '\$BZVM_REMOTE_ROOT\/tmp\/dry-run\.ok'/.test(exec)
+    && /VM DRY-RUN NOT PROVEN BEFORE RESET/.test(exec);
+  // dry-run marker is written only AFTER verify+residue pass (source order check)
+  const markerAfterProof = exec.indexOf("dry-run.ok'") > exec.indexOf('VM DRY-RUN VERIFY FAILED');
+  (materialise && revVerify && releaseState && dryRun && resetGatedOnDryRun && markerAfterProof)
+    ? pass(8, 'remote wiring: source materialised + revision-verified; VM release state built; non-destructive dry-run precedes and gates the irreversible reset')
+    : fail(8, `remote wiring (mat=${materialise} rev=${revVerify} state=${releaseState} dry=${dryRun} gate=${resetGatedOnDryRun} order=${markerAfterProof})`);
+}
+
 console.log('');
 if (failed) { console.error(`check-vm-execution-adapter: ${failed} check(s) FAILED`); process.exit(1); }
 console.log('check-vm-execution-adapter: all checks passed');
