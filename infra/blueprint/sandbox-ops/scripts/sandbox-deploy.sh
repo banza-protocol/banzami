@@ -67,13 +67,16 @@ validate_service() { # <name>
 
 write_db_url() { # file-only runtime credential (bl_app_runtime → banzami_staging), never in env
   local proto='postgresql://' host='postgres:5432' db='banzami_staging'
-  printf '%sbl_app_runtime:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_runtime")" "$host" "$db" > "$DBURL_FILE"; chmod 0600 "$DBURL_FILE"
+  # 0644 (not 0600): bind-mounted read-only into NON-root service containers; on Linux the mount
+  # preserves host perms so a 0600 root-owned file is unreadable by the container user. Host
+  # confidentiality is preserved by the 0700 root-only EVIDENCE_ROOT dir that contains it.
+  printf '%sbl_app_runtime:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_runtime")" "$host" "$db" > "$DBURL_FILE"; chmod 0644 "$DBURL_FILE"
 }
 uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(uuid.uuid4())'; }
 # file-only synthetic signing secret for services that hard-require JWT_SECRET at
 # boot (e.g. public-api). Disposable, generated per run, NOT a real credential;
 # delivered file-only + exported in-process so it never lands in Docker config.
-write_jwt_secret() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$JWT_FILE"; chmod 0600 "$JWT_FILE"; }
+write_jwt_secret() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$JWT_FILE"; chmod 0644 "$JWT_FILE"; }
 
 deploy_one() { # <name> <port> <binary> <tag>
   local name="$1" port="$2" bin="$3" tag="$4" cname="${BZSB_PROJECT}-$name"
