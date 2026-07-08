@@ -1,0 +1,154 @@
+{
+  "profile": "phase0-internal-sandbox",
+  "synthetic": true,
+  "note": "SYNTHETIC fixtures only. No real personal data, documents, bank accounts or payment rails.",
+  "pilot_limits_minor": {
+    "consumer_per_payment": 2500000,
+    "consumer_daily": 5000000,
+    "consumer_max_balance": 5000000,
+    "merchant_per_receive": 2500000,
+    "merchant_daily_receive": 10000000,
+    "merchant_max_balance": 10000000,
+    "aggregate_funds": 50000000,
+    "aggregate_volume": 200000000
+  },
+  "consumers": [
+    {
+      "id": "synthetic-consumer-01",
+      "display_name": "SYNTHETIC Consumer 1",
+      "handle": "@synthetic_c1",
+      "phone_placeholder": "SYNTHETIC-PHONE-C001",
+      "nif_placeholder": "SYNTHETIC-NIF-C001",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-02",
+      "display_name": "SYNTHETIC Consumer 2",
+      "handle": "@synthetic_c2",
+      "phone_placeholder": "SYNTHETIC-PHONE-C002",
+      "nif_placeholder": "SYNTHETIC-NIF-C002",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-03",
+      "display_name": "SYNTHETIC Consumer 3",
+      "handle": "@synthetic_c3",
+      "phone_placeholder": "SYNTHETIC-PHONE-C003",
+      "nif_placeholder": "SYNTHETIC-NIF-C003",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-04",
+      "display_name": "SYNTHETIC Consumer 4",
+      "handle": "@synthetic_c4",
+      "phone_placeholder": "SYNTHETIC-PHONE-C004",
+      "nif_placeholder": "SYNTHETIC-NIF-C004",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-05",
+      "display_name": "SYNTHETIC Consumer 5",
+      "handle": "@synthetic_c5",
+      "phone_placeholder": "SYNTHETIC-PHONE-C005",
+      "nif_placeholder": "SYNTHETIC-NIF-C005",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-06",
+      "display_name": "SYNTHETIC Consumer 6",
+      "handle": "@synthetic_c6",
+      "phone_placeholder": "SYNTHETIC-PHONE-C006",
+      "nif_placeholder": "SYNTHETIC-NIF-C006",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-07",
+      "display_name": "SYNTHETIC Consumer 7",
+      "handle": "@synthetic_c7",
+      "phone_placeholder": "SYNTHETIC-PHONE-C007",
+      "nif_placeholder": "SYNTHETIC-NIF-C007",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-08",
+      "display_name": "SYNTHETIC Consumer 8",
+      "handle": "@synthetic_c8",
+      "phone_placeholder": "SYNTHETIC-PHONE-C008",
+      "nif_placeholder": "SYNTHETIC-NIF-C008",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-09",
+      "display_name": "SYNTHETIC Consumer 9",
+      "handle": "@synthetic_c9",
+      "phone_placeholder": "SYNTHETIC-PHONE-C009",
+      "nif_placeholder": "SYNTHETIC-NIF-C009",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-consumer-10",
+      "display_name": "SYNTHETIC Consumer 10",
+      "handle": "@synthetic_c10",
+      "phone_placeholder": "SYNTHETIC-PHONE-C010",
+      "nif_placeholder": "SYNTHETIC-NIF-C010",
+      "synthetic_balance_minor": 3000000,
+      "synthetic": true
+    }
+  ],
+  "merchants": [
+    {
+      "id": "synthetic-merchant-01",
+      "display_name": "SYNTHETIC Merchant 1",
+      "handle": "@synthetic_m1",
+      "category": "cantina",
+      "nif_placeholder": "SYNTHETIC-NIF-M001",
+      "synthetic_balance_minor": 0,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-merchant-02",
+      "display_name": "SYNTHETIC Merchant 2",
+      "handle": "@synthetic_m2",
+      "category": "taxi",
+      "nif_placeholder": "SYNTHETIC-NIF-M002",
+      "synthetic_balance_minor": 0,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-merchant-03",
+      "display_name": "SYNTHETIC Merchant 3",
+      "handle": "@synthetic_m3",
+      "category": "loja",
+      "nif_placeholder": "SYNTHETIC-NIF-M003",
+      "synthetic_balance_minor": 0,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-merchant-04",
+      "display_name": "SYNTHETIC Merchant 4",
+      "handle": "@synthetic_m4",
+      "category": "servicos",
+      "nif_placeholder": "SYNTHETIC-NIF-M004",
+      "synthetic_balance_minor": 0,
+      "synthetic": true
+    },
+    {
+      "id": "synthetic-merchant-05",
+      "display_name": "SYNTHETIC Merchant 5",
+      "handle": "@synthetic_m5",
+      "category": "doacao",
+      "nif_placeholder": "SYNTHETIC-NIF-M005",
+      "synthetic_balance_minor": 0,
+      "synthetic": true
+    }
+  ]
+}
