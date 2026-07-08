@@ -14,6 +14,8 @@ secrets:
     file: ${BZSB_SECRET_ROOT}/mi_control
   mi_migration:
     file: ${BZSB_SECRET_ROOT}/mi_migration
+  mi_runtime:
+    file: ${BZSB_SECRET_ROOT}/mi_runtime
 
 networks:
   sb_data:            # data plane: db + redis + migration executor only
@@ -86,7 +88,7 @@ services:
       MI_DB: banzami_staging
       MI_VALID_UNTIL: ${BZSB_VALID_UNTIL:?sandbox-bootstrap.sh must set BZSB_VALID_UNTIL}
       MI_CONN_LIMIT: "2"
-    secrets: [mi_superuser, mi_control, mi_migration]
+    secrets: [mi_superuser, mi_control, mi_migration, mi_runtime]
     networks: [sb_data]
     volumes:
       - ./scripts/bootstrap-sandbox-roles.sh:/lab/bootstrap-sandbox-roles.sh:ro

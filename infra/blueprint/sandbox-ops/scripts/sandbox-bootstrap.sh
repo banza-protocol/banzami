@@ -70,8 +70,8 @@ gen_secrets() {
   chmod 0700 "$SANDBOX_ROOT" "$BZSB_SECRET_ROOT" "$AUTHZ_ROOT" "$RECEIPT_ROOT" "$EVIDENCE_ROOT"
   gen() { openssl rand -base64 32 | tr -d '\n/+=' | cut -c1-40; }
   local f
-  for f in mi_superuser mi_control mi_migration; do gen > "$BZSB_SECRET_ROOT/$f"; chmod 0600 "$BZSB_SECRET_ROOT/$f"; done
-  for f in mi_superuser mi_control mi_migration; do local p="$BZSB_SECRET_ROOT/$f"
+  for f in mi_superuser mi_control mi_migration mi_runtime; do gen > "$BZSB_SECRET_ROOT/$f"; chmod 0600 "$BZSB_SECRET_ROOT/$f"; done
+  for f in mi_superuser mi_control mi_migration mi_runtime; do local p="$BZSB_SECRET_ROOT/$f"
     [ -f "$p" ] && [ ! -L "$p" ] && [ -s "$p" ] || die "secret $f invalid"
     [ "$(stat -f '%Lp' "$p" 2>/dev/null || stat -c '%a' "$p")" = "600" ] || die "secret $f mode!=0600"
     [ "$(stat -f '%l' "$p" 2>/dev/null || stat -c '%h' "$p")" = "1" ] || die "secret $f hardlink!=1"; done
