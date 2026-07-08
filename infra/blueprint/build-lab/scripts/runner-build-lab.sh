@@ -120,6 +120,7 @@ cmd_build() {
   echo "runner-lab: dedicated builder ready; building digest-pinned runner image (this compiles sqlx-cli)"
 
   docker buildx build --builder "$BUILDER" \
+    --platform "${BZ_TARGET_PLATFORM:-linux/amd64}" \
     --file "$DOCKERFILE" \
     --build-arg "RUST_BUILDER=$RUST_BUILDER_REF" \
     --build-arg "RUNTIME_BASE=$RUNTIME_BASE_REF" \
