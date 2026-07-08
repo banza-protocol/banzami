@@ -40,6 +40,7 @@ load_context() {
   : "${RELEASE_ROOT:?}" "${SOURCE_REVISION:?}"
   MANIFEST="$RELEASE_ROOT/manifest.txt"; [ -f "$MANIFEST" ] || die "release manifest missing"
   DBURL_FILE="$EVIDENCE_ROOT/db_url"
+  JWT_FILE="$EVIDENCE_ROOT/jwt_secret"
 }
 svc_image() { docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$1" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1; }
 
@@ -69,6 +70,10 @@ write_db_url() { # file-only runtime credential (bl_app_runtime → banzami_stag
   printf '%sbl_app_runtime:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_runtime")" "$host" "$db" > "$DBURL_FILE"; chmod 0600 "$DBURL_FILE"
 }
 uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(uuid.uuid4())'; }
+# file-only synthetic signing secret for services that hard-require JWT_SECRET at
+# boot (e.g. public-api). Disposable, generated per run, NOT a real credential;
+# delivered file-only + exported in-process so it never lands in Docker config.
+write_jwt_secret() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$JWT_FILE"; chmod 0600 "$JWT_FILE"; }
 
 deploy_one() { # <name> <port> <binary> <tag>
   local name="$1" port="$2" bin="$3" tag="$4" cname="${BZSB_PROJECT}-$name"
@@ -77,10 +82,11 @@ deploy_one() { # <name> <port> <binary> <tag>
     --label "$LABEL=1" --label "$LABEL.run=$BZSB_PROJECT" --label "$LABEL.service=$name" \
     --security-opt "no-new-privileges:true" \
     -v "$DBURL_FILE:/run/secrets/db_url:ro" \
+    -v "$JWT_FILE:/run/secrets/jwt_secret:ro" \
     -e "CORE_API_PORT=$port" -e "PORT=$port" -e "ENVIRONMENT=sandbox" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
-    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; exec '"$bin" >/dev/null 2>&1 || return 1
+    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; exec '"$bin" >/dev/null 2>&1 || return 1
   docker network connect "$BZSB_APP_NET" "$cname" >/dev/null 2>&1 || true
   # health AFTER deployment (docker HEALTHCHECK from the image)
   local i=0 st
@@ -99,7 +105,7 @@ cmd_plan() {
 }
 
 cmd_apply() {
-  load_context; write_db_url
+  load_context; write_db_url; write_jwt_secret
   local e name port bin tag
   for e in "${SERVICES[@]}"; do
     IFS='|' read -r name port bin <<<"$e"
@@ -135,7 +141,7 @@ cmd_clean() {
   [ -n "${BZSB_PROJECT:-}" ] && docker ps -aq --filter "label=$LABEL.run=$BZSB_PROJECT" | xargs -r docker rm -f >/dev/null 2>&1 || true
   docker ps -aq --filter "label=$LABEL" | xargs -r docker rm -f >/dev/null 2>&1 || true
   local e name; for e in "${SERVICES[@]}"; do name="${e%%|*}"; docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$name" -q | xargs -r docker image rm -f >/dev/null 2>&1 || true; done
-  rm -f "${DBURL_FILE:-/nonexistent}" 2>/dev/null || true
+  rm -f "${DBURL_FILE:-/nonexistent}" "${JWT_FILE:-/nonexistent}" 2>/dev/null || true
   echo "sandbox-deploy: scoped cleanup done"
 }
 

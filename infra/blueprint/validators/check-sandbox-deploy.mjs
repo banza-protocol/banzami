@@ -36,13 +36,17 @@ const FORBIDDEN = ['admin-api', 'dashboard', 'checkout', 'pay', 'banzai', 'banza
   const digest = /loaded digest != manifest/.test(d) && /image_identity_matches/.test(d);
   (loadOnly && digest) ? pass(3, 'no build, no pull; image loaded from package with manifest-digest match') : fail(3, `immutable (load=${loadOnly} digest=${digest})`);
 }
-// 4. file-only in-process DB credential (never in Docker env)
+// 4. file-only in-process secrets — DB credential + JWT signing secret (never in Docker env)
 {
-  const fileCred = /-v "\$DBURL_FILE:\/run\/secrets\/db_url:ro"/.test(d)
-    && /export DATABASE_URL="\$\(cat \/run\/secrets\/db_url\)"; exec/.test(d)
+  const dbCred = /-v "\$DBURL_FILE:\/run\/secrets\/db_url:ro"/.test(d)
+    && /export DATABASE_URL="\$\(cat \/run\/secrets\/db_url\)"/.test(d)
     && !/-e "DATABASE_URL=/.test(d);
+  const jwtCred = /-v "\$JWT_FILE:\/run\/secrets\/jwt_secret:ro"/.test(d)
+    && /export JWT_SECRET="\$\(cat \/run\/secrets\/jwt_secret\)"/.test(d)
+    && !/-e "JWT_SECRET=/.test(d);
+  const inProcExec = /export DATABASE_URL="\$\(cat \/run\/secrets\/db_url\)";[\s\S]*?; exec /.test(d);
   const verifyNoSecret = /no_secret_in_env/.test(d) && /DATABASE_URL=\|password=/.test(d);
-  (fileCred && verifyNoSecret) ? pass(4, 'DB credential file-only + exported in-process (never in Docker env); verified absent from inspectable env') : fail(4, `secret boundary (file=${fileCred} verify=${verifyNoSecret})`);
+  (dbCred && jwtCred && inProcExec && verifyNoSecret) ? pass(4, 'DB + JWT secrets file-only + exported in-process (never in Docker env); verified absent from inspectable env') : fail(4, `secret boundary (db=${dbCred} jwt=${jwtCred} exec=${inProcExec} verify=${verifyNoSecret})`);
 }
 // 5. non-root + health via real contract + no host port
 {
