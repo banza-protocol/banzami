@@ -56,6 +56,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /app/target/release/core-api /usr/local/bin/core-api
 
+# run as a non-root system user (Sandbox hardening; ownership/USER only, no logic change)
+RUN useradd --system --uid 10001 --no-create-home banzami
+USER banzami
+
 EXPOSE 8081
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=15s --retries=5 \
