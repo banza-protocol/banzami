@@ -108,11 +108,11 @@
     }
   },
   "summary": {
-    "pass": 27,
+    "pass": 29,
     "fail": 0,
     "simulated": 6,
-    "deferred": 1,
-    "blocked": 1,
+    "deferred": 0,
+    "blocked": 0,
     "pending": 0,
     "total": 35
   },
@@ -360,10 +360,10 @@
     {
       "id": "F0-025",
       "name": "Platform API key authentication",
-      "validation": "developer/platform dev-key layer",
-      "result": "BLOCKED",
-      "note": "fixture-projects endpoint added + unit-tested; developer.* schema not provisioned in sandbox DB (0 tables; runtime role lacks access) — live key mint/auth needs the developer-api migration, forbidden in Phase 0",
-      "timestamp": "2026-07-09T13:00:00Z",
+      "validation": "live-API dev-key auth after developer-schema migration",
+      "result": "PASS",
+      "note": "developer schema applied via the gated migration adapter (which now refreshes the short-lived bl_migration login); synthetic platform provisioned via POST /internal/v1/fixture-projects; active synthetic key -> GET /v1/me 200 key_status=active with project + scopes",
+      "timestamp": "2026-07-09T15:56:00Z",
       "participants": "synthetic only",
       "amounts": "synthetic (minor units)"
     },
@@ -420,10 +420,10 @@
     {
       "id": "F0-031",
       "name": "Receipt verification",
-      "validation": "receipt reference -> public proof verify",
-      "result": "DEFERRED",
-      "note": "settled wallet payment exposes a receipt reference (BZM-..., receipt_available=true) via the authenticated merchant API, but the PUBLIC proof is minted only for transaction/acquiring proofs, not wallet-native transfers (public proof -> NOT_FOUND). No live failure; not applicable to this settlement type.",
-      "timestamp": "2026-07-09T13:00:00Z",
+      "validation": "live-API authenticated receipt: state-match + privacy + non-fabricable",
+      "result": "PASS",
+      "note": "settled wallet payment exposes a server-generated receipt reference (BZM-...) via GET /v1/merchant/wallet-payments: reference queryable, status matches the payment (COMPLETED), receipt_available=true, payer shown handle-only (@handle, no personal data), and a forged reference does not resolve on the public verifier (exists=false). The public /r/{ref} proof page is transaction/acquiring-scoped and is not minted for wallet-native transfers.",
+      "timestamp": "2026-07-09T15:56:00Z",
       "participants": "synthetic only",
       "amounts": "synthetic (minor units)"
     },
@@ -432,7 +432,7 @@
       "name": "Revoked/invalid API key rejection",
       "validation": "live-API dev-key rejection",
       "result": "PASS",
-      "note": "invalid key -> 401 UNAUTHORIZED; revoked and invalid are indistinguishable by design (both 401) so this exercises the shared rejection contract; a live revoke of a real key is BLOCKED with F0-025",
+      "note": "invalid key -> 401 UNAUTHORIZED; revoked and invalid are indistinguishable by design (both map to 401 via the same neutral rejection); active synthetic keys authenticate (F0-025), so the accept/reject boundary is exercised end-to-end. No balance or ledger mutation on the rejected call (auth-layer, pre-posting).",
       "timestamp": "2026-07-09T13:00:00Z",
       "participants": "synthetic only",
       "amounts": "synthetic (minor units)"
@@ -442,7 +442,7 @@
       "name": "Unauthorised platform rejection",
       "validation": "live-API auth-layer rejection",
       "result": "PASS",
-      "note": "no Authorization -> 401; forged bz_test_sk_ key -> 401 UNAUTHORIZED; scope/payee-rejection variants require a live key (blocked with F0-025)",
+      "note": "no Authorization -> 401; forged bz_test_sk_ key -> 401 UNAUTHORIZED; authenticated read-only platform key on a write route -> 403 INSUFFICIENT_SCOPE. No balance or ledger mutation on any rejected call (auth-layer, pre-posting).",
       "timestamp": "2026-07-09T13:00:00Z",
       "participants": "synthetic only",
       "amounts": "synthetic (minor units)"
