@@ -50,15 +50,16 @@ info()    { printf "  %s\n" "$*"; }
 # The internal Sandbox services deploy via the fast source-bundle native-build flow:
 # ./deploy.sh <sandbox-service> creates a source bundle from the exact commit, transfers
 # only the bundle+manifest+checksum, and the amd64 server builds + deploys the selected
-# service natively (no local Mac QEMU). Sandbox services and the new flags (--all,
-# --allow-dirty, --dry-run, --build-only, --deploy-only-from-existing-build, --run-e2e,
-# --local-amd64-build-fallback) route here; all other (production) invocations are
-# unchanged. See infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh.
+# service natively. Local Mac linux/amd64 QEMU builds are unsupported (no fallback).
+# Sandbox services and the new flags (--all, --allow-dirty, --dry-run, --build-only,
+# --deploy-only-from-existing-build, --run-e2e) route here; all other (production)
+# invocations are unchanged. See infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh.
 _SANDBOX_SVCS="developer-api core-api-staging api-gateway-staging public-api-staging"
 _route_sandbox() {
   local a s ok hasflag=0 hassvc=0 nonsandbox=0
   for a in "$@"; do case "$a" in
-    --all|--allow-dirty|--dry-run|--build-only|--deploy-only-from-existing-build|--run-e2e|--local-amd64-build-fallback) hasflag=1 ;;
+    --all|--allow-dirty|--dry-run|--build-only|--deploy-only-from-existing-build|--run-e2e) hasflag=1 ;;
+    --local-amd64-build-fallback|--local-amd64*|--qemu*|--local-build*) hasflag=1 ;;  # route to Sandbox flow → refused (unsupported)
     --*) ;;  # other flags (e.g. --no-cache) belong to the production path
     *) ok=0; for s in $_SANDBOX_SVCS; do [ "$s" = "$a" ] && ok=1; done
        if [ "$ok" = 1 ]; then hassvc=1; else nonsandbox=1; fi ;;

@@ -109,8 +109,10 @@ bundle + manifest + checksum, and the **amd64 server builds the selected service
 natively** (BuildKit cache) and deploys/restarts only that service (reusing the file-only
 secrets + config), with health check + a sanitised receipt. The server never runs
 `git clone`/`git pull`, holds no GitHub credentials/deploy keys/repository history/`.git`.
-Local Mac `linux/amd64` QEMU build is **fallback-only** (`--local-amd64-build-fallback`),
-not the routine path. See `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.
+**The Banzami Sandbox does not support local Mac `linux/amd64` QEMU image builds** — there
+is no fallback flag and no local image build/export/transfer/load path; any such request is
+refused. All Sandbox service builds are performed natively on the amd64 Sandbox server from
+a verified source bundle. See `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.
 
 - Deploy does **not** run migrations, reset the VM, prune unrelated Docker resources, or
   change DNS/certificates/SMTP; it never targets Production/LIVE and uses no real

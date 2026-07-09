@@ -3,7 +3,11 @@
 #
 # Creates a SOURCE BUNDLE from the exact local commit, transfers only the bundle +
 # manifest + checksum to the Sandbox server, and the server builds the selected
-# service(s) NATIVELY on amd64 (no Mac QEMU) and deploys only those services.
+# service(s) NATIVELY on amd64 and deploys only those services.
+#
+# Local Mac linux/amd64 QEMU image builds are NOT supported: there is no fallback path.
+# All Sandbox service builds are performed natively on the amd64 Sandbox server from a
+# verified source bundle.
 #
 # Git stays ONLY on the operator machine. The server receives no .git, no repository
 # history and no GitHub credentials. Secrets are never bundled (git archive ships only
@@ -19,7 +23,6 @@
 #   --build-only                     bundle -> transfer -> native build; NO deploy
 #   --deploy-only-from-existing-build  skip build; deploy from the last built image on the server
 #   --run-e2e                        after deploy, run the developer-platform E2E (opt-in)
-#   --local-amd64-build-fallback     use the local attested QEMU build (fallback), not server-native
 # The server target is read from $BANZAMI_SANDBOX_SSH, or from the REMOTE= line of the
 # repository deploy.sh at runtime. No server address is stored in this file.
 set -euo pipefail
@@ -36,8 +39,13 @@ step(){ printf '\n\033[1;36m[%s]\033[0m %s\n' "$1" "$2"; }
 is_sandbox_svc(){ local s; for s in "${SANDBOX_SERVICES[@]}"; do [ "$s" = "$1" ] && return 0; done; return 1; }
 resolve_remote(){ if [ -n "${BANZAMI_SANDBOX_SSH:-}" ]; then printf '%s' "$BANZAMI_SANDBOX_SSH"; else grep -E '^REMOTE=' "$REPO_ROOT/deploy.sh" | head -1 | sed -E 's/^REMOTE=//; s/^"//; s/"$//'; fi; }
 
+# ---- refusal guard: local Mac amd64/QEMU builds are unsupported (no fallback) ----
+refuse_local_amd64(){
+  die "Local Mac linux/amd64 QEMU builds are not supported for Banzami Sandbox deploys. Use ./deploy.sh <service>, which creates a source bundle and builds natively on the Sandbox server."
+}
+
 # ---- args ----
-SERVICES=(); ALL=0; ALLOW_DIRTY=0; DRY=0; BUILD_ONLY=0; DEPLOY_ONLY=0; RUN_E2E=0; QEMU_FB=0
+SERVICES=(); ALL=0; ALLOW_DIRTY=0; DRY=0; BUILD_ONLY=0; DEPLOY_ONLY=0; RUN_E2E=0
 for a in "$@"; do case "$a" in
   --all) ALL=1 ;;
   --allow-dirty) ALLOW_DIRTY=1 ;;
@@ -45,7 +53,7 @@ for a in "$@"; do case "$a" in
   --build-only) BUILD_ONLY=1 ;;
   --deploy-only-from-existing-build) DEPLOY_ONLY=1 ;;
   --run-e2e) RUN_E2E=1 ;;
-  --local-amd64-build-fallback) QEMU_FB=1 ;;
+  --local-amd64-build-fallback|--local-amd64*|--qemu*|--local-build*) refuse_local_amd64 ;;
   --*) die "unknown flag: $a" ;;
   *) SERVICES+=("$a") ;;
 esac; done
@@ -62,15 +70,7 @@ if [ "$ALLOW_DIRTY" != 1 ]; then
   info "worktree clean"
 else info "worktree cleanliness NOT enforced (--allow-dirty)"; fi
 COMMIT="$(git -C "$REPO_ROOT" rev-parse HEAD)"; SHORT="${COMMIT:0:12}"
-info "commit: $SHORT  services: ${SERVICES[*]}  fallback-QEMU: $([ "$QEMU_FB" = 1 ] && echo yes || echo no)"
-
-# ---- local QEMU fallback path (explicit only) ----
-if [ "$QEMU_FB" = 1 ]; then
-  step FB "local amd64 QEMU attested build (fallback path — NOT the routine flow)"
-  info "delegating to the formal attested build: make sandbox-release-package (+ gated transfer/deploy)"
-  info "run: (cd $REPO_ROOT && make sandbox-release-package && make sandbox-release-package-verify)"
-  die "fallback path is manual by design; re-run without --local-amd64-build-fallback for the native-server flow"
-fi
+info "commit: $SHORT  services: ${SERVICES[*]}  build: native-amd64-server"
 
 # ---- Step 4-6: source bundle + manifest + checksum + local receipt ----
 OUT="${TMPDIR:-/tmp}/banzami-source-deploy"; mkdir -p "$OUT"
