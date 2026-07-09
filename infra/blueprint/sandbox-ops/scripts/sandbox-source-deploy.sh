@@ -109,23 +109,22 @@ info "transferred (no .git / history / images / secrets)"
 
 # ---- Step 7-11: server verifies + unpacks + native build + selected-service deploy ----
 step 7 "server: verify checksum -> unpack versioned release -> native amd64 build -> deploy selected"
-RB_ARGS="--commit $SHORT --services $(IFS=,; echo "${SERVICES[*]}") --mode $DEPLOY_MODE"
+SVCS_CSV="$(IFS=,; echo "${SERVICES[*]}")"   # comma-separated, space-free (ssh re-splits on spaces)
 # Bootstrap on the server: verify sha256, unpack (versioned; keep previous), then exec the
 # unpacked remote build script. The script itself ships inside the bundle (no Git on server).
-ssh -o BatchMode=yes "$REMOTE" bash -s -- "$REMOTE_ROOT" "$SHORT" "$(basename "$BUNDLE")" "$RB_ARGS" <<'REMOTE_BOOTSTRAP' || die "server build/deploy failed"
+# Only space-free values are passed (ssh does not preserve arg boundaries).
+ssh -o BatchMode=yes "$REMOTE" bash -s -- "$REMOTE_ROOT" "$SHORT" "$(basename "$BUNDLE")" "$SVCS_CSV" "$DEPLOY_MODE" <<'REMOTE_BOOTSTRAP' || die "server build/deploy failed"
 set -euo pipefail
-ROOT="$1"; SHORT="$2"; BUNDLE="$3"; RBARGS="$4"
+ROOT="$1"; SHORT="$2"; BUNDLE="$3"; SVCS="$4"; MODE="$5"
 cd "$HOME/$ROOT/staging"
-# verify checksum BEFORE unpacking
 shasum -a 256 -c "${BUNDLE%.tar.gz}.sha256" >/dev/null 2>&1 || { echo "  checksum_verify FAIL"; exit 2; }
 echo "  checksum_verify PASS"
 REL="$HOME/$ROOT/releases/$SHORT"
 if [ ! -d "$REL" ]; then mkdir -p "$REL"; tar -xzf "$BUNDLE" -C "$REL"; fi
-# keep a pointer to the previous validated release for rollback
 [ -L "$HOME/$ROOT/current" ] && cp -P "$HOME/$ROOT/current" "$HOME/$ROOT/previous" 2>/dev/null || true
 RB="$REL/infra/blueprint/sandbox-ops/scripts/remote-native-build.sh"
 [ -f "$RB" ] || { echo "  remote-native-build.sh missing from bundle"; exit 3; }
-bash "$RB" --release "$REL" --root "$HOME/$ROOT" $RBARGS
+bash "$RB" --release "$REL" --root "$HOME/$ROOT" --commit "$SHORT" --services "$SVCS" --mode "$MODE"
 REMOTE_BOOTSTRAP
 
 # ---- optional E2E (opt-in) ----
