@@ -3,7 +3,7 @@
 Version: 1.0
 Generated: 2026-07-09T08:12:00Z
 Plan: Plano de Teste Detalhado Banzami V1.0
-Completion: PARTIAL — proves the pilot-enabled Sandbox redeploy and live-API onboarding, wallet creation, synthetic funding, QR payment, double-entry, idempotency, insufficient-balance, invalid-QR and the key pilot-limit rejections. Does NOT complete all Phase 0 flows (see DEFERRED / SIMULATED below).
+Completion: PARTIAL — proves the pilot-enabled Sandbox redeploy and live-API onboarding, wallet creation, synthetic funding, QR payment, double-entry, idempotency, insufficient-balance, invalid-QR, the key pilot-limit rejections, and (follow-up) the previously-deferred functional flows: payment intents (F0-008), reconciliation (F0-020) and complaint/refund (F0-021) now PASS live; payment links (F0-007) SIMULATED (settlement is the external EMIS rail). DEFERRED count is now 0. NOT a claim of full Phase 0 / production completion; remaining non-PASS items are SIMULATED/tabletop.
 
 ## Scope
 
@@ -13,10 +13,13 @@ Internal technical Sandbox only. Synthetic participants and balances only. No re
 
 **Proven live (PASS):** pilot-enabled redeploy; onboarding; wallet creation; synthetic funding; QR payment success; ledger double-entry; idempotency; insufficient-balance rejection; invalid-QR rejection; and the pilot-limit rejections for consumer per-payment, consumer daily, consumer max balance, merchant daily receiving and aggregate funds (each with no balance/ledger mutation).
 
-**Not completed this pass:**
-- **DEFERRED** — F0-007 payment links, F0-008 payment intents, F0-020 reconciliation, F0-021 refund/complaint simulation.
-- **SIMULATED** — F0-019 service restart recovery (tabletop/deploy-level); F0-022 incident material classification (tabletop).
-- **SIMULATED at live-API level** — merchant per-received, merchant max balance and aggregate volume caps: structurally shadowed by an equal/lower cap at the API layer, or impractical to drive at API volume; covered by the merged real-DB integration tests.
+**Remaining deferred functional flows — now completed live (follow-up pass):**
+- **PASS** — F0-008 payment intents (payment-requests create→pay→decline), F0-020 reconciliation (expected vs ledger-derived, zero discrepancy), F0-021 complaint/refund (QR pay → refund reversal + over-refund guard). DEFERRED count is now **0**.
+- **SIMULATED** — F0-007 payment links: create + simulated-provider (`EMIS_MULTICAIXA_SIMULATED`) confirmation proven live, but the acquiring settlement (wallet credit + ledger double-entry) is the HMAC-signed EMIS-callback external-provider rail, excluded by the synthetic-only constraint.
+
+**Still SIMULATED (unchanged):**
+- F0-011 duplicate prevention (idempotency-covered by F0-010); F0-019 service restart recovery (tabletop/deploy-level); F0-022 incident material classification (tabletop).
+- Pilot caps merchant per-received, merchant max balance and aggregate volume — structurally shadowed by an equal/lower cap at the API layer, or impractical to drive at API volume; covered by the merged real-DB integration tests.
 
 ## Genuine executions
 
@@ -50,7 +53,7 @@ completed · no partial posting (paired before/after readback identical).
 
 ## Summary
 
-PASS 17 · FAIL 0 · SIMULATED 3 · DEFERRED 4 · total 24
+PASS 20 · FAIL 0 · SIMULATED 4 · DEFERRED 0 · total 24
 
 ## Result matrix
 
@@ -62,8 +65,8 @@ PASS 17 · FAIL 0 · SIMULATED 3 · DEFERRED 4 · total 24
 | F0-004 | Wallet/account creation | live-API merchant wallet + consumer wallet | PASS |
 | F0-005 | Funding + consumer max-balance cap | live-API test-credit + `CONSUMER_BALANCE` rejection + no-mutation | PASS |
 | F0-006 | QR payment success | live-API `/v1/qr/pay` COMPLETED | PASS |
-| F0-007 | Payment link success | core-suite coverage; live flow not driven | DEFERRED |
-| F0-008 | Payment intent create-confirm-complete | core-suite coverage; live flow not driven | DEFERRED |
+| F0-007 | Payment link success | live create + simulated-provider confirm; settlement is external EMIS rail | SIMULATED |
+| F0-008 | Payment intent create-confirm-complete | live payment-requests create→pay(settle)→decline + balance movement | PASS |
 | F0-009 | Ledger double-entry integrity | live-API balance readback (−200.000 / +200.000) | PASS |
 | F0-010 | Idempotent payment retry | live-API same-key retry, no double charge | PASS |
 | F0-011 | Duplicate payment prevention | idempotency-covered by F0-010 | SIMULATED |
@@ -75,8 +78,8 @@ PASS 17 · FAIL 0 · SIMULATED 3 · DEFERRED 4 · total 24
 | F0-017 | Invalid QR/payment request rejection | live-API `BAD_REQUEST` | PASS |
 | F0-018 | Failed payment rollback (no partial posting) | live-API no-mutation readbacks on all rejections | PASS |
 | F0-019 | Service restart recovery | tabletop/deploy-level | SIMULATED |
-| F0-020 | Daily reconciliation simulation | core-suite coverage; live job not driven | DEFERRED |
-| F0-021 | Complaint/refund simulation | core-suite coverage; live flow not driven | DEFERRED |
+| F0-020 | Daily reconciliation simulation | live expected-vs-ledger reconciliation, zero discrepancy | PASS |
+| F0-021 | Complaint/refund simulation | live QR pay → WALLET_PAYMENT refund reversal + over-refund guard | PASS |
 | F0-022 | Incident material classification simulation | tabletop simulation | SIMULATED |
 | F0-023 | Evidence sanitisation check | sanitise.mjs over evidence/phase0 | PASS |
 | F0-024 | Phase 0 closure report | this report + PHASE0_LIVE_API_RESULTS.md | PASS |
