@@ -1,12 +1,34 @@
 # Phase 0 — Follow-up Ticket: Live-API End-to-End Execution
 
 Version: 1.0
-Status: OPEN (deferred from the policy-baseline PR)
+Status: LARGELY RESOLVED — live-API execution done; residual = non-limit flows + drills
 
-This follow-up covers the work explicitly **deferred** from the Phase 0 policy
-baseline. It must be completed before Phase 0 can be declared operationally
-complete. Synthetic-only; no real money, customers, external providers, public
+This follow-up covered the work explicitly **deferred** from the Phase 0 policy
+baseline. Synthetic-only; no real money, customers, external providers, public
 access, LIVE, Production or BNA claim.
+
+## Resolution (2026-07-09)
+
+Section A and Section B are **done**. The pilot-enabled build was deployed to the
+internal Sandbox and the full synthetic fixture chain + live-API E2E ran green (see
+`PHASE0_LIVE_API_RESULTS.md`, 13/13 PASS):
+
+- **A — runtime wiring:** consumer max balance, merchant per-received, merchant
+  daily receiving, merchant max balance, aggregate funds and aggregate volume are
+  all now wired at their runtime enforcement points (`check_funding`,
+  `check_merchant_receipt`, `check_volume`) with the merged real-DB integration
+  suite (`pilot_enforcement_integration.rs`, 8/8) asserting no ledger mutation on
+  rejection. The Sandbox `test-credit` funding path was also brought under
+  `check_funding`.
+- **B — live-API E2E:** five of the eight caps proven live end-to-end with paired
+  no-mutation readbacks (per-payment, consumer daily, consumer max balance, merchant
+  daily receiving, aggregate funds). The remaining three (merchant per-received,
+  merchant max balance, aggregate volume) are structurally shadowed by an
+  equal/lower cap at the API layer or impractical at API volume, and stay
+  engine-verified (SIMULATED) — see the results doc for the rationale.
+
+**Residual (still OPEN):** non-limit live flows F0-007 (links), F0-008 (intents),
+F0-020 (reconciliation), F0-021 (refund); and the operational drills in Section C.
 
 ## A. Runtime enforcement wiring (remaining V1.0 limits)
 

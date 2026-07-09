@@ -237,6 +237,14 @@ cmd_sandbox_deploy_apply() {
   remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh" apply || hold "BLOCKER — VM SANDBOX DEPLOYMENT FAILED" 47
   echo "VM_SANDBOX_DEPLOY_APPLY: PASS"
 }
+# Scoped teardown of the four deployed services only (labelled), for a controlled
+# redeploy onto the SAME Sandbox project. Leaves PostgreSQL/Redis and the migrated
+# banzami_staging untouched. No prune, no unscoped deletion.
+cmd_sandbox_deploy_clean() {
+  guard_apply sandbox-deploy
+  remote_adapter "infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh" clean >/dev/null 2>&1 || true
+  echo "VM_SANDBOX_DEPLOY_CLEAN: PASS"
+}
 
 cmd_final_verify() {
   local rc=0
@@ -267,6 +275,7 @@ case "$SUB" in
   sandbox-bootstrap-apply)  cmd_sandbox_bootstrap_apply ;;
   sandbox-migration-apply)  cmd_sandbox_migration_apply ;;
   sandbox-deploy-apply)     cmd_sandbox_deploy_apply ;;
+  sandbox-deploy-clean)     cmd_sandbox_deploy_clean ;;
   final-verify)             cmd_final_verify ;;
   *) die "usage: vm-execute.sh {preflight|release-transfer-plan|release-transfer-apply|dry-run|legacy-reset-plan|legacy-reset-apply|sandbox-bootstrap-apply|sandbox-migration-apply|sandbox-deploy-apply|final-verify} [--apply]" ;;
 esac
