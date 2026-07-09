@@ -97,6 +97,37 @@ func TestReleaseControl_FixtureProjectSandboxGated(t *testing.T) {
 	}
 }
 
+func TestReleaseControl_FixtureKeyRevokeSandboxGated(t *testing.T) {
+	// Disabled outside sandbox.
+	s, _, ws := wsWithRoles(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	if err := s.RevokeFixtureKey(bg, "k_any", "op", "", ""); err != ErrForbidden {
+		t.Fatalf("fixture revoke must be hard-disabled when fixtures are off, got %v", err)
+	}
+	// Enabled in sandbox: mint → authorizes → revoke → rejected.
+	s.SetFixturesEnabled(true)
+	key, secret, err := s.CreateFixtureAPIKey(bg, pid, "e2e", []string{"payment_sessions:write"}, "op", "", "")
+	if err != nil {
+		t.Fatalf("fixture key must be issuable: %v", err)
+	}
+	if _, err := s.AuthorizeKey(bg, secret, "payment_sessions:write"); err != nil {
+		t.Fatalf("active key must authorize: %v", err)
+	}
+	if err := s.RevokeFixtureKey(bg, key.ID, "op", "", ""); err != nil {
+		t.Fatalf("fixture revoke must succeed: %v", err)
+	}
+	if _, err := s.AuthorizeKey(bg, secret, "payment_sessions:write"); err != ErrForbidden {
+		t.Errorf("revoked key must be rejected: want ErrForbidden, got %v", err)
+	}
+	// Revoking an unknown key is NotFound; empty id is Validation.
+	if err := s.RevokeFixtureKey(bg, "k_missing", "op", "", ""); err != ErrNotFound {
+		t.Errorf("unknown key: want ErrNotFound, got %v", err)
+	}
+	if err := s.RevokeFixtureKey(bg, "  ", "op", "", ""); err != ErrValidation {
+		t.Errorf("empty id: want ErrValidation, got %v", err)
+	}
+}
+
 func TestReleaseControl_FixtureKeyRejectsUnknownProjectAndScope(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 	s.SetFixturesEnabled(true)

@@ -479,6 +479,32 @@ func (s *Service) CreateFixtureProject(ctx context.Context, name, createdBy, ip,
 	return ws, proj, nil
 }
 
+// RevokeFixtureKey revokes a fixture API key by id for isolated Sandbox/Phase-0 E2E
+// (proves the revoked-key rejection path end-to-end). It is the revoke counterpart to
+// CreateFixtureAPIKey: hard sandbox-gated via fixturesEnabled (independent of the
+// internal-key guard on the route) — it can never be enabled outside a sandbox
+// environment. Not public self-service; operator-controlled fixtures only.
+func (s *Service) RevokeFixtureKey(ctx context.Context, keyID, actor, ip, reqID string) error {
+	if !s.fixturesEnabled {
+		return ErrForbidden
+	}
+	keyID = strings.TrimSpace(keyID)
+	if keyID == "" {
+		return ErrValidation
+	}
+	key, err := s.store.APIKeyByID(ctx, keyID)
+	if err != nil || key == nil {
+		return ErrNotFound
+	}
+	if err := s.store.RevokeAPIKey(ctx, keyID); err != nil {
+		return err // ErrNotFound when the key is not ACTIVE (already revoked)
+	}
+	pid := key.ProjectID
+	s.audit(ctx, &actor, nil, &pid, "apikey.fixture_revoked", "APIKEY:"+keyID, ip, reqID,
+		map[string]any{"e2e_fixture": true})
+	return nil
+}
+
 func (s *Service) ListAPIKeys(ctx context.Context, actor, projectID string) ([]APIKey, error) {
 	if _, _, err := s.projectAuthz(ctx, actor, projectID); err != nil {
 		return nil, err
