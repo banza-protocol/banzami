@@ -39,8 +39,15 @@ Legend: ☐ = to do · record date/operator/outcome for each item.
   authorisation + receipt, advisory lock, manifest identity gate). No ad-hoc SQL.
 
 ## 8. Deploy
-- ☐ Build/transfer the attested, secret-free release package; deploy the four approved
-  services (provenance/digest-validated before, health-checked after).
+- ☐ **Routine:** `./deploy.sh <service>` — source bundle from the exact commit (no
+  `.git`/history/secrets) → transfer bundle+manifest+checksum → server builds the
+  selected service **natively on amd64** → deploy that service → health check → sanitised
+  receipt. Selected-service is the default; `--all` explicit. Git stays only on the Mac;
+  the server holds no Git/history/credentials. (See
+  `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.)
+- ☐ **Formal/release:** build/transfer the attested, secret-free release package; deploy
+  the four approved services (provenance/digest-validated before, health-checked after).
+  Local Mac QEMU build is fallback-only.
 
 ## 9. Health checks
 - ☐ All services healthy, non-root, no host ports, internal networks only, no secret in
