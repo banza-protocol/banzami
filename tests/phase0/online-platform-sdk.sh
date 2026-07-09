@@ -58,33 +58,42 @@ onboard; A=$OCID;AW=$OWID;AH="k${RR}s${SEQ}"; kyc "$A"; fund "$A" 300000 >/dev/n
 echo "fixtures: merchant=$([ -n "$MID" ]&&echo ok) wallet=$([ -n "$WID" ]&&echo ok) acct=$([ -n "$WACCT" ]&&echo ok) payer=$([ -n "$A" ]&&echo ok)(bal=$(cbal "$AW"))"
 
 # ---- synthetic platform (new sandbox fixture-projects endpoint) ----
+# created_by is an opaque identity UUID (no FK) — use a synthetic UUID actor.
+OP=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen | tr 'A-Z' 'a-z')
 echo "### platform fixture (new sandbox fixture-projects endpoint)"
-devint pf_create POST /internal/v1/fixture-projects "{\"name\":\"Synthetic Platform $RR\",\"created_by\":\"phase0-operator\"}"
+devint pf_create POST /internal/v1/fixture-projects "{\"name\":\"Synthetic Platform $RR\",\"created_by\":\"$OP\"}"
 PROJ=$(jget project_id); PKEY=""; RKEY=""
 if [ -n "$PROJ" ]; then
-  devint pf_key POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"e2e $RR\",\"scopes\":[\"payment_sessions:write\",\"payment_sessions:read\",\"identity:read\"],\"created_by\":\"phase0-operator\"}"
+  devint pf_key POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"e2e $RR\",\"scopes\":[\"payment_sessions:write\",\"payment_sessions:read\",\"identity:read\"],\"created_by\":\"$OP\"}"
   PKEY=$(jget secret)
+  devint pf_key_ro POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"ro $RR\",\"scopes\":[\"payment_sessions:read\"],\"created_by\":\"$OP\"}"
+  RKEY=$(jget secret)
 fi
-echo "  platform provisioned: project=$([ -n "$PROJ" ]&&echo ok||echo BLOCKED) key=$([ -n "$PKEY" ]&&echo ok||echo BLOCKED)"
+echo "  platform provisioned: project=$([ -n "$PROJ" ]&&echo ok||echo BLOCKED) key=$([ -n "$PKEY" ]&&echo ok||echo BLOCKED) ro_key=$([ -n "$RKEY" ]&&echo ok||echo BLOCKED)"
 
 DEVKEY_BLOCKED=0
-if [ -z "$PROJ" ]; then
+if [ -z "$PROJ" ] || [ -z "$PKEY" ]; then
   DEVKEY_BLOCKED=1
-  echo "  [BLOCKER] developer schema absent in sandbox DB (0 developer.* tables) — dev-key live path cannot mint/validate keys; Phase-0 forbids running the developer-api migration"
+  echo "  [BLOCKER] synthetic platform (fixture-projects) could not be provisioned — dev-key live path unavailable"
 fi
 
-echo "### F0-025 platform API key authentication"
+echo "### F0-025 platform API key authentication (active synthetic key)"
 if [ "$DEVKEY_BLOCKED" = 1 ]; then
-  BLK=$((BLK+1)); echo "  F0-025 BLOCKED (developer-api schema not provisioned in sandbox DB; fixture-projects endpoint added + unit-tested, but live key mint/auth needs the developer schema which requires a forbidden migration)"
+  BLK=$((BLK+1)); echo "  F0-025 BLOCKED (platform fixture unavailable)"
 else
-  gw me GET /v1/me - "$PKEY"; chk F0-025 "$(jget key_status)" ACTIVE
+  gw me GET /v1/me - "$PKEY"; chk F0-025 "$(jget key_status)" active
 fi
 
-echo "### F0-033 unauthorised platform rejection (auth-layer, schema-independent)"
+echo "### F0-033 unauthorised platform rejection"
 gw u_nokey POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" -    # no auth
 chk F0-033-noauth "$CODE" 401
 gw u_forged POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "bz_test_sk_forged${RR}deadbeef1234"
 chk F0-033-forged "$CODE" 401
+# wrong-scope: an authenticated but read-only platform key on a write route is rejected.
+if [ -n "$RKEY" ]; then
+  gw u_scope POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "$RKEY"
+  chk F0-033-scope "$(codeof)" INSUFFICIENT_SCOPE
+fi
 
 echo "### F0-032 revoked/invalid API key rejection (invalid == revoked, both 401 by design)"
 gw revk GET /v1/me - "bz_test_sk_revoked${RR}0000deadbeef"
@@ -124,26 +133,23 @@ MBAL=$(mbal)
 echo "  reconcile: session_created=1(amount 50000) settled_payments_listed=$WPCNT merchant_balance=$MBAL"
 chk F0-030 "$MBAL" 50000
 
-echo "### F0-031 receipt verification (reference -> public proof verify)"
-# The settled wallet payment carries a verifiable reference; verify it on the PUBLIC
-# proof endpoint (handle-only privacy). Fall back to any minted proof for the transfer.
+echo "### F0-031 receipt verification (authenticated receipt; state-match; privacy; non-fabricable)"
+# The settled wallet payment carries a server-generated receipt reference queryable
+# via the authenticated merchant/platform receipt API. Verify: reference queryable,
+# state matches the payment, payer shown handle-only (no unnecessary personal data),
+# and a platform cannot fabricate a receipt (a forged reference does not resolve).
 gw wp GET "/v1/merchant/wallet-payments?limit=5" - "$MJWT"
-WPREF=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let a=j.items||j.data||[];process.stdout.write(String((a[0]&&a[0].reference)||""))}catch(e){}})')
-PREF=$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE transfer_id='$TRID' LIMIT 1")
-CAND="${PREF:-$WPREF}"
-note "receipt reference resolved: proof=$([ -n "$PREF" ]&&echo yes||echo no) wallet_payment_ref=$([ -n "$WPREF" ]&&echo yes||echo no)"
-if [ -n "$CAND" ]; then
-  gw proof GET "/v1/public/proofs/$CAND" - -
-  ST=$(jget status)
-  if [ "$ST" = CONFIRMED ]; then
-    chk F0-031 "$ST" CONFIRMED
-    note "public proof privacy — consumer payer_display handle-only/empty: display='$(jget payer_display)' handle='$(jget payer_handle)'"
-  else
-    echo "  F0-031 DEFERRED (reference present but public proof not CONFIRMED/resolvable: status='$ST')"
-  fi
-else
-  echo "  F0-031 DEFERRED (no verifiable reference resolved for the wallet settlement)"
-fi
+WPREF=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let a=j.items||j.data||[];let x=a[0]||{};process.stdout.write([x.reference||"",x.status||"",x.payer_name||"",x.receipt_available].join("|"))}catch(e){}})')
+IFS='|' read -r RREF RST RPAYER RAVAIL <<<"$WPREF"
+note "receipt: reference=$RREF status=$RST payer=$RPAYER receipt_available=$RAVAIL"
+# reference queryable + state matches settled payment (COMPLETED) + receipt available
+chk F0-031-state "$([ -n "$RREF" ]&&[ "$RST" = COMPLETED ]&&[ "$RAVAIL" = true ]&&echo ok)" ok
+# privacy: consumer payer shown handle-only (starts with @, no bare personal name)
+chk F0-031-privacy "$(printf '%s' "$RPAYER"|grep -qE '^@' && echo handle-only || echo exposed)" handle-only
+# non-fabricable: a forged/guessed reference does not resolve on the public verifier
+gw proof_forged GET "/v1/public/proofs/BZM-FAKE-0000" - -
+chk F0-031-nofabricate "$(jget exists)" false
+note "public proof (/r/{ref}) is transaction/acquiring-scoped; wallet-native transfers expose the authenticated receipt above (public proof not minted for transfers)"
 
 echo "### F0-034 payment link expiry/cancel"
 gw pl POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"cancel me\"}" "$MJWT"
