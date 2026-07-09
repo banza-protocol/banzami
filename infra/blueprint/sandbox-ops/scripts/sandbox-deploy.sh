@@ -42,6 +42,12 @@ load_context() {
   DBURL_FILE="$EVIDENCE_ROOT/db_url"
   JWT_FILE="$EVIDENCE_ROOT/jwt_secret"
   CIK_FILE="$EVIDENCE_ROOT/core_internal_key"
+  # Developer/platform API-key layer (ADR-046/047) synthetic credentials — file-only.
+  APIKEY_PEPPER_FILE="$EVIDENCE_ROOT/api_key_pepper"
+  DEVINT_FILE="$EVIDENCE_ROOT/developer_internal_key"
+  PAYEEVAL_FILE="$EVIDENCE_ROOT/core_payee_validation_key"
+  SESSION_FILE="$EVIDENCE_ROOT/session_secret"
+  OTP_FILE="$EVIDENCE_ROOT/otp_pepper"
 }
 svc_image() { docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$1" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1; }
 
@@ -83,23 +89,44 @@ write_jwt_secret() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$JWT_FILE"
 # generated per run, delivered file-only + exported in-process so it never lands in Docker
 # config; the SAME value is mounted into every service so the shared secret matches.
 write_core_internal_key() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$CIK_FILE"; chmod 0644 "$CIK_FILE"; }
+# file-only synthetic credentials for the developer/platform API-key layer. All
+# disposable, generated per run, delivered file-only + exported in-process so they
+# never land in Docker-inspectable config. The shared ones (developer_internal_key,
+# core_payee_validation_key) are the SAME value in every service so the pairs match.
+# Sandbox/Phase-0 only; the fixture + dev-key paths are hard-gated to ENVIRONMENT=sandbox.
+write_devkey_secrets() {
+  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$APIKEY_PEPPER_FILE"; chmod 0644 "$APIKEY_PEPPER_FILE"
+  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$DEVINT_FILE";       chmod 0644 "$DEVINT_FILE"
+  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$PAYEEVAL_FILE";     chmod 0644 "$PAYEEVAL_FILE"
+  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$SESSION_FILE";      chmod 0644 "$SESSION_FILE"
+  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$OTP_FILE";          chmod 0644 "$OTP_FILE"
+}
 
 deploy_one() { # <name> <port> <binary> <tag>
   local name="$1" port="$2" bin="$3" tag="$4" cname="${BZSB_PROJECT}-$name"
-  # synthetic NON-secret config; the DB credential is file-only + exported in-process (never -e)
-  docker run -d --name "$cname" --network "$BZSB_DATA_NET" \
+  # The gateway resolves the Developer API by its canonical in-cluster host
+  # `developer-api` (SSRF-guarded allowlist); give that container the alias.
+  local alias_args=(); [ "$name" = "developer-api" ] && alias_args=(--network-alias developer-api)
+  # synthetic NON-secret config; secrets are file-only + exported in-process (never -e)
+  docker run -d --name "$cname" --network "$BZSB_DATA_NET" "${alias_args[@]}" \
     --label "$LABEL=1" --label "$LABEL.run=$BZSB_PROJECT" --label "$LABEL.service=$name" \
     --security-opt "no-new-privileges:true" \
     -v "$DBURL_FILE:/run/secrets/db_url:ro" \
     -v "$JWT_FILE:/run/secrets/jwt_secret:ro" \
     -v "$CIK_FILE:/run/secrets/core_internal_key:ro" \
+    -v "$APIKEY_PEPPER_FILE:/run/secrets/api_key_pepper:ro" \
+    -v "$DEVINT_FILE:/run/secrets/developer_internal_key:ro" \
+    -v "$PAYEEVAL_FILE:/run/secrets/core_payee_validation_key:ro" \
+    -v "$SESSION_FILE:/run/secrets/session_secret:ro" \
+    -v "$OTP_FILE:/run/secrets/otp_pepper:ro" \
     -e "CORE_API_PORT=$port" -e "PORT=$port" -e "ENVIRONMENT=sandbox" \
     -e "BANZAMI_PILOT_LIMITS=1" \
     -e "CORE_API_URL=http://${BZSB_PROJECT}-core-api-staging:8081" \
-    -e "DEVELOPER_API_URL=http://${BZSB_PROJECT}-developer-api:8086" \
+    -e "DEVELOPER_API_URL=http://developer-api:8086" \
+    -e "DEVELOPER_KEY_AUTH_ENABLED=true" -e "PAYMENT_CAPABILITY_RELEASED=true" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
-    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; export CORE_INTERNAL_KEY="$(cat /run/secrets/core_internal_key)"; exec '"$bin" >/dev/null 2>&1 || return 1
+    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; export CORE_INTERNAL_KEY="$(cat /run/secrets/core_internal_key)"; export API_KEY_PEPPER="$(cat /run/secrets/api_key_pepper)"; export DEVELOPER_INTERNAL_KEY="$(cat /run/secrets/developer_internal_key)"; export CORE_PAYEE_VALIDATION_KEY="$(cat /run/secrets/core_payee_validation_key)"; export SESSION_SECRET="$(cat /run/secrets/session_secret)"; export OTP_PEPPER="$(cat /run/secrets/otp_pepper)"; exec '"$bin" >/dev/null 2>&1 || return 1
   docker network connect "$BZSB_APP_NET" "$cname" >/dev/null 2>&1 || true
   # health AFTER deployment (docker HEALTHCHECK from the image)
   local i=0 st
@@ -118,7 +145,7 @@ cmd_plan() {
 }
 
 cmd_apply() {
-  load_context; write_db_url; write_jwt_secret; write_core_internal_key
+  load_context; write_db_url; write_jwt_secret; write_core_internal_key; write_devkey_secrets
   local e name port bin tag
   for e in "${SERVICES[@]}"; do
     IFS='|' read -r name port bin <<<"$e"
@@ -154,7 +181,9 @@ cmd_clean() {
   [ -n "${BZSB_PROJECT:-}" ] && docker ps -aq --filter "label=$LABEL.run=$BZSB_PROJECT" | xargs -r docker rm -f >/dev/null 2>&1 || true
   docker ps -aq --filter "label=$LABEL" | xargs -r docker rm -f >/dev/null 2>&1 || true
   local e name; for e in "${SERVICES[@]}"; do name="${e%%|*}"; docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$name" -q | xargs -r docker image rm -f >/dev/null 2>&1 || true; done
-  rm -f "${DBURL_FILE:-/nonexistent}" "${JWT_FILE:-/nonexistent}" "${CIK_FILE:-/nonexistent}" 2>/dev/null || true
+  rm -f "${DBURL_FILE:-/nonexistent}" "${JWT_FILE:-/nonexistent}" "${CIK_FILE:-/nonexistent}" \
+        "${APIKEY_PEPPER_FILE:-/nonexistent}" "${DEVINT_FILE:-/nonexistent}" "${PAYEEVAL_FILE:-/nonexistent}" \
+        "${SESSION_FILE:-/nonexistent}" "${OTP_FILE:-/nonexistent}" 2>/dev/null || true
   echo "sandbox-deploy: scoped cleanup done"
 }
 
