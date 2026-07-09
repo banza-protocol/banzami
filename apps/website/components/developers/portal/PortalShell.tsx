@@ -7,6 +7,7 @@ import { ToastProvider, useToast, copyText } from './Toast';
 import { DeveloperAuthProvider, useDeveloperAuth } from './DeveloperAuth';
 import { DeveloperDataProvider, useDeveloperData } from './DeveloperData';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
+import { PreviewNotice } from './PreviewNotice';
 import {
   BrandTile,
   IconArrowRight,
@@ -436,6 +437,7 @@ function Main({ showBanner, children }: { showBanner: boolean; children: ReactNo
       onClick={onClick}
       style={{ flex: 1, padding: 26, maxWidth: 1200, width: '100%', margin: '0 auto' }}
     >
+      <PreviewNotice />
       {showBanner ? <SandboxBanner /> : null}
       {children}
     </main>

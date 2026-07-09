@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { BrandTile } from './icons';
+import { PreviewNotice } from './PreviewNotice';
 
 // Auth background shell for login / OTP / onboarding. Faithful port of the
 // dossier auth shell: blush radial background, two soft decorative blobs, and a
@@ -106,7 +107,10 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           padding: '12px 22px 60px',
         }}
       >
-        {children}
+        <div style={{ width: '100%', maxWidth: 420 }}>
+          <PreviewNotice />
+          {children}
+        </div>
       </div>
     </div>
   );

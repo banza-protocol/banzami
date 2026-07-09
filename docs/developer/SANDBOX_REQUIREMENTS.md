@@ -75,16 +75,16 @@ Content-Type: application/json
 Your BANZA sandbox credentials
 
 API Key:
-  bz_test_a1b2c3d4e5f6g7h8i9j0k1l2
+  bz_test_xxx
 
 Merchant ID:
-  mch_sandbox_a1b2c3d4
+  mch_sandbox_xxx
 
 Wallet ID:
-  wlt_sandbox_e5f6g7h8
+  wlt_sandbox_xxx
 
 Pre-seeded consumer wallet (for testing payments):
-  wlt_sandbox_consumer_demo
+  wlt_sandbox_consumer_xxx
   Balance: 500 Kz (auto-restored if depleted)
 
 Sandbox API base URL:
@@ -93,6 +93,11 @@ Sandbox API base URL:
 Get started:
   https://banzami.com/docs/quickstart
 ```
+
+> **Placeholders only.** Every credential-like value above (`bz_test_xxx`,
+> `mch_sandbox_xxx`, `wlt_sandbox_xxx`, `example_api_key`, `example_webhook_secret`) is an
+> illustrative placeholder — never a real key, secret or identifier. Real values are issued
+> at sign-up and must never be committed, logged, screenshotted or shared.
 
 ### Implementation notes
 
