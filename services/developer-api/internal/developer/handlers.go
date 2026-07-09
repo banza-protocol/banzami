@@ -36,6 +36,25 @@ func (h *Handlers) MountInternal(r chi.Router) {
 	// for isolated Sandbox/Phase-0 fixtures. Hard sandbox-gated + internal-key
 	// guarded. The platform holds no money and issues no receipts.
 	r.Post("/internal/v1/fixture-projects", h.createFixtureProject)
+	// Operator-controlled E2E fixture key revocation — the revoke counterpart to
+	// fixture-keys, so the revoked-key rejection path can be proven end-to-end.
+	// Hard sandbox-gated + internal-key guarded.
+	r.Post("/internal/v1/fixture-keys/{keyID}/revoke", h.revokeFixtureKey)
+}
+
+// revokeFixtureKey revokes a fixture API key by id for isolated Sandbox E2E.
+// Body (optional): {"created_by"}.
+func (h *Handlers) revokeFixtureKey(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		CreatedBy string `json:"created_by"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in)
+	ip, rid := reqMeta(r)
+	if err := h.svc.RevokeFixtureKey(r.Context(), chi.URLParam(r, "keyID"), in.CreatedBy, ip, rid); err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "status": "REVOKED"})
 }
 
 // createFixtureProject provisions a synthetic platform/integrator (workspace +
