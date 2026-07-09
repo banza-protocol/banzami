@@ -187,7 +187,31 @@ cmd_clean() {
   echo "sandbox-deploy: scoped cleanup done"
 }
 
+# cmd_deploy_one — redeploy a SINGLE approved service from an already-built local image
+# tag (the fast source-bundle native-build path). Reuses the existing file-only secrets
+# and the same deploy_one config (secrets, networks, non-root, alias, health) — it does
+# NOT regenerate secrets (so cross-service auth is preserved) and does NOT run any
+# migration, VM reset or prune. Rollback redeploys the previously-running image.
+cmd_deploy_one() {
+  local name="$1" tag="$2" rollback="${3:-}"
+  load_context
+  local e n p b port bin
+  for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { port="$p"; bin="$b"; }; done
+  [ -n "${port:-}" ] || die "unknown sandbox service: $name"
+  [ -f "$DBURL_FILE" ] && [ -f "$JWT_FILE" ] || die "secret files absent — run a full 'apply' first (deploy-one reuses existing secrets)"
+  local cname="${BZSB_PROJECT}-$name"
+  local prev; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"
+  if [ "$rollback" = "--rollback" ]; then
+    tag="$(cat "$EVIDENCE_ROOT/.prev-img-$name" 2>/dev/null || echo "$tag")"
+  else
+    [ -n "$prev" ] && printf '%s' "$prev" > "$EVIDENCE_ROOT/.prev-img-$name" 2>/dev/null || true
+  fi
+  docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (no prune of anything else)
+  if deploy_one "$name" "$port" "$bin" "$tag"; then echo "  $name deployed_and_healthy PASS"; else echo "  $name deployed_and_healthy FAIL"; return 1; fi
+}
+
 case "${1:-}" in
   plan) cmd_plan ;; apply) cmd_apply ;; verify) cmd_verify ;; clean) cmd_clean ;;
-  *) die "usage: sandbox-deploy.sh {plan|apply|verify|clean}" ;;
+  deploy-one) shift; cmd_deploy_one "$@" ;;
+  *) die "usage: sandbox-deploy.sh {plan|apply|verify|clean|deploy-one <name> <tag> [--rollback]}" ;;
 esac
