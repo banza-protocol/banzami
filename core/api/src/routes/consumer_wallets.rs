@@ -313,6 +313,26 @@ pub async fn test_credit(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("no active wallet for consumer in that currency"))?;
 
+    // V1.0 pilot-limit overlay (internal Sandbox / Phase 0; disabled by default,
+    // never on live/production): enforce the consumer balance cap and the aggregate
+    // funds-in-circulation cap BEFORE this synthetic credit posts. A rejection
+    // leaves balances and the ledger unchanged.
+    {
+        let policy = banzami_compliance::pilot::PilotLimitPolicy::from_env();
+        if let Some(v) = banzami_compliance::pilot_enforce::check_funding(
+            &state.pool,
+            banzami_compliance::pilot_enforce::Party::Consumer,
+            available_account_id,
+            body.amount_minor,
+            policy,
+        )
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        {
+            return Err(ApiError::unprocessable(v.as_str(), v.message()));
+        }
+    }
+
     // Build a balanced double-entry posting:
     //   DR transit account    (ASSET  — funds leave system transit float)
     //   CR consumer available (LIABILITY — we owe the consumer these funds)
