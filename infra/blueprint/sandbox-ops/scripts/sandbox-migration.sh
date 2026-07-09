@@ -99,6 +99,25 @@ cmd_apply() {
   manifest_gate && echo "  GATE all_identities_match PASS" || hold "BLOCKER — SANDBOX MIGRATION CONTRACT CANNOT BE VALIDATED" 42
   load_executor
   local URL; URL="$(mig_url_file)"
+  # Refresh the short-lived migration login before applying. The bootstrap sets
+  # bl_migration VALID UNTIL ~30m post-provision; a later authorised migration must
+  # renew it, or the adapter cannot authenticate (surfacing as a false lock-held).
+  # Re-run the CANONICAL role bootstrap with the existing sandbox secrets + a fresh
+  # validity window — idempotent + data-safe (no table mutation), same passwords so
+  # the running services are unaffected. Not ad-hoc SQL: the same script the sandbox
+  # role model is defined by, invoked inside the gated adapter.
+  local VU; VU="$(date -u -d '+45 min' '+%Y-%m-%d %H:%M:%S+00' 2>/dev/null || date -u -v+45M '+%Y-%m-%d %H:%M:%S+00')"
+  docker run --rm --network "$BZSB_DATA_NET" \
+    -v "$BZSB_SECRET_ROOT/mi_superuser:/run/secrets/mi_superuser:ro" \
+    -v "$BZSB_SECRET_ROOT/mi_control:/run/secrets/mi_control:ro" \
+    -v "$BZSB_SECRET_ROOT/mi_migration:/run/secrets/mi_migration:ro" \
+    -v "$BZSB_SECRET_ROOT/mi_runtime:/run/secrets/mi_runtime:ro" \
+    -v "$SCRIPT_DIR/bootstrap-sandbox-roles.sh:/roles.sh:ro" \
+    -e PGHOST=postgres -e PGPORT=5432 -e MI_ADMIN_USER=sbadmin -e MI_DB=banzami_staging \
+    -e "MI_VALID_UNTIL=$VU" -e MI_CONN_LIMIT=4 \
+    --entrypoint bash "$PG_IMAGE" /roles.sh >/dev/null 2>&1 \
+    || die "migration-login refresh (canonical role bootstrap) failed"
+  echo "  migration_login_refreshed PASS (canonical roles, fresh validity)"
   # issue single-use authorisation + receipt bound to the manifest identities
   authz_issue "$AUTHZ_ROOT" "$SOURCE_REVISION" "$PARENT_DIGEST" "$(mget executor.image_digest)" "$MIG_DIGEST" "$(mget service_set)" 600 >/dev/null
   receipt_issue "$RECEIPT_ROOT" "$SOURCE_REVISION" "$PARENT_DIGEST" "$(mget executor.image_digest)" "$MIG_DIGEST" "authz.record" "bl_migration" 600 >/dev/null
