@@ -1,13 +1,22 @@
-# Phase 0 — Pilot Limit Policy: Live-API Sandbox Functional Evidence
+# Phase 0 — Live-API Sandbox Evidence for QR and Pilot Limits
 
 Version: 1.0
 Generated: 2026-07-09T08:12:00Z
 Plan: Plano de Teste Detalhado Banzami V1.0
-Completion: COMPLETE (material) — pilot-enabled Sandbox redeploy + live-API synthetic end-to-end; every API-reachable pilot limit proven live with no balance/ledger mutation on rejection.
+Completion: PARTIAL — proves the pilot-enabled Sandbox redeploy and live-API onboarding, wallet creation, synthetic funding, QR payment, double-entry, idempotency, insufficient-balance, invalid-QR and the key pilot-limit rejections. Does NOT complete all Phase 0 flows (see DEFERRED / SIMULATED below).
 
 ## Scope
 
-Internal technical Sandbox only. Synthetic participants and balances only. No real money, customers, external providers, public access, LIVE, Production or BNA claim. Live-API calls were made over the internal-only network via `docker exec <service> curl` against the deployed pilot-enabled Sandbox. Auth was bootstrapped by minting SANDBOX JWTs with the Sandbox's own signing secret held only in volatile memory (never logged, persisted, committed or reported). This is NOT a claim of full Phase 0 / production completion.
+Internal technical Sandbox only. Synthetic participants and balances only. No real money, customers, external providers, public access, LIVE, Production or BNA claim. Live-API calls were made over the internal-only network via `docker exec <service> curl` against the deployed pilot-enabled Sandbox. Auth was bootstrapped by minting SANDBOX JWTs with the Sandbox's own signing secret held only in volatile memory (never logged, persisted, committed or reported). **This is NOT a claim of full Phase 0 / production completion.**
+
+### What this pass does and does not prove
+
+**Proven live (PASS):** pilot-enabled redeploy; onboarding; wallet creation; synthetic funding; QR payment success; ledger double-entry; idempotency; insufficient-balance rejection; invalid-QR rejection; and the pilot-limit rejections for consumer per-payment, consumer daily, consumer max balance, merchant daily receiving and aggregate funds (each with no balance/ledger mutation).
+
+**Not completed this pass:**
+- **DEFERRED** — F0-007 payment links, F0-008 payment intents, F0-020 reconciliation, F0-021 refund/complaint simulation.
+- **SIMULATED** — F0-019 service restart recovery (tabletop/deploy-level); F0-022 incident material classification (tabletop).
+- **SIMULATED at live-API level** — merchant per-received, merchant max balance and aggregate volume caps: structurally shadowed by an equal/lower cap at the API layer, or impractical to drive at API volume; covered by the merged real-DB integration tests.
 
 ## Genuine executions
 
