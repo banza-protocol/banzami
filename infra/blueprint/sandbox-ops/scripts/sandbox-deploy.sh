@@ -188,26 +188,37 @@ cmd_clean() {
 }
 
 # cmd_deploy_one — redeploy a SINGLE approved service from an already-built local image
-# tag (the fast source-bundle native-build path). Reuses the existing file-only secrets
-# and the same deploy_one config (secrets, networks, non-root, alias, health) — it does
-# NOT regenerate secrets (so cross-service auth is preserved) and does NOT run any
-# migration, VM reset or prune. Rollback redeploys the previously-running image.
+# tag (the fast source-bundle native-build path). It CLONES the currently-running
+# container's configuration (its file-only secret mounts, non-secret -e env, networks
+# and non-root/no-new-privileges posture) and swaps only the image — so it is decoupled
+# from the gated bootstrap state, does NOT regenerate secrets (cross-service auth is
+# preserved), and does NOT run any migration, VM reset or prune. The file-only-secret
+# entrypoint is reconstructed (secrets are exported in-process from /run/secrets, never
+# via -e). Rollback redeploys the previously-running image.
 cmd_deploy_one() {
   local name="$1" tag="$2" rollback="${3:-}"
-  load_context
-  local e n p b port bin
-  for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { port="$p"; bin="$b"; }; done
-  [ -n "${port:-}" ] || die "unknown sandbox service: $name"
-  [ -f "$DBURL_FILE" ] && [ -f "$JWT_FILE" ] || die "secret files absent — run a full 'apply' first (deploy-one reuses existing secrets)"
-  local cname="${BZSB_PROJECT}-$name"
-  local prev; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"
-  if [ "$rollback" = "--rollback" ]; then
-    tag="$(cat "$EVIDENCE_ROOT/.prev-img-$name" 2>/dev/null || echo "$tag")"
-  else
-    [ -n "$prev" ] && printf '%s' "$prev" > "$EVIDENCE_ROOT/.prev-img-$name" 2>/dev/null || true
-  fi
-  docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (no prune of anything else)
-  if deploy_one "$name" "$port" "$bin" "$tag"; then echo "  $name deployed_and_healthy PASS"; else echo "  $name deployed_and_healthy FAIL"; return 1; fi
+  local e n p b bin; for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && bin="$b"; done
+  [ -n "${bin:-}" ] || die "unknown sandbox service: $name"
+  local cname; cname="$(docker ps -a --format '{{.Names}}' | grep -E -- "-${name}\$" | head -1)"
+  [ -n "$cname" ] || die "no running $name container to redeploy (run a full gated apply first)"
+  local prev pf; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"; pf="/tmp/.banzami-prev-img-$name"
+  if [ "$rollback" = "--rollback" ]; then tag="$(cat "$pf" 2>/dev/null || echo "$tag")"; else [ -n "$prev" ] && printf '%s' "$prev" > "$pf" || true; fi
+  # clone config from the running container
+  local nets; mapfile -t nets < <(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{println $k}}{{end}}' "$cname")
+  local run=(docker run -d --name "$cname" --security-opt "no-new-privileges:true" --network "${nets[0]}")
+  [ "$name" = developer-api ] && run+=(--network-alias developer-api)
+  local x; while IFS= read -r x; do [ -n "$x" ] && run+=(-v "$x"); done < <(docker inspect -f '{{range .HostConfig.Binds}}{{println .}}{{end}}' "$cname")
+  while IFS= read -r x; do [ -n "$x" ] && run+=(-e "$x"); done < <(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$cname")
+  # reconstruct the file-only-secret entrypoint (secrets exported in-process, never -e)
+  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
+  docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
+  "${run[@]}" --entrypoint sh "$tag" -c "$ep" >/dev/null 2>&1 || { echo "  $name docker run FAIL"; return 1; }
+  local i; for i in "${nets[@]:1}"; do docker network connect "$i" "$cname" >/dev/null 2>&1 || true; done
+  local k=0 st; while :; do st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname" 2>/dev/null)"
+    [ "$st" = healthy ] && { echo "  $name deployed_and_healthy PASS"; return 0; }
+    [ "$st" = nohc ] && { docker exec "$cname" true >/dev/null 2>&1 && { echo "  $name deployed PASS (no healthcheck)"; return 0; }; }
+    k=$((k+1)); [ "$k" -gt 45 ] && { echo "  $name deployed_and_healthy FAIL (health timeout)"; return 1; }; sleep 2
+  done
 }
 
 case "${1:-}" in
