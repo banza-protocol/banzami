@@ -41,6 +41,7 @@ load_context() {
   MANIFEST="$RELEASE_ROOT/manifest.txt"; [ -f "$MANIFEST" ] || die "release manifest missing"
   DBURL_FILE="$EVIDENCE_ROOT/db_url"
   JWT_FILE="$EVIDENCE_ROOT/jwt_secret"
+  CIK_FILE="$EVIDENCE_ROOT/core_internal_key"
 }
 svc_image() { docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$1" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1; }
 
@@ -77,6 +78,11 @@ uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(u
 # boot (e.g. public-api). Disposable, generated per run, NOT a real credential;
 # delivered file-only + exported in-process so it never lands in Docker config.
 write_jwt_secret() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$JWT_FILE"; chmod 0644 "$JWT_FILE"; }
+# file-only synthetic Gateway↔Core service credential (X-Internal-Key ↔ CORE_INTERNAL_KEY).
+# Enables the fail-closed internal route groups (refunds, F4) inside the Sandbox. Disposable,
+# generated per run, delivered file-only + exported in-process so it never lands in Docker
+# config; the SAME value is mounted into every service so the shared secret matches.
+write_core_internal_key() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$CIK_FILE"; chmod 0644 "$CIK_FILE"; }
 
 deploy_one() { # <name> <port> <binary> <tag>
   local name="$1" port="$2" bin="$3" tag="$4" cname="${BZSB_PROJECT}-$name"
@@ -86,13 +92,14 @@ deploy_one() { # <name> <port> <binary> <tag>
     --security-opt "no-new-privileges:true" \
     -v "$DBURL_FILE:/run/secrets/db_url:ro" \
     -v "$JWT_FILE:/run/secrets/jwt_secret:ro" \
+    -v "$CIK_FILE:/run/secrets/core_internal_key:ro" \
     -e "CORE_API_PORT=$port" -e "PORT=$port" -e "ENVIRONMENT=sandbox" \
     -e "BANZAMI_PILOT_LIMITS=1" \
     -e "CORE_API_URL=http://${BZSB_PROJECT}-core-api-staging:8081" \
     -e "DEVELOPER_API_URL=http://${BZSB_PROJECT}-developer-api:8086" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
-    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; exec '"$bin" >/dev/null 2>&1 || return 1
+    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; export CORE_INTERNAL_KEY="$(cat /run/secrets/core_internal_key)"; exec '"$bin" >/dev/null 2>&1 || return 1
   docker network connect "$BZSB_APP_NET" "$cname" >/dev/null 2>&1 || true
   # health AFTER deployment (docker HEALTHCHECK from the image)
   local i=0 st
@@ -111,7 +118,7 @@ cmd_plan() {
 }
 
 cmd_apply() {
-  load_context; write_db_url; write_jwt_secret
+  load_context; write_db_url; write_jwt_secret; write_core_internal_key
   local e name port bin tag
   for e in "${SERVICES[@]}"; do
     IFS='|' read -r name port bin <<<"$e"
@@ -147,7 +154,7 @@ cmd_clean() {
   [ -n "${BZSB_PROJECT:-}" ] && docker ps -aq --filter "label=$LABEL.run=$BZSB_PROJECT" | xargs -r docker rm -f >/dev/null 2>&1 || true
   docker ps -aq --filter "label=$LABEL" | xargs -r docker rm -f >/dev/null 2>&1 || true
   local e name; for e in "${SERVICES[@]}"; do name="${e%%|*}"; docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$name" -q | xargs -r docker image rm -f >/dev/null 2>&1 || true; done
-  rm -f "${DBURL_FILE:-/nonexistent}" "${JWT_FILE:-/nonexistent}" 2>/dev/null || true
+  rm -f "${DBURL_FILE:-/nonexistent}" "${JWT_FILE:-/nonexistent}" "${CIK_FILE:-/nonexistent}" 2>/dev/null || true
   echo "sandbox-deploy: scoped cleanup done"
 }
 

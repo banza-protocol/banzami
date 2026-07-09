@@ -111,6 +111,33 @@ asserted by the integration and unit suites.
 | DEFERRED | 4 | F0-007 links, F0-008 intents, F0-020 recon, F0-021 refund |
 | FAIL | 0 | — |
 
+## Remaining deferred functional flows (F0-007/008/020/021) — live results
+
+A follow-up pass completed the four previously-DEFERRED functional flows against the
+same internal Sandbox. To enable the refund route, the file-only `CORE_INTERNAL_KEY`
+Gateway↔Core service credential was provisioned in the sandbox deploy profile (the
+route fail-closes with 503 when unset) and the four services were redeployed
+(healthy 4/4, non-root, no host ports, key never in Docker-inspectable env). The
+prior aggregate-funds saturation was relieved by **reserving** (available→reserved,
+reversible) a portion of prior synthetic consumer balances to reclaim headroom.
+
+| ID | Flow | Result | Evidence |
+|----|------|:------:|----------|
+| F0-008 | Payment intent (create → pay/settle → decline) | PASS | payment-request create 201 PENDING → pay 200 PAID; payer −40.000 / requester +40.000 (wallet-native double-entry); fresh request declined → DECLINED |
+| F0-021 | Complaint/refund (QR pay → refund reversal) | PASS | qr pay COMPLETED; refund 201 SUCCEEDED; merchant −40.000 / payer +40.000 restored; second full refund rejected `REFUND_EXCEEDS_CAPTURED` |
+| F0-020 | Daily reconciliation (expected vs ledger) | PASS | per-participant expected vs live ledger-derived balances — zero discrepancy (see PHASE0_RECONCILIATION_SUMMARY.md) |
+| F0-007 | Payment link success | SIMULATED | create 201 + slug; InitiatePay → pending; test-confirm → CONFIRMED (`EMIS_MULTICAIXA_SIMULATED`); link USED; idempotent re-confirm. Settlement (wallet credit + ledger double-entry) is posted only by the HMAC-signed EMIS callback (external-provider rail) — the synthetic test-confirm confirms without settling, so balance movement is not exercised |
+
+### Why F0-007 is SIMULATED, not PASS or FAIL
+
+The payment-link API exists and its creation + simulated-provider confirmation work
+live. But the acquiring **settlement** (which credits the merchant wallet and posts
+the `acquiring-settle-<payment>` double-entry) is emitted only by the `emis_callback`
+handler, which requires an HMAC-signed provider callback — the external-provider
+rail excluded by the synthetic-only / no-external-provider constraint. A read-only DB
+check confirmed the confirmed payment produced **no** settlement posting. No live
+test ran and failed; the settlement step was intentionally not driven.
+
 ## Non-claims
 
 No LIVE, Production, real money, external payment provider, customer data, public
@@ -118,5 +145,5 @@ access, DNS/certificate/SMTP change, or BNA approval/admission is claimed. No
 infrastructure was reset. No migrations were run (a read-only identity/ownership
 posture check is a pre-existing DB-hardening finding, orthogonal to this deploy and
 left untouched). The aggregate-funds cap test intentionally saturated the synthetic
-Sandbox funds-in-circulation to 500.000; this is expected and affects only the
-throwaway synthetic Sandbox state.
+Sandbox funds-in-circulation to 500.000; that was relieved for the follow-up pass by
+reversible reserves. All state changes affect only the throwaway synthetic Sandbox.

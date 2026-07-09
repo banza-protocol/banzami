@@ -27,8 +27,14 @@ internal Sandbox and the full synthetic fixture chain + live-API E2E ran green (
   equal/lower cap at the API layer or impractical at API volume, and stay
   engine-verified (SIMULATED) — see the results doc for the rationale.
 
-**Residual (still OPEN):** non-limit live flows F0-007 (links), F0-008 (intents),
-F0-020 (reconciliation), F0-021 (refund); and the operational drills in Section C.
+**Residual — now resolved (2026-07-09 follow-up):** the non-limit live flows were
+completed. F0-008 (intents), F0-020 (reconciliation) and F0-021 (refund) PASS live;
+F0-007 (links) is SIMULATED — create + simulated-provider confirmation proven live,
+but the acquiring settlement is the HMAC-signed EMIS-callback external-provider rail,
+excluded by the synthetic-only constraint. The refund route was enabled by
+provisioning the file-only `CORE_INTERNAL_KEY` service credential in the sandbox
+deploy. DEFERRED count is now 0. Only the Section C operational drills (F0-019 restart,
+F0-022 incident classification) remain SIMULATED/tabletop.
 
 ## A. Runtime enforcement wiring (remaining V1.0 limits)
 
