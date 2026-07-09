@@ -99,6 +99,25 @@ cmd_apply() {
   manifest_gate && echo "  GATE all_identities_match PASS" || hold "BLOCKER — SANDBOX MIGRATION CONTRACT CANNOT BE VALIDATED" 42
   load_executor
   local URL; URL="$(mig_url_file)"
+  # Refresh the short-lived migration login before applying. The bootstrap sets
+  # bl_migration VALID UNTIL ~30m post-provision; a later authorised migration must
+  # renew it, or the adapter cannot authenticate (surfacing as a false lock-held).
+  # Re-run the CANONICAL role bootstrap with the existing sandbox secrets + a fresh
+  # validity window — idempotent + data-safe (no table mutation), same passwords so
+  # the running services are unaffected. Not ad-hoc SQL: the same script the sandbox
+  # role model is defined by, invoked inside the gated adapter.
+  local VU; VU="$(date -u -d '+45 min' '+%Y-%m-%d %H:%M:%S+00' 2>/dev/null || date -u -v+45M '+%Y-%m-%d %H:%M:%S+00')"
+  docker run --rm --network "$BZSB_DATA_NET" \
+    -v "$BZSB_SECRET_ROOT/mi_superuser:/run/secrets/mi_superuser:ro" \
+    -v "$BZSB_SECRET_ROOT/mi_control:/run/secrets/mi_control:ro" \
+    -v "$BZSB_SECRET_ROOT/mi_migration:/run/secrets/mi_migration:ro" \
+    -v "$BZSB_SECRET_ROOT/mi_runtime:/run/secrets/mi_runtime:ro" \
+    -v "$SCRIPT_DIR/bootstrap-sandbox-roles.sh:/roles.sh:ro" \
+    -e PGHOST=postgres -e PGPORT=5432 -e MI_ADMIN_USER=sbadmin -e MI_DB=banzami_staging \
+    -e "MI_VALID_UNTIL=$VU" -e MI_CONN_LIMIT=4 \
+    --entrypoint bash "$PG_IMAGE" /roles.sh >/dev/null 2>&1 \
+    || die "migration-login refresh (canonical role bootstrap) failed"
+  echo "  migration_login_refreshed PASS (canonical roles, fresh validity)"
   # issue single-use authorisation + receipt bound to the manifest identities
   authz_issue "$AUTHZ_ROOT" "$SOURCE_REVISION" "$PARENT_DIGEST" "$(mget executor.image_digest)" "$MIG_DIGEST" "$(mget service_set)" 600 >/dev/null
   receipt_issue "$RECEIPT_ROOT" "$SOURCE_REVISION" "$PARENT_DIGEST" "$(mget executor.image_digest)" "$MIG_DIGEST" "authz.record" "bl_migration" 600 >/dev/null
@@ -106,16 +125,23 @@ cmd_apply() {
   authz_consume "$AUTHZ_ROOT/authz.record" >/dev/null 2>&1 && echo "  authz_consumed_once PASS" || die "authz consume failed"
   receipt_consume "$RECEIPT_ROOT/migration.receipt" >/dev/null 2>&1 && echo "  receipt_consumed_once PASS" || die "receipt consume failed"
   if exec_run migrate "$URL" > "$RELEASE_ROOT/migrate.log" 2>&1; then echo "  migration_applied PASS"; else echo "  migration_applied FAIL"; hold "BLOCKER — SANDBOX MIGRATION CONTRACT CANNOT BE VALIDATED" 42; fi
-  # enable the runtime role for the deployed services (DML on migrated app objects; owner-owned)
+  # enable the runtime role for the deployed services (DML on migrated app objects; owner-owned).
+  # Grants are least-privilege (DML only — no DDL/TRUNCATE/ownership/superuser) and scoped to the
+  # exact schemas the services use: `public` (core) and `developer` (developer-api dev-key model).
+  # New schemas must be added here explicitly; there is no blanket cross-schema grant.
   docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
     export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
     psql -h postgres -U sbadmin -d banzami_staging -v ON_ERROR_STOP=1 -q \
       -c "GRANT USAGE ON SCHEMA public TO bl_app_runtime" \
       -c "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA public TO bl_app_runtime" \
       -c "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA public TO bl_app_runtime" \
-      -c "ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA public GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO bl_app_runtime"' >/dev/null 2>&1 \
+      -c "ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA public GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO bl_app_runtime" \
+      -c "GRANT USAGE ON SCHEMA developer TO bl_app_runtime" \
+      -c "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA developer TO bl_app_runtime" \
+      -c "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA developer TO bl_app_runtime" \
+      -c "ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA developer GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO bl_app_runtime"' >/dev/null 2>&1 \
     || die "runtime-role privilege enablement failed"
-  echo "  runtime_role_dml_enabled PASS"
+  echo "  runtime_role_dml_enabled PASS (public + developer, least-privilege DML)"
   echo "sandbox-migration: apply complete"
 }
 

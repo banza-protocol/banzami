@@ -31,6 +31,37 @@ func (h *Handlers) MountInternal(r chi.Router) {
 	// way payment scopes reach a key before public release — for isolated E2E
 	// fixtures. Internal-key guarded; not public self-service.
 	r.Post("/internal/v1/projects/{projID}/fixture-keys", h.createFixtureKey)
+	// Operator-controlled E2E fixture platform (workspace + project). The ONLY way
+	// to mint a synthetic platform/integrator Project without a Console session —
+	// for isolated Sandbox/Phase-0 fixtures. Hard sandbox-gated + internal-key
+	// guarded. The platform holds no money and issues no receipts.
+	r.Post("/internal/v1/fixture-projects", h.createFixtureProject)
+}
+
+// createFixtureProject provisions a synthetic platform/integrator (workspace +
+// project) for isolated Sandbox E2E fixtures. Body: {"name","created_by"}.
+func (h *Handlers) createFixtureProject(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		Name      string `json:"name"`
+		CreatedBy string `json:"created_by"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
+		return
+	}
+	ip, rid := reqMeta(r)
+	ws, proj, err := h.svc.CreateFixtureProject(r.Context(), in.Name, in.CreatedBy, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, map[string]any{
+		"workspace_id": ws.ID,
+		"project_id":   proj.ID,
+		"slug":         proj.Slug,
+		"status":       proj.Status,
+		"created_at":   proj.CreatedAt,
+	})
 }
 
 // createFixtureKey issues an operator-controlled fixture key that may carry
@@ -133,7 +164,9 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 }
 
 // actor pulls the authenticated Account Identity user out of the request context.
-func actor(r *http.Request) (accountidentity.User, bool) { return accountidentity.UserFrom(r.Context()) }
+func actor(r *http.Request) (accountidentity.User, bool) {
+	return accountidentity.UserFrom(r.Context())
+}
 
 func reqMeta(r *http.Request) (ip, reqID string) { return realIP(r), obs.RequestID(r.Context()) }
 

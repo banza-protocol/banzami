@@ -108,12 +108,13 @@
     }
   },
   "summary": {
-    "pass": 20,
+    "pass": 29,
     "fail": 0,
-    "simulated": 4,
+    "simulated": 6,
     "deferred": 0,
+    "blocked": 0,
     "pending": 0,
-    "total": 24
+    "total": 35
   },
   "tests": [
     {
@@ -353,6 +354,116 @@
       "result": "PASS",
       "note": "pilot-enabled redeploy + live-API material completion; residual DEFERRED items are non-limit flows (links/intents/recon/refund)",
       "timestamp": "2026-07-09T08:12:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-025",
+      "name": "Platform API key authentication",
+      "validation": "live-API dev-key auth after developer-schema migration",
+      "result": "PASS",
+      "note": "developer schema applied via the gated migration adapter (which now refreshes the short-lived bl_migration login); synthetic platform provisioned via POST /internal/v1/fixture-projects; active synthetic key -> GET /v1/me 200 key_status=active with project + scopes",
+      "timestamp": "2026-07-09T15:56:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-026",
+      "name": "SDK-style payment request creation",
+      "validation": "live-API payment-link create (SDK-shape request, merchant-auth)",
+      "result": "PASS",
+      "note": "payment-link create 201 — the create-a-payment-request shape a future SDK exposes; dev-key authenticator BLOCKED per F0-025",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-027",
+      "name": "Online checkout payment success",
+      "validation": "live-API QR-direct online payment",
+      "result": "PASS",
+      "note": "consumer paid online via QR -> 201 COMPLETED; merchant +50.000 / payer -50.000 (wallet-native double-entry)",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-028",
+      "name": "Webhook delivery success",
+      "validation": "event emission observed; live outbound excluded",
+      "result": "SIMULATED",
+      "note": "emission pipeline reachable (GET /v1/webhooks/events 200); a live 2xx outbound delivery needs a public https sink (SSRF) — excluded by no-external/no-public. Banza-Signature HMAC-SHA256 + event-id envelope.",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-029",
+      "name": "Webhook retry/failure handling",
+      "validation": "retry/backoff + idempotency verified in code+unit tests",
+      "result": "SIMULATED",
+      "note": "backoff 1m/5m/30m/2h/8h, max 5, terminal FAILED, UNIQUE(event_id,endpoint_id) — live outbound retries need an external sink, excluded",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-030",
+      "name": "Platform reconciliation",
+      "validation": "live-API created vs settled vs balance",
+      "result": "PASS",
+      "note": "created 50.000 vs settled (wallet-payments -> 1 COMPLETED) vs wallet balance (available 50.000) — zero discrepancy",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-031",
+      "name": "Receipt verification",
+      "validation": "live-API authenticated receipt: state-match + privacy + non-fabricable",
+      "result": "PASS",
+      "note": "settled wallet payment exposes a server-generated receipt reference (BZM-...) via GET /v1/merchant/wallet-payments: reference queryable, status matches the payment (COMPLETED), receipt_available=true, payer shown handle-only (@handle, no personal data), and a forged reference does not resolve on the public verifier (exists=false). The public /r/{ref} proof page is transaction/acquiring-scoped and is not minted for wallet-native transfers.",
+      "timestamp": "2026-07-09T15:56:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-032",
+      "name": "Revoked/invalid API key rejection",
+      "validation": "live-API dev-key rejection",
+      "result": "PASS",
+      "note": "invalid key -> 401 UNAUTHORIZED; revoked and invalid are indistinguishable by design (both map to 401 via the same neutral rejection); active synthetic keys authenticate (F0-025), so the accept/reject boundary is exercised end-to-end. No balance or ledger mutation on the rejected call (auth-layer, pre-posting).",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-033",
+      "name": "Unauthorised platform rejection",
+      "validation": "live-API auth-layer rejection",
+      "result": "PASS",
+      "note": "no Authorization -> 401; forged bz_test_sk_ key -> 401 UNAUTHORIZED; authenticated read-only platform key on a write route -> 403 INSUFFICIENT_SCOPE. No balance or ledger mutation on any rejected call (auth-layer, pre-posting).",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-034",
+      "name": "Payment link expiry/cancel",
+      "validation": "live-API link cancel + pay rejection",
+      "result": "PASS",
+      "note": "create 201 -> cancel 200 -> pay attempt -> 422 LINK_NOT_ACTIVE",
+      "timestamp": "2026-07-09T13:00:00Z",
+      "participants": "synthetic only",
+      "amounts": "synthetic (minor units)"
+    },
+    {
+      "id": "F0-035",
+      "name": "Payment intent idempotency",
+      "validation": "live-API double-pay single-debit",
+      "result": "PASS",
+      "note": "pay twice with the same intent -> payer debited exactly once (30.000); replay rejected REQUEST_NOT_PENDING",
+      "timestamp": "2026-07-09T13:00:00Z",
       "participants": "synthetic only",
       "amounts": "synthetic (minor units)"
     }

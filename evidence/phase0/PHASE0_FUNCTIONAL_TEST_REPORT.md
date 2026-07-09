@@ -53,7 +53,7 @@ completed · no partial posting (paired before/after readback identical).
 
 ## Summary
 
-PASS 20 · FAIL 0 · SIMULATED 4 · DEFERRED 0 · total 24
+PASS 29 · FAIL 0 · SIMULATED 6 · DEFERRED 0 · BLOCKED 0 · total 35
 
 ## Result matrix
 
@@ -83,12 +83,24 @@ PASS 20 · FAIL 0 · SIMULATED 4 · DEFERRED 0 · total 24
 | F0-022 | Incident material classification simulation | tabletop simulation | SIMULATED |
 | F0-023 | Evidence sanitisation check | sanitise.mjs over evidence/phase0 | PASS |
 | F0-024 | Phase 0 closure report | this report + PHASE0_LIVE_API_RESULTS.md | PASS |
+| F0-025 | Platform API key authentication | live dev-key auth after developer-schema migration | PASS |
+| F0-026 | SDK-style payment request creation | live payment-link create (SDK-shape, merchant-auth) | PASS |
+| F0-027 | Online checkout payment success | live QR-direct online payment + balance movement | PASS |
+| F0-028 | Webhook delivery success | emission observed; outbound needs external sink | SIMULATED |
+| F0-029 | Webhook retry/failure handling | retry/backoff+idempotency in code+unit tests | SIMULATED |
+| F0-030 | Platform reconciliation | live created vs settled vs balance, zero discrepancy | PASS |
+| F0-031 | Receipt verification | live authenticated receipt: state-match + handle-only + non-fabricable | PASS |
+| F0-032 | Revoked/invalid API key rejection | live invalid key → 401 (revoked indistinguishable) | PASS |
+| F0-033 | Unauthorised platform rejection | live no-auth/forged key → 401 | PASS |
+| F0-034 | Payment link expiry/cancel | live cancel → LINK_NOT_ACTIVE | PASS |
+| F0-035 | Payment intent idempotency | live double-pay single-debit | PASS |
 
 ## Status legend
 
 - **PASS** — validated live against the deployed Sandbox (or read-only for F0-001/023/024).
-- **DEFERRED** — a non-limit flow not driven live this pass (links, intents, reconciliation, refund).
-- **SIMULATED** — engine/tabletop-verified, not independently driven live.
+- **DEFERRED** — not driven live this pass, or not applicable to the exercised settlement type (F0-031).
+- **SIMULATED** — engine/tabletop-verified, not independently driven live (webhook outbound, external-provider settlement, tabletop drills).
+- **BLOCKED** — a required fixture/data layer is missing and cannot be provisioned within Phase-0 constraints (F0-025: developer schema absent in sandbox DB; migration forbidden).
 - **FAIL** — a genuine failure (none).
 
 ## Non-claims

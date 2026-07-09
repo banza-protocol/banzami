@@ -41,6 +41,22 @@ Total discrepancy: **0** across the synthetic test set → **PASS**. (Values are
 synthetic minor units; the payment-link acquiring settlement is a separate rail and
 is excluded from this wallet-native reconciliation — see F0-007.)
 
+## Platform reconciliation (F0-030) — created vs settled vs balance
+
+A platform/merchant-view reconciliation was run live: the created payment request
+(1 payment link / 1 QR, 50.000) was compared against what Banzami settled
+(`GET /v1/merchant/wallet-payments` → 1 COMPLETED, reference BZM-…) and the
+authoritative wallet balance (`GET /v1/wallets/{id}/balance` → available 50.000).
+
+| View | Source | Value (minor) |
+|------|--------|--------------:|
+| Created (platform) | payment link / QR request | 50 000 |
+| Settled (Banzami) | merchant wallet-payments (COMPLETED) | 50 000 |
+| Balance (ledger)  | wallet available balance | 50 000 |
+
+Discrepancy: **0** → **PASS**. The platform holds no balance and computes no totals;
+it reconciles against Banzami's authoritative settled list + ledger-derived balance.
+
 ## Ledger integrity
 
 Reconciliation is read-and-compare; it performs no postings. Double-entry integrity

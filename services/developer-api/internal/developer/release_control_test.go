@@ -72,6 +72,31 @@ func TestReleaseControl_FixtureKeyBypassesWhileUnreleased(t *testing.T) {
 	}
 }
 
+func TestReleaseControl_FixtureProjectSandboxGated(t *testing.T) {
+	// Disabled outside sandbox (fixturesEnabled defaults false).
+	s, _, _ := wsWithRoles(t)
+	if _, _, err := s.CreateFixtureProject(bg, "Synthetic Platform", "op", "", ""); err != ErrForbidden {
+		t.Fatalf("fixture-project must be hard-disabled when fixtures are off, got %v", err)
+	}
+	// Enabled in sandbox: mints a workspace + project usable by the fixture-key path.
+	s.SetFixturesEnabled(true)
+	ws, proj, err := s.CreateFixtureProject(bg, "Synthetic Platform", "operator", "", "")
+	if err != nil {
+		t.Fatalf("sandbox fixture-project must be creatable: %v", err)
+	}
+	if ws.ID == "" || proj.ID == "" || proj.Slug == "" {
+		t.Fatal("fixture-project must return workspace + project ids and a slug")
+	}
+	// The project is immediately usable for a fixture key (no Console session).
+	if _, secret, err := s.CreateFixtureAPIKey(bg, proj.ID, "e2e", []string{"payment_sessions:write"}, "operator", "", ""); err != nil || secret == "" {
+		t.Fatalf("fixture-project must be usable by the fixture-key path: %v", err)
+	}
+	// Empty name rejected.
+	if _, _, err := s.CreateFixtureProject(bg, "  ", "op", "", ""); err != ErrValidation {
+		t.Errorf("empty name: want ErrValidation, got %v", err)
+	}
+}
+
 func TestReleaseControl_FixtureKeyRejectsUnknownProjectAndScope(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 	s.SetFixturesEnabled(true)

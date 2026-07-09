@@ -444,6 +444,41 @@ func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name strin
 	return key, raw, nil
 }
 
+// CreateFixtureProject provisions a synthetic platform/integrator (workspace +
+// project) for isolated Sandbox/Phase-0 E2E fixtures. It is the platform-level
+// counterpart to CreateFixtureAPIKey: the ONLY way to mint a Project without a
+// Console session, for operator-controlled synthetic testing.
+//
+// It is hard-gated to a sandbox environment via fixturesEnabled (identical to the
+// fixture-key path), independent of the internal-key guard on the route — it can
+// never be enabled by a browser flag, URL parameter or generic env toggle. The
+// created platform holds no money, computes no balances and issues no receipts;
+// it is only an API-integration identity (Project) that a fixture key binds to.
+func (s *Service) CreateFixtureProject(ctx context.Context, name, createdBy, ip, reqID string) (Workspace, Project, error) {
+	if !s.fixturesEnabled {
+		return Workspace{}, Project{}, ErrForbidden
+	}
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 80 {
+		return Workspace{}, Project{}, ErrValidation
+	}
+	actor := strings.TrimSpace(createdBy)
+	if actor == "" {
+		actor = "fixture-operator"
+	}
+	// CreateWorkspace makes `actor` an OWNER member, which authorizes the
+	// subsequent CreateProject role check — no Console session required.
+	ws, err := s.CreateWorkspace(ctx, actor, name+" workspace", ip, reqID)
+	if err != nil {
+		return Workspace{}, Project{}, err
+	}
+	proj, err := s.CreateProject(ctx, actor, ws.ID, name, ip, reqID)
+	if err != nil {
+		return Workspace{}, Project{}, err
+	}
+	return ws, proj, nil
+}
+
 func (s *Service) ListAPIKeys(ctx context.Context, actor, projectID string) ([]APIKey, error) {
 	if _, _, err := s.projectAuthz(ctx, actor, projectID); err != nil {
 		return nil, err
