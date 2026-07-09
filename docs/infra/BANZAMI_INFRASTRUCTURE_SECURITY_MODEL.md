@@ -85,6 +85,25 @@ Version: 1.0
   can be stopped to halt new operations while preserving the database and evidence. Data is
   never wiped as a suspension measure; material incidents are reported to the BNA (Annex F).
 
+## 10a. Deploy model (source-bundle, Git-on-Mac-only)
+
+- **Git stays only on the Mac/operator machine.** The Sandbox server receives **source
+  bundles only** — no `.git`, no repository history, no GitHub credentials and no deploy
+  keys ever reside on the server.
+- `./deploy.sh <service>` creates a source bundle from the exact commit (`git archive`,
+  no secrets), transfers only the bundle + manifest + SHA256 checksum, and the **amd64
+  server builds the selected service natively** (BuildKit cache) and redeploys only that
+  service. The checksum is verified before unpacking; a versioned release directory is
+  kept for rollback.
+- Selected-service deploy is the default; `--all` must be explicit. Local Mac
+  `linux/amd64` QEMU image builds are **removed / unsupported** (no fallback flag, no local
+  image build/export/transfer/load path); any such request is refused, and all Sandbox
+  builds run natively on the amd64 server from a verified source bundle. Deploy runs **no
+  migration**, **no VM reset** and **no destructive prune**, and changes no
+  DNS/certificate/SMTP. Secrets stay
+  file-only/in-process and never appear in the Docker-inspectable environment. Rollback
+  uses the previous validated release/image. No ad-hoc SQL for state changes.
+
 ## 11. Future production hardening still required
 
 Before any production/LIVE use (subject to BNA approval/non-objection):

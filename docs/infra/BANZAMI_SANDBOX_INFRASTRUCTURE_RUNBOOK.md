@@ -101,10 +101,28 @@ provider.
 
 ## 13. Deploy process
 
-- Build an attested, secret-free release package (digests + provenance verified).
-- Transfer and materialise the package + source tree on the target (revision-matched).
-- Clean the previous service set, then deploy the four approved services one-at-a-time,
-  each provenance/digest-validated **before** deploy and health-checked **after**.
+**Deploy model — Git stays only on the Mac; the server builds natively.** The routine
+operator command is `./deploy.sh <service>` (selected-service is the default; `--all`
+must be explicit). It creates a **source bundle** from the exact local commit
+(`git archive`; no `.git`, no repository history, no secrets), transfers **only** the
+bundle + manifest + checksum, and the **amd64 server builds the selected service
+natively** (BuildKit cache) and deploys/restarts only that service (reusing the file-only
+secrets + config), with health check + a sanitised receipt. The server never runs
+`git clone`/`git pull`, holds no GitHub credentials/deploy keys/repository history/`.git`.
+**The Banzami Sandbox does not support local Mac `linux/amd64` QEMU image builds** — there
+is no fallback flag and no local image build/export/transfer/load path; any such request is
+refused. All Sandbox service builds are performed natively on the amd64 Sandbox server from
+a verified source bundle. See `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.
+
+- Deploy does **not** run migrations, reset the VM, prune unrelated Docker resources, or
+  change DNS/certificates/SMTP; it never targets Production/LIVE and uses no real
+  money/customers/external providers. Rollback redeploys the previous validated image.
+
+**Formal evidence / release build (separate mode).** Build an attested, secret-free
+release package (digests + provenance verified), transfer + materialise it, and deploy
+the four approved services one-at-a-time, each provenance/digest-validated **before**
+deploy and health-checked **after**. Its reproducibility, digest, attestation and
+secret-free checks are preserved.
 
 ## 14. Health checks
 
