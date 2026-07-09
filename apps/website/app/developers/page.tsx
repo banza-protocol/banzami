@@ -1830,6 +1830,64 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* ===================== 12.5 · AVAILABILITY & STATUS ===================== */}
+      <section id="availability" className="px-6 py-[clamp(64px,9vw,104px)]">
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="DISPONIBILIDADE & ESTADO"
+            title="Estado atual e limitações"
+            lead="O que está validado hoje, o que é simulado e o que ainda não faz parte do âmbito testado — sem exageros."
+            className="mb-10 max-w-[720px]"
+          />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <Reveal className="rounded-card border border-border-soft bg-white p-[24px] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-received">
+                Validado no Sandbox
+              </span>
+              <p className="m-0 mt-3 text-[14px] font-semibold leading-[1.55] text-ink-soft">
+                Os fluxos de API/SDK da Developer Platform foram validados no Sandbox interno:
+                autenticação, workspace e projeto, chaves e âmbitos, links e intents de
+                pagamento, checkout online, verificação de recibo, reconciliação, revogação de
+                chave e rejeição de acessos inválidos.
+              </p>
+            </Reveal>
+            <Reveal
+              delay={70}
+              className="rounded-card border border-pink-200 bg-white p-[24px] shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)]"
+            >
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-cherry-dark">
+                Simulado
+              </span>
+              <p className="m-0 mt-3 text-[14px] font-semibold leading-[1.55] text-ink-soft">
+                A entrega de webhooks para um endpoint HTTPS público está fora do âmbito do
+                Sandbox. A assinatura{' '}
+                <span className="bz-mono text-[12.5px]">banza-signature</span>, o retry/backoff e
+                a idempotência estão verificados; a entrega externa é simulada.
+              </p>
+            </Reveal>
+            <Reveal
+              delay={140}
+              className="rounded-card border border-border-soft bg-cream-50 p-[24px] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]"
+            >
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+                Ainda não no âmbito testado
+              </span>
+              <p className="m-0 mt-3 text-[14px] font-semibold leading-[1.55] text-ink-soft">
+                Um Developer Console visual ainda não faz parte do âmbito testado. É planeado em
+                separado e não é reivindicado como disponível nesta documentação.
+              </p>
+            </Reveal>
+          </div>
+          <Reveal className="mt-6 rounded-card bg-cream-100 px-6 py-[18px]">
+            <p className="m-0 text-[14px] font-semibold leading-[1.6] text-ink-secondary">
+              O Banzami Developers está atualmente documentado para fins de Sandbox controlado e
+              preparação regulatória. A disponibilidade pública com dinheiro real depende das
+              condições aplicáveis de ativação regulatória, operacional e dos rails de pagamento.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ===================== 13 · FINAL CTA ===================== */}
       <DeveloperCTA />
       <Footer />
