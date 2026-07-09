@@ -31,7 +31,22 @@ external providers, customer data or public access.
 
 ## Summary of gaps to close in this PR
 
-1. **Add** a Sandbox-only synthetic platform/integrator fixture endpoint (Project creation) — the one genuinely MISSING fixture; gated to `ENVIRONMENT=sandbox` + `X-Internal-Key`, mirroring the existing `fixture-keys` path. The platform holds no money, computes no balances and issues no receipts.
-2. **Provision** the dev-key sandbox enablement (API-key pepper, matched internal keys, payee-validation key, payment-capability release, dev-key-auth master switch, session/OTP peppers) — file-only where secret.
-3. **Run live**: F0-025 (key auth), F0-026 (SDK-shape payment request), F0-027 (online checkout), F0-030 (reconciliation), F0-031 (receipt verification), F0-032 (revoked key), F0-033 (unauthorised), F0-034 (link expiry/cancel), F0-035 (intent idempotency).
-4. **Keep honest**: webhook live outbound delivery (F0-028/029) is SIMULATED (SSRF requires a public sink; no-external/no-public constraint); payment-link acquiring settlement stays external-rail SIMULATED/NOT_IN_SCOPE.
+1. **Add** a Sandbox-only synthetic platform/integrator fixture endpoint (Project creation) — DONE (`POST /internal/v1/fixture-projects`, gated to `ENVIRONMENT=sandbox` + `X-Internal-Key`, mirroring `fixture-keys`; unit-tested). The platform holds no money, computes no balances and issues no receipts.
+2. **Provision** the dev-key sandbox enablement — DONE (file-only pepper/keys/session/OTP + master switch + payment-capability release + developer-api network alias).
+3. **Run live** — DONE for F0-026/F0-027/F0-030/F0-032/F0-033/F0-034/F0-035 (PASS). F0-025 BLOCKED and F0-031 DEFERRED (see below).
+4. **Keep honest** — DONE: webhook outbound (F0-028/029) SIMULATED; payment-link acquiring settlement (F0-007) external-rail SIMULATED/NOT_IN_SCOPE.
+
+## Outcomes (2026-07-09)
+
+| ID | Result | Note |
+|----|:------:|------|
+| F0-026 SDK-shape payment request | PASS | payment-link create (merchant-auth) |
+| F0-027 online checkout | PASS | QR-direct, COMPLETED + balance movement |
+| F0-030 platform reconciliation | PASS | created vs settled vs balance, zero discrepancy |
+| F0-032 revoked/invalid key | PASS | invalid → 401 (revoked indistinguishable) |
+| F0-033 unauthorised platform | PASS | no-auth / forged key → 401 |
+| F0-034 link expiry/cancel | PASS | cancel → LINK_NOT_ACTIVE |
+| F0-035 intent idempotency | PASS | double-pay single-debit |
+| F0-028 / F0-029 webhooks | SIMULATED | emission + signature + retry contract; outbound needs external sink |
+| F0-031 receipt verification | DEFERRED | receipt reference present; public proof wired to transactions, not wallet transfers |
+| F0-025 platform key auth | **BLOCKED** | fixture endpoint added + unit-tested, but `developer.*` schema absent in sandbox DB (migration forbidden in Phase 0) |
