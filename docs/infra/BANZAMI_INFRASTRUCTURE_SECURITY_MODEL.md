@@ -96,8 +96,11 @@ Version: 1.0
   service. The checksum is verified before unpacking; a versioned release directory is
   kept for rollback.
 - Selected-service deploy is the default; `--all` must be explicit. Local Mac
-  `linux/amd64` QEMU build is fallback-only. Deploy runs **no migration**, **no VM
-  reset** and **no destructive prune**, and changes no DNS/certificate/SMTP. Secrets stay
+  `linux/amd64` QEMU image builds are **removed / unsupported** (no fallback flag, no local
+  image build/export/transfer/load path); any such request is refused, and all Sandbox
+  builds run natively on the amd64 server from a verified source bundle. Deploy runs **no
+  migration**, **no VM reset** and **no destructive prune**, and changes no
+  DNS/certificate/SMTP. Secrets stay
   file-only/in-process and never appear in the Docker-inspectable environment. Rollback
   uses the previous validated release/image. No ad-hoc SQL for state changes.
 

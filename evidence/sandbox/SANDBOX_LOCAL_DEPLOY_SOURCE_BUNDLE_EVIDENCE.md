@@ -36,7 +36,7 @@ health check and a **sanitised receipt**.
 | Server holds **no** GitHub credentials / deploy keys | CONFIRMED (only a verified source bundle is transferred) |
 | Repository history is **not** transferred | CONFIRMED (`git archive` ships only committed files at the commit) |
 | Secrets are **not** in the bundle | CONFIRMED (untracked `.env`/secret/runtime files are excluded) |
-| Local Mac QEMU build is **not** the default path | CONFIRMED (fallback-only, explicit `--local-amd64-build-fallback`) |
+| Local Mac QEMU build is **removed / unsupported** | CONFIRMED (no fallback flag; any local amd64/QEMU build request is refused) |
 | Selected-service deploy works | CONFIRMED (real `./deploy.sh developer-api`) |
 | `--all` is not the default | CONFIRMED (explicit flag) |
 
@@ -65,12 +65,16 @@ health check and a **sanitised receipt**.
 | New: source bundle → transfer → **native amd64 server build**, `--build-only` | ≈ 29 s |
 | New: full `./deploy.sh developer-api` (build + deploy + health) | ≈ 20 s |
 
-## Limitations and fallback mode
+## Limitations and supported modes
 
-- Three modes are kept separate: (1) fast Sandbox iteration (source bundle → native
+- Two modes are kept separate: (1) fast Sandbox iteration (source bundle → native
   server build, default); (2) formal evidence/release build (attested, digests,
-  SBOM/provenance, secret-free — unchanged); (3) local Mac `linux/amd64` QEMU build
-  (fallback-only, `--local-amd64-build-fallback`).
+  SBOM/provenance, secret-free — unchanged, native amd64).
+- **Local Mac `linux/amd64` QEMU image builds are removed / unsupported.** There is no
+  fallback flag and no local image build/export/transfer/load path; any such request is
+  refused with a clear error. All Sandbox service builds are performed natively on the
+  amd64 Sandbox server from a verified source bundle. This is **not an approved Banzami
+  Sandbox path**.
 - The reproducibility/attestation/secret-free checks of mode (2) are preserved; the fast
   path performs a native build + a secret-free image check (not the full attestation) and
   is intended for iteration, not formal release evidence.

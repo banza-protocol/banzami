@@ -47,7 +47,8 @@ Legend: ☐ = to do · record date/operator/outcome for each item.
   `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.)
 - ☐ **Formal/release:** build/transfer the attested, secret-free release package; deploy
   the four approved services (provenance/digest-validated before, health-checked after).
-  Local Mac QEMU build is fallback-only.
+  Local Mac `linux/amd64` QEMU image builds are **removed / unsupported** — all Sandbox
+  service builds run natively on the amd64 Sandbox server from a verified source bundle.
 
 ## 9. Health checks
 - ☐ All services healthy, non-root, no host ports, internal networks only, no secret in

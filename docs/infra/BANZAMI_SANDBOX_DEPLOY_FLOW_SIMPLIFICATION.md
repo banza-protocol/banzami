@@ -53,24 +53,28 @@ no Git and no repository history on the server.
   `git pull`, holds no GitHub credentials, deploy keys, repository history or `.git`.
 - **The server receives source bundles, not history.**
 - **The server builds natively on amd64** (fast, no emulation).
-- **Local Mac `linux/amd64` QEMU build is fallback-only** (`--local-amd64-build-fallback`),
-  not the routine path.
+- **Local Mac `linux/amd64` QEMU builds are removed / unsupported.** There is no fallback
+  flag and no local image build/export/transfer/load path; any such request is refused.
+  This is **not an approved Banzami Sandbox path**.
 - **`./deploy.sh <service>` is the normal operator interface**; selected-service deploy
   is the default; `--all` must be explicit.
 - **Build, deploy, migration and E2E are separate concerns.** Deploy never runs a
   database migration; E2E runs only with `--run-e2e`.
 
-## Three build/deploy modes (kept separate — Step 8)
+## Two build/deploy modes (kept separate)
 
 1. **Fast Sandbox iteration (default).** Mac `deploy.sh` creates a source bundle,
    transfers it, and the server builds the selected service **natively on amd64** and
    deploys it. No local QEMU.
 2. **Formal evidence / release build.** The reproducible/attested build with digests,
    SBOM/provenance and secret-free verification (`sandbox-release-package.sh` +
-   gated transfer/deploy) — preferably on a native amd64 environment. Unchanged; its
+   gated transfer/deploy), performed on a native amd64 environment. Unchanged; its
    reproducibility, digest, attestation and secret-free checks are preserved.
-3. **Local Mac `linux/amd64` QEMU build.** Fallback only
-   (`--local-amd64-build-fallback`), not the routine path; not used by default.
+
+**The Banzami Sandbox does not support local Mac `linux/amd64` QEMU image builds.** All
+Sandbox service builds are performed natively on the amd64 Sandbox server from a verified
+source bundle. There is no `--local-amd64-build-fallback` flag and no local image
+build/export/transfer/load path; any such request is refused with a clear error.
 
 ## Boundaries preserved
 
