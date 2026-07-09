@@ -47,6 +47,13 @@ are synthetic.
 
 **PASS 29 · FAIL 0 · SIMULATED 6 · DEFERRED 0 · BLOCKED 0** (total 35).
 
+> **Complementary evidence (Developer Platform E2E).** A dedicated developer/platform
+> lifecycle E2E was added under `evidence/developer-platform/` (F0-DP-001..016 +
+> UI): PASS 15 · SIMULATED 1 (webhook outbound) · BLOCKED 1 (no Developer Console
+> frontend). It additionally proves a **genuine synthetic API-key revocation** (revoke
+> → rejected) and the workspace/project/audit-trail lifecycle. This complements — and
+> does not change — the Phase 0 counts above.
+
 ## 4. What was proven live (Sandbox, synthetic)
 
 Exercised through the internal Sandbox APIs against the deployed pilot-enabled

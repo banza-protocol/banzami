@@ -35,3 +35,23 @@ real money, external providers, customer data or public access.
 2. **Run live** the full developer-platform lifecycle (F0-DP-001..016) via an API E2E harness.
 3. **UI E2E**: BLOCKED (no Developer Console frontend) — reported honestly, not faked.
 4. **Webhooks**: SIMULATED (emission + signing + retry contract; outbound needs a public HTTPS sink, excluded by no-external/no-public).
+
+## Outcomes (2026-07-09)
+
+| Capability | Result | Note |
+|------------|:------:|------|
+| Developer/platform auth | PASS | F0-DP-001 (`/v1/me` active) |
+| Workspace / project | PASS | F0-DP-002/003 (fixture-projects) |
+| API key active / scope | PASS | F0-DP-004/005 |
+| Payment link / intent (platform context) | PASS | F0-DP-006/007 |
+| Online checkout (+ ledger + idempotency) | PASS | F0-DP-008 |
+| Receipt verification | PASS | F0-DP-009 (state + privacy + non-fabricable) |
+| Platform reconciliation | PASS | F0-DP-010 (zero discrepancy) |
+| API key revocation | PASS | F0-DP-012 — genuine revoke via the new sandbox fixture endpoint → 401 |
+| Invalid / unauthorised rejection | PASS | F0-DP-013/014 (401); no ledger/balance mutation (F0-DP-015) |
+| Audit trail | PASS | F0-DP-016 (`developer.audit_events`) |
+| Webhook configuration/delivery | SIMULATED | F0-DP-011 (outbound needs a public HTTPS sink) |
+| Developer Console UI E2E | BLOCKED | no Developer Console frontend app exists |
+
+Overall: **PASS 15 · FAIL 0 · SIMULATED 1 · DEFERRED 0 · BLOCKED 1 · total 17** (harness
+assertions: 20 PASS / 0 FAIL / 1 SIMULATED). No forbidden claims; synthetic only.
