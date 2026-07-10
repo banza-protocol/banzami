@@ -62,3 +62,10 @@ Website images are rebuilt from the single authorised local repository (see
 [BANZAMI_SINGLE_SOURCE_OF_TRUTH.md](BANZAMI_SINGLE_SOURCE_OF_TRUTH.md)); the server holds no
 Git history. Website recovery rebuilds the website image and starts the website application
 and the website-only proxy — nothing else.
+
+## Stage C routing (pending decisions)
+
+Any future public routing of sandbox hosts must preserve this independence rule. The
+required operator decisions (authoritative staging runtime, routing design, sandbox
+capability exposure) are recorded in
+[BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md).
