@@ -71,3 +71,5 @@ operator decisions are recorded in
 a **dedicated sandbox-edge proxy** will carry sandbox public routes, and the website
 edge stays fully static/independent — it never gains sandbox/payment/admin/gateway
 upstream dependencies. Stage C execution itself remains separately approval-gated.
+Deploy-path authority is enforced fail-closed per
+[BANZAMI_SERVICE_AUTHORITY_MATRIX.md](BANZAMI_SERVICE_AUTHORITY_MATRIX.md).

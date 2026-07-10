@@ -189,6 +189,12 @@ services:
       - banzami_net
 
   # ─── Sandbox / staging stack ──────────────────────────────────────────────────
+  # DEPRECATED AS DEPLOYMENT AUTHORITY (Stage C Decision 1, 2026-07-10): the
+  # rt04e sandbox project is the authoritative staging / Developer Platform
+  # runtime on the server. The staging services below exist for LOCAL
+  # DEVELOPMENT ONLY and must not be used as a server deploy path — the legacy
+  # `./deploy.sh staging` path is retired (fails closed). See
+  # docs/infra/BANZAMI_SERVICE_AUTHORITY_MATRIX.md.
   # Completely isolated from the live stack above.
   # Sandbox data NEVER touches the live database.
   # Reachable within banzami_net as: core-api-staging:8081, public-api-staging:8083

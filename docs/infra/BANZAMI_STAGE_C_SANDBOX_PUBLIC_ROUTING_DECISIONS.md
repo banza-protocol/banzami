@@ -110,9 +110,11 @@ The sandbox-edge MUST:
 
 ## Related documents
 
+- [BANZAMI_SERVICE_AUTHORITY_MATRIX.md](BANZAMI_SERVICE_AUTHORITY_MATRIX.md) — enforced service authority matrix (fail-closed in `deploy.sh`).
 - [BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md](BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md) — website independence rule.
 - [BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md](BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md) — website-only recovery.
 - [BANZAMI_SINGLE_SOURCE_OF_TRUTH.md](BANZAMI_SINGLE_SOURCE_OF_TRUTH.md) — authorised repository rule.
 - [../../evidence/ops/STAGE_A_PRODUCTION_DB_REDIS_PRECHECK.md](../../evidence/ops/STAGE_A_PRODUCTION_DB_REDIS_PRECHECK.md)
 - [../../evidence/ops/STAGE_B_PUBLIC_ROUTING_REPAIR.md](../../evidence/ops/STAGE_B_PUBLIC_ROUTING_REPAIR.md)
 - [../../evidence/ops/STAGE_C_READINESS_SECRET_AND_DRIFT_REPORT.md](../../evidence/ops/STAGE_C_READINESS_SECRET_AND_DRIFT_REPORT.md)
+- [../../evidence/ops/COMPOSE_DEPLOY_DRIFT_RESOLUTION.md](../../evidence/ops/COMPOSE_DEPLOY_DRIFT_RESOLUTION.md)

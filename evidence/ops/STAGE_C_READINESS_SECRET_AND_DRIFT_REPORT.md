@@ -168,3 +168,7 @@ approved routing design (resolves the D3 design question), and website independe
 restated as binding. Sandbox capability exposure and the sandbox-operator rebuild
 remain **pending explicit Stage C execution approval**. Stage C is still **not
 implemented** — this addendum records decisions only, no runtime change.
+
+Repository-level drift (D1/D2/D4 and the D3 repo aspect) was subsequently resolved —
+see [COMPOSE_DEPLOY_DRIFT_RESOLUTION.md](COMPOSE_DEPLOY_DRIFT_RESOLUTION.md) and
+[../../docs/infra/BANZAMI_SERVICE_AUTHORITY_MATRIX.md](../../docs/infra/BANZAMI_SERVICE_AUTHORITY_MATRIX.md).
