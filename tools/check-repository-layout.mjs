@@ -127,6 +127,7 @@ const ACCEPTED_TOP_LEVEL = new Set([
   'evidence',            // conformance / audit evidence artifacts (not a source of truth)
   'quality',             // canonical assurance manifest (operator-assurance-manifest.yaml)
   'ops',                 // authoritative non-secret asset inventory (asset-inventory.yaml)
+  'tests',               // cross-cutting test harnesses (e.g. tests/phase0 E2E). Not a source of truth.
   '.git', '.github', '.gitignore', '.env', '.env.example',
   '.claude',             // Claude Code project config (memory, commands)
   '.DS_Store',           // macOS filesystem artifact
