@@ -63,9 +63,11 @@ Website images are rebuilt from the single authorised local repository (see
 Git history. Website recovery rebuilds the website image and starts the website application
 and the website-only proxy — nothing else.
 
-## Stage C routing (pending decisions)
+## Stage C routing (decisions recorded)
 
 Any future public routing of sandbox hosts must preserve this independence rule. The
-required operator decisions (authoritative staging runtime, routing design, sandbox
-capability exposure) are recorded in
-[BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md).
+operator decisions are recorded in
+[BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md):
+a **dedicated sandbox-edge proxy** will carry sandbox public routes, and the website
+edge stays fully static/independent — it never gains sandbox/payment/admin/gateway
+upstream dependencies. Stage C execution itself remains separately approval-gated.
