@@ -41,26 +41,46 @@ no longer exists.**
 is `banza-protocol/banzami`, branch `main` at the current `origin/main`, clean worktree,
 `origin/main` reachable.
 
-## VM/server Git-checkout inventory result — BLOCKER (deferred)
+## Server legacy directory classification
 
-Read-only inventory found the server is **not yet compliant**: it contains legacy Git
-checkouts (`.git` present), history-bearing bundle artifacts (git bundles), and a retained
-**incident-forensics** area of retired checkouts. Their checked-out tips are all ancestors
-of the current `origin/main` (no unique tip), and no GitHub credential files or deploy keys
-were found. **However**, one of the checkouts is the **active runtime source of the
-currently running Sandbox / Developer Platform stack**, and the forensics area appears to be
-deliberately retained for investigating a prior infrastructure incident. Removing server
-Git artifacts was therefore **not performed**:
+Read-only inventory classified every legacy Banzami directory (sanitised labels):
 
-```
-BLOCKER — SERVER DIRECTORY MAY BE ACTIVE OR UNIQUE
-```
+- **build-context** — production build source with a stale `.git` (production stack was
+  down; **not** bind-mounted into any container). → `BUILD_CONTEXT_ONLY`.
+- **active-runtime-source** — the release source tree whose working files include the
+  compose file of the running Sandbox / Developer Platform project. Verified **not**
+  bind-mounted into any container (container mounts are runtime secret files only), so its
+  `.git` could be removed without touching the running stack. → `ACTIVE_RUNTIME_SOURCE`.
+- **forensics-area** — a retained archive of retired source checkouts (each with `.git`),
+  full-history git bundles, and `banzami-canonical` import bundles. → `FORENSICS_ARCHIVE`.
 
-Server cleanup is deferred to a **separate, approved maintenance window** so it does not
-touch the active Developer Platform runtime or destroy retained forensics, and is not done
-during the unrelated public-website incident. The bundle-based deploy flow already ensures
-**new** deploys ship bundles without `.git`; the residual `.git` and bundle artifacts are
-legacy from an earlier clone/bundle-unpack method.
+## Unique work check — PASS (no unique work)
+
+All server checkouts were clean (no uncommitted or untracked changes). Every commit across
+all their refs/HEADs/stashes was verified present in the authorised source of truth and an
+ancestor of `origin/main`. Every commit inside the history bundles was likewise verified
+present in the authorised local repository (the older, non-ancestor tips are early
+pre-history-rewrite bootstrap commits, still reachable from a local ref). **Zero unique
+unpushed work existed on the server** — removal could lose nothing not already in the
+source of truth. No GitHub credential files, `gh` config or deploy keys were present.
+
+## Server cleanup actions taken — COMPLETE
+
+Filesystem-only removals (no Docker command, no container/service/compose touched, no
+deploy, no prune):
+
+- removed the two legacy `.git` directories (build context + active release source),
+  **preserving the working trees** — the running Sandbox stack stayed healthy throughout
+  (6/6 containers healthy, verified after each stage);
+- removed the release history bundle;
+- removed the `banzami-canonical` import bundles (and manifests);
+- removed all git-bearing forensics material (retired source checkouts, `.git`
+  directories, full-history bundles) and replaced it with a **sanitised note** recording
+  that forensics is retained without repository history, without `.git` and without
+  secrets.
+
+The previously recorded blocker (`SERVER DIRECTORY MAY BE ACTIVE OR UNIQUE`) is **resolved**:
+uniqueness was disproven and the active runtime was shown not to depend on any `.git`.
 
 ## Script guard result
 
@@ -80,14 +100,18 @@ repo; refuses from a `banzami-canonical`-named directory and from a wrong-basena
 ## Services not touched
 
 No Production, Sandbox payment, admin, gateway, API, checkout, pay or Developer Platform
-service was touched. No deploy, publish, Docker command, database/migration, VM reset,
+**service** was touched. No deploy, publish, Docker command, database/migration, VM reset,
 destructive prune, or DNS/certificate/SMTP change was performed. The public-website incident
-was not acted upon under this task. Server state was left unchanged (read-only inventory
-only).
+was not acted upon under this task. Server changes were **filesystem-only** (removing Git
+metadata, history bundles and duplicated source); the running Sandbox / Developer Platform
+containers were left running and healthy throughout (verified read-only after each stage).
 
 ## Final state
 
 - `/Users/fm65/banzami` — exists; the single authorised local Banzami checkout.
 - `/Users/fm65/banzami-canonical` — does not exist (locally).
-- Server — Git artifacts remain pending an approved cleanup window (blocker recorded above);
-  no server changes were made.
+- **Server — compliant:** no Banzami `.git` directory, no `banzami-canonical`, no Git
+  checkout, no repository history, no git-bundle artifacts, no GitHub credentials or deploy
+  keys, no git clone/pull deployment path. Only allowed runtime residue remains: the release
+  source tree **without `.git`**, built Docker images/volumes, and runtime secret files. A
+  sanitised forensics note remains (no history, no `.git`, no secrets).
