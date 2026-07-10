@@ -157,3 +157,14 @@ restore was used. No secret values were read out, copied or committed.
 ## 13. Final status
 
 **READ-ONLY STAGE C READINESS REPORT PREPARED — NO SERVICES CHANGED.**
+
+## Addendum (2026-07-10) — architecture decisions recorded
+
+The operator decisions blocking Stage C (§6–§8) have since been recorded in
+[../../docs/infra/BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](../../docs/infra/BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md):
+the rt04e sandbox project is **approved** as the authoritative staging/Developer
+Platform runtime (resolves D2 direction), a **dedicated sandbox-edge proxy** is the
+approved routing design (resolves the D3 design question), and website independence is
+restated as binding. Sandbox capability exposure and the sandbox-operator rebuild
+remain **pending explicit Stage C execution approval**. Stage C is still **not
+implemented** — this addendum records decisions only, no runtime change.

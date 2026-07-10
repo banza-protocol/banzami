@@ -1,7 +1,7 @@
 # Banzami — Stage C Sandbox Public Routing: Required Operator Decisions
 
 Version: 1.0
-Status: **PENDING OPERATOR DECISIONS — STAGE C NOT APPROVED, NOTHING IMPLEMENTED**
+Status: **ARCHITECTURE DECISIONS RECORDED (2026-07-10) — STAGE C EXECUTION NOT APPROVED, NOTHING IMPLEMENTED**
 
 > **Scope note.** Sanitised: no IPs, private hostnames, SSH users, server paths,
 > secrets, tokens, DB URLs, private endpoints or provider details. This document
@@ -27,47 +27,47 @@ Stage C scope, when approved, is strictly: public routing for
 
 ## Decision 1 — Authoritative staging runtime
 
-**PENDING OPERATOR DECISION.**
+**APPROVED (operator, 2026-07-10):** the rt04e sandbox project is the authoritative
+staging / Developer Platform runtime.
 
-Declare the rt04e sandbox project as the authoritative staging/Developer Platform
-runtime (recommended — it is the running, healthy, contract-managed stack), or choose
-another explicit source of truth. Consequence of the recommendation: the shared-compose
-staging duplicates (image-absent, legacy tag pinning) and the legacy staging deploy path
-are marked deprecated and later removed in the drift-resolution PR.
+Consequence: the shared-compose staging duplicates (image-absent, legacy tag pinning)
+and the legacy staging deploy path are deprecated and will be removed in the
+drift-resolution follow-up PR.
 
 ## Decision 2 — Routing design
 
-**PENDING OPERATOR DECISION.** Choose between:
+**APPROVED (operator, 2026-07-10):** use a **dedicated sandbox-edge proxy** for Stage C
+sandbox public routes (former Option B). The website edge stays fully
+static/independent — the strongest preservation of the Stage B independence property.
 
-- **Option A — extend the existing public website-edge** with sandbox-host vhosts
-  attached safely to the sandbox network. Pros: one public 443 listener, smallest
-  runtime footprint. Cons: the website edge gains upstream dependencies (mitigated by a
-  DNS resolver + static-fallback design; the website's own vhost keeps zero upstream
-  coupling).
-- **Option B — dedicated tiny sandbox-edge proxy** joined to the sandbox network, with
-  the public edge routing only the sandbox hosts to it. Pros: website edge stays fully
-  static/independent (strongest preservation of the Stage B independence property).
-  Cons: one more component.
+The extend-the-website-edge alternative (former Option A) is rejected: it would give
+the website edge upstream dependencies, weakening the independence rule.
 
-Either option must preserve: website independence, the Stage B default-server 503
-guard for all other hosts, and no reintroduction of the old shared-proxy coupling.
+## Decision 3 — Website independence
 
-## Decision 3 — Sandbox payment capability exposure
+**APPROVED (operator, 2026-07-10):** `banzami.com` / `www.banzami.com` remain served by
+the website-only edge and must not depend on sandbox/payment/admin/gateway/API
+services. This restates the independence rule of
+[BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md](BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md) as a
+binding constraint on all Stage C+ routing work.
 
-**PENDING OPERATOR DECISION.**
+## Decision 4 — Sandbox capability exposure
 
-Accept that Stage C public routes expose **sandbox-scoped payment capability only**
-(running services report `ENVIRONMENT=sandbox`; sandbox money; no live rails; no
-external providers). This acceptance must be recorded before public exposure.
+**PENDING EXPLICIT STAGE C EXECUTION APPROVAL.**
 
-## Decision 4 — sandbox-operator rebuild
+Public routing to developer-api/sandbox-api/sandbox-operator would expose
+**sandbox-scoped payment capability only** (running services report
+`ENVIRONMENT=sandbox`; sandbox money; never live rails; no external providers). This
+exposure happens only within a separately approved Stage C implementation.
 
-**PENDING OPERATOR DECISION.**
+## Decision 5 — sandbox-operator rebuild
 
-Approve or reject rebuilding the stateless sandbox-operator image for Stage C (the one
-Stage C service with no running instance; no database, no secrets, simulated-only).
+**PENDING EXPLICIT STAGE C EXECUTION APPROVAL.**
 
-## Decision 5 — Unsupported surfaces
+The stateless sandbox-operator image (no database, no secrets, simulated-only) may be
+rebuilt **only** during a separately approved Stage C implementation.
+
+## Decision 6 — Unsupported surfaces
 
 **CONFIRMED (not pending):**
 
@@ -77,16 +77,36 @@ Stage C service with no running instance; no database, no secrets, simulated-onl
 - No live core-api/api-gateway/public-api restore.
 - No external-provider/payment-rail activation.
 
-## Recommended follow-up PRs (not created by this document)
+## Target topology (approved architecture, not yet implemented)
+
+```text
+public 443
+  ├─ banzami.com / www.banzami.com → website-edge → website app
+  ├─ api/sandbox-api/developer-api/sandbox-operator hosts → sandbox-edge → rt04e sandbox project
+  └─ all other hosts → controlled 503 maintenance response
+```
+
+The sandbox-edge MUST:
+
+- depend only on the rt04e sandbox project;
+- not depend on production payment/admin/gateway services;
+- not require live rails;
+- not expose pay/checkout;
+- not expose an operational Developer Console;
+- **fail closed** if sandbox upstreams are unavailable (controlled maintenance/error
+  response — never a false 200, never website HTML);
+- preserve `banzami.com` availability if sandbox routing fails (website-edge remains
+  independent in both directions).
+
+## Follow-up implementation PRs (listed only — none created by this document)
 
 | # | PR | Objective | Scope / services touched | Not touched | Downtime | Approval |
 |---|---|---|---|---|---|---|
-| 1 | `ops: reconcile service secret manifest` | Key-level manifest of which service consumes which secret category (no values) | Docs/evidence only | All runtime services | None | Yes (encodes decisions) |
-| 2 | `ops: resolve compose/deploy service drift` | Reconcile deploy script ↔ server compose (guard/remove live paths, retire staging duplicates per Decision 1) | deploy tooling + compose source of truth | Running containers, website, sandbox stack | None | Yes |
-| 3 | `ops: fix production Postgres + Redis healthchecks` | Correct database name; authenticated Redis ping | Two healthcheck stanzas | Data, schemas, all app services | None (healthcheck refresh only) | Yes (small) |
-| 4 | `ops: document Stage C sandbox public routing` | Record the Decision 2 design before implementation | Docs only | Everything | None | Yes |
-| 5 | `ops: implement sandbox public routes` | Stage C proper: edge vhosts for the three sandbox hosts + sandbox-operator rebuild | Edge proxy config + one stateless service | Website vhost, payment/admin surfaces, live rails | None for website | **Explicit Stage C approval** |
-| 6 | `ops: host secret-hygiene cleanup` | Archive stale env/compose backups; schedule live-era key rotation | Host hygiene + evidence note | All runtime services | None | Yes |
+| 1 | `ops: implement sandbox-edge proxy for Stage C` | Stage C proper: dedicated sandbox-edge proxy per Decision 2 + public routes for the three sandbox hosts | New sandbox-edge component + edge host routing | Website vhost/app, payment/admin surfaces, live rails, databases | None for website | **Explicit Stage C execution approval** (also unlocks Decision 4) |
+| 2 | `ops: rebuild sandbox-operator for Stage C` | Rebuild the stateless sandbox-operator image (Decision 5) | One stateless service (no DB, no secrets) | Everything else | None | **Explicit Stage C execution approval** |
+| 3 | `ops: reconcile compose/deploy service drift` | Reconcile deploy script ↔ server compose (guard/remove live paths, retire staging duplicates per Decision 1) | Deploy tooling + compose source of truth | Running containers, website, sandbox stack | None | Yes |
+| 4 | `ops: fix production Postgres + Redis healthchecks` | Correct database name; authenticated Redis ping | Two healthcheck stanzas | Data, schemas, all app services | None (healthcheck refresh only) | Yes (small) |
+| 5 | `ops: host secret-hygiene cleanup` | Archive stale env/compose backups; schedule live-era key rotation | Host hygiene + evidence note | All runtime services | None | Yes |
 
 ## Related documents
 
