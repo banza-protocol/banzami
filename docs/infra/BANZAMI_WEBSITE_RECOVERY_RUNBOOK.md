@@ -80,6 +80,8 @@ independence rule.
 The website-only recovery above is Stage-B-adjacent scope. The staged restore of the
 remaining production subdomains is governed separately — see the Stage C decision
 record: [BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md).
+Which services may be deployed/restored at all is defined fail-closed in
+[BANZAMI_SERVICE_AUTHORITY_MATRIX.md](BANZAMI_SERVICE_AUTHORITY_MATRIX.md).
 
 ## Prevention checklist
 
