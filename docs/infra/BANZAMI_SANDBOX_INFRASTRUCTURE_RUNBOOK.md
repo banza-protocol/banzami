@@ -101,9 +101,13 @@ provider.
 
 ## 13. Deploy process
 
-**Deploy model — Git stays only on the Mac; the server builds natively.** The routine
-operator command is `./deploy.sh <service>` (selected-service is the default; `--all`
-must be explicit). It creates a **source bundle** from the exact local commit
+**Deploy model — Git stays only on the Mac; the server builds natively.** The single
+authorised local Git working directory is `/Users/fm65/banzami`; no duplicate checkout
+(e.g. `banzami-canonical`) may exist locally, and the server must hold no Git checkout,
+`.git`, credentials, deploy keys or repository history. `deploy.sh` runs a preflight guard
+that refuses the wrong working directory (see `BANZAMI_SINGLE_SOURCE_OF_TRUTH.md`). The
+routine operator command is `./deploy.sh <service>` (selected-service is the default;
+`--all` must be explicit). It creates a **source bundle** from the exact local commit
 (`git archive`; no `.git`, no repository history, no secrets), transfers **only** the
 bundle + manifest + checksum, and the **amd64 server builds the selected service
 natively** (BuildKit cache) and deploys/restarts only that service (reusing the file-only
@@ -117,6 +121,11 @@ a verified source bundle. See `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.
 - Deploy does **not** run migrations, reset the VM, prune unrelated Docker resources, or
   change DNS/certificates/SMTP; it never targets Production/LIVE and uses no real
   money/customers/external providers. Rollback redeploys the previous validated image.
+- **Public website independence.** The institutional website `banzami.com` must start
+  independently of payment/admin/gateway/API/pay/checkout/Developer Platform services;
+  website restore is separate from payment/Sandbox deploy and must not require a full
+  production restore. See `BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md` and
+  `BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md`.
 
 **Formal evidence / release build (separate mode).** Build an attested, secret-free
 release package (digests + provenance verified), transfer + materialise it, and deploy

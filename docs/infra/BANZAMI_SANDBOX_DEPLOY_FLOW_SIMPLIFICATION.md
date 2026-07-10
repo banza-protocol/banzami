@@ -49,6 +49,10 @@ no Git and no repository history on the server.
 ## Principles
 
 - **Deploy is initiated from the Mac.** The operator's control point does not change.
+- **Single source of truth.** The only authorised local Git working directory is
+  `/Users/fm65/banzami`; no duplicate checkout (e.g. `banzami-canonical`) may exist, and
+  `deploy.sh` refuses to run from the wrong working directory. See
+  [BANZAMI_SINGLE_SOURCE_OF_TRUTH.md](BANZAMI_SINGLE_SOURCE_OF_TRUTH.md).
 - **Git stays only on the Mac/operator machine.** The server never runs `git clone` /
   `git pull`, holds no GitHub credentials, deploy keys, repository history or `.git`.
 - **The server receives source bundles, not history.**
