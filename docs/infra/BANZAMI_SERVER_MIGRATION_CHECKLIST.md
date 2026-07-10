@@ -43,8 +43,10 @@ Legend: ☐ = to do · record date/operator/outcome for each item.
   `.git`/history/secrets) → transfer bundle+manifest+checksum → server builds the
   selected service **natively on amd64** → deploy that service → health check → sanitised
   receipt. Selected-service is the default; `--all` explicit. Git stays only on the Mac;
-  the server holds no Git/history/credentials. (See
-  `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.)
+  the server holds no Git/history/credentials. Run only from the single authorised local
+  repository `/Users/fm65/banzami` — no duplicate checkout (e.g. `banzami-canonical`); the
+  `deploy.sh` preflight guard refuses the wrong working directory. (See
+  `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md` and `BANZAMI_SINGLE_SOURCE_OF_TRUTH.md`.)
 - ☐ **Formal/release:** build/transfer the attested, secret-free release package; deploy
   the four approved services (provenance/digest-validated before, health-checked after).
   Local Mac `linux/amd64` QEMU image builds are **removed / unsupported** — all Sandbox

@@ -33,6 +33,23 @@ REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 GIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
 LABEL_ARGS="--label org.opencontainers.image.revision=$GIT_SHA"
 
+# ─── Single source-of-truth preflight guard ───────────────────────────────────
+# The only authorised local Banzami working directory is /Users/fm65/banzami.
+# Refuse to run from a duplicate checkout (e.g. banzami-canonical) or from any repo
+# whose remote is not banza-protocol/banzami. Runs before any routing/action below.
+# See docs/infra/BANZAMI_SINGLE_SOURCE_OF_TRUTH.md.
+_ssot_die(){
+  printf '\n\033[0;31m✗ ERROR: Wrong Banzami working directory. Use the single authorised local repository: /Users/fm65/banzami. Do not use banzami-canonical or any duplicate checkout.\033[0m\n\n' >&2
+  exit 1
+}
+_ssot_root="$(git -C "$REPO_ROOT" rev-parse --show-toplevel 2>/dev/null || echo "$REPO_ROOT")"
+case "$_ssot_root" in *banzami-canonical*) _ssot_die ;; esac        # explicitly reject the duplicate checkout
+[ "$(basename "$_ssot_root")" = "banzami" ] || _ssot_die            # worktree root basename must be exactly "banzami"
+case "$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)" in
+  *banza-protocol/banzami|*banza-protocol/banzami.git) : ;;         # remote must be banza-protocol/banzami
+  *) _ssot_die ;;
+esac
+
 ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
