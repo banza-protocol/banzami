@@ -1,0 +1,48 @@
+# Production Postgres/Redis healthcheck fix — versioned source of truth.
+#
+# Fixes the cosmetic/monitoring drift found in the Stage A precheck and Stage C
+# readiness report (D5/D6):
+#
+#   D5 — the production Postgres healthcheck probed a database name that does not
+#        exist in the cluster: pg_isready still exited 0 (it only checks that the
+#        server accepts connections), while the server logged a FATAL
+#        "database does not exist" on every probe — health reported OK for the
+#        wrong reason, with permanent log noise.
+#   D6 — the production Redis healthcheck ran an UNAUTHENTICATED `redis-cli ping`
+#        against a password-protected Redis: redis-cli exits 0 even when the
+#        server answers NOAUTH, so the check would report healthy even if Redis
+#        were rejecting every real client (false positive).
+#
+# Corrected checks:
+#   Postgres — probe the database that actually exists in the production cluster
+#     (the staging/sandbox database; no live-money database exists — see the
+#     Stage A evidence) and prove it OPENS with a read-only SELECT 1 over the
+#     container-local socket (trust auth inside the container; no password used,
+#     none exposed).
+#   Redis — authenticated PING via the container's own env; the check passes ONLY
+#     on a literal PONG reply, so NOAUTH/any auth failure fails the check.
+#     --no-auth-warning keeps the password out of warning output; the value is
+#     read from the environment at probe time, never embedded in this file.
+#
+# APPLYING THIS IS A SERVER CHANGE and requires its own approved operation
+# (compose config update + container recreate for the healthcheck definitions to
+# take effect). This file is the versioned source of truth only — nothing in the
+# repository auto-applies it, and no deploy path exists for it (the deploy
+# authority gate is unchanged). No secrets, hosts or paths are committed here.
+# Static proof: tests/ops/prod-healthchecks.test.sh.
+services:
+  postgres:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U banzami -d banzami_staging && psql -U banzami -d banzami_staging -tAc 'SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" --no-auth-warning ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
