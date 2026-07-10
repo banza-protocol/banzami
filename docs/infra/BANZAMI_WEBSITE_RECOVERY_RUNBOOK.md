@@ -33,11 +33,12 @@ independence rule.
 4. **Rebuild only the website image if absent** — build the website image from the single
    authorised repository; do **not** rebuild any other service.
    ```
-   # from the authorised local repository only:
+   # from the authorised local repository only — the assurance gate is scope-aware,
+   # so a website-only deploy runs global-safety + website-specific checks and does NOT
+   # require an assurance-skip for unrelated checks:
    ./deploy.sh website-frontend
-   # if an UNRELATED pre-existing assurance/layout gate blocks an emergency restore,
-   # the documented emergency skip may be used and MUST be recorded in the incident note:
-   BANZAMI_SKIP_ASSURANCE=1 ./deploy.sh website-frontend
+   # BANZAMI_SKIP_ASSURANCE=1 is BREAK-GLASS only (record every use in the incident note);
+   # it is NOT the normal website recovery path.
    ```
 5. **Start only the website application** — the website container has no payment
    dependencies; starting it does not start payment/admin/gateway services.
@@ -60,13 +61,19 @@ independence rule.
 9. **Record evidence** — write/update the sanitised incident note
    ([../../evidence/website/WEBSITE_522_INCIDENT_RECOVERY.md](../../evidence/website/WEBSITE_522_INCIDENT_RECOVERY.md)).
 
-## Follow-up
+## Follow-up — RESOLVED
 
-- **FOLLOW-UP:** fix the website build/recovery assurance gate so an emergency website
-  restore does not require an assurance-skip for **unrelated** repository-layout checks (the
-  gate failed on an undocumented top-level `tests/` expectation). Until fixed, the emergency
-  skip is the documented path and every use must be recorded in the incident note. This is a
-  tracked follow-up, not a silent normalisation.
+- **RESOLVED:** the website build/recovery assurance gate no longer requires an
+  assurance-skip for unrelated checks. The deploy-time gate is now **scope-aware**: a
+  website-only deploy (`./deploy.sh website-frontend`) runs global-safety + website-specific
+  checks only (repository layout · Live fail-closed · `check-website-recovery-preflight.mjs`)
+  and no longer runs the unrelated manifest/asset-inventory/docs-claims/SDK-contract checks;
+  the legitimate top-level `tests/` directory is now documented and accepted. The
+  single-source-of-truth guard (wrong-checkout / `banzami-canonical` rejection) and the
+  no-local-QEMU-fallback rule are unchanged. `BANZAMI_SKIP_ASSURANCE=1` remains a
+  **break-glass** emergency escape only — it is not the normal website recovery path. See
+  [../../evidence/website/WEBSITE_ASSURANCE_GATE_FIX.md](../../evidence/website/WEBSITE_ASSURANCE_GATE_FIX.md)
+  and `tests/ops/website-assurance-gate.test.sh`.
 
 ## Prevention checklist
 

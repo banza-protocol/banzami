@@ -392,14 +392,38 @@ printf "\n${BOLD}Banzami deploy${NC} → ${CYAN}%s${NC}\n" "$REMOTE"
 printf "Services: ${BOLD}%s${NC}\n" "${SERVICES[*]}"
 [[ -n "$NO_CACHE" ]] && printf "${YELLOW}Mode: --no-cache (full rebuild)${NC}\n"
 
-# ─── Deploy-time assurance gate ───────────────────────────────────────────────
+# ─── Deploy-time assurance gate (scope-aware) ─────────────────────────────────
 # Mandatory quality gates run at deploy time on the deploy host, so enforcement
 # does not depend on GitHub-hosted Actions (billing-blocked). A failing gate
-# ABORTS the deploy. Set BANZAMI_SKIP_ASSURANCE=1 only for a documented
-# emergency (recorded in the repair log).
+# ABORTS the deploy.
+#
+# The gate is SCOPE-AWARE. A website-only deploy (the institutional website
+# banzami.com) runs global-safety + website-specific checks only, so an emergency
+# website restore does not require an assurance-skip for unrelated payment/
+# platform/manifest/SDK checks. A general/full deploy runs the complete, stricter
+# set. Global safety that is enforced regardless of scope: the single
+# source-of-truth preflight guard at the top of this script (wrong-checkout /
+# banzami-canonical rejection) and the no-local-QEMU-fallback routing — neither
+# is weakened here. See docs/infra/BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md.
+#
+# BANZAMI_SKIP_ASSURANCE=1 remains a BREAK-GLASS emergency escape only (recorded
+# in the incident/repair log) — it is not the normal website recovery path.
+_is_website_only=0
+if [ "${#SERVICES[@]}" -eq 1 ] && [ "${SERVICES[0]}" = "website-frontend" ]; then _is_website_only=1; fi
+
 if [ "${BANZAMI_SKIP_ASSURANCE:-0}" != "1" ]; then
-  printf "\n${BOLD}Deploy-time assurance gate${NC}\n"
-  if command -v node >/dev/null 2>&1; then
+  if ! command -v node >/dev/null 2>&1; then
+    die "Deploy blocked: node not available for the assurance gate (set BANZAMI_SKIP_ASSURANCE=1 only for a documented emergency)"
+  fi
+  if [ "$_is_website_only" = 1 ]; then
+    printf "\n${BOLD}Deploy-time assurance gate (website scope)${NC}\n"
+    # Global structural safety + website-specific prerequisites only.
+    node "$REPO_ROOT/tools/check-repository-layout.mjs"           >/dev/null || die "Deploy blocked: repository layout gate failed"
+    node "$REPO_ROOT/tools/check-live-fail-closed.mjs"            >/dev/null || die "Deploy blocked: Live fail-closed guard failed"
+    node "$REPO_ROOT/tools/check-website-recovery-preflight.mjs"  >/dev/null || die "Deploy blocked: website recovery preflight failed (run: node tools/check-website-recovery-preflight.mjs)"
+    ok "Website assurance gate passed (layout · live-fail-closed · website preflight)"
+  else
+    printf "\n${BOLD}Deploy-time assurance gate${NC}\n"
     node "$REPO_ROOT/tools/check-assurance-manifest.mjs"      >/dev/null || die "Deploy blocked: assurance manifest gate failed (run: node tools/check-assurance-manifest.mjs)"
     node "$REPO_ROOT/tools/check-repository-layout.mjs"       >/dev/null || die "Deploy blocked: repository layout gate failed"
     node "$REPO_ROOT/tools/check-asset-inventory.mjs"         >/dev/null || die "Deploy blocked: asset inventory gate failed"
@@ -407,9 +431,15 @@ if [ "${BANZAMI_SKIP_ASSURANCE:-0}" != "1" ]; then
     node "$REPO_ROOT/tools/check-docs-claims.mjs"             >/dev/null || die "Deploy blocked: docs↔manifest claim check failed"
     node "$REPO_ROOT/tools/check-sdk-contract.mjs"            >/dev/null || die "Deploy blocked: SDK↔manifest contract check failed"
     ok "Assurance gate passed (manifest · layout · inventory · live-fail-closed)"
-  else
-    die "Deploy blocked: node not available for the assurance gate (set BANZAMI_SKIP_ASSURANCE=1 only for a documented emergency)"
   fi
+fi
+
+# Gate-only mode: evaluate the assurance gate (and the guards above) then stop
+# before any build/transfer/deploy. Safe (no network, no Docker). Used to test the
+# scope-aware gate without deploying. See tests/ops/website-assurance-gate.test.sh.
+if [ "${BANZAMI_ASSURANCE_ONLY:-0}" = "1" ]; then
+  ok "Assurance-only mode: gate evaluated for [${SERVICES[*]}]; no build/deploy performed"
+  exit 0
 fi
 
 START=$(date +%s)

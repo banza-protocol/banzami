@@ -309,6 +309,7 @@ knowledge system — it does not operate payments and is not part of the operato
 | `evidence/` | Conformance and audit evidence artifacts (e.g. BANZA conformance reports) |
 | `quality/` | Canonical operator assurance manifest (single source of truth for capability status) |
 | `ops/` | Authoritative non-secret asset inventory (infrastructure, services, lifecycle) |
+| `tests/` | Cross-cutting test harnesses spanning more than one zone (e.g. `tests/phase0/` E2E). Service-local unit tests live beside their code. |
 
 ---
 

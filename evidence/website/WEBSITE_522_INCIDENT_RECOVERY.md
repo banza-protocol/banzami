@@ -83,14 +83,17 @@ subdomains stay offline until a separate, explicitly approved full production re
 6. **Documented website-only recovery command** (rebuild website image → start website app →
    start website proxy on 443 → verify 200) kept in the runbook.
 
-## Follow-up
+## Follow-up — RESOLVED
 
-- **FOLLOW-UP: fix the website build/recovery assurance gate so emergency website restore
-  does not require an assurance-skip for unrelated repository layout checks.** The recovery
-  had to set the documented emergency assurance-skip flag because a pre-existing
-  repository-layout gate failed on an undocumented top-level `tests/` expectation — unrelated
-  to the website. The website-only restore path should not be blocked by unrelated layout
-  checks; this is tracked as a follow-up and is **not** silently normalised here.
+- **RESOLVED: the website build/recovery assurance gate no longer requires an
+  assurance-skip for unrelated checks.** The deploy-time gate is now **scope-aware** — a
+  website-only deploy runs global-safety + website-specific checks only and no longer runs
+  the unrelated manifest/asset-inventory/docs-claims/SDK-contract checks; the legitimate
+  top-level `tests/` directory is now documented and accepted. Global safety (single
+  source-of-truth guard, wrong-checkout / `banzami-canonical` rejection, no local QEMU
+  fallback) is unchanged. `BANZAMI_SKIP_ASSURANCE=1` remains **break-glass only**. See
+  [WEBSITE_ASSURANCE_GATE_FIX.md](WEBSITE_ASSURANCE_GATE_FIX.md) and
+  `tests/ops/website-assurance-gate.test.sh`.
 
 See [../../docs/infra/BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md](../../docs/infra/BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md)
 and [../../docs/infra/BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md](../../docs/infra/BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md).
