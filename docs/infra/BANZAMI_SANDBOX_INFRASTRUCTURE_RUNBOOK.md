@@ -121,6 +121,11 @@ a verified source bundle. See `BANZAMI_SANDBOX_DEPLOY_FLOW_SIMPLIFICATION.md`.
 - Deploy does **not** run migrations, reset the VM, prune unrelated Docker resources, or
   change DNS/certificates/SMTP; it never targets Production/LIVE and uses no real
   money/customers/external providers. Rollback redeploys the previous validated image.
+- **Public website independence.** The institutional website `banzami.com` must start
+  independently of payment/admin/gateway/API/pay/checkout/Developer Platform services;
+  website restore is separate from payment/Sandbox deploy and must not require a full
+  production restore. See `BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md` and
+  `BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md`.
 
 **Formal evidence / release build (separate mode).** Build an attested, secret-free
 release package (digests + provenance verified), transfer + materialise it, and deploy

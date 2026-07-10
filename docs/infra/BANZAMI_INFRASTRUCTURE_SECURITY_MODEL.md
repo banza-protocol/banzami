@@ -103,6 +103,11 @@ Version: 1.0
   DNS/certificate/SMTP. Secrets stay
   file-only/in-process and never appear in the Docker-inspectable environment. Rollback
   uses the previous validated release/image. No ad-hoc SQL for state changes.
+- **Public website independence.** `banzami.com` must be able to start independently of
+  payment/admin/gateway/API/pay/checkout/Developer Platform services — a down payment stack
+  must not prevent the institutional website from serving, and website restore must not
+  require a full production restore. See `BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md` and
+  `BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md`.
 
 ## 11. Future production hardening still required
 

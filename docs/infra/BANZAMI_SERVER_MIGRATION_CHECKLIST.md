@@ -51,6 +51,10 @@ Legend: ☐ = to do · record date/operator/outcome for each item.
   the four approved services (provenance/digest-validated before, health-checked after).
   Local Mac `linux/amd64` QEMU image builds are **removed / unsupported** — all Sandbox
   service builds run natively on the amd64 Sandbox server from a verified source bundle.
+- ☐ **Public website independence:** the institutional website `banzami.com` must start
+  independently of payment/admin/gateway/API/pay/checkout/Developer Platform services, and
+  its restore must not require a full production restore (see
+  `BANZAMI_PUBLIC_WEBSITE_ARCHITECTURE.md` / `BANZAMI_WEBSITE_RECOVERY_RUNBOOK.md`).
 
 ## 9. Health checks
 - ☐ All services healthy, non-root, no host ports, internal networks only, no secret in
