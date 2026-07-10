@@ -101,9 +101,13 @@ provider.
 
 ## 13. Deploy process
 
-**Deploy model — Git stays only on the Mac; the server builds natively.** The routine
-operator command is `./deploy.sh <service>` (selected-service is the default; `--all`
-must be explicit). It creates a **source bundle** from the exact local commit
+**Deploy model — Git stays only on the Mac; the server builds natively.** The single
+authorised local Git working directory is `/Users/fm65/banzami`; no duplicate checkout
+(e.g. `banzami-canonical`) may exist locally, and the server must hold no Git checkout,
+`.git`, credentials, deploy keys or repository history. `deploy.sh` runs a preflight guard
+that refuses the wrong working directory (see `BANZAMI_SINGLE_SOURCE_OF_TRUTH.md`). The
+routine operator command is `./deploy.sh <service>` (selected-service is the default;
+`--all` must be explicit). It creates a **source bundle** from the exact local commit
 (`git archive`; no `.git`, no repository history, no secrets), transfers **only** the
 bundle + manifest + checksum, and the **amd64 server builds the selected service
 natively** (BuildKit cache) and deploys/restarts only that service (reusing the file-only
