@@ -75,6 +75,12 @@ independence rule.
   [../../evidence/website/WEBSITE_ASSURANCE_GATE_FIX.md](../../evidence/website/WEBSITE_ASSURANCE_GATE_FIX.md)
   and `tests/ops/website-assurance-gate.test.sh`.
 
+## Wider production restore
+
+The website-only recovery above is Stage-B-adjacent scope. The staged restore of the
+remaining production subdomains is governed separately — see the Stage C decision
+record: [BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md).
+
 ## Prevention checklist
 
 - ☐ Website-only healthcheck on the website application.

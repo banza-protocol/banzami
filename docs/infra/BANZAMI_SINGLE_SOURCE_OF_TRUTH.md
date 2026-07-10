@@ -64,3 +64,8 @@ incident-forensics evidence blindly, and never during an unrelated incident.
 - Authorised local repository: `/Users/fm65/banzami` (remote `banza-protocol/banzami`).
 - Prohibited duplicate: `/Users/fm65/banzami-canonical` (must not exist).
 - Deploy entrypoint: `./deploy.sh <service>` from the authorised repository.
+
+## Related
+
+- Stage C sandbox public routing decisions (pending):
+  [BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md](BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md)
