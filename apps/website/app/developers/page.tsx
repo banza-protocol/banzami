@@ -138,7 +138,7 @@ const EMBEDDED_MANUAL: string[] = [
 const EMBEDDED_BANZAMI: string[] = [
   'Pedido',
   'Pagar com Banzami',
-  'payment.confirmed',
+  'payment_session.paid',
   'Libertação automática',
   'Recibo',
 ];
@@ -153,8 +153,8 @@ const EMBEDDED_CHANGE: string[] = [
 
 /* ---------- API endpoints ---------- */
 const ENDPOINTS: { method: 'POST' | 'GET'; path: string; desc: string }[] = [
-  { method: 'POST', path: '/v1/payments', desc: 'Criar um pagamento.' },
-  { method: 'GET', path: '/v1/payments/{id}', desc: 'Consultar o estado de um pagamento.' },
+  { method: 'POST', path: '/v1/business/payment-sessions', desc: 'Criar uma sessão de pagamento.' },
+  { method: 'GET', path: '/v1/business/payment-sessions/{id}', desc: 'Consultar o estado de um pagamento.' },
   { method: 'POST', path: '/v1/refunds', desc: 'Reembolsar um pagamento confirmado.' },
   { method: 'GET', path: '/v1/wallets/{id}/balance', desc: 'Consultar o saldo de uma carteira.' },
   { method: 'POST', path: '/v1/webhooks/endpoints', desc: 'Registar um endpoint de webhook.' },
@@ -167,8 +167,8 @@ const ENDPOINT_TABLE: {
   user: string;
   when: string;
 }[] = [
-  { endpoint: 'POST /v1/payments', purpose: 'Criar um pagamento', user: 'Comerciante / app', when: 'Quando se quer pedir um pagamento.' },
-  { endpoint: 'GET /v1/payments/{id}', purpose: 'Consultar estado', user: 'App / backend', when: 'Quando uma app precisa de verificar o estado.' },
+  { endpoint: 'POST /v1/business/payment-sessions', purpose: 'Criar uma sessão de pagamento', user: 'Comerciante / app', when: 'Quando se quer pedir um pagamento.' },
+  { endpoint: 'GET /v1/business/payment-sessions/{id}', purpose: 'Consultar estado', user: 'App / backend', when: 'Quando uma app precisa de verificar o estado.' },
   { endpoint: 'POST /v1/refunds', purpose: 'Reembolsar', user: 'Comerciante', when: 'Quando é preciso devolver dinheiro.' },
   { endpoint: 'GET /v1/wallets/{id}/balance', purpose: 'Consultar saldo', user: 'Sistema', when: 'Quando é preciso mostrar o saldo disponível.' },
   { endpoint: 'POST /v1/webhooks/endpoints', purpose: 'Registar endpoint', user: 'Comerciante', when: 'Quando se quer receber eventos automaticamente.' },
@@ -186,21 +186,21 @@ const ENDPOINT_DETAILS: {
 }[] = [
   {
     method: 'POST',
-    path: '/v1/payments',
-    does: 'Cria um objeto de pagamento e devolve um id e o estado inicial.',
+    path: '/v1/business/payment-sessions',
+    does: 'Cria uma sessão de pagamento e devolve o id, o estado e as interfaces (link/QR).',
     when: 'Quando o comerciante ou a app querem pedir um pagamento ao cliente.',
-    fields: 'amount, currency, recipient (e idealmente uma Idempotency-Key).',
+    fields: 'wallet_account_id, purpose, reference_type, reference_id, amount_minor, currency (e o header Idempotency-Key).',
     typical: 'Uma cantina cria um pagamento de 2500 AOA para @cantina-alex.',
-    failures: 'insufficient_balance, idempotency_conflict, invalid_api_key.',
+    failures: 'MISSING_FIELD, VALIDATION_ERROR, CONFLICT (Idempotency-Key), UNAUTHORIZED.',
   },
   {
     method: 'GET',
-    path: '/v1/payments/{id}',
+    path: '/v1/business/payment-sessions/{id}',
     does: 'Devolve o estado atual e os detalhes de um pagamento existente.',
     when: 'Quando uma app precisa de mostrar ou reconfirmar o estado de um pagamento.',
     fields: 'O id do pagamento no caminho do URL.',
     typical: 'O backend consulta o pagamento antes de libertar a encomenda.',
-    failures: 'payment_not_found, invalid_api_key.',
+    failures: 'NOT_FOUND, UNAUTHORIZED.',
   },
   {
     method: 'POST',
@@ -226,7 +226,7 @@ const ENDPOINT_DETAILS: {
     does: 'Regista um URL que passa a receber eventos assinados.',
     when: 'Quando se quer ser notificado automaticamente das mudanças de estado.',
     fields: 'url do endpoint e os tipos de evento a subscrever.',
-    typical: 'O backend regista um endpoint para receber payment.confirmed.',
+    typical: 'O backend regista um endpoint para receber payment_session.paid.',
     failures: 'invalid_api_key, rate_limit_exceeded.',
   },
 ];
@@ -244,8 +244,8 @@ const PAYMENT_STATES: { code: string; label: string; tone: 'neutral' | 'pending'
 /* ---------- SDK integration table ---------- */
 const SDK_TABLE: { type: string; bestFor: string; example: string }[] = [
   { type: 'JavaScript / TS', bestFor: 'Web apps e backends Node.js', example: 'Dashboards, checkout web, APIs.' },
-  { type: 'iOS', bestFor: 'Apps de consumidor', example: 'Pagamento por QR e @banza.' },
-  { type: 'Android', bestFor: 'Comerciante, estafeta, consumidor', example: 'Checkout e confirmação na app.' },
+  { type: 'Flutter (iOS & Android)', bestFor: 'Apps móveis de consumidor e comerciante', example: 'Pagamento por QR, @banza e checkout na app.' },
+  { type: 'Python / PHP', bestFor: 'Backends e plataformas web', example: 'E-commerce, ERP, integrações server-side.' },
   { type: 'REST', bestFor: 'Backend à medida', example: 'ERP, POS e sistemas legados.' },
 ];
 
@@ -255,13 +255,13 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
     title: 'Cantina / restaurante',
     today: 'Cliente paga em dinheiro ou mostra um comprovativo manual.',
     flow: 'Cliente paga por QR, comerciante recebe webhook, recibo gerado.',
-    integration: 'createQr → payment.confirmed → recibo.',
+    integration: 'createQr → payment_session.paid → recibo.',
   },
   {
     title: 'Loja de bairro',
     today: 'Venda registada à mão, sem confirmação fiável.',
     flow: 'Comerciante cria pedido de pagamento, cliente confirma, venda registada.',
-    integration: 'POST /v1/payments → payment.confirmed.',
+    integration: 'POST /v1/business/payment-sessions → payment_session.paid.',
   },
   {
     title: 'Táxi / moto-táxi',
@@ -273,25 +273,25 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
     title: 'E-commerce local',
     today: 'Encomenda confirmada por screenshot enviado por WhatsApp.',
     flow: 'Checkout cria pedido, encomenda marcada paga após webhook.',
-    integration: 'payments.create → payment.confirmed → encomenda paga.',
+    integration: 'createPaymentSession → payment_session.paid → encomenda paga.',
   },
   {
     title: 'Delivery',
     today: 'Estafeta cobra à porta, sem garantia de pagamento.',
     flow: 'Pagamento confirmado antes da recolha/entrega.',
-    integration: 'Esperar payment.confirmed antes de despachar.',
+    integration: 'Esperar payment_session.paid antes de despachar.',
   },
   {
     title: 'Marketplaces e plataformas multi-vendedor',
     today: 'A plataforma segue manualmente quem pagou, quem recebe e que comissão se aplica.',
     flow: 'Associar pagamentos a vendedores, guardar referências, gerar recibos e reconciliar. Esta arquitetura prepara o caminho para divisão de pagamentos e liquidação entre participantes quando os módulos correspondentes forem ativados.',
-    integration: 'metadata.seller_id, metadata.marketplace_order_id, payment.confirmed (split futuro).',
+    integration: 'metadata.seller_id, metadata.marketplace_order_id, payment_session.paid (split futuro).',
   },
   {
     title: 'Serviços, reservas e marcações',
     today: 'Reservas confirmadas à mão após o cliente enviar comprovativo.',
     flow: 'Cliente reserva → app cria pagamento → cliente confirma → webhook confirma → reserva fica confirmada automaticamente.',
-    integration: 'metadata.booking_id → payment.confirmed → booking status = confirmed.',
+    integration: 'metadata.booking_id → payment_session.paid → booking status = confirmed.',
   },
 ];
 
@@ -310,7 +310,7 @@ const RESPONSIBILITIES = [
 const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[] = [
   {
     name: 'JavaScript / TypeScript',
-    install: 'npm install @banzami/sdk',
+    install: 'código-fonte (@banzami/sdk — ainda não publicado em npm)',
     desc: 'Cliente tipado para Node.js e ambientes server-side, com idempotência e retries.',
     snippet: (
       <>
@@ -320,32 +320,32 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
     ),
   },
   {
-    name: 'iOS',
-    install: 'pod "Banzami"',
-    desc: 'SDK cliente para apps iOS — pagamentos por QR e @banza nativos.',
+    name: 'Flutter (iOS & Android)',
+    install: 'código-fonte (banzami_flutter — ainda não publicado em pub.dev)',
+    desc: 'SDK cliente Flutter para apps móveis — pagamento por QR, @banza e checkout na app.',
     snippet: (
       <>
-        <K>let</K> client = <F>BanzamiClient</F>(environment: <S>.sandbox</S>)
+        <K>final</K> client = <F>BanzamiClient</F>(environment: Environment.<S>sandbox</S>);
       </>
     ),
   },
   {
-    name: 'Android',
-    install: 'implementation "com.banzami:sdk"',
-    desc: 'SDK cliente para apps Android — checkout e confirmação de pagamento.',
+    name: 'PHP',
+    install: 'código-fonte (banzami/sdk — ainda não publicado em Packagist)',
+    desc: 'Cliente PHP (+ Laravel) para plataformas web e e-commerce server-side.',
     snippet: (
       <>
-        <K>val</K> client = <F>BanzamiClient</F>(Environment.<S>SANDBOX</S>)
+        <K>$client</K> = <K>new</K> <F>BanzamiClient</F>(<S>getenv(&quot;BANZAMI_API_KEY&quot;)</S>);
       </>
     ),
   },
   {
     name: 'REST API',
-    install: 'https://api.banzami.com/v1',
-    desc: 'Para ambientes sem SDK oficial — a mesma API REST, idempotente e versionada.',
+    install: 'https://sandbox-api.banzami.com/v1',
+    desc: 'O caminho recomendado hoje — a mesma API REST, idempotente e versionada, sem depender de SDKs.',
     snippet: (
       <>
-        <K>POST</K> /v1/payments
+        <K>POST</K> /v1/business/payment-sessions
         {'\n'}
         Authorization: Bearer <S>bz_test_sk_xxx</S>
       </>
@@ -364,14 +364,13 @@ const SANDBOX_CAPS = [
 ];
 
 /* ---------- Webhook events ---------- */
+// Verified event catalogue only (same closed set enforced by the /docs tests).
 const WEBHOOK_EVENTS = [
-  'payment.created',
-  'payment.pending_confirmation',
-  'payment.confirmed',
-  'payment.failed',
-  'payment.refunded',
-  'wallet.credit',
-  'wallet.debit',
+  'payment_session.paid',
+  'payment_link.paid',
+  'application_settlement.completed',
+  'application_settlement.cancelled',
+  'application_settlement.failed',
 ];
 
 /* ---------- Security cards ---------- */
@@ -435,7 +434,7 @@ const EXAMPLES: {
         <span className="bz-mono text-cherry-dark">metadata.order_id</span>.
       </>
     ),
-    event: 'payment.confirmed',
+    event: 'payment_session.paid',
     sees: 'A encomenda só é despachada depois de confirmada — sem comprovativos manuais.',
     snippet: (
       <>
@@ -461,7 +460,7 @@ const EXAMPLES: {
         <span className="bz-mono text-cherry-dark">metadata.trip_id</span> e handler de webhook.
       </>
     ),
-    event: 'payment.confirmed',
+    event: 'payment_session.paid',
     sees: 'O condutor vê a corrida marcada como paga assim que o passageiro confirma.',
     snippet: (
       <>
@@ -474,7 +473,7 @@ const EXAMPLES: {
         {'\n\n'}
         <C>{'// no handler de webhook:'}</C>
         {'\n'}
-        <K>if</K> (event.type === <S>&quot;payment.confirmed&quot;</S>) {'{\n'}
+        <K>if</K> (event.type === <S>&quot;payment_session.paid&quot;</S>) {'{\n'}
         {'  '}<K>await</K> trips.<F>markPaid</F>(event.data.metadata.trip_id);{'\n'}
         {'}'}
       </>
@@ -489,7 +488,7 @@ const EXAMPLES: {
         <span className="bz-mono text-cherry-dark">metadata.delivery_id</span>; reembolso opcional.
       </>
     ),
-    event: 'payment.confirmed',
+    event: 'payment_session.paid',
     sees: 'A recolha só avança depois de confirmado; se for cancelado, faz-se o reembolso.',
     snippet: (
       <>
@@ -519,7 +518,7 @@ const EXAMPLES: {
         na app.
       </>
     ),
-    event: 'payment.confirmed',
+    event: 'payment_session.paid',
     sees: 'O comerciante imprime um QR e recebe a confirmação sem terminal dedicado.',
     snippet: (
       <>
@@ -539,7 +538,7 @@ const EXAMPLES: {
         <span className="bz-mono text-cherry-dark">@banza</span>.
       </>
     ),
-    event: 'wallet.credit',
+    event: 'COMPLETED (síncrono)',
     sees: 'O destinatário recebe o valor e o recibo na carteira, em tempo real.',
     snippet: (
       <>
@@ -558,7 +557,7 @@ const EXAMPLES: {
         <span className="bz-mono text-cherry-dark">metadata.marketplace_order_id</span>.
       </>
     ),
-    event: 'payment.confirmed',
+    event: 'payment_session.paid',
     sees: 'Cada pagamento fica associado ao vendedor e à encomenda, pronto a reconciliar.',
     snippet: (
       <>
@@ -793,14 +792,13 @@ export default function DevelopersPage() {
               ))}
             </div>
             <Reveal>
-              <CodeBlock title="quickstart.ts" lang="sandbox">
-                npm install @banzami/sdk{'\n\n'}
-                <K>import</K> {'{ BanzamiClient } '}
-                <K>from</K> <S>&quot;@banzami/sdk&quot;</S>;{'\n\n'}
-                <K>const</K> client = <K>new</K> <F>BanzamiClient</F>({'{\n'}
-                {'  '}apiKey: process.env.<F>BANZAMI_API_KEY</F>,{'\n'}
-                {'  '}environment: <S>&quot;sandbox&quot;</S>,{'\n'}
-                {'});'}
+              <CodeBlock title="quickstart.sh" lang="sandbox · curl">
+                <K>#</K> Primeira chamada — sem SDK (os SDKs ainda não estão publicados){'\n'}
+                curl https://sandbox-api.banzami.com<F>/v1/me</F> \{'\n'}
+                {'  '}-H <S>&quot;Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX&quot;</S>{'\n\n'}
+                <K>#</K> Resposta (200){'\n'}
+                {'{'} <F>&quot;environment&quot;</F>: <S>&quot;SANDBOX&quot;</S>, <F>&quot;project&quot;</F>: <S>&quot;meu-projeto&quot;</S>,{'\n'}
+                {'  '}<F>&quot;scopes&quot;</F>: [<S>&quot;identity:read&quot;</S>], <F>&quot;key_status&quot;</F>: <S>&quot;ACTIVE&quot;</S> {'}'}
               </CodeBlock>
             </Reveal>
           </div>
@@ -1073,8 +1071,8 @@ export default function DevelopersPage() {
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Reveal>
-              <CodeBlock title="request" lang="POST /v1/payments">
-                <K>POST</K> /v1/payments{'\n'}
+              <CodeBlock title="request" lang="POST /v1/business/payment-sessions">
+                <K>POST</K> /v1/business/payment-sessions{'\n'}
                 Authorization: Bearer <S>bz_test_sk_xxx</S>
                 {'\n'}
                 Idempotency-Key: <S>order_123</S>
@@ -1133,7 +1131,7 @@ export default function DevelopersPage() {
               <strong>não devem entregar bens só porque um pagamento foi criado — devem esperar
               por <span className="bz-mono">confirmed</span></strong> (ou por um webhook válido).
               Exemplo: uma cantina ou serviço de entrega só deve libertar o produto após{' '}
-              <span className="bz-mono text-cherry-dark">payment.confirmed</span> ou confirmação por
+              <span className="bz-mono text-cherry-dark">payment_session.paid</span> ou confirmação por
               webhook.
             </p>
           </Reveal>
@@ -1492,16 +1490,16 @@ export default function DevelopersPage() {
             </div>
             <p className="m-0 mt-6 rounded-card bg-cream-50 px-5 py-[14px] text-[13.5px] font-semibold leading-[1.6] text-ink-secondary">
               Exemplo prático: o sistema recebe{' '}
-              <span className="bz-mono text-cherry-dark">payment.confirmed</span> e marca
+              <span className="bz-mono text-cherry-dark">payment_session.paid</span> e marca
               automaticamente a encomenda <span className="bz-mono">#123</span> como paga.
             </p>
           </Reveal>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
             <Reveal>
-              <CodeBlock title="payload.json" lang="payment.confirmed">
+              <CodeBlock title="payload.json" lang="payment_session.paid">
                 {'{\n'}
-                {'  '}<F>&quot;type&quot;</F>: <S>&quot;payment.confirmed&quot;</S>,{'\n'}
+                {'  '}<F>&quot;type&quot;</F>: <S>&quot;payment_session.paid&quot;</S>,{'\n'}
                 {'  '}<F>&quot;data&quot;</F>: {'{\n'}
                 {'    '}<F>&quot;id&quot;</F>: <S>&quot;pay_01HX...&quot;</S>,{'\n'}
                 {'    '}<F>&quot;status&quot;</F>: <S>&quot;confirmed&quot;</S>,{'\n'}
@@ -1613,7 +1611,7 @@ export default function DevelopersPage() {
               </ul>
             </Reveal>
             <Reveal delay={70}>
-              <CodeBlock title="metadata" lang="POST /v1/payments">
+              <CodeBlock title="metadata" lang="POST /v1/business/payment-sessions">
                 {'{\n'}
                 {'  '}<F>&quot;amount&quot;</F>: <F>2500</F>, <F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>,{'\n'}
                 {'  '}<F>&quot;recipient&quot;</F>: <S>&quot;@cantina-alex&quot;</S>,{'\n'}

@@ -143,9 +143,59 @@ const session = await banzami.createPaymentSession({
 const link = banzami.paymentSessionInterface(session, 'PAYMENT_LINK');
 // link.value  ->  https://pay.banzami.com/pay/{slug}`;
 
-const SAMPLE_HTTP = `POST https://sandbox-api.banzami.com/v1/business/payment-sessions
-Authorization: Bearer <token emitido a partir da sua chave bz_test_>
-Content-Type: application/json`;
+// curl-first — a primeira chamada bem-sucedida não exige nenhum SDK.
+// Chaves e identificadores são SEMPRE placeholders; tudo é Sandbox-only.
+const SAMPLE_CURL_ME = `# Verificar a sua chave de teste (placeholder) contra a API Sandbox
+curl https://sandbox-api.banzami.com/v1/me \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"
+
+# Resposta (200)
+{
+  "environment": "SANDBOX",
+  "project": "meu-projeto",
+  "scopes": ["identity:read"],
+  "key_status": "ACTIVE"
+}`;
+
+const SAMPLE_CURL_SESSION = `# Criar uma sessão de pagamento no Sandbox (valores placeholder)
+curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: idem_pedido_123" \\
+  -d '{
+    "wallet_account_id": "wacc_exemplo",
+    "purpose": "PAGAMENTO",
+    "reference_type": "PEDIDO",
+    "reference_id": "pedido_123",
+    "amount_minor": 25000,
+    "currency": "AOA",
+    "description": "Pedido #123"
+  }'
+
+# Resposta (201) — campos principais
+{
+  "session_id": "psess_exemplo",
+  "wallet_account_id": "wacc_exemplo",
+  "currency": "AOA",
+  "amount_minor": 25000,
+  "purpose": "PAGAMENTO",
+  "reference_type": "PEDIDO",
+  "reference_id": "pedido_123",
+  "status": "ACTIVE",
+  "expires_at": "2026-07-11T12:00:00Z",
+  "created_at": "2026-07-11T11:45:00Z",
+  "interfaces": [
+    { "type": "DYNAMIC_QR", "value": "<payload>", "format": "QR_PAYLOAD",
+      "qr_url": "https://pay.banzami.com/…", "expires_at": "2026-07-11T12:00:00Z" }
+  ]
+}`;
+
+const SAMPLE_ERROR = `# Envelope canónico de erro (Sandbox)
+{
+  "code": "VALIDATION_ERROR",
+  "message": "amount_minor must be a positive integer",
+  "request_id": "req_XXXXXXXX"
+}`;
 
 const SAMPLE_KEYS = `bz_test_pk_XXXXXXXXXXXXXXXX   # publicável — pode ir no cliente
 bz_test_sk_XXXXXXXXXXXXXXXX   # secreta — apenas no servidor, revelada uma única vez`;
@@ -329,6 +379,19 @@ export default function DocsPage() {
                 habilitada para pagamentos reais.
               </P>
 
+              {/* Estado atual — status honesto no topo (P0). Usa o cartão existente. */}
+              <div id="estado-atual" style={{ scrollMarginTop: 72, margin: '0 0 18px', borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '16px 18px', maxWidth: 660 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>Estado atual desta documentação</span>
+                  <Badge tone="prep">Sandbox / Pré-visualização</Badge>
+                </div>
+                <UL>
+                  <LI>Esta é documentação <strong>Sandbox / Pré-visualização</strong>. A capacidade Sandbox está limitada a fluxos de teste controlados.</LI>
+                  <LI><strong>Produção e trilhos de dinheiro real não estão disponíveis.</strong> Pay/checkout públicos, trilhos live e fornecedores externos não estão disponíveis.</LI>
+                  <LI>As páginas <strong>visuais</strong> da Consola (dashboard, webhooks, logs) são <strong>pré-visualizações demo, não operacionais</strong>, salvo indicação explícita em contrário. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
+                </UL>
+              </div>
+
               {/* Interactive capability cards */}
               <div className="bz-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '18px 0 26px' }}>
                 {CARDS.map((c) => (
@@ -352,7 +415,7 @@ export default function DocsPage() {
               <H3>Três camadas</H3>
               <P>Ao integrar Banzami, distinga sempre três camadas:</P>
               <UL>
-                <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e <GlossaryTerm id="otp">OTP</GlossaryTerm>, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis. A Console não é uma API pública para terceiros chamarem diretamente.</LI>
+                <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e <GlossaryTerm id="otp">OTP</GlossaryTerm>, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis. A Console não é uma API pública para terceiros chamarem diretamente. As restantes páginas visuais da Consola (dashboard, webhooks, logs) são <strong>pré-visualizações demo com dados ilustrativos — não operacionais</strong>; não é possível gerir chaves, webhooks ou logs de forma operacional através dessas páginas.</LI>
                 <LI><strong>Camada de integração Banzami</strong> — o que a sua aplicação usa para pagamentos: links de pagamento, sessões, QR, confirmação, comprovativos, <GlossaryTerm id="webhook">webhooks</GlossaryTerm> assinados e <GlossaryTerm id="liquidacao">liquidação</GlossaryTerm> controlada pelo operador.</LI>
                 <LI><strong>Banzami Operator / Core</strong> — a camada financeira do Banzami: executa o pagamento, mantém saldos e integridade, calcula e controla a liquidação. A sua aplicação nunca cria nem gere um <GlossaryTerm id="ledger">ledger</GlossaryTerm> financeiro próprio.</LI>
               </UL>
@@ -395,12 +458,17 @@ export default function DocsPage() {
                 <LI>Crie um <strong>projeto Sandbox</strong>.</LI>
                 <LI>Crie uma <strong>chave de teste</strong>.</LI>
                 <LI>Guarde a chave <strong>secreta</strong> quando ela aparece — é mostrada uma única vez.</LI>
-                <LI><strong>Verifique a chave</strong> contra a API Sandbox: <Code>GET /v1/me</Code> com <Code>Authorization: Bearer bz_test_sk_…</Code> devolve o ambiente, workspace, projeto e scopes resolvidos da chave.</LI>
-                <LI>Use a camada de integração Banzami na sua aplicação (via SDK).</LI>
+                <LI><strong>Verifique a chave</strong> contra a API Sandbox com <Code>curl</Code>: <Code>GET /v1/me</Code> devolve o ambiente, projeto, scopes e estado da chave. Esta é a sua primeira chamada bem-sucedida — <strong>não precisa de nenhum SDK</strong>.</LI>
+                <LI>Continue por HTTP direto (curl) ou, opcionalmente, com um SDK interno aprovado — os SDKs ainda não estão publicados em registos públicos.</LI>
                 <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm> e apresente o link/QR.</LI>
                 <LI>Acompanhe a confirmação e emita o comprovativo.</LI>
                 <LI>Valide webhooks assinados quando aplicável.</LI>
               </ol>
+              <CodeBlock label="curl · primeira chamada (GET /v1/me)" raw={SAMPLE_CURL_ME} onCopy={copy} />
+              <Callout>
+                Todos os exemplos usam <strong>chaves e identificadores placeholder</strong> e são <strong>Sandbox-only</strong> —
+                nunca movem dinheiro real. Substitua os valores pelos do seu projeto Sandbox.
+              </Callout>
               <CodeBlock label="chaves de teste" raw={SAMPLE_KEYS} onCopy={copy} />
               <UL>
                 <LI><Code>bz_test_pk_</Code> — <GlossaryTerm id="chave-publicavel">chave publicável</GlossaryTerm> (pode ir no cliente).</LI>
@@ -409,8 +477,9 @@ export default function DocsPage() {
               </UL>
               <Callout>Nunca exponha chaves secretas no browser, app móvel, repositório, logs, capturas de ecrã ou analytics.</Callout>
               <P>
-                Os SDKs estão disponíveis como código-fonte (alguns vendored nas aplicações) e ainda não estão publicados
-                em registos públicos — ver <a href="#sdks" onClick={go('sdks')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
+                Os SDKs ainda <strong>não estão publicados</strong> em npm, PyPI, Packagist ou pub.dev — use os exemplos HTTP
+                diretos (curl) por agora, salvo se trabalhar a partir de um pacote SDK interno aprovado — ver{' '}
+                <a href="#sdks" onClick={go('sdks')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
                 Não corra <Code>npm install @banzami/sdk</Code> — esse pacote ainda não está publicado.
               </P>
             </Section>
@@ -424,17 +493,70 @@ export default function DocsPage() {
               <P>
                 Workspaces, projetos, membros e <strong>chaves</strong> são geridos no portal Banzami Developers — pela interface,
                 com sessão e permissões por papel. Não é uma API pública para chamar diretamente, por isso não expomos aqui os
-                seus endpoints internos.
+                seus endpoints internos. As restantes páginas visuais da Consola (dashboard, webhooks, logs) são
+                <strong> pré-visualizações demo, não operacionais</strong>.
               </P>
+
+              <H3 id="credenciais">Credenciais e capacidades</H3>
+              <P>
+                Nem todas as capacidades documentadas são chamáveis com a mesma credencial hoje. Esta matriz diz a verdade
+                por credencial — para que “Disponível em Sandbox” seja sempre verdade <em>para si</em>, não apenas para a plataforma:
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capacidade</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Credencial</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['Console — entrar, workspaces, projetos, membros, chaves', 'Sessão OTP (email + código)', 'Disponível em Sandbox controlado'],
+                      ['Páginas visuais da Consola (dashboard, webhooks, logs)', '—', 'Demo / pré-visualização — não operacional'],
+                      ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
+                      ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
+                      ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
+                      ['Registo de endpoints de webhooks (API)', 'Credencial de merchant', 'Documentado, não público'],
+                      ['Entrega outbound de webhooks', '—', 'Simulado no E2E público; jornada DOA verificada'],
+                      ['Reembolsos (POST /v1/refunds)', 'Credencial de merchant (verificado). Scope developer refunds:write', 'Pendente E2E para chave developer — pedido com chave developer é recusado (403)'],
+                      ['Transferências', 'Utilizador autenticado (verificado). Scopes developer transfers:*', 'Pendente E2E para chave developer'],
+                      ['Produção / trilhos live / fornecedores externos', '—', 'Não disponível · Não aprovado'],
+                    ] as [string, string, string][]).map(([cap, cred, st]) => (
+                      <tr key={cap}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{cred}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{st}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
               <H3>Integração Banzami</H3>
               <P>
-                A sua aplicação autentica-se com uma <GlossaryTerm id="api-key">API key</GlossaryTerm> <Code>bz_test_</Code> (trocada por um token de curta duração) e chama
-                a camada de integração em <Code>sandbox-api.banzami.com</Code>. O fluxo principal é <strong>sessão de pagamento</strong>
-                (link e QR), tal como usado pelo DOA.
+                A sua aplicação autentica-se enviando a <GlossaryTerm id="api-key">API key</GlossaryTerm> Sandbox <Code>bz_test_</Code> diretamente
+                no header <Code>Authorization: Bearer …</Code> e chama a camada de integração em <Code>sandbox-api.banzami.com</Code>.
+                O fluxo principal é <strong>sessão de pagamento</strong> (link e QR), tal como usado pelo DOA.
               </P>
-              <CodeBlock label="ts · criar sessão de pagamento" raw={SAMPLE_SESSION} onCopy={copy} />
-              <CodeBlock label="http · endpoint real" raw={SAMPLE_HTTP} onCopy={copy} />
+              <CodeBlock label="curl · criar sessão de pagamento (pedido + resposta)" raw={SAMPLE_CURL_SESSION} onCopy={copy} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Erros comuns deste endpoint: <Code>401 UNAUTHORIZED</Code> (chave inválida), <Code>403 FORBIDDEN</Code> (scope
+                insuficiente ou projeto sem binding), <Code>400 MISSING_FIELD / INVALID_BODY</Code>, <Code>409 CONFLICT</Code>
+                (Idempotency-Key em curso). Ver <a href="#errors" onClick={go('errors')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
+              </P>
+              <CodeBlock label="ts · criar sessão de pagamento (SDK interno, opcional)" raw={SAMPLE_SESSION} onCopy={copy} />
+
+              <H3 id="idempotencia">Idempotência <Badge tone="ok" /></H3>
+              <P>
+                Envie o header <Code>Idempotency-Key</Code> em qualquer operação de escrita para poder <strong>repetir com
+                segurança</strong> um pedido que falhou por rede/timeout, sem risco de duplicar o efeito. O comportamento no
+                Sandbox: a resposta original (2xx ou 4xx) é reproduzida para a mesma chave durante <strong>24 horas</strong>,
+                por credencial, método e caminho; respostas <Code>5xx</Code> nunca são reproduzidas (o pedido pode ser repetido);
+                dois pedidos <strong>simultâneos</strong> com a mesma chave recebem <Code>409 CONFLICT</Code> até o primeiro
+                terminar — nesse caso, aguarde e repita com a <em>mesma</em> chave.
+              </P>
 
               <H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>
               <P>
@@ -457,8 +579,13 @@ export default function DocsPage() {
                 Repetir a mesma idempotency key devolve a transferência original, sem mover fundos duas vezes. Validado de ponta a
                 ponta no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
               </P>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Nota de credencial: o percurso verificado usa um utilizador autenticado. Os scopes de chave developer
+                (<Code>transfers:*</Code>) estão <strong>Pendente E2E</strong> — ver a matriz de{' '}
+                <a href="#credenciais" onClick={go('credenciais')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
+              </P>
 
-              <H3 id="reembolsos">Reembolsos <Badge tone="val" /></H3>
+              <H3 id="reembolsos">Reembolsos <Badge tone="ok" /></H3>
               <P>
                 Reembolsos Banzami permitem devolver, total ou parcialmente, o valor de um pagamento elegível confirmado no Sandbox.
                 Cada pedido identifica a origem do pagamento, respeita o valor já capturado e é processado de forma idempotente.
@@ -486,7 +613,10 @@ export default function DocsPage() {
               </Callout>
 
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-030.
+                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-030. Nota de credencial: o percurso
+                verificado usa a credencial de merchant; o scope de chave developer (<Code>refunds:write</Code>) está{' '}
+                <strong>Pendente E2E</strong> — um pedido de reembolso com chave developer é recusado (403). Ver a matriz de{' '}
+                <a href="#credenciais" onClick={go('credenciais')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
               </P>
             </Section>
 
@@ -541,6 +671,12 @@ export default function DocsPage() {
                 entrega o recibo ao doador. A reentrega do mesmo evento foi <strong>deduplicada</strong> (sem efeito duplicado).
                 Nunca há dinheiro real — <em>Produção em preparação</em>.
               </Callout>
+              <Callout tone="warn">
+                <strong>Âmbito honesto.</strong> No conjunto E2E público da plataforma (Phase 0), a entrega outbound para um
+                sink HTTPS público externo foi <strong>simulada</strong> — a emissão, a assinatura HMAC e o contrato de retry
+                foram verificados; a jornada DOA acima é o percurso de entrega verificado. <strong>Não reivindicamos a entrega
+                de webhooks como disponibilidade pública de Produção.</strong>
+              </Callout>
               <H3>Como funciona</H3>
               <UL>
                 <LI>O Banzami envia um <Code>POST</Code> para o seu endpoint com o corpo do evento em JSON.</LI>
@@ -549,6 +685,15 @@ export default function DocsPage() {
                 <LI>Processe de forma <strong>idempotente</strong> e responda <Code>2xx</Code> rapidamente; a entrega é <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem, com <GlossaryTerm id="replay">reentrega</GlossaryTerm> em caso de falha.</LI>
               </UL>
               <CodeBlock label="ts · verificar e tratar um evento" raw={SAMPLE_WEBHOOK} onCopy={copy} />
+              <H3 id="reentrega">Contrato de reentrega</H3>
+              <UL>
+                <LI>Entrega <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem — trate cada evento de forma <strong>idempotente</strong> (deduplique pelo id do evento).</LI>
+                <LI>Assinatura no header <Code>banza-signature</Code> com tolerância de timestamp (<GlossaryTerm id="replay">replay</GlossaryTerm>) de <strong>5 minutos</strong>.</LI>
+                <LI>Implementado no Sandbox: até <strong>5 tentativas</strong> por entrega, com backoff crescente de{' '}
+                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code> → <Code>8&nbsp;h</Code> após cada falha.</LI>
+                <LI>Qualquer resposta <Code>2xx</Code> do seu endpoint conta como entregue; responda rapidamente e processe de forma assíncrona.</LI>
+                <LI><em>Nota:</em> este é o contrato implementado e verificado no Sandbox; o comportamento de Produção não é reivindicado (Produção em preparação).</LI>
+              </UL>
               <H3>Eventos</H3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
                 {EVENTS.map((e) => (
@@ -566,7 +711,45 @@ export default function DocsPage() {
             {/* ------------------------------------------------ ERRORS */}
             <Section id="errors">
               <H2>Errors</H2>
-              <P>Erros são devolvidos com um código e uma mensagem. Trate-os de forma explícita.</P>
+              <P>
+                Todas as respostas de erro da camada de integração usam o <strong>mesmo envelope JSON</strong>: um código
+                estável, uma mensagem legível e um <Code>request_id</Code> para correlacionar com o suporte. Trate erros pelo
+                <Code>code</Code>, nunca pela mensagem.
+              </P>
+              <CodeBlock label="json · envelope canónico de erro" raw={SAMPLE_ERROR} onCopy={copy} />
+              <H3>Códigos por status HTTP (observados no Sandbox)</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Status</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Códigos típicos</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>O que fazer</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['400', 'INVALID_BODY · MISSING_FIELD · VALIDATION_ERROR · INVALID_PARAM · INVALID_AMOUNT', 'Corrija o pedido; não repita sem alterar.'],
+                      ['401', 'UNAUTHORIZED', 'Chave em falta/inválida/revogada — verifique a chave bz_test_.'],
+                      ['403', 'FORBIDDEN', 'Scope insuficiente ou projeto sem binding ativo.'],
+                      ['404', 'NOT_FOUND', 'Recurso inexistente ou fora do seu âmbito.'],
+                      ['409', 'CONFLICT', 'Idempotency-Key em curso ou conflito de estado — aguarde e repita com a mesma chave.'],
+                      ['429', 'RATE_LIMITED', 'Abrande e repita com backoff.'],
+                      ['5xx', 'INTERNAL_ERROR · UPSTREAM_ERROR · UNAVAILABLE', 'Transitório — repita com a mesma Idempotency-Key.'],
+                    ] as [string, string, string][]).map(([st, codes, act]) => (
+                      <tr key={st}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontWeight: 700, color: INK }}>{st}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{codes}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{act}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Esta tabela descreve o comportamento observado no <strong>Sandbox</strong>; o comportamento exato de Produção
+                não é reivindicado (Produção em preparação).
+              </P>
               <H3>Console (acesso e chaves)</H3>
               <UL>
                 <LI><Code>INVALID_EMAIL</Code> / <Code>INVALID_CODE</Code> — corrija o email ou peça um novo código OTP.</LI>
@@ -590,6 +773,7 @@ export default function DocsPage() {
               <H2>Changelog</H2>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
+                  ['11 Jul 2026', 'Exemplos curl com pedido e resposta, matriz credencial↔capacidade, envelope de erros, idempotência em código e contrato de reentrega de webhooks.'],
                   ['Julho 2026', 'Consola Sandbox disponível: entrada por email + OTP, workspaces, projetos e chaves de teste.'],
                   ['Julho 2026', 'Chaves de teste com rotação e revogação; papéis e convites de equipa.'],
                   ['Julho 2026', 'Documentação pública de developers.'],
