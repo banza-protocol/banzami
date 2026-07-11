@@ -58,9 +58,12 @@ describe('Refunds docs — typed-source public contract (ADR-030)', () => {
     }
   });
 
-  it('the Refunds badge is "Disponível em Sandbox"', () => {
-    // section badge
-    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="ok"/.test(DOCS)).toBe(true);
+  it('the Refunds badge matches the manifest disposition (pending-e2e => never "ok")', () => {
+    // CAP-REFUND-001 is disposition: pending-e2e in quality/operator-assurance-manifest.yaml,
+    // so the section badge must be 'val' ("Em validação contínua no Sandbox") and must
+    // NOT claim "Disponível em Sandbox" — enforced too by tools/check-docs-claims.mjs.
+    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="val"/.test(DOCS)).toBe(true);
+    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="ok"/.test(DOCS)).toBe(false);
     // rendered: the label appears (capability card + section)
     render(<DocsPage />);
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);

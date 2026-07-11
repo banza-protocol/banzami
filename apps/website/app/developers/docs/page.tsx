@@ -550,6 +550,19 @@ export default function DocsPage() {
               </P>
               <ResourceReference lang="pt" onCopy={copy} />
 
+              <H3 id="artefactos">Artefactos técnicos</H3>
+              <P>
+                A mesma superfície documentada existe em formato <strong>machine-readable</strong> — artefactos de repositório,
+                para revisão e futura publicação (não são downloads alojados). Descrevem apenas o âmbito Sandbox/Pré-visualização
+                atual e <strong>não são contratos de Produção</strong>:
+              </P>
+              <UL>
+                <LI><strong>OpenAPI</strong> — <Code>docs/developer/openapi/banzami-sandbox.openapi.json</Code> (só os endpoints verificados; reembolsos/transferências ausentes por estarem Pendente E2E para chaves developer).</LI>
+                <LI><strong>Exemplos curl + fixtures</strong> — <Code>docs/developer/examples/</Code> (pedidos, respostas, envelopes de erro e de webhook, com placeholders óbvios).</LI>
+                <LI><strong>Coleção Postman</strong> — <Code>docs/developer/postman/banzami-sandbox.postman_collection.json</Code> (mesmo conjunto de endpoints, variáveis placeholder).</LI>
+                <LI><strong>Matriz de disponibilidade</strong> — <Code>docs/developer/availability/banzami-developers-availability.json</Code> (a fonte machine-readable dos estados desta documentação, verificada por testes).</LI>
+              </UL>
+
               <H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>
               <P>
                 Uma cobrança nasce de um <strong>link de pagamento</strong> ou de uma <strong>sessão de pagamento</strong>: cria a
@@ -577,7 +590,7 @@ export default function DocsPage() {
                 <a href="#credenciais" onClick={go('credenciais')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
               </P>
 
-              <H3 id="reembolsos">Reembolsos <Badge tone="ok" /></H3>
+              <H3 id="reembolsos">Reembolsos <Badge tone="val" /></H3>
               <P>
                 Reembolsos Banzami permitem devolver, total ou parcialmente, o valor de um pagamento elegível confirmado no Sandbox.
                 Cada pedido identifica a origem do pagamento, respeita o valor já capturado e é processado de forma idempotente.

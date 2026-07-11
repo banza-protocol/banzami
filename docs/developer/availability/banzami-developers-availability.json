@@ -1,0 +1,72 @@
+{
+  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox/Preview documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | documented_preview | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the CURRENT Sandbox/Preview scope only — it is not a Production contract and makes no production/live/external-provider availability claim.",
+  "version": "docs-2026-07-11",
+  "environment": "SANDBOX",
+  "capabilities": {
+    "console_auth_workspaces_projects_members_keys": {
+      "state": "available_controlled_sandbox",
+      "credential": "otp_session",
+      "note": "Sign-in (email + OTP), workspaces, projects, members/roles/invites, test keys (reveal-once, rotate, revoke)."
+    },
+    "console_visual_pages": {
+      "state": "documented_preview",
+      "credential": null,
+      "note": "Dashboard, webhooks UI, logs UI are demo previews with illustrative data — not operational."
+    },
+    "developer_api_key": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key",
+      "note": "bz_test_ keys, direct Bearer; bz_live_ rejected fail-closed; no Production key issuance."
+    },
+    "sandbox_api_identity": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key",
+      "note": "GET /v1/me with the identity:read scope."
+    },
+    "payment_sessions": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped_or_merchant",
+      "note": "Requires payment_sessions scope + ACTIVE project binding (or a merchant credential)."
+    },
+    "payment_links": {
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped_or_merchant",
+      "note": "Requires payment_links scope + ACTIVE project binding (or a merchant credential)."
+    },
+    "webhook_configuration": {
+      "state": "not_public",
+      "credential": "merchant",
+      "note": "Endpoint registration/inspection APIs exist for merchant credentials; not public for developer keys."
+    },
+    "webhook_outbound_delivery": {
+      "state": "simulated",
+      "credential": null,
+      "note": "Simulated in the public E2E suite (emission, HMAC signing and retry contract verified; DOA journey is the verified delivery path). Not claimed as publicly active."
+    },
+    "refunds": {
+      "state": "pending_e2e",
+      "credential": "merchant_verified_developer_pending",
+      "note": "Verified end-to-end with a merchant credential; developer-key scope refunds:write is pending E2E — a developer-key request is rejected (403)."
+    },
+    "transfers": {
+      "state": "pending_e2e",
+      "credential": "user_verified_developer_pending",
+      "note": "Verified with an authenticated user; developer-key scopes transfers:* are pending E2E."
+    },
+    "production_live_rails": {
+      "state": "not_available",
+      "credential": null,
+      "note": "Production in preparation. No real money. No production key issuance."
+    },
+    "pay_checkout_live_rails": {
+      "state": "not_approved",
+      "credential": null,
+      "note": "Public pay/checkout surfaces are not available and not approved for restore."
+    },
+    "external_provider_rails": {
+      "state": "not_approved",
+      "credential": null,
+      "note": "No external provider is activated; activation is a separate governance decision."
+    }
+  }
+}
