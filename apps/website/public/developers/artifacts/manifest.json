@@ -3,7 +3,7 @@
   "version": "docs-2026-07-11",
   "scope": "sandbox_preview",
   "production_contract": false,
-  "note": "Public, static Sandbox/Preview artifacts for the Banzami Developers documentation (PT: /docs · EN: /docs/en). Banzami is SDK-first: these HTTP-level artifacts are the technical PROTOCOL REFERENCE layer, not the recommended integration path, not Production contracts, not live rails, and not regulatory approval. All values inside are obvious placeholders.",
+  "note": "Public, static Sandbox/Preview artifacts for the Banzami Developers documentation (PT: /docs · EN: /docs/en). Banzami is SDK-first: these HTTP-level artifacts are the technical PROTOCOL REFERENCE layer, not the recommended integration path (the SDK contract artifact carries the recommended-path guidance), not Production contracts, not live rails, and not regulatory approval. All values inside are obvious placeholders.",
   "artifacts": [
     {
       "path": "/developers/openapi/banzami-sandbox.openapi.json",
@@ -52,6 +52,47 @@
       "production_contract": false,
       "recommended_integration_path": false,
       "description": "Diagnostic / protocol reference example (payment session with Idempotency-Key). Not the recommended implementation path."
+    },
+    {
+      "name": "Banzami SDK Contract",
+      "type": "sdk_contract",
+      "role": "integration_guidance",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": true,
+      "url": "/developers/artifacts/sdk-contract.json",
+      "path": "/developers/artifacts/sdk-contract.json",
+      "description": "EXPECTED SDK contract and controlled-preview status — SDKs are the recommended integration path; no public package or install command exists yet."
+    },
+    {
+      "name": "SDK preview example (TypeScript)",
+      "type": "sdk_preview_example",
+      "role": "integration_guidance",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/examples/sdk-preview/typescript-payment-session.example.ts",
+      "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
+    },
+    {
+      "name": "SDK preview example (Python)",
+      "type": "sdk_preview_example",
+      "role": "integration_guidance",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/examples/sdk-preview/python-payment-session.example.py",
+      "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
+    },
+    {
+      "name": "SDK preview example (PHP)",
+      "type": "sdk_preview_example",
+      "role": "integration_guidance",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/examples/sdk-preview/php-payment-session.example.php",
+      "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
     }
   ]
 }

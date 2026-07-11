@@ -97,7 +97,9 @@ describe('P2B — public artifact manifest and parity', () => {
     for (const a of ART_MANIFEST.artifacts) {
       expect(a.scope).toBe('sandbox_preview');
       expect(a.production_contract).toBe(false);
-      expect(a.recommended_integration_path).toBe(false);
+      // Only the SDK contract (recommended-path guidance) may be flagged true;
+      // every HTTP-level artifact stays secondary protocol reference.
+      expect(a.recommended_integration_path).toBe(a.type === 'sdk_contract');
       expect(['protocol_reference', 'integration_guidance']).toContain(a.role);
     }
     const roles = Object.fromEntries(ART_MANIFEST.artifacts.map((a: { path: string; role: string }) => [a.path, a.role]));

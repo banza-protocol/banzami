@@ -83,7 +83,7 @@ describe('Public Developer Docs (/docs) — full content', () => {
 
   it('SDKs are shown as source-only (not published) with a maturity matrix', () => {
     render(<DocsPage />);
-    expect(screen.getByText(/ainda não estão publicados em npm/i)).toBeTruthy();
+    expect(screen.getAllByText(/ainda não estão publicados em npm/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('@banzami/sdk').length).toBeGreaterThan(0);
     expect(screen.getByText(/Parcial — webhooks \+ payment links/i)).toBeTruthy();
   });

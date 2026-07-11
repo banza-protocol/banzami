@@ -681,6 +681,72 @@ export default function DocsPage() {
                 O <strong>DOA</strong> é a prova real de consumo SDK-first: usa o <Code>@banzami/sdk</Code> para criar sessões e links,
                 gerar QR, resolver <Code>@banza</Code>, validar webhooks e solicitar liquidação — sem chamadas HTTP diretas.
               </P>
+
+              <H3 id="sdk-preview">SDKs em pré-visualização controlada</H3>
+              <P>
+                Os SDKs Banzami são o caminho recomendado para integrações de produção no futuro, mas ainda não estão
+                publicados publicamente. Nesta fase, o acesso aos SDKs deve ser tratado como pré-visualização controlada.
+              </P>
+              <P>
+                Esta documentação descreve o contrato esperado dos SDKs: autenticação, criação de sessões, idempotência,
+                validação de respostas, erros, webhooks e limites de disponibilidade. Não apresenta comandos de instalação
+                pública porque os pacotes ainda não estão publicados em npm, PyPI, Packagist ou pub.dev.
+              </P>
+
+              <H3 id="sdk-contrato">Contrato esperado do SDK</H3>
+              <P>O que os SDKs oficiais Banzami devem tratar (<strong>contrato esperado</strong>, não comportamento publicado):</P>
+              <UL>
+                <LI>Autenticação Bearer e separação de ambientes (Sandbox vs futura Produção).</LI>
+                <LI>Criação e consulta de sessões de pagamento; obtenção de link público e payload QR (superfícies verificadas).</LI>
+                <LI><strong>Idempotência</strong>: geração da Idempotency-Key ou aceitação explícita de uma chave do caller.</LI>
+                <LI>Mapeamento canónico de erros e exposição do <Code>request_id</Code>; orientação de retry segura.</LI>
+                <LI>Verificação da assinatura de webhooks (<Code>banza-signature</Code>) e parsing do envelope de eventos verificado (esperado/planeado).</LI>
+                <LI><strong>Nunca</strong>: expor chaves secretas no cliente, ativar trilhos live automaticamente, ou emitir chaves de Produção (não disponível).</LI>
+              </UL>
+
+              <H3 id="sdk-familias">Estado por família de SDK</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Família SDK</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Estado atual</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Pacote público</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Comando de instalação</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Uso recomendado agora</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['JavaScript/TypeScript', 'Python', 'PHP', 'Flutter'].map((fam) => (
+                      <tr key={fam}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{fam}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>pré-visualização controlada / não publicado publicamente</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>nenhum</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>não disponível</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>não instale de registos públicos ainda</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>usar apenas via acesso de pré-visualização aprovado</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>
+                Contrato machine-readable:{' '}
+                <a href="/developers/artifacts/sdk-contract.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-contract.json</a>
+                {' '}·{' '}
+                <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
+                Exemplos SDK-style (ergonomia prevista):{' '}
+                <a href="/developers/examples/sdk-preview/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
+                {' '}·{' '}
+                <a href="/developers/examples/sdk-preview/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
+                {' '}·{' '}
+                <a href="/developers/examples/sdk-preview/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
+              </P>
+              <Callout>
+                Os exemplos SDK-style são exemplos de ergonomia prevista. Não são instruções de instalação nem prova de
+                publicação pública dos pacotes.
+              </Callout>
             </Section>
 
             {/* ------------------------------------------------ WEBHOOKS */}

@@ -452,6 +452,72 @@ export default function DocsPageEn() {
                   </tbody>
                 </table>
               </div>
+
+              <H3 id="sdk-preview">SDKs in controlled preview</H3>
+              <P>
+                Banzami SDKs are the recommended path for future production integrations, but they are not publicly
+                published yet. At this stage, SDK access must be treated as controlled preview.
+              </P>
+              <P>
+                This documentation describes the expected SDK contract: authentication, session creation, idempotency,
+                response validation, errors, webhooks and availability limits. It does not provide public installation
+                commands because the packages are not yet published to npm, PyPI, Packagist or pub.dev.
+              </P>
+
+              <H3 id="sdk-contract">Expected SDK contract</H3>
+              <P>What official Banzami SDKs are expected to handle (<strong>expected contract</strong>, not published SDK behaviour):</P>
+              <UL>
+                <LI>Bearer authentication and environment separation (Sandbox vs future Production).</LI>
+                <LI>Payment session creation and retrieval; public link and QR payload retrieval (verified surfaces).</LI>
+                <LI><strong>Idempotency</strong>: Idempotency-Key generation or explicit caller-provided keys.</LI>
+                <LI>Canonical error mapping and <Code>request_id</Code> exposure; safe retry guidance.</LI>
+                <LI>Webhook signature verification (<Code>banza-signature</Code>) and verified event-envelope parsing (expected/planned).</LI>
+                <LI><strong>Never</strong>: client-side exposure of secret keys, automatic live-rails activation, or Production key issuance (not available).</LI>
+              </UL>
+
+              <H3 id="sdk-families">SDK family status</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>SDK family</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Current status</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Public package</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Install command</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Recommended use now</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {['JavaScript/TypeScript', 'Python', 'PHP', 'Flutter'].map((fam) => (
+                      <tr key={fam}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{fam}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>controlled preview / not publicly published</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>none</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>not available</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>do not install from public registries yet</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>use only through approved preview access</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>
+                Machine-readable contract:{' '}
+                <a href="/developers/artifacts/sdk-contract.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-contract.json</a>
+                {' '}·{' '}
+                <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
+                SDK-style examples (intended ergonomics):{' '}
+                <a href="/developers/examples/sdk-preview/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
+                {' '}·{' '}
+                <a href="/developers/examples/sdk-preview/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
+                {' '}·{' '}
+                <a href="/developers/examples/sdk-preview/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
+              </P>
+              <Callout>
+                The SDK-style examples describe intended ergonomics. They are not installation instructions and do not
+                prove public package publication.
+              </Callout>
             </Section>
 
             {/* ------------------------------------------------ WEBHOOKS */}
