@@ -1,0 +1,192 @@
+{
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "regulatory_approval": false,
+  "live_rails": false,
+  "real_money": false,
+  "public_sdk_packages_published": false,
+  "self_service_access": false,
+  "name": "Banzami Risk and Limitation Matrix",
+  "rows": [
+    {
+      "risk": {
+        "pt": "Pacotes SDK não publicados publicamente",
+        "en": "SDK packages not publicly published"
+      },
+      "status": "not_public",
+      "partner_implication": {
+        "pt": "Não instalar de registries públicos; usar apenas acesso aprovado.",
+        "en": "Do not install from public registries; use approved access only."
+      },
+      "mitigation": {
+        "pt": "Acesso controlado por onboarding; publicação oficial futura.",
+        "en": "Controlled access via onboarding; official publication later."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Acesso preview controlado, não self-service",
+        "en": "Preview access is controlled, not self-service"
+      },
+      "status": "not_public",
+      "partner_implication": {
+        "pt": "Não existe registo público; aguardar aprovação.",
+        "en": "There is no public signup; wait for approval."
+      },
+      "mitigation": {
+        "pt": "Processo de elegibilidade e aprovação documentado.",
+        "en": "Documented eligibility and approval process."
+      }
+    },
+    {
+      "risk": {
+        "pt": "HTTP/OpenAPI é referência, não caminho recomendado",
+        "en": "HTTP/OpenAPI is reference, not recommended path"
+      },
+      "status": "documented_preview",
+      "partner_implication": {
+        "pt": "Usar HTTP direto apenas para diagnóstico/auditoria.",
+        "en": "Use direct HTTP for diagnostics/audits only."
+      },
+      "mitigation": {
+        "pt": "SDK-first; artefactos marcados protocol_reference.",
+        "en": "SDK-first; artifacts labelled protocol_reference."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Entrega outbound de webhooks simulada",
+        "en": "Webhook outbound delivery simulated/not publicly claimed"
+      },
+      "status": "simulated",
+      "partner_implication": {
+        "pt": "Não desenhar dependência de entrega pública garantida.",
+        "en": "Do not design around guaranteed public delivery."
+      },
+      "mitigation": {
+        "pt": "Contrato de retries documentado; jornada DOA verificada.",
+        "en": "Retry contract documented; DOA journey verified."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Reembolsos/transferências pendentes E2E para chaves developer",
+        "en": "Refunds/transfers pending E2E for developer keys"
+      },
+      "status": "pending_e2e",
+      "partner_implication": {
+        "pt": "Pedido com chave developer é recusado (403).",
+        "en": "A developer-key request is rejected (403)."
+      },
+      "mitigation": {
+        "pt": "matriz credencial↔capacidade; verificação futura.",
+        "en": "Credential↔capability matrix; future verification."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Páginas visuais da Console demo/não-operacionais",
+        "en": "Developer Console visual pages demo/non-operational"
+      },
+      "status": "documented_preview",
+      "partner_implication": {
+        "pt": "Não confiar em dados dessas páginas.",
+        "en": "Do not rely on those pages' data."
+      },
+      "mitigation": {
+        "pt": "Rotuladas na documentação; âmbito testado documentado.",
+        "en": "Labelled in the docs; tested scope documented."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Trilhos de Produção/live indisponíveis",
+        "en": "Production/live rails not available"
+      },
+      "status": "not_available",
+      "partner_implication": {
+        "pt": "Nenhum dinheiro real; nenhuma chave live.",
+        "en": "No real money; no live keys."
+      },
+      "mitigation": {
+        "pt": "bz_live_ recusado fail-closed; Produção em preparação.",
+        "en": "bz_live_ rejected fail-closed; Production in preparation."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Trilhos de fornecedores externos inativos",
+        "en": "External provider rails not active"
+      },
+      "status": "not_approved",
+      "partner_implication": {
+        "pt": "Não assumir integrações externas.",
+        "en": "Do not assume external integrations."
+      },
+      "mitigation": {
+        "pt": "Decisão de governance separada.",
+        "en": "Separate governance decision."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Stage C não implementado/não aprovado",
+        "en": "Stage C not implemented/approved"
+      },
+      "status": "not_approved",
+      "partner_implication": {
+        "pt": "Rotas públicas sandbox adicionais não existem ainda.",
+        "en": "Additional public sandbox routes do not exist yet."
+      },
+      "mitigation": {
+        "pt": "Portões de decisão e aprovações explícitas.",
+        "en": "Decision gates and explicit approvals."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Aprovação regulatória não reivindicada",
+        "en": "Regulatory approval not claimed"
+      },
+      "status": "not_approved",
+      "partner_implication": {
+        "pt": "Não usar o preview como base de claims regulatórios.",
+        "en": "Do not use the preview as a basis for regulatory claims."
+      },
+      "mitigation": {
+        "pt": "Wording e testes de claim-safety.",
+        "en": "Claim-safety wording and tests."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Pagamentos com dinheiro real indisponíveis",
+        "en": "Real-money payments not available through these docs"
+      },
+      "status": "not_available",
+      "partner_implication": {
+        "pt": "Apenas fluxos de teste controlados.",
+        "en": "Controlled test flows only."
+      },
+      "mitigation": {
+        "pt": "Sandbox-only em toda a documentação.",
+        "en": "Sandbox-only across the documentation."
+      }
+    },
+    {
+      "risk": {
+        "pt": "Onboarding de clientes públicos proibido no preview",
+        "en": "Public customer onboarding not allowed in preview"
+      },
+      "status": "not_approved",
+      "partner_implication": {
+        "pt": "Não expor o preview a clientes finais.",
+        "en": "Do not expose the preview to end customers."
+      },
+      "mitigation": {
+        "pt": "Responsabilidades do parceiro; revisão de prontidão.",
+        "en": "Partner responsibilities; readiness review."
+      }
+    }
+  ]
+}

@@ -627,6 +627,174 @@ export default function DocsPageEn() {
                 {' '}These artifacts support Sandbox preview onboarding. They are not Production contracts, do not activate
                 live rails, and do not represent regulatory approval.
               </P>
+
+              <H3 id="trust">Technical trust and readiness</H3>
+              <P>
+                This section summarizes the technical state of Banzami Developers documentation for approved partners. The
+                goal is to clearly separate what is available in Sandbox/Preview, what is simulated, what is pending, what is
+                not available, and what must not be interpreted as Production approval, live rails activation, or regulatory
+                authorization.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capability</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>State</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['SDK-first integration model', 'documented_preview'],
+                      ['SDK controlled preview', 'not_public'],
+                      ['HTTP/OpenAPI protocol reference', 'documented_preview'],
+                      ['Sandbox API routes', 'available_controlled_sandbox'],
+                      ['Payment sessions', 'available_controlled_sandbox'],
+                      ['Payment links', 'available_controlled_sandbox'],
+                      ['QR payload', 'available_controlled_sandbox'],
+                      ['Webhook signature/reference', 'documented_preview'],
+                      ['Webhook outbound delivery', 'simulated'],
+                      ['Refunds (developer key)', 'pending_e2e'],
+                      ['Transfers (developer key)', 'pending_e2e'],
+                      ['Developer Console (visual pages)', 'documented_preview'],
+                      ['Production/live rails', 'not_available'],
+                      ['Pay/checkout/live rails', 'not_approved'],
+                      ['External provider rails', 'not_approved'],
+                    ] as [string, string][]).map(([cap, st]) => (
+                      <tr key={cap}>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{st}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="evidence-map">Sandbox evidence map</H3>
+              <P>Public/repository artifacts that support this documentation:</P>
+              <UL>
+                <LI>OpenAPI and Postman Sandbox references; availability matrix; SDK-first manifest; SDK contract.</LI>
+                <LI>Onboarding artifacts; examples and fixtures (curl, requests/responses, error and webhook envelopes).</LI>
+                <LI>Documentation claim-safety tests — the P0/P1/P2A/P2B/P2C/P2D suites.</LI>
+              </UL>
+              <Callout tone="warn">
+                Evidence-backed documentation does not mean live production availability. Repository artifacts do not mean
+                regulatory authorization. Passing documentation tests does not activate payment rails.
+              </Callout>
+
+              <H3 id="risk-matrix">Risk and limitation matrix</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      {['Risk / limitation', 'Status', 'Partner implication', 'Expected handling'].map((h) => (
+                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['SDK packages not publicly published', 'not_public', 'Do not install from public registries.', 'Controlled access via onboarding.'],
+                      ['Preview access is controlled, not self-service', 'not_public', 'No public signup; wait for approval.', 'Documented eligibility and approval process.'],
+                      ['HTTP/OpenAPI is reference, not recommended path', 'documented_preview', 'Direct HTTP for diagnostics/audits only.', 'SDK-first; artifacts labelled protocol_reference.'],
+                      ['Webhook outbound delivery simulated', 'simulated', 'Do not assume guaranteed public delivery.', 'Retry contract documented; DOA journey verified.'],
+                      ['Refunds/transfers pending E2E (developer keys)', 'pending_e2e', 'Developer-key requests rejected (403).', 'Credential↔capability matrix; future verification.'],
+                      ['Console visual pages demo/non-operational', 'documented_preview', 'Do not rely on those pages\u2019 data.', 'Labelled in the documentation.'],
+                      ['Production/live rails not available', 'not_available', 'No real money; no live keys.', 'bz_live_ rejected fail-closed.'],
+                      ['External provider rails not active', 'not_approved', 'Do not assume external integrations.', 'Separate governance decision.'],
+                      ['Stage C not implemented/approved', 'not_approved', 'Additional public routes do not exist yet.', 'Decision gates and explicit approvals.'],
+                      ['Regulatory approval not claimed', 'not_approved', 'No regulatory claims based on the preview.', 'Claim-safety wording and tests.'],
+                      ['Real-money payments not available', 'not_available', 'Controlled test flows only.', 'Sandbox-only across the documentation.'],
+                      ['Public customer onboarding not allowed in preview', 'not_approved', 'Do not expose the preview to end customers.', 'Partner responsibilities; readiness review.'],
+                    ] as string[][]).map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, i) => (
+                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : i === 1 ? '#9A1B22' : '#5a4a4e', fontWeight: i === 0 ? 700 : 500, fontFamily: i === 1 ? mono : undefined, fontSize: i === 1 ? 11.5 : undefined }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="readiness-package">Readiness package for approved partners</H3>
+              <P>
+                The package gathers: SDK preview onboarding, Sandbox validation checklist, partner responsibilities, the
+                issue report template, the readiness review checklist, the SDK contract, the availability matrix and the
+                protocol references (OpenAPI and Postman).
+              </P>
+              <Callout tone="warn">
+                The readiness package is Sandbox/Preview only. It is not Production approval, not regulatory authorization,
+                does not activate live rails, and does not grant public SDK package access.
+              </Callout>
+
+              <H3 id="decision-gates">Decision gates before any next phase</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      {['Gate', 'Purpose', 'Required evidence', 'Pass condition', 'Does not authorize'].map((h) => (
+                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['1. Documentation honesty', 'Documentation reflects evidence.', 'Claim-safety test suites passing.', 'All documentation tests green.', 'Package publication or live availability.'],
+                      ['2. SDK preview access', 'Approved controlled access.', 'Recorded preview approval.', 'Access granted to the project.', 'Public SDK publication.'],
+                      ['3. Sandbox validation', 'Integration validated in Sandbox.', 'Validation checklist with evidence.', 'Checklist complete.', 'Live rails activation.'],
+                      ['4. Security/secrets handling', 'Credential management reviewed.', 'Documented secrets review.', 'No client-side exposure.', 'Production security certification.'],
+                      ['5. Error/idempotency handling', 'Correct handling confirmed.', 'Documented, tested strategies.', 'Safe retries demonstrated.', 'Production guarantees.'],
+                      ['6. Webhook handling design', 'Verification and dedupe reviewed.', 'Documented design.', 'Signature + idempotency reviewed.', 'Guaranteed public delivery.'],
+                      ['7. Capability limitation acceptance', 'Documented limits accepted.', 'Limitations acknowledged in writing.', 'Recorded acceptance.', 'Lifting of the limitations.'],
+                      ['8. Operational readiness review', 'Complete evidence reviewed.', 'Readiness package submitted.', 'Readiness assessment issued.', 'Production approval.'],
+                      ['9. Regulatory/legal review', 'Framing before any supervised phase.', 'Own regulatory/legal review.', 'Outside this documentation\u2019s scope.', 'Regulatory authorization.'],
+                      ['10. Explicit approval for any future live/Production phase', 'Explicit, separate decision.', 'Recorded formal approval.', 'Future decision, not included here.', 'Nothing in this documentation grants it.'],
+                    ] as string[][]).map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, i) => (
+                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                No gate in this documentation authorizes live rails, real-money payments, public launch, production key
+                issuance, or regulatory approval.
+              </Callout>
+
+              <H3 id="security-posture">Preview security posture summary</H3>
+              <UL>
+                <LI>Secret keys never in browser/mobile clients; preview artifacts use placeholders only; test data must be non-sensitive.</LI>
+                <LI><Code>request_id</Code> captured for debugging; idempotency used for mutating operations; webhook signatures verified before trusting events.</LI>
+                <LI>Partner protects preview credentials and artifacts; availability limits respected; SDK packages are not public; live rails are not active.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                This summary covers only the Sandbox/Preview scope supported by the documentation — no certification,
+                external audit or uptime claims.
+              </P>
+
+              <P>
+                Trust/readiness artifacts:{' '}
+                <a href="/developers/trust/developer-trust-summary.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>trust summary</a>
+                {' '}·{' '}
+                <a href="/developers/trust/sandbox-evidence-map.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>evidence map</a>
+                {' '}·{' '}
+                <a href="/developers/trust/risk-limitations-matrix.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>risk matrix</a>
+                {' '}·{' '}
+                <a href="/developers/trust/partner-readiness-package.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>readiness package</a>
+                {' '}·{' '}
+                <a href="/developers/trust/decision-gates.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>decision gates</a>
+                {' '}·{' '}
+                <a href="/developers/trust/preview-security-posture.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>security posture</a>
+                {' '}·{' '}
+                <a href="/developers/trust/trust-readiness-summary.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>summary (MD)</a>.
+                {' '}These artifacts support technical assessment for approved partners in Sandbox/Preview. They are not
+                Production contracts, do not activate live rails, do not authorize real money, and do not represent
+                regulatory approval.
+              </P>
             </Section>
 
             {/* ------------------------------------------------ WEBHOOKS */}

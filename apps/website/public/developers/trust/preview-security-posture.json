@@ -1,0 +1,56 @@
+{
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "regulatory_approval": false,
+  "live_rails": false,
+  "real_money": false,
+  "public_sdk_packages_published": false,
+  "self_service_access": false,
+  "name": "Banzami Preview Security Posture",
+  "note": {
+    "pt": "Postura de segurança do âmbito Sandbox/Preview, suportada pela documentação — sem claims de certificação, auditoria externa ou uptime.",
+    "en": "Security posture of the Sandbox/Preview scope, as supported by the documentation — no certification, external audit or uptime claims."
+  },
+  "items": [
+    {
+      "pt": "Chaves secretas nunca expostas em browsers/apps móveis",
+      "en": "secret keys must not be exposed in browser/mobile clients"
+    },
+    {
+      "pt": "Artefactos de preview usam apenas placeholders",
+      "en": "preview artifacts use placeholders only"
+    },
+    {
+      "pt": "request_id capturado para debugging",
+      "en": "request_id should be captured for debugging"
+    },
+    {
+      "pt": "Idempotência usada em operações mutantes",
+      "en": "idempotency should be used for mutating operations"
+    },
+    {
+      "pt": "Assinaturas de webhooks verificadas antes de confiar em eventos",
+      "en": "webhook signatures should be verified before trusting events"
+    },
+    {
+      "pt": "Dados de teste não sensíveis",
+      "en": "test data must be non-sensitive"
+    },
+    {
+      "pt": "Parceiro protege credenciais e artefactos de preview",
+      "en": "partner must protect preview credentials and artifacts"
+    },
+    {
+      "pt": "Limites de disponibilidade respeitados",
+      "en": "availability limits must be respected"
+    },
+    {
+      "pt": "Pacotes SDK não são públicos",
+      "en": "SDK packages are not public"
+    },
+    {
+      "pt": "Trilhos live não estão ativos",
+      "en": "live rails are not active"
+    }
+  ]
+}

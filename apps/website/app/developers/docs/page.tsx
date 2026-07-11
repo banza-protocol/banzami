@@ -855,6 +855,173 @@ export default function DocsPage() {
                 {' '}Estes artefactos apoiam o onboarding de preview em Sandbox. Não são contratos de Produção, não ativam
                 trilhos live e não representam aprovação regulatória.
               </P>
+
+              <H3 id="confianca">Confiança técnica e prontidão</H3>
+              <P>
+                Esta secção resume o estado técnico da documentação Developers da Banzami para parceiros aprovados. O objetivo
+                é separar claramente o que está disponível em Sandbox/Preview, o que está simulado, o que está pendente, o que
+                não está disponível e o que não deve ser interpretado como aprovação de Produção, ativação de trilhos live ou
+                autorização regulatória.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capacidade</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['Modelo de integração SDK-first', 'documented_preview'],
+                      ['SDK em pré-visualização controlada', 'not_public'],
+                      ['HTTP/OpenAPI (referência do protocolo)', 'documented_preview'],
+                      ['Rotas da API Sandbox', 'available_controlled_sandbox'],
+                      ['Sessões de pagamento', 'available_controlled_sandbox'],
+                      ['Payment links', 'available_controlled_sandbox'],
+                      ['Payload QR', 'available_controlled_sandbox'],
+                      ['Assinatura/referência de webhooks', 'documented_preview'],
+                      ['Entrega outbound de webhooks', 'simulated'],
+                      ['Reembolsos (chave developer)', 'pending_e2e'],
+                      ['Transferências (chave developer)', 'pending_e2e'],
+                      ['Developer Console (páginas visuais)', 'documented_preview'],
+                      ['Trilhos de Produção/live', 'not_available'],
+                      ['Pay/checkout/trilhos live', 'not_approved'],
+                      ['Trilhos de fornecedores externos', 'not_approved'],
+                    ] as [string, string][]).map(([cap, st]) => (
+                      <tr key={cap}>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
+                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{st}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="evidencias">Mapa de evidências Sandbox</H3>
+              <P>Artefactos públicos e de repositório que suportam esta documentação:</P>
+              <UL>
+                <LI>OpenAPI e coleção Postman Sandbox; matriz de disponibilidade; manifesto SDK-first; contrato de SDK.</LI>
+                <LI>Artefactos de onboarding; exemplos e fixtures (curl, pedidos/respostas, envelopes de erro e webhook).</LI>
+                <LI>Testes de claim-safety da documentação — suites P0/P1/P2A/P2B/P2C/P2D.</LI>
+              </UL>
+              <Callout tone="warn">
+                Documentação suportada por evidência não significa disponibilidade de produção live. Artefactos de repositório
+                não significam autorização regulatória. Passar os testes de documentação não ativa trilhos de pagamento.
+              </Callout>
+
+              <H3 id="riscos">Matriz de riscos e limitações</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      {['Risco / limitação', 'Estado', 'Implicação para o parceiro', 'Tratamento esperado'].map((h) => (
+                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['Pacotes SDK não publicados publicamente', 'not_public', 'Não instalar de registries públicos.', 'Acesso controlado por onboarding.'],
+                      ['Acesso preview controlado, não self-service', 'not_public', 'Não existe registo público; aguardar aprovação.', 'Processo de elegibilidade e aprovação documentado.'],
+                      ['HTTP/OpenAPI é referência, não caminho recomendado', 'documented_preview', 'HTTP direto só para diagnóstico/auditoria.', 'SDK-first; artefactos marcados protocol_reference.'],
+                      ['Entrega outbound de webhooks simulada', 'simulated', 'Não assumir entrega pública garantida.', 'Contrato de retries documentado; jornada DOA verificada.'],
+                      ['Reembolsos/transferências pendentes E2E (chave developer)', 'pending_e2e', 'Pedido com chave developer é recusado (403).', 'Matriz credencial↔capacidade; verificação futura.'],
+                      ['Páginas visuais da Console demo/não-operacionais', 'documented_preview', 'Não confiar nos dados dessas páginas.', 'Rotuladas na documentação.'],
+                      ['Trilhos de Produção/live indisponíveis', 'not_available', 'Nenhum dinheiro real; nenhuma chave live.', 'bz_live_ recusado fail-closed.'],
+                      ['Trilhos de fornecedores externos inativos', 'not_approved', 'Não assumir integrações externas.', 'Decisão de governance separada.'],
+                      ['Stage C não implementado/não aprovado', 'not_approved', 'Rotas públicas adicionais não existem ainda.', 'Portões de decisão e aprovações explícitas.'],
+                      ['Aprovação regulatória não reivindicada', 'not_approved', 'Não basear claims regulatórios no preview.', 'Wording e testes de claim-safety.'],
+                      ['Pagamentos com dinheiro real indisponíveis', 'not_available', 'Apenas fluxos de teste controlados.', 'Sandbox-only em toda a documentação.'],
+                      ['Onboarding de clientes públicos proibido no preview', 'not_approved', 'Não expor o preview a clientes finais.', 'Responsabilidades do parceiro; revisão de prontidão.'],
+                    ] as string[][]).map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, i) => (
+                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : i === 1 ? '#9A1B22' : '#5a4a4e', fontWeight: i === 0 ? 700 : 500, fontFamily: i === 1 ? mono : undefined, fontSize: i === 1 ? 11.5 : undefined }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="pacote-prontidao">Pacote de prontidão para parceiros aprovados</H3>
+              <P>
+                O pacote reúne: onboarding do preview SDK, checklist de validação Sandbox, responsabilidades do parceiro,
+                template de report, checklist de revisão de prontidão, contrato de SDK, matriz de disponibilidade e as
+                referências do protocolo (OpenAPI e Postman).
+              </P>
+              <Callout tone="warn">
+                O pacote de prontidão é apenas Sandbox/Preview. Não é aprovação de Produção, não é autorização regulatória,
+                não ativa trilhos live e não concede acesso público a pacotes SDK.
+              </Callout>
+
+              <H3 id="portoes">Portões de decisão antes de qualquer avanço</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      {['Portão', 'Propósito', 'Evidência exigida', 'Condição de passagem', 'Não autoriza'].map((h) => (
+                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['1. Honestidade da documentação', 'Documentação reflete evidência.', 'Suites de testes de claims a passar.', 'Todos os testes verdes.', 'Publicação de pacotes ou live.'],
+                      ['2. Acesso ao preview SDK', 'Acesso controlado aprovado.', 'Aprovação de preview registada.', 'Acesso concedido ao projeto.', 'Publicação pública do SDK.'],
+                      ['3. Validação Sandbox', 'Integração validada em Sandbox.', 'Checklist com evidência.', 'Checklist completo.', 'Ativação de trilhos live.'],
+                      ['4. Segurança/gestão de secrets', 'Gestão de credenciais revista.', 'Revisão de secrets documentada.', 'Sem exposição no cliente.', 'Certificação de produção.'],
+                      ['5. Erros/idempotência', 'Tratamento correto confirmado.', 'Estratégias documentadas e testadas.', 'Retries seguros demonstrados.', 'Garantias de produção.'],
+                      ['6. Desenho de webhooks', 'Verificação e deduplicação revistas.', 'Desenho documentado.', 'Assinatura + idempotência revistas.', 'Entrega pública garantida.'],
+                      ['7. Aceitação de limitações', 'Limites documentados aceites.', 'Limitações reconhecidas por escrito.', 'Aceitação registada.', 'Levantamento das limitações.'],
+                      ['8. Revisão de prontidão operacional', 'Evidência completa revista.', 'Pacote de prontidão submetido.', 'Parecer de prontidão emitido.', 'Aprovação de Produção.'],
+                      ['9. Revisão regulatória/legal', 'Enquadramento antes de fase supervisionada.', 'Revisão regulatória/legal própria.', 'Fora do âmbito desta documentação.', 'Autorização regulatória.'],
+                      ['10. Aprovação explícita para fase live/Produção', 'Decisão explícita e separada.', 'Aprovação formal registada.', 'Decisão futura, não incluída aqui.', 'Nada nesta documentação a concede.'],
+                    ] as string[][]).map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, i) => (
+                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                Nenhum portão nesta documentação autoriza trilhos live, pagamentos com dinheiro real, lançamento público,
+                emissão de chaves de Produção ou aprovação regulatória.
+              </Callout>
+
+              <H3 id="postura-seguranca">Resumo de postura de segurança do preview</H3>
+              <UL>
+                <LI>Chaves secretas nunca em browsers/apps móveis; artefactos de preview com placeholders apenas; dados de teste não sensíveis.</LI>
+                <LI><Code>request_id</Code> capturado para debugging; idempotência em operações mutantes; assinaturas de webhooks verificadas antes de confiar em eventos.</LI>
+                <LI>Parceiro protege credenciais e artefactos; limites de disponibilidade respeitados; pacotes SDK não públicos; trilhos live não ativos.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Este resumo cobre apenas o âmbito Sandbox/Preview suportado pela documentação — sem claims de certificação,
+                auditoria externa ou uptime.
+              </P>
+
+              <P>
+                Artefactos de confiança/prontidão:{' '}
+                <a href="/developers/trust/developer-trust-summary.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>resumo</a>
+                {' '}·{' '}
+                <a href="/developers/trust/sandbox-evidence-map.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>mapa de evidências</a>
+                {' '}·{' '}
+                <a href="/developers/trust/risk-limitations-matrix.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>matriz de riscos</a>
+                {' '}·{' '}
+                <a href="/developers/trust/partner-readiness-package.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>pacote de prontidão</a>
+                {' '}·{' '}
+                <a href="/developers/trust/decision-gates.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>portões de decisão</a>
+                {' '}·{' '}
+                <a href="/developers/trust/preview-security-posture.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>postura de segurança</a>
+                {' '}·{' '}
+                <a href="/developers/trust/trust-readiness-summary.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>resumo (MD)</a>.
+                {' '}Estes artefactos apoiam a avaliação técnica de parceiros aprovados em Sandbox/Preview. Não são contratos
+                de Produção, não ativam trilhos live, não autorizam dinheiro real e não representam aprovação regulatória.
+              </P>
             </Section>
 
             {/* ------------------------------------------------ WEBHOOKS */}
