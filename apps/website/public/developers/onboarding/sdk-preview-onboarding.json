@@ -1,0 +1,228 @@
+{
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "regulatory_approval": false,
+  "live_rails": false,
+  "public_sdk_packages_published": false,
+  "name": "Banzami SDK Preview Onboarding",
+  "note": {
+    "pt": "O preview SDK da Banzami é controlado. Não é um registo público self-service, não publica pacotes em registries públicos e não ativa trilhos de Produção.",
+    "en": "The Banzami SDK preview is controlled. It is not a public self-service signup, does not publish packages to public registries, and does not activate Production rails."
+  },
+  "hard_statements": {
+    "pt": [
+      "A aprovação de preview não significa aprovação de Produção.",
+      "A validação em Sandbox não significa ativação de trilhos live.",
+      "O acesso ao preview SDK não significa publicação pública do SDK.",
+      "A prontidão técnica não significa autorização regulatória."
+    ],
+    "en": [
+      "Preview approval does not mean Production approval.",
+      "Sandbox validation does not mean live rails activation.",
+      "SDK preview access does not mean public SDK publication.",
+      "Technical readiness does not mean regulatory authorization."
+    ]
+  },
+  "journey": [
+    {
+      "n": 1,
+      "pt": "Elegibilidade",
+      "en": "Eligibility",
+      "objective": {
+        "pt": "Confirmar que o caso de uso cabe no âmbito Sandbox/Preview.",
+        "en": "Confirm the use case fits the Sandbox/Preview scope."
+      },
+      "partner": {
+        "pt": "Descrever o caso de uso e o contexto de integração.",
+        "en": "Describe the use case and integration context."
+      },
+      "banzami": {
+        "pt": "Avaliar o enquadramento face aos limites documentados.",
+        "en": "Assess fit against the documented limits."
+      },
+      "output": {
+        "pt": "Decisão de elegibilidade.",
+        "en": "Eligibility decision."
+      },
+      "not_included": {
+        "pt": "Acesso a SDKs ou credenciais.",
+        "en": "SDK or credential access."
+      }
+    },
+    {
+      "n": 2,
+      "pt": "Aprovação para preview",
+      "en": "Preview approval",
+      "objective": {
+        "pt": "Formalizar o acesso controlado.",
+        "en": "Formalise controlled access."
+      },
+      "partner": {
+        "pt": "Aceitar os limites e responsabilidades do preview.",
+        "en": "Accept the preview limits and responsibilities."
+      },
+      "banzami": {
+        "pt": "Aprovar e definir o âmbito do preview.",
+        "en": "Approve and define the preview scope."
+      },
+      "output": {
+        "pt": "Aprovação de preview registada.",
+        "en": "Recorded preview approval."
+      },
+      "not_included": {
+        "pt": "Aprovação de Produção.",
+        "en": "Production approval."
+      }
+    },
+    {
+      "n": 3,
+      "pt": "Preparação técnica",
+      "en": "Technical preparation",
+      "objective": {
+        "pt": "Preparar ambiente e equipa.",
+        "en": "Prepare environment and team."
+      },
+      "partner": {
+        "pt": "Criar workspace/projeto Sandbox e chave de teste; ler a documentação.",
+        "en": "Create the Sandbox workspace/project and test key; read the documentation."
+      },
+      "banzami": {
+        "pt": "Manter documentação e artefactos de referência atualizados.",
+        "en": "Keep documentation and reference artifacts up to date."
+      },
+      "output": {
+        "pt": "Primeira chamada de identidade validada.",
+        "en": "First identity call validated."
+      },
+      "not_included": {
+        "pt": "Dados reais ou de clientes.",
+        "en": "Real or customer data."
+      }
+    },
+    {
+      "n": 4,
+      "pt": "Acesso controlado ao SDK",
+      "en": "Controlled SDK access",
+      "objective": {
+        "pt": "Disponibilizar o SDK em pré-visualização controlada.",
+        "en": "Provide the SDK as controlled preview."
+      },
+      "partner": {
+        "pt": "Usar apenas o canal de acesso aprovado; proteger os artefactos.",
+        "en": "Use only the approved access channel; protect the artifacts."
+      },
+      "banzami": {
+        "pt": "Fornecer acesso controlado onde aprovado.",
+        "en": "Provide controlled access where approved."
+      },
+      "output": {
+        "pt": "SDK disponível para o projeto aprovado.",
+        "en": "SDK available to the approved project."
+      },
+      "not_included": {
+        "pt": "Publicação pública de pacotes.",
+        "en": "Public package publication."
+      }
+    },
+    {
+      "n": 5,
+      "pt": "Integração Sandbox",
+      "en": "Sandbox integration",
+      "objective": {
+        "pt": "Implementar o fluxo SDK-first em Sandbox.",
+        "en": "Implement the SDK-first flow in Sandbox."
+      },
+      "partner": {
+        "pt": "Sessões de pagamento, idempotência, erros e webhooks.",
+        "en": "Payment sessions, idempotency, errors and webhooks."
+      },
+      "banzami": {
+        "pt": "Manter o Sandbox e os limites documentados.",
+        "en": "Maintain the Sandbox and the documented limits."
+      },
+      "output": {
+        "pt": "Integração funcional em Sandbox.",
+        "en": "Working Sandbox integration."
+      },
+      "not_included": {
+        "pt": "Dinheiro real ou clientes públicos.",
+        "en": "Real money or public customers."
+      }
+    },
+    {
+      "n": 6,
+      "pt": "Validação técnica",
+      "en": "Technical validation",
+      "objective": {
+        "pt": "Percorrer o checklist de validação Sandbox.",
+        "en": "Complete the Sandbox validation checklist."
+      },
+      "partner": {
+        "pt": "Executar os testes e registar evidência (request_id, timestamps).",
+        "en": "Run the tests and record evidence (request_id, timestamps)."
+      },
+      "banzami": {
+        "pt": "Disponibilizar critérios e checklist claros.",
+        "en": "Provide clear criteria and checklist."
+      },
+      "output": {
+        "pt": "Checklist preenchido com evidência.",
+        "en": "Checklist completed with evidence."
+      },
+      "not_included": {
+        "pt": "Ativação de trilhos live.",
+        "en": "Live rails activation."
+      }
+    },
+    {
+      "n": 7,
+      "pt": "Feedback e correções",
+      "en": "Feedback and fixes",
+      "objective": {
+        "pt": "Reportar problemas e aplicar correções.",
+        "en": "Report issues and apply fixes."
+      },
+      "partner": {
+        "pt": "Relatórios estruturados usando o template de report.",
+        "en": "Structured reports using the report template."
+      },
+      "banzami": {
+        "pt": "Rever o feedback e documentar limitações conhecidas.",
+        "en": "Review feedback and document known limitations."
+      },
+      "output": {
+        "pt": "Issues resolvidas ou registadas.",
+        "en": "Issues resolved or recorded."
+      },
+      "not_included": {
+        "pt": "Compromissos de SLA.",
+        "en": "SLA commitments."
+      }
+    },
+    {
+      "n": 8,
+      "pt": "Revisão de prontidão",
+      "en": "Readiness review",
+      "objective": {
+        "pt": "Rever a evidência contra os critérios de prontidão.",
+        "en": "Review the evidence against the readiness criteria."
+      },
+      "partner": {
+        "pt": "Submeter a evidência recolhida.",
+        "en": "Submit the collected evidence."
+      },
+      "banzami": {
+        "pt": "Rever e comunicar o resultado.",
+        "en": "Review and communicate the outcome."
+      },
+      "output": {
+        "pt": "Parecer de prontidão.",
+        "en": "Readiness assessment."
+      },
+      "not_included": {
+        "pt": "Aprovação de Produção ou autorização regulatória.",
+        "en": "Production approval or regulatory authorization."
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "regulatory_approval": false,
+  "live_rails": false,
+  "public_sdk_packages_published": false,
+  "name": "Banzami Preview Partner Responsibilities",
+  "items": [
+    {
+      "pt": "Proteger credenciais e artefactos de preview",
+      "en": "protect preview credentials and artifacts"
+    },
+    {
+      "pt": "Não expor chaves secretas em browsers/apps móveis",
+      "en": "do not expose secret keys in browsers/mobile apps"
+    },
+    {
+      "pt": "Usar apenas ambientes Sandbox aprovados",
+      "en": "use only approved Sandbox environments"
+    },
+    {
+      "pt": "Reportar bugs com request_id e timestamp",
+      "en": "report bugs with request_id and timestamp"
+    },
+    {
+      "pt": "Não processar dinheiro real",
+      "en": "do not process real money"
+    },
+    {
+      "pt": "Não fazer onboarding de clientes públicos",
+      "en": "do not onboard public customers"
+    },
+    {
+      "pt": "Não promover o acesso de preview como disponibilidade live",
+      "en": "do not market preview access as live availability"
+    },
+    {
+      "pt": "Não reivindicar aprovação/admissão do BNA com base no preview",
+      "en": "do not claim BNA approval/admission based on preview"
+    },
+    {
+      "pt": "Validar idempotência, tratamento de erros e webhooks",
+      "en": "validate idempotency, error handling and webhook handling"
+    },
+    {
+      "pt": "Manter dados de teste não sensíveis",
+      "en": "keep test data non-sensitive"
+    },
+    {
+      "pt": "Respeitar os limites de disponibilidade/capacidade",
+      "en": "respect availability/capability limits"
+    }
+  ]
+}

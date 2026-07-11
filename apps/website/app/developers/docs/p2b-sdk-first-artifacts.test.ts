@@ -100,7 +100,7 @@ describe('P2B — public artifact manifest and parity', () => {
       // Only the SDK contract (recommended-path guidance) may be flagged true;
       // every HTTP-level artifact stays secondary protocol reference.
       expect(a.recommended_integration_path).toBe(a.type === 'sdk_contract');
-      expect(['protocol_reference', 'integration_guidance']).toContain(a.role);
+      expect(['protocol_reference', 'integration_guidance', 'preview_onboarding']).toContain(a.role);
     }
     const roles = Object.fromEntries(ART_MANIFEST.artifacts.map((a: { path: string; role: string }) => [a.path, a.role]));
     expect(roles['/developers/openapi/banzami-sandbox.openapi.json']).toBe('protocol_reference');

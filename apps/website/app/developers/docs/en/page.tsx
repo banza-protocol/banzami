@@ -518,6 +518,115 @@ export default function DocsPageEn() {
                 The SDK-style examples describe intended ergonomics. They are not installation instructions and do not
                 prove public package publication.
               </Callout>
+
+              <H3 id="preview-onboarding">SDK preview onboarding</H3>
+              <P>
+                The Banzami SDK preview is controlled. It is not a public self-service signup, does not publish packages to
+                public registries, and does not activate Production rails.
+              </P>
+              <P>
+                The goal of onboarding is to allow approved partners to validate the SDK-first integration in Sandbox, with
+                clear limits, verifiable technical artifacts, structured feedback, and review before any regulatory or
+                operational step forward.
+              </P>
+
+              <H3 id="sandbox-journey">Sandbox integration journey</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      {['Stage', 'Objective', 'Partner', 'Banzami', 'Output', 'Not included'].map((h) => (
+                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['1. Eligibility', 'Confirm the use case fits the Sandbox/Preview scope.', 'Describe the use case.', 'Assess the fit.', 'Eligibility decision.', 'SDK or credential access.'],
+                      ['2. Preview approval', 'Formalise controlled access.', 'Accept the preview limits.', 'Approve and define the scope.', 'Recorded approval.', 'Production approval.'],
+                      ['3. Technical preparation', 'Prepare environment and team.', 'Sandbox workspace/project, test key.', 'Up-to-date documentation.', 'First identity call validated.', 'Real or customer data.'],
+                      ['4. Controlled SDK access', 'Provide the SDK as controlled preview.', 'Use only the approved channel.', 'Provide controlled access where approved.', 'SDK available to the project.', 'Public package publication.'],
+                      ['5. Sandbox integration', 'Implement the SDK-first flow.', 'Sessions, idempotency, errors, webhooks.', 'Maintain the Sandbox and limits.', 'Working Sandbox integration.', 'Real money or public customers.'],
+                      ['6. Technical validation', 'Complete the validation checklist.', 'Run and record evidence (request_id).', 'Clear criteria and checklist.', 'Checklist completed.', 'Live rails activation.'],
+                      ['7. Feedback and fixes', 'Report issues and fix.', 'Structured reports.', 'Review the feedback.', 'Issues resolved or recorded.', 'SLA commitments.'],
+                      ['8. Readiness review', 'Review evidence against the criteria.', 'Submit the evidence.', 'Review and communicate the outcome.', 'Readiness assessment.', 'Production approval or regulatory authorization.'],
+                    ] as string[][]).map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, i) => (
+                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                Preview approval does not mean Production approval. Sandbox validation does not mean live rails activation.
+                SDK preview access does not mean public SDK publication. Technical readiness does not mean regulatory
+                authorization.
+              </Callout>
+
+              <H3 id="partner-resp">Partner responsibilities during preview</H3>
+              <UL>
+                <LI>Protect preview credentials and artifacts; never expose secret keys in browsers/mobile apps.</LI>
+                <LI>Use only approved Sandbox environments; keep test data non-sensitive.</LI>
+                <LI>Report bugs with <Code>request_id</Code> and timestamp.</LI>
+                <LI>Do not process real money; do not onboard public customers.</LI>
+                <LI>Do not market preview access as live availability; do not claim BNA approval/admission based on preview.</LI>
+                <LI>Validate idempotency, error handling and webhook handling; respect availability/capability limits.</LI>
+              </UL>
+
+              <H3 id="banzami-resp">Banzami responsibilities during preview</H3>
+              <UL>
+                <LI>Provide controlled access where approved; maintain the Sandbox/Preview documentation and the protocol reference artifacts.</LI>
+                <LI>Document known limitations; keep SDK status honest; update the availability matrices.</LI>
+                <LI>Review integration feedback; maintain the claim-safety tests; avoid production/live overclaims.</LI>
+                <LI>Provide clear readiness criteria. No SLA promises, no 24/7 support promise, no Production go-live promise.</LI>
+              </UL>
+
+              <H3 id="report-preview">How to report preview issues</H3>
+              <P>Report through the approved preview support channel provided during onboarding. Every report should include:</P>
+              <UL>
+                <LI>Environment (<Code>Sandbox/Preview</Code>), SDK family and preview version, if applicable.</LI>
+                <LI><Code>request_id</Code>, timestamp, endpoint or SDK method, and the <Code>Idempotency-Key</Code> if relevant.</LI>
+                <LI>Expected vs observed result; sanitized request/response excerpt (placeholders only).</LI>
+                <LI>Reproduction steps and severity.</LI>
+              </UL>
+
+              <H3 id="sandbox-checklist">Sandbox validation checklist</H3>
+              <UL>
+                <LI>Identity/authentication, payment session creation/retrieval, payment link and QR payload retrieval (where applicable) validated.</LI>
+                <LI>Idempotency retry tested; duplicate/concurrent request handling understood.</LI>
+                <LI>Validation errors and <Code>unauthorized/forbidden</Code> handling tested; <Code>request_id</Code> captured in logs.</LI>
+                <LI>Webhook signature verification design reviewed; outbound limitation understood; refunds/transfers limitation understood.</LI>
+                <LI>SDK not used from a public registry; no real money used; no public customers onboarded; no production/live claims made.</LI>
+              </UL>
+
+              <H3 id="readiness">Readiness review criteria</H3>
+              <UL>
+                <LI>Sandbox integration evidence collected; <Code>request_id</Code> logging present.</LI>
+                <LI>Idempotency, error-handling and webhook-handling strategies documented; secrets management reviewed with no client-side exposure.</LI>
+                <LI>No unsupported capability dependency, no real-money assumption, no production/live claim, no regulatory approval assumption; known limitations accepted.</LI>
+              </UL>
+              <Callout tone="warn">
+                Readiness review is not Production approval. Readiness review is not regulatory authorization. Readiness
+                review is not live rails activation.
+              </Callout>
+
+              <P>
+                Onboarding artifacts:{' '}
+                <a href="/developers/onboarding/sdk-preview-onboarding.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>onboarding</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/sandbox-validation-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>validation checklist</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/partner-responsibilities.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>partner responsibilities</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/preview-issue-report-template.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>issue report template</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/readiness-review-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>readiness review</a>.
+                {' '}These artifacts support Sandbox preview onboarding. They are not Production contracts, do not activate
+                live rails, and do not represent regulatory approval.
+              </P>
             </Section>
 
             {/* ------------------------------------------------ WEBHOOKS */}
