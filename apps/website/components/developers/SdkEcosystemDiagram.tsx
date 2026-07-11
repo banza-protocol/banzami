@@ -1,8 +1,11 @@
-// A Banzami core node with SDK satellites: JavaScript/TypeScript, iOS,
-// Android, REST. Presentational, responsive (satellites wrap around core,
-// stacking under it on mobile).
-
-const SATELLITES = ['JavaScript / TypeScript', 'iOS', 'Android', 'REST'];
+// A Banzami core node with integration satellites. Presentational, responsive
+// (satellites wrap around core, stacking under it on mobile).
+//
+// HONESTY RULE (docs P0): satellites must match the real SDK maturity matrix
+// on /docs (source-only SDKs: TS/Node, Python, PHP, Flutter, checkout-web,
+// partial Go) plus direct REST/HTTP. Never advertise platforms with no SDK
+// (e.g. native iOS/Android) — Flutter is the mobile path.
+const SATELLITES = ['REST / HTTP', 'TypeScript / Node', 'Python · PHP', 'Flutter'];
 
 export function SdkEcosystemDiagram() {
   return (

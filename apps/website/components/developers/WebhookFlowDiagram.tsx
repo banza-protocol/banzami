@@ -1,8 +1,11 @@
 // Banzami emits events that fan out into a symmetric 2×2 grid of the four
 // events, then converge down into → Merchant Backend.
 // Presentational, responsive (the 2×2 grid stacks to a single column on mobile).
-
-const EVENTS = ['payment.created', 'payment.confirmed', 'payment.failed', 'payment.refunded'];
+//
+// HONESTY RULE (docs P0): only VERIFIED event names may appear — the same
+// closed catalogue enforced by the /docs tests. Never reintroduce illustrative
+// payment.* names (created/confirmed/failed/refunded are forbidden vocabulary).
+const EVENTS = ['payment_session.paid', 'payment_link.paid', 'application_settlement.completed', 'application_settlement.failed'];
 
 function VConnector() {
   return (
