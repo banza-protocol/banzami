@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BrandTile } from '@/components/developers/portal/icons';
 import { GlossaryTerm } from './GlossaryTerm';
 import { GLOSSARY } from './glossary';
+import { BADGES, BANZAMI_URL, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, P, RED, Section, UL, backLinkStyle, mono, type Tone } from './ui';
+import { ResourceReference } from './reference';
 
 // Public Developer Documentation (developers.banzami.com/docs).
 //
@@ -12,12 +14,6 @@ import { GLOSSARY } from './glossary';
 // navigable, deep-linkable content. PUBLIC + STATIC: no auth guard, no session,
 // no developer-api fetch. Every claim is grounded in verified code + live
 // Sandbox behaviour; unavailable/validating capabilities are labelled honestly.
-
-const RED = '#B5101F';
-const INK = '#2a2024';
-const MUT = '#8a7a7e';
-const mono = "'JetBrains Mono', ui-monospace, monospace";
-const BANZAMI_URL = 'https://banzami.com';
 
 // -- Sidebar sections (the seven designed items) --------------------------------
 const SECTIONS: { id: string; label: string }[] = [
@@ -29,25 +25,6 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: 'errors', label: 'Errors' },
   { id: 'changelog', label: 'Changelog' },
 ];
-
-// -- Status vocabulary (fixed) --------------------------------------------------
-type Tone = 'ok' | 'val' | 'soon' | 'prep';
-const BADGES: Record<Tone, { label: string; bg: string; bd: string; fg: string; dot: string }> = {
-  ok: { label: 'Disponível em Sandbox', bg: '#EAF7F0', bd: '#CFE9DA', fg: '#1F8A5B', dot: '#1F8A5B' },
-  val: { label: 'Em validação contínua no Sandbox', bg: '#FDF3E2', bd: '#F7E4CB', fg: '#B8770A', dot: '#E0930F' },
-  soon: { label: 'Brevemente', bg: '#F3EDEC', bd: '#EBDBD9', fg: '#6a5a5e', dot: '#a89a9e' },
-  prep: { label: 'Produção em preparação', bg: '#FFF1F0', bd: '#F7DAD7', fg: '#9A1B22', dot: '#B5101F' },
-};
-
-function Badge({ tone, children }: { tone: Tone; children?: ReactNode }) {
-  const b = BADGES[tone];
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 30, background: b.bg, border: `1px solid ${b.bd}`, fontSize: 11, fontWeight: 800, letterSpacing: '.01em', color: b.fg, whiteSpace: 'nowrap' }}>
-      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: '50%', background: b.dot }} />
-      {children ?? b.label}
-    </span>
-  );
-}
 
 // -- Intro capability cards (real links to sub-anchors) -------------------------
 const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: ReactNode }[] = [
@@ -190,6 +167,25 @@ curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
   ]
 }`;
 
+const SAMPLE_WEBHOOK_ENVELOPE = `# Envelope de evento entregue ao seu endpoint (implementado no Sandbox)
+{
+  "id": "evt_XXXXXXXX",
+  "type": "payment_session.paid",
+  "created_at": "2026-07-11T11:46:02Z",
+  "data": { /* objeto do evento */ }
+}`;
+
+const SAMPLE_IDEM_RETRY = `# Repetição segura: a MESMA Idempotency-Key reproduz a resposta original
+curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: idem_pedido_123" \
+  -d '{ ...mesmo corpo... }'
+# -> 201 com a MESMA resposta; nenhuma sessão duplicada é criada.
+
+# O que NÃO fazer: mudar a Idempotency-Key ao repetir após timeout —
+# isso pode criar um segundo efeito. Reutilize sempre a chave original.`;
+
 const SAMPLE_ERROR = `# Envelope canónico de erro (Sandbox)
 {
   "code": "VALIDATION_ERROR",
@@ -213,48 +209,6 @@ switch (event.type) {
 }
 
 // Responda 2xx rapidamente; a entrega é at-least-once, sem garantia de ordem.`;
-
-// -- Small presentational helpers ----------------------------------------------
-const P = ({ children, style }: { children: ReactNode; style?: React.CSSProperties }) => (
-  <p style={{ margin: '0 0 12px', fontSize: 14.5, lineHeight: 1.65, color: '#5a4a4e', fontWeight: 500, maxWidth: 660, ...style }}>{children}</p>
-);
-const UL = ({ children }: { children: ReactNode }) => (
-  <ul style={{ margin: '0 0 14px', padding: '0 0 0 18px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 6 }}>{children}</ul>
-);
-const LI = ({ children }: { children: ReactNode }) => (
-  <li style={{ fontSize: 14, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>{children}</li>
-);
-const Code = ({ children }: { children: ReactNode }) => (
-  <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>{children}</code>
-);
-const H2 = ({ children }: { children: ReactNode }) => (
-  <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>{children}</h2>
-);
-const H3 = ({ id, children }: { id?: string; children: ReactNode }) => (
-  <h3 id={id} style={{ scrollMarginTop: 80, margin: '26px 0 8px', fontSize: 16.5, fontWeight: 900, color: INK }}>{children}</h3>
-);
-
-function Section({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <section id={id} style={{ scrollMarginTop: 72, marginBottom: 46 }}>
-      {children}
-    </section>
-  );
-}
-
-function Callout({ tone = 'info', children }: { tone?: 'info' | 'warn'; children: ReactNode }) {
-  const c = tone === 'warn' ? { bg: '#FDF3E2', bd: '#F7E4CB', fg: '#B8770A' } : { bg: '#FFF1F0', bd: '#F7DAD7', fg: '#9A1B22' };
-  return (
-    <div style={{ background: c.bg, border: `1px solid ${c.bd}`, borderRadius: 14, padding: '14px 16px', margin: '0 0 16px', maxWidth: 660 }}>
-      <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.6, color: c.fg, fontWeight: 700 }}>{children}</p>
-    </div>
-  );
-}
-
-const backLinkStyle: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700,
-  color: '#7a6a6e', textDecoration: 'none', padding: '3px 9px', borderRadius: 8,
-};
 
 export default function DocsPage() {
   const [active, setActive] = useState('introducao');
@@ -325,10 +279,15 @@ export default function DocsPage() {
             </span>
           </span>
         </div>
-        <a href="/login" className="bz-toplink" aria-label="Entrar na Consola" style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
-          Entrar na Consola
-          <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>→</span>
-        </a>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <a href="/docs/en" className="bz-toplink" aria-label="Read the documentation in English" style={backLinkStyle}>
+            EN
+          </a>
+          <a href="/login" className="bz-toplink" aria-label="Entrar na Consola" style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
+            Entrar na Consola
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>→</span>
+          </a>
+        </span>
       </header>
 
       <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
@@ -482,6 +441,22 @@ export default function DocsPage() {
                 <a href="#sdks" onClick={go('sdks')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
                 Não corra <Code>npm install @banzami/sdk</Code> — esse pacote ainda não está publicado.
               </P>
+
+              <H3 id="testar-sandbox">Testar no Sandbox</H3>
+              <P><strong>O que o Sandbox é:</strong> um ambiente completo de integração com contas, sessões, links, QR e webhooks de teste — os fluxos comportam-se como os reais, mas <strong>nunca há dinheiro real</strong>.</P>
+              <P><strong>O que o Sandbox não é:</strong> não há trilhos live, não há fornecedores externos ativados, não há emissão de chaves de Produção. Todas as credenciais de teste destes exemplos são placeholders.</P>
+              <UL>
+                <LI><strong>1. Primeira chamada:</strong> <Code>GET /v1/me</Code> com a sua chave — sucesso é <Code>200</Code> com <Code>environment: SANDBOX</Code>; falha típica é <Code>401 UNAUTHORIZED</Code> (chave errada/revogada).</LI>
+                <LI><strong>2. Criar uma sessão:</strong> <Code>POST /v1/business/payment-sessions</Code> — sucesso é <Code>201</Code> com <Code>status: ACTIVE</Code> e as interfaces link/QR.</LI>
+                <LI><strong>3. Testar idempotência:</strong> repita o mesmo POST com a mesma <Code>Idempotency-Key</Code> — deve receber a resposta original, sem efeito duplicado; envie duas em simultâneo e uma recebe <Code>409 CONFLICT</Code>.</LI>
+                <LI><strong>4. Testar erros:</strong> omita <Code>amount_minor</Code> para ver <Code>400 MISSING_FIELD</Code>; use uma chave inválida para ver <Code>401</Code>; guarde sempre o <Code>request_id</Code> da resposta.</LI>
+                <LI><strong>5. Interpretar resultados:</strong> qualquer resposta com o envelope de erro (ver <a href="#errors" onClick={go('errors')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) é acionável pelo <Code>code</Code>.</LI>
+              </UL>
+              <Callout tone="warn">
+                Utilitários internos de fundos/simulação do Sandbox existem mas são <strong>internos — não públicos</strong>; não fazem
+                parte da superfície documentada. A entrega outbound de webhooks para sinks externos permanece <strong>simulada</strong> no
+                conjunto E2E público — ver <a href="#webhooks" onClick={go('webhooks')} style={{ color: '#B8770A', fontWeight: 800, textDecoration: 'none' }}>Webhooks</a>.
+              </Callout>
             </Section>
 
             {/* ------------------------------------------------ API REFERENCE */}
@@ -557,6 +532,23 @@ export default function DocsPage() {
                 dois pedidos <strong>simultâneos</strong> com a mesma chave recebem <Code>409 CONFLICT</Code> até o primeiro
                 terminar — nesse caso, aguarde e repita com a <em>mesma</em> chave.
               </P>
+              <CodeBlock label="curl · repetição segura com Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} />
+
+              <H3 id="autenticacao">Autenticação e gestão de chaves <Badge tone="ok" /></H3>
+              <UL>
+                <LI><strong>Bearer direto:</strong> envie a chave Sandbox no header <Code>Authorization: Bearer bz_test_sk_…</Code> (ou <Code>X-API-Key</Code>). Chaves <Code>bz_live_</Code> são <strong>recusadas fail-closed</strong> — não existe emissão de chaves de Produção.</LI>
+                <LI><strong>Separação de ambientes:</strong> chaves <Code>bz_test_</Code> pertencem ao Sandbox; a futura Produção terá chaves próprias, emitidas apenas após a habilitação da plataforma (<em>Produção em preparação</em>).</LI>
+                <LI><strong>Segredo só no servidor:</strong> a <Code>bz_test_sk_</Code> nunca vai a browser, app móvel, repositório, logs ou analytics; a <Code>bz_test_pk_</Code> é a única que pode ir no cliente.</LI>
+                <LI><strong>Rotação:</strong> rode chaves periodicamente e sempre que houver suspeita de exposição; após rotação, a chave anterior deixa de ser aceite de imediato.</LI>
+                <LI><strong>Revogação (comportamento verificado):</strong> uma chave revogada recebe <Code>401 UNAUTHORIZED</Code> em qualquer chamada — verificado no E2E do Sandbox.</LI>
+              </UL>
+
+              <H3 id="referencia-recursos">Referência por recurso</H3>
+              <P>
+                Referência endpoint a endpoint da superfície pública verificada no Sandbox — método, credencial, headers, corpo do
+                pedido, resposta e erros comuns. Apenas recursos com evidência real; nada aqui reivindica Produção.
+              </P>
+              <ResourceReference lang="pt" onCopy={copy} />
 
               <H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>
               <P>
@@ -685,6 +677,11 @@ export default function DocsPage() {
                 <LI>Processe de forma <strong>idempotente</strong> e responda <Code>2xx</Code> rapidamente; a entrega é <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem, com <GlossaryTerm id="replay">reentrega</GlossaryTerm> em caso de falha.</LI>
               </UL>
               <CodeBlock label="ts · verificar e tratar um evento" raw={SAMPLE_WEBHOOK} onCopy={copy} />
+              <CodeBlock label="json · envelope do evento (implementado no Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                O envelope acima é a forma implementada no Sandbox: <Code>id</Code> (deduplique por ele), <Code>type</Code> (um dos
+                eventos do catálogo verificado abaixo), <Code>created_at</Code> e <Code>data</Code> com o objeto do evento.
+              </P>
               <H3 id="reentrega">Contrato de reentrega</H3>
               <UL>
                 <LI>Entrega <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem — trate cada evento de forma <strong>idempotente</strong> (deduplique pelo id do evento).</LI>
@@ -771,16 +768,23 @@ export default function DocsPage() {
             {/* ------------------------------------------------ CHANGELOG */}
             <Section id="changelog">
               <H2>Changelog</H2>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Entradas datadas por categoria: <Code>[Docs]</Code> (só documentação), <Code>[API]</Code> (contrato da API),{' '}
+                <Code>[Sandbox]</Code> (plataforma Sandbox). Mudanças incompatíveis serão marcadas <Code>[Breaking]</Code>.
+                Não há releases de Produção — <em>Produção em preparação</em>.
+              </P>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {[
-                  ['11 Jul 2026', 'Exemplos curl com pedido e resposta, matriz credencial↔capacidade, envelope de erros, idempotência em código e contrato de reentrega de webhooks.'],
-                  ['Julho 2026', 'Consola Sandbox disponível: entrada por email + OTP, workspaces, projetos e chaves de teste.'],
-                  ['Julho 2026', 'Chaves de teste com rotação e revogação; papéis e convites de equipa.'],
-                  ['Julho 2026', 'Documentação pública de developers.'],
-                  ['Julho 2026', 'DOA publicado como integração de referência (Sandbox).'],
-                ].map(([when, what], i) => (
+                {([
+                  ['11 Jul 2026', 'Docs', 'Referência por recurso (PT/EN), guia Testar no Sandbox, autenticação e gestão de chaves, envelope de webhooks e exemplos de repetição idempotente.'],
+                  ['11 Jul 2026', 'Docs', 'Exemplos curl com pedido e resposta, matriz credencial↔capacidade, envelope de erros, idempotência em código e contrato de reentrega de webhooks.'],
+                  ['Julho 2026', 'Sandbox', 'Consola Sandbox disponível: entrada por email + OTP, workspaces, projetos e chaves de teste.'],
+                  ['Julho 2026', 'Sandbox', 'Chaves de teste com rotação e revogação; papéis e convites de equipa.'],
+                  ['Julho 2026', 'Docs', 'Documentação pública de developers.'],
+                  ['Julho 2026', 'Sandbox', 'DOA publicado como integração de referência (Sandbox).'],
+                ] as [string, string, string][]).map(([when, cat, what], i) => (
                   <li key={i} style={{ display: 'flex', gap: 12 }}>
                     <span style={{ flex: 'none', width: 92, fontSize: 12, fontWeight: 800, color: '#a89a9e', fontFamily: mono, paddingTop: 2 }}>{when}</span>
+                    <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#9A1B22', fontFamily: mono, paddingTop: 3 }}>[{cat}]</span>
                     <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500 }}>{what}</span>
                   </li>
                 ))}
@@ -832,33 +836,6 @@ export default function DocsPage() {
           <span style={{ background: '#2a2024', color: '#fff', fontSize: 13, fontWeight: 700, padding: '10px 16px', borderRadius: 12, boxShadow: '0 16px 40px -18px rgba(0,0,0,.5)' }}>{toast}</span>
         ) : null}
       </div>
-    </div>
-  );
-}
-
-// -- Dark code block with copy + toast -----------------------------------------
-function CodeBlock({ label, raw, onCopy }: { label: string; raw: string; onCopy: (t: string, l: string) => void }) {
-  return (
-    <div style={{ background: '#2A1E20', borderRadius: 16, overflow: 'hidden', boxShadow: '0 20px 50px -34px rgba(0,0,0,.5)', margin: '0 0 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,.08)' }}>
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#E8434B' }} />
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#FBD2D0' }} />
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#5a4a4e' }} />
-        <span style={{ marginLeft: 6, fontFamily: mono, fontSize: 11.5, color: '#b8a4a6', fontWeight: 600 }}>{label}</span>
-        <button
-          type="button"
-          onClick={() => onCopy(raw, 'Copiado para a área de transferência')}
-          className="bz-icobtn"
-          style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
-            <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#fff" strokeWidth="1.9" />
-            <path d="M5 15V5a2 2 0 012-2h8" stroke="#fff" strokeWidth="1.9" />
-          </svg>
-          Copiar
-        </button>
-      </div>
-      <pre style={{ margin: 0, padding: 20, fontFamily: mono, fontSize: 12.5, lineHeight: 1.7, color: '#EDE3E1', overflowX: 'auto', whiteSpace: 'pre' }}>{raw}</pre>
     </div>
   );
 }
