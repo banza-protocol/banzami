@@ -1,0 +1,60 @@
+{
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "regulatory_approval": false,
+  "live_rails": false,
+  "real_money": false,
+  "public_sdk_packages_published": false,
+  "self_service_access": false,
+  "name": "Banzami Sandbox Evidence Map",
+  "evidence": [
+    {
+      "artifact": "OpenAPI Sandbox spec",
+      "path": "/developers/openapi/banzami-sandbox.openapi.json"
+    },
+    {
+      "artifact": "Postman Sandbox collection",
+      "path": "/developers/postman/banzami-sandbox.postman_collection.json"
+    },
+    {
+      "artifact": "Availability matrix",
+      "path": "/developers/availability/banzami-developers-availability.json"
+    },
+    {
+      "artifact": "SDK-first manifest",
+      "path": "/developers/artifacts/sdk-first-manifest.json"
+    },
+    {
+      "artifact": "SDK contract artifact",
+      "path": "/developers/artifacts/sdk-contract.json"
+    },
+    {
+      "artifact": "Onboarding artifacts (journey, checklists, responsibilities, report template)",
+      "path": "/developers/onboarding/"
+    },
+    {
+      "artifact": "Examples and fixtures (curl, requests/responses, error and webhook envelopes)",
+      "path": "/developers/examples/"
+    },
+    {
+      "artifact": "Docs claim-safety tests",
+      "path": "repo: apps/website/app/developers/docs/*.test.*"
+    },
+    {
+      "artifact": "P0/P1/P2A/P2B/P2C/P2D documentation test suites",
+      "path": "repo: apps/website/app/developers/docs/"
+    }
+  ],
+  "caveats": {
+    "pt": [
+      "Documentação suportada por evidência não significa disponibilidade de produção live.",
+      "Artefactos de repositório não significam autorização regulatória.",
+      "Passar os testes de documentação não ativa trilhos de pagamento."
+    ],
+    "en": [
+      "Evidence-backed documentation does not mean live production availability.",
+      "Repository artifacts do not mean regulatory authorization.",
+      "Passing documentation tests does not activate payment rails."
+    ]
+  }
+}

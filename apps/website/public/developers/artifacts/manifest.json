@@ -148,6 +148,83 @@
       "path": "/developers/onboarding/readiness-review-checklist.json",
       "url": "/developers/onboarding/readiness-review-checklist.json",
       "description": "Readiness review criteria (PT/EN) — explicitly NOT Production approval, regulatory authorization or live rails activation."
+    },
+    {
+      "name": "Banzami Developer Trust Summary",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/developer-trust-summary.json",
+      "url": "/developers/trust/developer-trust-summary.json",
+      "description": "Availability summary for approved partners (15 capabilities, conservative states, PT/EN)."
+    },
+    {
+      "name": "Banzami Sandbox Evidence Map",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/sandbox-evidence-map.json",
+      "url": "/developers/trust/sandbox-evidence-map.json",
+      "description": "Which public/repo artifacts support the documentation — with explicit non-authorization caveats."
+    },
+    {
+      "name": "Banzami Risk and Limitation Matrix",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/risk-limitations-matrix.json",
+      "url": "/developers/trust/risk-limitations-matrix.json",
+      "description": "12 risks/limitations with status, partner implication and expected handling (PT/EN)."
+    },
+    {
+      "name": "Banzami Partner Readiness Package",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/partner-readiness-package.json",
+      "url": "/developers/trust/partner-readiness-package.json",
+      "description": "Index of the readiness package artifacts with its 5 explicit is-not caveats."
+    },
+    {
+      "name": "Banzami Decision Gates",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/decision-gates.json",
+      "url": "/developers/trust/decision-gates.json",
+      "description": "10 decision gates (purpose, evidence, pass condition, what it does NOT authorize) + hard non-authorization statement."
+    },
+    {
+      "name": "Banzami Preview Security Posture",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/preview-security-posture.json",
+      "url": "/developers/trust/preview-security-posture.json",
+      "description": "Conservative, documentation-supported security posture — no certification/audit/uptime claims."
+    },
+    {
+      "name": "Banzami Trust & Readiness Summary",
+      "type": "trust_readiness",
+      "role": "trust_readiness",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/trust/trust-readiness-summary.md",
+      "url": "/developers/trust/trust-readiness-summary.md",
+      "description": "Human-readable PT/EN summary of the trust and readiness package."
     }
   ]
 }
