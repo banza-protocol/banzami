@@ -371,6 +371,23 @@ export default function DocsPage() {
                 ))}
               </div>
 
+              <H3 id="sdk-first">Modelo de integração SDK-first</H3>
+              <P>
+                A filosofia de integração da Banzami é <strong>SDK-first</strong>. Os SDKs Banzami devem ser o caminho
+                recomendado para integrar pagamentos, criar sessões, validar respostas, tratar erros, gerir idempotência e
+                consumir webhooks.
+              </P>
+              <P>
+                A API HTTP e o OpenAPI existem como <strong>camada de referência técnica do protocolo</strong>. O uso HTTP
+                direto é secundário e deve ser reservado para diagnóstico, auditoria, testes controlados ou integradores
+                avançados.
+              </P>
+              <P>
+                Nesta fase, os SDKs ainda não estão publicados publicamente em npm, PyPI, Packagist ou pub.dev. Por isso,
+                esta documentação não apresenta comandos de instalação pública. O acesso a SDKs deve ser tratado como
+                pré-visualização controlada até publicação oficial.
+              </P>
+
               <H3>Três camadas</H3>
               <P>Ao integrar Banzami, distinga sempre três camadas:</P>
               <UL>
@@ -436,8 +453,10 @@ export default function DocsPage() {
               </UL>
               <Callout>Nunca exponha chaves secretas no browser, app móvel, repositório, logs, capturas de ecrã ou analytics.</Callout>
               <P>
-                Os SDKs ainda <strong>não estão publicados</strong> em npm, PyPI, Packagist ou pub.dev — use os exemplos HTTP
-                diretos (curl) por agora, salvo se trabalhar a partir de um pacote SDK interno aprovado — ver{' '}
+                A integração Banzami é <strong>SDK-first</strong>, mas os SDKs ainda <strong>não estão publicados</strong> em
+                npm, PyPI, Packagist ou pub.dev — por isso este quickstart demonstra o protocolo com exemplos curl de{' '}
+                <strong>referência/diagnóstico</strong> até à publicação oficial, salvo se trabalhar a partir de um pacote SDK
+                interno aprovado — ver{' '}
                 <a href="#sdks" onClick={go('sdks')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
                 Não corra <Code>npm install @banzami/sdk</Code> — esse pacote ainda não está publicado.
               </P>
@@ -550,17 +569,20 @@ export default function DocsPage() {
               </P>
               <ResourceReference lang="pt" onCopy={copy} />
 
-              <H3 id="artefactos">Artefactos técnicos</H3>
+              <H3 id="artefactos">Artefactos técnicos de referência</H3>
               <P>
-                A mesma superfície documentada existe em formato <strong>machine-readable</strong> — artefactos de repositório,
-                para revisão e futura publicação (não são downloads alojados). Descrevem apenas o âmbito Sandbox/Pré-visualização
-                atual e <strong>não são contratos de Produção</strong>:
+                A mesma superfície documentada existe em formato <strong>machine-readable</strong> — <strong>artefactos de
+                referência do protocolo</strong>, publicados como ficheiros estáticos. <strong>Não são a recomendação principal
+                de integração</strong> (a Banzami é SDK-first), descrevem apenas o âmbito Sandbox/Pré-visualização atual,
+                <strong> não são contratos de Produção</strong>, não são trilhos live, não são aprovação regulatória e não
+                substituem os SDKs:
               </P>
               <UL>
-                <LI><strong>OpenAPI</strong> — <Code>docs/developer/openapi/banzami-sandbox.openapi.json</Code> (só os endpoints verificados; reembolsos/transferências ausentes por estarem Pendente E2E para chaves developer).</LI>
-                <LI><strong>Exemplos curl + fixtures</strong> — <Code>docs/developer/examples/</Code> (pedidos, respostas, envelopes de erro e de webhook, com placeholders óbvios).</LI>
-                <LI><strong>Coleção Postman</strong> — <Code>docs/developer/postman/banzami-sandbox.postman_collection.json</Code> (mesmo conjunto de endpoints, variáveis placeholder).</LI>
-                <LI><strong>Matriz de disponibilidade</strong> — <Code>docs/developer/availability/banzami-developers-availability.json</Code> (a fonte machine-readable dos estados desta documentação, verificada por testes).</LI>
+                <LI><strong>OpenAPI</strong> (referência do protocolo) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — só os endpoints verificados; reembolsos/transferências ausentes por estarem Pendente E2E para chaves developer.</LI>
+                <LI><strong>Coleção Postman</strong> (referência do protocolo) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
+                <LI><strong>Exemplos curl</strong> (diagnóstico / referência do protocolo) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; fixtures completas em <Code>docs/developer/examples/</Code>.</LI>
+                <LI><strong>Matriz de disponibilidade</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (fonte machine-readable dos estados, verificada por testes).</LI>
+                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (modelo SDK-first machine-readable; nenhum pacote SDK publicado).</LI>
               </UL>
 
               <H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>

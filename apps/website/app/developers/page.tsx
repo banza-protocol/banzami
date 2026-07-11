@@ -342,7 +342,7 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
   {
     name: 'REST API',
     install: 'https://sandbox-api.banzami.com/v1',
-    desc: 'O caminho recomendado hoje — a mesma API REST, idempotente e versionada, sem depender de SDKs.',
+    desc: 'Camada de referência do protocolo — a mesma API REST, idempotente e versionada (diagnóstico e integradores avançados).',
     snippet: (
       <>
         <K>POST</K> /v1/business/payment-sessions

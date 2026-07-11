@@ -1,0 +1,105 @@
+{
+  "info": {
+    "name": "Banzami Sandbox API (Sandbox/Preview — placeholders only)",
+    "description": "Generated from the same verified endpoint set as docs/developer/openapi/banzami-sandbox.openapi.json. Sandbox/Preview documentation scope only: no real money, no live rails, no external providers, not a Production contract. Refunds and transfers are intentionally absent (Pending E2E for developer keys — 403). Set the apiKey variable to YOUR Sandbox test key; the default is an obvious placeholder.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "https://sandbox-api.banzami.com" },
+    { "key": "apiKey", "value": "bz_test_sk_XXXX" },
+    { "key": "sessionId", "value": "payment_session_xxx" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{apiKey}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Identity",
+      "item": [
+        {
+          "name": "GET /v1/me — key identity (first call)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/me", "host": ["{{baseUrl}}"], "path": ["v1", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Sessions",
+      "item": [
+        {
+          "name": "POST /v1/business/payment-sessions — create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem_xxx" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wallet_account_id\": \"wacc_xxx\",\n  \"purpose\": \"PAGAMENTO\",\n  \"reference_type\": \"PEDIDO\",\n  \"reference_id\": \"order_123\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"] }
+          }
+        },
+        {
+          "name": "GET /v1/business/payment-sessions — list",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions?status=ACTIVE", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"], "query": [{ "key": "status", "value": "ACTIVE" }] }
+          }
+        },
+        {
+          "name": "GET /v1/business/payment-sessions/{id} — fetch",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}"] }
+          }
+        },
+        {
+          "name": "GET /v1/business/payment-sessions/{id}/link — public link",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions/{{sessionId}}/link", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}", "link"] }
+          }
+        },
+        {
+          "name": "GET /v1/business/payment-sessions/{id}/qr — QR (json/svg/png/pdf)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions/{{sessionId}}/qr?format=svg", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}", "qr"], "query": [{ "key": "format", "value": "svg" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payment Links",
+      "item": [
+        {
+          "name": "POST /v1/payment-links — create",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "idem_xxx" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"wallet_id\": \"wallet_xxx\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/v1/payment-links", "host": ["{{baseUrl}}"], "path": ["v1", "payment-links"] }
+          }
+        },
+        {
+          "name": "GET /v1/payment-links — list",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/payment-links", "host": ["{{baseUrl}}"], "path": ["v1", "payment-links"] }
+          }
+        }
+      ]
+    }
+  ]
+}

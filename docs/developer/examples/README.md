@@ -38,10 +38,13 @@ Version: 1.0
 **PT** · Reembolsos e transferências permanecem **Pendente E2E** para chaves
 developer (403) e por isso não têm exemplos aqui. A entrega outbound de webhooks
 permanece **simulada** no conjunto E2E público. Não corra `npm install
-@banzami/sdk` — os SDKs ainda não estão publicados; o caminho oficial é HTTP
-direto (curl).
+@banzami/sdk` — os SDKs ainda não estão publicados. A integração Banzami é
+**SDK-first**; estes exemplos curl são a camada de **referência do protocolo**
+(diagnóstico/auditoria/testes controlados), não o caminho de implementação recomendado.
 
 **EN** · Refunds and transfers remain **Pending E2E** for developer keys (403)
 and therefore have no examples here. Outbound webhook delivery remains
 **simulated** in the public E2E suite. Do not run `npm install @banzami/sdk` —
-the SDKs are not yet published; direct HTTP (curl) is the official path.
+the SDKs are not yet published. Banzami is **SDK-first**; these curl examples are
+the **protocol reference** layer (diagnostics/audits/controlled testing), not the
+recommended implementation path.

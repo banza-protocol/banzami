@@ -1,0 +1,376 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Banzami Sandbox API",
+    "version": "docs-2026-07-11",
+    "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Only endpoints already verified and documented are included; refunds and transfers are intentionally ABSENT because their developer-key scopes remain pending end-to-end verification (a developer-key request is rejected with 403). Webhook outbound delivery to external public sinks remains simulated in the public E2E suite and is not claimed as publicly active. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
+  },
+  "servers": [
+    { "url": "https://sandbox-api.banzami.com", "description": "Banzami Sandbox (no real money, controlled test flows)" }
+  ],
+  "security": [{ "bearerAuth": [] }],
+  "tags": [
+    { "name": "identity", "description": "Developer key identity (released developer-key surface)" },
+    { "name": "payment-sessions", "description": "Payment sessions — Sandbox, gated by scope + project binding" },
+    { "name": "payment-links", "description": "Payment links — Sandbox, gated by scope + project binding" }
+  ],
+  "paths": {
+    "/v1/me": {
+      "get": {
+        "tags": ["identity"],
+        "operationId": "getMe",
+        "summary": "Key identity (first successful call — no SDK required)",
+        "description": "Returns the authenticated key's environment, project, scopes and status. Requires the identity:read scope. Returns no financial state. bz_live_ keys are rejected fail-closed.",
+        "responses": {
+          "200": {
+            "description": "Resolved key identity",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MeResponse" },
+                "example": { "environment": "SANDBOX", "project": "my-project", "scopes": ["identity:read"], "key_status": "ACTIVE" }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/v1/business/payment-sessions": {
+      "post": {
+        "tags": ["payment-sessions"],
+        "operationId": "createPaymentSession",
+        "summary": "Create a payment session",
+        "description": "Creates a payment session and returns its id, status and interfaces (link/QR). Credential: developer key with the payment_sessions scope on a project with an ACTIVE binding, or a merchant credential.",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePaymentSessionRequest" },
+              "example": {
+                "wallet_account_id": "wacc_xxx",
+                "purpose": "PAGAMENTO",
+                "reference_type": "PEDIDO",
+                "reference_id": "order_123",
+                "amount_minor": 25000,
+                "currency": "AOA",
+                "description": "Order #123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment session created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaymentSession" },
+                "example": {
+                  "session_id": "payment_session_xxx",
+                  "wallet_account_id": "wacc_xxx",
+                  "currency": "AOA",
+                  "amount_minor": 25000,
+                  "purpose": "PAGAMENTO",
+                  "reference_type": "PEDIDO",
+                  "reference_id": "order_123",
+                  "status": "ACTIVE",
+                  "expires_at": "2026-07-11T12:00:00Z",
+                  "created_at": "2026-07-11T11:45:00Z",
+                  "interfaces": [
+                    { "type": "DYNAMIC_QR", "value": "<qr-payload>", "format": "QR_PAYLOAD", "qr_url": "https://pay.banzami.com/…", "expires_at": "2026-07-11T12:00:00Z" }
+                  ]
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
+          "409": { "$ref": "#/components/responses/Conflict" }
+        }
+      },
+      "get": {
+        "tags": ["payment-sessions"],
+        "operationId": "listPaymentSessions",
+        "summary": "List payment sessions",
+        "description": "Lists the project/merchant payment sessions, optionally filtered by status.",
+        "parameters": [
+          { "name": "status", "in": "query", "required": false, "schema": { "type": "string" }, "description": "Optional status filter (e.g. ACTIVE)" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "type": "array", "items": { "$ref": "#/components/schemas/PaymentSession" } } },
+                  "required": ["data"]
+                }
+              }
+            }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/v1/business/payment-sessions/{id}": {
+      "get": {
+        "tags": ["payment-sessions"],
+        "operationId": "getPaymentSession",
+        "summary": "Fetch a payment session",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
+        "responses": {
+          "200": {
+            "description": "Payment session",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PaymentSession" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/business/payment-sessions/{id}/link": {
+      "get": {
+        "tags": ["payment-sessions"],
+        "operationId": "getPaymentSessionLink",
+        "summary": "Fetch the session's public payment link",
+        "parameters": [{ "$ref": "#/components/parameters/SessionId" }],
+        "responses": {
+          "200": {
+            "description": "Public payment link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["PAYMENT_LINK"] },
+                    "slug": { "type": "string" },
+                    "url": { "type": "string" }
+                  },
+                  "required": ["type", "slug", "url"]
+                },
+                "example": { "type": "PAYMENT_LINK", "slug": "slug_xxx", "url": "https://pay.banzami.com/pay/slug_xxx" }
+              }
+            }
+          },
+          "404": {
+            "description": "Session has no payment link (code NO_LINK) or session not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/v1/business/payment-sessions/{id}/qr": {
+      "get": {
+        "tags": ["payment-sessions"],
+        "operationId": "getPaymentSessionQr",
+        "summary": "Fetch the session QR (JSON value or rendered image)",
+        "description": "Without parameters, returns the encodable value as JSON. With ?format=png|svg|pdf, returns the rendered image.",
+        "parameters": [
+          { "$ref": "#/components/parameters/SessionId" },
+          { "name": "format", "in": "query", "required": false, "schema": { "type": "string", "enum": ["png", "svg", "pdf"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "QR value (JSON) or rendered image (with ?format=)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "type": { "type": "string", "enum": ["QR"] }, "value": { "type": "string" } },
+                  "required": ["type", "value"]
+                },
+                "example": { "type": "QR", "value": "<qr-payload>" }
+              }
+            }
+          },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/v1/payment-links": {
+      "post": {
+        "tags": ["payment-links"],
+        "operationId": "createPaymentLink",
+        "summary": "Create a reusable payment link",
+        "description": "Creates a payment link with a public slug (pay.banzami.com/pay/{slug}). Omit amount_minor for an open-amount link. Credential: merchant credential, or developer key with the payment_links scope on a project with an ACTIVE binding.",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePaymentLinkRequest" },
+              "example": { "wallet_id": "wallet_xxx", "amount_minor": 25000, "currency": "AOA", "description": "Order #123" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Payment link created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PaymentLink" },
+                "example": { "slug": "slug_xxx", "amount_minor": 25000, "currency": "AOA", "description": "Order #123", "status": "ACTIVE", "expires_at": null, "paid_at": null, "merchant_name": "Example Store" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      },
+      "get": {
+        "tags": ["payment-links"],
+        "operationId": "listPaymentLinks",
+        "summary": "List payment links",
+        "responses": {
+          "200": {
+            "description": "Payment links",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/PaymentLink" } } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Sandbox API key sent directly as the Bearer token (bz_test_sk_XXXX placeholder — never a real key in examples). bz_live_ keys are rejected fail-closed; there is no Production key issuance."
+      }
+    },
+    "parameters": {
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string" },
+        "example": "idem_xxx",
+        "description": "Send on writes to retry safely. Sandbox behaviour: the original 2xx/4xx response is replayed for the same key for 24 hours (scoped per credential, method and path); 5xx responses are never replayed; concurrent requests with the same key receive 409 CONFLICT until the first completes."
+      },
+      "SessionId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "schema": { "type": "string" },
+        "example": "payment_session_xxx"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request (codes: INVALID_BODY, MISSING_FIELD, VALIDATION_ERROR, INVALID_PARAM, INVALID_AMOUNT)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "code": "VALIDATION_ERROR", "message": "amount_minor must be a positive integer", "request_id": "req_xxx" } } }
+      },
+      "Unauthorized": {
+        "description": "Missing, invalid or revoked key (code UNAUTHORIZED)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "code": "UNAUTHORIZED", "message": "a valid Sandbox API key is required", "request_id": "req_xxx" } } }
+      },
+      "Forbidden": {
+        "description": "Insufficient scope or project without an active binding (code FORBIDDEN)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "code": "FORBIDDEN", "message": "insufficient scope", "request_id": "req_xxx" } } }
+      },
+      "NotFound": {
+        "description": "Resource missing or outside your scope (code NOT_FOUND)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "code": "NOT_FOUND", "message": "not found", "request_id": "req_xxx" } } }
+      },
+      "Conflict": {
+        "description": "Idempotency-Key in flight or state conflict (code CONFLICT)",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" }, "example": { "code": "CONFLICT", "message": "a request with this Idempotency-Key is already in progress — retry after it completes", "request_id": "req_xxx" } } }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "description": "Canonical flat error envelope returned by every failing endpoint (observed Sandbox behaviour). Handle errors by code, never by message; keep request_id for support correlation.",
+        "properties": {
+          "code": { "type": "string", "description": "Stable UPPER_SNAKE error code (e.g. VALIDATION_ERROR, UNAUTHORIZED, FORBIDDEN, NOT_FOUND, CONFLICT, RATE_LIMITED, INTERNAL_ERROR)" },
+          "message": { "type": "string", "description": "Human-readable message (not stable — do not branch on it)" },
+          "request_id": { "type": "string", "description": "Correlation id for support (placeholder req_xxx in examples)" }
+        },
+        "required": ["code", "message"]
+      },
+      "MeResponse": {
+        "type": "object",
+        "properties": {
+          "environment": { "type": "string", "enum": ["SANDBOX"], "description": "Always SANDBOX — there is no Production surface" },
+          "project": { "type": "string", "description": "Project-safe slug (never internal identifiers)" },
+          "scopes": { "type": "array", "items": { "type": "string" } },
+          "key_status": { "type": "string" }
+        },
+        "required": ["environment", "project", "scopes", "key_status"]
+      },
+      "CreatePaymentSessionRequest": {
+        "type": "object",
+        "properties": {
+          "wallet_account_id": { "type": "string", "description": "Destination account of the project" },
+          "purpose": { "type": "string" },
+          "reference_type": { "type": "string", "description": "Your business reference type" },
+          "reference_id": { "type": "string", "description": "Your business reference id" },
+          "amount_minor": { "type": "integer", "format": "int64", "description": "Amount in minor units (AOA)" },
+          "currency": { "type": "string", "example": "AOA" },
+          "description": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true },
+          "metadata": { "type": "object", "additionalProperties": true, "nullable": true }
+        },
+        "required": ["wallet_account_id", "purpose", "reference_type", "reference_id", "currency"]
+      },
+      "PaymentSessionInterface": {
+        "type": "object",
+        "properties": {
+          "type": { "type": "string", "enum": ["DYNAMIC_QR", "STATIC_QR"] },
+          "value": { "type": "string" },
+          "format": { "type": "string", "enum": ["QR_PAYLOAD"] },
+          "qr_url": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["type", "value", "format"]
+      },
+      "PaymentSession": {
+        "type": "object",
+        "properties": {
+          "session_id": { "type": "string" },
+          "wallet_account_id": { "type": "string" },
+          "currency": { "type": "string" },
+          "amount_minor": { "type": "integer", "format": "int64", "nullable": true },
+          "purpose": { "type": "string" },
+          "reference_type": { "type": "string" },
+          "reference_id": { "type": "string" },
+          "status": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true },
+          "created_at": { "type": "string", "format": "date-time" },
+          "interfaces": { "type": "array", "items": { "$ref": "#/components/schemas/PaymentSessionInterface" } },
+          "refund_source": { "type": "object", "additionalProperties": true, "nullable": true, "description": "Merchant-safe refund source; present only once the payment has settled" }
+        },
+        "required": ["session_id", "wallet_account_id", "currency", "purpose", "reference_type", "reference_id", "status", "created_at", "interfaces"]
+      },
+      "CreatePaymentLinkRequest": {
+        "type": "object",
+        "properties": {
+          "wallet_id": { "type": "string", "description": "Destination wallet" },
+          "amount_minor": { "type": "integer", "format": "int64", "nullable": true, "description": "Omit for an open-amount link" },
+          "currency": { "type": "string", "example": "AOA" },
+          "description": { "type": "string", "nullable": true },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true }
+        },
+        "required": ["wallet_id", "currency"]
+      },
+      "PaymentLink": {
+        "type": "object",
+        "properties": {
+          "slug": { "type": "string" },
+          "amount_minor": { "type": "integer", "format": "int64", "nullable": true },
+          "currency": { "type": "string" },
+          "description": { "type": "string", "nullable": true },
+          "status": { "type": "string" },
+          "expires_at": { "type": "string", "format": "date-time", "nullable": true },
+          "paid_at": { "type": "string", "format": "date-time", "nullable": true },
+          "merchant_name": { "type": "string" }
+        },
+        "required": ["slug", "currency", "status", "merchant_name"]
+      }
+    }
+  }
+}
