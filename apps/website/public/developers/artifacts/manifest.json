@@ -93,6 +93,61 @@
       "recommended_integration_path": false,
       "path": "/developers/examples/sdk-preview/php-payment-session.example.php",
       "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
+    },
+    {
+      "name": "Banzami SDK Preview Onboarding",
+      "type": "preview_onboarding",
+      "role": "preview_onboarding",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/onboarding/sdk-preview-onboarding.json",
+      "url": "/developers/onboarding/sdk-preview-onboarding.json",
+      "description": "Controlled SDK preview onboarding journey (8 stages, PT/EN) with hard non-approval statements."
+    },
+    {
+      "name": "Banzami Sandbox Validation Checklist",
+      "type": "preview_onboarding",
+      "role": "preview_onboarding",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/onboarding/sandbox-validation-checklist.json",
+      "url": "/developers/onboarding/sandbox-validation-checklist.json",
+      "description": "Sandbox validation checklist (17 items, PT/EN)."
+    },
+    {
+      "name": "Banzami Preview Partner Responsibilities",
+      "type": "preview_onboarding",
+      "role": "preview_onboarding",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/onboarding/partner-responsibilities.json",
+      "url": "/developers/onboarding/partner-responsibilities.json",
+      "description": "Partner responsibilities during the controlled preview (PT/EN)."
+    },
+    {
+      "name": "Banzami Preview Issue Report Template",
+      "type": "preview_onboarding",
+      "role": "preview_onboarding",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/onboarding/preview-issue-report-template.md",
+      "url": "/developers/onboarding/preview-issue-report-template.md",
+      "description": "Structured, sanitized issue report template for preview partners (PT/EN)."
+    },
+    {
+      "name": "Banzami Readiness Review Checklist",
+      "type": "preview_onboarding",
+      "role": "preview_onboarding",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "path": "/developers/onboarding/readiness-review-checklist.json",
+      "url": "/developers/onboarding/readiness-review-checklist.json",
+      "description": "Readiness review criteria (PT/EN) — explicitly NOT Production approval, regulatory authorization or live rails activation."
     }
   ]
 }

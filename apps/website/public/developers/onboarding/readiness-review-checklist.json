@@ -1,0 +1,70 @@
+{
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "regulatory_approval": false,
+  "live_rails": false,
+  "public_sdk_packages_published": false,
+  "name": "Banzami Readiness Review Checklist",
+  "criteria": [
+    {
+      "pt": "Evidência de integração Sandbox recolhida",
+      "en": "Sandbox integration evidence collected"
+    },
+    {
+      "pt": "Logging de request_id presente",
+      "en": "request_id logging present"
+    },
+    {
+      "pt": "Estratégia de idempotência documentada",
+      "en": "idempotency strategy documented"
+    },
+    {
+      "pt": "Estratégia de tratamento de erros documentada",
+      "en": "error handling strategy documented"
+    },
+    {
+      "pt": "Estratégia de tratamento de webhooks documentada",
+      "en": "webhook handling strategy documented"
+    },
+    {
+      "pt": "Gestão de secrets revista",
+      "en": "secrets management reviewed"
+    },
+    {
+      "pt": "Sem exposição de secrets no cliente",
+      "en": "no client-side secret exposure"
+    },
+    {
+      "pt": "Sem dependência de capacidades não suportadas",
+      "en": "no unsupported capability dependency"
+    },
+    {
+      "pt": "Sem pressuposto de dinheiro real",
+      "en": "no real-money assumption"
+    },
+    {
+      "pt": "Sem claim de produção/live",
+      "en": "no production/live claim"
+    },
+    {
+      "pt": "Sem pressuposto de aprovação regulatória",
+      "en": "no regulatory approval assumption"
+    },
+    {
+      "pt": "Limitações conhecidas aceites",
+      "en": "known limitations accepted"
+    }
+  ],
+  "what_it_is_not": {
+    "pt": [
+      "A revisão de prontidão não é aprovação de Produção.",
+      "A revisão de prontidão não é autorização regulatória.",
+      "A revisão de prontidão não é ativação de trilhos live."
+    ],
+    "en": [
+      "Readiness review is not Production approval.",
+      "Readiness review is not regulatory authorization.",
+      "Readiness review is not live rails activation."
+    ]
+  }
+}

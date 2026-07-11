@@ -747,6 +747,114 @@ export default function DocsPage() {
                 Os exemplos SDK-style são exemplos de ergonomia prevista. Não são instruções de instalação nem prova de
                 publicação pública dos pacotes.
               </Callout>
+
+              <H3 id="onboarding-preview">Onboarding do preview SDK</H3>
+              <P>
+                O preview SDK da Banzami é controlado. Não é um registo público self-service, não publica pacotes em
+                registries públicos e não ativa trilhos de Produção.
+              </P>
+              <P>
+                O objetivo do onboarding é permitir que parceiros aprovados validem a integração SDK-first em Sandbox, com
+                limites claros, artefactos técnicos verificáveis, feedback estruturado e revisão antes de qualquer avanço
+                regulatório ou operacional.
+              </P>
+
+              <H3 id="jornada-sandbox">Jornada de integração em Sandbox</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      {['Etapa', 'Objetivo', 'Parceiro', 'Banzami', 'Resultado', 'Não inclui'].map((h) => (
+                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['1. Elegibilidade', 'Confirmar que o caso de uso cabe no âmbito Sandbox/Preview.', 'Descrever o caso de uso.', 'Avaliar o enquadramento.', 'Decisão de elegibilidade.', 'Acesso a SDKs ou credenciais.'],
+                      ['2. Aprovação para preview', 'Formalizar o acesso controlado.', 'Aceitar os limites do preview.', 'Aprovar e definir o âmbito.', 'Aprovação registada.', 'Aprovação de Produção.'],
+                      ['3. Preparação técnica', 'Preparar ambiente e equipa.', 'Workspace/projeto Sandbox, chave de teste.', 'Documentação atualizada.', 'Primeira chamada de identidade validada.', 'Dados reais ou de clientes.'],
+                      ['4. Acesso controlado ao SDK', 'Disponibilizar o SDK em pré-visualização.', 'Usar apenas o canal aprovado.', 'Fornecer acesso controlado onde aprovado.', 'SDK disponível ao projeto.', 'Publicação pública de pacotes.'],
+                      ['5. Integração Sandbox', 'Implementar o fluxo SDK-first.', 'Sessões, idempotência, erros, webhooks.', 'Manter o Sandbox e os limites.', 'Integração funcional em Sandbox.', 'Dinheiro real ou clientes públicos.'],
+                      ['6. Validação técnica', 'Percorrer o checklist de validação.', 'Executar e registar evidência (request_id).', 'Critérios e checklist claros.', 'Checklist preenchido.', 'Ativação de trilhos live.'],
+                      ['7. Feedback e correções', 'Reportar problemas e corrigir.', 'Relatórios estruturados.', 'Rever o feedback.', 'Issues resolvidas ou registadas.', 'Compromissos de SLA.'],
+                      ['8. Revisão de prontidão', 'Rever a evidência contra os critérios.', 'Submeter a evidência.', 'Rever e comunicar o resultado.', 'Parecer de prontidão.', 'Aprovação de Produção ou regulatória.'],
+                    ] as string[][]).map((row) => (
+                      <tr key={row[0]}>
+                        {row.map((cell, i) => (
+                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                A aprovação de preview não significa aprovação de Produção. A validação em Sandbox não significa ativação de
+                trilhos live. O acesso ao preview SDK não significa publicação pública do SDK. A prontidão técnica não
+                significa autorização regulatória.
+              </Callout>
+
+              <H3 id="resp-parceiro">Responsabilidades do parceiro no preview</H3>
+              <UL>
+                <LI>Proteger credenciais e artefactos de preview; nunca expor chaves secretas em browsers/apps móveis.</LI>
+                <LI>Usar apenas ambientes Sandbox aprovados; manter dados de teste não sensíveis.</LI>
+                <LI>Reportar bugs com <Code>request_id</Code> e timestamp.</LI>
+                <LI>Não processar dinheiro real; não fazer onboarding de clientes públicos.</LI>
+                <LI>Não promover o acesso de preview como disponibilidade live; não reivindicar aprovação/admissão do BNA com base no preview.</LI>
+                <LI>Validar idempotência, tratamento de erros e webhooks; respeitar os limites de disponibilidade/capacidade.</LI>
+              </UL>
+
+              <H3 id="resp-banzami">Responsabilidades da Banzami no preview</H3>
+              <UL>
+                <LI>Fornecer acesso controlado onde aprovado; manter a documentação Sandbox/Preview e os artefactos de referência do protocolo.</LI>
+                <LI>Documentar limitações conhecidas; manter o estado dos SDKs honesto; atualizar as matrizes de disponibilidade.</LI>
+                <LI>Rever o feedback de integração; manter os testes de claim-safety; evitar overclaims de produção/live.</LI>
+                <LI>Disponibilizar critérios de prontidão claros. Sem promessas de SLA, suporte 24/7 ou go-live de Produção.</LI>
+              </UL>
+
+              <H3 id="reportar-preview">Como reportar problemas no preview</H3>
+              <P>Reporte através do canal de suporte de preview aprovado durante o onboarding. Cada report deve incluir:</P>
+              <UL>
+                <LI>Ambiente (<Code>Sandbox/Preview</Code>), família SDK e versão de preview, se aplicável.</LI>
+                <LI><Code>request_id</Code>, timestamp, endpoint ou método SDK, e <Code>Idempotency-Key</Code> se relevante.</LI>
+                <LI>Resultado esperado vs observado; excerto sanitizado de pedido/resposta (placeholders apenas).</LI>
+                <LI>Passos de reprodução e severidade.</LI>
+              </UL>
+
+              <H3 id="checklist-sandbox">Checklist de validação Sandbox</H3>
+              <UL>
+                <LI>Identidade/autenticação, criação e consulta de sessões, payment link e payload QR (quando aplicável) validados.</LI>
+                <LI>Retry de idempotência testado; pedidos duplicados/concorrentes compreendidos.</LI>
+                <LI>Erros de validação e <Code>unauthorized/forbidden</Code> testados; <Code>request_id</Code> capturado nos logs.</LI>
+                <LI>Verificação de assinatura de webhooks revista; limitação outbound compreendida; limitação de reembolsos/transferências compreendida.</LI>
+                <LI>SDK não usado a partir de registry público; nenhum dinheiro real; nenhum cliente público; nenhum claim de produção/live.</LI>
+              </UL>
+
+              <H3 id="prontidao">Critérios de revisão de prontidão</H3>
+              <UL>
+                <LI>Evidência Sandbox recolhida; logging de <Code>request_id</Code> presente.</LI>
+                <LI>Estratégias de idempotência, erros e webhooks documentadas; gestão de secrets revista, sem exposição no cliente.</LI>
+                <LI>Sem dependência de capacidades não suportadas, sem pressuposto de dinheiro real, sem claim de produção/live, sem pressuposto de aprovação regulatória; limitações conhecidas aceites.</LI>
+              </UL>
+              <Callout tone="warn">
+                A revisão de prontidão não é aprovação de Produção, não é autorização regulatória e não é ativação de trilhos live.
+              </Callout>
+
+              <P>
+                Artefactos de onboarding:{' '}
+                <a href="/developers/onboarding/sdk-preview-onboarding.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>onboarding</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/sandbox-validation-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>checklist de validação</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/partner-responsibilities.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>responsabilidades do parceiro</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/preview-issue-report-template.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>template de report</a>
+                {' '}·{' '}
+                <a href="/developers/onboarding/readiness-review-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>revisão de prontidão</a>.
+                {' '}Estes artefactos apoiam o onboarding de preview em Sandbox. Não são contratos de Produção, não ativam
+                trilhos live e não representam aprovação regulatória.
+              </P>
             </Section>
 
             {/* ------------------------------------------------ WEBHOOKS */}
