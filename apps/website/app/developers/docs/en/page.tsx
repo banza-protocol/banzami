@@ -1,0 +1,582 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BrandTile } from '@/components/developers/portal/icons';
+import { BADGE_LABELS_EN, BANZAMI_URL, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, P, RED, Section, UL, backLinkStyle, mono } from '../ui';
+import { ResourceReference } from '../reference';
+
+// Public Developer Documentation — ENGLISH (developers.banzami.com/docs/en).
+//
+// Full English counterpart of the Portuguese /docs page: same visual system,
+// same components, same honesty rules, same evidence-backed content. PT is the
+// default documentation language; only PT and EN exist — no other language.
+// PUBLIC + STATIC: no auth guard, no session, no developer-api fetch.
+
+const SECTIONS: { id: string; label: string }[] = [
+  { id: 'introduction', label: 'Introduction' },
+  { id: 'quickstart', label: 'Quickstart' },
+  { id: 'api-reference', label: 'API Reference' },
+  { id: 'sdks', label: 'SDKs' },
+  { id: 'webhooks', label: 'Webhooks' },
+  { id: 'errors', label: 'Errors' },
+  { id: 'changelog', label: 'Changelog' },
+];
+
+// English concepts (translations of the canonical PT glossary — same 19 terms).
+const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
+  { term: 'Sandbox', def: 'Test environment for validating Banzami integrations without moving real money.' },
+  { term: 'Production', def: 'Environment for real-money operations, once the platform is enabled. Currently in preparation.' },
+  { term: 'Ledger', def: 'Financial record keeping every debit and credit of a transaction, preserving balance integrity.' },
+  { term: 'Idempotency', def: 'Guarantee that repeating the same request never creates a second transfer, payment or financial effect.' },
+  { term: 'Webhook', def: 'Notification Banzami sends directly to your application server when an event happens.' },
+  { term: 'banza-signature', def: 'BANZA-protocol signature header used by Banzami to prove a webhook is authentic and unmodified.', code: true },
+  { term: 'HMAC-SHA256', def: 'Signature method used to verify the origin and integrity of a received event.' },
+  { term: 'OTP', def: 'Temporary code confirming you control the email or contact used to sign in.' },
+  { term: 'Business account', def: 'Banzami account used by an organisation to run integrations, receive value and manage its activity.' },
+  { term: 'Settlement', def: 'Process by which confirmed value is calculated and handled under the operator’s rules.' },
+  { term: '@banza', def: 'Public identifier of a Banzami account, used to receive transfers.', code: true },
+  { term: 'API key', def: 'Credential an application uses to authenticate against a Banzami integration.' },
+  { term: 'Publishable key', def: 'Identifier that may be used client-side when the flow allows it; never a substitute for a secret key.' },
+  { term: 'Secret key', def: 'Server-only credential. Never expose it in a browser, mobile app, repository, logs or screenshots.' },
+  { term: 'Replay', def: 'Re-delivery or repetition of an already-received request/event. Idempotency prevents duplicated effects.' },
+  { term: 'At-least-once', def: 'Delivery model where an event may arrive more than once; your server must handle it idempotently.', code: true },
+  { term: 'QR', def: 'Visual code that opens a Banzami payment journey or identifies an operation quickly.' },
+  { term: 'Payment session', def: 'Representation of a payment attempt tied to a reference from your application.' },
+  { term: 'Receipt', def: 'Record issued after a confirmed operation, with the data needed for lookup and verification.' },
+];
+
+// -- Code samples (placeholders only, Sandbox-only) ------------------------------
+const SAMPLE_CURL_ME = `# Verify your test key (placeholder) against the Sandbox API
+curl https://sandbox-api.banzami.com/v1/me \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"
+
+# Response (200)
+{
+  "environment": "SANDBOX",
+  "project": "my-project",
+  "scopes": ["identity:read"],
+  "key_status": "ACTIVE"
+}`;
+
+const SAMPLE_KEYS = `bz_test_pk_XXXXXXXXXXXXXXXX   # publishable — may live client-side
+bz_test_sk_XXXXXXXXXXXXXXXX   # secret — server only, revealed exactly once`;
+
+const SAMPLE_ERROR = `# Canonical error envelope (Sandbox)
+{
+  "code": "VALIDATION_ERROR",
+  "message": "amount_minor must be a positive integer",
+  "request_id": "req_XXXXXXXX"
+}`;
+
+const SAMPLE_WEBHOOK_ENVELOPE = `# Event envelope delivered to your endpoint (implemented in Sandbox)
+{
+  "id": "evt_XXXXXXXX",
+  "type": "payment_session.paid",
+  "created_at": "2026-07-11T11:46:02Z",
+  "data": { /* event object */ }
+}`;
+
+const SAMPLE_IDEM_RETRY = `# Safe retry: the SAME Idempotency-Key replays the original response
+curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: idem_order_123" \\
+  -d '{ ...same body... }'
+# -> 201 with the SAME response; no duplicate session is created.
+
+# What NOT to do: change the Idempotency-Key when retrying after a timeout —
+# that can create a second effect. Always reuse the original key.`;
+
+// Verified event catalogue (same closed set as the PT page and its tests).
+const EVENTS: string[] = [
+  'payment_session.paid',
+  'payment_link.paid',
+  'application_settlement.completed',
+  'application_settlement.cancelled',
+  'application_settlement.failed',
+];
+
+const SDKS: { name: string; lang: string; state: string }[] = [
+  { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Complete (source code)' },
+  { name: 'banzami-python', lang: 'Python', state: 'Complete (source code)' },
+  { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Complete (source code)' },
+  { name: 'banzami_flutter', lang: 'Dart / Flutter', state: 'Complete (used by the mobile app)' },
+  { name: '@banzami/checkout', lang: 'JavaScript (browser)', state: 'Complete (source code)' },
+  { name: 'banzami-go', lang: 'Go', state: 'Partial — webhooks + payment links' },
+];
+
+export default function DocsPageEn() {
+  const [active, setActive] = useState('introduction');
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const prefersReduced = () =>
+    typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const copy = useCallback((text: string, label: string) => {
+    const onOk = () => {
+      setToast(label);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 1600);
+    };
+    navigator?.clipboard?.writeText(text)?.then(onOk, () => {});
+  }, []);
+
+  useEffect(() => {
+    const obs = new IntersectionObserver(
+      (entries) => {
+        const vis = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (vis[0]) setActive(vis[0].target.id);
+      },
+      { rootMargin: '-72px 0px -68% 0px', threshold: 0 },
+    );
+    SECTIONS.forEach((s) => {
+      const el = document.getElementById(s.id);
+      if (el) obs.observe(el);
+    });
+    const conceptsEl = document.getElementById('concepts');
+    if (conceptsEl) obs.observe(conceptsEl);
+    const h = window.location.hash.replace('#', '');
+    if (h) {
+      const el = document.getElementById(h);
+      if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: 'auto', block: 'start' }));
+    }
+    return () => obs.disconnect();
+  }, []);
+
+  const go = useCallback((id: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: prefersReduced() ? 'auto' : 'smooth', block: 'start' });
+    history.pushState(null, '', `#${id}`);
+    setActive(id);
+  }, []);
+
+  const enCopy = { toastText: 'Copied to clipboard', buttonText: 'Copy' };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#FFF9F8', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1200, width: '100%', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <a href={BANZAMI_URL} aria-label="Back to Banzami" className="bz-toplink" style={backLinkStyle}>
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
+            Back to Banzami
+          </a>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <BrandTile size={32} radius={10} />
+            <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: '-.02em', color: INK }}>
+              Banzami <span style={{ color: RED }}>Developers</span>
+            </span>
+          </span>
+        </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <a href="/docs" className="bz-toplink" aria-label="Ler a documentação em português" style={backLinkStyle}>
+            PT
+          </a>
+          <a href="/login" className="bz-toplink" aria-label="Open the Console" style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
+            Open the Console
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>→</span>
+          </a>
+        </span>
+      </header>
+
+      <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
+        <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 26, alignItems: 'start' }}>
+          <aside className="bz-docsnav">
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#a89a9e' }}>DOCUMENTATION</p>
+            <nav aria-label="Documentation sections" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {SECTIONS.map((s) => {
+                const on = active === s.id;
+                return (
+                  <a
+                    key={s.id}
+                    href={`#${s.id}`}
+                    onClick={go(s.id)}
+                    aria-current={on ? 'true' : undefined}
+                    className="bz-toplink"
+                    style={{ padding: '8px 12px', borderRadius: 10, background: on ? '#FFF1F0' : 'transparent', color: on ? RED : '#6a5a5e', fontSize: 13.5, fontWeight: on ? 800 : 700, textDecoration: 'none' }}
+                  >
+                    {s.label}
+                  </a>
+                );
+              })}
+            </nav>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F2E2E0' }}>
+              <a
+                href="#concepts"
+                onClick={go('concepts')}
+                aria-current={active === 'concepts' ? 'true' : undefined}
+                className="bz-toplink"
+                style={{ display: 'block', padding: '8px 12px', borderRadius: 10, background: active === 'concepts' ? '#FFF1F0' : 'transparent', color: active === 'concepts' ? RED : '#8a7a7e', fontSize: 12.5, fontWeight: active === 'concepts' ? 800 : 700, textDecoration: 'none' }}
+              >
+                Concepts
+              </a>
+            </div>
+          </aside>
+
+          <article style={{ minWidth: 0 }}>
+            {/* ------------------------------------------------ INTRODUCTION */}
+            <Section id="introduction">
+              <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Introduction</h1>
+              <P style={{ fontSize: 15.5, color: MUT, fontWeight: 600 }}>
+                Start integrating Banzami in minutes. Every call uses the <strong>Sandbox</strong> environment by default.
+                Build and validate your integration in the Sandbox — <strong>Production</strong> will be activated once the
+                platform is enabled for real payments.
+              </P>
+
+              <div id="current-status" style={{ scrollMarginTop: 72, margin: '0 0 18px', borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '16px 18px', maxWidth: 660 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>Current status of this documentation</span>
+                  <Badge tone="prep">Sandbox / Preview</Badge>
+                </div>
+                <UL>
+                  <LI>This is <strong>Sandbox / Preview</strong> documentation. Sandbox capability is limited to controlled test flows.</LI>
+                  <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
+                  <LI>The Console’s <strong>visual</strong> pages (dashboard, webhooks, logs) are <strong>demo previews, not operational</strong>, unless explicitly stated otherwise. The tested scope is the API/SDK Sandbox flow plus workspace, project, member and key management.</LI>
+                </UL>
+              </div>
+
+              <H3>Three layers</H3>
+              <UL>
+                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly; its other visual pages (dashboard, webhooks, logs) are demo previews with illustrative data — not operational.</LI>
+                <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
+                <LI><strong>Banzami Operator / Core</strong> — the financial layer: it executes payments and owns balances and integrity. Your application never creates or manages its own financial ledger.</LI>
+              </UL>
+
+              <P>
+                <strong>DOA is the reference integration.</strong> A real application that runs its own business logic
+                (campaigns and donations) while delegating everything financial to Banzami. It is currently operational in
+                the Sandbox environment and is used to continuously validate the integration model.
+              </P>
+
+              <div id="production" style={{ scrollMarginTop: 72, marginTop: 8, borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '18px 20px', maxWidth: 660 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                  <span style={{ fontSize: 15, fontWeight: 900, color: INK }}>Production</span>
+                  <Badge tone="prep">{BADGE_LABELS_EN.prep}</Badge>
+                </div>
+                <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>
+                  The Sandbox lets you validate your integration without moving real money. Activation for real payments
+                  will be made available after the required platform-enablement steps are complete.
+                </p>
+              </div>
+            </Section>
+
+            {/* ------------------------------------------------ QUICKSTART */}
+            <Section id="quickstart">
+              <H2>Quickstart</H2>
+              <P>From first sign-in to a validated payment journey, in the Sandbox:</P>
+              <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                <LI>Sign in to the Console at <Code>developers.banzami.com/login</Code> with email + code (OTP).</LI>
+                <LI>Create or pick a <strong>workspace</strong>.</LI>
+                <LI>Create a <strong>Sandbox project</strong>.</LI>
+                <LI>Create a <strong>test key</strong>.</LI>
+                <LI>Save the <strong>secret</strong> key when it appears — it is shown exactly once.</LI>
+                <LI><strong>Verify the key</strong> against the Sandbox API with <Code>curl</Code>: <Code>GET /v1/me</Code> returns the key’s environment, project, scopes and status. This is your first successful call — <strong>no SDK required</strong>.</LI>
+                <LI>Continue over direct HTTP (curl) or, optionally, with an approved internal SDK — the SDKs are not yet published to public registries.</LI>
+                <LI>Create a <strong>payment session</strong> and present the link/QR.</LI>
+                <LI>Track the confirmation and issue the receipt.</LI>
+                <LI>Validate signed webhooks where applicable.</LI>
+              </ol>
+              <CodeBlock label="curl · first call (GET /v1/me)" raw={SAMPLE_CURL_ME} onCopy={copy} {...enCopy} />
+              <Callout>
+                Every example uses <strong>placeholder keys and identifiers</strong> and is <strong>Sandbox-only</strong> —
+                no real money ever moves. Replace the values with your own Sandbox project’s.
+              </Callout>
+              <CodeBlock label="test keys" raw={SAMPLE_KEYS} onCopy={copy} {...enCopy} />
+              <Callout>Never expose secret keys in a browser, mobile app, repository, logs, screenshots or analytics.</Callout>
+              <P>
+                The SDKs are <strong>not yet published</strong> to npm, PyPI, Packagist or pub.dev — use the direct HTTP
+                (curl) examples for now, unless you are working from an approved internal SDK package — see{' '}
+                <a href="#sdks" onClick={go('sdks')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
+                Do not run <Code>npm install @banzami/sdk</Code> — that package is not published yet.
+              </P>
+
+              <H3 id="testing-sandbox">Testing in the Sandbox</H3>
+              <P><strong>What the Sandbox is:</strong> a complete integration environment with test accounts, sessions, links, QR and webhooks — flows behave like the real ones, but <strong>no real money ever moves</strong>.</P>
+              <P><strong>What the Sandbox is not:</strong> there are no live rails, no external providers activated, and no Production key issuance. All test credentials in these examples are placeholders.</P>
+              <UL>
+                <LI><strong>1. First call:</strong> <Code>GET /v1/me</Code> with your key — success is <Code>200</Code> with <Code>environment: SANDBOX</Code>; the typical failure is <Code>401 UNAUTHORIZED</Code> (wrong/revoked key).</LI>
+                <LI><strong>2. Create a session:</strong> <Code>POST /v1/business/payment-sessions</Code> — success is <Code>201</Code> with <Code>status: ACTIVE</Code> and the link/QR interfaces.</LI>
+                <LI><strong>3. Test idempotency:</strong> repeat the same POST with the same <Code>Idempotency-Key</Code> — you should receive the original response with no duplicated effect; send two concurrently and one gets <Code>409 CONFLICT</Code>.</LI>
+                <LI><strong>4. Test errors:</strong> omit <Code>amount_minor</Code> to see <Code>400 MISSING_FIELD</Code>; use an invalid key to see <Code>401</Code>; always keep the <Code>request_id</Code> from the response.</LI>
+                <LI><strong>5. Interpreting results:</strong> any response carrying the error envelope (see <a href="#errors" onClick={go('errors')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) is actionable via its <Code>code</Code>.</LI>
+              </UL>
+              <Callout tone="warn">
+                Internal Sandbox funding/simulation utilities exist but are <strong>internal — not public</strong>; they are
+                not part of the documented surface. Outbound webhook delivery to external sinks remains <strong>simulated</strong>{' '}
+                in the public E2E suite — see <a href="#webhooks" onClick={go('webhooks')} style={{ color: '#B8770A', fontWeight: 800, textDecoration: 'none' }}>Webhooks</a>.
+              </Callout>
+            </Section>
+
+            {/* ------------------------------------------------ API REFERENCE */}
+            <Section id="api-reference">
+              <H2>API Reference</H2>
+              <P>
+                Your application authenticates by sending the Sandbox <Code>bz_test_</Code> API key directly in the{' '}
+                <Code>Authorization: Bearer …</Code> header and calls the integration layer at <Code>sandbox-api.banzami.com</Code>.
+                <Code>bz_live_</Code> keys are <strong>rejected fail-closed</strong> — there is no Production key issuance.
+              </P>
+
+              <H3 id="credentials">Credentials and capabilities</H3>
+              <P>
+                Not every documented capability is callable with the same credential today. This matrix tells the truth per
+                credential — so “Available in Sandbox” is always true <em>for you</em>, not just for the platform:
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capability</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Credential</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['Console — sign in, workspaces, projects, members, keys', 'OTP session (email + code)', 'Available in controlled Sandbox'],
+                      ['Console visual pages (dashboard, webhooks, logs)', '—', 'Demo / preview — not operational'],
+                      ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in controlled Sandbox'],
+                      ['Payment sessions', 'Developer key (payment_sessions scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
+                      ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
+                      ['Webhook endpoint registration (API)', 'Merchant credential', 'Documented, not public'],
+                      ['Outbound webhook delivery', '—', 'Simulated in the public E2E; DOA journey verified'],
+                      ['Refunds (POST /v1/refunds)', 'Merchant credential (verified). Developer refunds:write scope', 'Pending E2E for developer keys — a developer-key request is rejected (403)'],
+                      ['Transfers', 'Authenticated user (verified). Developer transfers:* scopes', 'Pending E2E for developer keys'],
+                      ['Production / live rails / external providers', '—', 'Not available · Not approved'],
+                    ] as [string, string, string][]).map(([cap, cred, st]) => (
+                      <tr key={cap}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{cred}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{st}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <H3 id="idempotency">Idempotency <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H3>
+              <P>
+                Send the <Code>Idempotency-Key</Code> header on any write so you can <strong>retry safely</strong> after a
+                network failure or timeout without duplicating the effect. Sandbox behaviour: the original response (2xx or
+                4xx) is replayed for the same key for <strong>24 hours</strong>, scoped per credential, method and path;
+                <Code>5xx</Code> responses are never replayed (the request may be retried); two <strong>concurrent</strong>{' '}
+                requests with the same key get <Code>409 CONFLICT</Code> until the first finishes — wait and retry with the{' '}
+                <em>same</em> key.
+              </P>
+              <CodeBlock label="curl · safe retry with Idempotency-Key" raw={SAMPLE_IDEM_RETRY} onCopy={copy} {...enCopy} />
+
+              <H3 id="authentication">Authentication and key management <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H3>
+              <UL>
+                <LI><strong>Direct Bearer:</strong> send the Sandbox key in <Code>Authorization: Bearer bz_test_sk_…</Code> (or <Code>X-API-Key</Code>). <Code>bz_live_</Code> keys are <strong>rejected fail-closed</strong> — Production keys are not issued.</LI>
+                <LI><strong>Environment separation:</strong> <Code>bz_test_</Code> keys belong to the Sandbox; future Production keys will be issued only after platform enablement (<em>Production in preparation</em>).</LI>
+                <LI><strong>Secrets stay server-side:</strong> the <Code>bz_test_sk_</Code> never reaches a browser, mobile app, repository, logs or analytics; only the <Code>bz_test_pk_</Code> may live client-side.</LI>
+                <LI><strong>Rotation:</strong> rotate keys periodically and whenever exposure is suspected; after rotation the previous key stops being accepted immediately.</LI>
+                <LI><strong>Revocation (verified behaviour):</strong> a revoked key receives <Code>401 UNAUTHORIZED</Code> on any call — verified in the Sandbox E2E.</LI>
+              </UL>
+
+              <H3 id="resource-reference">Resource reference</H3>
+              <P>
+                Endpoint-by-endpoint reference of the public surface verified in the Sandbox — method, credential, headers,
+                request body, response and common errors. Only resources with real evidence; nothing here claims Production.
+              </P>
+              <ResourceReference lang="en" onCopy={copy} />
+
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Credential note: refunds and transfers were verified with merchant/user credentials; the developer-key scopes
+                (<Code>refunds:write</Code>, <Code>transfers:*</Code>) remain <strong>Pending E2E</strong> — a developer-key
+                refund request is rejected (403). Never present these as fully available to developer keys.
+              </P>
+            </Section>
+
+            {/* ------------------------------------------------ SDKS */}
+            <Section id="sdks">
+              <H2>SDKs</H2>
+              <P>
+                The SDKs handle authentication, idempotency, retries and webhook signature verification. Today they are
+                consumed as <strong>source code</strong> (for example vendored into the application, as DOA does); they are{' '}
+                <strong>not yet published</strong> to npm, PyPI, Packagist or pub.dev. Direct HTTP (curl) is the official
+                public documentation path for now; internal or approved SDK packages may exist but are not public install paths.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13.5 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>SDK</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Language</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>State</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SDKS.map((s) => (
+                      <tr key={s.name}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontWeight: 700, color: INK }}>{s.name}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{s.lang}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{s.state}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+
+            {/* ------------------------------------------------ WEBHOOKS */}
+            <Section id="webhooks">
+              <H2>Webhooks <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H2>
+              <P>
+                Use webhooks to confirm events on your server without relying on the browser or polling alone. Banzami signs
+                every event; your endpoint verifies the signature and reacts idempotently.
+              </P>
+              <Callout tone="warn">
+                <strong>Honest scope.</strong> In the platform’s public E2E suite (Phase 0), outbound delivery to an external
+                public HTTPS sink was <strong>simulated</strong> — emission, HMAC signing and the retry contract were verified;
+                the DOA journey is the verified delivery path. <strong>We do not claim webhook delivery as public Production
+                availability.</strong>
+              </Callout>
+              <H3>How it works</H3>
+              <UL>
+                <LI>Banzami sends a <Code>POST</Code> to your endpoint with the event body as JSON.</LI>
+                <LI>The signature travels in the <Code>banza-signature</Code> header, formatted <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
+                <LI>The signature is HMAC-SHA256 over <Code>&quot;{'{'}t{'}'}.{'{'}body{'}'}&quot;</Code>, with a <strong>5-minute</strong> replay tolerance.</LI>
+                <LI>Process <strong>idempotently</strong> and answer <Code>2xx</Code> fast; delivery is at-least-once, unordered, with redelivery on failure.</LI>
+              </UL>
+              <CodeBlock label="json · event envelope (implemented in Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                The envelope above is the shape implemented in the Sandbox: <Code>id</Code> (dedupe on it), <Code>type</Code>{' '}
+                (one of the verified catalogue below), <Code>created_at</Code> and <Code>data</Code> with the event object.
+              </P>
+              <H3 id="redelivery">Redelivery contract</H3>
+              <UL>
+                <LI>At-least-once delivery, no ordering guarantee — handle every event <strong>idempotently</strong> (dedupe by event id).</LI>
+                <LI>Signature in <Code>banza-signature</Code> with a <strong>5-minute</strong> timestamp (replay) tolerance.</LI>
+                <LI>Implemented in the Sandbox: up to <strong>5 attempts</strong> per delivery, with growing backoff of{' '}
+                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code> → <Code>8&nbsp;h</Code> after each failure.</LI>
+                <LI>Any <Code>2xx</Code> from your endpoint counts as delivered; answer fast and process asynchronously.</LI>
+                <LI><em>Note:</em> this is the contract implemented and verified in the Sandbox; Production behaviour is not claimed (Production in preparation).</LI>
+              </UL>
+              <H3>Events</H3>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
+                {EVENTS.map((e) => (
+                  <span key={e} style={{ fontFamily: mono, fontSize: 12.5, fontWeight: 700, color: '#9A1B22', background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 8, padding: '4px 9px' }}>{e}</span>
+                ))}
+              </div>
+              <P>
+                This is the <strong>verified event catalogue</strong> — only events whose emission and contract are verified
+                in the current Sandbox are listed; nothing outside it is a contractual event name. Payment confirmation and
+                settlement are <strong>distinct</strong> events with distinct business effects: <Code>payment_session.paid</Code>{' '}
+                confirms the payment; <Code>application_settlement.completed</Code> concludes the settlement.
+              </P>
+            </Section>
+
+            {/* ------------------------------------------------ ERRORS */}
+            <Section id="errors">
+              <H2>Errors</H2>
+              <P>
+                Every error response from the integration layer uses the <strong>same JSON envelope</strong>: a stable code,
+                a readable message and a <Code>request_id</Code> to correlate with support. Handle errors by <Code>code</Code>,
+                never by message.
+              </P>
+              <CodeBlock label="json · canonical error envelope" raw={SAMPLE_ERROR} onCopy={copy} {...enCopy} />
+              <H3>Codes by HTTP status (observed in the Sandbox)</H3>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480, fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Status</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Typical codes</th>
+                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>What to do</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {([
+                      ['400', 'INVALID_BODY · MISSING_FIELD · VALIDATION_ERROR · INVALID_PARAM · INVALID_AMOUNT', 'Fix the request; do not retry unchanged.'],
+                      ['401', 'UNAUTHORIZED', 'Missing/invalid/revoked key — check your bz_test_ key.'],
+                      ['403', 'FORBIDDEN', 'Insufficient scope or project without an active binding.'],
+                      ['404', 'NOT_FOUND', 'Resource missing or outside your scope.'],
+                      ['409', 'CONFLICT', 'Idempotency-Key in flight or state conflict — wait and retry with the same key.'],
+                      ['429', 'RATE_LIMITED', 'Slow down and retry with backoff.'],
+                      ['5xx', 'INTERNAL_ERROR · UPSTREAM_ERROR · UNAVAILABLE', 'Transient — retry with the same Idempotency-Key.'],
+                    ] as [string, string, string][]).map(([st, codes, act]) => (
+                      <tr key={st}>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontWeight: 700, color: INK }}>{st}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{codes}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{act}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                This table describes behaviour observed in the <strong>Sandbox</strong>; exact Production behaviour is not
+                claimed (Production in preparation).
+              </P>
+            </Section>
+
+            {/* ------------------------------------------------ CHANGELOG */}
+            <Section id="changelog">
+              <H2>Changelog</H2>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Dated entries by category: <Code>[Docs]</Code> (documentation only), <Code>[API]</Code> (API contract),{' '}
+                <Code>[Sandbox]</Code> (Sandbox platform). Incompatible changes will be marked <Code>[Breaking]</Code>.
+                There are no Production releases — <em>Production in preparation</em>.
+              </P>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {([
+                  ['11 Jul 2026', 'Docs', 'Resource reference (PT/EN), Sandbox testing guide, authentication and key management, webhook envelope and idempotent-retry examples.'],
+                  ['11 Jul 2026', 'Docs', 'curl examples with request and response, credential↔capability matrix, error envelope, idempotency in code and the webhook redelivery contract.'],
+                  ['July 2026', 'Sandbox', 'Sandbox Console available: email + OTP sign-in, workspaces, projects and test keys.'],
+                  ['July 2026', 'Sandbox', 'Test keys with rotation and revocation; team roles and invites.'],
+                  ['July 2026', 'Docs', 'Public developers documentation.'],
+                  ['July 2026', 'Sandbox', 'DOA published as the reference integration (Sandbox).'],
+                ] as [string, string, string][]).map(([when, cat, what], i) => (
+                  <li key={i} style={{ display: 'flex', gap: 12 }}>
+                    <span style={{ flex: 'none', width: 92, fontSize: 12, fontWeight: 800, color: '#a89a9e', fontFamily: mono, paddingTop: 2 }}>{when}</span>
+                    <span style={{ flex: 'none', fontSize: 11, fontWeight: 800, color: '#9A1B22', fontFamily: mono, paddingTop: 3 }}>[{cat}]</span>
+                    <span style={{ fontSize: 14, lineHeight: 1.55, color: '#5a4a4e', fontWeight: 500 }}>{what}</span>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+
+            {/* ------------------------------------------------ CONCEPTS */}
+            <section id="concepts" style={{ scrollMarginTop: 72, marginBottom: 40 }}>
+              <H2>Concepts</H2>
+              <P>Quick definitions of the terms used in this documentation, in the Banzami context.</P>
+              <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {CONCEPTS.map((e) => (
+                  <div key={e.term}>
+                    <dt style={{ margin: 0 }}>
+                      {e.code ? (
+                        <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>{e.term}</code>
+                      ) : (
+                        <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>{e.term}</span>
+                      )}
+                    </dt>
+                    <dd style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>{e.def}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+
+            {/* Blush help card */}
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 14, background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 16, padding: '18px 20px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: INK }}>Need help?</p>
+                <p style={{ margin: '3px 0 0', fontSize: 13, color: '#a08a8c', fontWeight: 600 }}>Our support team is available.</p>
+              </div>
+              <a href="/suporte" className="bz-cta" style={{ padding: '11px 18px', border: 'none', borderRadius: 12, background: 'linear-gradient(160deg,#B5101F,#7C1016)', color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', textDecoration: 'none', boxShadow: '0 12px 24px -12px rgba(181,16,31,.5)' }}>
+                Open support
+              </a>
+            </div>
+          </article>
+        </div>
+      </main>
+
+      <div aria-live="polite" style={{ position: 'fixed', left: 0, right: 0, bottom: 26, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 60 }}>
+        {toast ? (
+          <span style={{ background: '#2a2024', color: '#fff', fontSize: 13, fontWeight: 700, padding: '10px 16px', borderRadius: 12, boxShadow: '0 16px 40px -18px rgba(0,0,0,.5)' }}>{toast}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
