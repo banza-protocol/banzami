@@ -387,6 +387,19 @@ export default function DocsPageEn() {
                 (<Code>refunds:write</Code>, <Code>transfers:*</Code>) remain <strong>Pending E2E</strong> — a developer-key
                 refund request is rejected (403). Never present these as fully available to developer keys.
               </P>
+
+              <H3 id="artifacts">Technical artifacts</H3>
+              <P>
+                The same documented surface exists in <strong>machine-readable</strong> form — repository artifacts, for review
+                and future publishing (not live hosted downloads). They describe only the current Sandbox/Preview scope and are{' '}
+                <strong>not Production contracts</strong>:
+              </P>
+              <UL>
+                <LI><strong>OpenAPI</strong> — <Code>docs/developer/openapi/banzami-sandbox.openapi.json</Code> (verified endpoints only; refunds/transfers absent while Pending E2E for developer keys).</LI>
+                <LI><strong>curl examples + fixtures</strong> — <Code>docs/developer/examples/</Code> (requests, responses, error and webhook envelopes, obvious placeholders).</LI>
+                <LI><strong>Postman collection</strong> — <Code>docs/developer/postman/banzami-sandbox.postman_collection.json</Code> (same endpoint set, placeholder variables).</LI>
+                <LI><strong>Availability matrix</strong> — <Code>docs/developer/availability/banzami-developers-availability.json</Code> (the machine-readable source of this documentation's states, checked by tests).</LI>
+              </UL>
             </Section>
 
             {/* ------------------------------------------------ SDKS */}

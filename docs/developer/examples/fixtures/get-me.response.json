@@ -1,0 +1,6 @@
+{
+  "environment": "SANDBOX",
+  "project": "my-project",
+  "scopes": ["identity:read"],
+  "key_status": "ACTIVE"
+}

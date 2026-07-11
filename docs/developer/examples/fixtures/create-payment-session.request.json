@@ -1,0 +1,9 @@
+{
+  "wallet_account_id": "wacc_xxx",
+  "purpose": "PAGAMENTO",
+  "reference_type": "PEDIDO",
+  "reference_id": "order_123",
+  "amount_minor": 25000,
+  "currency": "AOA",
+  "description": "Order #123"
+}

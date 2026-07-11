@@ -1,0 +1,5 @@
+{
+  "code": "VALIDATION_ERROR",
+  "message": "amount_minor must be a positive integer",
+  "request_id": "req_xxx"
+}
