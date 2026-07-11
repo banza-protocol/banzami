@@ -237,6 +237,22 @@ export default function DocsPageEn() {
                 </UL>
               </div>
 
+              <H3 id="sdk-first">SDK-first integration model</H3>
+              <P>
+                Banzami&rsquo;s integration philosophy is <strong>SDK-first</strong>. Banzami SDKs should be the recommended
+                path for integrating payments, creating sessions, validating responses, handling errors, managing idempotency,
+                and consuming webhooks.
+              </P>
+              <P>
+                The HTTP API and OpenAPI exist as the <strong>technical protocol reference layer</strong>. Direct HTTP usage
+                is secondary and should be reserved for diagnostics, audits, controlled testing, or advanced integrators.
+              </P>
+              <P>
+                At this stage, SDKs are not yet publicly published to npm, PyPI, Packagist or pub.dev. Therefore, this
+                documentation does not provide public package installation commands. SDK access should be treated as
+                controlled preview until official publication.
+              </P>
+
               <H3>Three layers</H3>
               <UL>
                 <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly; its other visual pages (dashboard, webhooks, logs) are demo previews with illustrative data — not operational.</LI>
@@ -286,8 +302,9 @@ export default function DocsPageEn() {
               <CodeBlock label="test keys" raw={SAMPLE_KEYS} onCopy={copy} {...enCopy} />
               <Callout>Never expose secret keys in a browser, mobile app, repository, logs, screenshots or analytics.</Callout>
               <P>
-                The SDKs are <strong>not yet published</strong> to npm, PyPI, Packagist or pub.dev — use the direct HTTP
-                (curl) examples for now, unless you are working from an approved internal SDK package — see{' '}
+                Banzami is <strong>SDK-first</strong>, but the SDKs are <strong>not yet published</strong> to npm, PyPI,
+                Packagist or pub.dev — so this quickstart demonstrates the protocol with <strong>reference/diagnostic</strong>{' '}
+                curl examples until official publication, unless you are working from an approved internal SDK package — see{' '}
                 <a href="#sdks" onClick={go('sdks')} style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
                 Do not run <Code>npm install @banzami/sdk</Code> — that package is not published yet.
               </P>
@@ -388,17 +405,20 @@ export default function DocsPageEn() {
                 refund request is rejected (403). Never present these as fully available to developer keys.
               </P>
 
-              <H3 id="artifacts">Technical artifacts</H3>
+              <H3 id="artifacts">Technical reference artifacts</H3>
               <P>
-                The same documented surface exists in <strong>machine-readable</strong> form — repository artifacts, for review
-                and future publishing (not live hosted downloads). They describe only the current Sandbox/Preview scope and are{' '}
-                <strong>not Production contracts</strong>:
+                The same documented surface exists in <strong>machine-readable</strong> form — <strong>protocol reference
+                artifacts</strong>, published as static files. They are <strong>not the primary integration recommendation</strong>{' '}
+                (Banzami is SDK-first), describe only the current Sandbox/Preview scope, are{' '}
+                <strong>not Production contracts</strong>, not live rails, not regulatory approval, and not a replacement for
+                the SDKs:
               </P>
               <UL>
-                <LI><strong>OpenAPI</strong> — <Code>docs/developer/openapi/banzami-sandbox.openapi.json</Code> (verified endpoints only; refunds/transfers absent while Pending E2E for developer keys).</LI>
-                <LI><strong>curl examples + fixtures</strong> — <Code>docs/developer/examples/</Code> (requests, responses, error and webhook envelopes, obvious placeholders).</LI>
-                <LI><strong>Postman collection</strong> — <Code>docs/developer/postman/banzami-sandbox.postman_collection.json</Code> (same endpoint set, placeholder variables).</LI>
-                <LI><strong>Availability matrix</strong> — <Code>docs/developer/availability/banzami-developers-availability.json</Code> (the machine-readable source of this documentation's states, checked by tests).</LI>
+                <LI><strong>OpenAPI</strong> (protocol reference) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — verified endpoints only; refunds/transfers absent while Pending E2E for developer keys.</LI>
+                <LI><strong>Postman collection</strong> (protocol reference) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
+                <LI><strong>curl examples</strong> (diagnostic / protocol reference) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; full fixtures in <Code>docs/developer/examples/</Code>.</LI>
+                <LI><strong>Availability matrix</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (the machine-readable source of this documentation's states, checked by tests).</LI>
+                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (machine-readable SDK-first model; no SDK package published).</LI>
               </UL>
             </Section>
 
@@ -408,8 +428,9 @@ export default function DocsPageEn() {
               <P>
                 The SDKs handle authentication, idempotency, retries and webhook signature verification. Today they are
                 consumed as <strong>source code</strong> (for example vendored into the application, as DOA does); they are{' '}
-                <strong>not yet published</strong> to npm, PyPI, Packagist or pub.dev. Direct HTTP (curl) is the official
-                public documentation path for now; internal or approved SDK packages may exist but are not public install paths.
+                <strong>not yet published</strong> to npm, PyPI, Packagist or pub.dev. Banzami is SDK-first: the curl examples
+                in this documentation are the <strong>protocol reference</strong> layer, not the recommended implementation
+                path; internal or approved SDK packages may exist but are not public install paths.
               </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13.5 }}>

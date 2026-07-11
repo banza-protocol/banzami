@@ -156,7 +156,7 @@ describe('P2A — machine-readable availability matrix', () => {
 describe('P2A — docs integration (PT/EN)', () => {
   it('PT and EN docs both reference the technical artifacts', () => {
     expect(PT).toContain('Artefactos técnicos');
-    expect(EN).toContain('Technical artifacts');
+    expect(EN).toContain('Technical reference artifacts');
     for (const src of [PT, EN]) {
       expect(src).toContain('banzami-sandbox.openapi.json');
       expect(src).toContain('banzami-sandbox.postman_collection.json');

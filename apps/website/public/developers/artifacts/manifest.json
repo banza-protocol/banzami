@@ -1,0 +1,57 @@
+{
+  "name": "Banzami Developers — public artifact manifest",
+  "version": "docs-2026-07-11",
+  "scope": "sandbox_preview",
+  "production_contract": false,
+  "note": "Public, static Sandbox/Preview artifacts for the Banzami Developers documentation (PT: /docs · EN: /docs/en). Banzami is SDK-first: these HTTP-level artifacts are the technical PROTOCOL REFERENCE layer, not the recommended integration path, not Production contracts, not live rails, and not regulatory approval. All values inside are obvious placeholders.",
+  "artifacts": [
+    {
+      "path": "/developers/openapi/banzami-sandbox.openapi.json",
+      "role": "protocol_reference",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "description": "OpenAPI 3.0.3 for the verified Sandbox endpoints only (refunds/transfers absent while Pending E2E for developer keys)."
+    },
+    {
+      "path": "/developers/postman/banzami-sandbox.postman_collection.json",
+      "role": "protocol_reference",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "description": "Postman collection generated from the same verified endpoint set; placeholder variables only."
+    },
+    {
+      "path": "/developers/availability/banzami-developers-availability.json",
+      "role": "integration_guidance",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "description": "Machine-readable availability/capability matrix (conservative states; refunds/transfers pending_e2e; webhook outbound simulated; live rails not available)."
+    },
+    {
+      "path": "/developers/artifacts/sdk-first-manifest.json",
+      "role": "integration_guidance",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "description": "Machine-readable statement of the SDK-first integration model (SDKs recommended; HTTP secondary; no public SDK packages published yet)."
+    },
+    {
+      "path": "/developers/examples/curl/get-me.sh",
+      "role": "protocol_reference",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "description": "Diagnostic / protocol reference example (first Sandbox call). Not the recommended implementation path."
+    },
+    {
+      "path": "/developers/examples/curl/create-payment-session.sh",
+      "role": "protocol_reference",
+      "scope": "sandbox_preview",
+      "production_contract": false,
+      "recommended_integration_path": false,
+      "description": "Diagnostic / protocol reference example (payment session with Idempotency-Key). Not the recommended implementation path."
+    }
+  ]
+}
