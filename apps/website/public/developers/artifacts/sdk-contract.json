@@ -1,0 +1,34 @@
+{
+  "name": "Banzami SDK Contract",
+  "scope": "sandbox_preview",
+  "integration_model": "sdk_first",
+  "public_sdk_packages_published": false,
+  "public_install_commands_available": false,
+  "production_contract": false,
+  "http_role": "protocol_reference_secondary",
+  "note": "EXPECTED SDK contract (not published SDK behaviour): what official Banzami SDKs are expected to handle for integrators. SDK access is a controlled preview until official publication — no public package exists and no public install command exists. The SDK-style examples under /developers/examples/sdk-preview/ describe intended ergonomics only; they are not installation instructions and do not prove public package publication. Sandbox/Preview documentation scope only; not a Production contract; no production key issuance; no live rails.",
+  "sdk_families": [
+    { "name": "JavaScript/TypeScript", "status": "controlled_preview_not_published", "public_package": null, "install_command": null },
+    { "name": "Python", "status": "controlled_preview_not_published", "public_package": null, "install_command": null },
+    { "name": "PHP", "status": "controlled_preview_not_published", "public_package": null, "install_command": null },
+    { "name": "Flutter", "status": "controlled_preview_not_published", "public_package": null, "install_command": null }
+  ],
+  "responsibilities": {
+    "authentication": "expected",
+    "environment_separation_sandbox_vs_future_production": "expected",
+    "payment_sessions": "expected",
+    "payment_session_retrieval": "expected",
+    "payment_link_retrieval": "expected",
+    "qr_payload_retrieval": "expected",
+    "idempotency": "expected",
+    "error_mapping": "expected",
+    "request_id_exposure": "expected",
+    "retry_guidance": "expected",
+    "webhook_signature_verification": "expected_or_planned",
+    "verified_event_envelope_parsing": "expected_or_planned",
+    "client_side_secret_key_exposure": "never",
+    "automatic_live_rails_activation": "never",
+    "production_key_issuance": "not_available",
+    "production_live_rails": "not_available"
+  }
+}
