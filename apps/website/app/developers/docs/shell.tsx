@@ -80,6 +80,14 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
   const areas = lang === 'pt' ? AREAS_PT : AREAS_EN;
   const otherLangHref = lang === 'pt' ? areaHref('en', active) : areaHref('pt', active);
 
+  // Chapter navigation — single source of truth is the AREAS order (same as the
+  // sidebar and landing cards). prev/next are the neighbours in that sequence;
+  // the first page has no prev and the last has no next.
+  const idx = areas.findIndex((a) => a.slug === active);
+  const prev = idx > 0 ? areas[idx - 1] : null;
+  const next = idx >= 0 && idx < areas.length - 1 ? areas[idx + 1] : null;
+  const chapterKicker = { prev: lang === 'pt' ? 'Capítulo anterior' : 'Previous chapter', next: lang === 'pt' ? 'Próximo capítulo' : 'Next chapter' };
+
   return (
     <div style={{ minHeight: '100vh', background: '#FFF9F8', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1200, width: '100%', margin: '0 auto' }}>
@@ -132,6 +140,24 @@ export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; activ
 
           <article style={{ minWidth: 0 }}>
             {children(copy)}
+
+            {/* Chapter navigation — prev/next, reusing the doccard visual style */}
+            {(prev || next) ? (
+              <nav aria-label={lang === 'pt' ? 'Navegação de capítulos' : 'Chapter navigation'} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '10px 0 4px' }}>
+                {prev ? (
+                  <a href={areaHref(lang, prev.slug)} className="bz-doccard" style={{ display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 16, padding: 16, boxShadow: '0 14px 40px -34px rgba(181,16,31,.35)' }}>
+                    <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '.03em', color: '#a89a9e' }}>← {chapterKicker.prev}</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 14.5, fontWeight: 900, color: RED }}>{prev.label}</p>
+                  </a>
+                ) : <span />}
+                {next ? (
+                  <a href={areaHref(lang, next.slug)} className="bz-doccard" style={{ display: 'block', textDecoration: 'none', textAlign: 'right', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 16, padding: 16, boxShadow: '0 14px 40px -34px rgba(181,16,31,.35)' }}>
+                    <p style={{ margin: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: '.03em', color: '#a89a9e' }}>{chapterKicker.next} →</p>
+                    <p style={{ margin: '4px 0 0', fontSize: 14.5, fontWeight: 900, color: RED }}>{next.label}</p>
+                  </a>
+                ) : <span />}
+              </nav>
+            ) : null}
 
             {/* Blush help card (same as before) */}
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 14, background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 16, padding: '18px 20px' }}>
