@@ -368,6 +368,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="sdks">
+              <H2>SDKs</H2>
               <PageLede>Modelo <strong>SDK-first</strong>, SDKs em pré-visualização controlada (não publicados), contrato esperado do SDK, estado por família e exemplos de ergonomia prevista.</PageLede>
               <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
 <H3 id="sdk-first">Modelo de integração SDK-first</H3>
@@ -387,7 +388,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 pré-visualização controlada até publicação oficial.
               </P>
 
-                            <H2>SDKs</H2>
+              <H3 id="sdk-matriz">Matriz de maturidade dos SDKs</H3>
               <P>
                 Os SDKs tratam automaticamente de autenticação, idempotência, retries e verificação de assinatura de webhooks.
                 Hoje são consumidos como <strong>código-fonte</strong> (por exemplo, vendored na aplicação, como faz o DOA);
@@ -891,7 +892,6 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <H2>Testar no Sandbox</H2>
               <PageLede>Como validar a integração no Sandbox e os seus limites. <strong>Nunca há dinheiro real</strong> e <strong>não é permitido onboarding de clientes públicos</strong> no preview.</PageLede>
               <NextSteps label="A seguir:" links={[{ href: '/docs/trust', text: 'Confiança e prontidão' }, { href: '/docs/guides', text: 'Guias' }]} />
-<H3 id="testar-sandbox">Testar no Sandbox</H3>
               <P><strong>O que o Sandbox é:</strong> um ambiente completo de integração com contas, sessões, links, QR e webhooks de teste — os fluxos comportam-se como os reais, mas <strong>nunca há dinheiro real</strong>.</P>
               <P><strong>O que o Sandbox não é:</strong> não há trilhos live, não há fornecedores externos ativados, não há emissão de chaves de Produção. Todas as credenciais de teste destes exemplos são placeholders.</P>
               <UL>
@@ -915,6 +915,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="trust">
+              <H2>Confiança e prontidão</H2>
               <PageLede>Prontidão, evidências, riscos e portões de decisão para parceiros aprovados. <strong>Não representa aprovação de Produção nem autorização regulatória.</strong></PageLede>
               <NextSteps label="Relacionado:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/changelog', text: 'Changelog' }]} />
 <H3 id="confianca">Confiança técnica e prontidão</H3>
@@ -1127,6 +1128,7 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
 <Section id="changelog">
               <H2>Changelog</H2>
               <PageLede>Registo de mudanças de documentação, contrato de API e Sandbox. Não há histórico de lançamentos de produto.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Entradas datadas por categoria: <Code>[Docs]</Code> (só documentação), <Code>[API]</Code> (contrato da API),{' '}
                 <Code>[Sandbox]</Code> (plataforma Sandbox). Mudanças incompatíveis serão marcadas <Code>[Breaking]</Code>.
@@ -1161,6 +1163,7 @@ export function PtGlossary({ copy }: { copy: CopyFn }) {
               <span id="glossario" aria-hidden="true" style={{ display: 'block', height: 0, scrollMarginTop: 72 }} />
               <H2>Conceitos</H2>
               <PageLede>Definições dos termos usados nesta documentação, no contexto do Banzami.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/get-started', text: 'Começar' }, { href: '/docs/reference', text: 'Referência API' }]} />
               <P>Definições rápidas dos termos usados nesta documentação, no contexto do Banzami.</P>
               <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {GLOSSARY.map((e) => (

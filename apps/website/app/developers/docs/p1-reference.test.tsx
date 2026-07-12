@@ -69,7 +69,7 @@ describe('P1 — key sections exist in BOTH PT and EN', () => {
   });
   it('EN renders the P1 sections (on their new area routes)', () => {
     render(<EnTestingPage />);
-    expect(screen.getAllByText('Testing in the Sandbox').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Sandbox testing').length).toBeGreaterThan(0);
     cleanup();
     render(<EnReferencePage />);
     expect(screen.getAllByText('Resource reference').length).toBeGreaterThan(0);

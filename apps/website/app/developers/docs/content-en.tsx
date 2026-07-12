@@ -187,6 +187,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="sdks">
+              <H2>SDKs</H2>
               <PageLede><strong>SDK-first</strong> model, SDKs in controlled preview (not published), the expected SDK contract, per-family status and intended-ergonomics examples.</PageLede>
               <NextSteps label="Next:" links={[{ href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/trust', text: 'Trust and readiness' }]} />
 <H3 id="sdk-first">SDK-first integration model</H3>
@@ -205,7 +206,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 controlled preview until official publication.
               </P>
 
-                            <H2>SDKs</H2>
+              <H3 id="sdk-maturity">SDK maturity matrix</H3>
               <P>
                 The SDKs handle authentication, idempotency, retries and webhook signature verification. Today they are
                 consumed as <strong>source code</strong> (for example vendored into the application, as DOA does); they are{' '}
@@ -422,6 +423,55 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
               <PageLede>Practical integration guidance — payment sessions, links, QR, idempotency, errors and webhooks. The framing is <strong>SDK-first</strong>; where curl/HTTP appears, it is protocol reference material.</PageLede>
               <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
               <P>Task-oriented guides for the verified Sandbox surfaces. Where HTTP/curl appears, it is protocol reference / diagnostic material — Banzami is SDK-first.</P>
+
+              <H3 id="charges">Create a charge <Badge tone="val">Under continuous validation in Sandbox</Badge></H3>
+              <P>
+                A charge starts from a <strong>payment link</strong> or a <strong>payment session</strong>: create the intent,
+                present the link/QR to the payer and track the confirmation (by polling and/or webhook). In the Banzami model,
+                the operator executes the payment and owns the financial truth — your application only creates the journey and reacts to state.
+              </P>
+              <UL>
+                <LI><strong>Testable in Sandbox:</strong> create sessions/links, present the QR, confirm the payment and issue the receipt.</LI>
+                <LI><strong>Reserved for Production:</strong> real-money movement — <em>Production in preparation</em>.</LI>
+              </UL>
+
+              <H3 id="transfers">Transfers <Badge tone="ok">Available in Sandbox</Badge></H3>
+              <P>
+                Move value between Banzami accounts. An authenticated user sends to the recipient&rsquo;s <Code>@banza</Code>, with the
+                amount in minor units (AOA) and an idempotency key. In the Sandbox the transfer confirms synchronously,
+                reaching <strong>COMPLETED</strong>, with atomic debit and credit in the ledger and an official receipt available.
+              </P>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Credential note: the verified path uses an authenticated user. The developer-key scopes (<Code>transfers:*</Code>)
+                are <strong>Pending E2E</strong> — see the{' '}
+                <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
+                Never real money — <em>Production in preparation</em>.
+              </P>
+
+              <H3 id="refunds">Refunds <Badge tone="val">Under continuous validation in Sandbox</Badge></H3>
+              <P>
+                Banzami refunds return, fully or partially, the value of an eligible payment confirmed in the Sandbox. Each request
+                identifies the payment source, respects the amount already captured and is processed idempotently.
+              </P>
+              <UL>
+                <LI><Code>ACQUIRING_PAYMENT</Code> — payment made over an external rail.</LI>
+                <LI><Code>WALLET_PAYMENT</Code> — native payment between Banzami wallets.</LI>
+                <LI>The currency is validated against the original source.</LI>
+                <LI>Partial refunds are allowed up to the payment&rsquo;s accrued cap.</LI>
+                <LI>Reusing the same <Code>idempotency_key</Code> does not refund twice.</LI>
+              </UL>
+              <P>
+                <strong>Request fields:</strong> <Code>source_type</Code> (<Code>ACQUIRING_PAYMENT</Code> or
+                {' '}<Code>WALLET_PAYMENT</Code>), <Code>source_id</Code>, <Code>amount_minor</Code>, <Code>currency</Code>
+                {' '}and <Code>idempotency_key</Code>.
+              </P>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Technical reference: the payment source is typed per BANZA ADR-030. Credential note: the verified path uses a
+                merchant credential; the developer-key scope (<Code>refunds:write</Code>) is <strong>Pending E2E</strong> — a
+                developer-key refund request is rejected (403). See the{' '}
+                <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
+                Never real money — <em>Production in preparation</em>.
+              </P>
 </Section>
 <Section id="webhooks">
               <H2>Webhooks <Badge tone="ok">{BADGE_LABELS_EN.ok}</Badge></H2>
@@ -610,7 +660,6 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <H2>Sandbox testing</H2>
               <PageLede>How to validate the integration in the Sandbox, and its limits. <strong>No real money ever moves</strong> and <strong>public customer onboarding is not allowed</strong> in preview.</PageLede>
               <NextSteps label="Next:" links={[{ href: '/docs/en/trust', text: 'Trust and readiness' }, { href: '/docs/en/guides', text: 'Guides' }]} />
-<H3 id="testing-sandbox">Testing in the Sandbox</H3>
               <P><strong>What the Sandbox is:</strong> a complete integration environment with test accounts, sessions, links, QR and webhooks — flows behave like the real ones, but <strong>no real money ever moves</strong>.</P>
               <P><strong>What the Sandbox is not:</strong> there are no live rails, no external providers activated, and no Production key issuance. All test credentials in these examples are placeholders.</P>
               <UL>
@@ -634,6 +683,7 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="trust-page">
+              <H2>Trust and readiness</H2>
               <PageLede>Readiness, evidence, risks and decision gates for approved partners. <strong>It does not represent Production approval or regulatory authorization.</strong></PageLede>
               <NextSteps label="Related:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
 <H3 id="trust">Technical trust and readiness</H3>
@@ -846,6 +896,7 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
 <Section id="changelog">
               <H2>Changelog</H2>
               <PageLede>Documentation, API-contract and Sandbox change tracking. There is no invented product release history.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/trust', text: 'Trust and readiness' }]} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Dated entries by category: <Code>[Docs]</Code> (documentation only), <Code>[API]</Code> (API contract),{' '}
                 <Code>[Sandbox]</Code> (Sandbox platform). Incompatible changes will be marked <Code>[Breaking]</Code>.
@@ -879,6 +930,7 @@ export function EnGlossary({ copy }: { copy: CopyFn }) {
 <div id="concepts" style={{ scrollMarginTop: 72 }}>
               <H2>Concepts</H2>
               <PageLede>Definitions of the terms used across this documentation, in the Banzami context.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/get-started', text: 'Get started' }, { href: '/docs/en/reference', text: 'API Reference' }]} />
               <P>Quick definitions of the terms used in this documentation, in the Banzami context.</P>
               <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {CONCEPTS.map((e) => (
