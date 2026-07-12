@@ -9,18 +9,20 @@
 import type { ReactNode } from 'react';
 import { GlossaryTerm } from './GlossaryTerm';
 import { GLOSSARY } from './glossary';
-import { BADGES, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, P, RED, Section, UL, mono, type Tone } from './ui';
+import { BADGES, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono, type Tone } from './ui';
 import { ResourceReference } from './reference';
 
 export type CopyFn = (text: string, label: string) => void;
 
 // -- Intro capability cards (real links to sub-anchors) -------------------------
-const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: ReactNode }[] = [
+const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone: Tone; badgeText: string; icon: ReactNode }[] = [
   {
     title: 'Criar cobrança',
     desc: 'Links de pagamento, sessões e QR.',
     href: '/docs/guides#cobranca',
     tone: 'val',
+    badgeTone: 'ok',
+    badgeText: 'Disponível em Sandbox',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M4 8h13l-3-3M20 16H7l3 3" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -32,6 +34,8 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     desc: 'Movimente valor entre contas.',
     href: '/docs/guides#transferencias',
     tone: 'ok',
+    badgeTone: 'val',
+    badgeText: 'Pendente E2E para chave developer',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M4 12h13l-3-3M20 12H7" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -43,6 +47,8 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     desc: 'Eventos assinados no seu servidor.',
     href: '/docs/guides#webhooks',
     tone: 'val',
+    badgeTone: 'val',
+    badgeText: 'Assinatura documentada · outbound simulado',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
@@ -56,6 +62,8 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     desc: 'Devolva pagamentos processados.',
     href: '/docs/guides#reembolsos',
     tone: 'val',
+    badgeTone: 'val',
+    badgeText: 'Pendente E2E para chave developer',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M20 11a8 8 0 10-1 5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" />
@@ -237,6 +245,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
     <>
 <Section id="introducao">
               <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Introdução</h1>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/sdk', text: 'SDKs' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/reference', text: 'Referência API' }]} />
               <P style={{ fontSize: 15.5, color: MUT, fontWeight: 600 }}>
                 Comece a integrar Banzami em poucos minutos. Todas as chamadas usam o ambiente <GlossaryTerm id="sandbox">Sandbox</GlossaryTerm> por defeito.
                 Construa e valide a sua integração no Sandbox — a <GlossaryTerm id="producao">Produção</GlossaryTerm> será ativada quando a plataforma estiver
@@ -265,7 +274,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                     className="bz-doccard"
                     style={{ position: 'relative', display: 'block', textDecoration: 'none', background: '#fff', border: '1px solid #F2E2E0', borderRadius: 16, padding: 18, boxShadow: '0 14px 40px -34px rgba(181,16,31,.35)' }}
                   >
-                    <span style={{ position: 'absolute', top: 13, right: 13 }}><Badge tone={c.tone}>{BADGES[c.tone].label}</Badge></span>
+                    <span style={{ position: 'absolute', top: 13, right: 13 }}><Badge tone={c.badgeTone}>{c.badgeText}</Badge></span>
                     <span style={{ width: 34, height: 34, borderRadius: 10, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, color: RED }}>
                       {c.icon}
                     </span>
@@ -312,6 +321,10 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
             </Section>
 <Section id="quickstart">
               <H2>Quickstart</H2>
+              <Callout>
+                <strong>Caminho recomendado: SDK preview aprovado.</strong> Enquanto os SDKs públicos não estão publicados,
+                use curl apenas para validar o protocolo, diagnosticar o Sandbox ou auditar chamadas de baixo nível.
+              </Callout>
               <P>Do primeiro acesso à validação de uma jornada de pagamento, no Sandbox:</P>
               <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <LI>Entre na Consola em <Code>developers.banzami.com/login</Code> com email e código (OTP).</LI>
@@ -320,7 +333,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <LI>Crie uma <strong>chave de teste</strong>.</LI>
                 <LI>Guarde a chave <strong>secreta</strong> quando ela aparece — é mostrada uma única vez.</LI>
                 <LI><strong>Verifique a chave</strong> contra a API Sandbox com <Code>curl</Code>: <Code>GET /v1/me</Code> devolve o ambiente, projeto, scopes e estado da chave. Esta é a sua primeira chamada bem-sucedida — <strong>não precisa de nenhum SDK</strong>.</LI>
-                <LI>Continue por HTTP direto (curl) ou, opcionalmente, com um SDK interno aprovado — os SDKs ainda não estão publicados em registos públicos.</LI>
+                <LI>Para implementar, use o <strong>SDK preview aprovado</strong> (caminho recomendado). Enquanto os pacotes públicos não são publicados, use <Code>curl</Code>/HTTP apenas para validar o protocolo, diagnosticar o Sandbox ou auditar chamadas de baixo nível.</LI>
                 <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm> e apresente o link/QR.</LI>
                 <LI>Acompanhe a confirmação e emita o comprovativo.</LI>
                 <LI>Valide webhooks assinados quando aplicável.</LI>
@@ -355,6 +368,8 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="sdks">
+              <PageLede>Modelo <strong>SDK-first</strong>, SDKs em pré-visualização controlada (não publicados), contrato esperado do SDK, estado por família e exemplos de ergonomia prevista.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
 <H3 id="sdk-first">Modelo de integração SDK-first</H3>
               <P>
                 A filosofia de integração da Banzami é <strong>SDK-first</strong>. Os SDKs Banzami devem ser o caminho
@@ -589,6 +604,8 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
     <>
 <Section id="guias">
               <H2>Guias</H2>
+              <PageLede>Guias práticos de integração — cobranças, transferências, reembolsos e webhooks. O enquadramento é <strong>SDK-first</strong>; onde surge curl/HTTP, é material de referência do protocolo.</PageLede>
+              <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/sdk', text: 'SDKs' }]} />
 <H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>
               <P>
                 Uma cobrança nasce de um <strong>link de pagamento</strong> ou de uma <strong>sessão de pagamento</strong>: cria a
@@ -714,6 +731,8 @@ export function PtReference({ copy }: { copy: CopyFn }) {
     <>
 <Section id="api-reference">
               <H2>API Reference</H2>
+              <PageLede>Camada de <strong>referência do protocolo</strong> (API/OpenAPI). <strong>Não é o caminho de implementação recomendado</strong> — a Banzami é SDK-first; use esta referência para diagnóstico, auditoria e integradores avançados.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/guides', text: 'Guias' }, { href: '/docs/sdk', text: 'SDKs' }]} />
               <P>A referência separa-se em duas áreas: o que gere na <strong>Console</strong> e o que a sua aplicação chama na <strong>camada de integração</strong>.</P>
 
               <H3>Gestão pela Console</H3>
@@ -870,6 +889,8 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
     <>
 <Section id="testing">
               <H2>Testar no Sandbox</H2>
+              <PageLede>Como validar a integração no Sandbox e os seus limites. <strong>Nunca há dinheiro real</strong> e <strong>não é permitido onboarding de clientes públicos</strong> no preview.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/trust', text: 'Confiança e prontidão' }, { href: '/docs/guides', text: 'Guias' }]} />
 <H3 id="testar-sandbox">Testar no Sandbox</H3>
               <P><strong>O que o Sandbox é:</strong> um ambiente completo de integração com contas, sessões, links, QR e webhooks de teste — os fluxos comportam-se como os reais, mas <strong>nunca há dinheiro real</strong>.</P>
               <P><strong>O que o Sandbox não é:</strong> não há trilhos live, não há fornecedores externos ativados, não há emissão de chaves de Produção. Todas as credenciais de teste destes exemplos são placeholders.</P>
@@ -894,6 +915,8 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="trust">
+              <PageLede>Prontidão, evidências, riscos e portões de decisão para parceiros aprovados. <strong>Não representa aprovação de Produção nem autorização regulatória.</strong></PageLede>
+              <NextSteps label="Relacionado:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/changelog', text: 'Changelog' }]} />
 <H3 id="confianca">Confiança técnica e prontidão</H3>
               <P>
                 Esta secção resume o estado técnico da documentação Developers da Banzami para parceiros aprovados. O objetivo
@@ -1070,6 +1093,8 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="artefactos-page">
               <H2>Artefactos</H2>
+              <PageLede>Artefactos públicos de <strong>referência Sandbox/Preview</strong> — OpenAPI, Postman, matriz de disponibilidade, manifests e exemplos. Não são contratos de Produção.</PageLede>
+              <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/trust', text: 'Confiança e prontidão' }, { href: '/docs/changelog', text: 'Changelog' }]} />
 <H3 id="artefactos">Artefactos técnicos de referência</H3>
               <P>
                 A mesma superfície documentada existe em formato <strong>machine-readable</strong> — <strong>artefactos de
@@ -1101,6 +1126,7 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
     <>
 <Section id="changelog">
               <H2>Changelog</H2>
+              <PageLede>Registo de mudanças de documentação, contrato de API e Sandbox. Não há histórico de lançamentos de produto.</PageLede>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Entradas datadas por categoria: <Code>[Docs]</Code> (só documentação), <Code>[API]</Code> (contrato da API),{' '}
                 <Code>[Sandbox]</Code> (plataforma Sandbox). Mudanças incompatíveis serão marcadas <Code>[Breaking]</Code>.
@@ -1134,6 +1160,7 @@ export function PtGlossary({ copy }: { copy: CopyFn }) {
 <div id="conceitos" style={{ scrollMarginTop: 72 }}>
               <span id="glossario" aria-hidden="true" style={{ display: 'block', height: 0, scrollMarginTop: 72 }} />
               <H2>Conceitos</H2>
+              <PageLede>Definições dos termos usados nesta documentação, no contexto do Banzami.</PageLede>
               <P>Definições rápidas dos termos usados nesta documentação, no contexto do Banzami.</P>
               <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {GLOSSARY.map((e) => (

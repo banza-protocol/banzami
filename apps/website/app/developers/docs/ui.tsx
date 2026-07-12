@@ -108,3 +108,28 @@ export function CodeBlock({ label, raw, onCopy, toastText = 'Copiado para a áre
     </div>
   );
 }
+
+// -- P3B UX helpers (reuse existing tokens/styles; no new visual system) --------
+
+// A concise "what this page is for" lede — the soft orientation line each area
+// page opens with. Same muted intro style already used across the docs.
+export function PageLede({ children }: { children: ReactNode }) {
+  return (
+    <p style={{ margin: '2px 0 14px', fontSize: 14.5, lineHeight: 1.6, color: MUT, fontWeight: 600, maxWidth: 660 }}>{children}</p>
+  );
+}
+
+// A compact "next" row of inline links, in the existing red link style.
+export function NextSteps({ label, links }: { label: string; links: { href: string; text: string }[] }) {
+  return (
+    <p style={{ margin: '0 0 20px', fontSize: 13, color: '#8a7a7e', fontWeight: 600, maxWidth: 660 }}>
+      {label}{' '}
+      {links.map((l, i) => (
+        <span key={l.href}>
+          {i > 0 ? ' · ' : ''}
+          <a href={l.href} style={{ color: RED, fontWeight: 800, textDecoration: 'none' }}>{l.text}</a>
+        </span>
+      ))}
+    </p>
+  );
+}

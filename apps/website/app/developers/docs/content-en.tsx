@@ -5,7 +5,7 @@
 // same components, same styles, same claim-safety wording. Cross-area anchors
 // were remapped to their new routes. See content-map.ts.
 
-import { BADGE_LABELS_EN, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, P, RED, Section, UL, mono } from './ui';
+import { BADGE_LABELS_EN, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono } from './ui';
 import { ResourceReference } from './reference';
 import type { CopyFn } from './content-pt';
 
@@ -101,6 +101,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
     <>
 <Section id="introduction">
               <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Introduction</h1>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/sdk', text: 'SDKs' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/reference', text: 'API Reference' }]} />
               <P style={{ fontSize: 15.5, color: MUT, fontWeight: 600 }}>
                 Start integrating Banzami in minutes. Every call uses the <strong>Sandbox</strong> environment by default.
                 Build and validate your integration in the Sandbox — <strong>Production</strong> will be activated once the
@@ -145,6 +146,10 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
             </Section>
 <Section id="quickstart">
               <H2>Quickstart</H2>
+              <Callout>
+                <strong>Recommended path: approved SDK preview.</strong> Until public SDK packages are published, use curl
+                only to validate the protocol, diagnose Sandbox behaviour, or audit low-level calls.
+              </Callout>
               <P>From first sign-in to a validated payment journey, in the Sandbox:</P>
               <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
                 <LI>Sign in to the Console at <Code>developers.banzami.com/login</Code> with email + code (OTP).</LI>
@@ -153,7 +158,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <LI>Create a <strong>test key</strong>.</LI>
                 <LI>Save the <strong>secret</strong> key when it appears — it is shown exactly once.</LI>
                 <LI><strong>Verify the key</strong> against the Sandbox API with <Code>curl</Code>: <Code>GET /v1/me</Code> returns the key’s environment, project, scopes and status. This is your first successful call — <strong>no SDK required</strong>.</LI>
-                <LI>Continue over direct HTTP (curl) or, optionally, with an approved internal SDK — the SDKs are not yet published to public registries.</LI>
+                <LI>To implement, use the <strong>approved SDK preview</strong> (recommended path). Until public packages are published, use <Code>curl</Code>/HTTP only to validate the protocol, diagnose Sandbox behaviour, or audit low-level calls.</LI>
                 <LI>Create a <strong>payment session</strong> and present the link/QR.</LI>
                 <LI>Track the confirmation and issue the receipt.</LI>
                 <LI>Validate signed webhooks where applicable.</LI>
@@ -182,6 +187,8 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="sdks">
+              <PageLede><strong>SDK-first</strong> model, SDKs in controlled preview (not published), the expected SDK contract, per-family status and intended-ergonomics examples.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/trust', text: 'Trust and readiness' }]} />
 <H3 id="sdk-first">SDK-first integration model</H3>
               <P>
                 Banzami&rsquo;s integration philosophy is <strong>SDK-first</strong>. Banzami SDKs should be the recommended
@@ -412,6 +419,8 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
     <>
 <Section id="guides">
               <H2>Guides</H2>
+              <PageLede>Practical integration guidance — payment sessions, links, QR, idempotency, errors and webhooks. The framing is <strong>SDK-first</strong>; where curl/HTTP appears, it is protocol reference material.</PageLede>
+              <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
               <P>Task-oriented guides for the verified Sandbox surfaces. Where HTTP/curl appears, it is protocol reference / diagnostic material — Banzami is SDK-first.</P>
 </Section>
 <Section id="webhooks">
@@ -469,6 +478,8 @@ export function EnReference({ copy }: { copy: CopyFn }) {
     <>
 <Section id="api-reference">
               <H2>API Reference</H2>
+              <PageLede>The <strong>protocol reference</strong> layer (API/OpenAPI). <strong>It is not the recommended implementation path</strong> — Banzami is SDK-first; use this reference for diagnostics, audits and advanced integrators.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/sdk', text: 'SDKs' }]} />
               <P>
                 Your application authenticates by sending the Sandbox <Code>bz_test_</Code> API key directly in the{' '}
                 <Code>Authorization: Bearer …</Code> header and calls the integration layer at <Code>sandbox-api.banzami.com</Code>.
@@ -597,6 +608,8 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
     <>
 <Section id="testing">
               <H2>Sandbox testing</H2>
+              <PageLede>How to validate the integration in the Sandbox, and its limits. <strong>No real money ever moves</strong> and <strong>public customer onboarding is not allowed</strong> in preview.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/trust', text: 'Trust and readiness' }, { href: '/docs/en/guides', text: 'Guides' }]} />
 <H3 id="testing-sandbox">Testing in the Sandbox</H3>
               <P><strong>What the Sandbox is:</strong> a complete integration environment with test accounts, sessions, links, QR and webhooks — flows behave like the real ones, but <strong>no real money ever moves</strong>.</P>
               <P><strong>What the Sandbox is not:</strong> there are no live rails, no external providers activated, and no Production key issuance. All test credentials in these examples are placeholders.</P>
@@ -621,6 +634,8 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="trust-page">
+              <PageLede>Readiness, evidence, risks and decision gates for approved partners. <strong>It does not represent Production approval or regulatory authorization.</strong></PageLede>
+              <NextSteps label="Related:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
 <H3 id="trust">Technical trust and readiness</H3>
               <P>
                 This section summarizes the technical state of Banzami Developers documentation for approved partners. The
@@ -798,6 +813,8 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="artifacts-page">
               <H2>Artifacts</H2>
+              <PageLede>Public <strong>Sandbox/Preview reference</strong> artifacts — OpenAPI, Postman, availability matrix, manifests and examples. Not Production contracts.</PageLede>
+              <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/trust', text: 'Trust and readiness' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
 <H3 id="artifacts">Technical reference artifacts</H3>
               <P>
                 The same documented surface exists in <strong>machine-readable</strong> form — <strong>protocol reference
@@ -828,6 +845,7 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
     <>
 <Section id="changelog">
               <H2>Changelog</H2>
+              <PageLede>Documentation, API-contract and Sandbox change tracking. There is no invented product release history.</PageLede>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Dated entries by category: <Code>[Docs]</Code> (documentation only), <Code>[API]</Code> (API contract),{' '}
                 <Code>[Sandbox]</Code> (Sandbox platform). Incompatible changes will be marked <Code>[Breaking]</Code>.
@@ -860,6 +878,7 @@ export function EnGlossary({ copy }: { copy: CopyFn }) {
 <Section id="glossary-page">
 <div id="concepts" style={{ scrollMarginTop: 72 }}>
               <H2>Concepts</H2>
+              <PageLede>Definitions of the terms used across this documentation, in the Banzami context.</PageLede>
               <P>Quick definitions of the terms used in this documentation, in the Banzami context.</P>
               <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {CONCEPTS.map((e) => (
