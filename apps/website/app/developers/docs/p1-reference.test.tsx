@@ -16,10 +16,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import DocsPage from './page';
 import DocsPageEn from './en/page';
+import PtTestingPage from './testing/page';
+import PtReferencePage from './reference/page';
+import EnTestingPage from './en/testing/page';
+import EnReferencePage from './en/reference/page';
+import EnSdkPage from './en/sdk/page';
+import EnGuidesPage from './en/guides/page';
+import EnGetStartedPage from './en/get-started/page';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
-const PT = read('app/developers/docs/page.tsx');
-const EN = read('app/developers/docs/en/page.tsx');
+// P3A: PT/EN corpora = area content + landing pages.
+const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/page.tsx');
+const EN = read('app/developers/docs/content-en.tsx') + read('app/developers/docs/en/page.tsx');
 const REF = read('app/developers/docs/reference.tsx');
 
 beforeEach(() => {
@@ -31,10 +39,11 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe('P1 — PT/EN-only language rule', () => {
-  it('the docs directory exposes exactly one locale subdirectory: en', () => {
+  it("the docs directory's only locale subdirectory is en (area routes are not locales)", () => {
     const entries = readdirSync(join(process.cwd(), 'app/developers/docs'), { withFileTypes: true });
     const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-    expect(dirs).toEqual(['en']);
+    expect(dirs).toContain('en');
+    expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
   });
   it('no other-language routes or lang markers exist (fr/es/de…)', () => {
     for (const src of [PT, EN, REF]) {
@@ -42,27 +51,36 @@ describe('P1 — PT/EN-only language rule', () => {
       expect(/lang="(fr|es|de|it)"/.test(src)).toBe(false);
     }
   });
-  it('PT page links to EN and EN page links back to PT', () => {
-    expect(PT).toContain('href="/docs/en"');
-    expect(EN).toContain('href="/docs"');
+  it('PT and EN link to each other via the shared shell language switch', () => {
+    const SHELL = read('app/developers/docs/shell.tsx');
+    expect(SHELL).toContain("areaHref('en', active)");
+    expect(SHELL).toContain("areaHref('pt', active)");
   });
 });
 
 describe('P1 — key sections exist in BOTH PT and EN', () => {
-  it('PT renders the P1 sections', () => {
-    render(<DocsPage />);
-    for (const t of ['Testar no Sandbox', 'Referência por recurso']) {
-      expect(screen.getAllByText(t).length, `missing PT section: ${t}`).toBeGreaterThan(0);
-    }
+  it('PT renders the P1 sections (on their new area routes)', () => {
+    render(<PtTestingPage />);
+    expect(screen.getAllByText('Testar no Sandbox').length).toBeGreaterThan(0);
+    cleanup();
+    render(<PtReferencePage />);
+    expect(screen.getAllByText('Referência por recurso').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Autenticação e gestão de chaves/).length).toBeGreaterThan(0);
   });
-  it('EN renders the P1 sections', () => {
-    render(<DocsPageEn />);
-    // getAllByText: headings may legitimately co-exist with sidebar/nav labels.
-    for (const t of ['Testing in the Sandbox', 'Resource reference', 'Redelivery contract', 'Current status of this documentation', 'Credentials and capabilities', 'Concepts']) {
-      expect(screen.getAllByText(t).length, `missing EN section: ${t}`).toBeGreaterThan(0);
-    }
+  it('EN renders the P1 sections (on their new area routes)', () => {
+    render(<EnTestingPage />);
+    expect(screen.getAllByText('Testing in the Sandbox').length).toBeGreaterThan(0);
+    cleanup();
+    render(<EnReferencePage />);
+    expect(screen.getAllByText('Resource reference').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Credentials and capabilities').length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Authentication and key management/).length).toBeGreaterThan(0);
+    cleanup();
+    render(<EnGuidesPage />);
+    expect(screen.getAllByText('Redelivery contract').length).toBeGreaterThan(0);
+    cleanup();
+    render(<EnGetStartedPage />);
+    expect(screen.getAllByText('Current status of this documentation').length).toBeGreaterThan(0);
   });
   it('the shared resource reference is bilingual and rendered by both pages', () => {
     expect(PT).toContain('<ResourceReference lang="pt"');

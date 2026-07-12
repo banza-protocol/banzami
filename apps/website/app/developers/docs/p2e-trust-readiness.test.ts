@@ -12,8 +12,8 @@ const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
 const TR = 'apps/website/public/developers/trust';
 
-const PT = read('apps/website/app/developers/docs/page.tsx');
-const EN = read('apps/website/app/developers/docs/en/page.tsx');
+const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/website/app/developers/docs/page.tsx');
+const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 const MANIFEST = JSON.parse(read('apps/website/public/developers/artifacts/manifest.json'));
 const JSON_ARTIFACTS = [
   'developer-trust-summary.json',
@@ -126,8 +126,11 @@ describe('P2E — previous honesty preserved', () => {
     for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
       expect((PT + EN).includes(cmd)).toBe(false);
     }
-    const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
-    expect(dirs).toEqual(['en']);
+    const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+    // P3A: area routes are directories too — the LOCALE rule is that 'en' is the
+    // only locale dir and no other-language dir exists.
+    expect(dirs).toContain('en');
+    expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
   });
   it('pending-E2E, simulated, demo Console, Stage C not approved persist', () => {
     expect(PT).toContain('Pendente E2E');

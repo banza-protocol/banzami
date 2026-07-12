@@ -14,8 +14,8 @@ const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
 const OPENAPI = JSON.parse(read('docs/developer/openapi/banzami-sandbox.openapi.json'));
 const POSTMAN = JSON.parse(read('docs/developer/postman/banzami-sandbox.postman_collection.json'));
 const MATRIX = JSON.parse(read('docs/developer/availability/banzami-developers-availability.json'));
-const PT = read('apps/website/app/developers/docs/page.tsx');
-const EN = read('apps/website/app/developers/docs/en/page.tsx');
+const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/website/app/developers/docs/page.tsx');
+const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 
 const ALLOWED_PATHS = [
   '/v1/me',

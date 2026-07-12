@@ -19,7 +19,13 @@ import { fileURLToPath } from 'url';
 import { parseManifest } from './assurance-manifest-lib.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
-const DOCS = 'apps/website/app/developers/docs/page.tsx';
+// P3A information architecture: the documentation content lives in the PT
+// area-content module (rendered across /docs/* routes); the landing page.tsx
+// is a thin index. The claim checks therefore read content + landing together.
+const DOCS_SOURCES = [
+  'apps/website/app/developers/docs/content-pt.tsx',
+  'apps/website/app/developers/docs/page.tsx',
+];
 let failures = 0;
 const fail = m => { console.error(`  ✗ ${m}`); failures++; };
 const pass = m => console.log(`  ✓ ${m}`);
@@ -35,14 +41,14 @@ const MAP = {
   reembolsos: 'CAP-REFUND-001',
 };
 
-const src = readFileSync(resolve(ROOT, DOCS), 'utf-8');
+const src = DOCS_SOURCES.map(p => readFileSync(resolve(ROOT, p), 'utf-8')).join('\n');
 
 // 1. Availability badges: a non-released capability must not be tone 'ok'
 //    (the "Disponível em Sandbox" label).
 for (const [anchor, capId] of Object.entries(MAP)) {
   const disp = dispOf(capId);
   // card: href: '#anchor', \n tone: 'X'
-  const card = new RegExp(`href: '#${anchor}',\\s*\\n\\s*tone: '([a-z]+)'`).exec(src);
+  const card = new RegExp(`href: '(?:/docs/guides)?#${anchor}',\\s*\\n\\s*tone: '([a-z]+)'`).exec(src);
   const h3 = new RegExp(`<H3 id="${anchor}">[^<]*<Badge tone="([a-z]+)"`).exec(src);
   for (const [where, m] of [['card', card], ['H3', h3]]) {
     if (!m) continue;

@@ -13,8 +13,8 @@ const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
 const PUB = 'apps/website/public/developers';
 
-const PT = read('apps/website/app/developers/docs/page.tsx');
-const EN = read('apps/website/app/developers/docs/en/page.tsx');
+const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/website/app/developers/docs/page.tsx');
+const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 const README = read('docs/developer/examples/README.md');
 const SDK_MANIFEST = JSON.parse(read(`${PUB}/artifacts/sdk-first-manifest.json`));
 const ART_MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));

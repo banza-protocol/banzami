@@ -11,8 +11,8 @@ const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
 const OB = 'apps/website/public/developers/onboarding';
 
-const PT = read('apps/website/app/developers/docs/page.tsx');
-const EN = read('apps/website/app/developers/docs/en/page.tsx');
+const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/website/app/developers/docs/page.tsx');
+const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 const MANIFEST = JSON.parse(read('apps/website/public/developers/artifacts/manifest.json'));
 const ONBOARDING = JSON.parse(read(`${OB}/sdk-preview-onboarding.json`));
 const CHECKLIST = JSON.parse(read(`${OB}/sandbox-validation-checklist.json`));
@@ -131,8 +131,11 @@ describe('P2D — previous honesty preserved', () => {
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
     expect(EN).toContain('simulated');
-    const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
-    expect(dirs).toEqual(['en']);
+    const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+    // P3A: area routes are directories too — the LOCALE rule is that 'en' is the
+    // only locale dir and no other-language dir exists.
+    expect(dirs).toContain('en');
+    expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
   });
   it('no production/live/BNA/Console-operational claims (BNA appears only inside prohibitions)', () => {
     for (const line of (PT + EN).split('\n')) {
