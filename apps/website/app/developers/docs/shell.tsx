@@ -37,6 +37,31 @@ export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
   { slug: 'glossary', label: 'Glossary', desc: 'Concepts used across this documentation.' },
 ];
 
+// P3B — three primary "choose your path" cards for the landing pages, and the
+// three developer-journey trails. Data only; rendered with existing card/link
+// styles on the home pages (no new visual system).
+export const PRIMARY_PATHS_PT: { slug: string; title: string; desc: string }[] = [
+  { slug: 'get-started', title: 'Começar com preview SDK', desc: 'Orientação para um parceiro/developer aprovado — SDK-first, curl só para validação do protocolo.' },
+  { slug: 'testing', title: 'Validar no Sandbox', desc: 'Checklist de validação, limites e o que o Sandbox não é. Nunca há dinheiro real.' },
+  { slug: 'reference', title: 'Consultar referência técnica', desc: 'Camada de referência do protocolo (API/OpenAPI) — não é o caminho de implementação recomendado.' },
+];
+export const PRIMARY_PATHS_EN: { slug: string; title: string; desc: string }[] = [
+  { slug: 'get-started', title: 'Start with SDK preview', desc: 'Orientation for an approved partner/developer — SDK-first, curl only for protocol validation.' },
+  { slug: 'testing', title: 'Validate in Sandbox', desc: 'Validation checklist, limits and what the Sandbox is not. No real money ever moves.' },
+  { slug: 'reference', title: 'Read technical reference', desc: 'Protocol reference layer (API/OpenAPI) — not the recommended implementation path.' },
+];
+
+export const JOURNEYS_PT: { role: string; steps: { slug: string; label: string }[] }[] = [
+  { role: 'Novo parceiro aprovado', steps: [{ slug: '', label: 'Início' }, { slug: 'get-started', label: 'Começar' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'testing', label: 'Testar no Sandbox' }, { slug: 'trust', label: 'Confiança e prontidão' }] },
+  { role: 'Developer técnico', steps: [{ slug: '', label: 'Início' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'guides', label: 'Guias' }, { slug: 'reference', label: 'Referência API' }, { slug: 'artifacts', label: 'Artefactos' }] },
+  { role: 'Auditor/avaliador técnico', steps: [{ slug: '', label: 'Início' }, { slug: 'trust', label: 'Confiança e prontidão' }, { slug: 'artifacts', label: 'Artefactos' }, { slug: 'changelog', label: 'Changelog' }] },
+];
+export const JOURNEYS_EN: { role: string; steps: { slug: string; label: string }[] }[] = [
+  { role: 'New approved partner', steps: [{ slug: '', label: 'Home' }, { slug: 'get-started', label: 'Get started' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'testing', label: 'Sandbox testing' }, { slug: 'trust', label: 'Trust and readiness' }] },
+  { role: 'Technical developer', steps: [{ slug: '', label: 'Home' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'guides', label: 'Guides' }, { slug: 'reference', label: 'API Reference' }, { slug: 'artifacts', label: 'Artifacts' }] },
+  { role: 'Technical reviewer', steps: [{ slug: '', label: 'Home' }, { slug: 'trust', label: 'Trust and readiness' }, { slug: 'artifacts', label: 'Artifacts' }, { slug: 'changelog', label: 'Changelog' }] },
+];
+
 const base = (lang: 'pt' | 'en') => (lang === 'pt' ? '/docs' : '/docs/en');
 export const areaHref = (lang: 'pt' | 'en', slug: string) => (slug ? `${base(lang)}/${slug}` : base(lang));
 
