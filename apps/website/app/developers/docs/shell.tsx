@@ -1,0 +1,140 @@
+'use client';
+
+// Shared documentation shell (P3A) — the SAME header, sidebar, layout grid and
+// copy-toast the single-page docs used, reused verbatim for every area page.
+// No new visual system: same styles, same components, same brand tokens. The
+// sidebar now navigates between area routes instead of in-page anchors.
+
+import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { BrandTile } from '@/components/developers/portal/icons';
+import { INK, RED, backLinkStyle } from './ui';
+
+export type CopyFn = (text: string, label: string) => void;
+
+export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
+  { slug: '', label: 'Início', desc: 'Página inicial da documentação.' },
+  { slug: 'get-started', label: 'Começar', desc: 'Visão geral, estado atual e quickstart.' },
+  { slug: 'sdk', label: 'SDKs', desc: 'Modelo SDK-first, preview controlado e onboarding.' },
+  { slug: 'guides', label: 'Guias', desc: 'Cobranças, transferências, reembolsos e webhooks.' },
+  { slug: 'reference', label: 'Referência API', desc: 'Credenciais, endpoints, erros e idempotência.' },
+  { slug: 'testing', label: 'Testar no Sandbox', desc: 'O que o Sandbox é, validação e limites.' },
+  { slug: 'trust', label: 'Confiança e prontidão', desc: 'Disponibilidade, riscos, portões e postura.' },
+  { slug: 'artifacts', label: 'Artefactos', desc: 'OpenAPI, Postman, manifests e exemplos.' },
+  { slug: 'changelog', label: 'Changelog', desc: 'Mudanças datadas por categoria.' },
+  { slug: 'glossary', label: 'Glossário', desc: 'Conceitos usados nesta documentação.' },
+];
+
+export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
+  { slug: '', label: 'Home', desc: 'Documentation home page.' },
+  { slug: 'get-started', label: 'Get started', desc: 'Overview, current status and quickstart.' },
+  { slug: 'sdk', label: 'SDKs', desc: 'SDK-first model, controlled preview and onboarding.' },
+  { slug: 'guides', label: 'Guides', desc: 'Payments, webhooks and task guides.' },
+  { slug: 'reference', label: 'API Reference', desc: 'Credentials, endpoints, errors and idempotency.' },
+  { slug: 'testing', label: 'Sandbox testing', desc: 'What Sandbox means, validation and limits.' },
+  { slug: 'trust', label: 'Trust and readiness', desc: 'Availability, risks, gates and posture.' },
+  { slug: 'artifacts', label: 'Artifacts', desc: 'OpenAPI, Postman, manifests and examples.' },
+  { slug: 'changelog', label: 'Changelog', desc: 'Dated changes by category.' },
+  { slug: 'glossary', label: 'Glossary', desc: 'Concepts used across this documentation.' },
+];
+
+const base = (lang: 'pt' | 'en') => (lang === 'pt' ? '/docs' : '/docs/en');
+export const areaHref = (lang: 'pt' | 'en', slug: string) => (slug ? `${base(lang)}/${slug}` : base(lang));
+
+export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; active: string; children: (copy: CopyFn) => ReactNode }) {
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copy = useCallback<CopyFn>((text, label) => {
+    const onOk = () => {
+      setToast(label);
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      toastTimer.current = setTimeout(() => setToast(null), 1600);
+    };
+    navigator?.clipboard?.writeText(text)?.then(onOk, () => {});
+  }, []);
+
+  const areas = lang === 'pt' ? AREAS_PT : AREAS_EN;
+  const otherLangHref = lang === 'pt' ? areaHref('en', active) : areaHref('pt', active);
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#FFF9F8', display: 'flex', flexDirection: 'column' }}>
+      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '18px 28px', maxWidth: 1200, width: '100%', margin: '0 auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <a href="https://banzami.com" aria-label={lang === 'pt' ? 'Voltar ao Banzami' : 'Back to Banzami'} className="bz-toplink" style={backLinkStyle}>
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
+            {lang === 'pt' ? 'Voltar ao Banzami' : 'Back to Banzami'}
+          </a>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <BrandTile size={32} radius={10} />
+            <span style={{ fontWeight: 900, fontSize: 18, letterSpacing: '-.02em', color: INK }}>
+              Banzami <span style={{ color: RED }}>Developers</span>
+            </span>
+          </span>
+        </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <a href={otherLangHref} className="bz-toplink" aria-label={lang === 'pt' ? 'Read the documentation in English' : 'Ler a documentação em português'} style={backLinkStyle}>
+            {lang === 'pt' ? 'EN' : 'PT'}
+          </a>
+          <a href="/login" className="bz-toplink" aria-label={lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'} style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
+            {lang === 'pt' ? 'Entrar na Consola' : 'Open the Console'}
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>→</span>
+          </a>
+        </span>
+      </header>
+
+      <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
+        <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 26, alignItems: 'start' }}>
+          <aside className="bz-docsnav">
+            <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#a89a9e' }}>
+              {lang === 'pt' ? 'DOCUMENTAÇÃO' : 'DOCUMENTATION'}
+            </p>
+            <nav aria-label={lang === 'pt' ? 'Secções da documentação' : 'Documentation sections'} style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {areas.map((a) => {
+                const on = active === a.slug;
+                return (
+                  <a
+                    key={a.slug || 'home'}
+                    href={areaHref(lang, a.slug)}
+                    aria-current={on ? 'true' : undefined}
+                    className="bz-toplink"
+                    style={{ padding: '8px 12px', borderRadius: 10, background: on ? '#FFF1F0' : 'transparent', color: on ? RED : '#6a5a5e', fontSize: 13.5, fontWeight: on ? 800 : 700, textDecoration: 'none' }}
+                  >
+                    {a.label}
+                  </a>
+                );
+              })}
+            </nav>
+          </aside>
+
+          <article style={{ minWidth: 0 }}>
+            {children(copy)}
+
+            {/* Blush help card (same as before) */}
+            <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 14, background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 16, padding: '18px 20px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: INK }}>{lang === 'pt' ? 'Precisa de ajuda?' : 'Need help?'}</p>
+                <p style={{ margin: '3px 0 0', fontSize: 13, color: '#a08a8c', fontWeight: 600 }}>{lang === 'pt' ? 'A nossa equipa de suporte está disponível.' : 'Our support team is available.'}</p>
+              </div>
+              <a href="/suporte" className="bz-cta" style={{ padding: '11px 18px', border: 'none', borderRadius: 12, background: 'linear-gradient(160deg,#B5101F,#7C1016)', color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', textDecoration: 'none', boxShadow: '0 12px 24px -12px rgba(181,16,31,.5)' }}>
+                {lang === 'pt' ? 'Abrir suporte' : 'Open support'}
+              </a>
+            </div>
+
+            {/* Back to documentation home */}
+            <p style={{ margin: '18px 0 0' }}>
+              <a href={base(lang)} className="bz-toplink" style={{ ...backLinkStyle, color: RED, fontWeight: 800 }}>
+                <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
+                {lang === 'pt' ? 'Voltar ao início da documentação' : 'Back to documentation home'}
+              </a>
+            </p>
+          </article>
+        </div>
+      </main>
+
+      <div aria-live="polite" style={{ position: 'fixed', left: 0, right: 0, bottom: 26, display: 'flex', justifyContent: 'center', pointerEvents: 'none', zIndex: 60 }}>
+        {toast ? (
+          <span style={{ background: '#2a2024', color: '#fff', fontSize: 13, fontWeight: 700, padding: '10px 16px', borderRadius: 12, boxShadow: '0 16px 40px -18px rgba(0,0,0,.5)' }}>{toast}</span>
+        ) : null}
+      </div>
+    </div>
+  );
+}

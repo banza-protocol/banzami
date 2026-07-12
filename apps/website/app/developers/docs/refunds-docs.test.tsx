@@ -13,8 +13,10 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import DocsPage from './page';
+import PtGuidesPage from './guides/page';
 
-const DOCS = readFileSync(join(process.cwd(), 'app/developers/docs/page.tsx'), 'utf8');
+// P3A: refunds content lives in the PT area content module (guides route).
+const DOCS = readFileSync(join(process.cwd(), 'app/developers/docs/content-pt.tsx'), 'utf8');
 const OVERVIEW = readFileSync(join(process.cwd(), 'app/developers/page.tsx'), 'utf8');
 
 beforeEach(() => {
@@ -65,14 +67,14 @@ describe('Refunds docs — typed-source public contract (ADR-030)', () => {
     expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="val"/.test(DOCS)).toBe(true);
     expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="ok"/.test(DOCS)).toBe(false);
     // rendered: the label appears (capability card + section)
-    render(<DocsPage />);
+    render(<PtGuidesPage />);
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);
   });
 
   it('the public docs make no network fetch and expose no Developer API / login-gated refund data', () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    const { container } = render(<DocsPage />);
+    const { container } = render(<PtGuidesPage />);
     expect(fetchSpy).not.toHaveBeenCalled();
     for (const a of Array.from(container.querySelectorAll('a[href]'))) {
       expect(a.getAttribute('href') ?? '').not.toContain('developer-api.banzami.com');

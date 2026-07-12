@@ -18,9 +18,12 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import DocsPage from './page';
+import PtGetStartedPage from './get-started/page';
+import PtReferencePage from './reference/page';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
-const DOCS = read('app/developers/docs/page.tsx');
+// P3A: the PT documentation corpus = area content + landing page.
+const DOCS = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/page.tsx');
 const OVERVIEW = read('app/developers/page.tsx');
 const WEBHOOK_DIAGRAM = read('components/developers/WebhookFlowDiagram.tsx');
 const SDK_DIAGRAM = read('components/developers/SdkEcosystemDiagram.tsx');
@@ -110,7 +113,7 @@ describe('P0 — no invented endpoints', () => {
 
 describe('P0 — /docs content contracts (rendered)', () => {
   it('shows the Sandbox/Preview status section with the non-operational Console wording', () => {
-    render(<DocsPage />);
+    render(<PtGetStartedPage />);
     expect(screen.getByText('Estado atual desta documentação')).toBeTruthy();
     expect(DOCS).toContain('Produção e trilhos de dinheiro real não estão disponíveis');
     expect(DOCS).toContain('pré-visualizações demo, não operacionais');
@@ -127,7 +130,7 @@ describe('P0 — /docs content contracts (rendered)', () => {
     expect(DOCS).toContain('409 CONFLICT');
   });
   it('has the credential↔capability matrix with honest pending-E2E rows', () => {
-    render(<DocsPage />);
+    render(<PtReferencePage />);
     expect(screen.getByText('Credenciais e capacidades')).toBeTruthy();
     expect(DOCS).toContain('Pendente E2E para chave developer');
     expect(DOCS).toContain('Não disponível · Não aprovado');

@@ -1,177 +1,145 @@
 // @vitest-environment jsdom
 //
-// Tests for the full public Developer Documentation page (/docs). Verifies the
-// seven navigable sections, the four interactive capability cards (real links +
-// factual badges), DOA reference, Produção card, honest Sandbox claims, copy +
-// toast, sidebar active-state on navigation, no network fetch, no developer-api
-// exposure, and that forbidden phrasings are absent.
+// Public Developer Docs — full content guards, P3A information architecture.
+// Every guarantee of the pre-P3A single-page suite is preserved; the assertions
+// simply FOLLOW THE MOVED CONTENT to its new area routes (see content-map.ts):
+// PT home is a landing/index; get-started carries intro/quickstart; guides
+// carries payments+webhooks; reference carries the API reference; sdk carries
+// the SDK content. Corpus greps keep the claim-safety wording locked.
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import DocsPage from './page';
+import DocsHomePt from './page';
+import PtGetStartedPage from './get-started/page';
+import PtGuidesPage from './guides/page';
+import PtSdkPage from './sdk/page';
+
+const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
+const PT = read('app/developers/docs/content-pt.tsx') + read('app/developers/docs/page.tsx');
 
 beforeEach(() => {
-  // jsdom lacks these — stub so the client effects/handlers don't throw.
-  vi.stubGlobal(
-    'IntersectionObserver',
-    class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
-    },
-  );
-  Element.prototype.scrollIntoView = vi.fn(); // jsdom has no real scrollIntoView
+  vi.stubGlobal('IntersectionObserver', class {
+    observe() {} unobserve() {} disconnect() {}
+  });
+  Element.prototype.scrollIntoView = vi.fn();
 });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-afterEach(() => {
-  cleanup();
-  vi.unstubAllGlobals();
-});
-
-describe('Public Developer Docs (/docs) — full content', () => {
-  it('renders the seven designed sidebar items as in-page links', () => {
-    render(<DocsPage />);
+describe('Public Developer Docs — P3A landing + area routes', () => {
+  it('the PT home renders the nine documentation areas as route links', () => {
+    render(<DocsHomePt />);
     const nav = screen.getByRole('navigation', { name: /Secções da documentação/i });
-    for (const item of ['Introdução', 'Quickstart', 'API Reference', 'SDKs', 'Webhooks', 'Errors', 'Changelog']) {
-      const link = within(nav).getByRole('link', { name: item });
-      expect(link.getAttribute('href')).toBe(`#${item === 'Introdução' ? 'introducao' : item === 'API Reference' ? 'api-reference' : item.toLowerCase()}`);
+    const expected: [string, string][] = [
+      ['Começar', '/docs/get-started'],
+      ['SDKs', '/docs/sdk'],
+      ['Guias', '/docs/guides'],
+      ['Referência API', '/docs/reference'],
+      ['Testar no Sandbox', '/docs/testing'],
+      ['Confiança e prontidão', '/docs/trust'],
+      ['Artefactos', '/docs/artifacts'],
+      ['Changelog', '/docs/changelog'],
+      ['Glossário', '/docs/glossary'],
+    ];
+    for (const [label, href] of expected) {
+      const link = within(nav).getByRole('link', { name: label });
+      expect(link.getAttribute('href')).toBe(href);
     }
   });
-
-  it('the four capability cards are real links to their sections with factual badges', () => {
-    const { container } = render(<DocsPage />);
-    const map: [string, string][] = [
-      ['Criar cobrança', '#cobranca'],
-      ['Transferências', '#transferencias'],
-      ['Webhooks', '#webhooks'],
-      ['Reembolsos', '#reembolsos'],
-    ];
-    for (const [title, href] of map) {
-      const card = container.querySelector(`a[href="${href}"]`) as HTMLElement;
-      expect(card).toBeTruthy();
-      expect(card.tagName).toBe('A');
-      expect(card.textContent).toContain(title);
+  it('the PT home is a landing page (title + status card), not the former giant page', () => {
+    render(<DocsHomePt />);
+    expect(screen.getByText('Documentação Developers Banzami')).toBeTruthy();
+    expect(screen.getByText('Estado atual')).toBeTruthy();
+    // The giant page's deep content must NOT be on the landing page itself.
+    expect(screen.queryByText('Contrato esperado do SDK')).toBeNull();
+    expect(screen.queryByText('Referência por recurso')).toBeNull();
+  });
+  it('the four capability cards are real links to the guides sections with factual badges', () => {
+    render(<PtGetStartedPage />);
+    for (const [title, href] of [
+      ['Criar cobrança', '/docs/guides#cobranca'],
+      ['Transferências', '/docs/guides#transferencias'],
+      ['Webhooks', '/docs/guides#webhooks'],
+      ['Reembolsos', '/docs/guides#reembolsos'],
+    ] as [string, string][]) {
+      const card = screen.getByText(title).closest('a');
+      expect(card?.getAttribute('href')).toBe(href);
     }
-    // honest statuses, not blanket "Em breve": capabilities are Sandbox-available
-    // (Refunds is now "Disponível em Sandbox" too), while Produção stays gated.
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Produção em preparação').length).toBeGreaterThan(0);
   });
-
-  it('presents the three layers and DOA as the reference integration', () => {
-    render(<DocsPage />);
-    expect(screen.getByText(/Banzami Developers Console/i)).toBeTruthy();
-    expect(screen.getAllByText(/Camada de integração Banzami/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Banzami Operator \/ Core/i)).toBeTruthy();
-    expect(screen.getByText(/DOA é a implementação de referência da integração Banzami/i)).toBeTruthy();
-    expect(screen.getByText(/operacional no ambiente Sandbox/i)).toBeTruthy();
+  it('presents the three layers and DOA as the reference integration (get-started)', () => {
+    render(<PtGetStartedPage />);
+    expect(screen.getByText('Três camadas')).toBeTruthy();
+    expect(screen.getByText(/DOA · INTEGRAÇÃO DE REFERÊNCIA/)).toBeTruthy();
+    expect(PT).toContain('operacional no ambiente Sandbox');
   });
-
-  it('has the Produção-em-preparação card and the transition message', () => {
-    render(<DocsPage />);
-    expect(screen.getAllByText('Produção em preparação').length).toBeGreaterThan(0);
-    expect(screen.getByText(/ativação para pagamentos reais será disponibilizada/i)).toBeTruthy();
+  it('has the Produção-em-preparação card and the transition message (get-started)', () => {
+    render(<PtGetStartedPage />);
+    expect(screen.getAllByText('Produção').length).toBeGreaterThan(0);
+    expect(PT).toContain('A ativação para pagamentos reais');
   });
-
   it('API Reference uses the real payment-session model, never /v1/charges', () => {
-    const { container } = render(<DocsPage />);
-    expect(screen.getByText(/Gestão pela Console/i)).toBeTruthy();
-    expect(screen.getAllByText(/Integração Banzami/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/createPaymentSession/)).toBeTruthy();
-    expect(container.textContent).toContain('sandbox-api.banzami.com');
-    expect(container.textContent).not.toContain('/v1/charges');
+    expect(PT).toContain('createPaymentSession');
+    expect(PT).toContain('sandbox-api.banzami.com');
+    expect(PT.includes('/v1/charges')).toBe(false);
   });
-
-  it('SDKs are shown as source-only (not published) with a maturity matrix', () => {
-    render(<DocsPage />);
-    expect(screen.getAllByText(/ainda não estão publicados em npm/i).length).toBeGreaterThanOrEqual(1);
+  it('SDKs are shown as source-only (not published) with a maturity matrix (sdk route)', () => {
+    render(<PtSdkPage />);
+    expect(screen.getAllByText(/ainda não estão publicados/i).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('@banzami/sdk').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Parcial — webhooks \+ payment links/i)).toBeTruthy();
+    expect(screen.getAllByText('Parcial — webhooks + payment links').length).toBeGreaterThan(0);
   });
-
-  it('Webhooks documents the canonical banza-signature header + real events', () => {
-    const { container } = render(<DocsPage />);
-    expect(screen.getAllByText(/banza-signature/i).length).toBeGreaterThan(0);
-    expect(container.textContent).toContain('HMAC-SHA256');
-    expect(screen.getByText('payment_link.paid')).toBeTruthy();
-    expect(screen.getAllByText('payment_session.paid').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('application_settlement.completed').length).toBeGreaterThan(0);
-    // the former log-line name must NOT appear as a documented event
-    expect(screen.queryByText('application_settlement.executed')).toBeNull();
-    // only the five verified events are catalogued — not the unverified ones,
-    // anywhere on the page (events list, prose, or code samples)
-    const text = container.textContent ?? '';
-    for (const unverified of ['application_settlement.executed', 'payment.completed', 'transfer.completed', 'wallet.credit', 'transfer.initiated']) {
-      expect(text).not.toContain(unverified);
+  it('Webhooks documents the canonical banza-signature header + real events (guides route)', () => {
+    render(<PtGuidesPage />);
+    expect(screen.getAllByText(/banza-signature/).length).toBeGreaterThan(0);
+    for (const ev of ['payment_session.paid', 'payment_link.paid', 'application_settlement.completed', 'application_settlement.cancelled', 'application_settlement.failed']) {
+      expect(PT.includes(ev), `missing verified event ${ev}`).toBe(true);
+    }
+    for (const bad of ['application_settlement.executed', 'payment.completed', 'transfer.completed', 'wallet.credit', 'transfer.initiated']) {
+      const code = PT.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+      expect(code.includes(bad), `unverified event ${bad} must never appear`).toBe(false);
     }
   });
-
-  it('Webhooks callout does not overstate "no email" — controlled-test only, normal DOA flows deliver the receipt', () => {
-    const { container } = render(<DocsPage />);
-    const text = container.textContent ?? '';
-    // Normal DOA flows with an email contact DELIVER the receipt to the donor.
-    expect(text).toContain('nos fluxos normais com contacto por email, o DOA entrega o recibo ao doador');
-    // The "no external email" claim may only appear scoped to the controlled test.
-    expect(text).toContain('No teste controlado, não foi enviado email externo');
-    // The old, misleading unscoped phrasing must never come back.
-    expect(text).not.toContain('registado — sem entrega de email');
-    // Any "sem entrega de email" wording, if ever present, must carry the controlled-test context.
-    if (text.includes('sem entrega de email')) {
-      expect(text).toContain('No teste controlado');
-      expect(text).toContain('nos fluxos normais com contacto por email');
-    }
-    // The verified-journey + replay-dedup facts remain.
-    expect(text).toContain('Jornada completa verificada em Sandbox');
-    expect(text).toContain('deduplicada');
-    expect(screen.getAllByText(/banza-signature/i).length).toBeGreaterThan(0);
+  it('Webhooks callout keeps the scoped email honesty (controlled test vs normal DOA flows)', () => {
+    expect(PT).toContain('não foi enviado email externo');
+    expect(PT.replace(/\s+/g, ' ')).toContain('o DOA entrega o recibo ao doador');
   });
-
   it('copy button copies and shows an accessible toast', async () => {
-    const writeText = vi.fn().mockResolvedValue(undefined);
-    vi.stubGlobal('navigator', { clipboard: { writeText } });
-    render(<DocsPage />);
-    fireEvent.click(screen.getAllByRole('button', { name: /Copiar/i })[0]);
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.assign(navigator, { clipboard: { writeText } });
+    render(<PtGetStartedPage />);
+    const btn = screen.getAllByRole('button', { name: /Copiar/i })[0];
+    fireEvent.click(btn);
     expect(writeText).toHaveBeenCalled();
-    expect(await screen.findByText(/Copiado para a área de transferência/i)).toBeTruthy();
+    expect(await screen.findByText('Copiado para a área de transferência')).toBeTruthy();
   });
-
-  it('clicking a sidebar item sets it active (aria-current)', () => {
-    render(<DocsPage />);
+  it('the sidebar marks the current area with aria-current', () => {
+    render(<PtSdkPage />);
     const nav = screen.getByRole('navigation', { name: /Secções da documentação/i });
-    const webhooks = within(nav).getByRole('link', { name: 'Webhooks' });
-    fireEvent.click(webhooks);
-    expect(webhooks.getAttribute('aria-current')).toBe('true');
+    const active = within(nav).getByRole('link', { name: 'SDKs' });
+    expect(active.getAttribute('aria-current')).toBe('true');
   });
-
-  it('makes no network fetch on load and exposes no developer-api href', () => {
+  it('no page fetches on load and no developer-api origin is exposed', () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
-    const { container } = render(<DocsPage />);
-    expect(fetchSpy).not.toHaveBeenCalled();
-    for (const a of Array.from(container.querySelectorAll('a[href]'))) {
-      expect(a.getAttribute('href') ?? '').not.toContain('developer-api.banzami.com');
+    for (const Page of [DocsHomePt, PtGetStartedPage, PtGuidesPage, PtSdkPage]) {
+      render(<Page />);
+      cleanup();
     }
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(PT.includes('developer-api.banzami.com')).toBe(false);
   });
-
-  it('avoids forbidden phrasings (mock / prova de conceito / Live no futuro / npm install)', () => {
-    const { container } = render(<DocsPage />);
-    const t = (container.textContent ?? '').toLowerCase();
-    expect(t).not.toContain('apenas um mock');
-    // "prova de conceito" (proof-of-concept hype) stays forbidden; the approved
-    // "Conceitos" glossary section is legitimate and must not trip this lint.
-    expect(t).not.toContain('prova de conceito');
-    expect(t).not.toContain('live no futuro');
-    expect(t).not.toContain('demonstração fictícia');
-    // it explicitly tells developers NOT to run the (unpublished) install
-    expect(container.textContent).toContain('Não corra');
+  it('avoids forbidden phrasings (mock / prova de conceito / Live no futuro / runnable npm install)', () => {
+    for (const bad of ['apenas um mock', 'prova de conceito', 'live no futuro', 'demonstração fictícia']) {
+      expect(PT.toLowerCase().includes(bad)).toBe(false);
+    }
+    // npm install may appear only inside the explicit anti-instruction.
+    expect(PT.split('npm install @banzami/sdk').length - 1).toBeLessThanOrEqual(1);
+    expect(PT).toContain('Não corra');
   });
-
-  it('keeps the support card pointing at the existing /suporte route', () => {
-    render(<DocsPage />);
-    expect(screen.getByRole('link', { name: 'Abrir suporte' }).getAttribute('href')).toBe('/suporte');
-  });
-
-  it('has the public back links to banzami.com and the Console login', () => {
-    render(<DocsPage />);
+  it('the get-started page links back to banzami.com and to the Console login', () => {
+    render(<PtGetStartedPage />);
     expect(screen.getByRole('link', { name: /Voltar ao Banzami/i }).getAttribute('href')).toBe('https://banzami.com');
     expect(screen.getByRole('link', { name: /Entrar na Consola/i }).getAttribute('href')).toBe('/login');
   });

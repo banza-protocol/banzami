@@ -13,8 +13,8 @@ const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
 const PUB = 'apps/website/public/developers';
 
-const PT = read('apps/website/app/developers/docs/page.tsx');
-const EN = read('apps/website/app/developers/docs/en/page.tsx');
+const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/website/app/developers/docs/page.tsx');
+const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 const CONTRACT = JSON.parse(read(`${PUB}/artifacts/sdk-contract.json`));
 const MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));
 const TS_EX = read(`${PUB}/examples/sdk-preview/typescript-payment-session.example.ts`);
@@ -131,8 +131,11 @@ describe('P2C — previous honesty preserved', () => {
     }
   });
   it('PT/EN-only rule holds (single en locale dir; no other lang routes)', () => {
-    const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name);
-    expect(dirs).toEqual(['en']);
+    const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
+    // P3A: area routes are directories too — the LOCALE rule is that 'en' is the
+    // only locale dir and no other-language dir exists.
+    expect(dirs).toContain('en');
+    expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
     expect(/\/docs\/(fr|es|de|it)\b/.test(PT + EN)).toBe(false);
   });
   it('pending-E2E, simulated webhooks and no production/BNA/Console claims persist', () => {
