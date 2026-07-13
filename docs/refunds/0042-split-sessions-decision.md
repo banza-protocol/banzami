@@ -1,7 +1,7 @@
 # Product decision — migration `0042_split_sessions` (DECIDED · IMPLEMENTED)
 
 > **STATUS: DECIDED — Option 2 (Supersede with Collections). IMPLEMENTED.**
-> Split Sessions is **retired**. Collections (BANZA ADR-036) is the replacement
+> Split Sessions is **retired**. Collections (BANZA ADR-016) is the replacement
 > product direction. The legacy `/internal/v1/splits*` routes now return a
 > deliberate **`410 Gone` · `SPLIT_SESSIONS_SUPERSEDED`** instead of a missing-table
 > `500`. Migration `0042` remains **intentionally unapplied** — its
@@ -37,7 +37,7 @@
   `POST /internal/v1/splits/:id/pay`) and `core/api/src/routes/splits.rs` exists.
   → With the tables absent, any call to these routes currently **500s** in Sandbox.
 - Project history indicates the pre-protocol P2P split was **superseded by
-  Collections (BANZA ADR-036 / "Dividir cobrança" on Collections)**;
+  Collections (BANZA ADR-016 / "Dividir cobrança" on Collections)**;
   `collections` and `collection_shares` tables are present.
 
 So there is a live contradiction: registered routes with no backing tables, and a

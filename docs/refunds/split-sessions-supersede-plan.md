@@ -1,6 +1,6 @@
 # Follow-up plan — supersede Split Sessions with Collections
 
-**Decision:** Split Sessions is **superseded by Collections (BANZA ADR-036)**.
+**Decision:** Split Sessions is **superseded by Collections (BANZA ADR-016)**.
 `0042_split_sessions` is **not** repaired or applied. This is a **separate**
 workstream from the Sandbox schema-repair rollout (0090–0095) and is **not
 started yet** — this document is the plan only.

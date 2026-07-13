@@ -30,7 +30,7 @@ type createTransactionBody struct {
 	Currency        string `json:"currency"`
 	Description     string `json:"description"`
 	WalletID        string `json:"wallet_id"` // optional
-	// BANZA ADR-039 fee references (operator-internal). Reference only — never a
+	// BANZA ADR-019 fee references (operator-internal). Reference only — never a
 	// price. Optional; absent => unpriced => zero fee. A client never sends a
 	// fee/percentage: there is no rate_bps/fee_minor field, so any such value is
 	// ignored on decode.

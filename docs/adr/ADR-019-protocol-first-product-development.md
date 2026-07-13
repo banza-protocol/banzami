@@ -4,7 +4,7 @@
 **Date:** 2026-06-28  
 **Authors:** Banzami Engineering  
 **Supersedes:** —  
-**Related:** BANZA ADR-035 (Protocol-first product development) · BANZA ADR-036 (Payment Collections, *Proposed*) · [ADR-016](ADR-016-banzami-banza-brand-architecture.md) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md)
+**Related:** BANZA ADR-005 (Protocol-first product development) · BANZA ADR-016 (Payment Collections, *Proposed*) · [ADR-016](ADR-016-banzami-banza-brand-architecture.md) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md)
 
 ---
 
@@ -26,7 +26,7 @@ against the rule: the merchant **"Cobrança dividida" (split charge)** shipped o
 
 ## Decision
 
-1. **Banzami adopts BANZA ADR-035.** No Banzami app, SDK, or operator service may
+1. **Banzami adopts BANZA ADR-005.** No Banzami app, SDK, or operator service may
    introduce a new financial/protocolar concept without a corresponding BANZA
    ADR/RFC. Banzami implements concepts the protocol defines; it owns UX,
    operator policy (KYC/AML tiers, fees within `INV-STL-001`, onboarding,
@@ -44,7 +44,7 @@ against the rule: the merchant **"Cobrança dividida" (split charge)** shipped o
      as a final implementation of split/group payments.
 
 3. **The real feature waits on the protocol.** Banzami implements split/group
-   payments only after BANZA ADR-036 is **Accepted**, following the plan in
+   payments only after BANZA ADR-016 is **Accepted**, following the plan in
    [collections-implementation-plan](../architecture/collections-implementation-plan.md):
    operator persists Collections + shares, generates a link/QR per share,
    reconciles share state from real payments, emits the protocol events, and
@@ -70,7 +70,7 @@ against the rule: the merchant **"Cobrança dividida" (split charge)** shipped o
 
 - No financial behaviour is exposed as an official Banzami feature outside the
   protocol. Split charge is dormant by default and labelled pre-protocol.
-- The split-charge code remains available to inform BANZA ADR-036 and the
+- The split-charge code remains available to inform BANZA ADR-016 and the
   eventual protocol-first implementation.
 - Reviewers (human or agent) apply one test before merging product work: *"Does
   this introduce a new financial/protocolar concept? If yes, it needs a BANZA

@@ -4,7 +4,7 @@
 **Date:** 2026-07-03
 **Type:** Banzami **operator** ADR (NOT a BANZA protocol ADR)
 **Deciders:** Fidel Monteiro (Founder)
-**Governing protocol:** BANZA ADR-030 (wallet-native payment & refund source model), `~/banza/docs/core/disputes.md`, ADR-002/020 (double-entry), ADR-004 (idempotency), ADR-040 (proof `REVERSED`)
+**Governing protocol:** BANZA ADR-017 (wallet-native payment & refund source model), `~/banza/docs/core/disputes.md`, ADR-002/020 (double-entry), ADR-004 (idempotency), ADR-040 (proof `REVERSED`)
 
 ---
 
@@ -14,7 +14,7 @@ BANZA **defines the refund financial model**; Banzami, as an operator, **impleme
 operator-facing surface** (API shape, authorization, statuses, events, webhook
 delivery, docs). Per the refund protocol-governance audit (2026-07-03):
 
-- The Banzami **core** already implements BANZA ADR-030 fully — typed refund
+- The Banzami **core** already implements BANZA ADR-017 fully — typed refund
   source (`TRANSACTION` a.k.a. `ACQUIRING_PAYMENT` | `WALLET_PAYMENT`),
   source-scoped over-refund ceiling, source-aware double-entry postings, no
   mutation of the original payment, partial refunds, source-scoped idempotency.

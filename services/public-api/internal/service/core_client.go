@@ -297,7 +297,7 @@ func (c *CorePublicClient) SendTransfer(ctx context.Context, req SendTransferReq
 }
 
 // SettleCollectionSurface notifies the core that a surface payment settled, so a
-// CollectionShare backed by this surface (BANZA ADR-036) is marked PAID against
+// CollectionShare backed by this surface (BANZA ADR-016) is marked PAID against
 // the real transfer. Best-effort + idempotent in the core: a plain payment-link
 // (no backing PaymentIntent) is a no-op, and a replay marks nothing twice. It
 // never affects the underlying payment, which has already settled.

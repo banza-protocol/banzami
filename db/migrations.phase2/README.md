@@ -1,9 +1,9 @@
-# Phase 2 — frozen migrations (Split Charges / BANZA ADR-036)
+# Phase 2 — frozen migrations (Split Charges / BANZA ADR-016)
 
 These migrations are **intentionally frozen** and are deliberately kept OUT of the
 active sqlx migration source (`db/migrations/`), so `sqlx migrate run` never applies
 them. They back the **Collections / Split Charges** prototype, whose financial
-contract is not yet ratified (BANZA ADR-036). Per the protocol-first rule
+contract is not yet ratified (BANZA ADR-016). Per the protocol-first rule
 (CLAUDE.md / Banzami ADR-019), the concept must be frozen in the protocol before the
 operator ships its definitive schema.
 
@@ -22,7 +22,7 @@ Status by environment (2026-06-30):
 
 ## Reintroduction (Phase 2)
 
-When Split Charges is finalized with BANZA ADR-036 and the Business App:
+When Split Charges is finalized with BANZA ADR-016 and the Business App:
 
 1. Reconcile the schema with the ratified contract (one definitive migration — no
    churn).

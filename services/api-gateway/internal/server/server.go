@@ -148,7 +148,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// banner without a rebuild. Never leaks internal config.
 	r.Get("/v1/platform-mode", handler.NewPlatformHandler(deps.PlatformSvc).Mode)
 
-	// Public transaction-proof verification (BANZA ADR-040) — no auth, rate-limited,
+	// Public transaction-proof verification (BANZA ADR-023) — no auth, rate-limited,
 	// safe fields only. The QR/short link on every receipt resolves here.
 	r.With(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits)).
 		Get("/v1/public/proofs/{ref}", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Verify)
@@ -387,7 +387,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 			// Payment Links are mounted under dual-credential auth below.
 
-			// Collections (BANZA ADR-036) + PaymentIntent (ADR-037).
+			// Collections (BANZA ADR-016) + PaymentIntent (ADR-014).
 			// merchant_id + environment are derived from the principal; the core
 			// returns 404 on cross-tenant access. Not exposed in mobile yet.
 			r.Route("/collections", func(r chi.Router) {

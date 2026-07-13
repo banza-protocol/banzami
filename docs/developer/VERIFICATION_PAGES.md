@@ -8,7 +8,7 @@ https://banzami.com/r/{reference}
 
 It is the **single public way to prove a payment** (BANZA **ADR-033**). The PDF,
 QR or screenshot is never the proof — this page reads the immutable ledger in
-real time. Full spec: [BANZA ADR-033](../adr/) · operator implementation:
+real time. Full spec: [BANZA ADR-024](../adr/) · operator implementation:
 [public-verification-engine.md](../architecture/public-verification-engine.md).
 
 ## Reference vs verification

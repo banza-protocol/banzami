@@ -16,7 +16,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// Transaction Proof service (BANZA ADR-040). Materializes an immutable, publicly
+// Transaction Proof service (BANZA ADR-023). Materializes an immutable, publicly
 // verifiable proof for a transaction. The receipt is not the proof — this is. The
 // proof_reference is random/non-enumerable; generation is idempotent (one per
 // transaction). Reversals move status to REVERSED, never delete.

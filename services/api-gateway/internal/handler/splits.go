@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-// Split Sessions — SUPERSEDED by Collections (BANZA ADR-036).
+// Split Sessions — SUPERSEDED by Collections (BANZA ADR-016).
 //
 // The legacy /v1/splits* routes are retired. The gateway answers the entire
 // route family at the EDGE and NEVER proxies to Core, so no upstream 502/500 and

@@ -3,14 +3,14 @@
 **Status:** Accepted (design) — implementation in increments
 **Date:** 2026-06-29
 **Authors:** Banzami Engineering
-**Implements:** BANZA ADR-039 (Generic Fee & Application-Settlement Architecture)
-**Related:** BANZA ADR-037 (PaymentIntent) · ADR-036 (Collections) · ADR-002 (Double-entry ledger) · Banzami ADR-019 (Protocol-first product development) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md)
+**Implements:** BANZA ADR-019 (Generic Fee & Application-Settlement Architecture)
+**Related:** BANZA ADR-014 (PaymentIntent) · ADR-016 (Collections) · ADR-002 (Double-entry ledger) · Banzami ADR-019 (Protocol-first product development) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md)
 
 ---
 
 ## Context
 
-BANZA ADR-039 ratified the generic fee/settlement architecture at the protocol
+BANZA ADR-019 ratified the generic fee/settlement architecture at the protocol
 level: the reference concepts (`BusinessCategory`, `PricingProfile`,
 `FeePolicyRef`) and the two primitives (**Operator Fee**, **Application
 Settlement**). The protocol carries references + lifecycle only — **percentages
@@ -43,7 +43,7 @@ resolve(business_category, pricing_profile?, fee_policy_ref?, country, currency,
 
 ### 2. Operator Fee (per PaymentIntent fulfilment)
 
-When a PaymentIntent (ADR-037) is fulfilled and the Transfer posts to the ledger,
+When a PaymentIntent (ADR-014) is fulfilled and the Transfer posts to the ledger,
 the core adds **one balanced leg** to the *same* posting (`core/ledger` +
 `core/transactions`):
 
@@ -111,7 +111,7 @@ differing only in *when* the Application Settlement fires.
 
 ## Implementation increments (this ADR is increment 1: design)
 
-1. **(done)** Operator design + the protocol foundation (BANZA ADR-039 + contracts).
+1. **(done)** Operator design + the protocol foundation (BANZA ADR-019 + contracts).
 2. **(done)** `core/pricing` crate (engine + operator rule config) + tests.
 3. **(done)** Operator-Fee on transaction capture (`core/transactions` +
    `core/wallets` + `core/ledger`) + `operator_fees` persistence (migration 0071) +

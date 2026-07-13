@@ -1,6 +1,6 @@
 # Protocol integration — how Banzami relates to BANZA
 
-**Status:** Standing rule · **Authority:** BANZA ADR-035, Banzami ADR-019
+**Status:** Standing rule · **Authority:** BANZA ADR-005, Banzami ADR-019
 
 Banzami is the **reference operator** of the BANZA protocol. It is an
 implementation and a product — **not** the source of the protocol's concepts.
@@ -79,7 +79,7 @@ The merchant "Cobrança dividida" (split charge) prototype (2026-06-28) anticipa
 a protocol concept that does not exist yet. It is therefore **pre-protocol**,
 disabled by default (`AppConfig.splitChargeEnabled`), and classified in
 [ADR-019](../adr/ADR-019-protocol-first-product-development.md). The real feature
-follows the protocol-first chain once **BANZA ADR-036 (Payment Collections)** is
+follows the protocol-first chain once **BANZA ADR-016 (Payment Collections)** is
 Accepted — see [collections-implementation-plan](collections-implementation-plan.md).
 
 ## The one-line test

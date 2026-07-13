@@ -243,7 +243,7 @@ flow **downward**, never the other way:
 Apps own UX and consume capabilities; the operator implements what the protocol
 defines; the SDKs expose it. Apps and SDKs never invent new financial behaviour on
 their own. See [docs/architecture/protocol-integration.md](docs/architecture/protocol-integration.md),
-Banzami ADR-019, and BANZA ADR-035.
+Banzami ADR-019, and BANZA ADR-005.
 
 ---
 

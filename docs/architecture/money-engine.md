@@ -100,7 +100,7 @@ Pessoa 3: 16 666,66 Kz
 
 A app **não bloqueia** divisões não exatas: ajusta os cêntimos e mostra o preview
 por pessoa; a soma das partes é sempre exatamente o total. A cobrança dividida é
-criada como uma **Collection (BANZA ADR-036) FIXED_AMOUNTS** com os montantes
+criada como uma **Collection (BANZA ADR-016) FIXED_AMOUNTS** com os montantes
 exatos por pessoa — o core valida `Σ partes == total`.
 
 ## Fees / Pricing

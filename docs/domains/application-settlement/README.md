@@ -2,7 +2,7 @@
 
 **Crate:** `banzami-app-settlement`
 **Module:** `core/app-settlement/`
-**ADRs:** Banzami ADR-021 · BANZA ADR-039
+**ADRs:** Banzami ADR-021 · BANZA ADR-019
 **Version:** 1.0
 
 ---
@@ -61,7 +61,7 @@ campaign closes → Application Settlement → Application Fee on the NET → be
     └── list_by_owner(owner_ref, env, limit)
 ```
 
-State machine (BANZA ADR-039): `CREATED → PENDING → COMPLETED | FAILED |
+State machine (BANZA ADR-019): `CREATED → PENDING → COMPLETED | FAILED |
 CANCELLED`. `COMPLETED`/`FAILED`/`CANCELLED` are terminal; only `COMPLETED` writes
 a ledger posting.
 

@@ -46,7 +46,7 @@ type healthResponse struct {
 // is false: this is a stateless L0 conformance operator with no wallet/QR/
 // settlement/collections endpoints.
 //
-// supports_payment_intents (ADR-037) and supports_collections (ADR-036) are
+// supports_payment_intents (ADR-014) and supports_collections (ADR-036) are
 // Level-2 capabilities of the Banzami *reference operator* (core-api + gateway),
 // not of this L0 sandbox operator — hence false here. They are declared for
 // BANZA-schema completeness; a production capabilities surface advertises them

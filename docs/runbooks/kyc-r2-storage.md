@@ -1,7 +1,7 @@
 # Runbook — KYC Consumer R2 storage (provisioning & validation)
 
 **Scope:** consumer KYC evidence storage (Banzami ADR-020). KYC is operator
-policy (BANZA ADR-038). This runbook provisions the **dedicated** KYC buckets,
+policy (BANZA ADR-029). This runbook provisions the **dedicated** KYC buckets,
 their CORS, a scoped R2 token, and the sandbox/staging env — and validates the
 flow end-to-end. **Live is documented but not activated without an explicit GO.**
 

@@ -2,7 +2,7 @@
 
 **Crate:** `banzami-pricing`
 **Module:** `core/pricing/`
-**ADRs:** Banzami ADR-021 · BANZA ADR-039
+**ADRs:** Banzami ADR-021 · BANZA ADR-019
 **Version:** 1.0
 
 ---
@@ -13,7 +13,7 @@ The Pricing Engine resolves **how much** the operator charges for a payment. It 
 the **single place in the entire stack** where a fee percentage or a pricing rule
 exists.
 
-This is a hard architectural boundary (CLAUDE.md §1.2, BANZA ADR-035 / Banzami
+This is a hard architectural boundary (CLAUDE.md §1.2, BANZA ADR-005 / Banzami
 ADR-019). The BANZA protocol and every app, SDK and public API carry only
 **references** — `business_category`, `pricing_profile`, `fee_policy_ref` — and
 the **resolved minor-unit result**. They never see, choose, compute or receive a

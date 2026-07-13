@@ -2,16 +2,16 @@
 
 **Status:** ✅ UNBLOCKED — increment 1 delivered (model + API + events); live
 settlement deferred to increment 2.  
-**Authority:** BANZA ADR-035 (protocol-first), BANZA ADR-036/037, Banzami ADR-019
+**Authority:** BANZA ADR-005 (protocol-first), BANZA ADR-016, Banzami ADR-019
 
-Per BANZA ADR-035 the operator implements only what the protocol defines. The
-`Collection` (ADR-036) and `PaymentIntent` (ADR-037) concepts are now **Accepted**
+Per BANZA ADR-005 the operator implements only what the protocol defines. The
+`Collection` (ADR-036) and `PaymentIntent` (ADR-014) concepts are now **Accepted**
 in `~/banza`, so the operator implementation is unblocked and proceeds downward
 (protocol → operator → SDK → apps).
 
 ## Precondition (protocol-first gate)
 
-- [x] **BANZA ADR-036/037 Accepted** — `Collection`, `CollectionShare`,
+- [x] **BANZA ADR-016 Accepted** — `Collection`, `CollectionShare`,
       `CollectionRule`, `PaymentIntent`, their states, events, and relationship to
       `Transfer` / ledger are ratified, with contracts in `~/banza/contracts/`
       (`collections/`, `payment-intents/`, `openapi/collections.yaml`,

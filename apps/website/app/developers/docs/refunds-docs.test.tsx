@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Public Refunds documentation correctness (typed-source contract, BANZA ADR-030).
+// Public Refunds documentation correctness (typed-source contract, BANZA ADR-017).
 // Guards the public /docs Refunds section and the Developers overview refund
 // example against ever teaching the obsolete/internal contract:
 //   - never accept transaction_id / payment_id as a refund input;
@@ -27,7 +27,7 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-describe('Refunds docs — typed-source public contract (ADR-030)', () => {
+describe('Refunds docs — typed-source public contract (ADR-017)', () => {
   it('no public docs/overview example accepts transaction_id as a refund input', () => {
     expect(DOCS.includes('transaction_id')).toBe(false);
     expect(OVERVIEW.includes('transaction_id')).toBe(false);

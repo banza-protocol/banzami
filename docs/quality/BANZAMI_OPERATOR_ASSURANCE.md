@@ -94,7 +94,7 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 
 - **Owner:** operator-payments
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
-- **Authority:** protocol — BANZA ADR-043
+- **Authority:** protocol — BANZA ADR-015
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway, core/transactions
 - **API/UI surface:** /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
@@ -174,7 +174,7 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 
 - **Owner:** operator-payments
 - **Public status:** preview-disabled · **Sandbox:** true · **Live:** false
-- **Authority:** protocol — BANZA ADR-036 (pending ratification)
+- **Authority:** protocol — BANZA ADR-016 (Payment Collections)
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway, db/migrations.phase2 (frozen)
 - **API/UI surface:** none (frozen; legacy /v1/splits returns 410 at edge)
@@ -206,7 +206,7 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 
 - **Owner:** operator-proofs
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
-- **Authority:** protocol — BANZA ADR-033, ADR-044
+- **Authority:** protocol — BANZA ADR-024, ADR-025
 - **Threat category:** financial-read
 - **Implementation:** services/api-gateway, services/common/documents, apps/website
 - **API/UI surface:** /r/{ref}, /v1/public/proofs/{ref}, receipt.pdf

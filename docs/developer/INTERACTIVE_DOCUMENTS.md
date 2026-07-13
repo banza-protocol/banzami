@@ -6,7 +6,7 @@ per BANZA **ADR-044**: it is a perfect printable PDF *and* it carries invisible,
 additive hyperlinks so a reader can verify or navigate with one click — without
 ever exposing financial data.
 
-Full spec: [BANZA ADR-044](../adr/) · operator implementation:
+Full spec: [BANZA ADR-025](../adr/) · operator implementation:
 [interactive-pdf-documents.md](../architecture/interactive-pdf-documents.md) ·
 engine: [document-engine.md](../document-engine.md).
 

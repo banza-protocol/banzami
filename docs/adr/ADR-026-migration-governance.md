@@ -38,7 +38,7 @@ tracking**. Consequences:
 3. **Collections/Split-Charges migrations are frozen out of the active source.**
    0064/0065/0066 moved to `db/migrations.phase2/` (outside the sqlx source) so
    `sqlx migrate run` never creates them. They are reintroduced in Phase 2 with
-   BANZA ADR-036, renumbered to the sequence tail, using `CREATE TABLE IF NOT
+   BANZA ADR-016, renumbered to the sequence tail, using `CREATE TABLE IF NOT
    EXISTS`. SANDBOX's existing prototype tables remain as untracked, harmless
    extras until then. This honours the protocol-first rule (Banzami ADR-019).
 

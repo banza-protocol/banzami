@@ -52,7 +52,7 @@ func codeOf(w *httptest.ResponseRecorder) string {
 }
 
 // The operator surface must reject every ambiguous/invalid refund request BEFORE
-// touching the core — no silent source inference (BANZA ADR-030 §2).
+// touching the core — no silent source inference (BANZA ADR-017 §2).
 func TestRefundCreate_ValidationMatrix(t *testing.T) {
 	cases := []struct {
 		name, merchant, body string

@@ -16,7 +16,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-// ProofHandler serves the PUBLIC transaction-proof verification (BANZA ADR-040).
+// ProofHandler serves the PUBLIC transaction-proof verification (BANZA ADR-023).
 // No auth. Returns only safe fields; never leaks internal ids, balances, wallet
 // ids, emails, phones, ledger internals, signatures or KYC/KYB data. Every lookup
 // is recorded as a verification event (hashed ip/ua only).

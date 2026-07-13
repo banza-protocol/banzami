@@ -14,7 +14,7 @@
 - Hosted at `github.com/banzami` (not `github.com/banza-protocol`)
 - The product domain is `banzami.com`
 
-## Ecosystem Identity (ADR-025)
+## Ecosystem Identity (BANZA ADR-002)
 
 ```
 BANZA    = open financial infrastructure protocol        ~/banza   github.com/banza-protocol/banza
@@ -38,7 +38,7 @@ Read the shared operating rules first: [../banza/docs/governance/CLAUDE_BASE.md]
 
 Never redefine protocol rules locally. If a financial rule is needed that does not exist in `~/banza`, the correct action is to open an ADR in `~/banza` — not to implement the rule locally in `~/banzami`.
 
-### Protocol-first product development (BANZA ADR-035 · Banzami ADR-019)
+### Protocol-first product development (BANZA ADR-005 · Banzami ADR-019)
 
 > **Regra absoluta:**
 > qualquer conceito financeiro/protocolar novo nasce primeiro no BANZA Protocol, depois é implementado pelo operador Banzami, depois exposto no SDK, e só depois usado nas apps.
@@ -59,7 +59,7 @@ behaviour alone.
 
 **One-line test before any product work:** *does this introduce a new financial/
 protocolar concept?* If yes, it starts in `~/banza`. (Worked example: split charge
-/ Collections — pre-protocol prototype, disabled by default, pending BANZA ADR-036;
+/ Collections — pre-protocol prototype, disabled by default, per BANZA ADR-016 (Payment Collections);
 see [docs/architecture/protocol-integration.md](docs/architecture/protocol-integration.md) and Banzami ADR-019.) Pure UX and operator-local policy (KYC/AML, fees within invariants, onboarding) stay here and need no protocol ADR.
 
 ---
@@ -652,9 +652,9 @@ not this operator.
 
 ---
 
-# 15. Brand Architecture (ADR-025)
+# 15. Brand Architecture (BANZA ADR-002)
 
-**Authoritative reference:** ADR-025 (Ecosystem Naming Inversion, 2026-05-29). Supersedes ADR-016.
+**Authoritative reference:** BANZA ADR-002 (Ecosystem Naming Inversion).
 
 ## 15.1 The Three-Layer Model
 
@@ -689,7 +689,7 @@ Use BANZA/Banza when referring to:
 * documentation source of truth (BANZA_REFERENCE.md),
 * "built on Banza" / "powered by the Banza protocol".
 
-## 15.4 Product hierarchy (ADR-025)
+## 15.4 Product hierarchy (BANZA ADR-002)
 
 ```
 BANZA (open protocol)

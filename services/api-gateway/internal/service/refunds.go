@@ -27,7 +27,7 @@ func (e *RefundError) Error() string { return e.Code + ": " + e.Message }
 // ---------------------------------------------------------------------------
 
 // Refund mirrors the core response. A refund references a TYPED source
-// (BANZA ADR-030): source_type is TRANSACTION (acquiring) or WALLET_PAYMENT.
+// (BANZA ADR-017): source_type is TRANSACTION (acquiring) or WALLET_PAYMENT.
 type Refund struct {
 	ID            string     `json:"id"`
 	SourceType    string     `json:"source_type"`

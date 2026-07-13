@@ -14,7 +14,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-// Public refund source vocabulary — the BANZA ADR-030 canonical names. These are
+// Public refund source vocabulary — the BANZA ADR-017 canonical names. These are
 // operator-facing; the mapping to the core vocabulary is explicit + validated.
 const (
 	sourceAcquiring = "ACQUIRING_PAYMENT"
@@ -63,7 +63,7 @@ func NewRefundHandler(svc service.RefundService) *RefundHandler {
 
 // POST /v1/refunds
 //
-// Refunds a TYPED source (BANZA ADR-030) — never a generic transfer, never an
+// Refunds a TYPED source (BANZA ADR-017) — never a generic transfer, never an
 // inferred source. The caller MUST specify source_type + source_id explicitly.
 func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	principal, ok := middleware.GetPrincipal(r.Context())

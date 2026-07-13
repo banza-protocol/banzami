@@ -143,11 +143,11 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   whether routed, and either register properly or decommission). Related
   obsolete-candidate image: `banzami/banzamia-api:latest`.
 
-## RA-011 — `refund_source` is an operator extension; ADR-045 still draft
+## RA-011 — `refund_source` is an operator extension; ADR-018 still draft
 
 - **Severity:** MEDIUM (protocol governance / docs truthfulness)
 - **Finding:** Banzami ships `refund_source` on paid events/LINK GET.
-  BANZA ADR-045 (draft, submitted by the operator) proposes standardising it;
+  BANZA ADR-018 (draft, submitted by the operator) proposes standardising it;
   governance has not decided. Public docs must present this as a
   **Banzami operator extension**, never as BANZA-standard.
 - **Disposition:** open — Phase 1 verifies public docs/SDK wording;

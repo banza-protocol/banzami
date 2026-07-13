@@ -4,7 +4,7 @@
 **Date:** 2026-07-01
 **Authors:** Banzami Engineering
 **Extends:** Banzami ADR-021 (Operator Fee, Pricing Engine & Application Settlement)
-**Implements (protocol):** BANZA ADR-039 (Generic Fee & Application-Settlement Architecture)
+**Implements (protocol):** BANZA ADR-019 (Generic Fee & Application-Settlement Architecture)
 **Related:** ADR-002 (Double-entry ledger) · ADR-019 (Protocol-first product development) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md)
 
 ---
@@ -40,7 +40,7 @@ matching dimension introduces **no** new wire-contract field, manifest capabilit
 certification criterion, interop rule, or invariant change — it is purely how the
 operator selects one of its own fee rates. It therefore stays in the operator and
 needs no protocol ADR. Fees produced by these rules remain ordinary Operator Fees
-(BANZA ADR-039) and continue to satisfy `INV-STL-001`.
+(BANZA ADR-019) and continue to satisfy `INV-STL-001`.
 
 ## Decision
 

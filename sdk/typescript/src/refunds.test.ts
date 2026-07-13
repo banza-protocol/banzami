@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BanzamiClient } from './client.js';
 
-// The refund surface always names a TYPED source explicitly (BANZA ADR-030):
+// The refund surface always names a TYPED source explicitly (BANZA ADR-017):
 // the SDK never sends a bare transaction_id and never infers a source type.
 const AUTH = '/v1/auth/token';
 const isAuth = (u: unknown): boolean => String(u).includes(AUTH);
