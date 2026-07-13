@@ -15,7 +15,7 @@ import (
 )
 
 // KYC — Banzami's first official consumer identity verification (ADR-020).
-// KYC is operator policy (BANZA ADR-038); the protocol defines none of it.
+// KYC is operator policy (BANZA ADR-029); the protocol defines none of it.
 // Files live in R2; this service stores only references. No money, no ledger:
 // the only financial consequence is that an APPROVED review (in admin-api)
 // lifts the wallet KYC level — never here, never automatically.

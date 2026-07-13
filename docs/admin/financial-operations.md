@@ -1,6 +1,6 @@
 # BANZADMIN — Financial operations: Operator Fees & Application Settlements
 
-**ADRs:** Banzami ADR-021 · BANZA ADR-039
+**ADRs:** Banzami ADR-021 · BANZA ADR-019
 **Version:** 1.0
 **Scope:** Increment 5.6 — read/audit screens (core-api · admin-api · BANZADMIN).
 

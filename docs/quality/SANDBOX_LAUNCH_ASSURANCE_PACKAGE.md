@@ -80,7 +80,7 @@ overlay drift consolidated (RA-008), nginx drift imported (RA-013), 23 local +
 [PROTOCOL_CONFORMANCE_MATRIX.md](PROTOCOL_CONFORMANCE_MATRIX.md): compliant on
 typed sources, refund contract, `banza-signature`, idempotency, ledger
 invariants, proof states, ceilings, proofs/verification pages. `refund_source`
-labeled operator extension (ADR-045 draft). No `TRANSACTION`/`transaction_id`
+labeled operator extension (ADR-018 draft). No `TRANSACTION`/`transaction_id`
 leak to public surfaces. Governance-pending: QR `BANZA-SBX:` prefix (L2 gap; L0
 claimed today so no false claim). No federation/L3 claim.
 
@@ -132,7 +132,7 @@ assure-reference`, `make assure-sandbox-launch`, `make assure-mobile-ios`,
 
 ## 10. Blocked on external decisions
 
-GitHub org transfer (fm65), Actions billing (fm65), QR prefix + ADR-045 (BANZA
+GitHub org transfer (fm65), Actions billing (fm65), QR prefix + ADR-018 (BANZA
 governance), Live activation (regulatory), off-host encrypted backup bucket
 (ops provisioning). Each has a safe in-place fallback.
 

@@ -77,7 +77,7 @@ func TestPaymentSession_CreateReturnsInterfaces(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
 	}
-	// Canonical response (BANZA ADR-043): one financial object exposed as a typed
+	// Canonical response (BANZA ADR-015): one financial object exposed as a typed
 	// `interfaces` ARRAY of {type, value, format} — PAYMENT_LINK, DEEP_LINK,
 	// DYNAMIC_QR — never a flat payment_link/dynamic_qr/deep_link field. This is
 	// the contract the SDK (PaymentSessionInterface[]) and DOA (via

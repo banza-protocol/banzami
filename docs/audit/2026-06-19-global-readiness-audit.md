@@ -133,7 +133,7 @@ No change was made to KYB-001 in this audit.
 
 ## 7. Provider-Agnostic Money Rails Confirmation
 
-Confirmed **clean** (BANZA ADR-030). No item implies EMIS is the only Money In or
+Confirmed **clean** (BANZA ADR-017). No item implies EMIS is the only Money In or
 Money Out provider, or that launch depends uniquely on EMIS:
 
 - Money In requires at least one approved funding provider/rail (WAL-004 blocker:

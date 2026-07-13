@@ -544,7 +544,7 @@ export class BanzamiClient {
     walletId?:        string;
     transactionType?: string;
     /**
-     * BANZA ADR-039 fee references — operator-internal categorization only.
+     * BANZA ADR-019 fee references — operator-internal categorization only.
      * Reference only: the SDK never sends or receives a fee/percentage; the
      * operator resolves any fee internally. Omitting these keeps the legacy
      * zero-fee behaviour (backwards compatible).
@@ -918,7 +918,7 @@ export class BanzamiClient {
   // ---------------------------------------------------------------------------
 
   createRefund(params: CreateRefundParams): Promise<Refund> {
-    // A refund always names its TYPED source explicitly (BANZA ADR-030) — the
+    // A refund always names its TYPED source explicitly (BANZA ADR-017) — the
     // SDK never infers a source type from an arbitrary id.
     //
     // idempotency_key is MANDATORY and is validated BEFORE any HTTP dispatch: a

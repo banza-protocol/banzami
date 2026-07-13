@@ -3,7 +3,7 @@
 **Status:** Accepted · **Date:** 2026-07-02 · **Supersedes:** none ·
 **Relates to:** ADR-019 (protocol-first product development), ADR-025 (platform
 mode / env router), ADR-028 (application business account), ADR-032 (application
-integration engine), BANZA ADR-035 (protocol-first).
+integration engine), BANZA ADR-005 (protocol-first).
 
 ## Context
 

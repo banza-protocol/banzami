@@ -1,6 +1,6 @@
 # BANZADMIN — Pricing Rules management
 
-**ADRs:** Banzami ADR-021 · BANZA ADR-039
+**ADRs:** Banzami ADR-021 · BANZA ADR-019
 **Version:** 1.0
 **Scope:** Increment 5.5 (part 1) — Pricing Rules, end-to-end (core-api · admin-api · BANZADMIN).
 

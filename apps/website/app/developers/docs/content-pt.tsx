@@ -662,7 +662,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               </Callout>
 
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-030. Nota de credencial: o percurso
+                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-017. Nota de credencial: o percurso
                 verificado usa a credencial de merchant; o scope de chave developer (<Code>refunds:write</Code>) está{' '}
                 <strong>Pendente E2E</strong> — um pedido de reembolso com chave developer é recusado (403). Ver a matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.

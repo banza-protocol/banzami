@@ -10,12 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] — 2026-06-30
 
 ### Added
-- Segregated wallet accounts (BANZA ADR-042): `createWalletAccount`, `listWalletAccounts`, `getWalletAccount` — bind funds to an app reference (e.g. a campaign) under one merchant wallet via `POST/GET /v1/business/wallet-accounts`
-- App-defined application settlement (BANZA ADR-029): `createBusinessApplicationSettlement` — the app names the source segregated account, the beneficiary `@banza`, an optional fee destination `@banza`, and its OWN `applicationFeeBps`; the operator reads the real balance as the gross, resolves the `@names`, splits (fee → app, net → beneficiary) and audits it. The app sends no amount and never computes the final fee. Idempotent on `idempotencyKey`
+- Segregated wallet accounts (BANZA ADR-020): `createWalletAccount`, `listWalletAccounts`, `getWalletAccount` — bind funds to an app reference (e.g. a campaign) under one merchant wallet via `POST/GET /v1/business/wallet-accounts`
+- App-defined application settlement (BANZA ADR-019): `createBusinessApplicationSettlement` — the app names the source segregated account, the beneficiary `@banza`, an optional fee destination `@banza`, and its OWN `applicationFeeBps`; the operator reads the real balance as the gross, resolves the `@names`, splits (fee → app, net → beneficiary) and audits it. The app sends no amount and never computes the final fee. Idempotent on `idempotencyKey`
 - `resolveHandle(handle)` — resolve a `@banza` handle (backed by `GET /v1/consumers/handle/{handle}`) to pre-validate a beneficiary before settlement
 - Types: `WalletAccount`, `CreateWalletAccountParams`, `CreateBusinessApplicationSettlementParams`, `WalletAccountPurpose`
 
-- Payment Sessions (BANZA ADR-043): `createPaymentSession`, `getPaymentSession`, `listPaymentSessions` — one financial object bound to a `walletAccountId`, returning display interfaces (payment link, deep link, dynamic/static QR) that all credit that account. `interfaces` is the canonical ARRAY of `{ type, value, format, qr_url?, expires_at?, status? }`; use `client.paymentSessionInterface(session, 'DYNAMIC_QR')` to pick one. Omit `amountMinor` for an open-amount session. Types: `PaymentSession`, `PaymentSessionInterface`, `PaymentSessionInterfaceType`, `CreatePaymentSessionParams`
+- Payment Sessions (BANZA ADR-015): `createPaymentSession`, `getPaymentSession`, `listPaymentSessions` — one financial object bound to a `walletAccountId`, returning display interfaces (payment link, deep link, dynamic/static QR) that all credit that account. `interfaces` is the canonical ARRAY of `{ type, value, format, qr_url?, expires_at?, status? }`; use `client.paymentSessionInterface(session, 'DYNAMIC_QR')` to pick one. Omit `amountMinor` for an open-amount session. Types: `PaymentSession`, `PaymentSessionInterface`, `PaymentSessionInterfaceType`, `CreatePaymentSessionParams`
 
 ### Note
 - The legacy `createApplicationSettlement` (operator-priced, `feePolicyRef` / `sourceWalletId`) remains for backwards compatibility. New app-defined-fee flows should use `createBusinessApplicationSettlement`.

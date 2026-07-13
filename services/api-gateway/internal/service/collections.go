@@ -8,7 +8,7 @@ import (
 )
 
 // CollectionService is the gateway-side surface for BANZA Collections (ADR-036)
-// and PaymentIntent (ADR-037). It is a thin pass-through to the Rust core, which
+// and PaymentIntent (ADR-014). It is a thin pass-through to the Rust core, which
 // owns persistence, lifecycle, invariants and event emission. The gateway's job
 // is auth + ownership/environment scoping: merchant_id and environment are always
 // derived from the merchant principal (never trusted from the client) and injected

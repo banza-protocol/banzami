@@ -64,7 +64,7 @@ export interface ProofResult {
   message?: string;
 }
 
-// Public transaction-proof verification (BANZA ADR-040). The receipt is not the
+// Public transaction-proof verification (BANZA ADR-023). The receipt is not the
 // proof — this confirms the real ledger record. A not-found / error response is a
 // safe "invalid" outcome, never an exception that leaks internals.
 export async function getProof(ref: string): Promise<ProofResult> {

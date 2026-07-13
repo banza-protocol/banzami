@@ -1,6 +1,6 @@
 # ADR-027 — Wallet Accounts (segregated accounts): operator implementation
 
-**Status:** Accepted · **Date:** 2026-06-30 · **Implements:** BANZA ADR-042
+**Status:** Accepted · **Date:** 2026-06-30 · **Implements:** BANZA ADR-020
 
 > Version: 1.0
 
@@ -10,7 +10,7 @@
 
 DOA (and apps like it) need to isolate funds per campaign without holding
 sub-balances outside the operator. The protocol concept — a **Wallet Account**
-(segregated account within a wallet) — originates in **BANZA ADR-042**, not here.
+(segregated account within a wallet) — originates in **BANZA ADR-020**, not here.
 This ADR records how the Banzami operator *implements* that protocol concept; it
 does not define new financial behaviour. (Protocol-first, per CLAUDE.md §Protocol-first.)
 

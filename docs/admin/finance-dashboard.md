@@ -1,6 +1,6 @@
 # BANZADMIN — Finance dashboard
 
-**ADRs:** Banzami ADR-021 · BANZA ADR-039
+**ADRs:** Banzami ADR-021 · BANZA ADR-019
 **Version:** 1.0
 **Scope:** Increment 5.7 — read-only finance dashboards.
 

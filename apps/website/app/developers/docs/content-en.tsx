@@ -466,7 +466,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 {' '}and <Code>idempotency_key</Code>.
               </P>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Technical reference: the payment source is typed per BANZA ADR-030. Credential note: the verified path uses a
+                Technical reference: the payment source is typed per BANZA ADR-017. Credential note: the verified path uses a
                 merchant credential; the developer-key scope (<Code>refunds:write</Code>) is <strong>Pending E2E</strong> — a
                 developer-key refund request is rejected (403). See the{' '}
                 <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.

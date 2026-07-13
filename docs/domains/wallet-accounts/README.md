@@ -1,7 +1,7 @@
 # Domain: Wallet Accounts (segregated accounts)
 
 **Crate/module:** `core/api/src/routes/wallet_accounts.rs` (+ transfer/QR/settlement integration)
-**ADRs:** Banzami ADR-027 · BANZA ADR-042
+**ADRs:** Banzami ADR-027 · BANZA ADR-020
 **Version:** 1.0
 
 ---

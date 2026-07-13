@@ -8,7 +8,7 @@ import (
 )
 
 // ProofAdminService is the READ-ONLY operator view over transaction_proofs
-// (BANZA ADR-040). Proofs are never edited or deleted from here — they are
+// (BANZA ADR-023). Proofs are never edited or deleted from here — they are
 // immutable public records. Per environment (live / sandbox).
 type ProofAdminService struct {
 	pool *pgxpool.Pool

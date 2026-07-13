@@ -1,15 +1,15 @@
-# ADR-030 — Payment Sessions (operator implementation of BANZA ADR-043)
+# ADR-030 — Payment Sessions (operator implementation of BANZA ADR-015)
 
-**Status:** Accepted · **Date:** 2026-06-30 · **Implements:** BANZA ADR-043 (Payment Session standard) · **Builds on:** ADR-021, ADR-027, ADR-029, ADR-042
+**Status:** Accepted · **Date:** 2026-06-30 · **Implements:** BANZA ADR-015 (Payment Session standard) · **Builds on:** ADR-021, ADR-027, ADR-029, ADR-042
 
 > Version: 1.0
 
 > **Protocol reconciliation.** The Payment Session is now ratified at the protocol
-> level in **BANZA ADR-043** ("Payment Link, QR and Deep Link are interfaces; the
+> level in **BANZA ADR-015** ("Payment Link, QR and Deep Link are interfaces; the
 > Payment Session — a PaymentIntent — is the financial object"). This ADR is the
 > **Banzami operator implementation** of that standard. The earlier framing of this
 > document as "operator-level orchestration, not a protocol concept" is superseded:
-> the concept is protocolar (BANZA ADR-043); Banzami is the first operator to
+> the concept is protocolar (BANZA ADR-015); Banzami is the first operator to
 > implement it. The API contract and phases below remain the operator's
 > implementation of the BANZA standard.
 

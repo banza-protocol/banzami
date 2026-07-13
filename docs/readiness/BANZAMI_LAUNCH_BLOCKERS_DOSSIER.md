@@ -84,7 +84,7 @@ Reconciliation against whichever external rail is used; provider-agnostic.
 **E. Regulatory / BNA** — EMIS and regulated rails where applicable; provider
 approval / payment-operator certification as required by the chosen path.
 
-## 5. Provider-Agnostic Strategy (BANZA ADR-018 / ADR-030)
+## 5. Provider-Agnostic Strategy (BANZA ADR-009 / ADR-017)
 
 - **Banzami does not depend exclusively on EMIS.** EMIS is **one possible rail**.
 - **Partner banks are possible rails.** Other licensed providers may also satisfy
@@ -155,7 +155,7 @@ The smallest external setup that makes launch possible:
 - **Disputes** — full lifecycle, audit trail, balanced consumer-win posting (REF-002 validated).
 - **Webhook lifecycle** — refund.completed, dispute.opened/resolved delivered via
   transactional outbox + signed delivery with retry.
-- **Source-aware wallet-native payments** — `wallet_payments` object (BANZA ADR-030).
+- **Source-aware wallet-native payments** — `wallet_payments` object (BANZA ADR-017).
 - **Validation Studio governance** — §16 gates, structurally clean matrix,
   3-lens readiness (launch-ready vs code-complete vs externally blocked).
 

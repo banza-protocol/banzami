@@ -16,7 +16,7 @@ import (
 // KYC operator review (Banzami ADR-020). The operator decides the granted KYC
 // level here — it is an OUTCOME of review, never chosen by the consumer. A real
 // decision is required to lift any wallet limit (customer_compliance). KYC is
-// operator policy (BANZA ADR-038); none of this is protocol.
+// operator policy (BANZA ADR-029); none of this is protocol.
 
 var (
 	ErrKycCaseNotFound      = errors.New("kyc case not found")

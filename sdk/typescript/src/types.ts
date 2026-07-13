@@ -8,7 +8,7 @@
 export type BanzamiEnvironment = 'live' | 'sandbox';
 
 /**
- * BANZA ADR-039 fee references — operator-internal categorization. These are
+ * BANZA ADR-019 fee references — operator-internal categorization. These are
  * **references only**: they let the operator price a payment internally. The SDK
  * never sends or receives a fee, a percentage, or a pricing rule. `string` is
  * permitted for forward-compatibility with categories not yet in this list
@@ -356,7 +356,7 @@ export interface PaymentQr {
 export type RefundStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
 
 /**
- * Typed refund source (BANZA ADR-030). A refund is always tied to an explicit
+ * Typed refund source (BANZA ADR-017). A refund is always tied to an explicit
  * captured payment source — never a generic transfer, never an inferred type.
  *  - `ACQUIRING_PAYMENT`: an external-rail payment; the refund credit lands in transit.
  *  - `WALLET_PAYMENT`: a wallet-native merchant payment; the credit returns to the payer's wallet.
@@ -379,7 +379,7 @@ export interface Refund {
 }
 
 export interface CreateRefundParams {
-  /** The typed source class (BANZA ADR-030). Required — never inferred. */
+  /** The typed source class (BANZA ADR-017). Required — never inferred. */
   source_type:      RefundSourceType;
   /** Id of the typed source object (a transaction id, or a wallet-payment id). */
   source_id:        string;
@@ -597,7 +597,7 @@ export interface CreateBusinessApplicationSettlementParams {
 }
 
 // ---------------------------------------------------------------------------
-// Payment Sessions (BANZA ADR-043) — one financial object, many interfaces
+// Payment Sessions (BANZA ADR-015) — one financial object, many interfaces
 // ---------------------------------------------------------------------------
 
 export type PaymentSessionInterfaceType = 'PAYMENT_LINK' | 'DYNAMIC_QR' | 'STATIC_QR' | 'DEEP_LINK';
@@ -637,7 +637,7 @@ export interface PaymentSession {
    * Present only after the session's payment has settled; carries the PUBLIC
    * typed source you feed straight into `createRefund`. Absent (undefined)
    * before payment. `source_type` is `ACQUIRING_PAYMENT` | `WALLET_PAYMENT` —
-   * never an internal token. NOT a BANZA-normative field (see ADR-045 draft).
+   * never an internal token. NOT a BANZA-normative field (see ADR-018 draft).
    */
   refund_source?: RefundSource;
 }

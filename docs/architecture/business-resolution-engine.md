@@ -16,7 +16,7 @@ every operator-owned field while the account was perfectly healthy on Banzami
 (and, in one case, a stale API key that silently failed auth so *nothing*
 resolved).
 
-The rule (BANZA ADR-029/035): **the operator owns Business-account state; the
+The rule (BANZA ADR-019/005): **the operator owns Business-account state; the
 app owns only its own policy** (e.g. DOA's application fee). So the app asks the
 operator "who am I?" and merges its local policy on top.
 

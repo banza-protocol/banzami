@@ -1,6 +1,6 @@
 # DOA readiness — campaign fund isolation via the Banzami operator
 
-**ADRs:** Banzami ADR-027 · BANZA ADR-042 · Banzami ADR-021 (Application Settlement)
+**ADRs:** Banzami ADR-027 · BANZA ADR-020 · Banzami ADR-021 (Application Settlement)
 **Version:** 1.0
 
 This note records what the Banzami operator now provides so DOA can isolate funds

@@ -123,7 +123,7 @@ capabilities:
       sandbox: true
       live: false
     authority: protocol
-    authority_ref: BANZA ADR-043
+    authority_ref: BANZA ADR-015
     implementation:
       - services/api-gateway
       - core/transactions
@@ -269,7 +269,7 @@ capabilities:
       sandbox: true
       live: false
     authority: protocol
-    authority_ref: BANZA ADR-036 (pending ratification)
+    authority_ref: BANZA ADR-016 (Payment Collections)
     implementation:
       - services/api-gateway
       - db/migrations.phase2 (frozen)
@@ -283,7 +283,7 @@ capabilities:
       negative_security: []
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: legacy-compat-justified
-    launch_scope: excluded   # frozen in Phase 2 pending BANZA ADR-036 ratification
+    launch_scope: excluded   # frozen in Phase 2 — operator launch scope; protocol authority BANZA ADR-016
     evidence:
       - docs/architecture/protocol-integration.md
     surface: none
@@ -326,7 +326,7 @@ capabilities:
       sandbox: true
       live: false
     authority: protocol
-    authority_ref: BANZA ADR-033, ADR-044
+    authority_ref: BANZA ADR-024, ADR-025
     implementation:
       - services/api-gateway
       - services/common/documents

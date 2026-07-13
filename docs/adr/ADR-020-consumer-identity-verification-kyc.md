@@ -4,7 +4,7 @@
 **Date:** 2026-06-28  
 **Authors:** Banzami Engineering  
 **Supersedes:** —  
-**Related:** BANZA ADR-038 (KYC operator boundary & Trust Assertions) · BANZA ADR-035 (Protocol-first) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md) · [ADR-019](ADR-019-protocol-first-product-development.md)
+**Related:** BANZA ADR-029 (KYC operator boundary & Trust Assertions) · BANZA ADR-005 (Protocol-first) · [BANZA-PROTOCOL-VS-OPERATOR-POLICY](https://github.com/banza-protocol/banza/blob/main/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md) · [ADR-019](ADR-019-protocol-first-product-development.md)
 
 ---
 
@@ -19,7 +19,7 @@ prior `Verificar identidade` screen (a JSON-only form posting
 requested_level`, **no document or image upload**) is a discarded prototype, not a
 v1. We do not call this work "v2".
 
-**Protocol boundary (BANZA ADR-038):** KYC is **operator policy**. The BANZA
+**Protocol boundary (BANZA ADR-029):** KYC is **operator policy**. The BANZA
 protocol defines no documents, OCR, selfies, AML, or review workflow. Everything
 here is operator-owned. The only future protocol-level aspect is signed
 cross-operator **Trust Assertions** (federation) — out of scope here.
@@ -153,7 +153,7 @@ Any existing `requested_level` field is treated as legacy/internal.
 Emitted via the existing transactional outbox, idempotency-keyed, auditable:
 `kyc.case.created`, `kyc.document.uploaded`, `kyc.selfie.uploaded`,
 `kyc.review.started`, `kyc.review.completed`, `kyc.approved`, `kyc.rejected`,
-`kyc.expired`. (Operator-internal events; not protocol events — BANZA ADR-038.)
+`kyc.expired`. (Operator-internal events; not protocol events — BANZA ADR-029.)
 
 ### Relationship to existing compliance
 
@@ -181,7 +181,7 @@ a real review approves a level.
 - No OCR or liveness implementation (the model reserves `extracted_data` and
   `LIVENESS_VIDEO`/`evidence_type`; not wired now).
 - No changes to Collections / Ledger / Transfers / Settlement / PaymentIntent.
-- No protocol change (BANZA ADR-038): KYC stays operator policy.
+- No protocol change (BANZA ADR-029): KYC stays operator policy.
 - No automatic approval; no level change without an approval.
 
 ## Increment plan

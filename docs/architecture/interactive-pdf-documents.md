@@ -4,7 +4,7 @@
 (Interactive Financial Documents), building on ADR-040 (Transaction Proof
 Standard). See also [document-engine.md](../document-engine.md), [qr-engine.md](qr-engine.md).
 
-BANZA ADR-044 makes every emitted financial document **additively interactive**:
+BANZA ADR-025 makes every emitted financial document **additively interactive**:
 the QR, the verification URL and the transaction reference are clickable links
 to the public verification page, plus logo/website/email links — invisible,
 print-safe, and never leaking financial data. This document is Banzami's

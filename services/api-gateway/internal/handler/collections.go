@@ -11,7 +11,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-// CollectionHandler exposes BANZA Collections (ADR-036) + PaymentIntent (ADR-037)
+// CollectionHandler exposes BANZA Collections (ADR-036) + PaymentIntent (ADR-014)
 // to merchants. It is a thin auth/scoping layer: merchant_id and environment are
 // ALWAYS taken from the merchant principal (never the client body), so the core
 // enforces tenant + environment isolation and returns 404 on cross-tenant access.
