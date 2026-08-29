@@ -2,6 +2,7 @@ package developer
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"os"
 	"testing"
 	"time"
@@ -42,11 +43,17 @@ func TestPgStore_APIKeyLifecycle(t *testing.T) {
 	svc := NewService(NewPGStore(pool), "invite-secret-fixture", "api-key-pepper-fixture", time.Hour)
 	svc.SetFixturesEnabled(true) // sandbox
 
-	_, proj, err := svc.CreateFixtureProject(ctx, "Phase0 Real DB Platform", "phase0-operator", "", "")
+	// developer.dev_workspaces.created_by is a uuid column, so the actor id must
+	// be a UUID. Passing a human label here made every fixture insert fail with a
+	// type error, which the service correctly maps to a fail-closed
+	// ErrUnavailable — so this test could never reach the key lifecycle it exists
+	// to prove.
+	actor := uuid.NewString()
+	_, proj, err := svc.CreateFixtureProject(ctx, "Phase0 Real DB Platform", actor, "", "")
 	if err != nil {
 		t.Fatalf("fixture project must be creatable on a migrated developer schema: %v", err)
 	}
-	key, secret, err := svc.CreateFixtureAPIKey(ctx, proj.ID, "e2e-realdb", []string{"payment_sessions:write"}, "phase0-operator", "", "")
+	key, secret, err := svc.CreateFixtureAPIKey(ctx, proj.ID, "e2e-realdb", []string{"payment_sessions:write"}, actor, "", "")
 	if err != nil || secret == "" {
 		t.Fatalf("fixture key must be issuable: %v", err)
 	}
@@ -67,7 +74,7 @@ func TestPgStore_APIKeyLifecycle(t *testing.T) {
 		t.Errorf("revoked key: want ErrForbidden, got %v", err)
 	}
 	// 4) missing-scope on an otherwise-valid (fresh) key rejected.
-	key2, secret2, err := svc.CreateFixtureAPIKey(ctx, proj.ID, "e2e-scope", []string{"payment_sessions:read"}, "phase0-operator", "", "")
+	key2, secret2, err := svc.CreateFixtureAPIKey(ctx, proj.ID, "e2e-scope", []string{"payment_sessions:read"}, actor, "", "")
 	if err != nil {
 		t.Fatalf("second fixture key: %v", err)
 	}

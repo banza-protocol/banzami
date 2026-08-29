@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
-	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -45,21 +45,19 @@ func seedKybDoc(t *testing.T, pool *pgxpool.Pool, merchantID, status string) str
 	return id
 }
 
-func TestKybAdminList_EnrichesMerchantAndFlagsOrphan(t *testing.T) {
+func TestKybAdminList_EnrichesMerchant(t *testing.T) {
 	pool := dbPoolOrSkip(t)
 	defer pool.Close()
 	ctx := context.Background()
 	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
 
 	m := uuid.NewString()
-	orphanMerchant := uuid.NewString() // never inserted into merchants
 	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'Doa Sandbox',$2,'ACTIVE')`, m, m+"@test"); err != nil {
 		t.Fatalf("seed merchant: %v", err)
 	}
 	realDoc := seedKybDoc(t, pool, m, "PENDING_REVIEW")
-	orphanDoc := seedKybDoc(t, pool, orphanMerchant, "PENDING_REVIEW")
 	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id = ANY($1)`, []string{realDoc, orphanDoc})
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id=$1`, realDoc)
 		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, m)
 	})
 
@@ -67,31 +65,64 @@ func TestKybAdminList_EnrichesMerchantAndFlagsOrphan(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AdminList: %v", err)
 	}
-	var real, orphan *MerchantKybAdminDocument
+	var real *MerchantKybAdminDocument
 	for i := range docs {
-		switch docs[i].ID {
-		case realDoc:
+		if docs[i].ID == realDoc {
 			real = &docs[i]
-		case orphanDoc:
-			orphan = &docs[i]
 		}
 	}
-	if real == nil || orphan == nil {
-		t.Fatalf("expected both docs in list (real=%v orphan=%v)", real != nil, orphan != nil)
+	if real == nil {
+		t.Fatalf("expected the seeded document in the admin list")
 	}
 	if real.MerchantName != "Doa Sandbox" || !real.MerchantExists {
-		t.Fatalf("real doc not enriched: name=%q exists=%v", real.MerchantName, real.MerchantExists)
+		t.Fatalf("document not enriched: name=%q exists=%v", real.MerchantName, real.MerchantExists)
 	}
-	if orphan.MerchantExists || orphan.MerchantName != "" {
-		t.Fatalf("orphan doc should be flagged: name=%q exists=%v", orphan.MerchantName, orphan.MerchantExists)
+}
+
+// An orphan KYB document — one whose merchant_id names no merchant — is no
+// longer representable. Migration 0078 added
+// merchant_kyb_documents_merchant_id_fkey (ON DELETE RESTRICT) precisely because
+// referential integrity had rested on a non-atomic app-layer check-then-insert.
+//
+// This test therefore asserts the guarantee that migration actually delivers:
+// the database refuses the orphan outright, and refuses to orphan an existing
+// document by deleting its merchant. The service still carries an app-layer
+// orphan guard (ErrKybMerchantNotFound) as defence in depth; it is unreachable
+// through the database while this constraint stands, which is the point.
+func TestKybDocument_CannotBeOrphaned(t *testing.T) {
+	pool := dbPoolOrSkip(t)
+	defer pool.Close()
+	ctx := context.Background()
+
+	// 1. Inserting a document for a merchant that does not exist is rejected.
+	orphanMerchant := uuid.NewString()
+	id := uuid.NewString()
+	_, err := pool.Exec(ctx,
+		`INSERT INTO merchant_kyb_documents
+		   (id, merchant_id, document_type, status, storage_bucket, storage_key, mime_type, environment, submitted_at)
+		 VALUES ($1,$2,'COMPANY_TAX_ID','PENDING_REVIEW','banzami-kyb-sandbox',$3,'image/jpeg','SANDBOX',NOW())`,
+		id, orphanMerchant, "k/"+id)
+	if err == nil {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id=$1`, id)
+		t.Fatal("an orphan KYB document was accepted: the merchant_id foreign key is missing")
+	}
+	if !strings.Contains(err.Error(), "merchant_kyb_documents_merchant_id_fkey") {
+		t.Fatalf("orphan insert rejected for the wrong reason: %v", err)
 	}
 
-	// Orphan-safety: approving/rejecting an orphan document is blocked.
-	if err := svc.AdminApprove(ctx, orphanDoc, "op", "", nil); !errors.Is(err, ErrKybMerchantNotFound) {
-		t.Fatalf("orphan approve: want ErrKybMerchantNotFound, got %v", err)
+	// 2. Deleting a merchant that still has KYB documents is refused, so an
+	//    existing document cannot be orphaned after the fact either.
+	m := uuid.NewString()
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'Loja FK',$2,'ACTIVE')`, m, m+"@test"); err != nil {
+		t.Fatalf("seed merchant: %v", err)
 	}
-	if err := svc.AdminReject(ctx, orphanDoc, "op", "no", ""); !errors.Is(err, ErrKybMerchantNotFound) {
-		t.Fatalf("orphan reject: want ErrKybMerchantNotFound, got %v", err)
+	doc := seedKybDoc(t, pool, m, "PENDING_REVIEW")
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id=$1`, doc)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, m)
+	})
+	if _, err := pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, m); err == nil {
+		t.Fatal("deleting a merchant with KYB documents was allowed: ON DELETE RESTRICT is missing")
 	}
 }
 
@@ -173,7 +204,13 @@ func TestNotificationsSummary_Counts(t *testing.T) {
 	defer pool.Close()
 	ctx := context.Background()
 
-	doc := seedKybDoc(t, pool, uuid.NewString(), "PENDING_REVIEW")
+	// The KYB document needs a real merchant: merchant_kyb_documents.merchant_id
+	// is a foreign key (migration 0078), so a random id would be rejected.
+	nm := uuid.NewString()
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'Notif Merchant',$2,'ACTIVE')`, nm, nm+"@test"); err != nil {
+		t.Fatalf("seed merchant: %v", err)
+	}
+	doc := seedKybDoc(t, pool, nm, "PENDING_REVIEW")
 	asID := uuid.NewString()
 	_, _ = pool.Exec(ctx,
 		`INSERT INTO app_settlements (id, owner_ref, source_account_id, beneficiary_account_id,
