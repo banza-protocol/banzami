@@ -223,7 +223,7 @@ export const ENDPOINTS: EndpointSpec[] = [
 export const RESTRICTED_ROWS: { path: string; status: Bi }[] = [
   { path: 'POST/GET /v1/webhooks/endpoints · /{id} · /health · /v1/webhooks/events · /deliveries · /replay', status: { pt: 'Credencial de merchant — documentado, não público para chaves developer', en: 'Merchant credential — documented, not public for developer keys' } },
   { path: 'POST /v1/refunds · GET /v1/refunds/{id}', status: { pt: 'Verificado com credencial de merchant; scope developer refunds:write Pendente E2E (403)', en: 'Verified with a merchant credential; developer refunds:write scope Pending E2E (403)' } },
-  { path: 'POST/GET /v1/transfers', status: { pt: 'Verificado com utilizador autenticado; scopes developer transfers:* Pendente E2E', en: 'Verified with an authenticated user; developer transfers:* scopes Pending E2E' } },
+  { path: 'POST/GET /v1/transfers', status: { pt: 'Superfície de consumidor apenas — o remetente deriva do token do consumidor; não disponível a credenciais de merchant', en: 'Consumer surface only — the sender derives from the consumer token; not available to merchant credentials' } },
 ];
 
 const label = (l: 'pt' | 'en', pt: string, en: string) => (l === 'pt' ? pt : en);

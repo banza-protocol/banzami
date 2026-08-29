@@ -9,9 +9,9 @@
 | **Date** | 2026-08-29 (audit), 2026-08-29 (closure) |
 | **Scope** | Whole repository: Rust financial core, Go services, SDKs, apps, database schema, infrastructure, CI/CD, dependencies, secrets |
 | **Method** | Adversarial review with reproduction. Every CRITICAL/HIGH finding was proven by an executable test that fails on the unfixed code and passes on the fixed code. The financial core was then verified against a real PostgreSQL. |
-| **Findings** | 17 real (3 CRITICAL, 3 HIGH, 6 MEDIUM, 5 LOW) + 1 investigated and dismissed |
-| **Remediated** | 16 of 17 fixed and verified; 1 MEDIUM open pending a product decision (SEC-015) |
-| **Verdict** | `SECURITY GATE: CONDITIONAL PASS` — see §13 |
+| **Findings** | 19 real (4 CRITICAL, 3 HIGH, 6 MEDIUM, 6 LOW) + 1 investigated and dismissed |
+| **Remediated** | 18 of 19 fixed and verified; 1 LOW formally accepted (SEC-019, a compliance limit rather than an access control) |
+| **Verdict** | `SECURITY GATE: PASS` — see §13 |
 
 **Posture.** The financial core is soundly designed and is now *runtime*-verified:
 498 Rust tests pass against a real PostgreSQL with the official migrations
@@ -37,9 +37,17 @@ closed or reduced to a named external action: sqlx was upgraded and the advisory
 suppressions cut from nine to two provable ones; the financial suite was run
 against a real database; concurrency and idempotency moved from *design*-verified
 to *runtime*-verified; automatic CI was restored after proving the Actions
-billing block was gone and fixing the four real failures it had been masking;
-every GitHub Action is pinned to a commit SHA. The re-sweep also found three new
-issues (SEC-015, SEC-016, SEC-017), two of which are fixed.
+billing block was gone and fixing the failures it had been masking; every GitHub
+Action is pinned to a commit SHA.
+
+**SEC-015 closed, and a CRITICAL found closing it.** Resolving the last open
+finding meant examining the whole `/v1/transfers` group rather than the one
+read route, which surfaced **SEC-018**: `POST /v1/transfers` let any merchant
+credential name any `sender_id` and move that consumer's money — unauthorised
+movement of money, and the same defect a prior internal record
+(`2026-07-03-transfer-surface-findings.md`, finding B) had logged as a hard
+blocker before Live. The whole group was removed from the merchant surface
+rather than given a synthetic `merchant_id`; see SEC-015/SEC-018 below.
 
 ## 2. Attack Surface Reviewed
 
@@ -76,7 +84,9 @@ issues (SEC-015, SEC-016, SEC-017), two of which are fixed.
 | SEC-012 | LOW | infra | Compose published core-api, Postgres, Redis, Grafana on `0.0.0.0` | Deploy-gated | `FIXED` |
 | SEC-013 | MEDIUM | supply chain | 6 Rust advisories from the sqlx 0.7.4 tree | Not reachable | `FIXED` (upgraded, §4) |
 | SEC-014 | MEDIUM | ledger | `signed_minor_units()` undefined for `-i64::MIN`: silent wrong value, or panic under overflow-checks | Low | `FIXED` |
-| SEC-015 | MEDIUM | api-gateway transfers | `GET /v1/transfers/{id}` returns any P2P transfer to any merchant | Yes | `OPEN — product decision required` |
+| SEC-015 | MEDIUM | api-gateway transfers | `GET /v1/transfers/{id}` returns any P2P transfer to any merchant | Yes | `FIXED` |
+| SEC-018 | CRITICAL | api-gateway transfers | `POST /v1/transfers` let a merchant name any `sender_id` and move that consumer's money; `GET ?consumer_id=` read any consumer's whole history | Yes | `FIXED` |
+| SEC-019 | LOW | consumer transfers | The consumer P2P path enforces identity status but not the progressive-KYC level/limit gate | Not an attacker capability | `ACCEPTED RESIDUAL RISK` |
 | SEC-016 | MEDIUM | api-gateway QR | Any merchant could read, and **burn**, another merchant's single-use dynamic QR | Yes — proven | `FIXED` |
 | SEC-017 | LOW | api-gateway config | 32 spaces / `"aaaa…"` accepted as a JWT signing key | Yes — proven | `FIXED` |
 | — | — | api-gateway webhooks | *Suspected* dead SSRF guard | **No** | `FALSE POSITIVE` |
@@ -441,6 +451,103 @@ disproved, not because a weakness exists.
 
 ---
 
+### SEC-015 / SEC-018 — Consumer P2P transfers exposed on the merchant surface (MEDIUM + CRITICAL)
+
+* **Category:** CWE-639 (BOLA) + CWE-862 (Missing Authorization) → unauthorised movement of money
+* **Affected:** `services/api-gateway/internal/handler/transfers.go`, `internal/server/server.go`
+* **Prior record:** `docs/security/2026-07-03-transfer-surface-findings.md`, finding B — logged 2026-07-03 as high priority and a **hard blocker before Live activation**. Still open when this audit began.
+
+**Attack scenario.** The gateway mounted a full `/v1/transfers` group behind
+`RequireMerchant`. Every route took its subject straight from client input:
+
+| Route | What a merchant credential could do |
+|---|---|
+| `POST /v1/transfers` | Name **any** `sender_id` and move that consumer's money to any recipient |
+| `GET /v1/transfers/{id}` | Read **any** transfer (SEC-015) |
+| `GET /v1/transfers?consumer_id=` | Read **any** consumer's entire transfer history |
+
+The write is the severe one, and it is why this is recorded as CRITICAL rather
+than the MEDIUM SEC-015 alone: it is unauthorised movement of money, reachable
+with nothing but an ordinary merchant credential. The sender-KYC compliance gate
+did **not** constrain it — the gate authorised the *sender named in the body*,
+never the caller, so it merely required the victim to be KYC'd and within their
+own limits.
+
+**Root cause.** The capability was on the wrong surface. A consumer-to-consumer
+transfer has two **consumer** participants and no merchant party.
+
+**Why no `merchant_id` was added.** The obvious-looking fix — give `Transfer` a
+`merchant_id` so the route can do an ownership check — was rejected. The absence
+of a merchant field is not a missing field; it is the **absence of authority**.
+Adding one would have changed the financial model to serve an authorization
+problem, invented a merchant party to a transaction that has none, and (being a
+new financial field) would have had to originate as a BANZA protocol change under
+ADR-003. The audit does not change the protocol to preserve an incorrectly
+exposed operator endpoint.
+
+**Remediation.** The entire `/v1/transfers` group was **removed** from the
+merchant surface, along with the now-unreachable handler and its wiring. The
+capability was **not relocated**, because the correct surface already existed:
+public-api derives the sender from the authenticated consumer token, addresses
+the recipient by `@banza` handle, rate-limits per consumer, and restricts a read
+to the transfer's own sender or recipient (the RA-022 fix). Merchant SDK methods
+that called the retired routes were removed from the TypeScript, Flutter and
+Python SDKs, with the breaking change and migration recorded in the changelog;
+the API docs, gateway README and public developer reference were corrected.
+
+**Regression tests:**
+`TestMerchantSurface_P2PTransferRoutesNotMounted` asserts all three routes are
+absent from the registered route table (a request-level assertion could not tell
+"absent" from "present but rejecting", since group middleware runs before chi's
+NotFound). Consumer ownership remains covered by the pre-existing
+`TestGetTransfer_SenderCanRead`, `TestGetTransfer_RecipientCanRead` and
+`TestGetTransfer_NonPartyGets404`. Principal separation is covered by the new
+`TestConsumerSurface_RejectsMerchantToken`,
+`TestConsumerSurface_RejectsTokenWithoutConsumerIdentity` and
+`TestConsumerSurface_AcceptsConsumerToken`.
+
+**Red→green evidence.** The three routes were temporarily re-mounted in the
+working tree; `TestMerchantSurface_P2PTransferRoutesNotMounted` went **RED**
+("GET /v1/transfers/{id} is mounted on the merchant surface…") and returned to
+**GREEN** on restore. The insecure state was never committed.
+
+**Residual risk.** None on this surface. Consumer P2P transfers are now reachable
+only through a consumer credential, scoped to that consumer.
+
+---
+
+### SEC-019 — Consumer P2P path does not enforce the progressive-KYC gate (LOW)
+
+* **Category:** CWE-863 / compliance control gap
+* **Affected:** `services/public-api/internal/handler/transfers.go` → core `send_p2p`
+* **Status:** `ACCEPTED RESIDUAL RISK` — recorded, not fixed here.
+
+Found while verifying that removing the merchant transfer routes lost no control.
+It did not — but the comparison showed the *reverse* asymmetry: the removed
+merchant path carried a fail-closed progressive-KYC gate (`AuthorizeOperation`,
+KYC_LEVEL_1 + limits), and the consumer path does not. The consumer path does
+enforce sender/recipient identity status (suspended, closed, wallet-cannot-receive)
+and balance, but nothing gates a transfer on KYC level or per-level limits.
+
+**Why LOW, and why it is not an open security finding.** No attacker gains
+anything they are not entitled to: the sender is derived from the authenticated
+consumer's own token, so this is a consumer moving *their own* money. There is no
+authorization bypass, no cross-tenant access and no unauthorised movement of
+funds. What is missing is a **regulatory limit**, not an access control.
+
+**Why this audit did not add one.** KYC/KYB is not operational at Banzami, real
+Kwanza rails are not live, and the acquiring provider is simulated; adding a
+KYC-level gate would be inventing regulatory logic that the project has not
+specified, which §37 of the audit scope explicitly forbids. It is recorded so the
+decision is deliberate rather than inherited.
+
+**Action required before Live.** Decide whether the progressive-KYC gate applies
+to consumer-initiated P2P and, if so, enforce it in the core `send_p2p` path so
+both surfaces inherit it. This belongs with the existing Live activation gate,
+which remains fail-closed.
+
+---
+
 ### SEC-014 — `signed_minor_units()` undefined for `i64::MIN` (MEDIUM)
 
 * **Category:** CWE-190 Integer Overflow
@@ -645,34 +752,18 @@ security regressions — run automatically on push or pull request. See §11.
 
 ## 11. Residual Risks and External Actions
 
-### 11.1 Open finding requiring a product decision
+### 11.1 Accepted residual risk
 
-**SEC-015 (MEDIUM) — `GET /v1/transfers/{id}` on the merchant surface.**
-The handler returns any P2P transfer by id with no ownership check, exposing
-another consumer's sender, recipient and amount to any authenticated merchant.
-It is *not* fixed, and deliberately so: `Transfer` carries `SenderID` and
-`RecipientID`, which are **consumer** ids, so there is no field a merchant
-principal could be matched against. public-api's equivalent is correctly scoped
-(a caller must be sender or recipient — the RA-022 fix); the gateway's copy has
-no equivalent notion of a legitimate merchant reader.
+**SEC-019 (LOW) — the consumer P2P path does not enforce the progressive-KYC
+gate.** Formally accepted rather than fixed, for the reasons in its detailed
+entry: it is a regulatory limit, not an access control (the sender is derived
+from the consumer's own token, so no attacker capability exists), KYC/KYB is not
+operational, and inventing a gate the project has not specified is out of scope.
+It is recorded as an action to settle before Live activation, which remains
+fail-closed and independently gated.
 
-Closing it requires deciding *what a merchant may see*, which is a product and
-protocol question, not a mechanical one. Three candidate answers, none of which
-should be picked by an auditor:
-
-1. The route is operator/back-office only → move it behind the `/internal/v1`
-   boundary and drop it from the merchant SDKs (the shape used for SEC-003).
-2. A merchant may read transfers it initiated → add an initiator column and scope
-   on it. This is a new financial field, so under BANZA ADR-003 / Banzami ADR-019
-   it originates as a **BANZA protocol change**, not a local one.
-3. The route is genuinely public-consumer functionality misplaced on the merchant
-   surface → remove it; public-api already serves it correctly.
-
-Compensating controls now in place: the route is behind `RequireMerchant`, so a
-consumer credential can no longer reach it, and it is read-only — no money moves.
-Exposure is confidentiality of P2P transfer metadata to an authenticated
-merchant who already knows a transfer id. The Flutter and Python SDKs call it, so
-any of the three options is a breaking client change and must be scheduled.
+There is **no open finding requiring a product decision**. SEC-015 is closed —
+see §11.3.
 
 ### 11.2 External actions
 
@@ -694,6 +785,7 @@ Neither blocks security PASS; both are recorded with the exact step required.
 | Action SHA pinning | Recommended | Done — 17/17 references pinned |
 | Firebase/GCP restrictions | Recommended, vague | Runbook with real identifiers; external action #1 |
 | Consumer suspend/close compatibility | "nothing depends on them" (wrong) | Dependants found and resolved end to end (SDK, README, App Store notes) |
+| **SEC-015** | Open, product decision required | **CLOSED** — whole `/v1/transfers` group removed from the merchant surface; closing it surfaced SEC-018 (CRITICAL), also fixed |
 | `cargo fmt` debt | 304 hunks / 50 files | Cleared in a dedicated commit |
 
 ---
@@ -830,8 +922,8 @@ the working tree and restored immediately; none of these probes is in history.
 ```text
 CRITICAL unresolved:          0
 HIGH unresolved:              0
-MEDIUM unresolved:            1  (SEC-015 — needs a product decision, §11.1)
-LOW unresolved:               0
+MEDIUM unresolved:            0
+LOW unresolved:               0  (SEC-019 formally ACCEPTED — §11.1)
 
 Security regression tests:    PASS  (48 tests across Go and Rust)
 Secret scan:                  PASS  (0 live credentials; history + tracked tree)
@@ -849,15 +941,17 @@ Sandbox launch assurance:     HOLD  (unchanged — launch readiness, not securit
 LIVE fail-closed:             PASS  (unchanged)
 Deployed verification:        NOT PERFORMED (no production access; out of scope)
 
-VERDICT: CONDITIONAL PASS
+VERDICT: PASS
 ```
 
-**Why not PASS.** No CRITICAL or HIGH remains, the security regression suite
-passes, no auth/authz bypass and no exploitable financial-integrity defect is
-known, no repository-owned secret is exposed, and the gate is demonstrably
-fail-closed. One MEDIUM (SEC-015) remains open because closing it correctly
-requires a product decision about what a merchant may read — and per the audit's
-own rule, a finding is never downgraded or accepted merely to reach PASS.
+**Why PASS.** No CRITICAL, HIGH or MEDIUM finding remains open. The security
+regression suite passes and is demonstrably able to fail; no auth/authz bypass
+and no exploitable financial-integrity defect is known; no repository-owned
+secret is exposed; and the one remaining LOW is formally accepted with its
+reasoning recorded, not downgraded to reach a verdict. The last open item,
+SEC-015, was closed by removing the capability from the surface that could not
+authorise it — and closing it surfaced and fixed a CRITICAL (SEC-018) that a
+prior internal record had logged as a Live blocker.
 
 **Security readiness is not launch readiness.** Banzami remains NOT
 launch-ready: no BANZA certification, no production certificate, production
