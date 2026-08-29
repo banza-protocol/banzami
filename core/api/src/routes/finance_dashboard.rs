@@ -28,6 +28,7 @@ pub struct DashQuery {
 }
 
 /// One `{ key, count, total_minor }` bucket.
+#[allow(clippy::too_many_arguments)] // pre-existing: table/column/key are query shape, from/to/env/cur are the filter
 async fn grouped(
     pool: &sqlx::PgPool,
     table: &str,

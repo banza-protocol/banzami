@@ -29,6 +29,7 @@ use uuid::Uuid;
 
 // ---------------------------------------------------------------------------
 
+#[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
 pub enum Origin {
     Refund,
     Dispute,
@@ -72,6 +73,7 @@ pub struct ApplyParams {
     pub transit_account_id: Uuid,
 }
 
+#[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
 pub struct RestitutionResult {
     pub replayed: bool,
     /// 0 when a dispute cap left nothing to restitute (already made whole).

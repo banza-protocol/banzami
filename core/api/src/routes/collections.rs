@@ -204,6 +204,7 @@ pub struct ScopeQuery {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
 pub struct ScopePath {
     pub merchant_id: String,
     pub environment: String,
@@ -461,6 +462,7 @@ pub async fn list_shares(
 // ---------------------------------------------------------------------------
 
 #[derive(Deserialize)]
+#[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
 pub struct SurfaceBody {
     pub merchant_id: String,
     pub environment: String,
