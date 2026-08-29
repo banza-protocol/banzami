@@ -25,7 +25,6 @@ from .resources import (
     QrPaymentsResource,
     RefundsResource,
     TransactionsResource,
-    TransfersResource,
     WalletsResource,
     WebhooksResource,
 )
@@ -122,7 +121,10 @@ class BanzamiClient:
         # Resources
         self.transactions    = TransactionsResource(self)
         self.qr_payments     = QrPaymentsResource(self)
-        self.transfers       = TransfersResource(self)
+        # transfers: REMOVED. The id-based merchant transfer surface was retired —
+        # a consumer-to-consumer transfer has no merchant party, so a merchant
+        # credential had no authority over it. Consumer P2P transfers belong to
+        # the consumer surface, where the sender is the authenticated consumer.
         self.payouts         = PayoutsResource(self)
         self.wallets         = WalletsResource(self)
         self.merchants       = MerchantsResource(self)

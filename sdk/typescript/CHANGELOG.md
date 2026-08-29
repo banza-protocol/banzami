@@ -8,6 +8,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed — BREAKING (security)
+- `sendTransfer(...)`, `getTransfer(id)` and `listTransfers(...)`. These called an
+  id-based **merchant** transfer surface that has been retired. A
+  consumer-to-consumer P2P transfer has two consumer participants and no merchant
+  party, so a merchant credential held no authority over it — and the routes took
+  their subject straight from client input. A merchant key could therefore name
+  any `sender_id` and move that consumer's money, read any transfer by id, or
+  list any consumer's entire history (security audit SEC-015 / SEC-018; the
+  authorization gap was first recorded in
+  `docs/security/2026-07-03-transfer-surface-findings.md`, finding B, as a hard
+  blocker before Live activation).
+
+  **Migration:** there is deliberately no merchant-facing replacement, and no
+  `merchant_id` was added to the transfer model to manufacture one. Consumer P2P
+  transfers belong to the consumer surface (public-api), where the sender is
+  derived from the authenticated consumer token and a read is allowed only to the
+  transfer's own sender or recipient. Integrations that need a consumer to move
+  their own money should use the consumer API with that consumer's credential.
+
 - `suspendConsumer(id)` and `closeConsumer(id)`. Suspending or closing a consumer
   account is an **operator** action; publishing it in the merchant SDK exposed a
   capability the merchant surface could not authorise. The routes it called

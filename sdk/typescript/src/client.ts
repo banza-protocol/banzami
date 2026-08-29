@@ -7,7 +7,6 @@ import type {
   Consumer,
   ConsumerWallet,
   WalletBalance,
-  Transfer,
   Page,
   Transaction,
   Wallet,
@@ -455,41 +454,20 @@ export class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Transfers (P2P)
+  // Transfers (P2P) — REMOVED
   // ---------------------------------------------------------------------------
-
-  sendTransfer(params: {
-    senderId:    string;
-    recipientId: string;
-    amountMinor: number;
-    currency?:   string;
-    description?: string;
-  }): Promise<Transfer> {
-    return this.request<Transfer>('/transfers', {
-      method: 'POST',
-      body:   JSON.stringify({
-        sender_id:    params.senderId,
-        recipient_id: params.recipientId,
-        amount_minor: params.amountMinor,
-        currency:     params.currency ?? 'AOA',
-        description:  params.description ?? null,
-      }),
-    });
-  }
-
-  getTransfer(id: string): Promise<Transfer> {
-    return this.request<Transfer>(`/transfers/${id}`);
-  }
-
-  listTransfers(params: {
-    consumerId: string;
-    limit?:     number;
-    cursor?:    string;
-  }): Promise<Page<Transfer>> {
-    return this.request<Page<Transfer>>(
-      `/transfers${this.qs({ consumer_id: params.consumerId, limit: params.limit, cursor: params.cursor })}`,
-    );
-  }
+  //
+  // sendTransfer / getTransfer / listTransfers were removed. They called an
+  // id-based merchant surface that has been retired: a consumer-to-consumer
+  // transfer has two consumer participants and no merchant party, so a merchant
+  // credential had no authority over it. The routes took their subject from
+  // client input, which let a merchant name any sender_id and move that
+  // consumer's money, or read any consumer's transfers by id.
+  //
+  // There is deliberately no merchant-facing replacement. Consumer P2P transfers
+  // belong to the consumer surface (public-api), where the sender is derived
+  // from the authenticated consumer token and reads are restricted to a
+  // transfer's own sender and recipient.
 
   // ---------------------------------------------------------------------------
   // QR codes
