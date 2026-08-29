@@ -772,7 +772,15 @@ Neither blocks security PASS; both are recorded with the exact step required.
 | # | Owner | Action | Blocks PASS | How to verify |
 |---|---|---|---|---|
 | 1 | GCP project owner (`banzami`) | Apply API-key application + API restrictions to the two Firebase client keys | No — these are client identifiers, not secrets; the exposure is quota/cost abuse, not money or data | `gcloud services api-keys list --project=banzami` shows a non-empty application restriction **and** API target list for every key. Full runbook with the real identifiers: [FIREBASE_GCP_KEY_RESTRICTIONS.md](FIREBASE_GCP_KEY_RESTRICTIONS.md) |
-| 2 | Repo admin | Add the CI checks as **required status checks** on `main` branch protection | No — the checks now run automatically on every PR; this makes them merge-blocking | Settings → Branches → `main` → required status checks lists the `security` job |
+| 2 | Repo owner | Make the CI checks **required status checks** on `main` — **blocked by the GitHub plan**, not by configuration | No — the checks already run automatically on every PR and their results are visible before merge; this would only make them merge-*blocking* | Once available: Settings → Branches → `main` → required status checks lists the `security` job |
+
+On item 2, the branch-protection API returns `403 — Upgrade to GitHub Pro or make
+this repository public` for `banza-protocol/banzami`. Branch protection is not
+available on a private repository on the current plan, so this cannot be enabled
+by an administrator toggle: it needs a plan upgrade (or making the repository
+public, which is not appropriate for an operator implementation). Recorded as a
+plan constraint rather than a pending administrative action, so it is not
+mistaken for something a maintainer can simply switch on.
 
 ### 11.3 Resolved since the previous report
 
