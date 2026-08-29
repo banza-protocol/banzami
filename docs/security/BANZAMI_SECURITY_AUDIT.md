@@ -745,22 +745,39 @@ gitleaks (full history, 2236 commits, 63.81 MB)           49 hits, all triaged, 
 gitleaks (tracked working tree, repo policy)              0 findings
 ```
 
-### Automatic CI, verified end to end
+### Automatic CI, verified end to end — FULL GREEN
 
 The Actions billing block that had disabled automatic triggers is **resolved**.
 Proof: a dispatched run executed real steps (8–19 per job) instead of dying in
 ~5s with zero steps, which was the billing signature. Triggers were restored, and
 opening this branch's PR produced a real automatic run.
 
-Restoring CI immediately surfaced four genuine failures that the billing block
-had been masking on `main`, all fixed here: the rustfmt debt, an unformatted
-`sandbox-operator` file, a `go test -race` data race in a webhook test fixture,
-and a step invoking the retired `sqlx-backfill.sh`.
+Restoring CI immediately surfaced failures the billing block had been masking on
+`main` — all of them **pre-existing**, none introduced by this audit, and all now
+fixed:
 
-Automatic PR run results:
+1. `cargo fmt --check` — 304 hunks across 50 files (cleared in its own commit so
+   it could not obscure the security diffs).
+2. An unformatted `sandbox-operator` file.
+3. A `go test -race` **data race** in a webhook test fixture (the handler's
+   fire-and-forget goroutine was correct; the fixture read it unsynchronised).
+4. A step invoking `sqlx-backfill.sh`, retired because it caused schema drift.
+5. Three DB-backed suites that could never pass — two asserted an orphan state
+   that migration 0078's foreign key makes impossible, and the developer-api
+   API-key lifecycle test passed a non-UUID actor into a `uuid` column.
+6. Three rounds of clippy debt that only became reachable once the job stopped
+   failing at the formatting step: `too_many_arguments` on
+   `CollectionEngine::update_collection` and `finance_dashboard::grouped`;
+   `dead_code` on collections' `ScopePath` / `SurfaceBody.surface_ref`,
+   restitution's `Origin::Reversal` and several `RestitutionResult` fields; and
+   `unused_must_use` on three test calls that invoke a route handler for its
+   database side effect and discard the `#[must_use]` response.
+
+**Final automatic PR run on `914bfcf1` — every job green:**
 
 ```text
-success  Security — regressions, secrets, dependencies   ← the new gate, green in CI
+success  Rust — build, lint, test                        (fmt + clippy -D warnings + full suite vs PostgreSQL)
+success  Security — regressions, secrets, dependencies   ← the gate this audit added
 success  Go api-gateway — vet, test
 success  Go admin-api — vet, test
 success  Go public-api — vet, test
@@ -768,23 +785,12 @@ success  Go sandbox-operator — fmt, vet, test
 success  TypeScript SDK — typecheck, test
 success  Migrations — sequence, tracking, freeze
 skipped  Deploy to production                            ← correctly gated off
-failure  Rust — build, lint, test                        ← see below
+OVERALL: success
 ```
 
-**Remaining Rust CI debt (not a security finding).** `cargo fmt --check` now
-passes; the job fails at `cargo clippy -- -D warnings` on **pre-existing** lints
-that were unreachable while the job died earlier at formatting:
-`clippy::too_many_arguments` on `CollectionEngine::update_collection` and on
-`finance_dashboard::grouped`, and `dead_code` on collections' `ScopePath` /
-`SurfaceBody.surface_ref`, restitution's `Origin::Reversal` and several
-`RestitutionResult` fields. Each has been given a documented `#[allow]` at the
-site rather than being deleted, since removing code from financial modules on
-lint evidence alone is the riskier choice. Verifying the full workspace clippy
-locally exceeded the time available on this machine (a cold `--all-targets` run
-after the sqlx upgrade takes well over 10 minutes), so **CI is the authority for
-this one item**, and any further pre-existing lints it reports are code-quality
-debt to clear separately — not security findings, and not blockers for the
-security verdict.
+The Rust workspace suite therefore passes **against PostgreSQL in CI as well as
+locally**, and `make security-check` passes in CI, not only on a developer
+machine. The `Security` job passed on three independent runs.
 
 **`assure-sandbox-launch` is HOLD and must stay HOLD.** It fails on 18
 launch-scope items (CAP-PAYOUT-001, CAP-WEBHOOK-001, CAP-SDK-001/002,
@@ -832,8 +838,11 @@ Secret scan:                  PASS  (0 live credentials; history + tracked tree)
                                     demonstrated non-vacuous
 Dependency scan:              PASS  Go: 0 vulnerable modules
                                     Rust: 0 advisories, 2 machine-checked suppressions
-Static analysis:              PASS  go vet, cargo clippy, cargo fmt, go test -race
-Financial invariant tests:    PASS  498 Rust tests against real PostgreSQL
+Static analysis:              PASS  go vet, cargo clippy -D warnings, cargo fmt,
+                                    go test -race  (all green in CI)
+Financial invariant tests:    PASS  498 Rust tests against real PostgreSQL,
+                                    locally AND in CI
+Automatic CI:                 PASS  all 8 jobs green on HEAD; deploy correctly skipped
 Canonical project gates:      PASS  (layout, assurance, reference, live-fail-closed,
                                     sdk-payment-boundary)
 Sandbox launch assurance:     HOLD  (unchanged — launch readiness, not security)
