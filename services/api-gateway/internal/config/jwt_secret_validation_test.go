@@ -12,9 +12,25 @@ func TestValidateJWTSecretFailsClosed(t *testing.T) {
 	}{
 		{"empty is rejected", "", true},
 		{"short is rejected", "short-secret", true},
-		{"one below minimum is rejected", string(make([]byte, MinJWTSecretLen-1)), true},
-		{"minimum length is accepted", string(make([]byte, MinJWTSecretLen)), false},
+		{"one below minimum is rejected", "0123456789abcdef0123456789abcde", true},
+		{"exactly the minimum length is accepted", "0123456789abcdef0123456789abcdef", false},
+		{"a long run of NUL bytes is rejected (length without entropy)", string(make([]byte, 64)), true},
 		{"dev.sh style 64 hex is accepted", "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", false},
+
+		// Length alone is not strength. Each of these clears the 32-character
+		// floor while remaining trivially guessable.
+		{"whitespace-only is rejected", "                                        ", true},
+		{"tabs-only is rejected", "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t", true},
+		{"single repeated character is rejected", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", true},
+		{"two alternating characters is rejected", "abababababababababababababababababababab", true},
+
+		// A stray space from .env quoting silently changes which bytes are the
+		// key, so it must be reported rather than trimmed away.
+		{"leading whitespace is rejected", " 0123456789abcdef0123456789abcdef0123456789abcdef", true},
+		{"trailing whitespace is rejected", "0123456789abcdef0123456789abcdef0123456789abcdef ", true},
+
+		// A real generated secret keeps working.
+		{"random base64 secret is accepted", "kJ8vQz2mNp7XrT4wYc6BdF9gHjLnAsEuZi3oPk1SvW0", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -181,6 +181,10 @@ func Load() (*Config, error) {
 // HS256 key is brute-forcible offline from a single captured token.
 const MinJWTSecretLen = 32
 
+// MinJWTSecretDistinctBytes is the crude entropy floor applied alongside the
+// length minimum, to reject long-but-trivial keys ("aaaa…", a run of spaces).
+const MinJWTSecretDistinctBytes = 8
+
 // validateJWTSecret enforces the SEC-001 fail-closed contract for the gateway's
 // signing key: it must be present and long enough. An empty JWT_SECRET makes
 // every merchant JWT forgeable by anyone (HS256 accepts "" as a key), granting
@@ -191,8 +195,28 @@ func validateJWTSecret(secret string) error {
 	if secret == "" {
 		return fmt.Errorf("JWT_SECRET must be set: the gateway refuses to start without a signing key (an empty key makes every token forgeable)")
 	}
+	// Leading/trailing whitespace is almost always an accident of quoting in a
+	// .env or compose file, and it silently changes which bytes are the key —
+	// tokens minted before the stray space stop verifying after it. Reject it
+	// explicitly rather than trimming, so the operator fixes the source.
+	if strings.TrimSpace(secret) != secret {
+		return fmt.Errorf("JWT_SECRET must not have leading or trailing whitespace")
+	}
 	if len(secret) < MinJWTSecretLen {
 		return fmt.Errorf("JWT_SECRET is too short: %d characters, minimum %d", len(secret), MinJWTSecretLen)
+	}
+	// Length alone is not strength: a run of spaces or a repeated character
+	// clears the length floor while remaining trivially guessable. Require a
+	// minimum number of DISTINCT bytes. `openssl rand -hex 32`, which the
+	// documented setup command produces, yields ~16 distinct characters, so this
+	// floor never rejects a properly generated key.
+	distinct := map[byte]struct{}{}
+	for i := 0; i < len(secret); i++ {
+		distinct[secret[i]] = struct{}{}
+	}
+	if len(distinct) < MinJWTSecretDistinctBytes {
+		return fmt.Errorf("JWT_SECRET is too low-entropy: %d distinct characters, minimum %d — generate one with `openssl rand -hex 32`",
+			len(distinct), MinJWTSecretDistinctBytes)
 	}
 	return nil
 }
