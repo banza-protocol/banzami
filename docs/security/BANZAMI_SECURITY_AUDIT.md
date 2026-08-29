@@ -4,33 +4,42 @@
 
 | | |
 |---|---|
-| **Baseline commit** | `f343e22485593cfffb0afde066b0dfb4e78df832` (branch `main`, clean tree) |
-| **Date** | 2026-08-29 |
-| **Scope** | Whole repository: Rust financial core, Go services (api-gateway, public-api, admin-api, developer-api, sandbox-operator), SDKs, apps, database schema, infrastructure, CI/CD, dependencies, secrets |
-| **Method** | Adversarial code review with reproduction. Every CRITICAL/HIGH finding was proven by an executable test that fails on the unfixed code and passes on the fixed code. |
-| **Findings** | 12 real (3 CRITICAL, 3 HIGH, 4 MEDIUM, 2 LOW) + 1 investigated and dismissed as a false positive |
-| **Remediated** | 12 of 12 repository-controlled findings fixed and verified |
-| **Residual** | 2 items requiring action outside the repository (§11) |
+| **Baseline commit** | `f343e22485593cfffb0afde066b0dfb4e78df832` (branch `main`) |
+| **Closure branch** | `security/audit-authz-and-supply-chain` |
+| **Date** | 2026-08-29 (audit), 2026-08-29 (closure) |
+| **Scope** | Whole repository: Rust financial core, Go services, SDKs, apps, database schema, infrastructure, CI/CD, dependencies, secrets |
+| **Method** | Adversarial review with reproduction. Every CRITICAL/HIGH finding was proven by an executable test that fails on the unfixed code and passes on the fixed code. The financial core was then verified against a real PostgreSQL. |
+| **Findings** | 17 real (3 CRITICAL, 3 HIGH, 6 MEDIUM, 5 LOW) + 1 investigated and dismissed |
+| **Remediated** | 16 of 17 fixed and verified; 1 MEDIUM open pending a product decision (SEC-015) |
+| **Verdict** | `SECURITY GATE: CONDITIONAL PASS` — see §13 |
 
-**Posture.** The financial core is soundly designed — double-entry is re-validated
-before every write, monetary values are integer-only, conservation of value is
-enforced by database CHECK constraints, and idempotency keys are unique-indexed.
-The database layer, the webhook signing scheme, the at-rest secret cipher, the
-SSRF guard, and admin-api's operator authentication are all well built.
+**Posture.** The financial core is soundly designed and is now *runtime*-verified:
+498 Rust tests pass against a real PostgreSQL with the official migrations
+applied, covering double-entry, atomicity, rollback, idempotency, replay,
+concurrent double-spend, overdraft and QR single-use. The database layer, webhook
+signing, the at-rest secret cipher, the SSRF guard and admin-api's operator
+authentication are all well built.
 
 The defects were concentrated in **one place: the api-gateway's authorisation
 layer**. Authentication was implemented carefully; authorisation was applied
-per-handler and several handlers simply did not apply it. Three of those were
-exploitable for cross-tenant financial access, and one for full takeover of any
-Business Account. A fourth class — a forgeable JWT — existed because the gateway
-treated its signing key as optional, unlike every sibling service.
+per-handler, and several handlers did not apply it. Three were exploitable for
+cross-tenant financial access and one for full takeover of any Business Account.
+A separate class — a forgeable JWT — existed because the gateway treated its
+signing key as optional, unlike every sibling service.
 
-The remediation was structural rather than per-handler: shared ownership guards
-that handlers inherit, a route-level principal-type requirement, and fail-closed
-startup validation, each covered by regression tests wired into a new
-`make security-check` gate.
+Remediation was structural rather than per-handler: shared ownership guards that
+handlers inherit, a route-level principal-type requirement, and fail-closed
+startup validation, each covered by regression tests wired into `make
+security-check` — a gate proven able to fail (§12).
 
----
+**What the closure phase changed.** Every residual the first pass left open was
+closed or reduced to a named external action: sqlx was upgraded and the advisory
+suppressions cut from nine to two provable ones; the financial suite was run
+against a real database; concurrency and idempotency moved from *design*-verified
+to *runtime*-verified; automatic CI was restored after proving the Actions
+billing block was gone and fixing the four real failures it had been masking;
+every GitHub Action is pinned to a commit SHA. The re-sweep also found three new
+issues (SEC-015, SEC-016, SEC-017), two of which are fixed.
 
 ## 2. Attack Surface Reviewed
 
@@ -65,7 +74,11 @@ startup validation, each covered by regression tests wired into a new
 | SEC-010 | MEDIUM | CI/CD | No `permissions:` block; `StrictHostKeyChecking=no`; mutable `:latest` image against the production DB | Conditional | `FIXED` |
 | SEC-011 | LOW | api-gateway webhooks | SSRF allow-list missed CGNAT/reserved ranges; no redirect policy | Conditional | `FIXED` |
 | SEC-012 | LOW | infra | Compose published core-api, Postgres, Redis, Grafana on `0.0.0.0` | Deploy-gated | `FIXED` |
-| SEC-013 | INFO | supply chain | 6 Rust advisories, all from the sqlx 0.7.4 tree | Assessed — see §11 | `ACCEPTED RESIDUAL RISK` |
+| SEC-013 | MEDIUM | supply chain | 6 Rust advisories from the sqlx 0.7.4 tree | Not reachable | `FIXED` (upgraded, §4) |
+| SEC-014 | MEDIUM | ledger | `signed_minor_units()` undefined for `-i64::MIN`: silent wrong value, or panic under overflow-checks | Low | `FIXED` |
+| SEC-015 | MEDIUM | api-gateway transfers | `GET /v1/transfers/{id}` returns any P2P transfer to any merchant | Yes | `OPEN — product decision required` |
+| SEC-016 | MEDIUM | api-gateway QR | Any merchant could read, and **burn**, another merchant's single-use dynamic QR | Yes — proven | `FIXED` |
+| SEC-017 | LOW | api-gateway config | 32 spaces / `"aaaa…"` accepted as a JWT signing key | Yes — proven | `FIXED` |
 | — | — | api-gateway webhooks | *Suspected* dead SSRF guard | **No** | `FALSE POSITIVE` |
 
 ---
@@ -428,23 +441,103 @@ disproved, not because a weakness exists.
 
 ---
 
-## 5. Financial Security Invariants
+### SEC-014 — `signed_minor_units()` undefined for `i64::MIN` (MEDIUM)
 
-| Invariant | Verified | Result |
-|---|---|---|
-| Sole authoritative financial write path | Yes | Holds. All money movement goes through the Rust core; Go services proxy to `/internal/v1` and never write ledger rows. |
-| Double-entry (Σ debits = Σ credits) | Yes | **Was defeatable by i64 overflow (SEC-005); now enforced with checked arithmetic** and re-validated in the repository before any DB write. |
-| Atomicity | Yes | Holds. `repository.post` opens a transaction, validates account currency, and rolls back on mismatch before any row is written. |
-| Idempotency | Partly | Design verified: `idempotency_key` is `NOT NULL UNIQUE` on `ledger_postings` and `app_settlements`; duplicate keys return the existing posting. **Runtime concurrency tests require PostgreSQL and did not run** (§12). |
-| Concurrency protection | Partly | Same as above — `concurrent_identical_postings_produce_single_entry` and `concurrent_settlement` tests exist but need a database. |
-| Cross-account isolation | Yes | **Was broken in four places (SEC-002, SEC-003, SEC-004, SEC-007); now enforced** by shared guards with regression tests. |
-| Conservation of value | Yes | Holds, and is enforced at the database level: `CONSTRAINT app_settlements_balance CHECK (gross = net + application_fee)` plus `app_settlements_fee_bound`. |
-| Replay protection | Yes | Holds. Webhook signatures bind a timestamp into the HMAC input with a tolerance window checked in both directions, compared in constant time over the raw bytes. |
-| Server-authoritative balances | Yes | Holds. Balances are read from the ledger; the settlement paths read the real source balance rather than accepting a client amount, and developer-key payees derive from the project binding with `rejectClientPayeeFields` refusing any client-supplied payee. |
-| Settlement integrity | Yes | Holds. Fees are resolved by the pricing engine or an explicit app bps, never a client-sent number; fee destinations must be the caller's own KYB-validated Business Account. |
-| Monetary precision | Yes | Holds. Integer minor units throughout; `Money` exposes `checked_add`/`checked_sub`; no floating-point arithmetic in any money path. |
+* **Category:** CWE-190 Integer Overflow
+* **Affected:** `core/ledger/src/entry.rs`, `core/ledger/src/posting.rs`
+* **Found by:** extending the SEC-005 boundary tests to real `i64` limits.
+
+`i64::MIN` has no positive counterpart, so `-x` is not representable. The
+function negated with plain `-x`, which **panicked** under the release
+`overflow-checks` this audit enabled — an externally reachable panic in the
+posting path — and, before those checks existed, **wrapped silently**, feeding a
+wrong signed value straight into the double-entry sum. The second behaviour is
+the more dangerous of the two.
+
+**Remediation.** Added `checked_signed_minor_units()` returning `Option<i64>` and
+made `assert_balanced` use it, so an unrepresentable entry is rejected as
+unbalanced rather than approximated. `signed_minor_units` now saturates and is
+documented as approximate, with correctness-critical callers pointed at the
+checked variant.
+
+**Regression tests:** `extreme_single_values_are_rejected_not_wrapped`,
+`balance_check_is_not_defeated_by_i64_underflow`, `mixed_sign_overflow_is_rejected`.
 
 ---
+
+### SEC-016 — Cross-merchant QR read and redemption (MEDIUM)
+
+* **Category:** CWE-639 / OWASP API1 (BOLA)
+* **Affected:** `services/api-gateway/internal/handler/qr.go`
+
+`GET /v1/qr/{id}` and `POST /v1/qr/{id}/use` took the id from the URL with no
+ownership check. Reading another merchant's code leaks its payee and amount. The
+redemption route is worse: a dynamic QR is **single-use**, so an attacker could
+mark a competitor's codes used and the legitimate payer's scan would then fail
+with `QR_ALREADY_USED` — payment disruption reachable with nothing but an id.
+
+**Remediation.** Both routes go through `requireOwnedQr`, matching the full
+ownership pair (`OwnerType == "MERCHANT"` and `OwnerID == principal.MerchantID`),
+so a consumer-owned code is not reachable from the merchant surface either.
+Cross-owner access answers `404` to avoid an id oracle.
+
+**Regression tests:** `TestQrMarkUsed_RejectsCrossMerchant` (asserts the service
+was never reached, i.e. the code was not burned), `TestQrGet_RejectsCrossMerchant`,
+`TestQrGet_RejectsConsumerOwnedCode`, plus owner-still-allowed and
+unauthenticated controls. Verified to fail without the fix.
+
+---
+
+### SEC-017 — Long but trivial JWT signing keys accepted (LOW)
+
+* **Category:** CWE-521 Weak Password Requirements
+* **Affected:** `services/api-gateway/internal/config/config.go`
+
+The SEC-001 fix enforced a 32-character minimum but nothing about content, so
+32 spaces, 40 tabs, `"aaaa…"` or `"abab…"` were all accepted as HS256 signing
+keys. Length is not strength.
+
+**Remediation.** Leading/trailing whitespace is now rejected explicitly rather
+than trimmed — a stray space from `.env` quoting silently changes which bytes are
+the key, and the operator should be told — and a distinct-byte floor
+(`MinJWTSecretDistinctBytes = 8`) rejects low-entropy keys. `openssl rand -hex 32`,
+the documented command, yields ~16 distinct characters and is unaffected.
+
+**Regression tests:** `TestValidateJWTSecretFailsClosed` extended with
+whitespace-only, tabs-only, single-repeated-character, two-alternating-character,
+leading/trailing-whitespace and NUL-run cases.
+
+---
+
+## 5. Financial Security Invariants
+
+Verification levels are used strictly:
+
+* **RUNTIME VERIFIED** — an automated test exercised it against a real
+  PostgreSQL in this audit.
+* **DESIGN VERIFIED** — established by reading code and schema; no test executed it.
+* **NOT VERIFIED** — neither.
+
+Nothing here is *deployed*-verified: everything ran locally and in CI, never
+against a production environment.
+
+| Invariant | Level | Evidence |
+|---|---|---|
+| Double-entry (Σ debits = Σ credits) | **RUNTIME VERIFIED** | `balanced_posting_is_stored_with_correct_entries`, `unbalanced_posting_is_rejected_by_builder`, `single_entry_posting_is_rejected`, `multi_currency_imbalance_is_rejected`. **Was defeatable by i64 overflow (SEC-005)**; now enforced with checked arithmetic and re-validated in the repository before any write. |
+| Integer overflow / underflow | **RUNTIME VERIFIED** | `balance_overflow.rs` — 5 tests at real `i64` limits: all-debit wrap, all-credit underflow, mixed-sign overflow, `i64::MIN` extremes (SEC-014), and a control that a genuine posting is still accepted. Run in **release** profile, where the wrap actually occurs. |
+| Atomicity | **RUNTIME VERIFIED** | `rollback_leaves_no_orphan_posting_or_entries`, `failed_posting_leaves_balances_unchanged`, `posting_header_without_entries_has_zero_financial_effect`. |
+| Idempotency | **RUNTIME VERIFIED** | `idempotent_posting_returns_existing_without_duplicate`, `different_amount_same_key_returns_original`, `idempotent_send_returns_original_transfer`, `settlement_is_idempotent_no_double_pay_no_double_event`, `refund_idempotent_replay_is_single_posting`, `capture_replay_is_idempotent`. Previously *design*-verified only. |
+| Concurrency / double-spend | **RUNTIME VERIFIED** | `concurrent_sends_cannot_overdraw`, `concurrent_transfers_respect_balance`, `concurrent_identical_postings_produce_single_entry`, `concurrent_refunds_never_over_restitute`, `concurrent_refund_and_dispute_share_ceiling`, `concurrent_dynamic_qr_claims_win_at_most_once`. Previously *design*-verified only. |
+| Overdraft prevention | **RUNTIME VERIFIED** | `insufficient_funds_rejected_no_partial`, `reserve_fails_when_insufficient_funds`, `inactive_wallet_is_rejected_on_reserve`. |
+| Conservation of value | **RUNTIME VERIFIED** | `chain_of_transfers_preserves_total`, plus the database `CHECK (gross = net + application_fee)` and `app_settlements_fee_bound` constraints. |
+| Replay protection | **RUNTIME VERIFIED** | `inv_wal_004_3_duplicate_callback_rejected`, `double_authorize_is_rejected`, `double_reversal_is_prevented`; webhook signatures bind a timestamp into the HMAC with a two-sided tolerance window compared in constant time. |
+| Balance authority (server-derived) | **RUNTIME VERIFIED** | `balance_is_derived_from_entries`, `balance_after_reserve_reflects_ledger`, `sql_consistency_invariants_all_pass`. |
+| Ledger immutability | **RUNTIME VERIFIED** | `update_on_ledger_entry_is_rejected_by_db`, `delete_on_ledger_entry_is_rejected_by_db`. |
+| Cross-account / cross-wallet isolation | **RUNTIME VERIFIED** (gateway) | **Was broken in five places (SEC-002, SEC-003, SEC-004, SEC-007, SEC-016)**; now enforced by shared guards, each with a regression test proven to fail without the fix. |
+| Settlement isolation | **RUNTIME VERIFIED** | `TestApplicationSettlementGet_*` plus core's `application_settlements` suites. |
+| Sole authoritative write path | **DESIGN VERIFIED** | All money movement goes through the Rust core; Go services proxy to `/internal/v1` and write no ledger rows. Verified by reading, not by a test that would fail if a Go service started writing. |
+| Negative / zero / malformed amounts | **RUNTIME VERIFIED** | `negative_amount_rejected`, `create_with_negative_amount_is_rejected`, `zero_and_negative_amount_never_charge`, `entry_with_wrong_account_currency_is_rejected`. |
+| Monetary precision | **DESIGN VERIFIED** | Integer minor units throughout; `Money` exposes `checked_add`/`checked_sub`; no floating-point in any money path. |
 
 ## 6. Authentication & Authorisation
 
@@ -550,97 +643,138 @@ security regressions — run automatically on push or pull request. See §11.
 
 ---
 
-## 11. Residual External Risks
+## 11. Residual Risks and External Actions
 
-These are the only items that could not be closed inside the repository.
+### 11.1 Open finding requiring a product decision
 
-1. **`sqlx 0.7.4` → `>= 0.8.1` upgrade.** This is the single root remediation for
-   all six Rust advisories, including RUSTSEC-2024-0363 (binary-protocol
-   misinterpretation) and the three `rustls-webpki` certificate-validation issues.
-   It is a **breaking major upgrade across 22 crates** and, because Banzami's
-   financial invariant tests use a real database and no mocks (CLAUDE.md §7), it
-   must be validated against PostgreSQL. Deliberately **not** attempted blind in
-   this audit. Practical exposure is low and documented per-advisory in
-   `core/.cargo/audit.toml`: the sqlx issue needs a single query parameter larger
-   than 4 GiB, and the gateway caps request bodies at 4 MiB.
-   **Action required:** schedule the upgrade with a DB-backed test run.
+**SEC-015 (MEDIUM) — `GET /v1/transfers/{id}` on the merchant surface.**
+The handler returns any P2P transfer by id with no ownership check, exposing
+another consumer's sender, recipient and amount to any authenticated merchant.
+It is *not* fixed, and deliberately so: `Transfer` carries `SenderID` and
+`RecipientID`, which are **consumer** ids, so there is no field a merchant
+principal could be matched against. public-api's equivalent is correctly scoped
+(a caller must be sender or recipient — the RA-022 fix); the gateway's copy has
+no equivalent notion of a legitimate merchant reader.
 
-2. **Restore automatic CI, or run `make security-check` as a pre-merge step.**
-   CI triggers are disabled pending the GitHub Actions billing issue in the
-   `banza-protocol` org. Until that is resolved nothing runs automatically, so the
-   security regression suite protects the codebase only when a developer runs it.
-   **Action required:** resolve Actions billing and uncomment the
-   `push`/`pull_request` triggers in `.github/workflows/ci.yml`.
+Closing it requires deciding *what a merchant may see*, which is a product and
+protocol question, not a mechanical one. Three candidate answers, none of which
+should be picked by an auditor:
 
-Two smaller recommendations, each needing an online step or an infrastructure
-change rather than a code change:
+1. The route is operator/back-office only → move it behind the `/internal/v1`
+   boundary and drop it from the merchant SDKs (the shape used for SEC-003).
+2. A merchant may read transfers it initiated → add an initiator column and scope
+   on it. This is a new financial field, so under BANZA ADR-003 / Banzami ADR-019
+   it originates as a **BANZA protocol change**, not a local one.
+3. The route is genuinely public-consumer functionality misplaced on the merchant
+   surface → remove it; public-api already serves it correctly.
 
-3. **Pin GitHub Actions to commit SHAs** (`actions/checkout@<sha>` etc.), and in
-   particular `dtolnay/rust-toolchain@stable`, which is a mutable *branch*.
-4. **Apply GCP API-key restrictions** to the Firebase keys shipped in the mobile
-   apps (restrict by app bundle id / SHA-1 and by API). The keys are not secrets,
-   but unrestricted keys can be used from anywhere.
+Compensating controls now in place: the route is behind `RequireMerchant`, so a
+consumer credential can no longer reach it, and it is read-only — no money moves.
+Exposure is confidentiality of P2P transfer metadata to an authenticated
+merchant who already knows a transfer id. The Flutter and Python SDKs call it, so
+any of the three options is a breaking client change and must be scheduled.
+
+### 11.2 External actions
+
+Neither blocks security PASS; both are recorded with the exact step required.
+
+| # | Owner | Action | Blocks PASS | How to verify |
+|---|---|---|---|---|
+| 1 | GCP project owner (`banzami`) | Apply API-key application + API restrictions to the two Firebase client keys | No — these are client identifiers, not secrets; the exposure is quota/cost abuse, not money or data | `gcloud services api-keys list --project=banzami` shows a non-empty application restriction **and** API target list for every key. Full runbook with the real identifiers: [FIREBASE_GCP_KEY_RESTRICTIONS.md](FIREBASE_GCP_KEY_RESTRICTIONS.md) |
+| 2 | Repo admin | Add the CI checks as **required status checks** on `main` branch protection | No — the checks now run automatically on every PR; this makes them merge-blocking | Settings → Branches → `main` → required status checks lists the `security` job |
+
+### 11.3 Resolved since the previous report
+
+| Item | Before | Now |
+|---|---|---|
+| `sqlx 0.7.4` advisories | 6 open, 9 suppressions | Upgraded to 0.8.6; 0 advisories, 2 provable suppressions, both machine-checked |
+| Ledger tests vs PostgreSQL | Not run (`PoolTimedOut`) | 498 tests pass against real PostgreSQL 18 |
+| Concurrency / idempotency | Design verified | **Runtime verified** |
+| Automatic CI | Believed blocked by billing | Billing block gone (proven); triggers restored; a `security` job added |
+| Action SHA pinning | Recommended | Done — 17/17 references pinned |
+| Firebase/GCP restrictions | Recommended, vague | Runbook with real identifiers; external action #1 |
+| Consumer suspend/close compatibility | "nothing depends on them" (wrong) | Dependants found and resolved end to end (SDK, README, App Store notes) |
+| `cargo fmt` debt | 304 hunks / 50 files | Cleared in a dedicated commit |
 
 ---
 
 ## 12. Verification Evidence
 
-Commands executed and their outcomes:
+Environment: PostgreSQL 18.1 (local, disposable) with all 97 official
+migrations from `db/migrations/` applied; Go 1.26.3; Rust stable; gitleaks
+8.x; cargo-audit; govulncheck. The repository's Docker Compose path was not
+usable (no Docker daemon available), so the database was provisioned directly
+and migrated with the repository's own migration files.
 
 ```text
-# Security gate (new)
-make security-check                                            PASS
-  · api-gateway security regressions                           PASS
-  · ledger double-entry overflow invariant (release profile)   PASS
-  · gitleaks (tracked files, .gitleaks.toml policy)            PASS — 0 findings
-  · .env is not tracked                                        PASS
-  · cargo audit                                                PASS — 0 unassessed advisories
-  · govulncheck × 4 services                                   PASS — 0 vulnerable modules
-      (notice: 10 Go stdlib advisories — build with go1.26.6+)
+# Security gate
+make security-check                                       PASS
+  · api-gateway security regressions                      PASS
+  · ledger double-entry overflow invariant (release)      PASS
+  · gitleaks over tracked files                           PASS (0 findings)
+  · .env is not tracked                                   PASS
+  · cargo audit                                           PASS (0 advisories)
+  · audit-suppression build-graph validity                PASS (rsa, rkyv absent)
+  · govulncheck × 4 services                              PASS (0 vulnerable modules)
 
-# Go test suites (forced, -count=1)
-go test -count=1 ./services/api-gateway/...                    PASS (9 packages)
-go test -count=1 ./services/public-api/...                     PASS (2 packages)
-go test -count=1 ./services/admin-api/...                      PASS (6 packages)
-go test -count=1 ./services/developer-api/...                  PASS (2 packages)
-go test -count=1 ./services/sandbox-operator/...               PASS (1 package)
+# Rust — against real PostgreSQL
+cargo test --workspace --release                          PASS (498 passed, 0 failed)
+  · 23 integration binaries executed
+cargo fmt --all -- --check                                PASS (0 diffs)
+cargo audit                                               PASS
+SQLX_OFFLINE=true cargo build --workspace                 PASS (offline cache valid)
 
-# Rust
-cargo test -p banzami-ledger --release --test balance_overflow PASS (2 tests)
+# Go — with the race detector
+go test -race -count=1 ./... (api-gateway)                PASS
+go test -race -count=1 ./... (public-api)                 PASS
+go test -race -count=1 ./... (admin-api)                  PASS
+go test -race -count=1 ./... (developer-api)              PASS
+go test -race -count=1 ./... (sandbox-operator)           PASS
+govulncheck × 4 services                                  PASS (0 vulnerable modules)
 
 # Canonical project gates
-make check-repo-layout                                         PASS (28 checks)
-make check-assurance                                           PASS
+make check-repo-layout                                    PASS
+make check-assurance                                      PASS
+make assure-reference                                     PASS
+make check-live-fail-closed                               PASS
+make check-sdk-payment-boundary                           PASS
+make assure-sandbox-launch                                HOLD (expected, see below)
 
 # Secret scan
-gitleaks detect (full history, 2236 commits, 63.81 MB)         49 hits, all triaged
-                                                               → 0 live credentials
+gitleaks (full history, 2236 commits, 63.81 MB)           49 hits, all triaged, 0 live credentials
+gitleaks (tracked working tree, repo policy)              0 findings
 ```
 
-**Not run — environmental, honestly reported:**
+**`assure-sandbox-launch` is HOLD and must stay HOLD.** It fails on 18
+launch-scope items (CAP-PAYOUT-001, CAP-WEBHOOK-001, CAP-SDK-001/002,
+CAP-APP-004 — public surfaces not yet E2E-released). That is *launch* readiness,
+not *security* readiness, and nothing in this audit changed it. No assurance
+status, capability state or launch verdict was modified.
 
-`cargo test -p banzami-ledger` integration tests (18 tests) fail with
-`PoolTimedOut`: they require a live PostgreSQL, which was not available in this
-session (no Docker daemon, no local server). This is a **pre-existing
-environmental dependency, not a regression** — the failure is a connection
-timeout, not an assertion. These tests cover concurrency and idempotency
-(`concurrent_identical_postings_produce_single_entry`,
-`idempotent_posting_returns_existing_without_duplicate`,
-`rollback_leaves_no_orphan_posting_or_entries`), which is why §5 marks
-idempotency and concurrency as *design-verified but not runtime-verified* in this
-audit. They run in CI's `rust` job, which provisions PostgreSQL.
+**Go standard-library advisories.** `govulncheck` reports 7–8 stdlib advisories
+per service, fixed in go1.26.6. These come from the toolchain performing the
+build, not from repository code; the service Dockerfiles were moved from
+`golang:1.25-alpine` to `golang:1.26-alpine`, and the source is proven compatible
+with Go 1.26 (the full suite builds and passes on 1.26.3). **Container images
+were not built in this session** — no Docker available. The gate reports these as
+a labelled toolchain notice rather than a code defect, so a developer on an older
+Go patch is not told the code is vulnerable.
 
-**Guard self-tests.** Each new gate was verified capable of failing, because a
-gate that cannot go red is worse than no gate:
+### Guard self-tests — the gate is proven able to fail
 
-| Guard | Self-test | Result |
+A gate that cannot go red is worse than no gate. Each was broken deliberately in
+the working tree and restored immediately; none of these probes is in history.
+
+| Probe | Injected fault | Gate result |
 |---|---|---|
-| Wallet/settlement/merchant authorisation tests | Reverted the fix, re-ran | Red, with the leaked balance in the output |
-| Ledger overflow test | Run against the unfixed `assert_balanced` | Red |
-| Secret scan | Planted 4 realistic credentials in a test file and a doc file | All 4 caught |
-| `cargo audit` policy | Removed one assessment from the ignore list | Exit 1 |
-| `govulncheck` policy | Downgraded chi to v5.2.1 across all four modules | Red, 4 advisories |
-| Route-table assertion | Control test asserts expected routes are still mounted | Green |
+| Secret scan | A realistic random `ghp_…` token added to a source file | `✗ gitleaks reported findings` → FAILED |
+| Financial invariant | `assert_balanced` reverted to wrapping arithmetic | `✗ ledger double-entry overflow invariant` → FAILED |
+| Dependency scan | chi downgraded to the vulnerable v5.2.1 in all four modules | `✗ 4 module vulnerabilities` × 4 → FAILED |
+| Authorisation | `requireSelfMerchant`'s comparison short-circuited to false | `✗ api-gateway security regressions` → FAILED |
+| Audit suppression | One assessment removed from `audit.toml` | `cargo audit` exit 1 |
+| Per-finding tests | Each fix reverted individually | Its test goes red (the wallet test prints the leaked balance) |
+
+`git status` is clean after every probe.
 
 ---
 
@@ -649,25 +783,35 @@ gate that cannot go red is worse than no gate:
 ```text
 CRITICAL unresolved:          0
 HIGH unresolved:              0
-MEDIUM unresolved:            0
+MEDIUM unresolved:            1  (SEC-015 — needs a product decision, §11.1)
 LOW unresolved:               0
 
-Security regression tests:    PASS  (30 new tests across Go and Rust)
-Secret scan:                  PASS  (0 live credentials; history + working tree)
-Dependency scan:              PASS  (Go: 0 vulnerable modules; Rust: 6 assessed,
-                                     documented, tracked to the sqlx upgrade)
-Static analysis:              PASS  (go vet clean; cargo clippy clean)
-Financial invariant tests:    PARTIAL — double-entry overflow invariant verified;
-                                     DB-backed concurrency/idempotency tests
-                                     require PostgreSQL (not available here)
-Canonical project gates:      PASS  (check-repo-layout, check-assurance)
-Sandbox validation:           NOT RUN — requires a deployed stack
+Security regression tests:    PASS  (48 tests across Go and Rust)
+Secret scan:                  PASS  (0 live credentials; history + tracked tree)
+                                    demonstrated non-vacuous
+Dependency scan:              PASS  Go: 0 vulnerable modules
+                                    Rust: 0 advisories, 2 machine-checked suppressions
+Static analysis:              PASS  go vet, cargo clippy, cargo fmt, go test -race
+Financial invariant tests:    PASS  498 Rust tests against real PostgreSQL
+Canonical project gates:      PASS  (layout, assurance, reference, live-fail-closed,
+                                    sdk-payment-boundary)
+Sandbox launch assurance:     HOLD  (unchanged — launch readiness, not security)
+LIVE fail-closed:             PASS  (unchanged)
+Deployed verification:        NOT PERFORMED (no production access; out of scope)
 
 VERDICT: CONDITIONAL PASS
 ```
 
-**Conditional on:** the two external actions in §11 — the `sqlx >= 0.8.1` upgrade
-with database-backed validation, and restoring automatic CI so these regressions
-run on every change. No repository-controlled CRITICAL or HIGH finding remains
-open. Launch status is unchanged: `deploy.sh` still fails closed for every live
-payment rail, and no assurance status was altered by this audit.
+**Why not PASS.** No CRITICAL or HIGH remains, the security regression suite
+passes, no auth/authz bypass and no exploitable financial-integrity defect is
+known, no repository-owned secret is exposed, and the gate is demonstrably
+fail-closed. One MEDIUM (SEC-015) remains open because closing it correctly
+requires a product decision about what a merchant may read — and per the audit's
+own rule, a finding is never downgraded or accepted merely to reach PASS.
+
+**Security readiness is not launch readiness.** Banzami remains NOT
+launch-ready: no BANZA certification, no production certificate, production
+federation not live, real Kwanza funding/withdrawals not operational, KYC/KYB not
+operational, and the default acquiring provider still simulated. Nothing in this
+audit changed any of those facts, and passing a BANZA L0 conformance suite
+remains evidence, not certification.

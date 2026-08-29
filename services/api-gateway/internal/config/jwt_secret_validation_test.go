@@ -30,7 +30,9 @@ func TestValidateJWTSecretFailsClosed(t *testing.T) {
 		{"trailing whitespace is rejected", "0123456789abcdef0123456789abcdef0123456789abcdef ", true},
 
 		// A real generated secret keeps working.
-		{"random base64 secret is accepted", "kJ8vQz2mNp7XrT4wYc6BdF9gHjLnAsEuZi3oPk1SvW0", false},
+		// Self-evidently a test string, not a credential: a realistic random value
+		// here would (correctly) be reported by the repository secret scanner.
+		{"a mixed-character secret of adequate length is accepted", "unit-test-only-not-a-real-signing-key-000000", false},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
