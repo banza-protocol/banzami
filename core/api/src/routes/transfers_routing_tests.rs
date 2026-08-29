@@ -121,7 +121,10 @@ async fn route_credits_campaign_account_when_set(pool: PgPool) {
     let (camp_id, camp_acct) = campaign_account(&pool, wid).await;
     let state = build_state(pool.clone()).await;
 
-    routes::send(State(state), Json(body(sender, wid, Some(camp_id), "k1")))
+    // Called for its side effect: the posting must land in the database, which
+    // the assertions below read back. The response tuple is deliberately
+    // discarded, and axum's Json is #[must_use], so discard it explicitly.
+    let _ = routes::send(State(state), Json(body(sender, wid, Some(camp_id), "k1")))
         .await
         .unwrap();
 
@@ -144,7 +147,7 @@ async fn route_credits_default_when_absent(pool: PgPool) {
     let (_camp_id, camp_acct) = campaign_account(&pool, wid).await;
     let state = build_state(pool.clone()).await;
 
-    routes::send(State(state), Json(body(sender, wid, None, "k1")))
+    let _ = routes::send(State(state), Json(body(sender, wid, None, "k1")))
         .await
         .unwrap();
 

@@ -240,7 +240,9 @@ async fn merchant_resolves_from_campaign_account(pool: PgPool) {
 async fn resolve_and_list(pool: PgPool) {
     let (wid, _) = seed_wallet(&pool, Uuid::new_v4()).await;
     let state = build_state(pool.clone()).await;
-    routes::create(
+    // Side-effect call: the account must exist for the resolve/list assertions
+    // below. axum's Json is #[must_use], so discard the response explicitly.
+    let _ = routes::create(
         State(state.clone()),
         Json(body(wid, "CAMPAIGN", Some("camp_R"))),
     )
