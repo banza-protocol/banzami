@@ -1,57 +1,33 @@
 # cargo-audit configuration for the Banzami financial core.
 #
-# Every ignored advisory below has been individually assessed against THIS
-# build, with the reasoning recorded. Nothing is ignored to make the gate green:
-# an advisory that is actually reachable stays unignored and fails the build.
-# The gate prints this list on every run so the assessments stay visible and can
-# be revisited. See docs/security/BANZAMI_SECURITY_AUDIT.md (SEC-008).
+# cargo-audit reads Cargo.lock, which lists every package the resolver COULD
+# select — including the optional dependencies of features this workspace does
+# not enable. Those packages are never compiled and never linked, so an advisory
+# against one of them is not a vulnerability in Banzami.
 #
-# All six advisories share ONE root cause: sqlx is pinned at 0.7.4 and drags an
-# old rustls/rsa/rkyv tree with it. The single real remediation is upgrading to
-# sqlx >= 0.8.1, which is a breaking major upgrade across 22 crates and must be
-# validated against a real PostgreSQL (financial invariant tests use no mocks).
-# That upgrade is tracked as an explicit follow-up, not silently accepted.
+# Only that situation is ignored here, and only with proof. The claim is not
+# taken on trust: tools/security-check.sh re-derives the actual build graph with
+# `cargo tree --workspace --edges normal` and FAILS if any crate listed below has
+# entered it. A suppression that stops being true therefore breaks the build
+# instead of hiding a real finding.
+#
+# Everything that IS compiled must be fixed, not ignored. The sqlx 0.7 -> 0.8.6
+# upgrade removed the six advisories previously listed here (the sqlx binary
+# protocol issue, three rustls-webpki certificate-validation issues, and the
+# unmaintained paste / rustls-pemfile crates); upgrading anyhow to 1.0.104
+# removed a seventh. None of them are suppressed — they are gone.
 
 [advisories]
 ignore = [
-    # NOT COMPILED. `rsa` enters Cargo.lock only through sqlx's MySQL driver.
-    # This workspace enables sqlx features ["runtime-tokio-rustls", "postgres",
-    # "uuid", "chrono", "rust_decimal", "json"] — no "mysql" — and `cargo tree
-    # --workspace --edges normal` shows zero occurrences of `rsa`. The timing
-    # side-channel is in code that is never built or linked.
+    # NOT COMPILED — `rsa` is a dependency of `sqlx-mysql`. This workspace enables
+    # sqlx with the "postgres" feature and no "mysql", so sqlx-mysql is never
+    # built. `cargo tree --workspace -i rsa` reports no dependents at all.
+    # The Marvin timing side-channel is in code that does not exist in any
+    # Banzami binary.
     "RUSTSEC-2023-0071",
 
-    # NOT COMPILED. Same situation as `rsa`: present in the lockfile, absent
-    # from the build graph (zero occurrences in `cargo tree --edges normal`).
+    # NOT COMPILED — `rkyv` is an optional feature dependency of `rust_decimal`,
+    # which this workspace uses without that feature. `cargo tree --workspace -i
+    # rkyv` reports no dependents at all.
     "RUSTSEC-2026-0235",
-
-    # Reachable panic parsing a certificate revocation list, in rustls-webpki
-    # 0.101.7 (pulled in by sqlx-core's rustls for the PostgreSQL TLS link).
-    # Banzami never supplies a CRL to rustls, so the parsing path is not
-    # entered. Fixed by the sqlx upgrade below.
-    "RUSTSEC-2026-0104",
-
-    # rustls-webpki name-constraint handling (URI names / wildcard assertions).
-    # Exploitation requires a certificate issued by a CA the process trusts,
-    # presented on the database TLS link — an attacker already inside the
-    # private network path with a trusted-CA certificate. Fixed by the sqlx
-    # upgrade below.
-    "RUSTSEC-2026-0098",
-    "RUSTSEC-2026-0099",
-
-    # sqlx binary-protocol misinterpretation via truncating/overflowing casts.
-    # Requires passing a single value larger than 4 GiB as a query parameter.
-    # The gateway caps every request body at 4 MiB (chimw.RequestSize) and core
-    # receives bounded JSON from it, so no such value can reach a query.
-    # This is the advisory the sqlx >= 0.8.1 upgrade closes directly.
-    "RUSTSEC-2024-0363",
-
-    # Maintenance-status warnings, not vulnerabilities: no known exploit, and
-    # both are transitive through the same sqlx 0.7 tree.
-    "RUSTSEC-2024-0436", # paste — unmaintained
-    "RUSTSEC-2025-0134", # rustls-pemfile — unmaintained
-
-    # `anyhow` Error::downcast_mut unsoundness. Banzami never calls
-    # downcast_mut; the unsound API is not used anywhere in the workspace.
-    "RUSTSEC-2026-0190",
 ]

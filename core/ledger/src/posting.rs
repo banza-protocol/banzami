@@ -40,8 +40,11 @@ impl LedgerPosting {
         let mut sums: HashMap<Currency, i64> = HashMap::new();
         for entry in &self.entries {
             let bucket = sums.entry(entry.amount.currency).or_insert(0);
+            let signed = entry
+                .checked_signed_minor_units()
+                .ok_or_else(|| Self::unbalanced_for(&self.entries, entry.amount.currency))?;
             *bucket = bucket
-                .checked_add(entry.signed_minor_units())
+                .checked_add(signed)
                 .ok_or_else(|| Self::unbalanced_for(&self.entries, entry.amount.currency))?;
         }
         for (currency, net) in sums {

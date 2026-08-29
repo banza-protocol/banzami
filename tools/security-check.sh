@@ -111,6 +111,27 @@ if command -v cargo-audit >/dev/null 2>&1 || cargo audit --version >/dev/null 2>
     bad "cargo audit reported advisories"
     printf '%s\n' "$out" | grep -E 'ID:|Crate:|Title:|Severity:' | head -30
   fi
+
+  # The ONLY advisories core/.cargo/audit.toml ignores are ones whose crate is in
+  # Cargo.lock but never compiled (an optional dependency of a feature this
+  # workspace does not enable). That justification is verified here rather than
+  # trusted: if such a crate ever enters the real build graph, the suppression has
+  # silently become a hidden vulnerability, so the gate fails.
+  if graph=$(cd core && cargo tree --workspace --edges normal 2>/dev/null); then
+    leaked=""
+    for crate in rsa rkyv; do
+      if printf '%s\n' "$graph" | grep -qE "(^|[^a-z-])${crate} v[0-9]"; then
+        leaked="$leaked $crate"
+      fi
+    done
+    if [ -n "$leaked" ]; then
+      bad "audit suppression is no longer valid — now COMPILED:$leaked (remove the ignore in core/.cargo/audit.toml and fix the advisory)"
+    else
+      ok "audit suppressions still valid (rsa, rkyv absent from the build graph)"
+    fi
+  else
+    bad "could not derive the cargo build graph to validate audit suppressions"
+  fi
 else
   skip "cargo-audit not installed (cargo install cargo-audit)"
 fi
