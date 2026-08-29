@@ -54,16 +54,50 @@ func ValidateWebhookURL(raw string) error {
 	return nil
 }
 
+// extraDisallowedCIDRs covers ranges that net.IP's own predicates do NOT report.
+// net.IP.IsPrivate only knows 10/8, 172.16/12, 192.168/16 and fc00::/7, and
+// IsUnspecified matches only the single address 0.0.0.0 — so without these a
+// webhook could still be pointed at carrier-grade-NAT space (widely used for
+// cloud-internal endpoints and mesh VPNs) or at "this network" addresses.
+var extraDisallowedCIDRs = func() []*net.IPNet {
+	nets := []*net.IPNet{}
+	for _, c := range []string{
+		"0.0.0.0/8",       // "this network" (RFC 1122) — 0.0.0.0 alone is IsUnspecified
+		"100.64.0.0/10",   // carrier-grade NAT (RFC 6598) — cloud-internal / mesh VPN space
+		"192.0.0.0/24",    // IETF protocol assignments (RFC 6890)
+		"192.0.2.0/24",    // TEST-NET-1
+		"198.18.0.0/15",   // benchmarking (RFC 2544)
+		"198.51.100.0/24", // TEST-NET-2
+		"203.0.113.0/24",  // TEST-NET-3
+		"240.0.0.0/4",     // reserved (RFC 1112), includes 255.255.255.255 broadcast
+		"::/128",          // IPv6 unspecified
+		"64:ff9b::/96",    // NAT64 — embeds an IPv4 destination
+		"2001:db8::/32",   // IPv6 documentation
+	} {
+		if _, n, err := net.ParseCIDR(c); err == nil {
+			nets = append(nets, n)
+		}
+	}
+	return nets
+}()
+
 // isDisallowedIP reports whether an IP is in a range a public webhook must
-// never target: loopback, private, link-local, ULA, unspecified, multicast.
+// never target: loopback, private, link-local, ULA, unspecified, multicast, and
+// the additional reserved/internal ranges in extraDisallowedCIDRs.
 func isDisallowedIP(ip net.IP) bool {
 	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() {
+		ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() ||
+		ip.IsInterfaceLocalMulticast() {
 		return true
 	}
 	// IPv4-mapped IPv6 (::ffff:a.b.c.d) — unwrap and re-check.
 	if v4 := ip.To4(); v4 != nil && !ip.Equal(v4) {
 		return isDisallowedIP(v4)
+	}
+	for _, n := range extraDisallowedCIDRs {
+		if n.Contains(ip) {
+			return true
+		}
 	}
 	return false
 }
@@ -97,5 +131,23 @@ func newSafeWebhookClient(timeout time.Duration) *http.Client {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	return &http.Client{Timeout: timeout, Transport: transport}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+		// Bound redirect chains and refuse to downgrade to cleartext. The dialer
+		// above re-validates the resolved IP of every hop, so a redirect cannot
+		// reach internal space; this additionally stops a merchant endpoint from
+		// bouncing the signed payload (and its Banza-Signature header, which Go
+		// forwards because it is not a well-known credential header) onto plain
+		// HTTP, and caps redirect loops.
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 3 {
+				return fmt.Errorf("webhook target redirected too many times")
+			}
+			if req.URL.Scheme != "https" {
+				return fmt.Errorf("webhook target redirected to a non-https URL")
+			}
+			return nil
+		},
+	}
 }

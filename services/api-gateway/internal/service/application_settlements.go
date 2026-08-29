@@ -9,8 +9,13 @@ import (
 // status only. Ledger account ids and posting ids are deliberately omitted: an
 // external app never sees the ledger internals.
 type ApplicationSettlement struct {
-	ID                  string     `json:"id"`
-	OwnerRef            string     `json:"owner_ref"`
+	ID       string `json:"id"`
+	OwnerRef string `json:"owner_ref"`
+	// ApplicationID is the Business Account (merchant) that created this
+	// settlement — the authorisation binding used to scope reads (SEC-002).
+	// It is gateway-internal: `json:"-"` keeps it out of the app-facing payload,
+	// which stays amounts + status only.
+	ApplicationID       string     `json:"-"`
 	Status              string     `json:"status"`
 	GrossAmountMinor    int64      `json:"gross_amount_minor"`
 	ApplicationFeeMinor int64      `json:"application_fee_minor"`
@@ -26,16 +31,20 @@ type ApplicationSettlement struct {
 // passes wallet ids + the gross it read from the source wallet; the fee is resolved
 // by the Pricing Engine from fee_policy_ref (never a number).
 type CreateApplicationSettlementInput struct {
-	IdempotencyKey         string
-	OwnerRef               string
-	SourceWalletID         string
+	IdempotencyKey string
+	OwnerRef       string
+	// ApplicationID binds the settlement to the Business Account that created
+	// it, so a later read can be authorised (SEC-002). Always set by the handler
+	// from the authenticated principal — never from the request body.
+	ApplicationID  string
+	SourceWalletID string
 	// SourceAccountID, when set, settles FROM a specific segregated wallet account
 	// (ADR-042 — e.g. a DOA campaign account) instead of the wallet's default
 	// account. The gateway resolves it from a wallet_account it has verified the
 	// caller owns; only this ledger account is debited. Takes precedence over
 	// SourceWalletID.
-	SourceAccountID        string
-	BeneficiaryWalletID    string
+	SourceAccountID     string
+	BeneficiaryWalletID string
 	// BeneficiaryAccountID / ApplicationFeeAccountID are resolved ledger accounts
 	// (ADR-029, e.g. from a @banza handle). Take precedence over the wallet ids.
 	BeneficiaryAccountID    string
@@ -43,12 +52,12 @@ type CreateApplicationSettlementInput struct {
 	ApplicationFeeWalletID  string
 	// ApplicationFeeBps is the app-defined fee rate (ADR-029). When > 0 the
 	// operator computes the fee from it and ignores any pricing reference.
-	ApplicationFeeBps      int
-	GrossAmountMinor       int64
-	Currency               string
-	FeePolicyRef           string
-	BusinessCategory       string
-	PricingProfile         string
+	ApplicationFeeBps int
+	GrossAmountMinor  int64
+	Currency          string
+	FeePolicyRef      string
+	BusinessCategory  string
+	PricingProfile    string
 }
 
 type ApplicationSettlementService interface {
@@ -61,6 +70,7 @@ type ApplicationSettlementService interface {
 type coreSettlementResp struct {
 	ID             string        `json:"id"`
 	OwnerRef       string        `json:"owner_ref"`
+	ApplicationID  string        `json:"application_id"`
 	Status         string        `json:"status"`
 	GrossAmount    coreMoneyResp `json:"gross_amount"`
 	ApplicationFee coreMoneyResp `json:"application_fee"`
@@ -74,7 +84,7 @@ type coreSettlementResp struct {
 
 func (r *coreSettlementResp) toSafe() *ApplicationSettlement {
 	return &ApplicationSettlement{
-		ID: r.ID, OwnerRef: r.OwnerRef, Status: r.Status,
+		ID: r.ID, OwnerRef: r.OwnerRef, ApplicationID: r.ApplicationID, Status: r.Status,
 		GrossAmountMinor: r.GrossAmount.AmountMinor, ApplicationFeeMinor: r.ApplicationFee.AmountMinor,
 		NetAmountMinor: r.NetAmount.AmountMinor, Currency: r.Currency, Environment: r.Environment,
 		CreatedAt: r.CreatedAt, CompletedAt: r.CompletedAt, FailureReason: r.FailureReason,
@@ -93,6 +103,10 @@ func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in Cre
 		"owner_ref":          in.OwnerRef,
 		"gross_amount_minor": in.GrossAmountMinor,
 		"currency":           in.Currency,
+	}
+	// SEC-002: record the creating Business Account so reads can be scoped to it.
+	if in.ApplicationID != "" {
+		body["application_id"] = in.ApplicationID
 	}
 	// Beneficiary: a resolved account (ADR-029 @handle) wins over a wallet id.
 	if in.BeneficiaryAccountID != "" {

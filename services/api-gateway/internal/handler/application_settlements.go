@@ -123,8 +123,10 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 	}
 
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
-		IdempotencyKey:         body.IdempotencyKey,
-		OwnerRef:               body.OwnerRef,
+		IdempotencyKey: body.IdempotencyKey,
+		OwnerRef:       body.OwnerRef,
+		ApplicationID:  principal.MerchantID, // SEC-002 authorisation binding
+
 		SourceWalletID:         body.SourceWalletID,
 		SourceAccountID:        sourceAccountID,
 		BeneficiaryWalletID:    body.BeneficiaryWalletID,
@@ -168,6 +170,18 @@ func (h *ApplicationSettlementHandler) Get(w http.ResponseWriter, r *http.Reques
 	}
 	st, err := h.settlements.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil || st == nil {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "settlement not found")
+		return
+	}
+	// SEC-002: authentication is not authorisation. A settlement is readable only
+	// by the Business Account that created it. Settlements with no binding (rows
+	// written before the binding existed) are NOT readable on this app-facing
+	// route — unknown ownership fails closed rather than leaking another
+	// merchant's gross/fee/net amounts. Reported as NOT_FOUND so the route cannot
+	// be used to enumerate settlement ids.
+	if st.ApplicationID == "" || st.ApplicationID != principal.MerchantID {
+		slog.WarnContext(r.Context(), "application_settlement.get.denied",
+			"settlement_id", st.ID, "caller_merchant_id", principal.MerchantID)
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "settlement not found")
 		return
 	}
@@ -277,8 +291,10 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	}
 
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
-		IdempotencyKey:          body.IdempotencyKey,
-		OwnerRef:                ownerRef,
+		IdempotencyKey: body.IdempotencyKey,
+		OwnerRef:       ownerRef,
+		ApplicationID:  principal.MerchantID, // SEC-002 authorisation binding
+
 		SourceAccountID:         coreSource,
 		BeneficiaryAccountID:    ben.AvailableAccountID,
 		ApplicationFeeAccountID: feeAccountID,

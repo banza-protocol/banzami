@@ -94,7 +94,16 @@ func main() {
 			os.Exit(1)
 		}
 		if secretCipher == nil {
-			slog.Warn("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set — webhook secrets stored in plaintext (dev only)")
+			// A webhook signing secret is what proves an event came from Banzami.
+			// Stored in plaintext, anyone with read access to the database can
+			// forge signed events for every merchant endpoint. That is a dev-only
+			// trade-off: in LIVE the gateway refuses to start, mirroring the
+			// BZM_PROOF_SIGNING_KEY gate below.
+			if service.NormaliseStackEnv(cfg.Environment) == "LIVE" {
+				slog.Error("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set in LIVE — refusing to start: webhook signing secrets would be stored in plaintext")
+				os.Exit(1)
+			}
+			slog.Warn("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set — webhook secrets stored in plaintext (dev/sandbox only)")
 		}
 		pgWebhook := service.NewPostgresWebhookService(dbPool, secretCipher)
 		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
@@ -330,14 +339,19 @@ const (
 )
 
 // proofSigningKeyState decides whether an empty BZM_PROOF_SIGNING_KEY is fatal.
-// LIVE (the production stack value of ENVIRONMENT) with no key is fatal because
-// unkeyed HMAC proof signatures would be forgeable; any non-LIVE environment may
-// run unkeyed with a warning.
+// A live stack with no key is fatal because unkeyed HMAC proof signatures would
+// be forgeable; any non-live environment may run unkeyed with a warning.
+//
+// The live test goes through service.NormaliseStackEnv, the single place that
+// decides what counts as live. Matching the literal string "LIVE" instead made
+// the guard fail OPEN for ENVIRONMENT=production (and "PROD"), which is the very
+// spelling config.IsProduction() looks for — a production gateway would have
+// started with forgeable payment proofs and only logged a warning.
 func proofSigningKeyState(env, key string) proofKeyState {
 	if key != "" {
 		return proofKeyOK
 	}
-	if strings.EqualFold(env, "LIVE") {
+	if service.NormaliseStackEnv(env) == "LIVE" {
 		return proofKeyFatal
 	}
 	return proofKeyWarn

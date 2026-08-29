@@ -132,6 +132,7 @@ const ACCEPTED_TOP_LEVEL = new Set([
   '.claude',             // Claude Code project config (memory, commands)
   '.DS_Store',           // macOS filesystem artifact
   '.tmux.conf',          // tmux developer config
+  '.gitleaks.toml',      // secret-scan policy for `make security-check` (docs/security/BANZAMI_SECURITY_AUDIT.md)
   'CLAUDE.md', 'README.md', 'Makefile', 'deploy.sh', 'dev.sh',
   'Cargo.lock',          // root Cargo.lock if present
   'go.work', 'go.work.sum', // Go multi-module workspace (ties services/ together)

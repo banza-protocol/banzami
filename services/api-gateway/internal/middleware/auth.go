@@ -113,6 +113,11 @@ func RequireScope(scope string) func(http.Handler) http.Handler {
 // environment must be "LIVE" or "SANDBOX" and is embedded as a claim so that
 // every downstream handler knows which data universe the caller may access.
 func NewMerchantToken(secret, merchantID string, scopes []string, environment string, ttl time.Duration) (token, expiresAt string, err error) {
+	// SEC-001 fail-closed: refuse to mint a token that would be signed with an
+	// empty key (such a token is forgeable by anyone).
+	if secret == "" {
+		return "", "", errNoSigningKey
+	}
 	now := time.Now()
 	exp := now.Add(ttl)
 	claims := &jwtClaims{
@@ -156,7 +161,18 @@ func extractBearer(r *http.Request) (string, error) {
 	return strings.TrimSpace(token), nil
 }
 
+// errNoSigningKey is returned whenever a JWT operation is attempted without a
+// configured signing key. SEC-001: an empty HMAC key is a *valid* HS256 key, so
+// verifying against "" would accept any attacker-forged token (arbitrary
+// merchant_id, scopes ["*"], environment "LIVE"). Authentication must fail
+// closed when the key is absent, never fall back to the empty key.
+var errNoSigningKey = errors.New("jwt signing key is not configured")
+
 func verifyJWT(tokenStr, secret string) (*Principal, error) {
+	// SEC-001 fail-closed: never verify a token against an empty key.
+	if secret == "" {
+		return nil, errNoSigningKey
+	}
 	tok, err := jwt.ParseWithClaims(
 		tokenStr,
 		&jwtClaims{},
@@ -184,4 +200,35 @@ func verifyJWT(tokenStr, secret string) (*Principal, error) {
 		Scopes:      c.Scopes,
 		Environment: c.Environment,
 	}, nil
+}
+
+// RequireMerchant rejects any request whose principal is not a Business Account
+// (SEC-004).
+//
+// The gateway deliberately accepts BOTH merchant tokens and consumer tokens:
+// consumer KYC (/v1/compliance/customers/...) is a legitimate consumer-token
+// route. Consumer tokens are minted by public-api with the SAME HS256 secret and
+// the same claim shape, so `Auth` alone cannot tell the two apart — a consumer
+// token authenticates successfully on the merchant surface. Any merchant-surface
+// route that does not itself consult principal.MerchantID would therefore accept
+// an ordinary wallet user's token.
+//
+// This middleware makes the principal TYPE an explicit, route-level requirement
+// so the merchant surface fails closed for consumer credentials, independently of
+// whether each individual handler remembers to check.
+func RequireMerchant(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p, ok := GetPrincipal(r.Context())
+		if !ok {
+			apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required")
+			return
+		}
+		if p.MerchantID == "" {
+			slog.WarnContext(r.Context(), "auth.non_merchant_principal_on_merchant_surface",
+				"path", r.URL.Path, "has_customer_id", p.CustomerID != "")
+			apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant credentials required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

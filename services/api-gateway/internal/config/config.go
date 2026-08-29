@@ -22,9 +22,10 @@ type Config struct {
 	RedisURL            string
 	CoreAPIURL          string
 	OTLPEndpoint        string // optional; tracing is a no-op when empty
-	// JWTSecret is required for protected routes.
-	// Deliberately left optional here so the gateway starts for health-check
-	// purposes even before auth is fully wired.
+	// JWTSecret is the HS256 signing key for merchant/session JWTs. It is
+	// MANDATORY and validated at startup (see validateJWTSecret): an empty key
+	// is a *valid* HMAC key, so booting without one would make every token
+	// forgeable (SEC-001). The gateway refuses to start rather than fail open.
 	JWTSecret string
 	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
 	// When empty, push notifications are silently disabled.
@@ -168,7 +169,32 @@ func Load() (*Config, error) {
 		}
 	}
 
+	if err := validateJWTSecret(cfg.JWTSecret); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+// MinJWTSecretLen is the minimum accepted length for JWT_SECRET. The dev
+// bootstrap (dev.sh) generates 64 hex characters; 32 is the floor below which an
+// HS256 key is brute-forcible offline from a single captured token.
+const MinJWTSecretLen = 32
+
+// validateJWTSecret enforces the SEC-001 fail-closed contract for the gateway's
+// signing key: it must be present and long enough. An empty JWT_SECRET makes
+// every merchant JWT forgeable by anyone (HS256 accepts "" as a key), granting
+// arbitrary merchant_id with scopes ["*"] in the LIVE environment. Config
+// loading fails — and main() exits — rather than serving authenticated routes
+// with a forgeable credential. The error never echoes the secret value.
+func validateJWTSecret(secret string) error {
+	if secret == "" {
+		return fmt.Errorf("JWT_SECRET must be set: the gateway refuses to start without a signing key (an empty key makes every token forgeable)")
+	}
+	if len(secret) < MinJWTSecretLen {
+		return fmt.Errorf("JWT_SECRET is too short: %d characters, minimum %d", len(secret), MinJWTSecretLen)
+	}
+	return nil
 }
 
 func (c *Config) IsDevelopment() bool {

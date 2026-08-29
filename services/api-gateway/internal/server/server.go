@@ -67,6 +67,27 @@ type Dependencies struct {
 // The chi router is wrapped with otelhttp so every request gets a trace span;
 // RouteSpan then sets the low-cardinality route pattern on that span.
 func New(cfg *config.Config, deps Dependencies) *http.Server {
+	r := newRouter(cfg, deps)
+
+	// Wrap the entire chi router with otelhttp. This creates one trace span per
+	// request and records http.server.request.duration / active_requests metrics
+	// automatically using OTel semantic conventions.
+	traced := otelhttp.NewHandler(r, "api-gateway")
+
+	return &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.Port),
+		Handler:      traced,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+}
+
+// newRouter builds the full route table. Split out from New so the registered
+// routes can be asserted directly (chi.Walk) — a security-relevant route being
+// absent is otherwise indistinguishable from it being present-but-rejecting,
+// because group middleware runs before chi's NotFound handler.
+func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	r := chi.NewRouter()
 
 	// ---------------------------------------------------------------------------
@@ -268,6 +289,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			})
 
 			r.Route("/merchants", func(r chi.Router) {
+				r.Use(middleware.RequireMerchant) // SEC-004
 				r.Post("/", mchHandler.Create)
 				r.Get("/{id}", mchHandler.Get)
 				r.Post("/{id}/suspend", mchHandler.Suspend)
@@ -302,6 +324,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			})
 
 			r.Route("/wallets", func(r chi.Router) {
+				r.Use(middleware.RequireMerchant) // SEC-004
 				r.Post("/", wltHandler.Create)
 				r.Get("/", wltHandler.GetForMerchant)
 				r.Get("/{id}", wltHandler.Get)
@@ -345,17 +368,27 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/{id}", payoutHandler.Get)
 			})
 
-			// Consumer identity
+			// Consumer identity.
+			// SEC-004: these consumer-domain routes are part of the MERCHANT
+			// surface, so they require a merchant principal — a consumer token
+			// (minted by public-api with the same secret and claim shape) must
+			// never reach them.
+			// SEC-005: the consumer SUSPEND/CLOSE lifecycle actions were removed
+			// from this surface. They are operator actions and remain available —
+			// capability-gated (CapConsumerSuspend) and audited — through
+			// admin-api → core /internal/v1/consumers/{id}/suspend. On the merchant
+			// surface they were unauthorised: any authenticated principal could
+			// close or suspend ANY consumer account by id.
 			r.Route("/consumers", func(r chi.Router) {
+				r.Use(middleware.RequireMerchant)
 				r.Post("/", consumerHandler.Create)
 				r.Get("/handle/{handle}", consumerHandler.GetByHandle)
 				r.Get("/{id}", consumerHandler.Get)
-				r.Post("/{id}/suspend", consumerHandler.Suspend)
-				r.Post("/{id}/close", consumerHandler.Close)
 			})
 
 			// Consumer wallets
 			r.Route("/consumer-wallets", func(r chi.Router) {
+				r.Use(middleware.RequireMerchant)
 				r.Post("/", consumerWltHandler.Create)
 				r.Get("/", consumerWltHandler.GetForConsumer) // ?consumer_id=X&currency=AOA
 				r.Get("/{id}", consumerWltHandler.Get)
@@ -364,6 +397,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 			// Instant P2P transfers
 			r.Route("/transfers", func(r chi.Router) {
+				r.Use(middleware.RequireMerchant)
 				r.Post("/", transferHandler.Send)
 				r.Get("/", transferHandler.List) // ?consumer_id=X&limit=20&cursor=...
 				r.Get("/{id}", transferHandler.Get)
@@ -489,16 +523,5 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		r.Get("/{code}", consumerPayLinkPubH.GetPublic)
 	})
 
-	// Wrap the entire chi router with otelhttp. This creates one trace span per
-	// request and records http.server.request.duration / active_requests metrics
-	// automatically using OTel semantic conventions.
-	traced := otelhttp.NewHandler(r, "api-gateway")
-
-	return &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      traced,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  120 * time.Second,
-	}
+	return r
 }

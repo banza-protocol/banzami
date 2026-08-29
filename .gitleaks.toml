@@ -1,0 +1,100 @@
+# gitleaks configuration for the Banzami security gate (tools/security-check.sh).
+#
+# Scope: the REPOSITORY's exposure. Build output and vendored dependencies are
+# not part of it — they are generated locally, are gitignored, and their
+# "findings" are checksums and manifest hashes, not credentials. Allowlisting
+# them keeps the gate meaningful; anything left is something a reviewer should
+# actually look at.
+#
+# Every allowlist entry below is a path or a documented placeholder, never a
+# blanket rule suppression: real credentials in these files would still be a
+# finding in any file not listed here.
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated output, vendored dependencies, and documented placeholders"
+
+paths = [
+  # ── The local .env is gitignored and therefore cannot be repository exposure.
+  #    Its CONTENT is intentionally real developer configuration. The control
+  #    that matters — "is .env tracked by git?" — is asserted directly and
+  #    unconditionally by tools/security-check.sh, which no allowlist can weaken.
+  '''(^|/)\.env$''',
+
+  # ── Build output / vendored dependencies (gitignored, not repository content)
+  '''(^|/)node_modules/''',
+  '''(^|/)\.next/''',
+  '''(^|/)target/''',
+  '''(^|/)dist/''',
+  '''(^|/)build/''',
+  '''(^|/)\.dart_tool/''',
+  '''apps/mobile/ios/Pods/''',
+
+  # ── Lockfiles: content-address digests, not secrets
+  '''(^|/)Podfile\.lock$''',
+  '''(^|/)Manifest\.lock$''',
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)Cargo\.lock$''',
+
+  # ── Deliberate negative fixtures for the blueprint validators. These exist to
+  #    prove the validators REJECT bad material; the PEM is a labelled fake.
+  '''infra/blueprint/validators/fixtures/''',
+
+  # ── Published conformance test vectors. The webhook signing secrets here are
+  #    specimen values from the signature specification: they are meant to be
+  #    public so any SDK can verify it computes the same signature.
+  '''sdk-certification/vectors/webhook_signatures\.json$''',
+  '''docs/standards/webhook-signature-spec\.md$''',
+
+  # ── Firebase mobile configuration. Google's API keys in google-services.json /
+  #    GoogleService-Info.plist are CLIENT IDENTIFIERS designed to ship inside the
+  #    app binary; access is controlled by Firebase security rules and GCP API-key
+  #    restrictions, not by keeping the value private.
+  '''apps/mobile/android/app/src/.*/google-services\.json$''',
+  '''apps/mobile/ios/.*GoogleService-Info\.plist$''',
+]
+
+# Match the allowlist regexes against the whole LINE, not just the extracted
+# secret: the justification for these suppressions is contextual (the field is an
+# idempotency key; the literal is a documented placeholder), which is only
+# visible in the surrounding line.
+regexTarget = "line"
+
+regexes = [
+  # ── Documentation and example placeholders — not credentials.
+  '''bz_(test|live)_(xxx|your|YOUR|placeholder|<)''',
+  '''(sk|pk)_(test|live)_(xxx|your|YOUR|placeholder)''',
+  '''\$(\{)?(BANZA|BANZAMI)_[A-Z_]*(KEY|SECRET|TOKEN)''',
+  '''<your[- _](api[- _])?(key|secret|token)>''',
+  '''REPLACE_ME|CHANGE_ME|EXAMPLE_ONLY|FAKE''',
+
+  # ── Idempotency keys are NOT credentials. They are caller-chosen request
+  #    references (an order number, an attempt counter) that appear throughout
+  #    the API documentation and tests. gitleaks' generic rule matches them only
+  #    because the field name ends in "key". Suppressed by value shape, so a real
+  #    credential assigned to a differently-named field is still reported.
+  '''(?i)idem(potency)?[-_]?key["\047]?\s*[:=]\s*["\047][a-z0-9][a-z0-9._-]{3,64}["\047]''',
+
+  # ── Self-evidently synthetic fixture credentials. Each is a literal that
+  #    announces itself as test material; none authenticates to any system.
+  #    Narrow by value, not by file, so a REAL key pasted into a test still fails.
+  '''(?i)(test|fake|dummy|sample|example|placeholder|specimen)[-_](secret|key|token)''',
+  '''(?i)(secret|key|token)[-_](for[-_])?(test|vectors|fixture)''',
+  '''bz_test_sk_ABC123''',
+  '''bz_live_abcdef1234567890_secretpart''',
+  '''abcdef1234567890''',
+
+  # ── Documented placeholder keys in the developer quick-start examples. The
+  #    surrounding comment tells the reader to substitute their own Sandbox key;
+  #    "XXXX" is not a key. Matched on the literal so a real bz_test_sk_… pasted
+  #    into these files would still be reported.
+  '''bz_test_sk_X{3,}''',
+
+  # ── Test-only signing keys used by the security regression suites themselves.
+  #    They exist to prove authentication REJECTS forged tokens; they sign
+  #    nothing outside the test binary.
+  '''test-secret-at-least-32-bytes-long''',
+  '''0123456789abcdef0123456789abcdef''',
+]

@@ -81,27 +81,58 @@ func (h *WalletHandler) GetForMerchant(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, wallet)
 }
 
-// GET /v1/wallets/{id}
-func (h *WalletHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
 
-	wallet, err := h.svc.Get(r.Context(), id)
+// requireOwnedWallet resolves the wallet named in the {id} path segment and
+// enforces that the authenticated merchant OWNS it (SEC-002).
+//
+// Authentication is not authorisation: every route below lives inside the
+// merchant-JWT group, so the caller is *some* authenticated merchant — that
+// alone must never grant access to another merchant's wallet. Possession of a
+// wallet id confers no authority.
+//
+// A wallet belonging to a different merchant is reported as NOT_FOUND rather
+// than FORBIDDEN so the endpoint cannot be used as an existence oracle to
+// enumerate wallet ids across tenants; the caller learns nothing it did not
+// already know. Returns (wallet, true) only when the caller may proceed; when
+// it returns false the response has already been written.
+func (h *WalletHandler) requireOwnedWallet(w http.ResponseWriter, r *http.Request) (*service.WalletRecord, bool) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant authentication required")
+		return nil, false
+	}
+	wallet, err := h.svc.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrWalletNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found")
-			return
+			return nil, false
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
-			"failed to retrieve wallet")
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to retrieve wallet")
+		return nil, false
+	}
+	if wallet == nil || wallet.MerchantID != principal.MerchantID {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found")
+		return nil, false
+	}
+	return wallet, true
+}
+
+// GET /v1/wallets/{id}
+func (h *WalletHandler) Get(w http.ResponseWriter, r *http.Request) {
+	wallet, ok := h.requireOwnedWallet(w, r)
+	if !ok {
 		return
 	}
-
 	writeJSON(w, http.StatusOK, wallet)
 }
 
 // GET /v1/wallets/{id}/balance
 func (h *WalletHandler) Balance(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	wallet, ok := h.requireOwnedWallet(w, r)
+	if !ok {
+		return
+	}
+	id := wallet.ID
 
 	balance, err := h.svc.Balance(r.Context(), id)
 	if err != nil {
@@ -120,7 +151,11 @@ func (h *WalletHandler) Balance(w http.ResponseWriter, r *http.Request) {
 // Analytics returns merchant payment-volume analytics for a wallet, aggregated
 // from the ledger. Optional ?from= and ?to= are RFC3339 timestamps.
 func (h *WalletHandler) Analytics(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	wallet, ok := h.requireOwnedWallet(w, r)
+	if !ok {
+		return
+	}
+	id := wallet.ID
 	from := r.URL.Query().Get("from")
 	to := r.URL.Query().Get("to")
 

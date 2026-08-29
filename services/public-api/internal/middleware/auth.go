@@ -60,6 +60,10 @@ func InjectConsumer(ctx context.Context, c *Consumer) context.Context {
 // NewConsumerToken mints a signed JWT for the given consumer.
 // The returned expiresAt string is RFC3339, suitable for API responses.
 func NewConsumerToken(secret, consumerID string, scopes []string, ttl time.Duration) (token, expiresAt string, err error) {
+	// SEC-001 fail-closed: never mint a token signed with an empty key.
+	if secret == "" {
+		return "", "", errNoSigningKey
+	}
 	now := time.Now()
 	exp := now.Add(ttl)
 	claims := &jwtClaims{
@@ -100,7 +104,16 @@ func extractBearer(r *http.Request) (string, error) {
 	return strings.TrimSpace(token), nil
 }
 
+// errNoSigningKey — SEC-001 (see api-gateway): an empty HMAC key is a valid
+// HS256 key, so verifying against "" would accept any attacker-forged consumer
+// token. Config.Load already refuses to start without JWT_SECRET; this is the
+// defence-in-depth runtime guard so no code path can ever verify with "".
+var errNoSigningKey = errors.New("jwt signing key is not configured")
+
 func verifyJWT(tokenStr, secret string) (*Consumer, error) {
+	if secret == "" {
+		return nil, errNoSigningKey
+	}
 	tok, err := jwt.ParseWithClaims(
 		tokenStr,
 		&jwtClaims{},

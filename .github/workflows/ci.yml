@@ -27,6 +27,14 @@ on:
   #     - 'docs/**'
   #     - 'LICENSE'
 
+# Least privilege for GITHUB_TOKEN. Without an explicit block the workflow
+# inherits the repository default, which on older repositories is read/write on
+# every scope — so any compromised step or action could push code, publish
+# packages or alter releases. No job here needs to write to the repository; the
+# deploy job authenticates to the server with its own SSH key, not this token.
+permissions:
+  contents: read
+
 env:
   CARGO_TERM_COLOR: always
   # Shared across all jobs that need a database
@@ -400,7 +408,7 @@ jobs:
             --exclude='**/target/' \
             --exclude='**/.next/' \
             --exclude='.env' \
-            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no" \
+            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new" \
             . "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/banzami/source/"
 
       # Run database migrations before restarting services.
@@ -408,7 +416,7 @@ jobs:
       - name: Run database migrations
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "cd /srv/banzami/source && \
              source /srv/banzami/.env && \
@@ -416,7 +424,7 @@ jobs:
                --network host \
                -e DATABASE_URL=\"\$DATABASE_URL\" \
                -v \$(pwd)/db/migrations:/migrations \
-               ghcr.io/launchbadge/sqlx-cli:latest \
+               ghcr.io/launchbadge/sqlx-cli:0.7.4 \
                sqlx migrate run --source /migrations"
 
       # Enforced rollout gate: introspect the JUST-MIGRATED target database and run
@@ -426,7 +434,7 @@ jobs:
       - name: Schema-manifest drift detector (target DB) — blocks deploy on drift
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             'cd /srv/banzami/source && source /srv/banzami/.env && \
              psql "$DATABASE_URL" -tAc "$(cat tools/introspect-schema.sql)"' > /tmp/inv.json
@@ -438,7 +446,7 @@ jobs:
       - name: Build and restart services
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "set -e
              cd /srv/banzami/source/infra/docker
@@ -451,7 +459,7 @@ jobs:
       - name: Verify health
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "sleep 8
              curl -fsS http://localhost:8080/health > /dev/null && echo 'api-gateway OK'

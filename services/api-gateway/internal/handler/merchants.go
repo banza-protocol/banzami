@@ -3,11 +3,13 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -44,9 +46,41 @@ func (h *MerchantHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, m)
 }
 
+// requireSelfMerchant enforces that the {id} path segment names the SAME
+// Business Account as the authenticated principal (SEC-003).
+//
+// /v1/merchants/{id}/... is the merchant SELF-SERVICE surface, not an operator
+// surface: operator actions on arbitrary merchants belong to admin-api
+// (/admin/v1/merchants/...) and to the gateway's InternalAuth-guarded
+// /internal/v1 group. Without this check, any authenticated merchant could name
+// another merchant's id in the URL and — most severely — mint a LIVE API key for
+// that merchant (POST /{id}/api-keys returns the plaintext key), taking over the
+// victim's Business Account and its payment authority.
+//
+// A mismatch is reported as NOT_FOUND so the surface cannot be used to confirm
+// which merchant ids exist. Returns (merchantID, true) only when the caller may
+// proceed; when it returns false the response has already been written.
+func requireSelfMerchant(w http.ResponseWriter, r *http.Request) (string, bool) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "merchant authentication required")
+		return "", false
+	}
+	if id := chi.URLParam(r, "id"); id != principal.MerchantID {
+		slog.WarnContext(r.Context(), "merchant.cross_account_attempt",
+			"path", r.URL.Path, "caller_merchant_id", principal.MerchantID)
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "merchant not found")
+		return "", false
+	}
+	return principal.MerchantID, true
+}
+
 // GET /v1/merchants/{id}
 func (h *MerchantHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id, ok := requireSelfMerchant(w, r)
+	if !ok {
+		return
+	}
 
 	m, err := h.svc.Get(r.Context(), id)
 	if err != nil {
@@ -63,7 +97,10 @@ func (h *MerchantHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // POST /v1/merchants/{id}/suspend
 func (h *MerchantHandler) Suspend(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	id, ok := requireSelfMerchant(w, r)
+	if !ok {
+		return
+	}
 
 	m, err := h.svc.Suspend(r.Context(), id)
 	if err != nil {
@@ -87,7 +124,10 @@ func (h *MerchantHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 // environment defaults to "LIVE". Use "SANDBOX" to create a test key
 // (bz_test_ prefix) that only works against the sandbox data universe.
 func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
-	merchantID := chi.URLParam(r, "id")
+	merchantID, ok := requireSelfMerchant(w, r)
+	if !ok {
+		return
+	}
 
 	var body struct {
 		Name        string `json:"name"`
@@ -132,7 +172,10 @@ func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/merchants/{id}/api-keys
 func (h *MerchantHandler) ListApiKeys(w http.ResponseWriter, r *http.Request) {
-	merchantID := chi.URLParam(r, "id")
+	merchantID, ok := requireSelfMerchant(w, r)
+	if !ok {
+		return
+	}
 
 	keys, err := h.svc.ListApiKeys(r.Context(), merchantID)
 	if err != nil {
@@ -148,7 +191,10 @@ func (h *MerchantHandler) ListApiKeys(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /v1/merchants/{id}/api-keys/{keyID}
 func (h *MerchantHandler) RevokeApiKey(w http.ResponseWriter, r *http.Request) {
-	merchantID := chi.URLParam(r, "id")
+	merchantID, ok := requireSelfMerchant(w, r)
+	if !ok {
+		return
+	}
 	keyID := chi.URLParam(r, "keyID")
 
 	if err := h.svc.RevokeApiKey(r.Context(), merchantID, keyID); err != nil {
