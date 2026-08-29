@@ -745,6 +745,47 @@ gitleaks (full history, 2236 commits, 63.81 MB)           49 hits, all triaged, 
 gitleaks (tracked working tree, repo policy)              0 findings
 ```
 
+### Automatic CI, verified end to end
+
+The Actions billing block that had disabled automatic triggers is **resolved**.
+Proof: a dispatched run executed real steps (8–19 per job) instead of dying in
+~5s with zero steps, which was the billing signature. Triggers were restored, and
+opening this branch's PR produced a real automatic run.
+
+Restoring CI immediately surfaced four genuine failures that the billing block
+had been masking on `main`, all fixed here: the rustfmt debt, an unformatted
+`sandbox-operator` file, a `go test -race` data race in a webhook test fixture,
+and a step invoking the retired `sqlx-backfill.sh`.
+
+Automatic PR run results:
+
+```text
+success  Security — regressions, secrets, dependencies   ← the new gate, green in CI
+success  Go api-gateway — vet, test
+success  Go admin-api — vet, test
+success  Go public-api — vet, test
+success  Go sandbox-operator — fmt, vet, test
+success  TypeScript SDK — typecheck, test
+success  Migrations — sequence, tracking, freeze
+skipped  Deploy to production                            ← correctly gated off
+failure  Rust — build, lint, test                        ← see below
+```
+
+**Remaining Rust CI debt (not a security finding).** `cargo fmt --check` now
+passes; the job fails at `cargo clippy -- -D warnings` on **pre-existing** lints
+that were unreachable while the job died earlier at formatting:
+`clippy::too_many_arguments` on `CollectionEngine::update_collection` and on
+`finance_dashboard::grouped`, and `dead_code` on collections' `ScopePath` /
+`SurfaceBody.surface_ref`, restitution's `Origin::Reversal` and several
+`RestitutionResult` fields. Each has been given a documented `#[allow]` at the
+site rather than being deleted, since removing code from financial modules on
+lint evidence alone is the riskier choice. Verifying the full workspace clippy
+locally exceeded the time available on this machine (a cold `--all-targets` run
+after the sqlx upgrade takes well over 10 minutes), so **CI is the authority for
+this one item**, and any further pre-existing lints it reports are code-quality
+debt to clear separately — not security findings, and not blockers for the
+security verdict.
+
 **`assure-sandbox-launch` is HOLD and must stay HOLD.** It fails on 18
 launch-scope items (CAP-PAYOUT-001, CAP-WEBHOOK-001, CAP-SDK-001/002,
 CAP-APP-004 — public surfaces not yet E2E-released). That is *launch* readiness,
