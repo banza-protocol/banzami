@@ -88,8 +88,6 @@ internal/
 | POST | /v1/consumers | JWT | Create consumer |
 | GET | /v1/consumers/handle/{handle} | JWT | Lookup consumer by handle |
 | GET | /v1/consumers/{id} | JWT | Get consumer |
-| POST | /v1/consumers/{id}/suspend | JWT | Suspend consumer |
-| POST | /v1/consumers/{id}/close | JWT | Close consumer account |
 | POST | /v1/consumer-wallets | JWT | Create consumer wallet |
 | GET | /v1/consumer-wallets | JWT | Get consumer's wallet |
 | GET | /v1/consumer-wallets/{id} | JWT | Get consumer wallet by ID |

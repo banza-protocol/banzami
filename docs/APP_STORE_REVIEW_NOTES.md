@@ -218,7 +218,10 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 | Consumer ID | 8d94dd9c-73d6-4743-94f5-4235249dbb79     | ACTIVE  |
 | Criada em   | 2026-05-24                               | —       |
 
-Para desactivar: `POST /v1/consumers/8d94dd9c-73d6-4743-94f5-4235249dbb79/suspend` (via API gateway sandbox com chave de admin).
+Para desactivar: `POST /admin/v1/consumers/8d94dd9c-73d6-4743-94f5-4235249dbb79/suspend`
+na admin-api (consola de operador), autenticado como operador com a capacidade
+`consumer.suspend`. A rota equivalente na superfície de merchant do API gateway
+foi removida por não ter autorização (auditoria de segurança, SEC-003).
 
 ### Merchant (Banzami Business)
 

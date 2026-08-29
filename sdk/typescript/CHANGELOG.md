@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed — BREAKING (security)
+- `suspendConsumer(id)` and `closeConsumer(id)`. Suspending or closing a consumer
+  account is an **operator** action; publishing it in the merchant SDK exposed a
+  capability the merchant surface could not authorise. The routes it called
+  (`POST /v1/consumers/{id}/suspend` and `/close`) performed no ownership check
+  at all, so any authenticated caller could suspend or close **any** consumer
+  account by id — security audit finding SEC-003. Both routes were removed from
+  the merchant surface and a regression test now asserts they stay off it.
+
+  **Migration:** there is deliberately no merchant-facing replacement. The
+  capability lives on the operator surface, where it can be authorised and
+  audited: `POST /admin/v1/consumers/{id}/suspend` in admin-api, gated by the
+  `consumer.suspend` capability and recorded as a `SUSPEND_CONSUMER` audit event.
+  It is reached through the operator console, not through this SDK.
+
 ## [0.2.0] — 2026-06-30
 
 ### Added

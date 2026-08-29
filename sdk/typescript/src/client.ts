@@ -417,13 +417,17 @@ export class BanzamiClient {
     return this.request<Consumer>(`/consumers/handle/${handle}`);
   }
 
-  suspendConsumer(id: string): Promise<Consumer> {
-    return this.request<Consumer>(`/consumers/${id}/suspend`, { method: 'POST' });
-  }
-
-  closeConsumer(id: string): Promise<Consumer> {
-    return this.request<Consumer>(`/consumers/${id}/close`, { method: 'POST' });
-  }
+  // suspendConsumer / closeConsumer were REMOVED in 0.4.0.
+  //
+  // Suspending or closing a consumer account is an OPERATOR action, not a
+  // merchant one. Exposing it here published an unauthorised capability: the
+  // underlying routes performed no ownership check at all, so any caller could
+  // suspend or close ANY consumer account by id (security audit SEC-003).
+  //
+  // The capability still exists, on the surface that can authorise it: the
+  // operator console, backed by admin-api's capability-gated and audited
+  // POST /admin/v1/consumers/{id}/suspend (auth.CapConsumerSuspend). There is
+  // deliberately no merchant-facing equivalent.
 
   // ---------------------------------------------------------------------------
   // Consumer wallets
