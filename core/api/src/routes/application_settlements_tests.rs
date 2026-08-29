@@ -141,17 +141,19 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     // create — references only, never a fee
     let (status, Json(created)) = routes::create(
         State(state.clone()),
-        Json(serde_json::from_value(serde_json::json!({
-            "idempotency_key": "as-route-1",
-            "owner_ref": "campaign_1",
-            "source_account_id": source.to_string(),
-            "beneficiary_account_id": beneficiary.to_string(),
-            "application_fee_account_id": app_fee.to_string(),
-            "gross_amount_minor": 98_000,
-            "currency": "AOA",
-            "business_category": "CROWDFUNDING"
-        }))
-        .unwrap()),
+        Json(
+            serde_json::from_value(serde_json::json!({
+                "idempotency_key": "as-route-1",
+                "owner_ref": "campaign_1",
+                "source_account_id": source.to_string(),
+                "beneficiary_account_id": beneficiary.to_string(),
+                "application_fee_account_id": app_fee.to_string(),
+                "gross_amount_minor": 98_000,
+                "currency": "AOA",
+                "business_category": "CROWDFUNDING"
+            }))
+            .unwrap(),
+        ),
     )
     .await
     .unwrap();
@@ -216,5 +218,8 @@ async fn fee_guard_rejects_non_business_account(pool: PgPool) {
     let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(orphan))
         .await
         .unwrap_err();
-    assert!(format!("{e:?}").contains("NOT_BUSINESS_ACCOUNT"), "got {e:?}");
+    assert!(
+        format!("{e:?}").contains("NOT_BUSINESS_ACCOUNT"),
+        "got {e:?}"
+    );
 }

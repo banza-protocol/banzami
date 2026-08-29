@@ -100,8 +100,15 @@ pub enum RestitutionError {
     InvalidTransactionStatus(String),
     InvalidPaymentStatus(String),
     AccountFrozen,
-    CurrencyMismatch { supplied: String, source: String },
-    ExceedsCaptured { remaining: i64, requested: i64, captured: i64 },
+    CurrencyMismatch {
+        supplied: String,
+        source: String,
+    },
+    ExceedsCaptured {
+        remaining: i64,
+        requested: i64,
+        captured: i64,
+    },
     IdempotencyKeyConflict,
     WalletNotFound,
     ConsumerWalletNotFound,
@@ -127,7 +134,11 @@ fn normalize_source_type(raw: &str) -> Option<&'static str> {
 /// reversal (Banzami ADR-034 proof correction). A partial refund/restitution leaves
 /// the proof CONFIRMED; there is no PARTIALLY_REVERSED state in the protocol proof
 /// model (ADR-040). Idempotent, never deletes, no-op if no proof row exists yet.
-pub async fn mark_proof_fully_reversed(pool: &sqlx::PgPool, transaction_id: Uuid, environment: &str) {
+pub async fn mark_proof_fully_reversed(
+    pool: &sqlx::PgPool,
+    transaction_id: Uuid,
+    environment: &str,
+) {
     let _ = sqlx::query(
         "UPDATE transaction_proofs
             SET status = 'REVERSED', reversed_at = COALESCE(reversed_at, now()), updated_at = now()
@@ -161,7 +172,8 @@ pub async fn apply_restitution(
             captured: 0,
         });
     }
-    let source_type = normalize_source_type(&p.source_type).ok_or(RestitutionError::InvalidSourceType)?;
+    let source_type =
+        normalize_source_type(&p.source_type).ok_or(RestitutionError::InvalidSourceType)?;
 
     // 1. Source-scoped serialization (released at commit/rollback).
     sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))")
@@ -228,7 +240,9 @@ pub async fn apply_restitution(
 
     // 4. Resolve + verify the typed source; capture the authoritative currency.
     let r = match source_type {
-        "TRANSACTION" => resolve_transaction(conn, p.merchant_id, p.source_id, p.transit_account_id).await?,
+        "TRANSACTION" => {
+            resolve_transaction(conn, p.merchant_id, p.source_id, p.transit_account_id).await?
+        }
         "WALLET_PAYMENT" => resolve_wallet_payment(conn, p.merchant_id, p.source_id).await?,
         _ => return Err(RestitutionError::InvalidSourceType),
     };
@@ -302,11 +316,12 @@ pub async fn apply_restitution(
     .execute(&mut *conn)
     .await
     .map_err(db)?;
-    let posting_id: Uuid = sqlx::query_scalar("SELECT id FROM ledger_postings WHERE idempotency_key = $1")
-        .bind(&p.posting_key)
-        .fetch_one(&mut *conn)
-        .await
-        .map_err(db)?;
+    let posting_id: Uuid =
+        sqlx::query_scalar("SELECT id FROM ledger_postings WHERE idempotency_key = $1")
+            .bind(&p.posting_key)
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(db)?;
 
     sqlx::query(
         "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)

@@ -186,10 +186,12 @@ async fn main() {
     // route group is gated in this stage.
     let core_internal_key = env::var("CORE_INTERNAL_KEY").ok();
     let refund_key = core_internal_key.clone();
-    let refund_service_auth = axum_middleware::from_fn(move |req: axum::extract::Request, next: axum_middleware::Next| {
-        let key = refund_key.clone();
-        async move { middleware::internal_service_auth(key, req, next).await }
-    });
+    let refund_service_auth = axum_middleware::from_fn(
+        move |req: axum::extract::Request, next: axum_middleware::Next| {
+            let key = refund_key.clone();
+            async move { middleware::internal_service_auth(key, req, next).await }
+        },
+    );
     let refund_routes = Router::new()
         .route(
             "/internal/v1/refunds",
@@ -206,10 +208,12 @@ async fn main() {
     // key is rejected here. Unset → 503 fail-closed (boundary disabled until the
     // credential is provisioned). The header is never logged.
     let payee_validation_key = env::var("CORE_PAYEE_VALIDATION_KEY").ok();
-    let payee_service_auth = axum_middleware::from_fn(move |req: axum::extract::Request, next: axum_middleware::Next| {
-        let key = payee_validation_key.clone();
-        async move { middleware::internal_service_auth(key, req, next).await }
-    });
+    let payee_service_auth = axum_middleware::from_fn(
+        move |req: axum::extract::Request, next: axum_middleware::Next| {
+            let key = payee_validation_key.clone();
+            async move { middleware::internal_service_auth(key, req, next).await }
+        },
+    );
     let payee_routes = Router::new()
         .route(
             "/internal/v1/wallet-accounts/validate-payee",
@@ -341,18 +345,54 @@ async fn main() {
         )
         // Pricing catalogs (Banzami ADR-021) — operator-only; reference catalogs
         // (no percentages). Pricing profiles + fee policies.
-        .route("/internal/v1/pricing-profiles", post(routes::finance_catalogs::profiles_create))
-        .route("/internal/v1/pricing-profiles", get(routes::finance_catalogs::profiles_list))
-        .route("/internal/v1/pricing-profiles/:id", get(routes::finance_catalogs::profiles_get))
-        .route("/internal/v1/pricing-profiles/:id", axum::routing::patch(routes::finance_catalogs::profiles_update))
-        .route("/internal/v1/pricing-profiles/:id/disable", post(routes::finance_catalogs::profiles_disable))
-        .route("/internal/v1/pricing-profiles/:id/enable", post(routes::finance_catalogs::profiles_enable))
-        .route("/internal/v1/fee-policies", post(routes::finance_catalogs::policies_create))
-        .route("/internal/v1/fee-policies", get(routes::finance_catalogs::policies_list))
-        .route("/internal/v1/fee-policies/:id", get(routes::finance_catalogs::policies_get))
-        .route("/internal/v1/fee-policies/:id", axum::routing::patch(routes::finance_catalogs::policies_update))
-        .route("/internal/v1/fee-policies/:id/disable", post(routes::finance_catalogs::policies_disable))
-        .route("/internal/v1/fee-policies/:id/enable", post(routes::finance_catalogs::policies_enable))
+        .route(
+            "/internal/v1/pricing-profiles",
+            post(routes::finance_catalogs::profiles_create),
+        )
+        .route(
+            "/internal/v1/pricing-profiles",
+            get(routes::finance_catalogs::profiles_list),
+        )
+        .route(
+            "/internal/v1/pricing-profiles/:id",
+            get(routes::finance_catalogs::profiles_get),
+        )
+        .route(
+            "/internal/v1/pricing-profiles/:id",
+            axum::routing::patch(routes::finance_catalogs::profiles_update),
+        )
+        .route(
+            "/internal/v1/pricing-profiles/:id/disable",
+            post(routes::finance_catalogs::profiles_disable),
+        )
+        .route(
+            "/internal/v1/pricing-profiles/:id/enable",
+            post(routes::finance_catalogs::profiles_enable),
+        )
+        .route(
+            "/internal/v1/fee-policies",
+            post(routes::finance_catalogs::policies_create),
+        )
+        .route(
+            "/internal/v1/fee-policies",
+            get(routes::finance_catalogs::policies_list),
+        )
+        .route(
+            "/internal/v1/fee-policies/:id",
+            get(routes::finance_catalogs::policies_get),
+        )
+        .route(
+            "/internal/v1/fee-policies/:id",
+            axum::routing::patch(routes::finance_catalogs::policies_update),
+        )
+        .route(
+            "/internal/v1/fee-policies/:id/disable",
+            post(routes::finance_catalogs::policies_disable),
+        )
+        .route(
+            "/internal/v1/fee-policies/:id/enable",
+            post(routes::finance_catalogs::policies_enable),
+        )
         // Finance dashboard (Banzami ADR-021) — operator-only read-only aggregates
         .route(
             "/internal/v1/finance/dashboard",

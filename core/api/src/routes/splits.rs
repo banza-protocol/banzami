@@ -58,17 +58,17 @@ mod tests {
     // pay, malformed identifiers, unsupported methods, and nested legacy paths.
     fn cases() -> Vec<(&'static str, &'static str)> {
         vec![
-            ("POST", "/internal/v1/splits"),            // create
-            ("GET", "/internal/v1/splits"),             // unsupported method on create path
-            ("GET", "/internal/v1/splits/abc123"),      // detail
+            ("POST", "/internal/v1/splits"),                      // create
+            ("GET", "/internal/v1/splits"), // unsupported method on create path
+            ("GET", "/internal/v1/splits/abc123"), // detail
             ("POST", "/internal/v1/splits/abc123/pay"), // pay
-            ("GET", "/internal/v1/splits/%20%20"),      // malformed id
-            ("GET", "/internal/v1/splits/not-a-uuid"),  // malformed id
-            ("PUT", "/internal/v1/splits/abc123"),      // unsupported method on detail
-            ("DELETE", "/internal/v1/splits/abc123"),   // unsupported method on detail
-            ("PATCH", "/internal/v1/splits/abc123"),    // unsupported method
+            ("GET", "/internal/v1/splits/%20%20"), // malformed id
+            ("GET", "/internal/v1/splits/not-a-uuid"), // malformed id
+            ("PUT", "/internal/v1/splits/abc123"), // unsupported method on detail
+            ("DELETE", "/internal/v1/splits/abc123"), // unsupported method on detail
+            ("PATCH", "/internal/v1/splits/abc123"), // unsupported method
             ("POST", "/internal/v1/splits/abc123/anything/deep"), // nested legacy path
-            ("HEAD", "/internal/v1/splits/abc123"),     // HEAD
+            ("HEAD", "/internal/v1/splits/abc123"), // HEAD
         ]
     }
 

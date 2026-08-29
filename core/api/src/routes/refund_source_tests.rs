@@ -41,7 +41,15 @@ async fn seed_wp(
 async fn resolve_by_interface_returns_typed_wallet_payment(pool: PgPool) {
     let merchant = Uuid::new_v4();
     let link = Uuid::new_v4();
-    let wp = seed_wp(&pool, merchant, Uuid::new_v4(), Some(link), None, "COMPLETED").await;
+    let wp = seed_wp(
+        &pool,
+        merchant,
+        Uuid::new_v4(),
+        Some(link),
+        None,
+        "COMPLETED",
+    )
+    .await;
 
     let v = refund_source::resolve_by_interface(&pool, merchant, Some(link), None)
         .await
@@ -74,7 +82,10 @@ async fn resolve_absent_before_completed(pool: PgPool) {
     // A PENDING payment is not yet refundable → absent.
     seed_wp(&pool, merchant, Uuid::new_v4(), Some(link), None, "PENDING").await;
     let v = refund_source::resolve_by_interface(&pool, merchant, Some(link), None).await;
-    assert!(v.is_none(), "pre-completed payment must not expose a refund source");
+    assert!(
+        v.is_none(),
+        "pre-completed payment must not expose a refund source"
+    );
 
     // No interface ids at all → absent.
     let none = refund_source::resolve_by_interface(&pool, merchant, None, None).await;
@@ -86,7 +97,15 @@ async fn resolve_by_transfer_exact_and_scoped(pool: PgPool) {
     let owner = Uuid::new_v4();
     let attacker = Uuid::new_v4();
     let transfer = Uuid::new_v4();
-    let wp = seed_wp(&pool, owner, transfer, None, Some(Uuid::new_v4()), "COMPLETED").await;
+    let wp = seed_wp(
+        &pool,
+        owner,
+        transfer,
+        None,
+        Some(Uuid::new_v4()),
+        "COMPLETED",
+    )
+    .await;
 
     let v = refund_source::resolve_by_transfer(&pool, owner, transfer)
         .await
@@ -95,13 +114,17 @@ async fn resolve_by_transfer_exact_and_scoped(pool: PgPool) {
     assert_eq!(v["source_id"], serde_json::json!(wp));
 
     // Same transfer, wrong merchant → nothing.
-    assert!(refund_source::resolve_by_transfer(&pool, attacker, transfer)
-        .await
-        .is_none());
+    assert!(
+        refund_source::resolve_by_transfer(&pool, attacker, transfer)
+            .await
+            .is_none()
+    );
     // Unknown transfer → nothing.
-    assert!(refund_source::resolve_by_transfer(&pool, owner, Uuid::new_v4())
-        .await
-        .is_none());
+    assert!(
+        refund_source::resolve_by_transfer(&pool, owner, Uuid::new_v4())
+            .await
+            .is_none()
+    );
 }
 
 /// STRUCTURAL REGRESSION GUARD (WS1 closure). Today, Payment Sessions and Payment

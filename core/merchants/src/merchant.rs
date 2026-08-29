@@ -32,7 +32,13 @@ impl MerchantStatus {
 /// ADR-028 operator taxonomy of Business Accounts. Operator-only; never a BANZA
 /// protocol concept.
 pub const BUSINESS_ACCOUNT_TYPES: &[&str] = &[
-    "MERCHANT", "APPLICATION", "PLATFORM", "NGO", "MARKETPLACE", "DELIVERY", "OTHER",
+    "MERCHANT",
+    "APPLICATION",
+    "PLATFORM",
+    "NGO",
+    "MARKETPLACE",
+    "DELIVERY",
+    "OTHER",
 ];
 
 /// Types permitted to be the destination of an APPLICATION FEE (an app taking a

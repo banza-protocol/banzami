@@ -297,12 +297,13 @@ impl PostgresPricingRuleAdminRepository {
 
     /// Create a brand-new rule (version 1). Errors if the (environment, rule_key)
     /// already exists — an existing key evolves through `update`, not `create`.
-    pub async fn create(
-        &self,
-        input: PricingRuleInput,
-    ) -> Result<PricingRuleRecord, PricingError> {
+    pub async fn create(&self, input: PricingRuleInput) -> Result<PricingRuleRecord, PricingError> {
         input.validate()?;
-        if self.max_version(&input.environment, &input.rule_key).await? > 0 {
+        if self
+            .max_version(&input.environment, &input.rule_key)
+            .await?
+            > 0
+        {
             return Err(PricingError::Config(format!(
                 "rule_key '{}' already exists in {}; edit it instead of creating",
                 input.rule_key, input.environment
@@ -329,10 +330,12 @@ impl PostgresPricingRuleAdminRepository {
             // Immutable: supersede with a new version, disable the old one.
             let next = self.max_version(&base.environment, &base.rule_key).await? + 1;
             let created = self.insert_version(&input, next).await?;
-            sqlx::query("UPDATE pricing_rules SET enabled = FALSE, updated_at = NOW() WHERE id = $1")
-                .bind(id.as_uuid())
-                .execute(&self.pool)
-                .await?;
+            sqlx::query(
+                "UPDATE pricing_rules SET enabled = FALSE, updated_at = NOW() WHERE id = $1",
+            )
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await?;
             Ok(created)
         } else {
             sqlx::query(

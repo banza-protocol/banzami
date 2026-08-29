@@ -31,17 +31,17 @@ pub async fn resolve(
         return Err(ApiError::bad_request("handle is required"));
     }
 
-    let (owner_type, owner_id): (String, Option<Uuid>) = sqlx::query_as(
-        "SELECT owner_type, owner_id FROM handle_registry WHERE handle = $1",
-    )
-    .bind(&normalized)
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| ApiError::not_found("handle not found"))?;
+    let (owner_type, owner_id): (String, Option<Uuid>) =
+        sqlx::query_as("SELECT owner_type, owner_id FROM handle_registry WHERE handle = $1")
+            .bind(&normalized)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+            .ok_or_else(|| ApiError::not_found("handle not found"))?;
 
-    let owner_id = owner_id
-        .ok_or_else(|| ApiError::unprocessable("HANDLE_NOT_ROUTABLE", "handle is reserved/system"))?;
+    let owner_id = owner_id.ok_or_else(|| {
+        ApiError::unprocessable("HANDLE_NOT_ROUTABLE", "handle is reserved/system")
+    })?;
 
     // Resolve the owner's ACTIVE available account for the requested currency.
     let account_id: Option<Uuid> = match owner_type.as_str() {
@@ -68,7 +68,10 @@ pub async fn resolve(
     };
 
     let account_id = account_id.ok_or_else(|| {
-        ApiError::unprocessable("PARTY_NO_WALLET", "no active wallet for handle in this currency")
+        ApiError::unprocessable(
+            "PARTY_NO_WALLET",
+            "no active wallet for handle in this currency",
+        )
     })?;
 
     Ok(Json(serde_json::json!({

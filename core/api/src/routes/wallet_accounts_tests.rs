@@ -111,7 +111,10 @@ async fn new_wallet_gets_primary(pool: PgPool) {
     .await
     .unwrap();
     assert_eq!(purpose, "PRIMARY");
-    assert_eq!(acc, avail, "PRIMARY must adopt the wallet's available account");
+    assert_eq!(
+        acc, avail,
+        "PRIMARY must adopt the wallet's available account"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -119,27 +122,54 @@ async fn create_two_isolated_campaign_accounts(pool: PgPool) {
     let (wid, _) = seed_wallet(&pool, Uuid::new_v4()).await;
     let state = build_state(pool.clone()).await;
 
-    let (sa, Json(a)) = routes::create(State(state.clone()), Json(body(wid, "CAMPAIGN", Some("camp_A"))))
-        .await
-        .unwrap();
+    let (sa, Json(a)) = routes::create(
+        State(state.clone()),
+        Json(body(wid, "CAMPAIGN", Some("camp_A"))),
+    )
+    .await
+    .unwrap();
     assert_eq!(sa, axum::http::StatusCode::CREATED);
     assert_eq!(a["purpose"], "CAMPAIGN");
-    let (_, Json(b)) = routes::create(State(state.clone()), Json(body(wid, "CAMPAIGN", Some("camp_B"))))
-        .await
-        .unwrap();
-    assert_ne!(a["account_id"], b["account_id"], "two campaigns get distinct accounts");
+    let (_, Json(b)) = routes::create(
+        State(state.clone()),
+        Json(body(wid, "CAMPAIGN", Some("camp_B"))),
+    )
+    .await
+    .unwrap();
+    assert_ne!(
+        a["account_id"], b["account_id"],
+        "two campaigns get distinct accounts"
+    );
 
     // Fund campaign A only; B stays zero — isolation.
-    fund(&pool, a["account_id"].as_str().unwrap().parse().unwrap(), 100_000).await;
-    let (_, Json(a2)) = routes::create(State(state.clone()), Json(body(wid, "CAMPAIGN", Some("camp_A"))))
-        .await
-        .unwrap(); // idempotent — returns the same account
+    fund(
+        &pool,
+        a["account_id"].as_str().unwrap().parse().unwrap(),
+        100_000,
+    )
+    .await;
+    let (_, Json(a2)) = routes::create(
+        State(state.clone()),
+        Json(body(wid, "CAMPAIGN", Some("camp_A"))),
+    )
+    .await
+    .unwrap(); // idempotent — returns the same account
     assert_eq!(a2["id"], a["id"], "duplicate reference is idempotent");
-    assert_eq!(a2["available_balance_minor"], 100_000, "balance read from ledger");
+    assert_eq!(
+        a2["available_balance_minor"], 100_000,
+        "balance read from ledger"
+    );
 
-    let (_, Json(b2)) =
-        routes::create(State(state.clone()), Json(body(wid, "CAMPAIGN", Some("camp_B")))).await.unwrap();
-    assert_eq!(b2["available_balance_minor"], 0, "campaign B unaffected by A's funding");
+    let (_, Json(b2)) = routes::create(
+        State(state.clone()),
+        Json(body(wid, "CAMPAIGN", Some("camp_B"))),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        b2["available_balance_minor"], 0,
+        "campaign B unaffected by A's funding"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -168,7 +198,11 @@ async fn inactive_wallet_rejected(pool: PgPool) {
         .await
         .unwrap();
     let state = build_state(pool).await;
-    assert!(routes::create(State(state), Json(body(wid, "CAMPAIGN", Some("camp_Y")))).await.is_err());
+    assert!(
+        routes::create(State(state), Json(body(wid, "CAMPAIGN", Some("camp_Y"))))
+            .await
+            .is_err()
+    );
 }
 
 /// ADR-042 (Unit 6): the settlement webhook routing resolves the owning merchant
@@ -179,8 +213,9 @@ async fn merchant_resolves_from_campaign_account(pool: PgPool) {
     let merchant = Uuid::new_v4();
     let (wid, _) = seed_wallet(&pool, merchant).await;
     let state = build_state(pool.clone()).await;
-    let (_, Json(a)) =
-        routes::create(State(state), Json(body(wid, "CAMPAIGN", Some("camp_W")))).await.unwrap();
+    let (_, Json(a)) = routes::create(State(state), Json(body(wid, "CAMPAIGN", Some("camp_W"))))
+        .await
+        .unwrap();
     let camp_acct: Uuid = a["account_id"].as_str().unwrap().parse().unwrap();
 
     // Mirror the webhook routing query: resolve merchant from either source.
@@ -194,16 +229,23 @@ async fn merchant_resolves_from_campaign_account(pool: PgPool) {
     .fetch_optional(&pool)
     .await
     .unwrap();
-    assert_eq!(resolved, Some(merchant), "campaign account must resolve to its merchant");
+    assert_eq!(
+        resolved,
+        Some(merchant),
+        "campaign account must resolve to its merchant"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn resolve_and_list(pool: PgPool) {
     let (wid, _) = seed_wallet(&pool, Uuid::new_v4()).await;
     let state = build_state(pool.clone()).await;
-    routes::create(State(state.clone()), Json(body(wid, "CAMPAIGN", Some("camp_R"))))
-        .await
-        .unwrap();
+    routes::create(
+        State(state.clone()),
+        Json(body(wid, "CAMPAIGN", Some("camp_R"))),
+    )
+    .await
+    .unwrap();
 
     let Json(resolved) = routes::resolve(
         State(state.clone()),
@@ -218,7 +260,9 @@ async fn resolve_and_list(pool: PgPool) {
     .unwrap();
     assert_eq!(resolved["reference_id"], "camp_R");
 
-    let Json(list) = routes::list_for_wallet(State(state), Path(wid.to_string())).await.unwrap();
+    let Json(list) = routes::list_for_wallet(State(state), Path(wid.to_string()))
+        .await
+        .unwrap();
     // PRIMARY + the campaign account.
     assert_eq!(list["data"].as_array().unwrap().len(), 2);
 }

@@ -290,8 +290,8 @@ impl ApplicationSettlementRepository for PostgresApplicationSettlementRepository
 
 fn row_to_settlement(row: PgRow) -> Result<ApplicationSettlement, ApplicationSettlementError> {
     let currency_code: String = row.try_get("currency")?;
-    let currency = Currency::from_code(&currency_code)
-        .ok_or(ApplicationSettlementError::CurrencyMismatch)?;
+    let currency =
+        Currency::from_code(&currency_code).ok_or(ApplicationSettlementError::CurrencyMismatch)?;
     let status_code: String = row.try_get("status")?;
     let status = ApplicationSettlementStatus::try_from_str(&status_code).ok_or(
         ApplicationSettlementError::InvalidStatus {

@@ -18,7 +18,9 @@ use banzami_app_settlement::{
     CreateApplicationSettlementRequest, PostgresApplicationSettlementEngine,
     PostgresApplicationSettlementRepository,
 };
-use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository, PostingBuilder};
+use banzami_ledger::{
+    Account, AccountType, LedgerEngine, PostgresLedgerRepository, PostingBuilder,
+};
 use banzami_pricing::PostgresPricingRuleProvider;
 use banzami_types::{AccountId, Currency, Money};
 
@@ -167,7 +169,14 @@ async fn settles_net_and_application_fee_balanced(pool: PgPool) -> sqlx::Result<
 
     let created = fx
         .engine
-        .create(req("s1", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s1",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     assert_eq!(created.status, ApplicationSettlementStatus::Created);
@@ -178,8 +187,16 @@ async fn settles_net_and_application_fee_balanced(pool: PgPool) -> sqlx::Result<
     assert_eq!(done.status, ApplicationSettlementStatus::Completed);
 
     // source debited gross (98000 funded − 98000 = 0); beneficiary +net; fee +fee.
-    assert_eq!(net_credit(&fx.pool, source).await, 0, "source debited gross");
-    assert_eq!(net_credit(&fx.pool, beneficiary).await, 93_100, "beneficiary NET");
+    assert_eq!(
+        net_credit(&fx.pool, source).await,
+        0,
+        "source debited gross"
+    );
+    assert_eq!(
+        net_credit(&fx.pool, beneficiary).await,
+        93_100,
+        "beneficiary NET"
+    );
     assert_eq!(net_credit(&fx.pool, app_fee).await, 4_900, "app fee");
 
     // both postings balanced
@@ -217,7 +234,11 @@ async fn app_defined_fee_bypasses_pricing_engine(pool: PgPool) -> sqlx::Result<(
     assert_eq!(created.net_amount.amount_minor(), 190_000);
 
     let done = fx.engine.complete(created.id).await.unwrap();
-    assert_eq!(net_credit(&fx.pool, beneficiary).await, 190_000, "beneficiary NET 95%");
+    assert_eq!(
+        net_credit(&fx.pool, beneficiary).await,
+        190_000,
+        "beneficiary NET 95%"
+    );
     assert_eq!(net_credit(&fx.pool, app_fee).await, 10_000, "app fee 5%");
     assert!(posting_balanced(&fx.pool, done.settlement_posting_id.unwrap().as_uuid()).await);
     assert!(posting_balanced(&fx.pool, done.fee_posting_id.unwrap().as_uuid()).await);
@@ -254,7 +275,10 @@ async fn app_defined_fee_bps_over_bound_is_rejected(pool: PgPool) -> sqlx::Resul
     r.application_fee_bps = Some(6000); // 60% > 50% cap
     let err = fx.engine.create(r).await.unwrap_err();
     assert!(
-        matches!(err, banzami_app_settlement::ApplicationSettlementError::FeeBpsOutOfBounds { .. }),
+        matches!(
+            err,
+            banzami_app_settlement::ApplicationSettlementError::FeeBpsOutOfBounds { .. }
+        ),
         "got {err:?}"
     );
     Ok(())
@@ -272,15 +296,29 @@ async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()>
 
     let created = fx
         .engine
-        .create(req("s2", source, beneficiary, None, 50_000, Some("DONATION")))
+        .create(req(
+            "s2",
+            source,
+            beneficiary,
+            None,
+            50_000,
+            Some("DONATION"),
+        ))
         .await
         .unwrap();
     assert_eq!(created.application_fee.amount_minor(), 0);
     assert_eq!(created.net_amount.amount_minor(), 50_000);
 
     let done = fx.engine.complete(created.id).await.unwrap();
-    assert_eq!(net_credit(&fx.pool, beneficiary).await, 50_000, "all to beneficiary");
-    assert!(done.fee_posting_id.is_none(), "no fee posting when fee is 0");
+    assert_eq!(
+        net_credit(&fx.pool, beneficiary).await,
+        50_000,
+        "all to beneficiary"
+    );
+    assert!(
+        done.fee_posting_id.is_none(),
+        "no fee posting when fee is 0"
+    );
     Ok(())
 }
 
@@ -296,10 +334,20 @@ async fn fee_exceeding_gross_rejected(pool: PgPool) -> sqlx::Result<()> {
 
     let result = fx
         .engine
-        .create(req("s3", source, beneficiary, Some(app_fee), 10_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s3",
+            source,
+            beneficiary,
+            Some(app_fee),
+            10_000,
+            Some("CROWDFUNDING"),
+        ))
         .await;
     assert!(
-        matches!(result, Err(ApplicationSettlementError::FeeExceedsGross { .. })),
+        matches!(
+            result,
+            Err(ApplicationSettlementError::FeeExceedsGross { .. })
+        ),
         "got {result:?}"
     );
     Ok(())
@@ -318,18 +366,32 @@ async fn insufficient_funds_rejected_no_partial(pool: PgPool) -> sqlx::Result<()
 
     let created = fx
         .engine
-        .create(req("s4", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s4",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     let result = fx.engine.complete(created.id).await;
     assert!(
-        matches!(result, Err(ApplicationSettlementError::InsufficientFunds { .. })),
+        matches!(
+            result,
+            Err(ApplicationSettlementError::InsufficientFunds { .. })
+        ),
         "got {result:?}"
     );
     // no money moved; settlement still CREATED
     assert_eq!(net_credit(&fx.pool, beneficiary).await, 0);
     assert_eq!(net_credit(&fx.pool, app_fee).await, 0);
-    assert_eq!(net_credit(&fx.pool, source).await, 50_000, "source untouched");
+    assert_eq!(
+        net_credit(&fx.pool, source).await,
+        50_000,
+        "source untouched"
+    );
     assert_eq!(
         fx.engine.get(created.id).await.unwrap().status,
         ApplicationSettlementStatus::Created
@@ -350,7 +412,14 @@ async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
 
     let created = fx
         .engine
-        .create(req("s5", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s5",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     fx.engine.complete(created.id).await.unwrap();
@@ -364,7 +433,14 @@ async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
     // create replay returns the same aggregate
     let recreated = fx
         .engine
-        .create(req("s5", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s5",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     assert_eq!(recreated.id, created.id, "idempotent create");
@@ -384,7 +460,14 @@ async fn completed_settlement_is_immutable(pool: PgPool) -> sqlx::Result<()> {
 
     let created = fx
         .engine
-        .create(req("s6", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s6",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     fx.engine.complete(created.id).await.unwrap();
@@ -414,7 +497,14 @@ async fn rule_change_does_not_alter_completed(pool: PgPool) -> sqlx::Result<()> 
 
     let created = fx
         .engine
-        .create(req("s7", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "s7",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     let done = fx.engine.complete(created.id).await.unwrap();
@@ -426,7 +516,11 @@ async fn rule_change_does_not_alter_completed(pool: PgPool) -> sqlx::Result<()> 
         .unwrap();
 
     let reloaded = fx.engine.get(done.id).await.unwrap();
-    assert_eq!(reloaded.application_fee.amount_minor(), 4_900, "fee unchanged");
+    assert_eq!(
+        reloaded.application_fee.amount_minor(),
+        4_900,
+        "fee unchanged"
+    );
     assert_eq!(reloaded.net_amount.amount_minor(), 93_100, "net unchanged");
     assert_eq!(
         reloaded.pricing_snapshot_json["rate_bps"],
@@ -453,29 +547,63 @@ async fn list_filtered_by_owner_status_currency(pool: PgPool) -> sqlx::Result<()
 
     let created = fx
         .engine
-        .create(req("lf1", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .create(req(
+            "lf1",
+            source,
+            beneficiary,
+            Some(app_fee),
+            98_000,
+            Some("CROWDFUNDING"),
+        ))
         .await
         .unwrap();
     fx.engine.complete(created.id).await.unwrap();
 
     let repo = PostgresApplicationSettlementRepository::new(fx.pool.clone());
-    let base = ApplicationSettlementFilter { limit: 100, ..Default::default() };
+    let base = ApplicationSettlementFilter {
+        limit: 100,
+        ..Default::default()
+    };
 
     assert_eq!(repo.list_filtered(&base).await.unwrap().len(), 1);
     assert_eq!(
-        repo.list_filtered(&ApplicationSettlementFilter { owner_ref: Some("campaign_42".into()), ..base.clone() }).await.unwrap().len(),
+        repo.list_filtered(&ApplicationSettlementFilter {
+            owner_ref: Some("campaign_42".into()),
+            ..base.clone()
+        })
+        .await
+        .unwrap()
+        .len(),
         1
     );
     assert_eq!(
-        repo.list_filtered(&ApplicationSettlementFilter { status: Some("COMPLETED".into()), ..base.clone() }).await.unwrap().len(),
+        repo.list_filtered(&ApplicationSettlementFilter {
+            status: Some("COMPLETED".into()),
+            ..base.clone()
+        })
+        .await
+        .unwrap()
+        .len(),
         1
     );
     assert_eq!(
-        repo.list_filtered(&ApplicationSettlementFilter { status: Some("CANCELLED".into()), ..base.clone() }).await.unwrap().len(),
+        repo.list_filtered(&ApplicationSettlementFilter {
+            status: Some("CANCELLED".into()),
+            ..base.clone()
+        })
+        .await
+        .unwrap()
+        .len(),
         0
     );
     assert_eq!(
-        repo.list_filtered(&ApplicationSettlementFilter { currency: Some("USD".into()), ..base.clone() }).await.unwrap().len(),
+        repo.list_filtered(&ApplicationSettlementFilter {
+            currency: Some("USD".into()),
+            ..base.clone()
+        })
+        .await
+        .unwrap()
+        .len(),
         0
     );
     Ok(())

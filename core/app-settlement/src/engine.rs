@@ -129,7 +129,11 @@ where
         &self,
         req: CreateApplicationSettlementRequest,
     ) -> Result<ApplicationSettlement, ApplicationSettlementError> {
-        if let Some(existing) = self.repo.get_by_idempotency_key(&req.idempotency_key).await? {
+        if let Some(existing) = self
+            .repo
+            .get_by_idempotency_key(&req.idempotency_key)
+            .await?
+        {
             return Ok(existing);
         }
         if !req.gross_amount.is_positive() {
@@ -176,7 +180,10 @@ where
                         .as_deref()
                         .map(BusinessCategory::from_code)
                         .unwrap_or_else(|| BusinessCategory::Other(String::new())),
-                    pricing_profile: req.pricing_profile.as_deref().map(PricingProfile::from_code),
+                    pricing_profile: req
+                        .pricing_profile
+                        .as_deref()
+                        .map(PricingProfile::from_code),
                     fee_policy_ref: req.fee_policy_ref.clone().map(FeePolicyRef::new),
                     country: None,
                     transaction_type: None,
@@ -262,7 +269,14 @@ where
         }
         self.guard_transition(&s, ApplicationSettlementStatus::Pending)?;
         self.repo
-            .update_status(id, ApplicationSettlementStatus::Pending, None, None, None, None)
+            .update_status(
+                id,
+                ApplicationSettlementStatus::Pending,
+                None,
+                None,
+                None,
+                None,
+            )
             .await
     }
 
@@ -358,7 +372,14 @@ where
         let now = Utc::now();
         let cancelled = self
             .repo
-            .update_status(id, ApplicationSettlementStatus::Cancelled, None, Some(now), None, None)
+            .update_status(
+                id,
+                ApplicationSettlementStatus::Cancelled,
+                None,
+                Some(now),
+                None,
+                None,
+            )
             .await?;
         tracing::info!(
             event = "application.settlement.cancelled",
@@ -377,10 +398,7 @@ where
         let s = self.repo.get(id).await?;
         self.guard_transition(&s, ApplicationSettlementStatus::Failed)?;
         let now = Utc::now();
-        let failed = self
-            .repo
-            .fail(id, now, &reason)
-            .await?;
+        let failed = self.repo.fail(id, now, &reason).await?;
         tracing::info!(
             event = "application.settlement.failed",
             settlement_id = %failed.id,

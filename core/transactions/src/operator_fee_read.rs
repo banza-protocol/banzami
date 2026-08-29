@@ -82,7 +82,9 @@ impl PostgresOperatorFeeReadRepository {
             .map_err(TransactionError::Database)?
             .map(row_to_view)
             .transpose()?
-            .ok_or(TransactionError::NotFound(crate::TransactionId::from_uuid(id)))
+            .ok_or(TransactionError::NotFound(crate::TransactionId::from_uuid(
+                id,
+            )))
     }
 
     pub async fn list(
@@ -147,7 +149,10 @@ impl PostgresOperatorFeeReadRepository {
         if let Some(v) = f.to {
             q = q.bind(v);
         }
-        let rows = q.fetch_all(&self.pool).await.map_err(TransactionError::Database)?;
+        let rows = q
+            .fetch_all(&self.pool)
+            .await
+            .map_err(TransactionError::Database)?;
         rows.into_iter().map(row_to_view).collect()
     }
 }

@@ -225,14 +225,20 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine for PostgresWa
 
                 // Posting 1: payee NET (idempotency key = the caller's capture key).
                 let settle = PostingBuilder::new(
-                    format!("Settle {} to wallet {} available (net of fee)", net, wallet.id),
+                    format!(
+                        "Settle {} to wallet {} available (net of fee)",
+                        net, wallet.id
+                    ),
                     req.idempotency_key.clone(),
                 )
                 .debit(wallet.reserved_account_id, net)
                 .credit(wallet.available_account_id, net)
                 .build()
                 .map_err(|e| WalletError::Posting(e.to_string()))?;
-                self.ledger.post(settle).await.map_err(WalletError::Ledger)?;
+                self.ledger
+                    .post(settle)
+                    .await
+                    .map_err(WalletError::Ledger)?;
 
                 // Posting 2: operator fee (derived, distinct key — idempotent).
                 let fee_posting = PostingBuilder::new(
@@ -262,7 +268,11 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine for PostgresWa
         .build()
         .map_err(|e| WalletError::Posting(e.to_string()))?;
 
-        let posted = self.ledger.post(posting).await.map_err(WalletError::Ledger)?;
+        let posted = self
+            .ledger
+            .post(posting)
+            .await
+            .map_err(WalletError::Ledger)?;
         Ok(posted.id)
     }
 }

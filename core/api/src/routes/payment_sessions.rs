@@ -88,9 +88,13 @@ async fn fetch_session(pool: &sqlx::PgPool, id: Uuid) -> Result<serde_json::Valu
     // only once a wallet payment has COMPLETED for this session's interface and
     // this merchant; absent before paid / for a non-owning merchant. This id is
     // exactly the typed `source_id` the public Refunds endpoint already accepts.
-    let refund_source =
-        super::refund_source::resolve_by_interface(pool, r.merchant_id, r.payment_link_id, r.qr_code_id)
-            .await;
+    let refund_source = super::refund_source::resolve_by_interface(
+        pool,
+        r.merchant_id,
+        r.payment_link_id,
+        r.qr_code_id,
+    )
+    .await;
 
     Ok(serde_json::json!({
         "session_id": r.id,
@@ -123,7 +127,11 @@ pub async fn create(
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
     let wa_id = Uuid::parse_str(&body.wallet_account_id)
         .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
-    let purpose = body.purpose.clone().unwrap_or_else(|| "GENERIC".into()).to_uppercase();
+    let purpose = body
+        .purpose
+        .clone()
+        .unwrap_or_else(|| "GENERIC".into())
+        .to_uppercase();
     if !PURPOSES.contains(&purpose.as_str()) {
         return Err(ApiError::bad_request("invalid purpose"));
     }
@@ -131,21 +139,30 @@ pub async fn create(
     // Validate the destination: a wallet_account the merchant owns, ACTIVE, with a
     // matching currency. Also yields the parent wallet + currency.
     let (wallet_id, wa_currency, wa_status, wa_merchant): (Uuid, String, String, Uuid) =
-        sqlx::query_as("SELECT wallet_id, currency, status, merchant_id FROM wallet_accounts WHERE id = $1")
-            .bind(wa_id)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?
-            .ok_or_else(|| ApiError::not_found("wallet account not found"))?;
+        sqlx::query_as(
+            "SELECT wallet_id, currency, status, merchant_id FROM wallet_accounts WHERE id = $1",
+        )
+        .bind(wa_id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        .ok_or_else(|| ApiError::not_found("wallet account not found"))?;
     if wa_merchant != merchant_id {
-        return Err(ApiError::forbidden("wallet account is not owned by this merchant"));
+        return Err(ApiError::forbidden(
+            "wallet account is not owned by this merchant",
+        ));
     }
     if wa_status != "ACTIVE" {
-        return Err(ApiError::conflict("WALLET_ACCOUNT_INACTIVE", "wallet account is not active"));
+        return Err(ApiError::conflict(
+            "WALLET_ACCOUNT_INACTIVE",
+            "wallet account is not active",
+        ));
     }
     let currency_code = body.currency.clone().unwrap_or_else(|| wa_currency.clone());
     if currency_code != wa_currency {
-        return Err(ApiError::bad_request("currency does not match the wallet account"));
+        return Err(ApiError::bad_request(
+            "currency does not match the wallet account",
+        ));
     }
     let currency = Currency::from_code(&currency_code)
         .ok_or_else(|| ApiError::bad_request("unsupported currency"))?;
@@ -166,7 +183,10 @@ pub async fn create(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?
         {
-            return Ok((StatusCode::OK, Json(fetch_session(&state.pool, existing).await?)));
+            return Ok((
+                StatusCode::OK,
+                Json(fetch_session(&state.pool, existing).await?),
+            ));
         }
     }
 
@@ -191,7 +211,9 @@ pub async fn create(
     // gateway). Both interfaces credit the same wallet_account.
     let (qr_code_id, qr_payload): (Option<Uuid>, Option<String>) = match body.amount_minor {
         Some(amt) if amt > 0 => {
-            let qr_expiry = body.expires_at.unwrap_or_else(|| Utc::now() + Duration::days(90));
+            let qr_expiry = body
+                .expires_at
+                .unwrap_or_else(|| Utc::now() + Duration::days(90));
             let qr = state
                 .qr
                 .create_dynamic(CreateDynamicQrRequest {
@@ -205,7 +227,10 @@ pub async fn create(
                 })
                 .await
                 .map_err(|e| ApiError::internal(e.to_string()))?;
-            let payload = state.qr.encode(&qr).map_err(|e| ApiError::internal(e.to_string()))?;
+            let payload = state
+                .qr
+                .encode(&qr)
+                .map_err(|e| ApiError::internal(e.to_string()))?;
             (Some(qr.id.as_uuid()), Some(payload))
         }
         _ => (None, None),
@@ -348,7 +373,8 @@ pub async fn settle_by_interface(
     Json(body): Json<SettleByInterfaceBody>,
 ) -> ApiResult<StatusCode> {
     let rid = Uuid::parse_str(&ref_id).map_err(|_| ApiError::bad_request("invalid id"))?;
-    let tid = Uuid::parse_str(&body.transfer_id).map_err(|_| ApiError::bad_request("invalid transfer_id"))?;
+    let tid = Uuid::parse_str(&body.transfer_id)
+        .map_err(|_| ApiError::bad_request("invalid transfer_id"))?;
     let interface = body.interface.as_deref().unwrap_or(match kind.as_str() {
         "link" => "PAYMENT_LINK",
         _ => "DYNAMIC_QR",
@@ -401,8 +427,8 @@ pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ListQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id =
-        Uuid::parse_str(&q.merchant_id).map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let merchant_id = Uuid::parse_str(&q.merchant_id)
+        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
     let limit = q.limit.unwrap_or(50).clamp(1, 200);
     let ids: Vec<Uuid> = sqlx::query_scalar(
         "SELECT id FROM payment_sessions

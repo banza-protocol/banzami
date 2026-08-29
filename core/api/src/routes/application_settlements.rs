@@ -125,12 +125,14 @@ pub(crate) async fn guard_application_fee_destination(
     pool: &PgPool,
     fee_account: AccountId,
 ) -> Result<(), ApiError> {
-    let merchant_id = merchant_for_account(pool, fee_account).await.ok_or_else(|| {
-        ApiError::unprocessable(
-            "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-            "application fee destination is not a Banzami Business Account",
-        )
-    })?;
+    let merchant_id = merchant_for_account(pool, fee_account)
+        .await
+        .ok_or_else(|| {
+            ApiError::unprocessable(
+                "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
+                "application fee destination is not a Banzami Business Account",
+            )
+        })?;
 
     // The fee destination's merchant must be a validated, permitted Business
     // Account. One row read of its type + KYB status.
@@ -213,9 +215,10 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
         E::NotFound(_) => ApiError::not_found("application settlement not found"),
         E::InvalidAmount => ApiError::bad_request("gross amount must be positive"),
         E::CurrencyMismatch => ApiError::bad_request("currency mismatch"),
-        E::FeeExceedsGross { .. } => {
-            ApiError::unprocessable("FEE_EXCEEDS_GROSS", "resolved application fee exceeds gross")
-        }
+        E::FeeExceedsGross { .. } => ApiError::unprocessable(
+            "FEE_EXCEEDS_GROSS",
+            "resolved application fee exceeds gross",
+        ),
         E::MissingFeeAccount { .. } => {
             ApiError::bad_request("application_fee_account_id is required for this category")
         }
@@ -223,9 +226,10 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
             "FEE_BPS_OUT_OF_BOUNDS",
             format!("application_fee_bps exceeds the maximum allowed ({max})"),
         ),
-        E::InsufficientFunds { .. } => {
-            ApiError::unprocessable("INSUFFICIENT_FUNDS", "source account has insufficient funds")
-        }
+        E::InsufficientFunds { .. } => ApiError::unprocessable(
+            "INSUFFICIENT_FUNDS",
+            "source account has insufficient funds",
+        ),
         E::InvalidStatus { .. } => {
             ApiError::conflict("INVALID_STATUS", "invalid settlement status transition")
         }
@@ -247,9 +251,13 @@ pub async fn create(
     if body.gross_amount_minor <= 0 {
         return Err(ApiError::bad_request("gross_amount_minor must be positive"));
     }
-    let source_account_id =
-        account_or_wallet(&state.pool, body.source_account_id, body.source_wallet_id, "source")
-            .await?;
+    let source_account_id = account_or_wallet(
+        &state.pool,
+        body.source_account_id,
+        body.source_wallet_id,
+        "source",
+    )
+    .await?;
     let beneficiary_account_id = account_or_wallet(
         &state.pool,
         body.beneficiary_account_id,
@@ -257,7 +265,10 @@ pub async fn create(
         "beneficiary",
     )
     .await?;
-    let application_fee_account_id = match (body.application_fee_account_id, body.application_fee_wallet_id) {
+    let application_fee_account_id = match (
+        body.application_fee_account_id,
+        body.application_fee_wallet_id,
+    ) {
         (None, None) => None,
         (a, w) => Some(account_or_wallet(&state.pool, a, w, "application_fee").await?),
     };
@@ -303,7 +314,11 @@ pub async fn complete(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let s = state.app_settlement.complete(parse_id(&id)?).await.map_err(map_err)?;
+    let s = state
+        .app_settlement
+        .complete(parse_id(&id)?)
+        .await
+        .map_err(map_err)?;
     let v = serde_json::to_value(&s).unwrap();
     emit_settlement_event(&state.pool, "application_settlement.completed", &v).await;
     Ok(Json(v))
@@ -313,7 +328,11 @@ pub async fn cancel(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let s = state.app_settlement.cancel(parse_id(&id)?).await.map_err(map_err)?;
+    let s = state
+        .app_settlement
+        .cancel(parse_id(&id)?)
+        .await
+        .map_err(map_err)?;
     let v = serde_json::to_value(&s).unwrap();
     emit_settlement_event(&state.pool, "application_settlement.cancelled", &v).await;
     Ok(Json(v))
@@ -338,7 +357,11 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let s = state.app_settlement.get(parse_id(&id)?).await.map_err(map_err)?;
+    let s = state
+        .app_settlement
+        .get(parse_id(&id)?)
+        .await
+        .map_err(map_err)?;
     Ok(Json(serde_json::to_value(&s).unwrap()))
 }
 
@@ -357,6 +380,10 @@ pub async fn list(
         to: q.to,
         limit: q.limit.unwrap_or(100),
     };
-    let items = state.app_settlement.list_filtered(&filter).await.map_err(map_err)?;
+    let items = state
+        .app_settlement
+        .list_filtered(&filter)
+        .await
+        .map_err(map_err)?;
     Ok(Json(serde_json::json!({ "data": items })))
 }

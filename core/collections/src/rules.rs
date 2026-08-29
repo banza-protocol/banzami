@@ -91,9 +91,7 @@ pub fn resolve_closed_shares(
             let mut allocated: i64 = 0;
             for s in shares {
                 if s.percent <= 0.0 {
-                    return Err(CollectionError::InvalidRule(
-                        "percent must be > 0".into(),
-                    ));
+                    return Err(CollectionError::InvalidRule("percent must be > 0".into()));
                 }
                 let amount = ((total_amount_minor as f64) * s.percent / 100.0).floor() as i64;
                 allocated += amount;

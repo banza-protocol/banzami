@@ -779,7 +779,10 @@ async fn won_by_consumer_posts_balanced_refund(pool: PgPool) {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(transit_credit, 2_000, "acquiring restitution credit lands on transit");
+    assert_eq!(
+        transit_credit, 2_000,
+        "acquiring restitution credit lands on transit"
+    );
     let _ = (c_avail, c_reserved);
 }
 
@@ -884,11 +887,13 @@ async fn seed_proof(pool: &PgPool, tx: Uuid) {
 }
 
 async fn proof_status(pool: &PgPool, tx: Uuid) -> String {
-    sqlx::query_scalar::<_, String>("SELECT status FROM transaction_proofs WHERE transaction_id = $1")
-        .bind(tx.to_string())
-        .fetch_one(pool)
-        .await
-        .unwrap()
+    sqlx::query_scalar::<_, String>(
+        "SELECT status FROM transaction_proofs WHERE transaction_id = $1",
+    )
+    .bind(tx.to_string())
+    .fetch_one(pool)
+    .await
+    .unwrap()
 }
 
 fn resolve_body() -> disputes::ResolveDisputeBody {
@@ -916,9 +921,15 @@ async fn refund_rejects_currency_mismatch(pool: PgPool) {
     let seed = seed_captured_tx(&pool, 1_000).await;
     let mut body = refund_body(&seed, 500, "cm");
     body.currency = Some("USD".into());
-    let err = refunds::create(State(state), Json(body)).await.expect_err("mismatch");
+    let err = refunds::create(State(state), Json(body))
+        .await
+        .expect_err("mismatch");
     assert_eq!(err.code, "CURRENCY_MISMATCH");
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 0, "no allocation on rejection");
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        0,
+        "no allocation on rejection"
+    );
 }
 
 // A source_type of TRANSFER is never a valid refund source.
@@ -929,7 +940,9 @@ async fn transfer_source_type_rejected(pool: PgPool) {
     let mut body = refund_body(&seed, 500, "tf");
     body.source_type = Some("TRANSFER".into());
     body.source_id = Some(seed.transaction_id.to_string());
-    let err = refunds::create(State(state), Json(body)).await.expect_err("transfer rejected");
+    let err = refunds::create(State(state), Json(body))
+        .await
+        .expect_err("transfer rejected");
     assert_eq!(err.code, "BAD_REQUEST");
 }
 
@@ -938,10 +951,18 @@ async fn transfer_source_type_rejected(pool: PgPool) {
 async fn refund_idempotency_conflict_on_incompatible_reuse(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "dup"))).await.unwrap();
-    let err = refunds::create(State(state), Json(refund_body(&seed, 500, "dup"))).await.expect_err("conflict");
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "dup")))
+        .await
+        .unwrap();
+    let err = refunds::create(State(state), Json(refund_body(&seed, 500, "dup")))
+        .await
+        .expect_err("conflict");
     assert_eq!(err.code, "IDEMPOTENCY_KEY_CONFLICT");
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 400, "only the original allocation");
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        400,
+        "only the original allocation"
+    );
 }
 
 // A rejected over-refund leaves NO allocation, NO posting and NO refund row.
@@ -949,11 +970,20 @@ async fn refund_idempotency_conflict_on_incompatible_reuse(pool: PgPool) {
 async fn rejected_refund_leaves_no_partial_mutation(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let err = refunds::create(State(state), Json(refund_body(&seed, 1_500, "over"))).await.expect_err("over");
+    let err = refunds::create(State(state), Json(refund_body(&seed, 1_500, "over")))
+        .await
+        .expect_err("over");
     assert_eq!(err.code, "REFUND_EXCEEDS_CAPTURED");
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 0);
-    let refunds_n: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM refunds WHERE source_id = $1")
-        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        0
+    );
+    let refunds_n: i64 =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM refunds WHERE source_id = $1")
+            .bind(seed.transaction_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(refunds_n, 0, "no refund row");
 }
 
@@ -962,11 +992,19 @@ async fn rejected_refund_leaves_no_partial_mutation(pool: PgPool) {
 async fn refund_then_dispute_shares_ceiling(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 600, "r"))).await.unwrap();
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 600, "r")))
+        .await
+        .unwrap();
     let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
     let did = Uuid::parse_str(&d.id).unwrap();
-    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "combined never exceeds captured");
+    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body()))
+        .await
+        .unwrap();
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        1_000,
+        "combined never exceeds captured"
+    );
     let (ra, reason, status) = dispute_restitution(&pool, did).await;
     assert_eq!(ra, Some(400), "dispute restitutes the remaining 400");
     assert_eq!(reason.as_deref(), Some("PARTIALLY_REFUNDED_NET_SETTLED"));
@@ -978,30 +1016,51 @@ async fn refund_then_dispute_shares_ceiling(pool: PgPool) {
 async fn fully_refunded_then_dispute_zero_restitution(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 1_000, "full"))).await.unwrap();
+    let _ = refunds::create(
+        State(state.clone()),
+        Json(refund_body(&seed, 1_000, "full")),
+    )
+    .await
+    .unwrap();
     let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
     let did = Uuid::parse_str(&d.id).unwrap();
-    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
+    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body()))
+        .await
+        .unwrap();
 
     // (1) NO restitution_allocations row for this dispute.
     let dispute_allocs: i64 = sqlx::query_scalar::<_, i64>(
         "SELECT COUNT(*)::BIGINT FROM restitution_allocations WHERE origin='DISPUTE' AND origin_id=$1",
     )
     .bind(did).fetch_one(&pool).await.unwrap();
-    assert_eq!(dispute_allocs, 0, "zero-restitution dispute creates NO allocation row");
+    assert_eq!(
+        dispute_allocs, 0,
+        "zero-restitution dispute creates NO allocation row"
+    );
 
     // (2) NO financial posting.
-    assert_eq!(count_postings(&pool, &format!("dispute-refund-{did}")).await, 0, "no dispute posting");
+    assert_eq!(
+        count_postings(&pool, &format!("dispute-refund-{did}")).await,
+        0,
+        "no dispute posting"
+    );
 
     // (3)+(4)+(5) restitution_amount_minor = 0, ALREADY_MADE_WHOLE, outcome persisted
     // atomically (all three fields consistent in the single committed dispute row).
     let (ra, reason, status) = dispute_restitution(&pool, did).await;
     assert_eq!(ra, Some(0), "restitution_amount_minor = 0");
     assert_eq!(reason.as_deref(), Some("ALREADY_MADE_WHOLE"));
-    assert_eq!(status, "WON_BY_CONSUMER", "dispute outcome persisted, not misrepresented as failed");
+    assert_eq!(
+        status, "WON_BY_CONSUMER",
+        "dispute outcome persisted, not misrepresented as failed"
+    );
 
     // The combined ceiling still holds — only the earlier full refund counts.
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "≤ captured, refund only");
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        1_000,
+        "≤ captured, refund only"
+    );
 }
 
 // Dispute won (full), then a later refund is rejected — nothing remains.
@@ -1010,10 +1069,21 @@ async fn dispute_then_refund_rejected(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
     let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
-    let _ = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
-    let err = refunds::create(State(state), Json(refund_body(&seed, 100, "late"))).await.expect_err("nothing left");
+    let _ = disputes::resolve(
+        State(state.clone()),
+        Path(d.id.clone()),
+        Json(resolve_body()),
+    )
+    .await
+    .unwrap();
+    let err = refunds::create(State(state), Json(refund_body(&seed, 100, "late")))
+        .await
+        .expect_err("nothing left");
     assert_eq!(err.code, "REFUND_EXCEEDS_CAPTURED");
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000);
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        1_000
+    );
 }
 
 // Concurrency: two parallel refunds can never over-restitute (advisory lock serializes).
@@ -1025,8 +1095,14 @@ async fn concurrent_refunds_never_over_restitute(pool: PgPool) {
     let f2 = refunds::create(State(state.clone()), Json(refund_body(&seed, 600, "b")));
     let (r1, r2) = tokio::join!(f1, f2);
     let oks = [r1.is_ok(), r2.is_ok()].iter().filter(|x| **x).count();
-    assert_eq!(oks, 1, "exactly one of two 600 refunds succeeds against a 1000 cap");
-    assert!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await <= 1_000, "never over captured");
+    assert_eq!(
+        oks, 1,
+        "exactly one of two 600 refunds succeeds against a 1000 cap"
+    );
+    assert!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await <= 1_000,
+        "never over captured"
+    );
 }
 
 // Concurrency: a refund and a dispute race on one source — combined stays ≤ captured.
@@ -1036,9 +1112,16 @@ async fn concurrent_refund_and_dispute_share_ceiling(pool: PgPool) {
     let seed = seed_captured_tx(&pool, 1_000).await;
     let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
     let f_refund = refunds::create(State(state.clone()), Json(refund_body(&seed, 700, "rc")));
-    let f_dispute = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body()));
+    let f_dispute = disputes::resolve(
+        State(state.clone()),
+        Path(d.id.clone()),
+        Json(resolve_body()),
+    );
     let (_r, _d) = tokio::join!(f_refund, f_dispute);
-    assert!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await <= 1_000, "combined never exceeds captured");
+    assert!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await <= 1_000,
+        "combined never exceeds captured"
+    );
 }
 
 // Concurrency: two parallel resolves of one dispute produce a single posting.
@@ -1048,11 +1131,26 @@ async fn concurrent_dispute_resolves_single_posting(pool: PgPool) {
     let seed = seed_captured_tx(&pool, 1_000).await;
     let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
     let did = Uuid::parse_str(&d.id).unwrap();
-    let f1 = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body()));
-    let f2 = disputes::resolve(State(state.clone()), Path(d.id.clone()), Json(resolve_body()));
+    let f1 = disputes::resolve(
+        State(state.clone()),
+        Path(d.id.clone()),
+        Json(resolve_body()),
+    );
+    let f2 = disputes::resolve(
+        State(state.clone()),
+        Path(d.id.clone()),
+        Json(resolve_body()),
+    );
     let _ = tokio::join!(f1, f2);
-    assert_eq!(count_postings(&pool, &format!("dispute-refund-{did}")).await, 1, "single dispute posting");
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000);
+    assert_eq!(
+        count_postings(&pool, &format!("dispute-refund-{did}")).await,
+        1,
+        "single dispute posting"
+    );
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        1_000
+    );
 }
 
 // Proof: partial restitution keeps CONFIRMED; full cumulative → REVERSED (no PARTIALLY_REVERSED).
@@ -1062,11 +1160,23 @@ async fn proof_confirmed_on_partial_reversed_on_full(pool: PgPool) {
     let seed = seed_captured_tx(&pool, 1_000).await;
     seed_proof(&pool, seed.transaction_id).await;
 
-    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "p1"))).await.unwrap();
-    assert_eq!(proof_status(&pool, seed.transaction_id).await, "CONFIRMED", "partial keeps CONFIRMED");
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "p1")))
+        .await
+        .unwrap();
+    assert_eq!(
+        proof_status(&pool, seed.transaction_id).await,
+        "CONFIRMED",
+        "partial keeps CONFIRMED"
+    );
 
-    let _ = refunds::create(State(state), Json(refund_body(&seed, 600, "p2"))).await.unwrap();
-    assert_eq!(proof_status(&pool, seed.transaction_id).await, "REVERSED", "full cumulative → REVERSED");
+    let _ = refunds::create(State(state), Json(refund_body(&seed, 600, "p2")))
+        .await
+        .unwrap();
+    assert_eq!(
+        proof_status(&pool, seed.transaction_id).await,
+        "REVERSED",
+        "full cumulative → REVERSED"
+    );
 }
 
 // Operator-facing separation: a refund is a refund, a dispute is a dispute — never crossed.
@@ -1074,14 +1184,26 @@ async fn proof_confirmed_on_partial_reversed_on_full(pool: PgPool) {
 async fn refund_and_dispute_remain_separate(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 500, "sep"))).await.unwrap();
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 500, "sep")))
+        .await
+        .unwrap();
     let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
-    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body())).await.unwrap();
+    let _ = disputes::resolve(State(state), Path(d.id.clone()), Json(resolve_body()))
+        .await
+        .unwrap();
 
-    let refunds_n: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM refunds WHERE source_id = $1")
-        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
-    let disputes_n: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM disputes WHERE source_id = $1")
-        .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
+    let refunds_n: i64 =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM refunds WHERE source_id = $1")
+            .bind(seed.transaction_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let disputes_n: i64 =
+        sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM disputes WHERE source_id = $1")
+            .bind(seed.transaction_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     let alloc_refund: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM restitution_allocations WHERE origin='REFUND' AND source_id=$1")
         .bind(seed.transaction_id).fetch_one(&pool).await.unwrap();
     let alloc_dispute: i64 = sqlx::query_scalar::<_, i64>("SELECT COUNT(*)::BIGINT FROM restitution_allocations WHERE origin='DISPUTE' AND source_id=$1")
@@ -1090,7 +1212,11 @@ async fn refund_and_dispute_remain_separate(pool: PgPool) {
     assert_eq!(disputes_n, 1, "one dispute object");
     assert_eq!(alloc_refund, 1, "one REFUND allocation");
     assert_eq!(alloc_dispute, 1, "one DISPUTE allocation");
-    assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "combined ≤ captured");
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        1_000,
+        "combined ≤ captured"
+    );
 }
 
 // ═══════════════ D0/F1+F3 — tenant-scoped refund reads ═══════════════
@@ -1102,16 +1228,19 @@ async fn refund_and_dispute_remain_separate(pool: PgPool) {
 async fn refund_get_is_tenant_scoped_and_indistinguishable(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let (_, Json(created)) = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "g")))
-        .await
-        .unwrap();
+    let (_, Json(created)) =
+        refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "g")))
+            .await
+            .unwrap();
     let rid = created.id.clone();
 
     // Owner → ok.
     let owner = refunds::get(
         State(state.clone()),
         Path(rid.clone()),
-        Query(refunds::GetRefundQuery { merchant_id: Some(seed.merchant_id.to_string()) }),
+        Query(refunds::GetRefundQuery {
+            merchant_id: Some(seed.merchant_id.to_string()),
+        }),
     )
     .await;
     assert!(owner.is_ok(), "owner can read its refund");
@@ -1120,7 +1249,9 @@ async fn refund_get_is_tenant_scoped_and_indistinguishable(pool: PgPool) {
     let other = refunds::get(
         State(state.clone()),
         Path(rid.clone()),
-        Query(refunds::GetRefundQuery { merchant_id: Some(Uuid::new_v4().to_string()) }),
+        Query(refunds::GetRefundQuery {
+            merchant_id: Some(Uuid::new_v4().to_string()),
+        }),
     )
     .await
     .expect_err("cross-tenant read blocked");
@@ -1141,11 +1272,16 @@ async fn refund_get_is_tenant_scoped_and_indistinguishable(pool: PgPool) {
     let unknown = refunds::get(
         State(state),
         Path(Uuid::new_v4().to_string()),
-        Query(refunds::GetRefundQuery { merchant_id: Some(seed.merchant_id.to_string()) }),
+        Query(refunds::GetRefundQuery {
+            merchant_id: Some(seed.merchant_id.to_string()),
+        }),
     )
     .await
     .expect_err("unknown refund");
-    assert_eq!((unknown.code, unknown.message.clone()), (other.code, other.message.clone()));
+    assert_eq!(
+        (unknown.code, unknown.message.clone()),
+        (other.code, other.message.clone())
+    );
 }
 
 // F3: refund LIST fails closed — no merchant context can never enumerate tenants.
@@ -1154,12 +1290,19 @@ async fn refund_list_fails_closed_without_merchant(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     // Seed a refund so the table is non-empty — a fail-open bug would leak it.
     let seed = seed_captured_tx(&pool, 1_000).await;
-    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 100, "l"))).await.unwrap();
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 100, "l")))
+        .await
+        .unwrap();
 
     // No merchant_id → rejected, never enumerates.
     let err = refunds::list(
         State(state.clone()),
-        Query(refunds::ListRefundsQuery { source_id: None, transaction_id: None, merchant_id: None, limit: None }),
+        Query(refunds::ListRefundsQuery {
+            source_id: None,
+            transaction_id: None,
+            merchant_id: None,
+            limit: None,
+        }),
     )
     .await
     .expect_err("list must fail closed");
@@ -1169,13 +1312,19 @@ async fn refund_list_fails_closed_without_merchant(pool: PgPool) {
     let Json(other) = refunds::list(
         State(state),
         Query(refunds::ListRefundsQuery {
-            source_id: None, transaction_id: None,
-            merchant_id: Some(Uuid::new_v4().to_string()), limit: None,
+            source_id: None,
+            transaction_id: None,
+            merchant_id: Some(Uuid::new_v4().to_string()),
+            limit: None,
         }),
     )
     .await
     .unwrap();
-    assert_eq!(other["data"].as_array().unwrap().len(), 0, "other merchant sees nothing");
+    assert_eq!(
+        other["data"].as_array().unwrap().len(),
+        0,
+        "other merchant sees nothing"
+    );
 }
 
 // ═══════════════ D0 — source-scoped refund idempotency (0098) ═══════════════
@@ -1183,12 +1332,13 @@ async fn refund_list_fails_closed_without_merchant(pool: PgPool) {
 /// Insert a second CAPTURED acquiring source under an EXISTING merchant, reusing
 /// the merchant's single per-currency wallet (wallets are unique on merchant+currency).
 async fn seed_extra_tx(pool: &PgPool, merchant_id: Uuid, amount: i64) -> Uuid {
-    let wallet_id: Uuid =
-        sqlx::query_scalar("SELECT id FROM wallets WHERE merchant_id = $1 AND currency = 'AOA' LIMIT 1")
-            .bind(merchant_id)
-            .fetch_one(pool)
-            .await
-            .unwrap();
+    let wallet_id: Uuid = sqlx::query_scalar(
+        "SELECT id FROM wallets WHERE merchant_id = $1 AND currency = 'AOA' LIMIT 1",
+    )
+    .bind(merchant_id)
+    .fetch_one(pool)
+    .await
+    .unwrap();
     let tx = Uuid::new_v4();
     sqlx::query(
         "INSERT INTO transactions (id, idempotency_key, transaction_type, status, amount_minor, fee_minor, currency, merchant_id, wallet_id)
@@ -1199,7 +1349,13 @@ async fn seed_extra_tx(pool: &PgPool, merchant_id: Uuid, amount: i64) -> Uuid {
     tx
 }
 
-fn typed_refund_body(mid: Uuid, stype: Option<&str>, sid: Uuid, amount: i64, key: &str) -> refunds::CreateRefundBody {
+fn typed_refund_body(
+    mid: Uuid,
+    stype: Option<&str>,
+    sid: Uuid,
+    amount: i64,
+    key: &str,
+) -> refunds::CreateRefundBody {
     refunds::CreateRefundBody {
         source_type: stype.map(String::from),
         source_id: Some(sid.to_string()),
@@ -1228,18 +1384,38 @@ async fn refund_idempotency_is_source_scoped_across_sources_and_merchants(pool: 
         ("A1 acquiring", a.merchant_id, None, a.transaction_id),
         ("A2 same-merchant diff-source", a.merchant_id, None, a2),
         ("B1 another merchant", b.merchant_id, None, b.transaction_id),
-        ("WP wallet source", wp.merchant_id, Some("WALLET_PAYMENT"), wp.wallet_payment_id),
+        (
+            "WP wallet source",
+            wp.merchant_id,
+            Some("WALLET_PAYMENT"),
+            wp.wallet_payment_id,
+        ),
     ];
     for (label, mid, stype, sid) in cases {
-        match refunds::create(State(state.clone()), Json(typed_refund_body(mid, stype, sid, 200, key))).await {
+        match refunds::create(
+            State(state.clone()),
+            Json(typed_refund_body(mid, stype, sid, 200, key)),
+        )
+        .await
+        {
             Ok((code, _)) => assert_eq!(code, StatusCode::CREATED, "{label} should succeed"),
-            Err(e) => panic!("{label} must be independent success, got {} {}", e.code, e.message),
+            Err(e) => panic!(
+                "{label} must be independent success, got {} {}",
+                e.code, e.message
+            ),
         }
     }
     // Four independent refunds, all sharing the same key, on different sources.
-    let n: i64 = sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM refunds WHERE idempotency_key = $1")
-        .bind(key).fetch_one(&pool).await.unwrap();
-    assert_eq!(n, 4, "same key on 4 distinct sources → 4 independent refunds");
+    let n: i64 =
+        sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM refunds WHERE idempotency_key = $1")
+            .bind(key)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        n, 4,
+        "same key on 4 distinct sources → 4 independent refunds"
+    );
 }
 
 // Concurrent use of the same key by two merchants on their own sources: both
@@ -1253,8 +1429,16 @@ async fn concurrent_same_key_different_sources_both_succeed(pool: PgPool) {
     let f1 = refunds::create(State(state.clone()), Json(refund_body(&a, 300, key)));
     let f2 = refunds::create(State(state.clone()), Json(refund_body(&b, 300, key)));
     let (r1, r2) = tokio::join!(f1, f2);
-    assert!(r1.is_ok(), "merchant A concurrent refund failed: {:?}", r1.err().map(|e| e.code));
-    assert!(r2.is_ok(), "merchant B concurrent refund failed: {:?}", r2.err().map(|e| e.code));
+    assert!(
+        r1.is_ok(),
+        "merchant A concurrent refund failed: {:?}",
+        r1.err().map(|e| e.code)
+    );
+    assert!(
+        r2.is_ok(),
+        "merchant B concurrent refund failed: {:?}",
+        r2.err().map(|e| e.code)
+    );
     // both postings balanced (global check over refund postings)
     let unbal: i64 = sqlx::query_scalar(
         "SELECT COUNT(*)::BIGINT FROM (
@@ -1279,29 +1463,61 @@ async fn refund_write_err_maps_unique_to_409_and_never_leaks(pool: PgPool) {
         )
         .bind(id).bind(sid).bind(mid).bind(wid)
     };
-    insert(Uuid::new_v4()).execute(&pool).await.expect("first insert ok");
+    insert(Uuid::new_v4())
+        .execute(&pool)
+        .await
+        .expect("first insert ok");
     // duplicate (source_type, source_id, idempotency_key) → real 23505
-    let dup = insert(Uuid::new_v4()).execute(&pool).await.expect_err("duplicate must fail");
+    let dup = insert(Uuid::new_v4())
+        .execute(&pool)
+        .await
+        .expect_err("duplicate must fail");
     let api = refunds::refund_write_err(dup);
     assert_eq!(api.status, StatusCode::CONFLICT);
     assert_eq!(api.code, "IDEMPOTENCY_KEY_CONFLICT");
 
     let leak = api.message.to_lowercase();
     for bad in [
-        "refunds_idempotency_key_key", "refunds_source_idem_unique", "postgres", "sqlx",
-        "duplicate key", "constraint", "insert ", "23505", "relation", "refunds",
+        "refunds_idempotency_key_key",
+        "refunds_source_idem_unique",
+        "postgres",
+        "sqlx",
+        "duplicate key",
+        "constraint",
+        "insert ",
+        "23505",
+        "relation",
+        "refunds",
     ] {
-        assert!(!leak.contains(bad), "409 message leaked '{bad}': {}", api.message);
+        assert!(
+            !leak.contains(bad),
+            "409 message leaked '{bad}': {}",
+            api.message
+        );
     }
 
     // A non-unique DB failure (NOT NULL violation) → neutral internal, no leak.
     let generic = sqlx::query("INSERT INTO refunds (id) VALUES ($1)")
-        .bind(Uuid::new_v4()).execute(&pool).await.expect_err("not-null violation");
+        .bind(Uuid::new_v4())
+        .execute(&pool)
+        .await
+        .expect_err("not-null violation");
     let api2 = refunds::refund_write_err(generic);
     assert_eq!(api2.code, "INTERNAL_ERROR");
     assert_eq!(api2.message, "refund could not be processed");
     let leak2 = api2.message.to_lowercase();
-    for bad in ["null value", "not-null", "column", "postgres", "sqlx", "refunds"] {
-        assert!(!leak2.contains(bad), "internal message leaked '{bad}': {}", api2.message);
+    for bad in [
+        "null value",
+        "not-null",
+        "column",
+        "postgres",
+        "sqlx",
+        "refunds",
+    ] {
+        assert!(
+            !leak2.contains(bad),
+            "internal message leaked '{bad}': {}",
+            api2.message
+        );
     }
 }

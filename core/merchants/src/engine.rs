@@ -80,7 +80,10 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
             verified: false,
             // Default taxonomy (ADR-028); apps are re-tagged via the admin set-type
             // path (or copied from the approved application).
-            business_account_type: req.business_account_type.clone().unwrap_or_else(|| "MERCHANT".into()),
+            business_account_type: req
+                .business_account_type
+                .clone()
+                .unwrap_or_else(|| "MERCHANT".into()),
             created_at: now,
             updated_at: now,
         };

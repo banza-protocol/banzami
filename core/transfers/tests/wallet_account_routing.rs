@@ -104,7 +104,12 @@ async fn merchant_wallet(pool: &PgPool, currency: &str) -> (Uuid, Uuid) {
 }
 
 /// Create a segregated wallet account (its own LIABILITY ledger account).
-async fn campaign_account(pool: &PgPool, wallet_id: Uuid, currency: &str, status: &str) -> (Uuid, Uuid) {
+async fn campaign_account(
+    pool: &PgPool,
+    wallet_id: Uuid,
+    currency: &str,
+    status: &str,
+) -> (Uuid, Uuid) {
     let merchant: Uuid = sqlx::query_scalar("SELECT merchant_id FROM wallets WHERE id = $1")
         .bind(wallet_id)
         .fetch_one(pool)
@@ -128,7 +133,12 @@ async fn campaign_account(pool: &PgPool, wallet_id: Uuid, currency: &str, status
     (id, acct)
 }
 
-fn req(sender: ConsumerId, recipient: Uuid, account: Option<Uuid>, key: &str) -> SendTransferRequest {
+fn req(
+    sender: ConsumerId,
+    recipient: Uuid,
+    account: Option<Uuid>,
+    key: &str,
+) -> SendTransferRequest {
     SendTransferRequest {
         idempotency_key: key.to_string(),
         sender_id: sender,
@@ -148,10 +158,20 @@ async fn routes_credit_to_campaign_account_and_isolates(pool: PgPool) {
     let (camp_id, camp_acct) = campaign_account(&pool, wid, "AOA", "ACTIVE").await;
 
     let eng = engine(&pool);
-    eng.send(req(sender, wid, Some(camp_id), "k1")).await.unwrap();
+    eng.send(req(sender, wid, Some(camp_id), "k1"))
+        .await
+        .unwrap();
 
-    assert_eq!(balance(&pool, camp_acct).await, 100_000, "campaign account credited");
-    assert_eq!(balance(&pool, avail).await, 0, "default available account untouched (isolation)");
+    assert_eq!(
+        balance(&pool, camp_acct).await,
+        100_000,
+        "campaign account credited"
+    );
+    assert_eq!(
+        balance(&pool, avail).await,
+        0,
+        "default available account untouched (isolation)"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -163,8 +183,16 @@ async fn no_override_credits_default_available(pool: PgPool) {
     let eng = engine(&pool);
     eng.send(req(sender, wid, None, "k1")).await.unwrap();
 
-    assert_eq!(balance(&pool, avail).await, 100_000, "default path unchanged");
-    assert_eq!(balance(&pool, camp_acct).await, 0, "campaign account not touched");
+    assert_eq!(
+        balance(&pool, avail).await,
+        100_000,
+        "default path unchanged"
+    );
+    assert_eq!(
+        balance(&pool, camp_acct).await,
+        0,
+        "campaign account not touched"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -176,7 +204,10 @@ async fn rejects_account_from_another_wallet(pool: PgPool) {
 
     let eng = engine(&pool);
     // Pay wallet A but try to route to wallet B's account → rejected.
-    let err = eng.send(req(sender, wid_a, Some(foreign_camp), "k1")).await.unwrap_err();
+    let err = eng
+        .send(req(sender, wid_a, Some(foreign_camp), "k1"))
+        .await
+        .unwrap_err();
     assert!(matches!(err, TransferError::InvalidWalletAccount));
 }
 
@@ -187,7 +218,10 @@ async fn rejects_inactive_account(pool: PgPool) {
     let (camp_id, _) = campaign_account(&pool, wid, "AOA", "CLOSED").await;
 
     let eng = engine(&pool);
-    let err = eng.send(req(sender, wid, Some(camp_id), "k1")).await.unwrap_err();
+    let err = eng
+        .send(req(sender, wid, Some(camp_id), "k1"))
+        .await
+        .unwrap_err();
     assert!(matches!(err, TransferError::InvalidWalletAccount));
 }
 

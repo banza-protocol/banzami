@@ -70,11 +70,7 @@ async fn grouped(
     Ok(json!(out))
 }
 
-async fn count(
-    pool: &sqlx::PgPool,
-    sql: &str,
-    env: &Option<String>,
-) -> Result<i64, ApiError> {
+async fn count(pool: &sqlx::PgPool, sql: &str, env: &Option<String>) -> Result<i64, ApiError> {
     sqlx::query_scalar::<_, i64>(sql)
         .bind(env)
         .fetch_one(pool)
@@ -101,11 +97,27 @@ pub async fn get(
         .unwrap()
         .and_utc();
     let fees_today = grouped(
-        pool, "operator_fees", "amount_minor", "currency", day_start, now, &env, &cur,
-    ).await?;
+        pool,
+        "operator_fees",
+        "amount_minor",
+        "currency",
+        day_start,
+        now,
+        &env,
+        &cur,
+    )
+    .await?;
     let fees_month = grouped(
-        pool, "operator_fees", "amount_minor", "currency", month_start, now, &env, &cur,
-    ).await?;
+        pool,
+        "operator_fees",
+        "amount_minor",
+        "currency",
+        month_start,
+        now,
+        &env,
+        &cur,
+    )
+    .await?;
 
     let settlements_today = count(
         pool,
@@ -113,34 +125,81 @@ pub async fn get(
           WHERE created_at >= date_trunc('day', now())
             AND ($1::text IS NULL OR environment = $1)",
         &env,
-    ).await?;
+    )
+    .await?;
     let settlements_pending = count(
         pool,
         "SELECT COUNT(*)::BIGINT FROM app_settlements
           WHERE status IN ('CREATED','PENDING')
             AND ($1::text IS NULL OR environment = $1)",
         &env,
-    ).await?;
+    )
+    .await?;
     let settlements_failed = count(
         pool,
         "SELECT COUNT(*)::BIGINT FROM app_settlements
           WHERE status = 'FAILED'
             AND ($1::text IS NULL OR environment = $1)",
         &env,
-    ).await?;
+    )
+    .await?;
 
     // --- Breakdowns + charts (within the [from, to] window) -----------------
-    let by_currency = grouped(pool, "operator_fees", "amount_minor", "currency", from, to, &env, &cur).await?;
-    let by_category = grouped(pool, "operator_fees", "amount_minor", "business_category", from, to, &env, &cur).await?;
-    let by_profile = grouped(pool, "operator_fees", "amount_minor", "pricing_profile", from, to, &env, &cur).await?;
+    let by_currency = grouped(
+        pool,
+        "operator_fees",
+        "amount_minor",
+        "currency",
+        from,
+        to,
+        &env,
+        &cur,
+    )
+    .await?;
+    let by_category = grouped(
+        pool,
+        "operator_fees",
+        "amount_minor",
+        "business_category",
+        from,
+        to,
+        &env,
+        &cur,
+    )
+    .await?;
+    let by_profile = grouped(
+        pool,
+        "operator_fees",
+        "amount_minor",
+        "pricing_profile",
+        from,
+        to,
+        &env,
+        &cur,
+    )
+    .await?;
     let by_day = grouped(
-        pool, "operator_fees", "amount_minor",
+        pool,
+        "operator_fees",
+        "amount_minor",
         "to_char(date_trunc('day', created_at), 'YYYY-MM-DD')",
-        from, to, &env, &cur,
-    ).await?;
+        from,
+        to,
+        &env,
+        &cur,
+    )
+    .await?;
     let settlements_by_status = grouped(
-        pool, "app_settlements", "net_amount_minor", "status", from, to, &env, &cur,
-    ).await?;
+        pool,
+        "app_settlements",
+        "net_amount_minor",
+        "status",
+        from,
+        to,
+        &env,
+        &cur,
+    )
+    .await?;
 
     Ok(Json(json!({
         "window": { "from": from, "to": to },

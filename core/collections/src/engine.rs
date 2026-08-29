@@ -100,10 +100,7 @@ pub trait CollectionEngine: Send + Sync {
         surface_ref: Option<String>,
     ) -> Result<(PaymentIntent, CollectionShare), CollectionError>;
 
-    async fn collected_amount(
-        &self,
-        collection_id: CollectionId,
-    ) -> Result<i64, CollectionError>;
+    async fn collected_amount(&self, collection_id: CollectionId) -> Result<i64, CollectionError>;
 
     /// Settle a PaymentIntent from a real, confirmed surface payment (Increment 2).
     /// Resolves the intent by (surface, surface_ref); if it backs a collection
@@ -439,10 +436,7 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
         Ok((intent, updated_share))
     }
 
-    async fn collected_amount(
-        &self,
-        collection_id: CollectionId,
-    ) -> Result<i64, CollectionError> {
+    async fn collected_amount(&self, collection_id: CollectionId) -> Result<i64, CollectionError> {
         self.repo.collected_amount(collection_id).await
     }
 
@@ -515,8 +509,10 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
                         } else {
                             None
                         };
-                        let updated =
-                            self.repo.update_collection_status(c.id, ns, closed_at).await?;
+                        let updated = self
+                            .repo
+                            .update_collection_status(c.id, ns, closed_at)
+                            .await?;
                         *c = updated;
                         transition = Some(ns);
                     }

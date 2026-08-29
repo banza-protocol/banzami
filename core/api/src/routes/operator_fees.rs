@@ -69,8 +69,8 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let id = uuid::Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("invalid operator fee id"))?;
+    let id =
+        uuid::Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("invalid operator fee id"))?;
     let fee = state.operator_fee_read.get(id).await.map_err(|e| {
         if e.to_string().contains("not found") {
             ApiError::not_found("operator fee not found")

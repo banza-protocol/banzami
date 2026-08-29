@@ -1,20 +1,11 @@
 pub mod acquiring;
 pub mod activity;
 pub mod admin;
+pub mod analytics;
 pub mod application_settlements;
-pub mod parties;
-pub mod payment_sessions;
-pub mod wallet_accounts;
 #[cfg(test)]
 mod application_settlements_tests;
-#[cfg(test)]
-mod wallet_accounts_tests;
-#[cfg(test)]
-mod transfers_routing_tests;
-#[cfg(test)]
-mod payment_sessions_tests;
 pub mod collections;
-pub mod analytics;
 pub mod compliance;
 #[cfg(test)]
 mod compliance_tests;
@@ -32,24 +23,33 @@ pub mod merchant_profiles;
 pub mod merchants;
 pub mod onboarding;
 pub mod operator_fees;
+pub mod parties;
 pub mod payment_links;
 pub mod payment_requests;
-pub mod pricing_rules;
+pub mod payment_sessions;
+#[cfg(test)]
+mod payment_sessions_tests;
 pub mod payouts;
+pub mod pricing_rules;
 pub mod qr;
 pub mod reconciliation;
 pub mod refund_source;
-pub mod refunds;
-pub mod restitution;
-#[cfg(test)]
-mod refunds_disputes_tests;
 #[cfg(test)]
 mod refund_source_tests;
+pub mod refunds;
+#[cfg(test)]
+mod refunds_disputes_tests;
+pub mod restitution;
 pub mod risk;
 pub mod settlements;
 pub mod splits;
 pub mod transactions;
 pub mod transfers;
+#[cfg(test)]
+mod transfers_routing_tests;
+pub mod wallet_accounts;
+#[cfg(test)]
+mod wallet_accounts_tests;
 pub mod wallet_payments;
 pub mod wallets;
 pub mod webhooks;

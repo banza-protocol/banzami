@@ -18,7 +18,10 @@ fn input(code: &str, env: &str) -> CatalogInput {
 }
 
 fn filter() -> CatalogFilter {
-    CatalogFilter { limit: 200, ..Default::default() }
+    CatalogFilter {
+        limit: 200,
+        ..Default::default()
+    }
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -31,7 +34,10 @@ async fn profiles_crud_and_unique(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(p.code, "STANDARD");
 
     // unique (env, code)
-    assert!(repo.create(k, input("STANDARD", "LIVE")).await.is_err(), "dup code rejected");
+    assert!(
+        repo.create(k, input("STANDARD", "LIVE")).await.is_err(),
+        "dup code rejected"
+    );
     // same code, other env is fine
     repo.create(k, input("STANDARD", "SANDBOX")).await.unwrap();
 
@@ -75,17 +81,53 @@ async fn filters_by_env_status_code(pool: PgPool) -> sqlx::Result<()> {
     let sb = repo.create(k, input("NGO", "SANDBOX")).await.unwrap();
     repo.set_enabled(k, sb.id, false).await.unwrap();
 
-    let live = repo.list(k, &CatalogFilter { environment: Some("LIVE".into()), ..filter() }).await.unwrap();
+    let live = repo
+        .list(
+            k,
+            &CatalogFilter {
+                environment: Some("LIVE".into()),
+                ..filter()
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(live.len(), 2);
 
-    let enabled = repo.list(k, &CatalogFilter { enabled: Some(true), ..filter() }).await.unwrap();
+    let enabled = repo
+        .list(
+            k,
+            &CatalogFilter {
+                enabled: Some(true),
+                ..filter()
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(enabled.len(), 2);
 
-    let disabled = repo.list(k, &CatalogFilter { enabled: Some(false), ..filter() }).await.unwrap();
+    let disabled = repo
+        .list(
+            k,
+            &CatalogFilter {
+                enabled: Some(false),
+                ..filter()
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(disabled.len(), 1);
     assert_eq!(disabled[0].code, "NGO");
 
-    let search = repo.list(k, &CatalogFilter { code: Some("part".into()), ..filter() }).await.unwrap();
+    let search = repo
+        .list(
+            k,
+            &CatalogFilter {
+                code: Some("part".into()),
+                ..filter()
+            },
+        )
+        .await
+        .unwrap();
     assert_eq!(search.len(), 1);
     assert_eq!(search[0].code, "PARTNER");
     Ok(())

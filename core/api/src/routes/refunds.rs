@@ -236,7 +236,8 @@ pub async fn create(
     // the proof CONFIRMED — no PARTIALLY_REVERSED state.
     if result.fully_reversed {
         if let Some(tid) = result.transaction_id {
-            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str()).await;
+            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str())
+                .await;
         }
     }
 
@@ -247,9 +248,9 @@ pub async fn create(
 fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
     use restitution::RestitutionError::*;
     match e {
-        InvalidSourceType => {
-            ApiError::bad_request("source_type must be ACQUIRING_PAYMENT/TRANSACTION or WALLET_PAYMENT")
-        }
+        InvalidSourceType => ApiError::bad_request(
+            "source_type must be ACQUIRING_PAYMENT/TRANSACTION or WALLET_PAYMENT",
+        ),
         SourceNotFound => ApiError::not_found("refund source not found"),
         InvalidTransactionStatus(s) => ApiError::unprocessable(
             "INVALID_TRANSACTION_STATUS",
@@ -273,7 +274,9 @@ fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
             captured,
         } => ApiError::unprocessable(
             "REFUND_EXCEEDS_CAPTURED",
-            format!("cannot refund {requested} — only {remaining} remaining of original {captured}"),
+            format!(
+                "cannot refund {requested} — only {remaining} remaining of original {captured}"
+            ),
         ),
         IdempotencyKeyConflict => ApiError::conflict(
             "IDEMPOTENCY_KEY_CONFLICT",

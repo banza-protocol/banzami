@@ -2,7 +2,10 @@
 
 #![allow(clippy::inconsistent_digit_grouping)]
 
-use axum::{extract::{Query, State}, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -46,8 +49,14 @@ async fn seed_fee(pool: &PgPool, currency: &str, category: &str, gross: i64, fee
         "INSERT INTO wallets (id, merchant_id, currency, available_account_id, reserved_account_id)
          VALUES ($1, $2, $3, $4, $5)",
     )
-    .bind(wallet).bind(Uuid::new_v4()).bind(currency).bind(avail).bind(reserved)
-    .execute(pool).await.unwrap();
+    .bind(wallet)
+    .bind(Uuid::new_v4())
+    .bind(currency)
+    .bind(avail)
+    .bind(reserved)
+    .execute(pool)
+    .await
+    .unwrap();
 
     let tx = Uuid::new_v4();
     sqlx::query(
@@ -55,18 +64,33 @@ async fn seed_fee(pool: &PgPool, currency: &str, category: &str, gross: i64, fee
             fee_minor, currency, merchant_id, wallet_id)
          VALUES ($1, $2, 'PAYMENT', 'CAPTURED', $3, $4, $5, $6, $7)",
     )
-    .bind(tx).bind(Uuid::new_v4().to_string()).bind(gross).bind(fee).bind(currency)
-    .bind(Uuid::new_v4()).bind(wallet)
-    .execute(pool).await.unwrap();
+    .bind(tx)
+    .bind(Uuid::new_v4().to_string())
+    .bind(gross)
+    .bind(fee)
+    .bind(currency)
+    .bind(Uuid::new_v4())
+    .bind(wallet)
+    .execute(pool)
+    .await
+    .unwrap();
 
     sqlx::query(
         "INSERT INTO operator_fees (id, transaction_id, posting_id, amount_minor, currency,
             business_category, engine_version, snapshot_json, environment, idempotency_key)
          VALUES ($1, $2, $3, $4, $5, $6, 1, '{}'::jsonb, $7, $8)",
     )
-    .bind(Uuid::new_v4()).bind(tx).bind(Uuid::new_v4()).bind(fee).bind(currency)
-    .bind(category).bind(env).bind(format!("of-{}", Uuid::new_v4()))
-    .execute(pool).await.unwrap();
+    .bind(Uuid::new_v4())
+    .bind(tx)
+    .bind(Uuid::new_v4())
+    .bind(fee)
+    .bind(currency)
+    .bind(category)
+    .bind(env)
+    .bind(format!("of-{}", Uuid::new_v4()))
+    .execute(pool)
+    .await
+    .unwrap();
 }
 
 async fn seed_settlement(pool: &PgPool, status: &str, currency: &str, net: i64, env: &str) {
@@ -76,21 +100,39 @@ async fn seed_settlement(pool: &PgPool, status: &str, currency: &str, net: i64, 
             pricing_snapshot_json, status, environment, idempotency_key)
          VALUES ($1, 'c', $2, $3, $4, 0, $4, $5, 1, '{}'::jsonb, $6, $7, $8)",
     )
-    .bind(Uuid::new_v4()).bind(Uuid::new_v4()).bind(Uuid::new_v4())
-    .bind(net).bind(currency).bind(status).bind(env).bind(format!("as-{}", Uuid::new_v4()))
-    .execute(pool).await.unwrap();
+    .bind(Uuid::new_v4())
+    .bind(Uuid::new_v4())
+    .bind(Uuid::new_v4())
+    .bind(net)
+    .bind(currency)
+    .bind(status)
+    .bind(env)
+    .bind(format!("as-{}", Uuid::new_v4()))
+    .execute(pool)
+    .await
+    .unwrap();
 }
 
 fn q() -> DashQuery {
-    DashQuery { environment: None, currency: None, from: None, to: None }
+    DashQuery {
+        environment: None,
+        currency: None,
+        from: None,
+        to: None,
+    }
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn empty_aggregations(pool: PgPool) -> sqlx::Result<()> {
     let state = build_state(pool).await;
-    let Json(v) = finance_dashboard::get(State(state), Query(q())).await.unwrap();
+    let Json(v) = finance_dashboard::get(State(state), Query(q()))
+        .await
+        .unwrap();
     assert_eq!(v["operator_fees"]["today"].as_array().unwrap().len(), 0);
-    assert_eq!(v["operator_fees"]["by_currency"].as_array().unwrap().len(), 0);
+    assert_eq!(
+        v["operator_fees"]["by_currency"].as_array().unwrap().len(),
+        0
+    );
     assert_eq!(v["application_settlements"]["pending_count"], 0);
     assert_eq!(v["application_settlements"]["failed_count"], 0);
     Ok(())
@@ -105,7 +147,9 @@ async fn aggregates_fees_and_settlements(pool: PgPool) -> sqlx::Result<()> {
     seed_settlement(&pool, "CREATED", "AOA", 50_000, "SANDBOX").await;
 
     let state = build_state(pool).await;
-    let Json(v) = finance_dashboard::get(State(state), Query(q())).await.unwrap();
+    let Json(v) = finance_dashboard::get(State(state), Query(q()))
+        .await
+        .unwrap();
 
     // operator fees: AOA total 300_00 across 2 fees
     let by_cur = v["operator_fees"]["by_currency"].as_array().unwrap();
@@ -114,16 +158,23 @@ async fn aggregates_fees_and_settlements(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(by_cur[0]["count"], 2);
     assert_eq!(by_cur[0]["total_minor"], 300_00);
 
-    let by_cat = v["operator_fees"]["by_business_category"].as_array().unwrap();
+    let by_cat = v["operator_fees"]["by_business_category"]
+        .as_array()
+        .unwrap();
     assert_eq!(by_cat.len(), 2);
 
     // today KPI present (rows seeded now)
-    assert_eq!(v["operator_fees"]["today"].as_array().unwrap()[0]["total_minor"], 300_00);
+    assert_eq!(
+        v["operator_fees"]["today"].as_array().unwrap()[0]["total_minor"],
+        300_00
+    );
 
     // settlements
     assert_eq!(v["application_settlements"]["failed_count"], 1);
     assert_eq!(v["application_settlements"]["pending_count"], 1); // CREATED counts as pending
-    let by_status = v["application_settlements"]["by_status"].as_array().unwrap();
+    let by_status = v["application_settlements"]["by_status"]
+        .as_array()
+        .unwrap();
     assert_eq!(by_status.len(), 3);
     Ok(())
 }
@@ -137,16 +188,26 @@ async fn filters_by_currency_and_environment(pool: PgPool) -> sqlx::Result<()> {
     let state = build_state(pool.clone()).await;
 
     // currency filter -> only AOA rows
-    let aoa = DashQuery { currency: Some("AOA".into()), ..q() };
-    let Json(v) = finance_dashboard::get(State(state.clone()), Query(aoa)).await.unwrap();
+    let aoa = DashQuery {
+        currency: Some("AOA".into()),
+        ..q()
+    };
+    let Json(v) = finance_dashboard::get(State(state.clone()), Query(aoa))
+        .await
+        .unwrap();
     let by_cur = v["operator_fees"]["by_currency"].as_array().unwrap();
     assert_eq!(by_cur.len(), 1);
     assert_eq!(by_cur[0]["key"], "AOA");
     assert_eq!(by_cur[0]["count"], 2); // SANDBOX + LIVE AOA
 
     // environment filter -> only LIVE
-    let live = DashQuery { environment: Some("LIVE".into()), ..q() };
-    let Json(v2) = finance_dashboard::get(State(state), Query(live)).await.unwrap();
+    let live = DashQuery {
+        environment: Some("LIVE".into()),
+        ..q()
+    };
+    let Json(v2) = finance_dashboard::get(State(state), Query(live))
+        .await
+        .unwrap();
     let cur2 = v2["operator_fees"]["by_currency"].as_array().unwrap();
     assert_eq!(cur2.len(), 1);
     assert_eq!(cur2[0]["total_minor"], 70_00);
