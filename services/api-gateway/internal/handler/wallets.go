@@ -81,7 +81,6 @@ func (h *WalletHandler) GetForMerchant(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, wallet)
 }
 
-
 // requireOwnedWallet resolves the wallet named in the {id} path segment and
 // enforces that the authenticated merchant OWNS it (SEC-002).
 //
