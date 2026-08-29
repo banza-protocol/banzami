@@ -39,6 +39,13 @@ pub trait CollectionEngine: Send + Sync {
         cursor: Option<CollectionId>,
     ) -> Result<Vec<Collection>, CollectionError>;
 
+    // Eight parameters, four of them the optional fields a caller may patch.
+    // The three that push it over the threshold — id, merchant_id, environment —
+    // are the TENANT SCOPING of the update, and are deliberately explicit
+    // positional arguments rather than bundled into a patch struct: a caller
+    // cannot forget to pass them, and a reviewer can see at the call site that
+    // the update is scoped. Bundling them would make the scoping optional-looking.
+    #[allow(clippy::too_many_arguments)]
     async fn update_collection(
         &self,
         id: CollectionId,
@@ -231,6 +238,13 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
             .await
     }
 
+    // Eight parameters, four of them the optional fields a caller may patch.
+    // The three that push it over the threshold — id, merchant_id, environment —
+    // are the TENANT SCOPING of the update, and are deliberately explicit
+    // positional arguments rather than bundled into a patch struct: a caller
+    // cannot forget to pass them, and a reviewer can see at the call site that
+    // the update is scoped. Bundling them would make the scoping optional-looking.
+    #[allow(clippy::too_many_arguments)]
     async fn update_collection(
         &self,
         id: CollectionId,
