@@ -50,6 +50,38 @@ func TestMerchantSurface_ConsumerLifecycleRoutesNotMounted(t *testing.T) {
 	}
 }
 
+// SEC-015 / SEC-018: consumer-to-consumer P2P transfers are not a merchant
+// resource and must not be mounted on the merchant surface at all.
+//
+// A P2P transfer has two CONSUMER participants and no merchant party, so there
+// is no ownership relation a merchant principal could be scoped against. That is
+// not a missing field — it is the absence of authority, and the fix is to remove
+// the capability rather than to invent a merchant_id on the financial model.
+//
+// Each route took its subject straight from client input, so a merchant
+// credential could move any consumer's money (POST names sender_id), read any
+// transfer (GET /{id}), or read any consumer's entire history
+// (GET ?consumer_id=). The sender-KYC gate did not help: it authorised the
+// SENDER named in the body, never the caller.
+//
+// The consumer-scoped equivalents live on public-api, where the sender is
+// derived from the authenticated consumer token and reads are restricted to a
+// transfer's own sender/recipient.
+func TestMerchantSurface_P2PTransferRoutesNotMounted(t *testing.T) {
+	routes := registeredRoutes(t)
+
+	for _, route := range []string{
+		"POST /v1/transfers",
+		"GET /v1/transfers",
+		"GET /v1/transfers/{id}",
+	} {
+		if routes[route] {
+			t.Errorf("%s is mounted on the merchant surface; consumer P2P transfers "+
+				"are not merchant-readable or merchant-initiable resources", route)
+		}
+	}
+}
+
 // Control: the merchant surface is otherwise intact, so the assertion above
 // fails for the right reason rather than because the walk found nothing.
 func TestMerchantSurface_ExpectedRoutesStillMounted(t *testing.T) {

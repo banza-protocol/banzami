@@ -92,9 +92,6 @@ internal/
 | GET | /v1/consumer-wallets | JWT | Get consumer's wallet |
 | GET | /v1/consumer-wallets/{id} | JWT | Get consumer wallet by ID |
 | GET | /v1/consumer-wallets/{id}/balance | JWT | Get consumer wallet balance |
-| POST | /v1/transfers | JWT | Initiate P2P transfer |
-| GET | /v1/transfers | JWT | List transfers |
-| GET | /v1/transfers/{id} | JWT | Get transfer |
 | POST | /v1/qr/static | JWT | Create static QR |
 | POST | /v1/qr/dynamic | JWT | Create dynamic QR |
 | POST | /v1/qr/decode | JWT | Decode QR payload |

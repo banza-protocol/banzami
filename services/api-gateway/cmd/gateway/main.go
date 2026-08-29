@@ -194,7 +194,6 @@ func main() {
 		PayoutSvc:                service.NewCoreApiPayoutService(coreClient),
 		ConsumerSvc:              service.NewCoreApiConsumerService(coreClient),
 		ConsumerWalletSvc:        service.NewCoreApiConsumerWalletService(coreClient),
-		TransferSvc:              service.NewCoreApiTransferService(coreClient),
 		QrSvc:                    service.NewCoreApiQrService(coreClient),
 		PaymentLinkSvc:           service.NewCoreApiPaymentLinkService(coreClient),
 		CollectionSvc:            service.NewCoreApiCollectionService(coreClient),

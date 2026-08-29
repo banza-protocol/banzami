@@ -35,7 +35,6 @@ type Dependencies struct {
 	PayoutSvc                service.PayoutService
 	ConsumerSvc              service.ConsumerService
 	ConsumerWalletSvc        service.ConsumerWalletService
-	TransferSvc              service.TransferService
 	QrSvc                    service.QrService
 	PaymentLinkSvc           service.PaymentLinkService
 	CollectionSvc            service.CollectionService
@@ -135,7 +134,6 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ConsumerSvc, deps.MerchantSvc, deps.ProofSvc)
 	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
 	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
-	transferHandler := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
 	// Split Sessions is SUPERSEDED by Collections (ADR-036) — answered at the edge, never proxied.
 	splitsSuperseded := handler.SplitsSuperseded()
@@ -395,13 +393,30 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Get("/{id}/balance", consumerWltHandler.Balance)
 			})
 
-			// Instant P2P transfers
-			r.Route("/transfers", func(r chi.Router) {
-				r.Use(middleware.RequireMerchant)
-				r.Post("/", transferHandler.Send)
-				r.Get("/", transferHandler.List) // ?consumer_id=X&limit=20&cursor=...
-				r.Get("/{id}", transferHandler.Get)
-			})
+			// Consumer P2P transfers are NOT a merchant resource, and the whole
+			// /v1/transfers group was REMOVED from this surface (SEC-015, SEC-018).
+			//
+			// A consumer-to-consumer transfer has two consumer participants and no
+			// merchant party. There is no ownership relation a merchant principal
+			// could be scoped against — which is not a missing field, it is the
+			// absence of authority. The routes took their subject straight from
+			// client input, so a merchant credential could:
+			//
+			//   POST /v1/transfers              — name ANY sender_id and move that
+			//                                     consumer's money to any recipient
+			//   GET  /v1/transfers/{id}         — read ANY transfer
+			//   GET  /v1/transfers?consumer_id= — read ANY consumer's whole history
+			//
+			// The sender-KYC compliance gate did not help: it authorised the SENDER
+			// named in the body, never the caller. This is finding B of
+			// docs/security/2026-07-03-transfer-surface-findings.md, recorded then
+			// as a hard blocker before Live activation.
+			//
+			// The capability is not relocated, because it already exists correctly:
+			// public-api serves the consumer surface, deriving the sender from the
+			// authenticated consumer token and scoping reads to a transfer's own
+			// sender/recipient (the RA-022 fix). Nothing was added to the financial
+			// model to make a merchant route pass an ownership check.
 
 			// QR payments
 			r.Route("/qr", func(r chi.Router) {
