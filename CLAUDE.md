@@ -868,6 +868,7 @@ The repository layout is frozen. The semantic zones below are binding architectu
 | `evidence/` | Conformance and audit evidence artifacts (e.g. BANZA conformance reports). Generated evidence only — never a source of truth and never protocol authority. Passing a BANZA conformance suite is evidence, not certification: BANZA owns the certification framework. |
 | `quality/` | Canonical operator assurance manifest (`operator-assurance-manifest.yaml`) — the single authoritative registry of capability status. `docs/quality/BANZAMI_OPERATOR_ASSURANCE.md` is generated from it. Enforced by `make check-assurance`. |
 | `ops/` | Authoritative non-secret asset inventory (`asset-inventory.yaml`) — infrastructure/resource registry with owner, purpose, environment and lifecycle. Never contains secrets. |
+| `.gitleaks.toml` | Secret-scan policy for `make security-check`. Allowlists generated output and documented placeholders **by value shape**, never by blanket rule suppression — a real credential in any file still fails. |
 | `tests/` | Cross-cutting test harnesses that span more than one zone (e.g. `tests/phase0/` end-to-end and evidence harnesses). Test artifacts only — never a source of truth and never protocol authority. Service-local unit tests still live beside their code. |
 
 ## 19.2 Frozen Rules

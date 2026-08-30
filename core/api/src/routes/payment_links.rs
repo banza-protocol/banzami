@@ -142,7 +142,8 @@ pub async fn create(
 
     let wallet_account_id = match body.wallet_account_id.as_deref() {
         Some(s) => Some(
-            uuid::Uuid::parse_str(s).map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?,
+            uuid::Uuid::parse_str(s)
+                .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?,
         ),
         None => None,
     };
@@ -203,7 +204,9 @@ pub async fn get(
         .parse::<PaymentLinkId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
     let link = state.payment_links.get(id).await.map_err(map_err)?;
-    Ok(Json(link_response_with_refund_source(&state.pool, link).await))
+    Ok(Json(
+        link_response_with_refund_source(&state.pool, link).await,
+    ))
 }
 
 pub async fn get_by_slug(
@@ -238,5 +241,7 @@ pub async fn mark_used(
         .map_err(|_| ApiError::bad_request("invalid id"))?;
     let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
     // Carry refund_source so the gateway's payment_link.paid webhook includes it.
-    Ok(Json(link_response_with_refund_source(&state.pool, link).await))
+    Ok(Json(
+        link_response_with_refund_source(&state.pool, link).await,
+    ))
 }

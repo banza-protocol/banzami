@@ -1,9 +1,10 @@
 # Transfer Surface — Secondary Findings
 
-Version: 1.0
-Date: 2026-07-03
+Version: 1.1
+Date: 2026-07-03 (findings) · 2026-08-30 (resolution)
 Source: Sandbox transfer E2E verification (wallet-native consumer P2P path)
-Status: Open
+Status: **RESOLVED** — both findings closed by the security audit; see the
+resolution notes below and `BANZAMI_SECURITY_AUDIT.md` (SEC-015 / SEC-018).
 
 These findings were surfaced while validating the canonical wallet-native
 Sandbox transfer path end-to-end. The validated consumer path itself is correct
@@ -30,6 +31,12 @@ publicly** until its intended audience and contract are reviewed and agreed.
 
 **Priority.** Normal. Not a blocker for the current Sandbox documentation.
 
+**RESOLVED (2026-08-30).** The surface split no longer exists to align: the
+id-based gateway path was removed entirely, so there is one transfer surface —
+the wallet-native consumer path — and it is the one the public documentation
+already describes. `apps/website/.../p2a-artifacts.test.ts` keeps `/v1/transfers`
+on its forbidden-token list for public developer artifacts.
+
 ---
 
 ## B. Merchant-principal authorization boundary — high priority
@@ -54,6 +61,29 @@ model (which principal may move which wallets' funds).
 - any **public SDK transfer documentation**.
 
 Do not silently accept the current behaviour as the production model.
+
+**RESOLVED (2026-08-30) — the behaviour was not accepted; the surface was removed.**
+
+The ownership model this finding asked for turned out not to exist, and could not
+be invented honestly: a consumer-to-consumer transfer has two consumer
+participants and no merchant party, so there is no wallet a merchant principal
+legitimately controls in that operation. Rather than add a `merchant_id` to the
+transfer model purely so a merchant route could pass an ownership check — which
+would have changed the financial model to serve an authorization problem — the
+whole `/v1/transfers` group was removed from the merchant surface:
+
+- `POST /v1/transfers` — a merchant could name ANY `sender_id` and move that
+  consumer's money. The sender-KYC gate did not constrain this: it authorised the
+  sender named in the body, never the caller.
+- `GET /v1/transfers/{id}` — read any transfer (audit finding SEC-015).
+- `GET /v1/transfers?consumer_id=` — read any consumer's entire history.
+
+The capability was not relocated, because the correct surface already existed:
+public-api derives the sender from the authenticated consumer token and restricts
+a read to the transfer's own sender or recipient (the RA-022 fix).
+
+Guarded by `TestMerchantSurface_P2PTransferRoutesNotMounted`, a route-table
+assertion proven to fail if any of the three routes is re-mounted.
 
 ---
 

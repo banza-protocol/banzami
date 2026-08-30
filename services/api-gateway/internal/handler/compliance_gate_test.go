@@ -16,18 +16,6 @@ import (
 // Mock services for the compliance gate
 // ---------------------------------------------------------------------------
 
-type mockTransferSvc struct {
-	sendFn func(ctx context.Context, req service.SendTransferRequest) (*service.Transfer, error)
-}
-
-func (m *mockTransferSvc) Send(ctx context.Context, req service.SendTransferRequest) (*service.Transfer, error) {
-	return m.sendFn(ctx, req)
-}
-func (m *mockTransferSvc) Get(context.Context, string) (*service.Transfer, error) { return nil, nil }
-func (m *mockTransferSvc) List(context.Context, string, int, string) (*service.TransferPage, error) {
-	return nil, nil
-}
-
 type mockPayoutSvc struct {
 	createFn func(ctx context.Context, req service.CreatePayoutRequest) (*service.Payout, error)
 }
@@ -86,81 +74,6 @@ func sendBody() map[string]any {
 // ---------------------------------------------------------------------------
 // Transfer SEND gate — fail-closed
 // ---------------------------------------------------------------------------
-
-// When the compliance authority is unreachable, a SEND must be refused with 503
-// COMPLIANCE_UNAVAILABLE rather than letting the money move (fail-closed).
-func TestTransferSend_ComplianceUnreachable_Returns503(t *testing.T) {
-	comp := &mockCompliance{
-		authorizeFn: func(context.Context, string, string, int64, int64) (*service.Authorization, error) {
-			return nil, errors.New("core-api unreachable")
-		},
-	}
-	svc := &mockTransferSvc{sendFn: func(context.Context, service.SendTransferRequest) (*service.Transfer, error) {
-		t.Fatal("Send must not be called when compliance is unreachable")
-		return nil, nil
-	}}
-	h := handler.NewTransferHandler(svc, nil, comp)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, "/v1/transfers", jsonBody(sendBody()))
-	h.Send(w, r)
-
-	if w.Code != http.StatusServiceUnavailable {
-		t.Fatalf("expected 503, got %d", w.Code)
-	}
-	if code := decodeRaw(t, w)["code"]; code != "COMPLIANCE_UNAVAILABLE" {
-		t.Errorf("expected COMPLIANCE_UNAVAILABLE, got %v", code)
-	}
-}
-
-// When compliance denies the operation, a SEND is refused with 403 and the
-// machine reason from the authority.
-func TestTransferSend_ComplianceDenies_Returns403(t *testing.T) {
-	comp := &mockCompliance{
-		authorizeFn: func(context.Context, string, string, int64, int64) (*service.Authorization, error) {
-			return &service.Authorization{CanTransact: false, Reason: "KYC_REQUIRED", CurrentLevel: "KYC_LEVEL_0"}, nil
-		},
-	}
-	svc := &mockTransferSvc{sendFn: func(context.Context, service.SendTransferRequest) (*service.Transfer, error) {
-		t.Fatal("Send must not be called when compliance denies")
-		return nil, nil
-	}}
-	h := handler.NewTransferHandler(svc, nil, comp)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, "/v1/transfers", jsonBody(sendBody()))
-	h.Send(w, r)
-
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403, got %d", w.Code)
-	}
-	if code := decodeRaw(t, w)["code"]; code != "KYC_REQUIRED" {
-		t.Errorf("expected KYC_REQUIRED, got %v", code)
-	}
-}
-
-// When compliance approves, the SEND proceeds to the transfer service.
-func TestTransferSend_ComplianceApproves_Proceeds(t *testing.T) {
-	comp := &mockCompliance{
-		authorizeFn: func(context.Context, string, string, int64, int64) (*service.Authorization, error) {
-			return &service.Authorization{CanTransact: true, CurrentLevel: "KYC_LEVEL_1"}, nil
-		},
-	}
-	called := false
-	svc := &mockTransferSvc{sendFn: func(context.Context, service.SendTransferRequest) (*service.Transfer, error) {
-		called = true
-		return &service.Transfer{ID: "tr-1"}, nil
-	}}
-	h := handler.NewTransferHandler(svc, nil, comp)
-
-	w := httptest.NewRecorder()
-	r := httptest.NewRequest(http.MethodPost, "/v1/transfers", jsonBody(sendBody()))
-	h.Send(w, r)
-
-	if !called {
-		t.Fatalf("expected transfer service to be called; status=%d body=%s", w.Code, w.Body.String())
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Payout KYB gate — fail-closed

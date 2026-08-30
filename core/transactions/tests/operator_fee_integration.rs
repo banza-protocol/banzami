@@ -183,10 +183,18 @@ async fn donation_two_percent_net_fee_balanced(pool: PgPool) -> sqlx::Result<()>
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await; // 2%
 
     let tx = authorize_tx(&fx, "idem-2pct", 5_000_00, Some("DONATION")).await;
-    let captured = fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    let captured = fx
+        .engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     assert_eq!(captured.status, TransactionStatus::Captured);
-    assert_eq!(captured.fee.amount_minor(), 100_00, "fee = 2% of 5000 = 100");
+    assert_eq!(
+        captured.fee.amount_minor(),
+        100_00,
+        "fee = 2% of 5000 = 100"
+    );
 
     // Wallet view: payee has NET available, nothing reserved.
     let bal = fx.wallet_engine.balance(captured.wallet_id).await.unwrap();
@@ -194,16 +202,21 @@ async fn donation_two_percent_net_fee_balanced(pool: PgPool) -> sqlx::Result<()>
     assert_eq!(bal.reserved.amount_minor(), 0);
 
     // Operator fee account credited the fee.
-    assert_eq!(account_balance(&fx.pool, fx.operator_fee_account_id).await, 100_00);
+    assert_eq!(
+        account_balance(&fx.pool, fx.operator_fee_account_id).await,
+        100_00
+    );
 
     // operator_fees row: resolved fee + snapshot pinned to rule version 1.
     let (amount, rule_ver, status, snap): (i64, Option<i32>, String, serde_json::Value) =
-        sqlx::query_as("SELECT amount_minor, pricing_rule_version, status, snapshot_json
-                          FROM operator_fees WHERE transaction_id = $1")
-            .bind(tx.id.as_uuid())
-            .fetch_one(&fx.pool)
-            .await
-            .unwrap();
+        sqlx::query_as(
+            "SELECT amount_minor, pricing_rule_version, status, snapshot_json
+                          FROM operator_fees WHERE transaction_id = $1",
+        )
+        .bind(tx.id.as_uuid())
+        .fetch_one(&fx.pool)
+        .await
+        .unwrap();
     assert_eq!(amount, 100_00);
     assert_eq!(rule_ver, Some(1));
     assert_eq!(status, "APPLIED");
@@ -211,14 +224,16 @@ async fn donation_two_percent_net_fee_balanced(pool: PgPool) -> sqlx::Result<()>
     assert_eq!(snap["rate_bps"], serde_json::json!(200));
 
     // The fee leg is part of ONE balanced posting.
-    let posting_id: Uuid = sqlx::query_scalar(
-        "SELECT posting_id FROM operator_fees WHERE transaction_id = $1",
-    )
-    .bind(tx.id.as_uuid())
-    .fetch_one(&fx.pool)
-    .await
-    .unwrap();
-    assert!(posting_is_balanced(&fx.pool, posting_id).await, "posting balanced");
+    let posting_id: Uuid =
+        sqlx::query_scalar("SELECT posting_id FROM operator_fees WHERE transaction_id = $1")
+            .bind(tx.id.as_uuid())
+            .fetch_one(&fx.pool)
+            .await
+            .unwrap();
+    assert!(
+        posting_is_balanced(&fx.pool, posting_id).await,
+        "posting balanced"
+    );
 
     Ok(())
 }
@@ -231,20 +246,28 @@ async fn government_zero_bps_gross_equals_net(pool: PgPool) -> sqlx::Result<()> 
     seed_rule(&fx.pool, "gov-free", "GOVERNMENT", 0).await; // explicit 0%
 
     let tx = authorize_tx(&fx, "idem-gov", 3_000_00, Some("GOVERNMENT")).await;
-    let captured = fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    let captured = fx
+        .engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     assert_eq!(captured.fee.amount_minor(), 0);
     let bal = fx.wallet_engine.balance(captured.wallet_id).await.unwrap();
     assert_eq!(bal.available.amount_minor(), 3_000_00, "gross == net");
-    assert_eq!(account_balance(&fx.pool, fx.operator_fee_account_id).await, 0);
+    assert_eq!(
+        account_balance(&fx.pool, fx.operator_fee_account_id).await,
+        0
+    );
 
     // A zero-fee row is still recorded (auditable), rule matched.
-    let (amount, rule_ver): (i64, Option<i32>) =
-        sqlx::query_as("SELECT amount_minor, pricing_rule_version FROM operator_fees WHERE transaction_id = $1")
-            .bind(tx.id.as_uuid())
-            .fetch_one(&fx.pool)
-            .await
-            .unwrap();
+    let (amount, rule_ver): (i64, Option<i32>) = sqlx::query_as(
+        "SELECT amount_minor, pricing_rule_version FROM operator_fees WHERE transaction_id = $1",
+    )
+    .bind(tx.id.as_uuid())
+    .fetch_one(&fx.pool)
+    .await
+    .unwrap();
     assert_eq!(amount, 0);
     assert_eq!(rule_ver, Some(1));
     Ok(())
@@ -259,12 +282,19 @@ async fn unknown_category_no_fee(pool: PgPool) -> sqlx::Result<()> {
 
     // category that no rule matches
     let tx = authorize_tx(&fx, "idem-unknown", 8_000_00, Some("SPACE_TOURISM")).await;
-    let captured = fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    let captured = fx
+        .engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     assert_eq!(captured.fee.amount_minor(), 0, "unpriced -> no fee");
     let bal = fx.wallet_engine.balance(captured.wallet_id).await.unwrap();
     assert_eq!(bal.available.amount_minor(), 8_000_00);
-    assert_eq!(account_balance(&fx.pool, fx.operator_fee_account_id).await, 0);
+    assert_eq!(
+        account_balance(&fx.pool, fx.operator_fee_account_id).await,
+        0
+    );
 
     let rule_id: Option<Uuid> =
         sqlx::query_scalar("SELECT pricing_rule_id FROM operator_fees WHERE transaction_id = $1")
@@ -284,7 +314,11 @@ async fn no_category_is_unchanged_zero_fee(pool: PgPool) -> sqlx::Result<()> {
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await;
 
     let tx = authorize_tx(&fx, "idem-nocat", 1_000_00, None).await;
-    let captured = fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    let captured = fx
+        .engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     assert_eq!(captured.fee.amount_minor(), 0);
     let bal = fx.wallet_engine.balance(captured.wallet_id).await.unwrap();
@@ -309,7 +343,10 @@ async fn fee_exceeding_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
     // No partial state: still AUTHORIZED, nothing settled, no fee row, no fee credit.
     let after = fx.engine.get(tx.id).await.unwrap();
     assert_eq!(after.status, TransactionStatus::Authorized);
-    assert_eq!(account_balance(&fx.pool, fx.operator_fee_account_id).await, 0);
+    assert_eq!(
+        account_balance(&fx.pool, fx.operator_fee_account_id).await,
+        0
+    );
     let count: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM operator_fees WHERE transaction_id = $1")
             .bind(tx.id.as_uuid())
@@ -328,7 +365,10 @@ async fn capture_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await;
 
     let tx = authorize_tx(&fx, "idem-replay", 5_000_00, Some("DONATION")).await;
-    fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    fx.engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     // Simulate a retry whose status update was lost: force back to AUTHORIZED and
     // re-capture. The settle key + operator_fees UNIQUE must make this a no-op.
@@ -337,10 +377,16 @@ async fn capture_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
         .execute(&fx.pool)
         .await
         .unwrap();
-    fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    fx.engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     // Fee credited exactly once; payee NET unchanged; one fee row; one posting.
-    assert_eq!(account_balance(&fx.pool, fx.operator_fee_account_id).await, 100_00);
+    assert_eq!(
+        account_balance(&fx.pool, fx.operator_fee_account_id).await,
+        100_00
+    );
     let bal = fx.wallet_engine.balance(tx.wallet_id).await.unwrap();
     assert_eq!(bal.available.amount_minor(), 4_900_00);
 
@@ -352,13 +398,12 @@ async fn capture_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
             .unwrap();
     assert_eq!(fee_rows, 1, "exactly one operator fee");
 
-    let postings: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM ledger_postings WHERE idempotency_key = $1",
-    )
-    .bind(format!("{}:capture", tx.idempotency_key))
-    .fetch_one(&fx.pool)
-    .await
-    .unwrap();
+    let postings: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM ledger_postings WHERE idempotency_key = $1")
+            .bind(format!("{}:capture", tx.idempotency_key))
+            .fetch_one(&fx.pool)
+            .await
+            .unwrap();
     assert_eq!(postings, 1, "exactly one capture posting");
     Ok(())
 }
@@ -371,7 +416,10 @@ async fn rule_change_does_not_change_old_fee(pool: PgPool) -> sqlx::Result<()> {
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await; // v1: 2%
 
     let tx = authorize_tx(&fx, "idem-immut", 5_000_00, Some("DONATION")).await;
-    fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    fx.engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     let snap_before: serde_json::Value =
         sqlx::query_scalar("SELECT snapshot_json FROM operator_fees WHERE transaction_id = $1")
@@ -402,8 +450,15 @@ async fn rule_change_does_not_change_old_fee(pool: PgPool) -> sqlx::Result<()> {
             .await
             .unwrap();
 
-    assert_eq!(snap_before, snap_after, "recorded fee snapshot is immutable");
-    assert_eq!(snap_after["rate_bps"], serde_json::json!(200), "still v1's 2%");
+    assert_eq!(
+        snap_before, snap_after,
+        "recorded fee snapshot is immutable"
+    );
+    assert_eq!(
+        snap_after["rate_bps"],
+        serde_json::json!(200),
+        "still v1's 2%"
+    );
     assert_eq!(snap_after["fee_minor"], serde_json::json!(100_00));
     Ok(())
 }
@@ -415,11 +470,20 @@ async fn operator_fee_read_lists_filters_and_gets(pool: PgPool) -> sqlx::Result<
     let fx = setup(pool).await;
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await;
     let tx = authorize_tx(&fx, "idem-read", 5_000_00, Some("DONATION")).await;
-    fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+    fx.engine
+        .capture(CaptureRequest { tx_id: tx.id })
+        .await
+        .unwrap();
 
     let read = PostgresOperatorFeeReadRepository::new(fx.pool.clone());
 
-    let all = read.list(&OperatorFeeFilter { limit: 100, ..Default::default() }).await.unwrap();
+    let all = read
+        .list(&OperatorFeeFilter {
+            limit: 100,
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     assert_eq!(all.len(), 1);
     let v = &all[0];
     assert_eq!(v.gross_minor, 5_000_00);
@@ -429,13 +493,23 @@ async fn operator_fee_read_lists_filters_and_gets(pool: PgPool) -> sqlx::Result<
     assert_eq!(v.snapshot_json["rate_bps"], serde_json::json!(200));
 
     // filter hit + miss
-    let hit = read.list(&OperatorFeeFilter {
-        business_category: Some("DONATION".into()), limit: 100, ..Default::default()
-    }).await.unwrap();
+    let hit = read
+        .list(&OperatorFeeFilter {
+            business_category: Some("DONATION".into()),
+            limit: 100,
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     assert_eq!(hit.len(), 1);
-    let miss = read.list(&OperatorFeeFilter {
-        business_category: Some("MARKETPLACE".into()), limit: 100, ..Default::default()
-    }).await.unwrap();
+    let miss = read
+        .list(&OperatorFeeFilter {
+            business_category: Some("MARKETPLACE".into()),
+            limit: 100,
+            ..Default::default()
+        })
+        .await
+        .unwrap();
     assert_eq!(miss.len(), 0);
 
     // get by id

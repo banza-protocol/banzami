@@ -33,7 +33,8 @@ fn map_err(e: PricingError) -> ApiError {
 }
 
 fn parse_id(id: &str) -> Result<PricingRuleId, ApiError> {
-    id.parse().map_err(|_| ApiError::bad_request("invalid pricing rule id"))
+    id.parse()
+        .map_err(|_| ApiError::bad_request("invalid pricing rule id"))
 }
 
 // ---------------------------------------------------------------------------
@@ -78,7 +79,11 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let r = state.pricing_admin.get(parse_id(&id)?).await.map_err(map_err)?;
+    let r = state
+        .pricing_admin
+        .get(parse_id(&id)?)
+        .await
+        .map_err(map_err)?;
     Ok(Json(serde_json::to_value(&r).unwrap()))
 }
 
@@ -87,7 +92,11 @@ pub async fn versions(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let r = state.pricing_admin.get(parse_id(&id)?).await.map_err(map_err)?;
+    let r = state
+        .pricing_admin
+        .get(parse_id(&id)?)
+        .await
+        .map_err(map_err)?;
     let history = state
         .pricing_admin
         .versions(&r.environment, &r.rule_key)

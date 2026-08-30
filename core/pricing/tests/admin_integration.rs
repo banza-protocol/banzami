@@ -6,9 +6,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use banzami_pricing::{
-    PostgresPricingRuleAdminRepository, PricingRuleFilter, PricingRuleInput,
-};
+use banzami_pricing::{PostgresPricingRuleAdminRepository, PricingRuleFilter, PricingRuleInput};
 use banzami_types::PricingRuleId;
 
 fn input(key: &str, env: &str, category: &str, bps: i32) -> PricingRuleInput {
@@ -63,7 +61,10 @@ async fn mark_used(pool: &PgPool, rule_id: PricingRuleId, key: &str) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn create_get_list(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    let r = repo.create(input("donation-standard", "LIVE", "DONATION", 200)).await.unwrap();
+    let r = repo
+        .create(input("donation-standard", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
     assert_eq!(r.version, 1);
     assert!(r.enabled);
     assert!(!r.used);
@@ -80,18 +81,29 @@ async fn create_get_list(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn duplicate_key_create_is_rejected(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    repo.create(input("k", "LIVE", "DONATION", 200)).await.unwrap();
+    repo.create(input("k", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
     let err = repo.create(input("k", "LIVE", "DONATION", 300)).await;
-    assert!(err.is_err(), "duplicate rule_key in same env must be rejected");
+    assert!(
+        err.is_err(),
+        "duplicate rule_key in same env must be rejected"
+    );
     Ok(())
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn update_unused_rule_edits_in_place(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    let r = repo.create(input("k", "LIVE", "DONATION", 200)).await.unwrap();
+    let r = repo
+        .create(input("k", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
 
-    let updated = repo.update(r.id, input("k", "LIVE", "DONATION", 250)).await.unwrap();
+    let updated = repo
+        .update(r.id, input("k", "LIVE", "DONATION", 250))
+        .await
+        .unwrap();
     assert_eq!(updated.id, r.id, "same row edited in place");
     assert_eq!(updated.version, 1, "version unchanged");
     assert_eq!(updated.rate_bps, 250);
@@ -105,11 +117,17 @@ async fn update_unused_rule_edits_in_place(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn update_used_rule_creates_new_version_and_disables_old(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    let v1 = repo.create(input("k", "LIVE", "DONATION", 200)).await.unwrap();
+    let v1 = repo
+        .create(input("k", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
     mark_used(&pool, v1.id, "k").await;
     assert!(repo.get(v1.id).await.unwrap().used);
 
-    let v2 = repo.update(v1.id, input("k", "LIVE", "DONATION", 500)).await.unwrap();
+    let v2 = repo
+        .update(v1.id, input("k", "LIVE", "DONATION", 500))
+        .await
+        .unwrap();
     assert_ne!(v2.id, v1.id, "a NEW row is created");
     assert_eq!(v2.version, 2);
     assert_eq!(v2.rate_bps, 500);
@@ -129,7 +147,10 @@ async fn update_used_rule_creates_new_version_and_disables_old(pool: PgPool) -> 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn disable_then_enable(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    let r = repo.create(input("k", "LIVE", "DONATION", 200)).await.unwrap();
+    let r = repo
+        .create(input("k", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
     assert!(!repo.set_enabled(r.id, false).await.unwrap().enabled);
     assert!(repo.set_enabled(r.id, true).await.unwrap().enabled);
     Ok(())
@@ -138,7 +159,10 @@ async fn disable_then_enable(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn duplicate_into_new_key(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    let src = repo.create(input("k", "LIVE", "DONATION", 200)).await.unwrap();
+    let src = repo
+        .create(input("k", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
     let dup = repo.duplicate(src.id, "k-copy".into()).await.unwrap();
     assert_eq!(dup.rule_key, "k-copy");
     assert_eq!(dup.version, 1);
@@ -150,18 +174,43 @@ async fn duplicate_into_new_key(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn filters_by_env_category_status(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    repo.create(input("a", "LIVE", "DONATION", 200)).await.unwrap();
-    repo.create(input("b", "LIVE", "MARKETPLACE", 300)).await.unwrap();
-    let sb = repo.create(input("c", "SANDBOX", "DONATION", 100)).await.unwrap();
+    repo.create(input("a", "LIVE", "DONATION", 200))
+        .await
+        .unwrap();
+    repo.create(input("b", "LIVE", "MARKETPLACE", 300))
+        .await
+        .unwrap();
+    let sb = repo
+        .create(input("c", "SANDBOX", "DONATION", 100))
+        .await
+        .unwrap();
     repo.set_enabled(sb.id, false).await.unwrap();
 
-    let live = repo.list(&PricingRuleFilter { environment: Some("LIVE".into()), ..filter() }).await.unwrap();
+    let live = repo
+        .list(&PricingRuleFilter {
+            environment: Some("LIVE".into()),
+            ..filter()
+        })
+        .await
+        .unwrap();
     assert_eq!(live.len(), 2);
 
-    let donations = repo.list(&PricingRuleFilter { business_category: Some("DONATION".into()), ..filter() }).await.unwrap();
+    let donations = repo
+        .list(&PricingRuleFilter {
+            business_category: Some("DONATION".into()),
+            ..filter()
+        })
+        .await
+        .unwrap();
     assert_eq!(donations.len(), 2);
 
-    let disabled = repo.list(&PricingRuleFilter { enabled: Some(false), ..filter() }).await.unwrap();
+    let disabled = repo
+        .list(&PricingRuleFilter {
+            enabled: Some(false),
+            ..filter()
+        })
+        .await
+        .unwrap();
     assert_eq!(disabled.len(), 1);
     assert_eq!(disabled[0].rule_key, "c");
     Ok(())

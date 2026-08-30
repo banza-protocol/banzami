@@ -86,7 +86,10 @@ async fn merchant_wallet(pool: &PgPool) -> (Uuid, Uuid) {
 
 async fn campaign_account(pool: &PgPool, wallet_id: Uuid) -> (Uuid, Uuid) {
     let merchant: Uuid = sqlx::query_scalar("SELECT merchant_id FROM wallets WHERE id=$1")
-        .bind(wallet_id).fetch_one(pool).await.unwrap();
+        .bind(wallet_id)
+        .fetch_one(pool)
+        .await
+        .unwrap();
     let acct = account(pool, "LIABILITY").await;
     let id = Uuid::new_v4();
     sqlx::query("INSERT INTO wallet_accounts (id,wallet_id,account_id,merchant_id,currency,purpose,status,label) VALUES ($1,$2,$3,$4,'AOA','CAMPAIGN','ACTIVE','c')")
@@ -94,7 +97,12 @@ async fn campaign_account(pool: &PgPool, wallet_id: Uuid) -> (Uuid, Uuid) {
     (id, acct)
 }
 
-fn body(sender: Uuid, wallet: Uuid, recipient_account_id: Option<Uuid>, key: &str) -> SendTransferBody {
+fn body(
+    sender: Uuid,
+    wallet: Uuid,
+    recipient_account_id: Option<Uuid>,
+    key: &str,
+) -> SendTransferBody {
     SendTransferBody {
         idempotency_key: key.to_string(),
         sender_id: sender.to_string(),
@@ -113,10 +121,23 @@ async fn route_credits_campaign_account_when_set(pool: PgPool) {
     let (camp_id, camp_acct) = campaign_account(&pool, wid).await;
     let state = build_state(pool.clone()).await;
 
-    routes::send(State(state), Json(body(sender, wid, Some(camp_id), "k1"))).await.unwrap();
+    // Called for its side effect: the posting must land in the database, which
+    // the assertions below read back. The response tuple is deliberately
+    // discarded, and axum's Json is #[must_use], so discard it explicitly.
+    let _ = routes::send(State(state), Json(body(sender, wid, Some(camp_id), "k1")))
+        .await
+        .unwrap();
 
-    assert_eq!(balance(&pool, camp_acct).await, 50_000, "campaign account credited");
-    assert_eq!(balance(&pool, avail).await, 0, "default account untouched (isolation)");
+    assert_eq!(
+        balance(&pool, camp_acct).await,
+        50_000,
+        "campaign account credited"
+    );
+    assert_eq!(
+        balance(&pool, avail).await,
+        0,
+        "default account untouched (isolation)"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -126,9 +147,15 @@ async fn route_credits_default_when_absent(pool: PgPool) {
     let (_camp_id, camp_acct) = campaign_account(&pool, wid).await;
     let state = build_state(pool.clone()).await;
 
-    routes::send(State(state), Json(body(sender, wid, None, "k1"))).await.unwrap();
+    let _ = routes::send(State(state), Json(body(sender, wid, None, "k1")))
+        .await
+        .unwrap();
 
-    assert_eq!(balance(&pool, avail).await, 50_000, "legacy link credits default");
+    assert_eq!(
+        balance(&pool, avail).await,
+        50_000,
+        "legacy link credits default"
+    );
     assert_eq!(balance(&pool, camp_acct).await, 0, "campaign untouched");
 }
 
@@ -141,5 +168,8 @@ async fn route_rejects_foreign_account(pool: PgPool) {
     let state = build_state(pool.clone()).await;
 
     let r = routes::send(State(state), Json(body(sender, wid_a, Some(foreign), "k1"))).await;
-    assert!(r.is_err(), "an account from another wallet must be rejected");
+    assert!(
+        r.is_err(),
+        "an account from another wallet must be rejected"
+    );
 }

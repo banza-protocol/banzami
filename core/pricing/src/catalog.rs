@@ -95,7 +95,11 @@ impl PostgresCatalogRepository {
     }
 
     fn select(kind: CatalogKind) -> String {
-        let meta = if kind.has_metadata() { "metadata" } else { "'{}'::jsonb AS metadata" };
+        let meta = if kind.has_metadata() {
+            "metadata"
+        } else {
+            "'{}'::jsonb AS metadata"
+        };
         format!(
             "SELECT id, code, name, description, enabled, environment, {meta},
                     created_at, updated_at FROM {}",
@@ -158,7 +162,10 @@ impl PostgresCatalogRepository {
     ) -> Result<CatalogRecord, PricingError> {
         input.validate()?;
         let id = Uuid::new_v4();
-        let meta = input.metadata.clone().unwrap_or_else(|| serde_json::json!({}));
+        let meta = input
+            .metadata
+            .clone()
+            .unwrap_or_else(|| serde_json::json!({}));
         let sql = if kind.has_metadata() {
             format!(
                 "INSERT INTO {} (id, code, name, description, environment, metadata)
@@ -182,7 +189,9 @@ impl PostgresCatalogRepository {
             q = q.bind(meta);
         }
         q.execute(&self.pool).await.map_err(|e| match e {
-            sqlx::Error::Database(db) if db.constraint().is_some_and(|c| c.contains("code_env")) => {
+            sqlx::Error::Database(db)
+                if db.constraint().is_some_and(|c| c.contains("code_env")) =>
+            {
                 PricingError::Config(format!(
                     "code '{}' already exists in {}",
                     input.code, input.environment
@@ -206,7 +215,10 @@ impl PostgresCatalogRepository {
         }
         let _ = self.get(kind, id).await?; // 404 if missing
         if kind.has_metadata() {
-            let meta = input.metadata.clone().unwrap_or_else(|| serde_json::json!({}));
+            let meta = input
+                .metadata
+                .clone()
+                .unwrap_or_else(|| serde_json::json!({}));
             sqlx::query(&format!(
                 "UPDATE {} SET name = $1, description = $2, metadata = $3, updated_at = NOW()
                   WHERE id = $4",

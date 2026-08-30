@@ -31,33 +31,44 @@ impl LedgerPosting {
     /// Verify the double-entry balance invariant.
     /// Returns Ok(()) if balanced, Err with the first offending currency if not.
     pub fn assert_balanced(&self) -> Result<(), LedgerError> {
+        // Checked accumulation. With wrapping i64 arithmetic a set of entries
+        // whose REAL total is non-zero can wrap around to a computed total of
+        // exactly zero (e.g. three debits of i64::MAX, i64::MAX and 2), so the
+        // posting would report itself balanced while creating value from
+        // nothing. An overflow here is never a legitimate posting: it is
+        // reported as unbalanced rather than silently wrapped.
         let mut sums: HashMap<Currency, i64> = HashMap::new();
         for entry in &self.entries {
             let bucket = sums.entry(entry.amount.currency).or_insert(0);
-            *bucket += entry.signed_minor_units();
+            let signed = entry
+                .checked_signed_minor_units()
+                .ok_or_else(|| Self::unbalanced_for(&self.entries, entry.amount.currency))?;
+            *bucket = bucket
+                .checked_add(signed)
+                .ok_or_else(|| Self::unbalanced_for(&self.entries, entry.amount.currency))?;
         }
         for (currency, net) in sums {
             if net != 0 {
-                let debits_minor = self
-                    .entries
-                    .iter()
-                    .filter(|e| e.amount.currency == currency && e.entry_type == EntryType::Debit)
-                    .map(|e| e.amount.amount_minor())
-                    .sum();
-                let credits_minor = self
-                    .entries
-                    .iter()
-                    .filter(|e| e.amount.currency == currency && e.entry_type == EntryType::Credit)
-                    .map(|e| e.amount.amount_minor())
-                    .sum();
-                return Err(LedgerError::UnbalancedPosting {
-                    debits_minor,
-                    credits_minor,
-                    currency,
-                });
+                return Err(Self::unbalanced_for(&self.entries, currency));
             }
         }
         Ok(())
+    }
+
+    /// Build the UnbalancedPosting error for a currency. Totals are saturating
+    /// so that reporting an overflowing posting cannot itself overflow.
+    fn unbalanced_for(entries: &[LedgerEntry], currency: Currency) -> LedgerError {
+        let total = |kind: EntryType| -> i64 {
+            entries
+                .iter()
+                .filter(|e| e.amount.currency == currency && e.entry_type == kind)
+                .fold(0i64, |acc, e| acc.saturating_add(e.amount.amount_minor()))
+        };
+        LedgerError::UnbalancedPosting {
+            debits_minor: total(EntryType::Debit),
+            credits_minor: total(EntryType::Credit),
+            currency,
+        }
     }
 }
 

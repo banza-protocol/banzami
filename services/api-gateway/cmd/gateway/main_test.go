@@ -18,6 +18,14 @@ func TestProofSigningKeyState(t *testing.T) {
 		{"sandbox missing key warns", "SANDBOX", "", proofKeyWarn},
 		{"development missing key warns", "development", "", proofKeyWarn},
 		{"sandbox with key is ok", "SANDBOX", "s3cret", proofKeyOK},
+
+		// Regression: the guard must recognise every spelling the codebase
+		// treats as live. Matching only the literal "LIVE" let a stack running
+		// ENVIRONMENT=production start with forgeable payment proofs.
+		{"production missing key is fatal", "production", "", proofKeyFatal},
+		{"PRODUCTION missing key is fatal", "PRODUCTION", "", proofKeyFatal},
+		{"prod missing key is fatal", "PROD", "", proofKeyFatal},
+		{"staging missing key warns", "staging", "", proofKeyWarn},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

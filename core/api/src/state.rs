@@ -83,6 +83,10 @@ use banzami_acquiring::{
     AcquirerKind, EMISProvider, PostgresAcquiringEngine, PostgresAcquiringRepository,
     SimulatedProvider,
 };
+use banzami_app_settlement::{
+    PostgresApplicationSettlementEngine, PostgresApplicationSettlementRepository,
+};
+use banzami_collections::{PostgresCollectionEngine, PostgresCollectionRepository};
 use banzami_compliance::{KycProviderKind, PostgresComplianceEngine, PostgresComplianceRepository};
 use banzami_consumer_wallets::{
     PostgresConsumerWalletEngine, PostgresConsumerWalletRepository, PostgresOnboardingRepository,
@@ -92,18 +96,14 @@ use banzami_ledger::PostgresLedgerRepository;
 use banzami_merchants::{
     PostgresApiKeyRepository, PostgresMerchantEngine, PostgresMerchantRepository,
 };
-use banzami_app_settlement::{
-    PostgresApplicationSettlementEngine, PostgresApplicationSettlementRepository,
-};
-use banzami_pricing::{PostgresCatalogRepository, PostgresPricingRuleAdminRepository};
-use banzami_collections::{PostgresCollectionEngine, PostgresCollectionRepository};
 use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
 use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
+use banzami_pricing::PostgresPricingRuleProvider;
+use banzami_pricing::{PostgresCatalogRepository, PostgresPricingRuleAdminRepository};
 use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
 use banzami_reconciliation::{PostgresReconciliationRepository, StaticReconciliationEngine};
 use banzami_risk::StaticRiskEngine;
 use banzami_routing::StaticRoutingEngine;
-use banzami_pricing::PostgresPricingRuleProvider;
 use banzami_settlement::{PostgresSettlementEngine, PostgresSettlementRepository};
 use banzami_transactions::{
     PostgresOperatorFeeReadRepository, PostgresTransactionEngine, PostgresTransactionRepository,
@@ -117,8 +117,11 @@ use banzami_wallets::{PostgresWalletEngine, PostgresWalletRepository};
 
 pub type LedgerRepo = PostgresLedgerRepository;
 pub type WalletEng = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
-pub type TxEng =
-    PostgresTransactionEngine<WalletEng, PostgresTransactionRepository, PostgresPricingRuleProvider>;
+pub type TxEng = PostgresTransactionEngine<
+    WalletEng,
+    PostgresTransactionRepository,
+    PostgresPricingRuleProvider,
+>;
 pub type MerchantEng = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
 pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
 pub type PayoutEng = PostgresPayoutEngine<

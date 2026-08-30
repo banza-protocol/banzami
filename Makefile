@@ -90,7 +90,8 @@ help:
 	@printf "    make studio          Validation Studio — local editor (:3099)\n"
 	@printf "    make website         Official Banzami website — local dev (:3005)\n"
 	@printf "\n  \033[1mQuality\033[0m\n"
-	@printf "    make check-all       Run all linters, type-checkers, and layout check\n"
+	@printf "    make check-all       Run all linters, type-checkers, layout + security checks\n"
+	@printf "    make security-check  Security regressions, secret scan, dependency audit\n"
 	@printf "    make check-repo-layout  Repository layout compliance check (CLAUDE.md §20)\n"
 	@printf "    make check-sdk-payment-boundary  SDK is the single source of payment flows\n"
 	@printf "    make banza-conformance-l0  Run BANZA L0 conformance against the sandbox (evidence)\n"
@@ -288,6 +289,17 @@ stack-logs:
 check-repo-layout:
 	node tools/check-repository-layout.mjs
 
+# ─── Security gate ────────────────────────────────────────────────────────────
+# Aggregates the repository-owned security checks: the regression suites that
+# encode every remediated finding (SEC-001…SEC-008), a secret scan over tracked
+# files, and dependency vulnerability scans. Optional scanners that are not
+# installed are reported as SKIPPED rather than failing, so the result is
+# reproducible on any developer machine; everything it can observe is enforced.
+# See docs/security/BANZAMI_SECURITY_AUDIT.md.
+.PHONY: security-check
+security-check:
+	tools/security-check.sh
+
 # Canonical assurance manifest gate (quality/operator-assurance-manifest.yaml).
 # Structural mode runs in check-all. Two launch gates:
 #   check-assurance-reference — reference financial path readiness (can pass now)
@@ -313,7 +325,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance security-check
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────

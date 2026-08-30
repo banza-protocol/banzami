@@ -213,7 +213,11 @@ impl TransactionRepository for PostgresTransactionRepository {
         r: OperatorFeeInsert,
     ) -> Result<Transaction, TransactionError> {
         let now = Utc::now();
-        let mut db = self.pool.begin().await.map_err(TransactionError::Database)?;
+        let mut db = self
+            .pool
+            .begin()
+            .await
+            .map_err(TransactionError::Database)?;
 
         // One operator fee per transaction; a replay is a no-op (idempotent).
         sqlx::query(

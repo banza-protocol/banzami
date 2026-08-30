@@ -323,19 +323,20 @@ Get wallet balance.
 
 ---
 
-### Transfers
+### Transfers — not available on the merchant API
 
-#### POST /v1/transfers
+Consumer-to-consumer P2P transfers are **not merchant resources**. A P2P transfer
+has two consumer participants and no merchant party, so a merchant credential has
+no authority to initiate one or to read one.
 
-Initiate a P2P transfer (merchant context — wallet ID to wallet ID).
+The former merchant-context routes (`POST /v1/transfers`,
+`GET /v1/transfers/{id}`, `GET /v1/transfers?consumer_id=`) have been **removed**.
+They took their subject from client input, which let a merchant key name any
+`sender_id` and move that consumer's money, or read any consumer's transfers.
 
-#### GET /v1/transfers/{id}
-
-Get a transfer by ID.
-
-#### GET /v1/transfers?consumer_id=&limit=&cursor=
-
-List transfers.
+Consumer P2P transfers live on the **consumer API**, documented below: the sender
+is derived from the authenticated consumer token, the recipient is addressed by
+`@banza` handle, and a transfer is readable only by its own sender or recipient.
 
 ---
 
@@ -811,7 +812,6 @@ All authenticated routes are rate-limited per API key using a sliding-window cou
 | Route group | Limit |
 |-------------|-------|
 | Default | 120 requests / minute |
-| `POST /v1/transfers` | 30 requests / minute |
 | `POST /v1/auth/token` | 10 requests / minute |
 
 When the limit is exceeded the API returns `429 RATE_LIMITED`. The response includes:

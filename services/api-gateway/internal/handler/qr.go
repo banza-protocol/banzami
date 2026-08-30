@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -113,16 +114,47 @@ func (h *QrHandler) CreateDynamic(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusCreated, qrResp)
 }
 
-// GET /v1/qr/{id}
-func (h *QrHandler) Get(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	qrResp, err := h.svc.Get(r.Context(), id)
+// requireOwnedQr loads the QR named by {id} and enforces that the authenticated
+// merchant OWNS it (SEC-016).
+//
+// A QR code carries a payee (OwnerType/OwnerID) and, for dynamic codes, an
+// amount and a single-use lifecycle. Without this check any authenticated
+// merchant could read another merchant's codes, and — far worse — POST
+// /v1/qr/{id}/use would let them BURN a competitor's dynamic codes: each one is
+// single-use, so the legitimate payer's scan then fails with QR_ALREADY_USED.
+// That is payment disruption reachable with nothing but an id.
+//
+// Cross-owner access answers NOT_FOUND so the surface cannot be used to
+// enumerate QR ids. Returns (qr, true) only when the caller may proceed.
+func (h *QrHandler) requireOwnedQr(w http.ResponseWriter, r *http.Request) (*service.QrResponse, bool) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant authentication required")
+		return nil, false
+	}
+	qrResp, err := h.svc.Get(r.Context(), chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrQrNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "QR code not found")
-			return
+			return nil, false
 		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch QR code")
+		return nil, false
+	}
+	if qrResp == nil || qrResp.QrCode == nil ||
+		qrResp.QrCode.OwnerType != "MERCHANT" || qrResp.QrCode.OwnerID != principal.MerchantID {
+		slog.WarnContext(r.Context(), "qr.cross_owner_attempt",
+			"path", r.URL.Path, "caller_merchant_id", principal.MerchantID)
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "QR code not found")
+		return nil, false
+	}
+	return qrResp, true
+}
+
+// GET /v1/qr/{id}
+func (h *QrHandler) Get(w http.ResponseWriter, r *http.Request) {
+	qrResp, ok := h.requireOwnedQr(w, r)
+	if !ok {
 		return
 	}
 	respond(w, http.StatusOK, qrResp)
@@ -208,7 +240,11 @@ func (h *QrHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 // POST /v1/qr/{id}/use
 func (h *QrHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
+	owned, ok := h.requireOwnedQr(w, r)
+	if !ok {
+		return
+	}
+	id := owned.QrCode.ID
 	qr, err := h.svc.MarkUsed(r.Context(), id)
 	if err != nil {
 		switch {

@@ -64,7 +64,13 @@ fn parse_merchant(s: &str) -> Result<MerchantId, ApiError> {
 // Event emission (best-effort; never blocks the persisted state change)
 // ---------------------------------------------------------------------------
 
-async fn emit(state: &AppState, merchant: MerchantId, ty: &str, key: String, data: serde_json::Value) {
+async fn emit(
+    state: &AppState,
+    merchant: MerchantId,
+    ty: &str,
+    key: String,
+    data: serde_json::Value,
+) {
     let _ = super::webhooks::emit(&state.pool, merchant.as_uuid(), ty, &key, data).await;
 }
 
@@ -136,7 +142,11 @@ pub async fn create(
         open_immediately,
     };
 
-    let (collection, shares) = state.collections.create_collection(req).await.map_err(map_err)?;
+    let (collection, shares) = state
+        .collections
+        .create_collection(req)
+        .await
+        .map_err(map_err)?;
 
     // Events — collection.created, (opened), share.created x N
     emit(
@@ -194,6 +204,7 @@ pub struct ScopeQuery {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
 pub struct ScopePath {
     pub merchant_id: String,
     pub environment: String,
@@ -221,7 +232,9 @@ pub async fn list(
     } else {
         None
     };
-    Ok(Json(serde_json::json!({ "data": items, "next_cursor": next_cursor })))
+    Ok(Json(
+        serde_json::json!({ "data": items, "next_cursor": next_cursor }),
+    ))
 }
 
 async fn load_scoped(
@@ -247,7 +260,11 @@ pub async fn get(
     Query(q): Query<ScopeQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let (cid, _m, c) = load_scoped(&state, &id, &q).await?;
-    let collected = state.collections.collected_amount(cid).await.map_err(map_err)?;
+    let collected = state
+        .collections
+        .collected_amount(cid)
+        .await
+        .map_err(map_err)?;
     let remaining = (c.total_amount_minor - collected).max(0);
     Ok(Json(serde_json::json!({
         "collection": c,
@@ -435,7 +452,9 @@ pub async fn list_shares(
     } else {
         None
     };
-    Ok(Json(serde_json::json!({ "data": items, "next_cursor": next_cursor })))
+    Ok(Json(
+        serde_json::json!({ "data": items, "next_cursor": next_cursor }),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -443,6 +462,7 @@ pub async fn list_shares(
 // ---------------------------------------------------------------------------
 
 #[derive(Deserialize)]
+#[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
 pub struct SurfaceBody {
     pub merchant_id: String,
     pub environment: String,
@@ -478,7 +498,13 @@ pub async fn surface_share(
 
     let (intent, share) = state
         .collections
-        .surface_share(sid, merchant_id, &body.environment, body.surface, Some(surface_ref))
+        .surface_share(
+            sid,
+            merchant_id,
+            &body.environment,
+            body.surface,
+            Some(surface_ref),
+        )
         .await
         .map_err(map_err)?;
 
@@ -616,7 +642,7 @@ pub async fn settle_and_emit(
         .await
     {
         Ok(Some(o)) => o,
-        Ok(None) => return,        // not a collection payment
+        Ok(None) => return, // not a collection payment
         Err(e) => {
             tracing::warn!(error = %e, surface_ref, "collection settlement failed");
             return; // never fail the underlying payment

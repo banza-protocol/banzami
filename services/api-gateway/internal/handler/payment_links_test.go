@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -25,26 +26,49 @@ func (f *fakeLinks) link() *service.PaymentLink {
 	slug := "abc123"
 	return &service.PaymentLink{ID: "pl-1", Slug: slug, MerchantID: f.merchant, WalletID: "w1", Currency: "AOA", Status: "USED", RefundSource: f.rs}
 }
-func (f *fakeLinks) Create(context.Context, service.CreatePaymentLinkRequest) (*service.PaymentLink, error) { return f.link(), nil }
-func (f *fakeLinks) Get(context.Context, string) (*service.PaymentLink, error)      { return f.link(), nil }
-func (f *fakeLinks) GetBySlug(context.Context, string) (*service.PaymentLink, error) { return f.link(), nil }
+func (f *fakeLinks) Create(context.Context, service.CreatePaymentLinkRequest) (*service.PaymentLink, error) {
+	return f.link(), nil
+}
+func (f *fakeLinks) Get(context.Context, string) (*service.PaymentLink, error) { return f.link(), nil }
+func (f *fakeLinks) GetBySlug(context.Context, string) (*service.PaymentLink, error) {
+	return f.link(), nil
+}
 func (f *fakeLinks) List(context.Context, service.ListPaymentLinksRequest) (*service.PaymentLinkListPage, error) {
 	return &service.PaymentLinkListPage{Items: []*service.PaymentLink{f.link()}}, nil
 }
-func (f *fakeLinks) Cancel(context.Context, string) (*service.PaymentLink, error)   { return f.link(), nil }
-func (f *fakeLinks) MarkUsed(context.Context, string) (*service.PaymentLink, error) { return f.link(), nil }
+func (f *fakeLinks) Cancel(context.Context, string) (*service.PaymentLink, error) {
+	return f.link(), nil
+}
+func (f *fakeLinks) MarkUsed(context.Context, string) (*service.PaymentLink, error) {
+	return f.link(), nil
+}
 
 // capturingWebhook records the last dispatched payload.
+//
+// The handler dispatches webhooks fire-and-forget from a goroutine, so the
+// dispatching goroutine and the asserting test goroutine touch these fields
+// concurrently. Guard them with a mutex: without it `go test -race` reports a
+// data race in the fixture (not in the handler, whose goroutine is correct).
 type capturingWebhook struct {
 	*service.StubWebhookService
+	mu   sync.Mutex
 	last json.RawMessage
 	typ  string
 }
 
 func (c *capturingWebhook) Dispatch(ctx context.Context, req service.DispatchRequest) (*service.WebhookEvent, error) {
+	c.mu.Lock()
 	c.last = req.Payload
 	c.typ = req.EventType
+	c.mu.Unlock()
 	return c.StubWebhookService.Dispatch(ctx, req)
+}
+
+// captured returns the recorded event type and payload under the lock.
+func (c *capturingWebhook) captured() (string, json.RawMessage) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.typ, c.last
 }
 
 func linkHandler(rs *service.RefundSource) (*PaymentLinkHandler, *capturingWebhook) {
@@ -94,23 +118,28 @@ func TestPaymentLink_PaidWebhookIncludesRefundSource(t *testing.T) {
 	}
 	// The dispatch is fire-and-forget in a goroutine; poll briefly.
 	var payload map[string]any
-	for i := 0; i < 50 && cw.last == nil; i++ {
+	var typ string
+	var last json.RawMessage
+	for i := 0; i < 50; i++ {
+		if typ, last = cw.captured(); last != nil {
+			break
+		}
 		time.Sleep(10 * time.Millisecond)
 	}
-	if cw.typ != "payment_link.paid" {
-		t.Fatalf("expected payment_link.paid, got %q", cw.typ)
+	if typ != "payment_link.paid" {
+		t.Fatalf("expected payment_link.paid, got %q", typ)
 	}
-	if err := json.Unmarshal(cw.last, &payload); err != nil {
+	if err := json.Unmarshal(last, &payload); err != nil {
 		t.Fatalf("bad payload: %v", err)
 	}
 	src, ok := payload["refund_source"].(map[string]any)
 	if !ok {
-		t.Fatalf("payment_link.paid must include refund_source: %s", string(cw.last))
+		t.Fatalf("payment_link.paid must include refund_source: %s", string(last))
 	}
 	if src["source_type"] != "WALLET_PAYMENT" || src["source_id"] != "wp-77" {
 		t.Fatalf("refund_source = %+v, want WALLET_PAYMENT/wp-77", src)
 	}
-	if strings.Contains(string(cw.last), "TRANSACTION") {
-		t.Fatalf("webhook must never leak TRANSACTION: %s", string(cw.last))
+	if strings.Contains(string(last), "TRANSACTION") {
+		t.Fatalf("webhook must never leak TRANSACTION: %s", string(last))
 	}
 }

@@ -24,7 +24,15 @@ use crate::{
 };
 
 const PURPOSES: &[&str] = &[
-    "PRIMARY", "CAMPAIGN", "PROJECT", "EVENT", "STORE", "ESCROW", "RESERVE", "SETTLEMENT", "CUSTOM",
+    "PRIMARY",
+    "CAMPAIGN",
+    "PROJECT",
+    "EVENT",
+    "STORE",
+    "ESCROW",
+    "RESERVE",
+    "SETTLEMENT",
+    "CUSTOM",
 ];
 
 #[derive(Deserialize)]
@@ -100,24 +108,28 @@ pub async fn create(
     }
     // PRIMARY is provisioned with the wallet; it is never created via this path.
     if purpose == "PRIMARY" {
-        return Err(ApiError::bad_request("PRIMARY account is created with the wallet"));
+        return Err(ApiError::bad_request(
+            "PRIMARY account is created with the wallet",
+        ));
     }
     let wallet_id =
         Uuid::parse_str(&body.wallet_id).map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
 
     // Load the parent wallet: owner, currency, status.
-    let (wallet_merchant, currency_str, status) =
-        sqlx::query_as::<_, (Uuid, String, String)>(
-            "SELECT merchant_id, currency, status FROM wallets WHERE id = $1",
-        )
-        .bind(wallet_id)
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?
-        .ok_or_else(|| ApiError::not_found("wallet not found"))?;
+    let (wallet_merchant, currency_str, status) = sqlx::query_as::<_, (Uuid, String, String)>(
+        "SELECT merchant_id, currency, status FROM wallets WHERE id = $1",
+    )
+    .bind(wallet_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("wallet not found"))?;
 
     if status != "ACTIVE" {
-        return Err(ApiError::conflict("WALLET_INACTIVE", "wallet is not active"));
+        return Err(ApiError::conflict(
+            "WALLET_INACTIVE",
+            "wallet is not active",
+        ));
     }
     if let Some(m) = body.merchant_id.as_deref() {
         if Uuid::parse_str(m).ok() != Some(wallet_merchant) {
@@ -141,12 +153,15 @@ pub async fn create(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?
         {
-            return Ok((StatusCode::OK, Json(fetch_json(&state.pool, existing).await?)));
+            return Ok((
+                StatusCode::OK,
+                Json(fetch_json(&state.pool, existing).await?),
+            ));
         }
     }
 
-    let currency =
-        Currency::from_code(&currency_str).ok_or_else(|| ApiError::internal("bad wallet currency"))?;
+    let currency = Currency::from_code(&currency_str)
+        .ok_or_else(|| ApiError::internal("bad wallet currency"))?;
     let label = body.label.clone().unwrap_or_else(|| purpose.clone());
 
     // Provision a fresh LIABILITY ledger account (no money moves).
@@ -179,7 +194,10 @@ pub async fn create(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(fetch_json(&state.pool, id).await?)))
+    Ok((
+        StatusCode::CREATED,
+        Json(fetch_json(&state.pool, id).await?),
+    ))
 }
 
 pub async fn list_for_wallet(
@@ -223,7 +241,8 @@ pub async fn resolve(
     State(state): State<AppState>,
     Query(q): Query<ResolveQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let wid = Uuid::parse_str(&q.wallet_id).map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
+    let wid =
+        Uuid::parse_str(&q.wallet_id).map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
     let id = sqlx::query_scalar::<_, Uuid>(
         "SELECT id FROM wallet_accounts
           WHERE wallet_id = $1 AND purpose = $2
@@ -275,15 +294,17 @@ pub async fn validate_payee(
         ));
     }
 
-    let merchant_id =
-        Uuid::parse_str(&body.merchant_id).map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let merchant_id = Uuid::parse_str(&body.merchant_id)
+        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
     let wallet_id =
         Uuid::parse_str(&body.wallet_id).map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
     let wa_id = Uuid::parse_str(&body.wallet_account_id)
         .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
 
     let invalid = |reason: &str| -> ApiResult<Json<serde_json::Value>> {
-        Ok(Json(serde_json::json!({ "valid": false, "reason": reason })))
+        Ok(Json(
+            serde_json::json!({ "valid": false, "reason": reason }),
+        ))
     };
 
     // 1) wallet_account: existence + ownership chain + ACTIVE.
@@ -328,12 +349,11 @@ pub async fn validate_payee(
     }
 
     // 3) merchant: existence + ACTIVE.
-    let m: Option<(String,)> =
-        sqlx::query_as("SELECT status FROM merchants WHERE id = $1")
-            .bind(merchant_id)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
+    let m: Option<(String,)> = sqlx::query_as("SELECT status FROM merchants WHERE id = $1")
+        .bind(merchant_id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
     let Some((m_status,)) = m else {
         return invalid("MERCHANT_NOT_FOUND");
     };

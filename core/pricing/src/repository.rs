@@ -13,9 +13,7 @@ use sqlx::{PgPool, Row};
 
 use banzami_types::{Currency, PricingRuleId};
 
-use crate::domain::{
-    BusinessCategory, PricingProfile, PricingRule, RoundingMode,
-};
+use crate::domain::{BusinessCategory, PricingProfile, PricingRule, RoundingMode};
 use crate::PricingError;
 
 /// Loads the operator's active pricing rules for an environment. Implemented by

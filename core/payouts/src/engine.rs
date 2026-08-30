@@ -253,8 +253,8 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
     }
 }
 
-impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleProvider> PayoutEngine
-    for PostgresPayoutEngine<WR, L, R, P>
+impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleProvider>
+    PayoutEngine for PostgresPayoutEngine<WR, L, R, P>
 {
     async fn initiate(&self, req: CreatePayoutRequest) -> Result<Payout, PayoutError> {
         // A payout must move a positive amount — a zero/negative withdrawal is rejected.
@@ -423,12 +423,12 @@ mod tests {
     use banzami_ledger::{
         Account, AccountType, EntryType, LedgerEngine, LedgerEntry, LedgerPosting,
     };
+    use banzami_pricing::{PricingError, PricingRule, PricingRuleProvider, RoundingMode};
+    use banzami_types::PricingRuleId;
     use banzami_types::{
         AccountId, Currency, LedgerEntryId, LedgerPostingId, MerchantId, Money, PayoutId, WalletId,
     };
     use banzami_wallets::{Wallet, WalletError, WalletRepository, WalletStatus};
-    use banzami_pricing::{PricingError, PricingRule, PricingRuleProvider, RoundingMode};
-    use banzami_types::PricingRuleId;
 
     use super::*;
     use crate::{BankDestination, CreatePayoutRequest, PayoutError, PayoutStatus};
@@ -465,8 +465,16 @@ mod tests {
             // Enforce the real ledger's UNIQUE(posting_id, entry_type): exactly one
             // DEBIT and one CREDIT per posting (no third leg). Catches invalid
             // multi-leg postings in tests, exactly as Postgres would.
-            let debits = p.entries.iter().filter(|e| e.entry_type == EntryType::Debit).count();
-            let credits = p.entries.iter().filter(|e| e.entry_type == EntryType::Credit).count();
+            let debits = p
+                .entries
+                .iter()
+                .filter(|e| e.entry_type == EntryType::Debit)
+                .count();
+            let credits = p
+                .entries
+                .iter()
+                .filter(|e| e.entry_type == EntryType::Credit)
+                .count();
             if debits > 1 || credits > 1 {
                 return Err(banzami_ledger::LedgerError::InsufficientEntries);
             }
@@ -717,7 +725,8 @@ mod tests {
         Money::new(minor, Currency::AOA)
     }
 
-    type PayoutEngineT = PostgresPayoutEngine<MockWalletRepo, MockLedger, MockPayoutRepo, MockPricing>;
+    type PayoutEngineT =
+        PostgresPayoutEngine<MockWalletRepo, MockLedger, MockPayoutRepo, MockPricing>;
 
     /// No-fee engine (empty rule set) — preserves the pre-ADR-031 behaviour used
     /// by the lifecycle tests.
@@ -1103,7 +1112,11 @@ mod tests {
         // Everything back to square one — nothing stranded on the fee account.
         assert_eq!(net_of(&engine, opfee_id).await, 0, "fee reversed");
         assert_eq!(net_of(&engine, bank_id).await, 0, "bank reversed");
-        assert_eq!(net_of(&engine, avail_id).await, 200_000, "merchant restored");
+        assert_eq!(
+            net_of(&engine, avail_id).await,
+            200_000,
+            "merchant restored"
+        );
     }
 
     #[tokio::test]
@@ -1183,8 +1196,7 @@ mod tests {
         // A rule effective only in the future must not price today → free.
         let mut future = withdrawal_rule(75);
         future.effective_from = Utc::now() + chrono::Duration::days(365);
-        let (engine, wallet_id, _avail, _bank, opfee_id) =
-            make_engine_with(200_000, vec![future]);
+        let (engine, wallet_id, _avail, _bank, opfee_id) = make_engine_with(200_000, vec![future]);
         init_process(&engine, wallet_id, "w-future", 100_000).await;
         assert_eq!(net_of(&engine, opfee_id).await, 0);
     }

@@ -39,6 +39,13 @@ pub trait CollectionEngine: Send + Sync {
         cursor: Option<CollectionId>,
     ) -> Result<Vec<Collection>, CollectionError>;
 
+    // Eight parameters, four of them the optional fields a caller may patch.
+    // The three that push it over the threshold — id, merchant_id, environment —
+    // are the TENANT SCOPING of the update, and are deliberately explicit
+    // positional arguments rather than bundled into a patch struct: a caller
+    // cannot forget to pass them, and a reviewer can see at the call site that
+    // the update is scoped. Bundling them would make the scoping optional-looking.
+    #[allow(clippy::too_many_arguments)]
     async fn update_collection(
         &self,
         id: CollectionId,
@@ -100,10 +107,7 @@ pub trait CollectionEngine: Send + Sync {
         surface_ref: Option<String>,
     ) -> Result<(PaymentIntent, CollectionShare), CollectionError>;
 
-    async fn collected_amount(
-        &self,
-        collection_id: CollectionId,
-    ) -> Result<i64, CollectionError>;
+    async fn collected_amount(&self, collection_id: CollectionId) -> Result<i64, CollectionError>;
 
     /// Settle a PaymentIntent from a real, confirmed surface payment (Increment 2).
     /// Resolves the intent by (surface, surface_ref); if it backs a collection
@@ -234,6 +238,13 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
             .await
     }
 
+    // Eight parameters, four of them the optional fields a caller may patch.
+    // The three that push it over the threshold — id, merchant_id, environment —
+    // are the TENANT SCOPING of the update, and are deliberately explicit
+    // positional arguments rather than bundled into a patch struct: a caller
+    // cannot forget to pass them, and a reviewer can see at the call site that
+    // the update is scoped. Bundling them would make the scoping optional-looking.
+    #[allow(clippy::too_many_arguments)]
     async fn update_collection(
         &self,
         id: CollectionId,
@@ -439,10 +450,7 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
         Ok((intent, updated_share))
     }
 
-    async fn collected_amount(
-        &self,
-        collection_id: CollectionId,
-    ) -> Result<i64, CollectionError> {
+    async fn collected_amount(&self, collection_id: CollectionId) -> Result<i64, CollectionError> {
         self.repo.collected_amount(collection_id).await
     }
 
@@ -515,8 +523,10 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
                         } else {
                             None
                         };
-                        let updated =
-                            self.repo.update_collection_status(c.id, ns, closed_at).await?;
+                        let updated = self
+                            .repo
+                            .update_collection_status(c.id, ns, closed_at)
+                            .await?;
                         *c = updated;
                         transition = Some(ns);
                     }

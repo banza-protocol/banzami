@@ -82,10 +82,12 @@ mod internal_auth_tests {
     }
 
     fn app(key: Option<String>) -> Router {
-        let auth = axum::middleware::from_fn(move |req: axum::extract::Request, next: axum::middleware::Next| {
-            let key = key.clone();
-            async move { super::internal_service_auth(key, req, next).await }
-        });
+        let auth = axum::middleware::from_fn(
+            move |req: axum::extract::Request, next: axum::middleware::Next| {
+                let key = key.clone();
+                async move { super::internal_service_auth(key, req, next).await }
+            },
+        );
         Router::new().route("/x", get(reached)).route_layer(auth)
     }
 
@@ -120,14 +122,20 @@ mod internal_auth_tests {
 
     #[tokio::test]
     async fn invalid_header_rejected_401_before_handler() {
-        let resp = app(Some("secret".into())).oneshot(req(Some("wrong"))).await.unwrap();
+        let resp = app(Some("secret".into()))
+            .oneshot(req(Some("wrong")))
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
         assert!(!body_str(resp).await.contains("REACHED_HANDLER"));
     }
 
     #[tokio::test]
     async fn valid_key_reaches_handler() {
-        let resp = app(Some("secret".into())).oneshot(req(Some("secret"))).await.unwrap();
+        let resp = app(Some("secret".into()))
+            .oneshot(req(Some("secret")))
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         assert_eq!(body_str(resp).await, "REACHED_HANDLER");
     }
@@ -145,20 +153,42 @@ mod internal_auth_tests {
             "Bearer eyJhbGciOiJIUzI1NiJ9.merchant.jwt", // merchant JWT
             "whsec_webhook_signing_secret", // webhook secret
             "Bearer eyJhbGciOiJIUzI1NiJ9.consumer.jwt", // consumer JWT
-            "bz_test_sk_developerkey", // external developer key
+            "bz_test_sk_developerkey",      // external developer key
         ] {
-            let resp = app(Some(payee_key.into())).oneshot(req(Some(other))).await.unwrap();
-            assert_eq!(resp.status(), StatusCode::UNAUTHORIZED, "credential {other:?} must be rejected");
-            assert!(!body_str(resp).await.contains("REACHED_HANDLER"), "handler must not run for {other:?}");
+            let resp = app(Some(payee_key.into()))
+                .oneshot(req(Some(other)))
+                .await
+                .unwrap();
+            assert_eq!(
+                resp.status(),
+                StatusCode::UNAUTHORIZED,
+                "credential {other:?} must be rejected"
+            );
+            assert!(
+                !body_str(resp).await.contains("REACHED_HANDLER"),
+                "handler must not run for {other:?}"
+            );
         }
     }
 
     #[tokio::test]
     async fn error_bodies_leak_no_credential_or_detail() {
-        for (key, hdr) in [(None, Some("x")), (Some("secret".to_string()), Some("wrong")), (Some("secret".to_string()), None)] {
+        for (key, hdr) in [
+            (None, Some("x")),
+            (Some("secret".to_string()), Some("wrong")),
+            (Some("secret".to_string()), None),
+        ] {
             let resp = app(key).oneshot(req(hdr)).await.unwrap();
             let body = body_str(resp).await.to_lowercase();
-            for bad in ["secret", "core_internal_key", "x-internal-key", "expected", "select ", "postgres", "panic"] {
+            for bad in [
+                "secret",
+                "core_internal_key",
+                "x-internal-key",
+                "expected",
+                "select ",
+                "postgres",
+                "panic",
+            ] {
                 assert!(!body.contains(bad), "error leaked {bad:?}: {body}");
             }
         }

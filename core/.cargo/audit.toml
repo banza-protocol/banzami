@@ -1,0 +1,33 @@
+# cargo-audit configuration for the Banzami financial core.
+#
+# cargo-audit reads Cargo.lock, which lists every package the resolver COULD
+# select — including the optional dependencies of features this workspace does
+# not enable. Those packages are never compiled and never linked, so an advisory
+# against one of them is not a vulnerability in Banzami.
+#
+# Only that situation is ignored here, and only with proof. The claim is not
+# taken on trust: tools/security-check.sh re-derives the actual build graph with
+# `cargo tree --workspace --edges normal` and FAILS if any crate listed below has
+# entered it. A suppression that stops being true therefore breaks the build
+# instead of hiding a real finding.
+#
+# Everything that IS compiled must be fixed, not ignored. The sqlx 0.7 -> 0.8.6
+# upgrade removed the six advisories previously listed here (the sqlx binary
+# protocol issue, three rustls-webpki certificate-validation issues, and the
+# unmaintained paste / rustls-pemfile crates); upgrading anyhow to 1.0.104
+# removed a seventh. None of them are suppressed — they are gone.
+
+[advisories]
+ignore = [
+    # NOT COMPILED — `rsa` is a dependency of `sqlx-mysql`. This workspace enables
+    # sqlx with the "postgres" feature and no "mysql", so sqlx-mysql is never
+    # built. `cargo tree --workspace -i rsa` reports no dependents at all.
+    # The Marvin timing side-channel is in code that does not exist in any
+    # Banzami binary.
+    "RUSTSEC-2023-0071",
+
+    # NOT COMPILED — `rkyv` is an optional feature dependency of `rust_decimal`,
+    # which this workspace uses without that feature. `cargo tree --workspace -i
+    # rkyv` reports no dependents at all.
+    "RUSTSEC-2026-0235",
+]

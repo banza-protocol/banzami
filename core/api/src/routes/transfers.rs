@@ -62,7 +62,8 @@ pub async fn send(
 
     let recipient_account_id = match body.recipient_account_id.as_deref() {
         Some(s) => Some(
-            uuid::Uuid::parse_str(s).map_err(|_| ApiError::bad_request("invalid recipient_account_id"))?,
+            uuid::Uuid::parse_str(s)
+                .map_err(|_| ApiError::bad_request("invalid recipient_account_id"))?,
         ),
         None => None,
     };

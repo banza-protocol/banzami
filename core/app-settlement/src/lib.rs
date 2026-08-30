@@ -42,7 +42,9 @@ pub enum ApplicationSettlementError {
     #[error("resolved application fee {fee} exceeds gross {gross}")]
     FeeExceedsGross { fee: i64, gross: i64 },
 
-    #[error("an application fee of {fee} was resolved but no application_fee_account_id was given")]
+    #[error(
+        "an application fee of {fee} was resolved but no application_fee_account_id was given"
+    )]
     MissingFeeAccount { fee: i64 },
 
     /// ADR-029: an app-defined fee rate exceeds the operator's safety bound.

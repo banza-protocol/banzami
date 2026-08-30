@@ -70,36 +70,52 @@ async fn session_binds_link_and_qr_to_same_account(pool: PgPool) {
     let (merchant, _wid, wa, wa_acct) = seed(&pool).await;
     let state = build_state(pool.clone()).await;
 
-    let (status, Json(s)) =
-        routes::create(State(state), Json(body(merchant, wa, Some(50_000), Some("camp_A")))).await.unwrap();
+    let (status, Json(s)) = routes::create(
+        State(state),
+        Json(body(merchant, wa, Some(50_000), Some("camp_A"))),
+    )
+    .await
+    .unwrap();
     assert_eq!(status, axum::http::StatusCode::CREATED);
     assert_eq!(s["wallet_account_id"], wa.to_string());
     assert!(s["payment_link_id"].is_string(), "link interface present");
-    assert!(s["qr_code_id"].is_string(), "QR interface present (fixed amount)");
+    assert!(
+        s["qr_code_id"].is_string(),
+        "QR interface present (fixed amount)"
+    );
     assert!(s["qr_payload"].is_string(), "QR payload returned on create");
 
     // The payment link credits the campaign account.
-    let link_wa: Option<Uuid> = sqlx::query_scalar(
-        "SELECT wallet_account_id FROM payment_links WHERE id = $1",
-    )
-    .bind(Uuid::parse_str(s["payment_link_id"].as_str().unwrap()).unwrap())
-    .fetch_one(&pool)
-    .await
-    .unwrap();
-    assert_eq!(link_wa, Some(wa), "link bound to the campaign wallet_account");
+    let link_wa: Option<Uuid> =
+        sqlx::query_scalar("SELECT wallet_account_id FROM payment_links WHERE id = $1")
+            .bind(Uuid::parse_str(s["payment_link_id"].as_str().unwrap()).unwrap())
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        link_wa,
+        Some(wa),
+        "link bound to the campaign wallet_account"
+    );
 
     // The QR credits the SAME campaign account.
-    let qr_wa: Option<Uuid> = sqlx::query_scalar(
-        "SELECT wallet_account_id FROM qr_codes WHERE id = $1",
-    )
-    .bind(Uuid::parse_str(s["qr_code_id"].as_str().unwrap()).unwrap())
-    .fetch_one(&pool)
-    .await
-    .unwrap();
-    assert_eq!(qr_wa, Some(wa), "QR bound to the SAME wallet_account as the link");
+    let qr_wa: Option<Uuid> =
+        sqlx::query_scalar("SELECT wallet_account_id FROM qr_codes WHERE id = $1")
+            .bind(Uuid::parse_str(s["qr_code_id"].as_str().unwrap()).unwrap())
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        qr_wa,
+        Some(wa),
+        "QR bound to the SAME wallet_account as the link"
+    );
 
     // Both interfaces credit the same ledger account.
-    assert_eq!(link_wa, qr_wa, "link and QR point to the same wallet_account");
+    assert_eq!(
+        link_wa, qr_wa,
+        "link and QR point to the same wallet_account"
+    );
     let _ = wa_acct;
 }
 
@@ -107,21 +123,43 @@ async fn session_binds_link_and_qr_to_same_account(pool: PgPool) {
 async fn open_amount_session_has_link_no_qr(pool: PgPool) {
     let (merchant, _wid, wa, _) = seed(&pool).await;
     let state = build_state(pool.clone()).await;
-    let (_, Json(s)) =
-        routes::create(State(state), Json(body(merchant, wa, None, Some("camp_open")))).await.unwrap();
-    assert!(s["payment_link_id"].is_string(), "open session still has a link");
-    assert!(s["qr_code_id"].is_null(), "no native dynamic QR for an open amount");
+    let (_, Json(s)) = routes::create(
+        State(state),
+        Json(body(merchant, wa, None, Some("camp_open"))),
+    )
+    .await
+    .unwrap();
+    assert!(
+        s["payment_link_id"].is_string(),
+        "open session still has a link"
+    );
+    assert!(
+        s["qr_code_id"].is_null(),
+        "no native dynamic QR for an open amount"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn session_is_idempotent_per_reference(pool: PgPool) {
     let (merchant, _wid, wa, _) = seed(&pool).await;
     let state = build_state(pool.clone()).await;
-    let (_, Json(a)) =
-        routes::create(State(state.clone()), Json(body(merchant, wa, Some(1000), Some("camp_X")))).await.unwrap();
-    let (status, Json(b)) =
-        routes::create(State(state), Json(body(merchant, wa, Some(1000), Some("camp_X")))).await.unwrap();
-    assert_eq!(status, axum::http::StatusCode::OK, "duplicate reference returns existing");
+    let (_, Json(a)) = routes::create(
+        State(state.clone()),
+        Json(body(merchant, wa, Some(1000), Some("camp_X"))),
+    )
+    .await
+    .unwrap();
+    let (status, Json(b)) = routes::create(
+        State(state),
+        Json(body(merchant, wa, Some(1000), Some("camp_X"))),
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        status,
+        axum::http::StatusCode::OK,
+        "duplicate reference returns existing"
+    );
     assert_eq!(a["session_id"], b["session_id"], "same session id");
 }
 
@@ -131,6 +169,13 @@ async fn rejects_foreign_wallet_account(pool: PgPool) {
     let (_m2, _w2, wa2, _) = seed(&pool).await; // belongs to a different merchant
     let attacker = Uuid::new_v4();
     let state = build_state(pool).await;
-    let r = routes::create(State(state), Json(body(attacker, wa2, Some(1000), Some("x")))).await;
-    assert!(r.is_err(), "a wallet_account not owned by the caller is rejected");
+    let r = routes::create(
+        State(state),
+        Json(body(attacker, wa2, Some(1000), Some("x"))),
+    )
+    .await;
+    assert!(
+        r.is_err(),
+        "a wallet_account not owned by the caller is rejected"
+    );
 }

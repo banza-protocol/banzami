@@ -72,8 +72,11 @@ pub trait TransactionEngine: Send + Sync {
 // Production implementation
 // ---------------------------------------------------------------------------
 
-pub struct PostgresTransactionEngine<W: WalletEngine, R: TransactionRepository, P: PricingRuleProvider>
-{
+pub struct PostgresTransactionEngine<
+    W: WalletEngine,
+    R: TransactionRepository,
+    P: PricingRuleProvider,
+> {
     wallet: Arc<W>,
     repo: R,
     /// System ASSET account used as the debit side of wallet reserve / credit

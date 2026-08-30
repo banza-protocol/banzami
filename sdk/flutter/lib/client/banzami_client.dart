@@ -215,37 +215,18 @@ class BanzamiClient {
   // Transfers
   // ---------------------------------------------------------------------------
 
-  Future<Map<String, dynamic>> sendTransfer({
-    required String senderId,
-    required String recipientId,
-    required int amountMinor,
-    String currency = 'AOA',
-    String? description,
-    String? idempotencyKey,
-  }) async {
-    return _postWithRetry('/v1/transfers', {
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-      'sender_id':       senderId,
-      'recipient_id':    recipientId,
-      'amount_minor':    amountMinor,
-      'currency':        currency,
-      if (description != null) 'description': description,
-    }, idempotencyKey: idempotencyKey);
-  }
-
-  Future<Map<String, dynamic>> getTransfer(String id) async {
-    return _get('/v1/transfers/$id');
-  }
-
-  Future<Map<String, dynamic>> listTransfers({
-    required String consumerId,
-    int limit = 20,
-    String? cursor,
-  }) async {
-    var path = '/v1/transfers?consumer_id=$consumerId&limit=$limit';
-    if (cursor != null) path += '&cursor=$cursor';
-    return _get(path);
-  }
+  // Transfers (P2P) — REMOVED.
+  //
+  // sendTransfer / getTransfer / listTransfers called an id-based MERCHANT
+  // surface that has been retired. A consumer-to-consumer transfer has two
+  // consumer participants and no merchant party, so a merchant credential had
+  // no authority over it: the routes took sender_id / transfer id / consumer_id
+  // straight from client input, letting a merchant move any consumer's money or
+  // read any consumer's transfers.
+  //
+  // There is deliberately no merchant-facing replacement. The consumer P2P
+  // surface lives in ConsumerPublicClient, where the sender is the authenticated
+  // consumer and reads are restricted to a transfer's own parties.
 
   // ---------------------------------------------------------------------------
   // QR Codes

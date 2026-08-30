@@ -78,7 +78,7 @@ thiserror = "1"
 tokio = { version = "1", features = ["full"] }
 
 # Database — opt-in per crate when the persistence layer is implemented
-sqlx = { version = "0.7", features = [
+sqlx = { version = "0.8", features = [
     "runtime-tokio-rustls",
     "postgres",
     "uuid",
@@ -102,3 +102,17 @@ rand   = "0.8"
 axum   = "0.7"
 tower  = "0.4"
 tower-http = { version = "0.5", features = ["trace", "cors"] }
+
+# ---------------------------------------------------------------------------
+# Release profile — financial-core hardening
+# ---------------------------------------------------------------------------
+# Rust disables integer overflow checks in release builds by default, so `+`
+# WRAPS silently. In a ledger that turns an arithmetic mistake into silent
+# monetary corruption: a sum that should be rejected can wrap to a value that
+# passes an invariant check (see ledger/tests/balance_overflow.rs). Money moves
+# here, so an overflow must abort the operation rather than produce a wrong
+# number. Individual hot paths still use explicit checked_* arithmetic; this is
+# the backstop for every path that does not.
+[profile.release]
+overflow-checks = true
+debug-assertions = false

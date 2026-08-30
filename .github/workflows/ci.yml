@@ -1,31 +1,39 @@
 name: CI
 
-# ─── Trigger: manual only (temporary) ─────────────────────────────────────────
-# Automatic push/pull_request triggers are DISABLED while the banza-protocol
-# org's GitHub Actions billing is unresolved. With billing blocked, every push
-# produced a red ✗ within ~5s because the jobs were "not started" (a billing
-# block, never a code failure). Deploys are manual (`./deploy.sh`, CLAUDE.md
-# §19.4) and the suite runs locally (`make check-all`, `cargo test`), so the
-# repo does not depend on this CI.
+# ─── Trigger: automatic ───────────────────────────────────────────────────────
+# Automatic triggers were previously disabled because the banza-protocol org's
+# GitHub Actions billing was blocked: every push went red within ~5s with jobs
+# that never started. That block is resolved — a dispatched run now executes real
+# steps — and the four genuine failures it exposed on main (rustfmt debt, a
+# gofmt-unformatted file, a `go test -race` data race in a webhook test fixture,
+# and a step invoking the retired sqlx-backfill script) have been fixed, so the
+# suite can gate changes again.
 #
-# Run on demand: Actions → CI → "Run workflow" (or `gh workflow run CI`).
-#
-# TO RESTORE automatic CI once billing is fixed: uncomment the push/pull_request
-# block below (the paths-ignore keeps docs-only commits from running the suite).
+# paths-ignore keeps docs-only commits from running the full suite. The deploy
+# job below stays opt-in behind the ENABLE_CI_DEPLOY repository variable and is
+# skipped unless it is explicitly set.
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
-  #   paths-ignore:
-  #     - '**.md'
-  #     - 'docs/**'
-  #     - 'LICENSE'
-  # pull_request:
-  #   branches: [main]
-  #   paths-ignore:
-  #     - '**.md'
-  #     - 'docs/**'
-  #     - 'LICENSE'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+
+# Least privilege for GITHUB_TOKEN. Without an explicit block the workflow
+# inherits the repository default, which on older repositories is read/write on
+# every scope — so any compromised step or action could push code, publish
+# packages or alter releases. No job here needs to write to the repository; the
+# deploy job authenticates to the server with its own SSH key, not this token.
+permissions:
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
@@ -54,15 +62,15 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable @ 2026-08-05
         with:
           components: clippy, rustfmt
 
       - name: Cache Cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry
@@ -117,10 +125,10 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/api-gateway/go.mod
           cache-dependency-path: services/api-gateway/go.sum
@@ -146,10 +154,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/admin-api/go.mod
           cache-dependency-path: services/admin-api/go.sum
@@ -168,10 +176,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/public-api/go.mod
           cache-dependency-path: services/public-api/go.sum
@@ -194,10 +202,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
         with:
           go-version-file: services/sandbox-operator/go.mod
           # Stdlib-only module (no go.sum) — key the cache on go.mod.
@@ -225,10 +233,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
           cache: npm
@@ -312,7 +320,7 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install sqlx-cli
         run: cargo install sqlx-cli --no-default-features --features postgres --locked
@@ -342,17 +350,52 @@ jobs:
           fi
           test -d db/migrations.phase2 || { echo "::error::db/migrations.phase2 (freeze) missing"; exit 1; }
 
-      - name: sqlx-backfill matches real sqlx tracking (byte-identical)
+      # The "sqlx-backfill matches real sqlx tracking" step was REMOVED.
+      #
+      # It validated tools/sqlx-backfill.sh, which has since been retired: the
+      # backfill records migrations as applied WITHOUT running their DDL and was
+      # the root cause of the banzami_staging schema drift. The script now refuses
+      # to run at all, so the step could only ever fail. Retiring it here is step 2
+      # of the plan in docs/refunds/drift-detector/README.md ("remove from all
+      # runbooks; mark deprecated, then delete").
+      #
+      # The authoritative replacement already runs above: migrations are applied
+      # from scratch with `sqlx migrate run`, then the physical schema-manifest
+      # drift detector proves the resulting database matches the reviewed manifest.
+
+  # ─── Security gate ──────────────────────────────────────────────────────────
+  # Runs the repository's own aggregated security gate (`make security-check`):
+  # the regression suites that encode each remediated finding, a secret scan over
+  # tracked files, and the Rust/Go dependency vulnerability scanners. The gate
+  # itself decides what is fatal — this job simply provides the tooling it needs
+  # so nothing is silently reported as "skipped" in CI.
+  security:
+    name: Security — regressions, secrets, dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: services/api-gateway/go.mod
+          cache-dependency-path: services/api-gateway/go.sum
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable @ 2026-08-05
+
+      - name: Install scanners
         run: |
-          psql "$DATABASE_URL" -c "CREATE DATABASE banzami_backfill;"
-          BF="postgres://banzami:banzami_dev@localhost:5433/banzami_backfill"
-          bash tools/sqlx-backfill.sh | psql "$BF" -q
-          psql "$DATABASE_URL" -tAc "SELECT version||'|'||description||'|'||encode(checksum,'hex') FROM _sqlx_migrations ORDER BY version" > /tmp/real.txt
-          psql "$BF"            -tAc "SELECT version||'|'||description||'|'||encode(checksum,'hex') FROM _sqlx_migrations ORDER BY version" > /tmp/bf.txt
-          if ! diff -q /tmp/real.txt /tmp/bf.txt; then
-            echo "::error::sqlx-backfill output drifted from real sqlx tracking"; diff /tmp/real.txt /tmp/bf.txt; exit 1
-          fi
-          echo "backfill matches sqlx ($(wc -l < /tmp/real.txt) migrations)"
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          cargo install cargo-audit --locked
+          curl -sSfL -o /tmp/gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.28.0/gitleaks_8.28.0_linux_x64.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - name: make security-check
+        run: make security-check
 
   # ─── Deploy ─────────────────────────────────────────────────────────────────
   # OPT-IN, disabled by default. Production deployment is done manually with
@@ -369,12 +412,12 @@ jobs:
   deploy:
     name: Deploy to production
     runs-on: ubuntu-latest
-    needs: [rust, go-gateway, go-admin, go-public, go-sandbox-operator, typescript, migrations]
+    needs: [rust, go-gateway, go-admin, go-public, go-sandbox-operator, typescript, migrations, security]
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.ENABLE_CI_DEPLOY == 'true' }}
     environment: production
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       # Write the SSH private key to a temp file for rsync + ssh commands.
       - name: Configure SSH
@@ -400,7 +443,7 @@ jobs:
             --exclude='**/target/' \
             --exclude='**/.next/' \
             --exclude='.env' \
-            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no" \
+            -e "ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new" \
             . "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/srv/banzami/source/"
 
       # Run database migrations before restarting services.
@@ -408,7 +451,7 @@ jobs:
       - name: Run database migrations
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "cd /srv/banzami/source && \
              source /srv/banzami/.env && \
@@ -416,7 +459,7 @@ jobs:
                --network host \
                -e DATABASE_URL=\"\$DATABASE_URL\" \
                -v \$(pwd)/db/migrations:/migrations \
-               ghcr.io/launchbadge/sqlx-cli:latest \
+               ghcr.io/launchbadge/sqlx-cli:0.7.4 \
                sqlx migrate run --source /migrations"
 
       # Enforced rollout gate: introspect the JUST-MIGRATED target database and run
@@ -426,7 +469,7 @@ jobs:
       - name: Schema-manifest drift detector (target DB) — blocks deploy on drift
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             'cd /srv/banzami/source && source /srv/banzami/.env && \
              psql "$DATABASE_URL" -tAc "$(cat tools/introspect-schema.sql)"' > /tmp/inv.json
@@ -438,7 +481,7 @@ jobs:
       - name: Build and restart services
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "set -e
              cd /srv/banzami/source/infra/docker
@@ -451,7 +494,7 @@ jobs:
       - name: Verify health
         if: env.DEPLOY_SKIP != 'true'
         run: |
-          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=accept-new \
             "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
             "sleep 8
              curl -fsS http://localhost:8080/health > /dev/null && echo 'api-gateway OK'

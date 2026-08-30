@@ -506,7 +506,8 @@ pub async fn resolve(
     // Proof correction (acquiring source): REVERSED only on full cumulative reversal.
     if fully_reversed {
         if let Some(tid) = restitution_tx_id {
-            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str()).await;
+            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str())
+                .await;
         }
     }
 
@@ -552,22 +553,27 @@ fn map_dispute_restitution_err(e: restitution::RestitutionError) -> ApiError {
     use restitution::RestitutionError::*;
     match e {
         SourceNotFound => ApiError::not_found("dispute source not found"),
-        InvalidTransactionStatus(s) | InvalidPaymentStatus(s) => {
-            ApiError::unprocessable("SOURCE_NOT_ELIGIBLE", format!("source status {s} is not eligible"))
+        InvalidTransactionStatus(s) | InvalidPaymentStatus(s) => ApiError::unprocessable(
+            "SOURCE_NOT_ELIGIBLE",
+            format!("source status {s} is not eligible"),
+        ),
+        CurrencyMismatch { .. } => {
+            ApiError::unprocessable("CURRENCY_MISMATCH", "currency mismatch")
         }
-        CurrencyMismatch { .. } => ApiError::unprocessable("CURRENCY_MISMATCH", "currency mismatch"),
         AccountFrozen => ApiError::unprocessable("ACCOUNT_FROZEN", "merchant account is frozen"),
         WalletNotFound => ApiError::unprocessable("WALLET_NOT_FOUND", "merchant wallet not found"),
         ConsumerWalletNotFound => {
             ApiError::unprocessable("CONSUMER_WALLET_NOT_FOUND", "payer wallet not found")
         }
         InvalidSourceType => ApiError::bad_request("invalid dispute source_type"),
-        IdempotencyKeyConflict => {
-            ApiError::conflict("IDEMPOTENCY_KEY_CONFLICT", "dispute restitution key conflict")
-        }
-        ExceedsCaptured { .. } => {
-            ApiError::unprocessable("RESTITUTION_EXCEEDS_CAPTURED", "restitution exceeds captured")
-        }
+        IdempotencyKeyConflict => ApiError::conflict(
+            "IDEMPOTENCY_KEY_CONFLICT",
+            "dispute restitution key conflict",
+        ),
+        ExceedsCaptured { .. } => ApiError::unprocessable(
+            "RESTITUTION_EXCEEDS_CAPTURED",
+            "restitution exceeds captured",
+        ),
         Db(m) => ApiError::internal(m),
     }
 }

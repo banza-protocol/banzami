@@ -20,7 +20,7 @@ services:
       POSTGRES_PASSWORD: banzami_dev
       POSTGRES_DB:       banzami_dev
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -35,7 +35,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     command: redis-server --save 60 1 --loglevel warning
@@ -57,7 +57,7 @@ services:
       - --storage.tsdb.retention.time=30d
       - --web.enable-lifecycle
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ../../infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
@@ -68,7 +68,7 @@ services:
   grafana:
     image: grafana/grafana:12.0.1
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER:     admin
       GF_SECURITY_ADMIN_PASSWORD: banzami_dev
@@ -86,8 +86,14 @@ services:
 
   # Rust financial core — the single source of financial truth.
   # Only reachable from within the banzami_net Docker network.
-  # Port 8081 is exposed here for local debugging only; in production
-  # it should be firewalled and only accessible via loopback.
+  #
+  # The published port is bound to 127.0.0.1 so it is reachable for local
+  # debugging but NEVER from the network. A bare "8081:8081" binds 0.0.0.0 and
+  # would publish core's entire /internal/v1 surface — merchant provisioning,
+  # API-key minting, wallet credit, settlement, payouts, compliance decisions —
+  # on the host's public interface, where almost none of those routes require a
+  # credential (they trust the network boundary). Do not remove the 127.0.0.1
+  # prefix; a host firewall is a second control, not a substitute for this one.
   core-api:
     build:
       context: ../../core
@@ -100,7 +106,7 @@ services:
       OPERATOR_FEE_REVENUE_ACCOUNT_ID: ${OPERATOR_FEE_REVENUE_ACCOUNT_ID}
       RUST_LOG:           core_api=info,warn
     ports:
-      - "8081:8081"
+      - "127.0.0.1:8081:8081"
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,7 +120,13 @@ services:
     networks:
       - banzami_net
 
-  # Go public API gateway — the only internet-facing service.
+  # Go public API gateway — the internet-facing service.
+  #
+  # Published on 127.0.0.1 only. Public traffic arrives through the nginx
+  # container, which reaches every upstream over the banzami_net Docker network
+  # by service name (see infra/nginx/*.conf) — never through a host port. A
+  # 0.0.0.0 publication therefore adds no routing, but does add a plaintext
+  # path straight to the API that bypasses nginx and its TLS termination.
   api-gateway:
     build:
       context: ../../services/api-gateway
@@ -130,7 +142,7 @@ services:
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
       WEBHOOK_ENCRYPTION_KEY:   ${WEBHOOK_ENCRYPTION_KEY:-}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     depends_on:
       core-api:
         condition: service_healthy
@@ -152,7 +164,7 @@ services:
       LOG_LEVEL:      ${LOG_LEVEL:-info}
       OTLP_ENDPOINT:  ${OTLP_ENDPOINT:-}
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
     depends_on:
       core-api:
         condition: service_healthy
@@ -174,7 +186,7 @@ services:
       OTLP_ENDPOINT:             ${OTLP_ENDPOINT:-}
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
     ports:
-      - "8083:8083"
+      - "127.0.0.1:8083:8083"
     depends_on:
       core-api:
         condition: service_healthy
@@ -206,7 +218,7 @@ services:
       POSTGRES_PASSWORD: banzami_sandbox
       POSTGRES_DB:       banzami_sandbox
     ports:
-      - "5434:5432"
+      - "127.0.0.1:5434:5432"
     volumes:
       - postgres_sandbox_data:/var/lib/postgresql/data
     healthcheck:
@@ -230,7 +242,7 @@ services:
       OPERATOR_FEE_REVENUE_ACCOUNT_ID: ${OPERATOR_FEE_REVENUE_ACCOUNT_ID_SANDBOX:-${OPERATOR_FEE_REVENUE_ACCOUNT_ID}}
       RUST_LOG:           core_api=info,warn
     ports:
-      - "8084:8081"
+      - "127.0.0.1:8084:8081"
     depends_on:
       postgres-sandbox:
         condition: service_healthy
@@ -258,7 +270,7 @@ services:
       ENVIRONMENT:               SANDBOX
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
     ports:
-      - "8085:8083"
+      - "127.0.0.1:8085:8083"
     depends_on:
       core-api-staging:
         condition: service_healthy
@@ -303,7 +315,7 @@ services:
       NEXT_PUBLIC_GATEWAY_URL: https://api.banzami.com
       STAGING_GATEWAY_URL:     http://public-api-staging:8083
     ports:
-      - "3002:3002"
+      - "127.0.0.1:3002:3002"
     depends_on:
       - api-gateway
     restart: unless-stopped
@@ -318,7 +330,7 @@ services:
     environment:
       PAY_API_URL: http://api-gateway:8080
     ports:
-      - "3003:3003"
+      - "127.0.0.1:3003:3003"
     depends_on:
       - api-gateway
     restart: unless-stopped

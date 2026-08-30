@@ -52,11 +52,11 @@ type healthResponse struct {
 // BANZA-schema completeness; a production capabilities surface advertises them
 // where the feature is actually served.
 type capabilities struct {
-	SupportsWallets         bool `json:"supports_wallets"`
-	SupportsQR              bool `json:"supports_qr"`
-	SupportsSettlement      bool `json:"supports_settlement"`
-	SupportsPaymentIntents  bool `json:"supports_payment_intents"`
-	SupportsCollections     bool `json:"supports_collections"`
+	SupportsWallets        bool `json:"supports_wallets"`
+	SupportsQR             bool `json:"supports_qr"`
+	SupportsSettlement     bool `json:"supports_settlement"`
+	SupportsPaymentIntents bool `json:"supports_payment_intents"`
+	SupportsCollections    bool `json:"supports_collections"`
 }
 
 // operatorManifest is the body of GET /.well-known/banza/operator.json

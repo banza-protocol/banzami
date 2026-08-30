@@ -70,8 +70,7 @@ pub trait CollectionRepository: Send + Sync {
         status: ShareStatus,
     ) -> Result<CollectionShare, CollectionError>;
     /// Sum of PAID shares for a collection (derived collected_amount_minor).
-    async fn collected_amount(&self, collection_id: CollectionId)
-        -> Result<i64, CollectionError>;
+    async fn collected_amount(&self, collection_id: CollectionId) -> Result<i64, CollectionError>;
 
     // payment intents
     async fn insert_payment_intent(&self, p: &PaymentIntent) -> Result<(), CollectionError>;
@@ -163,8 +162,7 @@ impl CollectionRow {
             description: self.description,
             currency: self.currency,
             total_amount_minor: self.total_amount_minor,
-            status: CollectionStatus::try_from_str(&self.status)
-                .unwrap_or(CollectionStatus::Draft),
+            status: CollectionStatus::try_from_str(&self.status).unwrap_or(CollectionStatus::Draft),
             rule,
             environment: self.environment,
             expires_at: self.expires_at,
@@ -271,7 +269,8 @@ const S_SELECT: &str = "SELECT id, collection_id, merchant_id, participant, amou
             metadata, created_at, updated_at
      FROM collection_shares";
 
-const I_SELECT: &str = "SELECT id, operator_id, merchant_id, payee_wallet_id, amount_minor, currency,
+const I_SELECT: &str =
+    "SELECT id, operator_id, merchant_id, payee_wallet_id, amount_minor, currency,
             surface, surface_ref, status, transfer_id, environment, expires_at,
             metadata, version, created_at, updated_at
      FROM payment_intents";
@@ -522,10 +521,7 @@ impl CollectionRepository for PostgresCollectionRepository {
         Ok(row.into_domain())
     }
 
-    async fn collected_amount(
-        &self,
-        collection_id: CollectionId,
-    ) -> Result<i64, CollectionError> {
+    async fn collected_amount(&self, collection_id: CollectionId) -> Result<i64, CollectionError> {
         // SUM(bigint) returns NUMERIC in Postgres — cast back to bigint so it
         // decodes as i64.
         let sum: Option<i64> = sqlx::query_scalar(

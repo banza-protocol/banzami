@@ -11,9 +11,7 @@
 //! and an audit snapshot; a caller (the Operator-Fee leg, an Application
 //! Settlement) decides what to do with it.
 
-use crate::domain::{
-    FeeResolution, FeeSnapshot, PricingContext, PricingRule, RoundingMode,
-};
+use crate::domain::{FeeResolution, FeeSnapshot, PricingContext, PricingRule, RoundingMode};
 
 /// Bumped whenever the resolution algorithm changes in a way that could alter a
 /// previously-computed fee. Stored in every snapshot for forensic replay.
@@ -178,7 +176,11 @@ pub fn resolve(rules: &[PricingRule], ctx: &PricingContext) -> FeeResolution {
 
     let pct = apply_bps(ctx.amount_minor, rule.rate_bps, rule.rounding);
     // flat applies only to value that actually moves
-    let flat = if ctx.amount_minor > 0 { rule.flat_minor } else { 0 };
+    let flat = if ctx.amount_minor > 0 {
+        rule.flat_minor
+    } else {
+        0
+    };
     let mut fee = pct.saturating_add(flat);
 
     if let Some(min) = rule.min_fee_minor {
@@ -397,7 +399,10 @@ mod tests {
         let mut r = rule("ecom");
         r.business_category = Some(BusinessCategory::Ecommerce);
         r.rate_bps = 250;
-        let res = resolve(&[r], &ctx(10_000_00, BusinessCategory::Other("SPACE_TOURISM".into())));
+        let res = resolve(
+            &[r],
+            &ctx(10_000_00, BusinessCategory::Other("SPACE_TOURISM".into())),
+        );
         assert_eq!(res.fee_minor, 0);
         assert_eq!(res.snapshot.rule_id, None);
         assert_eq!(res.snapshot.business_category, "SPACE_TOURISM");
@@ -515,8 +520,14 @@ mod tests {
         let mut r = rule("r");
         r.rate_bps = 500;
         r.flat_minor = 100;
-        assert_eq!(resolve(&[r.clone()], &ctx(0, BusinessCategory::Ecommerce)).fee_minor, 0);
-        assert_eq!(resolve(&[r], &ctx(-100, BusinessCategory::Ecommerce)).fee_minor, 0);
+        assert_eq!(
+            resolve(&[r.clone()], &ctx(0, BusinessCategory::Ecommerce)).fee_minor,
+            0
+        );
+        assert_eq!(
+            resolve(&[r], &ctx(-100, BusinessCategory::Ecommerce)).fee_minor,
+            0
+        );
     }
 
     // ---- determinism / snapshot -----------------------------------------

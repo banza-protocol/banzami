@@ -80,35 +80,15 @@ func (h *ConsumerHandler) GetByHandle(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, consumer)
 }
 
-// POST /v1/consumers/{id}/suspend
-func (h *ConsumerHandler) Suspend(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	consumer, err := h.svc.Suspend(r.Context(), id)
-	if err != nil {
-		switch {
-		case errors.Is(err, service.ErrConsumerNotFound):
-			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "consumer not found")
-		case errors.Is(err, service.ErrConsumerStatusTransition):
-			apierror.Respond(w, r, http.StatusUnprocessableEntity, "INVALID_TRANSITION", "cannot suspend a closed consumer")
-		default:
-			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not suspend consumer")
-		}
-		return
-	}
-	respond(w, http.StatusOK, consumer)
-}
-
-// POST /v1/consumers/{id}/close
-func (h *ConsumerHandler) Close(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	consumer, err := h.svc.Close(r.Context(), id)
-	if err != nil {
-		if errors.Is(err, service.ErrConsumerNotFound) {
-			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "consumer not found")
-			return
-		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not close consumer")
-		return
-	}
-	respond(w, http.StatusOK, consumer)
-}
+// The consumer SUSPEND and CLOSE handlers were REMOVED from this surface
+// (security audit SEC-003). They performed no authorisation whatsoever, so any
+// authenticated principal could suspend or close ANY consumer account by id.
+// The handlers are deleted rather than merely unmounted so they cannot be
+// re-registered by accident; a route-table regression test
+// (TestMerchantSurface_ConsumerLifecycleRoutesNotMounted) asserts they stay off
+// the merchant surface.
+//
+// The capability lives on the operator surface, where it can be authorised and
+// audited: admin-api POST /admin/v1/consumers/{id}/suspend, gated by the
+// consumer.suspend capability, which reaches core via
+// /internal/v1/consumers/{id}/suspend.
