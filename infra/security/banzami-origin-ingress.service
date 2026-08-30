@@ -1,0 +1,23 @@
+# Re-applies the restricted origin ingress after boot and after any Docker
+# restart. Without this the rules vanish on reboot (no iptables-persistent on
+# this host) and the origin port would come back unrestricted the moment the
+# provider firewall allows it — the exact intermediate exposure Stage D forbids.
+#
+# Install:
+#   cp banzami-origin-ingress.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now banzami-origin-ingress
+[Unit]
+Description=Banzami restricted origin ingress (Cloudflare-only on the sandbox origin port)
+After=docker.service network-online.target
+Requires=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/banzami-origin-ingress-restrict.sh
+
+[Install]
+WantedBy=multi-user.target
+# Also re-run whenever docker restarts, which rebuilds its own chains.
+WantedBy=docker.service
