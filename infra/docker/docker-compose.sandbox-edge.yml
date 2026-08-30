@@ -1,0 +1,75 @@
+# Banzami sandbox-edge — Stage C runtime artifact (SANDBOX ONLY).
+#
+# Authority: docs/infra/BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md
+# (Decision 2: dedicated sandbox-edge; Decision 3: website edge stays
+# website-only; Decision 6: no pay/checkout, no live rails, no live APIs).
+#
+# Independence, by construction:
+#   * its own container, its own config, its own host port — the website edge
+#     keeps 443/8443 and is never reloaded, rebuilt or reconfigured by this file;
+#   * it joins the rt04e sandbox APP network to reach upstreams, and a dedicated
+#     ingress network for its published port. It is NOT on banzami_net, so it
+#     cannot reach production payment/admin/gateway services even by accident;
+#   * no database, no Redis, no secrets, no volumes except read-only config and
+#     the existing Cloudflare Origin certificate.
+#
+# Port: 2053 is one of Cloudflare's supported HTTPS origin ports. The sandbox
+# hostnames are directed to it by a Cloudflare Origin Rule (the one external
+# step — see docs/operations/SANDBOX_EDGE_RUNTIME.md). Until that rule exists the
+# hostnames still resolve to the website edge and return its controlled 503;
+# this proxy is then reachable and testable at the origin port only.
+#
+#   docker compose -p bzsbedge -f docker-compose.sandbox-edge.yml up -d
+#
+# BZSB_APP_NET must name the running rt04e sandbox application network.
+
+services:
+  sandbox-edge:
+    image: nginx:1.27-alpine
+    container_name: bzsbedge-sandbox-edge
+    ports:
+      - "2053:443"
+    environment:
+      # Per-deploy rt04e container names, rendered into the template by the
+      # nginx image's envsubst at start. Refresh these after a sandbox redeploy;
+      # the runtime gate fails if they go stale, so drift cannot pass silently.
+      SB_GATEWAY:       ${SB_GATEWAY:?set SB_GATEWAY to the sandbox api-gateway host:port}
+      SB_PUBLIC_API:    ${SB_PUBLIC_API:?set SB_PUBLIC_API to the sandbox public-api host:port}
+      SB_DEVELOPER_API: ${SB_DEVELOPER_API:?set SB_DEVELOPER_API to the sandbox developer-api host:port}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+    volumes:
+      # Templates are rendered to conf.d at start; conf.d itself stays writable
+      # so envsubst can emit into it. Certificates are read-only: this proxy
+      # reuses the existing Cloudflare Origin certificate (SAN *.banzami.com)
+      # and never holds key material of its own.
+      - /srv/banzami/sandbox-edge/templates:/etc/nginx/templates:ro
+      - /srv/banzami/website-nginx/certs:/etc/nginx/certs:ro
+    healthcheck:
+      # Proves the proxy itself answers TLS on an authorised host. It does NOT
+      # prove the upstreams are healthy — that is the runtime assurance gate's
+      # job (tools/check-sandbox-runtime.mjs), deliberately kept separate.
+      test: ["CMD-SHELL", "wget -qO- --no-check-certificate https://127.0.0.1/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+    security_opt:
+      - "no-new-privileges:true"
+    networks:
+      - sb_edge_ingress
+      - sb_app
+
+networks:
+  # Ingress only — carries the published port. Bridge (not internal) because the
+  # host must be able to forward 2053 into the container.
+  sb_edge_ingress:
+    name: bzsb-edge-ingress
+    driver: bridge
+
+  # The EXISTING rt04e sandbox application network, joined (not created) so the
+  # edge can reach the sandbox upstreams. External so this file can never
+  # accidentally create a second, empty sandbox network.
+  sb_app:
+    name: ${BZSB_APP_NET:?set BZSB_APP_NET to the running rt04e sandbox app network}
+    external: true
