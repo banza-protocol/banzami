@@ -102,8 +102,12 @@ for the test, never Internet-routable.
 
 Unchanged; nothing issued. Origin presents the existing Cloudflare Origin CA
 certificate, SANs `*.banzami.com` + `banzami.com`, valid to 2041 — both sandbox
-hostnames already covered. Full (strict) preserved; no Flexible, no disabled
-validation, no plaintext origin.
+hostnames already covered. No Flexible, no disabled validation, no plaintext
+origin.
+
+> **Correction (Stage D.1).** "Full (strict) preserved" overstated this: the zone
+> has been on mode `full` throughout, so the origin certificate was never being
+> validated. See §13.6 and the Stage D.1 record.
 
 ## 7. Remaining external actions
 
@@ -422,9 +426,14 @@ a correct certificate is not the same as anyone checking it.
 
 **Not changed.** Zone-wide setting affecting every production hostname, and the
 brief's instruction is to report a TLS discrepancy rather than modify it.
-Switching to strict looks low-risk (all proxied hosts terminate on nginx with
-that Origin CA certificate, which Cloudflare trusts under strict) but that is
-unverified, and being wrong means a production outage. Belongs in an ops window.
+
+> **Correction (Stage D.1).** This section went on to say switching to strict
+> "looks low-risk (all proxied hosts terminate on nginx with that Origin CA
+> certificate)". **That was wrong**, and the Stage D.1 preflight disproved it:
+> `banzami.com` and `www.banzami.com` are served from a *different*,
+> **self-signed** certificate on `:8443`. Under strict they would have returned
+> 526. The instinct that followed — "that is unverified, and being wrong means a
+> production outage" — was the part worth keeping.
 
 ### 13.7 Provider state — counter evidence with real Cloudflare traffic
 
