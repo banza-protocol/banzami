@@ -13,10 +13,18 @@ across **9 public capabilities** (`public released: 5/14`).
 Two facts, established by observation, govern every entry below.
 
 **The Sandbox surface is not serving.** `sandbox-api.banzami.com`,
-`api.banzami.com` and `developer-api.banzami.com` all answer **503**. The 503
-comes from Cloudflare (`server: cloudflare`, `retry-after: 3600`), and a direct
-origin probe to `217.160.9.248:443` also returns 503 while ports 22 and 443 are
-open — so the edge is up and the application containers behind it are not.
+`api.banzami.com` and `developer-api.banzami.com` all answer **503**.
+
+> **Correction (2026-08-30, Stage C).** The sentence that stood here concluded
+> from that 503 that "the edge is up and the application containers behind it
+> are not." **The second half was wrong.** All four Sandbox services had been
+> `Up (healthy)` throughout; the 503 was the website edge's deliberate Stage B
+> guard answering for hostnames that no server block claimed. An absent route
+> and a dead service are indistinguishable from outside, and the ambiguity was
+> resolved from the record instead of from the host. The surfaces were
+> unreachable — which is what blocks the E2E below, and that conclusion still
+> holds — but they were never down. Routing is now implemented and verified at
+> the origin: see `docs/operations/SANDBOX_EDGE_RUNTIME.md` and RA-030.
 
 Every blocking capability carries `deployment_gate: sandbox-e2e-required`, and
 `docs/quality/E2E_METHODOLOGY.md` defines that evidence as *"real flows against
@@ -35,6 +43,17 @@ So closing these blockers requires a governed deployment decision, not
 engineering effort in this repository. Producing evidence any other way would be
 fabrication, and standing the surfaces up unilaterally would violate the
 project's own service authority.
+
+> **Update (2026-08-30, Stage C).** That governed decision was given, and
+> `sandbox-edge` is implemented and verified at the origin. **This did not close
+> any blocker below**, and the HOLD verdict is unchanged. It removed the first of
+> two independent obstacles: the surfaces can now answer. The second remains
+> entirely — no E2E evidence exists for any of the nine capabilities, and the
+> four harnesses in `tools/e2e/` cover the released transfer path and the
+> developer-key path, not one of these nine. Public routing also still needs the
+> external Cloudflare + firewall step described in the runtime doc. A reachable
+> Sandbox is a precondition for producing this evidence, never a substitute for
+> it.
 
 ## 2. Blocker inventory
 

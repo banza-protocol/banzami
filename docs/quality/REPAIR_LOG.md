@@ -12,6 +12,67 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-030 — Sandbox public surfaces unrouted (Stage C: sandbox-edge implemented)
+
+- **Severity:** HIGH (blocked 8 of 9 Sandbox launch capabilities)
+- **Environment:** sandbox (vm-ionos-main)
+- **Finding:** `sandbox-api.banzami.com` and `developer-api.banzami.com`
+  answered **503**. The earlier assurance record inferred from this that the
+  Sandbox application containers were down. **They were not** — all four rt04e
+  services had been `Up (healthy)` continuously. What was missing was routing:
+  the only process on host `:443` is the website-only edge, which serves
+  `banzami.com` / `www` / `developers` and answers every other host with the
+  deliberate Stage B guard. The sandbox hosts had no server block anywhere.
+- **Root cause:** `sandbox-edge` — the dedicated proxy approved in Stage C
+  Decision 2 to carry sandbox public routes — was `APPROVED DESIGN, NOT
+  IMPLEMENTED`. No runtime artifact was permitted before an approved Stage C
+  implementation, so healthy services stayed unreachable by design.
+- **Remediation:** implemented `sandbox-edge` as a dedicated nginx proxy on its
+  own host port, its own networks and its own config. The website edge is not
+  reloaded, reconfigured or depended upon, so independence holds in both
+  directions. Two failure modes were designed against explicitly: upstreams are
+  resolved at request time via Docker DNS (the `banzami.com` 522 incident was
+  caused by literal `proxy_pass` names failing at config load), and the
+  `/consumer` prefix is stripped with an explicit `rewrite` (a variable
+  `proxy_pass` does not perform trailing-slash URI replacement — caught by
+  testing the deployed proxy, not by reading it).
+- **Tests:** `tools/check-sandbox-runtime.mjs` (`make assure-sandbox-runtime`),
+  proven in three directions: PASS against the real runtime, FAIL when
+  unreachable/503, FAIL when a healthy stack reports `environment=live`.
+- **Deployment evidence:** verified from the host against the running runtime —
+  `/health` 200, `/readyz` 200 `environment=sandbox` (db+redis ok),
+  `/consumer/v1/consumers/search` 200, developer-api 200 `env=sandbox`,
+  unauthorised Host 503, no internal service exposed on the host, and
+  `banzami.com` origin 200 unchanged throughout.
+- **Cleanup result:** new asset `bzsbedge-sandbox-edge` recorded in
+  `ops/asset-inventory.yaml`; operations doc at
+  `docs/operations/SANDBOX_EDGE_RUNTIME.md`.
+- **Disposition:** **fixed at the origin**; public routing blocked(owner) on one
+  external step — a Cloudflare Origin Rule sending the two hostnames to port
+  2053, plus a Cloudflare-IP-restricted firewall rule. `ufw` was deliberately
+  NOT opened to the world: a world-reachable origin port bypasses Cloudflare's
+  WAF and DDoS protection, so it must be opened only alongside the Origin Rule.
+
+---
+
+## RA-029 — `assure-sandbox-launch` depended on a target that never existed
+
+- **Severity:** MEDIUM (launch gate could never pass)
+- **Environment:** repo tooling
+- **Finding:** `assure-sandbox-launch` listed `check-asset-inventory` as a
+  prerequisite. That target has never existed; the real one is
+  `assure-inventory`. Latent, because make stops at the first failing
+  prerequisite and the capability gate fails earlier — it would have surfaced
+  only when the last capability blocker cleared and the gate was expected to
+  answer GO.
+- **Root cause:** naming drift introduced with the two-gate assurance split; the
+  *script* is named `check-asset-inventory.mjs`, which masked the mismatch.
+- **Remediation:** corrected the prerequisite. Verified that the four
+  prerequisites it had been shadowing all pass.
+- **Disposition:** fixed.
+
+---
+
 ## RA-001 — `canonical` git remote pointed at the PUBLIC protocol repo
 
 - **Severity:** CRITICAL (data-exposure hazard)

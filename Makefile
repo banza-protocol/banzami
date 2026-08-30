@@ -329,7 +329,7 @@ check-all: core-check gateway-check admin-api-check public-api-check check-repo-
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
-.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory
+.PHONY: assure-fast assure-full assure-sandbox assure-reference assure-sandbox-launch assure-release assure-inventory assure-sandbox-runtime
 
 # Reference financial path gate — passes on the verified reference path alone.
 assure-reference: check-assurance check-assurance-reference
@@ -337,7 +337,7 @@ assure-reference: check-assurance check-assurance-reference
 
 # FULL external Sandbox launch gate — HOLDs until every public surface is
 # deployed-E2E released. This is the gate that authorises an external launch.
-assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout assure-inventory check-live-fail-closed check-mobile-config check-docs-claims check-sdk-contract
+assure-sandbox-launch: check-assurance check-assurance-release check-repo-layout assure-inventory assure-sandbox-runtime check-live-fail-closed check-mobile-config check-docs-claims check-sdk-contract
 	@printf "\nFULL external Sandbox launch gate passed.\n"
 
 .PHONY: check-live-fail-closed
@@ -423,8 +423,31 @@ assure-release: assure-sandbox-launch
 	@printf "\nRelease-readiness gate passed.\n"
 
 # Cleanup / inventory assurance — asset inventory + disposition sanity.
+#
+# DELIBERATELY STATIC. This validates INTENDED state (lifecycle values, secret
+# hygiene, dispositions) and is offline and deterministic. It must never grow a
+# network probe: a static registry that sometimes fails because a host is slow
+# is worse than one that is honest about what it covers.
 assure-inventory:
 	node tools/check-asset-inventory.mjs
+
+# Sandbox RUNTIME assurance — the separate layer that proves OPERATIONAL state.
+#
+# assure-inventory says what should be running; this says what IS running. The
+# two are kept apart on purpose: the inventory gate passed for weeks while the
+# Sandbox public surfaces answered 503, because a static registry cannot observe
+# reality. Network-dependent by design — that is the point of it.
+#
+# Runtime healthy != capability released. This gate proves only that the
+# environment CAN be tested; capability release still requires the e2e_sandbox
+# test IDs and evidence artifacts the assurance manifest demands.
+#
+# Probe the origin directly (before public routing is live) with:
+#   BANZAMI_SANDBOX_API_BASE=https://sandbox-api.banzami.com:2053 \
+#   BANZAMI_SANDBOX_DEVAPI_BASE=https://developer-api.banzami.com:2053 \
+#   BANZAMI_SANDBOX_INSECURE_TLS=1 make assure-sandbox-runtime
+assure-sandbox-runtime:
+	node tools/check-sandbox-runtime.mjs
 
 sdk-test:
 	cd sdk/typescript && npm ci && npm test

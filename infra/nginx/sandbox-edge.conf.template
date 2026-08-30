@@ -1,0 +1,156 @@
+# Banzami sandbox-edge — Stage C dedicated sandbox public routing proxy.
+#
+# Authority: docs/infra/BANZAMI_STAGE_C_SANDBOX_PUBLIC_ROUTING_DECISIONS.md
+#   Decision 2 — a DEDICATED sandbox-edge proxy carries the sandbox public
+#                routes. Extending the website edge (Option A) was rejected
+#                because it would give the website upstream dependencies.
+#   Decision 3 — banzami.com / www remain served by the website-only edge and
+#                must not depend on sandbox/payment/admin/gateway/API services.
+#   Decision 6 — no pay/checkout, no live rails, no operational Developer
+#                Console, no live core-api/api-gateway/public-api.
+#
+# This proxy therefore serves ONLY the sandbox hosts, depends ONLY on the rt04e
+# sandbox project, and shares no process, port or config with the website edge.
+# It listens on its own container :443 published to a distinct host port, so the
+# website edge keeps 443/8443 untouched and the two remain independent in BOTH
+# directions: if this proxy dies banzami.com is unaffected, and if the website
+# edge dies the sandbox routes are unaffected.
+#
+# FAIL-CLOSED STARTUP (the lesson from the banzami.com 522 incident, recorded in
+# infra/nginx/banzami.conf): nginx resolves proxy_pass hostnames at CONFIG LOAD
+# time when they are written literally, so ONE absent upstream prevented the
+# whole proxy from starting. Every upstream here is therefore held in a variable
+# and resolved at REQUEST time via Docker's embedded DNS. A missing upstream then
+# degrades to a controlled 502/504 for that host alone — never a startup failure,
+# never a false 200, never website HTML.
+#
+# UPSTREAM NAMING: the rt04e sandbox project generates per-deploy container
+# names (they embed the deploy timestamp), so the upstreams are supplied as
+# ${SB_GATEWAY} / ${SB_PUBLIC_API} / ${SB_DEVELOPER_API} and rendered by the
+# nginx image's envsubst at container start. A sandbox redeploy therefore needs
+# those three values refreshed and this proxy restarted — a cheap operation that
+# never touches the website edge. Crucially, drift is DETECTED rather than
+# silent: tools/check-sandbox-runtime.mjs proxies through this edge, so stale
+# upstream names fail the runtime gate instead of quietly returning 502s.
+
+resolver 127.0.0.11 ipv6=off valid=10s;
+resolver_timeout 5s;
+
+# ─── sandbox-api.banzami.com — Sandbox payment/consumer API ──────────────────
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name sandbox-api.banzami.com;
+
+    ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
+    ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 10m;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_connect_timeout 5s;
+    proxy_read_timeout    30s;
+
+    # Consumer public API — strip the /consumer prefix so
+    #   sandbox-api.banzami.com/consumer/v1/... → public-api /v1/...
+    #
+    # The prefix is stripped with an explicit `rewrite ... break`, NOT with a
+    # trailing slash on proxy_pass. When proxy_pass contains a VARIABLE, nginx
+    # does not perform the usual URI replacement, so `proxy_pass http://$var/;`
+    # silently forwards the original path: /consumer/v1/... reached public-api
+    # unstripped and every consumer route 404'd. Verified against the running
+    # Sandbox before and after.
+    location /consumer/ {
+        set $sb_public_api "${SB_PUBLIC_API}";
+        rewrite ^/consumer/(.*)$ /$1 break;
+        proxy_pass http://$sb_public_api;
+    }
+
+    # Everything else → the Sandbox API gateway.
+    location / {
+        set $sb_gateway "${SB_GATEWAY}";
+        proxy_pass http://$sb_gateway;
+    }
+}
+
+# ─── developer-api.banzami.com — Developer Platform API (Sandbox) ────────────
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name developer-api.banzami.com;
+
+    ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
+    ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    client_max_body_size 4m;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_connect_timeout 5s;
+    proxy_read_timeout    30s;
+
+    location / {
+        set $sb_developer_api "${SB_DEVELOPER_API}";
+        proxy_pass http://$sb_developer_api;
+    }
+}
+
+# ─── default — fail closed ───────────────────────────────────────────────────
+# Any host reaching this proxy that is NOT an authorised sandbox host gets a
+# controlled 503. Never website HTML, never a false 200, and never an implicit
+# fallthrough into whichever server block happens to be first.
+server {
+    listen 443 ssl default_server;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
+    ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    add_header Retry-After 3600 always;
+    add_header Cache-Control "no-store" always;
+    default_type application/json;
+
+    return 503 '{"error":{"code":"UNAVAILABLE","message":"host not served by the Banzami sandbox edge"}}';
+}
+
+# ─── container-local liveness ────────────────────────────────────────────────
+# The container healthcheck target. Bound to the loopback INSIDE the container,
+# so it is not reachable from the host, from the ingress network, or from the
+# sandbox app network — nothing outside this container can see it.
+#
+# It exists because the obvious healthcheck does not work: busybox wget, the only
+# HTTP client in nginx:alpine, has no TLS support, so probing the real
+# https://127.0.0.1/ listener always exits 1. The first deployment did exactly
+# that and reported `unhealthy` continuously while serving every request
+# correctly — a container that works and says it does not, which is the same
+# class of false signal this proxy exists to remove.
+#
+# Answering here proves nginx is up AND that THIS rendered template is the config
+# it loaded. It deliberately says nothing about the upstreams: upstream health is
+# the runtime assurance gate's job (tools/check-sandbox-runtime.mjs), kept
+# separate so a proxy that is merely alive can never be mistaken for a sandbox
+# that is serving.
+server {
+    listen 127.0.0.1:8081;
+    server_name _;
+
+    location = /edge-health {
+        access_log off;
+        default_type text/plain;
+        return 200 'sandbox-edge ok\n';
+    }
+
+    location / {
+        return 404;
+    }
+}
