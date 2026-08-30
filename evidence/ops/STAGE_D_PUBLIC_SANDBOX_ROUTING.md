@@ -3,8 +3,10 @@
 - **Date:** 2026-08-30
 - **Commit:** branch `assurance/stage-d-public-sandbox-routing`, from `main` @ `28cb1905`
 - **Host:** 217.160.9.248
-- **Verdict: `Public Sandbox Routing: HOLD`** — origin ingress restricted and
-  proven; public routing blocked on two external actions (§7).
+- **FINAL VERDICT (§15, 2026-08-30): `PUBLIC SANDBOX ROUTING: GO`.** Both
+  external actions were completed and independently verified end to end. The
+  sections below are kept in chronological order — earlier HOLDs are the record
+  of how the two blockers were isolated, not the current state.
 - **Activation attempt 2026-08-30 (§11): still HOLD.** Neither external
   dependency could be executed — no provider credentials exist, and the only
   Cloudflare credential is unchanged and unusable for routing. Nothing was faked
@@ -584,3 +586,150 @@ allowlist admits Cloudflare, and the edge answers 200 with
 
 Two signals will confirm it, and they do not depend on each other: the public
 522 becomes 200, and `tcpdump` on port 2053 stops reporting zero.
+
+
+---
+
+## 15. Stage D CLOSURE — 2026-08-30
+
+Verified against `main` @ `1c30aa2d`, clean tree, after the IONOS inbound TCP
+2053 rule was added. No host firewall change, no Cloudflare change, no checker
+change.
+
+### 15.1 Verdict
+
+**`PROVIDER INGRESS: GO` · `CLOUDFLARE ROUTING: GO` · `PUBLIC SANDBOX ROUTING:
+GO`.** All twelve §15 criteria hold.
+
+### 15.2 Provider ingress proof — counter before/after
+
+| Step | Result |
+|---|---|
+| Counters recorded, then zeroed | total 0, DROP 0 |
+| 3 × direct probe `origin:2053` from workstation (non-Cloudflare) | **refused/timeout** |
+| Counters re-read | **DROP leg: 5 pkts / 320 bytes** |
+
+This is Case B: **packets now reach the host** (the counter moved for the first
+time in Stage D) **and the direct connection still fails** (the host drops it).
+The provider permits 2053; the origin did not become public.
+
+Every prior measurement in this record had this counter at exactly 0, including
+under live Cloudflare traffic, which is what makes the transition unambiguous.
+
+### 15.3 Host enforcement under real Cloudflare traffic
+
+Counters zeroed, then only legitimate public requests:
+
+| Rule | Source | Packets |
+|---|---|---|
+| 14 — RETURN | `172.64.0.0/13` (Cloudflare) | **29** |
+| 15 — RETURN | `131.0.72.0/22` (Cloudflare) | 0 |
+| 16 — **DROP** | `0.0.0.0/0` | **0** |
+
+Cloudflare is accepted, nothing legitimate falls through to the DROP leg, and
+replies are not being dropped — the responses arrived intact. The hook remains a
+single rule with `--ctdir ORIGINAL`, so the RA-032 fix still holds under real
+traffic, which until now had never been exercised.
+
+### 15.4 Public Sandbox API — canonical hostnames, no overrides
+
+| Endpoint | Result |
+|---|---|
+| `sandbox-api.banzami.com/health` | **200** `{"status":"ok"}` |
+| `sandbox-api.banzami.com/readyz` | **200** `environment=sandbox`, database `ok`, redis `ok` |
+| `sandbox-api.banzami.com/consumer/v1/consumers/search?q=a` | **200** `{"data":[]}` |
+
+The `/consumer` route confirms the Stage C prefix rewrite is correct publicly,
+not only at the origin — the one part of the edge config that a hostname-level
+test would not have exercised.
+
+### 15.5 Public Developer API
+
+`developer-api.banzami.com/health` → **200**
+`{"db":"up","env":"sandbox","service":"developer-api","status":"ok"}`.
+
+### 15.6 Direct-origin negative test — the mandatory pair
+
+| Direction | Result |
+|---|---|
+| Workstation (ISP A) → `origin:2053` | **BLOCKED** |
+| Independent VPS 82.165.165.97 (ISP B) → `origin:2053` | **BLOCKED** |
+| Cloudflare hostname → Sandbox | **PASS** — 200, `environment=sandbox`, db+redis ok |
+
+Both halves true simultaneously. The provider opening made legitimate Cloudflare
+traffic possible without making the origin public — which was the whole point.
+
+### 15.7 TLS
+
+Cloudflare proxy active (`server: cloudflare`, `cf-ray` present), HTTP/2, public
+TLS valid (`ssl_verify_result=0`). No downgrade, no new certificate issued; the
+existing Cloudflare Origin CA certificate is unchanged. See §15.11.
+
+### 15.8 Production non-regression
+
+`banzami.com` **200** · `www.banzami.com` **301** · `developers.banzami.com`
+**200**, TLS verification clean on all three. No 522, no 503, no sandbox content
+on production, no TLS regression. The production Origin Rules were not edited.
+
+### 15.9 Runtime assurance — PASS
+
+`make assure-sandbox-runtime`, no overrides, canonical public hostnames:
+
+```
+✓ sandbox API health: 200
+✓ sandbox API readiness: 200 (environment=sandbox)
+✓ sandbox consumer API: 200
+✓ developer API health: 200 (environment=sandbox)
+✓ Sandbox runtime is operational — E2E may be executed against it
+```
+
+**`Public routing via Cloudflare: VERIFIED`.** The checker was never weakened;
+its three non-vacuity legs were re-proven earlier in this record, and it has now
+returned each of its three possible verdicts against reality during Stage D —
+FAIL on 503, FAIL on timeout, and PASS.
+
+### 15.10 Security and launch gates
+
+| Gate | Result |
+|---|---|
+| `make security-check` | **PASSED** |
+| `make check-live-fail-closed` | **PASS** — SEC-019 registered |
+| `TestMerchantSurface_*` | **PASS** — merchant P2P routes absent |
+| `make assure-sandbox-launch` | **HOLD — 18 failures across 9 capabilities**, `public released: 5/14` |
+
+**No capability was promoted.** Routing is not E2E evidence.
+
+### 15.11 Separate finding — `CLOUDFLARE SSL MODE HARDENING REQUIRED`
+
+Zone SSL mode is **`full`**, not `full (strict)`: Cloudflare encrypts to the
+origin but does not validate its certificate. **Not changed in this task**, by
+instruction — it is zone-wide and affects every production hostname. The Origin
+CA certificate appears suitable for strict, but switching requires an
+independent preflight across all proxied origins. Tracked as its own operational
+change, separate from Stage D closure.
+
+### 15.12 Stage E baseline — derived from the real gate
+
+All nine are `status: in-audit`, `surface: public`,
+`deployment_gate: sandbox-e2e-required`. Owner: **internal** except where noted.
+
+| Capability | Disposition | Missing E2E | Missing evidence |
+|---|---|---|---|
+| CAP-PAY-001 Payment sessions | pending-e2e | all four suites empty | has contract audit + ADR-047; no deployed E2E |
+| CAP-PAY-002 Payment links | pending-e2e | unit/integration/e2e empty | has one negative-security item (RT03 §4) |
+| CAP-PAY-003 QR payment flows | pending-e2e | all four empty | **none** |
+| CAP-REFUND-001 Typed-source refunds | pending-e2e | all four empty | **none** |
+| CAP-PAYOUT-001 Wallet withdrawal / payouts | pending-e2e | all four empty | **none** |
+| CAP-WEBHOOK-001 Signed webhooks | pending-e2e | all four empty | **none** |
+| CAP-SDK-002 Flutter SDK | pending-e2e | all four empty | **none** |
+| CAP-APP-004 Pay page + checkout | pending-e2e | unit/integration/e2e empty | has contract audit + negative-security |
+| CAP-SDK-001 TypeScript SDK | **blocked-external** | — already has unit, e2e and negative-security | **npm namespace ownership** — not an E2E gap |
+
+CAP-SDK-001 is the odd one out and should not be planned alongside the rest: its
+evidence is complete and its blocker is registry ownership, which no amount of
+E2E will clear.
+
+Four capabilities — QR, refunds, payouts, webhooks — carry **no evidence at
+all**, so they are the largest Stage E units of work rather than the easiest.
+
+Stage E is not started here.
