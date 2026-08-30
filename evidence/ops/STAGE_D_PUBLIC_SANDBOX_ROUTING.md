@@ -248,3 +248,99 @@ CAP-SDK-001, CAP-SDK-002, CAP-APP-004. **No capability status was changed.**
 `banzami.com` **200** · `www.banzami.com` **301** · `developers.banzami.com`
 **200** — identical to the pre-change baseline. Origin `:2053` remains
 unreachable from the Internet. The website edge was not touched.
+
+
+---
+
+## 12. Independent verification after the manual external changes — 2026-08-30
+
+Requested to verify and close Stage D following manual application of both
+external actions. Verified against `main` @ `3f3f8c06`, clean tree.
+
+### 12.1 Outcome
+
+**`Public Sandbox Routing: HOLD`. Neither external change is in effect.** This is
+not a judgement about what was done in the consoles — it is what the path
+measures from outside and from the host.
+
+### 12.2 Provider ingress — no packet reaches the host
+
+The mandatory counter test, run from two independent external networks:
+
+| Step | Result |
+|---|---|
+| `iptables -Z BANZAMI-ORIGIN-2053` | counter zeroed |
+| 3 × `nc -z 217.160.9.248 2053` from workstation (ISP A) | refused/timeout |
+| 1 × TCP connect from VPS 82.165.165.97 (ISP B) | filtered |
+| Counter re-read | **0 packets, 0 bytes** |
+| Every rule in the chain | **all counters 0** — nothing has ever hit it |
+
+Controls from the same second source in the same run: `:443` **OPEN**, `:8443`
+**OPEN**, `:2053` **filtered**. So the host is reachable and it is specifically
+2053 that is not.
+
+Zero packets means the filtering is still upstream of the host. Had the provider
+opened the port, the counter would have risen and the host rule would have been
+what refused the connection — the intended steady state.
+
+### 12.3 Cloudflare routing — the rule is not matching
+
+Both sandbox hostnames return **503 with `content-type: text/html`**, carrying
+`server: cloudflare`, `cf-cache-status: DYNAMIC`, `retry-after: 3600` — the
+website edge's Stage B guard page, proxied back by Cloudflare.
+
+That specific response localises the problem:
+
+| Observed | Means |
+|---|---|
+| **503 + website guard HTML** (actual) | Cloudflare connected to origin **:443** — the port override is not applying |
+| **522** (not observed) | Cloudflare tried **:2053** and could not connect — rule applying, provider blocking |
+
+Because it is 503 and not 522, the request never went to 2053, independently of
+the provider state.
+
+Tested across `/`, `/health`, `/readyz`, `/v1` and `/consumer/v1/consumers/search`
+on `sandbox-api`, and `/` and `/health` on `developer-api` — **all 503 HTML**, so
+the rule is not merely scoped too narrowly to one path.
+
+Control in the same run: `banzami.com`, whose Origin Rule to `:8443` is known to
+work, returned **200**. The mechanism functions in this zone; it is not reaching
+these two hostnames.
+
+### 12.4 Origin side is healthy — the fault is not here
+
+`bzsbedge-sandbox-edge` `Up 2 hours (healthy)`; local origin request through the
+edge returns **200**, `environment=sandbox`, database and redis `ok`. The sandbox
+is ready to be reached; nothing reaches it.
+
+### 12.5 Hypotheses to check in the consoles
+
+Offered as hypotheses, not findings — this repository cannot see either console.
+
+*Provider:* rule attached to a different server/instance; saved but not applied;
+direction set to outbound; protocol set to UDP; or a policy created but not bound
+to this host.
+
+*Cloudflare:* rule saved but not enabled/deployed; created in a different zone in
+the account; created as a Redirect or Transform Rule rather than an **Origin Rule
+with a destination-port override**; or an expression that does not match (e.g.
+matching the Host header field rather than hostname, or a typo in either name).
+
+The discriminator in §12.3 is the fastest way to confirm a fix: once the Origin
+Rule matches, these hostnames stop returning the website's 503 HTML. If the
+provider is still closed at that moment they will return **522**, which is
+progress, not regression — and the §12.2 counter will begin to rise.
+
+### 12.6 Gates at time of verification
+
+| Gate | Result |
+|---|---|
+| `make security-check` | **PASSED** |
+| `make check-live-fail-closed` | **PASS** — SEC-019 still registered |
+| `make assure-sandbox-runtime` (public, no overrides) | **FAILS 4/4** — 503 on all four surfaces |
+| `make assure-sandbox-launch` | **HOLD — 18 failures across 9 capabilities**, `public released: 5/14` |
+| Production: `banzami.com` / `www` / `developers` | **200 / 301 / 200** — unchanged |
+| Direct origin `:2053` from the Internet | **blocked** |
+
+No capability status was changed. The checker was not weakened, and Stage D was
+not closed.
