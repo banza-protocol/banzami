@@ -3,8 +3,13 @@
 - **Date:** 2026-08-30
 - **Zone:** `banzami.com` — `474867913af985e647cfcf09da452f9e`
 - **Starting SSL mode:** `full`
-- **Final SSL mode:** `full` — **unchanged**
-- **Verdict: `CLOUDFLARE FULL STRICT: HOLD`**
+- **Final SSL mode:** **`strict`** — migrated 2026-08-30T21:01:43Z (§10)
+- **Verdict: `CLOUDFLARE FULL STRICT: GO`**
+
+> The preflight below (§1–§9) is the record of why this could not be done
+> directly, and is kept unchanged. §10 records the closure: the blocking origin
+> certificate was corrected, the preflight re-run at **9/9**, and only then was
+> the zone migrated.
 
 No secrets, private keys or certificate key material appear in this record.
 
@@ -171,3 +176,146 @@ proves the origin change alone is safe *before* strict makes it load-bearing.
 | Direct `origin:2053` from the Internet | **blocked** |
 
 Stage D routing is intact and no capability was promoted.
+
+
+---
+
+## 10. CLOSURE — origin corrected, zone migrated to Full (strict), 2026-08-30
+
+Authorised execution of the §8 remediation, then the zone write. Two changes,
+made in that order and verified separately, never together.
+
+### 10.1 Verdict
+
+**`CLOUDFLARE FULL STRICT: GO`.** No rollback was needed and none was performed.
+
+### 10.2 Phase 1 — origin certificate correction
+
+Rollback material captured **before** any edit:
+
+| Item | Value |
+|---|---|
+| Deployed config backup | `/srv/banzami/website-nginx/conf.d/.website.conf.pre-d1-rollback` |
+| Old cert (SNI `banzami.com` / `www`, `:8443`) | `CN = banzami.com`, self-signed, SHA-256 `53:55:6B:8F:…:B4:88` |
+| Public baseline | `banzami.com` 200 · `www` 301 · `developers` 200 |
+| Wildcard cert/key integrity | modulus MD5 **identical** for `banzami-wildcard.pem` and `.key` — verified before use, not assumed |
+
+The change is one server block in `infra/nginx/website.conf` — the only block in
+that file — swapping `banzami-com.pem`/`.key` for `banzami-wildcard.pem`/`.key`.
+The `developers` block and the default block live in separate files and were not
+touched; sandbox-edge, DNS, Origin Rules, firewall, ports and application routing
+were not touched.
+
+`nginx -t` was run **before** reload, gated so that a validation failure would
+restore the backup and skip the reload entirely. It passed, then reload.
+
+### 10.3 Phase 2 — proving the origin under `full`, before strict mattered
+
+Cloudflare was still on `full` here deliberately: if the origin change were
+wrong, this is where it shows up harmlessly rather than as a zone-wide outage.
+
+Public: `banzami.com` **200** · `www` **301** · `developers` **200**, real site
+content (`<!DOCTYPE html><html lang="pt">…`), no sandbox content.
+
+Origin `:8443`, each SNI probed independently:
+
+| SNI | Subject | Chain vs Origin CA root | Hostname | Expires |
+|---|---|---|---|---|
+| `banzami.com` | CloudFlare Origin Certificate | **OK** | match | 2041-06-20 |
+| `www.banzami.com` | CloudFlare Origin Certificate | **OK** | match | 2041-06-20 |
+| `developers.banzami.com` | CloudFlare Origin Certificate | **OK** | match | 2041-06-20 |
+
+New certificate SHA-256 on all three: `17:6B:1D:3F:…:AF:EC:21` — the same
+fingerprint `developers` was already serving, which is the point: this is a
+certificate already proven in production on this port, not a new artifact.
+
+### 10.4 Phase 3 — full preflight re-run: 9/9
+
+| Hostname | Port | Chain | Hostname | Dates | Verdict |
+|---|---|---|---|---|---|
+| `banzami.com` | 8443 | OK | match | valid | **STRICT-READY** |
+| `www.banzami.com` | 8443 | OK | match | valid | **STRICT-READY** |
+| `developers.banzami.com` | 8443 | OK | match | valid | **STRICT-READY** |
+| `sandbox-api.banzami.com` | 2053 | OK | match | valid | **STRICT-READY** |
+| `developer-api.banzami.com` | 2053 | OK | match | valid | **STRICT-READY** |
+| `admin.banzami.com` | 443 | OK | match | valid | **STRICT-READY** |
+| `api.banzami.com` | 443 | OK | match | valid | **STRICT-READY** |
+| `pay.banzami.com` | 443 | OK | match | valid | **STRICT-READY** |
+| `sandbox-operator.banzami.com` | 443 | OK | match | valid | **STRICT-READY** |
+
+**9/9 strict-ready, 0 failing** (was 7/9).
+
+### 10.5 Phase 4 — the Cloudflare write and read-after-write
+
+One setting: `PATCH /zones/{zone}/settings/ssl` → `strict`. Nothing else.
+
+Independent re-read (not the write response):
+
+| Item | Value |
+|---|---|
+| **SSL mode** | **`strict`** |
+| `modified_on` | `2026-08-30T21:01:43.006791Z` |
+| Origin ruleset version | **5** — unchanged |
+| Origin rules | 3, all enabled, ports 8443 / 8443 / 2053 — unchanged |
+| Proxied DNS records | **9** — unchanged |
+
+### 10.6 Phase 5–7 — behaviour under strict
+
+| Hostname | Baseline | Under strict | Verdict |
+|---|---|---|---|
+| `banzami.com` | 200 | **200** | unchanged |
+| `www.banzami.com` | 301 | **301** | unchanged |
+| `developers.banzami.com` | 200 | **200** | unchanged |
+| `sandbox-api.banzami.com` | 404 at `/` | **404** | unchanged |
+| `developer-api.banzami.com` | 404 at `/` | **404** | unchanged |
+| `api.banzami.com` | 503 | **503** | unchanged (application guard) |
+| `admin.banzami.com` | 503 | **503** | unchanged (application guard) |
+| `pay.banzami.com` | 503 | **503** | unchanged (application guard) |
+| `sandbox-operator.banzami.com` | 503 | **503** | unchanged (application guard) |
+
+**Zero 525, zero 526, zero 522.** The four pre-existing 503s are unchanged
+application-level guards, not TLS-origin failures — the distinction that matters
+when reading this table.
+
+Sandbox under strict: `/health` **200**, `/readyz` **200** `environment=sandbox`
+with database and redis `ok`, `/consumer/v1/consumers/search` **200**,
+developer-api **200** `env=sandbox`. The Stage D path is intact, including the
+consumer prefix rewrite.
+
+Direct origin `:2053` remains **blocked** from this workstation and from the
+independent VPS. Strict did not weaken the Stage D perimeter.
+
+### 10.7 Phase 8 — assurance and security
+
+| Gate | Result |
+|---|---|
+| `make assure-sandbox-runtime` (no overrides) | **PASS** — 4/4, `environment=sandbox` |
+| `make assure-reference` | **PASS** — reference financial path GO |
+| `make security-check` | **PASSED** |
+| `make check-live-fail-closed` | **PASS** — SEC-019 registered |
+| `make assure-sandbox-launch` | **HOLD — 18 failures across 9 capabilities**, `public released: 5/14` |
+
+**No capability was promoted.** A TLS mode change is not capability evidence.
+
+### 10.8 Rollback
+
+**Not needed, not performed.** Both rollback paths remain available and are
+independent of each other:
+
+- **Zone:** set SSL mode `strict → full` via MCP. Requires no origin change.
+- **Origin:** restore `/srv/banzami/website-nginx/conf.d/.website.conf.pre-d1-rollback`,
+  `nginx -t`, reload. Returns `banzami.com`/`www` to the self-signed certificate
+  — which is only safe while the zone is on `full`.
+
+Order matters on the way back: revert the **zone first**, then the origin.
+Reverting the origin while the zone is on strict would produce the 526 this whole
+exercise existed to avoid.
+
+### 10.9 State change summary
+
+| | Before | After |
+|---|---|---|
+| Zone SSL mode | `full` | **`strict`** |
+| `banzami.com` / `www` origin cert | self-signed `CN=banzami.com`, exp 2028 | **Cloudflare Origin CA wildcard, exp 2041** |
+| Strict-ready origin paths | 7/9 | **9/9** |
+| Origin certificate validated by Cloudflare | **no** | **yes** |

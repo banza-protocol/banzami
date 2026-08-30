@@ -125,10 +125,14 @@ Cloudflare Origin CA certificate with SANs `*.banzami.com` and `banzami.com`,
 valid to 2041, which already covers both sandbox hostnames. No Flexible mode, no
 disabled validation, no plaintext origin.
 
-> **Correction (Stage D.1).** This paragraph originally said "Full (strict) is
-> preserved". Nothing was downgraded, but the phrasing asserted more than was
-> true: the zone has been on mode **`full`** throughout, so Cloudflare has not
-> been validating the origin certificate at all. See §5.
+> **Correction, then closure (Stage D.1).** This paragraph originally said "Full
+> (strict) is preserved". That asserted more than was true: the zone was on mode
+> `full`, so Cloudflare was not validating the origin certificate at all.
+> **Resolved 2026-08-30** — the website origin's self-signed certificate was
+> replaced with the Origin CA wildcard already mounted in the same container, the
+> preflight re-ran at 9/9, and the zone was migrated to **`strict`**. Cloudflare
+> now validates every proxied origin. See
+> [STAGE_D1_CLOUDFLARE_FULL_STRICT_PREFLIGHT.md §10](../../evidence/ops/STAGE_D1_CLOUDFLARE_FULL_STRICT_PREFLIGHT.md).
 
 ## 6. The two remaining external actions
 
