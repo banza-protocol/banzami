@@ -45,7 +45,20 @@ func main() {
 	}
 	defer pool.Close()
 
-	if err := pool.Ping(ctx); err != nil {
+	// Fail fast on a genuinely unreachable database, but not on the first attempt.
+	// A freshly created container can run its first instruction before Docker's
+	// embedded resolver is serving for it, and the DNS lookup comes back
+	// "server misbehaving" for a name that resolves correctly seconds later.
+	// Observed reproducibly during Stage E0: this service died at boot with
+	// `lookup postgres on 127.0.0.11:53: server misbehaving` on three consecutive
+	// deploys, while `docker restart` of the same container succeeded every time.
+	//
+	// Exiting on that is a real fragility, not strictness: the deploy marks the
+	// service unhealthy, rolls back — and the rolled-back container boots through
+	// the same window, so the service stays down until someone restarts it by
+	// hand. Short bounded retry, then still exit; an unreachable database remains
+	// a startup failure.
+	if err := pingWithRetry(ctx, pool); err != nil {
 		slog.Error("database ping failed", "error", err)
 		os.Exit(1)
 	}
@@ -155,4 +168,30 @@ func initLogger(cfg *config.Config) {
 		h = slog.NewJSONHandler(os.Stdout, opts)
 	}
 	slog.SetDefault(slog.New(obs.NewContextHandler(h)))
+}
+
+// pingWithRetry probes the database a few times over a few seconds before giving
+// up. It deliberately does NOT retry forever: a database that is truly absent
+// must still stop the process, so a misconfigured deployment fails loudly instead
+// of serving traffic it cannot fulfil.
+func pingWithRetry(ctx context.Context, pool *pgxpool.Pool) error {
+	const attempts = 6
+	const gap = 2 * time.Second
+	var err error
+	for i := 1; i <= attempts; i++ {
+		pingCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+		err = pool.Ping(pingCtx)
+		cancel()
+		if err == nil {
+			if i > 1 {
+				slog.Info("database reachable after retry", "attempt", i)
+			}
+			return nil
+		}
+		if i < attempts {
+			slog.Warn("database not reachable yet, retrying", "attempt", i, "of", attempts)
+			time.Sleep(gap)
+		}
+	}
+	return err
 }
