@@ -45,6 +45,16 @@ injected credentials.
 7. **Rail credentials** — EMIS/Multicaixa production credentials injected to the live stack only.
 8. **Backup/DR validation** — automated encrypted off-host backups + a proven restore into a scratch target for the live DB (see `infra/deployment/pg-backup.sh` + DR runbook).
 9. **Security review** — full security pass on the live configuration (auth, secrets, edge, isolation).
+9a. **SEC-019 — progressive-KYC gate on consumer P2P** — decide whether the
+    progressive-KYC level/limit gate applies to consumer-initiated P2P transfers
+    and, if so, enforce it in the core `send_p2p` path so BOTH surfaces inherit it.
+    Today the consumer path enforces sender/recipient identity status (suspended,
+    closed, wallet-cannot-receive) and balance, but not KYC level or per-level
+    limits. Accepted as a LOW residual while KYC/KYB is not operational — it is a
+    regulatory limit, not an access control, since the sender derives from the
+    consumer's own token — but it must be settled before real money moves.
+    Recorded in `docs/security/BANZAMI_SECURITY_AUDIT.md` (SEC-019). This line is
+    asserted by `tools/check-live-fail-closed.mjs`: deleting it fails the gate.
 10. **Production E2E** — the deployed-E2E matrix (the sandbox methodology) executed against the live stack with controlled fixtures.
 11. **Two-person release approval** — two named operators approve the activation change; recorded.
 12. **Rollback plan** — a tested rollback (revert platform_mode, tear down live routing) with the live stack able to be disabled without data loss.

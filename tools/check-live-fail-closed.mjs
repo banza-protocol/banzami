@@ -71,5 +71,15 @@ assertContains('docs/operations/LIVE_ACTIVATION_GATE.md',
   ['fail-closed', 'Two-person'],
   'Live activation gate document present');
 
+// 7. Open security findings deferred to Live must live in the GATE, not only in a
+// report. The 2026-07-03 transfer-surface record showed why: a correctly written,
+// correctly prioritised Live blocker survived for weeks because nothing FAILED
+// while it was open. SEC-019 (progressive-KYC on consumer P2P) is accepted as a
+// LOW residual today; this assertion makes its removal from the activation
+// protocol break the build instead of quietly losing it.
+assertContains('docs/operations/LIVE_ACTIVATION_GATE.md',
+  ['SEC-019'],
+  'SEC-019 registered as a pre-Live activation condition');
+
 console.log(failures ? `\n✗ Live fail-closed check FAILED (${failures})` : '\n✓ Live fail-closed invariants hold');
 process.exit(failures ? 1 : 0);

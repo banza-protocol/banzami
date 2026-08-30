@@ -1,5 +1,17 @@
 # Banzami Security Audit
 
+> **FROZEN — this document is the evidence record of the 2026-08-29/30 security
+> audit. Do not edit it to reflect later work.**
+>
+> * Audit HEAD: `4fe6fc4a` · merged to `main` as `8409c250` (PR #59)
+> * Verdict at freeze: `SECURITY GATE: PASS`
+> * CI at freeze: all 8 jobs green on `4fe6fc4a`; deploy skipped
+>
+> A later security review belongs in its own dated record. The one deferred item,
+> **SEC-019**, is not tracked here alone — it is registered as a machine-asserted
+> condition in `docs/operations/LIVE_ACTIVATION_GATE.md` and enforced by
+> `tools/check-live-fail-closed.mjs`, so it cannot be silently dropped before Live.
+
 ## 1. Executive Summary
 
 | | |
