@@ -33,4 +33,13 @@ EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
     CMD curl -fsS http://localhost:8080/health || exit 1
 
+# Source revision this image was built from. The sandbox deploy pipeline already
+# carries the commit end to end (bundle -> manifest -> image tag); this makes it
+# readable at RUNTIME so an assurance run over the public surface can tell which
+# build answered. Stage E found the Sandbox 105 commits behind main with nothing
+# served by the stack able to reveal it. Not a secret: a commit SHA of a private
+# repository discloses nothing usable.
+ARG BUILD_COMMIT=unknown
+ENV BANZAMI_BUILD_COMMIT=$BUILD_COMMIT
+
 CMD ["api-gateway"]

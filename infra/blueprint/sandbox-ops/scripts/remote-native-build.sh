@@ -55,7 +55,7 @@ for svc in "${SERVICES[@]}"; do
   tag="banzami-sandbox/$svc:$COMMIT"
   [ "$MODE" = "deploy-only" ] && { echo "  $svc build skipped (deploy-only)" | tee -a "$RECEIPT"; BUILT_SVC+=("$svc"); BUILT_TAG+=("$tag"); continue; }
   echo "  building $svc natively (BuildKit cache)..." | tee -a "$RECEIPT"
-  if docker build -f "$df" -t "$tag" "$ctx" >/dev/null 2>&1; then echo "  $svc build PASS" | tee -a "$RECEIPT"
+  if docker build --build-arg BUILD_COMMIT="$COMMIT" -f "$df" -t "$tag" "$ctx" >/dev/null 2>&1; then echo "  $svc build PASS" | tee -a "$RECEIPT"
   else echo "  $svc build FAIL" | tee -a "$RECEIPT"; exit 5; fi
   # record digest (image id) — sanitised, no build log
   DIG="$(docker image inspect "$tag" --format '{{.Id}}' 2>/dev/null | cut -c1-19)"
