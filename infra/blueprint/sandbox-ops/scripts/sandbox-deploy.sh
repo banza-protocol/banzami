@@ -108,7 +108,16 @@ deploy_one() { # <name> <port> <binary> <tag>
   # `developer-api` (SSRF-guarded allowlist); give that container the alias.
   local alias_args=(); [ "$name" = "developer-api" ] && alias_args=(--network-alias developer-api)
   # synthetic NON-secret config; secrets are file-only + exported in-process (never -e)
-  docker run -d --name "$cname" --network "$BZSB_DATA_NET" "${alias_args[@]}" \
+  # `docker create` + attach + `start`, never `docker run -d` followed by a
+  # `network connect`. Attaching the second network to an ALREADY-RUNNING
+  # container reconfigures Docker's embedded resolver underneath it, and a
+  # service that resolves a dependency during boot can catch the reconfiguration
+  # window and get SERVFAIL. Observed reproducibly: public-api died at startup
+  # with `lookup postgres on 127.0.0.11:53: server misbehaving`, twice, while the
+  # gateway and developer-api survived only because they do not hard-fail on a
+  # boot-time database ping. The container now has every network before its first
+  # instruction runs.
+  docker create --name "$cname" --network "$BZSB_DATA_NET" "${alias_args[@]}" \
     --label "$LABEL=1" --label "$LABEL.run=$BZSB_PROJECT" --label "$LABEL.service=$name" \
     --security-opt "no-new-privileges:true" \
     -v "$DBURL_FILE:/run/secrets/db_url:ro" \
@@ -128,6 +137,7 @@ deploy_one() { # <name> <port> <binary> <tag>
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
     --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; export CORE_INTERNAL_KEY="$(cat /run/secrets/core_internal_key)"; export API_KEY_PEPPER="$(cat /run/secrets/api_key_pepper)"; export DEVELOPER_INTERNAL_KEY="$(cat /run/secrets/developer_internal_key)"; export CORE_PAYEE_VALIDATION_KEY="$(cat /run/secrets/core_payee_validation_key)"; export SESSION_SECRET="$(cat /run/secrets/session_secret)"; export OTP_PEPPER="$(cat /run/secrets/otp_pepper)"; exec '"$bin" >/dev/null 2>&1 || return 1
   docker network connect "$BZSB_APP_NET" "$cname" >/dev/null 2>&1 || true
+  docker start "$cname" >/dev/null 2>&1 || return 1
   # health AFTER deployment (docker HEALTHCHECK from the image)
   local i=0 st
   while :; do st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname" 2>/dev/null)"
