@@ -93,6 +93,14 @@ containers_vm_ionos_main:
     - { id: banzami-website-frontend-1, image: banzami/website-frontend:latest, port: 3000, lifecycle: active-required }
     - { id: banzami-website-nginx-1, image: nginx:1.27-alpine, port: "8443 public", lifecycle: active-needs-remediation, note: "second public TLS entry point — verify necessity vs main nginx (Phase 6)" }
     - { id: banzami-developer-api-1, image: banzami/developer-api:latest, port: 8086, purpose: developer platform (sandbox-only service), lifecycle: active-required }
+  sandbox_edge:
+    # Stage C runtime artifact (2026-08-30). Dedicated sandbox public-routing
+    # proxy per Stage C Decision 2; the website edge stays website-only.
+    # Serving and verified at the ORIGIN (:2053); public routing still needs the
+    # Cloudflare Origin Rule + Cloudflare-restricted firewall rule documented in
+    # docs/operations/SANDBOX_EDGE_RUNTIME.md §5. Lifecycle records intended
+    # state only — operational truth comes from `make assure-sandbox-runtime`.
+    - { id: bzsbedge-sandbox-edge, image: nginx:1.27-alpine, port: "2053 origin (not yet public)", purpose: "Stage C sandbox public routing (sandbox-api + developer-api)", environment: sandbox, lifecycle: active-required, note: "no DB, no secrets, no writable volumes; reuses the Cloudflare Origin cert read-only; not on banzami_net so it cannot reach production services" }
   sandbox_stack:
     - { id: banzami-core-api-staging-1, image: "banzami/core-api:adr021-staging", port: 8081, db: banzami_staging, lifecycle: active-required }
     - { id: banzami-api-gateway-staging-1, image: "banzami/api-gateway:latest", port: 8080, lifecycle: active-required, note: "2026-07-04: recreated from canonical sandbox-gateway overlay (:latest, ENVIRONMENT=SANDBOX) with SSRF+non-root fixes (RA-008/023/024 resolved)" }
