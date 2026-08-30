@@ -344,3 +344,133 @@ progress, not regression — and the §12.2 counter will begin to rise.
 
 No capability status was changed. The checker was not weakened, and Stage D was
 not closed.
+
+
+---
+
+## 13. Cloudflare Origin Rule applied via MCP — 2026-08-30
+
+Applied with authorised Cloudflare MCP access. The certbot credential at
+`/root/.cloudflare/credentials.ini` was **not** read, used or altered.
+
+### 13.1 Outcome
+
+**`Cloudflare Sandbox Routing: GO` · `Provider Ingress: HOLD` · `Public Sandbox
+Routing: HOLD`** — Case B of the brief.
+
+### 13.2 Zone state, inspected before any write
+
+| Item | Value |
+|---|---|
+| Zone | `banzami.com` — `474867913af985e647cfcf09da452f9e`, active, account "Fidel Monteiro" |
+| `sandbox-api.banzami.com` | A → `217.160.9.248`, **proxied** |
+| `developer-api.banzami.com` | A → `217.160.9.248`, **proxied** |
+| Origin ruleset | `215b731da0d54cbabb56f2be052ede09`, phase `http_request_origin`, kind `zone`, version **4** |
+| Existing rule 1 | `f0a2869d…` — `banzami.com` / `www` → port **8443**, enabled |
+| Existing rule 2 | `f259155c…` — `developers.banzami.com` → port **8443**, enabled |
+| Rule for the sandbox hostnames | **none existed** |
+| SSL/TLS mode | **`full`** — not `full (strict)` (see §13.6) |
+
+The absence of any sandbox rule — not a disabled one, not a misconfigured one,
+not one in the wrong phase — is what the §12 diagnosis predicted from the 503.
+
+### 13.3 The rule created
+
+| Field | Value |
+|---|---|
+| Rule id | `0b6455ac2dbb40f1ba3071835d389c4f` |
+| Description | `Banzami Sandbox origin port 2053` |
+| Enabled | **true** |
+| Ruleset | `215b731da0d54cbabb56f2be052ede09` (`http_request_origin`), version 4 → **5** |
+| Order | 3 of 3 (appended) |
+| Expression | `(http.host eq "sandbox-api.banzami.com") or (http.host eq "developer-api.banzami.com")` |
+| Action | `route`, `action_parameters.origin.port = 2053` |
+
+Appended rather than rewritten, so the two production rules are untouched.
+Neither matches a sandbox hostname, so there is no ordering conflict. Naming
+follows the zone's existing convention (`… origin port <N>`).
+
+### 13.4 Read-after-write
+
+Re-read in an independent GET, not inferred from the write response: rule
+present, enabled, correct zone, correct expression, port **2053**; both
+production rules unchanged at 8443; all five relevant DNS records still
+**proxied**; SSL mode unchanged.
+
+### 13.5 Public results and failure localisation
+
+| Endpoint | Before | After |
+|---|---|---|
+| `sandbox-api.banzami.com/health` | 503 website HTML | **522** |
+| `sandbox-api.banzami.com/readyz` | 503 website HTML | **522** |
+| `developer-api.banzami.com/health` | 503 website HTML | **522** |
+
+`content-type: text/plain`, `server: cloudflare` — Cloudflare's own 522, not an
+origin response. Per the §12.3 discriminator this is decisive: **503 meant
+Cloudflare was reaching origin `:443`; 522 means it is now reaching for `:2053`
+and cannot connect.** The Cloudflare half is done.
+
+### 13.6 TLS finding — SSL mode is `full`, not `full (strict)`
+
+Read from the zone settings. Every document here, and the Stage D brief, assumed
+strict. Under `full` Cloudflare encrypts to the origin but does **not validate
+the origin certificate**. The certificate is fine — Cloudflare Origin CA,
+`*.banzami.com` + `banzami.com`, to 2041 — which is what makes this easy to miss:
+a correct certificate is not the same as anyone checking it.
+
+**Not changed.** Zone-wide setting affecting every production hostname, and the
+brief's instruction is to report a TLS discrepancy rather than modify it.
+Switching to strict looks low-risk (all proxied hosts terminate on nginx with
+that Origin CA certificate, which Cloudflare trusts under strict) but that is
+unverified, and being wrong means a production outage. Belongs in an ops window.
+
+### 13.7 Provider state — counter evidence with real Cloudflare traffic
+
+Counters zeroed, then three real requests through Cloudflare to
+`sandbox-api.banzami.com` (all 522), then counters re-read:
+
+```
+total packets through BANZAMI-ORIGIN-2053: 0
+DROP leg:                                   0
+```
+
+Zero. Cloudflare is attempting `:2053` and **not one packet reaches the host**,
+so the provider is still filtering inbound TCP 2053. This also rules out the
+alternative explanation for a 522 — that packets arrive and the host allowlist
+wrongly drops them — because that would have incremented the DROP leg.
+
+The provider firewall was not touched, and no alternative origin port was
+substituted to force a green result.
+
+### 13.8 Production non-regression
+
+| Host | Baseline | After |
+|---|---|---|
+| `banzami.com` | 200 | **200**, TLS verify 0 |
+| `www.banzami.com` | 301 | **301**, TLS verify 0 |
+| `developers.banzami.com` | 200 | **200**, TLS verify 0 |
+| `api` / `admin` / `pay` | 503 | **503** (pre-existing; no rule matches them) |
+| Direct origin `:2053` | blocked | **blocked** |
+
+No 522, no sandbox content on production, no TLS regression.
+
+### 13.9 Gates
+
+| Gate | Result |
+|---|---|
+| `make assure-sandbox-runtime` (no overrides) | **FAILS 4/4** — now *timeout*, not 503: Cloudflare holds the connection waiting on `:2053` past the 10s budget. Checker unmodified. |
+| `make assure-sandbox-launch` | **HOLD — 18 failures across 9 capabilities**, `public released: 5/14` |
+| `make security-check` | **PASSED** |
+| `make check-live-fail-closed` | **PASS** — SEC-019 still registered |
+
+**No capability status was changed.** Cloudflare routing is not E2E evidence.
+
+### 13.10 Remaining blocker — one, not two
+
+Open inbound **TCP 2053** at the provider perimeter. Nothing else is outstanding
+for public routing: the moment packets arrive, the host allowlist admits
+Cloudflare (proven in §5), the edge answers (proven in §12.4), and these
+hostnames should return 200 with `environment=sandbox`.
+
+Confirm with the same two signals: the 522 becomes 200, and the chain counters
+begin to move — RETURN for Cloudflare sources, DROP for anything else.

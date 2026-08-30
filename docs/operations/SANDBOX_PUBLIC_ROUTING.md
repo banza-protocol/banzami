@@ -90,6 +90,26 @@ address inside a namespace created for the test — never Internet-routable.
 
 ## 5. TLS
 
+> **Finding, 2026-08-30 — the zone SSL mode is `full`, not `full (strict)`.**
+> Read directly from the zone settings via the Cloudflare API. Every document in
+> this repository, and the Stage D brief itself, assumed Full (strict).
+>
+> Under `full`, Cloudflare encrypts to the origin but **does not validate the
+> origin certificate** — so a connection to a wrong or impersonated origin would
+> still be accepted. The certificate itself is fine (Cloudflare Origin CA,
+> `*.banzami.com` + `banzami.com`, valid to 2041), which is exactly why this is
+> easy to miss: the cert being correct is not the same as anyone checking it.
+>
+> **Not changed here.** It is a zone-wide setting affecting every production
+> hostname, and Stage D's instruction is to report a TLS discrepancy rather than
+> modify it. Switching to strict looks low-risk — all proxied hosts terminate on
+> nginx presenting that Origin CA certificate, which Cloudflare trusts under
+> strict — but "looks low-risk" is not verified, and the cost of being wrong is
+> a production outage. It belongs in an ops window with the same before/after
+> checks used here.
+
+
+
 Unchanged, and nothing new was issued. The origin presents the existing
 Cloudflare Origin CA certificate with SANs `*.banzami.com` and `banzami.com`,
 valid to 2041, which already covers both sandbox hostnames. Full (strict) is
@@ -134,7 +154,28 @@ The provider allowlist today is effectively `{22, 443, 8443}` — 8443 is presen
 because `banzami.com` already uses it as its origin port. **2053 must be added
 the same way**, in the provider console.
 
-### 6.2 Cloudflare — Origin Rule to port 2053
+### 6.2 Cloudflare — Origin Rule to port 2053 — **APPLIED 2026-08-30**
+
+> **Done.** Rule `0b6455ac2dbb40f1ba3071835d389c4f` — *"Banzami Sandbox origin
+> port 2053"* — is live in the zone's `http_request_origin` ruleset
+> (`215b731da0d54cbabb56f2be052ede09`, version 4 → 5), enabled, matching
+> `(http.host eq "sandbox-api.banzami.com") or (http.host eq
+> "developer-api.banzami.com")` with `action: route`,
+> `action_parameters.origin.port = 2053`.
+>
+> It was **appended**, so the two production rules are byte-for-byte untouched:
+> `banzami.com`/`www` → 8443 and `developers.banzami.com` → 8443. Neither matches
+> a sandbox hostname, so there is no ordering conflict.
+>
+> Confirmed effective by the public response changing from the website edge's
+> **503 HTML** to a Cloudflare **522** — Cloudflare is now connecting to
+> `:2053` instead of `:443`. Under §10, 522 is the expected result while the
+> provider still filters, and it is progress rather than regression.
+>
+> The original text below is kept because it remains the correct description of
+> what the rule must be, and the rollback in §9 still applies.
+
+
 
 The mechanism is already proven in this account: `banzami.com` reaches origin
 port **8443** by exactly this means, so this is configuration in an established
