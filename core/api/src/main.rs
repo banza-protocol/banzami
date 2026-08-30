@@ -926,7 +926,11 @@ async fn connect_with_retry(database_url: &str) -> sqlx::Pool<sqlx::Postgres> {
             }
             Err(e) => {
                 if attempt < ATTEMPTS {
-                    tracing::warn!(attempt, of = ATTEMPTS, "database not reachable yet, retrying");
+                    tracing::warn!(
+                        attempt,
+                        of = ATTEMPTS,
+                        "database not reachable yet, retrying"
+                    );
                     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
                 }
                 last_err = Some(e);
