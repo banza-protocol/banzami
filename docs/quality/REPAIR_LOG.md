@@ -12,6 +12,58 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-033 — Internal operator endpoints reachable from the Internet (Stage E)
+
+- **Severity:** MEDIUM (unnecessary public exposure of an authenticated control
+  plane; not a breach)
+- **Environment:** sandbox — `developer-api.banzami.com` via `bzsbedge-sandbox-edge`
+- **Finding:** developer-api mounts `/internal/v1/fixture-projects`,
+  `/internal/v1/projects/{id}/fixture-keys` and
+  `/internal/v1/fixture-keys/{id}/revoke`. The Stage C edge forwarded every path,
+  so these operator endpoints answered on the public Internet.
+- **Root cause:** mine. The Stage C `sandbox-edge` config routes `/` to
+  developer-api with no path restriction; nothing distinguished the public
+  developer surface from the internal control plane.
+- **Mitigating fact:** the internal-key guard held — no key and a wrong key both
+  returned 401 "internal auth required", failing closed. Exposure, not breach.
+- **Remediation:** the edge now refuses `/internal/` with **404** before the
+  request reaches the service. 404 rather than 403, because a 403 confirms the
+  path exists.
+- **Tests:** both endpoints return 404 post-fix; `developer-api/health`,
+  `sandbox-api/health`, `/readyz` and the `/consumer` route all still 200;
+  production `banzami.com` and `developers.banzami.com` unchanged at 200;
+  `make assure-sandbox-runtime` still PASS.
+- **Disposition:** fixed.
+
+---
+
+## RA-034 — `/readyz` "database: ok" never checked a database (Stage E)
+
+- **Severity:** MEDIUM (assurance vacuity — a health signal that cannot fail)
+- **Environment:** `services/api-gateway/internal/handler/health.go` (in `main`)
+- **Finding:** the readiness handler computes
+  `"database": checkStub(cfg.DatabaseURL != "")` and
+  `"redis": checkStub(cfg.RedisURL != "")`. `checkStub` returns `"ok"` when a
+  **config string is non-empty**; it never opens a connection. The handler's doc
+  comment claims "Returns 200 when all critical dependencies are reachable", and
+  the code still carries `TODO: replace stubs with real connection probes`.
+- **Why it matters:** every Stage C/D report in this repository — mine included —
+  cited `{"database":"ok","redis":"ok"}` as evidence the Sandbox was healthy.
+  That claim was vacuous the whole time. It is the same failure this programme
+  has now hit repeatedly: a record standing in for a measurement.
+- **What survives:** the conclusion, not that reason. The runtime gate's other
+  assertions are real — live 200s, `environment=sandbox`, and
+  `/consumer/v1/consumers/search` returning data from an actual query through
+  public-api → core → PostgreSQL, which a dead database could not produce.
+- **Remediation (partial):** `tools/check-sandbox-runtime.mjs` no longer credits
+  the readyz db/redis fields as dependency evidence, and records why at the call
+  site so the next reader does not re-derive the same false comfort.
+- **Disposition:** **open** for the root cause — replacing the stubs requires
+  injecting DB/Redis clients into the gateway, a service change out of scope for
+  Stage E recon. Tracked here rather than left in a report.
+
+---
+
 ## RA-031 — `ufw status` does not describe this host's perimeter (Stage D)
 
 - **Severity:** MEDIUM (misleading security signal; one real LOW exposure)
