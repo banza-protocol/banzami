@@ -39,6 +39,31 @@
  *                                   CA is deliberately not publicly trusted)
  */
 
+// A mistyped override must not silently fall back to the default target. It
+// fails safe either way — the defaults are the public hostnames, which return
+// 503 until the Cloudflare routing step exists, so a typo yields a FAIL rather
+// than a false PASS. But a FAIL for the wrong reason is still a wrong answer:
+// probing BANZAMI_SANDBOX_DEVELOPER_API_BASE (no such variable) reported the
+// developer API as "not serving" while it was serving correctly. Reject unknown
+// variables in this namespace instead of guessing what was meant.
+const KNOWN_ENV = new Set([
+  'BANZAMI_SANDBOX_API_BASE',
+  'BANZAMI_SANDBOX_DEVAPI_BASE',
+  'BANZAMI_SANDBOX_INSECURE_TLS',
+  'BANZAMI_SANDBOX_TIMEOUT_MS',
+]);
+const unknownEnv = Object.keys(process.env)
+  .filter((k) => k.startsWith('BANZAMI_SANDBOX_') && !KNOWN_ENV.has(k))
+  .sort();
+if (unknownEnv.length) {
+  console.error(
+    `\x1b[31m✗ unknown override(s): ${unknownEnv.join(', ')}\x1b[0m\n` +
+      `  this gate would have silently probed its DEFAULT target instead.\n` +
+      `  known: ${[...KNOWN_ENV].join(', ')}`,
+  );
+  process.exit(2);
+}
+
 const TIMEOUT_MS = Number(process.env.BANZAMI_SANDBOX_TIMEOUT_MS || 10000);
 const API = (process.env.BANZAMI_SANDBOX_API_BASE || 'https://sandbox-api.banzami.com').replace(/\/$/, '');
 const DEV = (process.env.BANZAMI_SANDBOX_DEVAPI_BASE || 'https://developer-api.banzami.com').replace(/\/$/, '');

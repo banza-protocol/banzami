@@ -121,12 +121,15 @@ make assure-sandbox-runtime          # public hostnames must go green
 
 ## 6. Operating it
 
+Deployment variables live in `/srv/banzami/sandbox-edge/.env` — container
+names, container-internal ports and the docker network name. **No secrets**;
+they are there so the deploy is reproducible. The first deployment passed them
+inline on the command line, and recreating the container later meant
+reconstructing a command that existed only in a shell history.
+
 ```bash
-# deploy / update (host)
+# deploy / update (host) — reads .env from the same directory
 cd /srv/banzami/sandbox-edge
-BZSB_APP_NET=<rt04e app network> \
-SB_GATEWAY=<gw container>:8080 SB_PUBLIC_API=<papi container>:8083 \
-SB_DEVELOPER_API=<devapi container>:8086 \
 docker compose -p bzsbedge -f docker-compose.sandbox-edge.yml up -d
 
 # rollback — removes only this proxy; the website edge is untouched
@@ -134,10 +137,26 @@ docker compose -p bzsbedge -f docker-compose.sandbox-edge.yml down
 ```
 
 **After a sandbox redeploy** the rt04e container names change (they embed the
-deploy timestamp), so `SB_GATEWAY` / `SB_PUBLIC_API` / `SB_DEVELOPER_API` must be
-refreshed and the edge restarted. This drift is *detected*, not silent:
-`make assure-sandbox-runtime` proxies through the edge and fails when the
-upstream names go stale.
+deploy timestamp), so `SB_GATEWAY` / `SB_PUBLIC_API` / `SB_DEVELOPER_API` /
+`BZSB_APP_NET` must be refreshed in `.env` and the edge restarted. This drift is
+*detected*, not silent: `make assure-sandbox-runtime` proxies through the edge
+and fails when the upstream names go stale.
+
+### Container health vs runtime assurance
+
+The container healthcheck answers only *"is nginx up and serving THIS config"*,
+via a health endpoint bound to the container loopback (unreachable from the host,
+the ingress network and the sandbox app network — verified from a peer
+container). Whether the **sandbox** is serving is a different question, answered
+by `make assure-sandbox-runtime`. Keeping them apart is deliberate: an alive
+proxy must never be mistakable for a serving sandbox.
+
+The first deployment got this wrong in an instructive direction. Its healthcheck
+probed `https://127.0.0.1/` with busybox `wget`, the only HTTP client in
+`nginx:alpine` — which has no TLS support, so the check exited 1 on every run.
+The container reported `unhealthy` for its entire life while serving every
+request correctly: a false negative, found only by re-checking the host rather
+than trusting the earlier verification.
 
 ## 7. What this does not establish
 

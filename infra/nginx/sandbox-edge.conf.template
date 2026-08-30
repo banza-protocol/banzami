@@ -122,3 +122,35 @@ server {
 
     return 503 '{"error":{"code":"UNAVAILABLE","message":"host not served by the Banzami sandbox edge"}}';
 }
+
+# ─── container-local liveness ────────────────────────────────────────────────
+# The container healthcheck target. Bound to the loopback INSIDE the container,
+# so it is not reachable from the host, from the ingress network, or from the
+# sandbox app network — nothing outside this container can see it.
+#
+# It exists because the obvious healthcheck does not work: busybox wget, the only
+# HTTP client in nginx:alpine, has no TLS support, so probing the real
+# https://127.0.0.1/ listener always exits 1. The first deployment did exactly
+# that and reported `unhealthy` continuously while serving every request
+# correctly — a container that works and says it does not, which is the same
+# class of false signal this proxy exists to remove.
+#
+# Answering here proves nginx is up AND that THIS rendered template is the config
+# it loaded. It deliberately says nothing about the upstreams: upstream health is
+# the runtime assurance gate's job (tools/check-sandbox-runtime.mjs), kept
+# separate so a proxy that is merely alive can never be mistaken for a sandbox
+# that is serving.
+server {
+    listen 127.0.0.1:8081;
+    server_name _;
+
+    location = /edge-health {
+        access_log off;
+        default_type text/plain;
+        return 200 'sandbox-edge ok\n';
+    }
+
+    location / {
+        return 404;
+    }
+}
