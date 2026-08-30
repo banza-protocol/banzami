@@ -98,6 +98,22 @@ server {
     proxy_connect_timeout 5s;
     proxy_read_timeout    30s;
 
+    # Operator-internal endpoints are NOT a public surface. developer-api mounts
+    # /internal/v1/... (fixture projects, fixture keys, revocation) guarded by a
+    # shared internal key, and they were reachable from the Internet through this
+    # proxy simply because it forwarded everything. The guard held — no key and a
+    # wrong key both return 401 — but an authenticated internal control plane
+    # published on the public perimeter is a brute-force and auth-amplification
+    # target that gains nothing by being reachable. Refused here, before the
+    # request ever reaches the service.
+    #
+    # 404 rather than 403: a 403 confirms the path exists.
+    location /internal/ {
+        access_log off;
+        default_type application/json;
+        return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
+    }
+
     location / {
         set $sb_developer_api "${SB_DEVELOPER_API}";
         proxy_pass http://$sb_developer_api;

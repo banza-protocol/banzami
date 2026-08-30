@@ -126,6 +126,21 @@ console.log(`  api: ${API}`);
 console.log(`  dev: ${DEV}\n`);
 
 await checkSurface('sandbox API health', API, '/health');
+// /readyz is checked for a real 2xx and for `environment=sandbox` — both of which
+// it genuinely proves. It is deliberately NOT credited with proving that the
+// database or Redis are healthy, even though its body says `"database":"ok"`.
+//
+// Those two fields are stubs. The gateway computes them as
+// `checkStub(cfg.DatabaseURL !== "")` — a non-empty config STRING, never a
+// connection probe — and the handler still carries a `TODO: replace stubs with
+// real connection probes`. Its doc comment claims "Returns 200 when all critical
+// dependencies are reachable", which is not what the code does. Recorded as a
+// finding during Stage E; fixing it belongs in the gateway, not here.
+//
+// So this gate's dependency evidence comes from the consumer surface below,
+// which answers from a real query through public-api → core → PostgreSQL. That
+// request cannot succeed against a dead database, which is more than `/readyz`
+// can say about itself.
 await checkSurface('sandbox API readiness', API, '/readyz', { requireSandboxEnv: true });
 await checkSurface('sandbox consumer API', API, '/consumer/health');
 await checkSurface('developer API health', DEV, '/health', { requireSandboxEnv: true });
