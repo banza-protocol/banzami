@@ -10,6 +10,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/banzami/banzami/services/common/obs"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -23,7 +24,12 @@ import (
 
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
-	Redis                    *redis.Client
+	Redis *redis.Client
+	// DBPool backs the readiness probe. Nil is a legitimate state (the service
+	// starts without a database so /health can answer during provisioning), and
+	// readiness treats nil as NOT ready rather than silently passing — see
+	// handler.Readiness and finding SE-003.
+	DBPool                   *pgxpool.Pool
 	TransactionSvc           service.TransactionService
 	WebhookSvc               service.WebhookService
 	MerchantSvc              service.MerchantService
@@ -105,7 +111,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// Observability endpoints — no auth, no rate limit, no tracing noise
 	// ---------------------------------------------------------------------------
 	r.Get("/health", handler.Liveness)
-	r.Get("/readyz", handler.Readiness(cfg))
+	r.Get("/readyz", handler.Readiness(cfg, deps.DBPool, deps.Redis))
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// ---------------------------------------------------------------------------

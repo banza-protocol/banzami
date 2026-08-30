@@ -79,6 +79,11 @@ func main() {
 	var activationSvc service.ActivationService
 	var walletPaymentSvc service.WalletPaymentReader
 	var walletPaymentLister service.WalletPaymentLister
+	// Hoisted so readiness can probe the same pool the service actually uses.
+	// Probing a second, private connection would prove that PostgreSQL accepts
+	// connections, not that THIS gateway can reach it — a distinction that
+	// matters exactly when a pool is exhausted or misconfigured.
+	var readinessDBPool *pgxpool.Pool
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -88,6 +93,7 @@ func main() {
 		// Fail fast at boot on a mis-provisioned database rather than 500-ing on the
 		// first request (startup half of migration governance — audit Part 4).
 		validateGatewaySchema(ctx, dbPool, cfg.Environment)
+		readinessDBPool = dbPool
 		secretCipher, err := crypto.NewSecretCipher(cfg.WebhookEncryptionKey)
 		if err != nil {
 			slog.Error("webhook encryption key error", "error", err)
@@ -183,6 +189,7 @@ func main() {
 
 	deps := server.Dependencies{
 		Redis:                    rdb,
+		DBPool:                   readinessDBPool,
 		TransactionSvc:           service.NewCoreApiTransactionService(coreClient),
 		WebhookSvc:               webhookSvc,
 		MerchantSvc:              service.NewCoreApiMerchantService(coreClient),

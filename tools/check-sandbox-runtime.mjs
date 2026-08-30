@@ -51,6 +51,7 @@ const KNOWN_ENV = new Set([
   'BANZAMI_SANDBOX_DEVAPI_BASE',
   'BANZAMI_SANDBOX_INSECURE_TLS',
   'BANZAMI_SANDBOX_TIMEOUT_MS',
+  'BANZAMI_SANDBOX_EXPECTED_COMMIT',
 ]);
 const unknownEnv = Object.keys(process.env)
   .filter((k) => k.startsWith('BANZAMI_SANDBOX_') && !KNOWN_ENV.has(k))
@@ -142,6 +143,43 @@ await checkSurface('sandbox API health', API, '/health');
 // request cannot succeed against a dead database, which is more than `/readyz`
 // can say about itself.
 await checkSurface('sandbox API readiness', API, '/readyz', { requireSandboxEnv: true });
+
+/**
+ * Deployment identity. "Reachable and healthy" never meant "running the code we
+ * are assuring": Stage E found this Sandbox serving images built 105 commits
+ * behind main, and no response it produced could have revealed that — the only
+ * evidence was an image tag readable over SSH.
+ *
+ * So the build is now asserted, not assumed. An unidentifiable build FAILS: that
+ * is exactly the state the Sandbox was in, and a gate that tolerated it would
+ * keep certifying an unknown binary.
+ *
+ * The expected commit is an INPUT, never baked in — a SHA hard-coded here would
+ * be stale on the next merge and would quietly start passing for the wrong
+ * reason. Omit it to record which build answered; set it to require a match.
+ */
+async function checkBuildIdentity() {
+  const expected = process.env.BANZAMI_SANDBOX_EXPECTED_COMMIT;
+  const r = await get(`${API}/readyz`);
+  let build = null;
+  try { build = JSON.parse(r.body)?.build ?? null; } catch { /* non-JSON handled below */ }
+
+  if (!build || build === 'unknown') {
+    return fail(
+      `deployed build identity: ${build ? `"${build}"` : 'absent'} — cannot tell which revision is serving. ` +
+      'A build that cannot be identified cannot be assured.',
+    );
+  }
+  if (!expected) {
+    return pass(`deployed build identity: ${build} (no expected commit given — recorded, not enforced)`);
+  }
+  // Prefix match in either direction so a short SHA and a full SHA compare cleanly.
+  const ok = build.startsWith(expected) || expected.startsWith(build);
+  return ok
+    ? pass(`deployed build identity: ${build} matches expected ${expected}`)
+    : fail(`deployed build ${build} does not match expected ${expected} — the Sandbox is not running the revision under assurance`);
+}
+await checkBuildIdentity();
 await checkSurface('sandbox consumer API', API, '/consumer/health');
 await checkSurface('developer API health', DEV, '/health', { requireSandboxEnv: true });
 
