@@ -1,7 +1,17 @@
 # Sandbox Public Routing — Stage D
 
-**Status: origin ingress restricted and proven; public routing NOT yet live.**
-Two external actions remain, both outside this repository. See §6.
+**Status: LIVE and verified end to end (2026-08-30).** Both external actions are
+complete. `sandbox-api.banzami.com` and `developer-api.banzami.com` serve
+publicly through Cloudflare on origin port 2053, while direct access to
+`origin:2053` remains blocked from the Internet — verified from two independent
+external networks with the host's own packet counters as evidence.
+
+`make assure-sandbox-runtime` **passes** against the canonical public hostnames
+with no overrides. Closure evidence:
+[STAGE_D_PUBLIC_SANDBOX_ROUTING.md §15](../../evidence/ops/STAGE_D_PUBLIC_SANDBOX_ROUTING.md).
+
+The §6 sections below are kept as the record of what had to be done and how to
+undo it; they are no longer outstanding actions.
 
 Companion to [SANDBOX_EDGE_RUNTIME.md](SANDBOX_EDGE_RUNTIME.md), which covers the
 proxy itself. This document covers only how the public reaches it.
