@@ -96,10 +96,13 @@ containers_vm_ionos_main:
   sandbox_edge:
     # Stage C runtime artifact (2026-08-30). Dedicated sandbox public-routing
     # proxy per Stage C Decision 2; the website edge stays website-only.
-    # Serving and verified at the ORIGIN (:2053); public routing still needs the
-    # Cloudflare Origin Rule + Cloudflare-restricted firewall rule documented in
-    # docs/operations/SANDBOX_EDGE_RUNTIME.md §5. Lifecycle records intended
-    # state only — operational truth comes from `make assure-sandbox-runtime`.
+    # Serving and verified at the ORIGIN (:2053). Stage D restricted that port to
+    # Cloudflare ranges at the host and proved the restriction; public routing
+    # still needs two EXTERNAL actions — a provider-firewall allow for 2053 and a
+    # Cloudflare Origin Rule — see docs/operations/SANDBOX_PUBLIC_ROUTING.md §6.
+    # Lifecycle records intended state only; operational truth comes from
+    # `make assure-sandbox-runtime`, which today fails against the public
+    # hostnames and is expected to.
     - { id: bzsbedge-sandbox-edge, image: nginx:1.27-alpine, port: "2053 origin (not yet public)", purpose: "Stage C sandbox public routing (sandbox-api + developer-api)", environment: sandbox, lifecycle: active-required, note: "no DB, no secrets, no writable volumes; reuses the Cloudflare Origin cert read-only; not on banzami_net so it cannot reach production services" }
   sandbox_stack:
     - { id: banzami-core-api-staging-1, image: "banzami/core-api:adr021-staging", port: 8081, db: banzami_staging, lifecycle: active-required }
@@ -108,7 +111,7 @@ containers_vm_ionos_main:
     - { id: banzami-admin-api-staging-1, image: "banzami/admin-api:adr021-staging", port: "127.0.0.1:8092->8082", lifecycle: active-required }
     - { id: banzami-sandbox-operator-1, image: banzami/sandbox-operator:latest, port: 8085, purpose: BANZA L0 conformance runtime (stateless simulated), lifecycle: active-required }
   other:
-    - { id: banza-docs, image: banza/docs-frontend:latest, port: "0.0.0.0:3005", purpose: BANZA protocol docs frontend (banza stack), lifecycle: legacy-compat-justified, note: ":3005 firewall-blocked (ufw), edge-served via banza.network→nginx (RA-005). banza-stack asset, not banzami operator." }
+    - { id: banza-docs, image: banza/docs-frontend:latest, port: "0.0.0.0:3005", purpose: BANZA protocol docs frontend (banza stack), lifecycle: legacy-compat-justified, note: ":3005 not reachable from the Internet — blocked UPSTREAM of the host, not by ufw: ufw does not govern Docker-published ports here (RA-031). Edge-served via banza.network→nginx (RA-005). banza-stack asset, not banzami operator." }
     - { id: banzai-api, image: banzai-api:latest, port: 4001 internal, purpose: BanzAI API, lifecycle: active-required, note: "Phase 5: internal-only (no nginx route, not publicly reachable); read-only knowledge layer, no financial authority (RA-010)" }
 
 docker_images_vm:

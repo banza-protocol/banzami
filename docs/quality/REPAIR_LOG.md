@@ -12,6 +12,65 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-031 — `ufw status` does not describe this host's perimeter (Stage D)
+
+- **Severity:** MEDIUM (misleading security signal; one real LOW exposure)
+- **Environment:** VM 217.160.9.248
+- **Finding:** ufw does not govern any Docker-published port on this host.
+  `DOCKER-USER` and `DOCKER-FORWARD` sit at the top of `FORWARD` with 22M packets
+  each; the ufw forward chains below them show **zero**. Port **8443** is
+  reachable from the Internet and appears in no ufw rule at all. Reading
+  `ufw status` and concluding "only 22/80/443 are open" is therefore wrong, and
+  was wrong before Stage D touched anything.
+- **Root cause:** Docker inserts its own netfilter rules ahead of ufw's. RA-005
+  measured exactly this in July and tracked restricting `:8443` to Cloudflare
+  ranges as a recommendation needing a careful ops window. Stage D re-derived it
+  independently, which is itself the finding: the misleading signal survived
+  because nothing failed while it stood.
+- **Remediation (Stage D scope):** implemented `infra/security/origin-ingress-restrict.sh`
+  in `DOCKER-USER` — the chain Docker guarantees is traversed first and never
+  flushes — restricting the sandbox origin port 2053 to Cloudflare ranges with a
+  default DROP, persisted by `banzami-origin-ingress.service` (no
+  `iptables-persistent` exists here, so unpersisted rules would vanish on reboot).
+- **Tests:** proven with an isolated network namespace, because host-local and
+  container-sourced tests never traverse `DOCKER-USER` (Docker's userland proxy
+  answers them on `INPUT`) — the first attempt "passed" against a rule that had
+  not been consulted. DROP leg: blocked, counter 0 → 6. ACCEPT leg: HTTP 200,
+  `environment=sandbox`, counter unchanged. Allowlist restored and re-verified.
+- **Disposition:** **fixed for `:2053`**. `:8443` remains as RA-005 recorded it —
+  the same rule shape now exists and is proven, but 8443 carries live production
+  traffic and RA-005's own guidance is not to apply it blind. Ready to apply in an
+  ops window; not applied in Stage D, whose brief forbids risking a production
+  incident.
+
+---
+
+## RA-032 — Origin ingress rule would have dropped every reply (caught pre-exposure)
+
+- **Severity:** HIGH if shipped (self-inflicted outage at the moment of exposure)
+- **Environment:** VM 217.160.9.248, `DOCKER-USER`
+- **Finding:** the first working version of the Stage D ingress rule matched
+  `-m conntrack --ctorigdstport 2053` without `--ctdir ORIGINAL`. That matches a
+  property of the CONNECTION, so it is true of packets in **both** directions: the
+  container's replies also entered the chain, were source-matched against the
+  Cloudflare allowlist, did not match, and were dropped. Measured as `RETURN` 6
+  packets against `DROP` 8, the extra 8 being replies.
+- **Why it matters:** requests would have arrived and responses vanished. The
+  visible symptom would have been a **Cloudflare 522 appearing the instant the
+  provider opened the port**, above an origin that tests perfectly healthy from
+  the host — days after this change, and attributed to the wrong one.
+- **Also found:** an earlier draft matched `--dport 2053`, which matches nothing
+  in `DOCKER-USER` at all, because `nat/PREROUTING` rewrites the port to the
+  container's 443 before `filter/FORWARD` runs. A rule that reads correctly in
+  `iptables -S` and protects nothing.
+- **Remediation:** `--ctorigdstport 2053 --ctdir ORIGINAL`, plus an idempotent
+  cleanup that deletes the direction-blind form if an earlier run installed it.
+- **Disposition:** fixed and verified before the port was ever exposed. Recorded
+  because both defects are invisible to inspection and only a forwarded-path test
+  distinguishes them.
+
+---
+
 ## RA-030 — Sandbox public surfaces unrouted (Stage C: sandbox-edge implemented)
 
 - **Severity:** HIGH (blocked 8 of 9 Sandbox launch capabilities)
