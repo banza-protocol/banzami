@@ -5,6 +5,10 @@
 - **Host:** 217.160.9.248
 - **Verdict: `Public Sandbox Routing: HOLD`** — origin ingress restricted and
   proven; public routing blocked on two external actions (§7).
+- **Activation attempt 2026-08-30 (§11): still HOLD.** Neither external
+  dependency could be executed — no provider credentials exist, and the only
+  Cloudflare credential is unchanged and unusable for routing. Nothing was faked
+  and no credential was broadened.
 
 No tokens, keys, secrets or auth headers appear in this record.
 
@@ -149,3 +153,98 @@ restores the prior state exactly. Full steps in
 Nothing in the rollback touches ufw, the website edge, DNS or any production
 container. Withdrawing the host control while 2053 is open at the provider would
 leave the origin globally reachable — roll back the provider rule first.
+
+
+---
+
+## 11. Final external activation attempt — 2026-08-30
+
+Run against `main` @ `baf8ad51` (PR #63 merged: MERGEABLE/CLEAN, 8/8 CI, diff
+matching the Stage D report). Working tree clean.
+
+### 11.1 Outcome
+
+**`Public Sandbox Routing: HOLD`.** Of the 14 PASS criteria, 12 hold. The two
+that do not are the two external dependencies, and both remain unavailable:
+
+| Dependency | Required | Available | Result |
+|---|---|---|---|
+| Provider firewall — allow 2053 | provider console/API credentials | **none present** | not applied |
+| Cloudflare Origin Rule → 2053 | zone-scoped rule-edit token, or dashboard | **none present** | not applied |
+
+### 11.2 Provider state — measured, not inferred
+
+The original two-vantage-point test no longer distinguishes the layers: with the
+host now dropping non-Cloudflare sources, an external probe is refused whether
+the provider filters or the host rule works. The observable result is identical.
+
+The distinguishing question is whether the packet *arrived*. Counter zeroed,
+three external connection attempts made, counter re-read:
+
+```
+DROP counter after 3 external attempts: 0 packets
+```
+
+Zero packets reached the host, so **the provider is still filtering upstream**.
+Had the provider opened the port, the counter would have risen and the host
+restriction would have been what refused the connection — the intended steady
+state. This is also the check to run immediately after the provider change.
+
+### 11.3 Cloudflare credential — re-checked, unchanged, not broadened
+
+`/root/.cloudflare/credentials.ini` still holds `dns_cloudflare_api_token`. It
+verifies as **active** and lists **0 zones**. It cannot create Origin Rules.
+
+Per the Stage D brief it was not repurposed and not broadened. Required instead:
+a token scoped to the banzami.com zone with permission to edit Origin Rules, or
+authorised dashboard access. Nothing was routed by any other means — in
+particular DNS was **not** switched to DNS-only, which would have produced a
+working sandbox by removing the Cloudflare proxy that the architecture requires.
+
+### 11.4 Host enforcement re-verified (§4 of the brief)
+
+| Property | Result |
+|---|---|
+| Matches ORIGINAL direction only | `--ctdir ORIGINAL` present, 1 hook, no direction-blind duplicate |
+| Accounts for DNAT | `--ctorigdstport 2053`, not `--dport` |
+| Cloudflare IPv4 ranges complete | **15/15**, no drift vs Cloudflare's published list |
+| Cloudflare IPv6 mirror | 7 ranges (host has no global IPv6 today) |
+| Non-Cloudflare rejected | default DROP after the allowlist |
+| Replies permitted | direction qualifier present — the RA-032 defect stays fixed |
+| Survives loss | hook deleted, `systemctl restart` restored it — exactly 1 hook, 15 rules |
+| Boot + docker wiring | enabled in `multi-user.target.wants` and `docker.service.wants`; active |
+
+Allowlist freshness matters and was checked rather than assumed: a range added by
+Cloudflare after the file was written would be silently dropped once the port
+opens. Today the file matches exactly.
+
+### 11.5 Checker non-vacuity (§14) — all three legs
+
+| Leg | Result |
+|---|---|
+| Unreachable host | **FAIL** (4 failures) |
+| Healthy stack reporting `environment=live` | **FAIL**, exit 1 — refuses to treat a non-sandbox stack as the Sandbox |
+| Same stub reporting `environment=sandbox` | **PASS**, exit 0 |
+
+The checker was not weakened, and the PASS leg was re-proven so that the failures
+below are known to be real rather than a checker that can only say no.
+
+### 11.6 Gates
+
+| Gate | Result |
+|---|---|
+| `make security-check` | **PASSED** |
+| `make check-live-fail-closed` | **PASS** — SEC-019 still registered |
+| `TestMerchantSurface_*` | **PASS** — merchant P2P transfer surface still unmounted |
+| `make assure-sandbox-runtime` (public, no overrides) | **FAILS 4/4** — correct; the sandbox is not publicly reachable |
+| `make assure-sandbox-launch` | **HOLD — 18 failures across 9 capabilities**, `public released: 5/14` |
+
+The 18 was re-measured, not carried forward. Blocked capabilities: CAP-PAY-001,
+CAP-PAY-002, CAP-PAY-003, CAP-REFUND-001, CAP-PAYOUT-001, CAP-WEBHOOK-001,
+CAP-SDK-001, CAP-SDK-002, CAP-APP-004. **No capability status was changed.**
+
+### 11.7 Production non-regression
+
+`banzami.com` **200** · `www.banzami.com` **301** · `developers.banzami.com`
+**200** — identical to the pre-change baseline. Origin `:2053` remains
+unreachable from the Internet. The website edge was not touched.

@@ -103,10 +103,32 @@ credentials available here. They must be applied **together** — see §7.
 
 ### 6.1 Provider firewall — allow inbound 2053
 
-Port 2053 is filtered **upstream of the host**, not by it. Verified from two
-independent external networks: `:2053` filtered while `:443` and `:8443` are
-open, with nothing on the host filtering either (`DOCKER-USER` was empty and ufw
-does not apply). The host reaches its own `:2053` fine.
+Port 2053 is filtered **upstream of the host**, not by it. Originally verified
+from two independent external networks: `:2053` filtered while `:443` and `:8443`
+were open, with nothing on the host filtering either (`DOCKER-USER` was empty and
+ufw does not apply). The host reaches its own `:2053` fine.
+
+> **That original test no longer distinguishes the two layers.** Now that the host
+> drops non-Cloudflare sources itself, an external probe is refused whether the
+> provider is filtering or the host rule is doing its job — the observable result
+> is identical. Telling them apart requires asking whether the packet *arrived*:
+>
+> ```bash
+> # on the host
+> iptables -Z BANZAMI-ORIGIN-2053
+> # from anywhere external
+> nc -z 217.160.9.248 2053
+> # on the host again
+> iptables -L BANZAMI-ORIGIN-2053 -n -v | tail -1
+> ```
+>
+> A DROP counter still at **0** means nothing reached the host: the provider is
+> filtering. A counter **above 0** means the provider now allows the port and the
+> host restriction is what refused the connection — which is the intended
+> steady state, and the check to run after the provider change to confirm §3.
+>
+> Measured 2026-08-30 after three external attempts: **0 packets**. The provider
+> is still filtering.
 
 The provider allowlist today is effectively `{22, 443, 8443}` — 8443 is present
 because `banzami.com` already uses it as its origin port. **2053 must be added
