@@ -9,6 +9,13 @@ server at `/srv/banzami/website-nginx/certs/`:
 - `banzami-com.pem` — the certificate served for `banzami.com` (+ `www`)
 - `banzami-com.key` — its private key
 
+> **RESOLVED 2026-08-30 (Stage D.1).** `website.conf` now serves
+> `banzami-wildcard.pem` (Cloudflare Origin CA, SAN `*.banzami.com` +
+> `banzami.com`, valid to 2041) for `banzami.com` and `www`, and the zone is on
+> SSL mode **`strict`**. `banzami-com.pem`/`.key` are no longer referenced by any
+> server block; they are retained only as rollback material. The note below is
+> kept because it explains why the migration could not simply be switched on.
+>
 > **Correction (2026-08-30, Stage D.1).** This file previously described
 > `banzami-com.pem` as a *Cloudflare Origin Certificate*. **It is not.** The
 > certificate actually deployed is **self-signed** — `subject == issuer ==
