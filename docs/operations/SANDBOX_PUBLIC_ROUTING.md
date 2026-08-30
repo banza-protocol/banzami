@@ -122,9 +122,13 @@ address inside a namespace created for the test — never Internet-routable.
 
 Unchanged, and nothing new was issued. The origin presents the existing
 Cloudflare Origin CA certificate with SANs `*.banzami.com` and `banzami.com`,
-valid to 2041, which already covers both sandbox hostnames. Full (strict) is
-preserved: Cloudflare validates its own Origin CA. No Flexible mode, no disabled
-validation, no plaintext origin.
+valid to 2041, which already covers both sandbox hostnames. No Flexible mode, no
+disabled validation, no plaintext origin.
+
+> **Correction (Stage D.1).** This paragraph originally said "Full (strict) is
+> preserved". Nothing was downgraded, but the phrasing asserted more than was
+> true: the zone has been on mode **`full`** throughout, so Cloudflare has not
+> been validating the origin certificate at all. See §5.
 
 ## 6. The two remaining external actions
 
