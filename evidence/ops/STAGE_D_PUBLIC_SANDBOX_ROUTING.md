@@ -474,3 +474,113 @@ hostnames should return 200 with `environment=sandbox`.
 
 Confirm with the same two signals: the 522 becomes 200, and the chain counters
 begin to move — RETURN for Cloudflare sources, DROP for anything else.
+
+
+---
+
+## 14. Provider ingress verification after the manual firewall change — 2026-08-30
+
+Run against `main` @ `6c8f99f6`, clean tree. No host firewall change, no
+Cloudflare change, no weakening of any allowlist or checker.
+
+### 14.1 Outcome
+
+**`PROVIDER INGRESS: HOLD` → `PUBLIC SANDBOX ROUTING: HOLD`.** Inbound TCP 2053
+still does not reach the host. Stage D closure stopped at criterion 1.
+
+### 14.2 Counter evidence
+
+Counters captured, zeroed, traffic generated, re-read:
+
+| Source | Result | Chain counters |
+|---|---|---|
+| Workstation (ISP A) × 3 → `origin:2053` | refused/timeout | **0 pkts** |
+| Independent VPS 82.165.165.97 (ISP B) → `origin:2053` | filtered | **0 pkts** |
+| Cloudflare, via both public hostnames | **522** | **0 pkts** |
+| DROP leg specifically | — | **0 pkts / 0 bytes** |
+
+Controls from ISP B in the same run: `:443` **OPEN**, `:8443` **OPEN**,
+`:2053` **filtered**.
+
+### 14.3 Packet capture — the decisive read-only proof
+
+A counter of zero could in principle mean packets arrive but are discarded
+*before* `DOCKER-USER`. That was ruled out by observation rather than by adding a
+rule (the brief forbids modifying the host firewall):
+
+```
+tcpdump -nn -i any 'tcp port 2053 and tcp[tcpflags] & tcp-syn != 0'
+→ 0 packets captured
+```
+
+Zero SYNs on **any interface**, during simultaneous probes from two external
+networks and live Cloudflare traffic. Nothing reaches the network interface at
+all, so the filtering is upstream of the host and nothing on the host is
+responsible.
+
+Corroborating, from the read-only NAT counters — lifetime packets on each DNAT
+rule:
+
+| Origin port | DNAT packets | Meaning |
+|---|---|---|
+| 443 | 2 250 000 | real external traffic |
+| 8443 | 122 000 | real external traffic |
+| **2053** | **19** | only the Stage D network-namespace tests, all locally generated |
+
+Ports that the provider permits show millions of packets. 2053 has never carried
+a single external packet.
+
+### 14.4 Host identity, to check against the provider console
+
+The firewall change must apply to this machine and this interface:
+
+| Item | Value |
+|---|---|
+| Public IPv4 | `217.160.9.248` (confirmed from the host's own outbound address) |
+| Interface | `ens6`, `217.160.9.248/32` |
+| MAC | `02:01:ed:76:0d:5c` |
+| Hostname | `ubuntu` |
+
+Recorded because "the rule was added" and "the rule is bound to the interface
+that carries this traffic" are different statements, and only the second one
+shows up in a packet capture.
+
+### 14.5 Cloudflare path — unchanged and still correct
+
+Both hostnames return **522**, exactly as after the Origin Rule was applied.
+Cloudflare is reaching for `:2053` and cannot connect. The Origin Rule was not
+touched, and 522 remains the correct expected symptom while the provider
+filters.
+
+### 14.6 Direct-origin negative test
+
+`origin:2053` **blocked** from both external networks. The mandatory pair is not
+yet satisfiable: the negative half holds, but the positive half (Cloudflare
+hostname → Sandbox) cannot pass until packets arrive.
+
+### 14.7 Production non-regression
+
+`banzami.com` **200** · `www.banzami.com` **301** · `developers.banzami.com`
+**200**, TLS verification clean on all three. No 522, no 503, no sandbox content.
+
+### 14.8 Gates
+
+| Gate | Result |
+|---|---|
+| `make assure-sandbox-runtime` (no overrides) | **FAILS 4/4** — timeout; Cloudflare holds the connection waiting on `:2053`. Checker unmodified. |
+| `make assure-sandbox-launch` | **HOLD — 18 failures across 9 capabilities**, `public released: 5/14` (re-measured) |
+| `make security-check` | **PASSED** |
+| `make check-live-fail-closed` | **PASS** — SEC-019 registered |
+| `TestMerchantSurface_*` | **PASS** — merchant P2P routes still absent |
+
+No capability status changed.
+
+### 14.9 What is still outstanding
+
+One item, unchanged: **inbound TCP 2053 must actually reach `217.160.9.248`**.
+Everything on both sides of it is proven — Cloudflare routes correctly, the host
+allowlist admits Cloudflare, and the edge answers 200 with
+`environment=sandbox` locally.
+
+Two signals will confirm it, and they do not depend on each other: the public
+522 becomes 200, and `tcpdump` on port 2053 stops reporting zero.
