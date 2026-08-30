@@ -79,11 +79,22 @@ async fn main() {
         .and_then(|s| s.parse().ok())
         .unwrap_or_default();
 
-    let pool = sqlx::postgres::PgPoolOptions::new()
-        .max_connections(20)
-        .connect(&database_url)
-        .await
-        .expect("failed to connect to PostgreSQL");
+    // Connect with a short bounded retry rather than panicking on the first
+    // attempt. A freshly created container can run its first instruction before
+    // Docker's embedded resolver is serving for it, and the lookup fails with
+    // "Temporary failure in name resolution" for a hostname that resolves
+    // correctly seconds later. Observed during Stage E0: this process aborted at
+    // boot (exit 101) on a deploy, while `docker restart` of the same container
+    // succeeded immediately afterwards.
+    //
+    // The failure mode is worse than a slow start: the deploy marks the service
+    // unhealthy and rolls back, and the rolled-back container boots through the
+    // same window, so the financial core stays down until restarted by hand.
+    //
+    // It still panics once the attempts are exhausted — a database that is truly
+    // unreachable must stop the process rather than let the core serve without
+    // its ledger.
+    let pool = connect_with_retry(&database_url).await;
 
     // Ensure the two system ledger accounts exist. These are ASSET accounts
     // used as the DR/CR counterpart for all wallet movements. The IDs are fixed
@@ -890,4 +901,40 @@ async fn main() {
 
 async fn health() -> &'static str {
     "ok"
+}
+
+/// Connects to PostgreSQL, tolerating the brief window after container creation in
+/// which DNS for a linked service is not yet resolvable.
+///
+/// Deliberately bounded: an absent database must still abort startup, so a
+/// misconfigured deployment fails loudly instead of running without a ledger.
+async fn connect_with_retry(database_url: &str) -> sqlx::Pool<sqlx::Postgres> {
+    const ATTEMPTS: u32 = 6;
+    let mut last_err = None;
+    for attempt in 1..=ATTEMPTS {
+        match sqlx::postgres::PgPoolOptions::new()
+            .max_connections(20)
+            .acquire_timeout(std::time::Duration::from_secs(5))
+            .connect(database_url)
+            .await
+        {
+            Ok(pool) => {
+                if attempt > 1 {
+                    tracing::info!(attempt, "database reachable after retry");
+                }
+                return pool;
+            }
+            Err(e) => {
+                if attempt < ATTEMPTS {
+                    tracing::warn!(attempt, of = ATTEMPTS, "database not reachable yet, retrying");
+                    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                }
+                last_err = Some(e);
+            }
+        }
+    }
+    panic!(
+        "failed to connect to PostgreSQL after {ATTEMPTS} attempts: {}",
+        last_err.expect("at least one attempt was made")
+    );
 }
