@@ -15,19 +15,19 @@ var ErrPaymentLinkNotActive = errors.New("payment link is not active")
 // ---------------------------------------------------------------------------
 
 type PaymentLink struct {
-	ID          string     `json:"id"`
-	Slug        string     `json:"slug"`
-	MerchantID  string     `json:"merchant_id"`
-	WalletID    string     `json:"wallet_id"`
-	WalletAccountID string `json:"wallet_account_id"`
-	AmountMinor *int64     `json:"amount_minor"`
-	Currency    string     `json:"currency"`
-	Description *string    `json:"description"`
-	Status      string     `json:"status"`
-	ExpiresAt   *time.Time `json:"expires_at"`
-	PaidAt      *time.Time `json:"paid_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID              string     `json:"id"`
+	Slug            string     `json:"slug"`
+	MerchantID      string     `json:"merchant_id"`
+	WalletID        string     `json:"wallet_id"`
+	WalletAccountID string     `json:"wallet_account_id"`
+	AmountMinor     *int64     `json:"amount_minor"`
+	Currency        string     `json:"currency"`
+	Description     *string    `json:"description"`
+	Status          string     `json:"status"`
+	ExpiresAt       *time.Time `json:"expires_at"`
+	PaidAt          *time.Time `json:"paid_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 	// Merchant-safe refundable-source discovery (operator extension). Set by Core
 	// only after a wallet payment has settled for this link; surfaced to the
 	// owning merchant only (Get strips it for non-owners) and carried on the
@@ -36,13 +36,13 @@ type PaymentLink struct {
 }
 
 type CreatePaymentLinkRequest struct {
-	MerchantID  string
-	WalletID    string
+	MerchantID      string
+	WalletID        string
 	WalletAccountID string
-	AmountMinor *int64
-	Currency    string
-	Description *string
-	ExpiresAt   *time.Time
+	AmountMinor     *int64
+	Currency        string
+	Description     *string
+	ExpiresAt       *time.Time
 }
 
 type ListPaymentLinksRequest struct {
@@ -128,13 +128,28 @@ func (s *CoreApiPaymentLinkService) List(ctx context.Context, req ListPaymentLin
 	return &page, s.client.get(ctx, path, &page)
 }
 
+// mapPaymentLinkCoreError turns core's declared refusals into the sentinels the
+// handler already branches on.
+//
+// Core answers 422 LINK_NOT_ACTIVE for an invalid state transition — cancelling
+// an already-cancelled link, marking a cancelled link used. That was never mapped
+// here, so the handler's LINK_NOT_ACTIVE branch could not fire and the error fell
+// through to a 500: an invalid transition reported as a server fault. The same
+// class as RA-043, on a path that had its own sentinel waiting for it.
+func mapPaymentLinkCoreError(err error) error {
+	if errors.Is(err, ErrNotFound) {
+		return ErrPaymentLinkNotFound
+	}
+	if ce, ok := AsCoreError(err); ok && ce.Code == "LINK_NOT_ACTIVE" {
+		return ErrPaymentLinkNotActive
+	}
+	return err
+}
+
 func (s *CoreApiPaymentLinkService) Cancel(ctx context.Context, id string) (*PaymentLink, error) {
 	var link PaymentLink
 	if err := s.client.post(ctx, fmt.Sprintf("/internal/v1/payment-links/%s/cancel", id), nil, &link); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrPaymentLinkNotFound
-		}
-		return nil, err
+		return nil, mapPaymentLinkCoreError(err)
 	}
 	return &link, nil
 }
@@ -142,10 +157,7 @@ func (s *CoreApiPaymentLinkService) Cancel(ctx context.Context, id string) (*Pay
 func (s *CoreApiPaymentLinkService) MarkUsed(ctx context.Context, id string) (*PaymentLink, error) {
 	var link PaymentLink
 	if err := s.client.post(ctx, fmt.Sprintf("/internal/v1/payment-links/%s/mark-used", id), nil, &link); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrPaymentLinkNotFound
-		}
-		return nil, err
+		return nil, mapPaymentLinkCoreError(err)
 	}
 	return &link, nil
 }
