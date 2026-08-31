@@ -276,6 +276,23 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .await
             .map_err(|e| PayoutError::Wallet(e.to_string()))?;
 
+        // Authority (RA-056): the request NAMES a wallet — a resource selector,
+        // not authority over it. Without this the engine read a foreign
+        // merchant's balance and queued a withdrawal from it to the caller's own
+        // bank account (confirmed on the deployed Sandbox: HTTP 201, attacker
+        // merchant_id, victim wallet_id).
+        //
+        // It belongs here, not only at the API edge: the ledger must not be
+        // reachable by a caller that has not proved ownership of the source of
+        // funds. It runs BEFORE the balance check so the endpoint cannot be used
+        // as a balance oracle for wallets the caller does not own.
+        if wallet.merchant_id != req.merchant_id {
+            return Err(PayoutError::WalletNotOwned {
+                wallet_id: req.wallet_id,
+                merchant_id: req.merchant_id,
+            });
+        }
+
         // Balance check — prevents overdrawing the merchant's available account.
         let available = self.available_balance(wallet.available_account_id).await?;
         if available.amount_minor() < req.amount.amount_minor() {

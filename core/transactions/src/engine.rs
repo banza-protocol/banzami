@@ -134,6 +134,23 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
             return Ok(existing);
         }
 
+        // Authority (RA-056): the body names merchant_id and wallet_id
+        // independently. Without this a caller could create a transaction against
+        // ANOTHER merchant's wallet — polluting that tenant's books and seeding a
+        // source object for later settlement or restitution against a wallet the
+        // caller never owned.
+        let wallet = self
+            .wallet
+            .get(req.wallet_id)
+            .await
+            .map_err(TransactionError::Wallet)?;
+        if wallet.merchant_id != req.merchant_id {
+            return Err(TransactionError::WalletNotOwned {
+                wallet_id: req.wallet_id,
+                merchant_id: req.merchant_id,
+            });
+        }
+
         let now = Utc::now();
         let tx = Transaction {
             id: banzami_types::TransactionId::new(),

@@ -15,12 +15,21 @@ pub use transaction::{
 
 use thiserror::Error;
 
-use banzami_types::{MoneyError, TransactionId};
+use banzami_types::{MerchantId, MoneyError, TransactionId, WalletId};
 
 #[derive(Debug, Error)]
 pub enum TransactionError {
     #[error("transaction {0} not found")]
     NotFound(TransactionId),
+
+    /// The named wallet is not owned by the merchant creating the transaction.
+    /// RA-056 — same invariant as payouts: naming a wallet is not authority
+    /// over it.
+    #[error("wallet {wallet_id} is not owned by merchant {merchant_id}")]
+    WalletNotOwned {
+        wallet_id: WalletId,
+        merchant_id: MerchantId,
+    },
 
     #[error("invalid status transition: {from:?} → {to:?}")]
     InvalidStatusTransition {

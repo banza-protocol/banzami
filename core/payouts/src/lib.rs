@@ -124,6 +124,17 @@ pub enum PayoutError {
     #[error("payout not found: {0}")]
     NotFound(PayoutId),
 
+    /// The named wallet is not owned by the merchant requesting the payout.
+    ///
+    /// RA-056. The request names a wallet; naming a wallet is not authority over
+    /// it. Enforced at the financial boundary rather than only at the API edge,
+    /// so no future caller can reach the ledger without proving ownership.
+    #[error("wallet {wallet_id} is not owned by merchant {merchant_id}")]
+    WalletNotOwned {
+        wallet_id: WalletId,
+        merchant_id: MerchantId,
+    },
+
     #[error("duplicate idempotency key: {0}")]
     DuplicateIdempotencyKey(String),
 

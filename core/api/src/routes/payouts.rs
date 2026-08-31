@@ -72,6 +72,12 @@ pub async fn initiate(
             PayoutError::DuplicateIdempotencyKey(_) => {
                 ApiError::conflict("CONFLICT", "idempotency key already used")
             }
+            // RA-056 — the caller named a wallet it does not own. Reported as a
+            // plain not-found: it has no authority over that wallet, so it must
+            // not learn whether the id exists.
+            PayoutError::WalletNotOwned { .. } => {
+                ApiError::not_found("wallet not found for this merchant")
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -85,18 +91,40 @@ pub async fn initiate(
 // Get
 // ---------------------------------------------------------------------------
 
+#[derive(Deserialize)]
+pub struct GetQuery {
+    /// Owning merchant. Required: a payout carries a bank destination and an
+    /// amount, so it must never be readable by id alone (RA-056).
+    pub merchant_id: Option<String>,
+}
+
 pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    Query(q): Query<GetQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let payout_id: PayoutId = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid payout id"))?;
 
+    // Fail closed: an unscoped read is refused outright rather than served.
+    let merchant_id: MerchantId = q
+        .merchant_id
+        .as_deref()
+        .ok_or_else(|| ApiError::bad_request("merchant_id is required"))?
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+
     let p = state.payout.get(payout_id).await.map_err(|e| match e {
         PayoutError::NotFound(_) => ApiError::not_found("payout not found"),
         other => ApiError::internal(other.to_string()),
     })?;
+
+    // Ownership decides visibility, and a foreign payout is indistinguishable
+    // from a missing one.
+    if p.merchant_id != merchant_id {
+        return Err(ApiError::not_found("payout not found"));
+    }
 
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }
