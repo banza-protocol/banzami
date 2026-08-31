@@ -1,11 +1,11 @@
 {
   "capability": "CAP-PAY-002",
   "suite": "cap-pay-002-sandbox-e2e",
-  "run_id": "9509fa16-30d3-46e5-8e1c-541472343278",
-  "timestamp": "2026-08-31T11:51:37.593Z",
+  "run_id": "8647b001-8479-44a9-8d75-431f12199c41",
+  "timestamp": "2026-08-31T12:06:16.739Z",
   "environment": "sandbox",
-  "runtime_source_commit": "59b818d1ea65",
-  "assurance_repository_revision": "59b818d1ea654c5aea0977a2d43bc35ae51b494f",
+  "runtime_source_commit": "125d3c4249be",
+  "assurance_repository_revision": "125d3c4249be8cae3a060e4b3a2b6ee686e3f987",
   "runtime_matches_head_exactly": true,
   "non_runtime_files_ahead_of_runtime": [],
   "public_endpoint": "https://sandbox-api.banzami.com",
@@ -14,11 +14,11 @@
     "/public/pay/{slug}"
   ],
   "merchants": {
-    "a": "e2epa17881770952154036",
-    "b": "e2epb17881770957218615"
+    "a": "e2epa17881779743468121",
+    "b": "e2epb17881779747533272"
   },
-  "link_id": "3bb6b1e8-61ad-478e-8773-9cb4af5da208",
-  "link_slug_fingerprint": "sha256:8bf4ace040275ce0e2bc01eb70905925",
+  "link_id": "5b9a50f8-abd5-40a0-97c2-095087069cb9",
+  "link_slug_fingerprint": "sha256:ad95df8e08f89b6f0fa128ed28b13c03",
   "amount_minor": 120000,
   "currency": "AOA",
   "ledger_effect": "none-expected (link creation and resolution are non-financial)",
@@ -200,8 +200,8 @@
     },
     {
       "id": "PAY002.neg.cancel-twice",
-      "ok": false,
-      "note": "HTTP 500 on an already-cancelled link"
+      "ok": true,
+      "note": "HTTP 422 on an already-cancelled link"
     },
     {
       "id": "PAY002.public-reflects-cancellation",
@@ -214,7 +214,7 @@
       "note": "balance 0 minor — creating and resolving a link is non-financial"
     }
   ],
-  "passed": 37,
-  "failed": 1,
-  "verdict": "FAIL"
+  "passed": 38,
+  "failed": 0,
+  "verdict": "PASS"
 }

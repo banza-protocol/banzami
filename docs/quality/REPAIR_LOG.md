@@ -33,6 +33,66 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-047 — Any merchant could read, create and CANCEL another merchant's payment links (Stage E1.2)
+
+- **Severity:** HIGH (cross-tenant destructive mutation on a payment surface)
+- **Environment:** `/v1/payment-links`, deployed Sandbox
+- **Finding:** measured with two independently provisioned merchants, before the fix:
+
+  | Attempt by merchant B | Result |
+  |---|---|
+  | create a link **payable to A** | **201** — payee A, amount and description B's |
+  | read A's private link | **200** — full internal record |
+  | list A's links | **200** — by naming A in the query |
+  | **cancel A's link** | **200** — and A's link became `CANCELLED` |
+
+- **Impact:** not fund theft — money still flows toward the victim. It is
+  unauthorized destructive mutation: any merchant could kill any other merchant's
+  payment links, so the victim's customers find the links dead and the victim
+  cannot attribute it. It also allowed minting links under another merchant's
+  identity with an attacker-chosen amount and description.
+- **Root cause:** coherent rather than careless. When ADR-047 introduced
+  developer-key authority, THAT path was given tenant isolation — `Get` already
+  refused a cross-tenant read for a developer key and create derived the payee
+  from the Project binding. The older merchant-JWT path was left trusting
+  `merchant_id` from the request body and the query string. The newer credential
+  got the isolation; the one that predated it did not.
+- **Remediation:** all five operations bind to the principal. Create refuses a body
+  naming another merchant (403) and uses the caller's identity when the field is
+  omitted; List is scoped to the caller (403 on a foreign id); Get, Cancel and
+  MarkUsed check ownership BEFORE mutation and answer 404 rather than 403, because
+  403 confirms the id exists and makes links enumerable — matching the
+  payment-session surface and the developer-key path already here. MarkUsed
+  matters twice: marking another merchant's link paid would dispatch
+  `payment_link.paid` to THEIR webhook endpoints.
+- **Tests:** six handler tests asserting the SERVICE IS NEVER REACHED for a foreign
+  resource — asserting the status alone would pass even if the mutation had already
+  happened. Proven non-vacuous by reverting the Cancel check and watching the test
+  fail on exactly that assertion. Deployed E2E adds
+  `PAY002.neg.victim-link-unchanged`, which confirms the target link is still
+  ACTIVE after every cross-tenant attempt.
+- **Disposition:** fixed and verified on the deployed Sandbox.
+
+---
+
+## RA-048 — Invalid payment-link state transition returned 500 (Stage E1.2)
+
+- **Severity:** LOW (wrong status; no data or security impact)
+- **Finding:** cancelling an already-cancelled link returned 500. Core answers
+  **422 LINK_NOT_ACTIVE** and the handler already had a branch mapping exactly
+  that, but the service never produced the sentinel the branch tests for, so the
+  error fell through to the default. The correct answer was sitting unused beside
+  the wrong one.
+- **Note:** predates RA-043 rather than being caused by it — the old client's 422
+  case returned a formatted string the sentinel could not match either. Typing the
+  core errors made the gap addressable, not new.
+- **Remediation:** one mapping helper shared by cancel and mark-used, which had the
+  same gap. An unrelated core rejection is deliberately not laundered into a
+  state-transition error; a test asserts a 400 INVALID_AMOUNT survives as a 400.
+- **Disposition:** fixed.
+
+---
+
 ## RA-043 — CLOSED. Gateway reported client errors as 502 (Stage E1 → E1.1)
 
 > **Closed 2026-08-31.** The core client now returns a typed `CoreError` carrying

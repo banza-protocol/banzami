@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 9 |
-| verified | 7 |
+| in-audit | 8 |
+| verified | 8 |
 | **total** | **21** |
 
 ## Capabilities
@@ -25,7 +25,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | **released** | ✅ | 🔒 no | integration-required | verified |
 | CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-001 | Payment sessions | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-PAY-002 | Payment links | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAY-002 | Payment links | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
@@ -50,11 +50,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | blocked-external | 1 |
 | internal_only | 1 |
-| pending-e2e | 7 |
+| pending-e2e | 6 |
 | quarantined | 5 |
-| released | 7 |
+| released | 8 |
 
-Public surfaces released: **6/14**. Full external launch requires 14/14.
+Public surfaces released: **7/14**. Full external launch requires 14/14.
 
 ## Detail
 
@@ -115,12 +115,12 @@ Public surfaces released: **6/14**. Full external launch requires 14/14.
 - **Implementation:** services/api-gateway
 - **API/UI surface:** /v1/payment-links + public /public/pay/{slug} (merchant-JWT today; dev-key path pending ADR-047)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security [RT03 §4: public payer view redacts internal UUIDs (deployed)]
-- **Evidence:** docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
+- **Tests:** unit [] · integration [] · e2e_sandbox ['PAY002.create · owner-is-caller · amount-exact · currency-preserved · slug-issued · initial-state-active', 'PAY002.read-own · list-own (owner-scoped)', 'PAY002.public-resolves · public-amount-matches · public-status (unauthenticated payer surface)', 'PAY002.idempotent-replay · idempotency-structural-canonical · idempotency-actor-scoped · concurrent-single-resource', 'PAY002.owner-cancel · public-reflects-cancellation (lifecycle)', 'PAY002.no-ledger-movement (link creation and resolution are non-financial)'] · negative/security [RT03 §4: public payer view redacts internal UUIDs (deployed), 'PAY002.neg.cross-merchant-create (403) · cross-merchant-list (403) — payee bound to the principal (RA-047)', 'PAY002.neg.cross-merchant-read · cross-merchant-cancel · cross-merchant-mark-used (404, non-enumerable)', 'PAY002.neg.victim-link-unchanged — the target link is untouched after every cross-tenant attempt', 'PAY002.neg.unauthenticated · neg.bogus-credential (401)', 'PAY002.neg.zero-amount · negative-amount · missing-wallet · missing-currency · past-expiry (400)', 'PAY002.neg.public-unknown-slug · public-malformed-slug (404) · public-no-internal-fields · public-no-internal-ids', 'PAY002.idempotency-conflict-rejected (409, ADR-022) · neg.cancel-twice (422)']
+- **Evidence:** evidence/assurance/payments/cap-pay-002-8647b001.json, tools/e2e/payments/cap-pay-002-sandbox-e2e.mjs, docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-PAY-003 — QR payment flows (Banzami QR)
 
