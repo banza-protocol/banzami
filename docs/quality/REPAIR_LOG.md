@@ -12,7 +12,81 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
-## RA-038 — Migration ledger records a schema that does not exist (Stage E0.1)
+## RA-040 — account_identity was never added to the runtime grant list (Stage E0.2)
+
+- **Severity:** HIGH (Developer Console non-functional in Sandbox for seven weeks)
+- **Environment:** sandbox `banzami_staging`, `infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh`
+- **Finding:** the canonical migration tooling enables the runtime role on the
+  exact schemas the services use, and its own comment states the rule: *"New
+  schemas must be added here explicitly; there is no blanket cross-schema
+  grant."* It granted `public` and `developer`. Migration 0088 created
+  `account_identity` in July and that list was never extended, so
+  `bl_app_runtime` had no `USAGE` on the schema. Every Console account, OTP,
+  session and audit write failed with permission denied, which the service
+  correctly reported as a fail-closed 503.
+- **Root cause:** a documented rule was not followed when a schema was added.
+  Nothing was corrupt; no migration failed; the ledger was accurate throughout.
+- **Remediation:** four statements added to the tooling following the existing
+  convention — USAGE, DML on existing tables, sequence usage, default privileges
+  for future tables. Least-privilege: no GRANT ALL, no DDL, no ownership. Applied
+  to the Sandbox executing the merged definition verbatim
+  (`has_schema_privilege` f → t).
+- **Detection gap closed:** `tools/check-schema-reality.mjs` /
+  `make check-schema-reality`. It deliberately does **not** check that tables
+  exist — an existence check would have passed every day of the outage. It asks
+  whether the runtime role can read and write the critical tables, connecting as
+  that role, and reports existence and access as separate failures because they
+  have separate repairs. Proven on a disposable database: objects-without-grants
+  FAILs, granted PASSes, dropped-table FAILs with a different message.
+- **Verification:** `POST /auth/request-otp` 503 → **200**; OTP persisted; verify
+  returns a session; account and session rows created.
+- **Disposition:** fixed.
+
+---
+
+## RA-041 — Canonical migration tooling cannot target the serving sandbox (Stage E0.2)
+
+- **Severity:** LOW (operational friction; no runtime impact)
+- **Finding:** `make sandbox-migration-apply` refuses with *"no bootstrapped
+  Sandbox (run sandbox-bootstrap apply first)"*. It targets a
+  blueprint-bootstrapped project, while the sandbox actually serving is the rt04e
+  project. Grants and migrations therefore cannot be applied to the live sandbox
+  through the canonical entry point.
+- **Consequence:** the RA-040 grant had to be applied with the superuser
+  credential, executing the merged tooling statements verbatim. Defensible —
+  grants are not tracked in `_sqlx_migrations` and merged code is the forward
+  source of truth — but it means a canonical path exists that does not reach the
+  environment it names.
+- **Disposition:** open.
+
+---
+
+## RA-042 — Operator fixture endpoint returns 503 (Stage E0.2)
+
+- **Severity:** MEDIUM (blocks the intended E2E fixture path; not on any product flow)
+- **Finding:** `POST /internal/v1/fixture-projects` returns 503 on the internal
+  network with a valid internal key, after the account_identity grant repair. A
+  different code path from account identity with a different root cause, not yet
+  diagnosed.
+- **Impact:** Stage E does not depend on it — both the merchant and developer
+  credential paths work — but the mechanism built for isolated E2E fixtures is
+  unavailable.
+- **Disposition:** open.
+
+---
+
+## RA-038 — WITHDRAWN. The migration ledger was accurate (Stage E0.1 → E0.2)
+
+> **This finding was wrong and is retracted.** See RA-040 for the real cause.
+> The four `account_identity` tables exist, all twelve indexes exist, and the
+> `_sqlx_migrations` row for version 88 is accurate with its checksum intact. The
+> evidence used was `information_schema.tables` queried **as the runtime role** —
+> a privilege-filtered view, which showed nothing because the role had no rights.
+> `pg_indexes` listing four primary keys was the tell: an index cannot exist
+> without its table. This is the same error as RA-035/SE-001 — inferring absence
+> from a filtered view — made twice in the same investigation.
+
+## RA-038 (original text, retained) — Migration ledger records a schema that does not exist (Stage E0.1)
 
 - **Severity:** HIGH (the canonical migration record is wrong, and the tooling
   cannot self-heal)
