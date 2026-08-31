@@ -12,6 +12,68 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-043 — Gateway reports client errors as 502 on the payment surface (Stage E1)
+
+- **Severity:** MEDIUM (API correctness + access-control legibility; no data exposure)
+- **Environment:** `POST /v1/business/payment-sessions`, deployed Sandbox
+- **Finding:** the handler maps EVERY error from core to
+  `502 UPSTREAM_ERROR`, because the core client returns an untyped
+  `fmt.Errorf("core-api error %d: …")` that carries no status a handler can
+  branch on. Core's 400s and 403s therefore reach the client as 502.
+- **Measured on the deployed Sandbox** (CAP-PAY-001 suite, 4 of 5 failures):
+
+  | Request | Core | Client sees | Should be |
+  |---|---|---|---|
+  | `amount_minor = 0` | 400 | **502** | 400 |
+  | `amount_minor = -1` | 400 | **502** | 400 |
+  | unsupported currency | 400 | **502** | 400 |
+  | merchant B naming merchant A's wallet account | 403 | **502** | 403/404 |
+
+- **Why it matters beyond tidiness:** the last row is an authorization failure
+  presented as a server fault. A 502 also invites retry, where a 400 does not, so
+  an integrator's client library will hammer a request that can never succeed.
+  It cost this programme real time too: it masked the `purpose` defect below and
+  every validation error during Stage E1 diagnosis.
+- **Note:** the boundary itself holds — cross-merchant creation IS refused, and
+  no internal detail leaks in any response. This is the wrong status code on a
+  correct refusal, not a broken control.
+- **Disposition:** open — the core client needs to carry the upstream status so
+  handlers can map 4xx to 4xx.
+
+---
+
+## RA-044 — Idempotency key reuse with a different payload is not rejected (Stage E1)
+
+- **Severity:** MEDIUM (financial-API correctness)
+- **Environment:** `POST /v1/business/payment-sessions`, deployed Sandbox
+- **Finding:** replaying an idempotency key with the SAME payload correctly
+  returns the original session (201, same `session_id`) — that half works. But
+  reusing the same key with a materially different payload (`amount_minor`
+  changed) also returns **201 with the original session** instead of a conflict.
+  The stored response is returned without comparing the request.
+- **Why it matters:** an integrator who reuses a key by accident — a loop
+  variable, a retry after editing the amount — silently gets the wrong session
+  and believes the new amount was accepted. On a money surface, a request
+  fingerprint is what makes idempotency safe rather than merely deduplicating.
+- **Measured:** CAP-PAY-001 suite, `PAY001.idempotency-conflict-rejected`.
+- **Disposition:** open — the idempotency middleware should store a payload
+  fingerprint and reject a mismatch per the API contract.
+
+---
+
+## RA-045 — Omitting `purpose` makes payment-session creation fail (Stage E1)
+
+- **Severity:** LOW (the documented default is unreachable)
+- **Finding:** core defaults an ABSENT `purpose` to `GENERIC`, but the gateway
+  always sends the field, so omitting it transmits `""`, which core rejects as an
+  invalid purpose. The simplest valid request therefore fails, and — because of
+  RA-043 — fails as a 502.
+- **Remediation:** omit the field when empty, mirroring how the same function
+  already treats `reference_type`, `reference_id`, `currency` and `description`.
+- **Disposition:** open.
+
+---
+
 ## RA-040 — account_identity was never added to the runtime grant list (Stage E0.2)
 
 - **Severity:** HIGH (Developer Console non-functional in Sandbox for seven weeks)
