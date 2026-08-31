@@ -139,7 +139,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
 	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ConsumerSvc, deps.MerchantSvc, deps.ProofSvc)
 	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
-	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
+	// consumerWltHandler is intentionally not constructed — the
+	// /v1/consumer-wallets group is unmounted (RA-058).
+	_ = deps.ConsumerWalletSvc
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
 	// Split Sessions is SUPERSEDED by Collections (ADR-036) — answered at the edge, never proxied.
 	splitsSuperseded := handler.SplitsSuperseded()
@@ -149,7 +151,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
 	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)
-	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
+	// paymentReqHandler is intentionally not constructed — the
+	// /v1/payment-requests group is unmounted (RA-057). The handler type is kept
+	// so the consumer-side surface can be built from it once the payer is derived
+	// from an authenticated consumer token.
+	_ = deps.PaymentRequestSvc
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc)
@@ -390,14 +396,32 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Get("/{id}", consumerHandler.Get)
 			})
 
-			// Consumer wallets
-			r.Route("/consumer-wallets", func(r chi.Router) {
-				r.Use(middleware.RequireMerchant)
-				r.Post("/", consumerWltHandler.Create)
-				r.Get("/", consumerWltHandler.GetForConsumer) // ?consumer_id=X&currency=AOA
-				r.Get("/{id}", consumerWltHandler.Get)
-				r.Get("/{id}/balance", consumerWltHandler.Balance)
-			})
+			// Consumer wallets are NOT mounted (RA-058).
+			//
+			// A consumer wallet belongs to a consumer. RequireMerchant established
+			// that the caller is *a* merchant, never that it has any relation to
+			// the named consumer — and every route took the consumer straight from
+			// client input:
+			//
+			//   POST /v1/consumer-wallets              — open a wallet for ANY consumer
+			//   GET  /v1/consumer-wallets?consumer_id= — resolve ANY consumer's wallet
+			//   GET  /v1/consumer-wallets/{id}/balance — read ANY consumer's balance
+			//
+			// Confirmed on the deployed Sandbox: an unrelated merchant read a
+			// consumer's wallet and its balance (HTTP 200). A merchant has no
+			// legitimate need for a customer's wallet balance; this is the same
+			// missing-authority shape as SEC-015 and RA-057, disclosing financial
+			// data rather than moving it.
+			//
+			// The capability already exists correctly on the consumer surface,
+			// where public-api derives the wallet from the authenticated consumer
+			// token (GET /v1/me/wallet, /v1/me/wallet/balance). Nothing is lost
+			// except the ability to ask about someone else.
+			//
+			// SDK NOTE: @banzami/sdk and banzami_flutter still expose helpers that
+			// call these paths. They now call a route that does not exist, and that
+			// mismatch is tracked rather than papered over — the fix is to withdraw
+			// the helpers, not to re-expose the surface.
 
 			// Consumer P2P transfers are NOT a merchant resource, and the whole
 			// /v1/transfers group was REMOVED from this surface (SEC-015, SEC-018).
@@ -487,15 +511,34 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Get("/{id}/evidence", disputeHandler.ListEvidence)
 			})
 
-			// Payment requests
-			r.Route("/payment-requests", func(r chi.Router) {
-				r.Post("/", paymentReqHandler.Create)
-				r.Get("/", paymentReqHandler.List)
-				r.Get("/{id}", paymentReqHandler.Get)
-				r.Post("/{id}/pay", paymentReqHandler.Pay)
-				r.Post("/{id}/decline", paymentReqHandler.Decline)
-				r.Post("/{id}/cancel", paymentReqHandler.Cancel)
-			})
+			// Payment requests are NOT mounted (RA-057).
+			//
+			// A payment request is consumer-to-consumer: requester and payer are
+			// both consumers and there is no merchant party. As with the
+			// /v1/transfers group removed above (SEC-015), that is not a missing
+			// ownership field — it is the absence of any ownership relation a
+			// merchant principal could be scoped against.
+			//
+			// The routes took BOTH participants from the request body and never
+			// read the principal at all, so a merchant credential could:
+			//
+			//   POST /v1/payment-requests           — name ANY requester and ANY payer
+			//   POST /v1/payment-requests/{id}/pay  — execute it, debiting that payer
+			//   POST /{id}/decline · /{id}/cancel   — act as either party
+			//
+			// Confirmed on the deployed Sandbox: an unrelated merchant created a
+			// request between two consumers it had no relationship with and
+			// executed it — status PAID, victim debited 1000000 → 995000 minor.
+			// Unlike the QR pay route (RA-053) nothing blocked it: this path has
+			// no KYC gate either, so it was both a missing authorization and a
+			// compliance bypass.
+			//
+			// Not relocated here. The correct surface is the consumer one,
+			// deriving the payer from the authenticated consumer token and scoping
+			// reads to a request's own requester/payer — the shape public-api
+			// already uses for transfers. That route does not exist yet, and
+			// inventing a merchant-side consent model to keep these mounted is
+			// exactly the mistake SEC-015 and RA-053 rejected.
 
 			// Sandbox utilities — only functional with bz_test_ keys.
 			// Every handler in this group enforces SANDBOX environment internally.
