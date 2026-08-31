@@ -167,6 +167,22 @@ pub async fn create(
     let currency = Currency::from_code(&currency_code)
         .ok_or_else(|| ApiError::bad_request("unsupported currency"))?;
 
+    // A fixed amount must be positive. Without this the value went straight into
+    // the INSERT, the database CHECK refused it, and the resulting error surfaced
+    // as a 500 — so a caller sending amount_minor = 0 was told the server had
+    // failed rather than that their amount was invalid. The constraint held and
+    // nothing invalid was ever stored; it was the wrong answer to a correct
+    // refusal, the same shape as RA-043 one layer deeper. An OMITTED amount stays
+    // valid: that is an open-amount session, which the interface logic below
+    // already treats as a distinct case.
+    if let Some(amount) = body.amount_minor {
+        if amount <= 0 {
+            return Err(ApiError::bad_request(
+                "amount_minor must be a positive integer when provided",
+            ));
+        }
+    }
+
     // Idempotency: one session per (merchant, purpose, reference).
     if body.reference_id.is_some() {
         if let Some(existing) = sqlx::query_scalar::<_, Uuid>(
