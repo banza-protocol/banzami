@@ -27,3 +27,17 @@ func TestIsSandboxEnvironment_RejectsEverythingElse(t *testing.T) {
 		}
 	}
 }
+
+// The registration test-balance grant uses the same helper. It was written as an
+// exact match against "SANDBOX" while deployments set "sandbox", so every Sandbox
+// consumer registered with a zero balance — silently, because a skipped grant is
+// indistinguishable from a grant of nothing. Both call sites now share one
+// predicate so they cannot drift apart again.
+func TestIsSandboxEnvironment_SharedByGrantAndUtilities(t *testing.T) {
+	if !isSandboxEnvironment("sandbox") {
+		t.Fatal("the deployed spelling must enable the registration test-balance grant")
+	}
+	if isSandboxEnvironment("production") {
+		t.Fatal("a production deployment must never auto-credit a consumer wallet")
+	}
+}

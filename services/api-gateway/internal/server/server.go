@@ -429,7 +429,20 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Post("/static", qrHandler.CreateStatic)
 				r.Post("/dynamic", qrHandler.CreateDynamic)
 				r.Post("/decode", qrHandler.Decode)
-				r.Post("/pay", qrHandler.Pay)
+				// POST /pay is NOT mounted. A merchant JWT is not authority to debit a
+				// consumer's wallet, and this route accepted the payer as free text
+				// (RA-053). The contract puts the authority with the payer: the Flutter
+				// SDK's ConsumerPublicClient documents "[payer] is the authenticated
+				// consumer's @banza handle" and targets the consumer surface, where no
+				// such route exists. So the only implementation lived on the wrong
+				// credential, and nothing in the chain proved the caller could spend the
+				// named consumer's money.
+				//
+				// Removed rather than patched, following SEC-015: a merchant has no
+				// generic authority over a consumer's funds, and the fix belongs at the
+				// API boundary, not in a consent model invented to justify the route.
+				// The consumer-side surface remains to be implemented per the SDK
+				// contract, deriving the payer from the authenticated consumer token.
 				r.Get("/{id}", qrHandler.Get)
 				r.Post("/{id}/use", qrHandler.MarkUsed)
 			})
