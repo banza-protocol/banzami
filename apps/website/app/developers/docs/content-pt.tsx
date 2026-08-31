@@ -20,7 +20,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone:
     title: 'Criar cobrança',
     desc: 'Links de pagamento, sessões e QR.',
     href: '/docs/guides#cobranca',
-    tone: 'val',
+    tone: 'ok',
     badgeTone: 'ok',
     badgeText: 'Disponível em Sandbox',
     icon: (
@@ -607,7 +607,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <H2>Guias</H2>
               <PageLede>Guias práticos de integração — cobranças, transferências, reembolsos e webhooks. O enquadramento é <strong>SDK-first</strong>; onde surge curl/HTTP, é material de referência do protocolo.</PageLede>
               <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/sdk', text: 'SDKs' }]} />
-<H3 id="cobranca">Criar cobrança <Badge tone="val" /></H3>
+<H3 id="cobranca">Criar cobrança <Badge tone="ok" /></H3>
               <P>
                 Uma cobrança nasce de um <strong>link de pagamento</strong> ou de uma <strong>sessão de pagamento</strong>: cria a
                 intenção, apresenta o link/QR ao pagador e acompanha a confirmação (por polling e/ou webhook). No modelo Banzami,

@@ -1,18 +1,18 @@
 {
   "capability": "CAP-PAY-001",
   "suite": "cap-pay-001-sandbox-e2e",
-  "run_id": "add97a6c-5772-4d22-994c-f318e2409703",
-  "timestamp": "2026-08-31T08:07:03.202Z",
+  "run_id": "db30ba00-7d80-4246-858c-e6e83ca767b5",
+  "timestamp": "2026-08-31T09:12:01.262Z",
   "environment": "sandbox",
-  "expected_commit": "a042511fc975",
-  "deployed_build": "a042511fc975",
+  "expected_commit": "beba4c2f7947b0a130372822c082069e519d74e6",
+  "deployed_build": "beba4c2f7947",
   "public_endpoint": "https://sandbox-api.banzami.com",
   "surface": "/v1/business/payment-sessions",
   "merchants": {
-    "a": "e2ea17881636217783277",
-    "b": "e2eb17881636222143554"
+    "a": "e2ea17881675192556394",
+    "b": "e2eb17881675198155844"
   },
-  "session_id": "82912a4c-494c-442c-b4b5-63d65233017d",
+  "session_id": "7c0505da-1f30-459c-9afb-a5c4c8e889e2",
   "amount_minor": 150000,
   "currency": "AOA",
   "ledger_effect": "none-expected (session is an intent, not a settlement)",
@@ -59,8 +59,8 @@
     },
     {
       "id": "PAY001.idempotency-conflict-rejected",
-      "ok": false,
-      "note": "HTTP 201 for a reused key with a different payload"
+      "ok": true,
+      "note": "HTTP 409 for a reused key with a different payload"
     },
     {
       "id": "PAY001.neg.unauthenticated",
@@ -74,8 +74,8 @@
     },
     {
       "id": "PAY001.neg.cross-merchant-create",
-      "ok": false,
-      "note": "HTTP 502 for B creating against A's wallet account"
+      "ok": true,
+      "note": "HTTP 403 for B creating against A's wallet account"
     },
     {
       "id": "PAY001.neg.cross-merchant-read",
@@ -84,18 +84,18 @@
     },
     {
       "id": "PAY001.neg.zero-amount",
-      "ok": false,
-      "note": "HTTP 502"
+      "ok": true,
+      "note": "HTTP 400"
     },
     {
       "id": "PAY001.neg.negative-amount",
-      "ok": false,
-      "note": "HTTP 502"
+      "ok": true,
+      "note": "HTTP 400"
     },
     {
       "id": "PAY001.neg.unsupported-currency",
-      "ok": false,
-      "note": "HTTP 502"
+      "ok": true,
+      "note": "HTTP 400"
     },
     {
       "id": "PAY001.neg.unknown-session",
@@ -111,9 +111,34 @@
       "id": "PAY001.neg.no-internal-leak",
       "ok": true,
       "note": "0 response(s) leaked internals"
+    },
+    {
+      "id": "PAY001.purpose-omitted-defaults",
+      "ok": true,
+      "note": "HTTP 201, purpose=GENERIC"
+    },
+    {
+      "id": "PAY001.purpose-explicit-generic",
+      "ok": true,
+      "note": "HTTP 201"
+    },
+    {
+      "id": "PAY001.neg.unknown-purpose",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY001.idempotency-actor-scoped",
+      "ok": true,
+      "note": "A 201 / B 201, distinct sessions: true"
+    },
+    {
+      "id": "PAY001.idempotency-concurrent-single-resource",
+      "ok": true,
+      "note": "1 distinct session(s) from 4 concurrent identical requests, 0 serialized"
     }
   ],
-  "passed": 14,
-  "failed": 5,
-  "verdict": "FAIL"
+  "passed": 24,
+  "failed": 0,
+  "verdict": "PASS"
 }

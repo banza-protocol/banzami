@@ -12,7 +12,40 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
-## RA-043 — Gateway reports client errors as 502 on the payment surface (Stage E1)
+## RA-046 — Core returned 500 for a non-positive payment-session amount (Stage E1.1)
+
+- **Severity:** MEDIUM (validation gap on a money field; wrong status, no data risk)
+- **Environment:** `core/api` payment sessions
+- **Finding:** `amount_minor` was bound straight into the INSERT with no
+  validation. A zero or negative value violated the database CHECK and the
+  resulting error surfaced as an internal error, so a caller sending
+  `amount_minor = 0` was told the server had failed rather than that their amount
+  was invalid.
+- **Why it stayed hidden:** before RA-043 was fixed, a core 400 and a core 500
+  reached the client identically as 502. Fixing the gateway is what made this
+  visible — the CAP-PAY-001 suite went to 17/19 with both remaining failures being
+  zero/negative amounts still answering 502, correctly this time.
+- **Remediation:** core rejects an explicitly non-positive amount with 400 before
+  the insert. An OMITTED amount stays valid: that is an open-amount session, which
+  the interface logic already treats as a distinct case.
+- **Verification:** deployed Sandbox — zero and negative amounts both **400**.
+- **Disposition:** fixed.
+
+---
+
+## RA-043 — CLOSED. Gateway reported client errors as 502 (Stage E1 → E1.1)
+
+> **Closed 2026-08-31.** The core client now returns a typed `CoreError` carrying
+> the upstream status and core's safe reason code, and a `TransportError` for a
+> failure to complete the exchange at all. Handlers map a deliberate core 4xx to
+> that status; core 5xx and transport failures remain 502. `ErrNotFound` is kept
+> as the 404 sentinel (38 call sites branch on it), so whether a route hides
+> existence stays that route's privacy decision. Five regression tests cover 4xx
+> preservation, 5xx, transport, the sentinel and an unparsable 4xx body. Verified
+> on the deployed Sandbox: cross-merchant create 502 → **403**, unsupported
+> currency 502 → **400**.
+
+## RA-043 (original) — Gateway reports client errors as 502 on the payment surface (Stage E1)
 
 - **Severity:** MEDIUM (API correctness + access-control legibility; no data exposure)
 - **Environment:** `POST /v1/business/payment-sessions`, deployed Sandbox
@@ -42,7 +75,25 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
-## RA-044 — Idempotency key reuse with a different payload is not rejected (Stage E1)
+## RA-044 — CLOSED. Idempotency key reuse with a different payload (Stage E1 → E1.1)
+
+> **Closed 2026-08-31.** Requests are fingerprinted and a mismatch returns **409**
+> instead of replaying the original. Canonicalisation ignores key order,
+> whitespace and explicitly empty/null optional fields, so a differing serialiser
+> does not cause false conflicts, while any value change — including nested — is
+> visible. Scoping was already correct (principal + method + path + key) and is
+> proven on the deployed Sandbox: the same raw key used by two merchants yields
+> two distinct sessions. Four concurrent identical requests produced exactly one
+> session. Entries cached before the change carry no fingerprint and replay as
+> before, so the rollout could not reject in-flight keys.
+>
+> Stated limitation, asserted by a test so it stays deliberate: transport-level
+> canonicalisation cannot know an endpoint's SEMANTIC defaults, so omitting a
+> field and sending its default explicitly still conflict. That direction is the
+> safe one — a false conflict refuses the request, a missed conflict returns the
+> wrong resource.
+
+## RA-044 (original) — Idempotency key reuse with a different payload is not rejected (Stage E1)
 
 - **Severity:** MEDIUM (financial-API correctness)
 - **Environment:** `POST /v1/business/payment-sessions`, deployed Sandbox
@@ -61,7 +112,15 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
-## RA-045 — Omitting `purpose` makes payment-session creation fail (Stage E1)
+## RA-045 — CLOSED. Omitting `purpose` made session creation fail (Stage E1 → E1.1)
+
+> **Closed 2026-08-31.** The gateway omits the field when empty, exactly as it
+> already did for `reference_type`, `reference_id`, `currency` and `description`,
+> so core's documented default applies. Verified on the deployed Sandbox: an
+> omitted purpose returns **201** with `purpose = GENERIC`; an unknown purpose
+> returns **400**.
+
+## RA-045 (original) — Omitting `purpose` makes payment-session creation fail (Stage E1)
 
 - **Severity:** LOW (the documented default is unreachable)
 - **Finding:** core defaults an ABSENT `purpose` to `GENERIC`, but the gateway

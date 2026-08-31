@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 10 |
-| verified | 6 |
+| in-audit | 9 |
+| verified | 7 |
 | **total** | **21** |
 
 ## Capabilities
@@ -24,7 +24,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|---|---|---|---|---|---|---|
 | CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | **released** | ✅ | 🔒 no | integration-required | verified |
 | CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-PAY-001 | Payment sessions | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAY-001 | Payment sessions | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-002 | Payment links | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
@@ -50,11 +50,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | blocked-external | 1 |
 | internal_only | 1 |
-| pending-e2e | 8 |
+| pending-e2e | 7 |
 | quarantined | 5 |
-| released | 6 |
+| released | 7 |
 
-Public surfaces released: **5/14**. Full external launch requires 14/14.
+Public surfaces released: **6/14**. Full external launch requires 14/14.
 
 ## Detail
 
@@ -99,12 +99,12 @@ Public surfaces released: **5/14**. Full external launch requires 14/14.
 - **Implementation:** services/api-gateway, core/transactions
 - **API/UI surface:** /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
+- **Tests:** unit [] · integration [] · e2e_sandbox ['PAY001.create · amount-exact · currency-preserved · identifier-present · interfaces-issued (deployed sandbox)', 'PAY001.read-own · no-ledger-movement (session is an intent, not a settlement)', 'PAY001.idempotent-replay · idempotency-actor-scoped · idempotency-concurrent-single-resource', 'PAY001.purpose-omitted-defaults · purpose-explicit-generic (RA-045)'] · negative/security ['PAY001.neg.unauthenticated · neg.bogus-credential (401)', 'PAY001.neg.cross-merchant-create (403) · neg.cross-merchant-read (404) — two independently provisioned merchants', 'PAY001.neg.zero-amount · neg.negative-amount · neg.unsupported-currency · neg.unknown-purpose (400)', 'PAY001.neg.unknown-session · neg.malformed-id (404) · neg.no-internal-leak', 'PAY001.idempotency-conflict-rejected (409) — reused key, different payload (RA-044)']
+- **Evidence:** evidence/assurance/payments/cap-pay-001-db30ba00.json, tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs, docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-PAY-002 — Payment links
 
