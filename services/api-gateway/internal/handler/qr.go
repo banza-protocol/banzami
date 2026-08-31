@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -25,6 +26,55 @@ func NewQrHandler(svc service.QrService) *QrHandler {
 
 // POST /v1/qr/static
 // Body: {"owner_id":"...","owner_type":"CONSUMER"|"MERCHANT","currency":"AOA"}
+
+// requireOwnQrOwner binds a MERCHANT-owned QR to the authenticated merchant.
+//
+// owner_id arrived from the request body and was trusted, so merchant B could
+// create a QR owned by merchant A — a payment instrument collecting into A's
+// wallet, with an amount and reference chosen by B, presented under A's identity.
+// Measured on the deployed Sandbox: B naming A returned 201 (RA-049). This is the
+// RA-047 shape on a third surface, and the third time a client-supplied ownership
+// identifier has been trusted on this API.
+//
+// A CONSUMER-owned QR is not a merchant resource and is left to its own authority
+// rather than being forced through a merchant check that does not apply to it.
+func requireOwnQrOwner(w http.ResponseWriter, r *http.Request, ownerType, ownerID string) bool {
+	if !strings.EqualFold(ownerType, "MERCHANT") {
+		return true
+	}
+	p, ok := middleware.GetPrincipal(r.Context())
+	if !ok || p.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "merchant authentication required")
+		return false
+	}
+	if ownerID != p.MerchantID {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"a QR code may only be created for the authenticated merchant")
+		return false
+	}
+	return true
+}
+
+// respondQrCoreError keeps a deliberate core rejection a client error instead of
+// reporting it as a server fault. The QR surface mapped every failure to 500, so
+// an unsupported currency, an invalid owner_type and a malformed payload all came
+// back as "the server broke" (RA-050) — the RA-043 class on this handler.
+func respondQrCoreError(w http.ResponseWriter, r *http.Request, err error, fallback string) {
+	if ce, ok := service.AsCoreError(err); ok && ce.IsClientError() {
+		code := ce.Code
+		if code == "" {
+			code = "INVALID_REQUEST"
+		}
+		msg := ce.Message
+		if msg == "" {
+			msg = fallback
+		}
+		apierror.Respond(w, r, ce.Status, code, msg)
+		return
+	}
+	apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", fallback)
+}
+
 func (h *QrHandler) CreateStatic(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		OwnerID     string `json:"owner_id"`
@@ -48,6 +98,9 @@ func (h *QrHandler) CreateStatic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !requireOwnQrOwner(w, r, body.OwnerType, body.OwnerID) {
+		return
+	}
 	qrResp, err := h.svc.CreateStatic(r.Context(), service.CreateStaticQrRequest{
 		OwnerID:     body.OwnerID,
 		OwnerType:   body.OwnerType,
@@ -55,7 +108,7 @@ func (h *QrHandler) CreateStatic(w http.ResponseWriter, r *http.Request) {
 		AmountMinor: body.AmountMinor,
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not create QR code")
+		respondQrCoreError(w, r, err, "could not create QR code")
 		return
 	}
 	respond(w, http.StatusCreated, qrResp)
@@ -98,6 +151,9 @@ func (h *QrHandler) CreateDynamic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !requireOwnQrOwner(w, r, body.OwnerType, body.OwnerID) {
+		return
+	}
 	qrResp, err := h.svc.CreateDynamic(r.Context(), service.CreateDynamicQrRequest{
 		OwnerID:         body.OwnerID,
 		OwnerType:       body.OwnerType,
@@ -108,7 +164,7 @@ func (h *QrHandler) CreateDynamic(w http.ResponseWriter, r *http.Request) {
 		WalletAccountID: body.WalletAccountID,
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not create QR code")
+		respondQrCoreError(w, r, err, "could not create QR code")
 		return
 	}
 	respond(w, http.StatusCreated, qrResp)
@@ -177,7 +233,7 @@ func (h *QrHandler) Decode(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PAYLOAD", err.Error())
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not decode payload")
+		respondQrCoreError(w, r, err, "could not decode payload")
 		return
 	}
 	respond(w, http.StatusOK, parsed)
