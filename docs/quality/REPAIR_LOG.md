@@ -12,6 +12,60 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-038 — Migration ledger records a schema that does not exist (Stage E0.1)
+
+- **Severity:** HIGH (the canonical migration record is wrong, and the tooling
+  cannot self-heal)
+- **Environment:** sandbox `banzami_staging`
+- **Finding:** `_sqlx_migrations` records version 88 ("account identity") as
+  `success = true`, but none of the four tables that migration creates exist —
+  `identity_users`, `identity_otp_codes`, `identity_sessions`, `audit_events`.
+  Only the empty `account_identity` schema is present.
+- **Why it is worse than ordinary drift:** because 88 is marked applied,
+  `sandbox-migration plan` reports nothing pending and will never re-run it, so
+  the tables cannot appear through the canonical path. Every migration check in
+  this repository reports the database as current — 97 of 97 applied at version
+  100, zero failures — and it is not. This is the same record-versus-reality
+  failure this programme has hit repeatedly, now in the schema ledger, which is
+  the layer every other check trusts.
+- **Impact:** the entire Developer Console identity product (accounts, OTP,
+  sessions, audit) has no storage in Sandbox, so `POST /auth/request-otp` fails
+  closed with 503 and the operator fixture-key path fails for the same reason.
+  Not only a testing obstacle: developer onboarding advertised to external
+  integrators cannot work.
+- **Detection:** structured diagnostics added to the OTP failure path named
+  `account identity unavailable` within minutes of deployment; the pepper, Redis
+  and database were each eliminated by measurement, leaving persistence.
+- **Remediation:** NOT applied here. The options are editing `_sqlx_migrations`
+  to force a re-run or hand-applying DDL; fabricating migration records and
+  manual schema mutation are both forbidden by the governing brief, and this is a
+  data-layer repair on a shared environment. Migration 0088 uses
+  `CREATE TABLE IF NOT EXISTS` throughout, so re-application is idempotent once
+  authorised.
+- **Disposition:** **open** — requires an explicit authorised migration action.
+
+---
+
+## RA-039 — Client-caused check violation answered as 500 (Stage E0.1)
+
+- **Severity:** LOW (wrong status code; no data or security impact)
+- **Environment:** `POST /v1/merchant/applications`
+- **Finding:** an unrecognised `business_account_type` violates
+  `merchant_applications_business_account_type_check` (SQLSTATE 23514) and is
+  mapped to `INTERNAL_ERROR` 500. The value is client-supplied and the allowed set
+  is known (MERCHANT, APPLICATION, PLATFORM, NGO, MARKETPLACE, DELIVERY, OTHER),
+  so the correct answer is the `VALIDATION_ERROR` 400 the handler already returns
+  for other invalid input. A caller sending a wrong enum is told the server broke.
+- **Cost, measured rather than assumed:** every onboarding probe across Stage E
+  and Stage E0 sent `business_account_type: "COMPANY"`, a value this product does
+  not define. The resulting 500 was reported as a deployment blocker in two
+  assurance stages. The flow was never broken; the payload was mine, and the
+  status code made a client error look like a server fault.
+- **Disposition:** open — map 23514 on this constraint to the existing 400
+  contract.
+
+---
+
 ## RA-035 — SE-001 withdrawn: secrets were provisioned all along (Stage E0)
 
 - **Severity:** n/a — this is the retraction of a finding, not a defect
