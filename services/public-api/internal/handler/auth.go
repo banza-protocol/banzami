@@ -77,7 +77,12 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	_, _ = h.core.GetOrCreateWallet(r.Context(), consumer.ID, "AOA")
 
 	// Sandbox-only: grant 10,000 Kz test balance so testers can transact immediately.
-	if h.cfg.Environment == "SANDBOX" {
+	//
+	// Case-insensitive for the same reason as the sandbox utilities (RA-051): the
+	// deployment sets ENVIRONMENT=sandbox, so an exact match against "SANDBOX"
+	// never fired and every consumer registered in the Sandbox started at zero —
+	// silently, because a skipped grant looks identical to a grant of nothing.
+	if isSandboxEnvironment(h.cfg.Environment) {
 		_, _ = h.core.SandboxCreditConsumer(r.Context(), consumer.ID, 1_000_000, "AOA")
 	}
 
