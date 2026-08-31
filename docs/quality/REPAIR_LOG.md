@@ -109,7 +109,86 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
-## RA-053 — QR payer identity is not bound to the caller (UNVERIFIED, Stage E1.3)
+## RA-054 — Merchant-JWT routes accepting identity fields in the body (inventory, Stage E1.3A)
+
+- **Severity:** MEDIUM as an inventory; each unverified route is a candidate defect
+- **Context:** four confirmed occurrences of one pattern — SEC-015 (arbitrary
+  transfer sender), RA-047 (payment links), RA-049 (QR owner), RA-053 (QR payer).
+  A focused sweep of merchant-JWT handlers for client-supplied identity fields:
+
+  | Handler | Fields in body | Status |
+  |---|---|---|
+  | `payment_links.go` | merchant_id, wallet_id | **bound** (RA-047) |
+  | `qr.go` | owner_id, wallet_account_id | **bound** (RA-049); payer route removed (RA-053) |
+  | `payment_sessions.go` | wallet_account_id | **verified** — core refuses a foreign wallet account (403), proven by CAP-PAY-001 |
+  | `payouts.go` | wallet_id | **NOT VERIFIED** — money movement |
+  | `transactions.go` | wallet_id | **NOT VERIFIED** — money movement |
+  | `wallet_accounts.go` | wallet_id | **NOT VERIFIED** |
+  | `consumer_wallets.go` | consumer_id | **NOT VERIFIED** |
+  | `disputes.go` | consumer_id | **NOT VERIFIED** |
+
+- **Deliberately not claimed:** the five unverified rows are NOT asserted to be
+  defective. Each was found by grep, and every confirmed instance so far needed two
+  real merchants to settle. They are recorded so the pattern is tracked rather than
+  rediscovered one capability at a time.
+- **Disposition:** open — verify each before its capability is assured. `payouts`
+  and `transactions` move money and should come first.
+
+---
+
+## RA-055 — Environment mode is decided by raw string comparison in 14 places (Stage E1.3A)
+
+- **Severity:** MEDIUM (two live functional defects already traced to it)
+- **Finding:** environment behaviour is decided by ad-hoc string comparison across
+  services, with at least four different conventions: `!= "SANDBOX"`,
+  `== "sandbox" || == "SANDBOX"`, `!= "sandbox" && != "live"`, and
+  `== "production"`. Deployments set `ENVIRONMENT=sandbox`.
+- **Two live consequences already found and fixed:** Sandbox wallet funding was
+  refused inside the Sandbox (RA-051), and the registration test-balance grant
+  never fired, so every Sandbox consumer registered at zero — silently, because a
+  skipped grant is indistinguishable from a grant of nothing.
+- **Remaining sites** (unfixed, exact-match against `"SANDBOX"` while deployments
+  send `sandbox`): admin-api `merchant_setup.go`, gateway `merchant_onboarding.go`,
+  gateway `sandbox.go`, `developer_auth.go`, `core_client.go` (×2),
+  `merchant_applications.go`, `merchant_application_admin.go`. Some compare a
+  request/response field rather than deployment config and may be correct; each
+  needs checking against what it actually reads.
+- **Not done here:** a single canonical typed environment with fail-closed parsing,
+  which is the real fix. What was done is the audit and the two functional
+  repairs. Scattering `EqualFold` further would spread the pattern rather than
+  close it.
+- **Disposition:** open.
+
+---
+
+## RA-053 — CONFIRMED and CLOSED. A merchant JWT was not authority to debit a consumer (Stage E1.3 → E1.3A)
+
+> **Confirmed 2026-08-31, and no longer undetermined.** The authority question had
+> a documented answer: the Flutter SDK's `ConsumerPublicClient` states
+> *"[payer] is the authenticated consumer's @banza handle"* and targets the
+> consumer surface — which has no such route. The only implementation sat in the
+> gateway behind `RequireMerchant`, took `payer` as free text, and neither layer
+> proved the caller could spend that consumer's money. The QR payload does not
+> close the gap: core makes the QR owner the RECIPIENT, so possessing it says
+> nothing about the payer's consent.
+>
+> Exploitation was blocked only by `KYC_REQUIRED`, which is an ELIGIBILITY
+> control. It answers whether a customer may transact at all, never whether this
+> caller may spend that customer's money — and using the first as evidence for the
+> second is how the gap survived a whole stage as "undetermined".
+>
+> **Closed by removing the route from the merchant surface**, following SEC-015,
+> where the same shape was resolved by withdrawing a wrongly-exposed merchant
+> surface rather than inventing a `merchant_id` on the financial model. Inventing
+> a consent capability to justify this endpoint would have been the same mistake:
+> the protocol defines no such delegation. Guarded by a route-table assertion, not
+> a status check. Verified on the deployed Sandbox: the arbitrary-payer call is
+> unreachable and the victim's balance is unchanged.
+>
+> Consequence: QR execution has no correct surface until the consumer-side route
+> is implemented per the SDK contract. CAP-PAY-003 stays HOLD for that reason.
+
+## RA-053 (original) — QR payer identity is not bound to the caller (UNVERIFIED, Stage E1.3)
 
 - **Severity:** UNDETERMINED — recorded as a concern requiring verification, not a
   confirmed defect
