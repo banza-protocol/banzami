@@ -3,8 +3,11 @@ package middleware
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,6 +16,9 @@ import (
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 )
+
+// maxIdempotentBody bounds the request body buffered for fingerprinting.
+const maxIdempotentBody = 1 << 20
 
 const (
 	idempotencyKeyHeader = "Idempotency-Key"
@@ -23,7 +29,9 @@ const (
 type cachedResponse struct {
 	Status      int    `json:"status"`
 	Body        string `json:"body"`
-	ContentType string `json:"content_type"`
+	ContentType string `json:"content_type"` // Fingerprint of the request that produced this response. Empty on entries
+	// written before RA-044; those replay as before rather than failing a rollout.
+	Fingerprint string `json:"fingerprint,omitempty"`
 }
 
 // Idempotency returns middleware that replays cached HTTP responses for requests
@@ -61,8 +69,28 @@ func Idempotency(rdb *redis.Client) func(http.Handler) http.Handler {
 			cacheKey := idempotencyCacheKey(scope, r.Method, r.URL.Path, idemKey)
 			lockKey := "lock:" + cacheKey
 
+			// Fingerprint the request so a reused key can be checked against the
+			// operation it originally identified. Without this the cached response
+			// was replayed for ANY payload, so reusing a key with a different
+			// amount returned the original session with 201 and the caller believed
+			// the new amount had been accepted (RA-044). An idempotency key
+			// identifies one logical request, not whatever request reuses the
+			// string.
+			bodyBytes, readErr := io.ReadAll(io.LimitReader(r.Body, maxIdempotentBody))
+			if readErr != nil {
+				apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "could not read request body")
+				return
+			}
+			_ = r.Body.Close()
+			r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+			fingerprint := requestFingerprint(bodyBytes)
+
 			// Fast path: replay a previously cached response without acquiring the lock.
-			if replayed := tryReplay(r.Context(), rdb, cacheKey, w); replayed {
+			if replayed, conflict := tryReplay(r.Context(), rdb, cacheKey, w, fingerprint); conflict {
+				apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED",
+					"this Idempotency-Key was already used for a different request")
+				return
+			} else if replayed {
 				return
 			}
 
@@ -82,7 +110,11 @@ func Idempotency(rdb *redis.Client) func(http.Handler) http.Handler {
 			defer releaseIdempotencyLock(r.Context(), rdb, lockKey)
 
 			// Re-check after acquiring the lock: another goroutine may have just written the cache.
-			if replayed := tryReplay(r.Context(), rdb, cacheKey, w); replayed {
+			if replayed, conflict := tryReplay(r.Context(), rdb, cacheKey, w, fingerprint); conflict {
+				apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED",
+					"this Idempotency-Key was already used for a different request")
+				return
+			} else if replayed {
 				return
 			}
 
@@ -95,7 +127,7 @@ func Idempotency(rdb *redis.Client) func(http.Handler) http.Handler {
 			next.ServeHTTP(rec, r)
 
 			if rec.status < 500 {
-				storeIdempotencyResponse(r.Context(), rdb, cacheKey, rec)
+				storeIdempotencyResponse(r.Context(), rdb, cacheKey, rec, fingerprint)
 			}
 		})
 	}
@@ -105,29 +137,96 @@ func idempotencyCacheKey(merchantID, method, path, idemKey string) string {
 	return fmt.Sprintf("idem:%s:%s:%s:%s", merchantID, method, path, idemKey)
 }
 
-func tryReplay(ctx context.Context, rdb *redis.Client, key string, w http.ResponseWriter) bool {
+// requestFingerprint canonicalises the body so that formatting noise — key order,
+// whitespace, an explicitly empty field — does not read as a different request,
+// while any change to a value does.
+//
+// Known limit, stated rather than hidden: this is transport-level canonicalisation.
+// It cannot know an endpoint's SEMANTIC defaults, so omitting a field and sending
+// that field's default value explicitly fingerprint differently and will conflict.
+// That direction is the safe one — a false conflict refuses the request, where a
+// missed conflict would silently return the wrong resource — but it is a real
+// limitation, not an accident.
+func requestFingerprint(body []byte) string {
+	if len(body) == 0 {
+		return "sha256:empty"
+	}
+	var v any
+	if err := json.Unmarshal(body, &v); err != nil {
+		// Not JSON: hash the bytes as-is rather than guessing at structure.
+		sum := sha256.Sum256(body)
+		return "sha256:" + hex.EncodeToString(sum[:])
+	}
+	canonical, err := json.Marshal(canonicaliseJSON(v))
+	if err != nil {
+		sum := sha256.Sum256(body)
+		return "sha256:" + hex.EncodeToString(sum[:])
+	}
+	sum := sha256.Sum256(canonical)
+	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+// canonicaliseJSON drops null and empty-string members so an explicitly-empty
+// optional field is equivalent to omitting it. Go's encoding/json already
+// marshals object keys in sorted order, which handles key ordering.
+func canonicaliseJSON(v any) any {
+	switch t := v.(type) {
+	case map[string]any:
+		out := make(map[string]any, len(t))
+		for k, val := range t {
+			if val == nil {
+				continue
+			}
+			if s, ok := val.(string); ok && s == "" {
+				continue
+			}
+			out[k] = canonicaliseJSON(val)
+		}
+		return out
+	case []any:
+		out := make([]any, 0, len(t))
+		for _, val := range t {
+			out = append(out, canonicaliseJSON(val))
+		}
+		return out
+	default:
+		return v
+	}
+}
+
+// tryReplay returns (replayed, conflict). A cached entry whose fingerprint does
+// not match the incoming request is a conflict, never a replay.
+func tryReplay(ctx context.Context, rdb *redis.Client, key string, w http.ResponseWriter, fingerprint string) (bool, bool) {
 	data, err := rdb.Get(ctx, key).Bytes()
 	if err != nil {
-		return false
+		return false, false
 	}
 
 	var cached cachedResponse
 	if err := json.Unmarshal(data, &cached); err != nil {
-		return false
+		return false, false
+	}
+
+	// Entries written before fingerprinting existed carry none; replaying them is
+	// the previous behaviour and is preferable to rejecting in-flight keys during
+	// a rollout.
+	if cached.Fingerprint != "" && cached.Fingerprint != fingerprint {
+		return false, true
 	}
 
 	w.Header().Set("Content-Type", cached.ContentType)
 	w.Header().Set("Idempotency-Replayed", "true")
 	w.WriteHeader(cached.Status)
 	_, _ = w.Write([]byte(cached.Body))
-	return true
+	return true, false
 }
 
-func storeIdempotencyResponse(ctx context.Context, rdb *redis.Client, key string, rec *idempotencyRecorder) {
+func storeIdempotencyResponse(ctx context.Context, rdb *redis.Client, key string, rec *idempotencyRecorder, fingerprint string) {
 	payload, err := json.Marshal(cachedResponse{
 		Status:      rec.status,
 		Body:        rec.buf.String(),
 		ContentType: rec.Header().Get("Content-Type"),
+		Fingerprint: fingerprint,
 	})
 	if err != nil {
 		return

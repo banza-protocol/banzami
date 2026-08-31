@@ -1266,27 +1266,29 @@ func (c *CoreApiClient) delete(ctx context.Context, path string) error {
 func (c *CoreApiClient) do(req *http.Request, out any) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("core-api transport: %w", err)
+		return &TransportError{Err: err}
 	}
 	defer resp.Body.Close()
 
 	raw, _ := io.ReadAll(resp.Body)
 
+	// ErrNotFound is kept as the sentinel for 404 because ~38 call sites already
+	// branch on it; a CoreError is returned for every other non-2xx so handlers
+	// can distinguish a deliberate rejection from a failure (RA-043).
 	if resp.StatusCode == http.StatusNotFound {
 		return ErrNotFound
 	}
-	if resp.StatusCode == http.StatusUnprocessableEntity {
-		var e coreErrBody
-		_ = json.Unmarshal(raw, &e)
-		return fmt.Errorf("core-api 422 %s: %s", e.Error.Code, e.Error.Message)
-	}
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("core-api error %d: %s", resp.StatusCode, string(raw))
+		var e coreErrBody
+		_ = json.Unmarshal(raw, &e) // absent/!JSON body simply yields empty fields
+		return &CoreError{Status: resp.StatusCode, Code: e.Error.Code, Message: e.Error.Message}
 	}
 
 	if out != nil && len(raw) > 0 {
 		if err := json.Unmarshal(raw, out); err != nil {
-			return fmt.Errorf("core-api decode: %w", err)
+			// An undecodable 2xx is a transport-class failure: core never gave us a
+			// usable answer, and the caller learns nothing about its own request.
+			return &TransportError{Err: fmt.Errorf("decode: %w", err)}
 		}
 	}
 	return nil

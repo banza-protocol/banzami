@@ -12,21 +12,21 @@ import (
 // account id), and the interface artifacts (link slug + QR payload). The gateway
 // builds the public link URL + deep link from these. No internal ledger id leaks.
 type PaymentSession struct {
-	SessionID        string  `json:"session_id"`
-	MerchantID       string  `json:"merchant_id"`
-	WalletID         string  `json:"wallet_id"`
-	WalletAccountID  string  `json:"wallet_account_id"`
-	Currency         string  `json:"currency"`
-	AmountMinor      *int64  `json:"amount_minor"`
-	Purpose          string  `json:"purpose"`
-	ReferenceType    *string `json:"reference_type"`
-	ReferenceID      *string `json:"reference_id"`
-	Status           string  `json:"status"`
-	PaymentLinkSlug  *string `json:"payment_link_slug"`
-	QrCodeID         *string `json:"qr_code_id"`
-	QrPayload        *string `json:"qr_payload"`
-	ExpiresAt        *string `json:"expires_at"`
-	CreatedAt        string  `json:"created_at"`
+	SessionID       string  `json:"session_id"`
+	MerchantID      string  `json:"merchant_id"`
+	WalletID        string  `json:"wallet_id"`
+	WalletAccountID string  `json:"wallet_account_id"`
+	Currency        string  `json:"currency"`
+	AmountMinor     *int64  `json:"amount_minor"`
+	Purpose         string  `json:"purpose"`
+	ReferenceType   *string `json:"reference_type"`
+	ReferenceID     *string `json:"reference_id"`
+	Status          string  `json:"status"`
+	PaymentLinkSlug *string `json:"payment_link_slug"`
+	QrCodeID        *string `json:"qr_code_id"`
+	QrPayload       *string `json:"qr_payload"`
+	ExpiresAt       *string `json:"expires_at"`
+	CreatedAt       string  `json:"created_at"`
 	// Merchant-safe refundable-source discovery (operator extension). Non-nil
 	// only after the session's payment has settled; carries the PUBLIC typed
 	// source the Refunds endpoint accepts. Never contains a Core TRANSACTION
@@ -75,7 +75,14 @@ func (s *CoreApiPaymentSessionService) Create(ctx context.Context, in CreatePaym
 	body := map[string]any{
 		"merchant_id":       in.MerchantID,
 		"wallet_account_id": in.WalletAccountID,
-		"purpose":           in.Purpose,
+	}
+	// Purpose is OPTIONAL: core defaults an ABSENT purpose to GENERIC, but
+	// rejects an empty string as an invalid purpose. Sending the field
+	// unconditionally turned "omitted" into "" and made the simplest valid
+	// request the one that could not succeed (RA-045). Omitted here exactly as
+	// reference_type, reference_id, currency and description already are.
+	if in.Purpose != "" {
+		body["purpose"] = in.Purpose
 	}
 	if in.ReferenceType != "" {
 		body["reference_type"] = in.ReferenceType

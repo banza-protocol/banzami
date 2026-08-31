@@ -173,7 +173,11 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Metadata:        body.Metadata,
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not create payment session")
+		// A deliberate rejection from core keeps its status and its safe reason:
+		// an invalid amount is the caller's to fix, and a wallet account owned by
+		// another merchant is a refusal, not an outage. Only core 5xx and genuine
+		// transport failures remain 502 (RA-043).
+		respondCoreError(w, r, err, "could not create payment session")
 		return
 	}
 	respond(w, http.StatusCreated, h.safeDTO(r, sess))
@@ -189,7 +193,7 @@ func (h *PaymentSessionHandler) List(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	sessions, err := h.sessions.List(r.Context(), merchantID, status, limit)
 	if err != nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not list payment sessions")
+		respondCoreError(w, r, err, "could not list payment sessions")
 		return
 	}
 	out := make([]map[string]any, 0, len(sessions))
