@@ -30,12 +30,26 @@ Both concerns require fast, per-request state lookups that must not block on the
 
 ### Idempotency flow
 
+> **Corrected 2026-08-31.** The flow below originally showed key-only replay:
+> a cache hit returned the stored response for *any* request body. That is the
+> behaviour BANZA ADR-022 explicitly rejects — *"Return the original response for
+> any key reuse, ignoring the body. Rejected: it converts a caller error into a
+> silent success."* The operator was under-implementing a protocol invariant, and
+> the gap was found by the first deployed CAP-PAY-001 E2E (RA-044): reusing a key
+> with a different amount returned the original session with 201, so the caller
+> believed their new amount had been accepted.
+>
+> The protocol rule is: same key + same request → replay the original result;
+> same key + **different request body** → conflict, never a silent replay. The
+> gateway now fingerprints the request and answers **409** on a mismatch.
+
 ```
 Request arrives with Idempotency-Key: <key>
   │
   ├─ Redis GET "idem:<merchant_id>:<key>"
-  │    HIT  → return cached response (replay)
-  │    MISS → continue
+  │    HIT + fingerprint matches    → return cached response (replay)
+  │    HIT + fingerprint differs    → 409 IDEMPOTENCY_KEY_REUSED (BANZA ADR-022)
+  │    MISS                         → continue
   │
   ▼
   Forward to core-api → get response
@@ -121,3 +135,50 @@ The TTL must cover the merchant's entire retry window — the period during whic
 | Fixed window rate limiting | Burst problem at window boundaries |
 | Fail closed on Redis degradation | Redis outage would stop all payment processing |
 | Token bucket algorithm | More complex to implement in Redis; sliding window sufficient |
+
+
+---
+
+## Request equivalence — what counts as "the same request" (2026-08-31)
+
+BANZA ADR-022 mandates conflict-on-different-body but states the invariant as
+*observable behaviour*, without prescribing how equivalence is computed. This
+operator computes it **structurally**, over the canonicalised request body:
+
+| Difference | Treated as | Rationale |
+|---|---|---|
+| Key order, whitespace | **same** | Serialiser variation is not caller intent |
+| Optional field explicitly `null` or `""` vs omitted | **same** | Both express "not supplied" |
+| Any value change, at any depth | **different** | This is the case ADR-022 exists for |
+| Field omitted vs sent with its default value | **different** | See below |
+
+That last row is deliberate and worth stating plainly, because it is the one that
+looks like a false conflict.
+
+`purpose` defaults to `GENERIC` when absent, but **that default is an internal
+implementation detail** — it lives only in the core handler. It is not declared in
+the BANZA payment-session schema (where `purpose` is nullable with no `default`),
+not in the protocol OpenAPI, and not in the public developer documentation. No
+published contract tells a caller that omitting `purpose` and sending `"GENERIC"`
+are the same request, so treating them as the same request would be the operator
+inventing an equivalence its own API never promised.
+
+Two further reasons to keep it structural:
+
+- **Layering.** The fingerprint is computed in generic middleware, before any
+  handler has parsed or defaulted the body. Teaching that middleware each
+  endpoint's defaults would duplicate business rules in a second place, and the
+  two copies would drift.
+- **Failure direction.** A false conflict *refuses* a request the caller can
+  immediately retry with a fresh key. A missed conflict *returns the wrong
+  resource* and tells the caller a different operation succeeded — the exact harm
+  ADR-022 names. Where the two cannot both be avoided, erring toward refusal is
+  the safe asymmetry on a money surface.
+
+If a defaulted field should ever become part of the published contract, the
+correct fix is to declare the default in the schema and normalise **before**
+fingerprinting — not to special-case it in middleware.
+
+Verified against the deployed Sandbox: identical request, reordered keys, explicit
+`null` and explicit `""` all **replay**; omitted-vs-explicit-`GENERIC`, a changed
+amount and a changed wallet account all **conflict**.
