@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"os"
 	"strconv"
 )
@@ -133,7 +134,7 @@ func Load() (*Config, error) {
 	// Deploy-vs-release: only honoured in a sandbox environment; can NEVER
 	// activate in production/Live (fail-closed).
 	if os.Getenv("PAYMENT_CAPABILITY_RELEASED") == "true" &&
-		(cfg.Environment == "sandbox" || cfg.Environment == "SANDBOX") {
+		env.Parse(cfg.Environment).IsSandbox() {
 		cfg.PaymentCapabilityReleased = true
 	}
 	if v := os.Getenv("SESSION_TTL_HOURS"); v != "" {
@@ -188,3 +189,11 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) IsProduction() bool { return c.Environment == "production" }
+
+// IsDevelopment reports the local development topology.
+//
+// RA-055: "development" is deliberately NOT an environment in the canonical env
+// package — it is a deployment-topology word, not Sandbox or Live. Keeping it as
+// its own explicit predicate stops it being silently folded into the meaning of
+// "sandbox" the way it was in the fixtures gate.
+func (c *Config) IsDevelopment() bool { return c.Environment == "development" }

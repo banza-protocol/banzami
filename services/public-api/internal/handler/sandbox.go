@@ -2,8 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
@@ -35,8 +35,8 @@ type SandboxHandler struct {
 // match: a LIVE deployment sets a different word entirely, and it must keep
 // failing this check. developer-api already accepts both spellings; this brings
 // public-api into line rather than changing what "sandbox" means.
-func isSandboxEnvironment(env string) bool {
-	return strings.EqualFold(env, "SANDBOX")
+func isSandboxEnvironment(raw string) bool {
+	return env.Parse(raw).IsSandbox()
 }
 
 func NewSandboxHandler(core *service.CorePublicClient, environment string) *SandboxHandler {

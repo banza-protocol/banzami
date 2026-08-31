@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	banzamienv "github.com/banzami/banzami/services/common/env"
 	"time"
 
 	"github.com/google/uuid"
@@ -169,11 +170,11 @@ type KycService struct {
 // NewKycService builds the service. apiEnvironment is the public-api ENVIRONMENT
 // ("PRODUCTION" | "SANDBOX"); it is normalised to the DB enum ("LIVE"|"SANDBOX").
 func NewKycService(pool *pgxpool.Pool, storage kycstorage.KycEvidenceStorage, apiEnvironment string) *KycService {
-	env := "LIVE"
-	if apiEnvironment == "SANDBOX" {
-		env = "SANDBOX"
+	resolved := banzamienv.LiveName
+	if banzamienv.Parse(apiEnvironment).IsSandbox() {
+		resolved = banzamienv.SandboxName
 	}
-	return &KycService{pool: pool, storage: storage, environment: env}
+	return &KycService{pool: pool, storage: storage, environment: resolved}
 }
 
 // CreateOrResumeCase returns the consumer's active case (resume) or creates a

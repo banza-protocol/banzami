@@ -3,6 +3,7 @@ package notify
 import (
 	"context"
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -40,7 +41,7 @@ func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*F
 }
 
 func (s *FCMService) isSandbox() bool {
-	return s != nil && (s.environment == "sandbox" || s.environment == "SANDBOX")
+	return s != nil && env.Parse(s.environment).IsSandbox()
 }
 
 func (s *FCMService) topicForConsumer(consumerID string) string {
