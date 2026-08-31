@@ -218,7 +218,21 @@ cmd_deploy_one() {
   local run=(docker run -d --name "$cname" --security-opt "no-new-privileges:true" --network "${nets[0]}")
   [ "$name" = developer-api ] && run+=(--network-alias developer-api)
   local x; while IFS= read -r x; do [ -n "$x" ] && run+=(-v "$x"); done < <(docker inspect -f '{{range .HostConfig.Binds}}{{println .}}{{end}}' "$cname")
-  while IFS= read -r x; do [ -n "$x" ] && run+=(-e "$x"); done < <(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$cname")
+  # Clone the previous container's env EXCEPT anything the new image is the
+  # authority on. BANZAMI_BUILD_COMMIT is baked into each image by the build
+  # (ARG -> ENV); re-applying the previous container's value as an explicit -e
+  # shadows the new image's ENV, so the deployed build would report whichever
+  # commit happened to be running when the env was first cloned — and would keep
+  # reporting it through every future deploy.
+  #
+  # Caught by the runtime gate immediately after a deploy: the container was
+  # created from image :9c2d0f428fec, whose ENV says 9c2d0f428fec, while /readyz
+  # answered 4a924e764024. Build identity that silently freezes is worse than no
+  # build identity, because it looks like an answer.
+  while IFS= read -r x; do
+    case "$x" in BANZAMI_BUILD_COMMIT=*) continue ;; esac
+    [ -n "$x" ] && run+=(-e "$x")
+  done < <(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$cname")
   # reconstruct the file-only-secret entrypoint (secrets exported in-process, never -e)
   local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
   docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
