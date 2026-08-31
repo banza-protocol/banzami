@@ -33,6 +33,104 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-049 — A merchant could create a QR owned by another merchant (Stage E1.3)
+
+- **Severity:** HIGH (cross-tenant creation of a payment instrument)
+- **Environment:** `POST /v1/qr/dynamic` and `/v1/qr/static`, deployed Sandbox
+- **Finding:** `owner_id` arrived in the request body and was trusted. Merchant B
+  naming merchant A returned **201**: a live payment instrument collecting into
+  A's wallet, with an amount and reference chosen by B, presented under A's
+  identity.
+- **The pattern is now worth naming.** This is the third time a client-supplied
+  ownership identifier has been believed on this API — SEC-015 (merchant naming an
+  arbitrary transfer sender), RA-047 (payment links), and now QR. Each was found
+  the same way: reading the handler suggested it, and two real merchants proved it.
+- **Remediation:** a MERCHANT-owned QR must name the authenticated merchant (403
+  otherwise). A CONSUMER-owned QR is deliberately left to its own authority rather
+  than forced through a merchant check that does not apply to it.
+- **Verification:** deployed Sandbox — B naming A now **403**; the victim's QR is
+  unchanged after every attempt.
+- **Disposition:** fixed.
+
+---
+
+## RA-050 — QR surface reported client rejections as 500 (Stage E1.3)
+
+- **Severity:** LOW (wrong status; no data or security impact)
+- **Finding:** the QR handler mapped every failure to `INTERNAL_ERROR` 500, so an
+  unsupported currency, an invalid `owner_type` and a malformed payload were all
+  reported as server faults. The RA-043 class on a third handler.
+- **Remediation:** deliberate core rejections keep their status; genuine failures
+  stay 500. Verified on the deployed Sandbox: all three now **400**.
+- **Disposition:** fixed.
+
+---
+
+## RA-051 — Sandbox-only endpoints were disabled inside the Sandbox (Stage E1.3)
+
+- **Severity:** MEDIUM (blocked all payment assurance requiring a funded payer)
+- **Finding:** `POST /v1/sandbox/fund` answered *"403 SANDBOX_ONLY: this endpoint
+  is only available in sandbox mode"* — from the Sandbox. The deployment sets
+  `ENVIRONMENT=sandbox`; the gate demanded the exact string `"SANDBOX"`. It failed
+  on case alone. A consumer registering through the real public flow starts at zero
+  and had no authorised route to a balance.
+- **Second effect:** the same comparison drove the boot summary, so a service
+  running in the Sandbox logged *"LIVE mode — sandbox routes disabled, real rails
+  active"*. That line had been in every public-api startup log for weeks. Nothing
+  depended on it, but a payment service announcing live rails while in the Sandbox
+  is precisely the signal an operator should be able to trust — and it was read and
+  set aside during Stage E0.
+- **Remediation:** case-insensitive comparison, matching developer-api. Exact
+  equality after folding case, never prefix or substring: a LIVE deployment sets a
+  different word and must keep failing. Tests assert the safety half explicitly.
+- **Verification:** funding returns 200 and the boot log now says
+  `SANDBOX mode — fake funding enabled, no real rails`.
+- **Disposition:** fixed.
+
+---
+
+## RA-052 — No canonical route to a KYC-approved Sandbox consumer (Stage E1.3)
+
+- **Severity:** MEDIUM (blocks CAP-PAY-003 execution assurance; not a runtime defect)
+- **Finding:** QR payment execution requires the payer to pass the compliance gate,
+  which answers `422 KYC_REQUIRED`. No consumer can reach an approved state in the
+  Sandbox: a case is created (201, `WAITING_DOCUMENTS`), evidence upload returns
+  **503 STORAGE_NOT_CONFIGURED**, and submit therefore returns 409
+  EVIDENCE_INCOMPLETE. There is no sandbox auto-approval equivalent to the
+  merchant KYB path, and the admin surface is not served.
+- **Assessment:** the gate is behaving correctly — it is fail-closed on an
+  unverified payer, which is what it is for. The gap is the absence of an
+  authorised route to a payer it will accept. Manufacturing one (direct SQL, an
+  internal approval call, or weakening the gate) would remove the control that
+  protects a payer's money, so none was attempted.
+- **Consequence:** CAP-PAY-003 cannot be released. Money movement, ledger balance,
+  replay, concurrency and insufficient-funds behaviour are all unproven.
+- **Disposition:** open — requires a canonical Sandbox consumer KYC mechanism.
+
+---
+
+## RA-053 — QR payer identity is not bound to the caller (UNVERIFIED, Stage E1.3)
+
+- **Severity:** UNDETERMINED — recorded as a concern requiring verification, not a
+  confirmed defect
+- **Finding:** `POST /v1/qr/pay` accepts `payer` from the request body and passes
+  it through unbound; core resolves it as a handle to a wallet with no check that
+  the caller may spend from it. On the surface that is the SEC-015 shape: a
+  merchant-authenticated caller naming an arbitrary payer.
+- **Why it is unverified:** the attack was attempted on the deployed Sandbox — a
+  merchant created its own QR and named an unrelated funded consumer as payer. It
+  was refused, but by `422 KYC_REQUIRED` (a compliance gate on the payer), NOT by
+  an authorisation check. The victim was not debited. Whether a KYC-approved payer
+  would have been debited could not be established, because RA-052 makes such a
+  payer unobtainable.
+- **Why it is recorded anyway:** the only thing observed standing between a
+  merchant and an unrelated consumer's funds was a gate that is about identity
+  verification, not authority. If RA-052 is resolved, this must be the first thing
+  re-tested, before any CAP-PAY-003 promotion.
+- **Disposition:** open — MUST be resolved before CAP-PAY-003 is released.
+
+---
+
 ## RA-047 — Any merchant could read, create and CANCEL another merchant's payment links (Stage E1.2)
 
 - **Severity:** HIGH (cross-tenant destructive mutation on a payment surface)
