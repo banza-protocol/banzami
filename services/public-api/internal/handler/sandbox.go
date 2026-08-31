@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
@@ -22,6 +23,22 @@ type SandboxHandler struct {
 	fundLimiter *TransferRateLimiter
 }
 
+// isSandboxEnvironment compares the deployment environment case-insensitively.
+//
+// The deployment sets ENVIRONMENT=sandbox (lowercase); this gate demanded the
+// exact string "SANDBOX", so the Sandbox-only endpoints answered
+// "403 SANDBOX_ONLY: this endpoint is only available in sandbox mode" — inside
+// the Sandbox. Sandbox wallet funding was therefore unreachable, which blocks any
+// assurance that needs a funded payer.
+//
+// Deliberately exact equality after folding case, never a prefix or substring
+// match: a LIVE deployment sets a different word entirely, and it must keep
+// failing this check. developer-api already accepts both spellings; this brings
+// public-api into line rather than changing what "sandbox" means.
+func isSandboxEnvironment(env string) bool {
+	return strings.EqualFold(env, "SANDBOX")
+}
+
 func NewSandboxHandler(core *service.CorePublicClient, environment string) *SandboxHandler {
 	return &SandboxHandler{
 		core:        core,
@@ -31,7 +48,7 @@ func NewSandboxHandler(core *service.CorePublicClient, environment string) *Sand
 }
 
 func (h *SandboxHandler) requireSandbox(w http.ResponseWriter, r *http.Request) bool {
-	if h.environment != "SANDBOX" {
+	if !isSandboxEnvironment(h.environment) {
 		apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY",
 			"this endpoint is only available in sandbox mode")
 		return false
