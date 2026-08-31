@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/jackc/pgx/v5/pgconn"
 	"log/slog"
 	"net/http"
 	"time"
@@ -153,6 +155,32 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 	case errors.Is(err, service.ErrMerchantHandleTaken):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "this handle is no longer available")
 	case err != nil:
+		// The public response stays exactly as it was — a generic INTERNAL_ERROR
+		// with a request id, leaking no SQL, constraint name or column. The
+		// operator-side log is what changes: a 500 with no log line is not
+		// diagnosable from outside, and this one was reproduced from the public
+		// Internet for two stages before anyone could say which operation failed.
+		//
+		// Logged: the operation, the error class and the driver's error CODE where
+		// PostgreSQL supplies one. A SQLSTATE identifies the failure class
+		// (undefined_column, not_null_violation, foreign_key_violation …) without
+		// carrying row data. The raw message can quote submitted values, so it is
+		// deliberately not logged here — the code plus the constraint name is what
+		// distinguishes causes.
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			slog.ErrorContext(r.Context(), "merchant.application.submit_failed",
+				"stage", "persist",
+				"error_kind", "postgres",
+				"sqlstate", pgErr.Code,
+				"constraint", pgErr.ConstraintName,
+				"column", pgErr.ColumnName,
+				"table", pgErr.TableName)
+		} else {
+			slog.ErrorContext(r.Context(), "merchant.application.submit_failed",
+				"stage", "persist",
+				"error_kind", fmt.Sprintf("%T", err))
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not submit application")
 	default:
 		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", appID)
