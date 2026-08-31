@@ -133,16 +133,27 @@ capabilities:
     tests:
       unit: []
       integration: []
-      e2e_sandbox: []
-      negative_security: []
+      e2e_sandbox:
+        - 'PAY001.create · amount-exact · currency-preserved · identifier-present · interfaces-issued (deployed sandbox)'
+        - 'PAY001.read-own · no-ledger-movement (session is an intent, not a settlement)'
+        - 'PAY001.idempotent-replay · idempotency-actor-scoped · idempotency-concurrent-single-resource'
+        - 'PAY001.purpose-omitted-defaults · purpose-explicit-generic (RA-045)'
+      negative_security:
+        - 'PAY001.neg.unauthenticated · neg.bogus-credential (401)'
+        - 'PAY001.neg.cross-merchant-create (403) · neg.cross-merchant-read (404) — two independently provisioned merchants'
+        - 'PAY001.neg.zero-amount · neg.negative-amount · neg.unsupported-currency · neg.unknown-purpose (400)'
+        - 'PAY001.neg.unknown-session · neg.malformed-id (404) · neg.no-internal-leak'
+        - 'PAY001.idempotency-conflict-rejected (409) — reused key, different payload (RA-044)'
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence:
+      - evidence/assurance/payments/cap-pay-001-db30ba00.json
+      - tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs
       - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
       - docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
     # RT03: functions end-to-end for merchant-JWT holders (real core/ledger/proof),
     # but developer keys cannot reach payment routes — no Project→Merchant binding
     # (ADR-046 deferred it). BLOCKER: implement ADR-047 (per-project sandbox

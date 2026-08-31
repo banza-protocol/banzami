@@ -125,6 +125,55 @@ const leaked = [crossCreate, zero, badCurrency, malformed].filter((r) =>
   /sqlstate|constraint|postgres|pgx|panic|goroutine|select .* from/i.test(r.raw || ''));
 rec('PAY001.neg.no-internal-leak', leaked.length === 0, `${leaked.length} response(s) leaked internals`);
 
+// ── Purpose semantics (RA-045) ──────────────────────────────────────────────
+// Purpose is optional and core defaults an absent purpose to GENERIC. Omitting it
+// used to fail, because the gateway transmitted an empty string.
+const omitted = await req('POST', '/v1/business/payment-sessions', {
+  token: A.token,
+  body: { wallet_account_id: A.walletAccountId, amount_minor: AMOUNT, currency: 'AOA' },
+  idem: idemKey(runId, 'purpose-omitted'),
+});
+rec('PAY001.purpose-omitted-defaults', omitted.status === 201 && omitted.body?.purpose === 'GENERIC',
+  `HTTP ${omitted.status}, purpose=${omitted.body?.purpose}`);
+
+const explicitGeneric = await req('POST', '/v1/business/payment-sessions', {
+  token: A.token, body: { ...base }, idem: idemKey(runId, 'purpose-explicit'),
+});
+rec('PAY001.purpose-explicit-generic', explicitGeneric.status === 201, `HTTP ${explicitGeneric.status}`);
+
+const badPurpose = await req('POST', '/v1/business/payment-sessions', {
+  token: A.token, body: { ...base, purpose: 'NOT_A_PURPOSE' }, idem: idemKey(runId, 'purpose-bad'),
+});
+rec('PAY001.neg.unknown-purpose', badPurpose.status >= 400 && badPurpose.status < 500, `HTTP ${badPurpose.status}`);
+
+// ── Idempotency scoping and concurrency (RA-044) ────────────────────────────
+// The same RAW key used by a DIFFERENT merchant must be independent: keys are
+// scoped per principal, so B's key must not collide with A's.
+const sharedKey = idemKey(runId, 'shared-raw-key');
+const aKeyed = await req('POST', '/v1/business/payment-sessions', {
+  token: A.token, body: { ...base }, idem: sharedKey,
+});
+const bKeyed = await req('POST', '/v1/business/payment-sessions', {
+  token: B.token,
+  body: { wallet_account_id: B.walletAccountId, amount_minor: AMOUNT, currency: 'AOA', purpose: PURPOSE },
+  idem: sharedKey,
+});
+rec('PAY001.idempotency-actor-scoped',
+  aKeyed.status === 201 && bKeyed.status === 201 && aKeyed.body?.session_id !== bKeyed.body?.session_id,
+  `A ${aKeyed.status} / B ${bKeyed.status}, distinct sessions: ${aKeyed.body?.session_id !== bKeyed.body?.session_id}`);
+
+// Concurrent identical requests under one key must yield exactly one session.
+const concurrentKey = idemKey(runId, 'concurrent');
+const concurrent = await Promise.all(
+  [0, 1, 2, 3].map(() => req('POST', '/v1/business/payment-sessions', {
+    token: A.token, body: { ...base }, idem: concurrentKey,
+  })),
+);
+const createdIds = new Set(concurrent.filter((r) => r.status === 201).map((r) => r.body?.session_id));
+const inFlightRejected = concurrent.filter((r) => r.status === 409).length;
+rec('PAY001.idempotency-concurrent-single-resource', createdIds.size <= 1,
+  `${createdIds.size} distinct session(s) from 4 concurrent identical requests, ${inFlightRejected} serialized`);
+
 // ── Evidence ────────────────────────────────────────────────────────────────
 const failed = results.filter((r) => !r.ok);
 const evidence = {
