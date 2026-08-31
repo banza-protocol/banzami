@@ -2,6 +2,8 @@ package accountidentity
 
 import (
 	"encoding/json"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -10,7 +12,8 @@ import (
 )
 
 // Handlers exposes the Account Identity HTTP surface:
-//   POST /auth/request-otp · POST /auth/verify · POST /auth/logout · GET /auth/me
+//
+//	POST /auth/request-otp · POST /auth/verify · POST /auth/logout · GET /auth/me
 type Handlers struct {
 	svc           *Service
 	consoleOrigin string
@@ -100,6 +103,23 @@ func (h *Handlers) RequestOTP(w http.ResponseWriter, r *http.Request) {
 	case ErrRateLimited, ErrCooldown:
 		httpx.Error(w, http.StatusTooManyRequests, "RATE_LIMITED", "too many requests, try again later")
 	default:
+		// The public response is unchanged — a uniform UNAVAILABLE that reveals
+		// nothing about accounts, providers or infrastructure. What changes is
+		// that the operator can now tell WHY.
+		//
+		// This endpoint returned 503 with no log line at all, from the public
+		// Internet, across two assurance stages. A failure that leaves no trace is
+		// indistinguishable from a capability that is switched off, and it cost
+		// both stages their credential path. The error's type and message are
+		// logged; the email is included because this endpoint already receives it
+		// and it is the only way to correlate a report with a request. The OTP
+		// itself, the pepper and the session secret never pass through here.
+		slog.ErrorContext(r.Context(), "auth.request_otp.failed",
+			"stage", "request_otp",
+			"error_kind", fmt.Sprintf("%T", err),
+			"error", err.Error(),
+			"email", body.Email,
+			"request_id", reqID)
 		httpx.Error(w, http.StatusServiceUnavailable, "UNAVAILABLE", "service unavailable")
 	}
 }
