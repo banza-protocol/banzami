@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"os"
@@ -105,13 +106,17 @@ func main() {
 	defer stop()
 
 	// Boot summary — makes environment visible in every deployment log.
-	sandboxRoutes := cfg.Environment == "SANDBOX"
+	sandboxRoutes := strings.EqualFold(cfg.Environment, "SANDBOX")
 	slog.Info("boot: environment",
 		"environment", cfg.Environment,
 		"sandbox_routes", sandboxRoutes,
 		"core_api_url", cfg.CoreAPIURL,
 	)
-	if cfg.Environment == "SANDBOX" {
+	// Case-insensitive: the deployment sets ENVIRONMENT=sandbox, and an exact
+	// match against "SANDBOX" made a Sandbox deployment log "LIVE mode — real
+	// rails active". A service announcing live rails while running in the Sandbox
+	// is a dangerous operational signal even when nothing else depends on it.
+	if sandboxRoutes {
 		slog.Warn("SANDBOX mode — fake funding enabled, no real rails, no real settlement")
 	} else {
 		slog.Info("LIVE mode — sandbox routes disabled, real rails active")
