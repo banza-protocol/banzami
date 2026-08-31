@@ -1,0 +1,144 @@
+{
+  "capability": "CAP-PAY-001",
+  "suite": "cap-pay-001-sandbox-e2e",
+  "run_id": "0e19fd8c-da6f-4f57-b513-dc43d328cf8c",
+  "timestamp": "2026-08-31T15:43:39.970Z",
+  "environment": "sandbox",
+  "expected_commit": null,
+  "deployed_build": "4430e62db9c2",
+  "public_endpoint": "https://sandbox-api.banzami.com",
+  "surface": "/v1/business/payment-sessions",
+  "merchants": {
+    "a": "e2ea17881910156747351",
+    "b": "e2eb17881910171181922"
+  },
+  "session_id": "8e08c0d3-09ca-4c51-9e73-9884e29d014c",
+  "amount_minor": 150000,
+  "currency": "AOA",
+  "ledger_effect": "none-expected (session is an intent, not a settlement)",
+  "results": [
+    {
+      "id": "PAY001.create",
+      "ok": true,
+      "note": "HTTP 201"
+    },
+    {
+      "id": "PAY001.amount-exact",
+      "ok": true,
+      "note": "150000 minor"
+    },
+    {
+      "id": "PAY001.currency-preserved",
+      "ok": true,
+      "note": "AOA"
+    },
+    {
+      "id": "PAY001.identifier-present",
+      "ok": true,
+      "note": "session_id present"
+    },
+    {
+      "id": "PAY001.interfaces-issued",
+      "ok": true,
+      "note": "3 interface(s)"
+    },
+    {
+      "id": "PAY001.read-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY001.no-ledger-movement",
+      "ok": true,
+      "note": "balance 0 minor — session creation is an intent, not a settlement"
+    },
+    {
+      "id": "PAY001.idempotent-replay",
+      "ok": true,
+      "note": "HTTP 201, same session_id: true"
+    },
+    {
+      "id": "PAY001.idempotency-conflict-rejected",
+      "ok": true,
+      "note": "HTTP 409 for a reused key with a different payload"
+    },
+    {
+      "id": "PAY001.neg.unauthenticated",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY001.neg.bogus-credential",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY001.neg.cross-merchant-create",
+      "ok": true,
+      "note": "HTTP 403 for B creating against A's wallet account"
+    },
+    {
+      "id": "PAY001.neg.cross-merchant-read",
+      "ok": true,
+      "note": "HTTP 404 for B reading A's session"
+    },
+    {
+      "id": "PAY001.neg.zero-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY001.neg.negative-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY001.neg.unsupported-currency",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY001.neg.unknown-session",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY001.neg.malformed-id",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY001.neg.no-internal-leak",
+      "ok": true,
+      "note": "0 response(s) leaked internals"
+    },
+    {
+      "id": "PAY001.purpose-omitted-defaults",
+      "ok": true,
+      "note": "HTTP 201, purpose=GENERIC"
+    },
+    {
+      "id": "PAY001.purpose-explicit-generic",
+      "ok": true,
+      "note": "HTTP 201"
+    },
+    {
+      "id": "PAY001.neg.unknown-purpose",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY001.idempotency-actor-scoped",
+      "ok": true,
+      "note": "A 201 / B 201, distinct sessions: true"
+    },
+    {
+      "id": "PAY001.idempotency-concurrent-single-resource",
+      "ok": true,
+      "note": "1 distinct session(s) from 4 concurrent identical requests, 0 serialized"
+    }
+  ],
+  "passed": 24,
+  "failed": 0,
+  "verdict": "PASS"
+}
