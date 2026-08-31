@@ -12,6 +12,83 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
 
 ---
 
+## RA-035 — SE-001 withdrawn: secrets were provisioned all along (Stage E0)
+
+- **Severity:** n/a — this is the retraction of a finding, not a defect
+- **Finding as reported (Stage E):** deployed api-gateway and developer-api were
+  "missing required configuration" — `DATABASE_URL`, `OTP_PEPPER`,
+  `SESSION_SECRET`, `DEVELOPER_INTERNAL_KEY` — rated HIGH.
+- **Why it was wrong:** the evidence was `docker inspect .Config.Env`, which is
+  the wrong place to look in this architecture *by design*. Every secret is
+  mounted as a file at `/run/secrets/*` and exported in-process by the entrypoint
+  precisely so it never appears in container config, image metadata or
+  `docker inspect`. All eight are present and non-empty; the gateway's new real
+  database probe now proves the DSN works by opening a connection.
+- **Correct reading of the same evidence:** "absent from container env", which
+  here is the expected state. Absence of configuration was inferred from absence
+  in one metadata view, and the claim was repeated in two reports before the
+  mounts were checked.
+- **Disposition:** **withdrawn**, not downgraded. The credential failures it was
+  offered to explain are real and remain open with a different cause.
+
+---
+
+## RA-036 — Sandbox deploy could not survive its own container startup (Stage E0)
+
+- **Severity:** HIGH (a deploy left the financial core down until restarted by hand)
+- **Environment:** sandbox deploy path, `infra/blueprint/sandbox-ops/scripts/`
+- **Finding:** deploying current `main` failed repeatedly. public-api exited and
+  core-api panicked (exit 101) at boot with `server misbehaving` /
+  `Temporary failure in name resolution` for a hostname that resolves correctly
+  seconds later — `docker restart` of the same container succeeded every time.
+  A freshly created container can run its first instruction before Docker's
+  embedded resolver is serving for it.
+- **Why it mattered more than a slow start:** the deploy detected the unhealthy
+  container and rolled back correctly, but the rolled-back container booted
+  through the same window, so the service stayed down until a human restarted it.
+  This happened three times during Stage E0. The gateway and developer-api
+  survived the identical path only because neither hard-fails on a boot-time
+  ping — which is how a generic startup race gets misattributed to the one strict
+  service.
+- **Remediation:** (a) deploy now creates the container, attaches every network,
+  then starts it, instead of attaching a network to a running container;
+  (b) public-api and core-api retry the boot database probe six times over ~10s,
+  each attempt individually timed out, then still fail — an absent database must
+  still stop the process.
+- **Tests:** confirmed in production — core-api logged
+  `database not reachable yet, retrying attempt=1 of=6` on its next deploy and
+  came up healthy; all four services then deployed cleanly at one commit.
+- **Note:** (a) was a genuine fix but did not close (b). The container now starts
+  with both networks attached and still loses the first lookup; the remaining
+  window belongs to container creation itself.
+- **Disposition:** fixed.
+
+---
+
+## RA-037 — Build identity froze on the first deploy that used it (Stage E0)
+
+- **Severity:** HIGH (would have certified stale deployments as current)
+- **Environment:** `sandbox-deploy.sh` `cmd_deploy_one`
+- **Finding:** the redeploy path clones the running container's configuration and
+  swaps only the image. It therefore re-applied the previous container's
+  `BANZAMI_BUILD_COMMIT` as an explicit `-e`, shadowing the ENV baked into the new
+  image. The container was created from image `:9c2d0f428fec`, whose ENV says
+  `9c2d0f428fec`, while `/readyz` answered `4a924e764024`.
+- **Detection:** the runtime gate, on the first deploy after build identity
+  landed. Cloudflare caching and a wrong image were ruled out first —
+  origin-direct and cache-busted requests both returned the stale value, and the
+  container's `.Image` matched the new tag's id exactly.
+- **Why it matters:** build identity that silently freezes is worse than none,
+  because it looks like an answer. It would have kept reporting the first commit
+  ever deployed and certified every later deployment as current — the exact
+  failure Stage E discovered had already happened once by other means.
+- **Remediation:** the new image is the authority on its own build; that variable
+  is excluded from the clone and inherited from the image.
+- **Disposition:** fixed and verified — `/readyz` now reports the deployed commit
+  and the gate matches it against the revision under assurance.
+
+---
+
 ## RA-033 — Internal operator endpoints reachable from the Internet (Stage E)
 
 - **Severity:** MEDIUM (unnecessary public exposure of an authenticated control
