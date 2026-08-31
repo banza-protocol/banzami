@@ -694,6 +694,15 @@ sandbox-release-package-full:
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh full
 
 # ── Sandbox operational adapter C — controlled banzami_staging migration ───────
+# Schema REALITY — distinct from migration state. The ledger being current does
+# not imply the application can use the schema: account_identity existed, was
+# recorded applied, and was unusable for seven weeks because the runtime role had
+# no USAGE on it. Needs a runtime-role DATABASE_URL (a superuser would pass while
+# the application still could not connect).
+.PHONY: check-schema-reality
+check-schema-reality:
+	node tools/check-schema-reality.mjs
+
 .PHONY: check-sandbox-migration sandbox-migration-plan sandbox-migration-apply sandbox-migration-verify sandbox-migration-clean
 check-sandbox-migration:
 	node infra/blueprint/validators/check-sandbox-migration.mjs

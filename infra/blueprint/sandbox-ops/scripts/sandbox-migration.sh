@@ -127,8 +127,18 @@ cmd_apply() {
   if exec_run migrate "$URL" > "$RELEASE_ROOT/migrate.log" 2>&1; then echo "  migration_applied PASS"; else echo "  migration_applied FAIL"; hold "BLOCKER — SANDBOX MIGRATION CONTRACT CANNOT BE VALIDATED" 42; fi
   # enable the runtime role for the deployed services (DML on migrated app objects; owner-owned).
   # Grants are least-privilege (DML only — no DDL/TRUNCATE/ownership/superuser) and scoped to the
-  # exact schemas the services use: `public` (core) and `developer` (developer-api dev-key model).
-  # New schemas must be added here explicitly; there is no blanket cross-schema grant.
+  # exact schemas the services use: `public` (core), `developer` (developer-api
+  # dev-key model) and `account_identity` (developer-api Console accounts/OTP/
+  # sessions/audit).
+  #
+  # New schemas must be added here explicitly; there is no blanket cross-schema
+  # grant. `account_identity` was created by migration 0088 and this list was not
+  # extended, so for seven weeks the runtime role had no USAGE on it: every
+  # Console account, OTP, session and audit write failed with permission denied,
+  # which the service reported as a fail-closed 503. The objects were all present
+  # and the migration ledger was accurate — only the grant was missing, which is
+  # why `information_schema` (privilege-filtered) showed the schema as empty and
+  # made this look like missing tables.
   docker run --rm --network "$BZSB_DATA_NET" -v "$BZSB_SECRET_ROOT/mi_superuser:/s:ro" --entrypoint sh "$PG_IMAGE" -c '
     export PGPASSFILE=/tmp/pp; printf "postgres:5432:*:sbadmin:%s\n" "$(cat /s)" > $PGPASSFILE; chmod 600 $PGPASSFILE
     psql -h postgres -U sbadmin -d banzami_staging -v ON_ERROR_STOP=1 -q \
@@ -139,9 +149,13 @@ cmd_apply() {
       -c "GRANT USAGE ON SCHEMA developer TO bl_app_runtime" \
       -c "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA developer TO bl_app_runtime" \
       -c "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA developer TO bl_app_runtime" \
-      -c "ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA developer GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO bl_app_runtime"' >/dev/null 2>&1 \
+      -c "ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA developer GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO bl_app_runtime" \
+      -c "GRANT USAGE ON SCHEMA account_identity TO bl_app_runtime" \
+      -c "GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA account_identity TO bl_app_runtime" \
+      -c "GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA account_identity TO bl_app_runtime" \
+      -c "ALTER DEFAULT PRIVILEGES FOR ROLE bl_schema_owner IN SCHEMA account_identity GRANT SELECT,INSERT,UPDATE,DELETE ON TABLES TO bl_app_runtime"' >/dev/null 2>&1 \
     || die "runtime-role privilege enablement failed"
-  echo "  runtime_role_dml_enabled PASS (public + developer, least-privilege DML)"
+  echo "  runtime_role_dml_enabled PASS (public + developer + account_identity, least-privilege DML)"
   echo "sandbox-migration: apply complete"
 }
 
