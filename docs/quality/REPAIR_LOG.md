@@ -1310,7 +1310,8 @@ claiming coverage the evidence does not support.
 ## RA-055
 
 - **Title:** Environment decided by raw string comparison across services
-- **Status:** FIXED (security-sensitive sites) — canonical type landed
+- **Status:** FIX READY — canonical type landed in PR #94, NOT deployed
+- **Deployed state (2026-08-31):** the deployed Sandbox still runs the raw-comparison build. CLOSE only after typed-environment behaviour is proven on the deployed runtime; unit tests are not deployed behaviour.
 - **Fixed:** Stage E1.4
 
 14 comparisons, five services, four vocabularies. Two live defects came from it
@@ -1339,7 +1340,8 @@ the same class and should move to the typed model when the Rust side is done.
 ## RA-056
 
 - **Title:** Payout/transaction accepted a wallet the caller did not own
-- **Status:** FIXED · **Severity: critical** (cross-tenant fund withdrawal)
+- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: critical** (cross-tenant fund withdrawal)
+- **Deployed state (2026-08-31):** corrected code is in PR #94 and NOT merged — CI cannot allocate runners. Public routes contained at the sandbox edge (`POST /v1/payouts`, `GET /v1/payouts/{id}` → 404); the caller's own scoped list stays up. The application behind the proxy is still vulnerable. CLOSE only after the corrected build is deployed AND the negative tests pass with containment REMOVED.
 - **Fixed:** Stage E1.4
 
 `merchant_id` came from the principal, `wallet_id` from the body, and nothing
@@ -1364,7 +1366,8 @@ exists. Transactions received the same invariant.
 ## RA-057
 
 - **Title:** Payment requests moved money between two arbitrary consumers
-- **Status:** FIXED (surface withdrawn) · **Severity: critical**
+- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: critical**
+- **Deployed state (2026-08-31):** unmerged (PR #94). `/v1/payment-requests*` contained at the sandbox edge → 404, still reachable in the application. CLOSE only after deployment AND post-containment-removal verification.
 - **Fixed:** Stage E1.4
 
 `POST /v1/payment-requests` and `/{id}/pay` never read the principal at all.
@@ -1384,7 +1387,8 @@ parameters, which is tracked as an SDK mismatch, not a reason to keep it mounted
 ## RA-058
 
 - **Title:** Any merchant could read any consumer's wallet and balance
-- **Status:** FIXED (surface withdrawn) · **Severity: high** (financial disclosure)
+- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: high** (financial disclosure)
+- **Deployed state (2026-08-31):** unmerged (PR #94). `/v1/consumer-wallets*` contained at the sandbox edge → 404, still reachable in the application. CLOSE only after deployment AND post-containment-removal verification.
 - **Fixed:** Stage E1.4
 
 `RequireMerchant` established the caller was a merchant, never that it had any
