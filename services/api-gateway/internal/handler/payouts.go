@@ -122,12 +122,17 @@ func (h *PayoutHandler) Create(w http.ResponseWriter, r *http.Request) {
 				"wallet does not have sufficient available funds for this payout")
 			return
 		}
-		// RA-056: the core rejects a wallet the caller does not own with 404.
-		// Collapsing every non-insufficient-funds error into 500 turned that
-		// authorization refusal into an INTERNAL_ERROR — the caller was correctly
-		// stopped and no money moved, but a 500 says "we broke" when the true
-		// answer is "that wallet is not yours". Propagate the core's typed status
-		// (the RA-050 helper) instead of flattening it.
+		// RA-056: the core answers 404 for a wallet the caller does not own, and
+		// the core client turns any 404 into the ErrNotFound sentinel rather than a
+		// typed CoreError — so respondCoreError alone cannot see it and would
+		// report 502 UPSTREAM_ERROR. Map the sentinel first: this is an
+		// authorization outcome, not an upstream failure.
+		if errors.Is(err, service.ErrNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND",
+				"wallet not found for this merchant")
+			return
+		}
+		// Anything else keeps the core's own typed status.
 		respondCoreError(w, r, err, "payout could not be created")
 		return
 	}
