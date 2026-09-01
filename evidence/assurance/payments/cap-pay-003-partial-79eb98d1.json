@@ -1,0 +1,158 @@
+{
+  "capability": "CAP-PAY-003",
+  "suite": "cap-pay-003-sandbox-e2e",
+  "scope": "PARTIAL — merchant-side QR contract only; payment execution NOT covered",
+  "execution_blocker": "Payment execution requires a KYC-approved payer. No consumer can reach that state in the Sandbox: evidence upload returns 503 STORAGE_NOT_CONFIGURED, so a KYC case can be opened but never submitted. The compliance gate is behaving correctly; there is no authorised route to a payer it will accept.",
+  "run_id": "79eb98d1-9173-466c-a08f-df223fa8651e",
+  "timestamp": "2026-09-01T13:29:12.866Z",
+  "environment": "sandbox",
+  "runtime_source_commit": "866c1cfe9b2c",
+  "assurance_repository_revision": "866c1cfe9b2c2b295f64eed8cb8e63490d1c8512",
+  "public_endpoint": "https://sandbox-api.banzami.com",
+  "surface": "/v1/qr",
+  "merchants": {
+    "a": "e2eqa17882693505842370",
+    "b": "e2eqb17882693510951489"
+  },
+  "qr_id": "d7367282-1711-41f4-a788-bafa39d0af58",
+  "qr_payload_fingerprint": "sha256:8b1cd442a0cf1bb82430ccf23ed21c50",
+  "amount_minor": 50000,
+  "currency": "AOA",
+  "ledger_effect": "none-expected (QR issuance is not a settlement); execution unproven",
+  "results": [
+    {
+      "id": "PAY003.create-dynamic",
+      "ok": true,
+      "note": "HTTP 201"
+    },
+    {
+      "id": "PAY003.payload-issued",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "PAY003.owner-is-merchant",
+      "ok": true,
+      "note": "MERCHANT"
+    },
+    {
+      "id": "PAY003.amount-exact",
+      "ok": true,
+      "note": "50000 minor"
+    },
+    {
+      "id": "PAY003.currency-preserved",
+      "ok": true,
+      "note": "AOA"
+    },
+    {
+      "id": "PAY003.expiry-recorded",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "PAY003.create-static-open-amount",
+      "ok": true,
+      "note": "HTTP 201 — a static QR carries no fixed amount"
+    },
+    {
+      "id": "PAY003.read-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY003.decode-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY003.neg.cross-merchant-read",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY003.neg.cross-merchant-mark-used",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY003.neg.cross-merchant-create",
+      "ok": true,
+      "note": "HTTP 403 for B naming A as QR owner"
+    },
+    {
+      "id": "PAY003.neg.victim-qr-unchanged",
+      "ok": true,
+      "note": "state n/a after B's read/mark-used/create attempts"
+    },
+    {
+      "id": "PAY003.neg.unauthenticated",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY003.neg.bogus-credential",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY003.neg.zero-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.negative-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.overflow-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.unsupported-currency",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.missing-expiry",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.past-expiry",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.invalid-owner-type",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.unknown-qr",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY003.neg.malformed-payload",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY003.neg.no-internal-leak",
+      "ok": true,
+      "note": "0 response(s) leaked internals"
+    },
+    {
+      "id": "PAY003.no-ledger-movement-on-create",
+      "ok": true,
+      "note": "payee balance 0 minor — issuing a QR is not a settlement"
+    }
+  ],
+  "passed": 26,
+  "failed": 0,
+  "verdict": "PASS (partial scope)",
+  "promotable": false
+}

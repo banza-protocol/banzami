@@ -1310,7 +1310,9 @@ claiming coverage the evidence does not support.
 ## RA-055
 
 - **Title:** Environment decided by raw string comparison across services
-- **Status:** FIX READY — canonical type landed in PR #94, NOT deployed
+- **Status:** CLOSED (2026-09-01) — proven on the deployed runtime, not from unit tests
+- **Deployed proof:** `/readyz` reports `environment: sandbox`; boot log reads `boot: environment environment=SANDBOX sandbox_routes=true` followed by `SANDBOX mode — fake funding enabled, no real rails, no real settlement` — the old build announced `LIVE mode — real rails active` here. Sandbox funding works (`0 → 25000`). Fail-closed confirmed against the deployed image: `""`, `staging`, `production` and `SANDB0X` each refuse to boot with *refusing to start — ENVIRONMENT is missing or unrecognised*, while `sandbox` boots into SANDBOX mode. `make check-live-fail-closed` PASS.
+- **Consumer auto-grant:** the Sandbox branch demonstrably fires — the grant is attempted and refused by the Phase-0 pilot cap (`PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED`), now visible because of RA-059. Under the RA-051 bug the branch was never taken at all, so the log is positive proof of the fix.
 - **Deployed state (2026-08-31):** the deployed Sandbox still runs the raw-comparison build. CLOSE only after typed-environment behaviour is proven on the deployed runtime; unit tests are not deployed behaviour.
 - **Fixed:** Stage E1.4
 
@@ -1340,7 +1342,9 @@ the same class and should move to the typed model when the Rust side is done.
 ## RA-056
 
 - **Title:** Payout/transaction accepted a wallet the caller did not own
-- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: critical** (cross-tenant fund withdrawal)
+- **Status:** CLOSED (2026-09-01) · **Severity: critical** (cross-tenant fund withdrawal)
+- **Deployed proof:** runtime `866c1cfe9b2c`, edge containment REMOVED. Merchant B naming merchant A's wallet → **404** `NOT_FOUND`; A's balance `50000 → 50000`; A holds exactly 1 payout (own), none from B; B reading A's payout by id → **404**; owner still creates and reads their own (201/200). Oracle ordering verified: a 999 000 000 minor request on a foreign wallet returns 404, never `INSUFFICIENT_FUNDS`.
+- **Two follow-ups were needed after deployment** (PR #95, #96): the authority check was correct from the start, but the refusal surfaced first as 500 then 502 before reaching 404. Both were found only by exercising the fix against the real runtime.
 - **Deployed state (2026-08-31):** corrected code is in PR #94 and NOT merged — CI cannot allocate runners. Public routes contained at the sandbox edge (`POST /v1/payouts`, `GET /v1/payouts/{id}` → 404); the caller's own scoped list stays up. The application behind the proxy is still vulnerable. CLOSE only after the corrected build is deployed AND the negative tests pass with containment REMOVED.
 - **Fixed:** Stage E1.4
 
@@ -1366,7 +1370,8 @@ exists. Transactions received the same invariant.
 ## RA-057
 
 - **Title:** Payment requests moved money between two arbitrary consumers
-- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: critical**
+- **Status:** CLOSED (2026-09-01) · **Severity: critical**
+- **Deployed proof:** runtime `866c1cfe9b2c`, containment REMOVED. Create → **404**, execute → **404** (surface unmounted, verified directly against the gateway with nginx bypassed). Victim consumer balance and totals unchanged at 0; no ledger effect.
 - **Deployed state (2026-08-31):** unmerged (PR #94). `/v1/payment-requests*` contained at the sandbox edge → 404, still reachable in the application. CLOSE only after deployment AND post-containment-removal verification.
 - **Fixed:** Stage E1.4
 
@@ -1387,7 +1392,8 @@ parameters, which is tracked as an SDK mismatch, not a reason to keep it mounted
 ## RA-058
 
 - **Title:** Any merchant could read any consumer's wallet and balance
-- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: high** (financial disclosure)
+- **Status:** CLOSED (2026-09-01) · **Severity: high** (financial disclosure)
+- **Deployed proof:** runtime `866c1cfe9b2c`, containment REMOVED. Resolve by `consumer_id` → **404**; read wallet by id → **404**; read balance by id → **404**. The consumer still reads their own wallet (200), so the capability moved rather than disappeared.
 - **Deployed state (2026-08-31):** unmerged (PR #94). `/v1/consumer-wallets*` contained at the sandbox edge → 404, still reachable in the application. CLOSE only after deployment AND post-containment-removal verification.
 - **Fixed:** Stage E1.4
 
