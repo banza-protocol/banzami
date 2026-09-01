@@ -59,6 +59,23 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libicu74 \
     && rm -rf /var/lib/apt/lists/*
 
+# Rust toolchain. GitHub's ubuntu-latest image ships Rust preinstalled, and some
+# jobs rely on that without adding a rust-toolchain step — the Migrations job
+# calls `cargo install sqlx-cli` directly and failed here with exit 127. Jobs
+# that DO pin a toolchain still override this at job time.
+ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
+ENV PATH=/usr/local/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+      | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
+    && chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"
+
+# Cap link-time parallelism. The Docker Desktop VM has ~4 GB, and cargo links one
+# test binary per CPU (8 here); several concurrent linkers exhaust it and the
+# kernel OOM-kills ld with "collect2: fatal error: ld terminated with signal 9".
+# This changes only how many link steps run at once — every test still builds and
+# still runs, so no check is weakened. Raise it if the VM is given more memory.
+ENV CARGO_BUILD_JOBS=2
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

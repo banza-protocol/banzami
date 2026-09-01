@@ -97,3 +97,22 @@ dependencies is missing for Dotnet Core"*. `libicu74` is installed explicitly.
 
 That script also runs `apt-get install`, so package lists must exist when it
 executes. Clearing them in an earlier layer made it a silent no-op.
+
+## Two more differences from `ubuntu-latest`, found by running it
+
+**Rust must be in the image.** GitHub's hosted image ships Rust preinstalled, and
+some jobs quietly depend on that: the Migrations job calls `cargo install
+sqlx-cli` without a `rust-toolchain` step and failed with exit 127. Jobs that do
+pin a toolchain still override it at job time.
+
+**Link parallelism is capped** via `CARGO_BUILD_JOBS=2`. The Docker Desktop VM
+has ~4 GB and cargo links one test binary per CPU (8 here); several concurrent
+linkers exhaust it and the kernel OOM-kills the linker:
+
+```
+collect2: fatal error: ld terminated with signal 9 [Killed]
+```
+
+This changes only how many link steps run concurrently — every test still builds
+and still runs, so no check is weakened. Raise it if the VM is given more memory
+(Docker Desktop → Settings → Resources), which is the better long-term fix.
