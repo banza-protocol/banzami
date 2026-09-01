@@ -1272,3 +1272,151 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   make assure-payments-foundation (HOLD 0/3), UUID-leak fix deployed.
 - **Gates:** assure-payments-foundation HOLD; assure-sandbox-launch HOLD; public
   released 5/14 (unchanged). Verdict: Payments Foundation: HOLD.
+
+## RA-054
+
+- **Title:** Merchant-JWT routes trusting client-supplied identity — systemic
+- **Status:** OPEN (umbrella) — scoped inventory complete, all confirmed instances FIXED
+- **Found:** Stage E1.3A inventory; audited and closed out in Stage E1.4
+
+One shape, now seven confirmed instances: SEC-015, RA-047, RA-049, RA-053, and
+three found in this stage (RA-056, RA-057, RA-058). A merchant credential proves
+the caller is *a* merchant; it never proves any relation to the resource the
+request names.
+
+Every merchant-authenticated public route is now classified in
+[docs/security/MERCHANT-AUTHORITY-MATRIX.md](../security/MERCHANT-AUTHORITY-MATRIX.md),
+with the binding site cited per route, and the money-moving subset is checked on
+every run by `tools/e2e/security/ra-054-authority.mjs`.
+
+The prediction made when this was opened held: `payouts` and `transactions` were
+named as the routes to audit first, and both were defective.
+
+**Two rows are not SAFE and are recorded as such rather than rounded down:**
+
+- `GET /v1/consumers/{id}` — any merchant may read any consumer's handle, status
+  and creation date (verified 200). No financial data, no mutation, and the
+  sibling handle lookup is deliberately a public directory. A design question to
+  withdraw, not a security defect.
+- `POST /v1/disputes` — `consumer_id` is unbound, and whether a dispute can be
+  opened against another tenant's transaction is **unproven**: it needs a settled
+  transaction owned by the victim, and CAP-PAY-003 execution is unavailable. A
+  probe returned 500 carrying "resource not found", which is separately wrong
+  (RA-050 shape). **Not counted as SAFE.**
+
+The umbrella stays OPEN because of that one unproven row. Closing it would be
+claiming coverage the evidence does not support.
+
+## RA-055
+
+- **Title:** Environment decided by raw string comparison across services
+- **Status:** FIX READY — canonical type landed in PR #94, NOT deployed
+- **Deployed state (2026-08-31):** the deployed Sandbox still runs the raw-comparison build. CLOSE only after typed-environment behaviour is proven on the deployed runtime; unit tests are not deployed behaviour.
+- **Fixed:** Stage E1.4
+
+14 comparisons, five services, four vocabularies. Two live defects came from it
+(Sandbox funding refused inside the Sandbox; the consumer grant silently skipped),
+plus a boot line announcing "LIVE mode — real rails active" from a Sandbox.
+
+`services/common/env` parses once. Unknown is the zero value and grants nothing;
+both casings are accepted because both are already deployed and stored;
+"production"/"development" are deliberately *not* read as Live/Sandbox, since
+that inference is the failure mode itself. public-api parses at startup and
+refuses to boot on an unrecognised value, and its boot line is derived from the
+same parsed value as the behaviour it describes.
+
+The typed environment is not a Live gate — `IsLive()` reports configuration only,
+and Live activation stays behind its existing independent gates
+(`make check-live-fail-closed` unchanged and passing).
+
+**Not claimed:** every raw comparison is gone. The remaining ones are
+non-security topology words (`IsProduction`, `SecureCookies`, `IsDevelopment`) and
+are intentionally left in their own vocabulary. One further pattern was found and
+is **not** fixed: `core/compliance/src/pilot.rs` decides "liveish" by
+`env.contains("live") || env.contains("prod")` — a substring match on
+environment. It fails safe today (it only disables the Phase-0 caps), but it is
+the same class and should move to the typed model when the Rust side is done.
+
+## RA-056
+
+- **Title:** Payout/transaction accepted a wallet the caller did not own
+- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: critical** (cross-tenant fund withdrawal)
+- **Deployed state (2026-08-31):** corrected code is in PR #94 and NOT merged — CI cannot allocate runners. Public routes contained at the sandbox edge (`POST /v1/payouts`, `GET /v1/payouts/{id}` → 404); the caller's own scoped list stays up. The application behind the proxy is still vulnerable. CLOSE only after the corrected build is deployed AND the negative tests pass with containment REMOVED.
+- **Fixed:** Stage E1.4
+
+`merchant_id` came from the principal, `wallet_id` from the body, and nothing
+compared them. Confirmed on the deployed Sandbox: merchant B queued a payout of
+10 000 minor from merchant A's wallet to B's own bank account — **HTTP 201**,
+B's `merchant_id` and A's `wallet_id` on one record. The payout was left PENDING
+and was not processed; the debit occurs at processing, which is an operator step,
+not a second authorization.
+
+Before A was funded the same call returned **422 INSUFFICIENT_FUNDS** — the
+sharper result, because the endpoint was answering questions about a stranger's
+balance. `GET /v1/payouts/{id}` was worse still: the gateway passed the
+principal's merchant id to a core client that declared the parameter `_` and
+dropped it, so any merchant could read any payout including its bank destination
+(verified 200).
+
+Fixed in the engine, not only at the edge, and **before** the balance check so
+the endpoint cannot be used as a balance oracle. Foreign wallets and payouts are
+reported as not-found: a caller with no authority should not learn that an id
+exists. Transactions received the same invariant.
+
+## RA-057
+
+- **Title:** Payment requests moved money between two arbitrary consumers
+- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: critical**
+- **Deployed state (2026-08-31):** unmerged (PR #94). `/v1/payment-requests*` contained at the sandbox edge → 404, still reachable in the application. CLOSE only after deployment AND post-containment-removal verification.
+- **Fixed:** Stage E1.4
+
+`POST /v1/payment-requests` and `/{id}/pay` never read the principal at all.
+Both participants came from the body. Confirmed on the deployed Sandbox: an
+unrelated merchant created a request between two consumers it had no relationship
+with and executed it — **status PAID, victim debited 1 000 000 → 995 000 minor.**
+
+Worse than RA-053, which KYC happened to block: this path has **no KYC gate**, so
+it was a missing authorization and a compliance bypass at once. It is the
+`/v1/transfers` surface removed under SEC-015, re-implemented under another name.
+
+Removed rather than patched. There is no ownership relation to scope against —
+two consumer parties, no merchant party. The correct consumer-side route does not
+exist yet, and the Python SDK exposes this model with `requester_id`/`payer_id`
+parameters, which is tracked as an SDK mismatch, not a reason to keep it mounted.
+
+## RA-058
+
+- **Title:** Any merchant could read any consumer's wallet and balance
+- **Status:** FIX READY / MITIGATED IN DEPLOYED SANDBOX · **Severity: high** (financial disclosure)
+- **Deployed state (2026-08-31):** unmerged (PR #94). `/v1/consumer-wallets*` contained at the sandbox edge → 404, still reachable in the application. CLOSE only after deployment AND post-containment-removal verification.
+- **Fixed:** Stage E1.4
+
+`RequireMerchant` established the caller was a merchant, never that it had any
+relation to the named consumer. Verified on the deployed Sandbox: an unrelated
+merchant resolved a consumer's wallet by `consumer_id` and read its balance —
+**HTTP 200** on both. A merchant has no legitimate need for a customer's balance.
+
+Removed. The capability exists correctly on the consumer surface, where
+public-api derives the wallet from the authenticated consumer token. `@banzami/sdk`
+and `banzami_flutter` still call these paths; the fix is to withdraw those helpers,
+not to re-expose the surface.
+
+## RA-059
+
+- **Title:** Sandbox registration grant failure was discarded
+- **Status:** FIXED (made visible) — underlying 422 is correct behaviour
+- **Found/Fixed:** Stage E1.4
+
+The grant was called as `_, _ =`. Consumers registered at zero and nothing said
+why — the same silent-zero failure as RA-051, reached by a different route, under
+a comment that already warned "a skipped grant looks identical to a grant of
+nothing".
+
+It is failing right now, legitimately: `BANZAMI_PILOT_LIMITS=1` is set on the
+deployed core and the Phase-0 funds-in-circulation cap returns 422 once the
+aggregate is reached — this stage's own testing consumed it. The cap works as
+designed and was not touched. Registration still succeeds; the failure is now
+logged with its reason.
+
+This weakens some Stage E1.4 balance assertions, and the authority suite reports
+that itself rather than looking stronger than it is.

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
@@ -29,7 +30,7 @@ func NewDebugPushHandler(fcm *notify.FCMService, environment string) *DebugPushH
 //
 // Returns delivery_mode, target, and firebase_message_id.
 func (h *DebugPushHandler) PushTest(w http.ResponseWriter, r *http.Request) {
-	if h.environment != "SANDBOX" {
+	if !env.Parse(h.environment).IsSandbox() {
 		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
 			"debug endpoints are only available in sandbox")
 		return

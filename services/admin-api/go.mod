@@ -64,3 +64,7 @@ replace github.com/banzami/banzami/services/common/documents => ../common/docume
 replace github.com/banzami/banzami/services/common/obs => ../common/obs
 
 replace github.com/banzami/banzami/services/common/email => ../common/email
+
+require github.com/banzami/banzami/services/common/env v0.0.0
+
+replace github.com/banzami/banzami/services/common/env => ../common/env

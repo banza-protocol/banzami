@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"os"
@@ -105,17 +105,35 @@ func main() {
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// RA-055: environment is parsed ONCE, here, and every downstream decision
+	// asks the resulting value a semantic question.
+	//
+	// Fail closed on an unrecognised value. This service gates Sandbox funding,
+	// the consumer balance grant and the KYC provider mode on its environment, so
+	// booting with an environment nobody can name is not a degraded mode — it is
+	// an unknown one, and the safe response is to refuse to start rather than to
+	// guess. All deployments set ENVIRONMENT explicitly.
+	environment := env.Parse(cfg.Environment)
+	if !environment.IsKnown() {
+		slog.Error("boot: refusing to start — ENVIRONMENT is missing or unrecognised",
+			"configured", cfg.Environment, "expected", "sandbox or live")
+		os.Exit(1)
+	}
+
 	// Boot summary — makes environment visible in every deployment log.
-	sandboxRoutes := strings.EqualFold(cfg.Environment, "SANDBOX")
+	sandboxRoutes := environment.IsSandbox()
 	slog.Info("boot: environment",
-		"environment", cfg.Environment,
+		"environment", environment.String(),
 		"sandbox_routes", sandboxRoutes,
 		"core_api_url", cfg.CoreAPIURL,
 	)
-	// Case-insensitive: the deployment sets ENVIRONMENT=sandbox, and an exact
-	// match against "SANDBOX" made a Sandbox deployment log "LIVE mode — real
-	// rails active". A service announcing live rails while running in the Sandbox
-	// is a dangerous operational signal even when nothing else depends on it.
+	// The mode line is DERIVED from the same parsed value as the behaviour it
+	// describes, so the log cannot contradict the runtime. Previously an exact
+	// match against "SANDBOX" made a Sandbox deployment (which sets "sandbox")
+	// announce "LIVE mode — real rails active" — a service claiming live rails
+	// while running in the Sandbox, a dangerous operational signal even when
+	// nothing else depends on it. An unknown environment can no longer reach this
+	// line at all, so it can never be reported as LIVE by omission.
 	if sandboxRoutes {
 		slog.Warn("SANDBOX mode — fake funding enabled, no real rails, no real settlement")
 	} else {

@@ -276,6 +276,23 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .await
             .map_err(|e| PayoutError::Wallet(e.to_string()))?;
 
+        // Authority (RA-056): the request NAMES a wallet — a resource selector,
+        // not authority over it. Without this the engine read a foreign
+        // merchant's balance and queued a withdrawal from it to the caller's own
+        // bank account (confirmed on the deployed Sandbox: HTTP 201, attacker
+        // merchant_id, victim wallet_id).
+        //
+        // It belongs here, not only at the API edge: the ledger must not be
+        // reachable by a caller that has not proved ownership of the source of
+        // funds. It runs BEFORE the balance check so the endpoint cannot be used
+        // as a balance oracle for wallets the caller does not own.
+        if wallet.merchant_id != req.merchant_id {
+            return Err(PayoutError::WalletNotOwned {
+                wallet_id: req.wallet_id,
+                merchant_id: req.merchant_id,
+            });
+        }
+
         // Balance check — prevents overdrawing the merchant's available account.
         let available = self.available_balance(wallet.available_account_id).await?;
         if available.amount_minor() < req.amount.amount_minor() {
@@ -728,6 +745,25 @@ mod tests {
     type PayoutEngineT =
         PostgresPayoutEngine<MockWalletRepo, MockLedger, MockPayoutRepo, MockPricing>;
 
+    /// The merchant that owns the mock wallet.
+    ///
+    /// Fixed rather than random because ownership is now part of the contract:
+    /// before RA-056 every test passed an unrelated `MerchantId::new()` and still
+    /// expected a payout, which is precisely the defect written down as an
+    /// expectation. Tests must now say whose wallet they are spending.
+    fn owner() -> MerchantId {
+        MerchantId::from_uuid(uuid::Uuid::from_u128(
+            0x0000_0000_0000_0000_0000_0000_0000_00A1,
+        ))
+    }
+
+    /// A merchant that owns nothing here.
+    fn stranger() -> MerchantId {
+        MerchantId::from_uuid(uuid::Uuid::from_u128(
+            0x0000_0000_0000_0000_0000_0000_0000_00B2,
+        ))
+    }
+
     /// No-fee engine (empty rule set) — preserves the pre-ADR-031 behaviour used
     /// by the lifecycle tests.
     fn make_engine(available_balance_minor: i64) -> (PayoutEngineT, WalletId, AccountId) {
@@ -785,7 +821,7 @@ mod tests {
         let wallet_id = WalletId::new();
         let wallet = Wallet {
             id: wallet_id,
-            merchant_id: MerchantId::new(),
+            merchant_id: owner(),
             currency: Currency::AOA,
             status: WalletStatus::Active,
             available_account_id: avail_id,
@@ -820,7 +856,7 @@ mod tests {
     #[tokio::test]
     async fn initiate_creates_pending_payout() {
         let (engine, wallet_id, _) = make_engine(100_000);
-        let merchant_id = MerchantId::new();
+        let merchant_id = owner();
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-001".into(),
@@ -841,7 +877,7 @@ mod tests {
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-002".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(60_000),
                 destination: dest(),
@@ -863,7 +899,7 @@ mod tests {
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-003".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(80_000),
                 destination: dest(),
@@ -884,7 +920,7 @@ mod tests {
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-004".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(10_000),
                 destination: dest(),
@@ -906,7 +942,7 @@ mod tests {
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-005".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(40_000),
                 destination: dest(),
@@ -940,7 +976,7 @@ mod tests {
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-006".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(30_000),
                 destination: dest(),
@@ -966,7 +1002,7 @@ mod tests {
         let result = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-007".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(50_000), // more than the 10_000 available
                 destination: dest(),
@@ -984,7 +1020,7 @@ mod tests {
         let req1 = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-008".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(5_000),
                 destination: dest(),
@@ -995,7 +1031,7 @@ mod tests {
         let req2 = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-008".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(5_000),
                 destination: dest(),
@@ -1015,7 +1051,7 @@ mod tests {
         let payout = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "pay-009".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(1_000),
                 destination: dest(),
@@ -1059,7 +1095,7 @@ mod tests {
         let p = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: key.into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(amount),
                 destination: dest(),
@@ -1151,7 +1187,7 @@ mod tests {
         let r = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "w-zero".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(0),
                 destination: dest(),
@@ -1178,7 +1214,7 @@ mod tests {
         let p = engine
             .initiate(CreatePayoutRequest {
                 idempotency_key: "w-exceed".into(),
-                merchant_id: MerchantId::new(),
+                merchant_id: owner(),
                 wallet_id,
                 amount: kz(100_000),
                 destination: dest(),
@@ -1199,5 +1235,202 @@ mod tests {
         let (engine, wallet_id, _avail, _bank, opfee_id) = make_engine_with(200_000, vec![future]);
         init_process(&engine, wallet_id, "w-future", 100_000).await;
         assert_eq!(net_of(&engine, opfee_id).await, 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // RA-056 — wallet authority
+    //
+    // Naming a wallet is not authority over it. These assert the invariant at the
+    // engine, because that is where the ledger becomes reachable: an API-edge
+    // check alone would leave the financial boundary open to any future caller.
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn initiate_refuses_a_wallet_the_merchant_does_not_own() {
+        let (engine, wallet_id, _) = make_engine(100_000);
+        let err = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-foreign".into(),
+                merchant_id: stranger(),
+                wallet_id,
+                amount: kz(10_000),
+                destination: dest(),
+            })
+            .await
+            .expect_err("a payout from a wallet the caller does not own must be refused");
+
+        match err {
+            PayoutError::WalletNotOwned {
+                wallet_id: w,
+                merchant_id: m,
+            } => {
+                assert_eq!(w, wallet_id);
+                assert_eq!(m, stranger());
+            }
+            other => panic!("expected WalletNotOwned, got {other:?}"),
+        }
+    }
+
+    /// The ownership check must run BEFORE the balance check. Otherwise the
+    /// endpoint stays a balance oracle: an attacker learns whether a stranger's
+    /// wallet holds a given amount from which error comes back.
+    #[tokio::test]
+    async fn foreign_wallet_is_refused_without_revealing_its_balance() {
+        let (engine, wallet_id, _) = make_engine(100_000);
+        let err = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-oracle".into(),
+                merchant_id: stranger(),
+                // Far beyond the wallet's balance: if the balance check ran first
+                // this would surface as InsufficientBalance and leak the balance.
+                amount: kz(999_000_000),
+                wallet_id,
+                destination: dest(),
+            })
+            .await
+            .expect_err("must be refused");
+
+        assert!(
+            matches!(err, PayoutError::WalletNotOwned { .. }),
+            "ownership must be decided before the balance is consulted, got {err:?}"
+        );
+    }
+
+    /// The fix must not break the legitimate path.
+    #[tokio::test]
+    async fn owner_can_still_initiate_a_payout() {
+        let (engine, wallet_id, _) = make_engine(100_000);
+        let payout = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-owner".into(),
+                merchant_id: owner(),
+                wallet_id,
+                amount: kz(50_000),
+                destination: dest(),
+            })
+            .await
+            .expect("the wallet's owner must still be able to withdraw");
+        assert_eq!(payout.status, PayoutStatus::Pending);
+        assert_eq!(payout.merchant_id, owner());
+    }
+
+    /// A refused attempt must leave no trace — no payout record, so the victim's
+    /// payout list is unchanged and no downstream job can pick it up.
+    #[tokio::test]
+    async fn refused_attempt_creates_no_payout_record() {
+        let (engine, wallet_id, _) = make_engine(100_000);
+        let _ = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-notrace".into(),
+                merchant_id: stranger(),
+                wallet_id,
+                amount: kz(10_000),
+                destination: dest(),
+            })
+            .await;
+
+        let victim_payouts = engine.list_for_merchant(owner(), 100).await.unwrap();
+        assert!(
+            victim_payouts.is_empty(),
+            "a refused cross-tenant payout must not appear against the wallet owner"
+        );
+        let attacker_payouts = engine.list_for_merchant(stranger(), 100).await.unwrap();
+        assert!(
+            attacker_payouts.is_empty(),
+            "a refused cross-tenant payout must not be recorded at all"
+        );
+    }
+
+    // -----------------------------------------------------------------------
+    // RA-056 — wallet authority
+    // -----------------------------------------------------------------------
+
+    /// Confirmed on the deployed Sandbox before this check existed: a merchant
+    /// named another merchant's wallet_id and got HTTP 201 — its own merchant_id
+    /// on a payout drawing from the victim's wallet, destined for its own bank
+    /// account. Naming a wallet is not authority over it.
+    #[tokio::test]
+    async fn payout_from_a_foreign_wallet_is_refused() {
+        let (engine, wallet_id, _avail) = make_engine(50_000);
+        let stranger = MerchantId::new();
+
+        let err = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-foreign".into(),
+                merchant_id: stranger,
+                wallet_id,
+                amount: kz(10_000),
+                destination: dest(),
+            })
+            .await
+            .expect_err("a merchant must not withdraw from a wallet it does not own");
+
+        match err {
+            PayoutError::WalletNotOwned {
+                wallet_id: w,
+                merchant_id: m,
+            } => {
+                assert_eq!(w, wallet_id);
+                assert_eq!(m, stranger);
+            }
+            other => panic!("expected WalletNotOwned, got {other:?}"),
+        }
+
+        // Refusing is not enough: no payout may exist against the victim's wallet.
+        assert!(
+            engine
+                .list_for_merchant(stranger, 10)
+                .await
+                .unwrap()
+                .is_empty(),
+            "a refused payout must leave no record behind"
+        );
+    }
+
+    /// The ownership check must run BEFORE the balance check. Otherwise a
+    /// refusal still discloses whether a stranger's wallet holds the amount —
+    /// which is exactly what the deployed system did, answering
+    /// INSUFFICIENT_FUNDS about a wallet the caller had no relation to.
+    #[tokio::test]
+    async fn payout_does_not_disclose_a_foreign_wallet_balance() {
+        let (engine, wallet_id, _avail) = make_engine(50_000);
+
+        let err = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-oracle".into(),
+                merchant_id: MerchantId::new(),
+                wallet_id,
+                // Far beyond the balance: a balance-first implementation would
+                // answer InsufficientBalance and leak the funding state.
+                amount: kz(999_000_000),
+                destination: dest(),
+            })
+            .await
+            .expect_err("must be refused");
+
+        assert!(
+            matches!(err, PayoutError::WalletNotOwned { .. }),
+            "ownership must be decided before the balance is consulted, got {err:?}"
+        );
+    }
+
+    /// The owner is still served. A fix that breaks the legitimate path is not a fix.
+    #[tokio::test]
+    async fn payout_from_an_owned_wallet_still_succeeds() {
+        let (engine, wallet_id, _avail) = make_engine(50_000);
+
+        let payout = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "ra056-owned".into(),
+                merchant_id: owner(),
+                wallet_id,
+                amount: kz(10_000),
+                destination: dest(),
+            })
+            .await
+            .expect("the wallet owner must still be able to request a payout");
+
+        assert_eq!(payout.status, PayoutStatus::Pending);
+        assert_eq!(payout.merchant_id, owner());
     }
 }

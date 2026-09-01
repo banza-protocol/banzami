@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"net/http"
 	"os"
@@ -113,7 +114,10 @@ func main() {
 	devSvc.SetPaymentCapabilityReleased(cfg.PaymentCapabilityReleased)
 	// Operator E2E fixture-key path is hard-enabled ONLY in a sandbox/development
 	// environment (RT04D §2); hard-disabled everywhere else regardless of config.
-	fixturesEnabled := cfg.Environment == "sandbox" || cfg.Environment == "SANDBOX" || cfg.Environment == "development"
+	// RA-055: fixtures are a Sandbox privilege. "development" is a separate
+	// deployment-topology word and stays its own explicit condition rather than
+	// being folded into the meaning of "sandbox".
+	fixturesEnabled := env.Parse(cfg.Environment).IsSandbox() || cfg.IsDevelopment()
 	devSvc.SetFixturesEnabled(fixturesEnabled)
 	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "fixtures", fixturesEnabled, "env", cfg.Environment)
 	devH := developer.NewHandlers(devSvc)

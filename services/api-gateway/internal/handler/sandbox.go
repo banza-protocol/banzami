@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 	"time"
 
@@ -26,8 +27,11 @@ func NewSandboxHandler(txSvc service.TransactionService, walletSvc service.Walle
 // requireSandbox returns false and writes a 403 when the caller is not in the
 // sandbox environment. Call it at the top of every sandbox handler.
 func requireSandbox(w http.ResponseWriter, r *http.Request) bool {
+	// RA-055: the principal's environment is parsed, not string-compared, so a
+	// principal minted as "sandbox" and one minted as "SANDBOX" reach the same
+	// decision — and anything unrecognised grants nothing.
 	p, ok := middleware.GetPrincipal(r.Context())
-	if !ok || p.Environment != "SANDBOX" {
+	if !ok || !env.Parse(p.Environment).IsSandbox() {
 		apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY",
 			"this endpoint is only available in sandbox mode — authenticate with a bz_test_ key")
 		return false

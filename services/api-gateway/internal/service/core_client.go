@@ -603,11 +603,17 @@ func (s *CoreApiPayoutService) Create(
 
 func (s *CoreApiPayoutService) Get(
 	ctx context.Context,
-	_ string,
+	merchantID string,
 	id string,
 ) (*Payout, error) {
+	// RA-056: the merchant scope was discarded here (the parameter was `_`), so
+	// any authenticated merchant could read any payout by id — amount, status and
+	// the bank destination of another tenant. The core now requires the scope and
+	// returns 404 for a payout it does not own.
 	var resp corePayoutResp
-	if err := s.client.get(ctx, "/internal/v1/payouts/"+id, &resp); err != nil {
+	path := fmt.Sprintf("/internal/v1/payouts/%s?merchant_id=%s",
+		url.PathEscape(id), url.QueryEscape(merchantID))
+	if err := s.client.get(ctx, path, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPayoutNotFound
 		}

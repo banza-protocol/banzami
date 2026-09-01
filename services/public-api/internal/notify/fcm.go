@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"strconv"
 
@@ -58,7 +59,7 @@ func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*F
 }
 
 func (s *FCMService) isSandbox() bool {
-	return s != nil && s.environment == "SANDBOX"
+	return s != nil && env.Parse(s.environment).IsSandbox()
 }
 
 // topicForConsumer returns the FCM topic for a consumer, with sandbox isolation.

@@ -134,6 +134,23 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
             return Ok(existing);
         }
 
+        // Authority (RA-056): the body names merchant_id and wallet_id
+        // independently. Without this a caller could create a transaction against
+        // ANOTHER merchant's wallet — polluting that tenant's books and seeding a
+        // source object for later settlement or restitution against a wallet the
+        // caller never owned.
+        let wallet = self
+            .wallet
+            .get(req.wallet_id)
+            .await
+            .map_err(TransactionError::Wallet)?;
+        if wallet.merchant_id != req.merchant_id {
+            return Err(TransactionError::WalletNotOwned {
+                wallet_id: req.wallet_id,
+                merchant_id: req.merchant_id,
+            });
+        }
+
         let now = Utc::now();
         let tx = Transaction {
             id: banzami_types::TransactionId::new(),
@@ -378,7 +395,7 @@ mod tests {
     use banzami_types::{AccountId, Currency, MerchantId, Money, TransactionId, WalletId};
     use banzami_wallets::{
         CreateWalletRequest, ReleaseRequest, ReserveRequest, SettleRequest, Wallet, WalletBalance,
-        WalletEngine, WalletError,
+        WalletEngine, WalletError, WalletStatus,
     };
 
     use super::*;
@@ -391,14 +408,33 @@ mod tests {
     // Mock wallet engine — no-op; state machine tests don't need real wallet ops
     // -----------------------------------------------------------------------
 
+    /// The merchant every mock wallet belongs to. Stable for the whole test
+    /// binary so a request built with `test_owner()` is genuinely authorised,
+    /// and one built with a fresh `MerchantId::new()` genuinely is not.
+    fn test_owner() -> MerchantId {
+        static OWNER: std::sync::OnceLock<MerchantId> = std::sync::OnceLock::new();
+        *OWNER.get_or_init(MerchantId::new)
+    }
+
     struct MockWallet;
 
     impl WalletEngine for MockWallet {
         async fn create(&self, _: CreateWalletRequest) -> Result<Wallet, WalletError> {
             unimplemented!()
         }
-        async fn get(&self, _: WalletId) -> Result<Wallet, WalletError> {
-            unimplemented!()
+        /// Returns a wallet owned by `test_owner()`. `create` now resolves the
+        /// wallet to check ownership (RA-056), so this can no longer be a
+        /// panicking stub.
+        async fn get(&self, id: WalletId) -> Result<Wallet, WalletError> {
+            Ok(Wallet {
+                id,
+                merchant_id: test_owner(),
+                currency: Currency::AOA,
+                status: WalletStatus::Active,
+                available_account_id: AccountId::new(),
+                reserved_account_id: AccountId::new(),
+                created_at: Utc::now(),
+            })
         }
         async fn get_for_merchant(
             &self,
@@ -563,7 +599,7 @@ mod tests {
                 idempotency_key: "idem-001".into(),
                 transaction_type: TransactionType::Payment,
                 amount: kz(50_000),
-                merchant_id: MerchantId::new(),
+                merchant_id: test_owner(),
                 wallet_id: WalletId::new(),
                 description: None,
                 business_category: None,
@@ -596,7 +632,7 @@ mod tests {
                 idempotency_key: "idem-001".into(),
                 transaction_type: TransactionType::Payment,
                 amount: kz(50_000),
-                merchant_id: MerchantId::new(),
+                merchant_id: test_owner(),
                 wallet_id: WalletId::new(),
                 description: None,
                 business_category: None,
@@ -739,5 +775,77 @@ mod tests {
             ),
             "double authorize must be rejected"
         );
+    }
+
+    // -----------------------------------------------------------------------
+    // RA-056 — wallet authority
+    // -----------------------------------------------------------------------
+
+    /// The body names merchant_id and wallet_id independently. Naming a wallet
+    /// is not authority over it, so a merchant that does not own the wallet must
+    /// be refused — and no transaction may be recorded against that wallet.
+    #[tokio::test]
+    async fn create_against_a_foreign_wallet_is_refused() {
+        let engine = make_engine();
+        let stranger = MerchantId::new();
+        let wallet_id = WalletId::new();
+
+        let err = engine
+            .create(CreateTransactionRequest {
+                idempotency_key: "ra056-foreign".into(),
+                transaction_type: TransactionType::Payment,
+                amount: kz(50_000),
+                merchant_id: stranger,
+                wallet_id,
+                description: None,
+                business_category: None,
+                pricing_profile: None,
+                fee_policy_ref: None,
+            })
+            .await
+            .expect_err("a merchant must not transact against a wallet it does not own");
+
+        match err {
+            TransactionError::WalletNotOwned {
+                wallet_id: w,
+                merchant_id: m,
+            } => {
+                assert_eq!(w, wallet_id);
+                assert_eq!(m, stranger);
+            }
+            other => panic!("expected WalletNotOwned, got {other:?}"),
+        }
+
+        // State assertion: refusing is not enough — nothing may have been written.
+        assert!(
+            engine
+                .list(stranger, 10, None, None, None)
+                .await
+                .unwrap()
+                .is_empty(),
+            "a refused create must leave no transaction behind"
+        );
+    }
+
+    /// The owner is still served. A fix that breaks the legitimate path is not a fix.
+    #[tokio::test]
+    async fn create_against_an_owned_wallet_still_succeeds() {
+        let engine = make_engine();
+        let tx = engine
+            .create(CreateTransactionRequest {
+                idempotency_key: "ra056-owned".into(),
+                transaction_type: TransactionType::Payment,
+                amount: kz(50_000),
+                merchant_id: test_owner(),
+                wallet_id: WalletId::new(),
+                description: None,
+                business_category: None,
+                pricing_profile: None,
+                fee_policy_ref: None,
+            })
+            .await
+            .expect("the wallet owner must still be able to create a transaction");
+        assert_eq!(tx.merchant_id, test_owner());
+        assert_eq!(tx.status, TransactionStatus::Pending);
     }
 }

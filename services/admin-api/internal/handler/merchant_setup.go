@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -140,7 +141,7 @@ func (h *MerchantSetupHandler) CreateApiKey(w http.ResponseWriter, r *http.Reque
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		body.Name = "admin-generated"
 	}
-	if body.Environment != "SANDBOX" {
+	if !env.Parse(body.Environment).IsSandbox() {
 		body.Environment = "LIVE"
 	}
 

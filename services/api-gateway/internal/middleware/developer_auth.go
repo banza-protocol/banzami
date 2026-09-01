@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"net/http"
 	"strings"
 	"time"
@@ -101,7 +102,7 @@ func resolveDeveloperPrincipal(w http.ResponseWriter, r *http.Request, client de
 	// always yields a complete SANDBOX context) is AUTHORIZATION_UNAVAILABLE,
 	// never an invalid key.
 	unavailable := errors.Is(err, service.ErrAuthorizationUnavailable) ||
-		(err == nil && (kc == nil || kc.KeyID == "" || kc.Environment != "SANDBOX"))
+		(err == nil && (kc == nil || kc.KeyID == "" || !env.Parse(kc.Environment).IsSandbox()))
 	if unavailable {
 		w.Header().Set("Retry-After", "2")
 		apierror.Respond(w, r, http.StatusServiceUnavailable, "AUTHORIZATION_UNAVAILABLE",

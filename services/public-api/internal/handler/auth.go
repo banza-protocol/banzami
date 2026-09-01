@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -83,7 +84,16 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// never fired and every consumer registered in the Sandbox started at zero —
 	// silently, because a skipped grant looks identical to a grant of nothing.
 	if isSandboxEnvironment(h.cfg.Environment) {
-		_, _ = h.core.SandboxCreditConsumer(r.Context(), consumer.ID, 1_000_000, "AOA")
+		// RA-059: the outcome was discarded (`_, _ =`), so a refused grant was
+		// indistinguishable from a successful one — the same silent-zero failure
+		// RA-051 produced, reached by a different route. The grant legitimately
+		// fails once the Phase-0 pilot funds-in-circulation cap is reached (core
+		// answers 422) and registration must still succeed, but the operator has
+		// to be able to see it.
+		if _, err := h.core.SandboxCreditConsumer(r.Context(), consumer.ID, 1_000_000, "AOA"); err != nil {
+			slog.Warn("sandbox registration grant did not apply — consumer starts at zero",
+				"consumer_id", consumer.ID, "error", err)
+		}
 	}
 
 	token, expiresAt, err := middleware.NewConsumerToken(
