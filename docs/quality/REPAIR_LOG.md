@@ -1312,8 +1312,25 @@ claiming coverage the evidence does not support.
 - **Title:** Environment decided by raw string comparison across services
 - **Status:** CLOSED (2026-09-01) — proven on the deployed runtime, not from unit tests
 - **Deployed proof:** `/readyz` reports `environment: sandbox`; boot log reads `boot: environment environment=SANDBOX sandbox_routes=true` followed by `SANDBOX mode — fake funding enabled, no real rails, no real settlement` — the old build announced `LIVE mode — real rails active` here. Sandbox funding works (`0 → 25000`). Fail-closed confirmed against the deployed image: `""`, `staging`, `production` and `SANDB0X` each refuse to boot with *refusing to start — ENVIRONMENT is missing or unrecognised*, while `sandbox` boots into SANDBOX mode. `make check-live-fail-closed` PASS.
-- **Consumer auto-grant:** the Sandbox branch demonstrably fires — the grant is attempted and refused by the Phase-0 pilot cap (`PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED`), now visible because of RA-059. Under the RA-051 bug the branch was never taken at all, so the log is positive proof of the fix.
-- **Deployed state (2026-08-31):** the deployed Sandbox still runs the raw-comparison build. CLOSE only after typed-environment behaviour is proven on the deployed runtime; unit tests are not deployed behaviour.
+- **Consumer auto-grant — two separate claims, only one of which is proven:**
+
+  **(A) Environment branch selection — PROVEN.** The Sandbox branch is entered and
+  the grant is attempted. Under the RA-051 defect the comparison failed and the
+  branch was *never taken*, producing no call and no log line at all. The deployed
+  log now shows the call being made, which is positive proof that the defect
+  ("Sandbox branch not entered due to environment string comparison") is fixed.
+
+  **(B) The credit itself — NOT completed in the observed test.** Core refused it
+  with `PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED` (HTTP 422), the Phase-0
+  funds-in-circulation cap working exactly as designed, and the consumer's balance
+  stayed at 0. A refused grant is not a successful grant and is not described as
+  one here. Observing a completed credit would require raising or disabling that
+  cap, which is a deliberate control and was not touched.
+
+  RA-055 closes on (A), which is what the finding was about. (B) is a separate,
+  correct system behaviour that happens to sit on the same code path, and the only
+  reason the two can be told apart at all is RA-059 — before it, the refusal was
+  discarded and a blocked credit was indistinguishable from a skipped branch.
 - **Fixed:** Stage E1.4
 
 14 comparisons, five services, four vocabularies. Two live defects came from it
