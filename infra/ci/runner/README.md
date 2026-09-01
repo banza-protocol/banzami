@@ -49,8 +49,23 @@ docker run -d --name banzami-ci-runner --privileged --restart unless-stopped \
   -e GH_OWNER=banza-protocol -e GH_REPO=banzami -e RUNNER_TOKEN="$TOKEN" \
   -e RUNNER_NAME=banzami-ci-mac \
   -e RUNNER_LABELS='self-hosted,banzami-ci,linux,arm64' \
+  -v banzami-ci-dind:/var/lib/docker \
   banzami-ci-runner:local
 ```
+
+The `banzami-ci-dind` volume is **required**, not an optimisation. Without it the
+inner daemon stores images on the container's own overlay filesystem, and
+overlay-on-overlay is rejected by the kernel:
+
+```
+failed to mount ... fstype: overlay ... err: invalid argument
+```
+
+The visible symptom is every job with a `services:` block failing at *Initialize
+containers* while jobs without one pass — which reads like a service-container
+problem and is actually a storage-driver one. It is a Docker-managed volume, not
+a host path: the runner still mounts nothing from the host filesystem and has no
+host Docker socket.
 
 The registration token is short-lived, supplied at start time, and never baked
 into the image or committed.
