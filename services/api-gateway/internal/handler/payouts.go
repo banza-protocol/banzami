@@ -122,8 +122,13 @@ func (h *PayoutHandler) Create(w http.ResponseWriter, r *http.Request) {
 				"wallet does not have sufficient available funds for this payout")
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
-			"payout could not be created")
+		// RA-056: the core rejects a wallet the caller does not own with 404.
+		// Collapsing every non-insufficient-funds error into 500 turned that
+		// authorization refusal into an INTERNAL_ERROR — the caller was correctly
+		// stopped and no money moved, but a 500 says "we broke" when the true
+		// answer is "that wallet is not yours". Propagate the core's typed status
+		// (the RA-050 helper) instead of flattening it.
+		respondCoreError(w, r, err, "payout could not be created")
 		return
 	}
 
