@@ -100,10 +100,12 @@ executes. Clearing them in an earlier layer made it a silent no-op.
 
 ## Two more differences from `ubuntu-latest`, found by running it
 
-**Rust must be in the image.** GitHub's hosted image ships Rust preinstalled, and
+**Rust and Node must be in the image.** GitHub's hosted image ships both
+preinstalled, and
 some jobs quietly depend on that: the Migrations job calls `cargo install
-sqlx-cli` without a `rust-toolchain` step and failed with exit 127. Jobs that do
-pin a toolchain still override it at job time.
+sqlx-cli` without a `rust-toolchain` step and `node tools/check-schema-manifest.mjs`
+without a `setup-node` step — both failed with exit 127. Jobs that do pin a
+version still override these at job time.
 
 **Link parallelism is capped** via `CARGO_BUILD_JOBS=2`. The Docker Desktop VM
 has ~4 GB and cargo links one test binary per CPU (8 here); several concurrent
@@ -113,6 +115,11 @@ linkers exhaust it and the kernel OOM-kills the linker:
 collect2: fatal error: ld terminated with signal 9 [Killed]
 ```
 
-This changes only how many link steps run concurrently — every test still builds
-and still runs, so no check is weakened. Raise it if the VM is given more memory
-(Docker Desktop → Settings → Resources), which is the better long-term fix.
+Capping concurrency alone was not enough, so debug info is dropped too
+(`CARGO_PROFILE_TEST_DEBUG=0`) — it dominates link-time memory for these
+binaries. Every test still compiles and still runs; only backtrace detail in a
+failing test is reduced, never which tests execute.
+
+**The better fix is more memory.** Docker Desktop → Settings → Resources; the VM
+currently has ~4 GB for 8 CPUs. With more, both settings can be relaxed and CI
+gets faster.

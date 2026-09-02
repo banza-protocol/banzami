@@ -59,6 +59,13 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libicu74 \
     && rm -rf /var/lib/apt/lists/*
 
+# Node. Same reason as Rust: ubuntu-latest ships it, and the Migrations job calls
+# `node tools/check-schema-manifest.mjs` with no setup-node step, failing with
+# exit 127. Jobs that pin a Node version still override this.
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 # Rust toolchain. GitHub's ubuntu-latest image ships Rust preinstalled, and some
 # jobs rely on that without adding a rust-toolchain step — the Migrations job
 # calls `cargo install sqlx-cli` directly and failed here with exit 127. Jobs
@@ -74,7 +81,12 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
 # kernel OOM-kills ld with "collect2: fatal error: ld terminated with signal 9".
 # This changes only how many link steps run at once — every test still builds and
 # still runs, so no check is weakened. Raise it if the VM is given more memory.
-ENV CARGO_BUILD_JOBS=2
+ENV CARGO_BUILD_JOBS=1
+# Debug info dominates link-time memory for these test binaries. Dropping it lets
+# the linker fit in the VM. Every test still compiles and still runs — only
+# backtrace detail in a failing test is reduced, never which tests execute.
+ENV CARGO_PROFILE_DEV_DEBUG=0
+ENV CARGO_PROFILE_TEST_DEBUG=0
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
