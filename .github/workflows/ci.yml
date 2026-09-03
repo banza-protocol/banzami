@@ -399,6 +399,14 @@ jobs:
           echo "runner=$RUNNER_NAME host_arch=$(uname -m)"
           echo "target=x86_64-unknown-linux-gnu (production)"
 
+      # Go is installed per-job by setup-go, exactly as the other Go jobs do it —
+      # the runner image deliberately does not ship a Go toolchain, so a job that
+      # assumes one fails with "go: not found".
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: services/api-gateway/go.mod
+
       - name: Go services — linux/amd64 binaries
         env:
           GOOS: linux
