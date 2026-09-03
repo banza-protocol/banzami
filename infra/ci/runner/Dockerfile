@@ -59,6 +59,15 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libicu74 \
     && rm -rf /var/lib/apt/lists/*
 
+# amd64 cross-toolchain. CI runs on arm64 but production is amd64, so the
+# architecture the artefacts actually ship on was never being compiled. The
+# linker alone is not enough: `ring` compiles C, so the amd64 libc headers are
+# required too — without them the cross build dies in cc-rs, not in Rust.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        gcc-x86-64-linux-gnu libc6-dev-amd64-cross \
+    && rm -rf /var/lib/apt/lists/*
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc
+
 # Node. Same reason as Rust: ubuntu-latest ships it, and the Migrations job calls
 # `node tools/check-schema-manifest.mjs` with no setup-node step, failing with
 # exit 127. Jobs that pin a Node version still override this.
@@ -74,6 +83,7 @@ ENV RUSTUP_HOME=/usr/local/rustup CARGO_HOME=/usr/local/cargo
 ENV PATH=/usr/local/cargo/bin:$PATH
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
       | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
+    && /usr/local/cargo/bin/rustup target add x86_64-unknown-linux-gnu \
     && chmod -R a+w "$RUSTUP_HOME" "$CARGO_HOME"
 
 # Cap link-time parallelism. The Docker Desktop VM has ~4 GB, and cargo links one

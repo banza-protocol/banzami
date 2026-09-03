@@ -380,6 +380,60 @@ jobs:
   # tracked files, and the Rust/Go dependency vulnerability scanners. The gate
   # itself decides what is fatal — this job simply provides the tooling it needs
   # so nothing is silently reported as "skipped" in CI.
+  amd64-artifacts:
+    name: Production artefacts — linux/amd64 build
+    runs-on: [self-hosted, banzami-ci]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      # CI runs on arm64; production runs on amd64. Unit tests passing on arm64
+      # are real evidence, but they are not evidence that the artefacts we ship
+      # even compile for the architecture they run on. This job closes that gap
+      # at CI time instead of at deploy time.
+      #
+      # It is a BUILD check, not an execution check: nothing here proves amd64
+      # runtime behaviour, only that every deployable artefact links for the
+      # production target.
+      - name: Runner identity
+        run: |
+          echo "runner=$RUNNER_NAME host_arch=$(uname -m)"
+          echo "target=x86_64-unknown-linux-gnu (production)"
+
+      - name: Go services — linux/amd64 binaries
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          set -e
+          for svc in api-gateway public-api admin-api developer-api sandbox-operator; do
+            echo "::group::$svc"
+            (cd "services/$svc" && go build -o "/tmp/amd64-$svc" ./...)
+            echo "::endgroup::"
+          done
+
+      - name: Rust core — linux/amd64 binary
+        working-directory: core
+        env:
+          SQLX_OFFLINE: "true"
+          CARGO_BUILD_JOBS: "1"
+          CARGO_PROFILE_DEV_DEBUG: "0"
+        run: cargo build --target x86_64-unknown-linux-gnu -p banzami-core-api --bin core-api
+
+      # A build that silently produced arm64 output would pass the steps above
+      # while proving nothing, so assert the machine type of the artefact itself.
+      - name: Assert artefacts are x86-64
+        run: |
+          set -e
+          BIN=core/target/x86_64-unknown-linux-gnu/debug/core-api
+          readelf -h "$BIN" | grep -q 'Machine:.*X86-64' \
+            || { echo "core-api is not x86-64"; readelf -h "$BIN" | grep Machine; exit 1; }
+          echo "core-api: $(readelf -h "$BIN" | awk -F: '/Machine/{print $2}' | xargs)"
+          for svc in api-gateway public-api admin-api developer-api sandbox-operator; do
+            readelf -h "/tmp/amd64-$svc" | grep -q 'Machine:.*X86-64' \
+              || { echo "$svc is not x86-64"; exit 1; }
+            echo "$svc: x86-64 OK"
+          done
+
   security:
     name: Security — regressions, secrets, dependencies
     runs-on: [self-hosted, banzami-ci, linux, arm64]
