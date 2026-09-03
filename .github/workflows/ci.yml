@@ -35,6 +35,23 @@ on:
 permissions:
   contents: read
 
+# Every `run:` step uses bash with -e AND -o pipefail.
+#
+# GitHub's default shell is `bash -e {0}` — which has -e but NOT pipefail, so a
+# pipeline takes the exit status of its LAST command and a failing producer is
+# silently discarded:
+#
+#     false | head -1     # rc=0 under the default shell, rc=1 with pipefail
+#
+# That is not hypothetical here: a manual cross-build check in this repository
+# reported "OK" for a `go build` that was failing, because its output was piped
+# through `head`. A pipeline is only evidence if failures propagate to the gate.
+#
+# `shell: bash` resolves to `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
+
 env:
   CARGO_TERM_COLOR: always
   # Shared across all jobs that need a database
@@ -398,6 +415,18 @@ jobs:
         run: |
           echo "runner=$RUNNER_NAME host_arch=$(uname -m)"
           echo "target=x86_64-unknown-linux-gnu (production)"
+
+      # Self-proving guard: this asserts the property the workflow relies on
+      # rather than trusting the `defaults:` block to still be there. Under the
+      # default `bash -e` shell `false | head -1` succeeds, so this step would
+      # fail — which is exactly the false positive it exists to prevent.
+      - name: Assert pipeline failures propagate
+        run: |
+          if (false | head -1); then
+            echo "::error::pipefail is NOT active — a failing producer in a pipeline would pass silently"
+            exit 1
+          fi
+          echo "pipefail active: a failing producer fails the step"
 
       # Go is installed per-job by setup-go, exactly as the other Go jobs do it —
       # the runner image deliberately does not ship a Go toolchain, so a job that
