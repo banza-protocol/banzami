@@ -24,6 +24,23 @@ permissions:
   contents: read
   id-token: write   # npm provenance via OIDC / trusted publishing
 
+# Every `run:` step uses bash with -e AND -o pipefail.
+#
+# GitHub's default shell is `bash -e {0}` — which has -e but NOT pipefail, so a
+# pipeline takes the exit status of its LAST command and a failing producer is
+# silently discarded:
+#
+#     false | head -1     # rc=0 under the default shell, rc=1 with pipefail
+#
+# That is not hypothetical here: a manual cross-build check in this repository
+# reported "OK" for a `go build` that was failing, because its output was piped
+# through `head`. A pipeline is only evidence if failures propagate to the gate.
+#
+# `shell: bash` resolves to `bash --noprofile --norc -eo pipefail {0}`.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   release:
     runs-on: ubuntu-latest
