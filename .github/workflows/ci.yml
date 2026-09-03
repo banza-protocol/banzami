@@ -405,11 +405,20 @@ jobs:
           GOARCH: amd64
         run: |
           set -e
+          # -o must be a DIRECTORY here: `./...` matches several packages, and
+          # `go build -o <file> ./...` refuses to write multiple packages to a
+          # non-directory. Each service's main package lands in OUT as its own
+          # binary, whatever the cmd/ directory happens to be called.
+          OUT=/tmp/amd64-bin
+          rm -rf "$OUT" && mkdir -p "$OUT"
           for svc in api-gateway public-api admin-api developer-api sandbox-operator; do
             echo "::group::$svc"
-            (cd "services/$svc" && go build -o "/tmp/amd64-$svc" ./...)
+            (cd "services/$svc" && go build -o "$OUT/" ./...)
             echo "::endgroup::"
           done
+          ls -1 "$OUT"
+          [ "$(ls -1 "$OUT" | wc -l)" -ge 5 ] \
+            || { echo "expected at least 5 service binaries, got $(ls -1 "$OUT" | wc -l)"; exit 1; }
 
       - name: Rust core — linux/amd64 binary
         working-directory: core
@@ -428,10 +437,10 @@ jobs:
           readelf -h "$BIN" | grep -q 'Machine:.*X86-64' \
             || { echo "core-api is not x86-64"; readelf -h "$BIN" | grep Machine; exit 1; }
           echo "core-api: $(readelf -h "$BIN" | awk -F: '/Machine/{print $2}' | xargs)"
-          for svc in api-gateway public-api admin-api developer-api sandbox-operator; do
-            readelf -h "/tmp/amd64-$svc" | grep -q 'Machine:.*X86-64' \
-              || { echo "$svc is not x86-64"; exit 1; }
-            echo "$svc: x86-64 OK"
+          for b in /tmp/amd64-bin/*; do
+            readelf -h "$b" | grep -q 'Machine:.*X86-64' \
+              || { echo "$(basename "$b") is not x86-64"; exit 1; }
+            echo "$(basename "$b"): x86-64 OK"
           done
 
   security:
