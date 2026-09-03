@@ -123,3 +123,25 @@ failing test is reduced, never which tests execute.
 **The better fix is more memory.** Docker Desktop → Settings → Resources; the VM
 currently has ~4 GB for 8 CPUs. With more, both settings can be relaxed and CI
 gets faster.
+
+## Production architecture (arm64 CI, amd64 production)
+
+CI runs on arm64; production runs on amd64. Tests passing on arm64 are real
+evidence, but they are not evidence that the artefacts we ship even compile for
+the architecture they run on — so the image carries an amd64 cross-toolchain and
+the `amd64-artifacts` job builds every deployable artefact for
+`x86_64-unknown-linux-gnu` on each run.
+
+The linker alone is not enough: `ring` compiles C, so `libc6-dev-amd64-cross` is
+required too. Without it the cross build dies inside cc-rs rather than in Rust,
+which is a confusing place to land.
+
+**What this proves and what it does not.** It proves every production artefact
+*builds and links* for amd64, moving architecture breakage from deploy time to CI
+time. It does **not** prove amd64 *runtime* behaviour — nothing here executes an
+amd64 binary. Genuine amd64 execution testing would need an amd64 runner, and the
+deploy path still builds natively on the amd64 server.
+
+The job asserts the ELF machine type of each artefact rather than trusting the
+build to have targeted what it was asked to, since a build that silently emitted
+arm64 would otherwise pass while proving nothing.

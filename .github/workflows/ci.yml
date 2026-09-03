@@ -380,6 +380,77 @@ jobs:
   # tracked files, and the Rust/Go dependency vulnerability scanners. The gate
   # itself decides what is fatal — this job simply provides the tooling it needs
   # so nothing is silently reported as "skipped" in CI.
+  amd64-artifacts:
+    name: Production artefacts — linux/amd64 build
+    runs-on: [self-hosted, banzami-ci]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+
+      # CI runs on arm64; production runs on amd64. Unit tests passing on arm64
+      # are real evidence, but they are not evidence that the artefacts we ship
+      # even compile for the architecture they run on. This job closes that gap
+      # at CI time instead of at deploy time.
+      #
+      # It is a BUILD check, not an execution check: nothing here proves amd64
+      # runtime behaviour, only that every deployable artefact links for the
+      # production target.
+      - name: Runner identity
+        run: |
+          echo "runner=$RUNNER_NAME host_arch=$(uname -m)"
+          echo "target=x86_64-unknown-linux-gnu (production)"
+
+      # Go is installed per-job by setup-go, exactly as the other Go jobs do it —
+      # the runner image deliberately does not ship a Go toolchain, so a job that
+      # assumes one fails with "go: not found".
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: services/api-gateway/go.mod
+
+      - name: Go services — linux/amd64 binaries
+        env:
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          set -e
+          # -o must be a DIRECTORY here: `./...` matches several packages, and
+          # `go build -o <file> ./...` refuses to write multiple packages to a
+          # non-directory. Each service's main package lands in OUT as its own
+          # binary, whatever the cmd/ directory happens to be called.
+          OUT=/tmp/amd64-bin
+          rm -rf "$OUT" && mkdir -p "$OUT"
+          for svc in api-gateway public-api admin-api developer-api sandbox-operator; do
+            echo "::group::$svc"
+            (cd "services/$svc" && go build -o "$OUT/" ./...)
+            echo "::endgroup::"
+          done
+          ls -1 "$OUT"
+          [ "$(ls -1 "$OUT" | wc -l)" -ge 5 ] \
+            || { echo "expected at least 5 service binaries, got $(ls -1 "$OUT" | wc -l)"; exit 1; }
+
+      - name: Rust core — linux/amd64 binary
+        working-directory: core
+        env:
+          SQLX_OFFLINE: "true"
+          CARGO_BUILD_JOBS: "1"
+          CARGO_PROFILE_DEV_DEBUG: "0"
+        run: cargo build --target x86_64-unknown-linux-gnu -p banzami-core-api --bin core-api
+
+      # A build that silently produced arm64 output would pass the steps above
+      # while proving nothing, so assert the machine type of the artefact itself.
+      - name: Assert artefacts are x86-64
+        run: |
+          set -e
+          BIN=core/target/x86_64-unknown-linux-gnu/debug/core-api
+          readelf -h "$BIN" | grep -q 'Machine:.*X86-64' \
+            || { echo "core-api is not x86-64"; readelf -h "$BIN" | grep Machine; exit 1; }
+          echo "core-api: $(readelf -h "$BIN" | awk -F: '/Machine/{print $2}' | xargs)"
+          for b in /tmp/amd64-bin/*; do
+            readelf -h "$b" | grep -q 'Machine:.*X86-64' \
+              || { echo "$(basename "$b") is not x86-64"; exit 1; }
+            echo "$(basename "$b"): x86-64 OK"
+          done
+
   security:
     name: Security — regressions, secrets, dependencies
     runs-on: [self-hosted, banzami-ci, linux, arm64]
