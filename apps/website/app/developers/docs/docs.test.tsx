@@ -130,13 +130,14 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(PT.includes('developer-api.banzami.com')).toBe(false);
   });
-  it('avoids forbidden phrasings (mock / prova de conceito / Live no futuro / runnable npm install)', () => {
+  it('avoids forbidden phrasings and gives the real install command', () => {
     for (const bad of ['apenas um mock', 'prova de conceito', 'live no futuro', 'demonstração fictícia']) {
       expect(PT.toLowerCase().includes(bad)).toBe(false);
     }
-    // npm install may appear only inside the explicit anti-instruction.
-    expect(PT.split('npm install @banzami/sdk').length - 1).toBeLessThanOrEqual(1);
-    expect(PT).toContain('Não corra');
+    // The TypeScript SDK is published, so the real install command belongs here
+    // and the old "do not run" wording must be gone.
+    expect(PT.split('npm install @banzami/sdk').length - 1).toBeGreaterThanOrEqual(1);
+    expect(PT.includes('Não corra'), 'the anti-instruction must not survive publication').toBe(false);
   });
   it('the get-started page links back to banzami.com and to the Console login', () => {
     render(<PtGetStartedPage />);

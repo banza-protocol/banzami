@@ -80,12 +80,16 @@ describe('P0 — unverified event vocabulary is banned on every developer surfac
 
 describe('P0 — no fake SDK install commands, SDKs never the primary path', () => {
   it('overview has no install command for unpublished packages', () => {
-    for (const cmd of ['npm install @banzami', 'pod "Banzami"', 'com.banzami:sdk', 'pip install banzami', 'composer require banzami', 'pub add banzami', 'go get github.com/banzami']) {
+    for (const cmd of ['pod "Banzami"', 'com.banzami:sdk', 'pip install banzami', 'composer require banzami', 'pub add banzami', 'go get github.com/banzami']) {
       expect(OVERVIEW.includes(cmd), `overview must not contain "${cmd}"`).toBe(false);
     }
   });
-  it('docs keeps the explicit anti-instruction and the not-published statement', () => {
-    expect(DOCS).toContain('Não corra');
+  // The TypeScript SDK is published, so the old "do not install" wording is
+  // retired and the docs carry the real command. The remaining families are
+  // still unpublished and must still say so.
+  it('docs give the real install command and still flag the unpublished families', () => {
+    expect(DOCS).toContain('npm install @banzami/sdk');
+    expect(DOCS.includes('Não corra'), 'the anti-instruction must not survive publication').toBe(false);
     expect(DOCS).toContain('não estão publicados');
   });
   it('overview has no native iOS/Android SDK claim (Flutter is the mobile path)', () => {

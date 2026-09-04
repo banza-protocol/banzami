@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-09-04
+
+### Fixed — the documented path did not work
+- **A Developer Console key is now used directly as the bearer credential.**
+  The client previously sent every key to the merchant exchange endpoint
+  `POST /v1/auth/token`. Console-issued keys (`bz_test_sk_…`) are not
+  exchangeable — the Gateway introspects them per request — so the very first
+  call an external developer makes, following the documented Quickstart with a
+  key they had just created, failed with `BanzamiAuthError: Invalid or
+  unauthorized Banzami API key` on a key that was perfectly valid.
+
+  The two credential shapes are told apart by the `sk_`/`pk_` segment, which
+  only Console keys carry; a merchant key has hex immediately after the
+  environment prefix. Merchant API keys continue to be exchanged for a JWT
+  exactly as before, so existing integrations are unaffected.
+
+### Added
+- `isDeveloperPlatformKey(apiKey)` — classifies which credential model a key
+  belongs to.
+
+## [0.4.0] — 2026-09-04
+
+First release published to the public npm registry. Versions 0.1.0–0.3.0 were
+internal/vendored only and were never published; 0.4.0 is therefore the first
+version installable as `npm install @banzami/sdk`.
+
+### Added
+- Published to npm as **`@banzami/sdk`** (public). External applications no
+  longer vendor a copy of this package to integrate with Banzami.
+- MIT licence for this package's client code (`sdk/typescript/LICENSE`). The
+  grant covers this package only — not the Banzami service, API, platform, the
+  BANZA protocol, or Banzami trademarks. See the README "Licence" section.
+
 ### Removed — BREAKING (security)
 - `sendTransfer(...)`, `getTransfer(id)` and `listTransfers(...)`. These called an
   id-based **merchant** transfer surface that has been retired. A

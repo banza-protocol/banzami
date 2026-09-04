@@ -477,3 +477,23 @@ npm test
 # Tests in watch mode
 npm run test:watch
 ```
+
+---
+
+## Licence
+
+The `@banzami/sdk` **client code in this package** is licensed under the
+[MIT licence](./LICENSE).
+
+That grant is deliberately narrow, and covers this package only:
+
+- **Use of the Banzami hosted service and API** — creating payment sessions,
+  moving money, receiving webhooks — remains governed by the Banzami terms of
+  service and your operator agreement. Installing this package does not grant
+  access to the service, and does not licence the Banzami platform, backend,
+  Developer Platform, infrastructure, or documentation.
+- **The BANZA protocol** is governed separately by the BANZA protocol project.
+  It is not relicensed by this package.
+- **No trademark rights.** The MIT licence does not grant any right to use the
+  Banzami or BANZA names, logos, or branding. See the brand guidance in the
+  developer documentation before referring to Banzami in your product.

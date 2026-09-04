@@ -126,7 +126,7 @@ describe('P3A — public artifact URLs unchanged', () => {
 describe('P3A — claim safety across the reorganized corpus', () => {
   const CORPUS = PT + EN;
   it('no fake installs; no HTTP-recommended wording; SDK-first present', () => {
-    expect(CORPUS.split('npm install @banzami/sdk').length - 1).toBeLessThanOrEqual(2); // one anti-instruction per language
+    expect(CORPUS.split('npm install @banzami/sdk').length - 1).toBeGreaterThanOrEqual(2); // the real command, per language
     for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'pod "Banzami"']) {
       expect(CORPUS.includes(cmd)).toBe(false);
     }
@@ -136,15 +136,26 @@ describe('P3A — claim safety across the reorganized corpus', () => {
     expect(PT).toContain('SDK-first');
     expect(EN).toContain('SDK-first');
   });
-  it('controlled preview, pending-E2E, simulated, demo Console, Stage C not approved persist', () => {
+  // These pin the claims that are STILL true. Two former entries were retired
+  // deliberately rather than relaxed: the Console is no longer a demo, and
+  // outbound webhooks are no longer simulated. Both were proven end to end
+  // against the deployed Sandbox, so continuing to assert the old wording would
+  // pin an untruth — understating the platform, which is as wrong as
+  // overstating it. What remains unproven is still pinned here.
+  it('controlled preview, pending-E2E and Stage C not approved persist', () => {
     expect(PT).toContain('pré-visualização controlada');
     expect(EN).toContain('controlled preview');
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
-    expect(EN).toContain('demo previews, not operational');
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
+  });
+
+  it('does not re-introduce the retired demo-Console or simulated-webhook claims', () => {
+    for (const stale of ['demo previews, not operational', 'demo / non-operational']) {
+      expect(EN.includes(stale), `EN must not re-assert: ${stale}`).toBe(false);
+    }
+    expect(PT.includes('demo / não-operacional'), 'PT must not re-assert demo Console').toBe(false);
   });
   it('no production/live/BNA/provider/regulatory or certification overclaims', () => {
     for (const bad of ['production ready', 'Production is available', 'BNA approved', 'SOC 2', 'ISO 27001', 'PCI DSS', 'certified uptime', '99.9']) {

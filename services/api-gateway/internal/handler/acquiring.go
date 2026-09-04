@@ -20,10 +20,14 @@ type AcquiringHandler struct {
 	svc          service.AcquiringService
 	paymentLinks service.PaymentLinkService
 	fcm          *notify.FCMService
+	// webhookSvc lets the PAYER-side confirmation paths emit payment_link.paid.
+	// Without it these paths marked a link used and told nobody — see
+	// dispatchPaymentLinkPaid.
+	webhookSvc service.WebhookService
 }
 
-func NewAcquiringHandler(svc service.AcquiringService, pl service.PaymentLinkService, fcm *notify.FCMService) *AcquiringHandler {
-	return &AcquiringHandler{svc: svc, paymentLinks: pl, fcm: fcm}
+func NewAcquiringHandler(svc service.AcquiringService, pl service.PaymentLinkService, fcm *notify.FCMService, webhookSvc service.WebhookService) *AcquiringHandler {
+	return &AcquiringHandler{svc: svc, paymentLinks: pl, fcm: fcm, webhookSvc: webhookSvc}
 }
 
 // notifAmount formats an amount in minor units for a push notification body.
@@ -116,6 +120,10 @@ func (h *AcquiringHandler) EmisCallback(w http.ResponseWriter, r *http.Request) 
 			"error", mlErr,
 		)
 	} else {
+		// The payer paid: the merchant's integration has to hear about it.
+		// Authority comes from the provider-signed callback, which the core
+		// validated above, so the link is the one the payment belongs to.
+		dispatchPaymentLinkPaid(h.webhookSvc, link)
 		go h.fcm.SendPaymentToMerchant(context.Background(), link.MerchantID, "", payment.AmountMinor, payment.Currency)
 	}
 
@@ -148,11 +156,16 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
+	if usedLink, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
 		slog.Error("test-confirm: failed to mark payment link used",
 			"payment_link_id", payment.PaymentLinkID,
 			"error", mlErr,
 		)
+	} else {
+		// Same event a real provider confirmation produces. The Sandbox rail
+		// must behave like the rail it stands in for, or an integration that
+		// passes in Sandbox would go silent in Live.
+		dispatchPaymentLinkPaid(h.webhookSvc, usedLink)
 	}
 
 	go h.fcm.SendPaymentToMerchant(context.Background(), link.MerchantID, "", payment.AmountMinor, payment.Currency)

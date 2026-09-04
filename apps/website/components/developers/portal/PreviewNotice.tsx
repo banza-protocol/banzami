@@ -1,11 +1,22 @@
-// Non-availability notice for the Developer portal.
+// Environment notice for the Developer portal.
 //
-// The Developer Platform API/SDK flows are validated in the internal Sandbox, but a
-// visual Developer Console is planned separately and is NOT part of the tested scope
-// (Developer Console UI E2E remains BLOCKED — no tested frontend path). These portal
-// routes are a demonstration/preview only, so every portal + auth screen renders this
-// banner to avoid implying an available Console. Copy only — no behaviour, no session,
-// OTP, CSRF or API-key material is touched here.
+// This banner used to say the Console was a demonstration and "not an
+// operational console". That was written when there was no tested frontend
+// path, and it is no longer true: the deployed Console is exercised end to end
+// against the deployed Sandbox — real email OTP login, __Host- session cookie
+// (httpOnly/Secure/SameSite), CSRF enforcement, workspace and project creation,
+// the full API-key lifecycle (create / reveal-once / rotate / revoke) and
+// cross-tenant isolation on every one of those. Leaving the old copy up would
+// have been the mirror image of overclaiming: telling developers that working
+// software does not work.
+//
+// What IS still true, and what this banner now says, is the thing a developer
+// actually needs to know before they build: everything here is SANDBOX. The
+// money is not real. That distinction has to stay visible without implying the
+// platform is unfinished.
+//
+// Copy only — no behaviour. No session, OTP, CSRF or API-key material is
+// touched here.
 
 export function PreviewNotice() {
   return (
@@ -18,19 +29,20 @@ export function PreviewNotice() {
         margin: '0 0 14px',
         padding: '9px 13px',
         borderRadius: 10,
-        border: '1px solid #F3D07A',
-        background: '#FFF8E6',
-        color: '#7a5b12',
+        border: '1px solid #BFD8F3',
+        background: '#EFF6FF',
+        color: '#1B4A7A',
         fontSize: 12.5,
         fontWeight: 700,
         lineHeight: 1.45,
       }}
     >
-      <span aria-hidden="true">🔧</span>
+      <span aria-hidden="true">🧪</span>
       <span>
-        Pré-visualização (demonstração). Os fluxos de API/SDK da Developer Platform foram
-        validados no Sandbox interno; um Developer Console visual é planeado em separado e
-        ainda não está disponível. Estas páginas não são um console operacional.
+        Ambiente <strong>Sandbox</strong>. As chaves, os pagamentos e os webhooks aqui são
+        reais e funcionais para integração e teste, mas <strong>nenhum dinheiro real é
+        movimentado</strong>. Os trilhos financeiros Live são um ambiente separado e não são
+        activados por nada nesta consola.
       </span>
     </div>
   );

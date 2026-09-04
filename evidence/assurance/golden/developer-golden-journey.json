@@ -1,0 +1,223 @@
+{
+  "suite": "BANZAMI DEVELOPERS × DOA GOLDEN JOURNEY (developer key)",
+  "environment": "sandbox",
+  "build": "291aa695b91a",
+  "gateway": "https://sandbox-api.banzami.com",
+  "generated_at": "2026-09-04T17:01:25.129Z",
+  "total": 42,
+  "passed": 42,
+  "failed": 0,
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "GJ.provision.projects",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "id": "GJ.binding.active",
+      "pass": true,
+      "note": "ACTIVE/ACTIVE"
+    },
+    {
+      "id": "GJ.binding.immutable",
+      "pass": true,
+      "note": "a bound project cannot be rebound to another payee"
+    },
+    {
+      "id": "GJ.key.sandbox-prefix",
+      "pass": true,
+      "note": "bz_test_ prefix, len 54"
+    },
+    {
+      "id": "GJ.identity.ok",
+      "pass": true,
+      "note": "→ 200, env=SANDBOX"
+    },
+    {
+      "id": "GJ.identity.scopes",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "id": "GJ.identity.no-internal-leak",
+      "pass": true,
+      "note": "no payee/core/topology ids on /v1/me"
+    },
+    {
+      "id": "GJ.session.created",
+      "pass": true,
+      "note": "→ 201"
+    },
+    {
+      "id": "GJ.session.amount-exact",
+      "pass": true,
+      "note": "250000 AOA"
+    },
+    {
+      "id": "GJ.session.interfaces-issued",
+      "pass": true,
+      "note": "PAYMENT_LINK,DEEP_LINK,DYNAMIC_QR"
+    },
+    {
+      "id": "GJ.session.link-is-usable-url",
+      "pass": true,
+      "note": "no id-to-URL reconstruction needed"
+    },
+    {
+      "id": "GJ.session.qr-payload-signed",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "id": "GJ.session.idempotent-replay",
+      "pass": true,
+      "note": "→ 201"
+    },
+    {
+      "id": "GJ.session.idempotent-same-resource",
+      "pass": true,
+      "note": "replay returns the same session"
+    },
+    {
+      "id": "GJ.session.idempotency-conflict",
+      "pass": true,
+      "note": "→ 409"
+    },
+    {
+      "id": "GJ.session.read-own",
+      "pass": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "GJ.authority.client-cannot-name-payee",
+      "pass": true,
+      "note": "→ 400"
+    },
+    {
+      "id": "GJ.isolation.cross-project-read-denied",
+      "pass": true,
+      "note": "→ 404"
+    },
+    {
+      "id": "GJ.scope.missing-scope-denied",
+      "pass": true,
+      "note": "→ 403"
+    },
+    {
+      "id": "GJ.auth.bogus-key-denied",
+      "pass": true,
+      "note": "→ 401"
+    },
+    {
+      "id": "GJ.auth.unauthenticated-denied",
+      "pass": true,
+      "note": "→ 401"
+    },
+    {
+      "id": "GJ.valid.zero-amount",
+      "pass": true,
+      "note": "→ 400"
+    },
+    {
+      "id": "GJ.valid.negative-amount",
+      "pass": true,
+      "note": "→ 400"
+    },
+    {
+      "id": "GJ.valid.unsupported-currency",
+      "pass": true,
+      "note": "→ 400"
+    },
+    {
+      "id": "GJ.payer.link-public-no-auth",
+      "pass": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "GJ.payer.no-internal-ids",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "id": "GJ.payer.status-before-payment",
+      "pass": true,
+      "note": "{\"paid\":false}"
+    },
+    {
+      "id": "GJ.payer.qr-renderable",
+      "pass": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "GJ.webhook.endpoint-registered",
+      "pass": true,
+      "note": "→ 201"
+    },
+    {
+      "id": "GJ.settle.payer-initiated",
+      "pass": true,
+      "note": "→ 201"
+    },
+    {
+      "id": "GJ.settle.sandbox-confirm",
+      "pass": true,
+      "note": "→ 200"
+    },
+    {
+      "id": "GJ.settle.status-reflects-payment",
+      "pass": true,
+      "note": "{\"paid\":true}"
+    },
+    {
+      "id": "GJ.webhook.delivered",
+      "pass": true,
+      "note": "1 request(s)"
+    },
+    {
+      "id": "GJ.webhook.signature-header",
+      "pass": true,
+      "note": "Banza-Signature present"
+    },
+    {
+      "id": "GJ.webhook.signature-verifies-independently",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "id": "GJ.webhook.raw-body-required",
+      "pass": true,
+      "note": "signing is over the bytes on the wire, not a re-encoding"
+    },
+    {
+      "id": "GJ.webhook.event-identity",
+      "pass": true,
+      "note": "event carries a stable id for deduplication"
+    },
+    {
+      "id": "GJ.webhook.no-secret-in-transit",
+      "pass": true,
+      "note": ""
+    },
+    {
+      "id": "GJ.settle.replay-no-double-pay",
+      "pass": true,
+      "note": "re-initiate → 422 (confirm replay → 200)"
+    },
+    {
+      "id": "GJ.settle.no-second-business-event",
+      "pass": true,
+      "note": "2 → 2"
+    },
+    {
+      "id": "GJ.key.revoked-immediately",
+      "pass": true,
+      "note": "200 → 401"
+    },
+    {
+      "id": "GJ.key.revoked-cannot-pay",
+      "pass": true,
+      "note": "→ 401"
+    }
+  ]
+}

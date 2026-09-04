@@ -1,8 +1,8 @@
 {
   "name": "@banzami/sdk",
-  "version": "0.3.0",
-  "description": "Official JavaScript/TypeScript SDK for the Banzami payment platform",
-  "license": "UNLICENSED",
+  "version": "0.5.0",
+  "description": "Official TypeScript/JavaScript SDK for Banzami — instant Kwanza payments on the BANZA protocol",
+  "license": "MIT",
   "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -28,7 +28,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
@@ -44,5 +45,25 @@
     "@types/node": "^25.8.0",
     "typescript": "^5.4.0",
     "vitest": "^4.1.6"
+  },
+  "homepage": "https://developers.banzami.com/docs",
+  "bugs": {
+    "url": "https://developers.banzami.com/developers/suporte",
+    "email": "contact@banzami.com"
+  },
+  "keywords": [
+    "banzami",
+    "banza",
+    "payments",
+    "angola",
+    "kwanza",
+    "aoa",
+    "qr",
+    "webhooks",
+    "fintech",
+    "sdk"
+  ],
+  "publishConfig": {
+    "access": "public"
   }
 }

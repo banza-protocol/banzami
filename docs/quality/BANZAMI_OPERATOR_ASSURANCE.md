@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 8 |
-| verified | 8 |
+| in-audit | 6 |
+| verified | 10 |
 | **total** | **21** |
 
 ## Capabilities
@@ -26,7 +26,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-001 | Payment sessions | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-002 | Payment links | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
@@ -35,7 +35,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
-| CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **blocked-external** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
@@ -48,13 +48,12 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Disposition | Count |
 |---|---|
-| blocked-external | 1 |
 | internal_only | 1 |
-| pending-e2e | 6 |
+| pending-e2e | 5 |
 | quarantined | 5 |
-| released | 8 |
+| released | 10 |
 
-Public surfaces released: **7/14**. Full external launch requires 14/14.
+Public surfaces released: **9/14**. Full external launch requires 14/14.
 
 ## Detail
 
@@ -100,7 +99,7 @@ Public surfaces released: **7/14**. Full external launch requires 14/14.
 - **API/UI surface:** /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox ['PAY001.create · amount-exact · currency-preserved · identifier-present · interfaces-issued (deployed sandbox)', 'PAY001.read-own · no-ledger-movement (session is an intent, not a settlement)', 'PAY001.idempotent-replay · idempotency-actor-scoped · idempotency-concurrent-single-resource', 'PAY001.purpose-omitted-defaults · purpose-explicit-generic (RA-045)'] · negative/security ['PAY001.neg.unauthenticated · neg.bogus-credential (401)', 'PAY001.neg.cross-merchant-create (403) · neg.cross-merchant-read (404) — two independently provisioned merchants', 'PAY001.neg.zero-amount · neg.negative-amount · neg.unsupported-currency · neg.unknown-purpose (400)', 'PAY001.neg.unknown-session · neg.malformed-id (404) · neg.no-internal-leak', 'PAY001.idempotency-conflict-rejected (409) — reused key, different payload (RA-044)']
-- **Evidence:** evidence/assurance/payments/cap-pay-001-db30ba00.json, tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs, docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
+- **Evidence:** evidence/assurance/payments/cap-pay-001-db30ba00.json, evidence/assurance/golden/developer-golden-journey.json, tools/e2e/golden/developer-golden-journey-e2e.mjs, tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs, docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
@@ -131,12 +130,12 @@ Public surfaces released: **7/14**. Full external launch requires 14/14.
 - **Implementation:** services/api-gateway, apps/mobile
 - **API/UI surface:** /v1/qr
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [] · e2e_sandbox ['WH.delivery.received · signature-header-present · signature-valid-independently (deployed sandbox, public HTTPS receiver)', 'WH.delivery.signed-over-raw-bytes — a re-serialised body does NOT verify', 'WH.retry.first-attempt-delivered · retries-on-5xx · event-id-stable-across-attempts', 'WH.retry.no-duplicate-business-events — retries add attempts, not events', 'WH.isolation.source-commits-despite-failing-receiver · source-state-correct · no-financial-side-effect'] · negative/security ['WH.tamper.body-rejected · tamper.signature-rejected · tamper.timestamp-rejected', 'WH.dest.* — http scheme, loopback (v4/v6/name), RFC1918, link-local metadata, unspecified, missing/malformed host all 400 (RA-023)', 'WH.authz.* — cross-merchant read/deactivate 404; victim endpoint unchanged; B sees nothing of A', 'WH.payload.no-secret · no-secret-in-transit · no-foreign-merchant']
+- **Evidence:** evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json, tools/e2e/webhooks/cap-webhook-001-sandbox-e2e.mjs, infra/sandbox/webhook-sink/sink.mjs
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-REFUND-001 — Typed-source refunds (refund_source)
 
@@ -276,11 +275,11 @@ Public surfaces released: **7/14**. Full external launch requires 14/14.
 - **API/UI surface:** "@banzami/sdk/sandbox (curated external Sandbox entry): BanzamiClient.me() + config/errors/env helpers"
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [sdk/typescript env-resolution + webhook-signature tests] · integration [] · e2e_sandbox [SDK clean tarball-install E2E → BanzamiClient.me() against deployed Gateway with a fresh Console key (evidence artifact)] · negative/security [bz_live_+sandbox rejected (BanzamiConfigError); ./sandbox exposes no unreleased-capability methods; tools/check-sdk-contract.mjs]
-- **Evidence:** tools/check-sdk-contract.mjs, evidence/assurance/dev-foundation/sdk-clean-install-1783203531.json, docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md, .github/workflows/sdk-publish.yml, tools/sdk-release.mjs
+- **Evidence:** tools/check-sdk-contract.mjs, evidence/assurance/dev-foundation/sdk-clean-install-1783203531.json, docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md, .github/workflows/sdk-publish.yml, tools/sdk-release.mjs, evidence/assurance/sdk/cap-sdk-001-public-install.json
 - **Cleanup disposition:** active-needs-remediation
-- **External surface:** public · **Disposition:** **blocked-external**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-SDK-002 — Flutter SDK (banzami_flutter)
 

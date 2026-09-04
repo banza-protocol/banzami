@@ -57,6 +57,24 @@ const DEFAULT_PAY_BASE_URLS: Record<BanzamiEnvironment, string> = {
 
 /** Gateway endpoint that exchanges a raw API key for a short-lived JWT. */
 const AUTH_TOKEN_PATH = '/v1/auth/token';
+
+/**
+ * Two different credentials reach this SDK, and they authenticate differently.
+ *
+ *   Developer Platform key  bz_{test,live}_{sk,pk}_…   issued by the Developer
+ *     Console. It is a bearer token in its own right: the Gateway introspects
+ *     it on each request. There is nothing to exchange.
+ *
+ *   Merchant API key        bz_{test,live}_<hex>       the older merchant
+ *     credential, exchanged at /v1/auth/token for a short-lived JWT.
+ *
+ * The discriminator is the `sk_`/`pk_` segment, which only the Console-issued
+ * keys carry — a merchant key has hex immediately after the environment
+ * prefix, so the two can never be confused.
+ */
+export function isDeveloperPlatformKey(apiKey: string): boolean {
+  return /^bz_(test|live)_(sk|pk)_/.test(apiKey ?? '');
+}
 /** Re-exchange this many ms before the JWT actually expires. */
 const TOKEN_REFRESH_SKEW_MS = 60_000;
 /** Fallback JWT lifetime if the auth response omits `expires_at`. */
@@ -250,6 +268,18 @@ export class BanzamiClient {
    * share a single in-flight exchange. The raw API key is never logged.
    */
   private async getAccessToken(): Promise<string> {
+    // A Developer Platform key IS the credential — it is presented directly as
+    // a bearer token and there is nothing to exchange. Only the older
+    // merchant API key is swapped for a JWT at /v1/auth/token.
+    //
+    // Sending a Console-issued key to the exchange endpoint fails
+    // authentication, which is what a developer following the documented path
+    // used to hit on their very first call: create a key in the Console,
+    // construct the client, and get "Invalid or unauthorized Banzami API key"
+    // from a key that was perfectly valid.
+    if (isDeveloperPlatformKey(this.apiKey)) {
+      return this.apiKey;
+    }
     const now = Date.now();
     if (
       this.accessToken &&

@@ -53,10 +53,10 @@ describe('P3B — landing homes', () => {
     for (const sl of slugs) expect(SHELL.includes(`slug: '${sl}'`)).toBe(true);
   });
   it('both homes present the concise 6-line current-state summary', () => {
-    for (const k of ['SDKs', 'HTTP/OpenAPI', 'Produção / trilhos live', 'Console visual', 'Reembolsos / transferências', 'Webhooks outbound']) {
+    for (const k of ['SDKs', 'HTTP/OpenAPI', 'Produção / trilhos live', 'Console de developers', 'Reembolsos / transferências', 'Webhooks outbound']) {
       expect(PT_HOME.includes(k), `PT state row missing: ${k}`).toBe(true);
     }
-    for (const k of ['SDKs', 'HTTP/OpenAPI', 'Production / live rails', 'Visual Console', 'Refunds / transfers', 'Webhook outbound']) {
+    for (const k of ['SDKs', 'HTTP/OpenAPI', 'Production / live rails', 'Developer Console', 'Refunds / transfers', 'Webhook outbound']) {
       expect(EN_HOME.includes(k), `EN state row missing: ${k}`).toBe(true);
     }
   });
@@ -87,14 +87,19 @@ describe('P3B — sidebar labels match the IA', () => {
 
 describe('P3B — quickstart is SDK-first, curl is diagnostic-only', () => {
   it('PT quickstart states the recommended path and curl-for-validation-only', () => {
-    expect(PT).toContain('Caminho recomendado: SDK preview aprovado');
-    expect(PT.replace(/\s+/g, ' ')).toContain('use curl apenas para validar o protocolo, diagnosticar o Sandbox ou auditar chamadas de baixo nível');
+    // The SDK is published, so the recommended path names it and gives the
+    // real command. curl keeps its diagnostic role, but is no longer offered
+    // as a stand-in for an unpublished package.
+    expect(PT).toContain('Caminho recomendado: o SDK TypeScript');
+    expect(PT).toContain('npm install @banzami/sdk');
+    expect(PT.replace(/\s+/g, ' ')).toContain('não é o caminho de implementação');
     // step 7 no longer frames direct HTTP as the primary "continue" path.
     expect(PT.includes('Continue por HTTP direto (curl) ou, opcionalmente')).toBe(false);
   });
   it('EN quickstart states the recommended path and curl-for-validation-only', () => {
-    expect(EN).toContain('Recommended path: approved SDK preview');
-    expect(EN.replace(/\s+/g, ' ')).toContain('use curl only to validate the protocol, diagnose Sandbox behaviour, or audit low-level calls');
+    expect(EN).toContain('Recommended path: the TypeScript SDK');
+    expect(EN).toContain('npm install @banzami/sdk');
+    expect(EN.replace(/\s+/g, ' ')).toContain('it is not the implementation path');
     expect(EN.includes('Continue over direct HTTP (curl) or, optionally')).toBe(false);
   });
   it('direct HTTP is never called the official/recommended implementation path', () => {
@@ -110,8 +115,13 @@ describe('P3B — credential-scoped badge clarity', () => {
     // two cards carry it (transfers + refunds)
     expect((PT.match(/Pendente E2E para chave developer/g) || []).length).toBeGreaterThanOrEqual(2);
   });
-  it('webhooks card distinguishes signature from outbound simulation', () => {
-    expect(PT).toContain("badgeText: 'Assinatura documentada · outbound simulado'");
+  // Outbound delivery is no longer simulated: it is proven against the deployed
+  // Sandbox to a genuinely public HTTPS receiver, with an independently verified
+  // signature, tamper rejection, retry and failure isolation. The card says so,
+  // and this guards against silently reverting to the weaker claim.
+  it('webhooks card states signature AND outbound delivery are verified', () => {
+    expect(PT).toContain("badgeText: 'Assinatura e entrega outbound verificadas em Sandbox'");
+    expect(PT.includes('outbound simulado'), 'must not re-assert simulated outbound').toBe(false);
   });
   it('the docs-claims gate still sees the released-capability tone (transfers tone ok kept)', () => {
     // href → tone adjacency preserved for the manifest-disposition gate.
@@ -163,11 +173,9 @@ describe('P3B — claim safety preserved across the polished corpus', () => {
       expect(CORPUS.includes(cmd)).toBe(false);
     }
   });
-  it('pending-E2E, simulated webhooks, demo Console, Stage C not approved persist', () => {
+  it('pending-E2E and Stage C not approved persist', () => {
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
-    expect(EN).toContain('demo previews, not operational');
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
   });

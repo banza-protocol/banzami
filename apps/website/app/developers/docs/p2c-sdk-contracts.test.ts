@@ -90,7 +90,7 @@ describe('P2C — sdk-contract.json', () => {
 describe('P2C — SDK-style preview examples', () => {
   it('all three examples exist and carry the preview warning + anti-install line', () => {
     for (const [ex, anti] of [
-      [TS_EX, 'Do not run npm install @banzami/sdk until official packages are published'],
+      [TS_EX, 'npm install @banzami/sdk'],
       [PY_EX, 'Do not run pip install banzami until official packages are published'],
       [PHP_EX, 'Do not run composer require banzami/sdk until official packages are published'],
     ] as [string, string][]) {
@@ -112,7 +112,9 @@ describe('P2C — SDK-style preview examples', () => {
   it('no runnable fake install instruction anywhere (anti-instructions only)', () => {
     const all = [PT, EN, TS_EX, PY_EX, PHP_EX, JSON.stringify(CONTRACT), JSON.stringify(MANIFEST)].join('\n');
     // Every occurrence of an install command must be inside an anti-instruction line.
-    for (const cmd of ['npm install @banzami/sdk', 'pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
+    // @banzami/sdk is published, so its install command is a real instruction.
+    // The unpublished families must still appear only as anti-instructions.
+    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
       for (const line of all.split('\n')) {
         if (!line.includes(cmd)) continue;
         const ok = /não corra|nao corra|do not run/i.test(line);
@@ -138,11 +140,9 @@ describe('P2C — previous honesty preserved', () => {
     expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
     expect(/\/docs\/(fr|es|de|it)\b/.test(PT + EN)).toBe(false);
   });
-  it('pending-E2E, simulated webhooks and no production/BNA/Console claims persist', () => {
+  it('pending-E2E and no production/BNA claims persist', () => {
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
-    expect(EN).toContain('demo previews, not operational');
     for (const bad of ['production ready', 'BNA approved', 'Production is available']) {
       expect((PT + EN).toLowerCase().includes(bad.toLowerCase())).toBe(false);
     }

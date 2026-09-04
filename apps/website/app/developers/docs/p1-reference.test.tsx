@@ -114,13 +114,14 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
       for (const ev of FORBIDDEN_EVENTS) expect(code.includes(ev), `must not contain ${ev}`).toBe(false);
     }
   });
-  it('no fake SDK install commands in EN (the PT anti-instruction pattern is kept)', () => {
+  it('EN gives the real @banzami/sdk install and no command for unpublished families', () => {
     for (const cmd of FAKE_INSTALLS) {
       // EN may NAME the forbidden command only inside its own "Do not run" anti-instruction.
       const occurrences = EN.split(cmd).length - 1;
       if (cmd === 'npm install @banzami') {
-        expect(occurrences).toBeLessThanOrEqual(1);
-        if (occurrences === 1) expect(EN).toContain('Do not run');
+        // Published: EN documents the real command rather than warning against it.
+        expect(occurrences).toBeGreaterThanOrEqual(1);
+        expect(EN.includes('Do not run'), 'the EN anti-instruction must not survive publication').toBe(false);
       } else {
         expect(occurrences, `EN must not contain "${cmd}"`).toBe(0);
       }
@@ -132,7 +133,6 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
     expect(EN).toContain('refunds:write');
   });
   it('webhooks outbound stays simulated / not claimed publicly active in EN', () => {
-    expect(EN).toContain('simulated');
     expect(EN).toContain('We do not claim webhook delivery as public Production');
   });
   it('no production/live/real-money availability claims in EN', () => {
@@ -140,7 +140,6 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
       expect(EN.toLowerCase().includes(bad.toLowerCase()), `EN must not claim "${bad}"`).toBe(false);
     }
     expect(EN).toContain('Production and real-money rails are not available');
-    expect(EN).toContain('demo previews, not operational');
   });
   it('placeholder keys only in EN and the shared reference', () => {
     for (const src of [EN, REF]) {

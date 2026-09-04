@@ -1,0 +1,341 @@
+{
+  "suite": "cap-webhook-001",
+  "build": "db967c428d32",
+  "runId": "710fd690-4037-4c69-a061-929c7411a190",
+  "passed": 55,
+  "total": 55,
+  "blocked": 0,
+  "promotable": true,
+  "results": [
+    {
+      "id": "WH.create",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 201"
+    },
+    {
+      "id": "WH.owner-is-caller",
+      "pass": true,
+      "blocked": false,
+      "detail": "endpoint bound to the authenticated merchant"
+    },
+    {
+      "id": "WH.url-preserved",
+      "pass": true,
+      "blocked": false,
+      "detail": "https://sandbox-webhook.banzami.com"
+    },
+    {
+      "id": "WH.secret-revealed-on-create",
+      "pass": true,
+      "blocked": false,
+      "detail": "present (value never persisted to evidence)"
+    },
+    {
+      "id": "WH.secret-not-re-exposed",
+      "pass": true,
+      "blocked": false,
+      "detail": "absent on subsequent read"
+    },
+    {
+      "id": "WH.list-scoped",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "WH.dest.http-scheme",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.loopback",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.loopback-name",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.ipv6-loopback",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.rfc1918",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.rfc1918-172",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.link-local-metadata",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.unspecified",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.missing-host",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.dest.malformed",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.valid.invalid-event",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.valid.empty-events",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.valid.missing-url",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.valid.oversized-url",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 400"
+    },
+    {
+      "id": "WH.authz.read-endpoint",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 404"
+    },
+    {
+      "id": "WH.authz.endpoint-health",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 404"
+    },
+    {
+      "id": "WH.authz.deactivate-endpoint",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 404"
+    },
+    {
+      "id": "WH.authz.victim-endpoint-unchanged",
+      "pass": true,
+      "blocked": false,
+      "detail": "A still owns an active endpoint after B's attempts"
+    },
+    {
+      "id": "WH.authz.b-sees-nothing-of-a",
+      "pass": true,
+      "blocked": false,
+      "detail": "B's view unchanged"
+    },
+    {
+      "id": "WH.source.link-created",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 201"
+    },
+    {
+      "id": "WH.source.mark-used",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "WH.event.produced",
+      "pass": true,
+      "blocked": false,
+      "detail": "1 event(s)"
+    },
+    {
+      "id": "WH.event.type",
+      "pass": true,
+      "blocked": false,
+      "detail": "payment_link.paid"
+    },
+    {
+      "id": "WH.event.scoped-to-merchant",
+      "pass": true,
+      "blocked": false,
+      "detail": "event belongs to the producing merchant"
+    },
+    {
+      "id": "WH.deliveries.owner-can-read",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "WH.deliveries.foreign-refused",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 404"
+    },
+    {
+      "id": "WH.payload.no-secret",
+      "pass": true,
+      "blocked": false,
+      "detail": "no secret-like field"
+    },
+    {
+      "id": "WH.payload.no-foreign-merchant",
+      "pass": true,
+      "blocked": false,
+      "detail": "no unrelated merchant id"
+    },
+    {
+      "id": "WH.sink.endpoint-registered",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 201 \u2014 public sink passes RA-023 unaided"
+    },
+    {
+      "id": "WH.delivery.received",
+      "pass": true,
+      "blocked": false,
+      "detail": "1 request(s) captured"
+    },
+    {
+      "id": "WH.delivery.signature-header-present",
+      "pass": true,
+      "blocked": false,
+      "detail": "Banza-Signature present"
+    },
+    {
+      "id": "WH.delivery.signature-valid-independently",
+      "pass": true,
+      "blocked": false,
+      "detail": "independent HMAC-SHA256 over \"<t>.\" + raw body matches"
+    },
+    {
+      "id": "WH.delivery.signed-over-raw-bytes",
+      "pass": true,
+      "blocked": false,
+      "detail": "a re-serialisation does NOT verify"
+    },
+    {
+      "id": "WH.tamper.body-rejected",
+      "pass": true,
+      "blocked": false,
+      "detail": "appended byte fails"
+    },
+    {
+      "id": "WH.tamper.signature-rejected",
+      "pass": true,
+      "blocked": false,
+      "detail": "flipped digest fails"
+    },
+    {
+      "id": "WH.tamper.timestamp-rejected",
+      "pass": true,
+      "blocked": false,
+      "detail": "timestamp is inside the signed bytes, so changing it invalidates the digest"
+    },
+    {
+      "id": "WH.payload.has-event-id",
+      "pass": true,
+      "blocked": false,
+      "detail": "d4e25542-2b40-4ae6-9e1f-3ddff9dca193"
+    },
+    {
+      "id": "WH.payload.type",
+      "pass": true,
+      "blocked": false,
+      "detail": "payment_link.paid"
+    },
+    {
+      "id": "WH.payload.no-secret-in-transit",
+      "pass": true,
+      "blocked": false,
+      "detail": "no secret-like field on the wire"
+    },
+    {
+      "id": "WH.sink.authorization-not-retained",
+      "pass": true,
+      "blocked": false,
+      "detail": "sink retains an allowlist, so credentials cannot leak in by default"
+    },
+    {
+      "id": "WH.delivery.no-retry-after-success",
+      "pass": true,
+      "blocked": false,
+      "detail": "1 request(s) \u2014 unchanged"
+    },
+    {
+      "id": "WH.retry.endpoint-registered",
+      "pass": true,
+      "blocked": false,
+      "detail": "HTTP 201"
+    },
+    {
+      "id": "WH.isolation.source-commits-despite-failing-receiver",
+      "pass": true,
+      "blocked": false,
+      "detail": "mark-used HTTP 200"
+    },
+    {
+      "id": "WH.isolation.source-state-correct",
+      "pass": true,
+      "blocked": false,
+      "detail": "USED"
+    },
+    {
+      "id": "WH.isolation.no-financial-side-effect",
+      "pass": true,
+      "blocked": false,
+      "detail": "0 \u2192 0"
+    },
+    {
+      "id": "WH.retry.first-attempt-delivered",
+      "pass": true,
+      "blocked": false,
+      "detail": "1 attempt(s)"
+    },
+    {
+      "id": "WH.retry.retries-on-5xx",
+      "pass": true,
+      "blocked": false,
+      "detail": "2 attempt(s) after ~1m backoff"
+    },
+    {
+      "id": "WH.retry.event-id-stable-across-attempts",
+      "pass": true,
+      "blocked": false,
+      "detail": "a retry is the same business event, not a new one"
+    },
+    {
+      "id": "WH.retry.no-duplicate-business-events",
+      "pass": true,
+      "blocked": false,
+      "detail": "3 events for 3 mark-used actions \u2014 retries add attempts, not events"
+    }
+  ]
+}

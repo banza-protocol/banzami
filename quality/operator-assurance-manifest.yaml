@@ -148,17 +148,26 @@ capabilities:
     cleanup_disposition: active-required
     evidence:
       - evidence/assurance/payments/cap-pay-001-db30ba00.json
+      - evidence/assurance/golden/developer-golden-journey.json
+      - tools/e2e/golden/developer-golden-journey-e2e.mjs
       - tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs
       - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
       - docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
     surface: public
     disposition: released
     status: verified
-    # RT03: functions end-to-end for merchant-JWT holders (real core/ledger/proof),
-    # but developer keys cannot reach payment routes — no Project→Merchant binding
-    # (ADR-046 deferred it). BLOCKER: implement ADR-047 (per-project sandbox
-    # merchant/wallet + payment_sessions:* scopes + route wiring) then run the
-    # RT03 §5 deployed E2E. Released only then.
+    # Functions end-to-end for merchant-JWT holders (real core/ledger/proof) AND,
+    # since ADR-047 was implemented and deployed, for Console-issued developer
+    # keys. The former blocker — "developer keys cannot reach payment routes, no
+    # Project→Merchant binding" — no longer holds: the binding exists, payment
+    # scopes are issuable, and the deployed-Sandbox golden journey exercises the
+    # dev-key path end to end (evidence/assurance/golden/, 42/42).
+    #
+    # What that journey establishes for this capability specifically: a session
+    # created with a developer key carries the exact amount and currency, issues
+    # a usable payment link, deep link and dynamic QR, replays idempotently and
+    # returns 409 on a changed payload, refuses a client-supplied payee (400 —
+    # the payee comes only from the binding), and is unreadable across projects.
 
   - id: CAP-PAY-002
     name: Payment links
@@ -225,14 +234,32 @@ capabilities:
     tests:
       unit: []
       integration: []
-      e2e_sandbox: []
-      negative_security: []
+      e2e_sandbox:
+        - 'WH.delivery.received · signature-header-present · signature-valid-independently (deployed sandbox, public HTTPS receiver)'
+        - 'WH.delivery.signed-over-raw-bytes — a re-serialised body does NOT verify'
+        - 'WH.retry.first-attempt-delivered · retries-on-5xx · event-id-stable-across-attempts'
+        - 'WH.retry.no-duplicate-business-events — retries add attempts, not events'
+        - 'WH.isolation.source-commits-despite-failing-receiver · source-state-correct · no-financial-side-effect'
+      negative_security:
+        - 'WH.tamper.body-rejected · tamper.signature-rejected · tamper.timestamp-rejected'
+        - 'WH.dest.* — http scheme, loopback (v4/v6/name), RFC1918, link-local metadata, unspecified, missing/malformed host all 400 (RA-023)'
+        - 'WH.authz.* — cross-merchant read/deactivate 404; victim endpoint unchanged; B sees nothing of A'
+        - 'WH.payload.no-secret · no-secret-in-transit · no-foreign-merchant'
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json
+      - tools/e2e/webhooks/cap-webhook-001-sandbox-e2e.mjs
+      - infra/sandbox/webhook-sink/sink.mjs
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
+    # 55/55 deployed-Sandbox assertions, 0 blocked, against a genuinely public
+    # HTTPS receiver — the SSRF policy (RA-023) is not relaxed for the test rail.
+    # Delivery required giving the gateway egress it never had: its networks were
+    # internal:true, so no outbound webhook could leave. Egress is now a dedicated
+    # guarded network (private space DROPped at the host), so RA-023 stays
+    # defence-in-depth rather than the sole control.
 
   - id: CAP-REFUND-001
     name: Typed-source refunds (refund_source)
@@ -517,22 +544,30 @@ capabilities:
       - docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md
       - .github/workflows/sdk-publish.yml
       - tools/sdk-release.mjs
+      - evidence/assurance/sdk/cap-sdk-001-public-install.json
     surface: public
-    disposition: blocked-external
-    status: in-audit
-    # BLOCKED-EXTERNAL (RT02.1): code-ready and install-verified. The curated
-    # ./sandbox entry exposes ONLY the released surface (me() + config/errors/env);
-    # a clean tarball install + BanzamiClient.me() against the deployed Gateway is
-    # GREEN; the packaged tarball is clean (no maps/tests/secrets/hosts). The SOLE
-    # remaining blocker is EXTERNAL and cannot be resolved by any in-repo work:
-    # publication requires a Banzami-owned registry. npm publish is unavailable
-    # (npm whoami=ENEEDAUTH; @banzami scope inaccessible) and the GitHub token
-    # lacks write:packages. A guarded release workflow (.github/workflows/
-    # sdk-publish.yml + tools/sdk-release.mjs) is prepared and FAILS CLOSED without
-    # registry auth. DECISION REQUIRED (owner: fm65 / Banzami) — see
-    # docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md for the exact npm-org
-    # ownership + least-privilege publisher steps. Released only after real
-    # publication + external clean-install + deployed me() re-verify.
+    disposition: released
+    status: verified
+    # RELEASED: published to the public npm registry as @banzami/sdk@0.5.0 (MIT,
+    # 27 files) and proven from a clean temporary project OUTSIDE both the
+    # Banzami and DOA repositories — installed from the registry with no
+    # file:/link:/path dependency, then run against the deployed Sandbox:
+    # me() resolves the project and scopes, and createPaymentSession returns a
+    # payment link, deep link and dynamic QR.
+    #
+    # That external install is what earned the promotion, and it is also what
+    # caught the defect that made 0.4.0 unusable: the client sent every key to
+    # the merchant exchange endpoint, so a Console-issued key — the only kind
+    # the documented path produces — failed authentication on the first call.
+    # No in-repo test could have found it, because they all use local source.
+    #
+    # api_surface note: the curated ./sandbox entry still exposes only me().
+    # Payment-session methods are reached through the main entry, and the
+    # developer-key payment path is covered by the golden-journey suite rather
+    # than by this capability.
+    # Registry ownership (the former blocker) is resolved: the npm organisation
+    # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
+    # action; no long-lived write token exists in CI.
 
   - id: CAP-SDK-002
     name: Flutter SDK (banzami_flutter)

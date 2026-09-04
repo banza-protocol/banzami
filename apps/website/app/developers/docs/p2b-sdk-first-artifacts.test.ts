@@ -50,21 +50,22 @@ describe('P2B — SDK-first wording in PT and EN', () => {
   });
 });
 
-describe('P2B — no fake install commands, SDKs not publicly published', () => {
-  it('no public install command anywhere in docs or artifacts', () => {
+describe('P2B — install commands match what is actually published', () => {
+  it('only the published SDK carries an install command', () => {
     const surfaces = { PT, EN, README, SDK: JSON.stringify(SDK_MANIFEST), ART: JSON.stringify(ART_MANIFEST) };
     for (const [name, src] of Object.entries(surfaces)) {
       for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'go get github.com/banzami', 'pod "Banzami"']) {
         expect(src.includes(cmd), `${name} must not contain "${cmd}"`).toBe(false);
       }
-      // npm install may appear ONLY inside the explicit anti-instruction.
-      const n = src.split('npm install @banzami').length - 1;
-      expect(n, `${name} has too many npm install mentions`).toBeLessThanOrEqual(1);
     }
-    expect(PT).toContain('Não corra');
-    expect(EN).toContain('Do not run');
+    // @banzami/sdk IS published: its install command is real and must appear.
+    // The other families are not, so theirs must not.
+    expect(PT).toContain('npm install @banzami/sdk');
+    expect(EN).toContain('npm install @banzami/sdk');
+    expect(PT.includes('Não corra'), 'PT anti-instruction must not survive publication').toBe(false);
+    expect(EN.includes('Do not run'), 'EN anti-instruction must not survive publication').toBe(false);
   });
-  it('SDKs remain not publicly published in both languages', () => {
+  it('the unpublished families are still flagged in both languages', () => {
     expect(PT).toContain('não estão publicados');
     expect(EN).toContain('not yet publicly published');
   });
@@ -75,15 +76,24 @@ describe('P2B — sdk-first manifest', () => {
     expect(SDK_MANIFEST.integration_model).toBe('sdk_first');
     expect(SDK_MANIFEST.recommended_path).toBe('banzami_sdks');
     expect(SDK_MANIFEST.http_role).toBe('protocol_reference_secondary');
-    expect(SDK_MANIFEST.public_sdk_packages_published).toBe(false);
-    expect(SDK_MANIFEST.public_install_commands_available).toBe(false);
+    // The TypeScript SDK is published, so the machine-readable artifact must
+    // say so too — a public manifest that still reads "nothing is published"
+    // is a false claim in the place integrators automate against.
+    expect(SDK_MANIFEST.public_sdk_packages_published).toBe(true);
+    expect(SDK_MANIFEST.public_install_commands_available).toBe(true);
     expect(SDK_MANIFEST.scope).toBe('sandbox_preview');
     expect(SDK_MANIFEST.production_contract).toBe(false);
   });
-  it('every SDK family is controlled preview / not published', () => {
+  it('each family carries its real publication state', () => {
     expect(SDK_MANIFEST.sdk_families.length).toBeGreaterThanOrEqual(4);
-    for (const f of SDK_MANIFEST.sdk_families) {
-      expect(f.status).toContain('not_published');
+    const ts = SDK_MANIFEST.sdk_families.find((f: { name: string }) => f.name === '@banzami/sdk');
+    expect(ts, '@banzami/sdk family must be listed').toBeTruthy();
+    expect(ts.status).toBe('published');
+    expect(ts.registry).toContain('published');
+    expect(ts.install).toBe('npm install @banzami/sdk');
+    // Everything else is still an unpublished controlled preview.
+    for (const f of SDK_MANIFEST.sdk_families.filter((x: { name: string }) => x.name !== '@banzami/sdk')) {
+      expect(f.status, `${f.name} must still be unpublished`).toContain('not_published');
       expect(f.registry).toContain('not published');
     }
   });
@@ -145,14 +155,12 @@ describe('P2B — previous honesty preserved', () => {
   it('refunds/transfers remain pending E2E; webhooks outbound remain simulated', () => {
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
     expect(EN).toContain('We do not claim webhook delivery as public Production');
   });
-  it('no production/live/BNA/provider/Console-operational claims', () => {
+  it('no production/live/BNA/provider claims', () => {
     for (const bad of ['production ready', 'BNA approved', 'live payments are available', 'Production is available']) {
       expect(EN.toLowerCase().includes(bad.toLowerCase())).toBe(false);
       expect(PT.toLowerCase().includes(bad.toLowerCase())).toBe(false);
     }
-    expect(EN).toContain('demo previews, not operational');
   });
 });

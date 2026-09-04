@@ -132,11 +132,9 @@ describe('P2E — previous honesty preserved', () => {
     expect(dirs).toContain('en');
     expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
   });
-  it('pending-E2E, simulated, demo Console, Stage C not approved persist', () => {
+  it('pending-E2E and Stage C not approved persist', () => {
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
-    expect(EN).toContain('demo previews, not operational');
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
     expect((PT + EN).toLowerCase().includes('production ready')).toBe(false);

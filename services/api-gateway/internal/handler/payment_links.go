@@ -272,22 +272,44 @@ func (h *PaymentLinkHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Dispatch payment_link.paid to the merchant's registered webhook endpoints.
-	// Fire-and-forget: the response goes to the caller immediately; webhook
-	// delivery is tracked and retried independently by the WebhookService.
+	dispatchPaymentLinkPaid(h.webhookSvc, link)
+
+	respond(w, http.StatusOK, link)
+}
+
+// dispatchPaymentLinkPaid emits payment_link.paid to the merchant's registered
+// endpoints.
+//
+// Every path that marks a link paid MUST go through here. This used to live
+// inline in the merchant-facing MarkUsed handler only, which meant the event
+// fired when a MERCHANT declared a link used but not when a PAYER actually paid
+// it: the acquiring callback and the Sandbox confirm rail both mark the link
+// used on the service directly. The practical effect was that the one webhook
+// an integration actually depends on — "your customer paid" — never arrived,
+// while a merchant-initiated mark-used did. Keeping the dispatch in one function
+// is what stops that asymmetry coming back.
+//
+// Callers must have established authority over the link BEFORE calling this:
+// emitting the event for someone else's link would deliver payment_link.paid to
+// THEIR endpoints (RA-047).
+//
+// Fire-and-forget: the caller's response is not held up by delivery, which the
+// WebhookService tracks and retries independently.
+func dispatchPaymentLinkPaid(webhookSvc service.WebhookService, link *service.PaymentLink) {
+	if webhookSvc == nil || link == nil {
+		return
+	}
 	go func(l *service.PaymentLink) {
 		payload, err := json.Marshal(l)
 		if err != nil {
 			return
 		}
-		_, _ = h.webhookSvc.Dispatch(context.Background(), service.DispatchRequest{
+		_, _ = webhookSvc.Dispatch(context.Background(), service.DispatchRequest{
 			MerchantID: l.MerchantID,
 			EventType:  "payment_link.paid",
 			Payload:    json.RawMessage(payload),
 		})
 	}(link)
-
-	respond(w, http.StatusOK, link)
 }
 
 // ---------------------------------------------------------------------------

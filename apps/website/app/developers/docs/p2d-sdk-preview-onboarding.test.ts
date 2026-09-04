@@ -122,7 +122,8 @@ describe('P2D — previous honesty preserved', () => {
     for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
       expect(joined.includes(cmd)).toBe(false);
     }
-    expect((PT + EN).split('npm install @banzami').length - 1).toBeLessThanOrEqual(2); // anti-instructions only (one per language)
+    // Published: each language documents the real install command.
+    expect((PT + EN).split('npm install @banzami').length - 1).toBeGreaterThanOrEqual(2);
   });
   it('HTTP remains secondary; SDKs not published; PT/EN only; pending-E2E and simulated persist', () => {
     expect(PT).toContain('camada de referência técnica do protocolo');
@@ -130,19 +131,17 @@ describe('P2D — previous honesty preserved', () => {
     expect(EN).toContain('not publicly published');
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
     const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     // P3A: area routes are directories too — the LOCALE rule is that 'en' is the
     // only locale dir and no other-language dir exists.
     expect(dirs).toContain('en');
     expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
   });
-  it('no production/live/BNA/Console-operational claims (BNA appears only inside prohibitions)', () => {
+  it('no production/live/BNA claims (BNA appears only inside prohibitions)', () => {
     for (const line of (PT + EN).split('\n')) {
       if (!/BNA/.test(line)) continue;
       expect(/não reivindicar|do not claim/i.test(line), `BNA outside prohibition: ${line.trim().slice(0, 90)}`).toBe(true);
     }
     expect((PT + EN).toLowerCase().includes('production ready')).toBe(false);
-    expect(EN).toContain('demo previews, not operational');
   });
 });

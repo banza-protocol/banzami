@@ -7,13 +7,21 @@
 import { DocsShell, AREAS_PT, PRIMARY_PATHS_PT, JOURNEYS_PT, areaHref } from './shell';
 import { Badge, Callout, INK, LI, MUT, P, RED, UL } from './ui';
 
+// Each row states what is true of the DEPLOYED system, and changes only when
+// the evidence changes. Two rows moved after being proven against the deployed
+// Sandbox: the Console (login/session/CSRF/workspace/project/key lifecycle/
+// tenant isolation, all asserted end to end) and outbound webhooks (signed
+// delivery to a genuinely public HTTPS receiver, independently verified
+// signature, tamper rejection, retry and failure isolation). Understating those
+// is as much a false claim as overstating them.
 const STATE_PT: [string, string][] = [
-  ['SDKs', 'pré-visualização controlada, não publicados'],
+  ['SDK TypeScript', 'publicado — npm install @banzami/sdk'],
+  ['Outros SDKs', 'pré-visualização controlada, não publicados'],
   ['HTTP/OpenAPI', 'referência técnica secundária'],
   ['Produção / trilhos live', 'não disponíveis'],
-  ['Console visual', 'demo / não-operacional'],
+  ['Console de developers', 'operacional em Sandbox'],
   ['Reembolsos / transferências', 'Pendente E2E para chave developer'],
-  ['Webhooks outbound', 'simulado / não reivindicado publicamente'],
+  ['Webhooks outbound', 'entrega assinada, verificada em Sandbox'],
 ];
 
 export default function DocsHomePt() {

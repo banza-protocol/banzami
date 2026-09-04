@@ -213,8 +213,18 @@ try {
     rec('DOCS-001.reachable-no-login', resp.ok() && !/\/login/.test(page.url()), `→ ${resp.status()}`);
     rec('DOCS-001.no-management-api-fetch', fetches.length === 0, `${fetches.length} developer-api mgmt calls`);
     const html = await page.content();
-    rec('DOCS-001.conceitos-anchor', /id="conceitos"/.test(html));
-    rec('DOCS-001.glossario-anchor', /id="glossario"/.test(html));
+    // The glossary anchors moved with the documentation's information
+    // architecture: /docs is now a landing page and the glossary owns its own
+    // route. Assert them where they live, so this keeps testing that the
+    // concepts are deep-linkable without auth rather than testing a layout
+    // decision that has since changed.
+    const gloss = await ctx.newPage();
+    const gr = await gloss.goto(`${CONSOLE}/docs/glossary`, { waitUntil: 'domcontentloaded' });
+    const gHtml = await gloss.content();
+    rec('DOCS-001.glossary-reachable-no-login', !!gr?.ok() && !/\/login/.test(gloss.url()), `→ ${gr?.status()}`);
+    rec('DOCS-001.conceitos-anchor', /id="conceitos"/.test(gHtml));
+    rec('DOCS-001.glossario-anchor', /id="glossario"/.test(gHtml));
+    await gloss.close();
     const leak = /(localhost|127\.0\.0\.1|172\.\d|core-api|:808\d|217\.160\.9\.248|banzami-postgres)/.test(html);
     rec('DOCS-001.no-internal-host-leak', !leak);
     // legacy /developers/docs reaches canonical without loop

@@ -147,7 +147,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	splitsSuperseded := handler.SplitsSuperseded()
 	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
-	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
+	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc, deps.WebhookSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
 	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)

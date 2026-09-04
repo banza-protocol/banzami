@@ -5,13 +5,16 @@
 import { DocsShell, AREAS_EN, PRIMARY_PATHS_EN, JOURNEYS_EN, areaHref } from '../shell';
 import { Badge, Callout, INK, LI, MUT, P, RED, UL } from '../ui';
 
+// Kept in lockstep with STATE_PT — see the note there. A row moves only when
+// deployed-Sandbox evidence moves it, in either direction.
 const STATE_EN: [string, string][] = [
-  ['SDKs', 'controlled preview, not publicly published'],
+  ['TypeScript SDK', 'published — npm install @banzami/sdk'],
+  ['Other SDKs', 'controlled preview, not publicly published'],
   ['HTTP/OpenAPI', 'secondary technical reference'],
   ['Production / live rails', 'not available'],
-  ['Visual Console', 'demo / non-operational'],
+  ['Developer Console', 'operational in Sandbox'],
   ['Refunds / transfers', 'Pending E2E for developer keys'],
-  ['Webhook outbound', 'simulated / not publicly claimed'],
+  ['Webhook outbound', 'signed delivery, verified in Sandbox'],
 ];
 
 export default function DocsHomeEn() {

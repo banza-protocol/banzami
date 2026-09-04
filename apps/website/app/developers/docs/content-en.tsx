@@ -116,13 +116,13 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <UL>
                   <LI>This is <strong>Sandbox / Preview</strong> documentation. Sandbox capability is limited to controlled test flows.</LI>
                   <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
-                  <LI>The Console’s <strong>visual</strong> pages (dashboard, webhooks, logs) are <strong>demo previews, not operational</strong>, unless explicitly stated otherwise. The tested scope is the API/SDK Sandbox flow plus workspace, project, member and key management.</LI>
+                  <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. Pages that still show illustrative rather than live data are labelled as such on the page itself.</LI>
                 </UL>
               </div>
 
               <H3>Three layers</H3>
               <UL>
-                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly; its other visual pages (dashboard, webhooks, logs) are demo previews with illustrative data — not operational.</LI>
+                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly; pages that still show illustrative rather than live data say so on the page itself.</LI>
                 <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
                 <LI><strong>Banzami Operator / Core</strong> — the financial layer: it executes payments and owns balances and integrity. Your application never creates or manages its own financial ledger.</LI>
               </UL>
@@ -147,8 +147,10 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
 <Section id="quickstart">
               <H2>Quickstart</H2>
               <Callout>
-                <strong>Recommended path: approved SDK preview.</strong> Until public SDK packages are published, use curl
-                only to validate the protocol, diagnose Sandbox behaviour, or audit low-level calls.
+                <strong>Recommended path: the TypeScript SDK.</strong> Install it with{' '}
+                <Code>npm install @banzami/sdk</Code>. curl is for validating the protocol,
+                diagnosing Sandbox behaviour or auditing low-level calls — it is not the
+                implementation path.
               </Callout>
               <P>From first sign-in to a validated payment journey, in the Sandbox:</P>
               <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -171,11 +173,13 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
               <CodeBlock label="test keys" raw={SAMPLE_KEYS} onCopy={copy} {...enCopy} />
               <Callout>Never expose secret keys in a browser, mobile app, repository, logs, screenshots or analytics.</Callout>
               <P>
-                Banzami is <strong>SDK-first</strong>, but the SDKs are <strong>not yet published</strong> to npm, PyPI,
-                Packagist or pub.dev — so this quickstart demonstrates the protocol with <strong>reference/diagnostic</strong>{' '}
-                curl examples until official publication, unless you are working from an approved internal SDK package — see{' '}
+                Banzami is <strong>SDK-first</strong>. The TypeScript SDK is{' '}
+                <strong>published</strong> and is the recommended path — install it with{' '}
+                <Code>npm install @banzami/sdk</Code>. The curl examples are{' '}
+                <strong>reference/diagnostic</strong> material for the protocol, not the implementation path.
+                The Python, PHP, Dart and Go SDKs are <strong>not yet published</strong> to PyPI,
+                Packagist or pub.dev — see{' '}
                 <a href="/docs/en/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
-                Do not run <Code>npm install @banzami/sdk</Code> — that package is not published yet.
               </P>
 
               </Section>
@@ -553,7 +557,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {([
                       ['Console — sign in, workspaces, projects, members, keys', 'OTP session (email + code)', 'Available in controlled Sandbox'],
-                      ['Console visual pages (dashboard, webhooks, logs)', '—', 'Demo / preview — not operational'],
+                      ['Developer Console (sign-in, workspaces, projects, keys)', '—', 'Operational in Sandbox — verified end to end'],
                       ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in controlled Sandbox'],
                       ['Payment sessions', 'Developer key (payment_sessions scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
                       ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
@@ -757,7 +761,7 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                       ['HTTP/OpenAPI is reference, not recommended path', 'documented_preview', 'Direct HTTP for diagnostics/audits only.', 'SDK-first; artifacts labelled protocol_reference.'],
                       ['Webhook outbound delivery simulated', 'simulated', 'Do not assume guaranteed public delivery.', 'Retry contract documented; DOA journey verified.'],
                       ['Refunds/transfers pending E2E (developer keys)', 'pending_e2e', 'Developer-key requests rejected (403).', 'Credential↔capability matrix; future verification.'],
-                      ['Console visual pages demo/non-operational', 'documented_preview', 'Do not rely on those pages\u2019 data.', 'Labelled in the documentation.'],
+                      ['Some Console pages still show illustrative data', 'documented_preview', 'Those pages are labelled on the page itself.', 'Sign-in, projects and keys are operational and verified.'],
                       ['Production/live rails not available', 'not_available', 'No real money; no live keys.', 'bz_live_ rejected fail-closed.'],
                       ['External provider rails not active', 'not_approved', 'Do not assume external integrations.', 'Separate governance decision.'],
                       ['Stage C not implemented/approved', 'not_approved', 'Additional public routes do not exist yet.', 'Decision gates and explicit approvals.'],

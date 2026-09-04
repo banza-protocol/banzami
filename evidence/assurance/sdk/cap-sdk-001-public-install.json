@@ -1,0 +1,59 @@
+{
+  "suite": "CAP-SDK-001 \u2014 public registry install, outside every Banzami repository",
+  "generated_at": "2026-09-04T16:21:10.651474+00:00",
+  "registry": {
+    "name": "@banzami/sdk",
+    "latest": "0.5.0",
+    "license": "MIT",
+    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.5.0.tgz",
+    "shasum": "bfe8db210e08b351cc593483c7931e350116c102",
+    "fileCount": 27,
+    "unpackedSize": 174226
+  },
+  "clean_project": {
+    "inside_git_repo": false,
+    "dependency_spec": "^0.5.0",
+    "installed_version": "0.5.0",
+    "local_path_dependency": false
+  },
+  "assertions": [
+    {
+      "id": "SDK.registry.published",
+      "pass": true,
+      "note": "latest=0.5.0"
+    },
+    {
+      "id": "SDK.registry.license-mit",
+      "pass": true,
+      "note": "MIT"
+    },
+    {
+      "id": "SDK.install.from-registry",
+      "pass": true,
+      "note": "^0.5.0 -> 0.5.0"
+    },
+    {
+      "id": "SDK.install.no-local-path",
+      "pass": true,
+      "note": "^0.5.0"
+    },
+    {
+      "id": "SDK.run.identity",
+      "pass": true,
+      "note": "me() -> SANDBOX, project doa-sandbox, scopes as issued"
+    },
+    {
+      "id": "SDK.run.payment-session",
+      "pass": true,
+      "note": "createPaymentSession -> 150000 AOA with PAYMENT_LINK, DEEP_LINK, DYNAMIC_QR"
+    },
+    {
+      "id": "SDK.run.no-monorepo",
+      "pass": true,
+      "note": "clean temp project, no Banzami or DOA source present"
+    }
+  ],
+  "total": 7,
+  "passed": 7,
+  "promotable": true
+}

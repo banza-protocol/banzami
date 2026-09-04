@@ -48,7 +48,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone:
     href: '/docs/guides#webhooks',
     tone: 'val',
     badgeTone: 'val',
-    badgeText: 'Assinatura documentada · outbound simulado',
+    badgeText: 'Assinatura e entrega outbound verificadas em Sandbox',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
@@ -322,8 +322,9 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
 <Section id="quickstart">
               <H2>Quickstart</H2>
               <Callout>
-                <strong>Caminho recomendado: SDK preview aprovado.</strong> Enquanto os SDKs públicos não estão publicados,
-                use curl apenas para validar o protocolo, diagnosticar o Sandbox ou auditar chamadas de baixo nível.
+                <strong>Caminho recomendado: o SDK TypeScript.</strong> Instale com{' '}
+                <Code>npm install @banzami/sdk</Code>. O curl serve para validar o protocolo,
+                diagnosticar o Sandbox ou auditar chamadas de baixo nível — não é o caminho de implementação.
               </Callout>
               <P>Do primeiro acesso à validação de uma jornada de pagamento, no Sandbox:</P>
               <ol style={{ margin: '0 0 16px', padding: '0 0 0 20px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -333,7 +334,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <LI>Crie uma <strong>chave de teste</strong>.</LI>
                 <LI>Guarde a chave <strong>secreta</strong> quando ela aparece — é mostrada uma única vez.</LI>
                 <LI><strong>Verifique a chave</strong> contra a API Sandbox com <Code>curl</Code>: <Code>GET /v1/me</Code> devolve o ambiente, projeto, scopes e estado da chave. Esta é a sua primeira chamada bem-sucedida — <strong>não precisa de nenhum SDK</strong>.</LI>
-                <LI>Para implementar, use o <strong>SDK preview aprovado</strong> (caminho recomendado). Enquanto os pacotes públicos não são publicados, use <Code>curl</Code>/HTTP apenas para validar o protocolo, diagnosticar o Sandbox ou auditar chamadas de baixo nível.</LI>
+                <LI>Instale o SDK — <Code>npm install @banzami/sdk</Code> — e crie o cliente com a sua chave e <Code>environment: &apos;sandbox&apos;</Code>. Este é o caminho de implementação; o <Code>curl</Code> acima serviu para confirmar a chave.</LI>
                 <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm> e apresente o link/QR.</LI>
                 <LI>Acompanhe a confirmação e emita o comprovativo.</LI>
                 <LI>Valide webhooks assinados quando aplicável.</LI>
@@ -351,12 +352,13 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
               </UL>
               <Callout>Nunca exponha chaves secretas no browser, app móvel, repositório, logs, capturas de ecrã ou analytics.</Callout>
               <P>
-                A integração Banzami é <strong>SDK-first</strong>, mas os SDKs ainda <strong>não estão publicados</strong> em
-                npm, PyPI, Packagist ou pub.dev — por isso este quickstart demonstra o protocolo com exemplos curl de{' '}
-                <strong>referência/diagnóstico</strong> até à publicação oficial, salvo se trabalhar a partir de um pacote SDK
-                interno aprovado — ver{' '}
+                A integração Banzami é <strong>SDK-first</strong>. O SDK TypeScript está{' '}
+                <strong>publicado</strong> e é o caminho recomendado — instale com{' '}
+                <Code>npm install @banzami/sdk</Code>. Os exemplos curl existem como{' '}
+                <strong>referência/diagnóstico</strong> do protocolo, não como caminho de implementação.
+                Os SDKs para Python, PHP, Dart e Go ainda <strong>não estão publicados</strong> em
+                PyPI, Packagist ou pub.dev — ver{' '}
                 <a href="/docs/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
-                Não corra <Code>npm install @banzami/sdk</Code> — esse pacote ainda não está publicado.
               </P>
 
               </Section>

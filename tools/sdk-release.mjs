@@ -87,9 +87,29 @@ if (PUBLISH) {
          'See docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md — this is an external owner action.');
   } else {
     // Only reached once a Banzami-owned registry credential exists.
+    //
+    // Provenance is an npm attestation built from CI OIDC claims, so it can only
+    // be produced by a trusted CI publisher — asking for it on a workstation
+    // fails the publish outright. The approved release route today is a
+    // deliberate manual publish from the owner's Mac (no long-lived write token
+    // parked in CI), so provenance is requested only when CI actually provides
+    // the identity to back it, and its absence is stated rather than implied.
+    const inCI = !!process.env.CI && !!process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
+    // npm requires 2FA (or a bypass-2FA granular token) to publish. The approved
+    // route is an owner-run publish, so the one-time code is passed through from
+    // the operator's own invocation. It is short-lived and single-use; it is
+    // never stored, logged or echoed here.
+    const otpArg = process.argv.find(a => a.startsWith('--otp='));
+    const otp = otpArg ? otpArg.slice('--otp='.length) : process.env.NPM_OTP;
+    if (!otp && !inCI) {
+      console.log('  · no --otp supplied; npm will prompt if the account requires 2FA');
+    }
+    const args = ['publish', '--access', 'public',
+      ...(inCI ? ['--provenance'] : []),
+      ...(otp ? ['--otp', otp] : [])];
     try {
-      sh('npm', ['publish', '--provenance', '--access', 'public'], { cwd: SDK, stdio: 'inherit' });
-      ok('published @banzami/sdk with provenance');
+      sh('npm', args, { cwd: SDK, stdio: 'inherit' });
+      ok(`published @banzami/sdk${inCI ? ' with provenance' : ' (no provenance — manual owner publish)'}`);
     } catch (e) { fail(`npm publish failed: ${e.message}`); }
   }
 }

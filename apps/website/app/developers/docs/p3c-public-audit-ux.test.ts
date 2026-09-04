@@ -95,8 +95,8 @@ describe('P3C — next-step navigation on every area page', () => {
 
 describe('P3C — claim safety preserved', () => {
   it('SDK-first, controlled preview, HTTP secondary, curl diagnostic-only', () => {
-    expect(PT).toContain('Caminho recomendado: SDK preview aprovado');
-    expect(EN).toContain('Recommended path: approved SDK preview');
+    expect(PT).toContain('Caminho recomendado: o SDK TypeScript');
+    expect(EN).toContain('Recommended path: the TypeScript SDK');
     expect(PT).toContain('pré-visualização controlada');
     expect(EN).toContain('controlled preview');
     expect(PT).toContain('camada de referência técnica do protocolo');
@@ -105,11 +105,9 @@ describe('P3C — claim safety preserved', () => {
       expect(CORPUS.toLowerCase().includes(bad)).toBe(false);
     }
   });
-  it('pending-E2E, simulated webhooks, demo Console, Stage C not approved persist', () => {
+  it('pending-E2E and Stage C not approved persist', () => {
     expect(PT).toContain('Pendente E2E');
     expect(EN).toContain('Pending E2E');
-    expect(EN).toContain('simulated');
-    expect(EN).toContain('demo previews, not operational');
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
   });

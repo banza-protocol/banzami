@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BanzamiClient, environmentFromKey, resolveEnvironment } from './client.js';
+import { BanzamiClient, isDeveloperPlatformKey, environmentFromKey, resolveEnvironment } from './client.js';
 import { BanzamiApiError, BanzamiConfigError, BanzamiAuthError } from './errors.js';
 
 // ---------------------------------------------------------------------------
@@ -129,7 +129,43 @@ describe('client environment wiring', () => {
     mockFetch(200, { id: '1' });
     await c.getTransaction('1');
     expect(lastFetchCall().url).toContain('https://sandbox-api.banzami.com');
-    expect(authCalls()[0][0]).toContain('https://sandbox-api.banzami.com/v1/auth/token');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Credential model: two kinds of key, authenticated two different ways
+// ---------------------------------------------------------------------------
+
+describe('credential model', () => {
+  // A Developer Console key IS the bearer credential. Sending it to the
+  // merchant exchange endpoint fails auth, which is what a developer following
+  // the documented path hit on their very first call.
+  it('uses a Developer Platform key directly, without exchanging it', async () => {
+    const c = new BanzamiClient({ apiKey: 'bz_test_sk_c1' });
+    mockFetch(200, { id: '1' });
+    await c.getTransaction('1');
+    expect(authCalls().length).toBe(0);
+    const { init } = lastFetchCall();
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer bz_test_sk_c1');
+  });
+
+  it('still exchanges a merchant API key for a JWT', async () => {
+    const c = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey' });
+    mockFetch(200, { id: '1' });
+    await c.getTransaction('1');
+    expect(authCalls().length).toBeGreaterThan(0);
+    const { init } = lastFetchCall();
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer jwt-test-token');
+  });
+
+  it('classifies both credential shapes', () => {
+    for (const k of ['bz_test_sk_a', 'bz_live_sk_a', 'bz_test_pk_a', 'bz_live_pk_a']) {
+      expect(isDeveloperPlatformKey(k), k).toBe(true);
+    }
+    // A merchant key carries hex straight after the environment prefix.
+    for (const k of ['bz_test_hexkey', 'bz_live_testkey', '', 'nonsense']) {
+      expect(isDeveloperPlatformKey(k), k).toBe(false);
+    }
   });
 });
 

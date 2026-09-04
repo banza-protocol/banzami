@@ -84,8 +84,25 @@ if (sdkCap && sdkCap.disposition === 'released') {
   if (externalUnreleased.length) fail('SDK released but ./sandbox exposes unreleased capabilities');
   const pkg = JSON.parse(readFileSync(join(SDK, 'package.json'), 'utf-8'));
   if (pkg.private === true) fail('SDK released but package.json private:true');
-  const published = (sdkCap.evidence || []).some(e => /published|registry|npm-publish/i.test(e));
-  if (!published) fail('SDK released but no publication evidence (registry install) registered');
+  // A filename that merely mentions a registry is not evidence of publication.
+  // Require the external-install artifact itself, and require it to be green:
+  // the whole point of that run is that it happens outside every Banzami
+  // repository, which is the only place this class of defect shows up.
+  const proofPath = (sdkCap.evidence || []).find(e => /cap-sdk-001-public-install\.json$/.test(e));
+  if (!proofPath) {
+    fail('SDK released but no public-install evidence artifact registered');
+  } else if (!existsSync(join(ROOT, proofPath))) {
+    fail(`SDK released but ${proofPath} is missing`);
+  } else {
+    const proof = JSON.parse(readFileSync(join(ROOT, proofPath), 'utf-8'));
+    if (!proof.promotable) fail('SDK released but the public-install evidence is not green');
+    else if (proof.clean_project?.local_path_dependency) fail('public-install evidence used a local path dependency');
+    else if (proof.registry?.latest !== pkg.version) {
+      fail(`published version ${proof.registry?.latest} does not match sdk/typescript/package.json ${pkg.version}`);
+    } else {
+      pass(`SDK published and installable from the public registry (@banzami/sdk@${proof.registry.latest})`);
+    }
+  }
 } else {
   pass(`SDK is ${sdkCap?.disposition} (not released) — publication to a Banzami-owned registry is the remaining external blocker`);
 }
@@ -102,13 +119,22 @@ if (existsSync(gwServer)) {
 // 2c. Docs↔distribution: while the SDK is not released, docs must NOT present an
 //     external `npm install @banzami/sdk` as available.
 const docs = join(ROOT, 'apps/website/app/developers/docs/page.tsx');
-if (existsSync(docs) && sdkCap && sdkCap.disposition !== 'released') {
+if (existsSync(docs) && sdkCap) {
   const d = readFileSync(docs, 'utf-8');
-  // The docs already say the package is NOT published; ensure they don't also
-  // present a bare install command as a working step.
-  const claimsInstall = /Corra\s+<Code>npm install @banzami\/sdk/.test(d) || />npm install @banzami\/sdk<\/Code>\s*(para|to)\b/.test(d);
-  if (claimsInstall) fail('docs present `npm install @banzami/sdk` as available while SDK is not released');
-  else pass('docs do not present external npm install as available (SDK not released)');
+  const claimsInstall = /npm install @banzami\/sdk/.test(d);
+  if (sdkCap.disposition === 'released') {
+    // Symmetry matters: understating a shipped capability is as much a false
+    // claim as overstating an unshipped one. Once the package is installable,
+    // the docs must say so.
+    if (!claimsInstall) fail('SDK is released but the docs do not present `npm install @banzami/sdk`');
+    else pass('docs present the real install command (SDK released)');
+    if (/não publicados?['"\s]*\][\s,]*$/m.test(d) && /SDK TypeScript/.test(d) === false) {
+      fail('docs still describe the TypeScript SDK as unpublished');
+    }
+  } else {
+    if (claimsInstall) fail('docs present `npm install @banzami/sdk` as available while SDK is not released');
+    else pass('docs do not present external npm install as available (SDK not released)');
+  }
 }
 
 // 3. No secret / prod-host-only / core-route literals in src.

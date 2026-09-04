@@ -78,6 +78,65 @@ server {
     }
 }
 
+# ─── sandbox-webhook.banzami.com — CAP-WEBHOOK-001 assurance sink ────────────
+# Assurance infrastructure, NOT a Banzami product API. It exists so webhook
+# signing, delivery and retry can be proven against a real public HTTPS
+# destination — the SSRF policy (RA-023) rightly refuses private targets, and no
+# exception is added for the sink, so it has to be genuinely public.
+#
+# Public surface is a single capability-based ingest path. The capability is a
+# per-run random token, so nothing here is enumerable and runs cannot see each
+# other. The sink holds no database, no secrets and no host mounts.
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name sandbox-webhook.banzami.com;
+
+    ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
+    ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+
+    # A webhook body is small. Anything larger is not a webhook.
+    client_max_body_size 128k;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_connect_timeout 5s;
+    proxy_read_timeout    70s;
+
+    # The sink's control plane is never public. Refused here, before the
+    # request reaches the container — the harness reaches it over SSH instead,
+    # so there is no public administration API to abuse. 404 rather than 403:
+    # a 403 confirms the path exists.
+    location /admin/ {
+        access_log off;
+        default_type application/json;
+        return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
+    }
+
+    # Capability-based ingest — the only public path.
+    #
+    # The upstream is literal, unlike the API upstreams above. Those carry a
+    # deployment-specific project prefix and must come from the environment; the
+    # sink's container name is fixed by this repository. Keeping it literal means
+    # the edge cannot render an empty upstream and fail to start if the variable
+    # is ever missing — a restart hazard for the whole public perimeter, in
+    # exchange for a value that was never going to vary.
+    location /receive/ {
+        set $sb_sink "banzami-webhook-sink:8090";
+        proxy_pass http://$sb_sink;
+    }
+
+    location / {
+        access_log off;
+        default_type application/json;
+        return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
+    }
+}
+
 # ─── developer-api.banzami.com — Developer Platform API (Sandbox) ────────────
 server {
     listen 443 ssl;
