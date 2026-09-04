@@ -1,26 +1,30 @@
 {
   "suite": "CAP-SDK-001 \u2014 public registry install, outside every Banzami repository",
-  "generated_at": "2026-09-04T16:21:10.651474+00:00",
+  "generated_at": "2026-09-04T20:46:10.697307+00:00",
   "registry": {
     "name": "@banzami/sdk",
-    "latest": "0.5.0",
+    "latest": "0.5.1",
     "license": "MIT",
-    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.5.0.tgz",
-    "shasum": "bfe8db210e08b351cc593483c7931e350116c102",
+    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.5.1.tgz",
+    "shasum": "48755c0287a94c28a9712c94073e7d9106f2bd68",
     "fileCount": 27,
-    "unpackedSize": 174226
+    "unpackedSize": 175077,
+    "deprecated_versions": [
+      "0.4.0",
+      "0.5.0"
+    ]
   },
   "clean_project": {
     "inside_git_repo": false,
-    "dependency_spec": "^0.5.0",
-    "installed_version": "0.5.0",
+    "dependency_spec": "^0.5.1",
+    "installed_version": "0.5.1",
     "local_path_dependency": false
   },
   "assertions": [
     {
       "id": "SDK.registry.published",
       "pass": true,
-      "note": "latest=0.5.0"
+      "note": "latest=0.5.1"
     },
     {
       "id": "SDK.registry.license-mit",
@@ -28,32 +32,37 @@
       "note": "MIT"
     },
     {
+      "id": "SDK.registry.broken-versions-deprecated",
+      "pass": true,
+      "note": "0.4.0 and 0.5.0 deprecated, none unpublished"
+    },
+    {
       "id": "SDK.install.from-registry",
       "pass": true,
-      "note": "^0.5.0 -> 0.5.0"
+      "note": "resolved 0.5.1 from registry.npmjs.org tarball"
     },
     {
       "id": "SDK.install.no-local-path",
       "pass": true,
-      "note": "^0.5.0"
+      "note": "no file:/link:/workspace: spec"
+    },
+    {
+      "id": "SDK.types.quickstart-compiles",
+      "pass": true,
+      "note": "literal public Quickstart type-checks with no cast and no walletAccountId"
     },
     {
       "id": "SDK.run.identity",
       "pass": true,
-      "note": "me() -> SANDBOX, project doa-sandbox, scopes as issued"
+      "note": "me() -> SANDBOX, project doa-sandbox"
     },
     {
       "id": "SDK.run.payment-session",
       "pass": true,
-      "note": "createPaymentSession -> 150000 AOA with PAYMENT_LINK, DEEP_LINK, DYNAMIC_QR"
-    },
-    {
-      "id": "SDK.run.no-monorepo",
-      "pass": true,
-      "note": "clean temp project, no Banzami or DOA source present"
+      "note": "createPaymentSession -> 250000 AOA with PAYMENT_LINK, DEEP_LINK, DYNAMIC_QR"
     }
   ],
-  "total": 7,
-  "passed": 7,
+  "total": 8,
+  "passed": 8,
   "promotable": true
 }
