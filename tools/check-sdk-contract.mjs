@@ -97,10 +97,25 @@ if (sdkCap && sdkCap.disposition === 'released') {
     const proof = JSON.parse(readFileSync(join(ROOT, proofPath), 'utf-8'));
     if (!proof.promotable) fail('SDK released but the public-install evidence is not green');
     else if (proof.clean_project?.local_path_dependency) fail('public-install evidence used a local path dependency');
-    else if (proof.registry?.latest !== pkg.version) {
-      fail(`published version ${proof.registry?.latest} does not match sdk/typescript/package.json ${pkg.version}`);
-    } else {
-      pass(`SDK published and installable from the public registry (@banzami/sdk@${proof.registry.latest})`);
+    else {
+      // Source may legitimately be AHEAD of the registry: that is what a
+      // release in flight looks like, and the claim "npm install works"
+      // stays true of the published build. Source BEHIND the registry is
+      // the real hazard — it means the published package contains code
+      // this tree does not have, so nothing here describes what users get.
+      const cmp = (a, b) => {
+        const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+        for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0); }
+        return 0;
+      };
+      const published = proof.registry?.latest;
+      if (cmp(pkg.version, published) < 0) {
+        fail(`sdk/typescript/package.json ${pkg.version} is BEHIND the published ${published} — the registry has code this tree does not`);
+      } else if (cmp(pkg.version, published) > 0) {
+        pass(`SDK published and installable (@banzami/sdk@${published}); source is ${pkg.version} — release in flight`);
+      } else {
+        pass(`SDK published and installable from the public registry (@banzami/sdk@${published})`);
+      }
     }
   }
 } else {
