@@ -6,12 +6,14 @@ package handler
 // fails closed before any session is created.
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 // devReq builds a payment-session request carrying a developer principal.
@@ -44,20 +46,79 @@ func TestDevKeySession_PayeeDerivedFromBinding(t *testing.T) {
 	}
 }
 
-func TestDevKeySession_RejectsClientSuppliedPayee(t *testing.T) {
+// Choosing the OWNER stays forbidden. These fields would let a client name who
+// receives the money, which is authority, not selection.
+func TestDevKeySession_RejectsClientSuppliedOwner(t *testing.T) {
 	h := psHandler("bound-merchant", false)
 	for _, body := range []string{
-		`{"wallet_account_id":"attacker-wa","amount_minor":1000}`,
 		`{"merchant_id":"attacker-merchant","amount_minor":1000}`,
 		`{"wallet_id":"attacker-wallet","amount_minor":1000}`,
 		`{"payee":"attacker","amount_minor":1000}`,
+		`{"payee_wallet":"attacker","amount_minor":1000}`,
 	} {
 		rec := httptest.NewRecorder()
 		h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions", body, boundDevPrincipal("payment_sessions:write")))
 		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "PAYEE_NOT_ALLOWED") {
-			t.Fatalf("client payee %s must be rejected, got %d (%s)", body, rec.Code, rec.Body.String())
+			t.Fatalf("client owner %s must be rejected, got %d (%s)", body, rec.Code, rec.Body.String())
 		}
 	}
+}
+
+// Choosing a SUB-ACCOUNT is allowed — but only among the bound wallet's own
+// accounts. A foreign id is NOT_FOUND rather than FORBIDDEN: confirming that an
+// id exists but belongs to someone else would let one project enumerate
+// another's accounts by status code alone.
+func TestDevKeySession_SubAccountMustBelongToTheBoundWallet(t *testing.T) {
+	accounts := &fakeAccountLookup{byID: map[string]*service.WalletAccount{
+		"mine-wa":    {ID: "mine-wa", WalletID: "bound-wallet"},
+		"foreign-wa": {ID: "foreign-wa", WalletID: "someone-elses-wallet"},
+	}}
+	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "bound-merchant"}, activeMerchant(), accounts)
+
+	rec := httptest.NewRecorder()
+	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+		`{"wallet_account_id":"mine-wa","amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("own sub-account must be accepted, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"wallet_account_id":"mine-wa"`) {
+		t.Fatalf("the selected sub-account must be credited: %s", rec.Body.String())
+	}
+
+	rec = httptest.NewRecorder()
+	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+		`{"wallet_account_id":"foreign-wa","amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("foreign sub-account must be NOT_FOUND, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	rec = httptest.NewRecorder()
+	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+		`{"wallet_account_id":"does-not-exist","amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("unknown sub-account must be NOT_FOUND, got %d", rec.Code)
+	}
+}
+
+// Omitting it keeps the previous behaviour: the binding's default account.
+func TestDevKeySession_OmittedSubAccountUsesTheBindingDefault(t *testing.T) {
+	h := psHandler("bound-merchant", false)
+	rec := httptest.NewRecorder()
+	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+		`{"amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
+	if rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"wallet_account_id":"bound-wa"`) {
+		t.Fatalf("omitted id must use the binding default, got %d (%s)", rec.Code, rec.Body.String())
+	}
+}
+
+// A read-only lookup, distinct from the fuller wallet-account fake elsewhere:
+// this path only ever resolves an id back to its wallet.
+type fakeAccountLookup struct {
+	byID map[string]*service.WalletAccount
+}
+
+func (f *fakeAccountLookup) Get(_ context.Context, id string) (*service.WalletAccount, error) {
+	return f.byID[id], nil
 }
 
 func TestDevKeySession_MissingScopeFailsBeforeCreate(t *testing.T) {

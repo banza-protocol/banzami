@@ -566,7 +566,18 @@ export interface WalletAccount {
 }
 
 export interface CreateWalletAccountParams {
-  walletId: string;
+  /**
+   * The wallet the new account is opened under.
+   *
+   * Which credential you hold decides whether you send this at all:
+   *
+   * - **Developer Platform key** — OMIT it. The wallet is derived from your
+   *   project's Banzami binding, and the API rejects a client-supplied wallet
+   *   outright, even one that happens to be your own. Naming the wallet is
+   *   naming the owner, and that is authority rather than configuration.
+   * - **Merchant credential** — supply it; ownership is checked server-side.
+   */
+  walletId?: string;
   purpose: WalletAccountPurpose;
   referenceType?: string;
   referenceId?: string;

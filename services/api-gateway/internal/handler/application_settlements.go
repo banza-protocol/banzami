@@ -197,10 +197,28 @@ func (h *ApplicationSettlementHandler) Get(w http.ResponseWriter, r *http.Reques
 // the split (fee → app, net → beneficiary) and audits it. The app sends no
 // amount, never sees ledger ids, and never sets an operator pricing rule.
 func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
-		return
+	// Dual credential. A developer key settles from an account beneath its own
+	// project binding; a merchant JWT keeps its existing identity. Either way the
+	// source account's ownership is re-checked below — the caller never asserts
+	// whose money is moving.
+	var callerMerchantID string
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		if !dp.HasScope("application_settlements:write") {
+			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE", "missing required scope: application_settlements:write")
+			return
+		}
+		if !dp.Bound || dp.MerchantID == "" {
+			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE", "this project is not provisioned to settle")
+			return
+		}
+		callerMerchantID = dp.MerchantID
+	} else {
+		principal, ok := middleware.GetPrincipal(r.Context())
+		if !ok || principal.MerchantID == "" {
+			apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+			return
+		}
+		callerMerchantID = principal.MerchantID
 	}
 	var body struct {
 		SourceAccountID         string `json:"source_account_id"` // the campaign wallet_account id
@@ -238,7 +256,7 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		return
 	}
 	wal, werr := h.wallets.Get(r.Context(), acc.WalletID)
-	if werr != nil || wal == nil || wal.MerchantID != principal.MerchantID {
+	if werr != nil || wal == nil || wal.MerchantID != callerMerchantID {
 		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "source account is not owned by this merchant")
 		return
 	}
@@ -278,7 +296,7 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "FEE_DESTINATION_NOT_FOUND", "fee_destination_banza_name has no active wallet in this currency")
 			return
 		}
-		if fd.OwnerType != "MERCHANT" || fd.OwnerID != principal.MerchantID {
+		if fd.OwnerType != "MERCHANT" || fd.OwnerID != callerMerchantID {
 			apierror.Respond(w, r, http.StatusForbidden, "FEE_DESTINATION_NOT_OWNED", "fee destination must be your own business account")
 			return
 		}
@@ -293,7 +311,7 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
 		IdempotencyKey: body.IdempotencyKey,
 		OwnerRef:       ownerRef,
-		ApplicationID:  principal.MerchantID, // SEC-002 authorisation binding
+		ApplicationID:  callerMerchantID, // SEC-002 authorisation binding
 
 		SourceAccountID:         coreSource,
 		BeneficiaryAccountID:    ben.AvailableAccountID,

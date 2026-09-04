@@ -59,7 +59,7 @@ func (f *fakePaymentSessions) Get(ctx context.Context, id string) (*service.Paym
 }
 
 func psHandler(merchant string, withQR bool) *PaymentSessionHandler {
-	return NewPaymentSessionHandler(&fakePaymentSessions{merchantID: merchant, withQR: withQR}, activeMerchant())
+	return NewPaymentSessionHandler(&fakePaymentSessions{merchantID: merchant, withQR: withQR}, activeMerchant(), nil)
 }
 
 func reqWith(method, target, body, merchant string) *http.Request {
@@ -130,7 +130,7 @@ func TestPaymentSession_RefundSourceExposedWhenPaid(t *testing.T) {
 		withQR:       true,
 		refundSource: &service.RefundSource{SourceType: "WALLET_PAYMENT", SourceID: "wp-77"},
 	}
-	h := NewPaymentSessionHandler(fake, activeMerchant())
+	h := NewPaymentSessionHandler(fake, activeMerchant(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/business/payment-sessions/{id}", h.Get)
 	rec := httptest.NewRecorder()
@@ -159,7 +159,7 @@ func TestPaymentSession_RefundSourceExposedWhenPaid(t *testing.T) {
 }
 
 func TestPaymentSession_RefundSourceOmittedWhenUnpaid(t *testing.T) {
-	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, activeMerchant())
+	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, activeMerchant(), nil)
 	r := chi.NewRouter()
 	r.Get("/v1/business/payment-sessions/{id}", h.Get)
 	rec := httptest.NewRecorder()
@@ -180,7 +180,7 @@ func TestPaymentSession_Unauthenticated(t *testing.T) {
 
 func TestPaymentSession_InactiveMerchant(t *testing.T) {
 	suspended := &fakeMerchants{rec: &service.MerchantRecord{ID: "doa-merchant", Status: service.MerchantStatusSuspended}}
-	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, suspended)
+	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, suspended, nil)
 	rec := httptest.NewRecorder()
 	h.Create(rec, reqWith("POST", "https://x/v1/business/payment-sessions", `{"wallet_account_id":"wa-1"}`, "doa-merchant"))
 	if rec.Code != http.StatusForbidden {

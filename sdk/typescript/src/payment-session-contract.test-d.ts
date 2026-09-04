@@ -51,3 +51,30 @@ export const _contract = [
   merchantPath,
   wrongType,
 ] as const;
+
+// ── Wallet accounts: same credential split ───────────────────────────────────
+// A developer opens an account under the wallet its binding fixed, and never
+// names that wallet. A merchant names the wallet it owns.
+import type { CreateWalletAccountParams } from './types.js';
+
+const developerOpensCampaignAccount: CreateWalletAccountParams = {
+  purpose: 'CAMPAIGN',
+  referenceType: 'DOA_CAMPAIGN',
+  referenceId: 'campaign-a',
+  label: 'Campaign A',
+};
+
+const merchantOpensAccount: CreateWalletAccountParams = {
+  walletId: 'wal_example',
+  purpose: 'CAMPAIGN',
+};
+
+// @ts-expect-error purpose is still required — optionality of the wallet must
+// not quietly loosen the rest of the shape.
+const missingPurpose: CreateWalletAccountParams = { label: 'no purpose' };
+
+export const _walletContract = [
+  developerOpensCampaignAccount,
+  merchantOpensAccount,
+  missingPurpose,
+] as const;

@@ -17,6 +17,10 @@ const MATRIX = JSON.parse(read('docs/developer/availability/banzami-developers-a
 const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/website/app/developers/docs/page.tsx');
 const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 
+// The public contract may only advertise surface that is implemented, tested
+// AND deployed. Adding a path here before the gateway serves it would publish a
+// documented endpoint that answers 404 — so the gateway deploy must land before
+// the website deploy that ships this artifact.
 const ALLOWED_PATHS = [
   '/v1/me',
   '/v1/business/payment-sessions',
@@ -24,6 +28,8 @@ const ALLOWED_PATHS = [
   '/v1/business/payment-sessions/{id}/link',
   '/v1/business/payment-sessions/{id}/qr',
   '/v1/payment-links',
+  '/v1/business/wallet-accounts',
+  '/v1/business/wallet-accounts/{id}',
 ];
 const FORBIDDEN_PATH_TOKENS = [
   '/v1/refunds', '/v1/transfers', '/v1/payments', '/checkout', '/pay/',

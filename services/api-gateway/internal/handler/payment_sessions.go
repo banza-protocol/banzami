@@ -22,10 +22,14 @@ import (
 type PaymentSessionHandler struct {
 	sessions  service.PaymentSessionService
 	merchants merchantLookup
+	// accounts resolves a developer-supplied sub-account back to its wallet so
+	// ownership can be checked against the project binding. nil disables
+	// sub-account selection (the binding's default account is still used).
+	accounts walletAccountLookup
 }
 
-func NewPaymentSessionHandler(s service.PaymentSessionService, m merchantLookup) *PaymentSessionHandler {
-	return &PaymentSessionHandler{sessions: s, merchants: m}
+func NewPaymentSessionHandler(s service.PaymentSessionService, m merchantLookup, a walletAccountLookup) *PaymentSessionHandler {
+	return &PaymentSessionHandler{sessions: s, merchants: m, accounts: a}
 }
 
 // publicURL builds the hosted pay URL for a link slug from the request host (the
@@ -152,7 +156,12 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// for a merchant JWT.
 	walletAccountID := body.WalletAccountID
 	if dev != nil {
-		walletAccountID = dev.walletAccountID
+		// Either the binding's default account, or one of the project's own
+		// sub-accounts — never an account belonging to anyone else.
+		var subOK bool
+		if walletAccountID, subOK = authorizeDeveloperSubAccount(w, r, h.accounts, dev, body.WalletAccountID); !subOK {
+			return
+		}
 	} else if walletAccountID == "" {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "wallet_account_id is required")
 		return

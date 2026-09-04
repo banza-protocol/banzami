@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-09-04
+
+### Added — segregated accounts for Developer Platform credentials
+- **Wallet accounts are usable with a Developer Platform key.** An application
+  can open and address its own segregated accounts — one per campaign, tenant
+  or purpose — beneath the owner its project binding established.
+
+  `CreateWalletAccountParams.walletId` and `listWalletAccounts(walletId?)` are
+  now optional, on the same credential split as `walletAccountId`:
+
+  - **Developer Platform key** — omit the wallet. It is derived from your
+    project's binding, and the API rejects a client-supplied wallet outright,
+    even one that is your own: naming the wallet is naming the owner.
+  - **Merchant credential** — supply it; ownership is checked server-side.
+
+  This is additive. Existing merchant integrations that pass `walletId` are
+  unchanged, and 0.5.1's payment-session contract is untouched.
+
+  Compile-time contract tests cover both credential models for wallet accounts
+  and payment sessions (`src/payment-session-contract.test-d.ts`).
+
 ## [0.5.1] — 2026-09-04
 
 ### Fixed — the documented Quickstart did not type-check

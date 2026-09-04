@@ -611,7 +611,43 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <H2>Guias</H2>
               <PageLede>Guias práticos de integração — cobranças, transferências, reembolsos e webhooks. O enquadramento é <strong>SDK-first</strong>; onde surge curl/HTTP, é material de referência do protocolo.</PageLede>
               <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/sdk', text: 'SDKs' }]} />
-<H3 id="cobranca">Criar cobrança <Badge tone="ok" /></H3>
+<H3 id="contas-segregadas">Onde o dinheiro cai: binding e contas <Badge tone="ok" /></H3>
+              <P>
+                Duas perguntas diferentes, respondidas em sítios diferentes — e é a distinção
+                que torna a plataforma segura de usar:
+              </P>
+              <UL>
+                <LI><strong>Quem</strong> é o dono do dinheiro? — responde o <strong>binding do projeto</strong>. É estabelecido pelo operador, é imutável, e a sua aplicação nunca o indica num pedido.</LI>
+                <LI><strong>Qual</strong> conta desse dono recebe? — responde a <strong>wallet account</strong>. Essa a sua aplicação escolhe, entre as suas.</LI>
+              </UL>
+              <P>
+                Uma plataforma de donativos precisa exactamente disto: cada campanha acumula
+                na sua própria conta, sem se misturar com as outras, e é dessa conta que se
+                liquida no fecho.
+              </P>
+              <pre style={{ margin: '0 0 16px', padding: '14px 16px', borderRadius: 12, border: '1px solid #F2E2E0', background: '#FFF9F8', fontSize: 12.5, lineHeight: 1.6, overflowX: 'auto', color: INK }}>{`O seu projeto
+   └── dono financeiro (vem do binding — nunca do seu pedido)
+         ├── Campanha A     ← wallet account
+         ├── Campanha B     ← wallet account
+         └── Campanha C     ← wallet account`}</pre>
+              <P>
+                Na prática, com a sua chave de developer:
+              </P>
+              <UL>
+                <LI>Abre uma conta por campanha com <Code>createWalletAccount</Code> — indica o propósito e a sua referência, <strong>nunca</strong> uma wallet ou um merchant.</LI>
+                <LI>Cria o pagamento com <Code>createPaymentSession</Code>, passando o <Code>walletAccountId</Code> dessa campanha.</LI>
+                <LI>Se omitir o <Code>walletAccountId</Code>, o pagamento cai na conta por omissão do projeto — suficiente para quem não precisa de segregar.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                O servidor verifica sempre que a conta indicada é sua. Uma conta de outro dono
+                responde <Code>404</Code> — não <Code>403</Code> — para que ninguém possa
+                descobrir contas alheias pelo código de estado. E indicar
+                <Code>merchant_id</Code> ou <Code>wallet_id</Code> é recusado com{' '}
+                <Code>400 PAYEE_NOT_ALLOWED</Code>: escolher uma conta é selecção, escolher um
+                dono seria autoridade.
+              </P>
+
+              <H3 id="cobranca">Criar cobrança <Badge tone="ok" /></H3>
               <P>
                 Uma cobrança nasce de um <strong>link de pagamento</strong> ou de uma <strong>sessão de pagamento</strong>: cria a
                 intenção, apresenta o link/QR ao pagador e acompanha a confirmação (por polling e/ou webhook). No modelo Banzami,

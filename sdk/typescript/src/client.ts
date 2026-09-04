@@ -663,7 +663,10 @@ export class BanzamiClient {
     return this.request<WalletAccount>('/business/wallet-accounts', {
       method: 'POST',
       body:   JSON.stringify({
-        wallet_id:      p.walletId,
+        // Omitted entirely for a Developer Platform key — the API rejects a
+        // client-supplied wallet, so sending `null` would fail as surely as
+        // sending a value.
+        ...(p.walletId ? { wallet_id: p.walletId } : {}),
         purpose:        p.purpose,
         reference_type: p.referenceType ?? null,
         reference_id:   p.referenceId ?? null,
@@ -672,9 +675,16 @@ export class BanzamiClient {
     });
   }
 
-  listWalletAccounts(walletId: string): Promise<{ data: WalletAccount[] }> {
+  /**
+   * List the accounts under a wallet.
+   *
+   * With a Developer Platform key, omit `walletId`: the listing is scoped to
+   * your project's bound wallet and a supplied value is refused. With a
+   * merchant credential, name the wallet you own.
+   */
+  listWalletAccounts(walletId?: string): Promise<{ data: WalletAccount[] }> {
     return this.request<{ data: WalletAccount[] }>(
-      `/business/wallet-accounts${this.qs({ wallet_id: walletId })}`,
+      `/business/wallet-accounts${walletId ? this.qs({ wallet_id: walletId }) : ''}`,
     );
   }
 

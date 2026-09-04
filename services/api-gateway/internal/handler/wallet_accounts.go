@@ -31,6 +31,41 @@ func NewWalletAccountHandler(a service.WalletAccountService, w service.WalletSer
 // authorizeOwnedWallet enforces: authenticated merchant, merchant is ACTIVE
 // (KYB/compliance gate — suspended/closed cannot create accounts), and the wallet
 // is owned by the caller. Returns the wallet on success, or writes the error.
+// resolveWalletAuthority returns the wallet the caller may operate within.
+//
+// For a DEVELOPER key the wallet comes from the project binding and nowhere
+// else: a client-supplied wallet_id would be a client naming its own owner, so
+// it is refused exactly as it is on the payment routes. For a merchant JWT the
+// existing behaviour is unchanged — it names its wallet and ownership is
+// checked.
+//
+// Returns (walletID, merchantID, ok). The response is already written when ok
+// is false.
+func (h *WalletAccountHandler) resolveWalletAuthority(w http.ResponseWriter, r *http.Request, scope, suppliedWalletID string) (string, string, bool) {
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		if !dp.HasScope(scope) {
+			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE", "missing required scope: "+scope)
+			return "", "", false
+		}
+		if !dp.Bound || dp.MerchantID == "" || dp.WalletID == "" {
+			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE",
+				"this project is not provisioned to hold funds")
+			return "", "", false
+		}
+		if strings.TrimSpace(suppliedWalletID) != "" {
+			apierror.Respond(w, r, http.StatusBadRequest, "PAYEE_NOT_ALLOWED",
+				"the wallet is derived from your project binding; remove wallet_id")
+			return "", "", false
+		}
+		return dp.WalletID, dp.MerchantID, true
+	}
+	wal, ok := h.authorizeOwnedWallet(w, r, suppliedWalletID)
+	if !ok {
+		return "", "", false
+	}
+	return wal.ID, wal.MerchantID, true
+}
+
 func (h *WalletAccountHandler) authorizeOwnedWallet(w http.ResponseWriter, r *http.Request, walletID string) (*service.WalletRecord, bool) {
 	principal, ok := middleware.GetPrincipal(r.Context())
 	if !ok || principal.MerchantID == "" {
@@ -67,7 +102,7 @@ func (h *WalletAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
 		return
 	}
-	wal, ok := h.authorizeOwnedWallet(w, r, body.WalletID)
+	walletID, merchantID, ok := h.resolveWalletAuthority(w, r, "wallet_accounts:create", body.WalletID)
 	if !ok {
 		return
 	}
@@ -83,15 +118,15 @@ func (h *WalletAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	acc, err := h.accounts.Create(r.Context(), service.CreateWalletAccountInput{
-		WalletID:      wal.ID,
-		MerchantID:    wal.MerchantID, // core re-checks ownership
+		WalletID:      walletID,
+		MerchantID:    merchantID, // core re-checks ownership
 		Purpose:       purpose,
 		ReferenceType: strings.TrimSpace(body.ReferenceType),
 		ReferenceID:   strings.TrimSpace(body.ReferenceID),
 		Label:         strings.TrimSpace(body.Label),
 	})
 	if err != nil {
-		slog.ErrorContext(r.Context(), "wallet_account.create.failed", "wallet_id", wal.ID, "purpose", purpose, "error", err)
+		slog.ErrorContext(r.Context(), "wallet_account.create.failed", "wallet_id", walletID, "purpose", purpose, "error", err)
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not create wallet account")
 		return
 	}
@@ -101,12 +136,11 @@ func (h *WalletAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/business/wallet-accounts?wallet_id=...
 func (h *WalletAccountHandler) List(w http.ResponseWriter, r *http.Request) {
-	walletID := r.URL.Query().Get("wallet_id")
-	wal, ok := h.authorizeOwnedWallet(w, r, walletID)
+	walletID, _, ok := h.resolveWalletAuthority(w, r, "wallet_accounts:read", r.URL.Query().Get("wallet_id"))
 	if !ok {
 		return
 	}
-	list, err := h.accounts.ListForWallet(r.Context(), wal.ID)
+	list, err := h.accounts.ListForWallet(r.Context(), walletID)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not list wallet accounts")
 		return
@@ -116,19 +150,15 @@ func (h *WalletAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/business/wallet-accounts/{id}
 func (h *WalletAccountHandler) Get(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+	walletID, _, ok := h.resolveWalletAuthority(w, r, "wallet_accounts:read", "")
+	if !ok {
 		return
 	}
 	acc, err := h.accounts.Get(r.Context(), chi.URLParam(r, "id"))
-	if err != nil || acc == nil {
-		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet account not found")
-		return
-	}
-	// Ownership: the account's parent wallet must belong to the caller.
-	wal, werr := h.wallets.Get(r.Context(), acc.WalletID)
-	if werr != nil || wal == nil || wal.MerchantID != principal.MerchantID {
+	// Ownership: the account's parent wallet must be the caller's own. A foreign
+	// account is NOT_FOUND, never FORBIDDEN — a status code that distinguishes
+	// "yours" from "someone else's" is an enumeration oracle.
+	if err != nil || acc == nil || acc.WalletID != walletID {
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet account not found")
 		return
 	}

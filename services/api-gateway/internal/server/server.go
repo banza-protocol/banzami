@@ -160,7 +160,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
-	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc)
+	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc, deps.WalletAccountSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
@@ -353,20 +353,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// ADR-029 — app-defined settlement: the app names the source campaign
 			// account, beneficiary/fee-destination @banza, and its OWN fee bps; the
 			// operator validates + executes. Distinct from the operator-priced path.
-			r.Route("/business/application-settlements", func(r chi.Router) {
-				r.Post("/", appSettlementHandler.CreateBusiness)
-				r.Get("/{id}", appSettlementHandler.Get)
-			})
 
 			// Wallet Accounts (ADR-042) — app-facing: a Business Account opens and
 			// reads segregated accounts (CAMPAIGN/PROJECT/…) within a wallet it owns,
 			// to isolate funds without holding sub-balances. Banzami stays the source
 			// of truth; ledger account ids are never exposed. PRIMARY is not creatable.
-			r.Route("/business/wallet-accounts", func(r chi.Router) {
-				r.Post("/", walletAccountHandler.Create)
-				r.Get("/", walletAccountHandler.List)
-				r.Get("/{id}", walletAccountHandler.Get)
-			})
 
 			// Payment Sessions + Payment Links are mounted separately under
 			// dual-credential auth (merchant JWT OR developer key) — see the
@@ -570,6 +561,23 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Get("/{id}", paymentSessionHandler.Get)
 				r.Get("/{id}/link", paymentSessionHandler.Link)
 				r.Get("/{id}/qr", paymentSessionHandler.Qr)
+			})
+			// Wallet accounts are segregation WITHIN the caller's own owner, so
+			// they belong on the same dual-credential group as payments rather
+			// than behind merchant-JWT only. A developer key's wallet comes from
+			// its project binding; a merchant JWT keeps naming its own.
+			// Settlement moves funds OUT of a segregated account. It joins the
+			// dual-credential group so a project-bound application can close its
+			// own campaigns without holding a merchant credential; the source
+			// account's ownership is re-checked against the caller either way.
+			r.Route("/business/application-settlements", func(r chi.Router) {
+				r.Post("/", appSettlementHandler.CreateBusiness)
+				r.Get("/{id}", appSettlementHandler.Get)
+			})
+			r.Route("/business/wallet-accounts", func(r chi.Router) {
+				r.Post("/", walletAccountHandler.Create)
+				r.Get("/", walletAccountHandler.List)
+				r.Get("/{id}", walletAccountHandler.Get)
 			})
 			r.Route("/payment-links", func(r chi.Router) {
 				r.Post("/", paymentLinkHandler.Create)

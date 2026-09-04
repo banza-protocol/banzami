@@ -1,6 +1,7 @@
 'use client';
 
 import { PortalPage } from '@/components/developers/portal/PortalShell';
+import { IllustrativeDataNotice } from '@/components/developers/portal/IllustrativeDataNotice';
 import { Card, Pill, type PillKind } from '@/components/developers/portal/ui';
 import { IconPlus, IconWebhook } from '@/components/developers/portal/icons';
 
@@ -43,6 +44,7 @@ export default function WebhooksPage() {
   return (
     <PortalPage active="webhooks">
       <div className="bz-view">
+        <IllustrativeDataNotice what="Os endpoints e as entregas" />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Webhooks</h1>

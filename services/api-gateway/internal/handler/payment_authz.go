@@ -6,11 +6,14 @@ package handler
 // path untouched (it retains its existing identity behavior).
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 // developerPayee is the payee authority derived EXCLUSIVELY from a Project's
@@ -61,7 +64,13 @@ func rejectClientPayeeFields(w http.ResponseWriter, r *http.Request, raw []byte)
 	if len(raw) > 0 {
 		_ = json.Unmarshal(raw, &probe)
 	}
-	for _, k := range []string{"merchant_id", "wallet_id", "wallet_account_id", "payee", "payee_id", "payee_wallet"} {
+	// wallet_account_id is deliberately ABSENT from this list. It selects a
+	// sub-account WITHIN the owner the binding already fixed, which an
+	// application legitimately needs (segregating funds per campaign, per
+	// tenant, per order). Ownership of the requested account is verified
+	// against the binding by authorizeDeveloperSubAccount — the id selects a
+	// child, it never confers authority over the parent owner.
+	for _, k := range []string{"merchant_id", "wallet_id", "payee", "payee_id", "payee_wallet"} {
 		if _, present := probe[k]; present {
 			apierror.Respond(w, r, http.StatusBadRequest, "PAYEE_NOT_ALLOWED",
 				"payee is derived from your project binding; remove "+k)
@@ -69,4 +78,49 @@ func rejectClientPayeeFields(w http.ResponseWriter, r *http.Request, raw []byte)
 		}
 	}
 	return false
+}
+
+// walletAccountLookup is the narrow read the sub-account authority check needs.
+// Kept minimal on purpose: this path must not acquire the ability to mutate.
+type walletAccountLookup interface {
+	Get(ctx context.Context, id string) (*service.WalletAccount, error)
+}
+
+// authorizeDeveloperSubAccount resolves WHICH account a developer-key payment
+// credits, within the owner its project binding already established.
+//
+// The distinction this enforces is the whole point of the model:
+//
+//	choosing an OWNER      — forbidden. merchant_id/wallet_id/payee are rejected
+//	                         outright by rejectClientPayeeFields; a client that
+//	                         could name its own owner could name someone else's.
+//	choosing a SUB-ACCOUNT — allowed, but only among accounts belonging to the
+//	                         wallet the binding resolved. An application needs
+//	                         this (a donations platform segregates per campaign);
+//	                         it is a child selection, never a grant of authority
+//	                         over the parent.
+//
+// An omitted id keeps the previous behaviour: the binding's default account.
+//
+// A foreign or unknown account is refused as NOT_FOUND, not FORBIDDEN: telling a
+// caller that an id exists but belongs to someone else is itself a disclosure,
+// and would let one project enumerate another's accounts by status code.
+func authorizeDeveloperSubAccount(
+	w http.ResponseWriter, r *http.Request,
+	accounts walletAccountLookup, dev *developerPayee, requested string,
+) (walletAccountID string, ok bool) {
+	requested = strings.TrimSpace(requested)
+	if requested == "" {
+		return dev.walletAccountID, true // the binding's default account
+	}
+	if accounts == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "wallet accounts are unavailable")
+		return "", false
+	}
+	acc, err := accounts.Get(r.Context(), requested)
+	if err != nil || acc == nil || acc.WalletID != dev.walletID {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet account not found")
+		return "", false
+	}
+	return acc.ID, true
 }

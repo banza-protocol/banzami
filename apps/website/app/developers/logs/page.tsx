@@ -1,6 +1,7 @@
 'use client';
 
 import { PortalPage } from '@/components/developers/portal/PortalShell';
+import { IllustrativeDataNotice } from '@/components/developers/portal/IllustrativeDataNotice';
 import { Card, Pill, type PillKind } from '@/components/developers/portal/ui';
 import { IconCalendar, IconChevronDown, IconDownload, IconSearch } from '@/components/developers/portal/icons';
 
@@ -52,6 +53,7 @@ export default function LogsPage() {
   return (
     <PortalPage active="logs">
       <div className="bz-view">
+        <IllustrativeDataNotice what="Os registos de pedidos" />
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Logs / Eventos</h1>
         <p style={{ margin: '6px 0 20px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           Pesquise e filtre eventos e transações.

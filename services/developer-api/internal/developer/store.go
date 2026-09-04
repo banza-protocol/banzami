@@ -46,6 +46,15 @@ var AllowedScopes = map[string]bool{
 	"identity:read":          true,
 	"payment_sessions:read":  true,
 	"payment_sessions:write": true,
+	// Wallet accounts are segregation WITHIN the project's bound owner: which of
+	// my own accounts, never whose money. Read and create are separate because
+	// listing is a far weaker capability than opening a new account.
+	"wallet_accounts:read":   true,
+	"wallet_accounts:create": true,
+	// Settlement MOVES money out to a beneficiary. It gets its own scope rather
+	// than riding on a payment or wallet scope, so granting an app the ability
+	// to take payments never silently grants the ability to pay funds away.
+	"application_settlements:write": true,
 	"payment_links:read":     true,
 	"payment_links:write":    true,
 	"payments:read":          true,

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
+import { IllustrativeDataNotice } from '@/components/developers/portal/IllustrativeDataNotice';
 import { Card, Pill, type PillKind } from '@/components/developers/portal/ui';
 import {
   IconChart,
@@ -60,6 +61,7 @@ export default function DashboardPage() {
   return (
     <PortalPage active="dashboard">
       <div className="bz-view">
+        <IllustrativeDataNotice what="As métricas e a actividade" />
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Visão geral</h1>
         <p style={{ margin: '6px 0 20px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           Resumo do seu projeto em Sandbox — últimos 7 dias.
