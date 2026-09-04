@@ -101,9 +101,10 @@ const SAMPLE_SESSION = `import { BanzamiClient } from '@banzami/sdk';
 // A chave secreta bz_test_sk_ vive apenas no servidor.
 const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
 
-// 1. Criar uma sessão de pagamento na conta do projeto
+// 1. Criar uma sessão de pagamento.
+//    Não indique a conta de destino: com uma chave da Consola, o destinatário
+//    vem do binding do projeto. Enviá-la é recusado pela API.
 const session = await banzami.createPaymentSession({
-  walletAccountId: 'wacc_exemplo',
   purpose: 'PAGAMENTO',
   referenceType: 'PEDIDO',
   referenceId: 'pedido_123',
@@ -130,13 +131,14 @@ curl https://sandbox-api.banzami.com/v1/me \\
   "key_status": "ACTIVE"
 }`;
 
-const SAMPLE_CURL_SESSION = `# Criar uma sessão de pagamento no Sandbox (valores placeholder)
+const SAMPLE_CURL_SESSION = `# Criar uma sessão de pagamento no Sandbox (valores placeholder).
+# Com uma chave developer NÃO se envia wallet_account_id: o destinatário vem
+# do binding do projeto e a API recusa um destinatário indicado pelo cliente.
 curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_pedido_123" \\
   -d '{
-    "wallet_account_id": "wacc_exemplo",
     "purpose": "PAGAMENTO",
     "reference_type": "PEDIDO",
     "reference_id": "pedido_123",
@@ -795,7 +797,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 insuficiente ou projeto sem binding), <Code>400 MISSING_FIELD / INVALID_BODY</Code>, <Code>409 CONFLICT</Code>
                 (Idempotency-Key em curso). Ver <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
               </P>
-              <CodeBlock label="ts · criar sessão de pagamento (SDK interno, opcional)" raw={SAMPLE_SESSION} onCopy={copy} />
+              <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
 
               <H3 id="idempotencia">Idempotência <Badge tone="ok" /></H3>
               <P>

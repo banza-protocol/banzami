@@ -72,7 +72,9 @@ export const ENDPOINTS: EndpointSpec[] = [
     },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json', 'Idempotency-Key: idem_pedido_123'],
     requestFields: [
-      { name: 'wallet_account_id', note: { pt: 'conta de destino do projeto', en: 'the project’s destination account' } },
+      { name: 'wallet_account_id', note: {
+        pt: 'APENAS credencial de merchant. Com uma chave developer o destinatário vem do binding do projeto — não envie este campo; a API recusa-o.',
+        en: 'Merchant credential ONLY. With a Developer Platform key the recipient is derived from the project’s Banzami binding — do not provide it; the API rejects it.' } },
       { name: 'purpose', note: { pt: 'finalidade (ex.: PAGAMENTO)', en: 'purpose (e.g. PAGAMENTO)' } },
       { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
       { name: 'amount_minor', note: { pt: 'montante em unidades menores (AOA)', en: 'amount in minor units (AOA)' } },

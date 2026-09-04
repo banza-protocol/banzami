@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1] — 2026-09-04
+
+### Fixed — the documented Quickstart did not type-check
+- **`CreatePaymentSessionParams.walletAccountId` is now optional.** It was
+  required, which made the public developer Quickstart impossible to compile:
+  a Developer Platform key must NOT send a payee — the server derives it from
+  the project's Banzami binding and rejects a client-supplied one with 400 —
+  yet the type demanded one. A TypeScript developer following the docs
+  literally had to choose between a cast and a guaranteed 400.
+
+  Which credential you hold decides whether the field is sent:
+
+  - **Developer Platform key** — omit it; the payee comes from the binding.
+  - **Merchant credential** — supply it; the server requires it on that route
+    and re-validates ownership.
+
+  Runtime behaviour is unchanged: an omitted field was already absent from the
+  request body. Nothing about server-side validation is relaxed, and the SDK
+  still never infers, derives or substitutes a payee.
+
+  Compile-time regression tests cover both credential models
+  (`src/payment-session-contract.test-d.ts`).
+
 ## [0.5.0] — 2026-09-04
 
 ### Fixed — the documented path did not work
