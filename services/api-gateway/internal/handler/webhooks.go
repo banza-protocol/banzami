@@ -50,10 +50,25 @@ func (h *WebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
 	case body.URL == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "url is required")
 		return
+	case len(body.URL) > service.MaxWebhookURLLength:
+		// RA-063 — bound the caller-controlled destination string.
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_WEBHOOK_URL",
+			"url is too long")
+		return
 	case len(body.Events) == 0:
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD",
 			"events must contain at least one event type (e.g. transaction.created)")
 		return
+	}
+
+	// RA-062 — an unlisted event name is a typo, and silently accepting it
+	// produces an endpoint that will never fire.
+	for _, ev := range body.Events {
+		if !service.SupportedWebhookEvents[ev] {
+			apierror.Respond(w, r, http.StatusBadRequest, "UNSUPPORTED_EVENT",
+				"one or more requested event types are not supported")
+			return
+		}
 	}
 
 	ep, err := h.svc.RegisterEndpoint(r.Context(), service.RegisterEndpointRequest{
@@ -190,8 +205,12 @@ func (h *WebhookHandler) ListDeliveries(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	deliveries, err := h.svc.ListDeliveries(r.Context(), chi.URLParam(r, "id"))
+	deliveries, err := h.svc.ListDeliveries(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
 	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "event not found")
+			return
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"deliveries could not be listed")
 		return

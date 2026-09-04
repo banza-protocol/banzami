@@ -46,6 +46,25 @@ type WebhookEvent struct {
 }
 
 // WebhookDelivery tracks a single delivery attempt for an event to an endpoint.
+// SupportedWebhookEvents is the canonical set a merchant may subscribe to.
+//
+// RA-062: registration accepted ANY string as an event name, so an endpoint
+// could subscribe to "not.a.real.event" and receive nothing, forever, with no
+// error at registration and no way to tell a typo from a quiet integration. The
+// list is derived from the events the operator actually dispatches; adding a new
+// event type means adding it here, which is the point — an unlisted name is a
+// mistake, not a feature.
+var SupportedWebhookEvents = map[string]bool{
+	"payment.completed": true,
+	"payment_link.paid": true,
+	"payout.sent":       true,
+}
+
+// MaxWebhookURLLength bounds the stored destination (RA-063). Registration
+// accepted a 4 KB URL; unbounded caller-controlled strings become storage and
+// log-volume amplification. Comfortably above any real endpoint.
+const MaxWebhookURLLength = 2048
+
 type WebhookDelivery struct {
 	ID            string     `json:"id"`
 	EventID       string     `json:"event_id"`
@@ -98,7 +117,10 @@ type WebhookService interface {
 	Dispatch(ctx context.Context, req DispatchRequest) (*WebhookEvent, error)
 
 	ListEvents(ctx context.Context, merchantID string, limit int) ([]*WebhookEvent, error)
-	ListDeliveries(ctx context.Context, eventID string) ([]*WebhookDelivery, error)
+	// RA-060: scoped by merchantID. Naming an event id is not authority over it —
+	// deliveries carry the receiver's response body and endpoint id, so an
+	// unscoped read discloses another tenant's integration.
+	ListDeliveries(ctx context.Context, merchantID, eventID string) ([]*WebhookDelivery, error)
 
 	// ReplayDelivery re-queues a permanently-failed delivery as a new PENDING row,
 	// resetting the attempt counter. Safe to call multiple times — idempotent via
@@ -252,9 +274,20 @@ func (s *StubWebhookService) ListEvents(_ context.Context, merchantID string, li
 	return out, nil
 }
 
-func (s *StubWebhookService) ListDeliveries(_ context.Context, eventID string) ([]*WebhookDelivery, error) {
+func (s *StubWebhookService) ListDeliveries(_ context.Context, merchantID, eventID string) ([]*WebhookDelivery, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	// The event must belong to the caller before any delivery is returned.
+	owned := false
+	for _, e := range s.events {
+		if e.ID == eventID && e.MerchantID == merchantID {
+			owned = true
+			break
+		}
+	}
+	if !owned {
+		return nil, ErrNotFound
+	}
 	var out []*WebhookDelivery
 	for _, d := range s.deliveries {
 		if d.EventID == eventID {

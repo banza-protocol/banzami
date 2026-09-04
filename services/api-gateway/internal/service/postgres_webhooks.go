@@ -296,15 +296,40 @@ func (s *PostgresWebhookService) ListEvents(
 
 func (s *PostgresWebhookService) ListDeliveries(
 	ctx context.Context,
-	eventID string,
+	merchantID, eventID string,
 ) ([]*WebhookDelivery, error) {
+	// RA-060: join to the owning event and filter on merchant_id. Without this
+	// any authenticated merchant could read any event's delivery history by id,
+	// including the receiver's response body and the endpoint it was sent to.
+	//
+	// RA-061: status_code and response_body are NULL until an attempt completes,
+	// and scanning NULL into int/string fails — so this endpoint returned 500 for
+	// its own owner on every pending delivery. COALESCE keeps the wire contract
+	// (0 / "") while making the scan total.
+	// Ownership is resolved first so a foreign or unknown event is reported as
+	// not-found, matching GET /webhooks/endpoints/{id}. Filtering alone would
+	// return an empty list, which reads as "no deliveries yet" and quietly tells
+	// the caller the id exists.
+	var owned bool
+	if err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS (SELECT 1 FROM webhook_events WHERE id = $1 AND merchant_id = $2)`,
+		eventID, merchantID,
+	).Scan(&owned); err != nil {
+		return nil, fmt.Errorf("resolve webhook event owner: %w", err)
+	}
+	if !owned {
+		return nil, ErrNotFound
+	}
+
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, event_id, endpoint_id, attempt_count, status,
-		        status_code, response_body, delivered_at, created_at
-		 FROM webhook_deliveries
-		 WHERE event_id = $1
-		 ORDER BY created_at`,
-		eventID,
+		`SELECT d.id, d.event_id, d.endpoint_id, d.attempt_count, d.status,
+		        COALESCE(d.status_code, 0), COALESCE(d.response_body, ''),
+		        d.delivered_at, d.created_at
+		 FROM webhook_deliveries d
+		 JOIN webhook_events e ON e.id = d.event_id
+		 WHERE d.event_id = $1 AND e.merchant_id = $2
+		 ORDER BY d.created_at`,
+		eventID, merchantID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list webhook deliveries: %w", err)
