@@ -10,13 +10,18 @@
  * A pin that cannot resolve is not a stricter pin. It is a job that cannot run,
  * wearing the appearance of one that is carefully locked down.
  *
- * Checked against the GitHub API via `gh`, so it needs authentication and
- * network. Skips (exit 0) when `gh` is unavailable rather than failing a local
- * run for a reason unrelated to the change.
+ * Checked against the GitHub REST API over plain fetch — NOT via `gh`. The
+ * first version shelled out to `gh`, which is not installed on the CI runner
+ * image, so the step printed "gh unavailable — skipped" and passed. A guard that
+ * skips in the one place it is meant to run is the same vacuity it exists to
+ * catch.
+ *
+ * Uses GITHUB_TOKEN / GH_TOKEN when present (CI supplies one); unauthenticated
+ * requests work too, at a lower rate limit. Exits non-zero on an unresolvable
+ * pin, and only skips when the API itself is unreachable — which it reports.
  *
  * Usage: node tools/check-action-pins.mjs [workflow.yml ...]
  */
-import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -24,13 +29,6 @@ const DIR = '.github/workflows';
 const files = process.argv.length > 2
   ? process.argv.slice(2)
   : readdirSync(DIR).filter((f) => /\.ya?ml$/.test(f)).map((f) => join(DIR, f));
-
-try {
-  execFileSync('gh', ['--version'], { stdio: 'ignore' });
-} catch {
-  console.log('gh unavailable — action-pin check skipped');
-  process.exit(0);
-}
 
 const pins = new Map(); // "repo@sha" -> [files]
 for (const f of files) {
@@ -41,21 +39,45 @@ for (const f of files) {
   }
 }
 
+const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '';
+const headers = {
+  accept: 'application/vnd.github+json',
+  'user-agent': 'banzami-action-pin-check',
+  ...(token ? { authorization: `Bearer ${token}` } : {}),
+};
+
 let bad = 0;
+let unreachable = 0;
 for (const [key, where] of [...pins].sort()) {
   const [repo, sha] = key.split('@');
-  let ok = false;
+  let state; // 'ok' | 'missing' | 'unreachable'
   try {
-    execFileSync('gh', ['api', `repos/${repo}/commits/${sha}`, '--jq', '.sha'], { stdio: 'ignore' });
-    ok = true;
-  } catch { /* unresolvable */ }
-  console.log(`  ${ok ? '✓' : '✗'} ${repo}@${sha.slice(0, 8)}${ok ? '' : `  — does not exist (${[...new Set(where)].join(', ')})`}`);
-  if (!ok) bad++;
+    const r = await fetch(`https://api.github.com/repos/${repo}/commits/${sha}`, { headers });
+    if (r.status === 200) state = 'ok';
+    else if (r.status === 404 || r.status === 422) state = 'missing';
+    else state = 'unreachable';           // rate limit, auth, outage
+  } catch {
+    state = 'unreachable';
+  }
+  const mark = { ok: '\u2713', missing: '\u2717', unreachable: '\u00b7' }[state];
+  const note = state === 'missing' ? `  \u2014 does not exist (${[...new Set(where)].join(', ')})`
+    : state === 'unreachable' ? '  \u2014 could not be checked' : '';
+  console.log(`  ${mark} ${repo}@${sha.slice(0, 8)}${note}`);
+  if (state === 'missing') bad++;
+  if (state === 'unreachable') unreachable++;
 }
 
 if (pins.size === 0) {
   console.error('no pinned actions found — the pattern may have changed');
   process.exit(2);
 }
-console.log(`\n${bad === 0 ? '✓' : '✗'} ${pins.size - bad}/${pins.size} pinned actions resolve`);
-process.exit(bad === 0 ? 0 : 1);
+console.log(`\n${bad === 0 ? '✓' : '✗'} ${pins.size - bad - unreachable}/${pins.size} pinned actions resolve`
+  + (unreachable ? ` (${unreachable} could not be checked)` : ''));
+if (bad > 0) process.exit(1);
+// Every pin unreachable means the API was, not that the pins are fine — say so
+// rather than reporting a pass nobody earned.
+if (unreachable === pins.size) {
+  console.error('the GitHub API was unreachable for every pin — nothing was verified');
+  process.exit(0);
+}
+process.exit(0);
