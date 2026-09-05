@@ -181,8 +181,18 @@ _deploy_frontend() {
   ok "Sync complete"
 
   info "Building Docker image on server..."
+  # The build's exit status is the one that matters, and piping into grep hides
+  # it behind grep's. Without PIPESTATUS this reported "Image built" after a
+  # failed build and then started the container on the PREVIOUS image — a
+  # deploy that looked green while shipping nothing.
+  set -o pipefail
   ssh "$REMOTE" "cd /srv/banzami/src/apps/$app_name && docker build $NO_CACHE $LABEL_ARGS -t $image_tag . 2>&1" \
-    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
+    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Type error|Step|Successfully)" || true
+  local build_rc=${PIPESTATUS[0]}
+  set +o pipefail
+  if [[ $build_rc -ne 0 ]]; then
+    die "Image build FAILED for $app_name (exit $build_rc) — the running container was left untouched. Re-run the build on the host to read the full error: ssh $REMOTE 'cd /srv/banzami/src/apps/$app_name && docker build -t $image_tag .'"
+  fi
   ok "Image built"
 
   info "Recreating container..."

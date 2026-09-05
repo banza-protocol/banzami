@@ -12,6 +12,12 @@ const securityHeaders = [
 
 const nextConfig = {
   output: 'standalone',
+  // The production build typechecks the application, not the tests. The tests
+  // read the assurance manifest from the repository root, and only apps/website/
+  // is synced into the image build context — typechecking them here made the
+  // build depend on files that are deliberately not shipped. They are still
+  // typechecked by `npx tsc -p tsconfig.json` and in CI.
+  typescript: { tsconfigPath: './tsconfig.build.json' },
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },

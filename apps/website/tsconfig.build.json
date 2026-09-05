@@ -1,0 +1,11 @@
+{
+  // Production build typecheck.
+  //
+  // The tests are typechecked by `npx tsc -p tsconfig.json` and by CI, but they
+  // are not part of the deployed application and they legitimately reach outside
+  // the app — the assurance manifest and its parser live at the repository root,
+  // and only apps/website/ is synced into the build context. Typechecking them
+  // during `next build` made the image build depend on files that are not there.
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx", "app/developers/docs/assurance-manifest.ts"]
+}
