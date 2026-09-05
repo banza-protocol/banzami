@@ -9,7 +9,13 @@ import (
 )
 
 // fakePayee is a stub Core payee validator for tests.
+//
+// The call counter is mutex-guarded because one of these tests binds
+// concurrently on purpose. Without the lock `go test -race` reports a data race
+// in the fake — a real race, in test code, that says nothing about the service
+// and intermittently fails CI for the wrong reason.
 type fakePayee struct {
+	mu     sync.Mutex
 	valid  bool
 	reason string
 	err    error
@@ -17,8 +23,17 @@ type fakePayee struct {
 }
 
 func (f *fakePayee) ValidatePayee(_ context.Context, _, _, _ string) (bool, string, error) {
+	f.mu.Lock()
 	f.calls++
+	f.mu.Unlock()
 	return f.valid, f.reason, f.err
+}
+
+// callCount reads the counter under the same lock.
+func (f *fakePayee) callCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.calls
 }
 
 // boundSvc returns a service whose payee validator accepts (valid) by default,
@@ -133,8 +148,8 @@ func TestBinding_CoreRejectsInvalidPayee(t *testing.T) {
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != ErrValidation {
 		t.Fatalf("invalid payee: want ErrValidation, got %v", err)
 	}
-	if fp.calls != 1 {
-		t.Errorf("Core must be consulted exactly once, got %d", fp.calls)
+	if n := fp.callCount(); n != 1 {
+		t.Errorf("Core must be consulted exactly once, got %d", n)
 	}
 	if b, _ := st.ActiveBindingForProject(bg, pid); b != nil {
 		t.Error("no binding may be recorded for an invalid payee")
