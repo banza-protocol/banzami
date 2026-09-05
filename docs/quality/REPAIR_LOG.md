@@ -1671,3 +1671,66 @@ and nothing else was.
 **Related:** RA-061 (refund debits the credited account), RA-053/RA-057 (the
 removed routes that used to be the only writer of `wallet_payments`),
 CAP-PAY-002.
+
+---
+
+## RA-065
+
+- **Title:** The published SDK's refunds could not be called with the only credential it documents
+- **Status:** FIXED in source (2026-09-05) — 0.8.1 prepared; operator half deployed
+- **Severity: high** (advertised capability unreachable; DOA's production refund path)
+- **Environment:** Sandbox. No real money.
+
+`createRefund`, `getRefund` and `listRefunds` targeted `/v1/refunds`. That route
+is mounted under merchant-JWT authentication, and the only credential
+`@banzami/sdk`'s README documents is a Developer Platform project key
+(`bz_test_sk_…`). Every refund call through the SDK therefore answered **401
+INVALID_TOKEN**.
+
+Measured on the deployed Sandbox with a real project key:
+
+```
+POST /v1/refunds           → 401 INVALID_TOKEN
+POST /v1/business/refunds  → 404 refund source not found   (authorised)
+```
+
+DOA's production refund path (`lib/refunds/banzami-refund.ts`) calls exactly
+this method, so the golden integration could not refund a donation. The deployed
+refund E2E did not catch it because it exercises the route directly rather than
+through the published client — the same blind spot that let the documented
+`purpose` value ship wrong.
+
+`getBusinessMe()` failed identically, and that half is the operator's:
+`/v1/business/me` exists specifically for an integrating application's
+Integration Health view — DOA is the named example in the handler's own comment
+— and was mounted merchant-only. DOA's health view reported *"a chave não
+autentica a conta Business"*, which was true of the route and false of the key.
+
+**Fix.** SDK refund methods now target `/v1/business/refunds` (0.8.1).
+`/v1/business/me` moved into the dual-credential group, resolving the merchant
+from the project binding like every other route there. No signature changed.
+
+**Deployed proof:** with the corrected client against the deployed Sandbox,
+`getBusinessMe()` → 200 and `createRefund()` → 404 *refund source not found*
+(authorised, and correctly refusing a fabricated source id) where both were 401.
+
+**Non-vacuity:** re-pointing `createRefund` back at `/refunds` fails the new
+`route-drift` reachability test, which asserts the credential can reach the
+route rather than only that the path exists.
+
+### Decision on @banzami/sdk@0.7.0 — NOT deprecated
+
+Re-derived rather than assumed. 0.7.0's method surface is identical to 0.8.0's
+minus `createTransfer`; its path set is identical minus `/business/transfers`.
+0.7.0 is the release that **removed** the withdrawn-route methods for which
+0.5.1 and 0.6.0 were deprecated — it is the fix, not a carrier.
+
+The refund defect above is present in 0.7.0 **and** in 0.8.0 equally, so it is
+not a reason to deprecate 0.7.0 specifically. A previous valid release does not
+become defective because a later one adds a feature.
+
+Once 0.8.1 is published, both 0.7.0 and 0.8.0 carry an identified, proven defect
+(refunds unreachable) and deprecating **both** would then be justified — for
+that reason, recorded here, and not for the existence of a newer version.
+
+**Related:** RA-061, RA-064 (the refundable object itself), CAP-SDK-001.
