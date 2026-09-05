@@ -1,0 +1,92 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Console API Logs (ADR-054)",
+  "test": "tools/e2e/dev-console/api-logs-correlation-e2e.mjs",
+  "date_stamp": "1788628763",
+  "console_host": "https://developers.banzami.com",
+  "api_host": "https://developer-api.banzami.com",
+  "gateway_host": "https://sandbox-api.banzami.com",
+  "deployed_commit": "unknown",
+  "schema": "banzami_staging (developer.dev_api_request_logs)",
+  "fixture_namespace": "rt54-*-1788628763@banzami-e2e.test",
+  "total": 15,
+  "passed": 14,
+  "failed": 1,
+  "matrix": [
+    {
+      "id": "LOG.setup-key-issued",
+      "ok": true,
+      "note": "bz_test_sk_ len 54"
+    },
+    {
+      "id": "LOG.gateway-returns-request-id",
+      "ok": true,
+      "note": "/v1/me → 200, x-request-id present=true"
+    },
+    {
+      "id": "LOG.success-request-is-logged",
+      "ok": true,
+      "note": "GET /v1/me → 200"
+    },
+    {
+      "id": "LOG.fields-match-the-actual-request",
+      "ok": true,
+      "note": "method=GET path=/v1/me status=200"
+    },
+    {
+      "id": "LOG.latency-and-environment-recorded",
+      "ok": true,
+      "note": "latency_ms=2 env=SANDBOX"
+    },
+    {
+      "id": "LOG.retention-window-reported",
+      "ok": true,
+      "note": "retention_days=30"
+    },
+    {
+      "id": "LOG.failure-is-logged-too",
+      "ok": false,
+      "note": "gateway 404 → logged nothing"
+    },
+    {
+      "id": "LOG.no-credential-in-the-log-response",
+      "ok": true,
+      "note": "method/path/status/request_id/latency only"
+    },
+    {
+      "id": "LOG.console-has-an-api-requests-tab",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "LOG.console-ui-finds-the-request-id",
+      "ok": true,
+      "note": "row rendered with its path"
+    },
+    {
+      "id": "LOG.b-cannot-read-a-project-logs",
+      "ok": true,
+      "note": "GET A's logs as B → 403"
+    },
+    {
+      "id": "LOG.a-cannot-read-b-project-logs",
+      "ok": true,
+      "note": "GET B's logs as A → 403"
+    },
+    {
+      "id": "LOG.foreign-request-id-is-not-an-oracle",
+      "ok": true,
+      "note": "foreign=0 invented=0"
+    },
+    {
+      "id": "LOG.b-has-its-own-logs-fixture-not-vacuous",
+      "ok": true,
+      "note": "B rows=1"
+    },
+    {
+      "id": "LOG.unauthenticated-cannot-read-logs",
+      "ok": true,
+      "note": "no session → 401"
+    }
+  ],
+  "secrets_note": "No raw key/secret/OTP printed or stored."
+}
