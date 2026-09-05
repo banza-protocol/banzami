@@ -244,7 +244,7 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **API/UI surface:** developer console UI (developers.banzami.com) + developer-api auth/workspace/project
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [services/developer-api/internal/accountidentity (flow, crypto, email)] · integration [services/developer-api workspace/project authz tests] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*), tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.overview-* — the Overview moves with real traffic and renders none of the old constants)] · negative/security [unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage, zero-mock: no Console page renders illustrative data (apps/website/app/developers/illustrative-data.test.ts, ILLUSTRATIVE list empty)]
-- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json
+- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/api-logs-correlation-1788633497.json
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
@@ -276,7 +276,7 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **API/UI surface:** developer console → Registos → Pedidos à API, GET /projects/{projectID}/logs (session-authenticated, project-scoped)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [services/api-gateway/internal/middleware/apilog_test.go (attribution, failures, redaction, non-vacuity), services/developer-api/internal/developer/request_logs_test.go (authority, filters, no-oracle), apps/website/app/developers/request-id-shape.test.ts (docs vs generator)] · integration [services/api-gateway/internal/service/request_log_retention_test.go (real-DB prune)] · e2e_sandbox [tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.* 18/18, incl. Overview real-data assertions)] · negative/security [cross-project 403 both directions, foreign request_id is not an oracle, unauthenticated 401, no credential field in schema or response, credential-shaped path segment redacted, unauthenticated request writes no row]
-- **Evidence:** evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json, docs/adr/ADR-054-developer-api-request-logs.md
+- **Evidence:** evidence/assurance/dev-foundation/api-logs-correlation-1788633497.json, docs/adr/ADR-054-developer-api-request-logs.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox

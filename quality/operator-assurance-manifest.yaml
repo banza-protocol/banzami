@@ -507,7 +507,7 @@ capabilities:
     cleanup_disposition: active-required
     evidence:
       - evidence/assurance/dev-foundation/e2e-1783197561.json
-      - evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json
+      - evidence/assurance/dev-foundation/api-logs-correlation-1788633497.json
     surface: public
     disposition: released
     status: verified
@@ -593,7 +593,7 @@ capabilities:
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence:
-      - evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json
+      - evidence/assurance/dev-foundation/api-logs-correlation-1788633497.json
       - docs/adr/ADR-054-developer-api-request-logs.md
     surface: public
     disposition: released
