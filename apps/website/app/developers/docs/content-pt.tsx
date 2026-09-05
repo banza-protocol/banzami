@@ -285,7 +285,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <UL>
                   <LI>Esta é documentação <strong>Sandbox / Pré-visualização</strong>. A capacidade Sandbox está limitada a fluxos de teste controlados.</LI>
                   <LI><strong>Produção e trilhos de dinheiro real não estão disponíveis.</strong> Pay/checkout públicos, trilhos live e fornecedores externos não estão disponíveis.</LI>
-                  <LI>As páginas <strong>visuais</strong> da Consola (dashboard, webhooks, logs) são <strong>pré-visualizações demo, não operacionais</strong>, salvo indicação explícita em contrário. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
+                  <LI>Na Consola, <strong>Webhooks</strong> e <strong>Actividade</strong> mostram os dados reais do seu projeto. O <strong>dashboard</strong> continua a ser uma <strong>pré-visualização demo, não operacional</strong>, e está rotulado como tal na própria página. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
                 </UL>
               </div>
 
@@ -836,8 +836,8 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               <P>
                 Workspaces, projetos, membros e <strong>chaves</strong> são geridos no portal Banzami Developers — pela interface,
                 com sessão e permissões por papel. Não é uma API pública para chamar diretamente, por isso não expomos aqui os
-                seus endpoints internos. As restantes páginas visuais da Consola (dashboard, webhooks, logs) são
-                <strong> pré-visualizações demo, não operacionais</strong>.
+                seus endpoints internos. As páginas de Webhooks e Actividade mostram os dados reais do projeto; o dashboard é ainda
+                uma <strong>pré-visualização demo, não operacional</strong>, rotulada como tal na própria página.
               </P>
 
               <H3 id="credenciais">Credenciais e capacidades</H3>
@@ -857,7 +857,8 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {([
                       ['Console — entrar, workspaces, projetos, membros, chaves', 'Sessão OTP (email + código)', 'Disponível em Sandbox controlado'],
-                      ['Páginas visuais da Consola (dashboard, webhooks, logs)', '—', 'Demo / pré-visualização — não operacional'],
+                      ['Consola — Webhooks e Actividade', 'Sessão OTP (email + código)', 'Dados reais do projeto'],
+                      ['Consola — dashboard', '—', 'Demo / pré-visualização — não operacional'],
                       ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
                       ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
                       ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],

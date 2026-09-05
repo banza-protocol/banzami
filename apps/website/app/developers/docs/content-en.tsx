@@ -573,6 +573,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                     {([
                       ['Console — sign in, workspaces, projects, members, keys', 'OTP session (email + code)', 'Available in controlled Sandbox'],
                       ['Developer Console (sign-in, workspaces, projects, keys)', '—', 'Operational in Sandbox — verified end to end'],
+                      ['Console — Webhooks and Activity pages', 'OTP session (email + code)', 'The project’s own real data'],
                       ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in controlled Sandbox'],
                       ['Payment sessions', 'Developer key (payment_sessions scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
                       ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
@@ -743,7 +744,8 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                       ['Webhook outbound delivery', 'available_controlled_sandbox'],
                       ['Refunds (project key)', 'available_controlled_sandbox'],
                       ['Transfers (project key)', 'available_controlled_sandbox'],
-                      ['Developer Console (visual pages)', 'documented_preview'],
+                      ['Console — Webhooks and Activity', 'available_controlled_sandbox'],
+                      ['Console — dashboard', 'documented_preview'],
                       ['Production/live rails', 'not_available'],
                       ['Pay/checkout/live rails', 'not_approved'],
                       ['External provider rails', 'not_approved'],

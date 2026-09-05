@@ -11,7 +11,7 @@
     "console_visual_pages": {
       "state": "documented_preview",
       "credential": null,
-      "note": "Dashboard, webhooks UI, logs UI are demo previews with illustrative data — not operational."
+      "note": "The Webhooks and Activity pages read the project’s own real data through developer-api. The dashboard is still a demo preview with illustrative data and is labelled as such on the page itself. Per-HTTP-request API logging is not recorded by the operator and is not shown anywhere."
     },
     "developer_api_key": {
       "state": "available_controlled_sandbox",

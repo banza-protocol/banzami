@@ -25,7 +25,7 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // work. That is the other legitimate way off this list, and the reason the
 // second assertion below is phrased as "makes no API call" rather than "is
 // wired" — a page can stop lying without yet telling the truth.
-const ILLUSTRATIVE = ['dashboard', 'logs'];
+const ILLUSTRATIVE = ['dashboard'];
 
 describe('Console pages with illustrative data', () => {
   it.each(ILLUSTRATIVE)('%s carries the illustrative-data notice', (page) => {
@@ -38,6 +38,21 @@ describe('Console pages with illustrative data', () => {
     // If this fails, the page was wired to the real API — which is good news.
     // Remove it from ILLUSTRATIVE and drop the notice rather than loosening this.
     expect(/fetch\(|developer-api\.banzami\.com/.test(src), `${page} now calls an API`).toBe(false);
+  });
+
+  it('the activity log no longer invents events, and reads the project’s own', () => {
+    const src = read('app/developers/logs/page.tsx') + read('components/developers/portal/ActivityLog.tsx');
+    // It listed payment.succeeded / transfer.created / refund.processed rows for
+    // a fictional shop's invoices — event names Banzami does not emit, against
+    // references that never existed.
+    for (const invented of ['payment.succeeded', 'payment.failed', 'transfer.created', 'refund.processed', 'invoice.paid', 'INV-2025']) {
+      expect(src, `the activity log must not re-invent ${invented}`).not.toContain(invented);
+    }
+    expect(src).toContain('developerApi.listWebhookEvents');
+    expect(src).toContain('developerApi.listWebhookDeliveries');
+    // Per-request API logging is not recorded, so the page must say so rather
+    // than render a view over data that does not exist.
+    expect(src).toContain('request_id');
   });
 
   it('the webhooks page no longer invents endpoints or deliveries', () => {

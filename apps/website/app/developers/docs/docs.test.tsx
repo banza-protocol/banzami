@@ -62,8 +62,11 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
       ['Webhooks', '/docs/guides#webhooks'],
       ['Reembolsos', '/docs/guides#reembolsos'],
     ] as [string, string][]) {
-      const card = screen.getByText(title).closest('a');
-      expect(card?.getAttribute('href')).toBe(href);
+      // Scope to the card links: the prose around them legitimately names the
+      // same capabilities, so a bare text lookup matches more than the card.
+      const card = screen.getAllByRole('link')
+        .find((a) => a.getAttribute('href') === href && (a.textContent ?? '').includes(title));
+      expect(card, `capability card for ${title}`).toBeTruthy();
     }
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Produção em preparação').length).toBeGreaterThan(0);
