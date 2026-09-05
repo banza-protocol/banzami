@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -553,6 +554,66 @@ func (s *pgStore) WebhookDeliveriesForEvent(ctx context.Context, merchantID, eve
 		var v WebhookDeliveryView
 		if err := rows.Scan(&v.ID, &v.EventID, &v.EndpointID, &v.Status, &v.StatusCode,
 			&v.AttemptCount, &v.DeliveredAt, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// APIRequestLogs reads one project's Developer API request log (migration 0104).
+//
+// The project id is a bound parameter of the query itself, not a filter the
+// caller composes: authorisation happens above, but even a bug there cannot make
+// this statement return another project's rows. Every optional filter narrows.
+func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f RequestLogFilter) ([]APIRequestLogView, error) {
+	limit := f.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	args := []any{projectID}
+	var where []string
+	// bind appends a value and returns its placeholder, so no clause has to know
+	// its own position and no value is ever concatenated into the SQL.
+	bind := func(v any) string {
+		args = append(args, v)
+		return fmt.Sprintf("$%d", len(args))
+	}
+	if f.RequestID != "" {
+		where = append(where, "request_id = "+bind(f.RequestID))
+	}
+	if f.Status > 0 {
+		where = append(where, "status = "+bind(f.Status))
+	}
+	if f.Path != "" {
+		p := bind(f.Path)
+		where = append(where, fmt.Sprintf("(path ILIKE '%%' || %s || '%%' OR route ILIKE '%%' || %s || '%%')", p, p))
+	}
+	if f.Since != nil {
+		where = append(where, "created_at >= "+bind(*f.Since))
+	}
+	if f.Until != nil {
+		where = append(where, "created_at <= "+bind(*f.Until))
+	}
+
+	q := `SELECT id, method, path, route, status, request_id, latency_ms, environment, created_at
+	        FROM developer.dev_api_request_logs
+	       WHERE project_id = $1`
+	for _, c := range where {
+		q += " AND " + c
+	}
+	q += " ORDER BY created_at DESC LIMIT " + bind(limit)
+
+	rows, err := s.pool.Query(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []APIRequestLogView{}
+	for rows.Next() {
+		var v APIRequestLogView
+		if err := rows.Scan(&v.ID, &v.Method, &v.Path, &v.Route, &v.Status,
+			&v.RequestID, &v.LatencyMS, &v.Environment, &v.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, v)

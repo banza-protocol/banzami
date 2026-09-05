@@ -247,6 +247,44 @@ type Store interface {
 	WebhookEndpointsForMerchant(ctx context.Context, merchantID string) ([]WebhookEndpointView, error)
 	WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error)
 	WebhookDeliveriesForEvent(ctx context.Context, merchantID, eventID string) ([]WebhookDeliveryView, error)
+
+	// APIRequestLogs returns the project's own Developer API request log. The
+	// project id is applied inside the query, so a filter can narrow the result
+	// but can never widen it past one project.
+	APIRequestLogs(ctx context.Context, projectID string, f RequestLogFilter) ([]APIRequestLogView, error)
+}
+
+// RequestLogRetentionDays is how long a Developer API request log line is kept.
+// It matches service.RequestLogRetention in the api-gateway, which does the
+// pruning; the Console reports it so an absent old request reads as retention
+// and not as a lost record. Diagnostic telemetry only — audit events are
+// immutable and governed separately.
+const RequestLogRetentionDays = 30
+
+// RequestLogFilter narrows a project's request log. Every field is optional and
+// none of them can select another project's rows.
+type RequestLogFilter struct {
+	Limit     int
+	RequestID string // exact match — the correlation lookup
+	Status    int    // exact status, e.g. 404
+	Path      string // case-insensitive substring of path or route
+	Since     *time.Time
+	Until     *time.Time
+}
+
+// APIRequestLogView is one logged Developer API request as the Console shows it.
+// The fields are the whole record (migration 0104): no header, no body, no
+// credential. What is absent here is absent in the database too.
+type APIRequestLogView struct {
+	ID          string    `json:"id"`
+	Method      string    `json:"method"`
+	Path        string    `json:"path"`
+	Route       string    `json:"route,omitempty"`
+	Status      int       `json:"status"`
+	RequestID   string    `json:"request_id"`
+	LatencyMS   *int      `json:"latency_ms,omitempty"`
+	Environment string    `json:"environment"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // WebhookEndpointView is an endpoint as the Console shows it. The signing secret

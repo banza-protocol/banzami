@@ -84,6 +84,7 @@ func main() {
 	// connections, not that THIS gateway can reach it — a distinction that
 	// matters exactly when a pool is exhausted or misconfigured.
 	var readinessDBPool *pgxpool.Pool
+	var reqLogRecorder *service.PostgresRequestLogRecorder
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -177,6 +178,10 @@ func main() {
 		case proofKeyWarn:
 			slog.Warn("[SEC-003] BZM_PROOF_SIGNING_KEY not set — transaction-proof signatures are unkeyed (dev/sandbox only)")
 		}
+		// Developer API request log (migration 0104). Asynchronous, bounded, and
+		// pruned on its own retention — see postgres_request_logs.go.
+		reqLogRecorder = service.NewPostgresRequestLogRecorder(dbPool)
+		reqLogRecorder.StartWorker(ctx)
 		proofSvc = service.NewProofService(dbPool,
 			proofSigningKey, os.Getenv("BZM_PROOF_KEY_ID"),
 			"banzami", "banza", "https://banzami.com/r/")
@@ -222,6 +227,7 @@ func main() {
 		PlatformSvc:              platformSvc,
 		ProofSvc:                 proofSvc,
 		BusinessSelfSvc:          businessSelfSvc,
+		RequestLogSink:           reqLogSink(reqLogRecorder),
 		ProofHashSalt:            proofHashSalt(),
 		ActivationSvc:            activationSvc,
 		ComplianceSvc:            service.NewCoreApiComplianceService(coreClient),
@@ -303,6 +309,17 @@ var requiredGatewayTables = []string{
 	"merchant_app_credentials", "merchant_activation_tokens", "merchant_kyb_documents",
 	"kyc_cases", "transaction_proofs", "transaction_proof_verifications",
 	"platform_settings", "app_settlements",
+}
+
+// reqLogSink converts the concrete recorder to the sink interface WITHOUT the
+// typed-nil trap: assigning a nil *PostgresRequestLogRecorder straight into an
+// interface yields a non-nil interface holding a nil pointer, and the middleware
+// would then install itself and panic on the first request.
+func reqLogSink(r *service.PostgresRequestLogRecorder) service.APIRequestLogSink {
+	if r == nil {
+		return nil
+	}
+	return r
 }
 
 func validateGatewaySchema(ctx context.Context, pool *pgxpool.Pool, env string) {

@@ -932,6 +932,12 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                 <Code>code</Code>, nunca pela mensagem.
               </P>
               <CodeBlock label="json · envelope canónico de erro" raw={SAMPLE_ERROR} onCopy={copy} />
+              <P>
+                Esse <Code>request_id</Code> é pesquisável. Em <strong>Console → Registos → Pedidos à API</strong> cole-o
+                para encontrar o pedido exacto: método, caminho, estado, latência e data. Os registos são do seu projeto e
+                só do seu projeto, e são guardados durante <strong>30 dias</strong>. O que nunca é guardado: cabeçalho{' '}
+                <Code>Authorization</Code>, chaves de API, segredos de webhook, cookies, OTP ou corpo do pedido.
+              </P>
               <H3>Códigos por status HTTP (observados no Sandbox)</H3>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480, fontSize: 13 }}>

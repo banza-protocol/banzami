@@ -637,6 +637,12 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                 never by message.
               </P>
               <CodeBlock label="json · canonical error envelope" raw={SAMPLE_ERROR} onCopy={copy} {...enCopy} />
+              <P>
+                That <Code>request_id</Code> is searchable. In <strong>Console → Logs → API requests</strong>, paste it to
+                find the exact request: method, path, status, latency and timestamp. Logs are your project&rsquo;s and only
+                your project&rsquo;s, and are kept for <strong>30 days</strong>. What is never stored: the{' '}
+                <Code>Authorization</Code> header, API keys, webhook secrets, cookies, OTPs or the request body.
+              </P>
               <H3>Codes by HTTP status (observed in the Sandbox)</H3>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 480, fontSize: 13 }}>

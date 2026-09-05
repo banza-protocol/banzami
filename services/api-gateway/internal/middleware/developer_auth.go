@@ -114,13 +114,18 @@ func resolveDeveloperPrincipal(w http.ResponseWriter, r *http.Request, client de
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "a valid Sandbox API key is required")
 		return nil, false
 	}
-	return &DeveloperPrincipal{
+	p := &DeveloperPrincipal{
 		KeyID: kc.KeyID, Environment: kc.Environment,
 		WorkspaceID: kc.WorkspaceID, ProjectID: kc.ProjectID,
 		ProjectSlug: kc.ProjectSlug, KeyStatus: kc.KeyStatus, Scopes: kc.Scopes,
 		Bound: kc.Bound, MerchantID: kc.MerchantID,
 		WalletID: kc.WalletID, WalletAccountID: kc.WalletAccountID,
-	}, true
+	}
+	// Attribute the request log HERE, at the one point a developer key is ever
+	// accepted, so the Console's Logs screen cannot miss a request because a
+	// handler forgot to emit one. See apilog.go.
+	AttributeRequest(r.Context(), p)
+	return p, true
 }
 
 // isDeveloperKeyAttempt reports whether the request presents a developer-platform

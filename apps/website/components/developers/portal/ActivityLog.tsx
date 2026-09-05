@@ -20,10 +20,10 @@ import { IconSearch } from './icons';
 // resolves the merchant from the project binding, so nothing in the browser
 // names one.
 //
-// What is deliberately NOT shown: a per-HTTP-request API log. The operator does
-// not persist one today, and inventing a view over data that is not recorded is
-// exactly what this screen is being repaired for. The page says so in place of
-// showing it.
+// A per-HTTP-request API log used to be absent here, and the page said so. It is
+// no longer absent: the gateway records one (migration 0104) and it has its own
+// tab, RequestLog. This component stays what it always was — the webhook side —
+// rather than growing to cover both.
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 

@@ -377,6 +377,24 @@ func (s *Service) ProjectWebhookDeliveries(ctx context.Context, actor, projectID
 	return s.store.WebhookDeliveriesForEvent(ctx, m, eventID)
 }
 
+// ── API request logs ─────────────────────────────────────────────────────────
+
+// ProjectAPIRequestLogs returns the project's own Developer API request log.
+//
+// Authority is workspace membership and nothing else: projectAuthz rejects a
+// caller who is not a member, and the store applies the project id inside the
+// query, so a foreign project's rows are unreachable by two independent
+// mechanisms rather than one. A request_id belonging to another project is
+// simply not found here — it never becomes an existence oracle, because the
+// answer for "someone else's id" and "an id that never existed" is the same
+// empty list.
+func (s *Service) ProjectAPIRequestLogs(ctx context.Context, actor, projectID string, f RequestLogFilter) ([]APIRequestLogView, error) {
+	if _, _, err := s.projectAuthz(ctx, actor, projectID); err != nil {
+		return nil, err
+	}
+	return s.store.APIRequestLogs(ctx, projectID, f)
+}
+
 func (s *Service) GetProject(ctx context.Context, actor, projectID string) (Project, error) {
 	p, _, err := s.projectAuthz(ctx, actor, projectID)
 	if err != nil {

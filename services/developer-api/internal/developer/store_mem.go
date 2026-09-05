@@ -11,17 +11,25 @@ import (
 // memStore is an in-memory Store with the same semantics as pgStore (tests /
 // local dev). Concurrency-safe.
 type memStore struct {
-	mu         sync.Mutex
-	seq        int
-	workspaces map[string]*Workspace
-	members    []*Member
-	invites    map[string]*Invite
-	inviteHash map[string]string // tokenHash -> inviteID
-	projects   map[string]*Project
-	apiKeys    []*apiKeyRec
-	bindings   []*SandboxBinding
+	mu          sync.Mutex
+	seq         int
+	workspaces  map[string]*Workspace
+	members     []*Member
+	invites     map[string]*Invite
+	inviteHash  map[string]string // tokenHash -> inviteID
+	projects    map[string]*Project
+	apiKeys     []*apiKeyRec
+	bindings    []*SandboxBinding
+	requestLogs []memRequestLog
 
 	Audits []AuditEvent
+}
+
+// memRequestLog pairs a log row with the project that owns it, so the in-memory
+// store can enforce the same one-project scoping the SQL does.
+type memRequestLog struct {
+	projectID string
+	view      APIRequestLogView
 }
 
 // apiKeyRec holds the full key row incl. the secret hash (never exposed).
@@ -399,4 +407,46 @@ func (m *memStore) WebhookEventsForMerchant(context.Context, string, int) ([]Web
 
 func (m *memStore) WebhookDeliveriesForEvent(context.Context, string, string) ([]WebhookDeliveryView, error) {
 	return []WebhookDeliveryView{}, nil
+}
+
+// APIRequestLogs — the in-memory store keeps request logs so authority and
+// filtering can be tested without a database. Rows are appended by tests via
+// SeedRequestLog; the gateway is the only writer in production.
+func (m *memStore) APIRequestLogs(_ context.Context, projectID string, f RequestLogFilter) ([]APIRequestLogView, error) {
+	limit := f.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	out := []APIRequestLogView{}
+	for _, r := range m.requestLogs {
+		if r.projectID != projectID {
+			continue
+		}
+		v := r.view
+		if f.RequestID != "" && v.RequestID != f.RequestID {
+			continue
+		}
+		if f.Status > 0 && v.Status != f.Status {
+			continue
+		}
+		if f.Path != "" && !strings.Contains(strings.ToLower(v.Path+" "+v.Route), strings.ToLower(f.Path)) {
+			continue
+		}
+		if f.Since != nil && v.CreatedAt.Before(*f.Since) {
+			continue
+		}
+		if f.Until != nil && v.CreatedAt.After(*f.Until) {
+			continue
+		}
+		out = append(out, v)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
+}
+
+// SeedRequestLog appends one row to the in-memory request log.
+func (m *memStore) SeedRequestLog(projectID string, v APIRequestLogView) {
+	m.requestLogs = append(m.requestLogs, memRequestLog{projectID: projectID, view: v})
 }

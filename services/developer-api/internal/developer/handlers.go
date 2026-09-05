@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -177,6 +178,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/webhooks/endpoints", h.listWebhookEndpoints)
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
+	r.Get("/projects/{projID}/logs", h.listAPIRequestLogs)
 
 	r.Group(func(r chi.Router) {
 		r.Use(csrf)
@@ -235,6 +237,41 @@ func (h *Handlers) listWebhookDeliveries(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"deliveries": ds})
+}
+
+// listAPIRequestLogs serves the Console's Logs screen: this project's own
+// Developer API requests. Filters narrow; none of them can name another project.
+func (h *Handlers) listAPIRequestLogs(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	q := r.URL.Query()
+	f := RequestLogFilter{RequestID: q.Get("request_id"), Path: q.Get("path")}
+	f.Limit, _ = strconv.Atoi(q.Get("limit"))
+	f.Status, _ = strconv.Atoi(q.Get("status"))
+	if v := q.Get("since"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			f.Since = &t
+		}
+	}
+	if v := q.Get("until"); v != "" {
+		if t, err := time.Parse(time.RFC3339, v); err == nil {
+			f.Until = &t
+		}
+	}
+	logs, err := h.svc.ProjectAPIRequestLogs(r.Context(), u.ID, chi.URLParam(r, "projID"), f)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"logs": logs,
+		// The Console tells the developer how long a line survives, so an absent
+		// old request reads as retention rather than as a lost record.
+		"retention_days": RequestLogRetentionDays,
+	})
 }
 
 // actor pulls the authenticated Account Identity user out of the request context.

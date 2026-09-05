@@ -158,6 +158,30 @@ export interface WebhookDelivery {
   created_at: string;
 }
 
+/** One Developer API request as the operator recorded it (migration 0104).
+ *  There is no header, body or credential field here because there is none in
+ *  the database either. */
+export interface ApiRequestLog {
+  id: string;
+  method: string;
+  path: string;
+  route?: string;
+  status: number;
+  request_id: string;
+  latency_ms?: number | null;
+  environment: string;
+  created_at: string;
+}
+
+export interface RequestLogQuery {
+  limit?: number;
+  request_id?: string;
+  status?: number;
+  path?: string;
+  since?: string;
+  until?: string;
+}
+
 export const developerApi = {
   // Account Identity
   requestOtp: (email: string) => req<{ ok: boolean }>('/auth/request-otp', { method: 'POST', body: { email } }),
@@ -206,6 +230,19 @@ export const developerApi = {
     req<{ events: WebhookEvent[] }>(`/projects/${projectID}/webhooks/events?limit=${limit}`),
   listWebhookDeliveries: (projectID: string, eventID: string) =>
     req<{ deliveries: WebhookDelivery[] }>(`/projects/${projectID}/webhooks/events/${eventID}/deliveries`),
+
+  listApiRequestLogs: (projectID: string, q: RequestLogQuery = {}) => {
+    const p = new URLSearchParams();
+    if (q.limit) p.set('limit', String(q.limit));
+    if (q.request_id) p.set('request_id', q.request_id);
+    if (q.status) p.set('status', String(q.status));
+    if (q.path) p.set('path', q.path);
+    if (q.since) p.set('since', q.since);
+    if (q.until) p.set('until', q.until);
+    const qs = p.toString();
+    return req<{ logs: ApiRequestLog[]; retention_days: number }>(
+      `/projects/${projectID}/logs${qs ? `?${qs}` : ''}`);
+  },
 
   rotateKey: (keyID: string, csrf: string) => req<NewKey>(`/keys/${keyID}/rotate`, { method: 'POST', csrf }),
   revokeKey: (keyID: string, csrf: string) => req<{ ok: boolean }>(`/keys/${keyID}`, { method: 'DELETE', csrf }),

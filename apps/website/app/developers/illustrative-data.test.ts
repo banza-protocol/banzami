@@ -41,7 +41,8 @@ describe('Console pages with illustrative data', () => {
   });
 
   it('the activity log no longer invents events, and reads the project’s own', () => {
-    const src = read('app/developers/logs/page.tsx') + read('components/developers/portal/ActivityLog.tsx');
+    const src = read('app/developers/logs/page.tsx') + read('components/developers/portal/ActivityLog.tsx')
+      + read('components/developers/portal/RequestLog.tsx');
     // It listed payment.succeeded / transfer.created / refund.processed rows for
     // a fictional shop's invoices — event names Banzami does not emit, against
     // references that never existed.
@@ -50,9 +51,36 @@ describe('Console pages with illustrative data', () => {
     }
     expect(src).toContain('developerApi.listWebhookEvents');
     expect(src).toContain('developerApi.listWebhookDeliveries');
-    // Per-request API logging is not recorded, so the page must say so rather
-    // than render a view over data that does not exist.
-    expect(src).toContain('request_id');
+  });
+
+  it('the API request log is real project traffic, not a second invented screen', () => {
+    const page = read('app/developers/logs/page.tsx');
+    const src = read('components/developers/portal/RequestLog.tsx');
+    // The screen exists and is reachable — the page renders it, not just imports it.
+    expect(page).toContain('<RequestLog />');
+    // Every row comes from the operator's own record for THIS project.
+    expect(src).toContain('developerApi.listApiRequestLogs');
+    // The columns the docs promise a developer they can debug with.
+    for (const field of ['request_id', 'latency_ms', 'status', 'method', 'path', 'created_at']) {
+      expect(src, `the request log must render ${field}`).toContain(field);
+    }
+    // The filters the page offers must be real query parameters, not client-side
+    // theatre over one fixed fetch.
+    for (const filter of ['request_id:', 'status:', 'path:', 'since:']) {
+      expect(src, `filter ${filter} must reach the API`).toContain(filter);
+    }
+    // Nothing may be hard-coded: a sample row here would be exactly the defect
+    // this whole file exists to prevent.
+    for (const invented of ['req_sample', 'minhaloja', 'invoice.paid', '/v1/example']) {
+      expect(src, `the request log must not invent ${invented}`).not.toContain(invented);
+    }
+    // And no credential-bearing field may be displayed, because none is stored.
+    // Comments are excluded: the file names these things in order to say it does
+    // not carry them, which is the opposite of carrying them.
+    const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n').toLowerCase();
+    for (const secret of ['authorization', 'api_key', 'apikey', 'webhook_secret', 'cookie', 'headers']) {
+      expect(code, `the request log must not surface ${secret}`).not.toContain(secret);
+    }
   });
 
   it('the webhooks page no longer invents endpoints or deliveries', () => {

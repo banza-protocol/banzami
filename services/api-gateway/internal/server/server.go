@@ -67,6 +67,10 @@ type Dependencies struct {
 	ProofSvc                 *service.ProofService
 	BusinessSelfSvc          *service.BusinessSelfService
 	ProofHashSalt            string
+	// RequestLogSink persists one row per authenticated Developer API request.
+	// Nil disables the log (no DATABASE_URL) — the middleware then adds nothing
+	// to the chain rather than recording into a void.
+	RequestLogSink service.APIRequestLogSink
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -103,6 +107,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	r.Use(chimw.RealIP)
 	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
 	r.Use(middleware.Logger)
+	// Must sit above authentication (it reads the project the credential resolved
+	// to) and above Recoverer (so a recovered panic is logged as the 500 the
+	// caller actually received).
+	r.Use(middleware.APIRequestLog(deps.RequestLogSink))
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(60 * time.Second))
 	r.Use(middleware.RouteSpan)       // enriches the otelhttp span with chi route pattern
