@@ -182,8 +182,13 @@ db-psql:
 core-run: _require-database-url
 	cd $(CORE_DIR) && cargo run --bin core-api
 
+# SQLX_OFFLINE for the same reason core-test uses it (see the note below): a
+# plain `cargo check` resolves sqlx::query! against DATABASE_URL, so `make
+# check-all` failed with 54 "connection refused" errors on any machine without
+# a local dev database — a green-or-red signal that measured the developer's
+# postgres rather than the code.
 core-check:
-	cargo check --workspace --manifest-path $(CORE_DIR)/Cargo.toml
+	SQLX_OFFLINE=true cargo check --workspace --manifest-path $(CORE_DIR)/Cargo.toml
 
 # SQLX_OFFLINE=true forces the compile-time sqlx::query! checks to use the
 # committed .sqlx/ cache instead of connecting to DATABASE_URL. Without it, a plain
