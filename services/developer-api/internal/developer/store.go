@@ -55,16 +55,39 @@ var AllowedScopes = map[string]bool{
 	// than riding on a payment or wallet scope, so granting an app the ability
 	// to take payments never silently grants the ability to pay funds away.
 	"application_settlements:write": true,
-	"payment_links:read":     true,
-	"payment_links:write":    true,
-	"payments:read":          true,
-	"payments:write":         true,
-	"transfers:read":         true,
-	"transfers:write":        true,
-	"refunds:write":          true,
-	"webhooks:read":          true,
-	"webhooks:write":         true,
-	"customers:read":         true,
+	"payment_links:read":            true,
+	"payment_links:write":           true,
+	"payments:read":                 true,
+	"payments:write":                true,
+	"transfers:read":                true,
+	"transfers:write":               true,
+	"refunds:write":                 true,
+	"webhooks:read":                 true,
+	"webhooks:write":                true,
+	"customers:read":                true,
+}
+
+// EnforcedScopes is the subset of AllowedScopes that a released Gateway route
+// actually checks. The rest of AllowedScopes is recorded-but-inert: a key can
+// carry `refunds:write` and no route will ever consult it.
+//
+// This distinction is not cosmetic. The Console's scope picker offered eight
+// scopes, every one of them inert, and none of the eight the golden journey
+// needs — so a developer following the public Quickstart could not build a key
+// that worked. Offering a scope that authorizes nothing is a promise the
+// product does not keep.
+//
+// Keep this in step with the Gateway handlers; the Console's picker is tied to
+// it by a test in apps/website.
+var EnforcedScopes = map[string]bool{
+	"identity:read":                 true, // GET /v1/me
+	"payment_sessions:read":         true,
+	"payment_sessions:write":        true,
+	"payment_links:read":            true,
+	"payment_links:write":           true,
+	"wallet_accounts:read":          true,
+	"wallet_accounts:create":        true,
+	"application_settlements:write": true,
 }
 
 var (

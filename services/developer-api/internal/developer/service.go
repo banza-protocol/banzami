@@ -333,15 +333,28 @@ func (s *Service) GetProject(ctx context.Context, actor, projectID string) (Proj
 
 // ── API keys ─────────────────────────────────────────────────────────────────
 
-// PaymentScopes are the ADR-047 payment scopes. They are gated by the deploy-vs-
-// release control (RT04C §1): a scope being in AllowedScopes means it is a valid
-// string, NOT that it may be issued to an ordinary external key while the
-// capability is unreleased.
+// PaymentScopes are the scopes gated by the deploy-vs-release control (RT04C §1).
+// A scope being in AllowedScopes means it is a valid string, NOT that it may be
+// issued to an ordinary external key while the capability is unreleased.
+//
+// Every scope that touches money belongs here. ADR-050 added three scopes and it
+// would have been easy to add them to AllowedScopes alone — which is precisely
+// the mistake this comment exists to prevent, because the failure is silent and
+// backwards: with the capability unreleased, an ordinary Console key could not
+// take a payment, yet could pay funds AWAY via application_settlements:write.
+//
+// wallet_accounts:read is deliberately NOT here. It lists the caller's own
+// project's accounts and moves nothing; withholding it would gate a read behind
+// a payment release for no gain.
 var PaymentScopes = map[string]bool{
 	"payment_sessions:read":  true,
 	"payment_sessions:write": true,
 	"payment_links:read":     true,
 	"payment_links:write":    true,
+	// Opens a new financial object under the project's bound owner.
+	"wallet_accounts:create": true,
+	// Moves money out to a beneficiary — the most consequential of the three.
+	"application_settlements:write": true,
 }
 
 // validScopes checks that every scope is known and, unless allowPayment, that no

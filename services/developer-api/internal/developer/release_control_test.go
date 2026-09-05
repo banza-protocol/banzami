@@ -23,6 +23,34 @@ func TestReleaseControl_UnreleasedRejectsPublicPaymentScopes(t *testing.T) {
 	}
 }
 
+// Every scope that moves or provisions money must sit behind the release
+// control, not merely inside AllowedScopes. This is a classification test: it
+// fails when a new money-touching scope is added to AllowedScopes and nobody
+// decides whether it is gated.
+//
+// The omission it guards is silent and backwards. With the capability
+// unreleased, an ungated application_settlements:write would let an ordinary
+// Console key pay funds AWAY while it still could not take a payment.
+func TestReleaseControl_UnreleasedRejectsEveryMoneyTouchingScope(t *testing.T) {
+	s, _, ws := wsWithRoles(t) // unreleased
+	pid := mkProject(t, s, "u_owner", ws)
+
+	for _, sc := range []string{
+		"wallet_accounts:create",        // opens a financial object under the bound owner
+		"application_settlements:write", // moves money out to a beneficiary
+	} {
+		if _, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindSecret, "k", []string{sc}, "", ""); err != ErrValidation {
+			t.Errorf("unreleased: public issuance of %s must be rejected, got %v", sc, err)
+		}
+	}
+
+	// The read counterpart stays issuable: it lists the caller's own accounts and
+	// moves nothing, so gating it would cost something and buy nothing.
+	if _, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindSecret, "ro", []string{"wallet_accounts:read"}, "", ""); err != nil {
+		t.Errorf("wallet_accounts:read must remain issuable while unreleased: %v", err)
+	}
+}
+
 func TestReleaseControl_ReleasedAllowsPublicPaymentScopes(t *testing.T) {
 	s, _, ws := wsWithRoles(t)
 	s.SetPaymentCapabilityReleased(true)

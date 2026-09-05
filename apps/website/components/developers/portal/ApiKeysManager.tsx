@@ -9,16 +9,39 @@ import { IconCopy, IconRotate, IconShield } from './icons';
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 const mono = "'JetBrains Mono', ui-monospace, monospace";
+// The scopes a released Gateway route actually enforces — mirrors
+// developer.EnforcedScopes in services/developer-api. Tied to it by
+// api-key-scopes.test.ts so the two cannot drift.
+//
+// This list used to be payments:*, transfers:*, refunds:write, webhooks:* and
+// customers:read. Every one of those is inert — no route consults them — and
+// none of the scopes the Quickstart needs was offered at all, so a developer
+// following the public docs built a key that could not call anything. A scope
+// picker that offers authority the product does not grant is worse than a short
+// list: the key looks right, and fails at the first request.
 const ALL_SCOPES = [
-  'payments:read',
-  'payments:write',
-  'transfers:read',
-  'transfers:write',
-  'refunds:write',
-  'webhooks:read',
-  'webhooks:write',
-  'customers:read',
+  'identity:read',
+  'payment_sessions:write',
+  'payment_sessions:read',
+  'wallet_accounts:create',
+  'wallet_accounts:read',
+  'application_settlements:write',
+  'payment_links:write',
+  'payment_links:read',
 ];
+
+// Plain-language purpose, shown under each scope. A developer choosing scopes is
+// making an authority decision; the raw string does not say what it grants.
+const SCOPE_HELP: Record<string, string> = {
+  'identity:read':                 'Ler a identidade do projecto (GET /v1/me).',
+  'payment_sessions:write':        'Abrir sessões de pagamento — cobrar.',
+  'payment_sessions:read':         'Consultar sessões de pagamento.',
+  'wallet_accounts:create':        'Abrir contas segregadas dentro do titular do projecto.',
+  'wallet_accounts:read':          'Listar as contas do próprio projecto.',
+  'application_settlements:write': 'Liquidar — move dinheiro para um beneficiário.',
+  'payment_links:write':           'Criar links de pagamento.',
+  'payment_links:read':            'Consultar links de pagamento.',
+};
 
 // ── Reveal-once dialog ───────────────────────────────────────────────────────
 // The raw secret is passed in as a prop and lives only in the parent's transient
@@ -251,12 +274,17 @@ export function ApiKeysManager() {
                   key={sc}
                   onClick={() => setNewScopes((prev) => (on ? prev.filter((x) => x !== sc) : [...prev, sc]))}
                   style={{ padding: '5px 11px', borderRadius: 30, border: `1.5px solid ${on ? '#B5101F' : '#EBDBD9'}`, background: on ? '#FFF1F0' : '#fff', color: on ? '#B5101F' : '#8a7a7e', fontFamily: mono, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
+                  title={SCOPE_HELP[sc] ?? sc}
                 >
                   {sc}
                 </button>
               );
             })}
           </div>
+          <p style={{ margin: '-8px 0 16px', fontSize: 12, color: '#8a7a7e', lineHeight: 1.5 }}>
+            Cada scope é uma decisão de autoridade. <code style={{ fontFamily: mono }}>application_settlements:write</code>{' '}
+            move dinheiro para um beneficiário — dá-o apenas a uma chave que precise de liquidar.
+          </p>
           <button
             onClick={create}
             disabled={busy}
