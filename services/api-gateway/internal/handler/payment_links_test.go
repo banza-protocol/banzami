@@ -24,7 +24,7 @@ type fakeLinks struct {
 
 func (f *fakeLinks) link() *service.PaymentLink {
 	slug := "abc123"
-	return &service.PaymentLink{ID: "pl-1", Slug: slug, MerchantID: f.merchant, WalletID: "w1", Currency: "AOA", Status: "USED", RefundSource: f.rs}
+	return &service.PaymentLink{ID: "11111111-1111-4111-8111-111111111111", Slug: slug, MerchantID: f.merchant, WalletID: "w1", Currency: "AOA", Status: "USED", RefundSource: f.rs}
 }
 func (f *fakeLinks) Create(context.Context, service.CreatePaymentLinkRequest) (*service.PaymentLink, error) {
 	return f.link(), nil
@@ -86,7 +86,7 @@ func TestPaymentLink_RefundSourceOwnerOnly(t *testing.T) {
 	r := chi.NewRouter()
 	r.Get("/v1/payment-links/{id}", h.Get)
 	rec := httptest.NewRecorder()
-	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/payment-links/pl-1", "", "doa-merchant"))
+	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/payment-links/11111111-1111-4111-8111-111111111111", "", "doa-merchant"))
 	if !strings.Contains(rec.Body.String(), `"source_id":"wp-1"`) {
 		t.Fatalf("owner must see refund_source: %s", rec.Body.String())
 	}
@@ -99,7 +99,7 @@ func TestPaymentLink_RefundSourceOwnerOnly(t *testing.T) {
 	r2 := chi.NewRouter()
 	r2.Get("/v1/payment-links/{id}", h2.Get)
 	rec2 := httptest.NewRecorder()
-	r2.ServeHTTP(rec2, reqWith("GET", "https://x/v1/payment-links/pl-1", "", "other-merchant"))
+	r2.ServeHTTP(rec2, reqWith("GET", "https://x/v1/payment-links/11111111-1111-4111-8111-111111111111", "", "other-merchant"))
 	if strings.Contains(rec2.Body.String(), "refund_source") {
 		t.Fatalf("non-owner must NOT see refund_source: %s", rec2.Body.String())
 	}
@@ -112,7 +112,7 @@ func TestPaymentLink_PaidWebhookIncludesRefundSource(t *testing.T) {
 	r := chi.NewRouter()
 	r.Post("/v1/payment-links/{id}/mark-used", h.MarkUsed)
 	rec := httptest.NewRecorder()
-	r.ServeHTTP(rec, reqWith("POST", "https://x/v1/payment-links/pl-1/mark-used", "", "doa-merchant"))
+	r.ServeHTTP(rec, reqWith("POST", "https://x/v1/payment-links/11111111-1111-4111-8111-111111111111/mark-used", "", "doa-merchant"))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("mark-used want 200, got %d (%s)", rec.Code, rec.Body.String())
 	}
@@ -141,5 +141,25 @@ func TestPaymentLink_PaidWebhookIncludesRefundSource(t *testing.T) {
 	}
 	if strings.Contains(string(last), "TRANSACTION") {
 		t.Fatalf("webhook must never leak TRANSACTION: %s", string(last))
+	}
+}
+
+// A payment-link id that cannot exist is answered like one that does not.
+//
+// The route takes an ID; handing it a payment-link SLUG is a natural confusion,
+// since the slug is what the public URL carries. That reached a uuid parse in
+// the data layer and surfaced as 500 INTERNAL_ERROR — the operator reporting its
+// own failure for the caller's malformed input, and a signal that the id shape
+// mattered. Not-found, for the same reason a foreign link is not-found.
+func TestPaymentLink_MalformedIdIsNotFound(t *testing.T) {
+	h, _ := linkHandler(nil)
+	r := chi.NewRouter()
+	r.Get("/v1/payment-links/{id}", h.Get)
+	for _, id := range []string{"98a8963f85fa", "not-a-uuid", "../../etc/passwd"} {
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, reqWith("GET", "https://x/v1/payment-links/"+id, "", "doa-merchant"))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("id %q: want 404, got %d (%s)", id, rec.Code, rec.Body.String())
+		}
 	}
 }

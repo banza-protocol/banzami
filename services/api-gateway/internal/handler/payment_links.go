@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"strconv"
@@ -44,6 +45,22 @@ func merchantPrincipalID(r *http.Request) (string, bool) {
 	return p.MerchantID, true
 }
 
+// linkIDIsWellFormed rejects an id that cannot name a link, before any lookup.
+//
+// A malformed id is the caller's mistake, not the operator's failure. Passing it
+// through reached a uuid parse in the data layer and surfaced as 500
+// INTERNAL_ERROR — most easily hit by handing this route a payment-link SLUG,
+// which is a natural confusion since the slug is what the public URL carries.
+// Answered as not-found for the same reason a foreign link is: an id that cannot
+// exist and one that does not exist are the same answer to the caller.
+func linkIDIsWellFormed(w http.ResponseWriter, r *http.Request, id string) bool {
+	if _, err := uuid.Parse(id); err != nil {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment link not found")
+		return false
+	}
+	return true
+}
+
 // requireOwnedLink loads a link and confirms the caller owns it.
 //
 // A link belonging to someone else is reported as missing, not forbidden: 403
@@ -51,6 +68,9 @@ func merchantPrincipalID(r *http.Request) (string, bool) {
 // privacy behaviour the payment-session surface already uses for a cross-merchant
 // read, and the behaviour the developer-key path already had here.
 func (h *PaymentLinkHandler) requireOwnedLink(w http.ResponseWriter, r *http.Request, id string) (*service.PaymentLink, bool) {
+	if !linkIDIsWellFormed(w, r, id) {
+		return nil, false
+	}
 	link, err := h.svc.Get(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, service.ErrPaymentLinkNotFound) {
@@ -198,6 +218,9 @@ func (h *PaymentLinkHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := chi.URLParam(r, "id")
+	if !linkIDIsWellFormed(w, r, id) {
+		return
+	}
 	link, err := h.svc.Get(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, service.ErrPaymentLinkNotFound) {
