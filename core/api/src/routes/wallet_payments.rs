@@ -67,6 +67,7 @@ pub async fn record_merchant_interface_payment(
     transfer_id: Uuid,
     payment_link_id: Option<Uuid>,
     qr_code_id: Option<Uuid>,
+    credited_wallet_account_id: Option<Uuid>,
     amount_minor: i64,
     currency: &str,
     trace_id: &str,
@@ -92,8 +93,8 @@ pub async fn record_merchant_interface_payment(
     let inserted: Option<Uuid> = sqlx::query_scalar(
         "INSERT INTO wallet_payments
             (transfer_id, merchant_id, consumer_id, payment_link_id, qr_code_id,
-             amount_minor, currency, status, trace_id, environment)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED', $8, $9)
+             wallet_account_id, amount_minor, currency, status, trace_id, environment)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'COMPLETED', $9, $10)
          ON CONFLICT (transfer_id) DO NOTHING
          RETURNING id",
     )
@@ -102,6 +103,7 @@ pub async fn record_merchant_interface_payment(
     .bind(payer_consumer_id)
     .bind(payment_link_id)
     .bind(qr_code_id)
+    .bind(credited_wallet_account_id)
     .bind(amount_minor)
     .bind(currency)
     .bind(trace_id)

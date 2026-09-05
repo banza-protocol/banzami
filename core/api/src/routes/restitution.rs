@@ -442,7 +442,7 @@ async fn resolve_wallet_payment(
     wallet_payment_id: Uuid,
 ) -> Result<Resolved, RestitutionError> {
     let row = sqlx::query(
-        "SELECT merchant_id, consumer_id, amount_minor, currency, status
+        "SELECT merchant_id, consumer_id, amount_minor, currency, status, wallet_account_id
          FROM wallet_payments WHERE id = $1",
     )
     .bind(wallet_payment_id)
@@ -476,6 +476,37 @@ async fn resolve_wallet_payment(
     .map_err(db)?
     .ok_or(RestitutionError::WalletNotFound)?;
 
+    // RA-061 — a refund reverses funds from the account that RECEIVED them.
+    //
+    // This used to debit `wallets.available_account_id` unconditionally: the
+    // wallet's default account, regardless of which child account the payment
+    // actually credited. Segregation therefore held on the way in and broke on
+    // the way out — after a partial refund the campaign account kept the full
+    // amount, so a campaign would settle money already given back while the
+    // operating balance absorbed it. The posting balanced, so no ledger
+    // invariant fired; it was simply the wrong account.
+    //
+    // The credited account is read from the payment record and its ledger
+    // account used as the debit source. Rows written before that column existed
+    // genuinely do not know their destination, so they keep the old behaviour —
+    // guessing a child account for them would be worse than admitting it.
+    let credited_wallet_account_id: Option<Uuid> = row.try_get("wallet_account_id").ok().flatten();
+    let debit_account_id: Uuid = match credited_wallet_account_id {
+        Some(wa) => sqlx::query_scalar(
+            // Scoped by wallet as well as id: a credited account must belong to
+            // the wallet being refunded, so a mis-recorded row cannot redirect a
+            // refund into a different owner's account.
+            "SELECT account_id FROM wallet_accounts WHERE id = $1 AND wallet_id = $2",
+        )
+        .bind(wa)
+        .bind::<Uuid>(merchant_wallet.get("id"))
+        .fetch_optional(&mut *conn)
+        .await
+        .map_err(db)?
+        .unwrap_or_else(|| merchant_wallet.get("available_account_id")),
+        None => merchant_wallet.get("available_account_id"),
+    };
+
     let consumer_account_id: Uuid = sqlx::query_scalar(
         "SELECT available_account_id FROM consumer_wallets
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
@@ -489,7 +520,7 @@ async fn resolve_wallet_payment(
 
     Ok(Resolved {
         merchant_wallet_id: merchant_wallet.get("id"),
-        merchant_account_id: merchant_wallet.get("available_account_id"),
+        merchant_account_id: debit_account_id,
         credit_account_id: consumer_account_id,
         currency,
         consumer_id: Some(consumer_id),

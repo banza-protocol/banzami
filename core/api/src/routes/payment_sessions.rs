@@ -367,6 +367,10 @@ pub async fn settle_for_interface(
         transfer_id,
         interface_link_id,
         interface_qr_id,
+        // The session knows which child account it credited; recording it is
+        // what lets a later refund reverse THAT account rather than the wallet
+        // default (RA-061).
+        Some(wallet_account_id),
         amount_minor,
         "AOA",
         &session_id.to_string(),
