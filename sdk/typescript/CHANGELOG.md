@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] — 2026-09-05
+
+### Fixed — the documented `@banzami/sdk/webhooks` import did not resolve
+
+The webhooks module's own example teaches
+`import { constructEvent } from '@banzami/sdk/webhooks'`, but `exports` declared
+no `./webhooks` subpath, so under `NodeNext` resolution that import failed with
+**TS2307 Cannot find module**. The names were reachable from the package root
+all along, which is why it went unnoticed — the documented path was the broken
+one. `./webhooks` is now exported (ESM, CJS and types); the root export is
+unchanged.
+
+### Fixed — the documented `@banzami/sdk/webhooks` import did not resolve
+
+The webhooks module's own example teaches
+`import { constructEvent } from '@banzami/sdk/webhooks'`, but `exports` declared
+no `./webhooks` subpath, so under `NodeNext` resolution that import failed with
+**TS2307 Cannot find module**. The names were reachable from the package root
+all along, which is why it went unnoticed — the documented path was the broken
+one. `./webhooks` is now exported (ESM, CJS and types), and the root export is
+unchanged.
+
 ### Fixed — the published types required Node globals the package never declared
 
 `webhooks.d.ts` typed the raw body as `string | Buffer`, putting a Node global

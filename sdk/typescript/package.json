@@ -1,7 +1,7 @@
 {
   "name": "@banzami/sdk",
-  "version": "0.8.1",
-  "description": "Official TypeScript/JavaScript SDK for Banzami \u2014 instant Kwanza payments on the BANZA protocol",
+  "version": "0.8.2",
+  "description": "Official TypeScript/JavaScript SDK for Banzami — instant Kwanza payments on the BANZA protocol",
   "license": "MIT",
   "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
@@ -15,6 +15,11 @@
       "import": "./dist/theme/index.js",
       "require": "./dist/cjs/theme/index.js",
       "types": "./dist/theme/index.d.ts"
+    },
+    "./webhooks": {
+      "import": "./dist/webhooks.js",
+      "require": "./dist/cjs/webhooks.js",
+      "types": "./dist/webhooks.d.ts"
     },
     "./money": {
       "import": "./dist/money.js",
