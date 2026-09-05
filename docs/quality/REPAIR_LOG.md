@@ -2004,3 +2004,71 @@ here: `vercel env pull` returns variable names with **empty values** for this
 scope, no Keychain item holds the Supabase credential, and the IONOS mailbox
 password in the Keychain now fails IMAP authentication (`authentication failed`
 at LOGIN, reproduced twice), so the authorised OTP path is also unavailable.
+
+---
+
+## RA-073
+
+- **Title:** DOA was bound to an E2E fixture merchant, and there was no way to correct it
+- **Status:** FIXED (2026-09-05) — @doa provisioned, project rebound, pricing restored, webhook re-registered
+- **Severity: high** (donations settled to the wrong business; the operator fee destination could not resolve)
+- **Environment:** Sandbox. Synthetic money.
+
+DOA's admin card reported:
+
+> A chave resolve `@e2edoa17885371237909198`, mas o DOA espera `@doa`.
+
+The key was not wrong. A Developer project resolves its payee through its
+ACTIVE binding (ADR-047), and DOA's binding pointed at a merchant an E2E run
+had created on 2026-09-04. **There was no `@doa` merchant on the Sandbox at
+all** — it did not survive the financial reset and was never recreated. So every
+DOA donation settled into a throwaway fixture, and DOA's own fee destination
+(`@doa`) could not resolve either.
+
+Three things had gone wrong together, and each hid the next:
+
+1. **No `@doa` account.** The reset removed it; nothing recreated it.
+2. **The binding could not be corrected.** `CreateBinding` conflicts on the
+   one-ACTIVE-per-project index, and although the schema has a `DISABLED` state,
+   nothing ever set it. A project was bound once, forever, correctly or not.
+3. **The fixture's taxonomy masked a missing pricing rule.** The E2E merchant
+   was `retail`/`general`, which maps to no pricing category, so the
+   `PRICING_MISSING` gate never fired. `pricing_rules` had been empty since the
+   reset; RA-063 restored only `wallet_withdrawal`. The DONATION rule was still
+   missing, and the card read "settlement READY" because the check was vacuous.
+
+**Fix.**
+
+- `tools/ops/provision-doa-business.mjs` creates `@doa` through the same public
+  onboarding flow a merchant uses — application → activation → auth — not by
+  writing rows. Category `donation` → pricing category `DONATION`; Sandbox
+  auto-approves KYB. Result: KYB APPROVED, wallet ACTIVE/AOA, primary account.
+- `RebindProjectSandbox` is the missing correction path. Core validates the new
+  payee exactly as it does a first binding; a **sealed** binding is refused
+  (once a payment artifact exists the payee can never change, ADR-047 §3.2);
+  the swap is one transaction so the project is never unbound; both binding ids
+  are audited; and it is opt-in (`supersede: true`) so a caller binding a fresh
+  project cannot replace a payee by omission.
+- The `donation-standard` rule (DONATION, 200 bps) was restored through core's
+  own `POST /internal/v1/pricing-rules` — the same sanctioned route RA-063 used.
+- DOA's webhook endpoint was re-registered under `@doa`, and
+  `BANZAMI_WEBHOOK_SECRET` updated to the new signing secret.
+
+**Deployed proof.** `/v1/business/me` through DOA's project now resolves
+`handle=doa`, `kyb=APPROVED`, `category=donation`, `pricing_category=DONATION`,
+`settlement_ready=true`, **no blockers, no warnings** — where it previously
+resolved the fixture.
+
+The webhook half was measured, not assumed: immediately after the rebind the
+delivery harness reported `PENDING|401` — DOA correctly rejecting a signature
+made with the new endpoint's secret against its old one. After the env update
+and redeploy, `SUCCESS|200`, 11/11.
+
+**Non-vacuity.** The seal refusal is enforced in the service *and* in the SQL;
+the test fails only when both are removed.
+
+**Adjacent finding, not fixed here.** `SealBindingArtifact` exists, is
+documented as the ADR-047 §3.2 immutability guarantee, and is **never called** —
+no route, no caller. No binding has ever been sealed, which is why this
+correction was permissible at all. The guarantee is currently documented and
+unenforced.
