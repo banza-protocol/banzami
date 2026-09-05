@@ -3,6 +3,7 @@ package developer
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
@@ -166,6 +167,9 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/workspaces/{wsID}/projects", h.listProjects)
 	r.Get("/projects/{projID}", h.getProject)
 	r.Get("/projects/{projID}/keys", h.listKeys)
+	r.Get("/projects/{projID}/webhooks/endpoints", h.listWebhookEndpoints)
+	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
+	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
 
 	r.Group(func(r chi.Router) {
 		r.Use(csrf)
@@ -180,6 +184,50 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/keys/{keyID}/rotate", h.rotateKey)
 		r.Delete("/keys/{keyID}", h.revokeKey)
 	})
+}
+
+func (h *Handlers) listWebhookEndpoints(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	eps, err := h.svc.ProjectWebhookEndpoints(r.Context(), u.ID, chi.URLParam(r, "projID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"endpoints": eps})
+}
+
+func (h *Handlers) listWebhookEvents(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	evs, err := h.svc.ProjectWebhookEvents(r.Context(), u.ID, chi.URLParam(r, "projID"), limit)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"events": evs})
+}
+
+func (h *Handlers) listWebhookDeliveries(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	ds, err := h.svc.ProjectWebhookDeliveries(r.Context(), u.ID,
+		chi.URLParam(r, "projID"), chi.URLParam(r, "eventID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"deliveries": ds})
 }
 
 // actor pulls the authenticated Account Identity user out of the request context.

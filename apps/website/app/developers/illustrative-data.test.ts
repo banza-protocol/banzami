@@ -41,16 +41,25 @@ describe('Console pages with illustrative data', () => {
   });
 
   it('the webhooks page no longer invents endpoints or deliveries', () => {
-    const src = read('app/developers/webhooks/page.tsx');
+    const src = read('app/developers/webhooks/page.tsx') + read('components/developers/portal/WebhooksManager.tsx');
     // It advertised minhaloja.co.ao endpoints with delivery counts and success
     // rates, and deliveries for `invoice.paid` / `transfer.created` — event names
     // Banzami does not emit. Nothing there was ever real.
     expect(src).not.toContain('minhaloja');
     expect(src).not.toContain('invoice.paid');
     expect(src).not.toContain('transfer.created');
-    // And it points at the API that genuinely works with a project key.
-    expect(src).toContain('createWebhookEndpoint');
-    expect(src).toContain('rotateWebhookEndpointSecret');
+    // And it now reads the project's OWN data rather than pointing elsewhere.
+    expect(src).toContain('developerApi.listWebhookEndpoints');
+    expect(src).toContain('developerApi.listWebhookDeliveries');
+  });
+
+  it('the Console key form defaults to a scope some route actually enforces', () => {
+    // It defaulted to payments:read — one of the inert scopes — so the very
+    // first key a developer created was pre-selected with authority over
+    // nothing.
+    const src = read('components/developers/portal/ApiKeysManager.tsx');
+    expect(src).not.toContain("useState<string[]>(['payments:read'])");
+    expect(src).toContain("useState<string[]>(['identity:read'])");
   });
 
   it('the notice states plainly that the data is not the reader’s own', () => {

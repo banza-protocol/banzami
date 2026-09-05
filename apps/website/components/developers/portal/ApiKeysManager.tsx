@@ -148,7 +148,7 @@ export function ApiKeysManager() {
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newKind, setNewKind] = useState<'PUBLISHABLE' | 'SECRET'>('SECRET');
-  const [newScopes, setNewScopes] = useState<string[]>(['payments:read']);
+  const [newScopes, setNewScopes] = useState<string[]>(['identity:read']);
   const [busy, setBusy] = useState(false);
 
   const projectId = activeProject?.id ?? null;

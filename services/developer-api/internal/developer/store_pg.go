@@ -480,3 +480,82 @@ func nz(s string) any {
 	}
 	return s
 }
+
+// ── Webhook visibility ───────────────────────────────────────────────────────
+//
+// Every query is scoped by merchant_id in the statement itself. The merchant is
+// never taken from a request; the caller resolves it from the project binding
+// before calling here.
+
+func (s *pgStore) WebhookEndpointsForMerchant(ctx context.Context, merchantID string) ([]WebhookEndpointView, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, url, events, active, created_at
+		   FROM webhook_endpoints
+		  WHERE merchant_id = $1
+		  ORDER BY created_at DESC`, merchantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []WebhookEndpointView{}
+	for rows.Next() {
+		var v WebhookEndpointView
+		if err := rows.Scan(&v.ID, &v.URL, &v.Events, &v.Active, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+func (s *pgStore) WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, event_type, created_at
+		   FROM webhook_events
+		  WHERE merchant_id = $1
+		  ORDER BY created_at DESC
+		  LIMIT $2`, merchantID, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []WebhookEventView{}
+	for rows.Next() {
+		var v WebhookEventView
+		if err := rows.Scan(&v.ID, &v.EventType, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+func (s *pgStore) WebhookDeliveriesForEvent(ctx context.Context, merchantID, eventID string) ([]WebhookDeliveryView, error) {
+	// Joined through webhook_events so a caller naming another tenant's event id
+	// gets an empty list rather than that tenant's delivery history — naming an
+	// id is not authority over it (RA-060 sibling of the gateway's own rule).
+	rows, err := s.pool.Query(ctx,
+		`SELECT d.id, d.event_id, d.endpoint_id, d.status, d.status_code,
+		        d.attempt_count, d.delivered_at, d.created_at
+		   FROM webhook_deliveries d
+		   JOIN webhook_events e ON e.id = d.event_id
+		  WHERE d.event_id = $1 AND e.merchant_id = $2
+		  ORDER BY d.created_at DESC`, eventID, merchantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []WebhookDeliveryView{}
+	for rows.Next() {
+		var v WebhookDeliveryView
+		if err := rows.Scan(&v.ID, &v.EventID, &v.EndpointID, &v.Status, &v.StatusCode,
+			&v.AttemptCount, &v.DeliveredAt, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}

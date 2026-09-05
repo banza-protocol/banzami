@@ -381,3 +381,22 @@ func (m *memStore) MarkBindingArtifactCreated(_ context.Context, bindingID strin
 	}
 	return ErrNotFound
 }
+
+// ── Webhook visibility ───────────────────────────────────────────────────────
+//
+// The in-memory store backs local development, where the gateway's webhook
+// tables do not exist. It reports nothing rather than pretending: an empty list
+// is the truthful answer for a store that holds no webhook state, and inventing
+// rows here is how a Console screen ends up showing fiction again.
+
+func (m *memStore) WebhookEndpointsForMerchant(context.Context, string) ([]WebhookEndpointView, error) {
+	return []WebhookEndpointView{}, nil
+}
+
+func (m *memStore) WebhookEventsForMerchant(context.Context, string, int) ([]WebhookEventView, error) {
+	return []WebhookEventView{}, nil
+}
+
+func (m *memStore) WebhookDeliveriesForEvent(context.Context, string, string) ([]WebhookDeliveryView, error) {
+	return []WebhookDeliveryView{}, nil
+}

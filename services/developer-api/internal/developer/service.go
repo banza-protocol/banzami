@@ -323,6 +323,60 @@ func (s *Service) projectAuthz(ctx context.Context, actor, projectID string) (*P
 	return p, role, nil
 }
 
+// ── Webhook visibility ───────────────────────────────────────────────────────
+//
+// The Console's webhooks screen used to render invented endpoints and deliveries
+// behind an "illustrative data" label. These serve the project's real ones.
+//
+// Authority is the project binding and nothing else: the caller is authorised
+// against the project, the project's ACTIVE binding names the merchant, and the
+// merchant scopes every query. No request field carries a merchant, so there is
+// none to reject.
+//
+// An unbound project has no webhooks — not an empty list, which would assert the
+// question was meaningful and the answer was "none".
+
+// projectMerchant authorises the actor for the project and returns the merchant
+// its binding names.
+func (s *Service) projectMerchant(ctx context.Context, actor, projectID string) (string, error) {
+	p, _, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return "", err
+	}
+	b, err := s.store.ActiveBindingForProject(ctx, p.ID)
+	if err != nil {
+		return "", ErrUnavailable
+	}
+	if b == nil || b.MerchantID == "" {
+		return "", ErrNotFound
+	}
+	return b.MerchantID, nil
+}
+
+func (s *Service) ProjectWebhookEndpoints(ctx context.Context, actor, projectID string) ([]WebhookEndpointView, error) {
+	m, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return s.store.WebhookEndpointsForMerchant(ctx, m)
+}
+
+func (s *Service) ProjectWebhookEvents(ctx context.Context, actor, projectID string, limit int) ([]WebhookEventView, error) {
+	m, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return s.store.WebhookEventsForMerchant(ctx, m, limit)
+}
+
+func (s *Service) ProjectWebhookDeliveries(ctx context.Context, actor, projectID, eventID string) ([]WebhookDeliveryView, error) {
+	m, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return nil, err
+	}
+	return s.store.WebhookDeliveriesForEvent(ctx, m, eventID)
+}
+
 func (s *Service) GetProject(ctx context.Context, actor, projectID string) (Project, error) {
 	p, _, err := s.projectAuthz(ctx, actor, projectID)
 	if err != nil {

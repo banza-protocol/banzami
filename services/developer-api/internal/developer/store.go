@@ -202,6 +202,51 @@ type Store interface {
 	MarkBindingArtifactCreated(ctx context.Context, bindingID string) error
 
 	InsertAudit(ctx context.Context, ev AuditEvent) error
+
+	// Webhook visibility (ADR-051 follow-up).
+	//
+	// These read the gateway's webhook tables directly, scoped by the merchant
+	// the project's own binding names. That is deliberate: the Console is
+	// session-authenticated, so it cannot carry a project API key, and the
+	// alternative — an internal channel where developer-api asserts a merchant id
+	// to the gateway — would give this service the standing ability to speak for
+	// any merchant it holds a binding for. Reading rows it can already reach,
+	// scoped by a value it derives itself, adds no authority that did not already
+	// exist.
+	//
+	// Read-only by construction: there is no write counterpart, and no query
+	// selects the signing secret.
+	WebhookEndpointsForMerchant(ctx context.Context, merchantID string) ([]WebhookEndpointView, error)
+	WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error)
+	WebhookDeliveriesForEvent(ctx context.Context, merchantID, eventID string) ([]WebhookDeliveryView, error)
+}
+
+// WebhookEndpointView is an endpoint as the Console shows it. The signing secret
+// is absent from the struct, not merely unselected — a field that does not exist
+// cannot be leaked by a later change to a query.
+type WebhookEndpointView struct {
+	ID        string    `json:"id"`
+	URL       string    `json:"url"`
+	Events    []string  `json:"events"`
+	Active    bool      `json:"active"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type WebhookEventView struct {
+	ID        string    `json:"id"`
+	EventType string    `json:"event_type"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type WebhookDeliveryView struct {
+	ID           string     `json:"id"`
+	EventID      string     `json:"event_id"`
+	EndpointID   string     `json:"endpoint_id"`
+	Status       string     `json:"status"`
+	StatusCode   *int       `json:"status_code,omitempty"`
+	AttemptCount int        `json:"attempt_count"`
+	DeliveredAt  *time.Time `json:"delivered_at,omitempty"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 type Project struct {

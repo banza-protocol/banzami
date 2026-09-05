@@ -133,6 +133,31 @@ export type ApiKey = {
 // NewKey adds the one-time secret (SECRET keys only). Never re-fetchable.
 export type NewKey = ApiKey & { secret?: string };
 
+export interface WebhookEndpoint {
+  id: string;
+  url: string;
+  events: string[];
+  active: boolean;
+  created_at: string;
+}
+
+export interface WebhookEvent {
+  id: string;
+  event_type: string;
+  created_at: string;
+}
+
+export interface WebhookDelivery {
+  id: string;
+  event_id: string;
+  endpoint_id: string;
+  status: string;
+  status_code?: number | null;
+  attempt_count: number;
+  delivered_at?: string | null;
+  created_at: string;
+}
+
 export const developerApi = {
   // Account Identity
   requestOtp: (email: string) => req<{ ok: boolean }>('/auth/request-otp', { method: 'POST', body: { email } }),
@@ -171,6 +196,17 @@ export const developerApi = {
   listKeys: (projectID: string) => req<{ keys: ApiKey[] }>(`/projects/${projectID}/keys`),
   createKey: (projectID: string, kind: 'PUBLISHABLE' | 'SECRET', name: string, scopes: string[], csrf: string) =>
     req<NewKey>(`/projects/${projectID}/keys`, { method: 'POST', body: { kind, name, scopes }, csrf }),
+  // ── Webhooks (real, project-scoped) ────────────────────────────────────────
+  // Served by developer-api from the gateway's own webhook tables, scoped by the
+  // merchant the project's binding names. No secret is ever returned: the view
+  // types have no field for one.
+  listWebhookEndpoints: (projectID: string) =>
+    req<{ endpoints: WebhookEndpoint[] }>(`/projects/${projectID}/webhooks/endpoints`),
+  listWebhookEvents: (projectID: string, limit = 25) =>
+    req<{ events: WebhookEvent[] }>(`/projects/${projectID}/webhooks/events?limit=${limit}`),
+  listWebhookDeliveries: (projectID: string, eventID: string) =>
+    req<{ deliveries: WebhookDelivery[] }>(`/projects/${projectID}/webhooks/events/${eventID}/deliveries`),
+
   rotateKey: (keyID: string, csrf: string) => req<NewKey>(`/keys/${keyID}/rotate`, { method: 'POST', csrf }),
   revokeKey: (keyID: string, csrf: string) => req<{ ok: boolean }>(`/keys/${keyID}`, { method: 'DELETE', csrf }),
 };
