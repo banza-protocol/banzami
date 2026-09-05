@@ -1913,3 +1913,94 @@ previously issued legacy keys were *deactivated* in the Supabase Dashboard.
 That is control-plane state the application cannot see. It is read under
 **Supabase → Project Settings → API Keys → Legacy API keys**, and that reading
 is what will close this entry.
+
+---
+
+## RA-071
+
+- **Title:** The Console Overview was invented data behind a label
+- **Status:** FIXED and DEPLOYED (2026-09-05) — CAP-DEV-001
+- **Severity: medium** (the first screen a developer sees described nothing)
+- **Environment:** Sandbox.
+
+`/developers/dashboard` rendered hard-coded constants: **1.482** transações,
+**12.450.000** AOA of volume, **128** comerciantes, a **95.3%** success donut,
+and an activity table of `payment.succeeded` / `payment.failed` /
+`transfer.created` / `invoice.paid` against `INV-2025-…` references — event
+names Banzami does not emit, for a shop that does not exist.
+
+It carried an `IllustrativeDataNotice`. That label was honest and it did not
+stop the page being the first thing a developer sees, or stop the figures
+describing nothing.
+
+**Fix.** Every figure now derives from what the operator recorded for the
+**active project**: the API request log (ADR-054) and the project's own webhook
+events and keys — requests, errors, success rate, median latency, events emitted,
+active keys; a per-day chart that includes days with no traffic, because dropping
+empty days overstates how busy a quiet project is; and a recent-activity table of
+real requests.
+
+The summary is aggregated **in SQL over the same window**, not over the returned
+page. The list is capped at 200, so a total computed client-side would be a page
+size wearing the clothes of a metric.
+
+An empty project reads as empty.
+
+**Deployed proof:** `LOG.overview-summary-counts-real-requests` — two calls to
+the deployed Gateway raise the project's own request count by two — and
+`LOG.overview-has-no-invented-figures`, which loads the deployed page and checks
+none of the old constants render. Source alone cannot tell "wired" from "wired
+to something".
+
+The `ILLUSTRATIVE` list in `illustrative-data.test.ts` is now empty, and that
+emptiness is the assertion.
+
+---
+
+## RA-072
+
+- **Title:** The Supabase credential rotation had not actually been performed
+- **Status:** OPEN — owner action; evidence tooling shipped (2026-09-05)
+- **Severity: high** (an exposed credential class believed retired is still in use)
+- **Environment:** Doa production.
+
+The release evidence recorded the Supabase migration and legacy-key revocation
+as complete. Control-plane state says otherwise.
+
+Vercel writes a new record when an environment variable is edited, so the
+listing's age is the age of the **current value**. In Doa Production:
+
+```
+NEXT_PUBLIC_SUPABASE_URL         125d ago
+NEXT_PUBLIC_SUPABASE_ANON_KEY    125d ago
+SUPABASE_SERVICE_ROLE_KEY        125d ago
+SUPABASE_JWT_SECRET              125d ago
+
+BANZAMI_API_KEY                   13h ago
+BANZAMI_WEBHOOK_SECRET            17h ago
+```
+
+The BANZAMI_* entries prove this project's variables *do* carry a fresh
+timestamp when they are changed. The Supabase values have not been changed in
+125 days.
+
+It follows that the legacy keys cannot have been deactivated: the site is up and
+answering 200, and it is using them. `/api/ops/credential-model` would say the
+same from inside the running deployment, and could not be read here — see the
+access note below.
+
+**What shipped:** `scripts/check-credential-rotation.mjs` reads names,
+environments and ages from the control plane — never a value — and exits
+non-zero when a matched variable is older than a given window, so a rotation is
+gated on evidence rather than on a claim. Documented in `OPERATIONS.md`.
+
+**What is still required (owner):** issue `sb_publishable_…` / `sb_secret_…`
+keys, set them in the deployment environment, deactivate the legacy keys under
+**Supabase → Project Settings → API Keys → Legacy API keys**, then re-run the
+checker and `/api/ops/credential-model`.
+
+**Access note.** Neither the rotation nor the admin bootstrap could be executed
+here: `vercel env pull` returns variable names with **empty values** for this
+scope, no Keychain item holds the Supabase credential, and the IONOS mailbox
+password in the Keychain now fails IMAP authentication (`authentication failed`
+at LOGIN, reproduced twice), so the authorised OTP path is also unavailable.

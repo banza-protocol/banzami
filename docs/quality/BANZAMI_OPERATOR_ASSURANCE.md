@@ -243,8 +243,8 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **Implementation:** services/developer-api, apps/website/app/developers
 - **API/UI surface:** developer console UI (developers.banzami.com) + developer-api auth/workspace/project
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [services/developer-api/internal/accountidentity (flow, crypto, email)] · integration [services/developer-api workspace/project authz tests] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*)] · negative/security [unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage]
-- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json
+- **Tests:** unit [services/developer-api/internal/accountidentity (flow, crypto, email)] · integration [services/developer-api workspace/project authz tests] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*), tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.overview-* — the Overview moves with real traffic and renders none of the old constants)] · negative/security [unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage, zero-mock: no Console page renders illustrative data (apps/website/app/developers/illustrative-data.test.ts, ILLUSTRATIVE list empty)]
+- **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox

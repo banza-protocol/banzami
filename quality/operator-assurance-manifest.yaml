@@ -499,15 +499,24 @@ capabilities:
         - services/developer-api workspace/project authz tests
       e2e_sandbox:
         - tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*)
+        - tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.overview-* — the Overview moves with real traffic and renders none of the old constants)
       negative_security:
         - unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage
+        - zero-mock: no Console page renders illustrative data (apps/website/app/developers/illustrative-data.test.ts, ILLUSTRATIVE list empty)
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence:
       - evidence/assurance/dev-foundation/e2e-1783197561.json
+      - evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json
     surface: public
     disposition: released
     status: verified
+    # The Overview was the last screen rendering invented data — 1.482
+    # transações, 12.450.000 AOA of volume, an activity table of events Banzami
+    # does not emit — behind an "illustrative data" label. It now derives every
+    # figure from the project's own API request log (ADR-054), webhook events
+    # and keys, and reads as empty when the project is empty. The illustrative
+    # list is empty, and that emptiness is the assertion.
 
   - id: CAP-DEV-002
     name: API key lifecycle (sandbox keys, one-time secret reveal)
