@@ -47,9 +47,19 @@ case "$(printf '%s' "$ENVIRONMENT" | tr 'A-Z' 'a-z')" in
   *) echo "REFUSING: core reports ENVIRONMENT='$ENVIRONMENT' — this script is Sandbox-only"; exit 1;;
 esac
 
+# Two roles, deliberately.
+#
+# Reads use the runtime role, which is what the application sees. The DELETE uses
+# the database owner, because the runtime role has no DELETE on the ledger — that
+# is the append-only guarantee, and it is correct that an application can never
+# perform this operation. A reset is an operator action, not an application one,
+# and the privilege split is what keeps those separable.
 PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+OWNER_PW=$(docker exec "$PG" sh -c 'cat /run/secrets/mi_superuser' 2>/dev/null)
+[ -n "$OWNER_PW" ] || { echo "REFUSING: owner credential unavailable — cannot reset safely"; exit 1; }
 psql_(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1" 2>&1; }
 copy_(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -c "$1" 2>/dev/null; }
+psql_owner(){ docker exec -e PGPASSWORD="$OWNER_PW" "$PG" psql -U sbadmin -d banzami_staging -At -F'|' -c "$1" 2>&1; }
 
 # A posting balances when its DEBIT and CREDIT legs cancel. Summing raw amounts
 # without signing by entry_type reports every correct posting as broken — an
@@ -75,7 +85,11 @@ copy_ "\\copy (SELECT p.id, p.description, p.idempotency_key, p.created_at, COUN
 echo "  postings=$(($(wc -l < "$OUT/ledger_postings.csv") - 1)) entries=$(($(wc -l < "$OUT/ledger_entries.csv") - 1)) unbalanced=$(($(wc -l < "$OUT/unbalanced_postings.csv") - 1))"
 
 echo "### reset — bulk, one transaction, no row edited"
-psql_ "BEGIN; DELETE FROM ledger_entries; DELETE FROM ledger_postings; COMMIT;" >/dev/null
+# Order matters: entries reference postings.
+RESET_OUT=$(psql_owner "BEGIN; DELETE FROM wallet_account_transfers; DELETE FROM refunds; DELETE FROM wallet_payments; DELETE FROM ledger_entries; DELETE FROM ledger_postings; COMMIT;")
+case "$RESET_OUT" in
+  *ERROR*) echo "  reset failed: $RESET_OUT"; exit 1;;
+esac
 
 echo "### after"
 AFTER_U=$(psql_ "$UNBAL"); AFTER_A=$(psql_ "$AGG")
