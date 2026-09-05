@@ -36,6 +36,7 @@ type Dependencies struct {
 	WalletSvc                service.WalletService
 	ApplicationSettlementSvc service.ApplicationSettlementService
 	WalletAccountSvc         service.WalletAccountService
+	WalletAccountTransferSvc service.WalletAccountTransferService
 	PartyResolverSvc         service.PartyResolver
 	PaymentSessionSvc        service.PaymentSessionService
 	PayoutSvc                service.PayoutService
@@ -160,6 +161,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
+	walletAccountTransferHandler := handler.NewWalletAccountTransferHandler(deps.WalletAccountTransferSvc)
 	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc, deps.WalletAccountSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
@@ -591,6 +593,13 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// is exactly what the project binding provides. Core re-checks that
 			// the source belongs to that owner and is eligible, so the gateway is
 			// not the only thing standing between a payment id and a refund.
+			// Transferências: money between two child accounts of the SAME bound
+			// owner (ADR-052). Not a payout, not a settlement, not consumer P2P
+			// — and not the generic merchant transfer surface withdrawn under
+			// RA-053, which this deliberately does not restore.
+			r.Route("/business/transfers", func(r chi.Router) {
+				r.Post("/", walletAccountTransferHandler.Create)
+			})
 			r.Route("/business/refunds", func(r chi.Router) {
 				r.Post("/", refundHandler.Create)
 				r.Get("/", refundHandler.List)

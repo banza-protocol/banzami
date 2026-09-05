@@ -32,6 +32,7 @@ const ALL_SCOPES = [
   'webhooks:read',
   'refunds:write',
   'refunds:read',
+  'transfers:write',
 ];
 
 // Plain-language purpose, shown under each scope. A developer choosing scopes is
@@ -49,6 +50,7 @@ const SCOPE_HELP: Record<string, string> = {
   'webhooks:read':                 'Ver endpoints, eventos e entregas.',
   'refunds:write':                 'Devolver dinheiro de um pagamento seu.',
   'refunds:read':                  'Consultar os seus reembolsos.',
+  'transfers:write':               'Mover valor entre contas do seu projeto.',
 };
 
 // ── Reveal-once dialog ───────────────────────────────────────────────────────

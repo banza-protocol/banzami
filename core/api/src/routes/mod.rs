@@ -49,6 +49,7 @@ pub mod transactions;
 pub mod transfers;
 #[cfg(test)]
 mod transfers_routing_tests;
+pub mod wallet_account_transfers;
 pub mod wallet_accounts;
 #[cfg(test)]
 mod wallet_accounts_tests;

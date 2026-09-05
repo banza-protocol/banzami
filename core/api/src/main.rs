@@ -664,6 +664,10 @@ async fn main() {
             post(routes::onboarding::complete),
         )
         // Transfers — internal UUID-based
+        .route(
+            "/internal/v1/wallet-account-transfers",
+            post(routes::wallet_account_transfers::create),
+        )
         .route("/internal/v1/transfers", post(routes::transfers::send))
         .route("/internal/v1/transfers", get(routes::transfers::list))
         .route("/internal/v1/transfers/:id", get(routes::transfers::get))

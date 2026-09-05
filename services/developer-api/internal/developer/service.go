@@ -413,6 +413,9 @@ var PaymentScopes = map[string]bool{
 	// same reason: a key that cannot take a payment must not be able to give one
 	// back. The read side is not gated — it discloses your own refunds only.
 	"refunds:write": true,
+	// Moves money between the owner's own accounts. It cannot leave the owner,
+	// but it changes which balance settles what, so it is gated with the rest.
+	"transfers:write": true,
 }
 
 // validScopes checks that every scope is known and, unless allowPayment, that no

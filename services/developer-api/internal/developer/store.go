@@ -93,6 +93,7 @@ var EnforcedScopes = map[string]bool{
 	"webhooks:write":                true, // register, deactivate, replay, rotate secret
 	"refunds:read":                  true, // read your own refunds
 	"refunds:write":                 true, // return money from your own payment
+	"transfers:write":               true, // move money between your own accounts
 }
 
 var (
