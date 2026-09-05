@@ -637,6 +637,12 @@ capabilities:
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
 
+  # NOT PUBLISHED and not verified. pub.dev/packages/banzami_flutter answers 404
+  # (checked 2026-09-05), so `pub add banzami_flutter` cannot resolve and the
+  # declared api_surface is not reachable by anyone outside this repository.
+  # public_status stays public-sandbox because the docs list the package as part
+  # of the SDK story; the pending-e2e disposition is what keeps it from being
+  # claimed, and it correctly holds the FULL external Sandbox launch gate.
   - id: CAP-SDK-002
     name: Flutter SDK (banzami_flutter)
     owner: developer-platform
@@ -803,10 +809,14 @@ capabilities:
     cleanup_disposition: active-needs-remediation
     evidence:
       - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
-    # RT03: functions for merchant-JWT holders; the DEVELOPER-facing release is
-    # HELD on the Project→Merchant binding (ADR-047). RT03 §4 security fix
-    # (public-payer UUID redaction) is deployed. Released only after ADR-047 is
-    # implemented and the §5/§6/§7 deployed E2E matrices pass.
+    # HELD, and no longer for the original reason. ADR-047 (Project→Merchant
+    # binding) IS implemented, but the surface itself is NOT DEPLOYED in the
+    # Sandbox topology: no pay-frontend or checkout-frontend container runs
+    # there, pay.banzami.com answers 503 and checkout.banzami.com does not
+    # resolve (checked 2026-09-05). A capability that cannot be reached cannot
+    # be verified, so this holds the FULL external Sandbox launch gate. It is
+    # deliberately NOT relabelled to make that gate pass: the payer-facing web
+    # surface is genuinely absent, and the manifest should say so.
     surface: public
     disposition: pending-e2e
     status: in-audit
