@@ -637,12 +637,21 @@ capabilities:
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
 
-  # NOT PUBLISHED and not verified. pub.dev/packages/banzami_flutter answers 404
-  # (checked 2026-09-05), so `pub add banzami_flutter` cannot resolve and the
-  # declared api_surface is not reachable by anyone outside this repository.
-  # public_status stays public-sandbox because the docs list the package as part
-  # of the SDK story; the pending-e2e disposition is what keeps it from being
-  # claimed, and it correctly holds the FULL external Sandbox launch gate.
+  # HELD, and not for the reason previously recorded. pub.dev answers 404 for
+  # banzami_flutter, but publishing is not the missing step: sdk/flutter is a
+  # PATH DEPENDENCY of Banzami's own mobile apps — its 53 files are the Consumer
+  # and Business app framework (onboarding, KYB, theme), and its client
+  # authenticates the app's own signed-in user. Publishing it would present
+  # first-party app internals as a third-party integration product.
+  #
+  # A published Flutter SDK, when it exists, is a smaller package built on a
+  # PUBLISHABLE key (bz_test_pk_, now restricted to read scopes) for
+  # presentation and status, with money movement staying on a server
+  # credential. See Banzami ADR-053.
+  #
+  # Fixed in the meantime: the package's own docs instructed developers to
+  # compile a secret key into a mobile binary. Every entry point now states the
+  # boundary and a test guards it.
   - id: CAP-SDK-002
     name: Flutter SDK (banzami_flutter)
     owner: developer-platform

@@ -433,6 +433,21 @@ func validScopes(scopes []string, allowPayment bool) bool {
 	return true
 }
 
+// clientSafeScopes reports whether every scope may be held by a PUBLISHABLE key.
+//
+// A publishable key ships inside something the user can read, so its scopes are
+// a separate question from whether the scope is valid at all. Without this a
+// publishable key could be minted with transfers:write — financial write
+// authority in an app store download.
+func clientSafeScopes(scopes []string) bool {
+	for _, sc := range scopes {
+		if !ClientSafeScopes[sc] {
+			return false
+		}
+	}
+	return true
+}
+
 // CreateAPIKey issues a SANDBOX key. The raw secret is returned exactly once (in
 // `rawSecret` for SECRET keys); publishable keys carry their full value in the
 // returned metadata. The raw secret is never stored, logged or audited.
@@ -448,6 +463,11 @@ func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name
 	// capability is released (RT04C §1). While unreleased, requesting a payment
 	// scope here is rejected — the scope is not selectable to ordinary developers.
 	if (kind != KindPublishable && kind != KindSecret) || strings.TrimSpace(name) == "" || !validScopes(scopes, s.paymentReleased) {
+		return APIKey{}, "", ErrValidation
+	}
+	// A publishable key is readable by anyone holding the app it ships in, so it
+	// may only carry scopes that are safe in that setting.
+	if kind == KindPublishable && !clientSafeScopes(scopes) {
 		return APIKey{}, "", ErrValidation
 	}
 	if s.apiKeyPepper == "" {

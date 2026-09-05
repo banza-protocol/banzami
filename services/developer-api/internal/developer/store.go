@@ -68,6 +68,29 @@ var AllowedScopes = map[string]bool{
 	"customers:read":                true,
 }
 
+// ClientSafeScopes is the subset a PUBLISHABLE key may hold.
+//
+// A publishable key is, by definition, meant to be embedded in something a user
+// can read: a mobile binary, a browser bundle. Anyone who has the app has the
+// key. Nothing restricted what one could carry, so a publishable key could be
+// issued with `transfers:write` or `refunds:write` — financial write authority
+// shipped inside an app store download, and the gateway accepts `bz_test_pk_`
+// on those routes.
+//
+// The rule is about what the credential can DO, not where it is used: a
+// publishable key may look things up and read the state of a payment it was
+// given, and it may never move money or open an account. Financial writes need
+// a secret key, which belongs on a server.
+var ClientSafeScopes = map[string]bool{
+	"identity:read":         true,
+	"payment_sessions:read": true,
+	"payment_links:read":    true,
+	"payments:read":         true,
+	"transfers:read":        true,
+	"refunds:read":          true,
+	"customers:read":        true,
+}
+
 // EnforcedScopes is the subset of AllowedScopes that a released Gateway route
 // actually checks. The rest of AllowedScopes is recorded-but-inert: a key can
 // carry `refunds:write` and no route will ever consult it.

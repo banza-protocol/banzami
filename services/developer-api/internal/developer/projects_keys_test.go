@@ -200,3 +200,49 @@ func TestAPIKey_NoRawSecretInAudit(t *testing.T) {
 		}
 	}
 }
+
+// A publishable key ships inside something the user can read — a mobile binary,
+// a browser bundle — so anyone with the app has the key. Nothing restricted what
+// one could carry, so it could be minted with transfers:write: financial write
+// authority in an app store download, on routes the gateway accepts bz_test_pk_
+// for. Reads are fine; moving money is not.
+//
+// Payment capability is RELEASED in these tests, so the refusal comes from the
+// client-safety rule and not from the payment gate — otherwise the test would
+// pass for a reason that disappears the moment payments are released.
+func TestCreateAPIKey_PublishableRejectsFinancialWriteScopes(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	s.SetPaymentCapabilityReleased(true)
+	pid := mkProject(t, s, "u_owner", ws)
+	for _, sc := range []string{
+		"transfers:write", "refunds:write", "wallet_accounts:create",
+		"payment_sessions:write", "application_settlements:write", "payments:write",
+	} {
+		if _, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindPublishable, "pk", []string{sc}, "", ""); err != ErrValidation {
+			t.Errorf("publishable key accepted %s (err=%v) — a client-embeddable credential must not move money", sc, err)
+		}
+	}
+}
+
+func TestCreateAPIKey_PublishableAllowsReadScopes(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	s.SetPaymentCapabilityReleased(true)
+	pid := mkProject(t, s, "u_owner", ws)
+	k, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindPublishable, "pk", []string{"identity:read", "payment_sessions:read"}, "", "")
+	if err != nil {
+		t.Fatalf("publishable key with read-only scopes rejected: %v", err)
+	}
+	if !strings.HasPrefix(k.PublicValue, "bz_test_pk_") {
+		t.Errorf("publishable value = %q, want bz_test_pk_ prefix", k.PublicValue)
+	}
+}
+
+// The secret kind is unaffected: financial writes belong on a server credential.
+func TestCreateAPIKey_SecretStillAcceptsFinancialWriteScopes(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	s.SetPaymentCapabilityReleased(true)
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindSecret, "sk", []string{"transfers:write"}, "", ""); err != nil {
+		t.Fatalf("secret key with transfers:write rejected: %v", err)
+	}
+}
