@@ -1514,7 +1514,7 @@ accumulated legitimate E2E balances are. The reset clears both.
 ## RA-061
 
 - **Title:** A refund debits the merchant's general account, not the account that received the payment
-- **Status:** OPEN — found 2026-09-05 by the developer-key refund E2E
+- **Status:** FIXED (2026-09-05) — deployed proof 15/15
 - **Severity: high** (financial segregation)
 - **Environment:** Sandbox. No real money.
 
@@ -1545,18 +1545,32 @@ to the merchant's default. The information exists: the settling transfer records
 the destination account it credited, which is exactly the account the refund
 should reverse.
 
-**Not fixed here, deliberately.** The fix changes where money leaves from on a
-money-path write, and it needs its own change with before/after balance
-assertions on the campaign account, a partial-then-full sequence, and a check
-that an over-refund against the sub-account is refused rather than silently
-falling through to the general account. Wiring it quickly at the end of a long
-session is how a segregation fix becomes a segregation bug.
+**Fix.** The refundable object now records the account it credited
+(`wallet_payments.wallet_account_id`, migration 0101), the session/link settle
+path populates it, and the resolver debits that account's ledger account instead
+of the wallet default.
 
-**Blocks:** "Reembolsos = Disponível em Sandbox" as a *segregated* capability.
-The refund itself works, is authorised correctly, is idempotent, and is
-privacy-safe cross-project (14/15 in `tests/phase0/refund-devkey-e2e.sh`); the
-one failing assertion is `BALANCE_REDUCED`, and it is failing for the right
-reason.
+Two deliberate constraints:
+
+- The lookup is scoped by wallet as well as id, so a mis-recorded row cannot
+  redirect a refund into a different owner's account.
+- The column is nullable and pre-existing rows keep the old behaviour. They
+  genuinely do not know their destination, and guessing one for a historical
+  payment would be worse than admitting it.
+
+The client still supplies only the payment identity. The owner comes from the
+project binding and the debit account from the payment record, so a refund
+request cannot choose where the money comes from.
+
+**Deployed proof:** `tests/phase0/refund-devkey-e2e.sh` — **15/15**. A 200,000
+payment into a campaign account, refunded 50,000, leaves that account at 150,000.
+
+**Non-vacuity:** the pre-fix build is the mutation. The identical harness against
+it failed exactly one assertion, `BALANCE_REDUCED` (got 200,000, want 150,000),
+while every other assertion passed — the account was wrong and nothing else was.
+The migration was applied through the sanctioned rollout gate
+(`tools/migrate-and-verify.sh`): 101 applied, schema manifest satisfied, no
+drift.
 
 **Related:** RA-060 (ledger invariants), ADR-042 (segregated accounts),
 ADR-050 (project-bound sub-accounts).
