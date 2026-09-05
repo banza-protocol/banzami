@@ -1677,7 +1677,7 @@ CAP-PAY-002.
 ## RA-065
 
 - **Title:** The published SDK's refunds could not be called with the only credential it documents
-- **Status:** FIXED in source (2026-09-05) — 0.8.1 prepared; operator half deployed
+- **Status:** FIXED and PUBLISHED (2026-09-05) — @banzami/sdk 0.8.1 on npm; operator half deployed; 0.7.0 and 0.8.0 deprecated
 - **Severity: high** (advertised capability unreachable; DOA's production refund path)
 - **Environment:** Sandbox. No real money.
 
@@ -1718,7 +1718,30 @@ from the project binding like every other route there. No signature changed.
 `route-drift` reachability test, which asserts the credential can reach the
 route rather than only that the path exists.
 
-### Decision on @banzami/sdk@0.7.0 — NOT deprecated
+### Outcome
+
+`@banzami/sdk@0.8.1` is published. Verified through the **published package**
+with a real project key against the deployed Sandbox — the exact call DOA's
+production refund path makes:
+
+```
+createRefund(fabricated source) → 404 refund source not found   (authorised; was 401)
+createRefund(real wallet payment, 15 000) → SUCCEEDED
+  replay with the same idempotency_key → the same refund id
+  getRefund() reads it back
+getBusinessMe() → 200                                            (was 401)
+```
+
+DOA moved to `^0.8.1`, so donations can be refunded again.
+
+### Decision on @banzami/sdk@0.7.0 — deprecated, on evidence
+
+The decision below stands as reasoning and has now been executed for the reason
+it names, not for version order. **0.7.0 and 0.8.0 are both deprecated**, because
+both carry this defect and the fix is published. 0.8.1 is the only supported
+version.
+
+### Why 0.7.0 was NOT deprecated merely for being older
 
 Re-derived rather than assumed. 0.7.0's method surface is identical to 0.8.0's
 minus `createTransfer`; its path set is identical minus `/business/transfers`.

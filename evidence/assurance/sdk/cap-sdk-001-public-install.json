@@ -1,19 +1,21 @@
 {
   "suite": "CAP-SDK-001 — public registry install, outside every Banzami repository",
-  "generated_at": "2026-09-05T07:07:59.754643+00:00",
+  "generated_at": "2026-09-05T14:53:43.272768+00:00",
   "registry": {
     "name": "@banzami/sdk",
-    "latest": "0.8.0",
+    "latest": "0.8.1",
     "license": "MIT",
-    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.8.0.tgz",
-    "shasum": "dcf0d2df2049ed917266c94b2d7dd7886dee5792",
+    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.8.1.tgz",
+    "shasum": "2e59a3176e7304a56e255c574291c4a191d3e706",
     "fileCount": 27,
-    "unpackedSize": 186901,
+    "unpackedSize": 187790,
     "deprecated_versions": [
       "0.4.0",
       "0.5.0",
       "0.5.1",
-      "0.6.0"
+      "0.6.0",
+      "0.7.0",
+      "0.8.0"
     ],
     "all_versions": [
       "0.4.0",
@@ -21,20 +23,21 @@
       "0.5.1",
       "0.6.0",
       "0.7.0",
-      "0.8.0"
+      "0.8.0",
+      "0.8.1"
     ]
   },
   "clean_project": {
     "inside_git_repo": false,
-    "dependency_spec": "^0.8.0",
-    "installed_version": "0.8.0",
+    "dependency_spec": "0.8.1",
+    "installed_version": "0.8.1",
     "local_path_dependency": false
   },
   "assertions": [
     {
       "id": "SDK.registry.published",
       "pass": true,
-      "note": "latest=0.8.0"
+      "note": "latest=0.8.1"
     },
     {
       "id": "SDK.registry.license-mit",
@@ -44,7 +47,7 @@
     {
       "id": "SDK.install.from-registry",
       "pass": true,
-      "note": "resolved 0.8.0 from registry.npmjs.org tarball"
+      "note": "resolved 0.8.1 from registry.npmjs.org"
     },
     {
       "id": "SDK.install.no-local-path",
@@ -57,19 +60,29 @@
       "note": "me() -> SANDBOX, project doa-sandbox"
     },
     {
-      "id": "SDK.run.payment-session",
+      "id": "SDK.run.business-me",
       "pass": true,
-      "note": "createPaymentSession -> 25000 AOA with PAYMENT_LINK, DEEP_LINK, DYNAMIC_QR"
+      "note": "getBusinessMe() -> 200 with a project key (401 before 0.8.1)"
     },
     {
-      "id": "SDK.run.wallet-accounts",
+      "id": "SDK.run.refund-authorised",
       "pass": true,
-      "note": "createWalletAccount -> two distinct project accounts"
+      "note": "createRefund() with a fabricated source -> 404 refund source not found; authorised, where 0.8.0 answered 401"
     },
     {
-      "id": "SDK.run.transfer-method-reaches-the-route",
+      "id": "SDK.run.refund-real",
       "pass": true,
-      "note": "createTransfer (0.8.0) reaches POST /v1/business/transfers; an unfunded source is refused for insufficient funds"
+      "note": "a REAL 15000 refund of a completed wallet payment -> SUCCEEDED (09aed0b1)"
+    },
+    {
+      "id": "SDK.run.refund-idempotent",
+      "pass": true,
+      "note": "the same idempotency_key returned the same refund id"
+    },
+    {
+      "id": "SDK.run.refund-readable",
+      "pass": true,
+      "note": "getRefund() reads it back"
     },
     {
       "id": "SDK.safety.live-key-in-sandbox-rejected",
@@ -77,8 +90,8 @@
       "note": "bz_live_ key with environment 'sandbox' throws client-side, before any network call"
     }
   ],
-  "note": "Run against the deployed Sandbox from a directory outside every Banzami repository (git rev-parse reports 'not a git repository'). The documented quickstart purpose was WRONG at the time of this run — core rejects \"PAGAMENTO\" with 400 — which is what this proof found; see the documented-vocabulary test.",
-  "total": 9,
-  "passed": 9,
+  "note": "0.8.1 fixes RA-065: refunds were advertised as available and unreachable with the only credential this SDK documents. Verified through the PUBLISHED package with a real project key against the deployed Sandbox — the exact call DOA's production refund path makes.",
+  "total": 11,
+  "passed": 11,
   "promotable": true
 }
