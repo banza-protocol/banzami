@@ -725,3 +725,43 @@ export interface WebhookEndpointHealth {
   endpoint_id?: string;
   [k: string]: unknown;
 }
+
+// ---------------------------------------------------------------------------
+// Transferências — money between your own accounts
+// ---------------------------------------------------------------------------
+
+/**
+ * An internal transfer between two wallet accounts of the SAME financial owner
+ * (Banzami ADR-052).
+ *
+ * This is deliberately the smallest safe transfer product: money moves between
+ * two child accounts your project's bound owner already holds. It is NOT a
+ * payout, NOT an application settlement, and NOT a transfer to another party —
+ * nothing here can move value outside your own owner.
+ */
+export interface WalletAccountTransfer {
+  id: string;
+  source_wallet_account_id: string;
+  destination_wallet_account_id: string;
+  amount_minor: number;
+  currency: string;
+  status: string;
+  description?: string | null;
+  created_at: string;
+}
+
+export interface CreateTransferParams {
+  /** An account belonging to your project's bound owner. */
+  sourceWalletAccountId: string;
+  /** Another account belonging to the SAME owner. Must differ from the source. */
+  destinationWalletAccountId: string;
+  amountMinor: number;
+  currency: string;
+  /**
+   * Required, not optional. A retry with the same key returns the original
+   * transfer and moves nothing; without one, every retry would be a new
+   * transfer, which is the opposite of what a retry means.
+   */
+  idempotencyKey: string;
+  description?: string;
+}

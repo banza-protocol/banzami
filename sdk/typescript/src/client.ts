@@ -34,6 +34,8 @@ import type {
   WalletAccount,
   CreateWalletAccountParams,
   CreateWebhookEndpointParams,
+  WalletAccountTransfer,
+  CreateTransferParams,
   WebhookDeliveryRecord,
   WebhookEndpointHealth,
   CreateBusinessApplicationSettlementParams,
@@ -687,6 +689,38 @@ export class BanzamiClient {
 
   getWalletAccount(id: string): Promise<WalletAccount> {
     return this.request<WalletAccount>(`/business/wallet-accounts/${id}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Transferências — money between your own accounts
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Move money between two wallet accounts of the SAME financial owner.
+   *
+   * Your project's binding fixes the owner; you choose which two of its accounts.
+   * Both must belong to that owner — naming one that does not reads as `404`,
+   * indistinguishable from an account that does not exist, so an id cannot be
+   * used to probe for someone else's.
+   *
+   * This cannot move value outside your owner. It is not a payout, not an
+   * application settlement, and not a transfer to another party.
+   *
+   * Rejected requests move nothing: insufficient funds, a non-positive amount,
+   * and a source equal to the destination are all refused before any posting.
+   */
+  createTransfer(p: CreateTransferParams): Promise<WalletAccountTransfer> {
+    return this.request<WalletAccountTransfer>('/business/transfers', {
+      method: 'POST',
+      body:   JSON.stringify({
+        source_wallet_account_id:      p.sourceWalletAccountId,
+        destination_wallet_account_id: p.destinationWalletAccountId,
+        amount_minor:                  p.amountMinor,
+        currency:                      p.currency,
+        idempotency_key:               p.idempotencyKey,
+        ...(p.description ? { description: p.description } : {}),
+      }),
+    });
   }
 
   // ---------------------------------------------------------------------------
