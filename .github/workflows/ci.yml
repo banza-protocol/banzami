@@ -322,6 +322,13 @@ jobs:
       - name: SDK contract guard
         run: node tools/check-sdk-contract.mjs
 
+      # A pin that cannot resolve is not a stricter pin — it is a job that
+      # cannot run, wearing the appearance of one that is locked down.
+      - name: Action pins resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node tools/check-action-pins.mjs
+
   # ─── Migration governance ───────────────────────────────────────────────────
   # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
   # migration that does not apply from scratch, leftover pending migrations, a
@@ -336,7 +343,13 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Set up Dart
-        uses: dart-lang/setup-dart@0a8a0fc8ab24c1a9e5ea6ba4c62b6bcbb08c8e14 # v1.7.0
+        # The previous pin (0a8a0fc8ab24c1a9e5ea6ba4c62b6bcbb08c8e14) does not
+        # exist. It shares its first seven characters with the real v1.6.5 tag
+        # and then diverges — a plausible-looking SHA that GitHub cannot
+        # resolve, so this job failed at "Set up job" before running a step. It
+        # went unnoticed because the self-hosted runner was offline and the job
+        # had never actually been dispatched. This is v1.7.0's real commit.
+        uses: dart-lang/setup-dart@e630b99d28a3b71860378cafdc2a067c71107f94 # v1.7.0
 
       - name: Install dependencies
         working-directory: sdk/dart-client
