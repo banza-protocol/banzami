@@ -503,7 +503,12 @@ func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name
 // it exists solely so operator-provisioned isolated E2E fixtures can exercise the
 // under-test payment path. It is reached only over the internal, X-Internal-Key
 // guarded surface (no session actor, no self-service) and is audited as a fixture.
-func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name string, scopes []string, createdBy, ip, reqID string) (APIKey, string, error) {
+// kind defaults to SECRET; pass KindPublishable to mint a client key. Without
+// this the fixture path could only ever produce a secret key, so the
+// publishable-key security boundary had no way to be exercised end to end —
+// which is how it went unnoticed that a publishable key could carry
+// transfers:write.
+func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name string, scopes []string, createdBy, ip, reqID string, kind ...string) (APIKey, string, error) {
 	// Hard sandbox gate (RT04D §2 item 5): the fixture path is disabled outside a
 	// sandbox environment, independent of the internal-key guard. It can never be
 	// enabled by a browser flag, URL parameter or generic env toggle.
@@ -514,22 +519,37 @@ func (s *Service) CreateFixtureAPIKey(ctx context.Context, projectID, name strin
 	if err != nil || proj == nil {
 		return APIKey{}, "", ErrNotFound
 	}
+	k := KindSecret
+	if len(kind) > 0 && kind[0] == KindPublishable {
+		k = KindPublishable
+	}
 	// allowPayment=true: a fixture key is exactly the controlled test path.
 	if strings.TrimSpace(name) == "" || !validScopes(scopes, true) {
+		return APIKey{}, "", ErrValidation
+	}
+	// The client-safety rule is NOT relaxed for fixtures. A fixture may hold
+	// payment scopes a released key could not — that is what makes it a test
+	// path — but a publishable key that could move money would make the
+	// security boundary untestable by making it untrue.
+	if k == KindPublishable && !clientSafeScopes(scopes) {
 		return APIKey{}, "", ErrValidation
 	}
 	if s.apiKeyPepper == "" {
 		return APIKey{}, "", ErrUnavailable
 	}
-	raw, prefix, err := newAPIKey(KindSecret)
+	raw, prefix, err := newAPIKey(k)
 	if err != nil {
 		return APIKey{}, "", ErrValidation
 	}
-	key, err := s.store.CreateAPIKey(ctx, APIKeyInsert{
-		ProjectID: proj.ID, Environment: EnvSandbox, Kind: KindSecret, Name: strings.TrimSpace(name),
+	ins := APIKeyInsert{
+		ProjectID: proj.ID, Environment: EnvSandbox, Kind: k, Name: strings.TrimSpace(name),
 		KeyPrefix: prefix, KeyHash: hashKey(raw, s.apiKeyPepper), HashVersion: 1,
 		Scopes: scopes, CreatedBy: createdBy,
-	})
+	}
+	if k == KindPublishable {
+		ins.PublicValue = raw
+	}
+	key, err := s.store.CreateAPIKey(ctx, ins)
 	if err != nil {
 		return APIKey{}, "", ErrUnavailable
 	}

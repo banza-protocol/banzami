@@ -93,19 +93,26 @@ func (h *Handlers) createFixtureKey(w http.ResponseWriter, r *http.Request) {
 		Name      string   `json:"name"`
 		Scopes    []string `json:"scopes"`
 		CreatedBy string   `json:"created_by"`
+		// "PUBLISHABLE" mints a client key; anything else mints a secret one.
+		Kind string `json:"kind"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
 		return
 	}
 	ip, rid := reqMeta(r)
-	key, secret, err := h.svc.CreateFixtureAPIKey(r.Context(), chi.URLParam(r, "projID"), in.Name, in.Scopes, in.CreatedBy, ip, rid)
+	key, secret, err := h.svc.CreateFixtureAPIKey(r.Context(), chi.URLParam(r, "projID"), in.Name, in.Scopes, in.CreatedBy, ip, rid, in.Kind)
 	if err != nil {
 		mapErr(w, err)
 		return
 	}
 	resp := keyView(key)
-	resp["secret"] = secret // reveal-once
+	// A publishable key has no secret half: its full value is the public value.
+	if key.Kind == KindPublishable {
+		resp["secret"] = key.PublicValue
+	} else {
+		resp["secret"] = secret // reveal-once
+	}
 	httpx.JSON(w, http.StatusCreated, resp)
 }
 
