@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -617,6 +618,48 @@ func (s *pgStore) APIRequestLogs(ctx context.Context, projectID string, f Reques
 			return nil, err
 		}
 		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// APIRequestLogSummary aggregates one project's request log over the same
+// window the list uses. The project id is bound inside the statement for the
+// same reason as the list: a filter may narrow it, nothing may widen it.
+func (s *pgStore) APIRequestLogSummary(ctx context.Context, projectID string, f RequestLogFilter) (RequestLogSummary, error) {
+	var out RequestLogSummary
+	since := time.Now().AddDate(0, 0, -7)
+	if f.Since != nil {
+		since = *f.Since
+	}
+	out.WindowStart = &since
+
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(*),
+		        COUNT(*) FILTER (WHERE status >= 400),
+		        percentile_disc(0.5) WITHIN GROUP (ORDER BY latency_ms)
+		   FROM developer.dev_api_request_logs
+		  WHERE project_id = $1 AND created_at >= $2`,
+		projectID, since).Scan(&out.Requests, &out.Errors, &out.MedianMS)
+	if err != nil {
+		return out, err
+	}
+
+	rows, err := s.pool.Query(ctx,
+		`SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day, COUNT(*)
+		   FROM developer.dev_api_request_logs
+		  WHERE project_id = $1 AND created_at >= $2
+		  GROUP BY 1 ORDER BY 1`, projectID, since)
+	if err != nil {
+		return out, err
+	}
+	defer rows.Close()
+	out.ByDay = []RequestDayCount{}
+	for rows.Next() {
+		var d RequestDayCount
+		if err := rows.Scan(&d.Day, &d.Count); err != nil {
+			return out, err
+		}
+		out.ByDay = append(out.ByDay, d)
 	}
 	return out, rows.Err()
 }

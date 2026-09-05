@@ -20,20 +20,46 @@ const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 /** Console pages known to render illustrative constants rather than live data. */
 //
-// `webhooks` left this list by having its invented data removed rather than by
-// being wired up: it now renders an honest empty state and the SDK calls that do
-// work. That is the other legitimate way off this list, and the reason the
-// second assertion below is phrased as "makes no API call" rather than "is
-// wired" — a page can stop lying without yet telling the truth.
-const ILLUSTRATIVE = ['dashboard'];
+// EMPTY, and that is the assertion. `webhooks` left this list by having its
+// invented data removed; `dashboard` left it by being wired to the project's own
+// API request log and webhook events. Both routes off the list are legitimate —
+// a page can stop lying before it starts telling the truth — but neither is a
+// place to park a screen indefinitely.
+const ILLUSTRATIVE: string[] = [];
 
 describe('Console pages with illustrative data', () => {
-  it.each(ILLUSTRATIVE)('%s carries the illustrative-data notice', (page) => {
+  it('no Console page renders illustrative data any more', () => {
+    expect(ILLUSTRATIVE).toEqual([]);
+  });
+
+  it('the Overview derives every figure from the project\u2019s own activity', () => {
+    const src = read('app/developers/dashboard/page.tsx')
+      + read('components/developers/portal/Overview.tsx');
+    // Comments excluded: the file names the removed figures in order to record
+    // what it stopped rendering, which is the opposite of rendering them.
+    const code = src.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+    // The invented figures: a transaction count, a volume, a merchant count, a
+    // success rate and an activity table of events Banzami does not emit.
+    for (const invented of ['1.482', '12.450.000', "'128'", '24.9k', '3.204', '95.3%', '1.412',
+                            'payment.succeeded', 'payment.failed', 'transfer.created', 'invoice.paid', 'INV-2025']) {
+      expect(code, `the Overview must not re-invent ${invented}`).not.toContain(invented);
+    }
+    // And it reads what the operator actually recorded for this project.
+    expect(src).toContain('developerApi.listApiRequestLogs');
+    expect(src).toContain('developerApi.listWebhookEvents');
+    expect(src).toContain('summary');
+    // The label is gone because there is nothing left to label.
+    expect(src).not.toContain('IllustrativeDataNotice');
+    // An empty project must read as empty rather than as zero-shaped fiction.
+    expect(src).toContain('Ainda não há pedidos à API neste projeto');
+  });
+
+  it.skip.each(ILLUSTRATIVE)('%s carries the illustrative-data notice', (page) => {
     const src = read(`app/developers/${page}/page.tsx`);
     expect(src).toContain('IllustrativeDataNotice');
   });
 
-  it.each(ILLUSTRATIVE)('%s genuinely makes no API call (else remove the label)', (page) => {
+  it.skip.each(ILLUSTRATIVE)('%s genuinely makes no API call (else remove the label)', (page) => {
     const src = read(`app/developers/${page}/page.tsx`);
     // If this fails, the page was wired to the real API — which is good news.
     // Remove it from ILLUSTRATIVE and drop the notice rather than loosening this.

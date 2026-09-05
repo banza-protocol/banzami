@@ -2,6 +2,7 @@ package developer
 
 import (
 	"context"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -442,6 +443,45 @@ func (m *memStore) APIRequestLogs(_ context.Context, projectID string, f Request
 		if len(out) >= limit {
 			break
 		}
+	}
+	return out, nil
+}
+
+func (m *memStore) APIRequestLogSummary(ctx context.Context, projectID string, f RequestLogFilter) (RequestLogSummary, error) {
+	var out RequestLogSummary
+	since := time.Now().AddDate(0, 0, -7)
+	if f.Since != nil {
+		since = *f.Since
+	}
+	out.WindowStart = &since
+	lat := []int{}
+	byDay := map[string]int{}
+	for _, r := range m.requestLogs {
+		if r.projectID != projectID || r.view.CreatedAt.Before(since) {
+			continue
+		}
+		out.Requests++
+		if r.view.Status >= 400 {
+			out.Errors++
+		}
+		if r.view.LatencyMS != nil {
+			lat = append(lat, *r.view.LatencyMS)
+		}
+		byDay[r.view.CreatedAt.Format("2006-01-02")]++
+	}
+	if len(lat) > 0 {
+		sort.Ints(lat)
+		med := lat[len(lat)/2]
+		out.MedianMS = &med
+	}
+	days := make([]string, 0, len(byDay))
+	for d := range byDay {
+		days = append(days, d)
+	}
+	sort.Strings(days)
+	out.ByDay = []RequestDayCount{}
+	for _, d := range days {
+		out.ByDay = append(out.ByDay, RequestDayCount{Day: d, Count: byDay[d]})
 	}
 	return out, nil
 }

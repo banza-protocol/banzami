@@ -173,6 +173,17 @@ export interface ApiRequestLog {
   created_at: string;
 }
 
+/** Aggregated over the same window, in SQL — not over the returned page, which
+ *  is capped. A "total" derived from a page would be a page size wearing the
+ *  clothes of a metric. */
+export interface ApiRequestSummary {
+  requests: number;
+  errors: number;
+  median_latency_ms?: number | null;
+  by_day: { day: string; count: number }[];
+  window_start?: string | null;
+}
+
 export interface RequestLogQuery {
   limit?: number;
   request_id?: string;
@@ -240,7 +251,7 @@ export const developerApi = {
     if (q.since) p.set('since', q.since);
     if (q.until) p.set('until', q.until);
     const qs = p.toString();
-    return req<{ logs: ApiRequestLog[]; retention_days: number }>(
+    return req<{ logs: ApiRequestLog[]; summary: ApiRequestSummary; retention_days: number }>(
       `/projects/${projectID}/logs${qs ? `?${qs}` : ''}`);
   },
 

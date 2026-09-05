@@ -395,6 +395,17 @@ func (s *Service) ProjectAPIRequestLogs(ctx context.Context, actor, projectID st
 	return s.store.APIRequestLogs(ctx, projectID, f)
 }
 
+// ProjectAPIRequestSummary aggregates the same rows the list returns, under the
+// same authority. Aggregating client-side would be wrong twice: the list is
+// capped, so a "total" would really be a page size, and the Overview would be
+// quietly reporting one number while meaning another.
+func (s *Service) ProjectAPIRequestSummary(ctx context.Context, actor, projectID string, f RequestLogFilter) (RequestLogSummary, error) {
+	if _, _, err := s.projectAuthz(ctx, actor, projectID); err != nil {
+		return RequestLogSummary{}, err
+	}
+	return s.store.APIRequestLogSummary(ctx, projectID, f)
+}
+
 func (s *Service) GetProject(ctx context.Context, actor, projectID string) (Project, error) {
 	p, _, err := s.projectAuthz(ctx, actor, projectID)
 	if err != nil {

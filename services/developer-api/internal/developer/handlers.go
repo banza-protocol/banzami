@@ -266,8 +266,16 @@ func (h *Handlers) listAPIRequestLogs(w http.ResponseWriter, r *http.Request) {
 		mapErr(w, err)
 		return
 	}
+	// The summary is aggregated in SQL over the same window, so the Overview's
+	// numbers describe the project's traffic rather than the size of this page.
+	summary, err := h.svc.ProjectAPIRequestSummary(r.Context(), u.ID, chi.URLParam(r, "projID"), f)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
-		"logs": logs,
+		"logs":    logs,
+		"summary": summary,
 		// The Console tells the developer how long a line survives, so an absent
 		// old request reads as retention rather than as a lost record.
 		"retention_days": RequestLogRetentionDays,

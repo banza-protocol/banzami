@@ -252,6 +252,26 @@ type Store interface {
 	// project id is applied inside the query, so a filter can narrow the result
 	// but can never widen it past one project.
 	APIRequestLogs(ctx context.Context, projectID string, f RequestLogFilter) ([]APIRequestLogView, error)
+
+	// APIRequestLogSummary aggregates the same project-scoped rows. Computed in
+	// SQL rather than from the returned page, which is capped: a total derived
+	// from 100 rows would be a number that looks like traffic and is really a
+	// page size.
+	APIRequestLogSummary(ctx context.Context, projectID string, f RequestLogFilter) (RequestLogSummary, error)
+}
+
+// RequestLogSummary is the Console Overview's real numbers for one project.
+type RequestLogSummary struct {
+	Requests    int               `json:"requests"`
+	Errors      int               `json:"errors"`
+	MedianMS    *int              `json:"median_latency_ms,omitempty"`
+	ByDay       []RequestDayCount `json:"by_day"`
+	WindowStart *time.Time        `json:"window_start,omitempty"`
+}
+
+type RequestDayCount struct {
+	Day   string `json:"day"`
+	Count int    `json:"count"`
 }
 
 // RequestLogRetentionDays is how long a Developer API request log line is kept.
