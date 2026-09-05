@@ -1510,3 +1510,53 @@ returns to zero. It refuses to run unless core reports a Sandbox environment.
 funds-in-circulation, which stood at 49,175,000 against the 50,000,000 cap. They
 are a contributor to the exhaustion RA-059 describes, not its main cause —
 accumulated legitimate E2E balances are. The reset clears both.
+
+## RA-061
+
+- **Title:** A refund debits the merchant's general account, not the account that received the payment
+- **Status:** OPEN — found 2026-09-05 by the developer-key refund E2E
+- **Severity: high** (financial segregation)
+- **Environment:** Sandbox. No real money.
+
+Segregation holds on the way in and breaks on the way out.
+
+A payment into a campaign credits that campaign's own wallet account. The refund
+of that same payment debits the **merchant's general ledger account** instead:
+
+```
+payment  CREDIT 200000  LIABILITY  WalletAccount <campaign>
+refund   DEBIT   50000  LIABILITY  Merchant <merchant-id>      ← wrong account
+         CREDIT  50000  LIABILITY  Consumer <payer>
+```
+
+The posting is balanced, so no ledger invariant fires — this is not a
+double-entry fault. It is the wrong account.
+
+**Why it matters.** The campaign account keeps the full amount after a partial
+refund, so a campaign settles money that was already given back, while the
+operating balance silently absorbs the loss. For DOA that means a refunded
+donation still counts toward the campaign at close. The whole point of ADR-042
+segregation is that a campaign's balance is the truth about that campaign; a
+refund that lands elsewhere makes it a half-truth.
+
+**Root cause.** The refund path is merchant-scoped (`CreateRefundRequest` carries
+`MerchantID` and no account), so Core has no sub-account to debit and falls back
+to the merchant's default. The information exists: the settling transfer records
+the destination account it credited, which is exactly the account the refund
+should reverse.
+
+**Not fixed here, deliberately.** The fix changes where money leaves from on a
+money-path write, and it needs its own change with before/after balance
+assertions on the campaign account, a partial-then-full sequence, and a check
+that an over-refund against the sub-account is refused rather than silently
+falling through to the general account. Wiring it quickly at the end of a long
+session is how a segregation fix becomes a segregation bug.
+
+**Blocks:** "Reembolsos = Disponível em Sandbox" as a *segregated* capability.
+The refund itself works, is authorised correctly, is idempotent, and is
+privacy-safe cross-project (14/15 in `tests/phase0/refund-devkey-e2e.sh`); the
+one failing assertion is `BALANCE_REDUCED`, and it is failing for the right
+reason.
+
+**Related:** RA-060 (ledger invariants), ADR-042 (segregated accounts),
+ADR-050 (project-bound sub-accounts).
