@@ -1622,3 +1622,52 @@ catch it.
 
 **Related:** ADR-031 (pricing dimension), RA-056 (payout wallet ownership),
 CAP-PAYOUT-001.
+
+---
+
+## RA-064
+
+- **Title:** A payment link paid on its own left no receipt and could not be refunded
+- **Status:** FIXED (2026-09-05) — deployed proof 21/21
+- **Severity: high** (financial correctness; money in with no refundable record)
+- **Environment:** Sandbox. No real money.
+
+RA-061 fixed the same class of hole one level in: a payment settled through a
+Payment Session records the refundable `wallet_payments` row. A link created
+**directly** — `merchant_id` + `wallet_id`, no session — had no writer at all.
+It settled the transfer, marked itself used, and recorded nothing.
+
+So for that merchant: the money arrived, `/v1/merchant/wallet-payments`
+returned `{"items":[]}`, no receipt reference existed, and
+`refund_source` resolved to `None` — the payment was **unrefundable**, on a
+public capability the documentation describes as refundable.
+
+It was found by running a deployed E2E rather than by reading the code: the
+balance assertions passed and the receipt assertion returned an empty list.
+Money moved and nothing recorded it. Two earlier "failures" in the same harness
+were red herrings pointing here — they had been attributed to routes removed
+under RA-053/RA-057.
+
+**Fix.** `POST /internal/v1/payment-links/{id}/mark-used` now accepts the
+transfer that settled the link and records the merchant interface payment
+against it, crediting the link's own `wallet_account_id` when it has one so a
+later refund reverses THAT account rather than the wallet default (RA-061).
+public-api passes the transfer it just executed.
+
+The write is best-effort and idempotent on `transfer_id`, so a session-backed
+link records exactly once from whichever path runs first, and a failure here can
+never fail a payment that has already settled.
+
+**Deployed proof:** `tests/phase0/online-platform-sdk.sh` — **21/21**. Receipt
+`BZM-D8F1-AB9B`, status COMPLETED, payer shown handle-only (`@…`), then a
+10,000 refund of that payment which actually returns the money: merchant
+balance falls by exactly 10,000.
+
+**Non-vacuity:** the pre-fix deployed build is the mutation. The identical
+harness against it failed `F0-031-state` and `F0-031-privacy` with an empty
+receipt list while every balance assertion passed — the recording was missing
+and nothing else was.
+
+**Related:** RA-061 (refund debits the credited account), RA-053/RA-057 (the
+removed routes that used to be the only writer of `wallet_payments`),
+CAP-PAY-002.

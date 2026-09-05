@@ -164,6 +164,21 @@ gw proof_forged GET "/v1/public/proofs/BZM-FAKE-0000" - -
 chk F0-031-nofabricate "$(jget exists)" false
 note "public proof (/r/{ref}) is transaction/acquiring-scoped; wallet-native transfers expose the authenticated receipt above (public proof not minted for transfers)"
 
+echo "### F0-031b a plain link payment is REFUNDABLE"
+# The point of recording the payment is that money can come back out again. A
+# receipt that exists but cannot be refunded would be a nicer-looking version of
+# the same hole, so the refund is executed and the balance checked.
+gw wp2 GET "/v1/merchant/wallet-payments?limit=1" - "$MJWT"
+WPID=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let a=(JSON.parse(s).items||[]);process.stdout.write(String((a[0]||{}).id||""))}catch(e){}})')
+chk F0-031b-source-exists "$([ -n "$WPID" ] && echo yes)" yes
+if [ -n "$WPID" ]; then
+  RM0=$(mbal)
+  gw refund POST /v1/refunds "{\"source_type\":\"WALLET_PAYMENT\",\"source_id\":\"$WPID\",\"amount_minor\":10000,\"currency\":\"AOA\",\"idempotency_key\":\"rf$RR\"}" "$MJWT"
+  chk F0-031b-refund-accepted "$CODE" "201"
+  RM1=$(mbal)
+  chk F0-031b-money-returned "$((RM0-RM1))" "10000"
+fi
+
 echo "### F0-034 payment link expiry/cancel"
 gw pl POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"cancel me\"}" "$MJWT"
 PLID=$(jget id); PLSLUG=$(jget slug)
