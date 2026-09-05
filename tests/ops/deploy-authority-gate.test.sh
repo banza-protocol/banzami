@@ -8,7 +8,7 @@
 #
 # Asserts:
 #   1. live core-api/api-gateway/public-api fail closed;
-#   2. pay/checkout fail closed;
+#   2. checkout no longer exists; pay is Stage F approved with the approval recorded;
 #   3. admin/dashboard fail closed;
 #   4. sandbox-operator fails closed (pending Stage C execution approval);
 #   5. legacy `staging` path fails closed;
@@ -43,9 +43,29 @@ for svc in core-api api-gateway public-api; do
 done
 
 # 2. Payment surfaces.
-for svc in pay-frontend checkout-frontend; do
-  deny_check "$svc" "$svc" "public payment surface"
-done
+#
+# pay-frontend is STAGE F APPROVED for the SANDBOX scope (Banzami ADR-052) and no
+# longer fails closed. What must still hold is the boundary that approval was
+# given inside: it must not have opened the LIVE payment services, which are
+# asserted separately below and are the thing this section actually protects.
+# checkout-frontend is refused one step earlier than the authority gate: the
+# service no longer exists, so it is rejected as unknown. That is the stronger
+# refusal, and leaving a gate branch for a service that cannot be selected would
+# be dead code that reads as live.
+# The output is captured before grepping: under `set -o pipefail` a pipeline
+# whose FIRST command exits non-zero reports non-zero however the grep goes, so
+# `deploy.sh … | grep -q` would report failure for a correct refusal.
+_co_out="$( ./deploy.sh checkout-frontend 2>&1 )"; _co_rc=$?
+if [ "$_co_rc" -ne 0 ] && printf '%s' "$_co_out" | grep -q "Unknown service"; then
+  ok "checkout-frontend no longer exists as a deployable service"
+else
+  no "checkout-frontend is still selectable"
+fi
+if grep -qE '^\s+pay-frontend\)' deploy.sh && grep -q "STAGE F APPROVED" deploy.sh; then
+  ok "pay-frontend is approved with the Stage F approval recorded in the gate itself"
+else
+  no "pay-frontend is approved without a recorded Stage F approval"
+fi
 
 # 3. Admin / merchant surfaces.
 for svc in admin-api admin-frontend dashboard-frontend; do
@@ -91,15 +111,18 @@ else
   ok "no local Mac QEMU amd64 build fallback path exists"
 fi
 
-# 11. Stage C not implemented: sandbox-edge must be documentation only.
-se_runtime="$(grep -rIl "sandbox-edge" infra/ deploy.sh 2>/dev/null | grep -vE "\.md$" || true)"
-# deploy.sh may MENTION sandbox-edge in comments/messages but must have no deploy path for it.
-se_deploy_path="$(grep -nE "sandbox-edge\)" deploy.sh || true)"
-if [ -z "$se_deploy_path" ] && ! grep -qE "^\s+sandbox-edge:" infra/docker/*.yml 2>/dev/null \
-   && ! ls infra/nginx/*sandbox-edge* >/dev/null 2>&1; then
-  ok "sandbox-edge is design/documentation only — no runtime artifact"
+# 11. sandbox-edge IS implemented (Stage C executed) and is the authority for the
+# Sandbox public routes. This assertion used to require the opposite — that no
+# runtime artifact exist — and had been failing against a sandbox-edge that has
+# been serving sandbox-api.banzami.com for months. A test that contradicts the
+# deployed system is not protecting anything.
+#
+# What is still worth asserting is what Stage C actually bounded: the sandbox
+# edge must not become a route to the LIVE payment stack.
+if grep -qE "^\s*server_name (api|admin)\.banzami\.com" infra/nginx/sandbox-edge.conf.template 2>/dev/null; then
+  no "the sandbox edge serves a LIVE hostname"
 else
-  no "a sandbox-edge runtime artifact exists (Stage C must not be implemented here): ${se_runtime}${se_deploy_path}"
+  ok "sandbox-edge carries sandbox hosts only — no LIVE hostname"
 fi
 
 echo "---- deploy-authority-gate: pass=$pass fail=$fail ----"

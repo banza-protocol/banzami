@@ -13,6 +13,8 @@ interface Props {
   description:   string | null;
   deepLink:      string;
   expiresAt:     string | null;
+  /** Whether the external acquiring rail may be offered (LIVE only). */
+  externalRailAvailable: boolean;
 }
 
 type Step =
@@ -33,6 +35,7 @@ export default function PayClient({
   description,
   deepLink,
   expiresAt,
+  externalRailAvailable,
 }: Props) {
   const [step, setStep]     = useState<Step>({ type: 'idle' });
   const [expired, setExpired] = useState(false);
@@ -175,6 +178,23 @@ export default function PayClient({
           </div>
         )}
 
+        {/* Sandbox disclosure.
+            Rendered from the mode the SERVER resolved, not from a browser fetch.
+            The floating PlatformBadge needs JavaScript and a successful call to
+            /v1/platform-mode; a payer with either blocked would have seen a page
+            that looks exactly like a real payment. A disclosure that can fail
+            open is not a disclosure. */}
+        {!externalRailAvailable && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-center">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-amber-900">
+              SANDBOX — ambiente de testes
+            </p>
+            <p className="mt-1 text-xs text-amber-800">
+              Nenhum dinheiro real é movimentado.
+            </p>
+          </div>
+        )}
+
         {/* QR + CTAs */}
         <div className="bz-card space-y-5">
 
@@ -207,14 +227,15 @@ export default function PayClient({
             Abrir app Banzami
           </a>
 
-          {/* Divider */}
+          {/* Divider + external rail — LIVE only. */}
+          {externalRailAvailable && (
+          <>
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-gray-200" />
             <span className="text-xs text-gray-400">ou</span>
             <div className="h-px flex-1 bg-gray-200" />
           </div>
 
-          {/* Multicaixa Express */}
           <button
             onClick={handlePayWithMulticaixa}
             disabled={step.type === 'loading' || expired}
@@ -231,6 +252,8 @@ export default function PayClient({
               'Pagar com Multicaixa Express'
             )}
           </button>
+          </>
+          )}
 
           {/* Copy link */}
           <button onClick={handleCopyLink} className="bz-btn-glass w-full">

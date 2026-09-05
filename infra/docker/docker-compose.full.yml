@@ -322,21 +322,6 @@ services:
     networks:
       - banzami_net
 
-  # Next.js checkout app — embedded checkout experience.
-  checkout-frontend:
-    build:
-      context: ../../apps/checkout
-      dockerfile: Dockerfile
-    environment:
-      PAY_API_URL: http://api-gateway:8080
-    ports:
-      - "127.0.0.1:3003:3003"
-    depends_on:
-      - api-gateway
-    restart: unless-stopped
-    networks:
-      - banzami_net
-
   # Next.js official website (banzami.com) — public marketing/institutional site.
   # Isolated from the payment runtime: no depends_on, makes no API calls. Port
   # 3000 is internal-only; the dedicated website-nginx below terminates TLS.

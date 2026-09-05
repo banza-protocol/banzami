@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Origin of the API this app talks to, normalised to scheme+host so it is a
+// valid CSP source expression.
+const GATEWAY_ORIGIN = (() => {
+  const raw = process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'https://api.banzami.com';
+  try { return new URL(raw).origin; } catch { return 'https://api.banzami.com'; }
+})();
+
 export function middleware(request: NextRequest) {
   // Generate a cryptographically random nonce for this request.
   // Next.js App Router reads x-nonce from the incoming request headers
@@ -16,7 +23,12 @@ export function middleware(request: NextRequest) {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    "connect-src 'self' https://api.banzami.com",
+    // The gateway origin is configuration, not a constant. Hard-coding
+    // api.banzami.com meant that pointing this app at any other stack — the
+    // Sandbox one, say — left every client fetch (status polling, the platform
+    // badge) blocked by CSP, with the page rendering perfectly and simply never
+    // updating. Derived from the same value the app actually calls.
+    `connect-src 'self' ${GATEWAY_ORIGIN}`,
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'",

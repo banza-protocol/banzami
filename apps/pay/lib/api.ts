@@ -2,20 +2,25 @@ const GATEWAY_URL         = process.env.NEXT_PUBLIC_GATEWAY_URL  ?? 'http://loca
 // Server-only — read at runtime, not baked at build time.
 const STAGING_GATEWAY_URL = process.env.STAGING_GATEWAY_URL ?? 'http://public-api-staging:8083';
 
+/**
+ * What `GET /public/pay/{slug}` actually returns — the payer-safe projection.
+ *
+ * This declared `id`, `merchant_id`, `wallet_id`, `created_at` and `updated_at`,
+ * none of which the endpoint sends. A type that promises internal identifiers
+ * the wire does not carry invites a page to render `undefined`, or worse invites
+ * someone to make the server send them. The public payload is deliberately
+ * narrow: enough to show the payer what they are paying, and nothing that names
+ * the recipient's internal resources.
+ */
 export interface PaymentLink {
-  id:            string;
   slug:          string;
-  merchant_id:   string;
   merchant_name: string;
-  wallet_id:     string;
   amount_minor:  number | null;
   currency:      string;
   description:   string | null;
   status:        'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
   expires_at:    string | null;
   paid_at:       string | null;
-  created_at:    string;
-  updated_at:    string;
 }
 
 export interface PaymentInstructions {
@@ -71,6 +76,24 @@ export async function initiatePay(
     throw new Error((err as any)?.error?.message ?? `API error ${res.status}`);
   }
   return res.json();
+}
+
+/**
+ * Platform Mode (Banzami ADR-025) — the environment router.
+ *
+ * Read server-side so a page can decide what to OFFER, not merely what to
+ * label. Fails safe to SANDBOX: if the platform cannot be asked, the caller
+ * must assume the more restricted environment, never the less.
+ */
+export async function getPlatformMode(): Promise<'LIVE' | 'SANDBOX'> {
+  try {
+    const res = await fetch(`${GATEWAY_URL}/v1/platform-mode`, { cache: 'no-store' });
+    if (!res.ok) return 'SANDBOX';
+    const j = (await res.json()) as { mode?: string };
+    return j.mode === 'LIVE' ? 'LIVE' : 'SANDBOX';
+  } catch {
+    return 'SANDBOX';
+  }
 }
 
 export interface SocialLink {

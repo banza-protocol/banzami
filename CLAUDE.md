@@ -469,8 +469,7 @@ Kubernetes is intentionally deferred until operational maturity requires it.
     /apps
         /dashboard       ← Merchant dashboard (Next.js)
         /admin           ← Admin portal (Next.js)
-        /pay             ← Pay page (Next.js)
-        /checkout        ← Checkout page (Next.js)
+        /pay             ← Hosted payer surface — pay.banzami.com (Next.js, Banzami ADR-052)
 
     /services
         /api-gateway     ← Go public API gateway
@@ -896,6 +895,6 @@ node tools/check-repository-layout.mjs
 ```
 
 Server: `root@217.160.9.248`  
-Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `checkout-frontend`, `staging`
+Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `staging`
 
 Deploy note: changes are not done until pushed to `origin/main` AND deployed via `./deploy.sh`.

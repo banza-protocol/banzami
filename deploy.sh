@@ -52,7 +52,7 @@ case "$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)" in
   *) _ssot_die ;;
 esac
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend dashboard-frontend pay-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -90,8 +90,15 @@ _authority_gate() {
       website-frontend) : ;;  # approved — institutional website only
       core-api|api-gateway|public-api)
         _deny_unapproved "$svc" "live payment-rail service: not defined server-side; requires Stage E+ approval, rotated secrets and the ADR-034 rollout gate" ;;
-      pay-frontend|checkout-frontend)
-        _deny_unapproved "$svc" "public payment surface: requires explicit Stage F approval" ;;
+      pay-frontend)
+        # STAGE F APPROVED 2026-09-05 — SANDBOX SCOPE ONLY (Banzami ADR-052).
+        # The owner approved this surface by name in the external-Sandbox-launch
+        # brief. The approval is bounded and the boundary is enforced elsewhere,
+        # not here: the surface serves whichever stack Platform Mode selects, and
+        # the platform is SANDBOX. Nothing about this line approves a LIVE
+        # payment surface — core-api/api-gateway/public-api below still fail
+        # closed, and external provider rails remain Stage G.
+        : ;;
       admin-api|admin-frontend|dashboard-frontend)
         _deny_unapproved "$svc" "admin/merchant surface: requires Stage D approval and an approved runbook" ;;
       sandbox-operator)

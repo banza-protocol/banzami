@@ -38,7 +38,7 @@ The v1 ecosystem consists of six layers, each with a defined priority:
 | Web/Backend SDK | TypeScript SDK | `sdk/typescript/` | CRITICAL |
 | Python SDK | Python SDK | `sdk/python/` | HIGH |
 | Commerce plugin | WooCommerce | `plugins/woocommerce/` | CRITICAL |
-| Hosted checkout | Checkout app | `apps/checkout/` | CRITICAL |
+| Hosted checkout | Hosted payer surface | `apps/pay/` | CRITICAL |
 | API layer | REST API + OpenAPI | `docs/api/` | CRITICAL |
 
 ---
@@ -80,7 +80,13 @@ WordPress + WooCommerce is the dominant CMS/commerce stack for Angolan SME websi
 
 ### Why the hosted checkout is infrastructure, not a frontend
 
-`apps/checkout/` is not a marketing page. It is the universal payment interface for:
+> **Superseded in part by Banzami ADR-052 (2026-09-05):** the hosted checkout is
+> `apps/pay/`, not `apps/checkout/`. Two applications ended up presenting the
+> same payment, and only `apps/pay` carries the Universal Link / App Link
+> association files that bind `pay.banzami.com` to the mobile apps. The reasoning
+> below is unchanged and now applies to `apps/pay/`; `apps/checkout/` is retired.
+
+The hosted payer surface is not a marketing page. It is the universal payment interface for:
 - Payment links shared over WhatsApp
 - QR codes displayed at physical merchant locations
 - Social commerce (Instagram, Facebook)

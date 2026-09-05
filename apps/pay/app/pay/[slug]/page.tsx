@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getPaymentLink, formatAmount } from '@/lib/api';
+import { getPaymentLink, getPlatformMode, formatAmount } from '@/lib/api';
 import PayClient from './pay-client';
 
 interface Props {
@@ -57,8 +57,16 @@ export default async function PayPage({ params }: Props) {
 
   const deepLink = `banzami://pay/link/${link.slug}`;
 
+  // External acquiring rails are a separate governance decision and are not
+  // approved. Offering the button while the platform is in SANDBOX would
+  // advertise a rail the platform itself records as unavailable — an overclaim
+  // rendered as a control. Resolved server-side so the option is absent, not
+  // merely hidden.
+  const mode = await getPlatformMode();
+
   return (
     <PayClient
+      externalRailAvailable={mode === 'LIVE'}
       slug={link.slug}
       merchantName={link.merchant_name}
       amountDisplay={amountDisplay}
