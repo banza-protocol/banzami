@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] — 2026-09-05
+
+### Fixed — refunds were unreachable with the key this SDK documents
+
+`createRefund`, `getRefund` and `listRefunds` pointed at `/v1/refunds`, which is
+mounted under merchant-JWT authentication. The only credential this SDK's README
+documents is a Developer Platform project key (`bz_test_sk_…`), so every refund
+call answered **401 INVALID_TOKEN** — the refunds capability was advertised as
+available and could not be used. DOA's production refund path was calling it.
+
+They now target `/v1/business/refunds`, the project-scoped route, which resolves
+the financial owner from the key's binding and answers 404 for another project's
+payment. No signature changed; no caller needs to change anything but the version.
+
+`getBusinessMe()` was unreachable for the same reason and is fixed operator-side:
+`/v1/business/me` now accepts a project key (the route was built for an
+integrating application's Integration Health view, and that application holds a
+project key).
+
+### Added
+
+- `route-drift` now checks **credential reachability**, not only that a path
+  exists. A mounted route under the wrong auth group is the defect this release
+  fixes, and path-existence alone could never have caught it.
+
+## [0.8.0] — 2026-09-05
+
+### Added
+
+- `createTransfer` — move value between two wallet accounts of the project's own
+  bound owner (BANZA ADR-052). `POST /v1/business/transfers`.
+- Webhook endpoint management scoped to the project.
+
 ## [0.6.0] — 2026-09-04
 
 ### Added — segregated accounts for Developer Platform credentials

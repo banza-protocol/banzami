@@ -27,6 +27,39 @@ func NewBusinessMeHandler(svc *service.BusinessSelfService) *BusinessMeHandler {
 	return &BusinessMeHandler{svc: svc}
 }
 
+// resolveSelfAuthority answers "which Business account is asking about itself?".
+//
+// This route exists for an integrating application's Integration Health view —
+// DOA is the named example in the comment above — and for most of its life a
+// Developer Platform key could not reach it: it read only the merchant JWT, so
+// the application it was built for got 401. The account is still never taken
+// from the request; a project key's comes from its binding, a merchant JWT
+// names itself.
+func (h *BusinessMeHandler) resolveSelfAuthority(w http.ResponseWriter, r *http.Request) (string, string, bool) {
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		if !dp.HasScope("identity:read") {
+			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE",
+				"missing required scope: identity:read")
+			return "", "", false
+		}
+		// Without a binding there is no Business account to describe. Answered as
+		// a provisioning state rather than a 404, which would suggest the account
+		// is missing rather than unlinked.
+		if !dp.Bound || dp.MerchantID == "" {
+			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE",
+				"this project is not provisioned to hold funds")
+			return "", "", false
+		}
+		return dp.MerchantID, dp.Environment, true
+	}
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid business credentials required")
+		return "", "", false
+	}
+	return principal.MerchantID, principal.Environment, true
+}
+
 // GET /v1/business/me
 func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if h.svc == nil {
@@ -34,30 +67,29 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid business credentials required")
+	merchantID, environment, ok := h.resolveSelfAuthority(w, r)
+	if !ok {
 		return
 	}
 
 	env := "LIVE"
-	if strings.EqualFold(strings.TrimSpace(principal.Environment), "SANDBOX") {
+	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
 		env = "SANDBOX"
 	}
 
 	slog.InfoContext(r.Context(), "business_resolution_started",
-		"merchant_id", principal.MerchantID, "environment", env)
+		"merchant_id", merchantID, "environment", env)
 
-	res, err := h.svc.Self(r.Context(), principal.MerchantID, env)
+	res, err := h.svc.Self(r.Context(), merchantID, env)
 	if err != nil {
 		if errors.Is(err, service.ErrMerchantNotFound) {
 			slog.WarnContext(r.Context(), "business_resolution_failed",
-				"merchant_id", principal.MerchantID, "reason", "not_found")
+				"merchant_id", merchantID, "reason", "not_found")
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "business account not found")
 			return
 		}
 		slog.ErrorContext(r.Context(), "business_resolution_failed",
-			"merchant_id", principal.MerchantID, "error", err.Error())
+			"merchant_id", merchantID, "error", err.Error())
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not load business profile")
 		return
 	}

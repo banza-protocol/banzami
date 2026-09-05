@@ -1052,7 +1052,12 @@ export class BanzamiClient {
         'createRefund requires an explicit idempotency_key (a stable, server-generated key scoped to the refund intent). The SDK does not generate one for financial writes.',
       );
     }
-    return this.request<Refund>('/refunds', {
+    // /business/refunds, not /refunds. The bare route is mounted under merchant
+    // authentication, so this method answered 401 for the ONLY credential this
+    // SDK documents (bz_test_sk_…) — the refunds capability was advertised and
+    // unreachable. The project-scoped route resolves the financial owner from
+    // the key's binding and answers 404 for another project's payment.
+    return this.request<Refund>('/business/refunds', {
       method: 'POST',
       body:   JSON.stringify({
         source_type:     params.source_type,
@@ -1066,12 +1071,12 @@ export class BanzamiClient {
   }
 
   getRefund(id: string): Promise<Refund> {
-    return this.request<Refund>(`/refunds/${id}`);
+    return this.request<Refund>(`/business/refunds/${id}`);
   }
 
   listRefunds(params: { sourceId?: string; limit?: number } = {}): Promise<Page<Refund>> {
     return this.request<Page<Refund>>(
-      `/refunds${this.qs({ source_id: params.sourceId, limit: params.limit })}`,
+      `/business/refunds${this.qs({ source_id: params.sourceId, limit: params.limit })}`,
     );
   }
 

@@ -271,11 +271,6 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// Claim/update the merchant @handle + PIN (already authenticated).
 			r.Post("/merchant/auth/claim", merchantAuthHandler.Claim)
 
-			// The authenticated Business account's own consolidated profile
-			// (identity, type, category, wallet + KYB readiness) — for an
-			// integrating app's "Integration Health" view. Self-scoped.
-			r.Get("/business/me", businessMeHandler.Me)
-
 			r.Post("/transactions", txHandler.Create)
 			r.Get("/transactions", txHandler.List)
 			r.Get("/transactions/{id}", txHandler.Get)
@@ -580,6 +575,18 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Post("/", appSettlementHandler.CreateBusiness)
 				r.Get("/{id}", appSettlementHandler.Get)
 			})
+			// The authenticated Business account's own consolidated profile
+			// (identity, type, category, wallet + KYB readiness) — for an
+			// integrating app's "Integration Health" view. Self-scoped.
+			//
+			// Mounted here rather than on the merchant-only group because the
+			// application it was built for holds a project key, not a merchant
+			// JWT: on the old mount DOA's own health view answered 401 and
+			// reported "the key does not authenticate the Business account",
+			// which was true of the route and not of the key. The merchant still
+			// comes from the binding, never from the request.
+			r.Get("/business/me", businessMeHandler.Me)
+
 			r.Route("/business/wallet-accounts", func(r chi.Router) {
 				r.Post("/", walletAccountHandler.Create)
 				r.Get("/", walletAccountHandler.List)
