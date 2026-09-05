@@ -61,6 +61,7 @@ var AllowedScopes = map[string]bool{
 	"payments:write":                true,
 	"transfers:read":                true,
 	"transfers:write":               true,
+	"refunds:read":                  true,
 	"refunds:write":                 true,
 	"webhooks:read":                 true,
 	"webhooks:write":                true,
@@ -90,6 +91,8 @@ var EnforcedScopes = map[string]bool{
 	"application_settlements:write": true,
 	"webhooks:read":                 true, // endpoints, events, deliveries
 	"webhooks:write":                true, // register, deactivate, replay, rotate secret
+	"refunds:read":                  true, // read your own refunds
+	"refunds:write":                 true, // return money from your own payment
 }
 
 var (

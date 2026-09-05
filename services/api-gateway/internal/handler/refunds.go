@@ -65,10 +65,40 @@ func NewRefundHandler(svc service.RefundService) *RefundHandler {
 //
 // Refunds a TYPED source (BANZA ADR-017) — never a generic transfer, never an
 // inferred source. The caller MUST specify source_type + source_id explicitly.
-func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
+// resolveRefundAuthority answers "whose payment is being refunded?" for either
+// credential.
+//
+// A refund is a financial write that moves money back out. Knowing a payment id
+// is not authority over it, so the merchant is never taken from the request: a
+// developer key's comes from its Project binding, a merchant JWT names itself.
+// Core independently re-checks that the source belongs to that merchant and is
+// eligible, so a bypass here still meets a refusal there.
+func (h *RefundHandler) resolveRefundAuthority(w http.ResponseWriter, r *http.Request, scope string) (string, bool) {
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		if !dp.HasScope(scope) {
+			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE",
+				"missing required scope: "+scope)
+			return "", false
+		}
+		// Refunding requires a financial owner. An unbound project has none.
+		if !dp.Bound || dp.MerchantID == "" {
+			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE",
+				"this project is not provisioned to hold funds")
+			return "", false
+		}
+		return dp.MerchantID, true
+	}
 	principal, ok := middleware.GetPrincipal(r.Context())
 	if !ok || principal.MerchantID == "" {
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+		return "", false
+	}
+	return principal.MerchantID, true
+}
+
+func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
+	merchantID, ok := h.resolveRefundAuthority(w, r, "refunds:write")
+	if !ok {
 		return
 	}
 
@@ -117,7 +147,7 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	refund, err := h.svc.Create(r.Context(), service.CreateRefundRequest{
 		CoreSourceType: coreType,
 		SourceID:       body.SourceID,
-		MerchantID:     principal.MerchantID,
+		MerchantID:     merchantID,
 		AmountMinor:    body.AmountMinor,
 		Currency:       body.Currency,
 		Reason:         body.Reason,
@@ -144,15 +174,14 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/refunds/{id}
 func (h *RefundHandler) Get(w http.ResponseWriter, r *http.Request) {
-	// Tenant scope (F1): merchant_id comes ONLY from the verified JWT principal —
+	// Tenant scope (F1): the merchant comes ONLY from the verified credential —
 	// never from the public request — and is passed to Core, which scopes the read.
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+	merchantID, ok := h.resolveRefundAuthority(w, r, "refunds:read")
+	if !ok {
 		return
 	}
 	id := chi.URLParam(r, "id")
-	refund, err := h.svc.Get(r.Context(), id, principal.MerchantID)
+	refund, err := h.svc.Get(r.Context(), id, merchantID)
 	if err != nil {
 		if errors.Is(err, service.ErrRefundNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "refund not found")
@@ -167,9 +196,8 @@ func (h *RefundHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/refunds?source_id=&limit=
 func (h *RefundHandler) List(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+	merchantID, ok := h.resolveRefundAuthority(w, r, "refunds:read")
+	if !ok {
 		return
 	}
 
@@ -185,7 +213,7 @@ func (h *RefundHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	page, err := h.svc.List(r.Context(),
 		r.URL.Query().Get("source_id"),
-		principal.MerchantID,
+		merchantID,
 		limit,
 	)
 	if err != nil {

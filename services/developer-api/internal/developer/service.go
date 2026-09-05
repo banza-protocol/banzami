@@ -409,6 +409,10 @@ var PaymentScopes = map[string]bool{
 	"wallet_accounts:create": true,
 	// Moves money out to a beneficiary — the most consequential of the three.
 	"application_settlements:write": true,
+	// Returns money from a completed payment. Money-touching, so gated for the
+	// same reason: a key that cannot take a payment must not be able to give one
+	// back. The read side is not gated — it discloses your own refunds only.
+	"refunds:write": true,
 }
 
 // validScopes checks that every scope is known and, unless allowPayment, that no

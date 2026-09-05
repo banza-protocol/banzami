@@ -587,6 +587,15 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// holding a merchant credential — the authority level the platform
 			// exists to withhold. The merchant comes from the project binding;
 			// no route here accepts a caller-supplied merchant.
+			// Refunds move money back out, so they need a financial owner — which
+			// is exactly what the project binding provides. Core re-checks that
+			// the source belongs to that owner and is eligible, so the gateway is
+			// not the only thing standing between a payment id and a refund.
+			r.Route("/business/refunds", func(r chi.Router) {
+				r.Post("/", refundHandler.Create)
+				r.Get("/", refundHandler.List)
+				r.Get("/{id}", refundHandler.Get)
+			})
 			r.Route("/business/webhooks", func(r chi.Router) {
 				r.Post("/endpoints", wbhHandler.Register)
 				r.Get("/endpoints", wbhHandler.ListEndpoints)
