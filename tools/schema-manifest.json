@@ -5,123 +5,415 @@
     {
       "feature": "refunds-source-aware (0047 / repaired by 0093)",
       "tables": [
-        { "name": "refunds", "columns": [
-          { "name": "source_type", "nullable": false },
-          { "name": "source_id",   "nullable": false },
-          { "name": "transaction_id", "nullable": true }
-        ], "indexes": ["idx_refunds_source"] }
+        {
+          "name": "refunds",
+          "columns": [
+            {
+              "name": "source_type",
+              "nullable": false
+            },
+            {
+              "name": "source_id",
+              "nullable": false
+            },
+            {
+              "name": "transaction_id",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "idx_refunds_source"
+          ]
+        }
       ]
     },
     {
       "feature": "wallet-payments (0046)",
       "tables": [
-        { "name": "wallet_payments", "columns": [
-          { "name": "transfer_id", "nullable": false },
-          { "name": "merchant_id", "nullable": false },
-          { "name": "consumer_id", "nullable": false },
-          { "name": "status", "nullable": false }
-        ], "indexes": ["idx_wallet_payments_merchant", "idx_wallet_payments_consumer"] }
+        {
+          "name": "wallet_payments",
+          "columns": [
+            {
+              "name": "transfer_id",
+              "nullable": false
+            },
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "consumer_id",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "idx_wallet_payments_merchant",
+            "idx_wallet_payments_consumer"
+          ]
+        }
       ]
     },
     {
       "feature": "merchant-team (0041 / repaired by 0090)",
       "tables": [
-        { "name": "merchant_team_members", "columns": [
-          { "name": "merchant_id", "nullable": false },
-          { "name": "email", "nullable": false },
-          { "name": "role", "nullable": false }
-        ], "indexes": ["merchant_team_members_unique_email", "merchant_team_members_merchant_idx"] },
-        { "name": "merchant_access_log", "columns": [], "indexes": ["merchant_access_log_merchant_idx"] }
+        {
+          "name": "merchant_team_members",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "email",
+              "nullable": false
+            },
+            {
+              "name": "role",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "merchant_team_members_unique_email",
+            "merchant_team_members_merchant_idx"
+          ]
+        },
+        {
+          "name": "merchant_access_log",
+          "columns": [],
+          "indexes": [
+            "merchant_access_log_merchant_idx"
+          ]
+        }
       ]
     },
     {
       "feature": "risk-flag-resolution (0043 / repaired by 0091)",
       "tables": [
-        { "name": "risk_flags", "columns": [ { "name": "resolution", "nullable": true } ], "indexes": ["risk_flags_open_idx"] }
+        {
+          "name": "risk_flags",
+          "columns": [
+            {
+              "name": "resolution",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "risk_flags_open_idx"
+          ]
+        }
       ]
     },
     {
       "feature": "consumer-devices (0044 / repaired by 0092)",
-      "tables": [ { "name": "consumer_devices", "columns": [], "indexes": ["consumer_devices_consumer_idx"] } ]
+      "tables": [
+        {
+          "name": "consumer_devices",
+          "columns": [],
+          "indexes": [
+            "consumer_devices_consumer_idx"
+          ]
+        }
+      ]
     },
     {
       "feature": "merchant-kyb-profile (0049 / repaired by 0094)",
-      "tables": [ { "name": "merchant_kyb_profile", "columns": [ { "name": "merchant_id", "nullable": false } ], "indexes": [] } ]
+      "tables": [
+        {
+          "name": "merchant_kyb_profile",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            }
+          ],
+          "indexes": []
+        }
+      ]
     },
     {
       "feature": "kyc-verifications (0050 / repaired by 0095)",
-      "tables": [ { "name": "kyc_verifications", "columns": [
-        { "name": "subject_type", "nullable": false },
-        { "name": "status", "nullable": false }
-      ], "indexes": ["uq_kyc_verifications_provider_ref", "idx_kyc_verifications_subject", "idx_kyc_verifications_status"] } ]
+      "tables": [
+        {
+          "name": "kyc_verifications",
+          "columns": [
+            {
+              "name": "subject_type",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "uq_kyc_verifications_provider_ref",
+            "idx_kyc_verifications_subject",
+            "idx_kyc_verifications_status"
+          ]
+        }
+      ]
     },
     {
       "feature": "restitution-allocations (0096 / Banzami ADR-034)",
-      "tables": [ { "name": "restitution_allocations", "columns": [
-        { "name": "source_type", "nullable": false },
-        { "name": "source_id", "nullable": false },
-        { "name": "origin", "nullable": false },
-        { "name": "origin_id", "nullable": false },
-        { "name": "amount_minor", "nullable": false },
-        { "name": "currency", "nullable": false },
-        { "name": "idempotency_key", "nullable": false },
-        { "name": "posting_id", "nullable": false }
-      ], "indexes": ["restitution_alloc_origin_unique", "restitution_alloc_idem_unique", "idx_restitution_alloc_source"] } ]
+      "tables": [
+        {
+          "name": "restitution_allocations",
+          "columns": [
+            {
+              "name": "source_type",
+              "nullable": false
+            },
+            {
+              "name": "source_id",
+              "nullable": false
+            },
+            {
+              "name": "origin",
+              "nullable": false
+            },
+            {
+              "name": "origin_id",
+              "nullable": false
+            },
+            {
+              "name": "amount_minor",
+              "nullable": false
+            },
+            {
+              "name": "currency",
+              "nullable": false
+            },
+            {
+              "name": "idempotency_key",
+              "nullable": false
+            },
+            {
+              "name": "posting_id",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "restitution_alloc_origin_unique",
+            "restitution_alloc_idem_unique",
+            "idx_restitution_alloc_source"
+          ]
+        }
+      ]
     },
     {
       "feature": "refunds-source-scoped-idempotency (0098 / Banzami D0)",
       "$note": "The global refunds_idempotency_key_key was replaced by a source-scoped unique; the manifest expects the scoped index and no longer the global constraint.",
       "tables": [
-        { "name": "refunds", "columns": [], "indexes": ["refunds_source_idem_unique"] }
+        {
+          "name": "refunds",
+          "columns": [],
+          "indexes": [
+            "refunds_source_idem_unique"
+          ]
+        }
       ]
     },
     {
       "feature": "disputes-source-typed (0097 / Banzami ADR-034)",
-      "tables": [ { "name": "disputes", "columns": [
-        { "name": "source_type", "nullable": false },
-        { "name": "source_id", "nullable": false },
-        { "name": "restitution_amount_minor", "nullable": true },
-        { "name": "restitution_reason", "nullable": true }
-      ], "indexes": ["idx_disputes_source"] } ]
+      "tables": [
+        {
+          "name": "disputes",
+          "columns": [
+            {
+              "name": "source_type",
+              "nullable": false
+            },
+            {
+              "name": "source_id",
+              "nullable": false
+            },
+            {
+              "name": "restitution_amount_minor",
+              "nullable": true
+            },
+            {
+              "name": "restitution_reason",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "idx_disputes_source"
+          ]
+        }
+      ]
     },
     {
       "feature": "developer-platform (ADR-033 / ADR-046) — schema=developer",
       "$note": "The developer.* schema is the external Developer Platform + API-key authority (developer-api). It is now under the same rollout gate as the financial core (RT04B §1): a missing developer.* migration must FAIL the gate. Table presence is checked for the whole schema; the ADR-047 binding table below is checked at column+index granularity.",
       "tables": [
-        { "name": "developer.dev_workspaces", "columns": [], "indexes": [] },
-        { "name": "developer.dev_workspace_members", "columns": [], "indexes": [] },
-        { "name": "developer.dev_workspace_invites", "columns": [], "indexes": [] },
-        { "name": "developer.dev_projects", "columns": [], "indexes": [] },
-        { "name": "developer.dev_project_business_link", "columns": [], "indexes": [] },
-        { "name": "developer.dev_api_keys", "columns": [], "indexes": [] },
-        { "name": "developer.audit_events", "columns": [], "indexes": [] }
+        {
+          "name": "developer.dev_workspaces",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "developer.dev_workspace_members",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "developer.dev_workspace_invites",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "developer.dev_projects",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "developer.dev_project_business_link",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "developer.dev_api_keys",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "developer.audit_events",
+          "columns": [],
+          "indexes": []
+        }
       ]
     },
     {
       "feature": "developer-project-sandbox-binding (0100 / ADR-047) — schema=developer",
       "$note": "The Project→Merchant SANDBOX payee binding authority (RT04B). Column+index granularity: the one-ACTIVE-binding-per-project partial unique index is a load-bearing financial-authority constraint.",
-      "tables": [ { "name": "developer.dev_project_sandbox_binding", "columns": [
-        { "name": "project_id", "nullable": false },
-        { "name": "environment", "nullable": false },
-        { "name": "merchant_id", "nullable": false },
-        { "name": "wallet_id", "nullable": false },
-        { "name": "wallet_account_id", "nullable": false },
-        { "name": "state", "nullable": false },
-        { "name": "artifact_created", "nullable": false },
-        { "name": "created_by_user_id", "nullable": false }
-      ], "indexes": [
-        "developer.dev_project_sandbox_binding_one_active",
-        "developer.dev_project_sandbox_binding_project"
-      ] } ]
+      "tables": [
+        {
+          "name": "developer.dev_project_sandbox_binding",
+          "columns": [
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            },
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "wallet_id",
+              "nullable": false
+            },
+            {
+              "name": "wallet_account_id",
+              "nullable": false
+            },
+            {
+              "name": "state",
+              "nullable": false
+            },
+            {
+              "name": "artifact_created",
+              "nullable": false
+            },
+            {
+              "name": "created_by_user_id",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "developer.dev_project_sandbox_binding_one_active",
+            "developer.dev_project_sandbox_binding_project"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "developer-api-request-logs (0104 / ADR-054) — schema=developer",
+      "$note": "The Console's API Logs screen. Written by api-gateway at developer-key authentication, read by developer-api scoped to one project. Column granularity because the columns ARE the privacy boundary: this table has no header, body or credential column and no JSONB, so an added one is drift worth failing on.",
+      "tables": [
+        {
+          "name": "developer.dev_api_request_logs",
+          "columns": [
+            {
+              "name": "project_id",
+              "nullable": false
+            },
+            {
+              "name": "key_id",
+              "nullable": true
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            },
+            {
+              "name": "method",
+              "nullable": false
+            },
+            {
+              "name": "path",
+              "nullable": false
+            },
+            {
+              "name": "route",
+              "nullable": false
+            },
+            {
+              "name": "status",
+              "nullable": false
+            },
+            {
+              "name": "request_id",
+              "nullable": false
+            },
+            {
+              "name": "latency_ms",
+              "nullable": true
+            },
+            {
+              "name": "created_at",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "developer.idx_dev_api_logs_project_time",
+            "developer.idx_dev_api_logs_project_request",
+            "developer.idx_dev_api_logs_created"
+          ]
+        }
+      ]
     },
     {
       "feature": "account-identity (ADR-033) — schema=account_identity",
       "$note": "The account_identity.* schema backs Developer Console authentication (developer-api). Under the rollout gate (RT04B §1) at table-presence granularity.",
       "tables": [
-        { "name": "account_identity.identity_users", "columns": [], "indexes": [] },
-        { "name": "account_identity.identity_sessions", "columns": [], "indexes": [] },
-        { "name": "account_identity.identity_otp_codes", "columns": [], "indexes": [] },
-        { "name": "account_identity.audit_events", "columns": [], "indexes": [] }
+        {
+          "name": "account_identity.identity_users",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "account_identity.identity_sessions",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "account_identity.identity_otp_codes",
+          "columns": [],
+          "indexes": []
+        },
+        {
+          "name": "account_identity.audit_events",
+          "columns": [],
+          "indexes": []
+        }
       ]
     }
   ]
