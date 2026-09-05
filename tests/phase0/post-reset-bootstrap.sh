@@ -38,7 +38,21 @@ circulation(){ psqlro "SELECT COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN
 R="${RANDOM}${RANDOM}"
 
 echo "### the ledger starts clean"
-chk START_POSTINGS   "$(psqlro 'SELECT COUNT(*) FROM ledger_postings')" "0"
+# PRECONDITION, not an assertion about the product: this harness only means
+# anything against an empty ledger, immediately after tools/sandbox-financial-reset.sh.
+# Run later it reports a wall of failures that read as defects and are not —
+# the merchant-top-up leg counts, for instance, are cumulative across runs. So
+# it refuses to run rather than produce a misleading red.
+START_POSTINGS=$(psqlro 'SELECT COUNT(*) FROM ledger_postings')
+if [ "${START_POSTINGS:-1}" != "0" ]; then
+  echo "PRECONDITION NOT MET: the ledger already holds $START_POSTINGS postings."
+  echo "This harness asserts the credit paths FROM ZERO and is only meaningful"
+  echo "immediately after tools/sandbox-financial-reset.sh. Not run."
+  echo
+  echo "POST_RESET_BOOTSTRAP: SKIPPED (precondition: empty ledger)"
+  exit 0
+fi
+chk START_POSTINGS   "$START_POSTINGS" "0"
 chk START_UNBALANCED "$(unbalanced)" "0"
 chk START_CIRCULATION "$(circulation)" "0"
 

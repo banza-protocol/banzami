@@ -491,9 +491,21 @@ func (c *CorePublicClient) GetPaymentLinkBySlug(ctx context.Context, slug string
 	return &out, nil
 }
 
-func (c *CorePublicClient) MarkPaymentLinkUsed(ctx context.Context, id string) (*PaymentLink, error) {
+// MarkPaymentLinkUsed marks the link used and, given the transfer that settled
+// it, lets core record the refundable wallet payment.
+//
+// The transfer matters: a link paid on its own has no other writer of
+// wallet_payments — the session path only covers links that belong to a session
+// — so without it the money arrived and the object a refund names never
+// existed. Core's recording is idempotent, so passing it for a session-backed
+// link is harmless.
+func (c *CorePublicClient) MarkPaymentLinkUsed(ctx context.Context, id, transferID string) (*PaymentLink, error) {
 	var out PaymentLink
-	if err := c.post(ctx, "/internal/v1/payment-links/"+id+"/mark-used", nil, &out); err != nil {
+	body := map[string]string{}
+	if transferID != "" {
+		body["transfer_id"] = transferID
+	}
+	if err := c.post(ctx, "/internal/v1/payment-links/"+id+"/mark-used", body, &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentLinkNotFound
 		}

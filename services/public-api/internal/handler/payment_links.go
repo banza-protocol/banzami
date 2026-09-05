@@ -161,7 +161,7 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	h.core.SettlePaymentSessionInterface(r.Context(), "link", link.ID, transfer.ID, "PAYMENT_LINK", *amountMinor)
 
 	// Mark the link as used — idempotent if the transfer already occurred.
-	updated, err := h.core.MarkPaymentLinkUsed(r.Context(), link.ID)
+	updated, err := h.core.MarkPaymentLinkUsed(r.Context(), link.ID, transfer.ID)
 	if err != nil {
 		// Transfer succeeded but mark-used failed; the link will be reconciled
 		// by the expiry worker. We still return success to the consumer.

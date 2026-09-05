@@ -13,18 +13,26 @@ GW=$(docker ps --format '{{.Names}}'  | grep api-gateway-staging | head -1)
 PUB=$(docker ps --format '{{.Names}}' | grep public-api-staging  | head -1)
 CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging    | head -1)
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
-PG=$(docker ps --format '{{.Names}}'  | grep postgres            | head -1)
+# The sandbox postgres, explicitly. Without the second filter this matched
+# banzami-postgres-1 — the OTHER stack's database — and every psql read here
+# came back empty with stderr suppressed, so the reconciliation and audit
+# assertions failed against a database that was never being tested.
+PG=$(docker ps --format '{{.Names}}'  | grep postgres | grep bzsandbox | head -1)
 SECRET=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 URL=$(docker exec "$CORE" cat /run/secrets/db_url 2>/dev/null); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
 [ -n "$SECRET" ] && [ -n "$DEVINT" ] || { echo "NO_SECRET"; exit 1; }
-psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
+# Errors are NOT swallowed: a suppressed psql error reads as an empty result,
+# which reads as a failing assertion about the product rather than about the
+# query. That is exactly how the wrong-database bug above stayed hidden.
+psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>&1; }
 R="${RANDOM}${RANDOM}${RANDOM}"; RR="${R:0:5}"; SEQ=0
 OP=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen | tr 'A-Z' 'a-z')
 mint(){ SECRET="$SECRET" K="$1" V="$2" node -e 'const c=require("crypto");const b=(o)=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const h=b({alg:"HS256",typ:"JWT"});const cl={scopes:["*"],environment:"SANDBOX",iat:n,exp:n+3600};cl[process.env.K]=process.env.V;const p=b(cl);const s=c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url");process.stdout.write(h+"."+p+"."+s);';}
 LAST="";CODE=""
 call(){ local ct="$1" port="$2" nm="$3" m="$4" p="$5" bd="$6" au="$7" ah="${8:-Authorization: Bearer}";local a=(curl -s -w $'\n%{http_code}' -X "$m" "http://localhost:$port$p");[ "$au" != "-" ]&&a+=(-H "$ah $au");local r;if [ "$bd" = "-" ];then r=$(docker exec "$ct" "${a[@]}" 2>/dev/null);else a+=(-H "Content-Type: application/json" --data @-);r=$(printf '%s' "$bd"|docker exec -i "$ct" "${a[@]}" 2>/dev/null);fi;CODE=$(printf '%s' "$r"|tail -n1);LAST=$(printf '%s' "$r"|sed '$d');[ "$nm" != "-" ]&&echo "  [$nm] http=$CODE $(printf '%s' "$LAST"|head -c 190)";}
 gw(){ call "$GW" 8080 "$@";}
+pub(){ call "$PUB" 8083 "$@";}
 devint(){ call "$DEV" 8086 "$1" "$2" "$3" "$4" "$DEVINT" "X-Internal-Key:";}
 jget(){ printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);process.stdout.write(String(j["'"$1"'"]??""))}catch(e){}})';}
 codeof(){ printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let e=j.error&&typeof j.error=="object"?j.error:j;process.stdout.write(String(e.code||e.status||"OK"))}catch(x){}})';}
@@ -71,34 +79,62 @@ gw pl POST /v1/payment-links "{\"amount_minor\":50000,\"currency\":\"AOA\",\"des
 LID=$(jget id)
 if [ -n "$LID" ]; then chk F0-DP-006 ok ok; note_ctx="dev-key (payee from binding)"; else
   gw pl_m POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"dp link\"}" "$MJWT"; LID=$(jget id); chk F0-DP-006 "$([ -n "$LID" ]&&echo ok)" ok; note_ctx="merchant-auth (dev-key link create not accepted by core)"; fi
-echo "  F0-DP-006 context: $note_ctx"
+LSLUG=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).slug||""))}catch(e){}})')
+echo "  F0-DP-006 context: $note_ctx (slug ${LSLUG:-<none>})"
 
-echo "### F0-DP-007 payment intent from developer/platform context"
-onboard; B=$OCID;BW=$OWID; kyc "$B"
-gw pi POST /v1/payment-requests "{\"requester_id\":\"$B\",\"payer_id\":\"$A\",\"amount_minor\":40000,\"currency\":\"AOA\",\"message\":\"dp intent\",\"idempotency_key\":\"pi$RR\"}" "$MJWT"
-PIID=$(jget id); chk F0-DP-007 "$(jget status)" PENDING
+# F0-DP-007 / F0-DP-008 were written against two merchant-credential routes that
+# have since been REMOVED for security, so testing them for success now asserts
+# the opposite of what the platform should do:
+#
+#   POST /v1/payment-requests  — took BOTH participants from the request body and
+#                                never read the principal (RA-057, SEC-015). An
+#                                unrelated merchant could execute a request
+#                                between two strangers and debit one of them.
+#   POST /v1/qr/pay            — accepted the payer as free text, so a merchant
+#                                JWT could debit a consumer's wallet (RA-053).
+#
+# Both are now absence tests. The money paths they used to cover live in
+# campaign-payment-segregation.sh and doa-public-donation-e2e.sh, where the payer
+# authorises their own payment.
+echo "### F0-DP-007 the merchant-side payment-request surface stays removed (RA-057)"
+gw pi POST /v1/payment-requests "{\"requester_id\":\"$A\",\"payer_id\":\"$A\",\"amount_minor\":40000,\"currency\":\"AOA\",\"idempotency_key\":\"pi$RR\"}" "$MJWT"
+chk F0-DP-007-removed "$([ "$CODE" = "404" ] || [ "$CODE" = "405" ] && echo removed)" removed
 
-echo "### F0-DP-008 online checkout completes (consumer pays online via QR)"
-gw qr POST /v1/qr/static "{\"owner_id\":\"$WID\",\"owner_type\":\"MERCHANT\",\"currency\":\"AOA\"}" "$MJWT";PAY=$(jget payload)
-M0=$(mbal); A0=$(cbal "$AW")
+echo "### F0-DP-008 a merchant credential cannot debit a consumer by QR (RA-053)"
+# owner_id is the MERCHANT, not the wallet: naming anything else is refused
+# (403), which is itself the ownership rule and is asserted right after.
+gw qr POST /v1/qr/static "{\"owner_id\":\"$MID\",\"owner_type\":\"MERCHANT\",\"currency\":\"AOA\"}" "$MJWT";PAY=$(jget payload)
+chk F0-DP-008-qr-still-issuable "$CODE" "201"
+gw qr_foreign POST /v1/qr/static "{\"owner_id\":\"$WID\",\"owner_type\":\"MERCHANT\",\"currency\":\"AOA\"}" "$MJWT"
+chk F0-DP-008-qr-owner-enforced "$CODE" "403"
+A0=$(cbal "$AW")
 gw co POST /v1/qr/pay "{\"idempotency_key\":\"co$RR\",\"payer\":\"$AH\",\"payload\":\"$PAY\",\"amount_minor\":50000}" "$MJWT"
-chk F0-DP-008 "$(jget status)" COMPLETED
-M1=$(mbal); A1=$(cbal "$AW"); chk F0-DP-008-ledger "$((M1-M0))|$((A0-A1))" "50000|50000"; TRID=$(jget id)
-echo "### F0-DP-008 idempotent retry"; gw co2 POST /v1/qr/pay "{\"idempotency_key\":\"co$RR\",\"payer\":\"$AH\",\"payload\":\"$PAY\",\"amount_minor\":50000}" "$MJWT"; chk F0-DP-008-idem "$(cbal "$AW")" "$A1"
+chk F0-DP-008-pay-removed "$([ "$CODE" = "404" ] || [ "$CODE" = "405" ] && echo removed)" removed
+# The point of the removal is the money, so check the money.
+chk F0-DP-008-victim-untouched "$(cbal "$AW")" "$A0"
 
-echo "### F0-DP-009 receipt verification"
-gw wp GET "/v1/merchant/wallet-payments?limit=5" - "$MJWT"
-IFS='|' read -r RREF RST RPAYER RAVAIL <<<"$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let a=(JSON.parse(s).items||[]);let x=a[0]||{};process.stdout.write([x.reference||"",x.status||"",x.payer_name||"",x.receipt_available].join("|"))}catch(e){}})')"
-echo "  receipt ref=$RREF status=$RST payer=$RPAYER available=$RAVAIL"
-chk F0-DP-009-state "$([ -n "$RREF" ]&&[ "$RST" = COMPLETED ]&&[ "$RAVAIL" = true ]&&echo ok)" ok
-chk F0-DP-009-privacy "$(printf '%s' "$RPAYER"|grep -qE '^@' && echo handle-only || echo exposed)" handle-only
+echo "### F0-DP-009 a forged proof reference is never confirmed"
 gw proof_forged GET "/v1/public/proofs/BZM-FAKE-0000" - -; chk F0-DP-009-nofabricate "$(jget exists)" false
 
 echo "### F0-DP-010 platform reconciliation (created vs settled vs balance)"
-gw tx GET "/v1/transactions?limit=10" - "$MJWT" >/dev/null
-SETTLED=$(gw - GET "/v1/merchant/wallet-payments?limit=10" - "$MJWT" >/dev/null; printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String((JSON.parse(s).items||[]).length))}catch(e){process.stdout.write("0")}})')
-echo "  created(link+qr)=2 settled_payments=$SETTLED merchant_balance=$(mbal)"
-chk F0-DP-010 "$(mbal)" 50000
+# This asserted a merchant balance of exactly 50,000 left behind by the qr/pay
+# route removed under RA-053, so after the removal it could only ever fail. It
+# now settles a payment through the supported path — the payer authorises it on
+# their own surface — and reconciles the DELTA, which is what reconciliation
+# means and does not depend on the balance the environment happened to start at.
+# The slug is captured where the link is CREATED (F0-DP-006). Re-parsing $LAST
+# here read whatever the previous call happened to return, so the branch below
+# was silently skipped and the reconciliation compared two untouched balances.
+M0=$(mbal); C0=$(cbal "$AW")
+[ -n "$LSLUG" ] || { echo "  no payment link slug — the reconciliation would be vacuous"; }
+if [ -n "$LSLUG" ]; then
+  CJ=$(mint customer_id "$A")
+  pub paylink POST "/v1/payment-links/$LSLUG/pay" '{"amount_minor":50000}' "$CJ"
+  chk F0-DP-010-payment-accepted "$CODE" "200"
+fi
+M1=$(mbal); C1=$(cbal "$AW")
+echo "  merchant $M0 → $M1 · payer $C0 → $C1"
+chk F0-DP-010 "$((M1-M0))|$((C0-C1))" "50000|50000"
 
 echo "### F0-DP-011 webhook event emitted/simulated (signed payload)"
 gw wh GET "/v1/webhooks/events?limit=10" - "$MJWT"

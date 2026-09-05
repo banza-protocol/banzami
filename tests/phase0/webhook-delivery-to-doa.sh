@@ -57,8 +57,23 @@ KEY=$(jget secret)
 call "$GW" 8080 POST /v1/business/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"whdel-$R\",\"label\":\"Delivery probe\"}" "$KEY"
 ACCT=$(jget id)
-PAYER=$(psqlro "SELECT cw.consumer_id FROM consumer_wallets cw JOIN ledger_entries le ON le.account_id=cw.available_account_id WHERE cw.status='ACTIVE' AND cw.currency='AOA' GROUP BY cw.consumer_id HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= 200000 ORDER BY 1 LIMIT 1")
+# The payer is onboarded and funded here rather than scavenged from whatever an
+# earlier run left behind: with no funded consumer the minted token carries no
+# customer_id, the payment answers 401, and every assertion after it fails for a
+# reason that has nothing to do with webhook delivery. Funding goes through the
+# sanctioned sandbox route, so the operator's pilot aggregate cap still applies.
+PH="+2449${R:0:4}91"; H="wd${R:0:5}p"
+call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
+SID=$(jget session_id)
+call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
+call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
+PAYER=$(jget consumer_id)
+[ -n "$PAYER" ] || { echo "payer onboarding failed — the rest would be vacuous"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")
+call "$GW" 8080 POST /v1/compliance/customers/verify \
+  "{\"full_name\":\"WEBHOOK DELIVERY E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"WD$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
+call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":200000,"currency":"AOA"}' "$CJWT"
+[ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE) — the rest would be vacuous"; exit 1; }
 call "$GW" 8080 POST /v1/business/payment-sessions \
   "{\"wallet_account_id\":\"$ACCT\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"whdel-$R\",\"amount_minor\":100000,\"currency\":\"AOA\"}" "$KEY"
 SESSION=$(jget session_id)

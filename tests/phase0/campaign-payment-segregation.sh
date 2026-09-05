@@ -69,20 +69,30 @@ chk BALANCE_READABLE "$([ "$A0" != "?" ] && [ "$B0" != "?" ] && echo yes)" yes
 # harness did exactly that and reported B_UNTOUCHED PASS on two unknowns.
 [ "$A0" != "?" ] && [ "$B0" != "?" ] || { echo "balances unreadable — refusing to report vacuous passes"; exit 1; }
 
-echo "### payer — an existing funded Sandbox consumer"
-# Deliberately NOT a fresh onboard + top-up. The Sandbox has reached its pilot
-# aggregate funds-in-circulation cap (50,000,000 minor) through accumulated E2E
-# balances, so /v1/sandbox/fund now refuses with PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED.
+echo "### payer — onboarded and funded by this harness"
+# This used to scavenge an already-funded consumer, because the Sandbox had
+# reached its pilot aggregate funds-in-circulation cap and /v1/sandbox/fund
+# refused. After the financial reset the ledger starts empty, so the sanctioned
+# funding route works again — and a harness that depends on balances an earlier
+# run happened to leave behind passes or fails for reasons that have nothing to
+# do with what it is testing.
 #
-# That cap is a compliance control, not a nuisance: raising it to make a test pass
-# would be disabling the thing being tested. Draining old balances to make room is
-# a financial operation on a shared environment and belongs in a deliberate
-# cleanup, not in a test harness. So the harness uses a payer who is already
-# funded — which is what a real donor is anyway.
-PAYER=$(psqlro "SELECT cw.consumer_id FROM consumer_wallets cw JOIN ledger_entries le ON le.account_id=cw.available_account_id WHERE cw.status='ACTIVE' AND cw.currency='AOA' GROUP BY cw.consumer_id HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= 500000 ORDER BY 1 LIMIT 1")
+# The cap itself is unchanged and still enforced by the operator: funding here
+# goes through the same public route a developer uses, so nothing in this file
+# can raise it.
+PH="+2449${R:0:4}81"; H="cs${R:0:5}p"
+call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
+SID=$(jget session_id)
+call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
+call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
+PAYER=$(jget consumer_id)
 chk PAYER_FOUND "$([ -n "$PAYER" ] && echo yes)" yes
-[ -n "$PAYER" ] || { echo "no funded consumer available in this Sandbox"; exit 1; }
+[ -n "$PAYER" ] || { echo "payer onboarding failed"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")
+call "$GW" 8080 POST /v1/compliance/customers/verify \
+  "{\"full_name\":\"SEGREGATION E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"SG$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
+call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":500000,"currency":"AOA"}' "$CJWT"
+[ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE) — the rest would be vacuous"; exit 1; }
 call "$PUB" 8083 GET /v1/me/wallet/balance - "$CJWT"
 PAYER_BAL=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j.available?.amount_minor??j.available_minor??"0"))}catch(e){process.stdout.write("0")}})')
 echo "  payer balance=$PAYER_BAL"

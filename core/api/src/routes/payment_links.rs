@@ -232,14 +232,66 @@ pub async fn cancel(
     Ok(Json(link.into()))
 }
 
+/// Optional settlement context. A link paid through a Payment Session is already
+/// recorded by the session path; a link paid on its own has no other writer, so
+/// the caller passes the transfer that settled it.
+#[derive(Deserialize, Default)]
+pub struct MarkUsedBody {
+    pub transfer_id: Option<String>,
+}
+
 pub async fn mark_used(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    body: Option<Json<MarkUsedBody>>,
 ) -> ApiResult<Json<PaymentLinkResponse>> {
     let id = id
         .parse::<PaymentLinkId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
     let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
+
+    // Record the refundable financial object for a PLAIN link payment.
+    //
+    // RA-061 fixed this for sessions, and the same hole remained one level out:
+    // a link created directly (merchant_id + wallet_id, no session) settled the
+    // transfer, marked itself used, and recorded nothing. The money arrived, and
+    // the object a refund names never existed — so the payment was unrefundable
+    // and never appeared on the merchant's receipts. Found by a deployed E2E
+    // whose receipt assertion returned an empty list while the balances moved.
+    //
+    // Best-effort and idempotent (ON CONFLICT (transfer_id) DO NOTHING), so a
+    // link that IS part of a session records once, from whichever path runs
+    // first, and a failure here can never fail a payment that already settled.
+    if let Some(Json(b)) = body {
+        if let Some(tid) = b
+            .transfer_id
+            .as_deref()
+            .and_then(|t| Uuid::parse_str(t).ok())
+        {
+            let merchant_id = Uuid::parse_str(&link.merchant_id.to_string()).ok();
+            let link_id = Uuid::parse_str(&link.id.to_string()).ok();
+            if let (Some(m), Some(l)) = (merchant_id, link_id) {
+                let credited = link
+                    .wallet_account_id
+                    .as_ref()
+                    .and_then(|w| Uuid::parse_str(&w.to_string()).ok());
+                let _ = super::wallet_payments::record_merchant_interface_payment(
+                    &state.pool,
+                    m,
+                    tid,
+                    Some(l),
+                    None,
+                    credited,
+                    link.amount_minor.unwrap_or(0),
+                    link.currency.as_str(),
+                    &l.to_string(),
+                    state.environment.as_str(),
+                )
+                .await;
+            }
+        }
+    }
+
     // Carry refund_source so the gateway's payment_link.paid webhook includes it.
     Ok(Json(
         link_response_with_refund_source(&state.pool, link).await,

@@ -18,7 +18,9 @@ GW=$(docker ps --format '{{.Names}}'  | grep api-gateway-staging   | head -1)
 PUB=$(docker ps --format '{{.Names}}' | grep public-api-staging    | head -1)
 CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging      | head -1)
 DEV=$(docker ps --format '{{.Names}}' | grep -E 'developer-api'    | head -1)
-PG=$(docker ps --format '{{.Names}}'  | grep -E 'postgres'         | head -1)
+# The sandbox postgres, explicitly — the unfiltered match picked up the other
+# stack's database, and every read came back empty.
+PG=$(docker ps --format '{{.Names}}'  | grep postgres | grep bzsandbox | head -1)
 SECRET=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 URL=$(docker exec "$CORE" cat /run/secrets/db_url 2>/dev/null); PW=$(printf "%s" "$URL"|sed -E "s#.*://[^:]+:([^@]+)@.*#\1#")
@@ -30,6 +32,7 @@ LAST="";CODE=""
 # call: <container> <port> <name|-> <method> <path> <body|-> <auth-header-value|-> [auth-header-name]
 call(){ local ct="$1" port="$2" nm="$3" m="$4" p="$5" bd="$6" au="$7" ah="${8:-Authorization: Bearer}";local a=(curl -s -w $'\n%{http_code}' -X "$m" "http://localhost:$port$p");[ "$au" != "-" ]&&a+=(-H "$ah $au");local r;if [ "$bd" = "-" ];then r=$(docker exec "$ct" "${a[@]}" 2>/dev/null);else a+=(-H "Content-Type: application/json" --data @-);r=$(printf '%s' "$bd"|docker exec -i "$ct" "${a[@]}" 2>/dev/null);fi;CODE=$(printf '%s' "$r"|tail -n1);LAST=$(printf '%s' "$r"|sed '$d');[ "$nm" != "-" ]&&echo "  [$nm] http=$CODE $(printf '%s' "$LAST"|head -c 200)";}
 gw(){ call "$GW" 8080 "$@";}
+pub(){ call "$PUB" 8083 "$@";}
 devint(){ call "$DEV" 8086 "$1" "$2" "$3" "$4" "$DEVINT" "X-Internal-Key:";}   # developer-api internal (X-Internal-Key)
 jget(){ printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);process.stdout.write(String(j["'"$1"'"]??""))}catch(e){}})';}
 codeof(){ printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let e=j.error&&typeof j.error=="object"?j.error:j;process.stdout.write(String(e.code||e.status||"OK"))}catch(x){}})';}
@@ -105,16 +108,24 @@ echo "### F0-026 SDK-style payment request creation (payment link; SDK-shape req
 # request' shape a future SDK exposes.
 gw plreq POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"syn checkout\"}" "$MJWT"
 LREQ=$(jget id)
+LSLUG=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).slug||""))}catch(e){}})')
 chk F0-026 "$([ -n "$LREQ" ]&&echo ok)" ok
 
-echo "### F0-027 online checkout payment success (consumer pays online via QR)"
-gw qr POST /v1/qr/static "{\"owner_id\":\"$WID\",\"owner_type\":\"MERCHANT\",\"currency\":\"AOA\"}" "$MJWT";SPAY=$(jget payload)
+echo "### F0-027 online checkout payment success (the payer authorises it)"
+# This used POST /v1/qr/pay with a merchant credential and the payer as free
+# text — removed under RA-053, because a merchant JWT is not authority to debit
+# a consumer's wallet. The checkout is now completed the way it actually works:
+# the payer settles the link on their own authenticated surface.
+gw qr POST /v1/qr/static "{\"owner_id\":\"$MID\",\"owner_type\":\"MERCHANT\",\"currency\":\"AOA\"}" "$MJWT";SPAY=$(jget payload)
+chk F0-027-qr-issued "$CODE" "201"
+gw checkout_removed POST /v1/qr/pay "{\"idempotency_key\":\"co$RR\",\"payer\":\"$AH\",\"payload\":\"$SPAY\",\"amount_minor\":50000}" "$MJWT"
+chk F0-027-merchant-cannot-debit "$([ "$CODE" = "404" ] || [ "$CODE" = "405" ] && echo removed)" removed
 M0=$(mbal); A0=$(cbal "$AW")
-gw checkout POST /v1/qr/pay "{\"idempotency_key\":\"co$RR\",\"payer\":\"$AH\",\"payload\":\"$SPAY\",\"amount_minor\":50000}" "$MJWT"
-chk F0-027 "$(jget status)" COMPLETED
+CJ=$(mint customer_id "$A")
+pub paylink POST "/v1/payment-links/$LSLUG/pay" '{"amount_minor":50000}' "$CJ"
+chk F0-027 "$CODE" "200"
 M1=$(mbal); A1=$(cbal "$AW")
 chk F0-027-balance "$((M1-M0))|$((A0-A1))" "50000|50000"
-TRID=$(jget id)
 
 echo "### F0-028 webhook event emission (observed internally; live outbound delivery SIMULATED)"
 gw whev GET "/v1/webhooks/events?limit=20" - "$MJWT"
@@ -131,7 +142,9 @@ WPCNT=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).o
 MBAL=$(mbal)
 # expected: platform created 1 session for 50000; merchant settled +50000; wallet balance == 50000
 echo "  reconcile: session_created=1(amount 50000) settled_payments_listed=$WPCNT merchant_balance=$MBAL"
-chk F0-030 "$MBAL" 50000
+# The delta, not an absolute: the environment does not start at zero, and an
+# absolute expectation only held while this was the very first settlement.
+chk F0-030 "$((M1-M0))" 50000
 
 echo "### F0-031 receipt verification (authenticated receipt; state-match; privacy; non-fabricable)"
 # The settled wallet payment carries a server-generated receipt reference queryable
@@ -158,12 +171,20 @@ gw pl_cancel DELETE "/v1/payment-links/$PLID" - "$MJWT"
 gw pl_pay POST "/public/pay/$PLSLUG/pay" '{}' -
 chk F0-034 "$(codeof)" LINK_NOT_ACTIVE
 
-echo "### F0-035 payment intent idempotency (double pay, single debit)"
+echo "### F0-035 paying the same link twice debits once"
+# This used /v1/payment-requests, removed under RA-057 — those routes took both
+# participants from the body and never read the principal, so a merchant could
+# debit two strangers. Idempotency is now asserted where a double-payment can
+# actually happen: the payer settling the same link twice.
 onboard; C=$OCID;CW=$OWID; kyc "$C"; fund "$C" 200000 >/dev/null
-gw pr POST /v1/payment-requests "{\"requester_id\":\"$A\",\"payer_id\":\"$C\",\"amount_minor\":30000,\"currency\":\"AOA\",\"message\":\"syn\",\"idempotency_key\":\"pi$RR\"}" "$MJWT"
-PRID=$(jget id); CB0=$(cbal "$CW")
-gw pr_pay1 POST "/v1/payment-requests/$PRID/pay" "{\"payer_id\":\"$C\",\"idempotency_key\":\"pip$RR\"}" "$MJWT"
-gw pr_pay2 POST "/v1/payment-requests/$PRID/pay" "{\"payer_id\":\"$C\",\"idempotency_key\":\"pip$RR\"}" "$MJWT"  # replay
+gw pr_removed POST /v1/payment-requests "{\"requester_id\":\"$A\",\"payer_id\":\"$C\",\"amount_minor\":30000,\"currency\":\"AOA\",\"idempotency_key\":\"pi$RR\"}" "$MJWT"
+chk F0-035-merchant-intent-removed "$([ "$CODE" = "404" ] || [ "$CODE" = "405" ] && echo removed)" removed
+gw pl2 POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":30000,\"currency\":\"AOA\",\"description\":\"idem probe\"}" "$MJWT"
+SLUG2=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).slug||""))}catch(e){}})')
+CJ2=$(mint customer_id "$C"); CB0=$(cbal "$CW")
+pub pay1 POST "/v1/payment-links/$SLUG2/pay" '{"amount_minor":30000}' "$CJ2"
+chk F0-035-first-pay "$CODE" "200"
+pub pay2 POST "/v1/payment-links/$SLUG2/pay" '{"amount_minor":30000}' "$CJ2"
 CB1=$(cbal "$CW")
 chk F0-035-idempotent "$((CB0-CB1))" 30000   # debited exactly once despite two pay calls
 
