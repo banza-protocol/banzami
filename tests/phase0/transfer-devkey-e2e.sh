@@ -85,13 +85,22 @@ chk DEST_CREDITED    "$B1" "$((B0 + 50000))"
 chk OWNER_TOTAL_UNCHANGED "$((A1 + B1))" "$((A0 + B0))"
 
 echo "### the ledger stays balanced"
-chk LEDGER_BALANCED "$(unbalanced)" "10"   # the 10 historical single-leg top-ups, unchanged
+chk LEDGER_BALANCED "$(unbalanced)" "0"   # clean ledger: nothing unbalanced, ever
 
 echo "### idempotency"
 call "$GW" 8080 POST /v1/business/transfers "$TB" "$KEY"
 chk IDEMPOTENT_REPLAY "$(jget id)" "$TID"
 A2=$(bal "$A" "$KEY"); B2=$(bal "$B" "$KEY")
 chk REPLAY_MOVED_NOTHING "$A2:$B2" "$A1:$B1"
+
+echo "### the same key with a different request is a conflict, not a silent replay"
+call "$GW" 8080 POST /v1/business/transfers \
+  "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":77000,\"currency\":\"AOA\",\"idempotency_key\":\"$IDEM\"}" "$KEY"
+# Returning the original here would answer a question the caller did not ask:
+# a 200 for a transfer of the wrong amount, which they would believe happened.
+chk CHANGED_PAYLOAD_CONFLICT "$CODE" "409"
+AC=$(bal "$A" "$KEY"); BC=$(bal "$B" "$KEY")
+chk CONFLICT_MOVED_NOTHING "$AC:$BC" "$A1:$B1"
 
 echo "### rejected transfers move nothing"
 call "$GW" 8080 POST /v1/business/transfers \
@@ -129,7 +138,7 @@ chk FOREIGN_DESTINATION_REJECTED "$CODE" "404"
 
 A4=$(bal "$A" "$KEY"); B4=$(bal "$B" "$KEY")
 chk VICTIM_UNCHANGED "$A4:$B4" "$A1:$B1"
-chk LEDGER_STILL_BALANCED "$(unbalanced)" "10"
+chk LEDGER_STILL_BALANCED "$(unbalanced)" "0"
 
 echo
 echo "TRANSFER_DEVKEY_E2E: PASS=$PASS FAIL=$FAIL"

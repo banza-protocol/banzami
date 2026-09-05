@@ -131,12 +131,27 @@ pub async fn create(
         ));
     }
 
-    // Idempotent replay: the same key from the same merchant returns the original
-    // transfer without moving money a second time.
+    // Idempotency has two halves and only one of them is "return the original".
+    //
+    // Same key + same request is a retry: return the original transfer, move
+    // nothing. Same key + DIFFERENT request is a mistake, and returning the
+    // original would answer a question the caller did not ask — they would see a
+    // 200 for a transfer of the wrong amount, or between the wrong accounts, and
+    // believe it happened. That is a conflict, and it is reported as one.
     if let Some(existing) = fetch_by_idempotency(&state.pool, merchant_id, &body.idempotency_key)
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?
     {
+        let same = existing.source_wallet_account_id == src_id
+            && existing.destination_wallet_account_id == dst_id
+            && existing.amount_minor == body.amount_minor
+            && existing.currency == body.currency;
+        if !same {
+            return Err(ApiError::conflict(
+                "IDEMPOTENCY_KEY_REUSED",
+                "this idempotency_key was used for a different transfer",
+            ));
+        }
         return Ok(Json(existing));
     }
 

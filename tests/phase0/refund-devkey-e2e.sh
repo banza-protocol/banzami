@@ -99,7 +99,7 @@ chk BALANCE_REDUCED "$AFTER_REFUND" "$((AFTER_PAY - 50000))"
 
 echo "### the refund posting is balanced double-entry"
 NET=$(psqlro "SELECT COUNT(*) FROM (SELECT p.id FROM ledger_postings p JOIN ledger_entries e ON e.posting_id=p.id GROUP BY p.id HAVING SUM(CASE e.entry_type WHEN 'DEBIT' THEN -e.amount_minor ELSE e.amount_minor END) <> 0) x")
-chk LEDGER_STILL_BALANCED_AFTER_REFUND "$NET" "10"   # the 10 historical single-leg top-ups, unchanged
+chk LEDGER_STILL_BALANCED_AFTER_REFUND "$NET" "0"   # clean ledger: nothing unbalanced, ever
 
 echo "### idempotency"
 call "$GW" 8080 POST /v1/business/refunds "$RB" "$KEY"
