@@ -15,8 +15,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | blocked | 5 |
 | in-audit | 1 |
-| verified | 16 |
-| **total** | **22** |
+| verified | 17 |
+| **total** | **23** |
 
 ## Capabilities
 
@@ -35,6 +35,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-DEV-003 | Console API request logs (project-scoped, request_id correlation) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
 | CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-SDK-002 | Public Banzami client SDK (banzami_client, Dart/Flutter) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
@@ -51,9 +52,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | internal_only | 1 |
 | quarantined | 5 |
-| released | 16 |
+| released | 17 |
 
-Public surfaces released: **15/15**. Full external launch requires 15/15.
+Public surfaces released: **16/16**. Full external launch requires 16/16.
 
 ## Detail
 
@@ -260,6 +261,22 @@ Public surfaces released: **15/15**. Full external launch requires 15/15.
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [services/developer-api key crypto + authz tests, services/api-gateway DeveloperKeyAuth fail-closed test] · integration [] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-002.* management lifecycle), tools/e2e/dev-console/dev-key-gateway-e2e.mjs (RT02.* gateway consumption, 20/20 hardened)] · negative/security [reveal-once, list-no-raw-secret, revoke/rotate rejected-by-Gateway, cross-tenant 403, scope-deny, bz_live/malformed/unknown fail-closed, no-mutation-on-denied, /v1/me no-internal-ids-leak, audit-no-raw-secret]
 - **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/dev-key-gateway-1783205605.json, docs/adr/ADR-046-unified-developer-sandbox-api-key-authority.md
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
+- **Launch scope:** sandbox
+- **Status:** **verified**
+
+### CAP-DEV-003 — Console API request logs (project-scoped, request_id correlation)
+
+- **Owner:** developer-platform
+- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
+- **Authority:** internal — Banzami ADR-054
+- **Threat category:** identity-auth
+- **Implementation:** services/api-gateway (APIRequestLog middleware + PostgresRequestLogRecorder), services/developer-api (ProjectAPIRequestLogs, GET /projects/{id}/logs), apps/website/components/developers/portal/RequestLog.tsx, db/migrations/0104_dev_api_request_logs.sql
+- **API/UI surface:** developer console → Registos → Pedidos à API, GET /projects/{projectID}/logs (session-authenticated, project-scoped)
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [services/api-gateway/internal/middleware/apilog_test.go (attribution, failures, redaction, non-vacuity), services/developer-api/internal/developer/request_logs_test.go (authority, filters, no-oracle), apps/website/app/developers/request-id-shape.test.ts (docs vs generator)] · integration [services/api-gateway/internal/service/request_log_retention_test.go (real-DB prune)] · e2e_sandbox [tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.* 15/15)] · negative/security [cross-project 403 both directions, foreign request_id is not an oracle, unauthenticated 401, no credential field in schema or response, credential-shaped path segment redacted, unauthenticated request writes no row]
+- **Evidence:** evidence/assurance/dev-foundation/api-logs-correlation-1788628810.json, docs/adr/ADR-054-developer-api-request-logs.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox

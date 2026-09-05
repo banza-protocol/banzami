@@ -12,7 +12,7 @@
 set -uo pipefail
 DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
-SDK_SPEC="${SDK_SPEC:-@banzami/sdk@0.8.1}"
+SDK_SPEC="${SDK_SPEC:-@banzami/sdk@latest}"
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
 PUB=$(docker ps --format '{{.Names}}' | grep public-api-staging  | head -1)
@@ -54,7 +54,15 @@ printf '{"name":"p","private":true,"type":"module","dependencies":{}}' > "$WORK/
 docker run --rm -v "$WORK":/w -w /w node:22-alpine \
   sh -c "npm install --silent $SDK_SPEC" >/dev/null 2>&1
 VER=$(node -p "require('$WORK/node_modules/@banzami/sdk/package.json').version" 2>/dev/null)
-chk SDK_FROM_NPM "$VER" "${SDK_SPEC##*@}"
+# The spec floats to @latest so this harness keeps testing whatever a developer
+# would actually get today. A dist-tag is not a version, so the expectation is
+# resolved from the registry rather than parsed out of the spec string.
+WANT="${SDK_SPEC##*@}"
+# Resolved inside the container: this VM has node but no npm.
+case "$WANT" in latest|next|beta)
+  WANT=$(docker run --rm node:22-alpine npm view "@banzami/sdk@$WANT" version 2>/dev/null | tr -d '\r\n');;
+esac
+chk SDK_FROM_NPM "$VER" "$WANT"
 RESOLVED=$(node -e "const l=JSON.parse(require('fs').readFileSync('$WORK/package-lock.json','utf8'));process.stdout.write(String((l.packages&&l.packages['node_modules/@banzami/sdk']||{}).resolved||''))" 2>/dev/null)
 chk SDK_REGISTRY_SOURCE "$(printf '%s' "$RESOLVED" | grep -c '^https://registry.npmjs.org/')" "1"
 
