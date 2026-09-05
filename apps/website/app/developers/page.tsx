@@ -320,12 +320,15 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
     ),
   },
   {
-    name: 'Flutter (iOS & Android)',
-    install: 'código-fonte (banzami_flutter — ainda não publicado em pub.dev)',
-    desc: 'SDK cliente Flutter para apps móveis — pagamento por QR, @banza e checkout na app.',
+    name: 'Flutter / Dart (cliente)',
+    install: 'código-fonte (banzami_client — publicação em pub.dev pendente)',
+    // Precise about the credential, because this is the snippet a mobile
+    // developer copies. A chave secreta nunca entra numa app: quem descarrega
+    // a app consegue lê-la, e essa chave move dinheiro.
+    desc: 'SDK cliente — apresenta um pagamento criado pelo seu servidor, acompanha o estado e trata links/QR. Usa chave publicável.',
     snippet: (
       <>
-        <K>final</K> client = <F>BanzamiClient</F>(environment: Environment.<S>sandbox</S>);
+        <K>final</K> banzami = <F>BanzamiClient</F>(publishableKey: <S>&quot;bz_test_pk_…&quot;</S>);
       </>
     ),
   },

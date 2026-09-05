@@ -96,7 +96,11 @@ describe('P0 — no fake SDK install commands, SDKs never the primary path', () 
   it('overview has no native iOS/Android SDK claim (Flutter is the mobile path)', () => {
     expect(OVERVIEW.includes('SDK cliente para apps iOS')).toBe(false);
     expect(OVERVIEW.includes('SDK cliente para apps Android')).toBe(false);
-    expect(OVERVIEW).toContain('banzami_flutter');
+    // banzami_client, not banzami_flutter: the latter is Banzami's own
+    // application framework and is not published (Banzami ADR-053). Pointing a
+    // mobile developer at it would send them to a package that is not theirs.
+    expect(OVERVIEW).toContain('banzami_client');
+    expect(OVERVIEW.includes('banzami_flutter'), 'the internal framework must not be offered as an SDK').toBe(false);
   });
   it('the quickstart first call is curl against the Sandbox API, no SDK required', () => {
     expect(DOCS).toContain('curl https://sandbox-api.banzami.com/v1/me');

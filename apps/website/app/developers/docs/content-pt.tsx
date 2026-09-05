@@ -81,7 +81,11 @@ const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: st
   { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Completo (código-fonte)', tone: 'ok', consume: 'vendored / caminho local' },
   { name: 'banzami-python', lang: 'Python', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
   { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
-  { name: 'banzami_flutter', lang: 'Dart / Flutter', state: 'Completo (usado na app móvel)', tone: 'ok', consume: 'código-fonte / local' },
+  // banzami_client is the PUBLIC client SDK; banzami_flutter is Banzami's own
+  // application framework and is not published (Banzami ADR-053). Listing the
+  // internal one as an integration SDK would send a developer to a package that
+  // is not theirs to use.
+  { name: 'banzami_client', lang: 'Dart / Flutter (cliente)', state: 'Cliente público — chave publicável; publicação pendente', tone: 'val', consume: 'código-fonte / local' },
   { name: '@banzami/checkout', lang: 'JavaScript (browser)', state: 'Completo (código-fonte)', tone: 'ok', consume: 'embed / local' },
   { name: 'banzami-go', lang: 'Go', state: 'Parcial — webhooks + payment links', tone: 'val', consume: 'código-fonte / local' },
 ];
