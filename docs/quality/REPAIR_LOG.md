@@ -1457,11 +1457,33 @@ that itself rather than looking stronger than it is.
 - **Found:** while building the campaign-payment E2E, which could not fund a consumer
 - **Fixed:** `core/api/src/routes/wallets.rs` — `sandbox_credit`
 
-`sandbox_credit` wrote a lone `CREDIT` entry with no counter-`DEBIT`. It was the
-only writer of postings in the Sandbox database, so **91 of 91 postings were
-unbalanced** — a credit with no debit is money created from nothing. The
-reconciliation balance checker had been logging `LEDGER INVARIANT VIOLATION` for
-each one, correctly, and nothing acted on it.
+`sandbox_credit` wrote a lone `CREDIT` entry with no counter-`DEBIT`. A credit
+with no debit is money created from nothing. The reconciliation balance checker
+had been logging `LEDGER INVARIANT VIOLATION` for these, correctly, and nothing
+acted on it.
+
+**Corrected scope (2026-09-05).** This entry first said "91 of 91 postings were
+unbalanced". That was wrong, and the error was mine: the query summed
+`amount_minor` without signing by `entry_type`, so every *correct* posting —
+DEBIT 50000 + CREDIT 50000 — summed to 100000 and was counted as broken. Signing
+the sum gives the real figure:
+
+| | |
+|---|---|
+| Postings | 97 |
+| Balanced | 87 |
+| **Unbalanced** | **10** |
+| All ten | `[SANDBOX] Merchant wallet top-up`, exactly 1 leg each |
+| Total net | +475,000 minor |
+| Window | 2026-08-31 → 2026-09-01 |
+| Postings with zero entries | 0 |
+| Single-leg postings after the fix deployed | 0 |
+
+The defect was real and is confirmed independently — by reading the handler and
+by these ten single-leg rows — but its scope was overstated roughly ninefold.
+The measurement that found it was wrong even though its conclusion was right,
+which is its own lesson: a check that reports everything as broken should be
+suspected before it is believed.
 
 The consumer top-up beside it (`consumer_wallets.rs`) was balanced from the start
 — DR transit / CR consumer available — so this was one path, not a design.
@@ -1474,14 +1496,17 @@ covers that case separately for exactly that reason.
 Now: DR transit (ASSET) / CR merchant available (LIABILITY), in one transaction.
 Mutation-verified — removing the DEBIT leg again fails the test.
 
-**Not remediated, deliberately:** the 91 historical postings remain unbalanced.
-The ledger is append-only, so they cannot be edited, and the correct remedy — a
-balancing posting per entry — would move Sandbox balances that other harnesses
-depend on. They are synthetic Sandbox credits with no real-money meaning. The
-data stays as it is, with this entry as its record, and the checker will keep
-reporting them until a deliberate cleanup posts corrections.
+**Remediation path:** `tools/sandbox-financial-reset.sh`. The ledger is
+append-only, so the ten rows cannot be edited and correcting them individually is
+what append-only forbids. The script instead performs the authorised clean
+pre-launch Sandbox reset: it exports the full ledger and the failing postings to
+a timestamped forensic directory on the VM, then clears `ledger_entries` and
+`ledger_postings` in one transaction, keeping every structural entity —
+merchants, wallets, wallet accounts, consumers, developer projects and bindings.
+The canonical DOA project and its campaign accounts survive; only the money
+returns to zero. It refuses to run unless core reports a Sandbox environment.
 
 **Relation to RA-059:** these credits contributed 475,000 minor to
-funds-in-circulation, against a 50,000,000 cap now at 50,175,000. They are a
-contributor to the exhaustion RA-059 describes, not its main cause — accumulated
-legitimate E2E balances are.
+funds-in-circulation, which stood at 49,175,000 against the 50,000,000 cap. They
+are a contributor to the exhaustion RA-059 describes, not its main cause —
+accumulated legitimate E2E balances are. The reset clears both.
