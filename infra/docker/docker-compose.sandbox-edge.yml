@@ -72,6 +72,7 @@ services:
     networks:
       - sb_edge_ingress
       - sb_app
+      - sb_sink
 
 networks:
   # Ingress only — carries the published port. Bridge (not internal) because the
@@ -85,4 +86,17 @@ networks:
   # accidentally create a second, empty sandbox network.
   sb_app:
     name: ${BZSB_APP_NET:?set BZSB_APP_NET to the running rt04e sandbox app network}
+    external: true
+
+  # The assurance webhook sink's own network, joined (not created).
+  #
+  # The sandbox-webhook.banzami.com server block moved here from the website
+  # edge with the rest of Stage C, but its network did not come with it, so the
+  # sink was unreachable and every delivery to it answered 502 at the edge. The
+  # payment and signing paths were fine; the destination was not. The golden
+  # journey's whole webhook leg failed on it, which is the correct outcome for
+  # an unreachable endpoint and says nothing about webhooks — a distinction
+  # worth keeping visible, since the fix belongs here and not in the engine.
+  sb_sink:
+    name: bzsb-sink
     external: true

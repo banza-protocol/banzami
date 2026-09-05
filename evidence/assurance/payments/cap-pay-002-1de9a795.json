@@ -1,0 +1,236 @@
+{
+  "capability": "CAP-PAY-002",
+  "suite": "cap-pay-002-sandbox-e2e",
+  "run_id": "1de9a795-f0cc-401c-b107-be1b8f72808e",
+  "timestamp": "2026-09-05T17:41:41.831Z",
+  "environment": "sandbox",
+  "runtime_source_commit": "63eee8974bf8",
+  "assurance_repository_revision": "b3c4299809d03981e9b19ecb79a547b64d9cdc2a",
+  "runtime_matches_head_exactly": false,
+  "non_runtime_files_ahead_of_runtime": [
+    "apps/website/app/developers/docs/content-en.tsx",
+    "apps/website/app/developers/docs/content-pt.tsx",
+    "apps/website/app/developers/request-id-shape.test.ts",
+    "apps/website/components/developers/portal/RequestLog.tsx",
+    "apps/website/public/developers/openapi/banzami-sandbox.openapi.json",
+    "docs/developer/openapi/banzami-sandbox.openapi.json",
+    "docs/quality/BANZAMI_OPERATOR_ASSURANCE.md",
+    "docs/quality/REPAIR_LOG.md",
+    "evidence/assurance/dev-foundation/api-logs-correlation-1788628810.json",
+    "evidence/assurance/sdk/cap-sdk-001-types-cleanroom-1788629468.json",
+    "quality/operator-assurance-manifest.yaml",
+    "services/api-gateway/internal/service/request_log_retention_test.go",
+    "tests/phase0/refund-published-sdk-e2e.sh",
+    "tools/crawl-public-surfaces.mjs",
+    "tools/e2e/dev-console/api-logs-correlation-e2e.mjs"
+  ],
+  "public_endpoint": "https://sandbox-api.banzami.com",
+  "surfaces": [
+    "/v1/payment-links",
+    "/public/pay/{slug}"
+  ],
+  "merchants": {
+    "a": "e2epa17886300995249324",
+    "b": "e2epb17886300999136537"
+  },
+  "link_id": "ecb57a16-6969-4e41-af8c-e06dd397fcb1",
+  "link_slug_fingerprint": "sha256:a8cafe5585c3905755a364cf23747496",
+  "amount_minor": 120000,
+  "currency": "AOA",
+  "ledger_effect": "none-expected (link creation and resolution are non-financial)",
+  "results": [
+    {
+      "id": "PAY002.setup.merchant-auth",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.create",
+      "ok": true,
+      "note": "HTTP 201"
+    },
+    {
+      "id": "PAY002.owner-is-caller",
+      "ok": true,
+      "note": "payee bound to the authenticated merchant"
+    },
+    {
+      "id": "PAY002.amount-exact",
+      "ok": true,
+      "note": "120000 minor"
+    },
+    {
+      "id": "PAY002.currency-preserved",
+      "ok": true,
+      "note": "AOA"
+    },
+    {
+      "id": "PAY002.slug-issued",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "PAY002.initial-state-active",
+      "ok": true,
+      "note": "ACTIVE"
+    },
+    {
+      "id": "PAY002.read-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.list-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.public-resolves",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.public-amount-matches",
+      "ok": true,
+      "note": "120000"
+    },
+    {
+      "id": "PAY002.public-no-internal-fields",
+      "ok": true,
+      "note": "only payer-facing fields"
+    },
+    {
+      "id": "PAY002.public-no-internal-ids",
+      "ok": true,
+      "note": "no link/merchant/wallet UUID in the payer view"
+    },
+    {
+      "id": "PAY002.public-status",
+      "ok": true,
+      "note": "HTTP 200, paid=false"
+    },
+    {
+      "id": "PAY002.neg.public-unknown-slug",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.public-malformed-slug",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-create",
+      "ok": true,
+      "note": "HTTP 403 for B naming A as payee"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-read",
+      "ok": true,
+      "note": "HTTP 404 (404 — not 403, which would confirm the id)"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-list",
+      "ok": true,
+      "note": "HTTP 403"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-mark-used",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-cancel",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.victim-link-unchanged",
+      "ok": true,
+      "note": "status still ACTIVE after B's create/read/list/cancel/mark-used attempts"
+    },
+    {
+      "id": "PAY002.neg.unauthenticated",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY002.neg.bogus-credential",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY002.neg.zero-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.negative-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.missing-wallet",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.missing-currency",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.past-expiry",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.idempotent-replay",
+      "ok": true,
+      "note": "same id: true"
+    },
+    {
+      "id": "PAY002.idempotency-conflict-rejected",
+      "ok": true,
+      "note": "HTTP 409"
+    },
+    {
+      "id": "PAY002.idempotency-structural-canonical",
+      "ok": true,
+      "note": "reordered keys replay, not conflict"
+    },
+    {
+      "id": "PAY002.idempotency-actor-scoped",
+      "ok": true,
+      "note": "same raw key, different merchant → independent link"
+    },
+    {
+      "id": "PAY002.concurrent-single-resource",
+      "ok": true,
+      "note": "1 distinct link(s) from 4 concurrent identical requests"
+    },
+    {
+      "id": "PAY002.owner-cancel",
+      "ok": true,
+      "note": "status CANCELLED"
+    },
+    {
+      "id": "PAY002.neg.cancel-twice",
+      "ok": true,
+      "note": "HTTP 422 on an already-cancelled link"
+    },
+    {
+      "id": "PAY002.public-reflects-cancellation",
+      "ok": true,
+      "note": "HTTP 200, status CANCELLED"
+    },
+    {
+      "id": "PAY002.no-ledger-movement",
+      "ok": true,
+      "note": "balance 0 minor — creating and resolving a link is non-financial"
+    }
+  ],
+  "passed": 38,
+  "failed": 0,
+  "verdict": "PASS"
+}

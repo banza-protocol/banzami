@@ -36,9 +36,23 @@ const NON_RUNTIME_PREFIXES = [
   'plugins/',     // commerce platform integrations
   'ops/',         // asset inventory
   '.github/',     // CI
+  'tests/',       // cross-zone harnesses, run against the deployment from outside it
 ];
 
-const isRuntimePath = (p) => RUNTIME_PREFIXES.some((r) => p.startsWith(r));
+/**
+ * Paths UNDER a runtime prefix that still cannot change a running binary.
+ *
+ * Go excludes `_test.go` from every build: those files are compiled by `go test`
+ * and are not in the image. Treating them as runtime-affecting demanded a
+ * redeploy to make a test file "reach production", which it never does — and a
+ * gate that asks for pointless redeploys is one people learn to skip.
+ *
+ * Deliberately narrow. Anything else under core/ or services/ still counts.
+ */
+const NON_RUNTIME_SUFFIXES = ['_test.go'];
+
+const isRuntimePath = (p) =>
+  RUNTIME_PREFIXES.some((r) => p.startsWith(r)) && !NON_RUNTIME_SUFFIXES.some((x) => p.endsWith(x));
 const isKnownNonRuntime = (p) => NON_RUNTIME_PREFIXES.some((r) => p.startsWith(r));
 
 /**
@@ -64,7 +78,8 @@ export function assessRuntimeFreshness(runtimeCommit) {
 
   // Unclassified paths count as runtime-affecting: an unrecognised directory must
   // demand a redeploy rather than slip through.
-  const runtimeAffecting = changed.filter((p) => isRuntimePath(p) || !isKnownNonRuntime(p));
+  const runtimeAffecting = changed.filter(
+    (p) => isRuntimePath(p) || (!isKnownNonRuntime(p) && !NON_RUNTIME_SUFFIXES.some((x) => p.endsWith(x))));
   const nonRuntime = changed.filter((p) => !runtimeAffecting.includes(p));
 
   return { current: runtimeAffecting.length === 0, headCommit: head, runtimeCommit, runtimeAffecting, nonRuntime, exact: false };
