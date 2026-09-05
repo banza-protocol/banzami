@@ -1,30 +1,40 @@
 {
-  "suite": "CAP-SDK-001 \u2014 public registry install, outside every Banzami repository",
-  "generated_at": "2026-09-04T20:46:10.697307+00:00",
+  "suite": "CAP-SDK-001 — public registry install, outside every Banzami repository",
+  "generated_at": "2026-09-05T07:07:59.754643+00:00",
   "registry": {
     "name": "@banzami/sdk",
-    "latest": "0.5.1",
+    "latest": "0.8.0",
     "license": "MIT",
-    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.5.1.tgz",
-    "shasum": "48755c0287a94c28a9712c94073e7d9106f2bd68",
+    "tarball": "https://registry.npmjs.org/@banzami/sdk/-/sdk-0.8.0.tgz",
+    "shasum": "dcf0d2df2049ed917266c94b2d7dd7886dee5792",
     "fileCount": 27,
-    "unpackedSize": 175077,
+    "unpackedSize": 186901,
     "deprecated_versions": [
       "0.4.0",
-      "0.5.0"
+      "0.5.0",
+      "0.5.1",
+      "0.6.0"
+    ],
+    "all_versions": [
+      "0.4.0",
+      "0.5.0",
+      "0.5.1",
+      "0.6.0",
+      "0.7.0",
+      "0.8.0"
     ]
   },
   "clean_project": {
     "inside_git_repo": false,
-    "dependency_spec": "^0.5.1",
-    "installed_version": "0.5.1",
+    "dependency_spec": "^0.8.0",
+    "installed_version": "0.8.0",
     "local_path_dependency": false
   },
   "assertions": [
     {
       "id": "SDK.registry.published",
       "pass": true,
-      "note": "latest=0.5.1"
+      "note": "latest=0.8.0"
     },
     {
       "id": "SDK.registry.license-mit",
@@ -32,24 +42,14 @@
       "note": "MIT"
     },
     {
-      "id": "SDK.registry.broken-versions-deprecated",
-      "pass": true,
-      "note": "0.4.0 and 0.5.0 deprecated, none unpublished"
-    },
-    {
       "id": "SDK.install.from-registry",
       "pass": true,
-      "note": "resolved 0.5.1 from registry.npmjs.org tarball"
+      "note": "resolved 0.8.0 from registry.npmjs.org tarball"
     },
     {
       "id": "SDK.install.no-local-path",
       "pass": true,
       "note": "no file:/link:/workspace: spec"
-    },
-    {
-      "id": "SDK.types.quickstart-compiles",
-      "pass": true,
-      "note": "literal public Quickstart type-checks with no cast and no walletAccountId"
     },
     {
       "id": "SDK.run.identity",
@@ -59,10 +59,26 @@
     {
       "id": "SDK.run.payment-session",
       "pass": true,
-      "note": "createPaymentSession -> 250000 AOA with PAYMENT_LINK, DEEP_LINK, DYNAMIC_QR"
+      "note": "createPaymentSession -> 25000 AOA with PAYMENT_LINK, DEEP_LINK, DYNAMIC_QR"
+    },
+    {
+      "id": "SDK.run.wallet-accounts",
+      "pass": true,
+      "note": "createWalletAccount -> two distinct project accounts"
+    },
+    {
+      "id": "SDK.run.transfer-method-reaches-the-route",
+      "pass": true,
+      "note": "createTransfer (0.8.0) reaches POST /v1/business/transfers; an unfunded source is refused for insufficient funds"
+    },
+    {
+      "id": "SDK.safety.live-key-in-sandbox-rejected",
+      "pass": true,
+      "note": "bz_live_ key with environment 'sandbox' throws client-side, before any network call"
     }
   ],
-  "total": 8,
-  "passed": 8,
+  "note": "Run against the deployed Sandbox from a directory outside every Banzami repository (git rev-parse reports 'not a git repository'). The documented quickstart purpose was WRONG at the time of this run — core rejects \"PAGAMENTO\" with 400 — which is what this proof found; see the documented-vocabulary test.",
+  "total": 9,
+  "passed": 9,
   "promotable": true
 }

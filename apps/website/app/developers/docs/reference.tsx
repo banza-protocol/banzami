@@ -75,7 +75,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'wallet_account_id', note: {
         pt: 'APENAS credencial de merchant. Com uma chave developer o destinatário vem do binding do projeto — não envie este campo; a API recusa-o.',
         en: 'Merchant credential ONLY. With a Developer Platform key the recipient is derived from the project’s Banzami binding — do not provide it; the API rejects it.' } },
-      { name: 'purpose', note: { pt: 'finalidade (ex.: PAGAMENTO)', en: 'purpose (e.g. PAGAMENTO)' } },
+      { name: 'purpose', note: { pt: 'finalidade — um de GENERIC, DONATION, ORDER, TICKET, STORE, EVENT, CAMPAIGN, CUSTOM', en: 'purpose — one of GENERIC, DONATION, ORDER, TICKET, STORE, EVENT, CAMPAIGN, CUSTOM' } },
       { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
       { name: 'amount_minor', note: { pt: 'montante em unidades menores (AOA)', en: 'amount in minor units (AOA)' } },
       { name: 'currency', note: { pt: 'moeda (AOA)', en: 'currency (AOA)' } },
@@ -88,7 +88,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   -H "Idempotency-Key: idem_pedido_123" \\
   -d '{
     "wallet_account_id": "wacc_exemplo",
-    "purpose": "PAGAMENTO",
+    "purpose": "ORDER",
     "reference_type": "PEDIDO",
     "reference_id": "pedido_123",
     "amount_minor": 25000,
@@ -100,7 +100,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   "wallet_account_id": "wacc_exemplo",
   "currency": "AOA",
   "amount_minor": 25000,
-  "purpose": "PAGAMENTO",
+  "purpose": "ORDER",
   "reference_type": "PEDIDO",
   "reference_id": "pedido_123",
   "status": "ACTIVE",
@@ -231,7 +231,7 @@ export const ENDPOINTS: EndpointSpec[] = [
     credential: { pt: 'Chave de projeto (scope wallet_accounts:create)', en: 'Project key (wallet_accounts:create scope)' },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
     requestFields: [
-      { name: 'purpose', note: { pt: 'finalidade da conta (ex.: CAMPAIGN)', en: 'account purpose (e.g. CAMPAIGN)' } },
+      { name: 'purpose', note: { pt: 'finalidade da conta — um de CAMPAIGN, PROJECT, EVENT, STORE, ESCROW, RESERVE, SETTLEMENT, CUSTOM (PRIMARY é criada com a carteira)', en: 'account purpose — one of CAMPAIGN, PROJECT, EVENT, STORE, ESCROW, RESERVE, SETTLEMENT, CUSTOM (PRIMARY is created with the wallet)' } },
       { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
       { name: 'label', note: { pt: 'nome legível, opcional', en: 'human-readable label, optional' } },
     ],

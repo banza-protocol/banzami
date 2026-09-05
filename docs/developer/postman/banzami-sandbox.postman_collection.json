@@ -39,7 +39,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"wallet_account_id\": \"wacc_xxx\",\n  \"purpose\": \"PAGAMENTO\",\n  \"reference_type\": \"PEDIDO\",\n  \"reference_id\": \"order_123\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
+              "raw": "{\n  \"wallet_account_id\": \"wacc_xxx\",\n  \"purpose\": \"ORDER\",\n  \"reference_type\": \"PEDIDO\",\n  \"reference_id\": \"order_123\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
             },
             "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"] }
           }

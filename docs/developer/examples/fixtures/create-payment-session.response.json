@@ -3,7 +3,7 @@
   "wallet_account_id": "wacc_xxx",
   "currency": "AOA",
   "amount_minor": 25000,
-  "purpose": "PAGAMENTO",
+  "purpose": "ORDER",
   "reference_type": "PEDIDO",
   "reference_id": "order_123",
   "status": "ACTIVE",

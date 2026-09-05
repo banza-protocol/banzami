@@ -108,7 +108,7 @@ const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
 //    Não indique a conta de destino: com uma chave da Consola, o destinatário
 //    vem do binding do projeto. Enviá-la é recusado pela API.
 const session = await banzami.createPaymentSession({
-  purpose: 'PAGAMENTO',
+  purpose: 'ORDER',
   referenceType: 'PEDIDO',
   referenceId: 'pedido_123',
   amountMinor: 25000,      // 250,00 Kz (menor unidade)
@@ -142,7 +142,7 @@ curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_pedido_123" \\
   -d '{
-    "purpose": "PAGAMENTO",
+    "purpose": "ORDER",
     "reference_type": "PEDIDO",
     "reference_id": "pedido_123",
     "amount_minor": 25000,
@@ -156,7 +156,7 @@ curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
   "wallet_account_id": "wacc_exemplo",
   "currency": "AOA",
   "amount_minor": 25000,
-  "purpose": "PAGAMENTO",
+  "purpose": "ORDER",
   "reference_type": "PEDIDO",
   "reference_id": "pedido_123",
   "status": "ACTIVE",

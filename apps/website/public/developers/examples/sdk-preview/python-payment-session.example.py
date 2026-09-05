@@ -16,7 +16,7 @@ me = banzami.me()
 # Idempotency-Key (or accepts an explicit caller-provided one).
 session = banzami.payment_sessions.create(
     wallet_account_id="wacc_xxx",
-    purpose="PAGAMENTO",
+    purpose="ORDER",
     reference_type="PEDIDO",
     reference_id="order_123",
     amount_minor=25000,  # minor units (AOA)

@@ -18,7 +18,7 @@ const me = await banzami.me();
 const session = await banzami.paymentSessions.create(
   {
     walletAccountId: 'wacc_xxx',
-    purpose: 'PAGAMENTO',
+    purpose: 'ORDER',
     referenceType: 'PEDIDO',
     referenceId: 'order_123',
     amountMinor: 25000, // minor units (AOA)
