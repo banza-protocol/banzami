@@ -386,8 +386,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Route("/consumers", func(r chi.Router) {
 				r.Use(middleware.RequireMerchant)
 				r.Post("/", consumerHandler.Create)
-				r.Get("/handle/{handle}", consumerHandler.GetByHandle)
 				r.Get("/{id}", consumerHandler.Get)
+				// GET /handle/{handle} moved to the dual-credential group: a
+				// project credential must be able to confirm a @banza before
+				// naming it a beneficiary. Creating and reading a consumer BY ID
+				// stay merchant-only.
 			})
 
 			// Consumer wallets are NOT mounted (RA-058).
@@ -597,6 +600,14 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// owner (ADR-052). Not a payout, not a settlement, not consumer P2P
 			// — and not the generic merchant transfer surface withdrawn under
 			// RA-053, which this deliberately does not restore.
+			// Resolving a @banza is what a payer does before naming a beneficiary,
+			// so a project credential must be able to do it. This kept its
+			// original path deliberately: the published SDK's resolveHandle
+			// already points here, so no client release is needed for an
+			// integration to stop failing. Returns the handle and display name
+			// only — enough to confirm a destination exists, and not a directory
+			// of strangers' accounts.
+			r.Get("/consumers/handle/{handle}", consumerHandler.ResolveHandleForProject)
 			r.Route("/business/transfers", func(r chi.Router) {
 				r.Post("/", walletAccountTransferHandler.Create)
 			})

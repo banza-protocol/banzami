@@ -94,6 +94,7 @@ var EnforcedScopes = map[string]bool{
 	"refunds:read":                  true, // read your own refunds
 	"refunds:write":                 true, // return money from your own payment
 	"transfers:write":               true, // move money between your own accounts
+	"customers:read":                true, // resolve a @banza before naming it a beneficiary
 }
 
 var (

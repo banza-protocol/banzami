@@ -33,6 +33,7 @@ const ALL_SCOPES = [
   'refunds:write',
   'refunds:read',
   'transfers:write',
+  'customers:read',
 ];
 
 // Plain-language purpose, shown under each scope. A developer choosing scopes is
@@ -51,6 +52,7 @@ const SCOPE_HELP: Record<string, string> = {
   'refunds:write':                 'Devolver dinheiro de um pagamento seu.',
   'refunds:read':                  'Consultar os seus reembolsos.',
   'transfers:write':               'Mover valor entre contas do seu projeto.',
+  'customers:read':                'Confirmar que um @banza existe antes de o indicar.',
 };
 
 // ── Reveal-once dialog ───────────────────────────────────────────────────────
