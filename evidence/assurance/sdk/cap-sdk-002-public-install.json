@@ -1,0 +1,104 @@
+{
+  "suite": "CAP-SDK-002 — public Banzami client SDK, installed from pub.dev outside every Banzami repository",
+  "package": "banzami_client",
+  "registry": {
+    "name": "pub.dev",
+    "latest": "0.1.0",
+    "published": "2026-09-05T14:29:28.105513Z",
+    "archive_url": "https://pub.dev/api/archives/banzami_client-0.1.0.tar.gz"
+  },
+  "generated_at": "2026-09-05T14:33:14.954Z",
+  "clean_project": {
+    "inside_git_repo": false,
+    "dependency_spec": "^0.1.0",
+    "local_path_dependency": false,
+    "git_dependency": false
+  },
+  "security_model": "A publishable key (bz_test_pk_) only. The constructor refuses a secret key before any request, and the OPERATOR refuses a publishable key on every route that moves money — measured, not asserted.",
+  "assertions": [
+    {
+      "id": "SDK2.registry.published",
+      "pass": true,
+      "note": "pub.dev latest=0.1.0"
+    },
+    {
+      "id": "SDK2.install.from-registry",
+      "pass": true,
+      "note": "dart pub get resolved from pub.dev in a directory outside every Banzami repository"
+    },
+    {
+      "id": "SDK2.install.no-local-path",
+      "pass": true,
+      "note": "no path: or git: dependency"
+    },
+    {
+      "id": "SDK2.run.identity",
+      "pass": true,
+      "note": "identity() -> project doa-sandbox, SANDBOX, ACTIVE"
+    },
+    {
+      "id": "SDK2.run.checkout",
+      "pass": true,
+      "note": "checkout() -> 37500 AOA, merchant display name"
+    },
+    {
+      "id": "SDK2.run.status",
+      "pass": true,
+      "note": "checkoutStatus() resolved"
+    },
+    {
+      "id": "SDK2.run.checkout-url",
+      "pass": true,
+      "note": "checkoutUrl() -> https://pay.banzami.com/pay/... which answers 200"
+    },
+    {
+      "id": "SDK2.links.parse",
+      "pass": true,
+      "note": "a Banzami checkout URL round-trips to its slug"
+    },
+    {
+      "id": "SDK2.links.refuse-lookalike",
+      "pass": true,
+      "note": "https://evil.example/pay/<slug> is refused"
+    },
+    {
+      "id": "SDK2.safety.secret-key-refused",
+      "pass": true,
+      "note": "the constructor refuses bz_test_sk_ before any request"
+    },
+    {
+      "id": "SDK2.authz.cannot-create-payment",
+      "pass": true,
+      "note": "POST /v1/business/payment-sessions -> 403"
+    },
+    {
+      "id": "SDK2.authz.cannot-transfer",
+      "pass": true,
+      "note": "POST /v1/business/transfers -> 403"
+    },
+    {
+      "id": "SDK2.authz.cannot-refund",
+      "pass": true,
+      "note": "POST /v1/business/refunds -> 403"
+    },
+    {
+      "id": "SDK2.authz.cannot-open-account",
+      "pass": true,
+      "note": "POST /v1/business/wallet-accounts -> 403"
+    },
+    {
+      "id": "SDK2.authz.cannot-manage-webhooks",
+      "pass": true,
+      "note": "POST /v1/business/webhooks/endpoints -> 403"
+    },
+    {
+      "id": "SDK2.authz.cannot-list-owner-accounts",
+      "pass": true,
+      "note": "GET /v1/business/wallet-accounts -> 403"
+    }
+  ],
+  "note": "sdk/flutter (banzami_flutter) is Banzami’s first-party application framework and carries publish_to: none. It is NOT this package and is not published (Banzami ADR-053).",
+  "total": 16,
+  "passed": 16,
+  "promotable": true
+}

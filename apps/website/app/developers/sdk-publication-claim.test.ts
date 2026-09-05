@@ -37,12 +37,12 @@ describe('SDK publication claims', () => {
 
   it('still says so for the SDKs that genuinely are source-only', () => {
     // Guards the opposite error: a blanket find-and-replace that would claim
-    // pub.dev and Packagist packages exist when they do not.
-    // banzami_client replaced banzami_flutter here: the latter is Banzami's own
-    // application framework and is deliberately never published (ADR-053), so
-    // it no longer appears as an SDK at all. The claim being guarded is the
-    // same — the Dart client is not on pub.dev until it is.
-    expect(src).toMatch(/banzami_client[^']*pendente/);
+    // registries hold packages they do not.
+    //
+    // This used to name banzami_flutter, which is now absent entirely — it is
+    // Banzami's own application framework, deliberately never published
+    // (ADR-053) — and then banzami_client, which has since been published. What
+    // remains genuinely source-only is the PHP package.
     expect(src).toMatch(/banzami\/sdk — ainda não publicado em Packagist/);
   });
 });

@@ -9,6 +9,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS, PUBLISHED_PACKAGES } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -55,13 +56,16 @@ describe('P2B — install commands match what is actually published', () => {
   it('only the published SDK carries an install command', () => {
     const surfaces = { PT, EN, README, SDK: JSON.stringify(SDK_MANIFEST), ART: JSON.stringify(ART_MANIFEST) };
     for (const [name, src] of Object.entries(surfaces)) {
-      for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'go get github.com/banzami', 'pod "Banzami"']) {
+      for (const cmd of FAKE_INSTALL_COMMANDS) {
         expect(src.includes(cmd), `${name} must not contain "${cmd}"`).toBe(false);
       }
     }
-    // @banzami/sdk IS published: its install command is real and must appear.
-    // The other families are not, so theirs must not.
-    expect(PT).toContain('npm install @banzami/sdk');
+    // A published package's install command is real and must appear; the list is
+    // the source of truth, so a newly published SDK does not fail this test for
+    // existing.
+    for (const pkg of PUBLISHED_PACKAGES) {
+      expect(PT, `PT should carry ${pkg.name}'s real install command`).toContain(pkg.install);
+    }
     expect(EN).toContain('npm install @banzami/sdk');
     expect(PT.includes('Não corra'), 'PT anti-instruction must not survive publication').toBe(false);
     expect(EN.includes('Do not run'), 'EN anti-instruction must not survive publication').toBe(false);

@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 2 |
-| verified | 15 |
+| in-audit | 1 |
+| verified | 16 |
 | **total** | **22** |
 
 ## Capabilities
@@ -37,7 +37,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
 | CAP-SDK-001 | TypeScript SDK (@banzami/sdk) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-SDK-002 | Flutter SDK (banzami_flutter) | developer-platform | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-SDK-002 | Public Banzami client SDK (banzami_client, Dart/Flutter) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-002 | Merchant dashboard (Banzami Business) | web | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
@@ -50,11 +50,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| pending-e2e | 1 |
 | quarantined | 5 |
-| released | 15 |
+| released | 16 |
 
-Public surfaces released: **14/15**. Full external launch requires 15/15.
+Public surfaces released: **15/15**. Full external launch requires 15/15.
 
 ## Detail
 
@@ -298,21 +297,21 @@ Public surfaces released: **14/15**. Full external launch requires 15/15.
 - **Launch scope:** sandbox
 - **Status:** **verified**
 
-### CAP-SDK-002 — Flutter SDK (banzami_flutter)
+### CAP-SDK-002 — Public Banzami client SDK (banzami_client, Dart/Flutter)
 
 - **Owner:** developer-platform
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
-- **Authority:** internal — SDK-first policy (CLAUDE.md §13)
+- **Authority:** internal — SDK-first policy (CLAUDE.md §13) · Banzami ADR-053
 - **Threat category:** identity-auth
-- **Implementation:** sdk/flutter
-- **API/UI surface:** pub banzami_flutter
+- **Implementation:** sdk/dart-client
+- **API/UI surface:** pub.dev banzami_client (dart pub add banzami_client)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [sdk/dart-client/test/client_test.dart (construction refusals, typed errors, polling), sdk/dart-client/test/links_test.dart (link and QR parsing)] · integration [] · e2e_sandbox [sdk/dart-client/test/sandbox_e2e_test.dart (10/10 with a real publishable key against the deployed Sandbox), clean-room install from pub.dev outside every Banzami repository (16/16)] · negative/security [the constructor refuses a SECRET key before any request, with the reason, a key from the wrong environment, and a LIVE client while LIVE is unreleased, are both refused, the operator refuses a publishable key on every route that moves money — create, transfer, refund, open account, manage webhooks, list the owner's accounts (403, measured), parseSlug refuses look-alike hosts, http, wrong paths and malformed slugs; checkoutUrl throws rather than build a URL that would send a payer elsewhere, no credential is printed or interpolated into an error, guarded by a source test, the first-party framework carries publish_to: none, so it cannot be published by accident]
+- **Evidence:** evidence/assurance/sdk/cap-sdk-002-public-install.json, docs/adr/ADR-053-flutter-package-boundary.md
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-APP-001 — Consumer mobile app (Flutter, com.banzami.consumer)
 

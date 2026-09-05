@@ -9,6 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -115,7 +116,7 @@ describe('P2C — SDK-style preview examples', () => {
     // Every occurrence of an install command must be inside an anti-instruction line.
     // @banzami/sdk is published, so its install command is a real instruction.
     // The unpublished families must still appear only as anti-instructions.
-    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
+    for (const cmd of FAKE_INSTALL_COMMANDS) {
       for (const line of all.split('\n')) {
         if (!line.includes(cmd)) continue;
         const ok = /não corra|nao corra|do not run/i.test(line);

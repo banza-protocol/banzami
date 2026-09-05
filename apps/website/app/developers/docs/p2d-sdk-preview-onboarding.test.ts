@@ -7,6 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -120,7 +121,7 @@ describe('P2D — previous honesty preserved', () => {
     expect(joined).toContain('self-service');
     expect(joined.toLowerCase().includes('sign up now')).toBe(false);
     expect(joined.toLowerCase().includes('register now')).toBe(false);
-    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
+    for (const cmd of FAKE_INSTALL_COMMANDS) {
       expect(joined.includes(cmd)).toBe(false);
     }
     // Published: each language documents the real install command.

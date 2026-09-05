@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CONTENT_MAP, PRESERVED_ARTIFACT_URLS } from './content-map';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const DOCS_DIR = 'app/developers/docs';
@@ -128,7 +129,7 @@ describe('P3A — claim safety across the reorganized corpus', () => {
   const CORPUS = PT + EN;
   it('no fake installs; no HTTP-recommended wording; SDK-first present', () => {
     expect(CORPUS.split('npm install @banzami/sdk').length - 1).toBeGreaterThanOrEqual(2); // the real command, per language
-    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'pod "Banzami"']) {
+    for (const cmd of FAKE_INSTALL_COMMANDS) {
       expect(CORPUS.includes(cmd)).toBe(false);
     }
     for (const bad of ['official http integration path', 'caminho oficial é http', 'official public documentation path', 'recommended direct http']) {

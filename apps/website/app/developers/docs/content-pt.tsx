@@ -85,7 +85,7 @@ const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: st
   // application framework and is not published (Banzami ADR-053). Listing the
   // internal one as an integration SDK would send a developer to a package that
   // is not theirs to use.
-  { name: 'banzami_client', lang: 'Dart / Flutter (cliente)', state: 'Cliente público — chave publicável; publicação pendente', tone: 'val', consume: 'código-fonte / local' },
+  { name: 'banzami_client', lang: 'Dart / Flutter (cliente)', state: 'Publicado — cliente público, chave publicável', tone: 'ok', consume: 'dart pub add banzami_client' },
   { name: '@banzami/checkout', lang: 'JavaScript (browser)', state: 'Completo (código-fonte)', tone: 'ok', consume: 'embed / local' },
   { name: 'banzami-go', lang: 'Go', state: 'Parcial — webhooks + payment links', tone: 'val', consume: 'código-fonte / local' },
 ];

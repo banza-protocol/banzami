@@ -87,7 +87,7 @@ const SDKS: { name: string; lang: string; state: string }[] = [
   { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Complete (source code)' },
   { name: 'banzami-python', lang: 'Python', state: 'Complete (source code)' },
   { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Complete (source code)' },
-  { name: 'banzami_client', lang: 'Dart / Flutter (client)', state: 'Public client SDK — publishable key; publication pending' },
+  { name: 'banzami_client', lang: 'Dart / Flutter (client)', state: 'Published — public client SDK, publishable key' },
   { name: '@banzami/checkout', lang: 'JavaScript (browser)', state: 'Complete (source code)' },
   { name: 'banzami-go', lang: 'Go', state: 'Partial — webhooks + payment links' },
 ];

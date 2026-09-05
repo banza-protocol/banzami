@@ -40,15 +40,16 @@ application framework. Publishing it would present Banzami's own app internals
 as a third-party integration product, and would put a package on pub.dev whose
 public surface no integrator needs.
 
-**2 — CAP-SDK-002 stays held, and the reason is corrected.** It is not held
-because a publish step is outstanding. It is held because the package the
-capability names is not the product the capability describes. Marking it
-released by publishing this package would be an overclaim with a version number.
+**2 — CAP-SDK-002 names a different package.** It was not held because a publish
+step was outstanding; it was held because the package the capability named is not
+the product the capability describes. The capability now names
+**`banzami_client`** — the purpose-built public client SDK — and is released on
+its evidence, not on this one's.
 
-**3 — A published Flutter SDK, when it exists, is a different and much smaller
-package.** Its credential is a **publishable** key (`bz_test_pk_…`), which the
-operator now restricts to read scopes, and its surface is presentation and
-status only:
+**3 — The published SDK is `banzami_client` (`sdk/dart-client`).** Pure Dart, so
+it works in Flutter apps, CLIs and Dart servers. Its credential is a
+**publishable** key (`bz_test_pk_…`), which the operator restricts to read
+scopes, and its surface is presentation and status only:
 
 ```text
   Flutter app ──publishable key──▶ Banzami   read a payment, its status, its QR
@@ -63,6 +64,22 @@ constraint; it is what "publishable" means.
 point states the boundary, and a test guards it — scoped to *teaching* a secret
 key rather than *mentioning* one, since naming a key in order to forbid it is
 the opposite of the hazard.
+
+## Outcome (2026-09-05)
+
+`banzami_client` **0.1.0** is published on pub.dev and installs cleanly from a
+directory outside every Banzami repository, with no path or git dependency.
+
+The boundary is measured rather than asserted. With a real publishable key
+against the deployed Sandbox, the four client-safe reads succeed and **all six**
+privileged operations are refused with 403: create a payment, transfer, refund,
+open an account, manage webhooks, list the owner's accounts. The constructor
+refuses a secret key before any request; three mutations (accepting a secret key,
+dropping the deep-link host allow-list, skipping slug validation) each fail the
+suite.
+
+`sdk/flutter` carries `publish_to: none`, so the mistake this ADR exists to
+prevent is now impossible rather than discouraged.
 
 ## Consequences
 

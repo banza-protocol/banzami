@@ -328,6 +328,59 @@ jobs:
   # frozen (Phase 2 / ADR-036) migration leaking into the active source, or a
   # sqlx-backfill that no longer matches real sqlx tracking. This is the gate that
   # makes `sqlx migrate run` the single source of truth (audit Part 4).
+  dart-client:
+    name: Dart client SDK — format, analyze, test, publish-guard
+    runs-on: [self-hosted, banzami-ci, linux, arm64]
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Dart
+        uses: dart-lang/setup-dart@0a8a0fc8ab24c1a9e5ea6ba4c62b6bcbb08c8e14 # v1.7.0
+
+      - name: Install dependencies
+        working-directory: sdk/dart-client
+        run: dart pub get
+
+      - name: Check formatting
+        working-directory: sdk/dart-client
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        working-directory: sdk/dart-client
+        run: dart analyze --fatal-infos
+
+      # The E2E tag needs a real Sandbox key, so it is excluded here; the unit,
+      # link-safety and credential-safety suites all run.
+      - name: Run tests
+        working-directory: sdk/dart-client
+        run: dart test -x e2e
+
+      # A published client package must be publishable and must carry nothing
+      # from the monorepo. The dry-run is the only check that sees the actual
+      # archive contents.
+      - name: Publish dry-run
+        working-directory: sdk/dart-client
+        run: dart pub publish --dry-run
+
+      # The internal application framework must stay unpublishable. A comment
+      # would not stop a `dart pub publish` typed in the wrong directory.
+      - name: The internal Flutter framework is not publishable
+        run: |
+          grep -qE '^publish_to:[[:space:]]*none[[:space:]]*$' sdk/flutter/pubspec.yaml \
+            || { echo 'sdk/flutter must declare publish_to: none (Banzami ADR-053)'; exit 1; }
+
+      # Secret keys must never appear as a value in client software. Scoped to
+      # lines that USE one — naming a secret key in order to forbid it is the
+      # opposite of the hazard.
+      - name: No secret key in client software
+        run: |
+          if grep -rnE "bz_(test|live)_sk_[A-Za-z0-9]{4}" sdk/dart-client/lib sdk/dart-client/example sdk/dart-client/README.md \
+               | grep -viE 'never|must not|do not|forbidden|refuse'; then
+            echo 'a secret key appears as a value in the client SDK'; exit 1
+          fi
+          echo 'no secret key in client software'
+
   migrations:
     name: Migrations — sequence, tracking, freeze
     runs-on: [self-hosted, banzami-ci, linux, arm64]

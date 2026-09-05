@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PRESERVED_ARTIFACT_URLS } from './content-map';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const D = 'app/developers/docs';
@@ -117,7 +118,7 @@ describe('P3C — claim safety preserved', () => {
     }
   });
   it('no fake installs, no production/live/BNA/provider/regulatory/certification overclaims', () => {
-    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'pod "Banzami"']) {
+    for (const cmd of FAKE_INSTALL_COMMANDS) {
       expect(CORPUS.includes(cmd)).toBe(false);
     }
     for (const bad of ['production ready', 'Production is available', 'BNA approved', 'SOC 2', 'ISO 27001', 'PCI DSS', 'certified uptime', '99.9', 'sign up now']) {

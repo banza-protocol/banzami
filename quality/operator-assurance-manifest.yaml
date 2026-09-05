@@ -637,46 +637,51 @@ capabilities:
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
 
-  # HELD, and not for the reason previously recorded. pub.dev answers 404 for
-  # banzami_flutter, but publishing is not the missing step: sdk/flutter is a
-  # PATH DEPENDENCY of Banzami's own mobile apps — its 53 files are the Consumer
-  # and Business app framework (onboarding, KYB, theme), and its client
-  # authenticates the app's own signed-in user. Publishing it would present
-  # first-party app internals as a third-party integration product.
+  # RELEASED as banzami_client, which is NOT sdk/flutter.
   #
-  # A published Flutter SDK, when it exists, is a smaller package built on a
-  # PUBLISHABLE key (bz_test_pk_, now restricted to read scopes) for
-  # presentation and status, with money movement staying on a server
-  # credential. See Banzami ADR-053.
-  #
-  # Fixed in the meantime: the package's own docs instructed developers to
-  # compile a secret key into a mobile binary. Every entry point now states the
-  # boundary and a test guards it.
+  # The capability used to name banzami_flutter. That package is a path
+  # dependency of Banzami's own mobile apps — onboarding, KYB, theme, merchant
+  # screens — and its docs instructed developers to compile a secret key into a
+  # mobile binary. Publishing it would have presented first-party app internals
+  # as a third-party product, so it now carries publish_to: none and the
+  # capability names the purpose-built public client instead (Banzami ADR-053).
   - id: CAP-SDK-002
-    name: Flutter SDK (banzami_flutter)
+    name: Public Banzami client SDK (banzami_client, Dart/Flutter)
     owner: developer-platform
     public_status: public-sandbox
     environments:
       sandbox: true
       live: false
     authority: internal
-    authority_ref: SDK-first policy (CLAUDE.md §13)
+    authority_ref: SDK-first policy (CLAUDE.md §13) · Banzami ADR-053
     implementation:
-      - sdk/flutter
+      - sdk/dart-client
     api_surface:
-      - pub banzami_flutter
+      - pub.dev banzami_client (dart pub add banzami_client)
     threat_category: identity-auth
     tests:
-      unit: []
+      unit:
+        - sdk/dart-client/test/client_test.dart (construction refusals, typed errors, polling)
+        - sdk/dart-client/test/links_test.dart (link and QR parsing)
       integration: []
-      e2e_sandbox: []
-      negative_security: []
+      e2e_sandbox:
+        - sdk/dart-client/test/sandbox_e2e_test.dart (10/10 with a real publishable key against the deployed Sandbox)
+        - clean-room install from pub.dev outside every Banzami repository (16/16)
+      negative_security:
+        - the constructor refuses a SECRET key before any request, with the reason
+        - a key from the wrong environment, and a LIVE client while LIVE is unreleased, are both refused
+        - the operator refuses a publishable key on every route that moves money — create, transfer, refund, open account, manage webhooks, list the owner's accounts (403, measured)
+        - parseSlug refuses look-alike hosts, http, wrong paths and malformed slugs; checkoutUrl throws rather than build a URL that would send a payer elsewhere
+        - no credential is printed or interpolated into an error, guarded by a source test
+        - the first-party framework carries publish_to: none, so it cannot be published by accident
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/sdk/cap-sdk-002-public-install.json
+      - docs/adr/ADR-053-flutter-package-boundary.md
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   # ─── Apps ──────────────────────────────────────────────────────────────────
 

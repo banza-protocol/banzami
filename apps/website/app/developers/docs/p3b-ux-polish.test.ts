@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PRESERVED_ARTIFACT_URLS } from './content-map';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const D = 'app/developers/docs';
@@ -185,7 +186,7 @@ describe('P3B — claim safety preserved across the polished corpus', () => {
     expect(EN).toContain('controlled preview');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');
-    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'pod "Banzami"']) {
+    for (const cmd of FAKE_INSTALL_COMMANDS) {
       expect(CORPUS.includes(cmd)).toBe(false);
     }
   });

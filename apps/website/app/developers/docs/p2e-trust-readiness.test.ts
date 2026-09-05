@@ -8,6 +8,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -152,7 +153,7 @@ describe('P2E — previous honesty preserved', () => {
   it('SDK-first, no fake installs, HTTP secondary, PT/EN only', () => {
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');
-    for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami']) {
+    for (const cmd of FAKE_INSTALL_COMMANDS) {
       expect((PT + EN).includes(cmd)).toBe(false);
     }
     const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();

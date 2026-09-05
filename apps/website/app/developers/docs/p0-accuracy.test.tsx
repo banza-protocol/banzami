@@ -21,6 +21,7 @@ import DocsPage from './page';
 import PtGetStartedPage from './get-started/page';
 import PtReferencePage from './reference/page';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
+import { FAKE_INSTALL_COMMANDS } from './published-packages';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: the PT documentation corpus = area content + landing page.
@@ -81,7 +82,7 @@ describe('P0 — unverified event vocabulary is banned on every developer surfac
 
 describe('P0 — no fake SDK install commands, SDKs never the primary path', () => {
   it('overview has no install command for unpublished packages', () => {
-    for (const cmd of ['pod "Banzami"', 'com.banzami:sdk', 'pip install banzami', 'composer require banzami', 'pub add banzami', 'go get github.com/banzami']) {
+    for (const cmd of [...FAKE_INSTALL_COMMANDS, 'com.banzami:sdk', 'composer require banzami']) {
       expect(OVERVIEW.includes(cmd), `overview must not contain "${cmd}"`).toBe(false);
     }
   });

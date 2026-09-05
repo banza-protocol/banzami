@@ -321,7 +321,7 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
   },
   {
     name: 'Flutter / Dart (cliente)',
-    install: 'código-fonte (banzami_client — publicação em pub.dev pendente)',
+    install: 'dart pub add banzami_client',
     // Precise about the credential, because this is the snippet a mobile
     // developer copies. A chave secreta nunca entra numa app: quem descarrega
     // a app consegue lê-la, e essa chave move dinheiro.
