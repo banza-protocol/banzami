@@ -36,6 +36,10 @@ svc_build_spec() {
     api-gateway-staging)   echo "$REL/services|$REL/services/api-gateway/Dockerfile|8080" ;;
     developer-api)         echo "$REL/services|$REL/services/developer-api/Dockerfile|8086" ;;
     public-api-staging)    echo "$REL/services|$REL/services/public-api/Dockerfile|8083" ;;
+    # The hosted payer surface. Its build context is its own app directory, and
+    # the gateway origin is baked in: NEXT_PUBLIC_* is read by client bundles at
+    # build time, so it cannot be supplied at run time.
+    pay-frontend)          echo "$REL/apps/pay|$REL/apps/pay/Dockerfile|3002" ;;
     *) return 1 ;;
   esac
 }
@@ -55,7 +59,9 @@ for svc in "${SERVICES[@]}"; do
   tag="banzami-sandbox/$svc:$COMMIT"
   [ "$MODE" = "deploy-only" ] && { echo "  $svc build skipped (deploy-only)" | tee -a "$RECEIPT"; BUILT_SVC+=("$svc"); BUILT_TAG+=("$tag"); continue; }
   echo "  building $svc natively (BuildKit cache)..." | tee -a "$RECEIPT"
-  if docker build --build-arg BUILD_COMMIT="$COMMIT" -f "$df" -t "$tag" "$ctx" >/dev/null 2>&1; then echo "  $svc build PASS" | tee -a "$RECEIPT"
+  bargs=(--build-arg BUILD_COMMIT="$COMMIT")
+  [ "$svc" = "pay-frontend" ] && bargs+=(--build-arg NEXT_PUBLIC_GATEWAY_URL="${PAY_GATEWAY_URL:-https://sandbox-api.banzami.com}")
+  if docker build "${bargs[@]}" -f "$df" -t "$tag" "$ctx" >/dev/null 2>&1; then echo "  $svc build PASS" | tee -a "$RECEIPT"
   else echo "  $svc build FAIL" | tee -a "$RECEIPT"; exit 5; fi
   # record digest (image id) — sanitised, no build log
   DIG="$(docker image inspect "$tag" --format '{{.Id}}' 2>/dev/null | cut -c1-19)"

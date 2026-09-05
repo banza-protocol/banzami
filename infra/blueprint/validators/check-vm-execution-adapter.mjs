@@ -93,6 +93,9 @@ const all = Object.values(src).join('\n');
 {
   const approved = /APPROVED="core-api-staging api-gateway-staging developer-api public-api-staging"/.test(exec);
   const reusesMergedDeploy = /sandbox-ops\/scripts\/sandbox-deploy\.sh" apply/.test(exec);
+  // Unchanged by Banzami ADR-052: the payer surface is authorised in the Sandbox
+  // deploy set, not in a VM-execution apply. Same reasoning as the release
+  // package — one topology's authorisation is not every topology's.
   const noForbidden = !/(admin-api|dashboard|checkout-frontend|pay-frontend|banza-docs|banzai)[^\n]*apply/i.test(exec);
   (approved && reusesMergedDeploy && noForbidden) ? pass(7, 'deployment restricted to the four approved services via the merged provenance-first deploy adapter') : fail(7, `deploy scope (approved=${approved} reuse=${reusesMergedDeploy} noForbidden=${noForbidden})`);
 }

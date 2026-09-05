@@ -23,8 +23,33 @@ SERVICES=(
   "api-gateway-staging|8080|api-gateway"
   "developer-api|8086|developer-api"
   "public-api-staging|8083|public-api"
+  # pay-frontend — the hosted payer surface (Banzami ADR-052, CAP-APP-004).
+  #
+  # It was previously forbidden here. That invariant was written when the
+  # Sandbox project was API-only; the external Sandbox product now includes the
+  # page a payer actually opens, and every payment link the platform issues
+  # points at it. A surface the product requires does not belong in a fourth
+  # standalone topology to preserve a rule that no longer describes the product.
+  #
+  # It is the ONLY entry here with no financial authority: no secret mount, no
+  # database URL, no Core credential. See PAY_FRONTEND_APP_PLANE_ONLY below.
+  "pay-frontend|3002|node"
 )
-FORBIDDEN="admin-api admin-api-staging frontend dashboard checkout pay reverse-proxy banza-docs banzai"
+# Services that must never exist in this project.
+#
+# `pay` and `frontend` were removed as blanket terms: they forbade the hosted
+# payer surface, which is now an authorised Sandbox application (above). What
+# they were really protecting — that no ADMIN or LIVE surface is deployed here —
+# is unchanged and named precisely instead of by substring.
+FORBIDDEN="admin-api admin-api-staging admin-frontend dashboard-frontend checkout-frontend reverse-proxy banza-docs banzai"
+
+# pay-frontend gets the APPLICATION plane only.
+#
+# Every other service is on the data plane too, because every other service
+# talks to Postgres. This one must not: it holds no credential and reads the
+# gateway over HTTP like any other client would. Adding a frontend must not
+# broaden what the Sandbox exposes.
+PAY_FRONTEND_APP_PLANE_ONLY=1
 
 die() { echo "sandbox-deploy: $*" >&2; exit 1; }
 hold() { echo "$1"; exit "${2:-43}"; }
@@ -207,9 +232,38 @@ cmd_clean() {
 # via -e). Rollback redeploys the previously-running image.
 cmd_deploy_one() {
   local name="$1" tag="$2" rollback="${3:-}"
-  local e n p b bin; for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && bin="$b"; done
+  local e n p b bin port; for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { bin="$b"; port="$p"; }; done
   [ -n "${bin:-}" ] || die "unknown sandbox service: $name"
   local cname; cname="$(docker ps -a --format '{{.Names}}' | grep -E -- "-${name}\$" | head -1)"
+
+  # First deploy of the hosted payer surface.
+  #
+  # The clone-the-running-container path below cannot bootstrap a service that
+  # has never run, and every other service here was created by the gated apply
+  # with its secret mounts. pay-frontend has none to clone: no secret, no
+  # database URL, no Core credential — only the public gateway origin it reads.
+  # So its first create is explicit, minimal, and on the APPLICATION plane only.
+  if [ -z "$cname" ] && [ "$name" = "pay-frontend" ]; then
+    local proj net
+    proj="$(docker ps --format '{{.Names}}' | grep -oE '^bzsandbox-[0-9]+-[0-9]+-[0-9]+' | head -1)"
+    [ -n "$proj" ] || die "no bootstrapped Sandbox project found"
+    net="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-app-' | head -1)"
+    [ -n "$net" ] || die "no Sandbox application network found"
+    cname="${proj}-pay-frontend"
+    echo "  $name first create on $net (application plane only, no secrets)"
+    docker run -d --name "$cname" --network "$net" \
+      --security-opt "no-new-privileges:true" \
+      --label "$LABEL.service=$name" \
+      -e NEXT_PUBLIC_GATEWAY_URL="${PAY_GATEWAY_URL:-https://sandbox-api.banzami.com}" \
+      -e PORT="$port" -e HOSTNAME=0.0.0.0 \
+      "$tag" >/dev/null 2>&1 || { echo "  $name first create FAIL"; return 1; }
+    local c=0 st
+    while :; do st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname" 2>/dev/null)"
+      case "$st" in healthy) echo "  $name deployed_and_healthy PASS"; return 0 ;; esac
+      c=$((c+1)); [ "$c" -gt 45 ] && { echo "  $name first create FAIL (health timeout)"; return 1; }; sleep 2
+    done
+  fi
+
   [ -n "$cname" ] || die "no running $name container to redeploy (run a full gated apply first)"
   local prev pf; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"; pf="/tmp/.banzami-prev-img-$name"
   if [ "$rollback" = "--rollback" ]; then tag="$(cat "$pf" 2>/dev/null || echo "$tag")"; else [ -n "$prev" ] && printf '%s' "$prev" > "$pf" || true; fi

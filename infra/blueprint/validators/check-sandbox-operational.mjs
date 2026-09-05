@@ -30,12 +30,40 @@ for (const [key, rel] of COMPONENTS) {
   safe ? pass(key, `${key} adapter present and target-safe (no VM, no legacy RT04E, no LIVE/prod target)`) : fail(key, `${key} adapter unsafe`);
 }
 
-// forbidden services must not appear in the deployment adapter
+// Deploy-set membership, in BOTH directions.
+//
+// `pay-frontend` used to be on the forbidden list. That invariant was written
+// when the Sandbox project was API-only; the hosted payer surface is now part of
+// the external Sandbox product (Banzami ADR-052, CAP-APP-004) and every payment
+// link the platform issues points at it. The guard is replaced, not deleted:
+// what it was really protecting is that no ADMIN or LIVE surface is deployed
+// here, and that is now named precisely rather than by substring.
 {
   const deploy = readIf(resolve(ROOT, 'sandbox-ops/scripts/sandbox-deploy.sh'));
-  const forbidden = ['dashboard', 'checkout-frontend', 'pay-frontend', 'banzai', 'banza-docs', 'admin-api-staging'];
-  if (deploy && forbidden.some(s => new RegExp(`SERVICES=\\([\\s\\S]*"${s}\\|`).test(deploy))) fail('allowlist', 'deployment adapter deploys a forbidden service');
-  else pass('allowlist', 'deployment adapter references no forbidden service in its deploy set');
+  const inDeploySet = (svc) => !!deploy && new RegExp(`SERVICES=\\([\\s\\S]*?"${svc}\\|`).test(deploy);
+
+  // (a) Still forbidden — admin and live surfaces have no place in this project.
+  const forbidden = ['admin-api-staging', 'admin-frontend', 'dashboard-frontend', 'checkout-frontend', 'banzai', 'banza-docs'];
+  const present = forbidden.filter(inDeploySet);
+  if (present.length) fail('allowlist', `deployment adapter deploys a forbidden service: ${present.join(', ')}`);
+  else pass('allowlist', 'deployment adapter deploys no admin/live/retired surface');
+
+  // (b) Now REQUIRED — the authorised Sandbox application surfaces.
+  const required = ['core-api-staging', 'api-gateway-staging', 'developer-api', 'public-api-staging', 'pay-frontend'];
+  const missing = required.filter(s => !inDeploySet(s));
+  if (missing.length) fail('deploy-set', `canonical Sandbox deploy set is missing: ${missing.join(', ')}`);
+  else pass('deploy-set', 'canonical Sandbox deploy set carries every authorised surface, including pay-frontend');
+
+  // (c) The payer surface holds no financial authority. It is the only entry
+  //     with no secret mount, and adding a frontend must not broaden what the
+  //     Sandbox exposes: application plane only, no data plane.
+  if (!deploy || !/PAY_FRONTEND_APP_PLANE_ONLY=1/.test(deploy)) {
+    fail('pay-plane', 'pay-frontend is deployed without the application-plane-only constraint');
+  } else if (/pay-frontend[\s\S]{0,600}?(BZSB_DATA_NET|db_url|core_internal_key|jwt_secret)/.test(deploy)) {
+    fail('pay-plane', 'pay-frontend is wired to the data plane or to a secret');
+  } else {
+    pass('pay-plane', 'pay-frontend is application-plane only and mounts no secret');
+  }
 }
 
 console.log('');

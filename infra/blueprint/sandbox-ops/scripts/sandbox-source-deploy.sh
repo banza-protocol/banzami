@@ -29,7 +29,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
-SANDBOX_SERVICES=(core-api-staging api-gateway-staging developer-api public-api-staging)
+SANDBOX_SERVICES=(core-api-staging api-gateway-staging developer-api public-api-staging pay-frontend)
 REMOTE_ROOT="banzami-source-deploy"   # server-side home-relative root (staging + releases)
 
 die(){ printf '\033[0;31m✗ %s\033[0m\n' "$*" >&2; exit 1; }

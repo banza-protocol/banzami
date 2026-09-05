@@ -122,6 +122,42 @@ button.
    public browser page a financial authority, which is the shape RA-053 and
    RA-057 removed from the API.
 
+## Amendment (2026-09-05) — deployment topology
+
+The Sandbox blueprint forbade `pay-frontend` from its deploy set, website-edge
+Decision 3 forbids payment upstreams, and a standalone stack would be a fourth
+topology. The owner resolved this: **`pay-frontend` is an authorised Sandbox
+application surface**, deployed into the existing Sandbox project and routed by
+`sandbox-edge`.
+
+| | Previous invariant | New invariant |
+|---|---|---|
+| Sandbox deploy set | `pay-frontend` **forbidden** | `pay-frontend` **required** |
+| Reason | the Sandbox project was API-only | CAP-APP-004 makes the hosted payer surface part of the external Sandbox product, and every payment link the platform issues points at it |
+
+The guard was **replaced, not deleted**. What the old rule was really protecting
+— that no admin or LIVE surface is deployed here — is now stated precisely
+rather than by substring (`pay` and `frontend` were blanket terms), and the
+validator checks membership in both directions: the authorised surfaces must be
+present, the forbidden ones absent. Three mutations prove it detects the wrong
+topology.
+
+Bounded, and the bounds are enforced:
+
+- **website-edge is untouched.** Decision 3 stands; the payer surface sits
+  behind `sandbox-edge`, which is already on the application plane.
+- **Application plane only.** Every other Sandbox service is also on the data
+  plane because every other service talks to Postgres. This one must not: it
+  holds no secret mount, no database URL and no Core credential, and reads the
+  gateway over HTTP like any other client. Adding a frontend does not broaden
+  what the Sandbox exposes.
+- **Authorisation does not travel.** `pay-frontend` remains forbidden in the
+  release-package and VM-execution topologies. One topology's authorisation is
+  not every topology's.
+- **LIVE is unchanged.** The hosted payer surface being available in Sandbox
+  does not enable Banzami financial LIVE, which remains separately gated and
+  fail-closed.
+
 ## Consequences
 
 - `apps/checkout` is deleted; its distinctive UI components are not lost work,

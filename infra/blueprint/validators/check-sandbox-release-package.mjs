@@ -16,6 +16,11 @@ const read = p => readFileSync(p, 'utf8');
 const rp = read(resolve(SB, 'scripts', 'sandbox-release-package.sh'));
 const exe = read(resolve(SB, 'scripts', 'operational-entrypoint.sh'));
 const FOUR = ['core-api-staging', 'api-gateway-staging', 'developer-api', 'public-api-staging'];
+// Unchanged by Banzami ADR-052. pay-frontend is authorised in the SANDBOX
+// DEPLOY SET, which is a different topology from a release package: a package
+// carries provenance-verified service images for the gated apply, and the
+// hosted payer surface is built from source on the Sandbox server instead.
+// Authorising a surface in one topology must not authorise it in every other.
 const FORBIDDEN = ['admin-api', 'website', 'checkout', 'dashboard', 'pay-frontend', 'banzai', 'banza-docs'];
 
 // 1. exactly the four approved services; forbidden services excluded + rejected

@@ -121,7 +121,7 @@ _authority_gate() {
 # Sandbox services and the new flags (--all, --allow-dirty, --dry-run, --build-only,
 # --deploy-only-from-existing-build, --run-e2e) route here; all other (production)
 # invocations are unchanged. See infra/blueprint/sandbox-ops/scripts/sandbox-source-deploy.sh.
-_SANDBOX_SVCS="developer-api core-api-staging api-gateway-staging public-api-staging"
+_SANDBOX_SVCS="developer-api core-api-staging api-gateway-staging public-api-staging pay-frontend"
 _route_sandbox() {
   local a s ok hasflag=0 hassvc=0 nonsandbox=0
   for a in "$@"; do case "$a" in
