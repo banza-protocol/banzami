@@ -32,6 +32,10 @@ call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5" au="$6"
   CODE=$(printf '%s' "$r" | tail -n1); LAST=$(printf '%s' "$r" | sed '$d'); }
 jget(){ printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j["'"$1"'"]??""))}catch(e){}})'; }
 mint(){ SECRET="$JWTSEC" M="$1" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={merchant_id:process.env.M,scopes:["*"],environment:"SANDBOX",iat:n,exp:n+900};const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));'; }
+# The funding path needs a PAYER token, which carries customer_id rather than
+# merchant_id — a different claim, so a different minter.
+mint_customer(){ SECRET="$JWTSEC" C="$1" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={customer_id:process.env.C,scopes:["*"],environment:"SANDBOX",iat:n,exp:n+900};const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));'; }
+
 # Balance read straight from the ledger — the neutral observer.
 bal(){ psqlro "SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END),0)
                  FROM ledger_entries WHERE account_id = (SELECT available_account_id FROM wallets WHERE id='$1')"; }
@@ -49,8 +53,53 @@ ROW=$(psqlro "SELECT w.id || '|' || w.merchant_id
               HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= $GROSS
                ORDER BY 1 LIMIT 1")
 WID="${ROW%%|*}"; MID="${ROW##*|}"
+
+# Nothing guarantees a leftover funded wallet, and depending on one makes this
+# harness pass or fail on what an earlier run happened to leave — the previous
+# run's own payout drains the wallet it used. So when there is none, fund one:
+# a payment session with NO wallet_account_id credits the merchant's wallet
+# default, which is exactly the balance a payout draws from.
+if [ -z "$WID" ]; then
+  echo "  no funded merchant wallet — funding one rather than scavenging"
+  PUB=$(docker ps --format '{{.Names}}' | grep public-api-staging | head -1)
+  DEV=$(docker ps --format '{{.Names}}' | grep developer-api      | head -1)
+  DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
+  DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
+  ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
+  FUND=$((GROSS * 2))
+  call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
+    "{\"name\":\"payout-fund-$R\",\"scopes\":[\"identity:read\",\"payment_sessions:read\",\"payment_sessions:write\"],\"created_by\":\"$ACTOR\"}" \
+    "$DEVINT" >/dev/null 2>&1 || true
+  DKEY=$(printf '%s' "{\"name\":\"payout-fund-$R\",\"scopes\":[\"identity:read\",\"payment_sessions:read\",\"payment_sessions:write\"],\"created_by\":\"$ACTOR\"}" \
+    | docker exec -i "$DEV" curl -s -X POST "http://localhost:8086/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
+        -H "X-Internal-Key: $DEVINT" -H 'Content-Type: application/json' --data @- \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).secret||"")}catch(e){}})')
+
+  PH="+2449${R:0:4}52"; HH="po${R:0:5}p"
+  call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
+  SID=$(jget session_id)
+  call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
+  call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$HH\",\"pin\":\"1234\"}" -
+  PAYER=$(jget consumer_id); PJWT=$(mint_customer "$PAYER")
+  call "$GW" 8080 POST /v1/compliance/customers/verify \
+    "{\"full_name\":\"PAYOUT FUNDER\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"PO$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$PJWT"
+  call "$PUB" 8083 POST /v1/sandbox/fund "{\"amount_minor\":$((FUND + 50000)),\"currency\":\"AOA\"}" "$PJWT"
+  call "$GW" 8080 POST /v1/business/payment-sessions \
+    "{\"purpose\":\"DONATION\",\"reference_type\":\"PAYOUT_FUND\",\"reference_id\":\"po-$R\",\"amount_minor\":$FUND,\"currency\":\"AOA\"}" "$DKEY"
+  FSLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
+  call "$PUB" 8083 POST "/v1/payment-links/$FSLUG/pay" "{\"amount_minor\":$FUND}" "$PJWT"
+  ROW=$(psqlro "SELECT w.id || '|' || w.merchant_id
+                  FROM wallets w
+                  JOIN ledger_entries le ON le.account_id = w.available_account_id
+                 WHERE w.currency='AOA'
+                 GROUP BY w.id, w.merchant_id
+                HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= $GROSS
+                 ORDER BY 1 LIMIT 1")
+  WID="${ROW%%|*}"; MID="${ROW##*|}"
+fi
+
 chk MERCHANT_WALLET_FOUND "$([ -n "$WID" ] && [ -n "$MID" ] && echo yes)" yes
-[ -n "$WID" ] || { echo "no funded merchant wallet — refusing to report a vacuous pass"; exit 1; }
+[ -n "$WID" ] || { echo "no funded merchant wallet, and funding one failed — refusing to report a vacuous pass"; exit 1; }
 JWT=$(mint "$MID")
 
 # The KYB gate is fail-closed, so an unapproved merchant is the FIRST thing to

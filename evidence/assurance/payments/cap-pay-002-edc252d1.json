@@ -1,0 +1,220 @@
+{
+  "capability": "CAP-PAY-002",
+  "suite": "cap-pay-002-sandbox-e2e",
+  "run_id": "edc252d1-d725-471a-8472-2c63a64d81a5",
+  "timestamp": "2026-09-05T17:49:32.100Z",
+  "environment": "sandbox",
+  "runtime_source_commit": "5f8700635485",
+  "assurance_repository_revision": "5f87006354851406b734d3b12a93bfaa7cb3cd06",
+  "runtime_matches_head_exactly": true,
+  "non_runtime_files_ahead_of_runtime": [],
+  "public_endpoint": "https://sandbox-api.banzami.com",
+  "surfaces": [
+    "/v1/payment-links",
+    "/public/pay/{slug}"
+  ],
+  "merchants": {
+    "a": "e2epa17886305699568549",
+    "b": "e2epb17886305703254548"
+  },
+  "link_id": "4f5f2338-5931-43ab-8047-3607fe8ca961",
+  "link_slug_fingerprint": "sha256:859c2ebcd7ea8d27b32eefe2757e7ed7",
+  "amount_minor": 120000,
+  "currency": "AOA",
+  "ledger_effect": "none-expected (link creation and resolution are non-financial)",
+  "results": [
+    {
+      "id": "PAY002.setup.merchant-auth",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.create",
+      "ok": true,
+      "note": "HTTP 201"
+    },
+    {
+      "id": "PAY002.owner-is-caller",
+      "ok": true,
+      "note": "payee bound to the authenticated merchant"
+    },
+    {
+      "id": "PAY002.amount-exact",
+      "ok": true,
+      "note": "120000 minor"
+    },
+    {
+      "id": "PAY002.currency-preserved",
+      "ok": true,
+      "note": "AOA"
+    },
+    {
+      "id": "PAY002.slug-issued",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "PAY002.initial-state-active",
+      "ok": true,
+      "note": "ACTIVE"
+    },
+    {
+      "id": "PAY002.read-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.list-own",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.public-resolves",
+      "ok": true,
+      "note": "HTTP 200"
+    },
+    {
+      "id": "PAY002.public-amount-matches",
+      "ok": true,
+      "note": "120000"
+    },
+    {
+      "id": "PAY002.public-no-internal-fields",
+      "ok": true,
+      "note": "only payer-facing fields"
+    },
+    {
+      "id": "PAY002.public-no-internal-ids",
+      "ok": true,
+      "note": "no link/merchant/wallet UUID in the payer view"
+    },
+    {
+      "id": "PAY002.public-status",
+      "ok": true,
+      "note": "HTTP 200, paid=false"
+    },
+    {
+      "id": "PAY002.neg.public-unknown-slug",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.public-malformed-slug",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-create",
+      "ok": true,
+      "note": "HTTP 403 for B naming A as payee"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-read",
+      "ok": true,
+      "note": "HTTP 404 (404 — not 403, which would confirm the id)"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-list",
+      "ok": true,
+      "note": "HTTP 403"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-mark-used",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.cross-merchant-cancel",
+      "ok": true,
+      "note": "HTTP 404"
+    },
+    {
+      "id": "PAY002.neg.victim-link-unchanged",
+      "ok": true,
+      "note": "status still ACTIVE after B's create/read/list/cancel/mark-used attempts"
+    },
+    {
+      "id": "PAY002.neg.unauthenticated",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY002.neg.bogus-credential",
+      "ok": true,
+      "note": "HTTP 401"
+    },
+    {
+      "id": "PAY002.neg.zero-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.negative-amount",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.missing-wallet",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.missing-currency",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.neg.past-expiry",
+      "ok": true,
+      "note": "HTTP 400"
+    },
+    {
+      "id": "PAY002.idempotent-replay",
+      "ok": true,
+      "note": "same id: true"
+    },
+    {
+      "id": "PAY002.idempotency-conflict-rejected",
+      "ok": true,
+      "note": "HTTP 409"
+    },
+    {
+      "id": "PAY002.idempotency-structural-canonical",
+      "ok": true,
+      "note": "reordered keys replay, not conflict"
+    },
+    {
+      "id": "PAY002.idempotency-actor-scoped",
+      "ok": true,
+      "note": "same raw key, different merchant → independent link"
+    },
+    {
+      "id": "PAY002.concurrent-single-resource",
+      "ok": true,
+      "note": "1 distinct link(s) from 4 concurrent identical requests"
+    },
+    {
+      "id": "PAY002.owner-cancel",
+      "ok": true,
+      "note": "status CANCELLED"
+    },
+    {
+      "id": "PAY002.neg.cancel-twice",
+      "ok": true,
+      "note": "HTTP 422 on an already-cancelled link"
+    },
+    {
+      "id": "PAY002.public-reflects-cancellation",
+      "ok": true,
+      "note": "HTTP 200, status CANCELLED"
+    },
+    {
+      "id": "PAY002.no-ledger-movement",
+      "ok": true,
+      "note": "balance 0 minor — creating and resolving a link is non-financial"
+    }
+  ],
+  "passed": 38,
+  "failed": 0,
+  "verdict": "PASS"
+}

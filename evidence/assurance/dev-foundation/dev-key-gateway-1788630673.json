@@ -1,0 +1,117 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 02 (ADR-046)",
+  "test": "tools/e2e/dev-console/dev-key-gateway-e2e.mjs",
+  "date_stamp": "1788630673",
+  "console_host": "https://developers.banzami.com",
+  "api_host": "https://developer-api.banzami.com",
+  "gateway_host": "https://sandbox-api.banzami.com",
+  "deployed_commit": "unknown",
+  "schema": "banzami_staging (developer + account_identity)",
+  "fixture_namespace": "rt02-*-1788630673@banzami-e2e.test",
+  "total": 20,
+  "passed": 20,
+  "failed": 0,
+  "matrix": [
+    {
+      "id": "RT02.key-created-reveal-once",
+      "ok": true,
+      "note": "bz_test_sk_ len 54"
+    },
+    {
+      "id": "RT02.gateway-accepts-console-key",
+      "ok": true,
+      "note": "/v1/me → 200, project=rt02-pr-a-1788630673, status=active"
+    },
+    {
+      "id": "RT02.resolves-project-safe-identity",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.me-no-internal-ids-leak",
+      "ok": true,
+      "note": "only {environment, project, scopes, key_status}"
+    },
+    {
+      "id": "RT02.no-raw-secret-in-response",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.list-no-raw-secret",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.rate-limit-identity-nonsecret",
+      "ok": true,
+      "note": "keyed on key_id (non-secret), not raw key"
+    },
+    {
+      "id": "RT02.scope-denied-without-identity",
+      "ok": true,
+      "note": "payments:read key on /v1/me → 403"
+    },
+    {
+      "id": "RT02.cross-tenant-key-mgmt-denied",
+      "ok": true,
+      "note": "→ 403"
+    },
+    {
+      "id": "RT02.key-A-resolves-only-to-own-identity",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.dev-key-cannot-hit-internal",
+      "ok": true,
+      "note": "internal route not authorized by dev key"
+    },
+    {
+      "id": "RT02.dev-key-not-merchant-jwt",
+      "ok": true,
+      "note": "merchant route (JWT) rejects dev key → 401"
+    },
+    {
+      "id": "RT02.rotated-away-key-rejected-by-gateway",
+      "ok": true,
+      "note": "old key /v1/me → 401"
+    },
+    {
+      "id": "RT02.rotated-replacement-accepted",
+      "ok": true,
+      "note": "new key /v1/me → 200"
+    },
+    {
+      "id": "RT02.revoked-key-rejected-by-gateway",
+      "ok": true,
+      "note": "revoked key /v1/me → 401"
+    },
+    {
+      "id": "RT02.bz_live-fails-closed",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.malformed-key-fails",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.unknown-key-fails",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.no-key-fails",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "id": "RT02.no-mutation-on-denied",
+      "ok": true,
+      "note": "keys 3→3"
+    }
+  ],
+  "secrets_note": "No raw key/secret/OTP printed or stored."
+}
