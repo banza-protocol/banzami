@@ -1,0 +1,31 @@
+{
+  "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / CAP-SDK-001",
+  "test": "tests/phase0/sdk-types-cleanroom.sh",
+  "date_stamp": "1788629468",
+  "generated_at": "2026-09-05T17:31:15.249180+00:00",
+  "spec": "@banzami/sdk@latest",
+  "installed_version": "0.8.2",
+  "consumer": "fresh npm project outside both repositories; strict; skipLibCheck:false; types:[] (no @types/node)",
+  "what_this_catches": "0.8.1 shipped string|Buffer in webhooks.d.ts (a Node global the package never declared) and exported no ./webhooks subpath, so the import its own example documents failed with TS2307. Both reproduce against 0.8.1 and are absent in 0.8.2.",
+  "total": 4,
+  "passed": 4,
+  "failed": 0,
+  "matrix": [
+    {
+      "check": "no @types/node present",
+      "ok": true
+    },
+    {
+      "check": "resolved from the registry only",
+      "ok": true
+    },
+    {
+      "check": "strict + skipLibCheck:false + no Node types \u2192 zero type errors",
+      "ok": true
+    },
+    {
+      "check": "an existing Buffer caller still compiles (Buffer assignable to Uint8Array)",
+      "ok": true
+    }
+  ]
+}

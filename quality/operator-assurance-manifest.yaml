@@ -319,7 +319,7 @@ capabilities:
         - core/api restitution: refund debits the account that was credited (RA-061)
       e2e_sandbox:
         - tests/phase0/refund-devkey-e2e.sh (15/15 on deployed sandbox, post-reset)
-        - tests/phase0/refund-published-sdk-e2e.sh (25/25 through the PUBLISHED @banzami/sdk@0.8.1, installed from npm)
+        - tests/phase0/refund-published-sdk-e2e.sh (25/25 through the PUBLISHED @banzami/sdk@latest, installed from npm)
       negative_security:
         - a read-only key cannot refund (refunds:read → 403 on write)
         - a second project holding a valid key cannot refund another project's payment (404, not 403)
@@ -649,8 +649,11 @@ capabilities:
       integration: []
       e2e_sandbox:
         - SDK clean tarball-install E2E → BanzamiClient.me() against deployed Gateway with a fresh Console key (evidence artifact)
+        - tests/phase0/refund-published-sdk-e2e.sh (25/25 through @banzami/sdk@latest installed from npm)
+        - tests/phase0/sdk-types-cleanroom.sh (4/4 — fresh consumer, strict, skipLibCheck:false, no @types/node)
       negative_security:
         - bz_live_+sandbox rejected (BanzamiConfigError); ./sandbox exposes no unreleased-capability methods; tools/check-sdk-contract.mjs
+        - public .d.ts declares no undeclared Node global; documented ./webhooks subpath resolves under NodeNext
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-needs-remediation
     evidence:
@@ -660,6 +663,7 @@ capabilities:
       - .github/workflows/sdk-publish.yml
       - tools/sdk-release.mjs
       - evidence/assurance/sdk/cap-sdk-001-public-install.json
+      - evidence/assurance/sdk/cap-sdk-001-types-cleanroom-1788629468.json
     surface: public
     disposition: released
     status: verified
@@ -683,6 +687,14 @@ capabilities:
     # Registry ownership (the former blocker) is resolved: the npm organisation
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
+    #
+    # latest = 0.8.2. Every version through 0.8.0 is deprecated; 0.7.0/0.8.0
+    # because createRefund pointed at a merchant-JWT route and answered 401 for
+    # the only credential the SDK documents. 0.8.2 additionally fixed two defects
+    # a consumer meets before writing any business code, both invisible in-repo
+    # because our own projects have @types/node and import from the package root:
+    # the public types demanded an undeclared Node global, and the ./webhooks
+    # subpath the module's own example teaches was never exported.
 
   # RELEASED as banzami_client, which is NOT sdk/flutter.
   #
