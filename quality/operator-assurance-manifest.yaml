@@ -319,6 +319,7 @@ capabilities:
         - core/api restitution: refund debits the account that was credited (RA-061)
       e2e_sandbox:
         - tests/phase0/refund-devkey-e2e.sh (15/15 on deployed sandbox, post-reset)
+        - tests/phase0/refund-published-sdk-e2e.sh (25/25 through the PUBLISHED @banzami/sdk@0.8.1, installed from npm)
       negative_security:
         - a read-only key cannot refund (refunds:read → 403 on write)
         - a second project holding a valid key cannot refund another project's payment (404, not 403)
@@ -329,6 +330,7 @@ capabilities:
     cleanup_disposition: active-required
     evidence:
       - evidence/assurance/refunds/cap-refund-001-devkey-sandbox-e2e.json
+      - evidence/assurance/refunds/ra-065-published-sdk-refunds.json
       - docs/quality/REPAIR_LOG.md#RA-061
     surface: public
     disposition: released
