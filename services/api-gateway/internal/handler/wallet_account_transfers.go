@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
@@ -128,9 +129,18 @@ func (h *WalletAccountTransferHandler) Create(w http.ResponseWriter, r *http.Req
 		Description:                body.Description,
 	})
 	if err != nil {
-		// Core's refusals are surfaced faithfully — insufficient funds, a foreign
-		// account (404, indistinguishable from unknown), currency mismatch —
-		// rather than collapsed into a 500.
+		// Core signals a missing-or-foreign account with a sentinel rather than a
+		// CoreError, so it must be branched on explicitly. Without this the
+		// response was 502 UPSTREAM_ERROR: the money was correctly untouched, but
+		// the status blamed the operator for the caller naming an account it does
+		// not own, and lost the privacy-safe 404 the design depends on.
+		if errors.Is(err, service.ErrNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND",
+				"wallet account not found")
+			return
+		}
+		// Everything else is surfaced faithfully — insufficient funds, currency
+		// mismatch — rather than collapsed into a 500.
 		respondCoreError(w, r, err, "transfer could not be processed")
 		return
 	}
