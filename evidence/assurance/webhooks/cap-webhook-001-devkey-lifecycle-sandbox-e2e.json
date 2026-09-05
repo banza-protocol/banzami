@@ -1,0 +1,110 @@
+{
+  "suite": "CAP-WEBHOOK-001 — Webhook lifecycle under a developer credential",
+  "test": "tests/phase0/webhook-lifecycle-e2e.sh",
+  "environment": "deployed sandbox (sandbox-api.banzami.com) — run on the Sandbox VM against running containers",
+  "builds": {
+    "api-gateway-staging": "f6b11769a482",
+    "core-api-staging": "9b9a70af3a5b",
+    "developer-api": "11eb90c546c6"
+  },
+  "generated_at": "2026-09-05T06:12:07.494Z",
+  "post_financial_reset": true,
+  "credential": "developer API key (bz_test_), not an operator or merchant session",
+  "total": 18,
+  "passed": 18,
+  "failed": 0,
+  "harness_summary": "WEBHOOK_LIFECYCLE_E2E: PASS=18 FAIL=0",
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "KEYS_ISSUED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "REGISTERED",
+      "pass": true,
+      "observed": "201"
+    },
+    {
+      "id": "SECRET_RETURNED_ONCE",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "UNDER_BOUND_MERCHANT",
+      "pass": true,
+      "observed": "6b6c05a1-2c0f-483e-9647-e3c8d097c8ce"
+    },
+    {
+      "id": "GET_OK",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "GET_CARRIES_NO_SECRET",
+      "pass": true,
+      "observed": ""
+    },
+    {
+      "id": "READ_KEY_CAN_LIST",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "READ_KEY_CANNOT_ROTATE",
+      "pass": true,
+      "observed": "403"
+    },
+    {
+      "id": "READ_KEY_CANNOT_REGISTER",
+      "pass": true,
+      "observed": "403"
+    },
+    {
+      "id": "ROTATED",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "ROTATED_SECRET_RETURNED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "ROTATED_SECRET_IS_NEW",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "FOREIGN_GET_404",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "FOREIGN_ROTATE_404",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "VICTIM_INTACT",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "FOREIGN_LIST_CLEAN",
+      "pass": true,
+      "observed": "clean"
+    },
+    {
+      "id": "UNBOUND_403",
+      "pass": true,
+      "observed": "403"
+    },
+    {
+      "id": "PROBE_DEACTIVATED",
+      "pass": true,
+      "observed": "yes"
+    }
+  ]
+}

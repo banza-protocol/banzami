@@ -1,0 +1,120 @@
+{
+  "suite": "CAP-TRANSFER-002 — Transferências between a project’s own wallet accounts (ADR-052)",
+  "test": "tests/phase0/transfer-devkey-e2e.sh",
+  "environment": "deployed sandbox (sandbox-api.banzami.com) — run on the Sandbox VM against running containers",
+  "builds": {
+    "api-gateway-staging": "f6b11769a482",
+    "core-api-staging": "9b9a70af3a5b",
+    "developer-api": "11eb90c546c6"
+  },
+  "generated_at": "2026-09-05T06:12:07.494Z",
+  "post_financial_reset": true,
+  "credential": "developer API key (bz_test_), not an operator or merchant session",
+  "total": 20,
+  "passed": 20,
+  "failed": 0,
+  "harness_summary": "TRANSFER_DEVKEY_E2E: PASS=20 FAIL=0",
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "KEY_ISSUED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "ACCOUNTS_OPENED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "SOURCE_FUNDED",
+      "pass": true,
+      "observed": "300000"
+    },
+    {
+      "id": "TRANSFER_ACCEPTED",
+      "pass": true,
+      "observed": "201"
+    },
+    {
+      "id": "SOURCE_DEBITED",
+      "pass": true,
+      "observed": "250000"
+    },
+    {
+      "id": "DEST_CREDITED",
+      "pass": true,
+      "observed": "50000"
+    },
+    {
+      "id": "OWNER_TOTAL_UNCHANGED",
+      "pass": true,
+      "observed": "300000"
+    },
+    {
+      "id": "LEDGER_BALANCED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "IDEMPOTENT_REPLAY",
+      "pass": true,
+      "observed": "598a2eeb-2e99-4814-82c9-1b44b233510f"
+    },
+    {
+      "id": "REPLAY_MOVED_NOTHING",
+      "pass": true,
+      "observed": "250000:50000"
+    },
+    {
+      "id": "CHANGED_PAYLOAD_CONFLICT",
+      "pass": true,
+      "observed": "409"
+    },
+    {
+      "id": "CONFLICT_MOVED_NOTHING",
+      "pass": true,
+      "observed": "250000:50000"
+    },
+    {
+      "id": "INSUFFICIENT_FUNDS_REJECTED",
+      "pass": true,
+      "observed": "rejected"
+    },
+    {
+      "id": "NEGATIVE_REJECTED",
+      "pass": true,
+      "observed": "400"
+    },
+    {
+      "id": "SELF_TRANSFER_REJECTED",
+      "pass": true,
+      "observed": "400"
+    },
+    {
+      "id": "REJECTIONS_MOVED_NOTHING",
+      "pass": true,
+      "observed": "250000:50000"
+    },
+    {
+      "id": "FOREIGN_SOURCE_REJECTED",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "FOREIGN_DESTINATION_REJECTED",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "VICTIM_UNCHANGED",
+      "pass": true,
+      "observed": "250000:50000"
+    },
+    {
+      "id": "LEDGER_STILL_BALANCED",
+      "pass": true,
+      "observed": "0"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CONTENT_MAP, PRESERVED_ARTIFACT_URLS } from './content-map';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const DOCS_DIR = 'app/developers/docs';
@@ -145,8 +146,14 @@ describe('P3A — claim safety across the reorganized corpus', () => {
   it('controlled preview, pending-E2E and Stage C not approved persist', () => {
     expect(PT).toContain('pré-visualização controlada');
     expect(EN).toContain('controlled preview');
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+    // "Pendente E2E" wording belongs on the page only while the manifest still
+    // withholds a release. Asserting it unconditionally would pin a claim the
+    // evidence has since overtaken.
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
   });

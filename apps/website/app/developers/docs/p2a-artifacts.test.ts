@@ -7,6 +7,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { isReleased } from './assurance-manifest';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -30,6 +31,10 @@ const ALLOWED_PATHS = [
   '/v1/payment-links',
   '/v1/business/wallet-accounts',
   '/v1/business/wallet-accounts/{id}',
+  // Released on deployed-Sandbox E2E evidence; see the assurance manifest.
+  '/v1/business/transfers',
+  '/v1/business/refunds',
+  '/v1/business/webhooks/endpoints',
 ];
 const FORBIDDEN_PATH_TOKENS = [
   '/v1/refunds', '/v1/transfers', '/v1/payments', '/checkout', '/pay/',
@@ -148,10 +153,16 @@ describe('P2A — machine-readable availability matrix', () => {
     }
     expect(MATRIX.environment).toBe('SANDBOX');
   });
-  it('refunds/transfers are NOT marked fully available; outbound webhooks NOT publicly active; live rails NOT available', () => {
-    expect(MATRIX.capabilities.refunds.state).toBe('pending_e2e');
-    expect(MATRIX.capabilities.transfers.state).toBe('pending_e2e');
-    expect(MATRIX.capabilities.webhook_outbound_delivery.state).toBe('simulated');
+  it('every state tracks the assurance manifest, and live rails stay unavailable', () => {
+    // The machine-readable matrix is downstream of the same evidence as the
+    // badges: a capability reads available_controlled_sandbox only while the
+    // manifest records it released with a deployed E2E run behind it.
+    const expected = (id: string, whenNot: string) =>
+      isReleased(id) ? 'available_controlled_sandbox' : whenNot;
+    expect(MATRIX.capabilities.refunds.state).toBe(expected('CAP-REFUND-001', 'pending_e2e'));
+    expect(MATRIX.capabilities.transfers.state).toBe(expected('CAP-TRANSFER-002', 'pending_e2e'));
+    expect(MATRIX.capabilities.webhook_outbound_delivery.state).toBe(expected('CAP-WEBHOOK-001', 'simulated'));
+    // Not derived from anything: Production stays unavailable, full stop.
     expect(MATRIX.capabilities.production_live_rails.state).toBe('not_available');
     expect(MATRIX.capabilities.pay_checkout_live_rails.state).toBe('not_approved');
     expect(MATRIX.capabilities.external_provider_rails.state).toBe('not_approved');

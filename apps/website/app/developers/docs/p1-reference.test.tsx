@@ -23,6 +23,7 @@ import EnReferencePage from './en/reference/page';
 import EnSdkPage from './en/sdk/page';
 import EnGuidesPage from './en/guides/page';
 import EnGetStartedPage from './en/get-started/page';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: PT/EN corpora = area content + landing pages.
@@ -128,9 +129,13 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
     }
     expect(EN).toContain('not yet published');
   });
-  it('refunds/transfers stay pending-E2E for developer keys in EN', () => {
-    expect(EN).toContain('Pending E2E for developer keys');
+  it('EN names the refunds/transfers project scopes and matches the manifest', () => {
     expect(EN).toContain('refunds:write');
+    expect(EN).toContain('transfers:write');
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(EN).toContain('Pending E2E for developer keys');
+    }
   });
   it('webhooks outbound stays simulated / not claimed publicly active in EN', () => {
     expect(EN).toContain('We do not claim webhook delivery as public Production');

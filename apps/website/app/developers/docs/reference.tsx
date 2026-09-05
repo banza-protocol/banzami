@@ -219,12 +219,192 @@ export const ENDPOINTS: EndpointSpec[] = [
       en: 'Supports Idempotency-Key like any write operation.',
     },
   },
+  {
+    id: 'ref-wacc-create',
+    method: 'POST',
+    path: '/v1/business/wallet-accounts',
+    tone: 'ok',
+    desc: {
+      pt: 'Abre uma conta do seu projeto para segregar valor por referência de negócio (por exemplo, uma campanha). O titular vem do binding — não há campo que o possa indicar.',
+      en: 'Opens an account of your project to segregate value by business reference (a campaign, say). The owner comes from the binding — no field can name it.',
+    },
+    credential: { pt: 'Chave de projeto (scope wallet_accounts:create)', en: 'Project key (wallet_accounts:create scope)' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
+    requestFields: [
+      { name: 'purpose', note: { pt: 'finalidade da conta (ex.: CAMPAIGN)', en: 'account purpose (e.g. CAMPAIGN)' } },
+      { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
+      { name: 'label', note: { pt: 'nome legível, opcional', en: 'human-readable label, optional' } },
+    ],
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/wallet-accounts \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "purpose": "CAMPAIGN",
+    "reference_type": "CAMPANHA",
+    "reference_id": "campanha_123",
+    "label": "Campanha 123"
+  }'`,
+    response: `{
+  "id": "wacc_exemplo",
+  "wallet_id": "wlt_exemplo",
+  "purpose": "CAMPAIGN",
+  "reference_type": "CAMPANHA",
+  "reference_id": "campanha_123",
+  "label": "Campanha 123",
+  "status": "ACTIVE",
+  "available_balance_minor": 0,
+  "currency": "AOA",
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
+    errors: [
+      { code: '400 MISSING_FIELD / VALIDATION_ERROR', note: { pt: 'corrija o pedido', en: 'fix the request' } },
+      { code: '403 FORBIDDEN', note: { pt: 'scope insuficiente ou projeto sem binding', en: 'insufficient scope or project without binding' } },
+      { code: '404 NOT_FOUND', note: { pt: 'uma conta de outro projeto é indistinguível de uma que não existe', en: 'another project’s account is indistinguishable from one that does not exist' } },
+    ],
+  },
+  {
+    id: 'ref-transfer-create',
+    method: 'POST',
+    path: '/v1/business/transfers',
+    tone: 'ok',
+    desc: {
+      pt: 'Move valor entre duas contas do mesmo titular do seu projeto. Débito e crédito atómicos: o total do titular não muda, apenas a distribuição.',
+      en: 'Moves value between two accounts of your project’s own owner. Atomic debit and credit: the owner’s total does not change, only its distribution.',
+    },
+    credential: { pt: 'Chave de projeto (scope transfers:write)', en: 'Project key (transfers:write scope)' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
+    requestFields: [
+      { name: 'source_wallet_account_id', note: { pt: 'conta de origem — tem de ser sua', en: 'source account — must be yours' } },
+      { name: 'destination_wallet_account_id', note: { pt: 'conta de destino — tem de ser sua e diferente da origem', en: 'destination account — must be yours and different from the source' } },
+      { name: 'amount_minor', note: { pt: 'montante em unidades menores (AOA), inteiro positivo', en: 'amount in minor units (AOA), a positive integer' } },
+      { name: 'currency', note: { pt: 'moeda (AOA)', en: 'currency (AOA)' } },
+      { name: 'idempotency_key', note: { pt: 'obrigatório — sem ele cada repetição seria uma transferência nova', en: 'required — without it every retry would be a new transfer' } },
+      { name: 'description', note: { pt: 'opcional', en: 'optional' } },
+    ],
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/transfers \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "source_wallet_account_id": "wacc_origem",
+    "destination_wallet_account_id": "wacc_destino",
+    "amount_minor": 50000,
+    "currency": "AOA",
+    "idempotency_key": "idem_transferencia_123"
+  }'`,
+    response: `{
+  "id": "wtr_exemplo",
+  "source_wallet_account_id": "wacc_origem",
+  "destination_wallet_account_id": "wacc_destino",
+  "amount_minor": 50000,
+  "currency": "AOA",
+  "status": "COMPLETED",
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
+    errors: [
+      { code: '400 INVALID_DESTINATION', note: { pt: 'origem e destino iguais', en: 'source and destination are the same' } },
+      { code: '400 INVALID_AMOUNT', note: { pt: 'amount_minor tem de ser positivo', en: 'amount_minor must be positive' } },
+      { code: '400 MISSING_FIELD', note: { pt: 'idempotency_key ou currency em falta', en: 'idempotency_key or currency missing' } },
+      { code: '403 FORBIDDEN', note: { pt: 'scope insuficiente ou projeto sem binding', en: 'insufficient scope or project without binding' } },
+      { code: '404 NOT_FOUND', note: { pt: 'uma conta que não é sua responde 404, indistinguível de uma que não existe', en: 'an account that is not yours answers 404, indistinguishable from one that does not exist' } },
+      { code: '409 CONFLICT', note: { pt: 'a mesma idempotency_key com um pedido diferente', en: 'the same idempotency_key with a different request' } },
+      { code: '422 UNPROCESSABLE', note: { pt: 'saldo insuficiente — nada se move', en: 'insufficient funds — nothing moves' } },
+    ],
+    idem: {
+      pt: 'Repetir o mesmo idempotency_key devolve a transferência original sem mover fundos duas vezes.',
+      en: 'Replaying the same idempotency_key returns the original transfer without moving funds twice.',
+    },
+  },
+  {
+    id: 'ref-refund-create',
+    method: 'POST',
+    path: '/v1/business/refunds',
+    tone: 'ok',
+    desc: {
+      pt: 'Devolve, total ou parcialmente, um pagamento elegível. O reembolso debita a conta que recebeu o pagamento — não o saldo geral do titular.',
+      en: 'Returns an eligible payment, fully or partially. The refund debits the account that received the payment — not the owner’s general balance.',
+    },
+    credential: { pt: 'Chave de projeto (scope refunds:write) ou credencial de merchant', en: 'Project key (refunds:write scope) or merchant credential' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
+    requestFields: [
+      { name: 'source_type', note: { pt: 'ACQUIRING_PAYMENT ou WALLET_PAYMENT', en: 'ACQUIRING_PAYMENT or WALLET_PAYMENT' } },
+      { name: 'source_id', note: { pt: 'o pagamento a reembolsar', en: 'the payment to refund' } },
+      { name: 'amount_minor', note: { pt: 'montante em unidades menores, até ao limite acumulado da origem', en: 'amount in minor units, up to the source’s accrued cap' } },
+      { name: 'currency', note: { pt: 'confirmada contra a origem', en: 'validated against the source' } },
+      { name: 'idempotency_key', note: { pt: 'obrigatório', en: 'required' } },
+      { name: 'reason', note: { pt: 'opcional', en: 'optional' } },
+    ],
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/refunds \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "source_type": "WALLET_PAYMENT",
+    "source_id": "wpay_exemplo",
+    "amount_minor": 50000,
+    "currency": "AOA",
+    "idempotency_key": "idem_reembolso_123"
+  }'`,
+    response: `{
+  "id": "rfnd_exemplo",
+  "source_type": "WALLET_PAYMENT",
+  "source_id": "wpay_exemplo",
+  "amount_minor": 50000,
+  "currency": "AOA",
+  "status": "COMPLETED",
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
+    errors: [
+      { code: '400 VALIDATION_ERROR', note: { pt: 'moeda diferente da origem, montante acima do limite, campos em falta', en: 'currency differs from the source, amount above the cap, missing fields' } },
+      { code: '403 FORBIDDEN', note: { pt: 'chave sem refunds:write — uma chave de leitura não reembolsa', en: 'key without refunds:write — a read-only key cannot refund' } },
+      { code: '404 NOT_FOUND', note: { pt: 'um pagamento de outro projeto responde 404: conhecer um id não é autoridade sobre ele', en: 'another project’s payment answers 404: knowing an id is not authority over it' } },
+    ],
+    idem: {
+      pt: 'Repetir o mesmo idempotency_key devolve o reembolso original e não devolve valor duas vezes.',
+      en: 'Replaying the same idempotency_key returns the original refund and does not refund twice.',
+    },
+  },
+  {
+    id: 'ref-webhook-register',
+    method: 'POST',
+    path: '/v1/business/webhooks/endpoints',
+    tone: 'ok',
+    desc: {
+      pt: 'Regista o endpoint HTTPS que recebe os eventos do seu projeto. O segredo de assinatura é devolvido uma única vez, na criação, e nunca mais é legível.',
+      en: 'Registers the HTTPS endpoint that receives your project’s events. The signing secret is returned exactly once, on creation, and is never readable again.',
+    },
+    credential: { pt: 'Chave de projeto (scope webhooks:write); leitura com webhooks:read', en: 'Project key (webhooks:write scope); reads with webhooks:read' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json'],
+    requestFields: [
+      { name: 'url', note: { pt: 'destino https público — http, loopback e endereços privados são recusados', en: 'public https destination — http, loopback and private addresses are refused' } },
+      { name: 'events', note: { pt: 'pelo menos um tipo de evento suportado; um nome desconhecido é recusado em vez de aceite em silêncio', en: 'at least one supported event type; an unknown name is refused rather than silently accepted' } },
+    ],
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/webhooks/endpoints \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://o-seu-servidor.exemplo/webhooks/banzami",
+    "events": ["payment_session.paid"]
+  }'`,
+    response: `{
+  "id": "whep_exemplo",
+  "url": "https://o-seu-servidor.exemplo/webhooks/banzami",
+  "events": ["payment_session.paid"],
+  "active": true,
+  "secret": "<devolvido apenas nesta resposta>",
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
+    errors: [
+      { code: '400 INVALID_WEBHOOK_URL', note: { pt: 'o destino não é um https público', en: 'the destination is not a public https endpoint' } },
+      { code: '400 UNSUPPORTED_EVENT', note: { pt: 'tipo de evento não suportado', en: 'unsupported event type' } },
+      { code: '403 FORBIDDEN', note: { pt: 'scope insuficiente ou projeto sem binding', en: 'insufficient scope or project without binding' } },
+      { code: '404 NOT_FOUND', note: { pt: 'um endpoint de outro projeto responde 404', en: 'another project’s endpoint answers 404' } },
+    ],
+  },
+
 ];
 
 // Compact rows for surfaces that exist but are NOT public-key callable today.
 export const RESTRICTED_ROWS: { path: string; status: Bi }[] = [
-  { path: 'POST/GET /v1/webhooks/endpoints · /{id} · /health · /v1/webhooks/events · /deliveries · /replay', status: { pt: 'Credencial de merchant — documentado, não público para chaves developer', en: 'Merchant credential — documented, not public for developer keys' } },
-  { path: 'POST /v1/refunds · GET /v1/refunds/{id}', status: { pt: 'Verificado com credencial de merchant; scope developer refunds:write Pendente E2E (403)', en: 'Verified with a merchant credential; developer refunds:write scope Pending E2E (403)' } },
+  { path: 'POST/GET /v1/webhooks/endpoints · /{id} · /health · /v1/webhooks/events · /deliveries · /replay', status: { pt: 'Caminho legado de merchant. Uma chave de projeto usa /v1/business/webhooks/*, documentado acima.', en: 'Legacy merchant path. A project key uses /v1/business/webhooks/*, documented above.' } },
   { path: 'POST/GET /v1/transfers', status: { pt: 'Superfície de consumidor apenas — o remetente deriva do token do consumidor; não disponível a credenciais de merchant', en: 'Consumer surface only — the sender derives from the consumer token; not available to merchant credentials' } },
 ];
 

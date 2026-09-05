@@ -1,0 +1,95 @@
+{
+  "suite": "CAP-REFUND-001 — Reembolsos under a developer credential",
+  "test": "tests/phase0/refund-devkey-e2e.sh",
+  "environment": "deployed sandbox (sandbox-api.banzami.com) — run on the Sandbox VM against running containers",
+  "builds": {
+    "api-gateway-staging": "f6b11769a482",
+    "core-api-staging": "9b9a70af3a5b",
+    "developer-api": "11eb90c546c6"
+  },
+  "generated_at": "2026-09-05T06:12:07.488Z",
+  "post_financial_reset": true,
+  "credential": "developer API key (bz_test_), not an operator or merchant session",
+  "total": 15,
+  "passed": 15,
+  "failed": 0,
+  "harness_summary": "REFUND_DEVKEY_E2E: PASS=15 FAIL=0",
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "KEY_ISSUED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "PAYER_AVAILABLE",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "PAYMENT_COMPLETED",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "ACCOUNT_CREDITED",
+      "pass": true,
+      "observed": "200000"
+    },
+    {
+      "id": "REFUND_SOURCE_FOUND",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "REFUND_ACCEPTED",
+      "pass": true,
+      "observed": "201"
+    },
+    {
+      "id": "BALANCE_REDUCED",
+      "pass": true,
+      "observed": "150000"
+    },
+    {
+      "id": "LEDGER_STILL_BALANCED_AFTER_REFUND",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "IDEMPOTENT_REPLAY",
+      "pass": true,
+      "observed": "cd2884e8-e12c-4153-9646-9a7f9b6dfb2c"
+    },
+    {
+      "id": "REPLAY_MOVED_NO_MONEY",
+      "pass": true,
+      "observed": "150000"
+    },
+    {
+      "id": "REFUND_READABLE",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "READ_SCOPE_CANNOT_REFUND",
+      "pass": true,
+      "observed": "403"
+    },
+    {
+      "id": "FOREIGN_REFUND_REJECTED",
+      "pass": true,
+      "observed": "rejected"
+    },
+    {
+      "id": "VICTIM_BALANCE_UNCHANGED",
+      "pass": true,
+      "observed": "150000"
+    },
+    {
+      "id": "FOREIGN_CANNOT_READ_REFUND",
+      "pass": true,
+      "observed": "404"
+    }
+  ]
+}

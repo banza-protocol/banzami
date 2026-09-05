@@ -13,7 +13,7 @@ const STATE_EN: [string, string][] = [
   ['HTTP/OpenAPI', 'secondary technical reference'],
   ['Production / live rails', 'not available'],
   ['Developer Console', 'operational in Sandbox'],
-  ['Refunds / transfers', 'Pending E2E for developer keys'],
+  ['Refunds / transfers', 'available in Sandbox with a project key'],
   ['Webhook outbound', 'signed delivery, verified in Sandbox'],
 ];
 

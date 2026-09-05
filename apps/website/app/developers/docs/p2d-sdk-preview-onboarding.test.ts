@@ -6,6 +6,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -129,8 +130,14 @@ describe('P2D — previous honesty preserved', () => {
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');
     expect(EN).toContain('not publicly published');
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+    // "Pendente E2E" wording belongs on the page only while the manifest still
+    // withholds a release. Asserting it unconditionally would pin a claim the
+    // evidence has since overtaken.
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
     const dirs = readdirSync(join(REPO, 'apps/website/app/developers/docs'), { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort();
     // P3A: area routes are directories too — the LOCALE rule is that 'en' is the
     // only locale dir and no other-language dir exists.

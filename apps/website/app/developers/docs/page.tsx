@@ -20,7 +20,7 @@ const STATE_PT: [string, string][] = [
   ['HTTP/OpenAPI', 'referência técnica secundária'],
   ['Produção / trilhos live', 'não disponíveis'],
   ['Console de developers', 'operacional em Sandbox'],
-  ['Reembolsos / transferências', 'Pendente E2E para chave developer'],
+  ['Reembolsos / transferências', 'disponíveis em Sandbox com chave de projeto'],
   ['Webhooks outbound', 'entrega assinada, verificada em Sandbox'],
 ];
 

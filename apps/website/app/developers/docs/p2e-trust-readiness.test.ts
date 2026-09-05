@@ -7,6 +7,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -44,18 +45,26 @@ describe('P2E — trust/readiness sections exist in PT and EN', () => {
     expect(flat).toContain('No gate in this documentation authorizes live rails, real-money payments, public launch, production key issuance, or regulatory approval');
     expect(flat).toContain('do not authorize real money, and do not represent regulatory approval');
   });
-  it('availability summary exists in both, with conservative states only', () => {
+  it('availability summary exists in both, and never softens what stays unavailable', () => {
+    // The vocabulary stays complete: a state is not retired because no row uses
+    // it today, or the next row that needs it would have nowhere to land.
     const STATES = ['available_controlled_sandbox', 'documented_preview', 'pending_e2e', 'simulated', 'not_public', 'not_available', 'not_approved'];
     for (const src of [PT, EN]) {
       for (const st of STATES) expect(src.includes(st), `missing state: ${st}`).toBe(true);
     }
-    // Conservative bindings preserved.
-    expect(PT).toContain("['Reembolsos (chave developer)', 'pending_e2e']");
-    expect(PT).toContain("['Entrega outbound de webhooks', 'simulated']");
+    // The one binding that must never move, whatever the evidence says about
+    // the Sandbox: Production and live rails stay unavailable.
     expect(PT).toContain("['Trilhos de Produção/live', 'not_available']");
-    expect(EN).toContain("['Refunds (developer key)', 'pending_e2e']");
-    expect(EN).toContain("['Webhook outbound delivery', 'simulated']");
     expect(EN).toContain("['Production/live rails', 'not_available']");
+    // Refunds and outbound delivery follow the manifest, in both directions.
+    const state = (src: string, row: string) =>
+      (src.match(new RegExp(`\\['${row}', '([a-z_]+)'\\]`)) || [])[1];
+    const expected = isReleased('CAP-REFUND-001') ? 'available_controlled_sandbox' : 'pending_e2e';
+    expect(state(PT, 'Reembolsos \\(chave de projeto\\)')).toBe(expected);
+    expect(state(EN, 'Refunds \\(project key\\)')).toBe(expected);
+    const wh = isReleased('CAP-WEBHOOK-001') ? 'available_controlled_sandbox' : 'simulated';
+    expect(state(PT, 'Entrega outbound de webhooks')).toBe(wh);
+    expect(state(EN, 'Webhook outbound delivery')).toBe(wh);
   });
   it('evidence caveats present in both languages', () => {
     expect(PT.replace(/\s+/g, ' ')).toContain('Passar os testes de documentação não ativa trilhos de pagamento');
@@ -133,8 +142,14 @@ describe('P2E — previous honesty preserved', () => {
     expect(dirs.filter((d) => /^(fr|es|de|it|zh|ru|pt)$/.test(d))).toEqual([]);
   });
   it('pending-E2E and Stage C not approved persist', () => {
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+    // "Pendente E2E" wording belongs on the page only while the manifest still
+    // withholds a release. Asserting it unconditionally would pin a claim the
+    // evidence has since overtaken.
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
     expect((PT + EN).toLowerCase().includes('production ready')).toBe(false);

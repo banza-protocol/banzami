@@ -57,9 +57,23 @@ mk(){ call "$GW" 8080 POST /v1/business/wallet-accounts \
 A=$(mk a); B=$(mk b)
 chk ACCOUNTS_OPENED "$([ -n "$A" ] && [ -n "$B" ] && [ "$A" != "$B" ] && echo yes)" yes
 
-PAYER=$(psqlro "SELECT cw.consumer_id FROM consumer_wallets cw JOIN ledger_entries le ON le.account_id=cw.available_account_id WHERE cw.status='ACTIVE' AND cw.currency='AOA' GROUP BY cw.consumer_id HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= 400000 ORDER BY 1 LIMIT 1")
-[ -n "$PAYER" ] || { echo "no funded payer available"; exit 1; }
+# The payer is onboarded and funded by this harness rather than scavenged from
+# whatever an earlier run left behind: a harness that depends on leftover state
+# passes or fails for reasons that have nothing to do with the product. Funding
+# goes through the sanctioned sandbox route, so the operator's own pilot
+# aggregate cap still applies — nothing here can raise it.
+PH="+2449${R:0:4}71"; H="tr${R:0:5}p"
+call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
+SID=$(jget session_id)
+call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
+call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
+PAYER=$(jget consumer_id)
+[ -n "$PAYER" ] || { echo "payer onboarding failed"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")
+call "$GW" 8080 POST /v1/compliance/customers/verify \
+  "{\"full_name\":\"TRANSFER E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"TR$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
+call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":400000,"currency":"AOA"}' "$CJWT"
+[ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE) — the rest would be vacuous"; exit 1; }
 call "$GW" 8080 POST /v1/business/payment-sessions \
   "{\"wallet_account_id\":\"$A\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"tr-fund-$R\",\"amount_minor\":300000,\"currency\":\"AOA\"}" "$KEY"
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')

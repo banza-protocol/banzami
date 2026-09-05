@@ -6,10 +6,10 @@
 //   - curl-first quickstart (no unpublished SDK as the primary path);
 //   - canonical error envelope + status table;
 //   - Idempotency-Key shown in code, with the real Sandbox semantics;
-//   - credential↔capability matrix (refunds/transfers not fully available for
-//     developer keys while their scopes are pending E2E);
-//   - webhook outbound delivery not claimed as publicly active (simulated in
-//     the public E2E) + implemented retry contract documented;
+//   - credential↔capability matrix, with each row tracking the assurance
+//     manifest rather than a snapshot of it;
+//   - webhook outbound delivery never claimed beyond the Sandbox, with the
+//     implemented retry contract documented;
 //   - top-of-page Sandbox/Preview status with demo/non-operational Console;
 //   - no unverified event vocabulary and no fake SDK install commands anywhere
 //     on /docs, the overview, or the doc diagram components.
@@ -20,6 +20,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import DocsPage from './page';
 import PtGetStartedPage from './get-started/page';
 import PtReferencePage from './reference/page';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 // P3A: the PT documentation corpus = area content + landing page.
@@ -133,16 +134,27 @@ describe('P0 — /docs content contracts (rendered)', () => {
     expect(DOCS).toContain('24 horas');
     expect(DOCS).toContain('409 CONFLICT');
   });
-  it('has the credential↔capability matrix with honest pending-E2E rows', () => {
+  it('has the credential↔capability matrix, and it still refuses Production', () => {
     render(<PtReferencePage />);
     expect(screen.getByText('Credenciais e capacidades')).toBeTruthy();
-    expect(DOCS).toContain('Pendente E2E para chave developer');
+    // Whatever the Sandbox evidence says, this row does not move.
     expect(DOCS).toContain('Não disponível · Não aprovado');
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(DOCS).toContain('Pendente E2E para chave developer');
+    }
   });
-  it('refunds/transfers are not presented as fully available to developer keys', () => {
+  it('refunds/transfers name their project scope and never claim Production', () => {
+    // Both are released in Sandbox under a project key, so the docs must say
+    // which scope and which route reach them — and must still never present
+    // either as available on live rails.
     expect(DOCS).toContain('refunds:write');
-    expect(DOCS).toContain('transfers:*');
-    expect(DOCS.match(/Pendente E2E/g)!.length).toBeGreaterThanOrEqual(2);
+    expect(DOCS).toContain('transfers:write');
+    expect(DOCS).toContain('/v1/business/refunds');
+    expect(DOCS).toContain('/v1/business/transfers');
+    expect(isReleased('CAP-REFUND-001')).toBe(true);
+    expect(isReleased('CAP-TRANSFER-002')).toBe(true);
+    expect(/reembolsos?[^.]{0,80}dispon[íi]vel em produ[çc][ãa]o/i.test(DOCS)).toBe(false);
   });
   it('webhooks: outbound not claimed publicly active; implemented retry contract documented', () => {
     expect(DOCS).toContain('simulada');

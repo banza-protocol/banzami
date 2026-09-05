@@ -441,18 +441,32 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
 
               <H3 id="transfers">Transfers <Badge tone="ok">Available in Sandbox</Badge></H3>
               <P>
-                Move value between Banzami accounts. An authenticated user sends to the recipient&rsquo;s <Code>@banza</Code>, with the
-                amount in minor units (AOA) and an idempotency key. In the Sandbox the transfer confirms synchronously,
-                reaching <strong>COMPLETED</strong>, with atomic debit and credit in the ledger and an official receipt available.
+                Move value between two accounts of your own project. The request names the source account,
+                the destination account, the amount in minor units (AOA) and an idempotency key. In the Sandbox
+                the transfer confirms synchronously, with atomic debit and credit in the ledger — the owner&rsquo;s
+                total does not change, only how it is distributed across accounts.
               </P>
+              <P>
+                Replaying the same idempotency key returns the original transfer without moving funds twice;
+                reusing it with a different request answers <Code>409</Code> rather than silently repeating.
+                Verified end to end in the Sandbox. Never real money — <em>Production in preparation</em>.
+              </P>
+              <Callout tone="warn">
+                <strong>What Transfers is, and what it is not.</strong> It moves value between two accounts of the
+                {' '}<strong>same owner</strong> that your project&rsquo;s binding fixes — Campaign A to Campaign B of the
+                same organisation, say. Nothing crosses the owner boundary: it is not a payout, not an application
+                settlement (ADR-029), not a consumer-to-consumer P2P transfer. Naming an account that is not yours
+                answers <Code>404</Code>, indistinguishable from one that does not exist.
+              </Callout>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Credential note: the verified path uses an authenticated user. The developer-key scopes (<Code>transfers:*</Code>)
-                are <strong>Pending E2E</strong> — see the{' '}
+                Credential: a project key with the <Code>transfers:write</Code> scope, on{' '}
+                <Code>POST /v1/business/transfers</Code>. The owner comes from the binding — no request field can
+                name it. See the{' '}
                 <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
                 Never real money — <em>Production in preparation</em>.
               </P>
 
-              <H3 id="refunds">Refunds <Badge tone="val">Under continuous validation in Sandbox</Badge></H3>
+              <H3 id="refunds">Refunds <Badge tone="ok">Available in Sandbox</Badge></H3>
               <P>
                 Banzami refunds return, fully or partially, the value of an eligible payment confirmed in the Sandbox. Each request
                 identifies the payment source, respects the amount already captured and is processed idempotently.
@@ -470,9 +484,10 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 {' '}and <Code>idempotency_key</Code>.
               </P>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Technical reference: the payment source is typed per BANZA ADR-017. Credential note: the verified path uses a
-                merchant credential; the developer-key scope (<Code>refunds:write</Code>) is <strong>Pending E2E</strong> — a
-                developer-key refund request is rejected (403). See the{' '}
+                Technical reference: the payment source is typed per BANZA ADR-017. Credential: a project key with the
+                {' '}<Code>refunds:write</Code> scope, on <Code>POST /v1/business/refunds</Code>. The refund debits the account
+                that <strong>received</strong> the payment — not the owner&rsquo;s general balance — and another
+                project&rsquo;s payment answers <Code>404</Code>. See the{' '}
                 <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
                 Never real money — <em>Production in preparation</em>.
               </P>
@@ -561,10 +576,10 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in controlled Sandbox'],
                       ['Payment sessions', 'Developer key (payment_sessions scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
                       ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
-                      ['Webhook endpoint registration (API)', 'Merchant credential', 'Documented, not public'],
-                      ['Outbound webhook delivery', '—', 'Simulated in the public E2E; DOA journey verified'],
-                      ['Refunds (POST /v1/refunds)', 'Merchant credential (verified). Developer refunds:write scope', 'Pending E2E for developer keys — a developer-key request is rejected (403)'],
-                      ['Transfers', 'Authenticated user (verified). Developer transfers:* scopes', 'Pending E2E for developer keys'],
+                      ['Webhook endpoint registration (POST /v1/business/webhooks)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
+                      ['Outbound webhook delivery', '—', 'Verified in Sandbox — signature confirmed independently and delivery accepted by a public receiver'],
+                      ['Refunds (POST /v1/business/refunds)', 'Project key (refunds:write) or merchant credential', 'Available in Sandbox — the refund debits the account that received the payment'],
+                      ['Transfers (POST /v1/business/transfers)', 'Project key (transfers:write)', 'Available in Sandbox — between accounts of the project’s own owner'],
                       ['Production / live rails / external providers', '—', 'Not available · Not approved'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}>
@@ -605,9 +620,11 @@ export function EnReference({ copy }: { copy: CopyFn }) {
               <ResourceReference lang="en" onCopy={copy} />
 
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Credential note: refunds and transfers were verified with merchant/user credentials; the developer-key scopes
-                (<Code>refunds:write</Code>, <Code>transfers:*</Code>) remain <strong>Pending E2E</strong> — a developer-key
-                refund request is rejected (403). Never present these as fully available to developer keys.
+                Credential note: refunds and transfers are reached with a project key holding
+                {' '}<Code>refunds:write</Code> and <Code>transfers:write</Code>, on <Code>/v1/business/refunds</Code> and
+                {' '}<Code>/v1/business/transfers</Code>. Both were verified end to end against the deployed Sandbox, including
+                the refusals: a read-only key cannot write, and another project&rsquo;s payment or account answers <Code>404</Code>.
+                Sandbox only — never present either as available in Production.
               </P>
 
               </Section>
@@ -697,6 +714,14 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                 not available, and what must not be interpreted as Production approval, live rails activation, or regulatory
                 authorization.
               </P>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                <strong>State vocabulary.</strong> <Code>available_controlled_sandbox</Code> — verified on the deployed
+                Sandbox, with evidence; <Code>documented_preview</Code> — documented, not yet verified end to end;
+                {' '}<Code>pending_e2e</Code> — implemented, awaiting verification on the deployed environment;
+                {' '}<Code>simulated</Code> — exercised only against a test double; <Code>not_public</Code> — exists, but is not
+                publicly reachable; <Code>not_available</Code> — does not exist today; <Code>not_approved</Code> — waits on a
+                decision that has not been taken. A state changes only when the evidence changes.
+              </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
                   <thead>
@@ -714,10 +739,10 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                       ['Payment sessions', 'available_controlled_sandbox'],
                       ['Payment links', 'available_controlled_sandbox'],
                       ['QR payload', 'available_controlled_sandbox'],
-                      ['Webhook signature/reference', 'documented_preview'],
-                      ['Webhook outbound delivery', 'simulated'],
-                      ['Refunds (developer key)', 'pending_e2e'],
-                      ['Transfers (developer key)', 'pending_e2e'],
+                      ['Webhook signature/reference', 'available_controlled_sandbox'],
+                      ['Webhook outbound delivery', 'available_controlled_sandbox'],
+                      ['Refunds (project key)', 'available_controlled_sandbox'],
+                      ['Transfers (project key)', 'available_controlled_sandbox'],
                       ['Developer Console (visual pages)', 'documented_preview'],
                       ['Production/live rails', 'not_available'],
                       ['Pay/checkout/live rails', 'not_approved'],
@@ -759,8 +784,8 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                       ['SDK packages not publicly published', 'not_public', 'Do not install from public registries.', 'Controlled access via onboarding.'],
                       ['Preview access is controlled, not self-service', 'not_public', 'No public signup; wait for approval.', 'Documented eligibility and approval process.'],
                       ['HTTP/OpenAPI is reference, not recommended path', 'documented_preview', 'Direct HTTP for diagnostics/audits only.', 'SDK-first; artifacts labelled protocol_reference.'],
-                      ['Webhook outbound delivery simulated', 'simulated', 'Do not assume guaranteed public delivery.', 'Retry contract documented; DOA journey verified.'],
-                      ['Refunds/transfers pending E2E (developer keys)', 'pending_e2e', 'Developer-key requests rejected (403).', 'Credential↔capability matrix; future verification.'],
+                      ['Outbound delivery is verified in Sandbox only', 'available_controlled_sandbox', 'Verified against a public receiver; Production is not covered.', 'Independently verified signature, tamper rejection, retry and failure isolation.'],
+                      ['Refunds/transfers are Sandbox-only', 'available_controlled_sandbox', 'Released to project keys in Sandbox; never on live rails.', 'Deployed E2E including the refusals: read-only keys and foreign resources.'],
                       ['Some Console pages still show illustrative data', 'documented_preview', 'Those pages are labelled on the page itself.', 'Sign-in, projects and keys are operational and verified.'],
                       ['Production/live rails not available', 'not_available', 'No real money; no live keys.', 'bz_live_ rejected fail-closed.'],
                       ['External provider rails not active', 'not_approved', 'Do not assume external integrations.', 'Separate governance decision.'],
@@ -878,7 +903,7 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
                 the SDKs:
               </P>
               <UL>
-                <LI><strong>OpenAPI</strong> (protocol reference) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — verified endpoints only; refunds/transfers absent while Pending E2E for developer keys.</LI>
+                <LI><strong>OpenAPI</strong> (protocol reference) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — verified endpoints only.</LI>
                 <LI><strong>Postman collection</strong> (protocol reference) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
                 <LI><strong>curl examples</strong> (diagnostic / protocol reference) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; full fixtures in <Code>docs/developer/examples/</Code>.</LI>
                 <LI><strong>Availability matrix</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (the machine-readable source of this documentation's states, checked by tests).</LI>

@@ -9,6 +9,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PRESERVED_ARTIFACT_URLS } from './content-map';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const D = 'app/developers/docs';
@@ -69,16 +70,17 @@ describe('P3C — PT/EN guides parity', () => {
     expect(EN).toContain('ACQUIRING_PAYMENT');
     expect(EN).toContain('WALLET_PAYMENT');
     expect(EN).toContain('refunds:write');
-    expect(EN.replace(/\s+/g, ' ')).toContain('developer-key refund request is rejected (403)');
+    expect(EN.replace(/\s+/g, ' ')).toContain('on <Code>POST /v1/business/refunds</Code>');
     // never the obsolete/internal contract.
     expect(EN.includes('transaction_id')).toBe(false);
     expect(EN.includes('payment_id')).toBe(false);
   });
-  it('EN transfers is credential-scoped (developer transfers scope Pending E2E)', () => {
-    expect(EN).toContain('transfers:*');
-    // raw source carries JSX tags around the tokens; assert the tokens + framing.
-    expect(EN).toContain('The developer-key scopes (<Code>transfers:*</Code>)');
-    expect(EN.replace(/\s+/g, ' ')).toContain('are <strong>Pending E2E</strong>');
+  it('EN transfers is credential-scoped and bounded to the caller’s own owner', () => {
+    expect(EN).toContain('transfers:write');
+    expect(EN).toContain('<Code>POST /v1/business/transfers</Code>');
+    // The boundary is the product: EN must say so as plainly as PT does.
+    expect(EN.replace(/\s+/g, ' ')).toContain('same owner');
+    expect(EN.replace(/\s+/g, ' ')).toContain('The owner comes from the binding');
   });
 });
 
@@ -105,11 +107,14 @@ describe('P3C — claim safety preserved', () => {
       expect(CORPUS.toLowerCase().includes(bad)).toBe(false);
     }
   });
-  it('pending-E2E and Stage C not approved persist', () => {
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+  it('Stage C not approved persists, and pending wording tracks the manifest', () => {
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
   });
   it('no fake installs, no production/live/BNA/provider/regulatory/certification overclaims', () => {
     for (const cmd of ['pip install banzami', 'composer require banzami/sdk', 'pub add banzami', 'pod "Banzami"']) {

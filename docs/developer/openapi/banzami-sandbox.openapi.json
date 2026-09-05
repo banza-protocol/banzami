@@ -3,7 +3,7 @@
   "info": {
     "title": "Banzami Sandbox API",
     "version": "docs-2026-09-05",
-    "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Only endpoints already verified and documented are included; refunds and transfers are intentionally ABSENT because their developer-key scopes remain pending end-to-end verification (a developer-key request is rejected with 403). Webhook outbound delivery to external public sinks remains simulated in the public E2E suite and is not claimed as publicly active. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
+    "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Only endpoints already verified end to end against the deployed Sandbox are included. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
   },
   "servers": [
     {
@@ -587,6 +587,232 @@
           }
         }
       }
+    },
+    "/v1/business/transfers": {
+      "post": {
+        "tags": [
+          "transfers"
+        ],
+        "operationId": "createWalletAccountTransfer",
+        "summary": "Move value between two accounts of your own owner",
+        "description": "Transferências (BANZA ADR-052). Moves value between two wallet accounts of the financial owner your project is bound to. Nothing crosses the owner boundary: it is not a payout, not an application settlement, not consumer P2P. Credential: developer key with transfers:write. Both endpoints are validated against the caller’s owner in the gateway and again in Core; an account outside it answers 404, indistinguishable from one that does not exist.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWalletAccountTransferRequest"
+              },
+              "example": {
+                "source_wallet_account_id": "wacc_source_xxx",
+                "destination_wallet_account_id": "wacc_destination_xxx",
+                "amount_minor": 50000,
+                "currency": "AOA",
+                "idempotency_key": "idem_xxx"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transfer completed. Replaying the same idempotency_key returns this same transfer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WalletAccountTransfer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_DESTINATION (same account), INVALID_AMOUNT (zero or negative), MISSING_FIELD, INVALID_CURRENCY",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing transfers:write scope, or project not provisioned to hold funds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "An account outside your owner — indistinguishable from one that does not exist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The same idempotency_key reused with a different request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Insufficient funds — nothing moves",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/business/refunds": {
+      "post": {
+        "tags": [
+          "refunds"
+        ],
+        "operationId": "createRefund",
+        "summary": "Refund an eligible payment",
+        "description": "Returns an eligible payment fully or partially. The refund debits the account that RECEIVED the payment, not the owner’s general balance. Credential: developer key with refunds:write, or a merchant credential. Another project’s payment answers 404 — knowing an id is not authority over it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundRequest"
+              },
+              "example": {
+                "source_type": "WALLET_PAYMENT",
+                "source_id": "wallet_payment_xxx",
+                "amount_minor": 50000,
+                "currency": "AOA",
+                "idempotency_key": "idem_xxx"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Refund created. Replaying the same idempotency_key returns this same refund.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Currency differs from the source, amount above the accrued cap, or missing fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing refunds:write scope — a read-only key cannot refund",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refund source not found, or belonging to another project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/business/webhooks/endpoints": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "registerWebhookEndpoint",
+        "summary": "Register the endpoint that receives your project’s events",
+        "description": "Registers an HTTPS endpoint under the owner your project is bound to. The signing secret is returned exactly once, in this response, and is never readable again. Credential: developer key with webhooks:write. Deliveries are signed over the raw request bytes and carry the banza-signature header.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterWebhookEndpointRequest"
+              },
+              "example": {
+                "url": "https://your-server.example/webhooks/banzami",
+                "events": [
+                  "payment_session.paid"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Endpoint registered. The secret appears here and nowhere else.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpoint"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_WEBHOOK_URL (not a public https destination) or UNSUPPORTED_EVENT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing webhooks:write scope, or project not provisioned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Another project’s endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1029,6 +1255,200 @@
           },
           "currency": {
             "type": "string"
+          }
+        }
+      },
+      "CreateWalletAccountTransferRequest": {
+        "type": "object",
+        "required": [
+          "source_wallet_account_id",
+          "destination_wallet_account_id",
+          "amount_minor",
+          "currency",
+          "idempotency_key"
+        ],
+        "properties": {
+          "source_wallet_account_id": {
+            "type": "string",
+            "description": "Source account. Must belong to your bound owner."
+          },
+          "destination_wallet_account_id": {
+            "type": "string",
+            "description": "Destination account. Must belong to your bound owner and differ from the source."
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Amount in minor units (AOA). Zero and negative are refused."
+          },
+          "currency": {
+            "type": "string",
+            "example": "AOA"
+          },
+          "idempotency_key": {
+            "type": "string",
+            "description": "Required. Without it every retry would be a new transfer."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "WalletAccountTransfer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source_wallet_account_id": {
+            "type": "string"
+          },
+          "destination_wallet_account_id": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "COMPLETED"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CreateRefundRequest": {
+        "type": "object",
+        "required": [
+          "source_type",
+          "source_id",
+          "amount_minor",
+          "currency",
+          "idempotency_key"
+        ],
+        "properties": {
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "ACQUIRING_PAYMENT",
+              "WALLET_PAYMENT"
+            ]
+          },
+          "source_id": {
+            "type": "string",
+            "description": "The payment being refunded."
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Up to the source’s accrued cap."
+          },
+          "currency": {
+            "type": "string",
+            "example": "AOA",
+            "description": "Validated against the source."
+          },
+          "idempotency_key": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "Refund": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "source_type": {
+            "type": "string"
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "example": "COMPLETED"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RegisterWebhookEndpointRequest": {
+        "type": "object",
+        "required": [
+          "url",
+          "events"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Public https destination. http, loopback, private and link-local addresses are refused."
+          },
+          "events": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported event types only; an unknown name is refused rather than silently accepted."
+          }
+        }
+      },
+      "WebhookEndpoint": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Returned exactly once, on creation. Never readable again — a later read omits it."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       }

@@ -8,6 +8,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -141,8 +142,14 @@ describe('P2C — previous honesty preserved', () => {
     expect(/\/docs\/(fr|es|de|it)\b/.test(PT + EN)).toBe(false);
   });
   it('pending-E2E and no production/BNA claims persist', () => {
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+    // "Pendente E2E" wording belongs on the page only while the manifest still
+    // withholds a release. Asserting it unconditionally would pin a claim the
+    // evidence has since overtaken.
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
     for (const bad of ['production ready', 'BNA approved', 'Production is available']) {
       expect((PT + EN).toLowerCase().includes(bad.toLowerCase())).toBe(false);
     }

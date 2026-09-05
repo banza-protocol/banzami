@@ -115,6 +115,42 @@ capabilities:
     reference_path: true
     status: verified
 
+  - id: CAP-TRANSFER-002
+    name: Transferências between a project's own wallet accounts
+    owner: operator-payments
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: protocol
+    authority_ref: BANZA ADR-052 internal wallet-account transfers
+    implementation:
+      - core/api/src/routes/wallet_account_transfers.rs
+      - services/api-gateway/internal/handler/wallet_account_transfers.go
+      - db/migrations/0102_wallet_account_transfers.sql
+    api_surface:
+      - /v1/business/transfers
+    threat_category: financial-money-movement
+    tests:
+      unit: []
+      integration:
+        - balanced double-entry posting per transfer (source DEBIT / destination CREDIT)
+      e2e_sandbox:
+        - tests/phase0/transfer-devkey-e2e.sh (20/20 on deployed sandbox, post-reset)
+      negative_security:
+        - a foreign project cannot name another owner's account as source (404, not 403)
+        - a foreign project cannot name another owner's account as destination (404)
+        - the victim's two balances are unchanged after both refused attempts
+        - insufficient funds, negative amount and self-transfer are all rejected and move nothing
+        - the same idempotency key with a changed payload is a 409 conflict, not a silent replay
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence:
+      - evidence/assurance/transfers/cap-transfer-002-devkey-sandbox-e2e.json
+    surface: public
+    disposition: released
+    status: verified
+
   - id: CAP-PAY-001
     name: Payment sessions
     owner: operator-payments
@@ -275,18 +311,28 @@ capabilities:
       - services/api-gateway
     api_surface:
       - /v1/refunds
+      - /v1/business/refunds
     threat_category: financial-money-movement
     tests:
       unit: []
-      integration: []
-      e2e_sandbox: []
-      negative_security: []
+      integration:
+        - core/api restitution: refund debits the account that was credited (RA-061)
+      e2e_sandbox:
+        - tests/phase0/refund-devkey-e2e.sh (15/15 on deployed sandbox, post-reset)
+      negative_security:
+        - a read-only key cannot refund (refunds:read → 403 on write)
+        - a second project holding a valid key cannot refund another project's payment (404, not 403)
+        - the victim's balance is unchanged after the refused attempt
+        - the foreign project cannot read the resulting refund (404)
+        - an idempotent replay returns the same refund and moves no money
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/refunds/cap-refund-001-devkey-sandbox-e2e.json
+      - docs/quality/REPAIR_LOG.md#RA-061
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   - id: CAP-PAYOUT-001
     name: Wallet withdrawal / payouts (0.75% fee, paired postings)
@@ -357,19 +403,32 @@ capabilities:
     implementation:
       - services/api-gateway
     api_surface:
+      - /v1/business/webhooks
       - webhook delivery + banza-signature header
     threat_category: identity-auth
     tests:
       unit: []
-      integration: []
-      e2e_sandbox: []
-      negative_security: []
+      integration:
+        - guarded egress destination validation (ADR-049)
+      e2e_sandbox:
+        - tests/phase0/webhook-lifecycle-e2e.sh (18/18 on deployed sandbox, post-reset)
+        - tests/phase0/webhook-delivery-to-doa.sh (signed delivery accepted by production DOA)
+      negative_security:
+        - the endpoint secret is returned once and never re-exposed on read
+        - a read-only key can list but cannot register or rotate (403)
+        - another project cannot read, rotate or even see the endpoint (404, and a clean list)
+        - an unbound project has no webhook surface at all (403)
+        - rotation issues a genuinely different secret
+        - signature is over the raw bytes: body, digest and timestamp tampering all fail
+        - destination guard rejects http, loopback, RFC1918 and link-local metadata targets
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json
+      - evidence/assurance/webhooks/cap-webhook-001-devkey-lifecycle-sandbox-e2e.json
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   - id: CAP-PROOF-001
     name: Receipts, proofs and verification pages (/r/{ref})

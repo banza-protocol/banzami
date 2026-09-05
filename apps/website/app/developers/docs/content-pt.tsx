@@ -31,11 +31,14 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone:
   },
   {
     title: 'Transferências',
-    desc: 'Movimente valor entre contas.',
+    // Precise on purpose. The capability moves money between accounts of the
+    // SAME project-bound owner and cannot leave it; "entre contas" alone invites
+    // a reader to expect arbitrary external transfer.
+    desc: 'Movimente valor entre contas do seu projeto.',
     href: '/docs/guides#transferencias',
     tone: 'ok',
-    badgeTone: 'val',
-    badgeText: 'Pendente E2E para chave developer',
+    badgeTone: 'ok',
+    badgeText: 'Disponível em Sandbox',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M4 12h13l-3-3M20 12H7" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -46,9 +49,9 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone:
     title: 'Webhooks',
     desc: 'Eventos assinados no seu servidor.',
     href: '/docs/guides#webhooks',
-    tone: 'val',
-    badgeTone: 'val',
-    badgeText: 'Assinatura e entrega outbound verificadas em Sandbox',
+    tone: 'ok',
+    badgeTone: 'ok',
+    badgeText: 'Disponível em Sandbox',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <circle cx="12" cy="7" r="2.6" stroke={RED} strokeWidth="1.8" />
@@ -61,9 +64,9 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone:
     title: 'Reembolsos',
     desc: 'Devolva pagamentos processados.',
     href: '/docs/guides#reembolsos',
-    tone: 'val',
-    badgeTone: 'val',
-    badgeText: 'Pendente E2E para chave developer',
+    tone: 'ok',
+    badgeTone: 'ok',
+    badgeText: 'Disponível em Sandbox',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M20 11a8 8 0 10-1 5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" />
@@ -679,21 +682,33 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
 
               <H3 id="transferencias">Transferências <Badge tone="ok" /></H3>
               <P>
-                Movimente valor entre contas Banzami. Um utilizador autenticado envia para o <GlossaryTerm id="banza-handle" code>@banza</GlossaryTerm> do destinatário,
-                com o montante em unidades menores (AOA) e uma <GlossaryTerm id="idempotencia">idempotency key</GlossaryTerm>. A transferência é confirmada de forma síncrona no
-                Sandbox, ficando <strong>COMPLETED</strong>, com débito e crédito atómicos no ledger e um comprovativo oficial disponível.
+                Movimente valor entre duas contas do seu próprio projeto. O pedido indica a conta de
+                origem, a conta de destino, o montante em unidades menores (AOA) e uma{' '}
+                <GlossaryTerm id="idempotencia">idempotency key</GlossaryTerm>. A transferência é confirmada de forma
+                síncrona no Sandbox, com débito e crédito atómicos no ledger — o total do titular não muda,
+                apenas a sua distribuição entre contas.
               </P>
               <P>
-                Repetir a mesma idempotency key devolve a transferência original, sem mover fundos duas vezes. Validado de ponta a
-                ponta no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
+                Repetir a mesma idempotency key devolve a transferência original, sem mover fundos duas vezes;
+                reutilizá-la com um pedido diferente responde <Code>409</Code>, em vez de repetir em silêncio.
+                Validado de ponta a ponta no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
               </P>
+              <Callout tone="warn">
+                <strong>O que Transferências é, e o que não é.</strong> Move valor entre duas
+                contas do <strong>mesmo titular</strong> que o binding do seu projeto fixa —
+                por exemplo, da Campanha A para a Campanha B da mesma organização. Nada
+                atravessa a fronteira do titular: não é payout, não é liquidação de aplicação
+                (ADR-029), não é transferência P2P entre consumidores. Indicar uma conta que
+                não é sua responde <Code>404</Code>, indistinguível de uma que não existe.
+              </Callout>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Nota de credencial: o percurso verificado usa um utilizador autenticado. Os scopes de chave developer
-                (<Code>transfers:*</Code>) estão <strong>Pendente E2E</strong> — ver a matriz de{' '}
+                Credencial: chave de projeto com o scope <Code>transfers:write</Code>. O
+                titular vem do binding — não existe campo no pedido que o possa indicar. Ver a
+                matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
               </P>
 
-              <H3 id="reembolsos">Reembolsos <Badge tone="val" /></H3>
+              <H3 id="reembolsos">Reembolsos <Badge tone="ok" /></H3>
               <P>
                 Reembolsos Banzami permitem devolver, total ou parcialmente, o valor de um pagamento elegível confirmado no Sandbox.
                 Cada pedido identifica a origem do pagamento, respeita o valor já capturado e é processado de forma idempotente.
@@ -721,9 +736,10 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               </Callout>
 
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-017. Nota de credencial: o percurso
-                verificado usa a credencial de merchant; o scope de chave developer (<Code>refunds:write</Code>) está{' '}
-                <strong>Pendente E2E</strong> — um pedido de reembolso com chave developer é recusado (403). Ver a matriz de{' '}
+                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-017. Credencial: chave de projeto
+                com o scope <Code>refunds:write</Code>, em <Code>POST /v1/business/refunds</Code>. O reembolso debita a
+                conta que <strong>recebeu</strong> o pagamento — não o saldo geral do titular — e um pagamento de outro
+                projeto responde <Code>404</Code>. Ver a matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
               </P>
             </Section>
@@ -845,10 +861,10 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
                       ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
                       ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
-                      ['Registo de endpoints de webhooks (API)', 'Credencial de merchant', 'Documentado, não público'],
-                      ['Entrega outbound de webhooks', '—', 'Simulado no E2E público; jornada DOA verificada'],
-                      ['Reembolsos (POST /v1/refunds)', 'Credencial de merchant (verificado). Scope developer refunds:write', 'Pendente E2E para chave developer — pedido com chave developer é recusado (403)'],
-                      ['Transferências', 'Utilizador autenticado (verificado). Scopes developer transfers:*', 'Pendente E2E para chave developer'],
+                      ['Registo de endpoints de webhooks (POST /v1/business/webhooks)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
+                      ['Entrega outbound de webhooks', '—', 'Verificada em Sandbox — assinatura confirmada de forma independente e entrega aceite por um recetor público'],
+                      ['Reembolsos (POST /v1/business/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
+                      ['Transferências (POST /v1/business/transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
                       ['Produção / trilhos live / fornecedores externos', '—', 'Não disponível · Não aprovado'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}>
@@ -1005,6 +1021,14 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                 não está disponível e o que não deve ser interpretado como aprovação de Produção, ativação de trilhos live ou
                 autorização regulatória.
               </P>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                <strong>Vocabulário de estados.</strong> <Code>available_controlled_sandbox</Code> — verificado no Sandbox
+                implantado, com evidência; <Code>documented_preview</Code> — documentado, ainda não verificado ponta a ponta;
+                {' '}<Code>pending_e2e</Code> — implementado, à espera de verificação no ambiente implantado;
+                {' '}<Code>simulated</Code> — exercitado apenas contra um duplo de teste; <Code>not_public</Code> — existe, mas
+                não é acessível publicamente; <Code>not_available</Code> — não existe hoje; <Code>not_approved</Code> — depende
+                de uma decisão que ainda não foi tomada. Um estado só muda quando a evidência muda.
+              </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
                   <thead>
@@ -1022,10 +1046,10 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                       ['Sessões de pagamento', 'available_controlled_sandbox'],
                       ['Payment links', 'available_controlled_sandbox'],
                       ['Payload QR', 'available_controlled_sandbox'],
-                      ['Assinatura/referência de webhooks', 'documented_preview'],
-                      ['Entrega outbound de webhooks', 'simulated'],
-                      ['Reembolsos (chave developer)', 'pending_e2e'],
-                      ['Transferências (chave developer)', 'pending_e2e'],
+                      ['Assinatura/referência de webhooks', 'available_controlled_sandbox'],
+                      ['Entrega outbound de webhooks', 'available_controlled_sandbox'],
+                      ['Reembolsos (chave de projeto)', 'available_controlled_sandbox'],
+                      ['Transferências (chave de projeto)', 'available_controlled_sandbox'],
                       ['Developer Console (páginas visuais)', 'documented_preview'],
                       ['Trilhos de Produção/live', 'not_available'],
                       ['Pay/checkout/trilhos live', 'not_approved'],
@@ -1067,8 +1091,8 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                       ['Pacotes SDK não publicados publicamente', 'not_public', 'Não instalar de registries públicos.', 'Acesso controlado por onboarding.'],
                       ['Acesso preview controlado, não self-service', 'not_public', 'Não existe registo público; aguardar aprovação.', 'Processo de elegibilidade e aprovação documentado.'],
                       ['HTTP/OpenAPI é referência, não caminho recomendado', 'documented_preview', 'HTTP direto só para diagnóstico/auditoria.', 'SDK-first; artefactos marcados protocol_reference.'],
-                      ['Entrega outbound de webhooks simulada', 'simulated', 'Não assumir entrega pública garantida.', 'Contrato de retries documentado; jornada DOA verificada.'],
-                      ['Reembolsos/transferências pendentes E2E (chave developer)', 'pending_e2e', 'Pedido com chave developer é recusado (403).', 'Matriz credencial↔capacidade; verificação futura.'],
+                      ['Entrega outbound verificada apenas em Sandbox', 'available_controlled_sandbox', 'Verificada contra um recetor público; a Produção não está coberta.', 'Assinatura confirmada de forma independente, rejeição de adulteração, retries e isolamento de falhas.'],
+                      ['Reembolsos/transferências apenas em Sandbox', 'available_controlled_sandbox', 'Disponíveis a chaves de projeto em Sandbox; nunca em trilhos live.', 'E2E no ambiente implantado, incluindo as recusas: chave de leitura e recursos de outro projeto.'],
                       ['Páginas visuais da Console demo/não-operacionais', 'documented_preview', 'Não confiar nos dados dessas páginas.', 'Rotuladas na documentação.'],
                       ['Trilhos de Produção/live indisponíveis', 'not_available', 'Nenhum dinheiro real; nenhuma chave live.', 'bz_live_ recusado fail-closed.'],
                       ['Trilhos de fornecedores externos inativos', 'not_approved', 'Não assumir integrações externas.', 'Decisão de governance separada.'],
@@ -1185,7 +1209,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
                 substituem os SDKs:
               </P>
               <UL>
-                <LI><strong>OpenAPI</strong> (referência do protocolo) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — só os endpoints verificados; reembolsos/transferências ausentes por estarem Pendente E2E para chaves developer.</LI>
+                <LI><strong>OpenAPI</strong> (referência do protocolo) — <a href="/developers/openapi/banzami-sandbox.openapi.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/openapi/banzami-sandbox.openapi.json</a> — só os endpoints verificados.</LI>
                 <LI><strong>Coleção Postman</strong> (referência do protocolo) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
                 <LI><strong>Exemplos curl</strong> (diagnóstico / referência do protocolo) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; fixtures completas em <Code>docs/developer/examples/</Code>.</LI>
                 <LI><strong>Matriz de disponibilidade</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (fonte machine-readable dos estados, verificada por testes).</LI>

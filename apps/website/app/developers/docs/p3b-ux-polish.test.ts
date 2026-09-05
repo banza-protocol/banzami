@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { PRESERVED_ARTIFACT_URLS } from './content-map';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 const D = 'app/developers/docs';
@@ -110,18 +111,33 @@ describe('P3B — quickstart is SDK-first, curl is diagnostic-only', () => {
 });
 
 describe('P3B — credential-scoped badge clarity', () => {
-  it('transfers and refunds cards read Pending E2E for developer keys', () => {
-    expect(PT).toContain("badgeText: 'Pendente E2E para chave developer'");
-    // two cards carry it (transfers + refunds)
-    expect((PT.match(/Pendente E2E para chave developer/g) || []).length).toBeGreaterThanOrEqual(2);
+  it('every capability card carries the badge its manifest entry earns', () => {
+    // The manifest is the source. A card may say "Disponível em Sandbox" only
+    // while its capability is released with deployed E2E evidence behind it;
+    // short of that it must read "Pendente E2E para chave developer". Asserting
+    // both directions catches an over-claim and a stale under-claim alike.
+    for (const { card, id } of CARD_CAPABILITIES) {
+      const start = PT.indexOf(`title: '${card}'`);
+      expect(start, `card ${card} is missing`).toBeGreaterThan(-1);
+      const block = PT.slice(start, start + 900);
+      const badge = (block.match(/badgeText: '([^']+)'/) || [])[1];
+      expect(badge, `card ${card} has no badge`).toBeDefined();
+      expect(badge === 'Disponível em Sandbox', `${card} badge vs ${id}`).toBe(isReleased(id));
+      if (!isReleased(id)) expect(badge).toBe('Pendente E2E para chave developer');
+    }
   });
   // Outbound delivery is no longer simulated: it is proven against the deployed
   // Sandbox to a genuinely public HTTPS receiver, with an independently verified
   // signature, tamper rejection, retry and failure isolation. The card says so,
   // and this guards against silently reverting to the weaker claim.
-  it('webhooks card states signature AND outbound delivery are verified', () => {
-    expect(PT).toContain("badgeText: 'Assinatura e entrega outbound verificadas em Sandbox'");
+  it('webhooks: outbound delivery is never re-described as simulated', () => {
+    // Outbound delivery is proven against the deployed Sandbox to a genuinely
+    // public HTTPS receiver, with an independently verified signature, tamper
+    // rejection, retry and failure isolation. Understating that is as much a
+    // false claim as overstating it, so the weaker wording must not come back.
     expect(PT.includes('outbound simulado'), 'must not re-assert simulated outbound').toBe(false);
+    expect(PT).toContain('Entrega outbound de webhooks');
+    expect(PT).toContain('assinatura confirmada de forma independente');
   });
   it('the docs-claims gate still sees the released-capability tone (transfers tone ok kept)', () => {
     // href → tone adjacency preserved for the manifest-disposition gate.
@@ -173,11 +189,16 @@ describe('P3B — claim safety preserved across the polished corpus', () => {
       expect(CORPUS.includes(cmd)).toBe(false);
     }
   });
-  it('pending-E2E and Stage C not approved persist', () => {
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+  it('Stage C not approved persists, and no capability over-claims its manifest state', () => {
     expect(PT).toContain('Stage C não implementado/não aprovado');
     expect(EN).toContain('Stage C not implemented/approved');
+    // "Pendente E2E" must appear exactly where the manifest still withholds a
+    // release — no more, and no less.
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
   });
   it('no production/live/BNA/provider/regulatory/certification overclaims', () => {
     for (const bad of ['production ready', 'Production is available', 'BNA approved', 'SOC 2', 'ISO 27001', 'PCI DSS', 'certified uptime', '99.9', 'sign up now']) {

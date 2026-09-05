@@ -1,6 +1,6 @@
 {
   "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox/Preview documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | documented_preview | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the CURRENT Sandbox/Preview scope only — it is not a Production contract and makes no production/live/external-provider availability claim.",
-  "version": "docs-2026-07-11",
+  "version": "docs-2026-09-05",
   "environment": "SANDBOX",
   "capabilities": {
     "console_auth_workspaces_projects_members_keys": {
@@ -34,24 +34,24 @@
       "note": "Requires payment_links scope + ACTIVE project binding (or a merchant credential)."
     },
     "webhook_configuration": {
-      "state": "not_public",
-      "credential": "merchant",
-      "note": "Endpoint registration/inspection APIs exist for merchant credentials; not public for developer keys."
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped_or_merchant",
+      "note": "POST/GET /v1/business/webhooks/* with the webhooks:write and webhooks:read scopes. The signing secret is returned exactly once, on creation; another project’s endpoint answers 404."
     },
     "webhook_outbound_delivery": {
-      "state": "simulated",
+      "state": "available_controlled_sandbox",
       "credential": null,
-      "note": "Simulated in the public E2E suite (emission, HMAC signing and retry contract verified; DOA journey is the verified delivery path). Not claimed as publicly active."
+      "note": "Signed delivery verified on the deployed Sandbox against a public HTTPS receiver: signature confirmed independently over the raw bytes, tamper rejection, retry on 5xx and failure isolation. Sandbox only — no Production delivery claim."
     },
     "refunds": {
-      "state": "pending_e2e",
-      "credential": "merchant_verified_developer_pending",
-      "note": "Verified end-to-end with a merchant credential; developer-key scope refunds:write is pending E2E — a developer-key request is rejected (403)."
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped_or_merchant",
+      "note": "POST /v1/business/refunds with the refunds:write scope. The refund debits the account that received the payment; a read-only key is refused (403) and another project’s payment answers 404."
     },
     "transfers": {
-      "state": "pending_e2e",
-      "credential": "user_verified_developer_pending",
-      "note": "Verified with an authenticated user; developer-key scopes transfers:* are pending E2E."
+      "state": "available_controlled_sandbox",
+      "credential": "developer_key_scoped",
+      "note": "POST /v1/business/transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
     },
     "production_live_rails": {
       "state": "not_available",

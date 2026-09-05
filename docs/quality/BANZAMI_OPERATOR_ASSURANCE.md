@@ -14,9 +14,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 6 |
-| verified | 10 |
-| **total** | **21** |
+| in-audit | 4 |
+| verified | 13 |
+| **total** | **22** |
 
 ## Capabilities
 
@@ -24,13 +24,14 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|---|---|---|---|---|---|---|
 | CAP-LEDGER-001 | Double-entry ledger (append-only postings) | core-ledger | internal | **released** | ✅ | 🔒 no | integration-required | verified |
 | CAP-WALLET-001 | Wallet accounts and balances | core-wallets | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-TRANSFER-002 | Transferências between a project's own wallet accounts | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-001 | Payment sessions | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-002 | Payment links | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
 | CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
-| CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
@@ -49,11 +50,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| pending-e2e | 5 |
+| pending-e2e | 3 |
 | quarantined | 5 |
-| released | 10 |
+| released | 13 |
 
-Public surfaces released: **9/14**. Full external launch requires 14/14.
+Public surfaces released: **12/15**. Full external launch requires 15/15.
 
 ## Detail
 
@@ -86,6 +87,22 @@ Public surfaces released: **9/14**. Full external launch requires 14/14.
 - **Evidence:** evidence/assurance/transfer-sandbox-e2e-20260704.json
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released** · reference-path
+- **Launch scope:** sandbox
+- **Status:** **verified**
+
+### CAP-TRANSFER-002 — Transferências between a project's own wallet accounts
+
+- **Owner:** operator-payments
+- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
+- **Authority:** protocol — BANZA ADR-052 internal wallet-account transfers
+- **Threat category:** financial-money-movement
+- **Implementation:** core/api/src/routes/wallet_account_transfers.rs, services/api-gateway/internal/handler/wallet_account_transfers.go, db/migrations/0102_wallet_account_transfers.sql
+- **API/UI surface:** /v1/business/transfers
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [] · integration [balanced double-entry posting per transfer (source DEBIT / destination CREDIT)] · e2e_sandbox [tests/phase0/transfer-devkey-e2e.sh (20/20 on deployed sandbox, post-reset)] · negative/security [a foreign project cannot name another owner's account as source (404, not 403), a foreign project cannot name another owner's account as destination (404), the victim's two balances are unchanged after both refused attempts, insufficient funds, negative amount and self-transfer are all rejected and move nothing, the same idempotency key with a changed payload is a 409 conflict, not a silent replay]
+- **Evidence:** evidence/assurance/transfers/cap-transfer-002-devkey-sandbox-e2e.json
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
 - **Status:** **verified**
 
@@ -144,14 +161,14 @@ Public surfaces released: **9/14**. Full external launch requires 14/14.
 - **Authority:** protocol — BANZA refund/restitution rules
 - **Threat category:** financial-money-movement
 - **Implementation:** core/transactions, services/api-gateway
-- **API/UI surface:** /v1/refunds
+- **API/UI surface:** /v1/refunds, /v1/business/refunds
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [core/api restitution: refund debits the account that was credited (RA-061)] · e2e_sandbox [tests/phase0/refund-devkey-e2e.sh (15/15 on deployed sandbox, post-reset)] · negative/security [a read-only key cannot refund (refunds:read → 403 on write), a second project holding a valid key cannot refund another project's payment (404, not 403), the victim's balance is unchanged after the refused attempt, the foreign project cannot read the resulting refund (404), an idempotent replay returns the same refund and moves no money]
+- **Evidence:** evidence/assurance/refunds/cap-refund-001-devkey-sandbox-e2e.json, docs/quality/REPAIR_LOG.md#RA-061
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-PAYOUT-001 — Wallet withdrawal / payouts (0.75% fee, paired postings)
 
@@ -192,14 +209,14 @@ Public surfaces released: **9/14**. Full external launch requires 14/14.
 - **Authority:** protocol — BANZA webhook signing contract
 - **Threat category:** identity-auth
 - **Implementation:** services/api-gateway
-- **API/UI surface:** webhook delivery + banza-signature header
+- **API/UI surface:** /v1/business/webhooks, webhook delivery + banza-signature header
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [guarded egress destination validation (ADR-049)] · e2e_sandbox [tests/phase0/webhook-lifecycle-e2e.sh (18/18 on deployed sandbox, post-reset), tests/phase0/webhook-delivery-to-doa.sh (signed delivery accepted by production DOA)] · negative/security [the endpoint secret is returned once and never re-exposed on read, a read-only key can list but cannot register or rotate (403), another project cannot read, rotate or even see the endpoint (404, and a clean list), an unbound project has no webhook surface at all (403), rotation issues a genuinely different secret, signature is over the raw bytes: body, digest and timestamp tampering all fail, destination guard rejects http, loopback, RFC1918 and link-local metadata targets]
+- **Evidence:** evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json, evidence/assurance/webhooks/cap-webhook-001-devkey-lifecycle-sandbox-e2e.json
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-PROOF-001 — Receipts, proofs and verification pages (/r/{ref})
 

@@ -8,6 +8,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -152,10 +153,16 @@ describe('P2B — public artifact manifest and parity', () => {
 });
 
 describe('P2B — previous honesty preserved', () => {
-  it('refunds/transfers remain pending E2E; webhooks outbound remain simulated', () => {
-    expect(PT).toContain('Pendente E2E');
-    expect(EN).toContain('Pending E2E');
+  it('claim safety holds: no Production webhook claim, pending wording tracks the manifest', () => {
     expect(EN).toContain('We do not claim webhook delivery as public Production');
+    // "Pendente E2E" wording belongs on the page only while the manifest still
+    // withholds a release. Asserting it unconditionally would pin a claim the
+    // evidence has since overtaken.
+    for (const { id } of CARD_CAPABILITIES) {
+      if (isReleased(id)) continue;
+      expect(PT).toContain('Pendente E2E');
+      expect(EN).toContain('Pending E2E');
+    }
   });
   it('no production/live/BNA/provider claims', () => {
     for (const bad of ['production ready', 'BNA approved', 'live payments are available', 'Production is available']) {

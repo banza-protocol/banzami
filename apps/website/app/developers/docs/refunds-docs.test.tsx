@@ -6,7 +6,7 @@
 //   - never accept transaction_id / payment_id as a refund input;
 //   - never expose the internal Core token TRANSACTION as a public source type;
 //   - always present the public typed-source fields;
-//   - Refunds badge is "Disponível em Sandbox";
+//   - the Refunds badge is whatever the assurance manifest's evidence says it is;
 //   - the page stays static (no login, no Developer API fetch).
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,6 +14,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
 import DocsPage from './page';
 import PtGuidesPage from './guides/page';
+// The badge is not allowed to have an opinion of its own: it is read back from
+// the assurance manifest, so evidence drives the badge rather than the reverse.
+import { capability, isReleased } from './assurance-manifest';
 
 // P3A: refunds content lives in the PT area content module (guides route).
 const DOCS = readFileSync(join(process.cwd(), 'app/developers/docs/content-pt.tsx'), 'utf8');
@@ -60,13 +63,18 @@ describe('Refunds docs — typed-source public contract (ADR-017)', () => {
     }
   });
 
-  it('the Refunds badge matches the manifest disposition (pending-e2e => never "ok")', () => {
-    // CAP-REFUND-001 is disposition: pending-e2e in quality/operator-assurance-manifest.yaml,
-    // so the section badge must be 'val' ("Em validação contínua no Sandbox") and must
-    // NOT claim "Disponível em Sandbox" — enforced too by tools/check-docs-claims.mjs.
-    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="val"/.test(DOCS)).toBe(true);
-    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="ok"/.test(DOCS)).toBe(false);
-    // rendered: the label appears (capability card + section)
+  it('the Refunds badge matches the manifest disposition, in both directions', () => {
+    // The manifest is the source: only a capability released on deployed E2E
+    // evidence may claim "Disponível em Sandbox". Anything short of released
+    // must read "Em validação contínua no Sandbox" instead. Asserting both
+    // directions means neither an over-claim nor a stale under-claim can pass.
+    const released = isReleased('CAP-REFUND-001');
+    if (released) {
+      // No badge without a deployed run behind it.
+      expect(capability('CAP-REFUND-001').tests.e2e_sandbox.length).toBeGreaterThan(0);
+    }
+    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="ok"/.test(DOCS)).toBe(released);
+    expect(/id="reembolsos">\s*Reembolsos\s*<Badge tone="val"/.test(DOCS)).toBe(!released);
     render(<PtGuidesPage />);
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);
   });
