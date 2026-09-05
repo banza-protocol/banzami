@@ -12,6 +12,7 @@ class PaymentLink {
   final DateTime? paidAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+
   /// The resulting transfer's id, present only on the pay response. The receipt
   /// (comprovativo) endpoint keys on the transaction id, not the link id, so the
   /// receipt MUST be fetched by this when available.
@@ -35,17 +36,17 @@ class PaymentLink {
   });
 
   factory PaymentLink.fromJson(Map<String, dynamic> json) => PaymentLink(
-        id:           json['id'] as String,
-        slug:         json['slug'] as String,
-        merchantId:   json['merchant_id'] as String,
+        id: json['id'] as String,
+        slug: json['slug'] as String,
+        merchantId: json['merchant_id'] as String,
         merchantName: json['merchant_name'] as String?,
-        walletId:     json['wallet_id'] as String,
-        amountMinor:  json['amount_minor'] as int?,
-        currency:     json['currency'] as String,
-        description:  json['description'] as String?,
-        status:       PaymentLinkStatus.fromString(json['status'] as String),
-        transferId:   json['transaction_id'] as String?,
-        expiresAt:    json['expires_at'] != null
+        walletId: json['wallet_id'] as String,
+        amountMinor: json['amount_minor'] as int?,
+        currency: json['currency'] as String,
+        description: json['description'] as String?,
+        status: PaymentLinkStatus.fromString(json['status'] as String),
+        transferId: json['transaction_id'] as String?,
+        expiresAt: json['expires_at'] != null
             ? DateTime.parse(json['expires_at'] as String)
             : null,
         paidAt: json['paid_at'] != null
@@ -63,11 +64,11 @@ enum PaymentLinkStatus {
   cancelled;
 
   static PaymentLinkStatus fromString(String s) => switch (s) {
-        'ACTIVE'    => active,
-        'USED'      => used,
-        'EXPIRED'   => expired,
+        'ACTIVE' => active,
+        'USED' => used,
+        'EXPIRED' => expired,
         'CANCELLED' => cancelled,
-        _           => active,
+        _ => active,
       };
 }
 
@@ -77,7 +78,8 @@ class PaymentLinkPage {
 
   const PaymentLinkPage({required this.data, this.nextCursor});
 
-  factory PaymentLinkPage.fromJson(Map<String, dynamic> json) => PaymentLinkPage(
+  factory PaymentLinkPage.fromJson(Map<String, dynamic> json) =>
+      PaymentLinkPage(
         data: (json['data'] as List<dynamic>)
             .map((e) => PaymentLink.fromJson(e as Map<String, dynamic>))
             .toList(),

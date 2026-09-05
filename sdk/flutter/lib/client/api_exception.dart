@@ -10,20 +10,21 @@ class BanzamiApiException implements Exception {
     required this.message,
   });
 
-  bool get isNotFound         => statusCode == 404;
-  bool get isConflict         => statusCode == 409;
-  bool get isUnprocessable    => statusCode == 422;
+  bool get isNotFound => statusCode == 404;
+  bool get isConflict => statusCode == 409;
+  bool get isUnprocessable => statusCode == 422;
   bool get isInsufficientFunds => code == 'INSUFFICIENT_FUNDS';
-  bool get isHandleTaken      => code == 'HANDLE_TAKEN';
-  bool get isWalletNotFound   => code == 'WALLET_NOT_FOUND';
-  bool get isQrExpired        => code == 'QR_EXPIRED';
-  bool get isQrAlreadyUsed    => code == 'QR_ALREADY_USED';
+  bool get isHandleTaken => code == 'HANDLE_TAKEN';
+  bool get isWalletNotFound => code == 'WALLET_NOT_FOUND';
+  bool get isQrExpired => code == 'QR_EXPIRED';
+  bool get isQrAlreadyUsed => code == 'QR_ALREADY_USED';
 
-  factory BanzamiApiException.fromJson(int statusCode, Map<String, dynamic> json) {
+  factory BanzamiApiException.fromJson(
+      int statusCode, Map<String, dynamic> json) {
     return BanzamiApiException(
       statusCode: statusCode,
-      code:       json['code']    as String? ?? 'UNKNOWN',
-      message:    json['message'] as String? ?? 'Unknown error',
+      code: json['code'] as String? ?? 'UNKNOWN',
+      message: json['message'] as String? ?? 'Unknown error',
     );
   }
 

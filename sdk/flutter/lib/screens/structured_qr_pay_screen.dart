@@ -99,7 +99,11 @@ class _BanzamiStructuredQrPayScreenState
       final parsed = await widget.client.decodeQr(widget.payload);
       final id = parsed['qr_code_id'] as String?;
       if (id == null) {
-        if (mounted) setState(() { _resolving = false; _error = 'QR inválido.'; });
+        if (mounted)
+          setState(() {
+            _resolving = false;
+            _error = 'QR inválido.';
+          });
         return;
       }
       final res = await widget.client.getQrCode(id);
@@ -113,10 +117,16 @@ class _BanzamiStructuredQrPayScreenState
       });
     } on BanzamiApiException catch (e) {
       if (!mounted) return;
-      setState(() { _resolving = false; _error = _humanError(e); });
+      setState(() {
+        _resolving = false;
+        _error = _humanError(e);
+      });
     } catch (_) {
       if (!mounted) return;
-      setState(() { _resolving = false; _error = 'Não foi possível ler o QR.'; });
+      setState(() {
+        _resolving = false;
+        _error = 'Não foi possível ler o QR.';
+      });
     }
   }
 
@@ -134,7 +144,10 @@ class _BanzamiStructuredQrPayScreenState
     }
 
     HapticFeedback.mediumImpact();
-    setState(() { _sending = true; _error = null; });
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
     _pulseCtrl.repeat(reverse: true);
 
     try {
@@ -157,12 +170,18 @@ class _BanzamiStructuredQrPayScreenState
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
-      setState(() { _sending = false; _error = _humanError(e); });
+      setState(() {
+        _sending = false;
+        _error = _humanError(e);
+      });
     } catch (_) {
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
-      setState(() { _sending = false; _error = 'Erro de ligação. Tente novamente.'; });
+      setState(() {
+        _sending = false;
+        _error = 'Erro de ligação. Tente novamente.';
+      });
     }
   }
 
@@ -170,13 +189,16 @@ class _BanzamiStructuredQrPayScreenState
         'INSUFFICIENT_FUNDS' => 'Saldo insuficiente para este pagamento.',
         'KYC_REQUIRED' =>
           'Conta limitada. Verifique a sua identidade para pagar.',
-        'KYC_NOT_APPROVED' => 'A sua verificação de identidade não foi aprovada.',
+        'KYC_NOT_APPROVED' =>
+          'A sua verificação de identidade não foi aprovada.',
         'LIMIT_EXCEEDED' => 'Este pagamento excede o seu limite atual.',
         'QR_ALREADY_USED' => 'Este QR já foi utilizado.',
         'QR_EXPIRED' => 'Este QR expirou.',
         'QR_INVALID_SIGNATURE' => 'QR inválido ou adulterado.',
         'PAYER_WALLET_NOT_ACTIVE' => 'A sua carteira não está activa.',
-        _ => e.message.isNotEmpty ? e.message : 'Pagamento falhou. Tente novamente.',
+        _ => e.message.isNotEmpty
+            ? e.message
+            : 'Pagamento falhou. Tente novamente.',
       };
 
   // ── Review UI ──────────────────────────────────────────────────────────────
@@ -190,7 +212,8 @@ class _BanzamiStructuredQrPayScreenState
         shape: BoxShape.circle,
       ),
       child: const Center(
-        child: Icon(Icons.storefront_rounded, color: BanzamiColors.white, size: 34),
+        child: Icon(Icons.storefront_rounded,
+            color: BanzamiColors.white, size: 34),
       ),
     );
   }
@@ -199,7 +222,7 @@ class _BanzamiStructuredQrPayScreenState
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: BanzamiSpacing.xl,
-        vertical:   BanzamiSpacing.md,
+        vertical: BanzamiSpacing.md,
       ),
       decoration: BoxDecoration(
         color: BanzamiColors.primary,
@@ -255,7 +278,8 @@ class _BanzamiStructuredQrPayScreenState
 
   Widget _buildReviewUI() {
     final amount = _amountMinor;
-    final amountText = amount != null ? formatMinor(amount, widget.currency) : null;
+    final amountText =
+        amount != null ? formatMinor(amount, widget.currency) : null;
     final buttonLabel = amountText != null ? 'Pagar $amountText' : 'Pagar';
 
     return AnimatedOpacity(
@@ -272,7 +296,10 @@ class _BanzamiStructuredQrPayScreenState
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzamiSpacing.xl, 40, BanzamiSpacing.xl, BanzamiSpacing.xl,
+                  BanzamiSpacing.xl,
+                  40,
+                  BanzamiSpacing.xl,
+                  BanzamiSpacing.xl,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -323,7 +350,10 @@ class _BanzamiStructuredQrPayScreenState
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                BanzamiSpacing.xl, 8, BanzamiSpacing.xl, BanzamiSpacing.xl,
+                BanzamiSpacing.xl,
+                8,
+                BanzamiSpacing.xl,
+                BanzamiSpacing.xl,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -359,7 +389,7 @@ class _BanzamiStructuredQrPayScreenState
       width: 118,
       height: 118,
       decoration: BoxDecoration(
-        shape:    BoxShape.circle,
+        shape: BoxShape.circle,
         gradient: BanzamiGradients.primary,
         boxShadow: [
           BoxShadow(
@@ -374,7 +404,8 @@ class _BanzamiStructuredQrPayScreenState
           ),
         ],
       ),
-      child: const Icon(Icons.arrow_upward_rounded, color: BanzamiColors.white, size: 46),
+      child: const Icon(Icons.arrow_upward_rounded,
+          color: BanzamiColors.white, size: 46),
     );
   }
 

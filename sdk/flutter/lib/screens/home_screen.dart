@@ -17,16 +17,17 @@ import 'send_screen.dart';
 
 class BanzamiHomeScreen extends StatefulWidget {
   final ConsumerPublicClient client;
-  final String               consumerId;
-  final String               handle;
-  final String?              displayName;
-  final String?              logoAssetPath;
-  final VoidCallback?        onNotifications;
+  final String consumerId;
+  final String handle;
+  final String? displayName;
+  final String? logoAssetPath;
+  final VoidCallback? onNotifications;
+
   /// Called when the user taps the "Receber" quick action.
   /// When provided the host app handles routing (e.g. switching a bottom-nav
   /// tab) instead of pushing the standalone BanzamiReceiveScreen.
-  final VoidCallback?        onReceive;
-  final BanzamiEnvironment     environment;
+  final VoidCallback? onReceive;
+  final BanzamiEnvironment environment;
 
   /// Optional external signal (a [Listenable], e.g. the host app's payment
   /// refresh bus). Whenever it notifies, the home reloads its balance and
@@ -54,29 +55,31 @@ class BanzamiHomeScreen extends StatefulWidget {
 
 class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     with SingleTickerProviderStateMixin {
-  WalletBalance?     _balance;
-  List<ActivityItem> _activity        = [];
-  bool               _loadingBalance  = true;
-  bool               _loadingActivity = true;
-  bool               _balanceVisible  = true;
-  String?            _error;
+  WalletBalance? _balance;
+  List<ActivityItem> _activity = [];
+  bool _loadingBalance = true;
+  bool _loadingActivity = true;
+  bool _balanceVisible = true;
+  String? _error;
 
   late final AnimationController _entryCtrl;
-  late final Animation<double>   _entryFade;
-  late final Animation<Offset>   _entrySlide;
+  late final Animation<double> _entryFade;
+  late final Animation<Offset> _entrySlide;
 
   @override
   void initState() {
     super.initState();
     _entryCtrl = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: BanzamiMotion.slow,
     );
-    _entryFade  = CurvedAnimation(parent: _entryCtrl, curve: BanzamiMotion.decelerate);
+    _entryFade =
+        CurvedAnimation(parent: _entryCtrl, curve: BanzamiMotion.decelerate);
     _entrySlide = Tween<Offset>(
       begin: const Offset(0, 0.04),
-      end:   Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryCtrl, curve: BanzamiMotion.decelerate));
+      end: Offset.zero,
+    ).animate(
+        CurvedAnimation(parent: _entryCtrl, curve: BanzamiMotion.decelerate));
 
     _load();
     _entryCtrl.forward();
@@ -116,19 +119,35 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
   Future<void> _loadBalance() async {
     try {
       final bal = await widget.client.getBalance();
-      debugPrint('[refresh] Home balance updated: ${bal.availableMinor} ${bal.currency}');
-      if (mounted) setState(() { _balance = bal; _loadingBalance = false; });
+      debugPrint(
+          '[refresh] Home balance updated: ${bal.availableMinor} ${bal.currency}');
+      if (mounted)
+        setState(() {
+          _balance = bal;
+          _loadingBalance = false;
+        });
     } catch (_) {
-      if (mounted) setState(() { _error = 'Não foi possível carregar o saldo'; _loadingBalance = false; });
+      if (mounted)
+        setState(() {
+          _error = 'Não foi possível carregar o saldo';
+          _loadingBalance = false;
+        });
     }
   }
 
   Future<void> _loadActivity() async {
     try {
       final page = await widget.client.getActivity(limit: 10);
-      if (mounted) setState(() { _activity = page.items; _loadingActivity = false; });
+      if (mounted)
+        setState(() {
+          _activity = page.items;
+          _loadingActivity = false;
+        });
     } catch (_) {
-      if (mounted) setState(() { _loadingActivity = false; });
+      if (mounted)
+        setState(() {
+          _loadingActivity = false;
+        });
     }
   }
 
@@ -138,7 +157,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     debugPrint('[QR-CAMERA] initializing scanner');
     Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiScanScreen(
-        client:    widget.client,
+        client: widget.client,
         ownHandle: widget.handle,
         isSandbox: widget.environment.isSandbox,
         onSuccess: (_) => _load(),
@@ -147,14 +166,14 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
   }
 
   void _onSend() => Navigator.of(context).push(BanzamiPageRoute(
-    page: BanzamiSendScreen(
-      client:        widget.client,
-      ownHandle:     widget.handle,
-      onSuccess:     (_) => _load(),
-      isSandbox:     widget.environment.isSandbox,
-      logoAssetPath: widget.logoAssetPath,
-    ),
-  ));
+        page: BanzamiSendScreen(
+          client: widget.client,
+          ownHandle: widget.handle,
+          onSuccess: (_) => _load(),
+          isSandbox: widget.environment.isSandbox,
+          logoAssetPath: widget.logoAssetPath,
+        ),
+      ));
 
   void _onReceive() {
     if (widget.onReceive != null) {
@@ -163,9 +182,9 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     }
     Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiReceiveScreen(
-        handle:        widget.handle,
+        handle: widget.handle,
         logoAssetPath: widget.logoAssetPath,
-        isSandbox:     widget.environment.isSandbox,
+        isSandbox: widget.environment.isSandbox,
       ),
     ));
   }
@@ -176,9 +195,9 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
 
     return BanzamiScaffold(
       body: RefreshIndicator(
-        color:        BanzamiColors.primary,
+        color: BanzamiColors.primary,
         displacement: 60,
-        onRefresh:    _load,
+        onRefresh: _load,
         child: FadeTransition(
           opacity: _entryFade,
           child: SlideTransition(
@@ -186,13 +205,12 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
             child: CustomScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               slivers: [
-
                 // ── Top bar ───────────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: _TopBar(
-                    handle:          widget.handle,
-                    displayName:     widget.displayName,
-                    topPad:          topPad,
+                    handle: widget.handle,
+                    displayName: widget.displayName,
+                    topPad: topPad,
                     onNotifications: widget.onNotifications,
                   ),
                 ),
@@ -201,8 +219,8 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                 if (widget.environment.isSandbox)
                   const SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.fromLTRB(
-                        BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.md),
+                      padding: EdgeInsets.fromLTRB(BanzamiSpacing.xl, 0,
+                          BanzamiSpacing.xl, BanzamiSpacing.md),
                       child: BanzamiSandboxBanner(),
                     ),
                   ),
@@ -211,14 +229,16 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
-                      BanzamiSpacing.xl, BanzamiSpacing.sm,
-                      BanzamiSpacing.xl, BanzamiSpacing.xl,
+                      BanzamiSpacing.xl,
+                      BanzamiSpacing.sm,
+                      BanzamiSpacing.xl,
+                      BanzamiSpacing.xl,
                     ),
                     child: _BalanceCard(
-                      balance:         _balance,
-                      loading:         _loadingBalance,
-                      error:           _error,
-                      balanceVisible:  _balanceVisible,
+                      balance: _balance,
+                      loading: _loadingBalance,
+                      error: _error,
+                      balanceVisible: _balanceVisible,
                       onToggle: () => setState(
                         () => _balanceVisible = !_balanceVisible,
                       ),
@@ -239,23 +259,23 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                         // are secondary (accent). Identical BanzamiActionTile
                         // variants — one shared design-system component.
                         BanzamiActionTile(
-                          icon:    Icons.qr_code_rounded,
-                          label:   'QR Code',
-                          onTap:   _onScan,
+                          icon: Icons.qr_code_rounded,
+                          label: 'QR Code',
+                          onTap: _onScan,
                           primary: true,
                         ),
                         const SizedBox(width: BanzamiSpacing.md),
                         BanzamiActionTile(
-                          icon:   Icons.arrow_upward_rounded,
-                          label:  'Enviar',
-                          onTap:  _onSend,
+                          icon: Icons.arrow_upward_rounded,
+                          label: 'Enviar',
+                          onTap: _onSend,
                           accent: true,
                         ),
                         const SizedBox(width: BanzamiSpacing.md),
                         BanzamiActionTile(
-                          icon:   Icons.arrow_downward_rounded,
-                          label:  'Receber',
-                          onTap:  _onReceive,
+                          icon: Icons.arrow_downward_rounded,
+                          label: 'Receber',
+                          onTap: _onReceive,
                           accent: true,
                         ),
                       ],
@@ -263,13 +283,14 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.xxl)),
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: BanzamiSpacing.xxl)),
 
                 // ── Sandbox panel ─────────────────────────────────────────
                 if (widget.environment.isSandbox)
                   SliverToBoxAdapter(
                     child: _SandboxFundPanel(
-                      client:   widget.client,
+                      client: widget.client,
                       onFunded: _load,
                     ),
                   ),
@@ -277,12 +298,13 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                 // ── Section header ────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: BanzamiSectionTitle(
-                    title:  'Actividade recente',
+                    title: 'Actividade recente',
                     action: 'Ver tudo',
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.md)),
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: BanzamiSpacing.md)),
 
                 // ── Activity list ─────────────────────────────────────────
                 if (_loadingActivity)
@@ -315,8 +337,10 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                               if (i < _activity.length - 1)
                                 const Divider(
                                   height: 1,
-                                  indent: BanzamiSpacing.xl + 44 + BanzamiSpacing.md,
-                                  color:  BanzamiColors.gray100,
+                                  indent: BanzamiSpacing.xl +
+                                      44 +
+                                      BanzamiSpacing.md,
+                                  color: BanzamiColors.gray100,
                                 ),
                             ],
                           ],
@@ -325,7 +349,8 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                     ),
                   ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.page)),
+                const SliverToBoxAdapter(
+                    child: SizedBox(height: BanzamiSpacing.page)),
               ],
             ),
           ),
@@ -340,9 +365,9 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
 // =============================================================================
 
 class _TopBar extends StatelessWidget {
-  final String  handle;
+  final String handle;
   final String? displayName;
-  final double  topPad;
+  final double topPad;
   final VoidCallback? onNotifications;
 
   const _TopBar({
@@ -369,19 +394,19 @@ class _TopBar extends StatelessWidget {
         children: [
           // Avatar
           Container(
-            width:  40,
+            width: 40,
             height: 40,
             decoration: const BoxDecoration(
               gradient: BanzamiGradients.primary,
-              shape:    BoxShape.circle,
+              shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 initials,
                 style: BanzamiTextStyles.bodySm.copyWith(
-                  color:      BanzamiColors.white,
+                  color: BanzamiColors.white,
                   fontWeight: FontWeight.w700,
-                  fontSize:   14,
+                  fontSize: 14,
                 ),
               ),
             ),
@@ -391,12 +416,12 @@ class _TopBar extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize:       MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Olá, ${displayName?.split(' ').first ?? '@$handle'}',
                   style: BanzamiTextStyles.headingSm.copyWith(
-                    color:      BanzamiColors.gray900,
+                    color: BanzamiColors.gray900,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -407,17 +432,17 @@ class _TopBar extends StatelessWidget {
           GestureDetector(
             onTap: onNotifications,
             child: Container(
-              width:  40,
+              width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color:        BanzamiColors.white,
-                shape:        BoxShape.circle,
-                boxShadow:    BanzamiShadows.card,
+                color: BanzamiColors.white,
+                shape: BoxShape.circle,
+                boxShadow: BanzamiShadows.card,
               ),
               child: const Icon(
                 Icons.notifications_none_rounded,
                 color: BanzamiColors.gray600,
-                size:  20,
+                size: 20,
               ),
             ),
           ),
@@ -433,10 +458,10 @@ class _TopBar extends StatelessWidget {
 
 class _BalanceCard extends StatelessWidget {
   final WalletBalance? balance;
-  final bool           loading;
-  final String?        error;
-  final bool           balanceVisible;
-  final VoidCallback   onToggle;
+  final bool loading;
+  final String? error;
+  final bool balanceVisible;
+  final VoidCallback onToggle;
 
   const _BalanceCard({
     required this.balance,
@@ -454,15 +479,15 @@ class _BalanceCard extends StatelessWidget {
         borderRadius: BanzamiRadius.xxlAll,
         boxShadow: [
           BoxShadow(
-            color:        const Color(0xFFB5101F).withValues(alpha: 0.42),
-            blurRadius:   36,
-            offset:       const Offset(0, 12),
+            color: const Color(0xFFB5101F).withValues(alpha: 0.42),
+            blurRadius: 36,
+            offset: const Offset(0, 12),
             spreadRadius: -6,
           ),
           BoxShadow(
-            color:        const Color(0xFF9A1B22).withValues(alpha: 0.22),
-            blurRadius:   8,
-            offset:       const Offset(0, 3),
+            color: const Color(0xFF9A1B22).withValues(alpha: 0.22),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -472,10 +497,10 @@ class _BalanceCard extends StatelessWidget {
           // ── Decorative depth layers ──────────────────────────────────────
           // Large glow disc — top-right
           Positioned(
-            top:   -50,
+            top: -50,
             right: -40,
             child: Container(
-              width:  180,
+              width: 180,
               height: 180,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -485,10 +510,10 @@ class _BalanceCard extends StatelessWidget {
           ),
           // Smaller inner disc
           Positioned(
-            top:   10,
+            top: 10,
             right: 50,
             child: Container(
-              width:  80,
+              width: 80,
               height: 80,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -501,8 +526,8 @@ class _BalanceCard extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin:  Alignment.topCenter,
-                  end:    Alignment.center,
+                  begin: Alignment.topCenter,
+                  end: Alignment.center,
                   colors: [
                     Colors.white.withValues(alpha: 0.05),
                     Colors.transparent,
@@ -516,7 +541,7 @@ class _BalanceCard extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize:       MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 // Label row
                 Row(
@@ -524,10 +549,10 @@ class _BalanceCard extends StatelessWidget {
                     Text(
                       'Saldo disponível',
                       style: TextStyle(
-                        color:      Colors.white.withValues(alpha: 0.72),
-                        fontSize:   13,
+                        color: Colors.white.withValues(alpha: 0.72),
+                        fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        height:     1.2,
+                        height: 1.2,
                       ),
                     ),
                     const SizedBox(width: BanzamiSpacing.sm),
@@ -538,7 +563,7 @@ class _BalanceCard extends StatelessWidget {
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
                         color: Colors.white.withValues(alpha: 0.72),
-                        size:  17,
+                        size: 17,
                       ),
                     ),
                   ],
@@ -548,28 +573,29 @@ class _BalanceCard extends StatelessWidget {
                 if (loading)
                   Container(
                     height: 44,
-                    width:  160,
+                    width: 160,
                     decoration: BoxDecoration(
-                      color:        Colors.white.withValues(alpha: 0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BanzamiRadius.smAll,
                     ),
                   )
                 else
                   AnimatedSwitcher(
-                    duration:       BanzamiMotion.normal,
-                    switchInCurve:  BanzamiMotion.decelerate,
+                    duration: BanzamiMotion.normal,
+                    switchInCurve: BanzamiMotion.decelerate,
                     switchOutCurve: BanzamiMotion.accelerate,
                     child: Text(
                       key: ValueKey(balanceVisible),
                       balanceVisible
-                          ? (balance?.availableFormatted ?? (error != null ? '— Kz' : '0,00 Kz'))
+                          ? (balance?.availableFormatted ??
+                              (error != null ? '— Kz' : '0,00 Kz'))
                           : '• • • • •',
                       style: const TextStyle(
-                        fontFamily:   'JetBrains Mono',
-                        fontSize:     36,
-                        fontWeight:   FontWeight.w700,
-                        color:        Colors.white,
-                        height:       1.1,
+                        fontFamily: 'JetBrains Mono',
+                        fontSize: 36,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.1,
                         fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
@@ -581,12 +607,12 @@ class _BalanceCard extends StatelessWidget {
                       ? error!
                       : 'Saldo na sua carteira Banzami',
                   style: TextStyle(
-                    color:      error != null && !loading
+                    color: error != null && !loading
                         ? Colors.white.withValues(alpha: 0.85)
                         : Colors.white.withValues(alpha: 0.52),
-                    fontSize:   13,
+                    fontSize: 13,
                     fontWeight: FontWeight.w400,
-                    height:     1.3,
+                    height: 1.3,
                   ),
                 ),
               ],
@@ -609,16 +635,18 @@ class _ActivityRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCredit = item.isIncoming;
-    final amountFormatted = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
+    final amountFormatted =
+        '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
     final initial = item.displayTitle[0];
 
     return BanzamiActivityRow(
-      title:    item.displayTitle,
+      title: item.displayTitle,
       subtitle: item.typeLabel,
-      amount:   amountFormatted,
-      time:     _formatTime(item.createdAt),
+      amount: amountFormatted,
+      time: _formatTime(item.createdAt),
       isCredit: isCredit,
-      leading:  _ActivityIcon(type: item.itemType, initial: initial, isCredit: isCredit),
+      leading: _ActivityIcon(
+          type: item.itemType, initial: initial, isCredit: isCredit),
     );
   }
 
@@ -631,7 +659,7 @@ class _ActivityRow extends StatelessWidget {
 class _ActivityIcon extends StatelessWidget {
   final String type;
   final String initial;
-  final bool   isCredit;
+  final bool isCredit;
 
   const _ActivityIcon({
     required this.type,
@@ -643,27 +671,28 @@ class _ActivityIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     if (type == 'WALLET_FUNDED') {
       return Container(
-        width:  44,
+        width: 44,
         height: 44,
         decoration: BoxDecoration(
           color: BanzamiColors.successBg,
           shape: BoxShape.circle,
         ),
-        child: const Icon(Icons.add_rounded, color: BanzamiColors.success, size: 22),
+        child: const Icon(Icons.add_rounded,
+            color: BanzamiColors.success, size: 22),
       );
     }
     return Container(
-      width:  44,
+      width: 44,
       height: 44,
       decoration: const BoxDecoration(
         gradient: BanzamiGradients.primary,
-        shape:    BoxShape.circle,
+        shape: BoxShape.circle,
       ),
       child: Center(
         child: Text(
           initial.toUpperCase(),
           style: BanzamiTextStyles.headingSm.copyWith(
-            color:      BanzamiColors.white,
+            color: BanzamiColors.white,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -682,7 +711,7 @@ class _EmptyActivity extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: BanzamiSpacing.xl,
-        vertical:   BanzamiSpacing.xxl,
+        vertical: BanzamiSpacing.xxl,
       ),
       child: BanzamiCard(
         padding: const EdgeInsets.all(BanzamiSpacing.xxl),
@@ -690,7 +719,7 @@ class _EmptyActivity extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width:  56,
+              width: 56,
               height: 56,
               decoration: const BoxDecoration(
                 color: BanzamiColors.gray100,
@@ -698,14 +727,15 @@ class _EmptyActivity extends StatelessWidget {
               ),
               child: const Icon(
                 Icons.receipt_long_outlined,
-                size:  24,
+                size: 24,
                 color: BanzamiColors.gray400,
               ),
             ),
             const SizedBox(height: BanzamiSpacing.md),
             Text(
               'Nenhuma transacção ainda',
-              style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+              style: BanzamiTextStyles.headingSm
+                  .copyWith(color: BanzamiColors.gray900),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: BanzamiSpacing.xs),
@@ -738,7 +768,7 @@ String _fmtKz(int kz) {
 
 class _SandboxFundPanel extends StatefulWidget {
   final ConsumerPublicClient client;
-  final VoidCallback         onFunded;
+  final VoidCallback onFunded;
   const _SandboxFundPanel({required this.client, required this.onFunded});
 
   @override
@@ -746,13 +776,13 @@ class _SandboxFundPanel extends StatefulWidget {
 }
 
 class _SandboxFundPanelState extends State<_SandboxFundPanel> {
-  bool _loading  = false;
+  bool _loading = false;
   // Sandbox funding is a test convenience, not a primary wallet action — so the
   // panel starts collapsed as a discreet bar and expands on tap.
   bool _expanded = false;
-  int  _amountKz = 10000;
+  int _amountKz = 10000;
 
-  static const int _step  = 1000;
+  static const int _step = 1000;
   static const int _minKz = 1000;
   static const int _maxKz = 1000000;
   static const _chips = [10, 50, 200, 1000];
@@ -767,7 +797,8 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
   Future<void> _fund() async {
     setState(() => _loading = true);
     try {
-      final result = await widget.client.sandboxFund(amountMinor: _amountKz * 100);
+      final result =
+          await widget.client.sandboxFund(amountMinor: _amountKz * 100);
       if (!mounted) return;
       widget.onFunded();
       // Collapse back to the discreet bar after a successful top-up; the toast
@@ -789,29 +820,31 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
+        0,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
       ),
       child: Container(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFFFFF8E8), Color(0xFFFFF0C0)],
-            begin:  Alignment.topLeft,
-            end:    Alignment.bottomRight,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
           borderRadius: const BorderRadius.all(Radius.circular(22)),
           border: Border.all(color: const Color(0xFFF7C65A)),
           boxShadow: [
             BoxShadow(
-              color:       const Color(0xFFF59E0B).withValues(alpha: 0.12),
-              blurRadius:  16,
-              offset:      const Offset(0, 4),
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-
             // ── Header (tappable toggle) ────────────────────────────────
             Material(
               type: MaterialType.transparency,
@@ -823,12 +856,14 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                   child: Row(
                     children: [
                       Container(
-                        width: 30, height: 30,
+                        width: 30,
+                        height: 30,
                         decoration: const BoxDecoration(
-                          color:        Color(0xFFFDE68A),
+                          color: Color(0xFFFDE68A),
                           borderRadius: BorderRadius.all(Radius.circular(8)),
                         ),
-                        child: const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
+                        child: const Icon(Icons.science_rounded,
+                            size: 15, color: Color(0xFF92400E)),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -838,10 +873,10 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                             const Text(
                               'Adicionar dinheiro de teste',
                               style: TextStyle(
-                                fontSize:   12,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color:      Color(0xFF78350F),
-                                height:     1.2,
+                                color: Color(0xFF78350F),
+                                height: 1.2,
                               ),
                             ),
                             const SizedBox(height: 1),
@@ -850,19 +885,19 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                                   ? 'Crédito instantâneo sandbox'
                                   : 'Toque para adicionar dinheiro de teste',
                               style: const TextStyle(
-                                fontSize:   10,
+                                fontSize: 10,
                                 fontWeight: FontWeight.w400,
-                                color:      Color(0xFFB45309),
-                                height:     1.3,
+                                color: Color(0xFFB45309),
+                                height: 1.3,
                               ),
                             ),
                           ],
                         ),
                       ),
                       AnimatedRotation(
-                        turns:    _expanded ? 0.5 : 0.0,
+                        turns: _expanded ? 0.5 : 0.0,
                         duration: BanzamiMotion.normal,
-                        curve:    BanzamiMotion.standard,
+                        curve: BanzamiMotion.standard,
                         child: const Icon(Icons.expand_more_rounded,
                             size: 20, color: Color(0xFFD97706)),
                       ),
@@ -874,110 +909,121 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
 
             // ── Collapsible body ────────────────────────────────────────
             AnimatedSize(
-              duration:  BanzamiMotion.normal,
-              curve:     BanzamiMotion.standard,
+              duration: BanzamiMotion.normal,
+              curve: BanzamiMotion.standard,
               alignment: Alignment.topCenter,
               child: !_expanded
                   ? const SizedBox(width: double.infinity)
                   : Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-
-            // ── Amount selector ──────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Row(
-                children: [
-                  _SandboxCircleBtn(
-                    icon:    Icons.remove_rounded,
-                    onTap:   _loading || _amountKz <= _minKz ? null : _decrement,
-                    enabled: !_loading && _amountKz > _minKz,
-                  ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        AnimatedSwitcher(
-                          duration:         const Duration(milliseconds: 200),
-                          transitionBuilder: (child, anim) => FadeTransition(
-                            opacity: anim,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0, 0.15),
-                                end:   Offset.zero,
-                              ).animate(anim),
-                              child: child,
-                            ),
-                          ),
-                          child: Text(
-                            key: ValueKey(_amountKz),
-                            _fmtKz(_amountKz),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontFamily:  'JetBrains Mono',
-                              fontSize:    22,
-                              fontWeight:  FontWeight.w700,
-                              color:       Color(0xFF78350F),
-                              height:      1.1,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Text(
-                          'Valor atual',
-                          style: TextStyle(
-                            fontSize:   10,
-                            color:      Color(0xFFB45309),
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _SandboxCircleBtn(
-                    icon:    Icons.add_rounded,
-                    onTap:   _loading || _amountKz >= _maxKz ? null : _increment,
-                    enabled: !_loading && _amountKz < _maxKz,
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Quick chips ──────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Row(
-                children: _chips.map((kz) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      right: kz != _chips.last ? 6 : 0,
-                    ),
-                    child: _SandboxChip(
-                      label: '+${_fmtKz(kz)}',
-                      onTap: _loading ? null : () => _addChip(kz),
-                    ),
-                  ),
-                )).toList(),
-              ),
-            ),
-
-            // ── CTA button ───────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-              child: _loading
-                  ? const Center(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 14),
-                        child: SizedBox(
-                          width: 20, height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation(Color(0xFF92400E)),
+                        // ── Amount selector ──────────────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                          child: Row(
+                            children: [
+                              _SandboxCircleBtn(
+                                icon: Icons.remove_rounded,
+                                onTap: _loading || _amountKz <= _minKz
+                                    ? null
+                                    : _decrement,
+                                enabled: !_loading && _amountKz > _minKz,
+                              ),
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    AnimatedSwitcher(
+                                      duration:
+                                          const Duration(milliseconds: 200),
+                                      transitionBuilder: (child, anim) =>
+                                          FadeTransition(
+                                        opacity: anim,
+                                        child: SlideTransition(
+                                          position: Tween<Offset>(
+                                            begin: const Offset(0, 0.15),
+                                            end: Offset.zero,
+                                          ).animate(anim),
+                                          child: child,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        key: ValueKey(_amountKz),
+                                        _fmtKz(_amountKz),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontFamily: 'JetBrains Mono',
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF78350F),
+                                          height: 1.1,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Valor atual',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFFB45309),
+                                        fontWeight: FontWeight.w400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _SandboxCircleBtn(
+                                icon: Icons.add_rounded,
+                                onTap: _loading || _amountKz >= _maxKz
+                                    ? null
+                                    : _increment,
+                                enabled: !_loading && _amountKz < _maxKz,
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    )
-                  : _SandboxFundButton(onTap: _fund),
-            ),
+
+                        // ── Quick chips ──────────────────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                          child: Row(
+                            children: _chips
+                                .map((kz) => Expanded(
+                                      child: Padding(
+                                        padding: EdgeInsets.only(
+                                          right: kz != _chips.last ? 6 : 0,
+                                        ),
+                                        child: _SandboxChip(
+                                          label: '+${_fmtKz(kz)}',
+                                          onTap: _loading
+                                              ? null
+                                              : () => _addChip(kz),
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+
+                        // ── CTA button ───────────────────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                          child: _loading
+                              ? const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 14),
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation(
+                                            Color(0xFF92400E)),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : _SandboxFundButton(onTap: _fund),
+                        ),
                       ],
                     ),
             ),
@@ -989,9 +1035,9 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
 }
 
 class _SandboxCircleBtn extends StatelessWidget {
-  final IconData      icon;
+  final IconData icon;
   final VoidCallback? onTap;
-  final bool          enabled;
+  final bool enabled;
   const _SandboxCircleBtn({
     required this.icon,
     required this.enabled,
@@ -1003,17 +1049,23 @@ class _SandboxCircleBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 34, height: 34,
+        width: 34,
+        height: 34,
         decoration: BoxDecoration(
           color: enabled ? BanzamiColors.white : const Color(0xFFFDE68A),
           shape: BoxShape.circle,
           boxShadow: enabled
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 1))]
+              ? [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1))
+                ]
               : null,
         ),
         child: Icon(
           icon,
-          size:  16,
+          size: 16,
           color: enabled ? const Color(0xFF92400E) : const Color(0xFFD97706),
         ),
       ),
@@ -1022,7 +1074,7 @@ class _SandboxCircleBtn extends StatelessWidget {
 }
 
 class _SandboxChip extends StatelessWidget {
-  final String        label;
+  final String label;
   final VoidCallback? onTap;
   const _SandboxChip({required this.label, this.onTap});
 
@@ -1033,17 +1085,17 @@ class _SandboxChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
-          color:        const Color(0xFFFFF4D6),
+          color: const Color(0xFFFFF4D6),
           borderRadius: const BorderRadius.all(Radius.circular(20)),
-          border:       Border.all(color: const Color(0xFFF7C65A), width: 0.75),
+          border: Border.all(color: const Color(0xFFF7C65A), width: 0.75),
         ),
         child: Text(
           label,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontSize:   11,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
-            color:      Color(0xFF92400E),
+            color: Color(0xFF92400E),
           ),
         ),
       ),
@@ -1064,29 +1116,30 @@ class _SandboxFundButton extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
-            begin:  Alignment.centerLeft,
-            end:    Alignment.centerRight,
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
           ),
           borderRadius: const BorderRadius.all(Radius.circular(14)),
           boxShadow: [
             BoxShadow(
-              color:      const Color(0xFFF59E0B).withValues(alpha: 0.28),
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.28),
               blurRadius: 8,
-              offset:     const Offset(0, 3),
+              offset: const Offset(0, 3),
             ),
           ],
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 16),
+            Icon(Icons.add_circle_outline_rounded,
+                color: Colors.white, size: 16),
             SizedBox(width: 6),
             Text(
               'Adicionar ao saldo',
               style: TextStyle(
-                fontSize:   13,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color:      Colors.white,
+                color: Colors.white,
               ),
             ),
           ],

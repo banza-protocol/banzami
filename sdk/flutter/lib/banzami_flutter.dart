@@ -6,18 +6,37 @@
 /// ```dart
 /// import 'package:banzami_flutter/banzami_flutter.dart';
 ///
-/// // Production
+/// // The app's own signed-in session — a merchant/consumer credential the
+/// // user authenticated for, never a Developer Platform secret key.
 /// final client = BanzamiClient(
-///   apiKey:      'bz_live_...',
-///   environment: BanzamiEnvironment.production,
-/// );
-///
-/// // Sandbox (integration testing)
-/// final client = BanzamiClient(
-///   apiKey:      'bz_test_...',
+///   jwt:         session.jwt,
 ///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
+///
+/// ## Credentials — what may live in a mobile binary
+///
+/// This package is Banzami's **own** mobile application framework (the Consumer
+/// and Business apps depend on it by path). Its `apiKey` is the credential the
+/// signed-in merchant's app already holds for itself, exchanged for a session
+/// JWT — not a Developer Platform key belonging to a third party.
+///
+/// A Developer Platform **secret** key (`bz_test_sk_…`, `bz_live_sk_…`) must
+/// NEVER be compiled into a mobile application. Anyone who can download the app
+/// can read the binary, and that key can move money. The examples here used to
+/// show exactly that, which is why this note exists.
+///
+/// The correct shape for a third-party mobile integration is:
+///
+/// ```text
+///   Flutter app ──publishable key──▶ Banzami   (read a payment, its status)
+///        │
+///        └──────▶ your backend ──secret key──▶ Banzami   (create, refund, transfer)
+/// ```
+///
+/// A publishable key (`bz_test_pk_…`) is safe to ship in an app: the operator
+/// restricts it to read scopes, so it cannot move money even if extracted.
+
 library banzami_flutter;
 
 // Client

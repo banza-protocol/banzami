@@ -22,16 +22,17 @@ import 'receipt_screen.dart';
 /// [locked] = false (flexible): recipient is locked but consumer can enter amount.
 class BanzamiPaymentRequestScreen extends StatefulWidget {
   final ConsumerPublicClient client;
-  final String  recipientHandle;
+  final String recipientHandle;
   final String? recipientDisplayName;
-  final int?    amountMinor;
-  final String  currency;
+  final int? amountMinor;
+  final String currency;
   final String? note;
-  final bool    locked;
+  final bool locked;
   final String? ownHandle;
   final void Function(Transfer) onSuccess;
-  final bool    isSandbox;
+  final bool isSandbox;
   final String? logoAssetPath;
+
   /// When set, payment is executed via the consumer pay-link API
   /// (POST /v1/consumer-pay-links/:code/pay) instead of sendByHandle.
   final String? linkCode;
@@ -55,12 +56,12 @@ class BanzamiPaymentRequestScreen extends StatefulWidget {
     required this.recipientHandle,
     this.recipientDisplayName,
     this.amountMinor,
-    this.currency      = 'AOA',
+    this.currency = 'AOA',
     this.note,
-    this.locked        = true,
+    this.locked = true,
     this.ownHandle,
     required this.onSuccess,
-    this.isSandbox     = false,
+    this.isSandbox = false,
     this.logoAssetPath,
     this.linkCode,
     this.paymentLinkSlug,
@@ -69,19 +70,21 @@ class BanzamiPaymentRequestScreen extends StatefulWidget {
   });
 
   @override
-  State<BanzamiPaymentRequestScreen> createState() => _BanzamiPaymentRequestScreenState();
+  State<BanzamiPaymentRequestScreen> createState() =>
+      _BanzamiPaymentRequestScreenState();
 }
 
-class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScreen>
+class _BanzamiPaymentRequestScreenState
+    extends State<BanzamiPaymentRequestScreen>
     with SingleTickerProviderStateMixin {
-  int     _amountMinor  = 0;
+  int _amountMinor = 0;
   String? _amountError;
-  bool    _sending      = false;
+  bool _sending = false;
   String? _error;
-  bool    _entered      = false;
+  bool _entered = false;
 
   late final AnimationController _pulseCtrl;
-  late final Animation<double>   _pulseScale;
+  late final Animation<double> _pulseScale;
 
   // Generated once so payment-link retries reuse the same idempotency key.
   final String _idem = const Uuid().v4();
@@ -91,7 +94,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
     super.initState();
     _amountMinor = widget.amountMinor ?? 0;
     _pulseCtrl = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: BanzamiMotion.pulse,
     );
     _pulseScale = Tween<double>(begin: 0.96, end: 1.04).animate(
@@ -125,7 +128,10 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
       return;
     }
     HapticFeedback.mediumImpact();
-    setState(() { _sending = true; _error = null; });
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
     _pulseCtrl.repeat(reverse: true);
 
     try {
@@ -137,21 +143,22 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
         // this is UI orchestration only; the client/payload/API are unchanged.
         final paid = await widget.client.payPaymentLink(
           widget.paymentLinkSlug!,
-          amountMinor:    amount,
+          amountMinor: amount,
           idempotencyKey: _idem,
         );
         transfer = Transfer(
           // The receipt keys on the transaction id, not the link id. The pay
           // response carries transaction_id; fall back to the link id only if
           // an older backend omitted it.
-          transferId:  paid.transferId ?? paid.id,
-          sender:      widget.ownHandle ?? '',
-          recipient:   paid.merchantName ?? widget.recipientDisplayName ?? paid.slug,
+          transferId: paid.transferId ?? paid.id,
+          sender: widget.ownHandle ?? '',
+          recipient:
+              paid.merchantName ?? widget.recipientDisplayName ?? paid.slug,
           amountMinor: paid.amountMinor ?? amount,
-          currency:    paid.currency,
-          status:      'COMPLETED',
-          note:        paid.description,
-          createdAt:   paid.paidAt ?? paid.createdAt,
+          currency: paid.currency,
+          status: 'COMPLETED',
+          note: paid.description,
+          createdAt: paid.paidAt ?? paid.createdAt,
           completedAt: paid.paidAt,
         );
       } else if (widget.linkCode != null) {
@@ -161,14 +168,15 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
           widget.linkCode!,
           amountMinor: widget.locked ? null : amount,
         );
-        transfer = Transfer.fromConsumerPayLink(link, ownHandle: widget.ownHandle);
+        transfer =
+            Transfer.fromConsumerPayLink(link, ownHandle: widget.ownHandle);
       } else {
         transfer = await widget.client.sendByHandle(
           recipientHandle: widget.recipientHandle,
-          amountMinor:     amount,
-          currency:        widget.currency,
-          note:            widget.note,
-          idempotencyKey:  const Uuid().v4(),
+          amountMinor: amount,
+          currency: widget.currency,
+          note: widget.note,
+          idempotencyKey: const Uuid().v4(),
         );
       }
 
@@ -179,13 +187,14 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
 
       await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiReceiptScreen(
-          transfer:          transfer,
-          ownHandle:         widget.ownHandle,
-          onDone:            widget.onSuccess,
-          isSandbox:         widget.isSandbox,
-          logoAssetPath:     widget.logoAssetPath,
+          transfer: transfer,
+          ownHandle: widget.ownHandle,
+          onDone: widget.onSuccess,
+          isSandbox: widget.isSandbox,
+          logoAssetPath: widget.logoAssetPath,
           recipientIsHandle: widget.recipientIsHandle,
-          fetchReceiptPdf:   () => widget.client.fetchReceiptPdf(transfer.transferId),
+          fetchReceiptPdf: () =>
+              widget.client.fetchReceiptPdf(transfer.transferId),
         ),
       ));
     } on BanzamiApiException catch (e) {
@@ -195,17 +204,19 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
       HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
-        _error   = switch (e.code) {
-          'INSUFFICIENT_FUNDS'          => 'Saldo insuficiente para esta transferência.',
-          'LINK_NOT_ACTIVE'             => 'Este pedido de pagamento já não está activo.',
-          'ACCOUNT_FROZEN'              => 'A sua conta está suspensa. Contacte o suporte.',
-          'SELF_TRANSFER_NOT_ALLOWED'   => 'Não pode pagar o seu próprio pedido.',
-          'RECIPIENT_NOT_FOUND'         => '@${widget.recipientHandle} não encontrado.',
-          'RECIPIENT_NO_WALLET'         => 'Destinatário sem carteira activa.',
-          'SELF_TRANSFER'               => 'Não pode enviar para si mesmo.',
-          'WALLET_NOT_FOUND'            => 'Carteira de destino não encontrada.',
-          'NO_WALLET'                   => 'Não tem carteira activa para esta moeda.',
-          _                             => e.message.isNotEmpty ? e.message : 'Erro de envio. Tente novamente.',
+        _error = switch (e.code) {
+          'INSUFFICIENT_FUNDS' => 'Saldo insuficiente para esta transferência.',
+          'LINK_NOT_ACTIVE' => 'Este pedido de pagamento já não está activo.',
+          'ACCOUNT_FROZEN' => 'A sua conta está suspensa. Contacte o suporte.',
+          'SELF_TRANSFER_NOT_ALLOWED' => 'Não pode pagar o seu próprio pedido.',
+          'RECIPIENT_NOT_FOUND' => '@${widget.recipientHandle} não encontrado.',
+          'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa.',
+          'SELF_TRANSFER' => 'Não pode enviar para si mesmo.',
+          'WALLET_NOT_FOUND' => 'Carteira de destino não encontrada.',
+          'NO_WALLET' => 'Não tem carteira activa para esta moeda.',
+          _ => e.message.isNotEmpty
+              ? e.message
+              : 'Erro de envio. Tente novamente.',
         };
       });
     } catch (_) {
@@ -213,7 +224,10 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
-      setState(() { _sending = false; _error = 'Erro de ligação. Tente novamente.'; });
+      setState(() {
+        _sending = false;
+        _error = 'Erro de ligação. Tente novamente.';
+      });
     }
   }
 
@@ -221,18 +235,18 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
 
   Widget _buildAvatar(String initial) {
     return Container(
-      width:  72,
+      width: 72,
       height: 72,
       decoration: const BoxDecoration(
         gradient: BanzamiGradients.primary,
-        shape:    BoxShape.circle,
+        shape: BoxShape.circle,
       ),
       child: Center(
         child: Text(
           initial,
           style: BanzamiTextStyles.headingLg.copyWith(
-            color:      BanzamiColors.white,
-            fontSize:   28,
+            color: BanzamiColors.white,
+            fontSize: 28,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -244,17 +258,17 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: BanzamiSpacing.xl,
-        vertical:   BanzamiSpacing.md,
+        vertical: BanzamiSpacing.md,
       ),
       decoration: BoxDecoration(
-        color:        BanzamiColors.primary,
+        color: BanzamiColors.primary,
         borderRadius: BorderRadius.circular(BanzamiRadius.full),
       ),
       child: Text(
         amount,
         style: BanzamiTextStyles.monoLg.copyWith(
-          color:      BanzamiColors.white,
-          fontSize:   26,
+          color: BanzamiColors.white,
+          fontSize: 26,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.5,
         ),
@@ -270,7 +284,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color:        BanzamiColors.gray100,
+              color: BanzamiColors.gray100,
               borderRadius: BorderRadius.circular(BanzamiRadius.sm),
             ),
             child: const Icon(Icons.account_balance_wallet_rounded,
@@ -282,11 +296,12 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Método de pagamento',
-                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                    style: BanzamiTextStyles.bodySm
+                        .copyWith(color: BanzamiColors.gray400)),
                 const SizedBox(height: 2),
                 Text('Saldo Banzami',
                     style: BanzamiTextStyles.bodyMd.copyWith(
-                      color:      BanzamiColors.gray900,
+                      color: BanzamiColors.gray900,
                       fontWeight: FontWeight.w600,
                     )),
               ],
@@ -298,31 +313,33 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
   }
 
   Widget _buildReviewUI() {
-    final handle      = widget.recipientHandle;
+    final handle = widget.recipientHandle;
     final displayName = widget.recipientDisplayName;
-    final initial     = (displayName ?? handle)[0].toUpperCase();
-    final amount      = widget.locked && widget.amountMinor != null
+    final initial = (displayName ?? handle)[0].toUpperCase();
+    final amount = widget.locked && widget.amountMinor != null
         ? formatMinor(widget.amountMinor!, widget.currency)
         : null;
-    final buttonLabel = widget.locked && widget.amountMinor != null
-        ? 'Pagar $amount'
-        : 'Pagar';
+    final buttonLabel =
+        widget.locked && widget.amountMinor != null ? 'Pagar $amount' : 'Pagar';
 
     return AnimatedOpacity(
-      opacity:  _entered ? 1.0 : 0.0,
+      opacity: _entered ? 1.0 : 0.0,
       duration: BanzamiMotion.slow,
-      curve:    Curves.easeOut,
+      curve: Curves.easeOut,
       child: AnimatedSlide(
-        offset:   _entered ? Offset.zero : const Offset(0, 0.025),
+        offset: _entered ? Offset.zero : const Offset(0, 0.025),
         duration: BanzamiMotion.slow,
-        curve:    BanzamiMotion.decelerate,
+        curve: BanzamiMotion.decelerate,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzamiSpacing.xl, 40, BanzamiSpacing.xl, BanzamiSpacing.xl,
+                  BanzamiSpacing.xl,
+                  40,
+                  BanzamiSpacing.xl,
+                  BanzamiSpacing.xl,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -335,24 +352,24 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                     if (displayName != null) ...[
                       Text(displayName,
                           style: BanzamiTextStyles.headingSm.copyWith(
-                            color:      BanzamiColors.gray900,
+                            color: BanzamiColors.gray900,
                             fontWeight: FontWeight.w700,
                           )),
                       const SizedBox(height: 2),
                       Text(widget.recipientSubtitle ?? '@$handle',
-                          style: BanzamiTextStyles.bodySm.copyWith(
-                              color: BanzamiColors.gray400)),
+                          style: BanzamiTextStyles.bodySm
+                              .copyWith(color: BanzamiColors.gray400)),
                     ] else
                       Text('@$handle',
                           style: BanzamiTextStyles.headingSm.copyWith(
-                            color:      BanzamiColors.gray900,
+                            color: BanzamiColors.gray900,
                             fontWeight: FontWeight.w700,
                           )),
 
                     const SizedBox(height: BanzamiSpacing.sm),
                     Text('Solicitou um pagamento',
-                        style: BanzamiTextStyles.bodySm.copyWith(
-                            color: BanzamiColors.gray400)),
+                        style: BanzamiTextStyles.bodySm
+                            .copyWith(color: BanzamiColors.gray400)),
 
                     const SizedBox(height: BanzamiSpacing.xl),
 
@@ -363,7 +380,8 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                       BanzamiAmountInput(
                         initialAmountMinor: widget.amountMinor,
                         onChanged: (v) => setState(() {
-                          _amountMinor = v; _amountError = null;
+                          _amountMinor = v;
+                          _amountError = null;
                         }),
                         errorText: _amountError,
                       ),
@@ -374,7 +392,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                       const SizedBox(height: BanzamiSpacing.lg),
                       Text(widget.note!,
                           style: BanzamiTextStyles.bodyMd.copyWith(
-                            color:     BanzamiColors.gray600,
+                            color: BanzamiColors.gray600,
                             fontStyle: FontStyle.italic,
                           ),
                           textAlign: TextAlign.center,
@@ -404,22 +422,25 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
             // Bottom action
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                BanzamiSpacing.xl, 8, BanzamiSpacing.xl, BanzamiSpacing.xl,
+                BanzamiSpacing.xl,
+                8,
+                BanzamiSpacing.xl,
+                BanzamiSpacing.xl,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   BanzamiPrimaryButton(
-                    label:     buttonLabel,
+                    label: buttonLabel,
                     isLoading: false,
-                    height:    58,
+                    height: 58,
                     onPressed: _pay,
                   ),
                   const SizedBox(height: BanzamiSpacing.sm),
                   Text(
                     'Pagamento irreversível',
                     style: BanzamiTextStyles.bodySm.copyWith(
-                      color:    BanzamiColors.gray400,
+                      color: BanzamiColors.gray400,
                       fontSize: 12,
                     ),
                     textAlign: TextAlign.center,
@@ -437,25 +458,26 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
 
   Widget _buildOrb() {
     return Container(
-      width:  118,
+      width: 118,
       height: 118,
       decoration: BoxDecoration(
-        shape:    BoxShape.circle,
+        shape: BoxShape.circle,
         gradient: BanzamiGradients.primary,
         boxShadow: [
           BoxShadow(
-            color:        BanzamiColors.primary.withValues(alpha: 0.38),
-            blurRadius:   52,
+            color: BanzamiColors.primary.withValues(alpha: 0.38),
+            blurRadius: 52,
             spreadRadius: 6,
           ),
           BoxShadow(
-            color:        BanzamiColors.primaryLight.withValues(alpha: 0.20),
-            blurRadius:   88,
+            color: BanzamiColors.primaryLight.withValues(alpha: 0.20),
+            blurRadius: 88,
             spreadRadius: 18,
           ),
         ],
       ),
-      child: const Icon(Icons.arrow_upward_rounded, color: BanzamiColors.white, size: 46),
+      child: const Icon(Icons.arrow_upward_rounded,
+          color: BanzamiColors.white, size: 46),
     );
   }
 
@@ -483,7 +505,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                 Text(
                   'A enviar dinheiro...',
                   style: BanzamiTextStyles.bodyLg.copyWith(
-                    color:      BanzamiColors.gray600,
+                    color: BanzamiColors.gray600,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -491,8 +513,8 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                 Text(
                   amount,
                   style: BanzamiTextStyles.monoLg.copyWith(
-                    color:      BanzamiColors.gray900,
-                    fontSize:   38,
+                    color: BanzamiColors.gray900,
+                    fontSize: 38,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -504,7 +526,8 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                   ),
                 ),
                 const Spacer(),
-                const BanzamiSecondaryButton(label: 'Cancelar', onPressed: null),
+                const BanzamiSecondaryButton(
+                    label: 'Cancelar', onPressed: null),
                 const SizedBox(height: BanzamiSpacing.xl),
               ],
             ),
@@ -523,7 +546,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
       body: Stack(
         children: [
           if (!_sending) SafeArea(child: _buildReviewUI()),
-          if (_sending)  _buildProgressOverlay(),
+          if (_sending) _buildProgressOverlay(),
         ],
       ),
     );

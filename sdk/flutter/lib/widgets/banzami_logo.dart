@@ -13,14 +13,14 @@ class BanzamiLogoWidget extends StatelessWidget {
   final String assetPath;
   final double size;
   final double cornerFraction;
-  final bool   hasShadow;
+  final bool hasShadow;
 
   const BanzamiLogoWidget({
     super.key,
     required this.assetPath,
-    this.size            = 48,
-    this.cornerFraction  = kQrLogoCornerFraction,
-    this.hasShadow       = false,
+    this.size = 48,
+    this.cornerFraction = kQrLogoCornerFraction,
+    this.hasShadow = false,
   });
 
   @override
@@ -30,9 +30,9 @@ class BanzamiLogoWidget extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       child: Image.asset(
         assetPath,
-        width:  size,
+        width: size,
         height: size,
-        fit:    BoxFit.cover,
+        fit: BoxFit.cover,
       ),
     );
 
@@ -43,9 +43,9 @@ class BanzamiLogoWidget extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: 0.12),
             blurRadius: 8,
-            offset:     const Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),

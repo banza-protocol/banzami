@@ -16,8 +16,8 @@ import 'banzami_environment.dart';
 
 /// Result of a sandbox wallet top-up via [ConsumerPublicClient.sandboxFund].
 class SandboxFundResult {
-  final int    creditedMinor;
-  final int    newBalance;
+  final int creditedMinor;
+  final int newBalance;
   final String currency;
 
   const SandboxFundResult({
@@ -67,7 +67,8 @@ class ConsumerPublicClient {
   final void Function(String method, String path)? onRequest;
 
   /// Called after every successful HTTP response.
-  final void Function(String method, String path, int statusCode, int durationMs)? onResponse;
+  final void Function(
+      String method, String path, int statusCode, int durationMs)? onResponse;
 
   /// Called when a request fails (network error or API error).
   final void Function(String method, String path, Object error)? onError;
@@ -119,7 +120,8 @@ class ConsumerPublicClient {
       auth: false,
     );
 
-    final consumer = Consumer.fromJson(resp['consumer'] as Map<String, dynamic>);
+    final consumer =
+        Consumer.fromJson(resp['consumer'] as Map<String, dynamic>);
     final tok = resp['token'] as String;
     _token = tok;
 
@@ -202,7 +204,8 @@ class ConsumerPublicClient {
   }
 
   Future<WalletBalance> getBalance({String currency = 'AOA'}) async {
-    final json = await _call(method: 'GET', path: '/v1/me/wallet/balance?currency=$currency');
+    final json = await _call(
+        method: 'GET', path: '/v1/me/wallet/balance?currency=$currency');
     return WalletBalance.fromJson(json);
   }
 
@@ -221,9 +224,9 @@ class ConsumerPublicClient {
       method: 'POST',
       path: '/v1/transfers',
       body: {
-        'recipient':       recipientHandle,
-        'amount_minor':    amountMinor,
-        'currency':        currency,
+        'recipient': recipientHandle,
+        'amount_minor': amountMinor,
+        'currency': currency,
         if (note != null) 'note': note,
         'idempotency_key': idempotencyKey ?? _uuid.v4(),
       },
@@ -238,9 +241,11 @@ class ConsumerPublicClient {
     String? directionFilter,
   }) async {
     var path = '/v1/me/activity?limit=$limit';
-    if (cursor          != null) path += '&cursor=${Uri.encodeQueryComponent(cursor)}';
-    if (typeFilter      != null) path += '&type=${Uri.encodeQueryComponent(typeFilter)}';
-    if (directionFilter != null) path += '&direction=${Uri.encodeQueryComponent(directionFilter)}';
+    if (cursor != null) path += '&cursor=${Uri.encodeQueryComponent(cursor)}';
+    if (typeFilter != null)
+      path += '&type=${Uri.encodeQueryComponent(typeFilter)}';
+    if (directionFilter != null)
+      path += '&direction=${Uri.encodeQueryComponent(directionFilter)}';
     final json = await _call(method: 'GET', path: path);
     return ActivityPage.fromJson(json);
   }
@@ -271,7 +276,8 @@ class ConsumerPublicClient {
     final body = <String, dynamic>{
       'idempotency_key': idempotencyKey ?? _uuid.v4(),
     };
-    if (amountMinor != null && amountMinor > 0) body['amount_minor'] = amountMinor;
+    if (amountMinor != null && amountMinor > 0)
+      body['amount_minor'] = amountMinor;
     final json = await _call(
       method: 'POST',
       path: '/v1/payment-links/$slug/pay',
@@ -289,20 +295,21 @@ class ConsumerPublicClient {
   /// [amountMinor] null → open link (flexible, payer chooses amount).
   /// [locked] true (default) → payer cannot override the amount.
   Future<ConsumerPayLink> createConsumerPayLink({
-    int?    amountMinor,
+    int? amountMinor,
     String? note,
-    String  currency       = 'AOA',
-    bool    locked         = true,
-    int?    expiresInHours,
+    String currency = 'AOA',
+    bool locked = true,
+    int? expiresInHours,
   }) async {
     final body = <String, dynamic>{
       'currency': currency,
-      'locked':   locked,
-      if (amountMinor    != null) 'amount_minor':     amountMinor,
-      if (note           != null) 'note':              note,
+      'locked': locked,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (note != null) 'note': note,
       if (expiresInHours != null) 'expires_in_hours': expiresInHours,
     };
-    final json = await _call(method: 'POST', path: '/v1/consumer-pay-links', body: body);
+    final json =
+        await _call(method: 'POST', path: '/v1/consumer-pay-links', body: body);
     return ConsumerPayLink.fromJson(json);
   }
 
@@ -310,8 +317,8 @@ class ConsumerPublicClient {
   Future<ConsumerPayLink> getConsumerPayLinkByCode(String code) async {
     final json = await _call(
       method: 'GET',
-      path:   '/v1/consumer-pay-links/$code',
-      auth:   false,
+      path: '/v1/consumer-pay-links/$code',
+      auth: false,
     );
     return ConsumerPayLink.fromJson(json);
   }
@@ -322,7 +329,7 @@ class ConsumerPublicClient {
   /// [idempotencyKey] prevents double-charging on retry.
   Future<ConsumerPayLink> payConsumerPayLink(
     String code, {
-    int?    amountMinor,
+    int? amountMinor,
     String? idempotencyKey,
   }) async {
     final body = <String, dynamic>{
@@ -331,8 +338,8 @@ class ConsumerPublicClient {
     };
     final json = await _call(
       method: 'POST',
-      path:   '/v1/consumer-pay-links/$code/pay',
-      body:   body,
+      path: '/v1/consumer-pay-links/$code/pay',
+      body: body,
     );
     return ConsumerPayLink.fromJson(json);
   }
@@ -359,14 +366,14 @@ class ConsumerPublicClient {
   Future<Map<String, dynamic>> payStructuredQr({
     required String payer,
     required String payload,
-    int?    amountMinor,
+    int? amountMinor,
     String? note,
     String? idempotencyKey,
   }) {
     final body = <String, dynamic>{
       'idempotency_key': idempotencyKey ?? _uuid.v4(),
-      'payer':           payer,
-      'payload':         payload,
+      'payer': payer,
+      'payload': payload,
       if (amountMinor != null && amountMinor > 0) 'amount_minor': amountMinor,
       if (note != null) 'note': note,
     };
@@ -472,13 +479,15 @@ class ConsumerPublicClient {
   /// [BanzamiApiException] 409 (`EVIDENCE_INCOMPLETE`) when required evidence is
   /// still missing — the consumer cannot self-approve.
   Future<KycCase> submitKycCase(String caseId) async {
-    final json = await _call(method: 'POST', path: '/v1/kyc/cases/$caseId/submit');
+    final json =
+        await _call(method: 'POST', path: '/v1/kyc/cases/$caseId/submit');
     return KycCase.fromJson(json);
   }
 
   /// The current [KycStatus] of a case.
   Future<KycStatus> getKycStatus(String caseId) async {
-    final json = await _call(method: 'GET', path: '/v1/kyc/cases/$caseId/status');
+    final json =
+        await _call(method: 'GET', path: '/v1/kyc/cases/$caseId/status');
     return KycStatus.fromWire(json['status'] as String?);
   }
 
@@ -501,8 +510,8 @@ class ConsumerPublicClient {
     );
     return SandboxFundResult(
       creditedMinor: json['credited_minor'] as int,
-      newBalance:    json['new_balance']    as int,
-      currency:      json['currency']       as String,
+      newBalance: json['new_balance'] as int,
+      currency: json['currency'] as String,
     );
   }
 
@@ -514,11 +523,10 @@ class ConsumerPublicClient {
   ///   Omit to use topic delivery (tests the full subscription path).
   ///
   /// Returns `{delivery_mode, target, firebase_message_id}`.
-  Future<Map<String, dynamic>> sendDebugPush({String? fcmToken}) =>
-      _call(
+  Future<Map<String, dynamic>> sendDebugPush({String? fcmToken}) => _call(
         method: 'POST',
-        path:   '/v1/debug/push-test',
-        body:   fcmToken != null ? {'fcm_token': fcmToken} : null,
+        path: '/v1/debug/push-test',
+        body: fcmToken != null ? {'fcm_token': fcmToken} : null,
       );
 
   /// Fetches the official transfer receipt PDF for [transactionId], generated
@@ -528,7 +536,8 @@ class ConsumerPublicClient {
   Future<List<int>> fetchReceiptPdf(String transactionId) async {
     final path = '/v1/consumer/transactions/$transactionId/receipt.pdf';
     onRequest?.call('GET', path);
-    final resp = await _http.get(Uri.parse('$baseUrl$path'), headers: _headers());
+    final resp =
+        await _http.get(Uri.parse('$baseUrl$path'), headers: _headers());
     if (resp.statusCode != 200) {
       Map<String, dynamic>? j;
       try {
@@ -549,11 +558,11 @@ class ConsumerPublicClient {
   // ---------------------------------------------------------------------------
 
   Map<String, String> _headers({bool auth = true}) => {
-    'Content-Type': 'application/json',
-    'User-Agent': 'Banzami/1.0 (mobile)',
-    if (auth && _token != null) 'Authorization': 'Bearer $_token',
-    if (deviceId != null && deviceId!.isNotEmpty) 'X-Device-Id': deviceId!,
-  };
+        'Content-Type': 'application/json',
+        'User-Agent': 'Banzami/1.0 (mobile)',
+        if (auth && _token != null) 'Authorization': 'Bearer $_token',
+        if (deviceId != null && deviceId!.isNotEmpty) 'X-Device-Id': deviceId!,
+      };
 
   Future<Map<String, dynamic>> _call({
     required String method,
@@ -561,23 +570,25 @@ class ConsumerPublicClient {
     Map<String, dynamic>? body,
     bool auth = true,
   }) async {
-    final uri     = Uri.parse('$baseUrl$path');
+    final uri = Uri.parse('$baseUrl$path');
     final headers = _headers(auth: auth);
-    final start   = DateTime.now();
+    final start = DateTime.now();
 
     onRequest?.call(method, path);
 
     late http.Response resp;
     try {
       resp = switch (method) {
-        'GET'    => await _http.get(uri, headers: headers),
-        'POST'   => await _http.post(uri, headers: headers,
-                      body: body != null ? jsonEncode(body) : null),
+        'GET' => await _http.get(uri, headers: headers),
+        'POST' => await _http.post(uri,
+            headers: headers, body: body != null ? jsonEncode(body) : null),
         'DELETE' => await _http.delete(uri, headers: headers),
-        _        => throw ArgumentError('Unsupported method: $method'),
+        _ => throw ArgumentError('Unsupported method: $method'),
       };
     } catch (e) {
-      final err = e is BanzamiNetworkException ? e : BanzamiNetworkException(e.toString());
+      final err = e is BanzamiNetworkException
+          ? e
+          : BanzamiNetworkException(e.toString());
       onError?.call(method, path, err);
       if (e is BanzamiNetworkException) rethrow;
       throw err;
@@ -590,7 +601,8 @@ class ConsumerPublicClient {
       decoded = jsonDecode(resp.body) as Map<String, dynamic>;
     } catch (_) {
       // Non-JSON body (e.g. nginx 404 text). Wrap it so callers get a readable message.
-      final err = BanzamiNetworkException('HTTP ${resp.statusCode}: ${resp.body.trim()}');
+      final err = BanzamiNetworkException(
+          'HTTP ${resp.statusCode}: ${resp.body.trim()}');
       onError?.call(method, path, err);
       throw err;
     }
@@ -602,7 +614,8 @@ class ConsumerPublicClient {
 
     final exception = BanzamiApiException.fromJson(resp.statusCode, decoded);
     onError?.call(method, path, exception);
-    if (resp.statusCode == 401 && auth && _token != null) onUnauthorized?.call();
+    if (resp.statusCode == 401 && auth && _token != null)
+      onUnauthorized?.call();
     throw exception;
   }
 }

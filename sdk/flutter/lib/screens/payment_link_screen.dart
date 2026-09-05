@@ -32,7 +32,7 @@ class BanzamiPaymentLinkScreen extends StatefulWidget {
   /// app uses this to refresh its wallet/home (e.g. signal a balance reload).
   final void Function(Transfer) onSuccess;
 
-  final bool    isSandbox;
+  final bool isSandbox;
   final String? logoAssetPath;
 
   const BanzamiPaymentLinkScreen({
@@ -46,12 +46,13 @@ class BanzamiPaymentLinkScreen extends StatefulWidget {
   });
 
   @override
-  State<BanzamiPaymentLinkScreen> createState() => _BanzamiPaymentLinkScreenState();
+  State<BanzamiPaymentLinkScreen> createState() =>
+      _BanzamiPaymentLinkScreenState();
 }
 
 class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
   PaymentLink? _link;
-  bool    _loading = true;
+  bool _loading = true;
   String? _error;
 
   @override
@@ -63,10 +64,17 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
   Future<void> _load() async {
     try {
       final link = await widget.client.getPaymentLinkBySlug(widget.slug);
-      if (mounted) setState(() { _link = link; _loading = false; });
+      if (mounted)
+        setState(() {
+          _link = link;
+          _loading = false;
+        });
     } catch (_) {
       if (mounted) {
-        setState(() { _error = 'Link de pagamento não encontrado.'; _loading = false; });
+        setState(() {
+          _error = 'Link de pagamento não encontrado.';
+          _loading = false;
+        });
       }
     }
   }
@@ -76,7 +84,8 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
     if (_loading) {
       return const BanzamiScaffold(
         appBar: BanzamiAppBar(title: 'Pagar', showBack: true),
-        body:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
+        body: Center(
+            child: CircularProgressIndicator(color: BanzamiColors.primary)),
       );
     }
 
@@ -84,17 +93,20 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
     if (_error != null || link == null) {
       return BanzamiScaffold(
         appBar: const BanzamiAppBar(title: 'Pagar', showBack: true),
-        body: Center(child: Padding(
+        body: Center(
+            child: Padding(
           padding: const EdgeInsets.all(BanzamiSpacing.xl),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.link_off_rounded, color: BanzamiColors.error, size: 48),
+            const Icon(Icons.link_off_rounded,
+                color: BanzamiColors.error, size: 48),
             const SizedBox(height: BanzamiSpacing.lg),
             Text(_error ?? 'Link de pagamento não encontrado.',
-                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                style: BanzamiTextStyles.bodyMd
+                    .copyWith(color: BanzamiColors.gray400),
                 textAlign: TextAlign.center),
             const SizedBox(height: BanzamiSpacing.xl),
             BanzamiGhostButton(
-              label:     'Voltar',
+              label: 'Voltar',
               onPressed: () => Navigator.of(context).pop(),
             ),
           ]),
@@ -107,8 +119,8 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
         link.status == PaymentLinkStatus.cancelled) {
       return BanzamiScaffold(
         appBar: const BanzamiAppBar(title: 'Pagar', showBack: true),
-        body:   _InvalidView(
-          status:  link.status,
+        body: _InvalidView(
+          status: link.status,
           onClose: () => Navigator.of(context).pop(),
         ),
       );
@@ -117,19 +129,19 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
     // Active link → shared payment screen. The merchant is the payee (no
     // @handle); the link reference is the subtitle and the receipt note.
     return BanzamiPaymentRequestScreen(
-      client:               widget.client,
-      recipientHandle:      link.merchantName ?? link.slug,
+      client: widget.client,
+      recipientHandle: link.merchantName ?? link.slug,
       recipientDisplayName: link.merchantName ?? 'Pagamento Banzami',
-      recipientSubtitle:    link.description,
-      amountMinor:          link.amountMinor,
-      currency:             link.currency,
-      locked:               link.amountMinor != null,
-      ownHandle:            widget.ownHandle,
-      onSuccess:            widget.onSuccess,
-      isSandbox:            widget.isSandbox,
-      paymentLinkSlug:      link.slug,
-      recipientIsHandle:    false,
-      logoAssetPath:        widget.logoAssetPath,
+      recipientSubtitle: link.description,
+      amountMinor: link.amountMinor,
+      currency: link.currency,
+      locked: link.amountMinor != null,
+      ownHandle: widget.ownHandle,
+      onSuccess: widget.onSuccess,
+      isSandbox: widget.isSandbox,
+      paymentLinkSlug: link.slug,
+      recipientIsHandle: false,
+      logoAssetPath: widget.logoAssetPath,
     );
   }
 }
@@ -142,26 +154,31 @@ class _InvalidView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final msg = switch (status) {
-      PaymentLinkStatus.used      => 'Este link já foi utilizado.',
-      PaymentLinkStatus.expired   => 'Este link de pagamento expirou.',
+      PaymentLinkStatus.used => 'Este link já foi utilizado.',
+      PaymentLinkStatus.expired => 'Este link de pagamento expirou.',
       PaymentLinkStatus.cancelled => 'Este link foi cancelado.',
-      _                           => 'Link inválido.',
+      _ => 'Link inválido.',
     };
-    return Center(child: Padding(
+    return Center(
+        child: Padding(
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 72, height: 72,
+          width: 72,
+          height: 72,
           decoration: const BoxDecoration(
-            color:        BanzamiColors.errorBg,
+            color: BanzamiColors.errorBg,
             borderRadius: BanzamiRadius.fullAll,
           ),
-          child: const Icon(Icons.close_rounded, color: BanzamiColors.error, size: 36),
+          child: const Icon(Icons.close_rounded,
+              color: BanzamiColors.error, size: 36),
         ),
         const SizedBox(height: BanzamiSpacing.xl),
         const Text('Link inválido', style: BanzamiTextStyles.headingLg),
         const SizedBox(height: BanzamiSpacing.sm),
-        Text(msg, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+        Text(msg,
+            style:
+                BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             textAlign: TextAlign.center),
         const SizedBox(height: BanzamiSpacing.xxl),
         BanzamiPrimaryButton(label: 'Fechar', onPressed: onClose),

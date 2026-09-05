@@ -12,7 +12,8 @@ class MoneyInputFormatter extends TextInputFormatter {
   const MoneyInputFormatter({this.currency = 'AOA'});
 
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
     final formatted = formatMoneyInput(newValue.text, currency: currency);
     return TextEditingValue(
       text: formatted,
@@ -59,7 +60,8 @@ class _MoneyInputState extends State<MoneyInput> {
     final initial = widget.initialMinor != null
         ? fromMinorUnits(widget.initialMinor!, currency: widget.currency)
         : '';
-    _ctrl = TextEditingController(text: formatMoneyInput(initial, currency: widget.currency));
+    _ctrl = TextEditingController(
+        text: formatMoneyInput(initial, currency: widget.currency));
   }
 
   @override
@@ -85,16 +87,22 @@ class _MoneyInputState extends State<MoneyInput> {
         autofocus: widget.autofocus,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         inputFormatters: [MoneyInputFormatter(currency: widget.currency)],
-        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: BanzamiColors.gray900),
+        style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: BanzamiColors.gray900),
         decoration: InputDecoration(
           hintText: widget.hint,
           suffixText: _symbol,
           suffixStyle: const TextStyle(
-              fontSize: 16, fontWeight: FontWeight.w700, color: BanzamiColors.gray400),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: BanzamiColors.gray400),
           errorText: widget.errorText,
           prefixIcon: const Icon(Icons.payments_outlined),
         ),
-        onChanged: (raw) => widget.onChanged(tryParseMoneyInput(raw, currency: widget.currency)),
+        onChanged: (raw) => widget
+            .onChanged(tryParseMoneyInput(raw, currency: widget.currency)),
       ),
     ]);
   }

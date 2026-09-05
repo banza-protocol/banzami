@@ -18,19 +18,19 @@ import '../theme/banzami_theme.dart';
 /// to the primary tone and stay legible; the cherry core is unchanged.
 class BanzamiVerifiedMark extends StatefulWidget {
   final double size;
-  final bool   onLight;
+  final bool onLight;
 
   /// Optional accent overrides for the bloom/ring and the core seal. Default to
   /// the official Banzami palette (so every other usage is unchanged). The
   /// immersive receipt passes its historical deep-cherry reds here without
   /// affecting any other screen.
-  final Color? bloom;    // ambient bloom + outer ring (default primaryLight)
-  final Color? coreMid;  // core radial mid stop       (default primaryMid)
+  final Color? bloom; // ambient bloom + outer ring (default primaryLight)
+  final Color? coreMid; // core radial mid stop       (default primaryMid)
   final Color? coreEdge; // core radial edge stop      (default primaryDark)
 
   const BanzamiVerifiedMark({
     super.key,
-    this.size    = 96,
+    this.size = 96,
     this.onLight = false,
     this.bloom,
     this.coreMid,
@@ -49,7 +49,7 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
   void initState() {
     super.initState();
     _rotCtrl = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: const Duration(seconds: 12),
     )..repeat();
   }
@@ -76,44 +76,45 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
 
     // On a light background the white ring/label vanish — switch them to the
     // primary tone. On dark they stay white. The cherry core never changes.
-    final ringColor  = widget.onLight
+    final ringColor = widget.onLight
         ? BanzamiColors.primary.withValues(alpha: 0.45)
         : BanzamiColors.white.withValues(alpha: 0.52);
     final labelColor = widget.onLight
         ? BanzamiColors.primaryDark.withValues(alpha: 0.90)
         : BanzamiColors.white.withValues(alpha: 0.92);
-    final glassTop   = widget.onLight
+    final glassTop = widget.onLight
         ? BanzamiColors.white.withValues(alpha: 0.22)
         : BanzamiColors.white.withValues(alpha: 0.14);
 
     // Accent colours — official palette by default; the receipt overrides them
     // with its historical deep-cherry reds.
-    final bloom    = widget.bloom    ?? BanzamiColors.primaryLight;
-    final coreMid  = widget.coreMid  ?? BanzamiColors.primaryMid;
+    final bloom = widget.bloom ?? BanzamiColors.primaryLight;
+    final coreMid = widget.coreMid ?? BanzamiColors.primaryMid;
     final coreEdge = widget.coreEdge ?? BanzamiColors.primaryDark;
 
     return SizedBox(
-      width:  size,
+      width: size,
       height: size,
       child: Stack(
-        alignment:    Alignment.center,
-        clipBehavior: Clip.none, // lets the BANZAMI label sit just above the ring
+        alignment: Alignment.center,
+        clipBehavior:
+            Clip.none, // lets the BANZAMI label sit just above the ring
         children: [
           // ── Layer 0: ambient cherry bloom ─────────────────────────────
           Container(
-            width:  size,
+            width: size,
             height: size,
             decoration: BoxDecoration(
-              shape:     BoxShape.circle,
+              shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:        bloom.withValues(alpha: 0.55),
-                  blurRadius:   22,
+                  color: bloom.withValues(alpha: 0.55),
+                  blurRadius: 22,
                   spreadRadius: 4,
                 ),
                 BoxShadow(
-                  color:        bloom.withValues(alpha: 0.25),
-                  blurRadius:   48,
+                  color: bloom.withValues(alpha: 0.25),
+                  blurRadius: 48,
                   spreadRadius: 12,
                 ),
               ],
@@ -122,7 +123,7 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
 
           // ── Layer 1: outer luminous ring ───────────────────────────────
           Container(
-            width:  size,
+            width: size,
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
@@ -132,13 +133,13 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
               ),
               boxShadow: [
                 BoxShadow(
-                  color:        bloom,
-                  blurRadius:   6,
+                  color: bloom,
+                  blurRadius: 6,
                   spreadRadius: 0,
                 ),
                 BoxShadow(
-                  color:        bloom.withValues(alpha: 0.55),
-                  blurRadius:   18,
+                  color: bloom.withValues(alpha: 0.55),
+                  blurRadius: 18,
                   spreadRadius: 4,
                 ),
               ],
@@ -147,12 +148,12 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
 
           // ── Layer 2: dashed security ring (slowly rotating) ───────────
           CustomPaint(
-            size:    Size(size, size),
+            size: Size(size, size),
             painter: _DashedRingPainter(
-              color:          ringColor,
+              color: ringColor,
               radiusFraction: ringR,
-              gapAngleRad:    0.0, // full dashed circle — no break at the top
-              rotation:       rotation,
+              gapAngleRad: 0.0, // full dashed circle — no break at the top
+              rotation: rotation,
             ),
           ),
 
@@ -160,31 +161,31 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
           // Stays pinned while the full dashed ring rotates beneath it. The
           // 0.16 offset lifts it clear of the ring for comfortable separation.
           Positioned(
-            top:   size * (0.50 - ringR - 0.16),
-            left:  0,
+            top: size * (0.50 - ringR - 0.16),
+            left: 0,
             right: 0,
             child: Text(
               'BANZAMI',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color:         labelColor,
-                fontSize:      size * 0.092,
-                fontWeight:    FontWeight.w800,
+                color: labelColor,
+                fontSize: size * 0.092,
+                fontWeight: FontWeight.w800,
                 letterSpacing: 2.4,
-                height:        1.0,
+                height: 1.0,
               ),
             ),
           ),
 
           // ── Layer 3: inner glass ring ──────────────────────────────────
           Container(
-            width:  size * 0.73,
+            width: size * 0.73,
             height: size * 0.73,
             decoration: BoxDecoration(
-              shape:    BoxShape.circle,
+              shape: BoxShape.circle,
               gradient: LinearGradient(
-                begin:  Alignment.bottomCenter,
-                end:    Alignment.topCenter,
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
                 colors: [
                   glassTop,
                   BanzamiColors.white.withValues(alpha: 0.00),
@@ -192,8 +193,8 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
               ),
               boxShadow: [
                 BoxShadow(
-                  color:        BanzamiColors.black.withValues(alpha: 0.28),
-                  blurRadius:   10,
+                  color: BanzamiColors.black.withValues(alpha: 0.28),
+                  blurRadius: 10,
                   spreadRadius: 1,
                 ),
               ],
@@ -202,10 +203,10 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
 
           // ── Layer 4: core cherry seal ──────────────────────────────────
           Container(
-            width:  size * 0.60,
+            width: size * 0.60,
             height: size * 0.60,
             decoration: BoxDecoration(
-              shape:    BoxShape.circle,
+              shape: BoxShape.circle,
               gradient: RadialGradient(
                 center: const Alignment(0, -0.28),
                 colors: [
@@ -213,7 +214,7 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
                   coreMid,
                   coreEdge,
                 ],
-                stops:  const [0.0, 0.52, 1.0],
+                stops: const [0.0, 0.52, 1.0],
               ),
               border: Border.all(
                 color: BanzamiColors.white.withValues(alpha: 0.18),
@@ -221,9 +222,9 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
               ),
               boxShadow: [
                 BoxShadow(
-                  color:      BanzamiColors.black.withValues(alpha: 0.50),
+                  color: BanzamiColors.black.withValues(alpha: 0.50),
                   blurRadius: 14,
-                  offset:     const Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -233,7 +234,7 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
           Icon(
             Icons.check_rounded,
             color: BanzamiColors.white,
-            size:  size * 0.32,
+            size: size * 0.32,
           ),
         ],
       ),
@@ -242,34 +243,35 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
 }
 
 class _DashedRingPainter extends CustomPainter {
-  final Color  color;
+  final Color color;
   final double radiusFraction; // radius = size.width * radiusFraction
-  final double gapAngleRad;    // gap width in radians (decorative, orbits with ring)
-  final double rotation;       // current rotation offset in radians
+  final double
+      gapAngleRad; // gap width in radians (decorative, orbits with ring)
+  final double rotation; // current rotation offset in radians
 
   const _DashedRingPainter({
     required this.color,
     this.radiusFraction = 0.42,
-    this.gapAngleRad    = 1.28,
-    this.rotation       = 0.0,
+    this.gapAngleRad = 1.28,
+    this.rotation = 0.0,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color       = color
+      ..color = color
       ..strokeWidth = 1.5
-      ..style       = PaintingStyle.stroke;
+      ..style = PaintingStyle.stroke;
 
-    final center      = Offset(size.width / 2, size.height / 2);
-    final radius      = size.width * radiusFraction;
-    final drawable    = math.pi * 2 - gapAngleRad;
-    final startAngle  = -math.pi / 2 + gapAngleRad / 2 + rotation;
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width * radiusFraction;
+    final drawable = math.pi * 2 - gapAngleRad;
+    final startAngle = -math.pi / 2 + gapAngleRad / 2 + rotation;
 
     const segments = 32;
-    const filled   = 0.52;
-    final segArc   = drawable / segments;
-    final dashArc  = segArc * filled;
+    const filled = 0.52;
+    final segArc = drawable / segments;
+    final dashArc = segArc * filled;
 
     for (int i = 0; i < segments; i++) {
       canvas.drawArc(

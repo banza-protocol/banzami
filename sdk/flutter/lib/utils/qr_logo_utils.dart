@@ -35,17 +35,18 @@ Future<ui.Image> roundQrLogoCorners(
   final r = (w * cornerFraction).clamp(1.0, w / 2);
 
   final recorder = ui.PictureRecorder();
-  final canvas   = Canvas(recorder);
+  final canvas = Canvas(recorder);
 
   final paint = Paint()
-    ..isAntiAlias   = true
+    ..isAntiAlias = true
     ..filterQuality = FilterQuality.high;
 
   canvas.clipPath(
-    Path()..addRRect(RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      Radius.circular(r),
-    )),
+    Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w, h),
+        Radius.circular(r),
+      )),
     doAntiAlias: true,
   );
   canvas.drawImage(src, Offset.zero, paint);

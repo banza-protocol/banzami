@@ -13,11 +13,16 @@ void main() {
       expect(parseMoneyInput('50 000,50 Kz'), 5000050); // tolerates the symbol
     });
     test('rejects invalid input', () {
-      expect(() => parseMoneyInput('abc'), throwsA(isA<MoneyFormatException>()));
-      expect(() => parseMoneyInput('1,234'), throwsA(isA<MoneyFormatException>())); // >2 decimals
-      expect(() => parseMoneyInput('1,,23'), throwsA(isA<MoneyFormatException>())); // 2 commas
-      expect(() => parseMoneyInput('1.23'), throwsA(isA<MoneyFormatException>()));  // dot decimal
-      expect(() => parseMoneyInput('-5'), throwsA(isA<MoneyFormatException>()));    // negative
+      expect(
+          () => parseMoneyInput('abc'), throwsA(isA<MoneyFormatException>()));
+      expect(() => parseMoneyInput('1,234'),
+          throwsA(isA<MoneyFormatException>())); // >2 decimals
+      expect(() => parseMoneyInput('1,,23'),
+          throwsA(isA<MoneyFormatException>())); // 2 commas
+      expect(() => parseMoneyInput('1.23'),
+          throwsA(isA<MoneyFormatException>())); // dot decimal
+      expect(() => parseMoneyInput('-5'),
+          throwsA(isA<MoneyFormatException>())); // negative
       expect(() => parseMoneyInput(''), throwsA(isA<MoneyFormatException>()));
     });
     test('tryParseMoneyInput returns null on invalid', () {
@@ -54,7 +59,8 @@ void main() {
       expect(formatMoneyInput('50000'), '50 000');
       expect(formatMoneyInput('50000,5'), '50 000,5');
       expect(formatMoneyInput('50000,50'), '50 000,50');
-      expect(formatMoneyInput('50000,505'), '50 000,50'); // truncates 3rd decimal
+      expect(
+          formatMoneyInput('50000,505'), '50 000,50'); // truncates 3rd decimal
       expect(formatMoneyInput(''), '');
     });
   });
@@ -63,7 +69,8 @@ void main() {
     test('spec examples', () {
       expect(splitEvenlyMinor(5000000, 3), [1666667, 1666667, 1666666]);
       expect(splitEvenlyMinor(10001, 2), [5001, 5000]);
-      expect(splitEvenlyMinor(10000000, 4), [2500000, 2500000, 2500000, 2500000]);
+      expect(
+          splitEvenlyMinor(10000000, 4), [2500000, 2500000, 2500000, 2500000]);
     });
     test('sum always exactly the total; parts differ by ≤1', () {
       for (final total in [1, 7, 100, 5000000, 10001, 123456789]) {
@@ -76,7 +83,8 @@ void main() {
       }
     });
     test('people <= 0 throws', () {
-      expect(() => splitEvenlyMinor(100, 0), throwsA(isA<MoneyFormatException>()));
+      expect(
+          () => splitEvenlyMinor(100, 0), throwsA(isA<MoneyFormatException>()));
     });
   });
 

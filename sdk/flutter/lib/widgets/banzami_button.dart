@@ -23,9 +23,9 @@ class BanzamiButton extends StatelessWidget {
     super.key,
     required this.label,
     this.onPressed,
-    this.variant    = BanzamiButtonVariant.primary,
-    this.isLoading  = false,
-    this.fullWidth  = true,
+    this.variant = BanzamiButtonVariant.primary,
+    this.isLoading = false,
+    this.fullWidth = true,
     this.icon,
   });
 
@@ -60,7 +60,7 @@ class BanzamiButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = isLoading
         ? SizedBox(
-            width:  20,
+            width: 20,
             height: 20,
             child: CircularProgressIndicator(
               strokeWidth: 2,
@@ -84,8 +84,8 @@ class BanzamiButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: BanzamiColors.primary,
             foregroundColor: BanzamiColors.white,
-            minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
-            shape:           const RoundedRectangleBorder(
+            minimumSize: Size(fullWidth ? double.infinity : 0, 48),
+            shape: const RoundedRectangleBorder(
               borderRadius: BanzamiRadius.mdAll,
             ),
             elevation: 0,
@@ -96,8 +96,8 @@ class BanzamiButton extends StatelessWidget {
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
             foregroundColor: BanzamiColors.primary,
-            minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
-            shape:           const RoundedRectangleBorder(
+            minimumSize: Size(fullWidth ? double.infinity : 0, 48),
+            shape: const RoundedRectangleBorder(
               borderRadius: BanzamiRadius.mdAll,
             ),
             side: const BorderSide(color: BanzamiColors.primary, width: 1.5),
@@ -113,8 +113,8 @@ class BanzamiButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: BanzamiColors.error,
             foregroundColor: BanzamiColors.white,
-            minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
-            shape:           const RoundedRectangleBorder(
+            minimumSize: Size(fullWidth ? double.infinity : 0, 48),
+            shape: const RoundedRectangleBorder(
               borderRadius: BanzamiRadius.mdAll,
             ),
             elevation: 0,
@@ -127,15 +127,15 @@ class BanzamiButton extends StatelessWidget {
   }
 
   Color get _contentColor => switch (variant) {
-    BanzamiButtonVariant.primary     => BanzamiColors.white,
-    BanzamiButtonVariant.secondary   => BanzamiColors.primary,
-    BanzamiButtonVariant.ghost       => BanzamiColors.primary,
-    BanzamiButtonVariant.destructive => BanzamiColors.white,
-  };
+        BanzamiButtonVariant.primary => BanzamiColors.white,
+        BanzamiButtonVariant.secondary => BanzamiColors.primary,
+        BanzamiButtonVariant.ghost => BanzamiColors.primary,
+        BanzamiButtonVariant.destructive => BanzamiColors.white,
+      };
 
   TextStyle get _textStyle => BanzamiTextStyles.label.copyWith(
-    fontSize:   15,
-    fontWeight: FontWeight.w600,
-    color:      _contentColor,
-  );
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: _contentColor,
+      );
 }

@@ -27,18 +27,18 @@ class PaymentRequest {
   });
 
   factory PaymentRequest.fromJson(Map<String, dynamic> json) => PaymentRequest(
-        id:          json['id'] as String,
+        id: json['id'] as String,
         requesterId: json['requester_id'] as String,
-        payerId:     json['payer_id'] as String?,
+        payerId: json['payer_id'] as String?,
         amountMinor: json['amount_minor'] as int,
-        currency:    json['currency'] as String,
+        currency: json['currency'] as String,
         description: json['description'] as String?,
-        status:      PaymentRequestStatus.fromString(json['status'] as String),
-        expiresAt:   json['expires_at'] != null
+        status: PaymentRequestStatus.fromString(json['status'] as String),
+        expiresAt: json['expires_at'] != null
             ? DateTime.parse(json['expires_at'] as String)
             : null,
-        createdAt:   DateTime.parse(json['created_at'] as String),
-        updatedAt:   DateTime.parse(json['updated_at'] as String),
+        createdAt: DateTime.parse(json['created_at'] as String),
+        updatedAt: DateTime.parse(json['updated_at'] as String),
       );
 }
 
@@ -50,12 +50,12 @@ enum PaymentRequestStatus {
   expired;
 
   static PaymentRequestStatus fromString(String s) => switch (s) {
-        'PENDING'   => pending,
-        'PAID'      => paid,
-        'DECLINED'  => declined,
+        'PENDING' => pending,
+        'PAID' => paid,
+        'DECLINED' => declined,
         'CANCELLED' => cancelled,
-        'EXPIRED'   => expired,
-        _           => pending,
+        'EXPIRED' => expired,
+        _ => pending,
       };
 
   bool get isPending => this == pending;
@@ -68,7 +68,8 @@ class PaymentRequestPage {
 
   const PaymentRequestPage({required this.data, this.nextCursor});
 
-  factory PaymentRequestPage.fromJson(Map<String, dynamic> json) => PaymentRequestPage(
+  factory PaymentRequestPage.fromJson(Map<String, dynamic> json) =>
+      PaymentRequestPage(
         data: ((json['data'] as List?) ?? const [])
             .map((e) => PaymentRequest.fromJson(e as Map<String, dynamic>))
             .toList(),

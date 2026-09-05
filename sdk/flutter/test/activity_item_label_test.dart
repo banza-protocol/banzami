@@ -29,9 +29,11 @@ void main() {
   group('ActivityItem.typeLabel', () {
     test('maps every known technical type to a clean PT label', () {
       expect(_item(itemType: 'P2P_SENT').typeLabel, 'Enviado');
-      expect(_item(itemType: 'P2P_RECEIVED', direction: 'INCOMING').typeLabel, 'Recebido');
+      expect(_item(itemType: 'P2P_RECEIVED', direction: 'INCOMING').typeLabel,
+          'Recebido');
       expect(_item(itemType: 'MERCHANT_PAYMENT_SENT').typeLabel, 'Pagamento');
-      expect(_item(itemType: 'WALLET_FUNDED', direction: 'INCOMING').typeLabel, 'Carregamento');
+      expect(_item(itemType: 'WALLET_FUNDED', direction: 'INCOMING').typeLabel,
+          'Carregamento');
       expect(_item(itemType: 'WALLET_REVERSED').typeLabel, 'Estorno');
     });
 
@@ -65,9 +67,13 @@ void main() {
     });
 
     test('P2P with only a handle is prefixed with @', () {
-      expect(_item(itemType: 'P2P_SENT', counterpartyHandle: 'fm65').displayTitle, '@fm65');
+      expect(
+          _item(itemType: 'P2P_SENT', counterpartyHandle: 'fm65').displayTitle,
+          '@fm65');
       // already-prefixed handles are not double-prefixed
-      expect(_item(itemType: 'P2P_SENT', counterpartyHandle: '@fm65').displayTitle, '@fm65');
+      expect(
+          _item(itemType: 'P2P_SENT', counterpartyHandle: '@fm65').displayTitle,
+          '@fm65');
     });
 
     test('display name wins over handle', () {

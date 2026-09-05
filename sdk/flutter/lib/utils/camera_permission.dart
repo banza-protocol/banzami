@@ -67,19 +67,20 @@ class BanzamiCameraPermission {
 
   static Future<void> _showSettingsDialog(BuildContext context) async {
     await showDialog<void>(
-      context:     context,
+      context: context,
       barrierColor: Colors.black54,
-      builder:     (ctx) => Dialog(
-        shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         backgroundColor: BanzamiColors.white,
-        insetPadding:    const EdgeInsets.symmetric(horizontal: 32),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 64, height: 64,
+                width: 64,
+                height: 64,
                 decoration: const BoxDecoration(
                   color: BanzamiColors.gray100,
                   shape: BoxShape.circle,
@@ -93,20 +94,20 @@ class BanzamiCameraPermission {
               const SizedBox(height: 16),
               const Text(
                 'Câmara não autorizada',
-                style:     TextStyle(
-                  fontSize:   17,
+                style: TextStyle(
+                  fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color:      BanzamiColors.gray900,
+                  color: BanzamiColors.gray900,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               const Text(
                 'Para ler códigos QR de pagamento, autorize o acesso à câmara nas Definições.',
-                style:     TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color:    BanzamiColors.gray400,
-                  height:   1.4,
+                  color: BanzamiColors.gray400,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -116,14 +117,16 @@ class BanzamiCameraPermission {
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side:    const BorderSide(color: BanzamiColors.gray200),
-                        shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: const BorderSide(color: BanzamiColors.gray200),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                       onPressed: () => Navigator.of(ctx).pop(),
                       child: const Text(
                         'Cancelar',
-                        style: TextStyle(color: BanzamiColors.gray400, fontSize: 15),
+                        style: TextStyle(
+                            color: BanzamiColors.gray400, fontSize: 15),
                       ),
                     ),
                   ),
@@ -132,8 +135,9 @@ class BanzamiCameraPermission {
                     child: FilledButton(
                       style: FilledButton.styleFrom(
                         backgroundColor: BanzamiColors.primary,
-                        shape:          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding:        const EdgeInsets.symmetric(vertical: 13),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                       onPressed: () {
                         Navigator.of(ctx).pop();
@@ -157,9 +161,9 @@ class BanzamiCameraPermission {
   static void _showToast(BuildContext context, String message) {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
-        content:         Text(message),
+        content: Text(message),
         backgroundColor: BanzamiColors.gray900,
-        behavior:        SnackBarBehavior.floating,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

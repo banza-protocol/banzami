@@ -24,13 +24,13 @@ class MerchantWalletPayment {
 
   factory MerchantWalletPayment.fromJson(Map<String, dynamic> json) {
     return MerchantWalletPayment(
-      id:               json['id'] as String,
-      reference:        (json['reference'] as String?) ?? '',
-      amountMinor:      (json['amount_minor'] as num).toInt(),
-      currency:         (json['currency'] as String?) ?? 'AOA',
-      status:           (json['status'] as String?) ?? '',
-      payerName:        (json['payer_name'] as String?) ?? '',
-      createdAt:        DateTime.parse(json['created_at'] as String),
+      id: json['id'] as String,
+      reference: (json['reference'] as String?) ?? '',
+      amountMinor: (json['amount_minor'] as num).toInt(),
+      currency: (json['currency'] as String?) ?? 'AOA',
+      status: (json['status'] as String?) ?? '',
+      payerName: (json['payer_name'] as String?) ?? '',
+      createdAt: DateTime.parse(json['created_at'] as String),
       receiptAvailable: (json['receipt_available'] as bool?) ?? false,
     );
   }

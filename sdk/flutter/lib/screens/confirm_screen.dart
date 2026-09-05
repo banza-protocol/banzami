@@ -20,15 +20,15 @@ import 'receipt_screen.dart';
 /// here — retries from this screen are safe (server deduplicates).
 class BanzamiConfirmScreen extends StatefulWidget {
   final ConsumerPublicClient client;
-  final String  recipientHandle;
+  final String recipientHandle;
   final String? recipientDisplayName;
-  final int     amountMinor;
-  final String  currency;
+  final int amountMinor;
+  final String currency;
   final String? note;
-  final String  idempotencyKey;
+  final String idempotencyKey;
   final String? ownHandle;
   final void Function(Transfer) onSuccess;
-  final bool    isSandbox;
+  final bool isSandbox;
   final String? logoAssetPath;
 
   const BanzamiConfirmScreen({
@@ -42,7 +42,7 @@ class BanzamiConfirmScreen extends StatefulWidget {
     required this.idempotencyKey,
     this.ownHandle,
     required this.onSuccess,
-    this.isSandbox     = false,
+    this.isSandbox = false,
     this.logoAssetPath,
   });
 
@@ -52,19 +52,19 @@ class BanzamiConfirmScreen extends StatefulWidget {
 
 class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     with SingleTickerProviderStateMixin {
-  bool    _sending = false;
+  bool _sending = false;
   String? _error;
-  bool    _entered = false;
+  bool _entered = false;
 
   // Orb pulse animation — replaces the old flat white overlay animation.
   late final AnimationController _pulseCtrl;
-  late final Animation<double>   _pulseScale;
+  late final Animation<double> _pulseScale;
 
   @override
   void initState() {
     super.initState();
     _pulseCtrl = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: BanzamiMotion.pulse,
     );
     _pulseScale = Tween<double>(begin: 0.96, end: 1.04).animate(
@@ -86,16 +86,19 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   Future<void> _confirm() async {
     if (_sending) return;
     HapticFeedback.mediumImpact();
-    setState(() { _sending = true; _error = null; });
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
     _pulseCtrl.repeat(reverse: true);
 
     try {
       final transfer = await widget.client.sendByHandle(
         recipientHandle: widget.recipientHandle,
-        amountMinor:     widget.amountMinor,
-        currency:        widget.currency,
-        note:            widget.note,
-        idempotencyKey:  widget.idempotencyKey,
+        amountMinor: widget.amountMinor,
+        currency: widget.currency,
+        note: widget.note,
+        idempotencyKey: widget.idempotencyKey,
       );
 
       if (!mounted) return;
@@ -105,12 +108,13 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
       await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiReceiptScreen(
-          transfer:        transfer,
-          ownHandle:       widget.ownHandle,
-          onDone:          widget.onSuccess,
-          isSandbox:       widget.isSandbox,
-          logoAssetPath:   widget.logoAssetPath,
-          fetchReceiptPdf: () => widget.client.fetchReceiptPdf(transfer.transferId),
+          transfer: transfer,
+          ownHandle: widget.ownHandle,
+          onDone: widget.onSuccess,
+          isSandbox: widget.isSandbox,
+          logoAssetPath: widget.logoAssetPath,
+          fetchReceiptPdf: () =>
+              widget.client.fetchReceiptPdf(transfer.transferId),
         ),
       ));
     } on BanzamiApiException catch (e) {
@@ -120,13 +124,15 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
-        _error   = switch (e.code) {
-          'INSUFFICIENT_FUNDS'  => 'Saldo insuficiente para esta transferência.',
+        _error = switch (e.code) {
+          'INSUFFICIENT_FUNDS' => 'Saldo insuficiente para esta transferência.',
           'RECIPIENT_NOT_FOUND' => '@${widget.recipientHandle} não encontrado.',
           'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa.',
-          'SELF_TRANSFER'       => 'Não pode enviar para si mesmo.',
-          'INVALID_AMOUNT'      => 'Montante inválido.',
-          _                     => e.message.isNotEmpty ? e.message : 'Erro de envio. Tente novamente.',
+          'SELF_TRANSFER' => 'Não pode enviar para si mesmo.',
+          'INVALID_AMOUNT' => 'Montante inválido.',
+          _ => e.message.isNotEmpty
+              ? e.message
+              : 'Erro de envio. Tente novamente.',
         };
       });
     } catch (_) {
@@ -134,7 +140,10 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
-      setState(() { _sending = false; _error = 'Erro de ligação. Tente novamente.'; });
+      setState(() {
+        _sending = false;
+        _error = 'Erro de ligação. Tente novamente.';
+      });
     }
   }
 
@@ -142,23 +151,23 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
   Widget _recipientCard(String initial, String? displayName, String handle) {
     return BanzamiCard(
-      shadow:       BanzamiShadows.cardElevated,
-      padding:      const EdgeInsets.all(BanzamiSpacing.xl),
+      shadow: BanzamiShadows.cardElevated,
+      padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width:  56,
+            width: 56,
             height: 56,
             decoration: const BoxDecoration(
               gradient: BanzamiGradients.primary,
-              shape:    BoxShape.circle,
+              shape: BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 initial,
                 style: BanzamiTextStyles.headingLg.copyWith(
-                  color:      BanzamiColors.white,
+                  color: BanzamiColors.white,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -171,14 +180,15 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
               children: [
                 Text(
                   'Destinatário',
-                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                  style: BanzamiTextStyles.bodySm
+                      .copyWith(color: BanzamiColors.gray400),
                 ),
                 const SizedBox(height: 3),
                 if (displayName != null) ...[
                   Text(
                     displayName,
                     style: BanzamiTextStyles.headingSm.copyWith(
-                      color:      BanzamiColors.gray900,
+                      color: BanzamiColors.gray900,
                       fontWeight: FontWeight.w700,
                     ),
                     maxLines: 1,
@@ -187,29 +197,31 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                   const SizedBox(height: 2),
                   Text(
                     '@$handle',
-                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                    style: BanzamiTextStyles.bodySm
+                        .copyWith(color: BanzamiColors.gray400),
                   ),
                 ] else
                   Text(
                     '@$handle',
                     style: BanzamiTextStyles.headingSm.copyWith(
-                      color:      BanzamiColors.gray900,
+                      color: BanzamiColors.gray900,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 const SizedBox(height: 10),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color:        BanzamiColors.primary.withValues(alpha: 0.08),
+                    color: BanzamiColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(BanzamiRadius.full),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width:  5,
+                          width: 5,
                           height: 5,
                           decoration: const BoxDecoration(
                             color: BanzamiColors.primary,
@@ -220,8 +232,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                         Text(
                           'Endereço Banzami',
                           style: BanzamiTextStyles.label.copyWith(
-                            color:      BanzamiColors.primary,
-                            fontSize:   11,
+                            color: BanzamiColors.primary,
+                            fontSize: 11,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -240,25 +252,26 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   Widget _amountCard(String amount, String? note) {
     final hasNote = note != null && note.isNotEmpty;
     return BanzamiCard(
-      shadow:       BanzamiShadows.cardElevated,
+      shadow: BanzamiShadows.cardElevated,
       padding: const EdgeInsets.symmetric(
         horizontal: BanzamiSpacing.xl,
-        vertical:   BanzamiSpacing.xxl,
+        vertical: BanzamiSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Vai enviar',
-            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            style:
+                BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
             amount,
             style: BanzamiTextStyles.monoLg.copyWith(
-              fontSize:   40,
+              fontSize: 40,
               fontWeight: FontWeight.w700,
-              color:      BanzamiColors.gray900,
+              color: BanzamiColors.gray900,
             ),
           ),
           const SizedBox(height: BanzamiSpacing.lg),
@@ -267,12 +280,12 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
           Text(
             hasNote ? note : 'Sem nota',
             style: BanzamiTextStyles.bodyMd.copyWith(
-              color:     hasNote ? BanzamiColors.gray600 : BanzamiColors.gray400,
-              fontStyle: hasNote ? FontStyle.normal   : FontStyle.italic,
+              color: hasNote ? BanzamiColors.gray600 : BanzamiColors.gray400,
+              fontStyle: hasNote ? FontStyle.normal : FontStyle.italic,
             ),
             textAlign: TextAlign.center,
-            maxLines:  2,
-            overflow:  TextOverflow.ellipsis,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -307,9 +320,9 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 Text(
                   'A enviar dinheiro...',
                   style: BanzamiTextStyles.bodyLg.copyWith(
-                    color:      BanzamiColors.gray600,
+                    color: BanzamiColors.gray600,
                     fontWeight: FontWeight.w500,
-                    height:     1.5,
+                    height: 1.5,
                   ),
                 ),
                 const SizedBox(height: BanzamiSpacing.xl),
@@ -318,8 +331,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 Text(
                   amount,
                   style: BanzamiTextStyles.monoLg.copyWith(
-                    color:      BanzamiColors.gray900,
-                    fontSize:   38,
+                    color: BanzamiColors.gray900,
+                    fontSize: 38,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -329,14 +342,15 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 Text(
                   'para @$handle',
                   style: BanzamiTextStyles.bodyMd.copyWith(
-                    color:      BanzamiColors.gray400,
+                    color: BanzamiColors.gray400,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
                 const Spacer(),
 
                 // ── Cancel button (disabled — request already dispatched) ────
-                const BanzamiSecondaryButton(label: 'Cancelar', onPressed: null),
+                const BanzamiSecondaryButton(
+                    label: 'Cancelar', onPressed: null),
                 const SizedBox(height: BanzamiSpacing.xl),
               ],
             ),
@@ -350,20 +364,20 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   // balance card / avatars, with a soft cherry glow.
   Widget _buildOrb() {
     return Container(
-      width:  118,
+      width: 118,
       height: 118,
       decoration: BoxDecoration(
-        shape:    BoxShape.circle,
+        shape: BoxShape.circle,
         gradient: BanzamiGradients.primary,
         boxShadow: [
           BoxShadow(
-            color:        BanzamiColors.primary.withValues(alpha: 0.38),
-            blurRadius:   52,
+            color: BanzamiColors.primary.withValues(alpha: 0.38),
+            blurRadius: 52,
             spreadRadius: 6,
           ),
           BoxShadow(
-            color:        BanzamiColors.primaryLight.withValues(alpha: 0.20),
-            blurRadius:   88,
+            color: BanzamiColors.primaryLight.withValues(alpha: 0.20),
+            blurRadius: 88,
             spreadRadius: 18,
           ),
         ],
@@ -371,7 +385,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       child: const Icon(
         Icons.arrow_upward_rounded,
         color: BanzamiColors.white,
-        size:  46,
+        size: 46,
       ),
     );
   }
@@ -381,9 +395,9 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   @override
   Widget build(BuildContext context) {
     final displayName = widget.recipientDisplayName;
-    final handle      = widget.recipientHandle;
-    final initial     = (displayName ?? handle)[0].toUpperCase();
-    final amount      = formatMinor(widget.amountMinor, widget.currency);
+    final handle = widget.recipientHandle;
+    final initial = (displayName ?? handle)[0].toUpperCase();
+    final amount = formatMinor(widget.amountMinor, widget.currency);
 
     return BanzamiScaffold(
       // Hide the AppBar while sending — the overlay fills full-screen.
@@ -396,20 +410,23 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
           if (!_sending)
             SafeArea(
               child: AnimatedOpacity(
-                opacity:  _entered ? 1.0 : 0.0,
+                opacity: _entered ? 1.0 : 0.0,
                 duration: BanzamiMotion.slow,
-                curve:    Curves.easeOut,
+                curve: Curves.easeOut,
                 child: AnimatedSlide(
-                  offset:   _entered ? Offset.zero : const Offset(0, 0.025),
+                  offset: _entered ? Offset.zero : const Offset(0, 0.025),
                   duration: BanzamiMotion.slow,
-                  curve:    BanzamiMotion.decelerate,
+                  curve: BanzamiMotion.decelerate,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(
-                            BanzamiSpacing.xl, 32, BanzamiSpacing.xl, BanzamiSpacing.xl,
+                            BanzamiSpacing.xl,
+                            32,
+                            BanzamiSpacing.xl,
+                            BanzamiSpacing.xl,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -419,7 +436,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                               _amountCard(amount, widget.note),
                               const SizedBox(height: 16),
                               const BanzamiWarningBanner(
-                                message: 'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
+                                message:
+                                    'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
                               ),
                               if (_error != null) ...[
                                 const SizedBox(height: BanzamiSpacing.md),
@@ -431,20 +449,23 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          BanzamiSpacing.xl, 8, BanzamiSpacing.xl, BanzamiSpacing.xl,
+                          BanzamiSpacing.xl,
+                          8,
+                          BanzamiSpacing.xl,
+                          BanzamiSpacing.xl,
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             BanzamiPrimaryButton(
-                              label:     'Confirmar envio',
+                              label: 'Confirmar envio',
                               isLoading: false,
-                              height:    58,
+                              height: 58,
                               onPressed: _confirm,
                             ),
                             const SizedBox(height: BanzamiSpacing.md),
                             BanzamiGhostButton(
-                              label:     'Cancelar',
+                              label: 'Cancelar',
                               onPressed: () => Navigator.of(context).pop(),
                             ),
                           ],

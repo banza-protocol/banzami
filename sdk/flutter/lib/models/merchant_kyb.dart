@@ -67,9 +67,11 @@ class MerchantKybDocument {
     required this.rejectionReason,
   });
 
-  factory MerchantKybDocument.fromJson(Map<String, dynamic> json) => MerchantKybDocument(
+  factory MerchantKybDocument.fromJson(Map<String, dynamic> json) =>
+      MerchantKybDocument(
         id: (json['id'] ?? '') as String,
-        type: MerchantKybDocumentType.fromWire(json['document_type'] as String?),
+        type:
+            MerchantKybDocumentType.fromWire(json['document_type'] as String?),
         status: MerchantKybDocumentStatus.fromWire(json['status'] as String?),
         mimeType: (json['mime_type'] as String?) ?? '',
         sizeBytes: (json['size_bytes'] as int?) ?? 0,
@@ -82,7 +84,8 @@ class MerchantKybDocument {
 
 /// Global merchant KYB status + the document slots.
 class MerchantKybStatus {
-  final String kybStatus; // PENDING | UNDER_REVIEW | APPROVED | REJECTED | SUSPENDED
+  final String
+      kybStatus; // PENDING | UNDER_REVIEW | APPROVED | REJECTED | SUSPENDED
   final bool verified;
   final String? reasonCode;
   final DateTime? updatedAt;
@@ -96,7 +99,8 @@ class MerchantKybStatus {
     required this.documents,
   });
 
-  factory MerchantKybStatus.fromJson(Map<String, dynamic> json) => MerchantKybStatus(
+  factory MerchantKybStatus.fromJson(Map<String, dynamic> json) =>
+      MerchantKybStatus(
         kybStatus: (json['kyb_status'] as String?) ?? 'PENDING',
         verified: (json['verified'] as bool?) ?? false,
         reasonCode: _nz(json['reason_code'] as String?),
@@ -124,7 +128,8 @@ class MerchantKybUploadUrl {
     required this.expiresAt,
   });
 
-  factory MerchantKybUploadUrl.fromJson(Map<String, dynamic> json) => MerchantKybUploadUrl(
+  factory MerchantKybUploadUrl.fromJson(Map<String, dynamic> json) =>
+      MerchantKybUploadUrl(
         documentId: (json['document_id'] ?? '') as String,
         url: (json['upload_url'] ?? '') as String,
         method: (json['method'] as String?) ?? 'PUT',

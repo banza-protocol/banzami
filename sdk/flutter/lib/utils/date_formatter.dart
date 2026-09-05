@@ -21,7 +21,7 @@ class BanzamiDateFormatter {
   /// Activity feed mini-cards: "Hoje, 20:30" / "Ontem, 20:30" / "25/5".
   static String formatActivityTime(DateTime dt) {
     final local = dt.toLocal();
-    final diff  = DateTime.now().difference(local);
+    final diff = DateTime.now().difference(local);
     if (diff.inDays == 0) return 'Hoje, ${_hm(local)}';
     if (diff.inDays == 1) return 'Ontem, ${_hm(local)}';
     return '${local.day}/${local.month}';
@@ -30,7 +30,7 @@ class BanzamiDateFormatter {
   /// History list rows: "20:30" / "Ontem" / "25/5".
   static String formatListTime(DateTime dt) {
     final local = dt.toLocal();
-    final diff  = DateTime.now().difference(local);
+    final diff = DateTime.now().difference(local);
     if (diff.inDays == 0) return _hm(local);
     if (diff.inDays == 1) return 'Ontem';
     return '${local.day}/${local.month}';
@@ -39,10 +39,10 @@ class BanzamiDateFormatter {
   /// Transfer item chip: "20:30" / "Ontem" / "Segunda" / "25/05/26".
   static String formatShortTime(DateTime dt) {
     final local = dt.toLocal();
-    final diff  = DateTime.now().difference(local);
+    final diff = DateTime.now().difference(local);
     if (diff.inDays == 0) return DateFormat.Hm().format(local);
     if (diff.inDays == 1) return 'Ontem';
-    if (diff.inDays < 7)  return DateFormat.EEEE('pt_PT').format(local);
+    if (diff.inDays < 7) return DateFormat.EEEE('pt_PT').format(local);
     return DateFormat('dd/MM/yy').format(local);
   }
 

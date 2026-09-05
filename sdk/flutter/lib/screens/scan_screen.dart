@@ -22,9 +22,9 @@ enum _ScanStep { scanning, resolving, error }
 ///  • Handle + fixed amount → [BanzamiPaymentRequestScreen] (locked, sendByHandle)
 ///  • Handle only           → [BanzamiSendScreen] (amount editable)
 class BanzamiScanScreen extends StatefulWidget {
-  final ConsumerPublicClient          client;
-  final String?                       ownHandle;
-  final bool                          isSandbox;
+  final ConsumerPublicClient client;
+  final String? ownHandle;
+  final bool isSandbox;
   final void Function(dynamic result) onSuccess;
 
   const BanzamiScanScreen({
@@ -40,15 +40,15 @@ class BanzamiScanScreen extends StatefulWidget {
 }
 
 class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
-  _ScanStep _step           = _ScanStep.scanning;
-  String?   _error;
-  int       _scanGeneration = 0; // incremented on rescan → rebuilds BanzamiQrScanner
+  _ScanStep _step = _ScanStep.scanning;
+  String? _error;
+  int _scanGeneration = 0; // incremented on rescan → rebuilds BanzamiQrScanner
 
   // null = checking, true = granted, false = denied (will pop)
-  bool?     _cameraReady;
+  bool? _cameraReady;
 
   // Duplicate scan guard
-  String?   _lastRaw;
+  String? _lastRaw;
   DateTime? _lastAt;
 
   @override
@@ -88,9 +88,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       return;
     }
     _lastRaw = raw;
-    _lastAt  = DateTime.now();
+    _lastAt = DateTime.now();
     if (!mounted) return;
-    setState(() { _step = _ScanStep.resolving; _error = null; });
+    setState(() {
+      _step = _ScanStep.resolving;
+      _error = null;
+    });
 
     final parsed = BanzamiQrParser.parse(raw);
     debugPrint('[QR-SCAN] parsedType=${parsed.runtimeType}');
@@ -98,25 +101,35 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     switch (parsed) {
       case BanzamiQrInvalid(:final reason):
         debugPrint('[QR-SCAN] error=$reason');
-        if (mounted) setState(() { _error = reason; _step = _ScanStep.error; });
+        if (mounted)
+          setState(() {
+            _error = reason;
+            _step = _ScanStep.error;
+          });
 
       case BanzamiQrPaymentRequest(:final code, :final isSandbox):
-        debugPrint('[QR-SCAN] sandbox=$isSandbox route=PaymentRequestScreen code=$code');
+        debugPrint(
+            '[QR-SCAN] sandbox=$isSandbox route=PaymentRequestScreen code=$code');
         if (_sandboxMismatch(isSandbox)) return;
         await _openPaymentRequest(code);
 
-      case BanzamiQrHandlePayment(:final handle, :final amountMinor, :final note,
-                                 :final currency, :final isSandbox):
+      case BanzamiQrHandlePayment(
+          :final handle,
+          :final amountMinor,
+          :final note,
+          :final currency,
+          :final isSandbox
+        ):
         debugPrint('[QR-SCAN] sandbox=$isSandbox '
             'route=${amountMinor != null ? "LockedPayment" : "SendScreen"} '
             'handle=$handle amount=$amountMinor');
         if (_sandboxMismatch(isSandbox)) return;
         if (amountMinor != null && amountMinor > 0) {
           await _openLockedPayment(
-            handle:      handle,
+            handle: handle,
             amountMinor: amountMinor,
-            note:        note,
-            currency:    currency,
+            note: note,
+            currency: currency,
           );
         } else {
           await _openSendScreen(handle: handle);
@@ -135,7 +148,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         if (mounted) {
           setState(() {
             _error = 'Este QR de divisão de conta já não é suportado.';
-            _step  = _ScanStep.error;
+            _step = _ScanStep.error;
           });
         }
 
@@ -149,8 +162,8 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     if (!mounted) return;
     await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiPaymentLinkScreen(
-        client:    widget.client,
-        slug:      slug,
+        client: widget.client,
+        slug: slug,
         ownHandle: widget.ownHandle,
         isSandbox: widget.isSandbox,
         onSuccess: (transfer) => widget.onSuccess(transfer),
@@ -161,17 +174,17 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
   Future<void> _openStructuredPayment({
     required String payload,
-    required bool   isStatic,
+    required bool isStatic,
   }) async {
     if (!mounted) return;
     await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiStructuredQrPayScreen(
-        client:      widget.client,
-        payload:     payload,
-        isStatic:    isStatic,
+        client: widget.client,
+        payload: payload,
+        isStatic: isStatic,
         payerHandle: widget.ownHandle ?? '',
-        isSandbox:   widget.isSandbox,
-        onSuccess:   widget.onSuccess,
+        isSandbox: widget.isSandbox,
+        onSuccess: widget.onSuccess,
       ),
     ));
     if (mounted) _rescan();
@@ -185,7 +198,11 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         : 'Este QR pertence ao ambiente live.';
     debugPrint('[QR-SCAN] error=sandboxMismatch '
         'qrSandbox=$qrIsSandbox appSandbox=${widget.isSandbox}');
-    if (mounted) setState(() { _error = msg; _step = _ScanStep.error; });
+    if (mounted)
+      setState(() {
+        _error = msg;
+        _step = _ScanStep.error;
+      });
     return true;
   }
 
@@ -200,29 +217,33 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
       if (!link.isActive) {
         final msg = switch (link.status) {
-          'PAID'    => 'Este pedido já foi pago.',
+          'PAID' => 'Este pedido já foi pago.',
           'EXPIRED' => 'Este pedido expirou.',
-          _         => 'Este pedido não está disponível.',
+          _ => 'Este pedido não está disponível.',
         };
         debugPrint('[QR-SCAN] route=blocked status=${link.status}');
-        setState(() { _error = msg; _step = _ScanStep.error; });
+        setState(() {
+          _error = msg;
+          _step = _ScanStep.error;
+        });
         return;
       }
 
-      debugPrint('[QR-SCAN] route=BanzamiPaymentRequestScreen linkCode=${link.linkCode}');
+      debugPrint(
+          '[QR-SCAN] route=BanzamiPaymentRequestScreen linkCode=${link.linkCode}');
       await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiPaymentRequestScreen(
-          client:               widget.client,
-          recipientHandle:      link.receiverHandle,
+          client: widget.client,
+          recipientHandle: link.receiverHandle,
           recipientDisplayName: link.receiverDisplayName,
-          amountMinor:          link.amountMinor,
-          note:                 link.note,
-          currency:             link.currency,
-          locked:               link.locked,
-          ownHandle:            widget.ownHandle ?? '',
-          linkCode:             link.linkCode,
-          onSuccess:            widget.onSuccess,
-          isSandbox:            widget.isSandbox,
+          amountMinor: link.amountMinor,
+          note: link.note,
+          currency: link.currency,
+          locked: link.locked,
+          ownHandle: widget.ownHandle ?? '',
+          linkCode: link.linkCode,
+          onSuccess: widget.onSuccess,
+          isSandbox: widget.isSandbox,
         ),
       ));
       if (mounted) _rescan();
@@ -231,13 +252,17 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       final msg = e.isNotFound
           ? 'Pedido de pagamento não encontrado.'
           : 'Não foi possível verificar o QR. Tente novamente.';
-      if (mounted) setState(() { _error = msg; _step = _ScanStep.error; });
+      if (mounted)
+        setState(() {
+          _error = msg;
+          _step = _ScanStep.error;
+        });
     } catch (e) {
       debugPrint('[QR-SCAN] error=$e');
       if (mounted) {
         setState(() {
           _error = 'Não foi possível verificar o QR. Tente novamente.';
-          _step  = _ScanStep.error;
+          _step = _ScanStep.error;
         });
       }
     }
@@ -245,23 +270,24 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
   Future<void> _openLockedPayment({
     required String handle,
-    required int    amountMinor,
-    String?         note,
-    String          currency = 'AOA',
+    required int amountMinor,
+    String? note,
+    String currency = 'AOA',
   }) async {
     if (!mounted) return;
-    debugPrint('[QR-SCAN] route=BanzamiPaymentRequestScreen locked handle=$handle amount=$amountMinor');
+    debugPrint(
+        '[QR-SCAN] route=BanzamiPaymentRequestScreen locked handle=$handle amount=$amountMinor');
     await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiPaymentRequestScreen(
-        client:          widget.client,
+        client: widget.client,
         recipientHandle: handle,
-        amountMinor:     amountMinor,
-        note:            note,
-        currency:        currency,
-        locked:          true,
-        ownHandle:       widget.ownHandle ?? '',
-        onSuccess:       widget.onSuccess,
-        isSandbox:       widget.isSandbox,
+        amountMinor: amountMinor,
+        note: note,
+        currency: currency,
+        locked: true,
+        ownHandle: widget.ownHandle ?? '',
+        onSuccess: widget.onSuccess,
+        isSandbox: widget.isSandbox,
       ),
     ));
     if (mounted) _rescan();
@@ -272,10 +298,10 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     debugPrint('[QR-SCAN] route=BanzamiSendScreen handle=$handle');
     await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiSendScreen(
-        client:        widget.client,
-        ownHandle:     widget.ownHandle,
-        onSuccess:     widget.onSuccess,
-        isSandbox:     widget.isSandbox,
+        client: widget.client,
+        ownHandle: widget.ownHandle,
+        onSuccess: widget.onSuccess,
+        isSandbox: widget.isSandbox,
         initialHandle: handle,
       ),
     ));
@@ -283,10 +309,10 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   }
 
   void _rescan() => setState(() {
-    _step          = _ScanStep.scanning;
-    _error         = null;
-    _scanGeneration++;
-  });
+        _step = _ScanStep.scanning;
+        _error = null;
+        _scanGeneration++;
+      });
 
   // ---------------------------------------------------------------------------
   // Build
@@ -297,15 +323,16 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     if (_cameraReady != true) return _buildCameraLoading();
 
     return Scaffold(
-      backgroundColor: _step == _ScanStep.scanning ? Colors.black : BanzamiColors.offWhite,
+      backgroundColor:
+          _step == _ScanStep.scanning ? Colors.black : BanzamiColors.offWhite,
       body: switch (_step) {
-        _ScanStep.scanning  => BanzamiQrScanner(
-            key:        ValueKey(_scanGeneration),
+        _ScanStep.scanning => BanzamiQrScanner(
+            key: ValueKey(_scanGeneration),
             onDetected: _onScanned,
-            onCancel:   () => Navigator.of(context).pop(),
+            onCancel: () => Navigator.of(context).pop(),
           ),
         _ScanStep.resolving => _buildResolving(),
-        _ScanStep.error     => _buildError(),
+        _ScanStep.error => _buildError(),
       },
     );
   }
@@ -355,9 +382,10 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 72, height: 72,
+                width: 72,
+                height: 72,
                 decoration: const BoxDecoration(
-                  color:        BanzamiColors.errorBg,
+                  color: BanzamiColors.errorBg,
                   borderRadius: BanzamiRadius.fullAll,
                 ),
                 child: const Icon(
@@ -369,18 +397,20 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
               const SizedBox(height: BanzamiSpacing.xl),
               Text(
                 _error ?? 'Código QR inválido',
-                style:     BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+                style: BanzamiTextStyles.headingSm
+                    .copyWith(color: BanzamiColors.gray900),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: BanzamiSpacing.sm),
               Text(
                 'Verifique o código e tente novamente.',
-                style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                style: BanzamiTextStyles.bodyMd
+                    .copyWith(color: BanzamiColors.gray400),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: BanzamiSpacing.xxl),
               BanzamiPrimaryButton(
-                label:     'Tentar novamente',
+                label: 'Tentar novamente',
                 onPressed: _rescan,
               ),
             ],

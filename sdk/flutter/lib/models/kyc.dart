@@ -126,7 +126,8 @@ class KycDocument {
   });
 
   factory KycDocument.fromJson(Map<String, dynamic> json) => KycDocument(
-        evidenceType: KycEvidenceType.fromWire(json['evidence_type'] as String?),
+        evidenceType:
+            KycEvidenceType.fromWire(json['evidence_type'] as String?),
         side: KycDocumentSide.fromWire(json['side'] as String?),
         slot: json['slot'] as String? ?? '',
         uploaded: json['uploaded'] as bool? ?? false,
@@ -157,7 +158,8 @@ class KycEvidence {
 
   factory KycEvidence.fromJson(Map<String, dynamic> json) => KycEvidence(
         id: json['id'] as String,
-        evidenceType: KycEvidenceType.fromWire(json['evidence_type'] as String?),
+        evidenceType:
+            KycEvidenceType.fromWire(json['evidence_type'] as String?),
         side: KycDocumentSide.fromWire(json['side'] as String?),
         slot: json['slot'] as String? ?? '',
         status: json['status'] as String? ?? 'PENDING',
@@ -206,11 +208,13 @@ class KycCase {
   factory KycCase.fromJson(Map<String, dynamic> json) => KycCase(
         id: json['id'] as String,
         status: KycStatus.fromWire(json['status'] as String?),
-        documentType: KycDocumentType.fromWire(json['document_type'] as String?),
+        documentType:
+            KycDocumentType.fromWire(json['document_type'] as String?),
         country: _nullIfEmpty(json['country'] as String?),
         reasonCode: _nullIfEmpty(json['reason_code'] as String?),
         environment: json['environment'] as String? ?? '',
-        createdAt: _parseTime(json['created_at']) ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
+        createdAt: _parseTime(json['created_at']) ??
+            DateTime.fromMillisecondsSinceEpoch(0, isUtc: true),
         submittedAt: _parseTime(json['submitted_at']),
         reviewedAt: _parseTime(json['reviewed_at']),
         requiredEvidence: ((json['required_evidence'] as List?) ?? const [])

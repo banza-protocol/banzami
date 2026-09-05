@@ -40,10 +40,10 @@ class MoneyCurrency {
 }
 
 const MoneyCurrency kAOA = MoneyCurrency(code: 'AOA', symbol: 'Kz', scale: 2);
-const MoneyCurrency kEUR =
-    MoneyCurrency(code: 'EUR', symbol: '€', scale: 2, thousandsSep: ' ', decimalSep: ',');
-const MoneyCurrency kUSD =
-    MoneyCurrency(code: 'USD', symbol: 'USD', scale: 2, thousandsSep: ' ', decimalSep: ',');
+const MoneyCurrency kEUR = MoneyCurrency(
+    code: 'EUR', symbol: '€', scale: 2, thousandsSep: ' ', decimalSep: ',');
+const MoneyCurrency kUSD = MoneyCurrency(
+    code: 'USD', symbol: 'USD', scale: 2, thousandsSep: ' ', decimalSep: ',');
 
 const Map<String, MoneyCurrency> _currencies = {
   'AOA': kAOA,
@@ -52,7 +52,8 @@ const Map<String, MoneyCurrency> _currencies = {
 };
 
 /// Resolve a currency config, defaulting to AOA for unknown codes.
-MoneyCurrency currencyOf(String code) => _currencies[code.toUpperCase()] ?? kAOA;
+MoneyCurrency currencyOf(String code) =>
+    _currencies[code.toUpperCase()] ?? kAOA;
 
 /// Thrown when a money string cannot be parsed. Carries a human message.
 class MoneyFormatException implements Exception {
@@ -89,12 +90,15 @@ int parseMoneyInput(String input, {String currency = 'AOA'}) {
   // Drop the currency symbol and thousands separators (space / NBSP).
   s = s.replaceAll(c.symbol, '').replaceAll(' ', '').replaceAll(' ', '').trim();
   if (s.isEmpty) throw const MoneyFormatException('Indique um valor.');
-  if (s.startsWith('-')) throw const MoneyFormatException('Valor não pode ser negativo.');
+  if (s.startsWith('-'))
+    throw const MoneyFormatException('Valor não pode ser negativo.');
   if (s.contains('.')) {
-    throw const MoneyFormatException('Use vírgula para os cêntimos (ex: 50 000,50).');
+    throw const MoneyFormatException(
+        'Use vírgula para os cêntimos (ex: 50 000,50).');
   }
   final parts = s.split(',');
-  if (parts.length > 2) throw const MoneyFormatException('Use apenas uma vírgula.');
+  if (parts.length > 2)
+    throw const MoneyFormatException('Use apenas uma vírgula.');
   final intPart = parts[0].isEmpty ? '0' : parts[0];
   final fracPart = parts.length == 2 ? parts[1] : '';
   if (!RegExp(r'^\d+$').hasMatch(intPart)) {
@@ -132,7 +136,8 @@ int? tryParseMoneyInput(String input, {String currency = 'AOA'}) {
 ///   125075  → "1 250,75 Kz"
 ///   1       → "0,01 Kz"
 ///   0       → "0 Kz"
-String formatMoneyMinor(int amountMinor, {String currency = 'AOA', bool showCurrency = true}) {
+String formatMoneyMinor(int amountMinor,
+    {String currency = 'AOA', bool showCurrency = true}) {
   final c = currencyOf(currency);
   final neg = amountMinor < 0;
   final abs = amountMinor.abs();
@@ -155,7 +160,8 @@ String fromMinorUnits(int amountMinor, {String currency = 'AOA'}) {
   final major = abs ~/ c.subunit;
   final frac = abs % c.subunit;
   var out = major.toString();
-  if (frac != 0) out = '$out${c.decimalSep}${frac.toString().padLeft(c.scale, '0')}';
+  if (frac != 0)
+    out = '$out${c.decimalSep}${frac.toString().padLeft(c.scale, '0')}';
   return neg ? '-$out' : out;
 }
 
@@ -177,7 +183,9 @@ String formatMoneyInput(String raw, {String currency = 'AOA'}) {
   var intPart = cleaned.substring(0, ci).replaceAll(',', '');
   var fracPart = cleaned.substring(ci + 1).replaceAll(',', '');
   if (fracPart.length > c.scale) fracPart = fracPart.substring(0, c.scale);
-  final intGrouped = intPart.isEmpty ? '0' : _groupThousands(int.parse(intPart), c.thousandsSep);
+  final intGrouped = intPart.isEmpty
+      ? '0'
+      : _groupThousands(int.parse(intPart), c.thousandsSep);
   return '$intGrouped${c.decimalSep}$fracPart';
 }
 
@@ -185,7 +193,9 @@ String formatMoneyInput(String raw, {String currency = 'AOA'}) {
 /// input unchanged if it cannot be parsed.
 String normalizeMoneyInput(String input, {String currency = 'AOA'}) {
   final minor = tryParseMoneyInput(input, currency: currency);
-  return minor == null ? input : formatMoneyMinor(minor, currency: currency, showCurrency: false);
+  return minor == null
+      ? input
+      : formatMoneyMinor(minor, currency: currency, showCurrency: false);
 }
 
 /// Validate an input string; returns an error message or null when valid.
@@ -218,7 +228,8 @@ List<int> splitEvenlyMinor(int totalMinor, int people) {
 /// is never greater than gross.
 int feeMinor(int grossMinor, int bps) {
   if (grossMinor <= 0 || bps <= 0) return 0;
-  final fee = (BigInt.from(grossMinor) * BigInt.from(bps)) ~/ BigInt.from(10000);
+  final fee =
+      (BigInt.from(grossMinor) * BigInt.from(bps)) ~/ BigInt.from(10000);
   final f = fee.toInt();
   return f > grossMinor ? grossMinor : f;
 }

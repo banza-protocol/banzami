@@ -17,7 +17,8 @@ import '../theme/banzami_theme.dart';
 class BanzamiSandboxBanner extends StatefulWidget {
   final bool visible;
   final bool compact;
-  const BanzamiSandboxBanner({super.key, this.visible = true, this.compact = true});
+  const BanzamiSandboxBanner(
+      {super.key, this.visible = true, this.compact = true});
 
   @override
   State<BanzamiSandboxBanner> createState() => _BanzamiSandboxBannerState();
@@ -26,13 +27,13 @@ class BanzamiSandboxBanner extends StatefulWidget {
 class _BanzamiSandboxBannerState extends State<BanzamiSandboxBanner>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulse;
-  late final Animation<double>   _glow;
+  late final Animation<double> _glow;
 
   @override
   void initState() {
     super.initState();
     _pulse = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: const Duration(milliseconds: 2400),
     )..repeat(reverse: true);
     _glow = CurvedAnimation(parent: _pulse, curve: Curves.easeInOut);
@@ -50,29 +51,29 @@ class _BanzamiSandboxBannerState extends State<BanzamiSandboxBanner>
 
     final bool compact = widget.compact;
     // Normalized (compact) vs original sizing — ~22% shorter, same identity.
-    final double vPad        = compact ? 8 : 12;
-    final double dotSize     = compact ? 7 : 8;
-    final double dotGap      = compact ? 8 : 10;
-    final double iconSize    = compact ? 13 : 15;
-    final double titleSize   = compact ? 9.5 : 10;
-    final double titleSpace  = compact ? 1.3 : 1.4;
+    final double vPad = compact ? 8 : 12;
+    final double dotSize = compact ? 7 : 8;
+    final double dotGap = compact ? 8 : 10;
+    final double iconSize = compact ? 13 : 15;
+    final double titleSize = compact ? 9.5 : 10;
+    final double titleSpace = compact ? 1.3 : 1.4;
     final double titleHeight = compact ? 1.1 : 1.2;
-    final double subSize     = compact ? 10.5 : 11;
-    final double subHeight   = compact ? 1.2 : 1.35;
+    final double subSize = compact ? 10.5 : 11;
+    final double subHeight = compact ? 1.2 : 1.35;
 
     return AnimatedBuilder(
       animation: _glow,
       builder: (_, __) => Container(
-        width:   double.infinity,
+        width: double.infinity,
         padding: EdgeInsets.symmetric(
           horizontal: BanzamiSpacing.lg,
-          vertical:   vPad,
+          vertical: vPad,
         ),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFFFFF9E6), Color(0xFFFFF0C0)],
-            begin:  Alignment.topLeft,
-            end:    Alignment.bottomRight,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
           borderRadius: BanzamiRadius.lgAll,
           border: Border.all(
@@ -84,9 +85,10 @@ class _BanzamiSandboxBannerState extends State<BanzamiSandboxBanner>
           ),
           boxShadow: [
             BoxShadow(
-              color:       const Color(0xFFF6C453).withValues(alpha: 0.15 + 0.10 * _glow.value),
-              blurRadius:  12,
-              offset:      const Offset(0, 3),
+              color: const Color(0xFFF6C453)
+                  .withValues(alpha: 0.15 + 0.10 * _glow.value),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
               spreadRadius: 1,
             ),
           ],
@@ -95,30 +97,31 @@ class _BanzamiSandboxBannerState extends State<BanzamiSandboxBanner>
           children: [
             _BreathingDot(glow: _glow, size: dotSize),
             SizedBox(width: dotGap),
-            Icon(Icons.science_rounded, size: iconSize, color: const Color(0xFF92400E)),
+            Icon(Icons.science_rounded,
+                size: iconSize, color: const Color(0xFF92400E)),
             const SizedBox(width: BanzamiSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize:       MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     'SANDBOX',
                     style: TextStyle(
-                      fontSize:      titleSize,
-                      fontWeight:    FontWeight.w800,
-                      color:         const Color(0xFF78350F),
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF78350F),
                       letterSpacing: titleSpace,
-                      height:        titleHeight,
+                      height: titleHeight,
                     ),
                   ),
                   Text(
                     'Dinheiro de teste · Sem valor financeiro real',
                     style: TextStyle(
-                      fontSize:   subSize,
+                      fontSize: subSize,
                       fontWeight: FontWeight.w400,
-                      color:      const Color(0xFFB45309),
-                      height:     subHeight,
+                      color: const Color(0xFFB45309),
+                      height: subHeight,
                     ),
                   ),
                 ],
@@ -140,7 +143,7 @@ class _BreathingDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width:  size,
+      width: size,
       height: size,
       decoration: BoxDecoration(
         color: Color.lerp(
@@ -151,8 +154,8 @@ class _BreathingDot extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color:       const Color(0xFFF59E0B).withValues(alpha: glow.value * 0.55),
-            blurRadius:  6,
+            color: const Color(0xFFF59E0B).withValues(alpha: glow.value * 0.55),
+            blurRadius: 6,
             spreadRadius: glow.value * 2,
           ),
         ],

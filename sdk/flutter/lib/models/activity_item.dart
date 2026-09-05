@@ -33,8 +33,9 @@ class ActivityItem {
 
   bool get isOutgoing => direction == 'OUTGOING';
   bool get isIncoming => direction == 'INCOMING';
-  bool get isP2P      => itemType == 'P2P_SENT' || itemType == 'P2P_RECEIVED';
-  bool get isFunding  => itemType == 'WALLET_FUNDED' || itemType == 'WALLET_REVERSED';
+  bool get isP2P => itemType == 'P2P_SENT' || itemType == 'P2P_RECEIVED';
+  bool get isFunding =>
+      itemType == 'WALLET_FUNDED' || itemType == 'WALLET_REVERSED';
 
   /// A payment to a merchant wallet (payment-link / merchant charge — e.g. a
   /// Doa donation), as opposed to a true peer-to-peer transfer.
@@ -47,12 +48,18 @@ class ActivityItem {
   /// unknown/future type degrades to a safe generic "Pagamento".
   String get typeLabel {
     switch (itemType) {
-      case 'P2P_SENT':              return 'Enviado';
-      case 'P2P_RECEIVED':          return 'Recebido';
-      case 'MERCHANT_PAYMENT_SENT': return 'Pagamento';
-      case 'WALLET_FUNDED':         return 'Carregamento';
-      case 'WALLET_REVERSED':       return 'Estorno';
-      default:                      return 'Pagamento';
+      case 'P2P_SENT':
+        return 'Enviado';
+      case 'P2P_RECEIVED':
+        return 'Recebido';
+      case 'MERCHANT_PAYMENT_SENT':
+        return 'Pagamento';
+      case 'WALLET_FUNDED':
+        return 'Carregamento';
+      case 'WALLET_REVERSED':
+        return 'Estorno';
+      default:
+        return 'Pagamento';
     }
   }
 
@@ -74,21 +81,21 @@ class ActivityItem {
 
   factory ActivityItem.fromJson(Map<String, dynamic> json) {
     return ActivityItem(
-      activityId:              json['activity_id']               as String,
-      itemType:                json['item_type']                 as String,
-      direction:               json['direction']                 as String,
-      amountMinor:             (json['amount_minor'] as num).toInt(),
-      currency:                json['currency']                  as String,
-      status:                  json['status']                    as String,
-      createdAt:               DateTime.parse(json['created_at'] as String),
-      completedAt:             json['completed_at'] != null
-                                   ? DateTime.parse(json['completed_at'] as String)
-                                   : null,
-      counterpartyHandle:      json['counterparty_handle']       as String?,
+      activityId: json['activity_id'] as String,
+      itemType: json['item_type'] as String,
+      direction: json['direction'] as String,
+      amountMinor: (json['amount_minor'] as num).toInt(),
+      currency: json['currency'] as String,
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      completedAt: json['completed_at'] != null
+          ? DateTime.parse(json['completed_at'] as String)
+          : null,
+      counterpartyHandle: json['counterparty_handle'] as String?,
       counterpartyDisplayName: json['counterparty_display_name'] as String?,
-      note:                    json['note']                      as String?,
-      transferId:              json['transfer_id']               as String?,
-      fundingId:               json['funding_id']                as String?,
+      note: json['note'] as String?,
+      transferId: json['transfer_id'] as String?,
+      fundingId: json['funding_id'] as String?,
     );
   }
 }
@@ -106,11 +113,11 @@ class ActivityPage {
 
   factory ActivityPage.fromJson(Map<String, dynamic> json) {
     return ActivityPage(
-      items:      (json['items'] as List<dynamic>)
-                      .map((e) => ActivityItem.fromJson(e as Map<String, dynamic>))
-                      .toList(),
+      items: (json['items'] as List<dynamic>)
+          .map((e) => ActivityItem.fromJson(e as Map<String, dynamic>))
+          .toList(),
       nextCursor: json['next_cursor'] as String?,
-      hasMore:    json['has_more']    as bool? ?? false,
+      hasMore: json['has_more'] as bool? ?? false,
     );
   }
 }

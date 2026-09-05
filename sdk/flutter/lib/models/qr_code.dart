@@ -1,7 +1,9 @@
 import '../utils/money_format.dart';
 
 enum QrCodeType { static_, dynamic_ }
+
 enum QrOwnerType { consumer, merchant }
+
 enum QrCodeStatus { active, expired, used }
 
 class QrCode {
@@ -31,8 +33,8 @@ class QrCode {
     required this.createdAt,
   });
 
-  bool get isActive  => status == QrCodeStatus.active;
-  bool get isStatic  => qrType == QrCodeType.static_;
+  bool get isActive => status == QrCodeStatus.active;
+  bool get isStatic => qrType == QrCodeType.static_;
   bool get isDynamic => qrType == QrCodeType.dynamic_;
 
   String? get amountFormatted =>
@@ -40,17 +42,17 @@ class QrCode {
 
   factory QrCode.fromJson(Map<String, dynamic> json) {
     return QrCode(
-      id:       json['id'] as String,
-      ownerId:  json['owner_id'] as String,
+      id: json['id'] as String,
+      ownerId: json['owner_id'] as String,
       ownerType: _parseOwnerType(json['owner_type'] as String? ?? ''),
-      qrType:   _parseQrType(json['qr_type'] as String? ?? ''),
+      qrType: _parseQrType(json['qr_type'] as String? ?? ''),
       currency: json['currency'] as String? ?? '',
       amountMinor: (json['amount_minor'] as num?)?.toInt(),
-      status:   _parseStatus(json['status'] as String? ?? ''),
+      status: _parseStatus(json['status'] as String? ?? ''),
       expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'] as String)
           : null,
-      usedAt:   json['used_at'] != null
+      usedAt: json['used_at'] != null
           ? DateTime.parse(json['used_at'] as String)
           : null,
       reference: json['reference'] as String?,
@@ -58,17 +60,18 @@ class QrCode {
     );
   }
 
-  static QrOwnerType _parseOwnerType(String s) =>
-      s.toUpperCase() == 'MERCHANT' ? QrOwnerType.merchant : QrOwnerType.consumer;
+  static QrOwnerType _parseOwnerType(String s) => s.toUpperCase() == 'MERCHANT'
+      ? QrOwnerType.merchant
+      : QrOwnerType.consumer;
 
   static QrCodeType _parseQrType(String s) =>
       s.toUpperCase() == 'DYNAMIC' ? QrCodeType.dynamic_ : QrCodeType.static_;
 
   static QrCodeStatus _parseStatus(String s) => switch (s.toUpperCase()) {
-    'EXPIRED' => QrCodeStatus.expired,
-    'USED'    => QrCodeStatus.used,
-    _         => QrCodeStatus.active,
-  };
+        'EXPIRED' => QrCodeStatus.expired,
+        'USED' => QrCodeStatus.used,
+        _ => QrCodeStatus.active,
+      };
 }
 
 class QrResponse {
@@ -79,7 +82,7 @@ class QrResponse {
 
   factory QrResponse.fromJson(Map<String, dynamic> json) {
     return QrResponse(
-      qrCode:  QrCode.fromJson(json['qr_code'] as Map<String, dynamic>),
+      qrCode: QrCode.fromJson(json['qr_code'] as Map<String, dynamic>),
       payload: json['payload'] as String,
     );
   }
@@ -100,16 +103,16 @@ class ParsedQr {
     this.qrCodeId,
   });
 
-  bool get isStatic  => qrType.toUpperCase() == 'STATIC';
+  bool get isStatic => qrType.toUpperCase() == 'STATIC';
   bool get isDynamic => qrType.toUpperCase() == 'DYNAMIC';
 
   factory ParsedQr.fromJson(Map<String, dynamic> json) {
     return ParsedQr(
-      qrType:    json['qr_type']    as String,
-      ownerId:   json['owner_id']   as String?,
+      qrType: json['qr_type'] as String,
+      ownerId: json['owner_id'] as String?,
       ownerType: json['owner_type'] as String?,
-      currency:  json['currency']   as String?,
-      qrCodeId:  json['qr_code_id'] as String?,
+      currency: json['currency'] as String?,
+      qrCodeId: json['qr_code_id'] as String?,
     );
   }
 }

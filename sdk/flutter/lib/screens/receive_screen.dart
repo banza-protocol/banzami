@@ -30,24 +30,31 @@ class _AmountNoteSheet extends StatefulWidget {
 }
 
 class _AmountNoteSheetState extends State<_AmountNoteSheet> {
-  int     _amount  = 0;
-  String  _note    = '';
-  bool    _loading = false;
+  int _amount = 0;
+  String _note = '';
+  bool _loading = false;
   String? _error;
 
   Future<void> _apply() async {
     if (_amount <= 0) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final note = _note.trim().isEmpty ? null : _note.trim();
       final link = await widget.client.createConsumerPayLink(
         amountMinor: _amount,
-        note:        note,
-        locked:      true,
+        note: note,
+        locked: true,
       );
       if (mounted) Navigator.pop(context, link);
     } catch (_) {
-      if (mounted) setState(() { _loading = false; _error = 'Não foi possível criar o link.'; });
+      if (mounted)
+        setState(() {
+          _loading = false;
+          _error = 'Não foi possível criar o link.';
+        });
     }
   }
 
@@ -55,11 +62,13 @@ class _AmountNoteSheetState extends State<_AmountNoteSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        BanzamiSpacing.xl, BanzamiSpacing.xl, BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
         MediaQuery.viewInsetsOf(context).bottom + BanzamiSpacing.xl,
       ),
       child: Column(
-        mainAxisSize:       MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Montante a cobrar', style: BanzamiTextStyles.headingSm),
@@ -67,27 +76,29 @@ class _AmountNoteSheetState extends State<_AmountNoteSheet> {
           BanzamiAmountInput(onChanged: (v) => _amount = v),
           const SizedBox(height: BanzamiSpacing.md),
           BanzamiTextField(
-            label:           'Descrição (opcional)',
-            hint:            'Ex: jantar de ontem',
+            label: 'Descrição (opcional)',
+            hint: 'Ex: jantar de ontem',
             textInputAction: TextInputAction.done,
-            onChanged:       (v) => _note = v,
+            onChanged: (v) => _note = v,
           ),
           if (_error != null) ...[
             const SizedBox(height: BanzamiSpacing.sm),
-            Text(_error!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
+            Text(_error!,
+                style: BanzamiTextStyles.bodySm
+                    .copyWith(color: BanzamiColors.error)),
           ],
           const SizedBox(height: BanzamiSpacing.lg),
           Row(children: [
             Expanded(
               child: BanzamiSecondaryButton(
-                label:     'Cancelar',
+                label: 'Cancelar',
                 onPressed: _loading ? null : () => Navigator.pop(context),
               ),
             ),
             const SizedBox(width: BanzamiSpacing.sm),
             Expanded(
               child: BanzamiPrimaryButton(
-                label:     'Aplicar',
+                label: 'Aplicar',
                 isLoading: _loading,
                 onPressed: _loading ? null : _apply,
               ),
@@ -128,18 +139,19 @@ class BanzamiReceiveScreen extends StatefulWidget {
 }
 
 class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
-  bool             _sharing    = false;
-  ui.Image?        _logoUiImage;
+  bool _sharing = false;
+  ui.Image? _logoUiImage;
   ConsumerPayLink? _activeLink;
 
-  final _shareButtonKey     = GlobalKey();
+  final _shareButtonKey = GlobalKey();
   final _shareLinkButtonKey = GlobalKey();
 
   String get _qrPayload {
     // Built through BanzamiQrScheme (single source of truth) so this generator can
     // never drift from the parser. Sandbox emits a distinct scheme; never legacy.
     if (_activeLink != null) {
-      return BanzamiQrScheme.paymentRequest(_activeLink!.linkCode, isSandbox: widget.isSandbox);
+      return BanzamiQrScheme.paymentRequest(_activeLink!.linkCode,
+          isSandbox: widget.isSandbox);
     }
     return BanzamiQrScheme.handle(widget.handle, isSandbox: widget.isSandbox);
   }
@@ -160,13 +172,13 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   }
 
   Future<void> _loadLogoUiImage() async {
-    final data  = await rootBundle.load(widget.logoAssetPath!);
+    final data = await rootBundle.load(widget.logoAssetPath!);
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
-      targetWidth:  160,
+      targetWidth: 160,
       targetHeight: 160,
     );
-    final frame   = await codec.getNextFrame();
+    final frame = await codec.getNextFrame();
     final rounded = await roundQrLogoCorners(frame.image);
     if (mounted) setState(() => _logoUiImage = rounded);
   }
@@ -177,9 +189,9 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
     final client = widget.client;
     if (client == null) return;
     final link = await showModalBottomSheet<ConsumerPayLink>(
-      context:            context,
+      context: context,
       isScrollControlled: true,
-      backgroundColor:    BanzamiColors.white,
+      backgroundColor: BanzamiColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -191,11 +203,13 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   Future<void> _shareLink() async {
     HapticFeedback.lightImpact();
     try {
-      final box    = _shareLinkButtonKey.currentContext?.findRenderObject() as RenderBox?;
-      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+      final box =
+          _shareLinkButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin =
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(
         _shareUrl,
-        subject:             'Pagar @${widget.handle} via Banzami',
+        subject: 'Pagar @${widget.handle} via Banzami',
         sharePositionOrigin: origin,
       );
     } catch (e) {
@@ -224,12 +238,14 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
           '${Directory.systemTemp.path}/qr_${widget.handle.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}.png');
       await file.writeAsBytes(byteData.buffer.asUint8List());
 
-      final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
-      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+      final box =
+          _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin =
+          box != null ? box.localToGlobal(Offset.zero) & box.size : null;
 
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject:             'QR de pagamento — @${widget.handle}',
+        subject: 'QR de pagamento — @${widget.handle}',
         sharePositionOrigin: origin,
       );
     } catch (e) {
@@ -256,7 +272,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: BanzamiSpacing.xl,
-                    vertical:   BanzamiSpacing.lg,
+                    vertical: BanzamiSpacing.lg,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -268,12 +284,13 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                         child: Column(
                           children: [
                             BanzamiQrDisplay(
-                              payload:       _qrPayload,
-                              amountLabel:   _activeLink?.amountMinor != null
-                                  ? formatMinor(_activeLink!.amountMinor!, _activeLink!.currency)
+                              payload: _qrPayload,
+                              amountLabel: _activeLink?.amountMinor != null
+                                  ? formatMinor(_activeLink!.amountMinor!,
+                                      _activeLink!.currency)
                                   : null,
-                              subtitle:      '@${widget.handle}',
-                              size:          qrSize,
+                              subtitle: '@${widget.handle}',
+                              size: qrSize,
                               embeddedImage: widget.logoAssetPath != null
                                   ? AssetImage(widget.logoAssetPath!)
                                   : null,
@@ -288,22 +305,24 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                                 await Clipboard.setData(
                                     ClipboardData(text: '@${widget.handle}'));
                                 if (context.mounted) {
-                                  BanzamiToast.showSuccess(context, '@handle copiado');
+                                  BanzamiToast.showSuccess(
+                                      context, '@handle copiado');
                                 }
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: BanzamiSpacing.lg,
-                                  vertical:   BanzamiSpacing.sm,
+                                  vertical: BanzamiSpacing.sm,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:        BanzamiColors.gray100,
+                                  color: BanzamiColors.gray100,
                                   borderRadius: BanzamiRadius.fullAll,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.copy_rounded, size: 14, color: BanzamiColors.gray400),
+                                    const Icon(Icons.copy_rounded,
+                                        size: 14, color: BanzamiColors.gray400),
                                     const SizedBox(width: BanzamiSpacing.xs),
                                     Text(
                                       '@${widget.handle}',
@@ -324,9 +343,9 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
                       // Primary action
                       BanzamiPrimaryButton(
-                        key:       _shareLinkButtonKey,
-                        label:     'Partilhar link',
-                        icon:      Icons.link_rounded,
+                        key: _shareLinkButtonKey,
+                        label: 'Partilhar link',
+                        icon: Icons.link_rounded,
                         onPressed: _shareLink,
                       ),
 
@@ -336,22 +355,23 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                       Row(children: [
                         Expanded(
                           child: BanzamiSecondaryButton(
-                            label:     _sharing ? 'A partilhar…' : 'Partilhar QR',
+                            label: _sharing ? 'A partilhar…' : 'Partilhar QR',
                             onPressed: _sharing ? null : _shareQr,
                           ),
                         ),
                         const SizedBox(width: BanzamiSpacing.sm),
-                        if (widget.client != null) Expanded(
-                          child: _activeLink != null
-                              ? BanzamiSecondaryButton(
-                                  label:     'Remover montante',
-                                  onPressed: _clearAmount,
-                                )
-                              : BanzamiSecondaryButton(
-                                  label:     'Definir montante',
-                                  onPressed: _showAmountSheet,
-                                ),
-                        ),
+                        if (widget.client != null)
+                          Expanded(
+                            child: _activeLink != null
+                                ? BanzamiSecondaryButton(
+                                    label: 'Remover montante',
+                                    onPressed: _clearAmount,
+                                  )
+                                : BanzamiSecondaryButton(
+                                    label: 'Definir montante',
+                                    onPressed: _showAmountSheet,
+                                  ),
+                          ),
                       ]),
 
                       const SizedBox(height: BanzamiSpacing.lg),

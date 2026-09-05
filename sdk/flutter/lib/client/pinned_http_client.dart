@@ -23,7 +23,7 @@ class PinnedHttpClient {
   static Future<IOClient> create() async {
     final httpClient = HttpClient()
       ..connectionTimeout = const Duration(seconds: 15)
-      ..idleTimeout       = const Duration(seconds: 60);
+      ..idleTimeout = const Duration(seconds: 60);
 
     return IOClient(httpClient);
   }

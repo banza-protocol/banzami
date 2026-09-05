@@ -6,7 +6,7 @@ class ConsumerSuggestion {
 
   factory ConsumerSuggestion.fromJson(Map<String, dynamic> json) =>
       ConsumerSuggestion(
-        handle:      json['handle'] as String,
+        handle: json['handle'] as String,
         displayName: json['display_name'] as String?,
       );
 }

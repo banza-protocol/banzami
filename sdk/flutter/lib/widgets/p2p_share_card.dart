@@ -19,31 +19,31 @@ import '../utils/qr_logo_utils.dart';
 
 Future<void> showP2PShareModal(
   BuildContext context, {
-  required String    handle,
-  String?            displayName,
-  required String    qrPayload,
-  required String    shareUrl,
-  int?               amountMinor,
-  String?            currency,
-  String?            note,
-  bool               isSandbox        = false,
-  Widget?            logoWidget,
-  ImageProvider?     embeddedLogoImage,
+  required String handle,
+  String? displayName,
+  required String qrPayload,
+  required String shareUrl,
+  int? amountMinor,
+  String? currency,
+  String? note,
+  bool isSandbox = false,
+  Widget? logoWidget,
+  ImageProvider? embeddedLogoImage,
 }) {
   return showModalBottomSheet<void>(
-    context:            context,
+    context: context,
     isScrollControlled: true,
-    backgroundColor:    Colors.transparent,
+    backgroundColor: Colors.transparent,
     builder: (_) => _P2PShareModal(
-      handle:            handle,
-      displayName:       displayName,
-      qrPayload:         qrPayload,
-      shareUrl:          shareUrl,
-      amountMinor:       amountMinor,
-      currency:          currency,
-      note:              note,
-      isSandbox:         isSandbox,
-      logoWidget:        logoWidget,
+      handle: handle,
+      displayName: displayName,
+      qrPayload: qrPayload,
+      shareUrl: shareUrl,
+      amountMinor: amountMinor,
+      currency: currency,
+      note: note,
+      isSandbox: isSandbox,
+      logoWidget: logoWidget,
       embeddedLogoImage: embeddedLogoImage,
     ),
   );
@@ -54,15 +54,15 @@ Future<void> showP2PShareModal(
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _P2PShareModal extends StatefulWidget {
-  final String         handle;
-  final String?        displayName;
-  final String         qrPayload;
-  final String         shareUrl;
-  final int?           amountMinor;
-  final String?        currency;
-  final String?        note;
-  final bool           isSandbox;
-  final Widget?        logoWidget;
+  final String handle;
+  final String? displayName;
+  final String qrPayload;
+  final String shareUrl;
+  final int? amountMinor;
+  final String? currency;
+  final String? note;
+  final bool isSandbox;
+  final Widget? logoWidget;
   final ImageProvider? embeddedLogoImage;
 
   const _P2PShareModal({
@@ -84,7 +84,7 @@ class _P2PShareModal extends StatefulWidget {
 
 class _P2PShareModalState extends State<_P2PShareModal> {
   final _cardKey = GlobalKey();
-  bool  _busy    = false;
+  bool _busy = false;
 
   // ── iOS share origin ──────────────────────────────────────────────────────
   // Must be called synchronously (before any await) so the RenderBox is still
@@ -108,7 +108,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
           _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) return null;
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final data  = await image.toByteData(format: ui.ImageByteFormat.png);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
       return data?.buffer.asUint8List();
     } catch (e) {
       debugPrint('[P2PShare] captureCard error: $e');
@@ -137,13 +137,13 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       await WidgetsBinding.instance.endOfFrame;
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
-      final file = await _writeTempFile(
-          bytes, 'banzami_share_${widget.handle}.png');
+      final file =
+          await _writeTempFile(bytes, 'banzami_share_${widget.handle}.png');
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject:              'Pagar @${widget.handle} com Banzami',
-        sharePositionOrigin:  origin,
+        subject: 'Pagar @${widget.handle} com Banzami',
+        sharePositionOrigin: origin,
       );
     } catch (e) {
       if (mounted) {
@@ -183,7 +183,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     }
     sb.writeln('\nPagar agora:\n${widget.shareUrl}');
 
-    final text  = Uri.encodeComponent(sb.toString().trim());
+    final text = Uri.encodeComponent(sb.toString().trim());
     final waUrl = Uri.parse('https://wa.me/?text=$text');
 
     if (await canLaunchUrl(waUrl)) {
@@ -191,7 +191,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     } else {
       await Share.share(
         sb.toString().trim(),
-        subject:             'Pagar @${widget.handle} com Banzami',
+        subject: 'Pagar @${widget.handle} com Banzami',
         sharePositionOrigin: origin,
       );
     }
@@ -206,12 +206,12 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       await WidgetsBinding.instance.endOfFrame;
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
-      final file = await _writeTempFile(
-          bytes, 'banzami_qr_${widget.handle}.png');
+      final file =
+          await _writeTempFile(bytes, 'banzami_qr_${widget.handle}.png');
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject:             'QR Banzami — @${widget.handle}',
+        subject: 'QR Banzami — @${widget.handle}',
         sharePositionOrigin: origin,
       );
     } catch (e) {
@@ -229,20 +229,20 @@ class _P2PShareModalState extends State<_P2PShareModal> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzamiColors.white,
+        color: BanzamiColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-
             // Drag handle
             const SizedBox(height: 8),
             Container(
-              width: 36, height: 4,
+              width: 36,
+              height: 4,
               decoration: const BoxDecoration(
-                color:        BanzamiColors.gray200,
+                color: BanzamiColors.gray200,
                 borderRadius: BanzamiRadius.fullAll,
               ),
             ),
@@ -250,18 +250,19 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 
             // ── Share card preview (also captured for PNG export) ───────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
               child: RepaintBoundary(
                 key: _cardKey,
                 child: P2PShareCardBuilder(
-                  handle:            widget.handle,
-                  displayName:       widget.displayName,
-                  qrPayload:         widget.qrPayload,
-                  amountMinor:       widget.amountMinor,
-                  currency:          widget.currency,
-                  note:              widget.note,
-                  isSandbox:         widget.isSandbox,
-                  logoWidget:        widget.logoWidget,
+                  handle: widget.handle,
+                  displayName: widget.displayName,
+                  qrPayload: widget.qrPayload,
+                  amountMinor: widget.amountMinor,
+                  currency: widget.currency,
+                  note: widget.note,
+                  isSandbox: widget.isSandbox,
+                  logoWidget: widget.logoWidget,
                   embeddedLogoImage: widget.embeddedLogoImage,
                 ),
               ),
@@ -273,23 +274,23 @@ class _P2PShareModalState extends State<_P2PShareModal> {
             const Divider(height: 1),
 
             _ActionTile(
-              icon:  Icons.image_rounded,
+              icon: Icons.image_rounded,
               label: _busy ? 'A processar…' : 'Partilhar imagem',
               onTap: _busy ? null : _shareImage,
             ),
             _ActionTile(
-              icon:  Icons.link_rounded,
+              icon: Icons.link_rounded,
               label: 'Copiar link',
               onTap: _copyLink,
             ),
             _ActionTile(
-              icon:  Icons.chat_rounded,
+              icon: Icons.chat_rounded,
               label: 'Partilhar WhatsApp',
               color: const Color(0xFF25D366),
               onTap: _shareWhatsApp,
             ),
             _ActionTile(
-              icon:  Icons.download_rounded,
+              icon: Icons.download_rounded,
               label: _busy ? 'A guardar…' : 'Guardar QR',
               onTap: _busy ? null : _saveQr,
             ),
@@ -300,12 +301,13 @@ class _P2PShareModalState extends State<_P2PShareModal> {
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
-                minimumSize:     const Size(double.infinity, 44),
+                minimumSize: const Size(double.infinity, 44),
                 foregroundColor: BanzamiColors.gray600,
               ),
               child: const Text(
                 'Fechar',
-                style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
+                style:
+                    TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
               ),
             ),
           ],
@@ -320,14 +322,14 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class P2PShareCardBuilder extends StatefulWidget {
-  final String         handle;
-  final String?        displayName;
-  final String         qrPayload;
-  final int?           amountMinor;
-  final String?        currency;
-  final String?        note;
-  final bool           isSandbox;
-  final Widget?        logoWidget;
+  final String handle;
+  final String? displayName;
+  final String qrPayload;
+  final int? amountMinor;
+  final String? currency;
+  final String? note;
+  final bool isSandbox;
+  final Widget? logoWidget;
   final ImageProvider? embeddedLogoImage;
 
   const P2PShareCardBuilder({
@@ -348,8 +350,8 @@ class P2PShareCardBuilder extends StatefulWidget {
 }
 
 class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
-  ui.Image?            _loadedImage;
-  ImageStream?         _stream;
+  ui.Image? _loadedImage;
+  ImageStream? _stream;
   ImageStreamListener? _listener;
 
   @override
@@ -389,49 +391,49 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
     if (_stream != null && _listener != null) {
       _stream!.removeListener(_listener!);
     }
-    _stream      = null;
-    _listener    = null;
+    _stream = null;
+    _listener = null;
     _loadedImage = null;
   }
 
   @override
   Widget build(BuildContext context) {
-    final handle      = widget.handle;
+    final handle = widget.handle;
     final displayName = widget.displayName;
-    final qrPayload   = widget.qrPayload;
+    final qrPayload = widget.qrPayload;
     final amountMinor = widget.amountMinor;
-    final currency    = widget.currency;
-    final note        = widget.note;
-    final isSandbox   = widget.isSandbox;
-    final logoWidget  = widget.logoWidget;
-    final hasAmount  = amountMinor != null && amountMinor > 0;
+    final currency = widget.currency;
+    final note = widget.note;
+    final isSandbox = widget.isSandbox;
+    final logoWidget = widget.logoWidget;
+    final hasAmount = amountMinor != null && amountMinor > 0;
     final amountText = hasAmount
         ? formatMinor(amountMinor, currency ?? 'AOA')
         : 'Pagamento livre';
 
     return Container(
       decoration: const BoxDecoration(
-        color:        Color(0xFFFCF6F5),
+        color: Color(0xFFFCF6F5),
         borderRadius: BanzamiRadius.xxlAll,
-        boxShadow:    BanzamiShadows.cardElevated,
+        boxShadow: BanzamiShadows.cardElevated,
       ),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-
           // ── Wine gradient inner card ────────────────────────────────────
           ClipRRect(
             borderRadius: BanzamiRadius.lgAll,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(gradient: BanzamiGradients.primary),
+              decoration:
+                  const BoxDecoration(gradient: BanzamiGradients.primary),
               child: DecoratedBox(
                 position: DecorationPosition.foreground,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin:  Alignment.topCenter,
-                    end:    Alignment.center,
+                    begin: Alignment.topCenter,
+                    end: Alignment.center,
                     colors: [
                       Colors.white.withValues(alpha: 0.07),
                       Colors.transparent,
@@ -441,166 +443,167 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 20,
-                    vertical:   16,
+                    vertical: 16,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-
-                        // SANDBOX badge
-                        if (isSandbox) ...[
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: BanzamiSpacing.md,
-                              vertical:   3,
-                            ),
-                            decoration: const BoxDecoration(
-                              color:        BanzamiColors.gold,
-                              borderRadius: BanzamiRadius.fullAll,
-                            ),
-                            child: const Text(
-                              'SANDBOX',
-                              style: TextStyle(
-                                color:         Colors.white,
-                                fontSize:      10,
-                                fontWeight:    FontWeight.w700,
-                                fontFamily:    'Inter',
-                                letterSpacing: 1.2,
-                                decoration:    TextDecoration.none,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                        ],
-
-                        // ── Receiver identity ─────────────────────────────
+                      // SANDBOX badge
+                      if (isSandbox) ...[
                         Container(
-                          width:  44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color:      Colors.black.withValues(alpha: 0.12),
-                                blurRadius: 8,
-                                offset:     const Offset(0, 2),
-                              ),
-                            ],
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: BanzamiSpacing.md,
+                            vertical: 3,
                           ),
-                          child: Center(
-                            child: Text(
-                              _initials(displayName ?? handle),
-                              style: const TextStyle(
-                                color:      BanzamiColors.primary,
-                                fontSize:   17,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Inter',
-                                decoration: TextDecoration.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          displayName ?? '@$handle',
-                          style: const TextStyle(
-                            color:      Colors.white,
-                            fontSize:   14,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Inter',
-                            decoration: TextDecoration.none,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines:  1,
-                          overflow:  TextOverflow.ellipsis,
-                        ),
-                        if (displayName != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            '@$handle',
-                            style: TextStyle(
-                              color:      Colors.white.withValues(alpha: 0.60),
-                              fontSize:   11,
-                              fontFamily: 'Inter',
-                              decoration: TextDecoration.none,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-
-                        // QR on white background
-                        Container(
-                          padding:    const EdgeInsets.all(10),
                           decoration: const BoxDecoration(
-                            color:        Colors.white,
-                            borderRadius: BanzamiRadius.lgAll,
+                            color: BanzamiColors.gold,
+                            borderRadius: BanzamiRadius.fullAll,
                           ),
-                          child: CustomPaint(
-                            size: const Size(120, 120),
-                            // Canonical QR painter (shared across the ecosystem).
-                            painter: banzamiQrPainter(
-                              payload: qrPayload,
-                              logo: _loadedImage,
-                              renderSize: 120,
+                          child: const Text(
+                            'SANDBOX',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Inter',
+                              letterSpacing: 1.2,
+                              decoration: TextDecoration.none,
                             ),
                           ),
                         ),
+                        const SizedBox(height: 10),
+                      ],
 
-                        const SizedBox(height: 8),
-
-                        // Amount
+                      // ── Receiver identity ─────────────────────────────
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.12),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            _initials(displayName ?? handle),
+                            style: const TextStyle(
+                              color: BanzamiColors.primary,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'Inter',
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        displayName ?? '@$handle',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Inter',
+                          decoration: TextDecoration.none,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (displayName != null) ...[
+                        const SizedBox(height: 2),
                         Text(
-                          amountText,
+                          '@$handle',
                           style: TextStyle(
-                            color:      Colors.white,
-                            fontSize:   hasAmount ? 22 : 14,
-                            fontWeight: hasAmount ? FontWeight.w700 : FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.60),
+                            fontSize: 11,
                             fontFamily: 'Inter',
-                            fontStyle:  hasAmount ? FontStyle.normal : FontStyle.italic,
                             decoration: TextDecoration.none,
                           ),
                           textAlign: TextAlign.center,
-                        ),
-
-                        // Note
-                        if (note != null && note.isNotEmpty) ...[
-                          const SizedBox(height: 3),
-                          Text(
-                            '"$note"',
-                            style: TextStyle(
-                              color:      Colors.white.withValues(alpha: 0.72),
-                              fontSize:   12,
-                              fontFamily: 'Inter',
-                              fontStyle:  FontStyle.italic,
-                              decoration: TextDecoration.none,
-                            ),
-                            textAlign: TextAlign.center,
-                            maxLines:  2,
-                            overflow:  TextOverflow.ellipsis,
-                          ),
-                        ],
-
-                        const SizedBox(height: 8),
-
-                        // "Receber com Banzami" label
-                        Text(
-                          'Receber com Banzami',
-                          style: TextStyle(
-                            color:         Colors.white.withValues(alpha: 0.50),
-                            fontSize:      11,
-                            fontFamily:    'Inter',
-                            letterSpacing: 0.3,
-                            decoration:    TextDecoration.none,
-                          ),
                         ),
                       ],
-                    ),
+                      const SizedBox(height: 12),
+
+                      // QR on white background
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BanzamiRadius.lgAll,
+                        ),
+                        child: CustomPaint(
+                          size: const Size(120, 120),
+                          // Canonical QR painter (shared across the ecosystem).
+                          painter: banzamiQrPainter(
+                            payload: qrPayload,
+                            logo: _loadedImage,
+                            renderSize: 120,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Amount
+                      Text(
+                        amountText,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: hasAmount ? 22 : 14,
+                          fontWeight:
+                              hasAmount ? FontWeight.w700 : FontWeight.w400,
+                          fontFamily: 'Inter',
+                          fontStyle:
+                              hasAmount ? FontStyle.normal : FontStyle.italic,
+                          decoration: TextDecoration.none,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      // Note
+                      if (note != null && note.isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          '"$note"',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.72),
+                            fontSize: 12,
+                            fontFamily: 'Inter',
+                            fontStyle: FontStyle.italic,
+                            decoration: TextDecoration.none,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+
+                      const SizedBox(height: 8),
+
+                      // "Receber com Banzami" label
+                      Text(
+                        'Receber com Banzami',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.50),
+                          fontSize: 11,
+                          fontFamily: 'Inter',
+                          letterSpacing: 0.3,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
+          ),
 
           const SizedBox(height: 8),
 
@@ -614,7 +617,8 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
               ],
               Text(
                 'Pague instantaneamente com Banzami',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                style: BanzamiTextStyles.bodySm
+                    .copyWith(color: BanzamiColors.gray400),
               ),
             ],
           ),
@@ -629,10 +633,10 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ActionTile extends StatelessWidget {
-  final IconData      icon;
-  final String        label;
+  final IconData icon;
+  final String label;
   final VoidCallback? onTap;
-  final Color         color;
+  final Color color;
 
   const _ActionTile({
     required this.icon,
@@ -655,7 +659,7 @@ class _ActionTile extends StatelessWidget {
             Text(
               label,
               style: BanzamiTextStyles.bodyMd.copyWith(
-                color:      effectiveColor,
+                color: effectiveColor,
                 fontWeight: FontWeight.w500,
               ),
             ),

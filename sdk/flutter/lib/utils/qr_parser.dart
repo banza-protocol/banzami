@@ -29,17 +29,17 @@ sealed class BanzamiQrResult {
 /// A consumer pay-link request code: resolves via GET /v1/consumer-pay-links/{code}.
 class BanzamiQrPaymentRequest extends BanzamiQrResult {
   final String code;
-  final bool   isSandbox;
+  final bool isSandbox;
   const BanzamiQrPaymentRequest({required this.code, required this.isSandbox});
 }
 
 /// A handle-based payment: optionally pre-filled amount + note.
 class BanzamiQrHandlePayment extends BanzamiQrResult {
-  final String  handle;
-  final int?    amountMinor;
+  final String handle;
+  final int? amountMinor;
   final String? note;
-  final String  currency;
-  final bool    isSandbox;
+  final String currency;
+  final bool isSandbox;
   const BanzamiQrHandlePayment({
     required this.handle,
     this.amountMinor,
@@ -59,14 +59,15 @@ class BanzamiQrStructuredPayment extends BanzamiQrResult {
   /// Static QR needs a payer-entered amount; dynamic carries a fixed amount.
   final bool isStatic;
 
-  const BanzamiQrStructuredPayment({required this.payload, required this.isStatic});
+  const BanzamiQrStructuredPayment(
+      {required this.payload, required this.isStatic});
 }
 
 /// A split-payment session (P2P-002) — `banzami://split/{id}`. The payer
 /// contributes a portion via `ConsumerPublicClient.paySplit`.
 class BanzamiQrSplitPayment extends BanzamiQrResult {
   final String splitId;
-  final bool   isSandbox;
+  final bool isSandbox;
   const BanzamiQrSplitPayment({required this.splitId, required this.isSandbox});
 }
 
@@ -104,8 +105,8 @@ class BanzamiQrParser {
     if (raw.startsWith('https://pay.banzami.com/')) {
       final uri = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('URL inválido');
-      final segs      = uri.pathSegments.where((s) => s.isNotEmpty).toList();
-      final sandbox   = uri.queryParameters['sandbox'] == '1';
+      final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+      final sandbox = uri.queryParameters['sandbox'] == '1';
       if (segs.isEmpty) return const BanzamiQrInvalid('URL incompleto');
 
       switch (segs[0]) {
@@ -123,10 +124,10 @@ class BanzamiQrParser {
           }
           final amountStr = uri.queryParameters['amount'];
           return BanzamiQrHandlePayment(
-            handle:      segs[1],
+            handle: segs[1],
             amountMinor: amountStr != null ? int.tryParse(amountStr) : null,
-            note:        uri.queryParameters['note'],
-            isSandbox:   sandbox,
+            note: uri.queryParameters['note'],
+            isSandbox: sandbox,
           );
 
         case 'pay':
@@ -150,7 +151,7 @@ class BanzamiQrParser {
     // the parser can never diverge from what the generators emit.
     if (BanzamiQrScheme.deepLinkPrefixes.any(raw.startsWith)) {
       final isSandbox = BanzamiQrScheme.isSandboxScheme(raw);
-      final uri       = Uri.tryParse(raw);
+      final uri = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('Link inválido');
 
       // banzami://pay?request={code}
@@ -178,10 +179,10 @@ class BanzamiQrParser {
       if (segs.length >= 2 && segs[0] == 'u') {
         final amountStr = uri.queryParameters['amount'];
         return BanzamiQrHandlePayment(
-          handle:      segs[1],
+          handle: segs[1],
           amountMinor: amountStr != null ? int.tryParse(amountStr) : null,
-          note:        uri.queryParameters['note'],
-          isSandbox:   isSandbox,
+          note: uri.queryParameters['note'],
+          isSandbox: isSandbox,
         );
       }
 
@@ -196,18 +197,21 @@ class BanzamiQrParser {
     for (final prefix in BanzamiQrScheme.handlePrefixes) {
       if (!raw.startsWith(prefix)) continue;
       final isSandbox = prefix.contains('-sandbox');
-      final rest      = raw.substring(prefix.length); // 'fm65' or 'fm65?amount=5000&currency=AOA'
-      final qIdx      = rest.indexOf('?');
-      final handle    = qIdx >= 0 ? rest.substring(0, qIdx) : rest;
+      final rest = raw.substring(
+          prefix.length); // 'fm65' or 'fm65?amount=5000&currency=AOA'
+      final qIdx = rest.indexOf('?');
+      final handle = qIdx >= 0 ? rest.substring(0, qIdx) : rest;
       if (handle.isEmpty) return const BanzamiQrInvalid('Endereço inválido');
-      final params    = qIdx >= 0 ? Uri.splitQueryString(rest.substring(qIdx + 1)) : <String, String>{};
+      final params = qIdx >= 0
+          ? Uri.splitQueryString(rest.substring(qIdx + 1))
+          : <String, String>{};
       final amountStr = params['amount'];
 
       return BanzamiQrHandlePayment(
-        handle:      handle,
+        handle: handle,
         amountMinor: amountStr != null ? int.tryParse(amountStr) : null,
-        currency:    params['currency'] ?? 'AOA',
-        isSandbox:   isSandbox,
+        currency: params['currency'] ?? 'AOA',
+        isSandbox: isSandbox,
       );
     }
 

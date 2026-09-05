@@ -30,12 +30,24 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 ---
 
+> **What this package is.** Banzami's own mobile application framework — the
+> Consumer and Business apps depend on it by path. It is not a third-party
+> integration SDK, and it is not published to pub.dev.
+>
+> **Credentials.** The client authenticates the app's own signed-in user. A
+> Developer Platform **secret** key (`bz_test_sk_…`, `bz_live_sk_…`) must never
+> be compiled into a mobile binary: anyone who downloads the app can read it,
+> and that key can move money. A third-party mobile integration uses a
+> **publishable** key (`bz_test_pk_…`, restricted to read scopes) for
+> presentation and status, and calls its own backend for anything that moves
+> money.
+
 ## Quick start — merchant app
 
 ```dart
 final client = BanzamiClient(
-  apiKey:  'bz_live_...',
-  baseUrl: 'https://api.banzami.com',
+  jwt:     session.jwt,   // from @handle + PIN login
+  baseUrl: 'https://sandbox-api.banzami.com',
 );
 
 // Fetch merchant details

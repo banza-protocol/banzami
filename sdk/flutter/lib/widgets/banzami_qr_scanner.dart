@@ -30,7 +30,7 @@ class BanzamiQrScanner extends StatefulWidget {
 class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
-    facing:         CameraFacing.back,
+    facing: CameraFacing.back,
   );
 
   bool _scanned = false;
@@ -55,7 +55,7 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
   void _onDetect(BarcodeCapture capture) {
     if (_scanned) return;
     final barcode = capture.barcodes.firstOrNull;
-    final value   = barcode?.rawValue;
+    final value = barcode?.rawValue;
     if (value == null || value.isEmpty) return;
     if (!_isValidPayload(value)) return;
 
@@ -73,11 +73,15 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.camera_alt_outlined, color: Colors.white54, size: 64),
+                const Icon(Icons.camera_alt_outlined,
+                    color: Colors.white54, size: 64),
                 const SizedBox(height: 24),
                 const Text(
                   'Câmara não autorizada',
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
@@ -90,7 +94,8 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
                 if (widget.onCancel != null)
                   TextButton(
                     onPressed: widget.onCancel,
-                    child: const Text('Voltar', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                    child: const Text('Voltar',
+                        style: TextStyle(color: Colors.white70, fontSize: 16)),
                   ),
               ],
             ),
@@ -105,18 +110,19 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
     return Stack(
       children: [
         MobileScanner(
-          controller:   _controller,
-          onDetect:     _onDetect,
-          errorBuilder: (context, error, child) => _buildPermissionDenied(context),
+          controller: _controller,
+          onDetect: _onDetect,
+          errorBuilder: (context, error, child) =>
+              _buildPermissionDenied(context),
         ),
 
         // Viewfinder overlay
         Center(
           child: Container(
-            width:       260,
-            height:      260,
-            decoration:  BoxDecoration(
-              border:       Border.all(color: BanzamiColors.primary, width: 2.5),
+            width: 260,
+            height: 260,
+            decoration: BoxDecoration(
+              border: Border.all(color: BanzamiColors.primary, width: 2.5),
               borderRadius: BanzamiRadius.lgAll,
             ),
           ),
@@ -125,21 +131,22 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
         // Instruction label
         Positioned(
           bottom: 80,
-          left:   0,
-          right:  0,
+          left: 0,
+          right: 0,
           child: Center(
             child: Container(
               padding: const EdgeInsets.symmetric(
                 horizontal: BanzamiSpacing.xl,
-                vertical:   BanzamiSpacing.sm,
+                vertical: BanzamiSpacing.sm,
               ),
               decoration: BoxDecoration(
-                color:        BanzamiColors.gray900.withValues(alpha: 0.6),
+                color: BanzamiColors.gray900.withValues(alpha: 0.6),
                 borderRadius: BanzamiRadius.fullAll,
               ),
               child: Text(
                 'Aponte para o código QR',
-                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white),
+                style: BanzamiTextStyles.bodyMd
+                    .copyWith(color: BanzamiColors.white),
               ),
             ),
           ),
@@ -148,34 +155,36 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
         // Cancel button
         if (widget.onCancel != null)
           Positioned(
-            top:  56,
+            top: 56,
             left: BanzamiSpacing.lg,
             child: GestureDetector(
               onTap: widget.onCancel,
               child: Container(
-                padding:    const EdgeInsets.all(BanzamiSpacing.sm),
+                padding: const EdgeInsets.all(BanzamiSpacing.sm),
                 decoration: BoxDecoration(
-                  color:        BanzamiColors.gray900.withValues(alpha: 0.5),
+                  color: BanzamiColors.gray900.withValues(alpha: 0.5),
                   borderRadius: BanzamiRadius.mdAll,
                 ),
-                child: const Icon(Icons.close, color: BanzamiColors.white, size: 24),
+                child: const Icon(Icons.close,
+                    color: BanzamiColors.white, size: 24),
               ),
             ),
           ),
 
         // Torch toggle
         Positioned(
-          top:   56,
+          top: 56,
           right: BanzamiSpacing.lg,
           child: GestureDetector(
             onTap: _controller.toggleTorch,
             child: Container(
-              padding:    const EdgeInsets.all(BanzamiSpacing.sm),
+              padding: const EdgeInsets.all(BanzamiSpacing.sm),
               decoration: BoxDecoration(
-                color:        BanzamiColors.gray900.withValues(alpha: 0.5),
+                color: BanzamiColors.gray900.withValues(alpha: 0.5),
                 borderRadius: BanzamiRadius.mdAll,
               ),
-              child: const Icon(Icons.flashlight_on, color: BanzamiColors.white, size: 24),
+              child: const Icon(Icons.flashlight_on,
+                  color: BanzamiColors.white, size: 24),
             ),
           ),
         ),

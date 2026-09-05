@@ -36,8 +36,9 @@ enum BusinessCategory {
   /// The wire value sent to / received from the operator.
   final String wire;
 
-  static BusinessCategory fromWire(String value) => BusinessCategory.values
-      .firstWhere((c) => c.wire == value, orElse: () => BusinessCategory.unknown);
+  static BusinessCategory fromWire(String value) =>
+      BusinessCategory.values.firstWhere((c) => c.wire == value,
+          orElse: () => BusinessCategory.unknown);
 }
 
 /// Commercial pricing tier (reference only; never a price).

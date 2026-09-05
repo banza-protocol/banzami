@@ -25,21 +25,24 @@ import 'payment_request_screen.dart';
 class BanzamiSendScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final void Function(Transfer transfer) onSuccess;
+
   /// The authenticated user's own handle — excluded from autocomplete results.
   final String? ownHandle;
-  final bool    isSandbox;
+  final bool isSandbox;
   final String? logoAssetPath;
+
   /// Pre-filled from a deep link (without the @ prefix).
   final String? initialHandle;
+
   /// Pre-filled from a deep link — skips the amount input default of 0.
-  final int?    initialAmount;
+  final int? initialAmount;
 
   const BanzamiSendScreen({
     super.key,
     required this.client,
     required this.onSuccess,
     this.ownHandle,
-    this.isSandbox     = false,
+    this.isSandbox = false,
     this.logoAssetPath,
     this.initialHandle,
     this.initialAmount,
@@ -51,21 +54,22 @@ class BanzamiSendScreen extends StatefulWidget {
 
 class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   final _handleCtrl = TextEditingController();
-  final _descCtrl   = TextEditingController();
+  final _descCtrl = TextEditingController();
   final _handleFocus = FocusNode();
 
-  int     _amountMinor       = 0;
-  int     _amountInputVersion = 0; // incremented to force BanzamiAmountInput rebuild
+  int _amountMinor = 0;
+  int _amountInputVersion =
+      0; // incremented to force BanzamiAmountInput rebuild
   String? _handleError;
   String? _amountError;
 
   List<ConsumerSuggestion> _suggestions = [];
   ConsumerSuggestion? _selectedSuggestion;
-  bool    _searching        = false;
-  bool    _validatingHandle = false;
-  bool    _handleConfirmed  = false;
-  bool    _busy             = false; // true while resolving a payment-request QR
-  Timer?  _debounce;
+  bool _searching = false;
+  bool _validatingHandle = false;
+  bool _handleConfirmed = false;
+  bool _busy = false; // true while resolving a payment-request QR
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -80,7 +84,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       _handleCtrl.text = widget.initialHandle!.replaceAll('@', '');
       if (widget.initialAmount != null) _amountMinor = widget.initialAmount!;
       // Validate the pre-filled handle once the widget is in the tree.
-      WidgetsBinding.instance.addPostFrameCallback((_) => _validateHandleOnBlur());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => _validateHandleOnBlur());
     }
   }
 
@@ -94,7 +99,11 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   }
 
   void _onHandleChanged(String value) {
-    setState(() { _handleError = null; _handleConfirmed = false; _selectedSuggestion = null; });
+    setState(() {
+      _handleError = null;
+      _handleConfirmed = false;
+      _selectedSuggestion = null;
+    });
 
     _debounce?.cancel();
     final q = value.trim().replaceAll('@', '');
@@ -111,14 +120,22 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         results = results.where((s) => s.handle != widget.ownHandle).toList();
       }
       if (!mounted) return;
-      setState(() { _suggestions = results; _searching = false; });
+      setState(() {
+        _suggestions = results;
+        _searching = false;
+      });
     });
   }
 
   void _selectSuggestion(ConsumerSuggestion s) {
     _handleCtrl.text = s.handle;
     _handleFocus.unfocus();
-    setState(() { _suggestions = []; _handleError = null; _handleConfirmed = true; _selectedSuggestion = s; });
+    setState(() {
+      _suggestions = [];
+      _handleError = null;
+      _handleConfirmed = true;
+      _selectedSuggestion = s;
+    });
   }
 
   Future<void> _validateHandleOnBlur() async {
@@ -126,14 +143,23 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     final handle = _handleCtrl.text.trim().replaceAll('@', '').toLowerCase();
     if (handle.isEmpty) return;
 
-    setState(() { _validatingHandle = true; _handleError = null; });
+    setState(() {
+      _validatingHandle = true;
+      _handleError = null;
+    });
     try {
       final exists = await widget.client.handleExists(handle);
       if (!mounted) return;
       if (exists) {
-        setState(() { _handleConfirmed = true; _validatingHandle = false; });
+        setState(() {
+          _handleConfirmed = true;
+          _validatingHandle = false;
+        });
       } else {
-        setState(() { _handleError = '@$handle não está registado no Banzami'; _validatingHandle = false; });
+        setState(() {
+          _handleError = '@$handle não está registado no Banzami';
+          _validatingHandle = false;
+        });
       }
     } catch (_) {
       if (mounted) setState(() => _validatingHandle = false);
@@ -161,16 +187,16 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
 
     await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiConfirmScreen(
-        client:               widget.client,
-        recipientHandle:      handle,
+        client: widget.client,
+        recipientHandle: handle,
         recipientDisplayName: _selectedSuggestion?.displayName,
-        amountMinor:          _amountMinor,
-        note:                 note,
-        idempotencyKey:       idempotencyKey,
-        ownHandle:            widget.ownHandle,
-        onSuccess:            widget.onSuccess,
-        isSandbox:            widget.isSandbox,
-        logoAssetPath:        widget.logoAssetPath,
+        amountMinor: _amountMinor,
+        note: note,
+        idempotencyKey: idempotencyKey,
+        ownHandle: widget.ownHandle,
+        onSuccess: widget.onSuccess,
+        isSandbox: widget.isSandbox,
+        logoAssetPath: widget.logoAssetPath,
       ),
     ));
   }
@@ -190,8 +216,11 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       builder: (scanCtx) => Scaffold(
         backgroundColor: Colors.black,
         body: BanzamiQrScanner(
-          onDetected: (v) { raw = v; Navigator.of(scanCtx).pop(); },
-          onCancel:   () => Navigator.of(scanCtx).pop(),
+          onDetected: (v) {
+            raw = v;
+            Navigator.of(scanCtx).pop();
+          },
+          onCancel: () => Navigator.of(scanCtx).pop(),
         ),
       ),
     ));
@@ -210,8 +239,12 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         if (_sandboxMismatch(isSandbox)) return;
         _openPaymentRequestFromQr(code);
 
-      case BanzamiQrHandlePayment(:final handle, :final amountMinor,
-                                 :final note, :final isSandbox):
+      case BanzamiQrHandlePayment(
+          :final handle,
+          :final amountMinor,
+          :final note,
+          :final isSandbox
+        ):
         if (_sandboxMismatch(isSandbox)) return;
         _prefillFromQr(handle: handle, amountMinor: amountMinor, note: note);
 
@@ -242,26 +275,27 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
 
   void _prefillFromQr({
     required String handle,
-    int?            amountMinor,
-    String?         note,
+    int? amountMinor,
+    String? note,
   }) {
     _handleCtrl.text = handle.replaceAll('@', '');
     _handleFocus.unfocus();
 
     setState(() {
-      _handleError        = null;
-      _handleConfirmed    = false;
+      _handleError = null;
+      _handleConfirmed = false;
       _selectedSuggestion = null;
-      _suggestions        = [];
+      _suggestions = [];
       if (amountMinor != null && amountMinor > 0) {
-        _amountMinor        = amountMinor;
+        _amountMinor = amountMinor;
         _amountInputVersion++;
       }
     });
 
     if (note != null && note.isNotEmpty) _descCtrl.text = note;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _validateHandleOnBlur());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _validateHandleOnBlur());
   }
 
   Future<void> _openPaymentRequestFromQr(String code) async {
@@ -272,27 +306,27 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       if (!mounted) return;
       if (!link.isActive) {
         final msg = switch (link.status) {
-          'PAID'    => 'Este pedido já foi pago.',
+          'PAID' => 'Este pedido já foi pago.',
           'EXPIRED' => 'Este pedido expirou.',
-          _         => 'Este pedido não está disponível.',
+          _ => 'Este pedido não está disponível.',
         };
         BanzamiToast.showWarning(context, msg);
         return;
       }
       await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiPaymentRequestScreen(
-          client:               widget.client,
-          recipientHandle:      link.receiverHandle,
+          client: widget.client,
+          recipientHandle: link.receiverHandle,
           recipientDisplayName: link.receiverDisplayName,
-          amountMinor:          link.amountMinor,
-          note:                 link.note,
-          currency:             link.currency,
-          locked:               link.locked,
-          ownHandle:            widget.ownHandle,
-          linkCode:             link.linkCode,
-          onSuccess:            widget.onSuccess,
-          isSandbox:            widget.isSandbox,
-          logoAssetPath:        widget.logoAssetPath,
+          amountMinor: link.amountMinor,
+          note: link.note,
+          currency: link.currency,
+          locked: link.locked,
+          ownHandle: widget.ownHandle,
+          linkCode: link.linkCode,
+          onSuccess: widget.onSuccess,
+          isSandbox: widget.isSandbox,
+          logoAssetPath: widget.logoAssetPath,
         ),
       ));
     } on BanzamiApiException catch (e) {
@@ -303,7 +337,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       BanzamiToast.showError(context, msg);
     } catch (_) {
       if (!mounted) return;
-      BanzamiToast.showError(context, 'Não foi possível verificar o QR. Tente novamente.');
+      BanzamiToast.showError(
+          context, 'Não foi possível verificar o QR. Tente novamente.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -318,9 +353,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
           children: [
             // Back button
             IconButton(
-              icon:    const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              color:   BanzamiColors.gray900,
-              padding: const EdgeInsets.fromLTRB(BanzamiSpacing.md, BanzamiSpacing.md, BanzamiSpacing.md, 0),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              color: BanzamiColors.gray900,
+              padding: const EdgeInsets.fromLTRB(
+                  BanzamiSpacing.md, BanzamiSpacing.md, BanzamiSpacing.md, 0),
               onPressed: () => Navigator.of(context).pop(),
             ),
 
@@ -328,8 +364,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzamiSpacing.xl, BanzamiSpacing.md,
-                  BanzamiSpacing.xl, BanzamiSpacing.xxl,
+                  BanzamiSpacing.xl,
+                  BanzamiSpacing.md,
+                  BanzamiSpacing.xl,
+                  BanzamiSpacing.xxl,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,26 +379,31 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                     // ── Para quem? ─────────────────────────────────────────
                     Text(
                       'Para quem?',
-                      style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+                      style: BanzamiTextStyles.headingSm
+                          .copyWith(color: BanzamiColors.gray900),
                     ),
                     const SizedBox(height: BanzamiSpacing.sm),
                     TextField(
-                      controller:      _handleCtrl,
-                      focusNode:       _handleFocus,
+                      controller: _handleCtrl,
+                      focusNode: _handleFocus,
                       decoration: InputDecoration(
                         prefixText: '@',
-                        hintText:   'banza do destinatário',
-                        errorText:  _handleError,
+                        hintText: 'banza do destinatário',
+                        errorText: _handleError,
                         suffixIcon: (_searching || _validatingHandle || _busy)
                             ? const Padding(
                                 padding: EdgeInsets.all(12),
                                 child: SizedBox(
-                                  width: 16, height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.primary),
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: BanzamiColors.primary),
                                 ),
                               )
                             : _handleConfirmed
-                                ? const Icon(Icons.check_circle_rounded, color: Color(0xFF166534), size: 20)
+                                ? const Icon(Icons.check_circle_rounded,
+                                    color: Color(0xFF166534), size: 20)
                                 : GestureDetector(
                                     onTap: _scanQr,
                                     child: const Padding(
@@ -368,54 +411,62 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                                       child: Icon(
                                         Icons.qr_code_scanner_rounded,
                                         color: BanzamiColors.primary,
-                                        size:  22,
+                                        size: 22,
                                       ),
                                     ),
                                   ),
                       ),
-                      style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray900),
-                      autocorrect:     false,
+                      style: BanzamiTextStyles.bodyLg
+                          .copyWith(color: BanzamiColors.gray900),
+                      autocorrect: false,
                       textInputAction: TextInputAction.next,
-                      onChanged:       _onHandleChanged,
+                      onChanged: _onHandleChanged,
                     ),
 
                     if (_suggestions.isNotEmpty)
                       _SuggestionList(
                         suggestions: _suggestions,
-                        onTap:       _selectSuggestion,
+                        onTap: _selectSuggestion,
                       ),
 
                     // ── Quanto? ────────────────────────────────────────────
                     const SizedBox(height: BanzamiSpacing.xl),
                     Text(
                       'Quanto?',
-                      style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+                      style: BanzamiTextStyles.headingSm
+                          .copyWith(color: BanzamiColors.gray900),
                     ),
                     const SizedBox(height: BanzamiSpacing.sm),
                     BanzamiAmountInput(
-                      key:                ValueKey(_amountInputVersion),
-                      initialAmountMinor: _amountMinor > 0 ? _amountMinor : widget.initialAmount,
-                      onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
-                      errorText:  _amountError,
+                      key: ValueKey(_amountInputVersion),
+                      initialAmountMinor: _amountMinor > 0
+                          ? _amountMinor
+                          : widget.initialAmount,
+                      onChanged: (v) => setState(() {
+                        _amountMinor = v;
+                        _amountError = null;
+                      }),
+                      errorText: _amountError,
                     ),
 
                     // ── Descrição ──────────────────────────────────────────
                     const SizedBox(height: BanzamiSpacing.xl),
                     Text(
                       'Descrição (opcional)',
-                      style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+                      style: BanzamiTextStyles.headingSm
+                          .copyWith(color: BanzamiColors.gray900),
                     ),
                     const SizedBox(height: BanzamiSpacing.sm),
                     BanzamiTextField(
-                      controller:        _descCtrl,
-                      hint:              'Ex: jantar de ontem',
-                      textInputAction:   TextInputAction.done,
+                      controller: _descCtrl,
+                      hint: 'Ex: jantar de ontem',
+                      textInputAction: TextInputAction.done,
                       onEditingComplete: _send,
                     ),
 
                     const SizedBox(height: BanzamiSpacing.xxl),
                     BanzamiPrimaryButton(
-                      label:     'Continuar',
+                      label: 'Continuar',
                       isLoading: _validatingHandle,
                       onPressed: _send,
                     ),
@@ -441,36 +492,36 @@ class _SuggestionList extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(top: BanzamiSpacing.xs),
       decoration: BoxDecoration(
-        color:        BanzamiColors.white,
+        color: BanzamiColors.white,
         borderRadius: BorderRadius.circular(BanzamiRadius.md),
-        border:       Border.all(color: BanzamiColors.gray200),
+        border: Border.all(color: BanzamiColors.gray200),
         boxShadow: [
           BoxShadow(
-            color:      Colors.black.withValues(alpha: 0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
-            offset:     const Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: suggestions.map((s) {
           return InkWell(
-            onTap:        () => onTap(s),
+            onTap: () => onTap(s),
             borderRadius: BorderRadius.circular(BanzamiRadius.md),
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: BanzamiSpacing.lg,
-                vertical:   BanzamiSpacing.md,
+                vertical: BanzamiSpacing.md,
               ),
               child: Row(
                 children: [
                   CircleAvatar(
-                    radius:          18,
+                    radius: 18,
                     backgroundColor: BanzamiColors.gray100,
                     child: Text(
                       s.handle[0].toUpperCase(),
                       style: BanzamiTextStyles.bodySm.copyWith(
-                        color:      BanzamiColors.primary,
+                        color: BanzamiColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -481,10 +532,12 @@ class _SuggestionList extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('@${s.handle}',
-                            style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+                            style: BanzamiTextStyles.bodyMd
+                                .copyWith(fontWeight: FontWeight.w600)),
                         if (s.displayName != null)
                           Text(s.displayName!,
-                              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                              style: BanzamiTextStyles.bodySm
+                                  .copyWith(color: BanzamiColors.gray400)),
                       ],
                     ),
                   ),

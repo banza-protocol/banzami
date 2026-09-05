@@ -46,13 +46,15 @@ void main() {
     });
 
     test('random base64-looking junk is rejected, not mis-resolved', () {
-      expect(BanzamiQrParser.parse('not-real-payload'), isA<BanzamiQrInvalid>());
+      expect(
+          BanzamiQrParser.parse('not-real-payload'), isA<BanzamiQrInvalid>());
     });
   });
 
   group('BanzamiQrParser — existing formats still parse', () {
     test('handle QR (banza:@handle) still resolves to a handle payment', () {
-      final result = BanzamiQrParser.parse('banza:@fm65?amount=5000&currency=AOA');
+      final result =
+          BanzamiQrParser.parse('banza:@fm65?amount=5000&currency=AOA');
       expect(result, isA<BanzamiQrHandlePayment>());
       final h = result as BanzamiQrHandlePayment;
       expect(h.handle, 'fm65');
@@ -66,20 +68,21 @@ void main() {
     });
 
     test('split deep link resolves to a split payment', () {
-      final result =
-          BanzamiQrParser.parse('banzami://pay/split/abc-split-123');
+      final result = BanzamiQrParser.parse('banzami://pay/split/abc-split-123');
       expect(result, isA<BanzamiQrSplitPayment>());
       expect((result as BanzamiQrSplitPayment).splitId, 'abc-split-123');
     });
 
     test('bare merchant payment-link slug resolves to a payment link', () {
-      final result = BanzamiQrParser.parse('https://pay.banzami.com/bb48c6534c86');
+      final result =
+          BanzamiQrParser.parse('https://pay.banzami.com/bb48c6534c86');
       expect(result, isA<BanzamiQrPaymentLink>());
       expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
     });
 
     test('/pay/{slug} merchant payment-link resolves to a payment link', () {
-      final result = BanzamiQrParser.parse('https://pay.banzami.com/pay/bb48c6534c86');
+      final result =
+          BanzamiQrParser.parse('https://pay.banzami.com/pay/bb48c6534c86');
       expect(result, isA<BanzamiQrPaymentLink>());
       expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
     });
@@ -87,20 +90,26 @@ void main() {
     // Banzami Checkout (checkout-web modal.ts) renders its QR from the deep link
     // `banzami://pay/link/{slug}`. The parser MUST accept it, otherwise scanning a
     // Banzami Checkout QR in the app shows "Formato de link inválido".
-    test('checkout deep link banzami://pay/link/{slug} resolves to a payment link', () {
+    test(
+        'checkout deep link banzami://pay/link/{slug} resolves to a payment link',
+        () {
       final result = BanzamiQrParser.parse('banzami://pay/link/bb48c6534c86');
       expect(result, isA<BanzamiQrPaymentLink>());
       expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
     });
 
-    test('sandbox checkout deep link banzami-sandbox://pay/link/{slug} resolves to a payment link', () {
-      final result = BanzamiQrParser.parse('banzami-sandbox://pay/link/bb48c6534c86');
+    test(
+        'sandbox checkout deep link banzami-sandbox://pay/link/{slug} resolves to a payment link',
+        () {
+      final result =
+          BanzamiQrParser.parse('banzami-sandbox://pay/link/bb48c6534c86');
       expect(result, isA<BanzamiQrPaymentLink>());
       expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
     });
 
     test('checkout deep link with missing slug is rejected', () {
-      expect(BanzamiQrParser.parse('banzami://pay/link/'), isA<BanzamiQrInvalid>());
+      expect(BanzamiQrParser.parse('banzami://pay/link/'),
+          isA<BanzamiQrInvalid>());
     });
 
     test('multi-segment unknown pay path is still rejected', () {
@@ -139,13 +148,17 @@ void main() {
       expect(p.isSandbox, isFalse);
     });
 
-    test('sandbox payment-request QR banzami-sandbox://pay?request resolves AS sandbox', () {
+    test(
+        'sandbox payment-request QR banzami-sandbox://pay?request resolves AS sandbox',
+        () {
       final r = BanzamiQrParser.parse('banzami-sandbox://pay?request=REQ123');
       expect(r, isA<BanzamiQrPaymentRequest>());
       expect((r as BanzamiQrPaymentRequest).isSandbox, isTrue);
     });
 
-    test('legacy banza-sandbox:@handle still resolves (printed QRs in circulation)', () {
+    test(
+        'legacy banza-sandbox:@handle still resolves (printed QRs in circulation)',
+        () {
       final r = BanzamiQrParser.parse('banza-sandbox:@fm65');
       expect(r, isA<BanzamiQrHandlePayment>());
       expect((r as BanzamiQrHandlePayment).isSandbox, isTrue);
@@ -161,9 +174,11 @@ void main() {
   // The single-source-of-truth guarantee: every link the generators emit through
   // BanzamiQrScheme MUST be accepted by the parser as the right type. If a builder
   // and the parser ever drift, one of these fails — the drift can't ship silently.
-  group('BanzamiQrScheme — generator output round-trips through the parser', () {
+  group('BanzamiQrScheme — generator output round-trips through the parser',
+      () {
     test('handle (live) resolves to a handle payment, not sandbox', () {
-      final r = BanzamiQrParser.parse(BanzamiQrScheme.handle('fm65', isSandbox: false));
+      final r = BanzamiQrParser.parse(
+          BanzamiQrScheme.handle('fm65', isSandbox: false));
       expect(r, isA<BanzamiQrHandlePayment>());
       final h = r as BanzamiQrHandlePayment;
       expect(h.handle, 'fm65');
@@ -171,12 +186,14 @@ void main() {
     });
 
     test('handle (sandbox) resolves AS sandbox', () {
-      final r = BanzamiQrParser.parse(BanzamiQrScheme.handle('fm65', isSandbox: true));
+      final r = BanzamiQrParser.parse(
+          BanzamiQrScheme.handle('fm65', isSandbox: true));
       expect((r as BanzamiQrHandlePayment).isSandbox, isTrue);
     });
 
     test('paymentRequest (live) resolves to a payment request', () {
-      final r = BanzamiQrParser.parse(BanzamiQrScheme.paymentRequest('REQ1', isSandbox: false));
+      final r = BanzamiQrParser.parse(
+          BanzamiQrScheme.paymentRequest('REQ1', isSandbox: false));
       expect(r, isA<BanzamiQrPaymentRequest>());
       final p = r as BanzamiQrPaymentRequest;
       expect(p.code, 'REQ1');
@@ -184,7 +201,8 @@ void main() {
     });
 
     test('paymentRequest (sandbox) resolves AS sandbox', () {
-      final r = BanzamiQrParser.parse(BanzamiQrScheme.paymentRequest('REQ1', isSandbox: true));
+      final r = BanzamiQrParser.parse(
+          BanzamiQrScheme.paymentRequest('REQ1', isSandbox: true));
       expect((r as BanzamiQrPaymentRequest).isSandbox, isTrue);
     });
 
@@ -201,9 +219,12 @@ void main() {
     });
 
     test('emitted schemes are always canonical, never legacy', () {
-      expect(BanzamiQrScheme.handle('x', isSandbox: false), startsWith('banzami:@'));
-      expect(BanzamiQrScheme.handle('x', isSandbox: true), startsWith('banzami-sandbox:@'));
-      expect(BanzamiQrScheme.paymentRequest('c', isSandbox: false), startsWith('banzami://'));
+      expect(BanzamiQrScheme.handle('x', isSandbox: false),
+          startsWith('banzami:@'));
+      expect(BanzamiQrScheme.handle('x', isSandbox: true),
+          startsWith('banzami-sandbox:@'));
+      expect(BanzamiQrScheme.paymentRequest('c', isSandbox: false),
+          startsWith('banzami://'));
       expect(BanzamiQrScheme.payLink('s'), startsWith('banzami://pay/link/'));
       for (final emitted in [
         BanzamiQrScheme.handle('x', isSandbox: false),
@@ -212,8 +233,12 @@ void main() {
         BanzamiQrScheme.payLink('s'),
         BanzamiQrScheme.split('id'),
       ]) {
-        expect(emitted.startsWith('banza:') || emitted.startsWith('banza-sandbox:'), isFalse,
-            reason: 'generators must never emit the legacy banza scheme: $emitted');
+        expect(
+            emitted.startsWith('banza:') ||
+                emitted.startsWith('banza-sandbox:'),
+            isFalse,
+            reason:
+                'generators must never emit the legacy banza scheme: $emitted');
       }
     });
   });

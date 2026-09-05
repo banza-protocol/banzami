@@ -75,14 +75,16 @@ class BanzamiQrDisplay extends StatelessWidget {
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
             amountLabel!,
-            style: BanzamiTextStyles.monoLg.copyWith(color: BanzamiColors.gray900),
+            style:
+                BanzamiTextStyles.monoLg.copyWith(color: BanzamiColors.gray900),
           ),
         ],
         if (subtitle != null) ...[
           const SizedBox(height: BanzamiSpacing.xs),
           Text(
             subtitle!,
-            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+            style:
+                BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
           ),
         ],
       ],

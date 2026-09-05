@@ -20,24 +20,42 @@ import 'banzami_environment.dart';
 /// All financial operations are delegated to the gateway, which in turn
 /// calls the Rust core-api. This client mirrors the gateway's REST surface.
 ///
-/// Usage — production:
+/// Usage — the app's own signed-in session:
 /// ```dart
 /// final client = BanzamiClient(
-///   apiKey:      'bz_live_...',
-///   environment: BanzamiEnvironment.production,
-/// );
-/// ```
-///
-/// Usage — sandbox / integration testing:
-/// ```dart
-/// final client = BanzamiClient(
-///   apiKey:      'bz_test_...',
+///   jwt:         session.jwt,
 ///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
-typedef OnRequestHook  = void Function(String method, String path, int attempt);
-typedef OnResponseHook = void Function(String method, String path, int status, int durationMs);
-typedef OnErrorHook    = void Function(String method, String path, Object error, int attempts);
+///
+/// ## Credentials — what may live in a mobile binary
+///
+/// This package is Banzami's **own** mobile application framework (the Consumer
+/// and Business apps depend on it by path). Its `apiKey` is the credential the
+/// signed-in merchant's app already holds for itself, exchanged for a session
+/// JWT — not a Developer Platform key belonging to a third party.
+///
+/// A Developer Platform **secret** key (`bz_test_sk_…`, `bz_live_sk_…`) must
+/// NEVER be compiled into a mobile application. Anyone who can download the app
+/// can read the binary, and that key can move money. The examples here used to
+/// show exactly that, which is why this note exists.
+///
+/// The correct shape for a third-party mobile integration is:
+///
+/// ```text
+///   Flutter app ──publishable key──▶ Banzami   (read a payment, its status)
+///        │
+///        └──────▶ your backend ──secret key──▶ Banzami   (create, refund, transfer)
+/// ```
+///
+/// A publishable key (`bz_test_pk_…`) is safe to ship in an app: the operator
+/// restricts it to read scopes, so it cannot move money even if extracted.
+
+typedef OnRequestHook = void Function(String method, String path, int attempt);
+typedef OnResponseHook = void Function(
+    String method, String path, int status, int durationMs);
+typedef OnErrorHook = void Function(
+    String method, String path, Object error, int attempts);
 
 class BanzamiClient {
   final String apiKey;
@@ -48,9 +66,9 @@ class BanzamiClient {
   final int maxRetries;
   final Duration retryDelay;
 
-  final OnRequestHook?  onRequest;
+  final OnRequestHook? onRequest;
   final OnResponseHook? onResponse;
-  final OnErrorHook?    onError;
+  final OnErrorHook? onError;
 
   /// Called whenever a request fails with 401 (session token invalid or expired
   /// and the client cannot self-refresh). The app should sign the user out and
@@ -58,7 +76,7 @@ class BanzamiClient {
   /// callers still receive the error too.
   final void Function()? onUnauthorized;
 
-  String?   _jwt;
+  String? _jwt;
   DateTime? _jwtExpiry;
 
   /// When the current session token expires. Null until the first API call.
@@ -68,7 +86,7 @@ class BanzamiClient {
   /// (legacy mode) or the JWT (handle login). Not for display.
   String get authIdentity => apiKey.isNotEmpty ? apiKey : (_jwt ?? '');
 
-  bool get isSandbox    => environment.isSandbox;
+  bool get isSandbox => environment.isSandbox;
   bool get isProduction => environment.isLive;
 
   /// Construct with an API key (legacy: exchanged for a JWT on demand) and/or a
@@ -89,7 +107,8 @@ class BanzamiClient {
     this.onUnauthorized,
     String? jwt,
     DateTime? jwtExpiresAt,
-  })  : baseUrl = (baseUrl ?? environment.defaultBaseUrl).replaceAll(RegExp(r'/$'), ''),
+  })  : baseUrl = (baseUrl ?? environment.defaultBaseUrl)
+            .replaceAll(RegExp(r'/$'), ''),
         _http = httpClient ?? http.Client(),
         _uuid = const Uuid(),
         _jwt = jwt,
@@ -105,7 +124,8 @@ class BanzamiClient {
   /// Log a merchant in by @handle + PIN (unauthenticated endpoint). Returns the
   /// issued JWT, its expiry and the environment. Does NOT mutate this client —
   /// the caller decides how to build the session.
-  Future<({String token, DateTime expiresAt, String environment})> loginMerchantHandlePin({
+  Future<({String token, DateTime expiresAt, String environment})>
+      loginMerchantHandlePin({
     required String handle,
     required String pin,
   }) async {
@@ -114,18 +134,21 @@ class BanzamiClient {
       resp = await _http.post(
         Uri.parse('$baseUrl/v1/merchant/auth/token'),
         headers: {'Content-Type': 'application/json'},
-        body:    jsonEncode({'handle': handle, 'pin': pin}),
+        body: jsonEncode({'handle': handle, 'pin': pin}),
       );
     } catch (e) {
       if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    if (resp.statusCode >= 400)
+      throw BanzamiApiException.fromJson(resp.statusCode, body);
     final exp = body['expires_at'] as String?;
     return (
-      token:       body['token'] as String,
-      expiresAt:   exp != null ? DateTime.parse(exp) : DateTime.now().add(const Duration(hours: 24)),
+      token: body['token'] as String,
+      expiresAt: exp != null
+          ? DateTime.parse(exp)
+          : DateTime.now().add(const Duration(hours: 24)),
       environment: (body['environment'] as String?) ?? 'LIVE',
     );
   }
@@ -136,7 +159,14 @@ class BanzamiClient {
   /// [otherEnvironment] is set ("LIVE"/"SANDBOX") only when the account does NOT
   /// exist in this environment but DOES exist in the other one — so the app can
   /// say "esta conta pertence ao ambiente X" instead of a misleading not-found.
-  Future<({bool exists, bool canLogin, String status, String? displayName, String? otherEnvironment})> lookupMerchantHandle(
+  Future<
+      ({
+        bool exists,
+        bool canLogin,
+        String status,
+        String? displayName,
+        String? otherEnvironment
+      })> lookupMerchantHandle(
     String handle,
   ) async {
     late http.Response resp;
@@ -144,18 +174,19 @@ class BanzamiClient {
       resp = await _http.post(
         Uri.parse('$baseUrl/v1/merchant/auth/lookup'),
         headers: {'Content-Type': 'application/json'},
-        body:    jsonEncode({'handle': handle}),
+        body: jsonEncode({'handle': handle}),
       );
     } catch (e) {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    if (resp.statusCode >= 400)
+      throw BanzamiApiException.fromJson(resp.statusCode, body);
     return (
-      exists:           body['exists'] as bool? ?? false,
-      canLogin:         body['can_login'] as bool? ?? false,
-      status:           body['status'] as String? ?? '',
-      displayName:      body['display_name'] as String?,
+      exists: body['exists'] as bool? ?? false,
+      canLogin: body['can_login'] as bool? ?? false,
+      status: body['status'] as String? ?? '',
+      displayName: body['display_name'] as String?,
       otherEnvironment: body['other_environment'] as String?,
     );
   }
@@ -169,7 +200,7 @@ class BanzamiClient {
     String? displayName,
   }) async {
     final json = await _post('/v1/consumers', {
-      'handle':       handle,
+      'handle': handle,
       if (displayName != null) 'display_name': displayName,
     });
     return Consumer.fromJson(json);
@@ -195,7 +226,7 @@ class BanzamiClient {
   }) async {
     return _postWithRetry('/v1/consumer-wallets', {
       'consumer_id': consumerId,
-      'currency':    currency,
+      'currency': currency,
     });
   }
 
@@ -208,7 +239,8 @@ class BanzamiClient {
     required String consumerId,
     String currency = 'AOA',
   }) async {
-    return _get('/v1/consumer-wallets?consumer_id=$consumerId&currency=$currency');
+    return _get(
+        '/v1/consumer-wallets?consumer_id=$consumerId&currency=$currency');
   }
 
   // ---------------------------------------------------------------------------
@@ -235,12 +267,12 @@ class BanzamiClient {
   Future<QrResponse> createStaticQr({
     required String ownerId,
     String ownerType = 'CONSUMER',
-    String currency  = 'AOA',
+    String currency = 'AOA',
   }) async {
     final json = await _post('/v1/qr/static', {
-      'owner_id':   ownerId,
+      'owner_id': ownerId,
       'owner_type': ownerType,
-      'currency':   currency,
+      'currency': currency,
     });
     return QrResponse.fromJson(json);
   }
@@ -250,15 +282,15 @@ class BanzamiClient {
     required int amountMinor,
     required DateTime expiresAt,
     String ownerType = 'CONSUMER',
-    String currency  = 'AOA',
+    String currency = 'AOA',
     String? reference,
   }) async {
     final json = await _post('/v1/qr/dynamic', {
-      'owner_id':     ownerId,
-      'owner_type':   ownerType,
-      'currency':     currency,
+      'owner_id': ownerId,
+      'owner_type': ownerType,
+      'currency': currency,
       'amount_minor': amountMinor,
-      'expires_at':   expiresAt.toUtc().toIso8601String(),
+      'expires_at': expiresAt.toUtc().toIso8601String(),
       if (reference != null) 'reference': reference,
     });
     return QrResponse.fromJson(json);
@@ -293,13 +325,16 @@ class BanzamiClient {
     String? note,
     String? idempotencyKey,
   }) async {
-    return _postWithRetry('/v1/qr/pay', {
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-      'payer':           payer,
-      'payload':         payload,
-      if (amountMinor != null) 'amount_minor': amountMinor,
-      if (note != null) 'note': note,
-    }, idempotencyKey: idempotencyKey);
+    return _postWithRetry(
+        '/v1/qr/pay',
+        {
+          'idempotency_key': idempotencyKey ?? _uuid.v4(),
+          'payer': payer,
+          'payload': payload,
+          if (amountMinor != null) 'amount_minor': amountMinor,
+          if (note != null) 'note': note,
+        },
+        idempotencyKey: idempotencyKey);
   }
 
   // ---------------------------------------------------------------------------
@@ -323,7 +358,8 @@ class BanzamiClient {
 
   /// Lists the merchant wallet's sub-accounts (PRIMARY + segregated CAMPAIGN/…)
   /// with their balances. Used to break down funds held in campaigns.
-  Future<List<MerchantWalletAccount>> listWalletAccounts(String walletId) async {
+  Future<List<MerchantWalletAccount>> listWalletAccounts(
+      String walletId) async {
     final json = await _get('/v1/business/wallet-accounts?wallet_id=$walletId');
     final data = (json['data'] as List<dynamic>?) ?? const [];
     return data
@@ -341,11 +377,11 @@ class BanzamiClient {
   }) async {
     final json = await _postWithRetry('/v1/payment-links', {
       'merchant_id': merchantId,
-      'wallet_id':   walletId,
-      'currency':    currency,
+      'wallet_id': walletId,
+      'currency': currency,
       if (amountMinor != null) 'amount_minor': amountMinor,
-      if (description != null) 'description':  description,
-      if (expiresAt   != null) 'expires_at':   expiresAt.toUtc().toIso8601String(),
+      if (description != null) 'description': description,
+      if (expiresAt != null) 'expires_at': expiresAt.toUtc().toIso8601String(),
     });
     return PaymentLink.fromJson(json);
   }
@@ -391,20 +427,24 @@ class BanzamiClient {
     DateTime? expiresAt,
     String? idempotencyKey,
   }) async {
-    final json = await _postWithRetry('/v1/collections', {
-      'wallet_id':          walletId,
-      'currency':           currency,
-      'total_amount_minor': totalAmountMinor,
-      'rule': {
-        'type':               'EQUAL_SPLIT',
-        'participants_count': participantsCount,
-        'divisibility':       'REMAINDER_TO_FIRST',
-      },
-      if (title != null)       'title':       title,
-      if (description != null) 'description': description,
-      if (expiresAt != null)   'expires_at':  expiresAt.toUtc().toIso8601String(),
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-    }, idempotencyKey: idempotencyKey);
+    final json = await _postWithRetry(
+        '/v1/collections',
+        {
+          'wallet_id': walletId,
+          'currency': currency,
+          'total_amount_minor': totalAmountMinor,
+          'rule': {
+            'type': 'EQUAL_SPLIT',
+            'participants_count': participantsCount,
+            'divisibility': 'REMAINDER_TO_FIRST',
+          },
+          if (title != null) 'title': title,
+          if (description != null) 'description': description,
+          if (expiresAt != null)
+            'expires_at': expiresAt.toUtc().toIso8601String(),
+          'idempotency_key': idempotencyKey ?? _uuid.v4(),
+        },
+        idempotencyKey: idempotencyKey);
     return CollectionWithShares.fromJson(json);
   }
 
@@ -420,19 +460,25 @@ class BanzamiClient {
     DateTime? expiresAt,
     String? idempotencyKey,
   }) async {
-    final json = await _postWithRetry('/v1/collections', {
-      'wallet_id':          walletId,
-      'currency':           currency,
-      'total_amount_minor': totalAmountMinor,
-      'rule': {
-        'type':   'FIXED_AMOUNTS',
-        'shares': [for (final a in amountsMinor) {'amount_minor': a}],
-      },
-      if (title != null)       'title':       title,
-      if (description != null) 'description': description,
-      if (expiresAt != null)   'expires_at':  expiresAt.toUtc().toIso8601String(),
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-    }, idempotencyKey: idempotencyKey);
+    final json = await _postWithRetry(
+        '/v1/collections',
+        {
+          'wallet_id': walletId,
+          'currency': currency,
+          'total_amount_minor': totalAmountMinor,
+          'rule': {
+            'type': 'FIXED_AMOUNTS',
+            'shares': [
+              for (final a in amountsMinor) {'amount_minor': a}
+            ],
+          },
+          if (title != null) 'title': title,
+          if (description != null) 'description': description,
+          if (expiresAt != null)
+            'expires_at': expiresAt.toUtc().toIso8601String(),
+          'idempotency_key': idempotencyKey ?? _uuid.v4(),
+        },
+        idempotencyKey: idempotencyKey);
     return CollectionWithShares.fromJson(json);
   }
 
@@ -482,19 +528,24 @@ class BanzamiClient {
     DateTime? expiresAt,
     String? idempotencyKey,
   }) async {
-    final json = await _postWithRetry('/v1/payment-requests', {
-      'requester_id':    requesterId,
-      'amount_minor':    amountMinor,
-      'currency':        currency,
-      if (payerHandle != null) 'payer_handle': payerHandle,
-      if (description != null) 'description':  description,
-      if (expiresAt   != null) 'expires_at':   expiresAt.toUtc().toIso8601String(),
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-    }, idempotencyKey: idempotencyKey);
+    final json = await _postWithRetry(
+        '/v1/payment-requests',
+        {
+          'requester_id': requesterId,
+          'amount_minor': amountMinor,
+          'currency': currency,
+          if (payerHandle != null) 'payer_handle': payerHandle,
+          if (description != null) 'description': description,
+          if (expiresAt != null)
+            'expires_at': expiresAt.toUtc().toIso8601String(),
+          'idempotency_key': idempotencyKey ?? _uuid.v4(),
+        },
+        idempotencyKey: idempotencyKey);
     return PaymentRequest.fromJson(json);
   }
 
-  Future<PaymentRequestPage> listPaymentRequests({String? status, int limit = 20}) async {
+  Future<PaymentRequestPage> listPaymentRequests(
+      {String? status, int limit = 20}) async {
     var path = '/v1/payment-requests?limit=$limit';
     if (status != null) path += '&status=$status';
     final json = await _get(path);
@@ -507,7 +558,8 @@ class BanzamiClient {
   }
 
   Future<PaymentRequest> cancelPaymentRequest(String id) async {
-    final json = await _postWithRetry('/v1/payment-requests/$id/cancel', const {});
+    final json =
+        await _postWithRetry('/v1/payment-requests/$id/cancel', const {});
     return PaymentRequest.fromJson(json);
   }
 
@@ -523,14 +575,14 @@ class BanzamiClient {
     required String fullName,
     required String documentNumber,
     required DateTime dateOfBirth,
-    String documentType  = 'BILHETE_DE_IDENTIDADE',
+    String documentType = 'BILHETE_DE_IDENTIDADE',
     String requestedLevel = 'BASIC',
   }) async {
     return _postWithRetry('/v1/compliance/customers/verify', {
-      'full_name':       fullName,
-      'document_type':   documentType,
+      'full_name': fullName,
+      'document_type': documentType,
       'document_number': documentNumber,
-      'date_of_birth':   _ymd(dateOfBirth),
+      'date_of_birth': _ymd(dateOfBirth),
       'requested_level': requestedLevel,
     });
   }
@@ -551,8 +603,8 @@ class BanzamiClient {
     required String representativeName,
   }) async {
     return _postWithRetry('/v1/compliance/merchants/verify', {
-      'legal_name':          legalName,
-      'tax_id':              taxId,
+      'legal_name': legalName,
+      'tax_id': taxId,
       'representative_name': representativeName,
     });
   }
@@ -575,7 +627,8 @@ class BanzamiClient {
 
   /// Loads one business document (ownership-scoped; 404 for another merchant).
   Future<MerchantKybDocument> getMerchantKybDocument(String documentId) async {
-    return MerchantKybDocument.fromJson(await _get('/v1/merchant/kyb/documents/$documentId'));
+    return MerchantKybDocument.fromJson(
+        await _get('/v1/merchant/kyb/documents/$documentId'));
   }
 
   /// Requests a short-lived signed PUT URL to upload/replace a business document
@@ -585,7 +638,8 @@ class BanzamiClient {
     MerchantKybDocumentType type, {
     String contentType = 'image/jpeg',
   }) async {
-    final json = await _post('/v1/merchant/kyb/documents/${type.wire}/upload-url', {
+    final json =
+        await _post('/v1/merchant/kyb/documents/${type.wire}/upload-url', {
       'content_type': contentType,
     });
     return MerchantKybUploadUrl.fromJson(json);
@@ -597,14 +651,14 @@ class BanzamiClient {
     String documentId, {
     String? sha256,
   }) async {
-    final json = await _post('/v1/merchant/kyb/documents/$documentId/complete', {
+    final json =
+        await _post('/v1/merchant/kyb/documents/$documentId/complete', {
       if (sha256 != null && sha256.isNotEmpty) 'sha256': sha256,
     });
     return MerchantKybDocument.fromJson(json);
   }
 
-  static String _ymd(DateTime d) =>
-      '${d.year.toString().padLeft(4, '0')}-'
+  static String _ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
       '${d.day.toString().padLeft(2, '0')}';
 
@@ -613,12 +667,13 @@ class BanzamiClient {
   // ---------------------------------------------------------------------------
 
   Future<MerchantTransactionPage> listMerchantTransactions({
-    int       limit  = 20,
-    String?   cursor,
+    int limit = 20,
+    String? cursor,
     DateTime? since,
   }) async {
     var path = '/v1/transactions?limit=$limit';
-    if (since  != null) path += '&since=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
+    if (since != null)
+      path += '&since=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     final json = await _get(path);
     return MerchantTransactionPage.fromJson(json);
@@ -631,7 +686,7 @@ class BanzamiClient {
   /// Lists the merchant's received wallet-native payments. Scoped server-side to
   /// the authenticated merchant + environment.
   Future<MerchantWalletPaymentPage> listMerchantWalletPayments({
-    int     limit = 20,
+    int limit = 20,
     String? cursor,
     String? status,
   }) async {
@@ -650,7 +705,8 @@ class BanzamiClient {
     onRequest?.call('GET', path, 0);
     late http.Response resp;
     try {
-      resp = await _http.get(Uri.parse('$baseUrl$path'), headers: await _headers);
+      resp =
+          await _http.get(Uri.parse('$baseUrl$path'), headers: await _headers);
     } catch (e) {
       if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
@@ -668,22 +724,25 @@ class BanzamiClient {
 
   Future<Map<String, dynamic>> createPayout({
     required String walletId,
-    required int    amountMinor,
+    required int amountMinor,
     required String bankAccountNumber,
     required String bankCode,
     required String accountHolderName,
-    String?         idempotencyKey,
-    String          currency = 'AOA',
+    String? idempotencyKey,
+    String currency = 'AOA',
   }) async {
-    return _postWithRetry('/v1/payouts', {
-      'idempotency_key':     idempotencyKey ?? _uuid.v4(),
-      'wallet_id':           walletId,
-      'amount_minor':        amountMinor,
-      'currency':            currency,
-      'bank_account_number': bankAccountNumber,
-      'bank_code':           bankCode,
-      'account_holder_name': accountHolderName,
-    }, idempotencyKey: idempotencyKey);
+    return _postWithRetry(
+        '/v1/payouts',
+        {
+          'idempotency_key': idempotencyKey ?? _uuid.v4(),
+          'wallet_id': walletId,
+          'amount_minor': amountMinor,
+          'currency': currency,
+          'bank_account_number': bankAccountNumber,
+          'bank_code': bankCode,
+          'account_holder_name': accountHolderName,
+        },
+        idempotencyKey: idempotencyKey);
   }
 
   // ---------------------------------------------------------------------------
@@ -701,7 +760,8 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    if (resp.statusCode >= 400)
+      throw BanzamiApiException.fromJson(resp.statusCode, body);
     return PaymentLink.fromJson(body);
   }
 
@@ -737,7 +797,7 @@ class BanzamiClient {
       // self-refresh, so surface a 401 and let the app re-authenticate (PIN).
       onUnauthorized?.call();
       throw BanzamiApiException.fromJson(401, const {
-        'code':    'TOKEN_EXPIRED',
+        'code': 'TOKEN_EXPIRED',
         'message': 'session expired, please sign in again',
       });
     }
@@ -746,14 +806,15 @@ class BanzamiClient {
       resp = await _http.post(
         Uri.parse('$baseUrl/v1/auth/token'),
         headers: {'Content-Type': 'application/json'},
-        body:    jsonEncode({'api_key': apiKey}),
+        body: jsonEncode({'api_key': apiKey}),
       );
     } catch (e) {
       if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    if (resp.statusCode >= 400)
+      throw BanzamiApiException.fromJson(resp.statusCode, body);
     _jwt = body['token'] as String;
     final expiresAtStr = body['expires_at'] as String?;
     _jwtExpiry = expiresAtStr != null
@@ -764,8 +825,8 @@ class BanzamiClient {
   Future<Map<String, String>> get _headers async {
     await _ensureJwt();
     return {
-      'Content-Type':  'application/json',
-      'User-Agent':    'Banzami/1.0 (mobile)',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Banzami/1.0 (mobile)',
       'Authorization': 'Bearer $_jwt',
     };
   }
@@ -785,7 +846,8 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);
-    onResponse?.call('GET', path, resp.statusCode, DateTime.now().millisecondsSinceEpoch - t0);
+    onResponse?.call('GET', path, resp.statusCode,
+        DateTime.now().millisecondsSinceEpoch - t0);
     return result;
   }
 
@@ -804,7 +866,8 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);
-    onResponse?.call('DELETE', path, resp.statusCode, DateTime.now().millisecondsSinceEpoch - t0);
+    onResponse?.call('DELETE', path, resp.statusCode,
+        DateTime.now().millisecondsSinceEpoch - t0);
     return result;
   }
 
@@ -824,7 +887,7 @@ class BanzamiClient {
       resp = await _http.post(
         Uri.parse('$baseUrl$path'),
         headers: headers,
-        body:    body != null ? jsonEncode(body) : null,
+        body: body != null ? jsonEncode(body) : null,
       );
     } catch (e) {
       onError?.call('POST', path, e, 1);
@@ -832,7 +895,8 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);
-    onResponse?.call('POST', path, resp.statusCode, DateTime.now().millisecondsSinceEpoch - t0);
+    onResponse?.call('POST', path, resp.statusCode,
+        DateTime.now().millisecondsSinceEpoch - t0);
     return result;
   }
 
@@ -842,10 +906,12 @@ class BanzamiClient {
     String? idempotencyKey,
   }) {
     final key = idempotencyKey ?? _uuid.v4();
-    return _withRetry(() => _post(path, body, idempotencyKey: key), 'POST', path);
+    return _withRetry(
+        () => _post(path, body, idempotencyKey: key), 'POST', path);
   }
 
-  Future<T> _withRetry<T>(Future<T> Function() operation, String method, String path) async {
+  Future<T> _withRetry<T>(
+      Future<T> Function() operation, String method, String path) async {
     Object? lastError;
     for (var attempt = 0; attempt <= maxRetries; attempt++) {
       if (attempt > 0) {
@@ -870,9 +936,9 @@ class BanzamiClient {
     if (attempt >= maxRetries) return false;
     if (error is BanzamiApiException) {
       return error.statusCode == 429 ||
-             error.statusCode == 502 ||
-             error.statusCode == 503 ||
-             error.statusCode == 504;
+          error.statusCode == 502 ||
+          error.statusCode == 503 ||
+          error.statusCode == 504;
     }
     return error is Exception;
   }

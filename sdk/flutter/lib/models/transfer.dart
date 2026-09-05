@@ -33,19 +33,20 @@ class Transfer {
 
   String get amountFormatted => formatMinor(amountMinor, currency);
 
-  factory Transfer.fromConsumerPayLink(ConsumerPayLink link, {String? ownHandle}) {
+  factory Transfer.fromConsumerPayLink(ConsumerPayLink link,
+      {String? ownHandle}) {
     return Transfer(
       // The receipt endpoint resolves by the underlying `transfers` id, not the
       // pay-link id. Once paid, `link.transferId` carries it; fall back to the
       // link id only if the server did not surface a transfer id.
-      transferId:  link.transferId ?? link.id,
-      sender:      ownHandle ?? '',
-      recipient:   link.receiverHandle,
+      transferId: link.transferId ?? link.id,
+      sender: ownHandle ?? '',
+      recipient: link.receiverHandle,
       amountMinor: link.amountMinor ?? 0,
-      currency:    link.currency,
-      status:      'COMPLETED',
-      note:        link.note,
-      createdAt:   link.paidAt != null
+      currency: link.currency,
+      status: 'COMPLETED',
+      note: link.note,
+      createdAt: link.paidAt != null
           ? DateTime.parse(link.paidAt!)
           : DateTime.parse(link.createdAt),
     );
@@ -53,18 +54,18 @@ class Transfer {
 
   factory Transfer.fromJson(Map<String, dynamic> json) {
     return Transfer(
-      transferId:  json['transfer_id'] as String,
-      sender:      (json['sender']    as String).replaceFirst('@', ''),
-      recipient:   (json['recipient'] as String).replaceFirst('@', ''),
+      transferId: json['transfer_id'] as String,
+      sender: (json['sender'] as String).replaceFirst('@', ''),
+      recipient: (json['recipient'] as String).replaceFirst('@', ''),
       amountMinor: (json['amount_minor'] as num).toInt(),
-      currency:    json['currency']    as String,
-      status:      json['status']      as String,
-      note:        json['note']        as String?,
-      createdAt:   DateTime.parse(json['created_at'] as String),
+      currency: json['currency'] as String,
+      status: json['status'] as String,
+      note: json['note'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
       completedAt: json['completed_at'] != null
-                       ? DateTime.parse(json['completed_at'] as String)
-                       : null,
-      traceId:     json['trace_id']    as String?,
+          ? DateTime.parse(json['completed_at'] as String)
+          : null,
+      traceId: json['trace_id'] as String?,
     );
   }
 }

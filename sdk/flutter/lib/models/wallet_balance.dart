@@ -21,18 +21,18 @@ class WalletBalance {
 
   /// Human-readable available balance, e.g. "50 000 Kz".
   String get availableFormatted => formatMinor(availableMinor, currency);
-  String get reservedFormatted  => formatMinor(reservedMinor, currency);
-  String get totalFormatted     => formatMinor(totalMinor, currency);
+  String get reservedFormatted => formatMinor(reservedMinor, currency);
+  String get totalFormatted => formatMinor(totalMinor, currency);
 
   factory WalletBalance.fromJson(Map<String, dynamic> json) {
     return WalletBalance(
-      walletId:       json['wallet_id']   as String,
-      consumerId:     json['consumer_id'] as String,
-      currency:       json['currency']    as String,
+      walletId: json['wallet_id'] as String,
+      consumerId: json['consumer_id'] as String,
+      currency: json['currency'] as String,
       availableMinor: json['available_minor'] as int,
-      reservedMinor:  json['reserved_minor']  as int,
-      totalMinor:     json['total_minor']     as int,
-      computedAt:     DateTime.parse(json['computed_at'] as String),
+      reservedMinor: json['reserved_minor'] as int,
+      totalMinor: json['total_minor'] as int,
+      computedAt: DateTime.parse(json['computed_at'] as String),
     );
   }
 }

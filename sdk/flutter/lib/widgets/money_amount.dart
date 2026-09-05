@@ -68,8 +68,9 @@ class MoneyAmount extends StatelessWidget {
         MoneySize.hero => 48,
       };
 
-  FontWeight get _weight =>
-      size == MoneySize.sm || size == MoneySize.md ? FontWeight.w700 : FontWeight.w800;
+  FontWeight get _weight => size == MoneySize.sm || size == MoneySize.md
+      ? FontWeight.w700
+      : FontWeight.w800;
 
   Color get _color => switch (tone) {
         MoneyTone.normal => BanzamiColors.gray900,
@@ -83,7 +84,9 @@ class MoneyAmount extends StatelessWidget {
   Widget build(BuildContext context) {
     var text = formatMinor(amountMinor, currency);
     if (!showCurrency) {
-      text = text.replaceAll(' ${_symbol(currency)}', '').replaceAll('${_symbol(currency)} ', '');
+      text = text
+          .replaceAll(' ${_symbol(currency)}', '')
+          .replaceAll('${_symbol(currency)} ', '');
     }
     return Text(
       text,

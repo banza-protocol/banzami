@@ -18,7 +18,7 @@ class BanzamiAmountInput extends StatefulWidget {
 
   const BanzamiAmountInput({
     super.key,
-    this.currency          = 'AOA',
+    this.currency = 'AOA',
     this.initialAmountMinor,
     required this.onChanged,
     this.errorText,
@@ -48,11 +48,11 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
   }
 
   String get _symbol => switch (widget.currency) {
-    'AOA' => 'Kz',
-    'USD' => 'USD',
-    'EUR' => '€',
-    _     => widget.currency,
-  };
+        'AOA' => 'Kz',
+        'USD' => 'USD',
+        'EUR' => '€',
+        _ => widget.currency,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +61,7 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color:        BanzamiColors.gray100,
+            color: BanzamiColors.gray100,
             borderRadius: BanzamiRadius.lgAll,
             border: widget.errorText != null
                 ? Border.all(color: BanzamiColors.error, width: 1.5)
@@ -69,16 +69,17 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
           ),
           padding: const EdgeInsets.symmetric(
             horizontal: BanzamiSpacing.xl,
-            vertical:   BanzamiSpacing.lg,
+            vertical: BanzamiSpacing.lg,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: TextField(
-                  controller:   _controller,
-                  enabled:      widget.enabled,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                  controller: _controller,
+                  enabled: widget.enabled,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: false),
                   inputFormatters: [
                     FilteringTextInputFormatter.digitsOnly,
                     _ThousandsSeparatorFormatter(),
@@ -87,19 +88,19 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
                     color: BanzamiColors.gray900,
                   ),
                   decoration: InputDecoration(
-                    border:           InputBorder.none,
-                    hintText:         '0',
-                    hintStyle:        BanzamiTextStyles.monoLg.copyWith(
+                    border: InputBorder.none,
+                    hintText: '0',
+                    hintStyle: BanzamiTextStyles.monoLg.copyWith(
                       color: BanzamiColors.gray400,
                     ),
-                    contentPadding:   EdgeInsets.zero,
-                    isDense:          true,
-                    fillColor:        Colors.transparent,
-                    filled:           true,
+                    contentPadding: EdgeInsets.zero,
+                    isDense: true,
+                    fillColor: Colors.transparent,
+                    filled: true,
                   ),
                   onChanged: (raw) {
                     final digits = raw.replaceAll(RegExp(r'[^\d]'), '');
-                    final major  = int.tryParse(digits) ?? 0;
+                    final major = int.tryParse(digits) ?? 0;
                     widget.onChanged(major * 100);
                   },
                 ),
@@ -120,7 +121,8 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
             padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm),
             child: Text(
               widget.errorText!,
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+              style:
+                  BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
             ),
           ),
         ],
@@ -146,7 +148,7 @@ class _ThousandsSeparatorFormatter extends TextInputFormatter {
     }
     final formatted = buffer.toString();
     return TextEditingValue(
-      text:      formatted,
+      text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
     );
   }

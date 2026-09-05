@@ -8,10 +8,13 @@
 /// Usage:
 /// ```dart
 /// final client = BanzamiClient(
-///   apiKey:      'bz_test_...',
+///   jwt:         session.jwt,
 ///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
+///
+/// A Developer Platform SECRET key (`bz_test_sk_…` / `bz_live_sk_…`) must never
+/// be compiled into a mobile application — see the note on [BanzamiClient].
 enum BanzamiEnvironment {
   /// Production environment. Real money, real transactions, real payouts.
   /// Use `bz_live_` API keys.
@@ -31,7 +34,7 @@ enum BanzamiEnvironment {
     }
   }
 
-  bool get isLive    => this == BanzamiEnvironment.production;
+  bool get isLive => this == BanzamiEnvironment.production;
   bool get isSandbox => this == BanzamiEnvironment.sandbox;
 
   /// Wire-format value sent to / received from the API.

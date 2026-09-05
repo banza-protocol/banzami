@@ -23,17 +23,17 @@ class BanzamiTransferItem extends StatelessWidget {
     final isOut = item.isOutgoing;
 
     final amountColor = isOut ? BanzamiColors.gray900 : BanzamiColors.success;
-    final amountSign  = isOut ? '− ' : '+ ';
-    final iconColor   = isOut ? BanzamiColors.primary : BanzamiColors.success;
+    final amountSign = isOut ? '− ' : '+ ';
+    final iconColor = isOut ? BanzamiColors.primary : BanzamiColors.success;
 
     final (icon, label) = switch (item.itemType) {
-      'P2P_SENT'             => (Icons.arrow_upward_rounded,   'Enviado'),
-      'P2P_RECEIVED'         => (Icons.arrow_downward_rounded, 'Recebido'),
-      'MERCHANT_PAYMENT_SENT'=> (Icons.storefront_rounded,     'Pagamento'),
-      'WALLET_FUNDED'        => (Icons.add_rounded,            'Carregamento'),
-      'WALLET_REVERSED'      => (Icons.remove_rounded,         'Estorno'),
+      'P2P_SENT' => (Icons.arrow_upward_rounded, 'Enviado'),
+      'P2P_RECEIVED' => (Icons.arrow_downward_rounded, 'Recebido'),
+      'MERCHANT_PAYMENT_SENT' => (Icons.storefront_rounded, 'Pagamento'),
+      'WALLET_FUNDED' => (Icons.add_rounded, 'Carregamento'),
+      'WALLET_REVERSED' => (Icons.remove_rounded, 'Estorno'),
       // Never surface a raw technical code — fall back to the shared label.
-      _                      => (Icons.swap_horiz_rounded,     item.typeLabel),
+      _ => (Icons.swap_horiz_rounded, item.typeLabel),
     };
 
     final subtitle = item.counterpartyHandle != null
@@ -41,26 +41,25 @@ class BanzamiTransferItem extends StatelessWidget {
         : item.note;
 
     return InkWell(
-      onTap:        onTap,
+      onTap: onTap,
       borderRadius: BanzamiRadius.mdAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: BanzamiSpacing.lg,
-          vertical:   BanzamiSpacing.md,
+          vertical: BanzamiSpacing.md,
         ),
         child: Row(
           children: [
             Container(
-              width:       40,
-              height:      40,
-              decoration:  BoxDecoration(
-                color:        iconColor.withValues(alpha: 0.10),
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.10),
                 borderRadius: BanzamiRadius.mdAll,
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: BanzamiSpacing.md),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,23 +68,22 @@ class BanzamiTransferItem extends StatelessWidget {
                   if (subtitle != null && subtitle.isNotEmpty)
                     Text(
                       subtitle,
-                      style:    BanzamiTextStyles.bodySm,
+                      style: BanzamiTextStyles.bodySm,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                 ],
               ),
             ),
-
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   '$amountSign${item.amountFormatted}',
                   style: BanzamiTextStyles.mono.copyWith(
-                    color:      amountColor,
+                    color: amountColor,
                     fontWeight: FontWeight.w600,
-                    fontSize:   15,
+                    fontSize: 15,
                   ),
                 ),
                 const SizedBox(height: 2),

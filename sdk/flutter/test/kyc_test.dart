@@ -43,9 +43,24 @@ Map<String, dynamic> _caseJson({
       'environment': 'SANDBOX',
       'created_at': '2026-06-28T10:00:00Z',
       'required_evidence': [
-        {'evidence_type': 'DOCUMENT_IMAGE', 'side': 'FRONT', 'slot': 'document-front', 'uploaded': false},
-        {'evidence_type': 'DOCUMENT_IMAGE', 'side': 'BACK', 'slot': 'document-back', 'uploaded': false},
-        {'evidence_type': 'SELFIE', 'side': 'SELFIE', 'slot': 'selfie', 'uploaded': false},
+        {
+          'evidence_type': 'DOCUMENT_IMAGE',
+          'side': 'FRONT',
+          'slot': 'document-front',
+          'uploaded': false
+        },
+        {
+          'evidence_type': 'DOCUMENT_IMAGE',
+          'side': 'BACK',
+          'slot': 'document-back',
+          'uploaded': false
+        },
+        {
+          'evidence_type': 'SELFIE',
+          'side': 'SELFIE',
+          'slot': 'selfie',
+          'uploaded': false
+        },
       ],
       'evidence': evidence ?? const [],
     };
@@ -56,9 +71,11 @@ Map<String, dynamic> _caseJson({
 
 void main() {
   group('createKycCase', () {
-    test('parses the case and sends document_type WITHOUT requested_level', () async {
+    test('parses the case and sends document_type WITHOUT requested_level',
+        () async {
       final h = _client(201, _caseJson());
-      final c = await h.client.createKycCase(documentType: KycDocumentType.identityCard, country: 'AO');
+      final c = await h.client.createKycCase(
+          documentType: KycDocumentType.identityCard, country: 'AO');
 
       expect(c.id, 'case-123');
       expect(c.status, KycStatus.waitingDocuments);
@@ -80,7 +97,8 @@ void main() {
 
   group('getCurrentKycCase', () {
     test('returns null when none exists (404)', () async {
-      final h = _client(404, {'code': 'NOT_FOUND', 'message': 'kyc case not found'});
+      final h =
+          _client(404, {'code': 'NOT_FOUND', 'message': 'kyc case not found'});
       expect(await h.client.getCurrentKycCase(), isNull);
     });
 
@@ -95,19 +113,23 @@ void main() {
 
   group('getKycCase', () {
     test('throws isNotFound (404) for another subject\'s case', () async {
-      final h = _client(404, {'code': 'NOT_FOUND', 'message': 'kyc case not found'});
+      final h =
+          _client(404, {'code': 'NOT_FOUND', 'message': 'kyc case not found'});
       expect(
         () => h.client.getKycCase('case-x'),
-        throwsA(isA<BanzamiApiException>().having((e) => e.isNotFound, 'isNotFound', isTrue)),
+        throwsA(isA<BanzamiApiException>()
+            .having((e) => e.isNotFound, 'isNotFound', isTrue)),
       );
     });
   });
 
   group('requestKycUploadUrl', () {
-    test('sends evidence_type/side/content_type and parses the signed PUT', () async {
+    test('sends evidence_type/side/content_type and parses the signed PUT',
+        () async {
       final h = _client(200, {
         'evidence_id': 'ev-1',
-        'upload_url': 'https://r2.example.com/kyc/consumer/abc?X-Amz-Signature=secret',
+        'upload_url':
+            'https://r2.example.com/kyc/consumer/abc?X-Amz-Signature=secret',
         'method': 'PUT',
         'headers': {'content-type': 'image/jpeg'},
         'expires_at': '2026-06-28T10:05:00Z',
@@ -126,7 +148,8 @@ void main() {
       expect(up.expiresAt, isNotNull);
 
       final sent = jsonDecode(h.requests.single.body) as Map<String, dynamic>;
-      expect(h.requests.single.url.path, '/v1/kyc/cases/case-123/evidence/upload-url');
+      expect(h.requests.single.url.path,
+          '/v1/kyc/cases/case-123/evidence/upload-url');
       expect(sent['evidence_type'], 'DOCUMENT_IMAGE');
       expect(sent['side'], 'FRONT');
       expect(sent['content_type'], 'image/jpeg');
@@ -136,7 +159,8 @@ void main() {
     test('toString() redacts the signed URL (never leaked to logs)', () async {
       final h = _client(200, {
         'evidence_id': 'ev-1',
-        'upload_url': 'https://r2.example.com/kyc/consumer/abc?X-Amz-Signature=secret',
+        'upload_url':
+            'https://r2.example.com/kyc/consumer/abc?X-Amz-Signature=secret',
         'method': 'PUT',
         'headers': const {},
         'expires_at': '2026-06-28T10:05:00Z',
@@ -150,8 +174,10 @@ void main() {
       expect(up.toString(), contains('<redacted signed URL>'));
     });
 
-    test('throws 503 STORAGE_NOT_CONFIGURED when storage is unavailable', () async {
-      final h = _client(503, {'code': 'STORAGE_NOT_CONFIGURED', 'message': 'unavailable'});
+    test('throws 503 STORAGE_NOT_CONFIGURED when storage is unavailable',
+        () async {
+      final h = _client(
+          503, {'code': 'STORAGE_NOT_CONFIGURED', 'message': 'unavailable'});
       expect(
         () => h.client.requestKycUploadUrl(
           caseId: 'case-123',
@@ -166,11 +192,22 @@ void main() {
   });
 
   group('completeKycEvidenceUpload', () {
-    test('parses the case after HEAD verify and reaches DOCUMENTS_RECEIVED', () async {
-      final h = _client(200, _caseJson(status: 'DOCUMENTS_RECEIVED', evidence: [
-        {'id': 'ev-1', 'evidence_type': 'SELFIE', 'side': 'SELFIE', 'slot': 'selfie', 'status': 'UPLOADED', 'uploaded_at': '2026-06-28T10:04:00Z'},
-      ]));
-      final c = await h.client.completeKycEvidenceUpload(caseId: 'case-123', evidenceId: 'ev-1');
+    test('parses the case after HEAD verify and reaches DOCUMENTS_RECEIVED',
+        () async {
+      final h = _client(
+          200,
+          _caseJson(status: 'DOCUMENTS_RECEIVED', evidence: [
+            {
+              'id': 'ev-1',
+              'evidence_type': 'SELFIE',
+              'side': 'SELFIE',
+              'slot': 'selfie',
+              'status': 'UPLOADED',
+              'uploaded_at': '2026-06-28T10:04:00Z'
+            },
+          ]));
+      final c = await h.client
+          .completeKycEvidenceUpload(caseId: 'case-123', evidenceId: 'ev-1');
       expect(c.status, KycStatus.documentsReceived);
       expect(c.evidence.single.isUploaded, isTrue);
       expect(c.evidence.single.uploadedAt, isNotNull);
@@ -185,7 +222,10 @@ void main() {
     });
 
     test('incomplete submit -> 409 EVIDENCE_INCOMPLETE', () async {
-      final h = _client(409, {'code': 'EVIDENCE_INCOMPLETE', 'message': 'required evidence is missing'});
+      final h = _client(409, {
+        'code': 'EVIDENCE_INCOMPLETE',
+        'message': 'required evidence is missing'
+      });
       expect(
         () => h.client.submitKycCase('case-123'),
         throwsA(isA<BanzamiApiException>()
@@ -217,7 +257,8 @@ void main() {
       expect(KycDocumentType.fromWire('NOPE'), isNull);
       expect(KycDocumentSide.fromWire('MAIN_PAGE'), KycDocumentSide.mainPage);
       expect(KycDocumentSide.fromWire(''), isNull);
-      expect(KycEvidenceType.fromWire('PROOF_OF_ADDRESS'), KycEvidenceType.proofOfAddress);
+      expect(KycEvidenceType.fromWire('PROOF_OF_ADDRESS'),
+          KycEvidenceType.proofOfAddress);
       expect(KycStatus.fromWire('NEEDS_MORE_INFO'), KycStatus.needsMoreInfo);
       expect(KycStatus.fromWire(null), KycStatus.unknown);
     });

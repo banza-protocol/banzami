@@ -67,16 +67,18 @@ class Collection {
   factory Collection.fromJson(Map<String, dynamic> json) {
     final rule = json['rule'];
     return Collection(
-      id:               json['id'] as String,
-      merchantId:       json['merchant_id'] as String,
-      walletId:         json['wallet_id'] as String,
-      title:            json['title'] as String?,
-      description:      json['description'] as String?,
-      currency:         json['currency'] as String,
+      id: json['id'] as String,
+      merchantId: json['merchant_id'] as String,
+      walletId: json['wallet_id'] as String,
+      title: json['title'] as String?,
+      description: json['description'] as String?,
+      currency: json['currency'] as String,
       totalAmountMinor: (json['total_amount_minor'] as num).toInt(),
-      status:           json['status'] as String,
-      ruleType:         rule is Map<String, dynamic> ? rule['type'] as String? ?? 'UNKNOWN' : 'UNKNOWN',
-      environment:      json['environment'] as String? ?? '',
+      status: json['status'] as String,
+      ruleType: rule is Map<String, dynamic>
+          ? rule['type'] as String? ?? 'UNKNOWN'
+          : 'UNKNOWN',
+      environment: json['environment'] as String? ?? '',
       expiresAt: json['expires_at'] != null
           ? DateTime.parse(json['expires_at'] as String)
           : null,
@@ -116,15 +118,16 @@ class CollectionShare {
   bool get isPaid => status == ShareStatus.paid;
   bool get isPending => status == ShareStatus.pending;
 
-  factory CollectionShare.fromJson(Map<String, dynamic> json) => CollectionShare(
-        id:              json['id'] as String,
-        collectionId:    json['collection_id'] as String,
-        participant:     json['participant'] as String?,
-        amountMinor:     (json['amount_minor'] as num).toInt(),
-        currency:        json['currency'] as String,
-        status:          json['status'] as String,
+  factory CollectionShare.fromJson(Map<String, dynamic> json) =>
+      CollectionShare(
+        id: json['id'] as String,
+        collectionId: json['collection_id'] as String,
+        participant: json['participant'] as String?,
+        amountMinor: (json['amount_minor'] as num).toInt(),
+        currency: json['currency'] as String,
+        status: json['status'] as String,
         paymentIntentId: json['payment_intent_id'] as String?,
-        transferId:      json['transfer_id'] as String?,
+        transferId: json['transfer_id'] as String?,
         paidAt: json['paid_at'] != null
             ? DateTime.parse(json['paid_at'] as String)
             : null,
@@ -143,7 +146,8 @@ class CollectionWithShares {
 
   factory CollectionWithShares.fromJson(Map<String, dynamic> json) =>
       CollectionWithShares(
-        collection: Collection.fromJson(json['collection'] as Map<String, dynamic>),
+        collection:
+            Collection.fromJson(json['collection'] as Map<String, dynamic>),
         shares: ((json['shares'] as List?) ?? const [])
             .map((e) => CollectionShare.fromJson(e as Map<String, dynamic>))
             .toList(),
@@ -162,10 +166,14 @@ class CollectionDetail {
     required this.remainingAmountMinor,
   });
 
-  factory CollectionDetail.fromJson(Map<String, dynamic> json) => CollectionDetail(
-        collection: Collection.fromJson(json['collection'] as Map<String, dynamic>),
-        collectedAmountMinor: (json['collected_amount_minor'] as num?)?.toInt() ?? 0,
-        remainingAmountMinor: (json['remaining_amount_minor'] as num?)?.toInt() ?? 0,
+  factory CollectionDetail.fromJson(Map<String, dynamic> json) =>
+      CollectionDetail(
+        collection:
+            Collection.fromJson(json['collection'] as Map<String, dynamic>),
+        collectedAmountMinor:
+            (json['collected_amount_minor'] as num?)?.toInt() ?? 0,
+        remainingAmountMinor:
+            (json['remaining_amount_minor'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -188,8 +196,8 @@ class ShareSurface {
     final intent = json['payment_intent'] as Map<String, dynamic>;
     return ShareSurface(
       paymentIntentId: intent['id'] as String,
-      surface:         intent['surface'] as String,
-      surfaceRef:      intent['surface_ref'] as String?,
+      surface: intent['surface'] as String,
+      surfaceRef: intent['surface_ref'] as String?,
       share: CollectionShare.fromJson(json['share'] as Map<String, dynamic>),
     );
   }
