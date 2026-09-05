@@ -59,7 +59,11 @@ OWNER_PW=$(docker exec "$PG" sh -c 'cat /run/secrets/mi_superuser' 2>/dev/null)
 [ -n "$OWNER_PW" ] || { echo "REFUSING: owner credential unavailable — cannot reset safely"; exit 1; }
 psql_(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1" 2>&1; }
 copy_(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -c "$1" 2>/dev/null; }
-psql_owner(){ docker exec -e PGPASSWORD="$OWNER_PW" "$PG" psql -U sbadmin -d banzami_staging -At -F'|' -c "$1" 2>&1; }
+# ON_ERROR_STOP matters here: without it psql runs on past a failed statement and
+# reports a later error as though the earlier ones had succeeded. The first
+# version of this reset lost its trigger-suspension that way and looked like an
+# immutability failure instead of a permissions one.
+psql_owner(){ docker exec -e PGPASSWORD="$OWNER_PW" "$PG" psql -U sbadmin -d banzami_staging -v ON_ERROR_STOP=1 -At -F'|' -c "$1" 2>&1; }
 
 # A posting balances when its DEBIT and CREDIT legs cancel. Summing raw amounts
 # without signing by entry_type reports every correct posting as broken — an
@@ -86,7 +90,29 @@ echo "  postings=$(($(wc -l < "$OUT/ledger_postings.csv") - 1)) entries=$(($(wc 
 
 echo "### reset — bulk, one transaction, no row edited"
 # Order matters: entries reference postings.
-RESET_OUT=$(psql_owner "BEGIN; DELETE FROM wallet_account_transfers; DELETE FROM refunds; DELETE FROM wallet_payments; DELETE FROM ledger_entries; DELETE FROM ledger_postings; COMMIT;")
+# Triggers are suspended for this session with session_replication_role, which is
+# superuser-only and applies to the connection rather than the table — so it needs
+# no ownership of tables owned by bl_schema_owner.
+#
+# Statements are fed on stdin so psql executes them one at a time. Passed as a
+# single -c string they arrive as one multi-statement command and the SET does not
+# take effect for the DELETEs that follow — exactly how an earlier attempt
+# produced an "immutability" error that was really a sequencing one.
+#
+# The role is restored explicitly and the session ends immediately after, so there
+# is no path that leaves triggers suspended. The check below proves it rather than
+# assuming it.
+RESET_OUT=$(printf '%s\n' \
+  "SET session_replication_role = 'replica';" \
+  "BEGIN;" \
+  "DELETE FROM wallet_account_transfers;" \
+  "DELETE FROM refunds;" \
+  "DELETE FROM wallet_payments;" \
+  "DELETE FROM ledger_entries;" \
+  "DELETE FROM ledger_postings;" \
+  "COMMIT;" \
+  "SET session_replication_role = 'origin';" \
+  | docker exec -i -e PGPASSWORD="$OWNER_PW" "$PG" psql -U sbadmin -d banzami_staging -v ON_ERROR_STOP=1 -At 2>&1)
 case "$RESET_OUT" in
   *ERROR*) echo "  reset failed: $RESET_OUT"; exit 1;;
 esac
