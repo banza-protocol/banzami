@@ -69,4 +69,16 @@ void main() {
     expect(readme.contains('not published to pub.dev'), isTrue);
     expect(RegExp(r'pub add banzami_flutter').hasMatch(readme), isFalse);
   });
+
+  test('the internal framework cannot be published by accident', () {
+    // `publish_to: none` makes pub refuse this package outright. Banzami ADR-053
+    // keeps app internals — onboarding, KYB, merchant screens, theme — off
+    // pub.dev; the public client SDK is `banzami_client`. A comment saying so
+    // would not stop a `dart pub publish` typed in the wrong directory.
+    final pubspec = File('pubspec.yaml').readAsStringSync();
+    expect(
+        RegExp(r'^publish_to:\s*none\s*$', multiLine: true).hasMatch(pubspec),
+        isTrue,
+        reason: 'sdk/flutter must declare publish_to: none');
+  });
 }

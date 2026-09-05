@@ -1,9 +1,24 @@
 name: banzami_flutter
 description: >
-  Banzami Flutter SDK — payment widgets, API client, and screens for
-  integrating instant P2P transfers and QR payments into Flutter applications.
+  Banzami's FIRST-PARTY Flutter application framework — the screens, client,
+  models and theme the Banzami Consumer and Business apps are built from. Not a
+  third-party SDK: see banzami_client on pub.dev for the public client SDK.
 version: 0.1.0
 homepage: https://banzami.com
+
+# NOT PUBLISHABLE (Banzami ADR-053).
+#
+# This package is app internals: onboarding, KYB, merchant screens, theme. It is
+# consumed by apps/mobile as a path dependency. Publishing it would present
+# first-party application architecture as a public integration product, and
+# would put a package on pub.dev whose surface no integrator needs.
+#
+# The public client SDK is `banzami_client` (sdk/dart-client) — publishable key,
+# client-safe surface, money movement on the server.
+#
+# `publish_to: none` makes the mistake impossible rather than discouraged: pub
+# refuses to publish this package at all.
+publish_to: none
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
