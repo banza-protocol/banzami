@@ -38,6 +38,88 @@ pub struct WalletPayment {
     pub created_at: DateTime<Utc>,
 }
 
+/// Records the wallet-native merchant payment behind a settled Payment Link or
+/// Payment Session interface.
+///
+/// WHY THIS EXISTS
+///
+/// `record_merchant_qr_payment` was the only writer of `wallet_payments`, and it
+/// is reached from exactly one place: the QR-pay route. That route was withdrawn
+/// for security (RA-053 — it took the payer as free text on a merchant
+/// credential), and the refundable object went with it.
+///
+/// Everything since has settled through the payer-authorised payment-link route,
+/// which records nothing. So the money moved, the session flipped to PAID, the
+/// link went USED — and `refund_source` resolved to `None`, because the object a
+/// refund names never existed. Every payment taken on the canonical rail was
+/// unrefundable, silently, including every DOA donation.
+///
+/// The payer is derived from the settling transfer rather than passed in: the
+/// transfer is the financial fact, and taking the payer from anywhere else would
+/// let the two disagree.
+///
+/// Idempotent on `transfer_id`, exactly like its QR sibling: a replayed
+/// settlement returns the existing row.
+#[allow(clippy::too_many_arguments)]
+pub async fn record_merchant_interface_payment(
+    pool: &PgPool,
+    merchant_id: Uuid,
+    transfer_id: Uuid,
+    payment_link_id: Option<Uuid>,
+    qr_code_id: Option<Uuid>,
+    amount_minor: i64,
+    currency: &str,
+    trace_id: &str,
+    environment: &str,
+) -> Result<Option<Uuid>, sqlx::Error> {
+    // The payer is whoever the transfer debited. A transfer whose sender is not a
+    // consumer wallet is not a wallet-native merchant payment, so nothing is
+    // recorded — the same rule the QR path applies to P2P.
+    let payer: Option<Uuid> = sqlx::query_scalar(
+        "SELECT cw.consumer_id
+           FROM transfers t
+           JOIN consumer_wallets cw ON cw.consumer_id = t.sender_id
+          WHERE t.id = $1
+          LIMIT 1",
+    )
+    .bind(transfer_id)
+    .fetch_optional(pool)
+    .await?;
+    let Some(payer_consumer_id) = payer else {
+        return Ok(None);
+    };
+
+    let inserted: Option<Uuid> = sqlx::query_scalar(
+        "INSERT INTO wallet_payments
+            (transfer_id, merchant_id, consumer_id, payment_link_id, qr_code_id,
+             amount_minor, currency, status, trace_id, environment)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'COMPLETED', $8, $9)
+         ON CONFLICT (transfer_id) DO NOTHING
+         RETURNING id",
+    )
+    .bind(transfer_id)
+    .bind(merchant_id)
+    .bind(payer_consumer_id)
+    .bind(payment_link_id)
+    .bind(qr_code_id)
+    .bind(amount_minor)
+    .bind(currency)
+    .bind(trace_id)
+    .bind(environment)
+    .fetch_optional(pool)
+    .await?;
+
+    match inserted {
+        Some(id) => Ok(Some(id)),
+        None => Ok(
+            sqlx::query_scalar("SELECT id FROM wallet_payments WHERE transfer_id = $1")
+                .bind(transfer_id)
+                .fetch_optional(pool)
+                .await?,
+        ),
+    }
+}
+
 /// Records a wallet-native **merchant** payment after its settling transfer.
 ///
 /// Returns:

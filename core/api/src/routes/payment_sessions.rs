@@ -348,9 +348,35 @@ pub async fn settle_for_interface(
         return; // not found, already terminal, or a transient error — no-op
     };
 
+    // Record the refundable financial object BEFORE resolving it.
+    //
+    // This used to resolve straight to `None`. The only writer of
+    // `wallet_payments` was the QR-pay route, withdrawn for security (RA-053), so
+    // nothing recorded a payment settled through a link or a session — the money
+    // moved, the session flipped to PAID, and the object a refund names never
+    // existed. Every payment on the canonical rail was silently unrefundable.
+    //
+    // Best-effort and idempotent: the payment has already settled, so a failure
+    // here must never fail it. A missing row degrades to the previous behaviour
+    // (no refund source) rather than losing money.
+    let interface_link_id = if kind == "link" { Some(ref_id) } else { None };
+    let interface_qr_id = if kind == "qr" { Some(ref_id) } else { None };
+    let _ = super::wallet_payments::record_merchant_interface_payment(
+        &state.pool,
+        merchant_id,
+        transfer_id,
+        interface_link_id,
+        interface_qr_id,
+        amount_minor,
+        "AOA",
+        &session_id.to_string(),
+        state.environment.as_str(),
+    )
+    .await;
+
     // Additive merchant-safe refund source, resolved from the settling transfer
     // (the most precise anchor). Delivered only to this merchant's own signed
-    // webhook subscription. Absent if the wallet payment is not yet recorded.
+    // webhook subscription.
     let refund_source =
         super::refund_source::resolve_by_transfer(&state.pool, merchant_id, transfer_id).await;
 
