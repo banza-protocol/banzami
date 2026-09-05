@@ -195,7 +195,7 @@ const SAMPLE_ERROR = `# Envelope canónico de erro (Sandbox)
 {
   "code": "VALIDATION_ERROR",
   "message": "amount_minor must be a positive integer",
-  "request_id": "req_XXXXXXXX"
+  "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
 }`;
 
 const SAMPLE_KEYS = `bz_test_pk_XXXXXXXXXXXXXXXX   # publicável — pode ir no cliente

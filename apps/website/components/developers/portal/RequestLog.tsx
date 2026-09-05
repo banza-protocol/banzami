@@ -34,6 +34,12 @@ function when(iso: string): string {
 
 type Window = '1h' | '24h' | '7d' | 'all';
 
+// A gateway request_id is 32 hex characters (obs.newID). Matching on shape
+// rather than on a prefix is what makes pasting one into the search box work;
+// an earlier version looked for a `req_` prefix that the operator never emits,
+// and silently searched the path instead — finding nothing, for a real id.
+const isRequestId = (q: string) => /^[0-9a-f]{16,64}$/i.test(q);
+
 const WINDOWS: { id: Window; label: string; hours: number | null }[] = [
   { id: '1h', label: '1 hora', hours: 1 },
   { id: '24h', label: '24 horas', hours: 24 },
@@ -65,8 +71,9 @@ export function RequestLog() {
         limit: 100,
         // A request_id is an exact lookup; anything else is a path filter. One
         // box does both because a developer pasting an id should not have to
-        // know which field it is.
-        ...(q.startsWith('req_') ? { request_id: q } : q ? { path: q } : {}),
+        // know which field it is — and the id is 32 hex characters, not a
+        // prefixed string, so the shape is what decides.
+        ...(q ? (isRequestId(q) ? { request_id: q } : { path: q }) : {}),
         ...(status ? { status: Number(status) } : {}),
         ...(hours ? { since: new Date(Date.now() - hours * 3600_000).toISOString() } : {}),
       });
@@ -104,7 +111,7 @@ export function RequestLog() {
             className="bz-in"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="request_id (req_…) ou parte do caminho…"
+            placeholder="request_id ou parte do caminho…"
             style={{
               width: '100%', padding: '11px 14px 11px 40px', border: '1.5px solid #EBDBD9',
               borderRadius: 12, fontSize: 13.5, fontWeight: 600, color: '#2a2024',

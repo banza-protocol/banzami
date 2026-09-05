@@ -855,7 +855,7 @@
             "example": {
               "code": "VALIDATION_ERROR",
               "message": "amount_minor must be a positive integer",
-              "request_id": "req_xxx"
+              "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
             }
           }
         }
@@ -870,7 +870,7 @@
             "example": {
               "code": "UNAUTHORIZED",
               "message": "a valid Sandbox API key is required",
-              "request_id": "req_xxx"
+              "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
             }
           }
         }
@@ -885,7 +885,7 @@
             "example": {
               "code": "FORBIDDEN",
               "message": "insufficient scope",
-              "request_id": "req_xxx"
+              "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
             }
           }
         }
@@ -900,7 +900,7 @@
             "example": {
               "code": "NOT_FOUND",
               "message": "not found",
-              "request_id": "req_xxx"
+              "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
             }
           }
         }
@@ -915,7 +915,7 @@
             "example": {
               "code": "CONFLICT",
               "message": "a request with this Idempotency-Key is already in progress — retry after it completes",
-              "request_id": "req_xxx"
+              "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
             }
           }
         }

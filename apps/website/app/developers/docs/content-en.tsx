@@ -52,7 +52,7 @@ const SAMPLE_ERROR = `# Canonical error envelope (Sandbox)
 {
   "code": "VALIDATION_ERROR",
   "message": "amount_minor must be a positive integer",
-  "request_id": "req_XXXXXXXX"
+  "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
 }`;
 
 const SAMPLE_WEBHOOK_ENVELOPE = `# Event envelope delivered to your endpoint (implemented in Sandbox)
