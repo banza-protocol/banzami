@@ -104,6 +104,48 @@ HTTP=$(printf '%s' "$ROW" | cut -d'|' -f2)
 chk DELIVERED "$STATUS" "success"
 chk DOA_ACCEPTED_200 "$HTTP" "200"
 
+echo "### and a redelivery of the same event is accepted again, not rejected"
+# Exactly-once is a property of the RECEIVER. What the OPERATOR can prove from
+# here is the half it owns: it really did redeliver the same event, and DOA
+# answered 200 again rather than erroring on a duplicate — an integration that
+# 500s on a retry is one the operator will keep retrying forever.
+#
+# The other half — that a second copy creates no second donation — is a fact
+# about DOA's database, which this harness cannot read. It is covered by DOA's
+# own dedup tests against a real database (apply-payment-event), run in DOA CI.
+# Scraping a public page would not close it either: the campaign accounts here
+# are synthetic and have no public campaign behind them. Asserting only what is
+# actually observable from this side is the honest scope.
+DID=$(psqlro "SELECT id FROM webhook_deliveries WHERE event_id='$EVID' AND endpoint_id='$EP' ORDER BY created_at DESC LIMIT 1")
+chk REPLAY_TARGET_FOUND "$([ -n "$DID" ] && echo yes)" yes
+EPMID=$(psqlro "SELECT merchant_id FROM webhook_endpoints WHERE id='$EP'")
+MJWT=$(mint merchant_id "$EPMID")
+
+A0=$(psqlro "SELECT attempt_count FROM webhook_deliveries WHERE id='$DID'")
+REPLAY_CODES=""
+for i in 1 2 3; do
+  call "$GW" 8080 POST "/v1/webhooks/deliveries/$DID/replay" - "$MJWT"
+  REPLAY_CODES="$REPLAY_CODES$CODE "
+  sleep 6
+done
+echo "  replay responses: $REPLAY_CODES"
+chk REPLAY_ACCEPTED "$(printf '%s' "$REPLAY_CODES" | grep -cE '20[0-9]')" "1"
+
+for i in $(seq 1 12); do
+  ROW2=$(psqlro "SELECT status || '|' || COALESCE(status_code::text,'-') || '|' || COALESCE(attempt_count::text,'-') FROM webhook_deliveries WHERE id='$DID'")
+  A2=$(printf '%s' "$ROW2" | cut -d'|' -f3)
+  case "$ROW2" in success*|SUCCESS*) [ "${A2:-0}" -gt "${A0:-0}" ] && break;; esac
+  sleep 5
+done
+echo "  after replay: ${ROW2:-<none>} (attempts before: ${A0:-?})"
+chk REDELIVERED_AND_ACCEPTED "$(printf '%s' "$ROW2" | cut -d'|' -f1 | tr 'A-Z' 'a-z')|$(printf '%s' "$ROW2" | cut -d'|' -f2)" "success|200"
+chk ATTEMPTS_INCREASED "$([ "${A2:-0}" -gt "${A0:-0}" ] && echo yes)" yes
+# Replay must re-queue the existing delivery, never create a second row: the
+# table is UNIQUE on (event_id, endpoint_id), and inserting was how replay used
+# to answer 500 for every real delivery.
+NROWS=$(psqlro "SELECT COUNT(*) FROM webhook_deliveries WHERE event_id='$EVID' AND endpoint_id='$EP'")
+chk REPLAY_REUSES_ONE_ROW "$NROWS" "1"
+
 echo
 echo "WEBHOOK_DELIVERY_TO_DOA: PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" -eq 0 ] || exit 1
