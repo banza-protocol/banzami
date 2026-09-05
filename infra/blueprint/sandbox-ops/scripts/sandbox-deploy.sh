@@ -234,7 +234,10 @@ cmd_deploy_one() {
   local name="$1" tag="$2" rollback="${3:-}"
   local e n p b bin port; for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { bin="$b"; port="$p"; }; done
   [ -n "${bin:-}" ] || die "unknown sandbox service: $name"
-  local cname; cname="$(docker ps -a --format '{{.Names}}' | grep -E -- "-${name}\$" | head -1)"
+  # `|| true`: under `set -e` an empty grep result exits the script, which is
+  # exactly the case a FIRST deploy is — no container yet. Without it the script
+  # died silently before reaching the create path below, reporting only rc=1.
+  local cname; cname="$(docker ps -a --format '{{.Names}}' | grep -E -- "-${name}\$" | head -1 || true)"
 
   # First deploy of the hosted payer surface.
   #
