@@ -73,21 +73,21 @@
         "pt": "Entrega outbound de webhooks",
         "en": "Webhook outbound delivery"
       },
-      "state": "simulated"
+      "state": "available_controlled_sandbox"
     },
     {
       "item": {
-        "pt": "Reembolsos (chave developer)",
-        "en": "Refunds (developer key)"
+        "pt": "Reembolsos (chave de projeto)",
+        "en": "Refunds (project key)"
       },
-      "state": "pending_e2e"
+      "state": "available_controlled_sandbox"
     },
     {
       "item": {
-        "pt": "Transferências (chave developer)",
-        "en": "Transfers (developer key)"
+        "pt": "Transferências (chave de projeto)",
+        "en": "Transfers (project key)"
       },
-      "state": "pending_e2e"
+      "state": "available_controlled_sandbox"
     },
     {
       "item": {

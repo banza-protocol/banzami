@@ -23,11 +23,16 @@ self_service_access: false
 ## O que está disponível agora / What is available now
 
 - **PT** · Rotas Sandbox verificadas (identidade, sessões de pagamento, payment
-  links, QR), Console para workspaces/projetos/chaves, artefactos de referência
-  do protocolo e o pacote de onboarding de preview.
+  links, QR, contas de projeto, transferências entre contas do mesmo titular,
+  reembolsos e webhooks — todas com chave de projeto), Console para
+  workspaces/projetos/chaves e as páginas de Webhooks e Actividade com os dados
+  reais do projeto, artefactos de referência do protocolo e o pacote de
+  onboarding de preview.
 - **EN** · Verified Sandbox routes (identity, payment sessions, payment links,
-  QR), Console for workspaces/projects/keys, protocol reference artifacts, and
-  the preview onboarding package.
+  QR, project accounts, transfers between accounts of the same owner, refunds
+  and webhooks — all with a project key), the Console for workspaces/projects/
+  keys plus the Webhooks and Activity pages showing the project's real data,
+  protocol reference artifacts, and the preview onboarding package.
 
 ## O que é Sandbox/Preview apenas / What is Sandbox/Preview only
 
@@ -43,25 +48,29 @@ self_service_access: false
 - **EN** · SDK access (controlled preview, packages not published) and partner
   onboarding (eligibility → approval → review).
 
-## O que é simulado / What is simulated
+## O que já não é simulado / What is no longer simulated
 
-- **PT** · A entrega outbound de webhooks para sinks HTTPS públicos externos no
-  conjunto E2E público (emissão, assinatura HMAC e contrato de retries
-  verificados; jornada DOA verificada).
-- **EN** · Outbound webhook delivery to external public HTTPS sinks in the
-  public E2E suite (emission, HMAC signing and retry contract verified; DOA
-  journey verified).
+- **PT** · A entrega outbound de webhooks. É verificada no Sandbox implantado
+  contra um recetor HTTPS genuinamente público: assinatura confirmada de forma
+  independente sobre os bytes originais, rejeição de adulteração do corpo, do
+  digest e do timestamp, retries com backoff e isolamento de falhas. A entrega
+  em Produção continua fora do âmbito.
+- **EN** · Outbound webhook delivery. It is verified on the deployed Sandbox
+  against a genuinely public HTTPS receiver: signature confirmed independently
+  over the raw bytes, tamper rejection of body, digest and timestamp, retries
+  with backoff and failure isolation. Production delivery remains out of
+  scope.
 
 ## O que não está disponível / não aprovado — What is not available / not approved
 
-- **PT** · Trilhos de Produção/live, pay/checkout públicos, fornecedores
-  externos, emissão de chaves live, scopes developer de reembolsos/
-  transferências (Pendente E2E — 403), Console operacional (páginas visuais são
+- **PT** · Trilhos de Produção/live, pay/checkout públicos (não implantados —
+  pay.banzami.com responde 503), fornecedores externos, emissão de chaves live,
+  SDK Flutter (não publicado no pub.dev), dashboard da Consola (pré-visualização
   demo), Stage C (não implementado/não aprovado).
-- **EN** · Production/live rails, public pay/checkout, external providers, live
-  key issuance, developer refunds/transfers scopes (Pending E2E — 403),
-  operational Console (visual pages are demo), Stage C (not implemented/not
-  approved).
+- **EN** · Production/live rails, public pay/checkout (not deployed —
+  pay.banzami.com answers 503), external providers, live key issuance, the
+  Flutter SDK (not published on pub.dev), the Console dashboard (demo preview),
+  Stage C (not implemented/not approved).
 
 ## Como a honestidade é mantida / How honesty is enforced
 

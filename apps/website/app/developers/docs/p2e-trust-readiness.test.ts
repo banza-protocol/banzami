@@ -87,6 +87,26 @@ describe('P2E — public trust artifacts', () => {
       expect(SUMMARY_MD.includes(f), `summary missing flag: ${f}`).toBe(true);
     }
   });
+  it('the public trust artifacts track the manifest, not a snapshot of it', () => {
+    // These JSON files are what a partner's own tooling reads, and they drifted:
+    // they still said refunds/transfers were pending and outbound delivery was
+    // simulated long after the deployed evidence said otherwise. Same rule as
+    // the badges — the manifest decides, in both directions.
+    const byName = Object.fromEntries(JSON_ARTIFACTS.map((a) => [a.file, a.data]));
+    const rows = byName['developer-trust-summary.json'].availability_summary as
+      { item: { en: string }; state: string }[];
+    const state = (en: string) => rows.find((r) => r.item.en === en)?.state;
+    const expected = (id: string, whenNot: string) =>
+      isReleased(id) ? 'available_controlled_sandbox' : whenNot;
+    expect(state('Refunds (project key)')).toBe(expected('CAP-REFUND-001', 'pending_e2e'));
+    expect(state('Transfers (project key)')).toBe(expected('CAP-TRANSFER-002', 'pending_e2e'));
+    expect(state('Webhook outbound delivery')).toBe(expected('CAP-WEBHOOK-001', 'simulated'));
+    // And the public markdown summary must not contradict them.
+    if (isReleased('CAP-REFUND-001') && isReleased('CAP-TRANSFER-002')) {
+      expect(SUMMARY_MD).not.toContain('Pendente E2E');
+      expect(SUMMARY_MD).not.toContain('Pending E2E');
+    }
+  });
   it('structures are complete (15 capabilities, 12 risks, 10 gates, 9 evidence items, 5 package caveats)', () => {
     const byName = Object.fromEntries(JSON_ARTIFACTS.map((a) => [a.file, a.data]));
     expect(byName['developer-trust-summary.json'].availability_summary).toHaveLength(15);

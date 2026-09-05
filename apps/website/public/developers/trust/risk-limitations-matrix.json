@@ -55,32 +55,32 @@
     },
     {
       "risk": {
-        "pt": "Entrega outbound de webhooks simulada",
-        "en": "Webhook outbound delivery simulated/not publicly claimed"
+        "pt": "Entrega outbound verificada apenas em Sandbox",
+        "en": "Outbound delivery is verified in Sandbox only"
       },
-      "status": "simulated",
+      "status": "available_controlled_sandbox",
       "partner_implication": {
-        "pt": "Não desenhar dependência de entrega pública garantida.",
-        "en": "Do not design around guaranteed public delivery."
+        "pt": "Verificada contra um recetor público; a Produção não está coberta.",
+        "en": "Verified against a public receiver; Production is not covered."
       },
       "mitigation": {
-        "pt": "Contrato de retries documentado; jornada DOA verificada.",
-        "en": "Retry contract documented; DOA journey verified."
+        "pt": "Assinatura confirmada de forma independente, rejeição de adulteração, retries e isolamento de falhas.",
+        "en": "Independently verified signature, tamper rejection, retries and failure isolation."
       }
     },
     {
       "risk": {
-        "pt": "Reembolsos/transferências pendentes E2E para chaves developer",
-        "en": "Refunds/transfers pending E2E for developer keys"
+        "pt": "Reembolsos/transferências apenas em Sandbox",
+        "en": "Refunds/transfers are Sandbox-only"
       },
-      "status": "pending_e2e",
+      "status": "available_controlled_sandbox",
       "partner_implication": {
-        "pt": "Pedido com chave developer é recusado (403).",
-        "en": "A developer-key request is rejected (403)."
+        "pt": "Disponíveis a chaves de projeto em Sandbox; nunca em trilhos live.",
+        "en": "Available to project keys in Sandbox; never on live rails."
       },
       "mitigation": {
-        "pt": "matriz credencial↔capacidade; verificação futura.",
-        "en": "Credential↔capability matrix; future verification."
+        "pt": "E2E no ambiente implantado, incluindo as recusas: chave de leitura e recursos de outro projeto.",
+        "en": "Deployed E2E including the refusals: read-only keys and foreign resources."
       }
     },
     {
