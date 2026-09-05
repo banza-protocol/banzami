@@ -1,15 +1,15 @@
 {
   "programme": "BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Console API Logs (ADR-054)",
   "test": "tools/e2e/dev-console/api-logs-correlation-e2e.mjs",
-  "date_stamp": "1788630533",
+  "date_stamp": "1788632797",
   "console_host": "https://developers.banzami.com",
   "api_host": "https://developer-api.banzami.com",
   "gateway_host": "https://sandbox-api.banzami.com",
   "deployed_commit": "unknown",
   "schema": "banzami_staging (developer.dev_api_request_logs)",
-  "fixture_namespace": "rt54-*-1788630533@banzami-e2e.test",
-  "total": 15,
-  "passed": 15,
+  "fixture_namespace": "rt54-*-1788632797@banzami-e2e.test",
+  "total": 18,
+  "passed": 18,
   "failed": 0,
   "matrix": [
     {
@@ -35,7 +35,7 @@
     {
       "id": "LOG.latency-and-environment-recorded",
       "ok": true,
-      "note": "latency_ms=3 env=SANDBOX"
+      "note": "latency_ms=1 env=SANDBOX"
     },
     {
       "id": "LOG.retention-window-reported",
@@ -61,6 +61,21 @@
       "id": "LOG.console-ui-finds-the-request-id",
       "ok": true,
       "note": "row rendered with its path"
+    },
+    {
+      "id": "LOG.overview-summary-counts-real-requests",
+      "ok": true,
+      "note": "requests 2 → 4 after 2 calls"
+    },
+    {
+      "id": "LOG.overview-has-no-invented-figures",
+      "ok": true,
+      "note": "none of the old constants render"
+    },
+    {
+      "id": "LOG.overview-renders-real-request-count",
+      "ok": true,
+      "note": "page shows the project's own request figures"
     },
     {
       "id": "LOG.b-cannot-read-a-project-logs",

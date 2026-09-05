@@ -138,6 +138,36 @@ try {
     await page.close();
   }
 
+  // ── 5b. The Overview reports the project's REAL traffic ───────────────────
+  // It used to render invented KPIs behind a label. Asserting the numbers move
+  // with actual requests is the only check that distinguishes "wired" from
+  // "wired to something".
+  {
+    const before = await j(await ctxA.request.get(`${API}/projects/${prA}/logs?limit=1`, { headers: { Origin: CONSOLE } }));
+    const n0 = before.summary?.requests ?? -1;
+    await call('/v1/me', keyA);
+    await call('/v1/me', keyA);
+    let n1 = n0;
+    for (let i = 0; i < 20 && n1 < n0 + 2; i++) {
+      const after = await j(await ctxA.request.get(`${API}/projects/${prA}/logs?limit=1`, { headers: { Origin: CONSOLE } }));
+      n1 = after.summary?.requests ?? -1;
+      if (n1 >= n0 + 2) break;
+      await sleep(500);
+    }
+    rec('LOG.overview-summary-counts-real-requests', n1 >= n0 + 2, `requests ${n0} → ${n1} after 2 calls`);
+
+    const page = await ctxA.newPage();
+    await page.goto(`${CONSOLE}/dashboard`, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(3500);
+    const body = await page.locator('body').innerText();
+    const invented = ['1.482', '12.450.000', '24.9k', '3.204', '95.3%', 'invoice.paid', 'INV-2025'];
+    const found = invented.filter((v) => body.includes(v));
+    rec('LOG.overview-has-no-invented-figures', found.length === 0, found.length ? `still shows ${found.join(', ')}` : 'none of the old constants render');
+    rec('LOG.overview-renders-real-request-count', body.includes(String(n1)) || /Pedidos à API/.test(body),
+      `page shows the project's own request figures`);
+    await page.close();
+  }
+
   // ── 6. Isolation — both directions, and no oracle ─────────────────────────
   const ctxB = await browser.newContext();
   const csrfB = await signIn(ctxB, email('b'));

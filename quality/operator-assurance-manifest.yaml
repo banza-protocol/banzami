@@ -578,13 +578,13 @@ capabilities:
       integration:
         - services/api-gateway/internal/service/request_log_retention_test.go (real-DB prune)
       e2e_sandbox:
-        - tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.* 15/15)
+        - tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.* 18/18, incl. Overview real-data assertions)
       negative_security:
         - cross-project 403 both directions, foreign request_id is not an oracle, unauthenticated 401, no credential field in schema or response, credential-shaped path segment redacted, unauthenticated request writes no row
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence:
-      - evidence/assurance/dev-foundation/api-logs-correlation-1788628810.json
+      - evidence/assurance/dev-foundation/api-logs-correlation-1788632797.json
       - docs/adr/ADR-054-developer-api-request-logs.md
     surface: public
     disposition: released
