@@ -3,7 +3,7 @@
   "environment": "sandbox",
   "build": "5f8700635485",
   "gateway": "https://sandbox-api.banzami.com",
-  "generated_at": "2026-09-05T17:49:27.780Z",
+  "generated_at": "2026-09-05T18:28:38.111Z",
   "total": 42,
   "passed": 42,
   "failed": 0,
