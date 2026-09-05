@@ -401,27 +401,39 @@ func (s *PostgresWebhookService) ReplayDelivery(ctx context.Context, merchantID,
 		return nil, ErrEndpointNotFound
 	}
 
-	// Insert a fresh PENDING delivery — new UUID, reset attempt count.
+	// Re-queue the EXISTING delivery rather than inserting a second one.
+	//
+	// This used to INSERT a fresh row, which `webhook_deliveries` forbids: it is
+	// UNIQUE on (event_id, endpoint_id), so every replay of a real delivery hit
+	// the constraint and answered 500. The endpoint could not succeed at all.
+	//
+	// The constraint is the design, not an obstacle — one delivery row per event
+	// per endpoint, with retries counted on that row (attempt_count), which is
+	// exactly what makes an event impossible to deliver as two separate
+	// deliveries. So a replay resets the row and lets the dispatcher pick it up,
+	// keeping the same delivery identity.
 	now := time.Now().UTC()
-	newID := uuid.NewString()
-	_, err = s.pool.Exec(ctx,
-		`INSERT INTO webhook_deliveries
-		     (id, event_id, endpoint_id, status, attempt_count, scheduled_at, created_at)
-		 VALUES ($1, $2, $3, 'PENDING', 0, now(), now())`,
-		newID, eventID, endpointID,
-	)
+	var attempts int
+	err = s.pool.QueryRow(ctx,
+		`UPDATE webhook_deliveries
+		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
+		  WHERE id = $1
+		RETURNING attempt_count`,
+		deliveryID,
+	).Scan(&attempts)
 	if err != nil {
 		return nil, fmt.Errorf("replay delivery: %w", err)
 	}
 
-	slog.Info("webhook delivery replayed", "original_id", deliveryID, "new_id", newID)
+	slog.Info("webhook delivery re-queued", "delivery_id", deliveryID, "attempts_so_far", attempts)
 
 	return &WebhookDelivery{
-		ID:         newID,
-		EventID:    eventID,
-		EndpointID: endpointID,
-		Status:     "PENDING",
-		CreatedAt:  now,
+		ID:            deliveryID,
+		EventID:       eventID,
+		EndpointID:    endpointID,
+		Status:        "PENDING",
+		AttemptNumber: attempts,
+		CreatedAt:     now,
 	}, nil
 }
 
