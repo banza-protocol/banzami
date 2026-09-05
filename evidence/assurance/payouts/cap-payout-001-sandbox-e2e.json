@@ -1,0 +1,160 @@
+{
+  "suite": "CAP-PAYOUT-001 — Wallet withdrawal / payouts (0.75% fee, paired postings)",
+  "test": "tests/phase0/payout-sandbox-e2e.sh",
+  "environment": "deployed sandbox (sandbox-api.banzami.com) — run on the Sandbox VM against running containers",
+  "builds": {
+    "api-gateway-staging": "f6b11769a482",
+    "core-api-staging": "9b9a70af3a5b"
+  },
+  "generated_at": "2026-09-05T06:58:08.315Z",
+  "post_financial_reset": true,
+  "credential": "merchant JWT; the process/approve steps are the operator actions admin-api performs",
+  "note": "The first run of this harness measured a fee of ZERO: pricing_rules was empty on the deployed Sandbox, and core/payouts fails safe to a zero fee when no rule matches. The ADR-031 rule was restored through core’s own /internal/v1/pricing-rules and the fee then applied exactly. See docs/quality/REPAIR_LOG.md RA-063.",
+  "total": 28,
+  "passed": 28,
+  "failed": 0,
+  "harness_summary": "PAYOUT_SANDBOX_E2E: PASS=28 FAIL=0",
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "MERCHANT_WALLET_FOUND",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "KYB_GATE_REFUSES_UNAPPROVED",
+      "pass": true,
+      "observed": "403"
+    },
+    {
+      "id": "NOTHING_MOVED_WHILE_UNAPPROVED",
+      "pass": true,
+      "observed": "200000"
+    },
+    {
+      "id": "MERCHANT_APPROVED",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "PAYOUT_ACCEPTED",
+      "pass": true,
+      "observed": "201"
+    },
+    {
+      "id": "PAYOUT_STARTS_PENDING",
+      "pass": true,
+      "observed": "PENDING"
+    },
+    {
+      "id": "NOTHING_POSTED_AT_INITIATE",
+      "pass": true,
+      "observed": "200000"
+    },
+    {
+      "id": "PAYOUT_PROCESSED",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "WALLET_DEBITED_BY_GROSS",
+      "pass": true,
+      "observed": "80000"
+    },
+    {
+      "id": "LEDGER_BALANCED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "NET_POSTING_EXISTS",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "FEE_POSTING_IS_SEPARATE",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "NET_POSTING_IS_A_PAIR",
+      "pass": true,
+      "observed": "2"
+    },
+    {
+      "id": "FEE_POSTING_IS_A_PAIR",
+      "pass": true,
+      "observed": "2"
+    },
+    {
+      "id": "GROSS_EQUALS_NET_PLUS_FEE",
+      "pass": true,
+      "observed": "80000"
+    },
+    {
+      "id": "FEE_IS_0_75_PERCENT",
+      "pass": true,
+      "observed": "600"
+    },
+    {
+      "id": "FEE_CREDITS_REVENUE",
+      "pass": true,
+      "observed": "REVENUE"
+    },
+    {
+      "id": "REPLAY_IS_THE_SAME_PAYOUT",
+      "pass": true,
+      "observed": "92f5e264-adb8-4795-b51c-8507a9e44717"
+    },
+    {
+      "id": "REPLAY_MOVED_NOTHING",
+      "pass": true,
+      "observed": "120000"
+    },
+    {
+      "id": "SECOND_PROCESS_MOVED_NOTHING",
+      "pass": true,
+      "observed": "120000"
+    },
+    {
+      "id": "NEGATIVE_REJECTED",
+      "pass": true,
+      "observed": "400"
+    },
+    {
+      "id": "INSUFFICIENT_REJECTED",
+      "pass": true,
+      "observed": "422"
+    },
+    {
+      "id": "MISSING_BANK_ACCOUNT_REJECTED",
+      "pass": true,
+      "observed": "400"
+    },
+    {
+      "id": "REFUSALS_MOVED_NOTHING",
+      "pass": true,
+      "observed": "120000"
+    },
+    {
+      "id": "FOREIGN_WALLET_REFUSED",
+      "pass": true,
+      "observed": "refused"
+    },
+    {
+      "id": "VICTIM_BALANCE_UNCHANGED",
+      "pass": true,
+      "observed": "120000"
+    },
+    {
+      "id": "OWNER_CAN_READ",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "LEDGER_STILL_BALANCED",
+      "pass": true,
+      "observed": "0"
+    }
+  ]
+}

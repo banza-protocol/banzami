@@ -350,15 +350,24 @@ capabilities:
     threat_category: financial-money-movement
     tests:
       unit: []
-      integration: []
-      e2e_sandbox: []
-      negative_security: []
+      integration:
+        - core/payouts engine tests (fee resolution bounds, reversal derives the fee from what was posted)
+      e2e_sandbox:
+        - tests/phase0/payout-sandbox-e2e.sh (28/28 on deployed sandbox, post-reset)
+      negative_security:
+        - an unapproved merchant cannot withdraw at all (KYB gate, fail-closed 403)
+        - a wallet the caller does not own is refused, and the balance is untouched (RA-056)
+        - negative amount, missing bank destination and insufficient funds are all refused and move nothing
+        - a replay returns the SAME payout rather than queueing a second withdrawal
+        - processing an already-processed payout posts nothing further
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/payouts/cap-payout-001-sandbox-e2e.json
+      - docs/quality/REPAIR_LOG.md#RA-063
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   - id: CAP-COLLECT-001
     name: Collections (split charge, merchant-only)

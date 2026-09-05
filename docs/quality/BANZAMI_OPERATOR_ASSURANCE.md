@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 4 |
-| verified | 13 |
+| in-audit | 3 |
+| verified | 14 |
 | **total** | **22** |
 
 ## Capabilities
@@ -29,7 +29,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-PAY-002 | Payment links | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
@@ -50,11 +50,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| pending-e2e | 3 |
+| pending-e2e | 2 |
 | quarantined | 5 |
-| released | 13 |
+| released | 14 |
 
-Public surfaces released: **12/15**. Full external launch requires 15/15.
+Public surfaces released: **13/15**. Full external launch requires 15/15.
 
 ## Detail
 
@@ -179,12 +179,12 @@ Public surfaces released: **12/15**. Full external launch requires 15/15.
 - **Implementation:** core/payouts
 - **API/UI surface:** /v1/payouts
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** —
+- **Tests:** unit [] · integration [core/payouts engine tests (fee resolution bounds, reversal derives the fee from what was posted)] · e2e_sandbox [tests/phase0/payout-sandbox-e2e.sh (28/28 on deployed sandbox, post-reset)] · negative/security [an unapproved merchant cannot withdraw at all (KYB gate, fail-closed 403), a wallet the caller does not own is refused, and the balance is untouched (RA-056), negative amount, missing bank destination and insufficient funds are all refused and move nothing, a replay returns the SAME payout rather than queueing a second withdrawal, processing an already-processed payout posts nothing further]
+- **Evidence:** evidence/assurance/payouts/cap-payout-001-sandbox-e2e.json, docs/quality/REPAIR_LOG.md#RA-063
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-COLLECT-001 — Collections (split charge, merchant-only)
 

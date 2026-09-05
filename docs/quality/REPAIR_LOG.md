@@ -1574,3 +1574,51 @@ drift.
 
 **Related:** RA-060 (ledger invariants), ADR-042 (segregated accounts),
 ADR-050 (project-bound sub-accounts).
+
+---
+
+## RA-063
+
+- **Title:** The operator's withdrawal fee was not in effect — every Sandbox payout was free
+- **Status:** FIXED (2026-09-05) — deployed proof 28/28
+- **Severity: medium** (operator revenue; no customer loss, no ledger imbalance)
+- **Environment:** Sandbox. No real money.
+
+`pricing_rules` was **empty** on the deployed Sandbox, and `core/payouts`
+resolves the withdrawal fee from the Pricing Engine with a deliberate
+fail-safe: no matching enabled rule → fee 0. Both halves are individually
+reasonable. Together they meant the documented ADR-031 0.75% withdrawal fee
+silently charged nothing, and nothing anywhere reported a problem — no error,
+no warning, a perfectly balanced ledger. A payout of 80,000 debited 80,000 and
+credited the bank 80,000, with no fee posting at all.
+
+This is the failure mode a fail-safe default invites: the system cannot tell
+"this transaction is genuinely free" from "the rule that would have priced it
+is missing". It was found by asserting the fee rather than the endpoint —
+`FEE_IS_0_75_PERCENT` measured 0 against an expected 600 while every other
+assertion in the payout harness passed.
+
+**Fix.** The rule was restored through core's own
+`POST /internal/v1/pricing-rules` — the route the admin portal calls — as
+`wallet_withdrawal_default`, SANDBOX, `transaction_type=wallet_withdrawal`,
+`rate_bps=75`. No row was hand-written.
+
+**Deployed proof:** `tests/phase0/payout-sandbox-e2e.sh` — **28/28**. Gross
+80,000 = net 79,400 + fee 600; the fee is its own paired posting
+(`<key>:process:fee`, two legs) crediting a REVENUE account, never a third leg
+on the net posting.
+
+**Non-vacuity:** the pre-fix environment is the mutation. The identical harness
+against it failed exactly the five fee assertions — `FEE_POSTING_IS_SEPARATE`,
+`FEE_POSTING_IS_A_PAIR`, `FEE_IS_0_75_PERCENT`, `FEE_CREDITS_REVENUE` and the
+net/fee split — while the 23 assertions about the money, the KYB gate, the
+refusals and idempotency all passed. The fee was missing and nothing else was.
+
+**What is NOT fixed by this.** A missing pricing rule is still indistinguishable
+from a deliberate zero fee at runtime. The gap is now covered by a deployed
+assertion rather than by the code, which is weaker than the code knowing. If
+the same absence occurs in another environment, this harness is what would
+catch it.
+
+**Related:** ADR-031 (pricing dimension), RA-056 (payout wallet ownership),
+CAP-PAYOUT-001.
