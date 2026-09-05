@@ -864,16 +864,18 @@ func (s *Service) RebindProjectSandbox(ctx context.Context, projectID, merchantI
 	return b, superseded, nil
 }
 
-// SealBindingArtifact marks the project's ACTIVE binding immutable once its first
-// payment artifact is created (idempotent). After this, the binding's payee can
-// never change — no retroactive reattribution (ADR-047 §3.2).
-func (s *Service) SealBindingArtifact(ctx context.Context, projectID string) error {
-	b, err := s.store.ActiveBindingForProject(ctx, projectID)
-	if err != nil || b == nil {
-		return ErrNotFound
-	}
-	return s.store.MarkBindingArtifactCreated(ctx, b.ID)
-}
+// Sealing lives in the api-gateway (ADR-055), not here.
+//
+// A service-level SealBindingArtifact used to exist in this file and was never
+// called by anything. It read as the enforced immutability guarantee and set no
+// state, which is worse than an honest absence — the column it wrote was the
+// one everything else trusted.
+//
+// The canonical seal is now a single atomic UPDATE in
+// services/api-gateway/internal/service/binding_seal.go, issued on the same
+// request that creates the payment artifact and gated on the payee still being
+// the ACTIVE binding. There is exactly one sealing mechanism, and it is the one
+// that can see the artifact it is sealing for.
 
 func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action, subject, ip, reqID string, meta map[string]any) {
 	_ = s.store.InsertAudit(ctx, AuditEvent{

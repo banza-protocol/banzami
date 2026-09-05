@@ -20,6 +20,7 @@ import (
 // app displays them; it never generates a financial payload and never sees a
 // ledger account id.
 type PaymentSessionHandler struct {
+	seal      bindingSealer
 	sessions  service.PaymentSessionService
 	merchants merchantLookup
 	// accounts resolves a developer-supplied sub-account back to its wallet so
@@ -30,6 +31,13 @@ type PaymentSessionHandler struct {
 
 func NewPaymentSessionHandler(s service.PaymentSessionService, m merchantLookup, a walletAccountLookup) *PaymentSessionHandler {
 	return &PaymentSessionHandler{sessions: s, merchants: m, accounts: a}
+}
+
+// WithBindingSeal supplies the ADR-055 seal used when a developer key ISSUES a
+// payment session.
+func (h *PaymentSessionHandler) WithBindingSeal(sl bindingSealer) *PaymentSessionHandler {
+	h.seal = sl
+	return h
 }
 
 // publicURL builds the hosted pay URL for a link slug from the request host (the
@@ -107,7 +115,15 @@ func (h *PaymentSessionHandler) authedActiveMerchant(w http.ResponseWriter, r *h
 // or a merchant JWT (existing behavior). For a developer key it returns the
 // binding's payee; for a merchant JWT `dev` is nil.
 func (h *PaymentSessionHandler) resolveActor(w http.ResponseWriter, r *http.Request, scope string) (merchantID string, dev *developerPayee, ok bool) {
-	payee, handled, isDev := developerPaymentAuthority(w, r, scope)
+	// A write scope ISSUES an artifact and therefore seals the binding
+	// (ADR-055); a read scope must not. The scope IS the classification, so a
+	// new read route cannot accidentally seal and a new write route cannot
+	// accidentally skip it.
+	var seal bindingSealer
+	if strings.HasSuffix(scope, ":write") {
+		seal = h.seal
+	}
+	payee, handled, isDev := resolveDeveloperPaymentAuthority(w, r, scope, seal)
 	if handled {
 		return "", nil, false // response already written
 	}

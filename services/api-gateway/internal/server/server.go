@@ -71,6 +71,11 @@ type Dependencies struct {
 	// Nil disables the log (no DATABASE_URL) — the middleware then adds nothing
 	// to the chain rather than recording into a void.
 	RequestLogSink service.APIRequestLogSink
+	// BindingSeal seals a Project binding when a developer key issues a payment
+	// artifact (ADR-055). Nil means a developer key cannot issue one — the
+	// fail-closed default, rather than issuing an artifact whose payee could
+	// still move.
+	BindingSeal *service.BindingSealService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -154,7 +159,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
 	// Split Sessions is SUPERSEDED by Collections (ADR-036) — answered at the edge, never proxied.
 	splitsSuperseded := handler.SplitsSuperseded()
-	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
+	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc).
+		WithBindingSeal(deps.BindingSeal)
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc, deps.WebhookSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
@@ -170,7 +176,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
 	walletAccountTransferHandler := handler.NewWalletAccountTransferHandler(deps.WalletAccountTransferSvc)
-	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc, deps.WalletAccountSvc)
+	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc, deps.WalletAccountSvc).
+		WithBindingSeal(deps.BindingSeal)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight

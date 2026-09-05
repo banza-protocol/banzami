@@ -85,6 +85,7 @@ func main() {
 	// matters exactly when a pool is exhausted or misconfigured.
 	var readinessDBPool *pgxpool.Pool
 	var reqLogRecorder *service.PostgresRequestLogRecorder
+	var bindingSeal *service.BindingSealService
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -180,6 +181,7 @@ func main() {
 		}
 		// Developer API request log (migration 0104). Asynchronous, bounded, and
 		// pruned on its own retention — see postgres_request_logs.go.
+		bindingSeal = service.NewBindingSealService(dbPool)
 		reqLogRecorder = service.NewPostgresRequestLogRecorder(dbPool)
 		reqLogRecorder.StartWorker(ctx)
 		proofSvc = service.NewProofService(dbPool,
@@ -228,6 +230,7 @@ func main() {
 		ProofSvc:                 proofSvc,
 		BusinessSelfSvc:          businessSelfSvc,
 		RequestLogSink:           reqLogSink(reqLogRecorder),
+		BindingSeal:              bindingSeal,
 		ProofHashSalt:            proofHashSalt(),
 		ActivationSvc:            activationSvc,
 		ComplianceSvc:            service.NewCoreApiComplianceService(coreClient),

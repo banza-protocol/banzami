@@ -8,6 +8,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -38,6 +39,28 @@ type developerPayee struct {
 //     malformed binding yields a controlled PAYMENTS_UNAVAILABLE, never a
 //     default/fallback merchant.
 func developerPaymentAuthority(w http.ResponseWriter, r *http.Request, scope string) (*developerPayee, bool, bool) {
+	return resolveDeveloperPaymentAuthority(w, r, scope, nil)
+}
+
+// bindingSealer is satisfied by *service.BindingSealService.
+type bindingSealer interface {
+	SealForArtifact(ctx context.Context, projectID, merchantID, walletID string) error
+}
+
+// developerPaymentAuthorityForArtifact is the authority path for routes that
+// ISSUE a payer-facing payment artifact (ADR-055). It resolves the payee exactly
+// as the read path does and then SEALS the binding before the artifact exists,
+// so an issued link or session can never have its payee reinterpreted.
+//
+// Sealing is a distinct function rather than a flag because a new payment route
+// should have to say which of the two it is. A route that quietly gets the
+// read-only variant is the bug this split exists to make visible — and
+// paymentroutes_seal_test.go fails if a write scope reaches the wrong one.
+func developerPaymentAuthorityForArtifact(w http.ResponseWriter, r *http.Request, scope string, seal bindingSealer) (*developerPayee, bool, bool) {
+	return resolveDeveloperPaymentAuthority(w, r, scope, seal)
+}
+
+func resolveDeveloperPaymentAuthority(w http.ResponseWriter, r *http.Request, scope string, seal bindingSealer) (*developerPayee, bool, bool) {
 	dp, ok := middleware.GetDeveloperPrincipal(r.Context())
 	if !ok {
 		return nil, false, false // merchant-JWT (or unauthenticated) — not our path
@@ -53,7 +76,27 @@ func developerPaymentAuthority(w http.ResponseWriter, r *http.Request, scope str
 			"this project is not provisioned to accept payments")
 		return nil, true, true
 	}
-	return &developerPayee{merchantID: dp.MerchantID, walletID: dp.WalletID, walletAccountID: dp.WalletAccountID}, false, true
+	payee := &developerPayee{merchantID: dp.MerchantID, walletID: dp.WalletID, walletAccountID: dp.WalletAccountID}
+	if seal == nil {
+		return payee, false, true
+	}
+	// The seal also re-checks that this payee is STILL the project's ACTIVE
+	// binding. The principal carries a snapshot from key introspection; between
+	// then and now an operator correction may have moved it, and issuing an
+	// artifact against the stale payee is exactly the split-brain ADR-055
+	// forbids.
+	switch err := seal.SealForArtifact(r.Context(), dp.ProjectID, dp.MerchantID, dp.WalletID); {
+	case err == nil:
+	case errors.Is(err, service.ErrBindingMoved):
+		apierror.Respond(w, r, http.StatusConflict, "BINDING_CHANGED",
+			"this project's payment binding changed — retry the request")
+		return nil, true, true
+	default:
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "PAYMENTS_UNAVAILABLE",
+			"payment authority could not be confirmed")
+		return nil, true, true
+	}
+	return payee, false, true
 }
 
 // rejectClientPayeeFields writes a 400 and returns true if a developer-key

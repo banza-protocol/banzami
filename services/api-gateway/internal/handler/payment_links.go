@@ -18,6 +18,7 @@ import (
 )
 
 type PaymentLinkHandler struct {
+	seal        bindingSealer
 	svc         service.PaymentLinkService
 	merchantSvc service.MerchantService
 	webhookSvc  service.WebhookService
@@ -25,6 +26,15 @@ type PaymentLinkHandler struct {
 
 func NewPaymentLinkHandler(svc service.PaymentLinkService, merchantSvc service.MerchantService, webhookSvc service.WebhookService) *PaymentLinkHandler {
 	return &PaymentLinkHandler{svc: svc, merchantSvc: merchantSvc, webhookSvc: webhookSvc}
+}
+
+// WithBindingSeal supplies the ADR-055 seal used when a developer key ISSUES a
+// payment link. Nil leaves the handler unable to issue one for a developer key,
+// which is the correct fail-closed default rather than issuing an unsealed
+// artifact.
+func (h *PaymentLinkHandler) WithBindingSeal(s bindingSealer) *PaymentLinkHandler {
+	h.seal = s
+	return h
 }
 
 // POST /v1/payment-links
@@ -90,7 +100,7 @@ func (h *PaymentLinkHandler) requireOwnedLink(w http.ResponseWriter, r *http.Req
 func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Developer-key authority (payee from the Project binding) OR merchant JWT
 	// (existing body-supplied identity). Scope enforced before business logic.
-	dev, handled, isDev := developerPaymentAuthority(w, r, "payment_links:write")
+	dev, handled, isDev := developerPaymentAuthorityForArtifact(w, r, "payment_links:write", h.seal)
 	if handled {
 		return
 	}

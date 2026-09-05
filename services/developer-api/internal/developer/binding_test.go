@@ -218,25 +218,32 @@ func TestIntrospect_BoundProjectSurfacesPayee(t *testing.T) {
 	}
 }
 
-func TestBinding_SealArtifactIdempotentAndPreservesBinding(t *testing.T) {
+// sealViaStore marks a binding sealed the way the gateway's atomic UPDATE does
+// (ADR-055). The seal is issued by the api-gateway on the request that creates
+// the payment artifact; developer-api only has to REFUSE to move a sealed
+// binding, which is what these tests exercise.
+func sealViaStore(t *testing.T, st *memStore, projectID string) {
+	t.Helper()
+	b, err := st.ActiveBindingForProject(bg, projectID)
+	if err != nil || b == nil {
+		t.Fatalf("no active binding to seal for %s: %v", projectID, err)
+	}
+	if err := st.MarkBindingArtifactCreated(bg, b.ID); err != nil {
+		t.Fatalf("seal: %v", err)
+	}
+}
+
+func TestBinding_SealIsIdempotentAndPreservesTheBinding(t *testing.T) {
 	s, st, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.SealBindingArtifact(bg, pid); err != nil {
-		t.Fatalf("first seal: %v", err)
-	}
-	if err := s.SealBindingArtifact(bg, pid); err != nil {
-		t.Fatalf("seal must be idempotent: %v", err)
-	}
+	sealViaStore(t, st, pid)
+	sealViaStore(t, st, pid) // idempotent
 	b, _ := st.ActiveBindingForProject(bg, pid)
-	if b == nil || !b.ArtifactCreated {
-		t.Fatalf("binding must remain ACTIVE and sealed, got %+v", b)
-	}
-	// Sealing a project with no binding is a NotFound, never a silent success.
-	if err := s.SealBindingArtifact(bg, "p_missing"); err != ErrNotFound {
-		t.Errorf("seal unbound: want ErrNotFound, got %v", err)
+	if b == nil || !b.ArtifactCreated || b.MerchantID != mID {
+		t.Fatalf("binding must remain ACTIVE, sealed and unmoved, got %+v", b)
 	}
 }
 
@@ -319,9 +326,7 @@ func TestRebind_RefusesASealedBinding(t *testing.T) {
 	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.SealBindingArtifact(bg, pid); err != nil {
-		t.Fatal(err)
-	}
+	sealViaStore(t, st, pid)
 	if _, _, err := s.RebindProjectSandbox(bg, pid, "m2", "w2", "wa2", "u_owner", "", ""); err != ErrConflict {
 		t.Fatalf("rebind of a sealed binding: want ErrConflict, got %v", err)
 	}
