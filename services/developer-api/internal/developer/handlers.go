@@ -128,22 +128,40 @@ func (h *Handlers) bindProjectSandbox(w http.ResponseWriter, r *http.Request) {
 		WalletID        string `json:"wallet_id"`
 		WalletAccountID string `json:"wallet_account_id"`
 		ActorUserID     string `json:"actor_user_id"`
+		// Supersede corrects an existing binding instead of conflicting with it.
+		// Opt-in, so the default stays fail-closed: a caller that means to bind
+		// a fresh project cannot silently replace a payee by omission.
+		Supersede bool `json:"supersede"`
 	}
 	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
 		return
 	}
 	ip, rid := reqMeta(r)
-	b, err := h.svc.BindProjectSandbox(r.Context(), chi.URLParam(r, "projID"),
-		in.MerchantID, in.WalletID, in.WalletAccountID, in.ActorUserID, ip, rid)
+	var (
+		b          SandboxBinding
+		superseded string
+		err        error
+	)
+	if in.Supersede {
+		b, superseded, err = h.svc.RebindProjectSandbox(r.Context(), chi.URLParam(r, "projID"),
+			in.MerchantID, in.WalletID, in.WalletAccountID, in.ActorUserID, ip, rid)
+	} else {
+		b, err = h.svc.BindProjectSandbox(r.Context(), chi.URLParam(r, "projID"),
+			in.MerchantID, in.WalletID, in.WalletAccountID, in.ActorUserID, ip, rid)
+	}
 	if err != nil {
 		mapErr(w, err)
 		return
 	}
-	httpx.JSON(w, http.StatusCreated, map[string]any{
+	out := map[string]any{
 		"binding_id": b.ID, "project_id": b.ProjectID, "state": b.State,
 		"artifact_created": b.ArtifactCreated, "created_at": b.CreatedAt,
-	})
+	}
+	if superseded != "" {
+		out["superseded_binding_id"] = superseded
+	}
+	httpx.JSON(w, http.StatusCreated, out)
 }
 
 // authorizeKey delegates external developer-key verification for the Gateway.

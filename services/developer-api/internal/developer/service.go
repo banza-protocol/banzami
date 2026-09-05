@@ -800,6 +800,70 @@ func (s *Service) BindProjectSandbox(ctx context.Context, projectID, merchantID,
 	return b, nil
 }
 
+// RebindProjectSandbox corrects a project's payee binding.
+//
+// Binding used to be a one-way door: CreateBinding conflicts on the
+// one-ACTIVE-per-project index and nothing ever set a binding to DISABLED, so a
+// project bound to the wrong merchant stayed bound to it forever. That is how
+// DOA came to resolve @e2edoa17885371237909198 — an E2E fixture — with no
+// supported way back.
+//
+// The correction is deliberately narrow:
+//
+//   - the new payee is validated by Core exactly as a first binding is, so a
+//     rebind can no more name a foreign wallet than a bind can;
+//   - a SEALED binding is refused. Once a payment artifact exists under it the
+//     payee can never change (ADR-047 §3.2) — correcting a mistake before any
+//     money moved is not the same as reattributing money that already did;
+//   - the swap is one transaction, so the project is never left unbound;
+//   - both binding ids are audited, so the change has a before and an after.
+func (s *Service) RebindProjectSandbox(ctx context.Context, projectID, merchantID, walletID, walletAccountID, actorUserID, ip, reqID string) (SandboxBinding, string, error) {
+	if projectID == "" || merchantID == "" || walletID == "" || walletAccountID == "" || actorUserID == "" {
+		return SandboxBinding{}, "", ErrValidation
+	}
+	proj, err := s.store.Project(ctx, projectID)
+	if err != nil || proj == nil {
+		return SandboxBinding{}, "", ErrNotFound
+	}
+	current, err := s.store.ActiveBindingForProject(ctx, projectID)
+	if err != nil {
+		return SandboxBinding{}, "", ErrUnavailable
+	}
+	if current != nil && current.ArtifactCreated {
+		s.audit(ctx, &actorUserID, &proj.WorkspaceID, &projectID, "project.sandbox_rebind_rejected",
+			"BINDING:"+current.ID, ip, reqID, map[string]any{"reason": "SEALED"})
+		return SandboxBinding{}, "", ErrConflict
+	}
+	if s.payee == nil {
+		return SandboxBinding{}, "", ErrUnavailable
+	}
+	valid, reason, verr := s.payee.ValidatePayee(ctx, merchantID, walletID, walletAccountID)
+	if verr != nil {
+		return SandboxBinding{}, "", ErrUnavailable
+	}
+	if !valid {
+		s.audit(ctx, &actorUserID, &proj.WorkspaceID, &projectID, "project.sandbox_rebind_rejected",
+			"PROJECT:"+projectID, ip, reqID, map[string]any{"reason": reason})
+		return SandboxBinding{}, "", ErrValidation
+	}
+	b, superseded, err := s.store.SupersedeAndCreateBinding(ctx, BindingInsert{
+		ProjectID: projectID, MerchantID: merchantID, WalletID: walletID,
+		WalletAccountID: walletAccountID, CreatedByUserID: actorUserID,
+	})
+	if err == ErrConflict {
+		return SandboxBinding{}, "", ErrConflict
+	}
+	if err != nil {
+		return SandboxBinding{}, "", ErrUnavailable
+	}
+	s.audit(ctx, &actorUserID, &proj.WorkspaceID, &projectID, "project.sandbox_rebound",
+		"BINDING:"+b.ID, ip, reqID, map[string]any{
+			"merchant_id": merchantID, "wallet_account_id": walletAccountID,
+			"superseded_binding_id": superseded,
+		})
+	return b, superseded, nil
+}
+
 // SealBindingArtifact marks the project's ACTIVE binding immutable once its first
 // payment artifact is created (idempotent). After this, the binding's payee can
 // never change — no retroactive reattribution (ADR-047 §3.2).

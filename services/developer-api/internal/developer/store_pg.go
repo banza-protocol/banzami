@@ -439,6 +439,48 @@ func (s *pgStore) CreateBinding(ctx context.Context, in BindingInsert) (SandboxB
 	return *b, nil
 }
 
+// SupersedeAndCreateBinding disables the project's ACTIVE binding and records a
+// new one atomically. Returns the new binding and the id of the one it replaced
+// ("" when the project had none).
+func (s *pgStore) SupersedeAndCreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, string, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return SandboxBinding{}, "", err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // no-op after a successful commit
+
+	var superseded string
+	// A sealed binding is excluded here as well as in the service: once a payment
+	// artifact exists the payee can never change (ADR-047 §3.2), and the rule
+	// should hold even if a future caller reaches this store directly.
+	err = tx.QueryRow(ctx,
+		`UPDATE developer.dev_project_sandbox_binding
+		    SET state = 'DISABLED', updated_at = now()
+		  WHERE project_id = $1 AND state = 'ACTIVE' AND artifact_created = false
+		  RETURNING id::text`, in.ProjectID).Scan(&superseded)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return SandboxBinding{}, "", err
+	}
+
+	b, err := scanBinding(tx.QueryRow(ctx,
+		`INSERT INTO developer.dev_project_sandbox_binding
+		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id)
+		 VALUES ($1,$2,$3,$4,$5) RETURNING `+bindingCols,
+		in.ProjectID, in.MerchantID, in.WalletID, in.WalletAccountID, in.CreatedByUserID))
+	if err != nil {
+		if isUnique(err) {
+			// The only ACTIVE row left is a sealed one, which the UPDATE above
+			// deliberately refused to touch.
+			return SandboxBinding{}, "", ErrConflict
+		}
+		return SandboxBinding{}, "", err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return SandboxBinding{}, "", err
+	}
+	return *b, superseded, nil
+}
+
 func (s *pgStore) ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error) {
 	b, err := scanBinding(s.pool.QueryRow(ctx,
 		`SELECT `+bindingCols+` FROM developer.dev_project_sandbox_binding

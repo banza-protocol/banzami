@@ -225,6 +225,12 @@ type Store interface {
 	CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error)
 	// ActiveBindingForProject returns the project's ACTIVE binding, or nil.
 	ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error)
+	// SupersedeAndCreateBinding replaces a project's ACTIVE binding with a new
+	// one in ONE transaction: the old row moves to DISABLED and the new row is
+	// inserted. Two statements would leave a window in which the project has no
+	// payee at all, and a failure between them would leave it unbound.
+	SupersedeAndCreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, string, error)
+
 	// MarkBindingArtifactCreated flips artifact_created true (idempotent), sealing
 	// the binding against rebinding. Called when the first payment artifact is made.
 	MarkBindingArtifactCreated(ctx context.Context, bindingID string) error

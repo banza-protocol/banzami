@@ -264,3 +264,152 @@ func TestBinding_AuditRecordsNoSecretsAndIdentifiesMerchant(t *testing.T) {
 		t.Error("binding must emit a project.sandbox_bound audit event")
 	}
 }
+
+// ── Rebinding ────────────────────────────────────────────────────────────────
+//
+// Binding used to be a one-way door: CreateBinding conflicts on the
+// one-ACTIVE-per-project index and nothing ever set a binding to DISABLED, so a
+// project bound to the wrong merchant stayed bound to it forever. DOA sat in
+// exactly that state, resolving an E2E fixture instead of @doa.
+//
+// The correction has to stay narrow, so what it REFUSES is tested as closely as
+// what it does.
+
+func TestRebind_ReplacesTheActiveBinding(t *testing.T) {
+	s, st, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	first, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	b, superseded, err := s.RebindProjectSandbox(bg, pid, "m2", "w2", "wa2", "u_owner", "", "")
+	if err != nil {
+		t.Fatalf("rebind: %v", err)
+	}
+	if superseded != first.ID {
+		t.Errorf("superseded = %q, want the previous binding %q", superseded, first.ID)
+	}
+	if b.MerchantID != "m2" || b.State != "ACTIVE" {
+		t.Errorf("new binding = %+v", b)
+	}
+	// Exactly one ACTIVE binding remains, and it is the new one.
+	active, _ := st.ActiveBindingForProject(bg, pid)
+	if active == nil || active.ID != b.ID || active.MerchantID != "m2" {
+		t.Errorf("active binding after rebind = %+v", active)
+	}
+	// The old one is retained as DISABLED — the history is not deleted.
+	var disabled int
+	for _, x := range st.bindings {
+		if x.ProjectID == pid && x.State == "DISABLED" {
+			disabled++
+		}
+	}
+	if disabled != 1 {
+		t.Errorf("disabled bindings = %d, want 1 (the superseded row is kept)", disabled)
+	}
+}
+
+// ADR-047 §3.2: once a payment artifact exists, the payee can never change.
+// Correcting a mistake before any money moved is not the same as reattributing
+// money that already did.
+func TestRebind_RefusesASealedBinding(t *testing.T) {
+	s, st, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SealBindingArtifact(bg, pid); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := s.RebindProjectSandbox(bg, pid, "m2", "w2", "wa2", "u_owner", "", ""); err != ErrConflict {
+		t.Fatalf("rebind of a sealed binding: want ErrConflict, got %v", err)
+	}
+	// And the payee is untouched.
+	active, _ := st.ActiveBindingForProject(bg, pid)
+	if active == nil || active.MerchantID != mID {
+		t.Errorf("sealed binding must be unchanged, got %+v", active)
+	}
+}
+
+// A rebind must be no weaker than a first bind: Core still decides whether the
+// payee is real, and a rejection leaves the existing binding in place.
+func TestRebind_FailsClosedOnCoreRejection(t *testing.T) {
+	s, st, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	s.SetPayeeValidator(&fakePayee{valid: false, reason: "WALLET_NOT_OWNED"})
+	if _, _, err := s.RebindProjectSandbox(bg, pid, "stolen", "w9", "wa9", "u_owner", "", ""); err != ErrValidation {
+		t.Fatalf("rebind to an invalid payee: want ErrValidation, got %v", err)
+	}
+	active, _ := st.ActiveBindingForProject(bg, pid)
+	if active == nil || active.MerchantID != mID {
+		t.Errorf("a rejected rebind must leave the payee alone, got %+v", active)
+	}
+
+	s.SetPayeeValidator(nil)
+	if _, _, err := s.RebindProjectSandbox(bg, pid, "m2", "w2", "wa2", "u_owner", "", ""); err != ErrUnavailable {
+		t.Errorf("no validator: want ErrUnavailable, got %v", err)
+	}
+}
+
+func TestRebind_RequiresAllIdsAndAKnownProject(t *testing.T) {
+	s, _, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	for _, c := range []struct{ name, p, m, w, wa, actor string }{
+		{"no project", "", mID, wID, waID, "u_owner"},
+		{"no merchant", pid, "", wID, waID, "u_owner"},
+		{"no wallet", pid, mID, "", waID, "u_owner"},
+		{"no wallet account", pid, mID, wID, "", "u_owner"},
+		{"no actor", pid, mID, wID, waID, ""},
+	} {
+		if _, _, err := s.RebindProjectSandbox(bg, c.p, c.m, c.w, c.wa, c.actor, "", ""); err != ErrValidation {
+			t.Errorf("%s: want ErrValidation, got %v", c.name, err)
+		}
+	}
+	if _, _, err := s.RebindProjectSandbox(bg, "p_missing", mID, wID, waID, "u_owner", "", ""); err != ErrNotFound {
+		t.Error("unknown project must be NotFound")
+	}
+}
+
+// A rebind is a change of financial payee, so it must be legible afterwards:
+// which project, which new merchant, and which binding it replaced.
+func TestRebind_AuditsBothSidesOfTheChange(t *testing.T) {
+	s, st, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	first, _ := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", "")
+	b, _, err := s.RebindProjectSandbox(bg, pid, "m2", "w2", "wa2", "u_owner", "1.2.3.4", "req-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var found bool
+	for _, ev := range st.Audits {
+		if ev.Action == "project.sandbox_rebound" && ev.Subject == "BINDING:"+b.ID {
+			found = true
+			if ev.Metadata["superseded_binding_id"] != first.ID {
+				t.Errorf("audit must name the replaced binding, got %v", ev.Metadata["superseded_binding_id"])
+			}
+			if ev.Metadata["merchant_id"] != "m2" {
+				t.Errorf("audit must name the new merchant, got %v", ev.Metadata["merchant_id"])
+			}
+		}
+	}
+	if !found {
+		t.Error("no project.sandbox_rebound audit event")
+	}
+}
+
+// Non-vacuity: without the rebind path this is what a caller gets, and it is
+// why DOA could not be corrected.
+func TestRebind_PlainBindStillConflicts(t *testing.T) {
+	s, _, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	if _, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.BindProjectSandbox(bg, pid, "m2", "w2", "wa2", "u_owner", "", ""); err != ErrConflict {
+		t.Fatalf("a plain bind must still refuse to replace: got %v", err)
+	}
+}

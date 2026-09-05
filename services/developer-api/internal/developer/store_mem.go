@@ -367,6 +367,35 @@ func (m *memStore) CreateBinding(_ context.Context, in BindingInsert) (SandboxBi
 	return *b, nil
 }
 
+// SupersedeAndCreateBinding mirrors the SQL: disable the unsealed ACTIVE
+// binding, then insert. A sealed one is left alone and the insert then conflicts
+// — the same outcome the partial unique index produces.
+func (m *memStore) SupersedeAndCreateBinding(_ context.Context, in BindingInsert) (SandboxBinding, string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var superseded string
+	for _, b := range m.bindings {
+		if b.ProjectID == in.ProjectID && b.State == "ACTIVE" && !b.ArtifactCreated {
+			b.State = "DISABLED"
+			superseded = b.ID
+			break
+		}
+	}
+	for _, b := range m.bindings {
+		if b.ProjectID == in.ProjectID && b.State == "ACTIVE" {
+			return SandboxBinding{}, "", ErrConflict
+		}
+	}
+	b := &SandboxBinding{
+		ID: m.id("bnd_"), ProjectID: in.ProjectID, Environment: "SANDBOX",
+		MerchantID: in.MerchantID, WalletID: in.WalletID, WalletAccountID: in.WalletAccountID,
+		State: "ACTIVE", ArtifactCreated: false, CreatedByUserID: in.CreatedByUserID,
+		CreatedAt: time.Now(),
+	}
+	m.bindings = append(m.bindings, b)
+	return *b, superseded, nil
+}
+
 func (m *memStore) ActiveBindingForProject(_ context.Context, projectID string) (*SandboxBinding, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
