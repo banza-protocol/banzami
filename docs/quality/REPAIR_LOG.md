@@ -1757,3 +1757,159 @@ Once 0.8.1 is published, both 0.7.0 and 0.8.0 carry an identified, proven defect
 that reason, recorded here, and not for the existence of a newer version.
 
 **Related:** RA-061, RA-064 (the refundable object itself), CAP-SDK-001.
+
+---
+
+## RA-066
+
+- **Title:** The Console's Logs screen answered a different question than the one it was opened to ask
+- **Status:** FIXED and DEPLOYED (2026-09-05) — migration 0104, ADR-054, CAP-DEV-003
+- **Severity: medium** (documented workflow had no implementation)
+- **Environment:** Sandbox. No real money.
+
+The Logs screen showed webhook events and delivery attempts. That data is real
+and correctly project-scoped, and it is not what a developer means by "logs":
+they open the screen to find *the request they just made*.
+
+The docs made the gap worse rather than hiding it. They tell integrators to keep
+the `request_id` from an error envelope and quote it in support — and nothing
+persisted a per-request row, so neither the developer nor support could resolve
+one. The page said so plainly instead of inventing a table, which was the right
+answer to not having the feature and was never the feature.
+
+**Fix.** The api-gateway records one row per Developer API request that
+authenticated with a project credential (`developer.dev_api_request_logs`,
+migration 0104); developer-api serves them back scoped to one project.
+
+Attribution happens in `resolveDeveloperPrincipal` — the single place a
+developer key is ever accepted — so no handler can forget, and the row is
+written after the response completes, so failures are logged for the same reason
+successes are. A request that fails *authentication* is not written: there is no
+project to attribute it to, and attributing it to a guess would let an
+unauthenticated caller write rows into a stranger's log.
+
+What the table cannot hold is the point. No `Authorization`, no key, no webhook
+secret, cookie, OTP or body — and no JSONB column, so a later handler has
+nowhere to put one without a migration and a review. The stored path drops its
+query string and redacts any `bz_*_(sk|pk)_…` token.
+
+**Deployed proof:** `tools/e2e/dev-console/api-logs-correlation-e2e.mjs`, 15/15
+against the deployed Sandbox — a real project key makes a real Gateway request,
+its `request_id` is read off the response, and the same id is found through the
+Console with matching method, path and status, then pasted into the real search
+box and seen on screen. Isolation both ways; A's `request_id` inside B's own
+project answers exactly as an id that never existed.
+
+**Retention:** 30 days, pruned hourly, proved against a real database — rows
+past the window deleted, rows inside it kept, because deleting everything would
+satisfy half the claim. `developer.audit_events` is immutable and governed
+separately; the pruner never names it.
+
+---
+
+## RA-067
+
+- **Title:** A real `request_id` could not be found by pasting it into the Logs search
+- **Status:** FIXED and DEPLOYED (2026-09-05)
+- **Severity: medium** (the one workflow the feature exists for)
+- **Environment:** Sandbox.
+
+The docs' error envelope showed `"request_id": "req_XXXXXXXX"`. The gateway
+emits 32 hex characters with no prefix (`services/common/obs` `newID`). The
+Console's search decided "is this an id or a path?" by looking for that `req_`
+prefix, so pasting a **real** `request_id` searched the path instead and found
+nothing.
+
+Found by the correlation E2E on its first run — the browser half failed while
+the API half passed, which is exactly the split a placeholder-vs-reality bug
+produces.
+
+**Fix.** The search recognises an id by shape. Every documented sample — both
+docs languages and both OpenAPI copies — now carries the shape the operator
+actually emits, and `apps/website/app/developers/request-id-shape.test.ts` reads
+the generator so docs and reality cannot drift apart again.
+
+---
+
+## RA-068
+
+- **Title:** The published SDK's types demanded a Node global, and its documented import path did not exist
+- **Status:** FIXED and PUBLISHED (2026-09-05) — @banzami/sdk 0.8.2 on npm
+- **Severity: low** (both invisible to every in-repo consumer)
+- **Environment:** npm registry.
+
+Two defects a consumer meets before writing a line of business code:
+
+1. `webhooks.d.ts` typed the raw body as `string | Buffer`. `Buffer` is a Node
+   global the package neither supplies nor requires, so a project with
+   `skipLibCheck: false` and no `@types/node` got five errors out of a file it
+   never imported.
+2. `exports` declared no `./webhooks` subpath, so
+   `import { constructEvent } from '@banzami/sdk/webhooks'` — the import the
+   module's own example teaches — failed with **TS2307** under `NodeNext`.
+
+Both were invisible in-repo because our own projects have `@types/node` and
+import from the package root. The broken path was the documented one.
+
+**Fix (0.8.2).** Public signatures take `string | Uint8Array` (`Buffer` extends
+it, so every existing caller still compiles; the implementation is unchanged),
+and `./webhooks` is exported for ESM, CJS and types.
+
+**Non-vacuity:** `tests/phase0/sdk-types-cleanroom.sh` builds the consumer that
+would have caught both — fresh project outside both repositories, strict,
+`skipLibCheck: false`, deliberately without `@types/node`, plus a second pass
+*with* `@types/node` proving a `Buffer` caller still compiles. It fails against
+the published 0.8.1 on both counts and passes on 0.8.2.
+
+---
+
+## RA-069
+
+- **Title:** A deployed Doa environment had no supported way to make its first admin
+- **Status:** FIXED (2026-09-05) — `scripts/bootstrap-admin.ts`, documented in `OPERATIONS.md`
+- **Severity: medium** (operational gap; the workaround was unaudited)
+- **Environment:** Doa (github.com/…/doa), pre-launch.
+
+Doa promotes admins through the Console (`adminPromoteToAdmin`), which requires
+an existing admin — correct for every admin after the first, and unable to
+produce the first. `supabase/seed.sql` creates one, but it is a local dev seed
+that must never run against a deployed database. What remained was editing
+`profiles.role` by hand in the SQL editor: no email confirmation, no audit row,
+no attribution.
+
+**Fix.** A bootstrap that is deliberately not a general privilege tool. It
+refuses once **any** admin exists — promotion then belongs in the Console, where
+it is authorised and audited, and a second path that skips it is a back door
+however carefully written. It promotes only an already-registered user, looked
+up by email, creates no account, sets no password, and writes its own
+`audit_log` row (`admin.bootstrap`).
+
+The refusals are the safety, so the decision lives in `lib/ops/admin-bootstrap.ts`
+and is tested without a database, including the non-vacuity check that the
+promote path is genuinely reachable.
+
+---
+
+## RA-070
+
+- **Title:** "The site works" was standing in as evidence of the Supabase credential migration
+- **Status:** PARTIALLY CLOSED (2026-09-05) — deployed diagnostic shipped; control-plane confirmation is an owner reading
+- **Severity: low** (evidence quality, not a live exposure)
+- **Environment:** Doa production.
+
+A working site proves the credentials currently configured are **valid**. It
+says nothing about which key model they belong to, and a legacy key that still
+works is precisely the state a migration is meant to end. The inference was
+being used as if it closed the incident.
+
+**Fix.** `GET /api/ops/credential-model` (admin-only) reports the key model of
+the environment **actually running** — `sb_publishable_…` / `sb_secret_…` versus
+legacy JWT — as a classification, never a value. The classifier is shared with
+`scripts/check-supabase.ts` so the local check and the deployment cannot
+disagree about what "current" means.
+
+**What it cannot answer, and says so in its own response:** whether the
+previously issued legacy keys were *deactivated* in the Supabase Dashboard.
+That is control-plane state the application cannot see. It is read under
+**Supabase → Project Settings → API Keys → Legacy API keys**, and that reading
+is what will close this entry.
