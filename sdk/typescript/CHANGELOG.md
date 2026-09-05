@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the published types required Node globals the package never declared
+
+`webhooks.d.ts` typed the raw body as `string | Buffer`, putting a Node global
+in the package's public type surface without the package supplying or requiring
+`@types/node`. A consumer with `skipLibCheck: false` and no Node types got five
+errors out of a file they never imported.
+
+The public signatures now take `string | Uint8Array`. `Buffer` extends
+`Uint8Array`, so every existing caller still compiles; the implementation is
+unchanged. Low severity — invisible with `skipLibCheck: true` (the common app
+default) or with `@types/node` present, and runtime was never affected.
+
 ## [0.8.1] — 2026-09-05
 
 ### Fixed — refunds were unreachable with the key this SDK documents

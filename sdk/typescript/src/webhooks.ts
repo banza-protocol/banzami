@@ -88,7 +88,7 @@ function parseSignatureHeader(header: string): ParsedHeader {
  *   malformed.
  */
 export function verifySignature(
-  rawBody:   string | Buffer,
+  rawBody:   string | Uint8Array,
   header:    string,
   secret:    string,
   options?: {
@@ -117,7 +117,14 @@ export function verifySignature(
     }
   }
 
-  const body = typeof rawBody === 'string' ? Buffer.from(rawBody, 'utf-8') : rawBody;
+  // Uint8Array in the PUBLIC signature, Buffer internally.
+  //
+  // The exported types said `string | Buffer`, which put a Node global in the
+  // package's type surface without the package supplying or requiring
+  // @types/node: a consumer with strict lib checking and no Node types got five
+  // errors out of a file they never imported. Buffer extends Uint8Array, so
+  // widening breaks no existing caller and stops the types claiming Node.
+  const body = typeof rawBody === 'string' ? Buffer.from(rawBody, 'utf-8') : Buffer.from(rawBody);
 
   const mac = createHmac('sha256', secret);
   mac.update(`${parsed.timestamp}.`);
@@ -149,7 +156,7 @@ export function verifySignature(
  * Parsing the body before verification changes the byte sequence and
  * invalidates the HMAC.
  *
- * @param rawBody  Raw HTTP request body (Buffer or string).
+ * @param rawBody  Raw HTTP request body (a Buffer/Uint8Array or a string).
  * @param header   Value of the `banza-signature` request header.
  * @param secret   Webhook secret from the Banzami dashboard.
  * @returns        Parsed and verified {@link WebhookEvent}.
@@ -174,13 +181,15 @@ export function verifySignature(
  * ```
  */
 export function constructEvent(
-  rawBody: string | Buffer,
+  rawBody: string | Uint8Array,
   header:  string,
   secret:  string,
   options?: Parameters<typeof verifySignature>[3],
 ): WebhookEvent {
   verifySignature(rawBody, header, secret, options);
-  const body = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf-8');
+  // Uint8Array has no encoding-aware toString, so decode explicitly rather than
+  // relying on Buffer's overload — the public signature accepts either.
+  const body = typeof rawBody === 'string' ? rawBody : Buffer.from(rawBody).toString('utf-8');
   return JSON.parse(body) as WebhookEvent;
 }
 
@@ -207,7 +216,7 @@ export function constructEvent(
  * ```
  */
 export function generateTestSignature(
-  rawBody:    string | Buffer,
+  rawBody:    string | Uint8Array,
   secret:     string,
   timestamp?: number,
 ): string {
@@ -262,12 +271,12 @@ export class WebhooksClient {
   /**
    * Verify the `banza-signature` header and parse the webhook event.
    *
-   * @param rawBody  Raw HTTP request body (Buffer or string).
+   * @param rawBody  Raw HTTP request body (a Buffer/Uint8Array or a string).
    * @param header   Value of the `banza-signature` header.
    * @param secret   Override the webhook secret configured on the client.
    */
   constructEvent(
-    rawBody: string | Buffer,
+    rawBody: string | Uint8Array,
     header:  string,
     secret?: string,
   ): WebhookEvent {
@@ -285,7 +294,7 @@ export class WebhooksClient {
    * Generate a valid `banza-signature` header value for local testing.
    */
   generateTestSignature(
-    rawBody:    string | Buffer,
+    rawBody:    string | Uint8Array,
     secret?:    string,
     timestamp?: number,
   ): string {
