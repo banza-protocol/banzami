@@ -171,22 +171,59 @@ pub async fn sandbox_credit(
     let posting_id = LedgerPostingId::new();
     let now = chrono::Utc::now();
 
+    // Balanced double-entry, in ONE transaction:
+    //   DR transit account          (ASSET     — funds leave the system float)
+    //   CR merchant available       (LIABILITY — we now owe the merchant)
+    //
+    // This used to write the CREDIT leg alone, and outside a transaction. Every
+    // posting it produced was single-legged: a credit with no counter-entry is
+    // money created from nothing, and the reconciliation balance checker logged
+    // LEDGER INVARIANT VIOLATION for each one. The consumer top-up beside it was
+    // written correctly from the start; only this path was wrong.
+    //
+    // It also inflated funds-in-circulation, which is how the sandbox exhausted
+    // its aggregate pilot cap and stopped being able to fund new test consumers.
+    // Being sandbox-only kept it away from real money; it did not keep it away
+    // from the invariant the whole ledger rests on.
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
     sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",
     )
     .bind(posting_id.as_uuid())
-    .bind("[SANDBOX] Merchant wallet top-up")
+    .bind("[SANDBOX] Merchant wallet top-up — DR transit / CR merchant available")
     .bind(format!(
         "sandbox-credit-{}-{}",
         wallet_id,
         uuid::Uuid::new_v4()
     ))
     .bind(now)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    // DEBIT: transit account (ASSET — the float pays out)
+    sqlx::query(
+        "INSERT INTO ledger_entries
+         (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)",
+    )
+    .bind(LedgerEntryId::new().as_uuid())
+    .bind(posting_id.as_uuid())
+    .bind(state.transit_account_id.as_uuid())
+    .bind(body.amount_minor)
+    .bind(currency_code)
+    .bind(now)
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // CREDIT: merchant available account (LIABILITY — we owe the merchant)
     sqlx::query(
         "INSERT INTO ledger_entries
          (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
@@ -198,9 +235,13 @@ pub async fn sandbox_credit(
     .bind(body.amount_minor)
     .bind(currency_code)
     .bind(now)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    tx.commit()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
     let new_balance: i64 = sqlx::query_scalar(
         "SELECT COALESCE(

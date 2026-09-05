@@ -33,6 +33,9 @@ import type {
   CreateApplicationSettlementParams,
   WalletAccount,
   CreateWalletAccountParams,
+  CreateWebhookEndpointParams,
+  WebhookDeliveryRecord,
+  WebhookEndpointHealth,
   CreateBusinessApplicationSettlementParams,
   PaymentSession,
   PaymentSessionInterface,
@@ -459,29 +462,23 @@ export class BanzamiClient {
   // deliberately no merchant-facing equivalent.
 
   // ---------------------------------------------------------------------------
-  // Consumer wallets
+  // Consumer wallets — REMOVED (RA-058)
   // ---------------------------------------------------------------------------
-
-  getOrCreateConsumerWallet(consumerId: string, currency = 'AOA'): Promise<ConsumerWallet> {
-    return this.request<ConsumerWallet>('/consumer-wallets', {
-      method: 'POST',
-      body:   JSON.stringify({ consumer_id: consumerId, currency }),
-    });
-  }
-
-  getConsumerWallet(walletId: string): Promise<ConsumerWallet> {
-    return this.request<ConsumerWallet>(`/consumer-wallets/${walletId}`);
-  }
-
-  getConsumerWalletBalance(walletId: string): Promise<WalletBalance> {
-    return this.request<WalletBalance>(`/consumer-wallets/${walletId}/balance`);
-  }
-
-  getConsumerWalletForConsumer(consumerId: string, currency = 'AOA'): Promise<ConsumerWallet> {
-    return this.request<ConsumerWallet>(
-      `/consumer-wallets${this.qs({ consumer_id: consumerId, currency })}`,
-    );
-  }
+  //
+  // getOrCreateConsumerWallet / getConsumerWallet / getConsumerWalletBalance /
+  // getConsumerWalletForConsumer used to live here. The gateway routes behind
+  // them are deliberately unmounted: they let a caller open a wallet for ANY
+  // consumer, resolve ANY consumer's wallet, and read ANY consumer's balance,
+  // by id and with no ownership check.
+  //
+  // The routes went first and the SDK methods stayed, so the published package
+  // advertised four methods that could only ever 404 — and, worse, described a
+  // platform where one caller reaches another person's wallet. A route-drift
+  // test now reads the gateway's router and fails on any method pointing at
+  // something unmounted.
+  //
+  // A consumer reaches their own wallet through the consumer app's own
+  // authenticated surface, which knows who is asking.
 
   // ---------------------------------------------------------------------------
   // Transfers (P2P) — REMOVED
@@ -690,6 +687,81 @@ export class BanzamiClient {
 
   getWalletAccount(id: string): Promise<WalletAccount> {
     return this.request<WalletAccount>(`/business/wallet-accounts/${id}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Webhook endpoints — manage where your project's events are delivered
+  // ---------------------------------------------------------------------------
+  //
+  // These reach the same routes with either credential. With a Developer
+  // Platform key the owner comes from your project binding; there is no
+  // merchant field to supply. An endpoint belonging to another project reads as
+  // 404, never 403, so an id cannot be used to probe for one.
+
+  /**
+   * Register a destination for your events.
+   *
+   * The returned `secret` is shown EXACTLY ONCE. Store it before you do
+   * anything else — no later call can retrieve it, and the only way to obtain a
+   * usable secret again is to rotate.
+   */
+  createWebhookEndpoint(p: CreateWebhookEndpointParams): Promise<WebhookEndpoint> {
+    return this.request<WebhookEndpoint>('/business/webhooks/endpoints', {
+      method: 'POST',
+      body:   JSON.stringify({ url: p.url, events: p.events }),
+    });
+  }
+
+  listWebhookEndpoints(): Promise<{ data: WebhookEndpoint[] }> {
+    return this.request<{ data: WebhookEndpoint[] }>('/business/webhooks/endpoints');
+  }
+
+  getWebhookEndpoint(id: string): Promise<WebhookEndpoint> {
+    return this.request<WebhookEndpoint>(`/business/webhooks/endpoints/${id}`);
+  }
+
+  /** Stop delivering to an endpoint. Past events and deliveries remain readable. */
+  deactivateWebhookEndpoint(id: string): Promise<void> {
+    return this.request<void>(`/business/webhooks/endpoints/${id}`, { method: 'DELETE' });
+  }
+
+  /**
+   * Issue a NEW signing secret, returned once.
+   *
+   * The cutover is immediate, not overlapping: signatures are verified against
+   * one secret, so update your receiver first, or rotate at a moment when a
+   * short window of rejected deliveries is acceptable. Banzami retries, so a
+   * rejected delivery during that window is not a lost event.
+   */
+  rotateWebhookEndpointSecret(id: string): Promise<WebhookEndpoint> {
+    return this.request<WebhookEndpoint>(
+      `/business/webhooks/endpoints/${id}/rotate-secret`, { method: 'POST' },
+    );
+  }
+
+  endpointHealth(id: string): Promise<WebhookEndpointHealth> {
+    return this.request<WebhookEndpointHealth>(`/business/webhooks/endpoints/${id}/health`);
+  }
+
+  /** Recent events generated for your project (not the deliveries of them). */
+  listWebhookEvents(limit?: number): Promise<{ data: WebhookEvent[] }> {
+    return this.request<{ data: WebhookEvent[] }>(
+      `/business/webhooks/events${limit ? this.qs({ limit: String(limit) }) : ''}`,
+    );
+  }
+
+  /** Delivery attempts for one event — status, attempt count, response code. */
+  listWebhookDeliveries(eventId: string): Promise<{ data: WebhookDeliveryRecord[] }> {
+    return this.request<{ data: WebhookDeliveryRecord[] }>(
+      `/business/webhooks/events/${eventId}/deliveries`,
+    );
+  }
+
+  /** Re-queue a permanently-failed delivery as a fresh attempt. */
+  replayWebhookDelivery(deliveryId: string): Promise<WebhookDeliveryRecord> {
+    return this.request<WebhookDeliveryRecord>(
+      `/business/webhooks/deliveries/${deliveryId}/replay`, { method: 'POST' },
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -911,28 +983,22 @@ export class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Webhooks
-  // ---------------------------------------------------------------------------
+  // Webhooks (legacy aliases)
+  //
+  // These named the merchant-only /webhooks/* routes, which a Developer
+  // Platform key cannot reach. They now delegate to the canonical
+  // /business/webhooks/* methods above, which accept either credential — so a
+  // merchant integration keeps working and a project key works for the first
+  // time. Prefer the canonical names.
 
-  listWebhookEndpoints(): Promise<WebhookEndpoint[]> {
-    return this.request<WebhookEndpoint[]>('/webhooks/endpoints');
-  }
-
+  /** @deprecated Use `createWebhookEndpoint({ url, events })`. */
   registerWebhookEndpoint(url: string, events: string[]): Promise<WebhookEndpoint> {
-    return this.request<WebhookEndpoint>('/webhooks/endpoints', {
-      method: 'POST',
-      body:   JSON.stringify({ url, events }),
-    });
+    return this.createWebhookEndpoint({ url, events });
   }
 
+  /** @deprecated Use `deactivateWebhookEndpoint(id)`. */
   deleteWebhookEndpoint(id: string): Promise<void> {
-    return this.request<void>(`/webhooks/endpoints/${id}`, { method: 'DELETE' });
-  }
-
-  listWebhookEvents(params: { limit?: number; cursor?: string } = {}): Promise<Page<WebhookEvent>> {
-    return this.request<Page<WebhookEvent>>(
-      `/webhooks/events${this.qs({ limit: params.limit, cursor: params.cursor })}`,
-    );
+    return this.deactivateWebhookEndpoint(id);
   }
 
   // ---------------------------------------------------------------------------
@@ -1004,52 +1070,17 @@ export class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Payment requests
+  // Payment requests — REMOVED (RA-057)
   // ---------------------------------------------------------------------------
-
-  createPaymentRequest(params: CreatePaymentRequestParams): Promise<PaymentRequest> {
-    return this.request<PaymentRequest>('/payment-requests', {
-      method: 'POST',
-      body:   JSON.stringify({
-        requester_id:    params.requester_id,
-        payer_handle:    params.payer_handle ?? null,
-        amount_minor:    params.amount_minor,
-        currency:        params.currency,
-        description:     params.description ?? null,
-        expires_at:      params.expires_at ?? null,
-        idempotency_key: params.idempotency_key ?? crypto.randomUUID(),
-      }),
-    });
-  }
-
-  getPaymentRequest(id: string): Promise<PaymentRequest> {
-    return this.request<PaymentRequest>(`/payment-requests/${id}`);
-  }
-
-  listPaymentRequests(params: ListPaymentRequestsParams = {}): Promise<Page<PaymentRequest>> {
-    return this.request<Page<PaymentRequest>>(
-      `/payment-requests${this.qs({ status: params.status, limit: params.limit })}`,
-    );
-  }
-
-  payPaymentRequest(id: string, payerId: string): Promise<PaymentRequest> {
-    return this.request<PaymentRequest>(`/payment-requests/${id}/pay`, {
-      method: 'POST',
-      body:   JSON.stringify({ payer_id: payerId }),
-    });
-  }
-
-  declinePaymentRequest(id: string, payerId: string): Promise<PaymentRequest> {
-    return this.request<PaymentRequest>(`/payment-requests/${id}/decline`, {
-      method: 'POST',
-      body:   JSON.stringify({ payer_id: payerId }),
-    });
-  }
-
-  cancelPaymentRequest(id: string, requesterId: string): Promise<PaymentRequest> {
-    return this.request<PaymentRequest>(`/payment-requests/${id}/cancel`, {
-      method: 'POST',
-      body:   JSON.stringify({ requester_id: requesterId }),
-    });
-  }
+  //
+  // createPaymentRequest / getPaymentRequest / listPaymentRequests /
+  // payPaymentRequest / declinePaymentRequest / cancelPaymentRequest used to
+  // live here. Their gateway routes are deliberately unmounted: they let a
+  // caller name ANY requester and ANY payer and then execute the request,
+  // debiting a payer who authorised nothing.
+  //
+  // Same shape of defect as the consumer wallets above — the routes were pulled
+  // for a security reason and the client surface was left behind, publishing six
+  // methods that cannot work and implying a capability the platform refuses to
+  // offer.
 }

@@ -290,6 +290,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)
 				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
 				r.Get("/endpoints/{id}/health", wbhHandler.EndpointHealth)
+				r.Post("/endpoints/{id}/rotate-secret", wbhHandler.RotateSecret)
 
 				r.Get("/events", wbhHandler.ListEvents)
 				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
@@ -578,6 +579,25 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Post("/", walletAccountHandler.Create)
 				r.Get("/", walletAccountHandler.List)
 				r.Get("/{id}", walletAccountHandler.Get)
+			})
+			// Webhooks belong here for the same reason wallet accounts do: an
+			// application must be able to manage the endpoint that carries its
+			// OWN events. While these were merchant-JWT only, a Developer
+			// Platform integrator had no way to register or inspect one without
+			// holding a merchant credential — the authority level the platform
+			// exists to withhold. The merchant comes from the project binding;
+			// no route here accepts a caller-supplied merchant.
+			r.Route("/business/webhooks", func(r chi.Router) {
+				r.Post("/endpoints", wbhHandler.Register)
+				r.Get("/endpoints", wbhHandler.ListEndpoints)
+				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)
+				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
+				r.Get("/endpoints/{id}/health", wbhHandler.EndpointHealth)
+				r.Post("/endpoints/{id}/rotate-secret", wbhHandler.RotateSecret)
+
+				r.Get("/events", wbhHandler.ListEvents)
+				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
+				r.Post("/deliveries/{id}/replay", wbhHandler.ReplayDelivery)
 			})
 			r.Route("/payment-links", func(r chi.Router) {
 				r.Post("/", paymentLinkHandler.Create)

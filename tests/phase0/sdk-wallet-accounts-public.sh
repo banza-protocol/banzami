@@ -98,6 +98,21 @@ chkne('SESSIONS_DISTINCT', sa.session_id, sb.session_id);
 chk('SESSION_A_TO_A', sa.wallet_account_id, a.id);
 chk('SESSION_B_TO_B', sb.wallet_account_id, b.id);
 
+console.log('### the documented Quickstart, exactly as published');
+// The public docs' minimal example names no payee at all — no merchant, no
+// wallet, no wallet account. That is the shape a developer copies first, and it
+// has to work against the deployed system or the documentation is fiction.
+const quickstart = await banzami.createPaymentSession({
+  amountMinor: 250_000,
+  currency: 'AOA',
+  description: 'Donation',
+});
+chk('QUICKSTART_WITHOUT_PAYEE', !!quickstart.session_id, true);
+// It lands on the project's default account — the binding's — which is the
+// documented behaviour when the field is omitted.
+chk('QUICKSTART_USES_BINDING_DEFAULT',
+    quickstart.wallet_account_id !== a.id && quickstart.wallet_account_id !== b.id, true);
+
 console.log('### the session is payable — an interface the donor can open');
 const link = banzami.paymentSessionInterface(sa, 'PAYMENT_LINK')
           ?? banzami.paymentSessionInterface(sa, 'DEEP_LINK');

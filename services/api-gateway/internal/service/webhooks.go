@@ -54,10 +54,35 @@ type WebhookEvent struct {
 // list is derived from the events the operator actually dispatches; adding a new
 // event type means adding it here, which is the point — an unlisted name is a
 // mistake, not a feature.
+// SupportedWebhookEvents gates REGISTRATION. An unlisted name is rejected rather
+// than silently accepted (RA-062), because an accepted typo produces an endpoint
+// that never fires.
+//
+// That is only true while the list matches what the system emits. It did not: the
+// list held three names while core emitted six more, so an integrator following
+// the public docs — which show `payment_session.paid` in the webhook sample and
+// list it among the events — got UNSUPPORTED_EVENT and could not subscribe to the
+// event the canonical integration is built on. The guard against typos had become
+// a guard against the real events.
+//
+// Keep this in step with what is actually emitted. `webhook_event_coverage_test`
+// reads the emitting Rust source and fails when the two drift.
 var SupportedWebhookEvents = map[string]bool{
 	"payment.completed": true,
 	"payment_link.paid": true,
 	"payout.sent":       true,
+
+	// Emitted by core (payment_sessions.rs) — the ADR-043 session lifecycle.
+	"payment_session.created": true,
+	"payment_session.paid":    true,
+
+	// Emitted by core (application_settlements.rs) — ADR-029 settlement.
+	"application_settlement.completed": true,
+	"application_settlement.cancelled": true,
+	"application_settlement.failed":    true,
+
+	// Emitted by core (refunds) — BANZA ADR-017.
+	"refund.completed": true,
 }
 
 // MaxWebhookURLLength bounds the stored destination (RA-063). Registration
@@ -111,6 +136,22 @@ type WebhookService interface {
 	ListEndpoints(ctx context.Context, merchantID string) ([]*WebhookEndpoint, error)
 	DeactivateEndpoint(ctx context.Context, merchantID, endpointID string) error
 
+	// RotateEndpointSecret issues a NEW signing secret for an endpoint and
+	// returns it once, in the same shape as registration.
+	//
+	// Until this existed, a signing secret was set at registration and had no
+	// management path at all: a secret suspected of exposure could only be
+	// retired by deleting the endpoint and creating another under a new id,
+	// which changes the integration rather than the credential. A production
+	// credential with no rotation is a credential that is never rotated.
+	//
+	// The cutover is deliberate rather than overlapping. Signatures are verified
+	// against one secret, so a receiver updates its secret and the next delivery
+	// is signed with the new one; deliveries already queued under the old secret
+	// keep their signature. Callers should rotate when they can redeploy the
+	// receiver, not during a burst.
+	RotateEndpointSecret(ctx context.Context, merchantID, endpointID string) (*WebhookEndpoint, error)
+
 	// Dispatch enqueues an event for all matching active endpoints.
 	// It is called internally by other service operations (e.g. after a
 	// transaction status changes).
@@ -150,6 +191,19 @@ func NewStubWebhookService() *StubWebhookService {
 	return &StubWebhookService{
 		client: &http.Client{Timeout: 30 * time.Second},
 	}
+}
+
+func (s *StubWebhookService) RotateEndpointSecret(_ context.Context, merchantID, endpointID string) (*WebhookEndpoint, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, ep := range s.endpoints {
+		if ep.ID == endpointID && ep.MerchantID == merchantID {
+			ep.Secret = generateWebhookSecret()
+			cp := *ep
+			return &cp, nil
+		}
+	}
+	return nil, ErrEndpointNotFound
 }
 
 func (s *StubWebhookService) RegisterEndpoint(_ context.Context, req RegisterEndpointRequest) (*WebhookEndpoint, error) {

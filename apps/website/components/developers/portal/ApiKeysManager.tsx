@@ -28,6 +28,8 @@ const ALL_SCOPES = [
   'application_settlements:write',
   'payment_links:write',
   'payment_links:read',
+  'webhooks:write',
+  'webhooks:read',
 ];
 
 // Plain-language purpose, shown under each scope. A developer choosing scopes is
@@ -41,6 +43,8 @@ const SCOPE_HELP: Record<string, string> = {
   'application_settlements:write': 'Liquidar — move dinheiro para um beneficiário.',
   'payment_links:write':           'Criar links de pagamento.',
   'payment_links:read':            'Consultar links de pagamento.',
+  'webhooks:write':                'Registar, desactivar e rodar o segredo de endpoints.',
+  'webhooks:read':                 'Ver endpoints, eventos e entregas.',
 };
 
 // ── Reveal-once dialog ───────────────────────────────────────────────────────

@@ -19,7 +19,13 @@ import { describe, expect, it } from 'vitest';
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 /** Console pages known to render illustrative constants rather than live data. */
-const ILLUSTRATIVE = ['dashboard', 'webhooks', 'logs'];
+//
+// `webhooks` left this list by having its invented data removed rather than by
+// being wired up: it now renders an honest empty state and the SDK calls that do
+// work. That is the other legitimate way off this list, and the reason the
+// second assertion below is phrased as "makes no API call" rather than "is
+// wired" — a page can stop lying without yet telling the truth.
+const ILLUSTRATIVE = ['dashboard', 'logs'];
 
 describe('Console pages with illustrative data', () => {
   it.each(ILLUSTRATIVE)('%s carries the illustrative-data notice', (page) => {
@@ -32,6 +38,19 @@ describe('Console pages with illustrative data', () => {
     // If this fails, the page was wired to the real API — which is good news.
     // Remove it from ILLUSTRATIVE and drop the notice rather than loosening this.
     expect(/fetch\(|developer-api\.banzami\.com/.test(src), `${page} now calls an API`).toBe(false);
+  });
+
+  it('the webhooks page no longer invents endpoints or deliveries', () => {
+    const src = read('app/developers/webhooks/page.tsx');
+    // It advertised minhaloja.co.ao endpoints with delivery counts and success
+    // rates, and deliveries for `invoice.paid` / `transfer.created` — event names
+    // Banzami does not emit. Nothing there was ever real.
+    expect(src).not.toContain('minhaloja');
+    expect(src).not.toContain('invoice.paid');
+    expect(src).not.toContain('transfer.created');
+    // And it points at the API that genuinely works with a project key.
+    expect(src).toContain('createWebhookEndpoint');
+    expect(src).toContain('rotateWebhookEndpointSecret');
   });
 
   it('the notice states plainly that the data is not the reader’s own', () => {

@@ -1424,6 +1424,12 @@ public-api derives the wallet from the authenticated consumer token. `@banzami/s
 and `banzami_flutter` still call these paths; the fix is to withdraw those helpers,
 not to re-expose the surface.
 
+**Follow-up closed (2026-09-05):** `@banzami/sdk` 0.7.0 withdraws the four
+consumer-wallet helpers (and the six payment-request helpers of RA-057). A
+route-drift test now reads the gateway's router and fails any SDK method pointing
+at an unmounted route, so a withdrawn surface cannot silently survive in the
+client again. `banzami_flutter` remains outstanding.
+
 ## RA-059
 
 - **Title:** Sandbox registration grant failure was discarded
@@ -1443,3 +1449,39 @@ logged with its reason.
 
 This weakens some Stage E1.4 balance assertions, and the authority suite reports
 that itself rather than looking stronger than it is.
+
+## RA-060
+
+- **Title:** Every posting in the Sandbox ledger was single-legged
+- **Status:** FIXED in source (2026-09-05) · **Severity: high** (ledger invariant)
+- **Found:** while building the campaign-payment E2E, which could not fund a consumer
+- **Fixed:** `core/api/src/routes/wallets.rs` — `sandbox_credit`
+
+`sandbox_credit` wrote a lone `CREDIT` entry with no counter-`DEBIT`. It was the
+only writer of postings in the Sandbox database, so **91 of 91 postings were
+unbalanced** — a credit with no debit is money created from nothing. The
+reconciliation balance checker had been logging `LEDGER INVARIANT VIOLATION` for
+each one, correctly, and nothing acted on it.
+
+The consumer top-up beside it (`consumer_wallets.rs`) was balanced from the start
+— DR transit / CR consumer available — so this was one path, not a design.
+
+It also wrote the posting and the entry as two statements with no transaction. A
+failure between them leaves a posting with **no entries at all**, which a
+per-posting balance check cannot see: there is nothing to sum. The regression
+covers that case separately for exactly that reason.
+
+Now: DR transit (ASSET) / CR merchant available (LIABILITY), in one transaction.
+Mutation-verified — removing the DEBIT leg again fails the test.
+
+**Not remediated, deliberately:** the 91 historical postings remain unbalanced.
+The ledger is append-only, so they cannot be edited, and the correct remedy — a
+balancing posting per entry — would move Sandbox balances that other harnesses
+depend on. They are synthetic Sandbox credits with no real-money meaning. The
+data stays as it is, with this entry as its record, and the checker will keep
+reporting them until a deliberate cleanup posts corrections.
+
+**Relation to RA-059:** these credits contributed 475,000 minor to
+funds-in-circulation, against a 50,000,000 cap now at 50,175,000. They are a
+contributor to the exhaustion RA-059 describes, not its main cause — accumulated
+legitimate E2E balances are.

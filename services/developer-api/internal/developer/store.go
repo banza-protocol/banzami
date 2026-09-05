@@ -88,6 +88,8 @@ var EnforcedScopes = map[string]bool{
 	"wallet_accounts:read":          true,
 	"wallet_accounts:create":        true,
 	"application_settlements:write": true,
+	"webhooks:read":                 true, // endpoints, events, deliveries
+	"webhooks:write":                true, // register, deactivate, replay, rotate secret
 }
 
 var (

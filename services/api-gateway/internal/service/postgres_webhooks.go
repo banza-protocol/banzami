@@ -156,6 +156,38 @@ func (s *PostgresWebhookService) ListEndpoints(
 	return out, rows.Err()
 }
 
+func (s *PostgresWebhookService) RotateEndpointSecret(
+	ctx context.Context,
+	merchantID, endpointID string,
+) (*WebhookEndpoint, error) {
+	secret := generateWebhookSecret()
+	stored, err := s.cipher.Encrypt(secret)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt webhook secret: %w", err)
+	}
+
+	// Scoped by merchant_id in the UPDATE itself, not checked beforehand: a
+	// separate read-then-write would authorize against a row that could change
+	// underneath it, and would answer differently for an endpoint that exists
+	// but belongs to someone else.
+	row := s.pool.QueryRow(ctx,
+		`UPDATE webhook_endpoints SET secret = $1
+		  WHERE id = $2 AND merchant_id = $3
+		  RETURNING id, merchant_id, url, events, active, created_at`,
+		stored, endpointID, merchantID,
+	)
+
+	var ep WebhookEndpoint
+	if err := row.Scan(
+		&ep.ID, &ep.MerchantID, &ep.URL, &ep.Events, &ep.Active, &ep.CreatedAt,
+	); err != nil {
+		return nil, ErrEndpointNotFound
+	}
+	// Returned once, exactly as at registration, and never persisted in clear.
+	ep.Secret = secret
+	return &ep, nil
+}
+
 func (s *PostgresWebhookService) DeactivateEndpoint(
 	ctx context.Context,
 	merchantID, endpointID string,

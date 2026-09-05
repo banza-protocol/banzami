@@ -22,6 +22,45 @@ func NewWebhookHandler(svc service.WebhookService) *WebhookHandler {
 	return &WebhookHandler{svc: svc}
 }
 
+// resolveWebhookAuthority answers "whose webhooks are these?" for either
+// credential.
+//
+// Webhook management used to be merchant-JWT only, which meant an application
+// built on the Developer Platform could not see or manage the endpoint that
+// carries its own events — the Console showed illustrative rows, and the only
+// way to register an endpoint was to hold a merchant credential. That is the
+// authority level the Developer Platform exists to withhold, so "just use a
+// merchant key" was never an answer.
+//
+// A developer key's merchant comes from its Project binding and nowhere else.
+// There is deliberately no client-supplied merchant_id to honour or reject
+// here: the field does not exist on these routes, so there is nothing for a
+// caller to try. A merchant JWT keeps naming itself, exactly as before.
+func (h *WebhookHandler) resolveWebhookAuthority(w http.ResponseWriter, r *http.Request, scope string) (string, bool) {
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		if !dp.HasScope(scope) {
+			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE",
+				"missing required scope: "+scope)
+			return "", false
+		}
+		// An unbound project has no owner, so it has no webhooks — not an empty
+		// list, which would imply the question was meaningful.
+		if !dp.Bound || dp.MerchantID == "" {
+			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE",
+				"this project is not provisioned to hold funds")
+			return "", false
+		}
+		return dp.MerchantID, true
+	}
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"only merchant accounts may manage webhooks")
+		return "", false
+	}
+	return principal.MerchantID, true
+}
+
 type registerEndpointBody struct {
 	URL    string   `json:"url"`
 	Events []string `json:"events"`
@@ -32,10 +71,8 @@ type registerEndpointBody struct {
 // The secret in the response is shown exactly once — store it immediately.
 // After this call the secret cannot be retrieved; use the rotate endpoint (future) to reset it.
 func (h *WebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may register webhook endpoints")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:write")
+	if !ok {
 		return
 	}
 
@@ -72,7 +109,7 @@ func (h *WebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ep, err := h.svc.RegisterEndpoint(r.Context(), service.RegisterEndpointRequest{
-		MerchantID: principal.MerchantID,
+		MerchantID: merchantID,
 		URL:        body.URL,
 		Events:     body.Events,
 	})
@@ -90,16 +127,40 @@ func (h *WebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusCreated, ep)
 }
 
+// RotateSecret handles POST /v1/business/webhooks/endpoints/{id}/rotate-secret.
+//
+// The new secret is shown exactly once, like registration. The old one stops
+// signing immediately; update the receiver before rotating, or accept a window
+// where deliveries are signed with a secret the receiver does not yet hold.
+func (h *WebhookHandler) RotateSecret(w http.ResponseWriter, r *http.Request) {
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:write")
+	if !ok {
+		return
+	}
+	ep, err := h.svc.RotateEndpointSecret(r.Context(), merchantID, chi.URLParam(r, "id"))
+	if err != nil {
+		if errors.Is(err, service.ErrEndpointNotFound) {
+			// Not FORBIDDEN: an endpoint belonging to another merchant must be
+			// indistinguishable from one that does not exist, or the status code
+			// becomes a way to enumerate other tenants' endpoint ids.
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
+			"secret could not be rotated")
+		return
+	}
+	respond(w, http.StatusOK, ep)
+}
+
 // GetEndpoint handles GET /v1/webhooks/endpoints/{id}.
 func (h *WebhookHandler) GetEndpoint(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may access webhook endpoints")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:read")
+	if !ok {
 		return
 	}
 
-	ep, err := h.svc.GetEndpoint(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	ep, err := h.svc.GetEndpoint(r.Context(), merchantID, chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrEndpointNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")
@@ -115,14 +176,12 @@ func (h *WebhookHandler) GetEndpoint(w http.ResponseWriter, r *http.Request) {
 
 // ListEndpoints handles GET /v1/webhooks/endpoints.
 func (h *WebhookHandler) ListEndpoints(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may list webhook endpoints")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:read")
+	if !ok {
 		return
 	}
 
-	endpoints, err := h.svc.ListEndpoints(r.Context(), principal.MerchantID)
+	endpoints, err := h.svc.ListEndpoints(r.Context(), merchantID)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"endpoints could not be listed")
@@ -139,14 +198,12 @@ func (h *WebhookHandler) ListEndpoints(w http.ResponseWriter, r *http.Request) {
 // Returns 204 No Content on success. Deactivated endpoints stop receiving events
 // but are retained for audit purposes.
 func (h *WebhookHandler) DeactivateEndpoint(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may deactivate webhook endpoints")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:write")
+	if !ok {
 		return
 	}
 
-	err := h.svc.DeactivateEndpoint(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	err := h.svc.DeactivateEndpoint(r.Context(), merchantID, chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrEndpointNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")
@@ -165,10 +222,8 @@ func (h *WebhookHandler) DeactivateEndpoint(w http.ResponseWriter, r *http.Reque
 // Query parameters:
 //   - limit  — 1–100, default 20
 func (h *WebhookHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may view webhook events")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:read")
+	if !ok {
 		return
 	}
 
@@ -183,7 +238,7 @@ func (h *WebhookHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 		limit = parsed
 	}
 
-	events, err := h.svc.ListEvents(r.Context(), principal.MerchantID, limit)
+	events, err := h.svc.ListEvents(r.Context(), merchantID, limit)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"events could not be listed")
@@ -198,14 +253,12 @@ func (h *WebhookHandler) ListEvents(w http.ResponseWriter, r *http.Request) {
 
 // ListDeliveries handles GET /v1/webhooks/events/{id}/deliveries.
 func (h *WebhookHandler) ListDeliveries(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may view delivery records")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:read")
+	if !ok {
 		return
 	}
 
-	deliveries, err := h.svc.ListDeliveries(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	deliveries, err := h.svc.ListDeliveries(r.Context(), merchantID, chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "event not found")
@@ -227,14 +280,12 @@ func (h *WebhookHandler) ListDeliveries(w http.ResponseWriter, r *http.Request) 
 // Re-queues a permanently-failed delivery as a new PENDING delivery.
 // Useful for manual recovery after an endpoint outage.
 func (h *WebhookHandler) ReplayDelivery(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may replay deliveries")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:write")
+	if !ok {
 		return
 	}
 
-	delivery, err := h.svc.ReplayDelivery(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	delivery, err := h.svc.ReplayDelivery(r.Context(), merchantID, chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrEndpointNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "delivery not found")
@@ -252,14 +303,12 @@ func (h *WebhookHandler) ReplayDelivery(w http.ResponseWriter, r *http.Request) 
 //
 // Returns delivery success/failure stats for the endpoint in the last 24 hours.
 func (h *WebhookHandler) EndpointHealth(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-			"only merchant accounts may view endpoint health")
+	merchantID, ok := h.resolveWebhookAuthority(w, r, "webhooks:read")
+	if !ok {
 		return
 	}
 
-	health, err := h.svc.EndpointHealth(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	health, err := h.svc.EndpointHealth(r.Context(), merchantID, chi.URLParam(r, "id"))
 	if err != nil {
 		if errors.Is(err, service.ErrEndpointNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")

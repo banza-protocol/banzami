@@ -41,6 +41,8 @@ pub mod refunds;
 mod refunds_disputes_tests;
 pub mod restitution;
 pub mod risk;
+#[cfg(test)]
+mod sandbox_credit_tests;
 pub mod settlements;
 pub mod splits;
 pub mod transactions;

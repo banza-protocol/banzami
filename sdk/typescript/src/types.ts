@@ -488,8 +488,20 @@ export interface WebhookEndpoint {
   id:         string;
   url:        string;
   events:     string[];
-  status:     WebhookEndpointStatus;
+  status?:    WebhookEndpointStatus;
   created_at: string;
+  /** Owner of the endpoint. With a Developer Platform key this is your
+   *  project's bound owner — you never supply it. */
+  merchant_id?: string;
+  active?:      boolean;
+  /**
+   * The signing secret, present ONLY in the response to
+   * `createWebhookEndpoint` and `rotateWebhookEndpointSecret`, and only in that
+   * one response. It is stored encrypted and is never readable afterwards — a
+   * get or list never carries it. Persist it when you receive it, or rotate to
+   * obtain a new one.
+   */
+  secret?:      string;
 }
 
 /**
@@ -688,4 +700,28 @@ export interface CreatePaymentSessionParams {
   description?: string;
   expiresAt?: Date;
   metadata?: Record<string, unknown>;
+}
+
+export interface CreateWebhookEndpointParams {
+  /** Must be a public https URL. */
+  url: string;
+  /** Event types to receive. An unlisted name is rejected rather than silently
+   *  accepted, because an accepted typo produces an endpoint that never fires. */
+  events: string[];
+}
+
+export interface WebhookDeliveryRecord {
+  id: string;
+  event_id: string;
+  endpoint_id: string;
+  status: string;
+  attempt?: number;
+  response_status?: number | null;
+  created_at: string;
+  [k: string]: unknown;
+}
+
+export interface WebhookEndpointHealth {
+  endpoint_id?: string;
+  [k: string]: unknown;
 }

@@ -208,6 +208,25 @@ switch (event.type) {
 
 // Responda 2xx rapidamente; a entrega é at-least-once, sem garantia de ordem.`;
 
+const SAMPLE_WEBHOOK_MANAGE = `import { BanzamiClient } from '@banzami/sdk';
+const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
+
+// Registar o endpoint. Sem merchant, sem wallet: o dono vem do binding do projeto.
+const ep = await banzami.createWebhookEndpoint({
+  url:    'https://www.exemplo.com/api/webhooks/banzami',
+  events: ['payment_session.paid'],
+});
+guardarSegredo(ep.secret);   // devolvido UMA vez — nenhuma leitura posterior o traz
+
+// Ver o que aconteceu
+const { data: endpoints } = await banzami.listWebhookEndpoints();
+const { data: eventos }   = await banzami.listWebhookEvents(20);
+const { data: entregas }  = await banzami.listWebhookDeliveries(eventos[0].id);
+
+// Rodar o segredo. Actualize o receptor ANTES: a troca é imediata, não sobreposta.
+const rodado = await banzami.rotateWebhookEndpointSecret(ep.id);
+guardarSegredo(rodado.secret);`;
+
 
 // -- Produção card --------------------------------------------------------------
 function ProducaoCard() {
@@ -750,6 +769,27 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 <LI>Qualquer resposta <Code>2xx</Code> do seu endpoint conta como entregue; responda rapidamente e processe de forma assíncrona.</LI>
                 <LI><em>Nota:</em> este é o contrato implementado e verificado no Sandbox; o comportamento de Produção não é reivindicado (Produção em preparação).</LI>
               </UL>
+              <H3 id="gerir-endpoint">Gerir o endpoint com a sua chave de projeto <Badge tone="ok" /></H3>
+              <P>
+                O endpoint que recebe os <strong>seus</strong> eventos gere-se com a
+                <strong> chave do projeto</strong> — não é preciso (nem possível) usar uma
+                credencial de merchant. O dono vem do binding do projeto; nenhum destes
+                pedidos aceita um <Code>merchant_id</Code>, porque não existe campo para isso.
+              </P>
+              <CodeBlock label="ts · registar e rodar o segredo" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} />
+              <UL>
+                <LI>O <Code>secret</Code> é devolvido <strong>uma única vez</strong>, no registo e na rotação. Nenhuma leitura posterior o traz — guarde-o de imediato.</LI>
+                <LI><Code>webhooks:read</Code> vê endpoints, eventos e entregas. <Code>webhooks:write</Code> regista, desactiva, reenvia e roda o segredo. Um scope de leitura nunca autoriza uma escrita.</LI>
+                <LI>Um endpoint de outro projeto responde <Code>404</Code> — nunca <Code>403</Code> — para que um id não sirva para descobrir integrações alheias.</LI>
+              </UL>
+              <Callout tone="warn">
+                <strong>A rotação é imediata, não sobreposta.</strong> A assinatura é verificada
+                contra <em>um</em> segredo. Actualize primeiro o seu receptor e só depois rode —
+                ou rode num momento em que uma janela curta de entregas recusadas seja aceitável.
+                Como a entrega é <Code>at-least-once</Code> com retries, uma entrega recusada
+                nessa janela <strong>não</strong> é um evento perdido: volta a ser tentada.
+              </Callout>
+
               <H3>Eventos</H3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
                 {EVENTS.map((e) => (

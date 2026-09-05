@@ -310,7 +310,7 @@ const RESPONSIBILITIES = [
 const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[] = [
   {
     name: 'JavaScript / TypeScript',
-    install: 'código-fonte (@banzami/sdk — ainda não publicado em npm)',
+    install: 'npm install @banzami/sdk',
     desc: 'Cliente tipado para Node.js e ambientes server-side, com idempotência e retries.',
     snippet: (
       <>
@@ -793,7 +793,7 @@ export default function DevelopersPage() {
             </div>
             <Reveal>
               <CodeBlock title="quickstart.sh" lang="sandbox · curl">
-                <K>#</K> Primeira chamada — sem SDK (os SDKs ainda não estão publicados){'\n'}
+                <K>#</K> Primeira chamada — HTTP directo, para diagnóstico. A via normal é o SDK.{'\n'}
                 curl https://sandbox-api.banzami.com<F>/v1/me</F> \{'\n'}
                 {'  '}-H <S>&quot;Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX&quot;</S>{'\n\n'}
                 <K>#</K> Resposta (200){'\n'}
