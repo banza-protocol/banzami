@@ -664,9 +664,9 @@ jobs:
             "set -e
              cd /srv/banzami/source/infra/docker
              docker compose -f docker-compose.full.yml build \
-               core-api api-gateway admin-api public-api pay-frontend checkout-frontend
+               core-api api-gateway admin-api public-api pay-frontend
              docker compose -f docker-compose.full.yml up -d --no-deps \
-               core-api api-gateway admin-api public-api pay-frontend checkout-frontend"
+               core-api api-gateway admin-api public-api pay-frontend"
 
       # Quick health check — fails the deploy if either service is not responding.
       - name: Verify health
