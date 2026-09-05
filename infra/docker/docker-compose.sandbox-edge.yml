@@ -36,6 +36,7 @@ services:
       SB_GATEWAY:       ${SB_GATEWAY:?set SB_GATEWAY to the sandbox api-gateway host:port}
       SB_PUBLIC_API:    ${SB_PUBLIC_API:?set SB_PUBLIC_API to the sandbox public-api host:port}
       SB_DEVELOPER_API: ${SB_DEVELOPER_API:?set SB_DEVELOPER_API to the sandbox developer-api host:port}
+      SB_PAY:           ${SB_PAY:?set SB_PAY to the sandbox pay-frontend host:port}
       NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
     volumes:
       # Templates are rendered to conf.d at start; conf.d itself stays writable

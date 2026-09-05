@@ -258,6 +258,7 @@ cmd_deploy_one() {
       --security-opt "no-new-privileges:true" \
       --label "$LABEL.service=$name" \
       -e NEXT_PUBLIC_GATEWAY_URL="${PAY_GATEWAY_URL:-https://sandbox-api.banzami.com}" \
+      -e GATEWAY_INTERNAL_URL="http://${proj}-api-gateway-staging:8080" \
       -e PORT="$port" -e HOSTNAME=0.0.0.0 \
       "$tag" >/dev/null 2>&1 || { echo "  $name first create FAIL"; return 1; }
     local c=0 st

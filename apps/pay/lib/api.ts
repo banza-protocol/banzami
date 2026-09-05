@@ -1,6 +1,22 @@
+// The origin the BROWSER calls. Baked into client bundles at build time, and the
+// value the CSP connect-src is derived from.
 const GATEWAY_URL         = process.env.NEXT_PUBLIC_GATEWAY_URL  ?? 'http://localhost:8080';
 // Server-only — read at runtime, not baked at build time.
 const STAGING_GATEWAY_URL = process.env.STAGING_GATEWAY_URL ?? 'http://public-api-staging:8083';
+
+/**
+ * The origin the SERVER calls, which is not the same thing.
+ *
+ * This container sits on an internal-only network with no external DNS: it is
+ * the one Sandbox service with no secret, no database and no egress, and
+ * granting it egress to reach a public hostname would widen the environment for
+ * a page that only needs to read a payment. Server-side renders therefore reach
+ * the gateway by its in-network name.
+ *
+ * Falls back to the public origin, so a local run with no internal network
+ * behaves exactly as before.
+ */
+const SERVER_GATEWAY_URL  = process.env.GATEWAY_INTERNAL_URL ?? GATEWAY_URL;
 
 /**
  * What `GET /public/pay/{slug}` actually returns — the payer-safe projection.
@@ -44,7 +60,7 @@ export interface AcquiringPayment {
 }
 
 export async function getPaymentLink(slug: string): Promise<PaymentLink | null> {
-  const res = await fetch(`${GATEWAY_URL}/public/pay/${encodeURIComponent(slug)}`, {
+  const res = await fetch(`${SERVER_GATEWAY_URL}/public/pay/${encodeURIComponent(slug)}`, {
     next: { revalidate: 0 },
   });
   if (res.status === 404) return null;
@@ -87,7 +103,7 @@ export async function initiatePay(
  */
 export async function getPlatformMode(): Promise<'LIVE' | 'SANDBOX'> {
   try {
-    const res = await fetch(`${GATEWAY_URL}/v1/platform-mode`, { cache: 'no-store' });
+    const res = await fetch(`${SERVER_GATEWAY_URL}/v1/platform-mode`, { cache: 'no-store' });
     if (!res.ok) return 'SANDBOX';
     const j = (await res.json()) as { mode?: string };
     return j.mode === 'LIVE' ? 'LIVE' : 'SANDBOX';
@@ -119,7 +135,7 @@ export interface MerchantProfile {
 }
 
 export async function getMerchantProfile(handle: string): Promise<MerchantProfile | null> {
-  const res = await fetch(`${GATEWAY_URL}/public/profiles/${encodeURIComponent(handle)}`, {
+  const res = await fetch(`${SERVER_GATEWAY_URL}/public/profiles/${encodeURIComponent(handle)}`, {
     next: { revalidate: 60 },
   });
   if (res.status === 404) return null;

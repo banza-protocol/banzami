@@ -59,7 +59,7 @@ for (const [key, rel] of COMPONENTS) {
   //     Sandbox exposes: application plane only, no data plane.
   if (!deploy || !/PAY_FRONTEND_APP_PLANE_ONLY=1/.test(deploy)) {
     fail('pay-plane', 'pay-frontend is deployed without the application-plane-only constraint');
-  } else if (/pay-frontend[\s\S]{0,600}?(BZSB_DATA_NET|db_url|core_internal_key|jwt_secret)/.test(deploy)) {
+  } else if (/pay-frontend[\s\S]{0,900}?(BZSB_DATA_NET|db_url|core_internal_key|jwt_secret)/.test(deploy)) {
     fail('pay-plane', 'pay-frontend is wired to the data plane or to a secret');
   } else {
     pass('pay-plane', 'pay-frontend is application-plane only and mounts no secret');
