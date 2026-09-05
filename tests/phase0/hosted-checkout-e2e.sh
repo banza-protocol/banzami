@@ -43,7 +43,13 @@ done
 
 echo "### unknown, malformed and foreign slugs are indistinguishable"
 chk UNKNOWN_SLUG   "$(code "$BASE/pay/doesnotexist000")" "404"
-chk MALFORMED_SLUG "$(code "$BASE/pay/..%2f..%2fetc%2fpasswd")" "404"
+# A traversal attempt must resolve to nothing. The edge rejects it with 400
+# before the app is reached, which is a STRONGER refusal than the app's 404 —
+# so the assertion is that it is refused and returns no file, not that it
+# returns one particular code.
+MAL=$(code "$BASE/pay/..%2f..%2fetc%2fpasswd")
+chk MALFORMED_REFUSED "$([ "$MAL" = "404" ] || [ "$MAL" = "400" ] && echo refused)" "refused"
+chk MALFORMED_NO_FILE "$(body "$BASE/pay/..%2f..%2fetc%2fpasswd" | grep -c 'root:')" "0"
 # A trailing slash redirects before it 404s; follow it and assert where it lands.
 chk EMPTY_SLUG     "$(code -L "$BASE/pay/")" "404"
 

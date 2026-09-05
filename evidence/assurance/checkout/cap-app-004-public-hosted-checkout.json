@@ -1,0 +1,154 @@
+{
+  "suite": "CAP-APP-004 — hosted payer surface (Banzami ADR-052)",
+  "tests": [
+    "tests/phase0/hosted-checkout-e2e.sh",
+    "tests/phase0/hosted-checkout-payment-e2e.sh"
+  ],
+  "environment": "PUBLIC deployed application at https://pay.banzami.com — routed by sandbox-edge to the Sandbox stack. Not localhost.",
+  "generated_at": "2026-09-05T14:11:28.123Z",
+  "public_urls": {
+    "canonical": "https://pay.banzami.com",
+    "alias": "https://checkout.banzami.com (308 -> canonical, path preserved)"
+  },
+  "security_model": "The browser is never an authority. The page resolves a payment by its public slug and displays it; every state that moves money is authorised by the payer on their own authenticated surface. The surface holds no credential, no database and no Core access, and runs on the application plane only.",
+  "total": 26,
+  "passed": 26,
+  "failed": 0,
+  "harness_summaries": [
+    "HOSTED_CHECKOUT_E2E: PASS=24 FAIL=0",
+    "HOSTED_CHECKOUT_PAYMENT_E2E: PASS=11 FAIL=0"
+  ],
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "HOME_OK",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "TLS_OK",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "LINK_RESOLVES",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "AMOUNT_SHOWN",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "NO_INTERNAL_UUIDS",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "UNKNOWN_SLUG",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "MALFORMED_REFUSED",
+      "pass": true,
+      "observed": "refused"
+    },
+    {
+      "id": "MALFORMED_NO_FILE",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "EMPTY_SLUG",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "SANDBOX_DISCLOSED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "NO_EXTERNAL_RAIL",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "CSP_PRESENT",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "CSP_NO_FRAMING",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "CSP_CONNECT_SCOPED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "PAID_STATE_RENDERS",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "PAGE_SHOWS_AMOUNT",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "PAGE_NOT_YET_PAID",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "PAYMENT_ACCEPTED",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "ACCOUNT_CREDITED",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "LEDGER_BALANCED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "PAGE_SHOWS_PAID",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "PAGE_OFFERS_NO_PAYMENT",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "SECOND_ATTEMPT_REFUSED",
+      "pass": true,
+      "observed": "refused"
+    },
+    {
+      "id": "REPLAY_MOVED_NOTHING",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "EVENT_EMITTED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "EVENT_DELIVERED",
+      "pass": true,
+      "observed": "success"
+    }
+  ]
+}

@@ -804,31 +804,43 @@ capabilities:
     authority_ref: operator product
     implementation:
       - apps/pay
-      - apps/checkout
+      - infra/nginx/sandbox-edge.conf.template
     api_surface:
-      - pay/checkout UI + /public/pay/{slug}
+      - https://pay.banzami.com (canonical) + https://checkout.banzami.com (308 alias)
+      - /public/pay/{slug}
     threat_category: financial-money-movement
     tests:
       unit: []
       integration: []
-      e2e_sandbox: []
+      e2e_sandbox:
+        - tests/phase0/hosted-checkout-e2e.sh (24/24 against the PUBLIC deployment)
+        - tests/phase0/hosted-checkout-payment-e2e.sh (11/11, payer-authorised payment through the public page)
       negative_security:
-        - RT03 §4: public payer view redacts internal UUIDs (deployed); strict CSP; no client secrets
+        - the page carries no internal identifier — no merchant, wallet, account or consumer id
+        - unknown and empty slugs are 404; a traversal attempt is refused and returns no file
+        - no writable server-authoritative field — the page sends no amount, recipient or currency anywhere
+        - the unapproved external acquiring rail is absent in SANDBOX, resolved server-side rather than hidden
+        - the SANDBOX disclosure is server-rendered, so it survives JavaScript or the platform-mode fetch being blocked
+        - strict CSP, frame-ancestors none, connect-src scoped to the gateway origin
+        - a paid link offers no payment control, and a second settlement attempt is refused and moves nothing
     deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-needs-remediation
+    cleanup_disposition: active-required
     evidence:
+      - evidence/assurance/checkout/cap-app-004-public-hosted-checkout.json
       - docs/quality/PAYMENTS_CONTRACT_AUDIT.md
-    # HELD, and no longer for the original reason. ADR-047 (Project→Merchant
-    # binding) IS implemented, but the surface itself is NOT DEPLOYED in the
-    # Sandbox topology: no pay-frontend or checkout-frontend container runs
-    # there, pay.banzami.com answers 503 and checkout.banzami.com does not
-    # resolve (checked 2026-09-05). A capability that cannot be reached cannot
-    # be verified, so this holds the FULL external Sandbox launch gate. It is
-    # deliberately NOT relabelled to make that gate pass: the payer-facing web
-    # surface is genuinely absent, and the manifest should say so.
+    # RELEASED on PUBLIC deployed evidence (Banzami ADR-052). pay.banzami.com
+    # answers 200 and checkout.banzami.com 308s onto it, both routed by
+    # sandbox-edge to a surface that holds no credential, no database and no
+    # Core access, on the application plane alone.
+    #
+    # Before this, every Sandbox payment link the platform issued pointed at a
+    # 503: the published SDK maps both environments to the same origin, so a
+    # human following a real donation link reached a maintenance page. The
+    # donation E2E had not caught it because the harness settles links through
+    # the API rather than through the page.
     surface: public
-    disposition: pending-e2e
-    status: in-audit
+    disposition: released
+    status: verified
 
   # ─── Live rails (prepared, disabled) ───────────────────────────────────────
 

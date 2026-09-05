@@ -14,8 +14,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Status | Count |
 |---|---|
 | blocked | 5 |
-| in-audit | 3 |
-| verified | 14 |
+| in-audit | 2 |
+| verified | 15 |
 | **total** | **22** |
 
 ## Capabilities
@@ -42,7 +42,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-002 | Merchant dashboard (Banzami Business) | web | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | **internal_only** | ✅ | ⚠️ yes | sandbox-e2e-required | in-audit |
-| CAP-APP-004 | Pay page + checkout | web | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | in-audit |
+| CAP-APP-004 | Pay page + checkout | web | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-LIVE-001 | Live payments / EMIS / Multicaixa rails | operator-payments | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
 
 ## External-Sandbox disposition summary
@@ -50,11 +50,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| pending-e2e | 2 |
+| pending-e2e | 1 |
 | quarantined | 5 |
-| released | 14 |
+| released | 15 |
 
-Public surfaces released: **13/15**. Full external launch requires 15/15.
+Public surfaces released: **14/15**. Full external launch requires 15/15.
 
 ## Detail
 
@@ -384,15 +384,15 @@ Public surfaces released: **13/15**. Full external launch requires 15/15.
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** internal — operator product
 - **Threat category:** financial-money-movement
-- **Implementation:** apps/pay, apps/checkout
-- **API/UI surface:** pay/checkout UI + /public/pay/{slug}
+- **Implementation:** apps/pay, infra/nginx/sandbox-edge.conf.template
+- **API/UI surface:** https://pay.banzami.com (canonical) + https://checkout.banzami.com (308 alias), /public/pay/{slug}
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security [RT03 §4: public payer view redacts internal UUIDs (deployed); strict CSP; no client secrets]
-- **Evidence:** docs/quality/PAYMENTS_CONTRACT_AUDIT.md
-- **Cleanup disposition:** active-needs-remediation
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **Tests:** unit [] · integration [] · e2e_sandbox [tests/phase0/hosted-checkout-e2e.sh (24/24 against the PUBLIC deployment), tests/phase0/hosted-checkout-payment-e2e.sh (11/11, payer-authorised payment through the public page)] · negative/security [the page carries no internal identifier — no merchant, wallet, account or consumer id, unknown and empty slugs are 404; a traversal attempt is refused and returns no file, no writable server-authoritative field — the page sends no amount, recipient or currency anywhere, the unapproved external acquiring rail is absent in SANDBOX, resolved server-side rather than hidden, the SANDBOX disclosure is server-rendered, so it survives JavaScript or the platform-mode fetch being blocked, strict CSP, frame-ancestors none, connect-src scoped to the gateway origin, a paid link offers no payment control, and a second settlement attempt is refused and moves nothing]
+- **Evidence:** evidence/assurance/checkout/cap-app-004-public-hosted-checkout.json, docs/quality/PAYMENTS_CONTRACT_AUDIT.md
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **in-audit**
+- **Status:** **verified**
 
 ### CAP-LIVE-001 — Live payments / EMIS / Multicaixa rails
 
