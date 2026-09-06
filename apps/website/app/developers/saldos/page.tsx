@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
+import { formatMoneyDisplay as money } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api';
@@ -19,12 +20,10 @@ import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api'
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 
-/** Kwanzas, the way the rest of Banzami writes them: no cents, space, Kz last. */
-function money(minor: number, currency: string): string {
-  const major = Math.round(minor / 100);
-  const grouped = major.toLocaleString('pt-PT').replace(/ |,/g, ' ');
-  return currency === 'AOA' ? `${grouped} Kz` : `${grouped} ${currency}`;
-}
+// The canonical Money Engine, not a local copy of it. The copy that used to be
+// here formatted through toLocaleString('pt-PT'), which carries CLDR's
+// minimumGroupingDigits: 2 — so 50 000 Kz grouped and 3 000 Kz did not, in the
+// same column, and which amounts grouped depended on the browser's ICU data.
 
 type State =
   | { k: 'loading' }

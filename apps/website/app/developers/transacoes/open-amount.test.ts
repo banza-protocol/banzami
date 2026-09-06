@@ -28,7 +28,12 @@ describe('open payment amounts', () => {
 
   it('the page renders a state, not a zero', () => {
     const code = strip(PAGE);
-    expect(code).toMatch(/if \(minor === null \|\| minor === undefined\) return 'Em aberto'/);
+    // The invariant, not one spelling of it. This used to pin the exact `if`
+    // statement, and broke when the formatter moved to the shared Money Engine
+    // even though a null still rendered as words — a test that fails on the
+    // shape of correct code teaches people to edit the test.
+    expect(code).toMatch(/minor === null \|\| minor === undefined/);
+    expect(code).toMatch(/'Em aberto'/);
   });
 
   it('never coalesces a missing amount to zero', () => {

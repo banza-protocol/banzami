@@ -5,17 +5,14 @@ import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/develop
 import { useDeveloperData } from './DeveloperData';
 import { useToast } from './Toast';
 import { Card } from './ui';
+import { formatMoneyDisplay } from '@/lib/money';
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
-const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
-/** '50 000 Kz' — the operator-wide format: space-grouped, unit last, no cents. */
-export function money(minor: number | null, currency: string): string {
-  if (minor === null || minor === undefined) return 'Em aberto';
-  const major = Math.round(minor / 100);
-  const grouped = major.toLocaleString('pt-PT').replace(/ |,/g, ' ');
-  return currency === 'AOA' ? `${grouped} Kz` : `${grouped} ${currency}`;
-}
+// The canonical Money Engine; an open-amount session has no figure to show.
+const money = (minor: number | null, currency: string) =>
+  minor === null || minor === undefined ? 'Em aberto' : formatMoneyDisplay(minor, currency);
+const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
 /** A refund key is minted once per dialog and reused by every attempt within it.
  *  crypto.randomUUID is present in every browser this Console supports; the

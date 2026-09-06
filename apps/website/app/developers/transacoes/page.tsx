@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
+import { formatMoneyDisplay } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/developer-api';
@@ -21,14 +22,16 @@ import { RefundDialog } from '@/components/developers/portal/RefundDialog';
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 
-function money(minor: number | null, currency: string): string {
-  // A session opened without a fixed amount has none yet. "0 Kz" would be a
-  // figure where there is not one.
-  if (minor === null || minor === undefined) return 'Em aberto';
-  const major = Math.round(minor / 100);
-  const grouped = major.toLocaleString('pt-PT').replace(/ |,/g, ' ');
-  return currency === 'AOA' ? `${grouped} Kz` : `${grouped} ${currency}`;
-}
+// The canonical Money Engine, not a local copy of it. The copy that used to be
+// here formatted through toLocaleString('pt-PT'), which carries CLDR's
+// minimumGroupingDigits: 2 — so 50 000 Kz grouped and 3 000 Kz did not, in the
+// same column, and which amounts grouped depended on the browser's ICU data.
+//
+// A session opened without a fixed amount has no amount yet; "0 Kz" would be a
+// figure where there is not one, so it gets words.
+const money = (minor: number | null, currency: string) =>
+  minor === null || minor === undefined ? 'Em aberto' : formatMoneyDisplay(minor, currency);
+
 
 // A payment can be given back once it has actually been paid. Every other status
 // is a payment that never moved money, and offering to refund one would be
