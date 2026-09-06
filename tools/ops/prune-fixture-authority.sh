@@ -24,8 +24,16 @@
 # were left alone.
 #
 # NOTHING IS DELETED. Keys are revoked, endpoints are deactivated, PINs are
-# locked. The rows stay: an audit needs to see that a credential existed and
+# locked, links are cancelled, projects are archived and merchants are
+# suspended. The rows stay: an audit needs to see that a credential existed and
 # when it stopped working, which a DELETE destroys.
+#
+# Merchants, projects and links were added in a second pass. The first pass took
+# the credentials and left 276 ACTIVE fixture merchants, 193 ACTIVE fixture
+# projects and 232 open payment links — a payment link is a URL anyone can open
+# and pay into a fixture account, and these have no expiry. Harnesses clean up
+# after themselves now (tests/phase0/lib/e2e-run.sh); this clears what they left
+# before they did.
 #
 # The ledger is not touched at all.
 #
@@ -78,6 +86,16 @@ q "select '  active webhooks    ' || count(*) from webhook_endpoints w join merc
    where w.active and m.name ~ '$FIX'"
 q "select '  unlocked app PINs  ' || count(*) from merchant_app_credentials c join merchants m on m.id=c.merchant_id
    where m.name ~ '$FIX' and (c.locked_until is null or c.locked_until < now())"
+q "select '  open payment links ' || count(*) from payment_links l join merchants m on m.id=l.merchant_id
+   where l.status='ACTIVE' and m.name ~ '$FIX'"
+q "select '  active merchants   ' || count(*) from merchants where status='ACTIVE' and name ~ '$FIX'"
+# Projects are matched through the merchant their binding names, not by their
+# own name: a fixture project is disposable because its payee is a fixture, and
+# the project's name is whatever the harness happened to type.
+q "select '  active projects    ' || count(*) from developer.dev_projects p
+   where p.status='ACTIVE' and exists (
+     select 1 from developer.dev_project_sandbox_binding b join merchants m on m.id = b.merchant_id
+      where b.project_id = p.id and m.name ~ '$FIX')"
 
 echo
 echo "endpoints pointing at the real product, held by a fixture"
@@ -101,12 +119,25 @@ q "begin;
      from merchants m where m.id = w.merchant_id and w.active and m.name ~ '$FIX';
    update merchant_app_credentials c set locked_until = 'infinity'
      from merchants m where m.id = c.merchant_id and m.name ~ '$FIX';
+   update payment_links l set status = 'CANCELLED', updated_at = now()
+     from merchants m where m.id = l.merchant_id and l.status = 'ACTIVE' and m.name ~ '$FIX';
+   update developer.dev_projects p set status = 'ARCHIVED', updated_at = now()
+     where p.status = 'ACTIVE' and exists (
+       select 1 from developer.dev_project_sandbox_binding b join merchants m on m.id = b.merchant_id
+        where b.project_id = p.id and m.name ~ '$FIX');
+   -- Suspension is the operator's retirement for a merchant, and since the
+   -- handle+PIN login now honours it, it retires the app credential too.
+   update merchants set status = 'SUSPENDED', updated_at = now()
+     where status = 'ACTIVE' and name ~ '$FIX';
    commit;"
 
 echo
 echo "after"
 q "select '  live API keys      ' || count(*) from api_keys where revoked_at is null"
 q "select '  active webhooks    ' || count(*) from webhook_endpoints where active"
+q "select '  open payment links ' || count(*) from payment_links where status='ACTIVE'"
+q "select '  active merchants   ' || count(*) from merchants where status='ACTIVE'"
+q "select '  active projects    ' || count(*) from developer.dev_projects where status='ACTIVE'"
 echo
 echo "the canonical merchant, untouched"
 q "select '  ' || m.name || '  key=' || k.key_prefix || '  env=' || k.environment

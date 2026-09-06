@@ -21,7 +21,7 @@ const getOTP = e => execFileSync('bash', [`${HARNESS}/otp-retrieve.sh`, e], { en
 
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
-let keyId = null, csrf = null, projId = null;
+const keyIds = []; let csrf = null, projId = null;
 try {
   let r = await ctx.request.post(`${API}/auth/request-otp`, { headers: ORIGIN, data: { email } });
   if (!r.ok()) throw new Error(`request-otp ${r.status()}`);
@@ -47,11 +47,16 @@ try {
   }
   console.log('workspace + project ready');
 
-  r = await ctx.request.post(`${API}/projects/${projId}/api-keys`, {
-    headers: H, data: { name: 'Chave do servidor', scopes: ['payments:write', 'payments:read', 'webhooks:write'] },
-  });
-  if (r.ok()) { const j = await r.json(); keyId = j.id || j.api_key?.id || j.key?.id; console.log('api key created'); }
-  else console.log('api key create →', r.status());
+  for (const [name, scopes] of [
+    ['Chave do servidor', ['payments:read', 'payments:write']],
+    ['Chave de leitura', ['payments:read']],
+  ]) {
+    r = await ctx.request.post(`${API}/projects/${projId}/keys`, {
+      headers: H, data: { kind: 'SECRET', name, scopes },
+    });
+    if (r.ok()) { const j = await r.json(); keyIds.push(j.id || j.key?.id); console.log('key created:', name); }
+    else console.log('key create →', r.status());
+  }
 
   const page = await ctx.newPage();
   for (const [route, file] of [['/api-keys', 'console-keys'], ['/dashboard', 'console-overview'], ['/webhooks', 'console-webhooks']]) {
@@ -61,10 +66,9 @@ try {
     console.log('shot', file, '←', page.url().replace(CONSOLE, '') || '/');
   }
 } finally {
-  if (keyId && csrf && projId) {
-    const r = await ctx.request.post(`${API}/projects/${projId}/api-keys/${keyId}/revoke`, {
-      headers: { ...ORIGIN, 'X-CSRF-Token': csrf }, data: {},
-    }).catch(() => null);
+  for (const id of keyIds) {
+    if (!id || !csrf) continue;
+    const r = await ctx.request.delete(`${API}/keys/${id}`, { headers: { ...ORIGIN, 'X-CSRF-Token': csrf } }).catch(() => null);
     console.log('key revoked →', r ? r.status() : 'failed');
   }
   await browser.close();
