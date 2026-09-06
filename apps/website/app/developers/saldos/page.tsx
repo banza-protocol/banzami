@@ -6,6 +6,7 @@ import { formatMoneyDisplay as money } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
+import { WalletAccountForm } from '@/components/developers/portal/WalletAccountForm';
 import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api';
 
 // Saldos — the wallet accounts of the financial owner this project is bound to.
@@ -102,23 +103,36 @@ function Balances() {
     );
   }
 
-  if (state.accounts.length === 0) {
+  const reload = () => { setState({ k: 'loading' }); void load(); };
+
+  // PRIMARY is the account made with the project's financial environment. It is
+  // the operator's bookkeeping, not something the developer opened, and counting
+  // it among "your accounts" would make an empty project look furnished.
+  const own = state.accounts.filter((a) => a.purpose !== 'PRIMARY');
+
+  if (own.length === 0) {
     return (
-      <Card style={{ padding: 26 }}>
-        <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não há contas neste projeto.</p>
-        <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
-          Uma conta é criada quando a sua integração abre uma — por exemplo, uma conta por campanha
-          ou por vendedor. Assim que existir uma, aparece aqui com o saldo real.
-        </p>
-      </Card>
+      <>
+        <Card style={{ padding: 26, marginBottom: 16 }}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não criou nenhuma conta.</p>
+          <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
+            Uma conta mantém dinheiro separado do resto do projeto — uma por campanha, por vendedor, por
+            evento, ou pelo que a sua aplicação precisar de manter à parte. Pode criá-la aqui ou pela API.
+          </p>
+        </Card>
+        <WalletAccountForm onCreated={reload} />
+      </>
     );
   }
 
   return (
     <>
-      <p style={{ margin: '0 0 14px', fontSize: 13, color: '#8a7a7e', fontWeight: 700 }}>
-        {state.total} conta{state.total === 1 ? '' : 's'} neste projeto
-      </p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+        <p style={{ margin: 0, fontSize: 13, color: '#8a7a7e', fontWeight: 700 }}>
+          {own.length} conta{own.length === 1 ? '' : 's'} neste projeto
+        </p>
+        <WalletAccountForm onCreated={reload} />
+      </div>
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>

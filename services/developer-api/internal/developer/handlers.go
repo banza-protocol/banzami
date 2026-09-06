@@ -331,10 +331,12 @@ func (h *Handlers) createWalletAccount(w http.ResponseWriter, r *http.Request) {
 		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
 		return
 	}
+	// The published SDK's field names, so one resource has one contract.
 	var in struct {
-		Label     string `json:"label"`
-		Purpose   string `json:"purpose"`
-		Reference string `json:"reference"`
+		Label         string `json:"label"`
+		Purpose       string `json:"purpose"`
+		ReferenceType string `json:"reference_type"`
+		ReferenceID   string `json:"reference_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid body")
@@ -342,7 +344,10 @@ func (h *Handlers) createWalletAccount(w http.ResponseWriter, r *http.Request) {
 	}
 	ip, reqID := reqMeta(r)
 	acct, err := h.svc.CreateProjectWalletAccount(r.Context(), u.ID, chi.URLParam(r, "projID"),
-		WalletAccountRequest{Label: in.Label, Purpose: in.Purpose, Reference: in.Reference}, ip, reqID)
+		WalletAccountRequest{
+			Label: in.Label, Purpose: in.Purpose,
+			ReferenceType: in.ReferenceType, ReferenceID: in.ReferenceID,
+		}, ip, reqID)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrUnsupportedPurpose):

@@ -35,13 +35,22 @@ func canManageWalletAccounts(role string) bool {
 	return role == RoleOwner || role == RoleAdmin || role == RoleDeveloper
 }
 
-// WalletAccountRequest is what the Console sends. There is no merchant, wallet
-// or owner field, and there is nothing to add: those are derived from the
-// project's binding, and a caller-supplied one would be a caller-supplied payee.
+// WalletAccountRequest is what the Console sends — the same shape the published
+// SDK sends, deliberately.
+//
+// The first version of this took a single `reference` and stamped the type
+// itself, which quietly created a SECOND public model: the SDK's callers chose
+// their own referenceType and the Console's could not. One resource cannot have
+// two contracts, so this one is the SDK's.
+//
+// There is no merchant, wallet or owner field, and nothing to add: those are
+// derived from the project's binding, and a caller-supplied one would be a
+// caller-supplied payee.
 type WalletAccountRequest struct {
-	Label     string
-	Purpose   string
-	Reference string
+	Label         string
+	Purpose       string
+	ReferenceType string
+	ReferenceID   string
 }
 
 // WalletAccountProvisioner is the Core boundary this needs.
@@ -50,13 +59,29 @@ type WalletAccountProvisioner interface {
 	CreateWalletAccount(ctx context.Context, walletID, merchantID, purpose, refType, refID, label string) (string, error)
 }
 
-// The purposes a developer may open. PRIMARY is absent on purpose: it is made
-// with the wallet, Core refuses to create a second, and offering it would be
-// offering an operation that cannot succeed.
+// The purposes a developer may open — Core's own list, minus PRIMARY.
+//
+// It mirrors rather than narrows deliberately. The first version listed three,
+// one of which (COLLECTION) Core does not accept at all: a request for it passed
+// validation here and was refused there, which is the worst of both — the
+// developer is told their input is fine and then told nothing useful.
+//
+// The list is generic on purpose. An external developer must not have to model a
+// shop, a seller or a fund as a "campaign" because that is the word the first
+// application on the platform happened to need; CUSTOM exists for everything
+// these words do not fit.
+//
+// PRIMARY is absent because it is made with the wallet, Core refuses a second,
+// and offering it would be offering an operation that cannot succeed.
 var walletAccountPurposes = map[string]bool{
-	"CAMPAIGN":   true, // one destination per campaign, project, listing, ride…
-	"COLLECTION": true,
+	"CAMPAIGN":   true,
+	"PROJECT":    true,
+	"EVENT":      true,
+	"STORE":      true,
 	"ESCROW":     true,
+	"RESERVE":    true,
+	"SETTLEMENT": true,
+	"CUSTOM":     true,
 }
 
 // ErrUnsupportedPurpose: a purpose that is not open to developers.
@@ -109,11 +134,17 @@ func (s *Service) CreateProjectWalletAccount(ctx context.Context, actor, project
 		return WalletAccountView{}, ErrUnavailable
 	}
 
-	reference := strings.TrimSpace(in.Reference)
-	if reference == "" {
-		reference = projectID
-	}
-	id, err := s.walletProv.CreateWalletAccount(ctx, wallet, merchant, purpose, "DEVELOPER_PROJECT", reference, label)
+	// The application's own correlation metadata, passed through untouched. The
+	// operator has no knowledge of what these mean and must not acquire any: DOA
+	// writes DOA_CAMPAIGN, a shop writes SELLER, and neither is more correct.
+	//
+	// Together with the purpose they are also the natural key Core uses for
+	// idempotency — a repeat of the same (purpose, reference_type, reference_id)
+	// under one owner returns the account that exists rather than opening a
+	// second — so leaving them empty means the caller has opted out of that.
+	refType := strings.TrimSpace(in.ReferenceType)
+	refID := strings.TrimSpace(in.ReferenceID)
+	id, err := s.walletProv.CreateWalletAccount(ctx, wallet, merchant, purpose, refType, refID, label)
 	if err != nil {
 		slog.ErrorContext(ctx, "developer.wallet_account.create_failed", "project", projectID, "err", err.Error())
 		return WalletAccountView{}, ErrUnavailable

@@ -341,6 +341,15 @@ export const developerApi = {
   configureFinancialSetup: (projectID: string, csrf: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', csrf }),
 
+  // Open a segregated destination — the same primitive DOA uses per campaign,
+  // and the same field names the published SDK sends, so one resource has one
+  // contract. No merchant, wallet or owner: those come from the project.
+  createWalletAccount: (
+    projectID: string,
+    body: { label: string; purpose: string; reference_type?: string; reference_id?: string },
+    csrf: string,
+  ) => req<WalletAccount>(`/projects/${projectID}/wallet-accounts`, { method: 'POST', body, csrf }),
+
   // ── Refunds (real, project-scoped, OWNER/ADMIN) ────────────────────────────
   // What the Console may show. `allowed` is this member's role; `configured` is
   // whether the deployment has a refund path at all. They are separate because

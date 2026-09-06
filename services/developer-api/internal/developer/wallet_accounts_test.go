@@ -54,7 +54,7 @@ func walletSvc(t *testing.T) (*Service, *fakeWalletProv, string) {
 }
 
 func req2() WalletAccountRequest {
-	return WalletAccountRequest{Label: "Campanha A", Purpose: "CAMPAIGN", Reference: "camp-a"}
+	return WalletAccountRequest{Label: "Campanha A", Purpose: "CAMPAIGN", ReferenceType: "DOA_CAMPAIGN", ReferenceID: "camp-a"}
 }
 
 // Building, not spending. A DEVELOPER writes the application and knows how many
@@ -105,8 +105,10 @@ func TestWalletAccount_OwnerComesFromTheBinding(t *testing.T) {
 	if f.gotArgs[0] != "wallet_of_"+b.MerchantID {
 		t.Errorf("Core got wallet %q — it must be the bound owner's", f.gotArgs[0])
 	}
-	if f.gotArgs[3] != "DEVELOPER_PROJECT" {
-		t.Errorf("reference type %q — accounts opened here must be attributable", f.gotArgs[3])
+	// The application's own metadata, passed through untouched — the operator has
+	// no knowledge of what DOA_CAMPAIGN means and must not acquire any.
+	if f.gotArgs[3] != "DOA_CAMPAIGN" || f.gotArgs[4] != "camp-a" {
+		t.Errorf("Core got reference %q/%q — the caller's own correlation metadata must pass through", f.gotArgs[3], f.gotArgs[4])
 	}
 }
 
@@ -169,11 +171,11 @@ func TestWalletAccount_NonMemberCannotTellTheProjectExists(t *testing.T) {
 // Two destinations under one project are two accounts, not one reused.
 func TestWalletAccount_SiblingsAreDistinct(t *testing.T) {
 	s, f, pid := walletSvc(t)
-	a, err := s.CreateProjectWalletAccount(bg, "u_owner", pid, WalletAccountRequest{Label: "A", Purpose: "CAMPAIGN", Reference: "a"}, "", "")
+	a, err := s.CreateProjectWalletAccount(bg, "u_owner", pid, WalletAccountRequest{Label: "A", Purpose: "CAMPAIGN", ReferenceType: "SHOP", ReferenceID: "a"}, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	b, err := s.CreateProjectWalletAccount(bg, "u_owner", pid, WalletAccountRequest{Label: "B", Purpose: "CAMPAIGN", Reference: "b"}, "", "")
+	b, err := s.CreateProjectWalletAccount(bg, "u_owner", pid, WalletAccountRequest{Label: "B", Purpose: "STORE", ReferenceType: "SHOP", ReferenceID: "b"}, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,5 +184,43 @@ func TestWalletAccount_SiblingsAreDistinct(t *testing.T) {
 	}
 	if f.count() != 2 {
 		t.Errorf("Core was asked %d times for two accounts", f.count())
+	}
+}
+
+// The purpose list must not force an external developer to describe their
+// product in the first application's words. A shop is a STORE, a marketplace
+// seller is a PROJECT, and anything these do not fit is CUSTOM.
+func TestWalletAccount_PurposesAreGenericNotDoaShaped(t *testing.T) {
+	for _, purpose := range []string{"CAMPAIGN", "PROJECT", "EVENT", "STORE", "ESCROW", "RESERVE", "SETTLEMENT", "CUSTOM"} {
+		s, f, pid := walletSvc(t)
+		r := req2()
+		r.Purpose = purpose
+		if _, err := s.CreateProjectWalletAccount(bg, "u_owner", pid, r, "", ""); err != nil {
+			t.Errorf("purpose %s should be open to developers: %v", purpose, err)
+		}
+		if f.count() != 1 {
+			t.Errorf("purpose %s did not reach Core", purpose)
+		}
+	}
+}
+
+// This list mirrors Core's rather than narrowing it. The first version listed
+// three, one of which Core does not accept at all — so a request for it passed
+// here and was refused there, which tells the developer their input was fine and
+// then tells them nothing useful.
+func TestWalletAccount_PurposeListMirrorsCore(t *testing.T) {
+	// Core's own list, minus PRIMARY. If Core's changes, this fails and someone
+	// decides deliberately rather than discovering it in production.
+	core := []string{"CAMPAIGN", "PROJECT", "EVENT", "STORE", "ESCROW", "RESERVE", "SETTLEMENT", "CUSTOM"}
+	if len(walletAccountPurposes) != len(core) {
+		t.Fatalf("this service offers %d purposes, Core accepts %d", len(walletAccountPurposes), len(core))
+	}
+	for _, p := range core {
+		if !walletAccountPurposes[p] {
+			t.Errorf("Core accepts %s and this service refuses it", p)
+		}
+	}
+	if walletAccountPurposes["PRIMARY"] {
+		t.Error("PRIMARY is on offer and Core refuses it")
 	}
 }
