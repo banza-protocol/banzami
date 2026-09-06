@@ -27,17 +27,30 @@ set -uo pipefail
 DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
+# The canonical remote-execution contract: prove the host, run there, and return
+# the proof's own exit status. See tools/ops/lib/remote.sh.
+for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
+          "$(dirname "$0")/../lib/remote.sh" "$(dirname "$0")/../../tools/ops/lib/remote.sh"; do
+  [ -f "$_p" ] && { . "$_p"; break; }
+done
+command -v remote_self_or_continue >/dev/null 2>&1 \
+  || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
+REMOTE_EXTRA_FILES="$(dirname "$0")/lib/e2e-run.sh"
+remote_self_or_continue
+
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
 CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging    | head -1)
 PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
-[ -n "$GW" ] && [ -n "$DEV" ] && [ -n "$PG" ] || { echo "run this on the Sandbox VM" >&2; exit 2; }
+[ -n "$GW" ] && [ -n "$DEV" ] && [ -n "$PG" ] || { echo "the Sandbox containers are not all present" >&2; exit 2; }
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 psql(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 
-. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+for _r in "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh" "$(cd "$(dirname "$0")" && pwd)/e2e-run.sh"; do
+  [ -f "$_r" ] && { . "$_r"; break; }
+done
 e2e_begin
 
 PASS=0; FAIL=0

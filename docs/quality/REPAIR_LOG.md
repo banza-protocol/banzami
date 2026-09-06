@@ -2394,3 +2394,105 @@ operator secret, and it would have left no trace at all when it finally went.
 The detector now reports 5 secret-holding containers, all owned, and every
 public surface, the ledger reconciliation and the canonical binding proof were
 re-checked afterwards.
+
+## RA-080 — unmanaged execution and secret-boundary violation
+
+- **Found:** 2026-09-06
+- **Status:** CLOSED, with one rotation deliberately deferred (2026-09-06)
+
+**Classification.** Unmanaged execution with access to operator credentials.
+NOT a confirmed external compromise: there is no evidence of exfiltration, and
+none that there was none.
+
+**What happened.** RA-079 recorded the container. This entry records what it
+meant. `silly_swirles` ran from 2026-09-01 09:47:47Z until it was stopped on
+2026-09-06, with eight secret files bind-mounted read-only and attachment to the
+Sandbox data network. It exposed no host port, so it was unreachable from
+outside; from inside it could reach Postgres and Core with real credentials.
+
+**Provenance, as far as evidence permits.** The image was
+`banzami-sandbox/public-api-staging:7d680db65049`, digest
+`sha256:3bd73a76136d…`, built by this repository's own pipeline from commit
+`7d680db6504` (a merge of PR #94, 2026-09-01 09:20:39Z) — our code, not
+foreign code. The container carried no labels and a Docker-generated name, so it
+came from a `docker run` with no `--name` and no Compose project; the current
+deployer always passes `--name`, so it did not come from the deploy path as it
+stands today. **Who started it is not established, and this entry does not
+guess.** A second container from the same session, `developer-api-prev` (created
+09:39:59Z, exited, all eight secret mounts, still attached to the data network),
+was found by the host attestation and removed.
+
+**Scope of exposure.** The secrets are read-only bind mounts of files on the
+host. Anyone able to start that container already had root there and could read
+those files directly, so rotation does not defend against whoever started it.
+What rotation ends is the validity of credentials that were readable by a
+process nobody was tracking. That is the honest scope, and it is reason enough
+before launch.
+
+**Dispositions.** Seven rotated on 2026-09-06 and verified in both directions
+(`tools/ops/verify-rotation.sh`, 17/17): the database password (the role changes
+its own, so no superuser credential need exist), `jwt_secret`,
+`core_internal_key`, `developer_internal_key`, `core_payee_validation_key`,
+`session_secret`, `otp_pepper`. Old database password refused and new accepted;
+old internal key refused by the guarded route and new one through it; a token
+signed with the old JWT key rejected and one signed with the new key accepted.
+
+`api_key_pepper` is **deferred**, with the reason recorded rather than the
+inconvenience hidden: rotating it invalidates every developer API key including
+the three DOA holds, and those live in Vercel environment variables that take
+effect only on a new deployment. Vercel's daily build allowance was exhausted,
+so the replacement could not be installed and donations would have stopped until
+it reset. The sequence it needs — mint under the new pepper, install, redeploy,
+prove each consumer, then revoke the old records — is in the tool's own output.
+
+**Controls added.** `ops/sandbox-host-manifest.tsv` says what the host should
+contain; `tests/phase0/sandbox-host-attestation.sh` compares the whole of
+`docker ps -a` against it, including stopped containers and the capability
+settings that would let a container leave its boundary. 13/13 after the removals.
+
+**Re-proved after rotation.** The full stateful suite (13 harnesses, no
+authority leaked), the DOA golden journey, the admin refund through the deployed
+interface, ledger reconciliation, the canonical binding, and the
+retired-authority denial proof.
+
+**Worth noticing about the shape of this.** Every check in this repository
+looked at something it already knew about, so the one thing nobody had declared
+was invisible to all of them. That is the same shape as RA-076 — a container
+that exited cleanly was invisible to every check that asked whether the service
+had started — and the same as RA-078, where harnesses were audited for what they
+create and never for what they leave.
+
+## RA-081 — remote proofs discarded their own exit status
+
+- **Found:** 2026-09-06
+- **Status:** FIXED (2026-09-06)
+
+Six assurance scripts and one deploy step ran their work on the Sandbox host
+over ssh and threw the answer away. The remote command ended with a cleanup
+`rm`, and ssh reports the status of the last command it ran. Ledger
+reconciliation, the canonical binding proof, both prunes and both audits had
+been returning 0 no matter what happened on the far side. The deploy step
+managed it twice in one line: the same trailing cleanup, and the output piped
+through `tail`, whose status replaces the pipeline's — a failing end-to-end
+harness ended a deploy with "OK".
+
+A related defect in the same family: the first host-inventory check ran against
+the docker daemon on a laptop, found no Banzami containers, and reported the
+Sandbox clean. "I looked and saw nothing" is not "there is nothing".
+
+`tools/ops/lib/remote.sh` is now the single way to run a proof remotely. It
+proves the host first and refuses rather than falling back to local docker,
+sends the script and the library together, captures the proof's status, cleans
+up from a trap so cleanup happens on any exit, and exits with the status it
+captured. Nine scripts and the deploy step were rewired onto it.
+
+Three proofs that it works: a probe that exits 42 on the real Sandbox must give
+42 back; one that succeeds must give 0; and asserting "already on the host" when
+that is false must refuse. A static gate flags any ssh line whose remote command
+ends in cleanup or whose output is piped, and its self-test writes the two real
+historical lines into the tree and requires the gate to fail on each.
+
+**All evidence produced through those wrappers before 2026-09-06 is
+non-authoritative** and has been regenerated: ledger reconciliation, the
+canonical binding proof, the fixture and canonical-authority prunes, the stale
+fixture audit, and the host inventory.
