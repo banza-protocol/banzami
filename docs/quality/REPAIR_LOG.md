@@ -2290,3 +2290,60 @@ literal string protects the claim, not the truth. When the world moves, the test
 holds the page still — and the more thorough the suite, the more confidently it
 does so. The narrowed assertions here name the families rather than the phrase,
 so the next publication breaks the test instead of being contradicted by it.
+
+## RA-078 — stateful harnesses leak operator authority (the cause behind RA-075 and RA-077)
+
+- **Found:** 2026-09-06
+- **Status:** FIXED (2026-09-06)
+
+RA-075 and RA-077 were the same finding twice, swept by hand both times: 156
+developer keys, then 169 merchant keys, 55 webhook endpoints, 169 application
+PINs, 276 merchants, 93 projects and 207 open payment links. Neither entry
+recorded a defect in the product. The defect is here, in the harnesses: every
+one of them mints operator authority and none of them gave it back, so residue
+accumulated in proportion to how much the system was tested.
+
+**The fix.** `tests/phase0/lib/e2e-run.sh` gives a run an identity and a
+manifest. Every object is recorded by exact id at the moment it exists, and
+retired on the way out through the canonical operator route — keys revoked,
+endpoints deactivated, links cancelled, projects archived, merchants suspended.
+Nothing is deleted with SQL; the domain model keeps history on purpose. Cleanup
+runs from a trap on EXIT, INT and TERM, because the runs that leaked were the
+ones that failed. Ownership is by id and never by name pattern.
+
+Thirteen harnesses were instrumented. Three create nothing and were left alone.
+
+**Two operator gaps made self-cleaning impossible, and both are closed.** There
+was no way to retire a fixture project; there is now, and it archives the
+project and revokes the keys still live on it in one transaction. And a
+suspended merchant could still sign in to the merchant app with handle and PIN,
+because the login query read the credential row and never the merchant's status
+— so the operator's own retirement left a working login. Both are in
+`bc0b86b3`.
+
+ADR-055 is untouched. A sealed binding stays sealed and there is deliberately no
+route that unseals one: the disposable unit is the project that holds the
+binding, not the payee.
+
+**What proves it stays fixed.** `fixture-hygiene-gate.sh` counts operator
+authority around a single harness and requires a zero delta, checked even when
+the harness fails. `fixture-hygiene-suite.sh` does the same around all thirteen
+at once — 13/13 pass, zero delta, on the deployed Sandbox.
+`tools/check-harness-hygiene.mjs` runs in CI and fails a harness that mints
+authority without wiring up cleanup, with a self-test that writes each violation
+class into the tree and requires the gate to fail. Mutation-proved:
+`E2E_NO_CLEANUP=1` produced 5 leaked objects and the gate failed with exit 1.
+`cleanup-e2e-run.sh` finishes a run a killed machine interrupted, from its
+manifest, by id.
+
+**Worth noticing about the shape of this.** The gate found three leaks in
+harnesses I had already instrumented and believed done: an unpaid payment
+session leaves an ACTIVE payment link, and those links have no expiry. Reading
+the code and believing it is what produced the first two sweeps.
+
+**And one mistake this work made.** The extended prune archived the canonical
+DOA project, because it matched projects through ANY binding to a fixture
+merchant and DOA's project keeps the retired binding it was corrected away from.
+Nothing broke — key authorisation reads the key's status and never the
+project's — but that is luck rather than design. The rule now asks only about
+ACTIVE bindings, and the canonical project is excluded by name as well.
