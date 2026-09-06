@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -323,64 +324,141 @@ func (c *ProvisionClient) post(ctx context.Context, path string, body any, out a
 // ProvisionSandboxOwner creates the merchant and wallet, and returns the PRIMARY
 // account Core's trigger made alongside the wallet.
 //
-// `name` and `email` identify the owner in the operator's own records. They are
-// derived from the project by the caller, never supplied by the developer: a
-// caller-chosen merchant name is a caller-chosen identity.
+// Resumable at every step, because the first version was not and it showed
+// immediately: a run that created the merchant and then failed reading the
+// PRIMARY account left the merchant behind, and the retry died on the unique
+// index over merchants.email. One project, two failures, no owner, and an orphan
+// merchant nobody was going to find.
+//
+// So each step looks before it creates. The derived email is what makes that
+// safe: it is unique per project by construction, so "a merchant with this
+// address already exists" means "this project's own, from an earlier attempt"
+// and never somebody else's.
+//
+// `name` and `email` are derived from the project by the caller, never supplied
+// by the developer: a caller-chosen merchant name is a caller-chosen identity.
 func (c *ProvisionClient) ProvisionSandboxOwner(ctx context.Context, name, email string) (*SandboxOwner, error) {
-	var merchant struct {
-		ID string `json:"id"`
-	}
-	if err := c.post(ctx, "/internal/v1/merchants",
-		map[string]any{"name": name, "email": email}, &merchant); err != nil {
+	merchantID, err := c.findMerchantByEmail(ctx, email)
+	if err != nil {
 		return nil, err
 	}
-	if merchant.ID == "" {
+	if merchantID == "" {
+		var created struct {
+			ID string `json:"id"`
+		}
+		if err := c.post(ctx, "/internal/v1/merchants",
+			map[string]any{"name": name, "email": email}, &created); err != nil {
+			return nil, err
+		}
+		merchantID = created.ID
+	}
+	if merchantID == "" {
 		return nil, ErrUnavailable
 	}
+	owner := &SandboxOwner{MerchantID: merchantID}
 
-	var wallet struct {
+	walletID, err := c.findWallet(ctx, merchantID)
+	if err != nil {
+		return owner, err
+	}
+	if walletID == "" {
+		var created struct {
+			ID string `json:"id"`
+		}
+		if err := c.post(ctx, "/internal/v1/wallets",
+			map[string]any{"merchant_id": merchantID, "currency": "AOA"}, &created); err != nil {
+			return owner, err
+		}
+		walletID = created.ID
+	}
+	if walletID == "" {
+		return owner, ErrUnavailable
+	}
+	owner.WalletID = walletID
+
+	acct, err := c.primaryAccount(ctx, walletID)
+	if err != nil {
+		return owner, err
+	}
+	owner.WalletAccountID = acct
+	return owner, nil
+}
+
+// findMerchantByEmail returns this project's own merchant from an earlier
+// attempt, or empty. Matched on the exact address rather than on the search
+// result's first row: a substring search is not an identity check.
+func (c *ProvisionClient) findMerchantByEmail(ctx context.Context, email string) (string, error) {
+	var list []struct {
+		ID    string `json:"id"`
+		Email string `json:"email"`
+	}
+	if err := c.get(ctx, "/internal/v1/merchants?search="+url.QueryEscape(email), &list); err != nil {
+		return "", err
+	}
+	for _, m := range list {
+		if strings.EqualFold(m.Email, email) {
+			return m.ID, nil
+		}
+	}
+	return "", nil
+}
+
+// findWallet returns the merchant's AOA wallet if it already has one.
+func (c *ProvisionClient) findWallet(ctx context.Context, merchantID string) (string, error) {
+	var w struct {
 		ID string `json:"id"`
 	}
-	if err := c.post(ctx, "/internal/v1/wallets",
-		map[string]any{"merchant_id": merchant.ID, "currency": "AOA"}, &wallet); err != nil {
-		// The merchant exists and the wallet does not. Reported so the caller can
-		// resume rather than provision a second merchant on the next attempt.
-		return &SandboxOwner{MerchantID: merchant.ID}, err
-	}
-
-	acct, err := c.primaryAccount(ctx, wallet.ID)
+	err := c.get(ctx, "/internal/v1/wallets?merchant_id="+url.QueryEscape(merchantID)+"&currency=AOA", &w)
 	if err != nil {
-		return &SandboxOwner{MerchantID: merchant.ID, WalletID: wallet.ID}, err
+		// A merchant with no wallet answers not-found, which is an answer and not
+		// a fault: the next step creates one.
+		if errors.Is(err, ErrNotFound) {
+			return "", nil
+		}
+		return "", err
 	}
-	return &SandboxOwner{MerchantID: merchant.ID, WalletID: wallet.ID, WalletAccountID: acct}, nil
+	return w.ID, nil
+}
+
+// get is the read half of this client. A 404 is reported as ErrNotFound so a
+// caller can tell "there is none" from "the call did not work".
+func (c *ProvisionClient) get(ctx context.Context, path string, out any) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	if err != nil {
+		return ErrUnavailable
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return ErrUnavailable
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode == http.StatusNotFound {
+		return ErrNotFound
+	}
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("core %s: %d", path, resp.StatusCode)
+	}
+	if out != nil {
+		if err := json.Unmarshal(raw, out); err != nil {
+			return ErrUnavailable
+		}
+	}
+	return nil
 }
 
 // primaryAccount reads the account Core's own trigger created with the wallet.
 // It is never created here: Core rejects an attempt to open a PRIMARY through
 // the wallet-accounts route, and rightly — one wallet has exactly one.
 func (c *ProvisionClient) primaryAccount(ctx context.Context, walletID string) (string, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
-		c.baseURL+"/internal/v1/wallet-accounts?wallet_id="+url.QueryEscape(walletID), nil)
-	if err != nil {
-		return "", ErrUnavailable
-	}
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return "", ErrUnavailable
-	}
-	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("core wallet-accounts: %d", resp.StatusCode)
-	}
 	var page struct {
 		Data []struct {
 			ID      string `json:"id"`
 			Purpose string `json:"purpose"`
 		} `json:"data"`
 	}
-	if err := json.Unmarshal(raw, &page); err != nil {
-		return "", ErrUnavailable
+	if err := c.get(ctx, "/internal/v1/wallets/"+url.PathEscape(walletID)+"/accounts", &page); err != nil {
+		return "", err
 	}
 	for _, a := range page.Data {
 		if a.Purpose == "PRIMARY" {
