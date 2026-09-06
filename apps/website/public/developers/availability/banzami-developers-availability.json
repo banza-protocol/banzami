@@ -46,7 +46,7 @@
     "refunds": {
       "state": "available_controlled_sandbox",
       "credential": "developer_key_scoped_or_merchant",
-      "note": "POST /v1/business/refunds with the refunds:write scope. The refund debits the account that received the payment; a read-only key is refused (403) and another project’s payment answers 404."
+      "note": "POST /v1/refunds with the refunds:write scope. The refund debits the account that received the payment; a read-only key is refused (403) and another project’s payment answers 404."
     },
     "transfers": {
       "state": "available_controlled_sandbox",

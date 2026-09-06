@@ -492,7 +492,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
               </P>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Technical reference: the payment source is typed per BANZA ADR-017. Credential: a project key with the
-                {' '}<Code>refunds:write</Code> scope, on <Code>POST /v1/business/refunds</Code>. The refund debits the account
+                {' '}<Code>refunds:write</Code> scope, on <Code>POST /v1/refunds</Code>. The refund debits the account
                 that <strong>received</strong> the payment — not the owner&rsquo;s general balance — and another
                 project&rsquo;s payment answers <Code>404</Code>. See the{' '}
                 <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
@@ -586,7 +586,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
                       ['Webhook endpoint registration (POST /v1/business/webhooks)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
                       ['Outbound webhook delivery', '—', 'Verified in Sandbox — signature confirmed independently and delivery accepted by a public receiver'],
-                      ['Refunds (POST /v1/business/refunds)', 'Project key (refunds:write) or merchant credential', 'Available in Sandbox — the refund debits the account that received the payment'],
+                      ['Refunds (POST /v1/refunds)', 'Project key (refunds:write) or merchant credential', 'Available in Sandbox — the refund debits the account that received the payment'],
                       ['Transfers (POST /v1/business/transfers)', 'Project key (transfers:write)', 'Available in Sandbox — between accounts of the project’s own owner'],
                       ['Production / live rails / external providers', '—', 'Not available · Not approved'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
@@ -629,7 +629,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
 
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Credential note: refunds and transfers are reached with a project key holding
-                {' '}<Code>refunds:write</Code> and <Code>transfers:write</Code>, on <Code>/v1/business/refunds</Code> and
+                {' '}<Code>refunds:write</Code> and <Code>transfers:write</Code>, on <Code>/v1/refunds</Code> and
                 {' '}<Code>/v1/business/transfers</Code>. Both were verified end to end against the deployed Sandbox, including
                 the refusals: a read-only key cannot write, and another project&rsquo;s payment or account answers <Code>404</Code>.
                 Sandbox only — never present either as available in Production.

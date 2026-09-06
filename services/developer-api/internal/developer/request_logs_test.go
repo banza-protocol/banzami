@@ -29,7 +29,7 @@ func logFixture(t *testing.T) (s *Service, st *memStore, projA, projB string) {
 	now := time.Now().UTC()
 	ms := 12
 	st.SeedRequestLog(pa.ID, APIRequestLogView{
-		ID: "l1", Method: "POST", Path: "/v1/business/refunds", Route: "/v1/business/refunds",
+		ID: "l1", Method: "POST", Path: "/v1/refunds", Route: "/v1/refunds",
 		Status: 201, RequestID: "req_a_1", LatencyMS: &ms, Environment: "SANDBOX", CreatedAt: now,
 	})
 	st.SeedRequestLog(pa.ID, APIRequestLogView{

@@ -160,7 +160,7 @@ describe('P0 — /docs content contracts (rendered)', () => {
     // either as available on live rails.
     expect(DOCS).toContain('refunds:write');
     expect(DOCS).toContain('transfers:write');
-    expect(DOCS).toContain('/v1/business/refunds');
+    expect(DOCS).toContain('/v1/refunds');
     expect(DOCS).toContain('/v1/business/transfers');
     expect(isReleased('CAP-REFUND-001')).toBe(true);
     expect(isReleased('CAP-TRANSFER-002')).toBe(true);

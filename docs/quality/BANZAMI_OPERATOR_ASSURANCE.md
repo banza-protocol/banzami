@@ -161,7 +161,7 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **Authority:** protocol — BANZA refund/restitution rules
 - **Threat category:** financial-money-movement
 - **Implementation:** core/transactions, services/api-gateway
-- **API/UI surface:** /v1/refunds, /v1/business/refunds
+- **API/UI surface:** /v1/refunds
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [core/api restitution: refund debits the account that was credited (RA-061)] · e2e_sandbox [tests/phase0/refund-devkey-e2e.sh (15/15 on deployed sandbox, post-reset), tests/phase0/refund-published-sdk-e2e.sh (25/25 through the PUBLISHED @banzami/sdk@latest, installed from npm)] · negative/security [a read-only key cannot refund (refunds:read → 403 on write), a second project holding a valid key cannot refund another project's payment (404, not 403), the victim's balance is unchanged after the refused attempt, the foreign project cannot read the resulting refund (404), an idempotent replay returns the same refund and moves no money]
 - **Evidence:** evidence/assurance/refunds/cap-refund-001-devkey-sandbox-e2e.json, evidence/assurance/refunds/ra-065-published-sdk-refunds.json, docs/quality/REPAIR_LOG.md#RA-061

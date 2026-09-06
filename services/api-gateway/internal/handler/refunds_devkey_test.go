@@ -52,21 +52,21 @@ func TestDevKeyRefund_RequiresItsOwnWriteScope(t *testing.T) {
 	// A payment scope must not carry a refund with it: being able to take money
 	// is not being able to give it back.
 	rec := httptest.NewRecorder()
-	h.Create(rec, devRefundReq("POST", "https://x/v1/business/refunds", refundBody, "payment_sessions:write"))
+	h.Create(rec, devRefundReq("POST", "https://x/v1/refunds", refundBody, "payment_sessions:write"))
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("payment scope alone: want 403, got %d", rec.Code)
 	}
 
 	// Nor may the read scope.
 	rec = httptest.NewRecorder()
-	h.Create(rec, devRefundReq("POST", "https://x/v1/business/refunds", refundBody, "refunds:read"))
+	h.Create(rec, devRefundReq("POST", "https://x/v1/refunds", refundBody, "refunds:read"))
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("refunds:read on create: want 403, got %d", rec.Code)
 	}
 
 	// And settlement — the other money-out capability — is not a refund either.
 	rec = httptest.NewRecorder()
-	h.Create(rec, devRefundReq("POST", "https://x/v1/business/refunds", refundBody, "application_settlements:write"))
+	h.Create(rec, devRefundReq("POST", "https://x/v1/refunds", refundBody, "application_settlements:write"))
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("settlement scope on refund: want 403, got %d", rec.Code)
 	}
@@ -76,13 +76,13 @@ func TestDevKeyRefund_ReadRoutesRequireTheReadScope(t *testing.T) {
 	h := NewRefundHandler(&devRefunds{})
 
 	rec := httptest.NewRecorder()
-	h.List(rec, devRefundReq("GET", "https://x/v1/business/refunds", "", "payment_sessions:read"))
+	h.List(rec, devRefundReq("GET", "https://x/v1/refunds", "", "payment_sessions:read"))
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("list with an unrelated scope: want 403, got %d", rec.Code)
 	}
 
 	rec = httptest.NewRecorder()
-	h.Get(rec, devRefundReq("GET", "https://x/v1/business/refunds/r_1", "", "payment_sessions:read"))
+	h.Get(rec, devRefundReq("GET", "https://x/v1/refunds/r_1", "", "payment_sessions:read"))
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("get with an unrelated scope: want 403, got %d", rec.Code)
 	}
@@ -92,7 +92,7 @@ func TestDevKeyRefund_UnboundProjectCannotRefund(t *testing.T) {
 	h := NewRefundHandler(&devRefunds{})
 	dp := boundDevPrincipal("refunds:write")
 	dp.Bound, dp.MerchantID = false, ""
-	req := httptest.NewRequest("POST", "https://x/v1/business/refunds", strings.NewReader(refundBody))
+	req := httptest.NewRequest("POST", "https://x/v1/refunds", strings.NewReader(refundBody))
 	req = req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), dp))
 
 	rec := httptest.NewRecorder()
@@ -117,7 +117,7 @@ func TestDevKeyRefund_MerchantComesFromTheBindingNotTheBody(t *testing.T) {
 		`"amount_minor":1000,"currency":"AOA","idempotency_key":"idem-2"}`
 
 	rec := httptest.NewRecorder()
-	h.Create(rec, devRefundReq("POST", "https://x/v1/business/refunds", body, "refunds:write"))
+	h.Create(rec, devRefundReq("POST", "https://x/v1/refunds", body, "refunds:write"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
 	}
@@ -131,7 +131,7 @@ func TestDevKeyRefund_ReadsAreScopedToTheBoundMerchant(t *testing.T) {
 	h := NewRefundHandler(f)
 
 	rec := httptest.NewRecorder()
-	h.Get(rec, withURLParam(devRefundReq("GET", "https://x/v1/business/refunds/rf_1", "", "refunds:read"), "id", "rf_1"))
+	h.Get(rec, withURLParam(devRefundReq("GET", "https://x/v1/refunds/rf_1", "", "refunds:read"), "id", "rf_1"))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d (%s)", rec.Code, rec.Body.String())
 	}

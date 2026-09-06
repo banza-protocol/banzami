@@ -677,75 +677,6 @@
         }
       }
     },
-    "/v1/business/refunds": {
-      "post": {
-        "tags": [
-          "refunds"
-        ],
-        "operationId": "createRefund",
-        "summary": "Refund an eligible payment",
-        "description": "Returns an eligible payment fully or partially. The refund debits the account that RECEIVED the payment, not the owner’s general balance. Credential: developer key with refunds:write, or a merchant credential. Another project’s payment answers 404 — knowing an id is not authority over it.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRefundRequest"
-              },
-              "example": {
-                "source_type": "WALLET_PAYMENT",
-                "source_id": "wallet_payment_xxx",
-                "amount_minor": 50000,
-                "currency": "AOA",
-                "idempotency_key": "idem_xxx"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Refund created. Replaying the same idempotency_key returns this same refund.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Refund"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Currency differs from the source, amount above the accrued cap, or missing fields",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Missing refunds:write scope — a read-only key cannot refund",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Refund source not found, or belonging to another project",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/business/webhooks/endpoints": {
       "post": {
         "tags": [
@@ -803,6 +734,75 @@
           },
           "404": {
             "description": "Another project’s endpoint",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refunds": {
+      "post": {
+        "tags": [
+          "refunds"
+        ],
+        "operationId": "createRefund",
+        "summary": "Refund an eligible payment",
+        "description": "Returns an eligible payment fully or partially. The refund debits the account that RECEIVED the payment, not the owner’s general balance. Credential: developer key with refunds:write, or a merchant credential. Another project’s payment answers 404 — knowing an id is not authority over it.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRefundRequest"
+              },
+              "example": {
+                "source_type": "WALLET_PAYMENT",
+                "source_id": "wallet_payment_xxx",
+                "amount_minor": 50000,
+                "currency": "AOA",
+                "idempotency_key": "idem_xxx"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Refund created. Replaying the same idempotency_key returns this same refund.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Currency differs from the source, amount above the accrued cap, or missing fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Missing refunds:write scope — a read-only key cannot refund",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Refund source not found, or belonging to another project",
             "content": {
               "application/json": {
                 "schema": {

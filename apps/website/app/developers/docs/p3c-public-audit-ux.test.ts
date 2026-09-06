@@ -71,7 +71,7 @@ describe('P3C — PT/EN guides parity', () => {
     expect(EN).toContain('ACQUIRING_PAYMENT');
     expect(EN).toContain('WALLET_PAYMENT');
     expect(EN).toContain('refunds:write');
-    expect(EN.replace(/\s+/g, ' ')).toContain('on <Code>POST /v1/business/refunds</Code>');
+    expect(EN.replace(/\s+/g, ' ')).toContain('on <Code>POST /v1/refunds</Code>');
     // never the obsolete/internal contract.
     expect(EN.includes('transaction_id')).toBe(false);
     expect(EN.includes('payment_id')).toBe(false);

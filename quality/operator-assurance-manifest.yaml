@@ -311,7 +311,6 @@ capabilities:
       - services/api-gateway
     api_surface:
       - /v1/refunds
-      - /v1/business/refunds
     threat_category: financial-money-movement
     tests:
       unit: []

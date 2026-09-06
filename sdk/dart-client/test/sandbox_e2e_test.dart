@@ -84,7 +84,7 @@ void main() {
 
     test('it cannot refund', () async {
       expect(
-          await post('/v1/business/refunds',
+          await post('/v1/refunds',
               '{"source_type":"WALLET_PAYMENT","source_id":"x","amount_minor":1,"currency":"AOA","idempotency_key":"k"}'),
           403);
     });

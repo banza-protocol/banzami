@@ -105,7 +105,7 @@ try {
   // ── 3. A FAILING request is logged too — that is the one being debugged ────
   // A route that EXISTS and authenticates, then denies: an unrouted path 404s
   // before authentication and has no project to attribute — correctly unlogged.
-  const denied = await call('/v1/business/refunds', keyA); // key lacks refunds:read
+  const denied = await call('/v1/refunds', keyA); // key lacks refunds:read
   const foundBad = await findLog(ctxA, prA, denied.requestId);
   const rowBad = foundBad.logs?.[0];
   rec('LOG.failure-is-logged-too', !!rowBad && rowBad.status === denied.status && denied.status >= 400,

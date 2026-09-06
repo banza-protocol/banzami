@@ -51,7 +51,10 @@ func router(sink service.APIRequestLogSink, client devKeyAuthorizer, status int)
 	r := chi.NewRouter()
 	r.Use(obs.Correlation) // the real chain's source of request_id
 	r.Use(APIRequestLog(sink))
-	r.Route("/v1/business", func(r chi.Router) {
+	// Mounted where the public contract puts refunds. The group is dual-auth,
+	// which is the point of the move: a project key and a merchant JWT both
+	// reach the same public path.
+	r.Route("/v1", func(r chi.Router) {
 		r.Use(DualAuth(&config.Config{JWTSecret: "s"}, client))
 		r.Get("/refunds/{id}", func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(status)
@@ -62,7 +65,7 @@ func router(sink service.APIRequestLogSink, client devKeyAuthorizer, status int)
 
 func TestAPIRequestLog_RecordsAuthenticatedRequest(t *testing.T) {
 	sink := &memSink{}
-	req := httptest.NewRequest(http.MethodGet, "/v1/business/refunds/rf_123?secret=shhh", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/refunds/rf_123?secret=shhh", nil)
 	req.Header.Set("Authorization", "Bearer bz_test_sk_abc")
 	rec := httptest.NewRecorder()
 	router(sink, devAuthorizer("proj-1"), http.StatusOK).ServeHTTP(rec, req)
@@ -78,10 +81,10 @@ func TestAPIRequestLog_RecordsAuthenticatedRequest(t *testing.T) {
 	if e.Method != http.MethodGet || e.Status != 200 {
 		t.Errorf("method/status wrong: %s %d", e.Method, e.Status)
 	}
-	if e.Path != "/v1/business/refunds/rf_123" {
+	if e.Path != "/v1/refunds/rf_123" {
 		t.Errorf("path = %q — the query string must be stripped", e.Path)
 	}
-	if e.Route != "/v1/business/refunds/{id}" {
+	if e.Route != "/v1/refunds/{id}" {
 		t.Errorf("route = %q, want the canonical chi pattern", e.Route)
 	}
 	if e.RequestID == "" {
@@ -97,7 +100,7 @@ func TestAPIRequestLog_RecordsFailureStatuses(t *testing.T) {
 	for _, status := range []int{http.StatusForbidden, http.StatusNotFound,
 		http.StatusUnprocessableEntity, http.StatusInternalServerError} {
 		sink := &memSink{}
-		req := httptest.NewRequest(http.MethodGet, "/v1/business/refunds/x", nil)
+		req := httptest.NewRequest(http.MethodGet, "/v1/refunds/x", nil)
 		req.Header.Set("Authorization", "Bearer bz_test_sk_abc")
 		router(sink, devAuthorizer("proj-1"), status).ServeHTTP(httptest.NewRecorder(), req)
 		got := sink.all()
@@ -117,7 +120,7 @@ func TestAPIRequestLog_NoEntryWithoutAuthentication(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sink := &memSink{}
 			client := devKeyAuthorizer(&fakeDevAuthorizer{err: service.ErrDeveloperKeyInvalid})
-			req := httptest.NewRequest(http.MethodGet, "/v1/business/refunds/x", nil)
+			req := httptest.NewRequest(http.MethodGet, "/v1/refunds/x", nil)
 			if c.authz != "" {
 				req.Header.Set("Authorization", c.authz)
 			}
@@ -137,7 +140,7 @@ func TestAPIRequestLog_MerchantJWTNotLogged(t *testing.T) {
 		t.Fatal(err)
 	}
 	sink := &memSink{}
-	req := httptest.NewRequest(http.MethodGet, "/v1/business/refunds/x", nil)
+	req := httptest.NewRequest(http.MethodGet, "/v1/refunds/x", nil)
 	req.Header.Set("Authorization", "Bearer "+jwt)
 	router(sink, devAuthorizer("proj-1"), http.StatusOK).ServeHTTP(httptest.NewRecorder(), req)
 	if n := len(sink.all()); n != 0 {
@@ -150,7 +153,7 @@ func TestSanitisePath_RedactsCredentialShapes(t *testing.T) {
 		{"/v1/x?api_key=bz_test_sk_abc", "/v1/x"},
 		{"/v1/keys/bz_test_sk_abcDEF123", "/v1/keys/[REDACTED]"},
 		{"/v1/keys/bz_live_pk_zzz", "/v1/keys/[REDACTED]"},
-		{"/v1/business/refunds/rf_1", "/v1/business/refunds/rf_1"},
+		{"/v1/refunds/rf_1", "/v1/refunds/rf_1"},
 	} {
 		if got := sanitisePath(c.in); got != c.want {
 			t.Errorf("sanitisePath(%q) = %q, want %q", c.in, got, c.want)

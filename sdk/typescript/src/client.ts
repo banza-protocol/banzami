@@ -1052,12 +1052,12 @@ export class BanzamiClient {
         'createRefund requires an explicit idempotency_key (a stable, server-generated key scoped to the refund intent). The SDK does not generate one for financial writes.',
       );
     }
-    // /business/refunds, not /refunds. The bare route is mounted under merchant
-    // authentication, so this method answered 401 for the ONLY credential this
-    // SDK documents (bz_test_sk_…) — the refunds capability was advertised and
-    // unreachable. The project-scoped route resolves the financial owner from
-    // the key's binding and answers 404 for another project's payment.
-    return this.request<Refund>('/business/refunds', {
+    // The canonical public route. It was briefly /business/refunds: the bare
+    // path was mounted under merchant-JWT authentication, so a project key —
+    // the only credential this SDK documents — answered 401, and 0.8.1 moved
+    // the client to match the server. The server moved instead: /v1/refunds is
+    // now dual-auth, and `/business/` is not part of the public vocabulary.
+    return this.request<Refund>('/refunds', {
       method: 'POST',
       body:   JSON.stringify({
         source_type:     params.source_type,
@@ -1071,12 +1071,12 @@ export class BanzamiClient {
   }
 
   getRefund(id: string): Promise<Refund> {
-    return this.request<Refund>(`/business/refunds/${id}`);
+    return this.request<Refund>(`/refunds/${id}`);
   }
 
   listRefunds(params: { sourceId?: string; limit?: number } = {}): Promise<Page<Refund>> {
     return this.request<Page<Refund>>(
-      `/business/refunds${this.qs({ source_id: params.sourceId, limit: params.limit })}`,
+      `/refunds${this.qs({ source_id: params.sourceId, limit: params.limit })}`,
     );
   }
 

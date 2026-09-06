@@ -33,11 +33,16 @@ const ALLOWED_PATHS = [
   '/v1/business/wallet-accounts/{id}',
   // Released on deployed-Sandbox E2E evidence; see the assurance manifest.
   '/v1/business/transfers',
-  '/v1/business/refunds',
+  '/v1/refunds',
   '/v1/business/webhooks/endpoints',
 ];
+// Surfaces the public Sandbox spec must not document. `/v1/refunds` used to be
+// on this list because it was the merchant-JWT twin of the project-scoped route
+// — documenting it would have pointed developers at a path their credential
+// could not open. It is now the canonical public refund route, dual-auth, and
+// belongs in the spec; `/v1/transfers` remains withdrawn (RA-053).
 const FORBIDDEN_PATH_TOKENS = [
-  '/v1/refunds', '/v1/transfers', '/v1/payments', '/checkout', '/pay/',
+  '/v1/transfers', '/v1/payments', '/checkout', '/pay/',
   '/v1/sandbox/fund', '/v1/sandbox/simulate', '/internal/', 'bz_live_',
   'api.banzami.com/v1', 'emis', 'callbacks',
 ];

@@ -748,7 +748,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
 
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-017. Credencial: chave de projeto
-                com o scope <Code>refunds:write</Code>, em <Code>POST /v1/business/refunds</Code>. O reembolso debita a
+                com o scope <Code>refunds:write</Code>, em <Code>POST /v1/refunds</Code>. O reembolso debita a
                 conta que <strong>recebeu</strong> o pagamento — não o saldo geral do titular — e um pagamento de outro
                 projeto responde <Code>404</Code>. Ver a matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
@@ -875,7 +875,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
                       ['Registo de endpoints de webhooks (POST /v1/business/webhooks)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
                       ['Entrega outbound de webhooks', '—', 'Verificada em Sandbox — assinatura confirmada de forma independente e entrega aceite por um recetor público'],
-                      ['Reembolsos (POST /v1/business/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
+                      ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
                       ['Transferências (POST /v1/business/transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
                       ['Produção / trilhos live / fornecedores externos', '—', 'Não disponível · Não aprovado'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (

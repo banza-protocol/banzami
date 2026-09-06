@@ -502,12 +502,15 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			})
 			r.Post("/collection-shares/{id}/surface", collectionHandler.SurfaceShare)
 
-			// Refunds
-			r.Route("/refunds", func(r chi.Router) {
-				r.Post("/", refundHandler.Create)
-				r.Get("/", refundHandler.List)
-				r.Get("/{id}", refundHandler.Get)
-			})
+			// Refunds are NOT mounted here any more.
+			//
+			// This group is merchant-JWT only, and that is what made refunds
+			// unreachable for the credential the SDK documents: a project key
+			// answered 401 on /v1/refunds, so 0.8.1 moved the client to
+			// /v1/business/refunds instead — the client changed to match the
+			// server. The route now lives in the dual-auth group below, where a
+			// merchant JWT and a Developer Platform key both work, so the public
+			// path is the one the documentation always named.
 
 			// Disputes
 			r.Route("/disputes", func(r chi.Router) {
@@ -633,7 +636,14 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Route("/business/transfers", func(r chi.Router) {
 				r.Post("/", walletAccountTransferHandler.Create)
 			})
-			r.Route("/business/refunds", func(r chi.Router) {
+			// Refunds are a first-class public primitive, so they live at the
+			// public path. `/business/` was never part of the developer-facing
+			// vocabulary — it described where the handler happened to be mounted
+			// when refunds were merchant-credential-only — and carrying it into
+			// the public contract would have meant explaining a word that means
+			// nothing to the person reading it. The landing page already
+			// documented POST /v1/refunds, so the runtime is what moved.
+			r.Route("/refunds", func(r chi.Router) {
 				r.Post("/", refundHandler.Create)
 				r.Get("/", refundHandler.List)
 				r.Get("/{id}", refundHandler.Get)

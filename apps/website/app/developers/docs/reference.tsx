@@ -317,7 +317,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-refund-create',
     method: 'POST',
-    path: '/v1/business/refunds',
+    path: '/v1/refunds',
     tone: 'ok',
     desc: {
       pt: 'Devolve, total ou parcialmente, um pagamento elegível. O reembolso debita a conta que recebeu o pagamento — não o saldo geral do titular.',
@@ -333,7 +333,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'idempotency_key', note: { pt: 'obrigatório', en: 'required' } },
       { name: 'reason', note: { pt: 'opcional', en: 'optional' } },
     ],
-    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/refunds \\
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/refunds \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -d '{

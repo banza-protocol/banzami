@@ -94,7 +94,7 @@ chk REFUND_SOURCE_FOUND "$([ -n "$SRC" ] && [ -n "$SRC_TYPE" ] && echo yes)" yes
 echo "### refund with the project's own key"
 IDEM="refund-idem-$R"
 RB="{\"source_type\":\"$SRC_TYPE\",\"source_id\":\"$SRC\",\"amount_minor\":50000,\"currency\":\"AOA\",\"reason\":\"sandbox e2e partial\",\"idempotency_key\":\"$IDEM\"}"
-call "$GW" 8080 POST /v1/business/refunds "$RB" "$KEY"
+call "$GW" 8080 POST /v1/refunds "$RB" "$KEY"
 echo "  create → http=$CODE $(printf '%s' "$LAST" | head -c 140)"
 chk REFUND_ACCEPTED "$CODE" "201"
 RID=$(jget id)
@@ -109,14 +109,14 @@ NET=$(psqlro "SELECT COUNT(*) FROM (SELECT p.id FROM ledger_postings p JOIN ledg
 chk LEDGER_STILL_BALANCED_AFTER_REFUND "$NET" "0"   # clean ledger: nothing unbalanced, ever
 
 echo "### idempotency"
-call "$GW" 8080 POST /v1/business/refunds "$RB" "$KEY"
+call "$GW" 8080 POST /v1/refunds "$RB" "$KEY"
 REPLAY=$(jget id)
 chk IDEMPOTENT_REPLAY "$REPLAY" "$RID"
 AFTER_REPLAY=$(bal "$ACCT" "$KEY")
 chk REPLAY_MOVED_NO_MONEY "$AFTER_REPLAY" "$AFTER_REFUND"
 
 echo "### readable through the supported API"
-call "$GW" 8080 GET "/v1/business/refunds/$RID" - "$KEY"
+call "$GW" 8080 GET "/v1/refunds/$RID" - "$KEY"
 chk REFUND_READABLE "$CODE" "200"
 
 echo "### scope separation"
@@ -124,7 +124,7 @@ call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"refund-ro-$R\",\"scopes\":[\"identity:read\",\"refunds:read\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 ROKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-call "$GW" 8080 POST /v1/business/refunds "$RB" "$ROKEY"
+call "$GW" 8080 POST /v1/refunds "$RB" "$ROKEY"
 chk READ_SCOPE_CANNOT_REFUND "$CODE" "403"
 
 echo "### another project cannot refund this payment"
@@ -142,14 +142,14 @@ OKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
-call "$GW" 8080 POST /v1/business/refunds \
+call "$GW" 8080 POST /v1/refunds \
   "{\"source_type\":\"$SRC_TYPE\",\"source_id\":\"$SRC\",\"amount_minor\":10000,\"currency\":\"AOA\",\"reason\":\"cross-project attempt\",\"idempotency_key\":\"steal-$R\"}" "$OKEY"
 echo "  foreign refund → http=$CODE $(printf '%s' "$LAST" | head -c 120)"
 chk FOREIGN_REFUND_REJECTED "$([ "$CODE" -ge 400 ] && echo rejected)" "rejected"
 
 VICTIM=$(bal "$ACCT" "$KEY")
 chk VICTIM_BALANCE_UNCHANGED "$VICTIM" "$AFTER_REFUND"
-call "$GW" 8080 GET "/v1/business/refunds/$RID" - "$OKEY"
+call "$GW" 8080 GET "/v1/refunds/$RID" - "$OKEY"
 chk FOREIGN_CANNOT_READ_REFUND "$CODE" "404"
 
 echo

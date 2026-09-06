@@ -123,6 +123,11 @@ describe('SDK ↔ gateway route drift', () => {
     // unreachable through the SDK; DOA's production refund path was calling it.
     // Path-existence alone could never have caught that, so reachability is
     // checked separately.
+    //
+    // That was fixed the wrong way round at first: the client moved to
+    // /business/refunds to match where the server had it. The server moved
+    // instead — /v1/refunds is dual-auth now — so the assertion below is that
+    // refunds are reachable at the PUBLIC path, not that the SDK avoids it.
     const dual = mountedRoutes(readFileSync(SERVER, 'utf8'), { dualAuthOnly: true });
     expect(dual.size, 'dual-credential group parsed as empty — the check would be vacuous')
       .toBeGreaterThan(5);
@@ -133,7 +138,7 @@ describe('SDK ↔ gateway route drift', () => {
     const FINANCIAL = [
       '/business/payment-sessions',
       '/business/wallet-accounts',
-      '/business/refunds',
+      '/refunds',
       '/business/transfers',
       '/business/webhooks/endpoints',
       '/business/me',
@@ -141,11 +146,12 @@ describe('SDK ↔ gateway route drift', () => {
     const unreachable = FINANCIAL.filter((p) => !dual.has(p));
     expect(unreachable, 'financial routes a project key cannot reach').toEqual([]);
 
-    // And the SDK must actually call those, not their merchant-only twins.
+    // And the SDK must call the public path, never the withdrawn one.
     const client = readFileSync(CLIENT, 'utf8');
-    for (const bare of ["'/refunds'", "`/refunds/"]) {
-      expect(client.includes(bare), `SDK still calls the merchant-only ${bare}`).toBe(false);
+    for (const legacy of ["'/business/refunds'", "`/business/refunds/"]) {
+      expect(client.includes(legacy), `SDK still calls the withdrawn ${legacy}`).toBe(false);
     }
+    expect(client.includes("'/refunds'"), 'SDK does not call the public refund route').toBe(true);
   });
 
   it('the new webhook management routes are among them', () => {
