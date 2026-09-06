@@ -124,7 +124,6 @@ call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"refund-ro-$R\",\"scopes\":[\"identity:read\",\"refunds:read\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 ROKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 POST /v1/business/refunds "$RB" "$ROKEY"
 chk READ_SCOPE_CANNOT_REFUND "$CODE" "403"
 
@@ -140,6 +139,7 @@ call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"refund-other-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 call "$GW" 8080 POST /v1/business/refunds \

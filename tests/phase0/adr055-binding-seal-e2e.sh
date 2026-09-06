@@ -50,6 +50,20 @@ ACTOR=11111111-2222-4333-8444-555555555555
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
 e2e_begin
+# The sessions this run opens are its payer-facing artifacts — including five
+# fired concurrently, whose ids never reach the shell. They are recovered by
+# account and start time rather than guessed at: these two accounts, sessions
+# created after this moment. An unpaid session leaves an ACTIVE payment link,
+# and those links never expire.
+RUN_SINCE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+own_sessions_since() {
+  local acct
+  for acct in "$@"; do
+    for sid in $(e2e_sql "select id from payment_sessions where wallet_account_id='$acct' and created_at >= '$RUN_SINCE'"); do
+      e2e_own payment_session "$sid" "$MERCHANT"
+    done
+  done
+}
 
 # @doa's payee, and two wallet accounts under it. The seal is about which payee
 # a project resolves to, so A and B differ by account: a real correction, and
@@ -187,6 +201,8 @@ e2e_own fixture_key "$KEYID2"
 
 docker exec -e K="$KEY2" "$DEV" sh -c \
   "for i in 1 2 3 4 5; do curl -s -o /dev/null -X POST '$GW/v1/business/payment-sessions' -H \"Authorization: Bearer \$K\" -H 'Content-Type: application/json' -d '{\"amount\":100000,\"currency\":\"AOA\",\"description\":\"race\"}' & done; wait" >/dev/null 2>&1
+
+own_sessions_since "$ACC_A" "$ACC_B"
 
 ACTIVE_N=$(sql "select count(*) from developer.dev_project_sandbox_binding where project_id='$PROJ2' and state='ACTIVE'")
 SEALED2=$(sql "select artifact_created from developer.dev_project_sandbox_binding where project_id='$PROJ2' and state='ACTIVE'")

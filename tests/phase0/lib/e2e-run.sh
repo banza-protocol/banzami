@@ -69,6 +69,9 @@ e2e_begin() {
   E2E_MANIFEST="$E2E_STATE_DIR/$E2E_RUN_ID.tsv"
   : > "$E2E_MANIFEST"
 
+  E2E_PG=$(docker ps   --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
+  E2E_CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
+  E2E_PW=$(docker exec "$E2E_CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' 2>/dev/null | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
   E2E_GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
   E2E_DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
   E2E_INTKEY=$(docker exec "$E2E_DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null' 2>/dev/null)
@@ -95,6 +98,13 @@ e2e_own() {
 }
 
 # ── retirement ──────────────────────────────────────────────────────────────
+# Addressing only — never retirement. A payment session does not carry its
+# link's id, and the canonical cancel route takes an id, so the slug is resolved
+# here and the cancelling is still done through the API.
+e2e_sql() {
+  docker exec -e PGPASSWORD="$E2E_PW" "$E2E_PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null
+}
+
 e2e_jwt() {
   SECRET="$E2E_JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={scopes:["*"],environment:"SANDBOX",iat:n,exp:n+900};cl[process.env.K]=process.env.V;const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));'
 }
@@ -125,10 +135,19 @@ e2e_end() {
   # belong to a project or a merchant, and the merchant is retired last —
   # suspending it first would refuse every call that follows.
   local kind id owner code
-  for kind in payment_link webhook_endpoint merchant_key fixture_key fixture_project merchant; do
+  for kind in payment_session payment_link webhook_endpoint merchant_key fixture_key fixture_project merchant; do
     while IFS=$'\t' read -r k id owner; do
       [ "$k" = "$kind" ] || continue
       case "$kind" in
+        payment_session)
+          # An unpaid session leaves an ACTIVE payment link behind: a live URL
+          # anyone can pay into a fixture account, indefinitely — these links
+          # have no expiry. Paid ones are already USED and need nothing.
+          local lid
+          lid=$(e2e_sql "select l.id from payment_links l join payment_sessions s on s.payment_link_id = l.id where s.id = '$id' and l.status = 'ACTIVE'")
+          if [ -n "$lid" ]; then
+            code=$(e2e_http "$E2E_GW" 8080 DELETE "/v1/payment-links/$lid" "Authorization: Bearer $(e2e_jwt merchant_id "$owner")")
+          else code=204; fi ;;
         payment_link)
           code=$(e2e_http "$E2E_GW" 8080 DELETE "/v1/payment-links/$id" "Authorization: Bearer $(e2e_jwt merchant_id "$owner")") ;;
         webhook_endpoint)

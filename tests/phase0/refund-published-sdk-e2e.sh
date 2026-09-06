@@ -159,9 +159,18 @@ echo "### another project cannot refund this payment"
 call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"rfpub-b-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 PROJ2=$(jget project_id); e2e_own fixture_project "$PROJ2"
 if [ -n "$PROJ2" ]; then
-  MID2=$(psqlro "SELECT id FROM merchants ORDER BY created_at DESC LIMIT 1")
-  W2=$(psqlro "SELECT id FROM wallets WHERE merchant_id='$MID2' LIMIT 1")
-  WA2=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$W2' LIMIT 1")
+  # Its own foreign merchant, not the newest row in the table. Scavenging
+  # "the most recent merchant" made this test depend on whatever the previous
+  # harness happened to leave behind — and once harnesses started suspending
+  # their fixtures on the way out, the newest merchant became a suspended one
+  # and the foreign refund failed for the wrong reason.
+  MJWT2=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
+  call "$GW" 8080 POST /v1/merchants "{\"name\":\"RFP$R\",\"email\":\"rfp$R@synthetic.test\"}" "$MJWT2"
+  MID2=$(jget id); e2e_own merchant "$MID2"
+  MJWT2=$(mint merchant_id "$MID2")
+  call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT2"
+  W2=$(jget id)
+  WA2=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$W2' AND purpose='PRIMARY'")
   call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/binding" "{\"merchant_id\":\"$MID2\",\"wallet_id\":\"$W2\",\"wallet_account_id\":\"$WA2\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
   call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/fixture-keys" "{\"name\":\"rf-foreign-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
   FKEY=$(jget secret); e2e_own fixture_key "$(jget id)"

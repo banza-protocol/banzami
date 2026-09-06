@@ -127,13 +127,17 @@ const link = banzami.paymentSessionInterface(sa, 'PAYMENT_LINK')
           ?? banzami.paymentSessionInterface(sa, 'DEEP_LINK');
 chk('SESSION_HAS_INTERFACE', !!link?.value, true);
 
+// Ids the run owns, printed for the shell to record. A session that is never
+// paid leaves an ACTIVE payment link — a live URL into a fixture account, with
+// no expiry — so the run has to be able to retire it.
+console.log(`OWNS_SESSIONS ${[sa, sb, quickstart].map((x) => x.session_id).filter(Boolean).join(' ')}`);
 console.log(`\nSDK_PUBLIC_WALLET_ACCOUNTS: PASS=${pass} FAIL=${fail}`);
 process.exit(fail === 0 ? 0 : 1);
 JS
 
 # Fresh registry install in a throwaway container. --ignore-scripts because a
 # proof should not run arbitrary package lifecycle code.
-docker run --rm \
+OUT=$(docker run --rm \
   -e BANZAMI_API_KEY="$KEY" -e BANZAMI_BASE_URL="$BASE_URL" \
   -e SDK_VERSION="$SDK_VERSION" -e RUN_ID="$R" \
   -v "$WORK":/w -w /w node:24-alpine sh -c "
@@ -141,4 +145,14 @@ docker run --rm \
     npm install --no-fund --no-audit --ignore-scripts @banzami/sdk@$SDK_VERSION >/dev/null 2>&1 || { echo NPM_INSTALL_FAILED; exit 1; }
     echo \"  installed: \$(node -p \"require('/w/node_modules/@banzami/sdk/package.json').version\") from the public registry\"
     node proof.mjs
-  "
+  " 2>&1); RC=$?
+printf '%s\n' "$OUT"
+
+# The sessions the clean room opened, recorded so the run can retire the payment
+# links they leave behind. Parsed from the proof's own output because the SDK
+# runs inside a throwaway container that shares nothing else with this shell.
+BOUND_MERCHANT=$(e2e_sql "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$DOA_PROJECT' AND state='ACTIVE'")
+for sid in $(printf '%s\n' "$OUT" | sed -n 's/^OWNS_SESSIONS //p'); do
+  e2e_own payment_session "$sid" "$BOUND_MERCHANT"
+done
+exit $RC

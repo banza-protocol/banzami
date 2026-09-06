@@ -149,8 +149,8 @@ chk "LIST_IGNORES_SUPPLIED_WALLET" "$FOREIGN_IN_LIST" "clean"
 echo "### payments land in the campaign's own account"
 sess(){ call "$GW" 8080 POST /v1/business/payment-sessions \
   "{\"wallet_account_id\":\"$1\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"don-$2-$R\",\"amount_minor\":250000,\"currency\":\"AOA\"}" "$KEY"; }
-sess "$A_ID" a; SA_CODE="$CODE"; SA=$(jget session_id)
-sess "$B_ID" b; SB_CODE="$CODE"; SB=$(jget session_id)
+sess "$A_ID" a; SA_CODE="$CODE"; SA=$(jget session_id); e2e_own payment_session "$SA" "$BOUND_MERCHANT"
+sess "$B_ID" b; SB_CODE="$CODE"; SB=$(jget session_id); e2e_own payment_session "$SB" "$BOUND_MERCHANT"
 chk   "SESSION_A_OPENED" "$SA_CODE" "201"
 chk   "SESSION_B_OPENED" "$SB_CODE" "201"
 chkne "SESSIONS_DISTINCT" "$SA" "$SB"
