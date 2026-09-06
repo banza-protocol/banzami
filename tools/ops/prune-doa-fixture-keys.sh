@@ -11,10 +11,29 @@
 # active is revoked. Names are matched exactly rather than by pattern: a pattern
 # that is slightly wrong here revokes the key that takes donations.
 #
-# Runs ON the Sandbox VM. Dry run by default.
+# The work happens on the Sandbox VM, because the credentials it needs are docker
+# secrets there. Run it from anywhere: it copies itself over and re-runs when the
+# containers are not local. Dry run by default.
 #
-# Usage:  bash prune-doa-fixture-keys.sh [--apply]
+# Usage:  bash tools/ops/prune-doa-fixture-keys.sh [--apply]
 set -uo pipefail
+
+REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
+
+# Not on the VM? Go there. The first version simply reported "containers not
+# found", which is true and useless: run from the repository root — the obvious
+# place — it named a symptom and left the reader to guess the machine.
+if ! command -v docker >/dev/null 2>&1 || ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q developer-api; then
+  if [ "${BANZAMI_ON_VM:-0}" = "1" ]; then
+    echo "✗ on the VM, but no developer-api container is running." >&2
+    docker ps --format '  {{.Names}}' 2>/dev/null | head -20 >&2
+    exit 2
+  fi
+  echo "· the containers are not here — running on $REMOTE"
+  scp -q "$0" "$REMOTE:/tmp/$(basename "$0")" || { echo "✗ could not copy the script to $REMOTE" >&2; exit 2; }
+  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0") ${1:-}; rm -f /tmp/$(basename "$0")"
+  exit $?
+fi
 
 PROJECT=6367749d-ba77-47b6-80bd-982382ddd1c9
 ACTOR=11111111-2222-4333-8444-555555555555
@@ -40,7 +59,7 @@ KEEP_ADMIN="DOA admin surface (admin.doadoa.app)"
 
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
 PG=$(docker ps --format '{{.Names}}' | grep '23807-postgres' | head -1)
-[ -n "$DEV" ] && [ -n "$PG" ] || { echo "containers not found"; exit 2; }
+[ -n "$DEV" ] && [ -n "$PG" ] || { echo "✗ developer-api or postgres container not found on this host" >&2; exit 2; }
 IK=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key')
 URL=$(docker exec "$DEV" sh -c 'cat /run/secrets/db_url')
 
