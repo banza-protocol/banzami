@@ -184,6 +184,25 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 	email := fmt.Sprintf("sandbox+%s@projects.banzami.test", p.ID)
 
 	owner, perr := s.provisioner.ProvisionSandboxOwner(ctx, name, email)
+	if perr == nil && owner != nil && owner.MerchantID != "" {
+		// An owner may have been ADOPTED rather than created — resumed from a
+		// provisioning run that failed part-way. The derived address is what made
+		// finding it possible; it is not on its own what makes it ours.
+		//
+		// So before binding to it, the one invariant that would matter if the
+		// derivation were ever wrong: nobody else is already bound to it. A
+		// merchant another project holds is not a leftover, and adopting it would
+		// hand this project someone else's money.
+		if err := s.assertOwnerUnclaimed(ctx, owner.MerchantID, projectID); err != nil {
+			s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_refused",
+				"PROJECT:"+projectID, ip, reqID, map[string]any{
+					"reason": "candidate owner is bound to another project", "merchant_id": owner.MerchantID,
+				})
+			slog.ErrorContext(ctx, "developer.financial_setup.owner_claimed",
+				"project", projectID, "merchant", owner.MerchantID)
+			return FinancialSetup{}, ErrUnavailable
+		}
+	}
 	if perr != nil || owner == nil || owner.WalletAccountID == "" {
 		// A partially provisioned owner is reported, not retried blindly: the
 		// merchant may exist without a wallet, and provisioning a second merchant
@@ -218,6 +237,25 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 			"merchant_id": owner.MerchantID,
 		})
 	return s.ProjectFinancialSetup(ctx, actor, projectID)
+}
+
+// assertOwnerUnclaimed refuses an owner that another project already holds.
+//
+// Fail-closed by construction: any binding on this merchant that is not this
+// project's own is a refusal, and so is a read that did not work. "I could not
+// check" and "it is free" must never be the same answer here — the thing being
+// checked is whether this project is about to be handed another project's money.
+func (s *Service) assertOwnerUnclaimed(ctx context.Context, merchantID, projectID string) error {
+	holders, err := s.store.ProjectsBoundToMerchant(ctx, merchantID)
+	if err != nil {
+		return ErrUnavailable
+	}
+	for _, held := range holders {
+		if held != projectID {
+			return ErrConflict
+		}
+	}
+	return nil
 }
 
 // provisionStage names how far provisioning got, for the audit trail. No secret

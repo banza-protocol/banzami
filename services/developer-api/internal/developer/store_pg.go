@@ -515,6 +515,30 @@ func (s *pgStore) SupersedeAndCreateBinding(ctx context.Context, in BindingInser
 	return *b, superseded, nil
 }
 
+// ProjectsBoundToMerchant answers "does anyone already hold this owner?".
+//
+// ACTIVE bindings only: a DISABLED one is a record of a binding that was
+// superseded, and refusing on it would make a project's own history block its
+// recovery.
+func (s *pgStore) ProjectsBoundToMerchant(ctx context.Context, merchantID string) ([]string, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT project_id::text FROM developer.dev_project_sandbox_binding
+		  WHERE merchant_id = $1 AND state = 'ACTIVE'`, merchantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []string{}
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		out = append(out, id)
+	}
+	return out, rows.Err()
+}
+
 func (s *pgStore) ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error) {
 	b, err := scanBinding(s.pool.QueryRow(ctx,
 		`SELECT `+bindingCols+` FROM developer.dev_project_sandbox_binding

@@ -415,6 +415,18 @@ func (m *memStore) SupersedeAndCreateBinding(_ context.Context, in BindingInsert
 	return *b, superseded, nil
 }
 
+func (m *memStore) ProjectsBoundToMerchant(_ context.Context, merchantID string) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []string{}
+	for _, b := range m.bindings {
+		if b.MerchantID == merchantID && b.State == "ACTIVE" {
+			out = append(out, b.ProjectID)
+		}
+	}
+	return out, nil
+}
+
 func (m *memStore) ActiveBindingForProject(_ context.Context, projectID string) (*SandboxBinding, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()

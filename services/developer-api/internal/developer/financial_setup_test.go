@@ -309,3 +309,94 @@ func TestFinancialSetup_ProjectsGetDistinctOwners(t *testing.T) {
 		t.Errorf("both projects share financial owner %s — one project's payments would be the other's", a.MerchantID)
 	}
 }
+
+// Adoption must not be adoption of somebody else's owner.
+//
+// The resumable path finds a partly-provisioned owner by its derived address.
+// That derivation is sound, but it is a naming convention, and a naming
+// convention is not an authority proof. So before binding to a recovered owner
+// the service asks the one question that would matter if the derivation were
+// ever wrong: does another project already hold it.
+func TestFinancialSetup_WillNotAdoptAnotherProjectsOwner(t *testing.T) {
+	s, f, pidA := setupSvc(t)
+	wss, _ := s.ListWorkspaces(bg, "u_owner")
+	pidB := mkProject(t, s, "u_owner", wss[0].ID)
+
+	// A sets up and holds owner m_1.
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pidA, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	a, _ := s.store.ActiveBindingForProject(bg, pidA)
+
+	// Now B's provisioning returns A's owner — the shape a wrong derivation, a
+	// recycled address or a collision would take.
+	f.mu.Lock()
+	f.seq = 0 // the next call returns m_1 again
+	f.mu.Unlock()
+
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pidB, "", ""); err == nil {
+		t.Fatal("B adopted the owner A holds")
+	}
+	if b, _ := s.store.ActiveBindingForProject(bg, pidB); b != nil {
+		t.Errorf("B was bound to %s despite the refusal", b.MerchantID)
+	}
+	// A is untouched.
+	stillA, _ := s.store.ActiveBindingForProject(bg, pidA)
+	if stillA == nil || stillA.MerchantID != a.MerchantID {
+		t.Error("A's binding changed while B was refused")
+	}
+}
+
+// A project resuming its OWN partial provisioning is not blocked by its own
+// binding — there is none yet — and adopting the owner it made earlier is the
+// whole point of the recovery path.
+func TestFinancialSetup_ResumesItsOwnPartialProvisioning(t *testing.T) {
+	s, f, pid := setupSvc(t)
+
+	// First attempt dies before the PRIMARY account is known.
+	f.stopAt = "wallet"
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err == nil {
+		t.Fatal("a partial provisioning reported success")
+	}
+
+	// The retry completes, on the same owner rather than a second one.
+	f.stopAt = ""
+	f.mu.Lock()
+	f.seq = 0 // the provisioner hands back what it made before
+	f.mu.Unlock()
+	st, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", "")
+	if err != nil {
+		t.Fatalf("the retry did not converge: %v", err)
+	}
+	if st.State != FinancialReady {
+		t.Errorf("state after recovery = %q", st.State)
+	}
+	if b, _ := s.store.ActiveBindingForProject(bg, pid); b == nil || b.MerchantID != "m_1" {
+		t.Error("the retry bound to a different owner than the one it had already made")
+	}
+}
+
+// Cardinality, asserted rather than assumed: whatever happened above, the
+// project ends with exactly one of each thing.
+func TestFinancialSetup_ExactlyOneOfEverything(t *testing.T) {
+	s, f, pid := setupSvc(t)
+	for i := 0; i < 3; i++ {
+		if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+	}
+	if f.callCount() != 1 {
+		t.Errorf("provisioned %d times across three setup calls", f.callCount())
+	}
+	b, err := s.store.ActiveBindingForProject(bg, pid)
+	if err != nil || b == nil {
+		t.Fatal("no binding")
+	}
+	held, err := s.store.ProjectsBoundToMerchant(bg, b.MerchantID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(held) != 1 || held[0] != pid {
+		t.Errorf("owner %s is held by %v, want exactly [%s]", b.MerchantID, held, pid)
+	}
+}

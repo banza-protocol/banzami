@@ -229,6 +229,10 @@ type Store interface {
 	CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error)
 	// ActiveBindingForProject returns the project's ACTIVE binding, or nil.
 	ActiveBindingForProject(ctx context.Context, projectID string) (*SandboxBinding, error)
+	// ProjectsBoundToMerchant lists the projects holding an ACTIVE binding to a
+	// merchant. Used before adopting an owner recovered from a partial
+	// provisioning run: a merchant somebody else already holds is not a leftover.
+	ProjectsBoundToMerchant(ctx context.Context, merchantID string) ([]string, error)
 	// SupersedeAndCreateBinding replaces a project's ACTIVE binding with a new
 	// one in ONE transaction: the old row moves to DISABLED and the new row is
 	// inserted. Two statements would leave a window in which the project has no
