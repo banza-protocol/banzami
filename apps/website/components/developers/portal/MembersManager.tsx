@@ -6,7 +6,7 @@ import { useDeveloperAuth } from './DeveloperAuth';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
 import { Card, Pill } from './ui';
-import { assignableRoles, canModifyTarget, isManager, ROLE_LABELS } from '@/lib/developer-roles';
+import { assignableRoles, canModifyTarget, isManager, roleSummary, ROLE_LABELS } from '@/lib/developer-roles';
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
@@ -183,7 +183,10 @@ export function MembersManager() {
               Convidar
             </button>
           </div>
-          <p style={{ margin: '10px 0 0', fontSize: 11.5, color: '#a89a9e', fontWeight: 700 }}>
+          <p style={{ margin: '10px 0 0', fontSize: 12, color: '#6a5a5e', fontWeight: 700 }}>
+            <strong>{ROLE_LABELS[inviteRole] ?? inviteRole}</strong> pode {roleSummary(inviteRole)}.
+          </p>
+          <p style={{ margin: '6px 0 0', fontSize: 11.5, color: '#a89a9e', fontWeight: 700 }}>
             Um link de convite é gerado e copiado. Expira em 7 dias e pode ser revogado.
           </p>
         </Card>
