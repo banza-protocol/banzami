@@ -40,11 +40,27 @@
 #   bash tools/ops/canonical-authority.sh --retire
 #   bash tools/ops/canonical-authority.sh --retire-key bz_test_sk_XXXXXXXX
 #   bash tools/ops/canonical-authority.sh --cancel-orphan-links
+#   bash tools/ops/canonical-authority.sh --retire-leftovers
+#
+# --retire-leftovers is the last pass, and the only one here that selects by
+# exclusion: everything ACTIVE except the canonical merchant and the canonical
+# project. That is normally the wrong direction — a pattern slightly wrong in
+# that direction retires the thing that takes money — so it is allowed only
+# because the survivor list is twelve merchants and three projects, printed in
+# full above, and every one of them has been read. It prints what each holds
+# before touching it.
+#
+# It also restores the canonical project to ACTIVE. An earlier version of the
+# fixture prune archived it, matching projects through ANY binding to a fixture
+# merchant; DOA's project keeps the retired binding it was corrected away from.
+# Nothing broke, because key authorisation reads the key's status and never the
+# project's — which is luck, not design.
 set -uo pipefail
 REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
 RETIRE=0;       [ "${1:-}" = "--retire" ] && RETIRE=1
 RETIRE_KEY="";  [ "${1:-}" = "--retire-key" ] && RETIRE_KEY="${2:?--retire-key needs a key prefix}"
 CANCEL_LINKS=0; [ "${1:-}" = "--cancel-orphan-links" ] && CANCEL_LINKS=1
+LEFTOVERS=0;    [ "${1:-}" = "--retire-leftovers" ] && LEFTOVERS=1
 
 if ! command -v docker >/dev/null 2>&1 || ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q core-api-staging; then
   if [ "${BANZAMI_ON_VM:-0}" = "1" ]; then echo "✗ on the VM, but core-api-staging is not running." >&2; exit 2; fi
@@ -67,6 +83,52 @@ q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_sta
 CANON_KEYS="DOA production (final)|DOA admin surface (admin.doadoa.app)|DOA Sandbox server key"
 CANON_PROJECT="DOA Sandbox"
 CANON_MERCHANT="Doa"
+
+if [ "$LEFTOVERS" -eq 1 ]; then
+  echo "the canonical project, first — an earlier prune archived it"
+  q "update developer.dev_projects set status='ACTIVE', updated_at=now()
+      where name = '$CANON_PROJECT' and status='ARCHIVED'
+      returning '  restored ' || name || ' to ACTIVE'"
+
+  echo
+  echo "what is still ACTIVE and is not canonical"
+  q "select '  ' || rpad(m.name, 18) || ' pins=' ||
+       (select count(*) from merchant_app_credentials c where c.merchant_id=m.id
+          and (c.locked_until is null or c.locked_until < now())) ||
+       ' keys=' || (select count(*) from api_keys k where k.merchant_id=m.id and k.revoked_at is null) ||
+       ' wallets=' || (select count(*) from wallets w where w.merchant_id=m.id)
+     from merchants m where m.status='ACTIVE' and m.name <> '$CANON_MERCHANT' order by m.created_at"
+  q "select '  project ' || name from developer.dev_projects
+      where status='ACTIVE' and name <> '$CANON_PROJECT' order by created_at"
+
+  echo
+  echo "retiring"
+  # An app PIN is a login. Four of these merchants still had one, which is why
+  # 'they hold nothing' was not true of them.
+  q "with done as (
+       update merchants set status='SUSPENDED', updated_at=now()
+        where status='ACTIVE' and name <> '$CANON_MERCHANT' returning id, name)
+     select '  suspended ' || name from done"
+  q "update merchant_app_credentials c set locked_until='infinity'
+      from merchants m
+     where m.id = c.merchant_id and m.status='SUSPENDED'
+       and (c.locked_until is null or c.locked_until < now())
+     returning '  locked the app PIN of ' || m.name"
+  q "update developer.dev_projects set status='ARCHIVED', updated_at=now()
+      where status='ACTIVE' and name <> '$CANON_PROJECT'
+      returning '  archived project ' || name"
+
+  echo
+  echo "what is live now"
+  q "select '  merchants: ' || string_agg(name, ', ') from merchants where status='ACTIVE'"
+  q "select '  projects:  ' || string_agg(name, ', ') from developer.dev_projects where status='ACTIVE'"
+  q "select '  developer keys: ' || count(*) from developer.dev_api_keys where status='ACTIVE'"
+  q "select '  merchant keys:  ' || count(*) from api_keys where revoked_at is null"
+  q "select '  webhooks:       ' || count(*) from webhook_endpoints where active"
+  q "select '  usable app PINs:' || count(*) from merchant_app_credentials where locked_until is null or locked_until < now()"
+  q "select '  open links:     ' || count(*) from payment_links where status='ACTIVE'"
+  exit 0
+fi
 
 if [ "$CANCEL_LINKS" -eq 1 ]; then
   echo "cancelling the canonical merchant's open payment links"
