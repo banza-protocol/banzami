@@ -5,6 +5,7 @@ import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
+import { FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/developer-api';
 import { RefundDialog } from '@/components/developers/portal/RefundDialog';
 
@@ -71,10 +72,15 @@ function kindOf(status: string): 'success' | 'pending' | 'error' | 'neutral' {
 type State =
   | { k: 'loading' }
   | { k: 'error'; message: string }
+  // Not an error — the project has no financial environment yet. Rendered as the
+  // setup card, because "nenhuma operação" would say the question was asked and
+  // answered, and it was not.
+  | { k: 'setup' }
   | { k: 'ready'; rows: DeveloperTransaction[]; next: string };
 
 function Transactions() {
   const { activeProject } = useDeveloperData();
+  const fin = useFinancialSetup(activeProject?.id);
   const [type, setType] = useState('');
   const [state, setState] = useState<State>({ k: 'loading' });
   const [more, setMore] = useState(false);
@@ -95,11 +101,12 @@ function Transactions() {
       }));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
+      if (code === 'PROJECT_FINANCIAL_SETUP_REQUIRED') { setState({ k: 'setup' }); return; }
       setState({
         k: 'error',
         message:
           code === 'NOT_FOUND'
-            ? 'Este projeto ainda não tem um destinatário financeiro associado, por isso não há operações para mostrar.'
+            ? 'Não tem acesso a este projeto.'
             : code === 'FORBIDDEN'
               ? 'Não tem acesso às operações deste projeto.'
               : 'Não foi possível carregar as operações. Tente novamente.',
@@ -149,6 +156,15 @@ function Transactions() {
       </div>
 
       {state.k === 'loading' && <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar as operações…</p>}
+
+      {state.k === 'setup' && (
+        fin.state.k === 'ready'
+          ? <FinancialSetupCard
+              setup={fin.state.setup}
+              onConfigured={() => { void fin.reload(); setState({ k: 'loading' }); void load(); }}
+            />
+          : <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o estado do projeto…</p>
+      )}
 
       {state.k === 'error' && (
         <Card style={{ padding: 22 }}>

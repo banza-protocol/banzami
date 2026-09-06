@@ -9,6 +9,19 @@ export const DEV_API_BASE = (
   process.env.NEXT_PUBLIC_DEVELOPER_API_URL || 'https://developer-api.banzami.com'
 ).replace(/\/+$/, '');
 
+/**
+ * The codes a caller can branch on.
+ *
+ * The named ones below are this client's own vocabulary, derived from status
+ * when the server says nothing more specific. But the server DOES say something
+ * more specific, often, and this used to throw it away: every 409 became
+ * CONFLICT, so PROJECT_FINANCIAL_SETUP_REQUIRED — a state with an action behind
+ * it — arrived indistinguishable from "already exists", and Core's refund
+ * refusals all collapsed into one word.
+ *
+ * So the type is open at the end. A server code is passed through as itself, and
+ * the union documents the ones this client can produce on its own.
+ */
 export type ApiErrorCode =
   | 'UNAUTHENTICATED' // 401 — clear state, return to sign-in
   | 'FORBIDDEN' // 403 — Origin/CSRF/authorization failure
@@ -19,7 +32,8 @@ export type ApiErrorCode =
   | 'INVITE_INVALID' // 410
   | 'NOT_FOUND' // 404
   | 'UNAVAILABLE' // 5xx / unknown
-  | 'NETWORK'; // fetch threw
+  | 'NETWORK' // fetch threw
+  | (string & {}); // whatever the server named it
 
 export class ApiError extends Error {
   code: ApiErrorCode;
@@ -33,7 +47,11 @@ export class ApiError extends Error {
 }
 
 // User-facing messages only — never leak internal detail, bodies, or tokens.
-const MESSAGES: Record<ApiErrorCode, string> = {
+// The words for the codes this client produces itself. A server code that is
+// not listed falls through to the server's own message, which is the one written
+// for that situation — a generic sentence here would be a worse answer than the
+// one the server already gave.
+const MESSAGES: Record<string, string> = {
   UNAUTHENTICATED: 'A sua sessão expirou. Inicie sessão novamente.',
   FORBIDDEN: 'Não tem permissão para esta ação.',
   RATE_LIMITED: 'Demasiados pedidos. Tente novamente daqui a pouco.',
@@ -46,8 +64,19 @@ const MESSAGES: Record<ApiErrorCode, string> = {
   NETWORK: 'Sem ligação ao serviço.',
 };
 
+/**
+ * The server's own code wins when it has one.
+ *
+ * It names a situation; the status names a category. PROJECT_FINANCIAL_SETUP_REQUIRED
+ * and CONFLICT are both 409 and lead completely different places — one to a
+ * button in this Console, the other to "it already exists" — and the status
+ * cannot tell them apart.
+ *
+ * The status mapping stays as the fallback, for responses that carry no code and
+ * for transport-level failures that never reached a handler.
+ */
 function codeFor(status: number, apiCode?: string): ApiErrorCode {
-  if (apiCode === 'LAST_OWNER') return 'LAST_OWNER';
+  if (apiCode) return apiCode;
   switch (status) {
     case 400:
       return 'VALIDATION';
@@ -98,9 +127,10 @@ async function req<T>(
   }
 
   if (!res.ok) {
-    const apiCode = (data as { error?: { code?: string } } | null)?.error?.code;
-    const code = codeFor(res.status, apiCode);
-    throw new ApiError(code, res.status, MESSAGES[code]);
+    const err = (data as { error?: { code?: string; message?: string } } | null)?.error;
+    const code = codeFor(res.status, err?.code);
+    throw new ApiError(code, res.status,
+      MESSAGES[code] ?? err?.message ?? MESSAGES.UNAVAILABLE);
   }
   return data as T;
 }
@@ -146,6 +176,18 @@ export type DeveloperTransaction = {
   reference_type: string;
   reference_id: string;
   created_at: string;
+};
+
+/** Where a project stands financially, in the developer's own terms. */
+export type FinancialSetupState = {
+  /** UNCONFIGURED · READY · SEALED · UNAVAILABLE. */
+  state: 'UNCONFIGURED' | 'READY' | 'SEALED' | 'UNAVAILABLE';
+  environment: string;
+  /** Whether THIS member may perform the setup. Advice; the server re-authorises. */
+  can_configure: boolean;
+  role: string;
+  /** The destination is fixed: a payer-facing artifact has been issued (ADR-055). */
+  sealed: boolean;
 };
 
 export type ApiKey = {
@@ -288,6 +330,16 @@ export const developerApi = {
     return req<{ transactions: DeveloperTransaction[]; next_cursor: string }>(
       `/projects/${projectID}/transactions${qs ? `?${qs}` : ''}`);
   },
+
+  // ── Sandbox financial setup ────────────────────────────────────────────────
+  // The step that used to be an operator's. A project has no financial
+  // environment until someone asks for one, and this is how a developer asks.
+  // The POST carries no body: there is no merchant, wallet or owner to name,
+  // because naming one is what this exists to make unnecessary.
+  financialSetup: (projectID: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-setup`),
+  configureFinancialSetup: (projectID: string, csrf: string) =>
+    req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', csrf }),
 
   // ── Refunds (real, project-scoped, OWNER/ADMIN) ────────────────────────────
   // What the Console may show. `allowed` is this member's role; `configured` is

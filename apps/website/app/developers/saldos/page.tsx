@@ -5,6 +5,7 @@ import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay as money } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
+import { FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api';
 
 // Saldos — the wallet accounts of the financial owner this project is bound to.
@@ -28,10 +29,15 @@ const mono = "'JetBrains Mono', ui-monospace, monospace";
 type State =
   | { k: 'loading' }
   | { k: 'error'; message: string }
+  // Not an error. The project has no financial environment yet, which is a
+  // state with a name and an action — rendered as the setup card, because an
+  // empty account list would answer a question that has not been asked.
+  | { k: 'setup' }
   | { k: 'ready'; accounts: WalletAccount[]; total: number; next: string };
 
 function Balances() {
   const { activeProject } = useDeveloperData();
+  const fin = useFinancialSetup(activeProject?.id);
   const [state, setState] = useState<State>({ k: 'loading' });
   const [more, setMore] = useState(false);
 
@@ -47,11 +53,15 @@ function Balances() {
       }));
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
+      if (code === 'PROJECT_FINANCIAL_SETUP_REQUIRED') { setState({ k: 'setup' }); return; }
       setState({
         k: 'error',
         message:
+          // PROJECT_FINANCIAL_SETUP_REQUIRED is not an error the developer has to
+          // read: it is a state with an action, and the setup card below renders
+          // it instead. This message only covers the cases that are not that.
           code === 'NOT_FOUND'
-            ? 'Este projeto ainda não tem um destinatário financeiro associado, por isso não há contas para mostrar.'
+            ? 'Não tem acesso a este projeto.'
             : code === 'FORBIDDEN'
               ? 'Não tem acesso aos saldos deste projeto.'
               : 'Não foi possível carregar os saldos. Tente novamente.',
@@ -63,6 +73,20 @@ function Balances() {
 
   if (!activeProject) return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>Nenhum projeto selecionado.</p>;
   if (state.k === 'loading') return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar os saldos…</p>;
+
+  // The project has no financial environment. Show the step that creates one,
+  // not an empty list and not an error.
+  if (state.k === 'setup') {
+    if (fin.state.k !== 'ready') {
+      return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o estado do projeto…</p>;
+    }
+    return (
+      <FinancialSetupCard
+        setup={fin.state.setup}
+        onConfigured={() => { void fin.reload(); setState({ k: 'loading' }); void load(); }}
+      />
+    );
+  }
 
   if (state.k === 'error') {
     return (
