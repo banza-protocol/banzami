@@ -220,6 +220,11 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/transactions", h.listTransactions)
 	r.Get("/projects/{projID}/refund-capability", h.refundCapability)
 	r.Get("/projects/{projID}/financial-setup", h.financialSetup)
+	// The public purpose list, served rather than duplicated. The Console used to
+	// carry its own copy and it drifted immediately — it offered one Core does
+	// not accept and withheld several Core does. A list that exists twice is a
+	// list that disagrees with itself.
+	r.Get("/wallet-account-purposes", h.walletAccountPurposes)
 	r.Get("/projects/{projID}/webhooks/endpoints", h.listWebhookEndpoints)
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
@@ -317,6 +322,14 @@ func (h *Handlers) listTransactions(w http.ResponseWriter, r *http.Request) {
 		next = tx[len(tx)-1].CreatedAt.Format(time.RFC3339Nano)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"transactions": tx, "next_cursor": next})
+}
+
+// GET /wallet-account-purposes
+//
+// What a developer may choose, from the one place that decides it. Session-scoped
+// only because everything on this router is; the answer is the same for everyone.
+func (h *Handlers) walletAccountPurposes(w http.ResponseWriter, r *http.Request) {
+	httpx.JSON(w, http.StatusOK, map[string]any{"purposes": PublicWalletAccountPurposes})
 }
 
 // POST /projects/{projID}/wallet-accounts

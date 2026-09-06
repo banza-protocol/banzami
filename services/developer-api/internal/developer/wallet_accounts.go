@@ -59,30 +59,46 @@ type WalletAccountProvisioner interface {
 	CreateWalletAccount(ctx context.Context, walletID, merchantID, purpose, refType, refID, label string) (string, error)
 }
 
-// The purposes a developer may open — Core's own list, minus PRIMARY.
+// PublicWalletAccountPurposes — the purposes a developer may open, and the
+// single source of truth for that list.
 //
-// It mirrors rather than narrows deliberately. The first version listed three,
-// one of which (COLLECTION) Core does not accept at all: a request for it passed
-// validation here and was refused there, which is the worst of both — the
-// developer is told their input is fine and then told nothing useful.
+// Core accepts more than these. It accepts ESCROW, RESERVE and SETTLEMENT, and
+// this deliberately does not offer them, because of what the audit found: across
+// the whole Rust core and the Go services, the ONLY behavioural comparison on
+// purpose is against PRIMARY. Every other value is a label. It changes no ledger
+// behaviour, reserves no funds, alters no settlement, grants no permission and
+// enforces no condition.
 //
-// The list is generic on purpose. An external developer must not have to model a
-// shop, a seller or a fund as a "campaign" because that is the word the first
-// application on the platform happened to need; CUSTOM exists for everything
-// these words do not fit.
+// A label called ESCROW promises that money is held until a condition is met.
+// RESERVE promises it will not be spent. SETTLEMENT promises it is on its way
+// somewhere. The platform does none of those things, and a developer choosing
+// one of those words would reasonably believe it did — the first draft of this
+// Console literally told them so, in a helper line under the picker.
 //
-// PRIMARY is absent because it is made with the wallet, Core refuses a second,
-// and offering it would be offering an operation that cannot succeed.
-var walletAccountPurposes = map[string]bool{
-	"CAMPAIGN":   true,
-	"PROJECT":    true,
-	"EVENT":      true,
-	"STORE":      true,
-	"ESCROW":     true,
-	"RESERVE":    true,
-	"SETTLEMENT": true,
-	"CUSTOM":     true,
+// So they are not offered. The remaining five describe what a destination is FOR
+// without claiming anything about what happens to the money in it, which is the
+// truth: separation is what a wallet account provides, and separation is all it
+// provides. CUSTOM exists for everything these words do not fit.
+//
+// PRIMARY is absent for a different reason: it is made with the wallet, Core
+// refuses a second, and offering it would be offering an operation that cannot
+// succeed.
+var PublicWalletAccountPurposes = []string{
+	"CAMPAIGN",
+	"STORE",
+	"PROJECT",
+	"EVENT",
+	"CUSTOM",
 }
+
+// walletAccountPurposes is the lookup form of the list above.
+var walletAccountPurposes = func() map[string]bool {
+	m := make(map[string]bool, len(PublicWalletAccountPurposes))
+	for _, p := range PublicWalletAccountPurposes {
+		m[p] = true
+	}
+	return m
+}()
 
 // ErrUnsupportedPurpose: a purpose that is not open to developers.
 var ErrUnsupportedPurpose = errors.New("unsupported wallet account purpose")

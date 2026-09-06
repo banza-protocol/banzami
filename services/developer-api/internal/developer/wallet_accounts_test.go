@@ -191,7 +191,7 @@ func TestWalletAccount_SiblingsAreDistinct(t *testing.T) {
 // product in the first application's words. A shop is a STORE, a marketplace
 // seller is a PROJECT, and anything these do not fit is CUSTOM.
 func TestWalletAccount_PurposesAreGenericNotDoaShaped(t *testing.T) {
-	for _, purpose := range []string{"CAMPAIGN", "PROJECT", "EVENT", "STORE", "ESCROW", "RESERVE", "SETTLEMENT", "CUSTOM"} {
+	for _, purpose := range PublicWalletAccountPurposes {
 		s, f, pid := walletSvc(t)
 		r := req2()
 		r.Purpose = purpose
@@ -204,23 +204,27 @@ func TestWalletAccount_PurposesAreGenericNotDoaShaped(t *testing.T) {
 	}
 }
 
-// This list mirrors Core's rather than narrowing it. The first version listed
-// three, one of which Core does not accept at all — so a request for it passed
-// here and was refused there, which tells the developer their input was fine and
-// then tells them nothing useful.
-func TestWalletAccount_PurposeListMirrorsCore(t *testing.T) {
-	// Core's own list, minus PRIMARY. If Core's changes, this fails and someone
-	// decides deliberately rather than discovering it in production.
-	core := []string{"CAMPAIGN", "PROJECT", "EVENT", "STORE", "ESCROW", "RESERVE", "SETTLEMENT", "CUSTOM"}
-	if len(walletAccountPurposes) != len(core) {
-		t.Fatalf("this service offers %d purposes, Core accepts %d", len(walletAccountPurposes), len(core))
-	}
-	for _, p := range core {
-		if !walletAccountPurposes[p] {
-			t.Errorf("Core accepts %s and this service refuses it", p)
+// The public list is a SUBSET of Core's, and the exclusions are the point.
+//
+// Core accepts ESCROW, RESERVE and SETTLEMENT. Purpose changes no behaviour
+// anywhere — the only comparison in the whole stack is against PRIMARY — so
+// those three are labels that promise holding, protection and transit that
+// nothing implements. A name that claims a guarantee the platform does not
+// provide is a security claim, and this is the test that keeps it from being
+// added back because "Core accepts it".
+func TestWalletAccount_MisleadingPurposesAreNotOffered(t *testing.T) {
+	for _, p := range []string{"ESCROW", "RESERVE", "SETTLEMENT"} {
+		if walletAccountPurposes[p] {
+			t.Errorf("%s is offered publicly — it names a guarantee nothing enforces", p)
 		}
 	}
 	if walletAccountPurposes["PRIMARY"] {
 		t.Error("PRIMARY is on offer and Core refuses it")
+	}
+	// …and the ones that remain say only what a destination is for.
+	for _, p := range []string{"CAMPAIGN", "STORE", "PROJECT", "EVENT", "CUSTOM"} {
+		if !walletAccountPurposes[p] {
+			t.Errorf("%s should be publicly available", p)
+		}
 	}
 }

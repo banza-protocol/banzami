@@ -341,6 +341,11 @@ export const developerApi = {
   configureFinancialSetup: (projectID: string, csrf: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', csrf }),
 
+  // The purposes the server offers, from the server. A local copy of this list
+  // drifted the moment it existed: it offered one value Core rejects and withheld
+  // several Core accepts.
+  walletAccountPurposes: () => req<{ purposes: string[] }>('/wallet-account-purposes'),
+
   // Open a segregated destination — the same primitive DOA uses per campaign,
   // and the same field names the published SDK sends, so one resource has one
   // contract. No merchant, wallet or owner: those come from the project.
