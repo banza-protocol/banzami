@@ -467,3 +467,40 @@ func (c *ProvisionClient) primaryAccount(ctx context.Context, walletID string) (
 	}
 	return "", fmt.Errorf("no PRIMARY account on wallet %s", walletID)
 }
+
+// CreateWalletAccount opens a segregated account under a merchant's wallet.
+//
+// This is the primitive DOA uses for a campaign, reached the same way: the
+// caller supplies a purpose, a reference and a label, and never a merchant or a
+// wallet. Those are derived from the project's binding by the service above.
+//
+// PRIMARY is not creatable here and Core refuses it — one wallet has exactly
+// one, made with the wallet itself.
+func (c *ProvisionClient) CreateWalletAccount(ctx context.Context, walletID, merchantID, purpose, refType, refID, label string) (string, error) {
+	var out struct {
+		ID string `json:"id"`
+	}
+	err := c.post(ctx, "/internal/v1/wallet-accounts", map[string]any{
+		"wallet_id":      walletID,
+		"merchant_id":    merchantID,
+		"currency":       "AOA",
+		"purpose":        purpose,
+		"reference_type": refType,
+		"reference_id":   refID,
+		"label":          label,
+	}, &out)
+	if err != nil {
+		return "", err
+	}
+	if out.ID == "" {
+		return "", ErrUnavailable
+	}
+	return out.ID, nil
+}
+
+// WalletForMerchant resolves the merchant's AOA wallet. Exported for the service,
+// which needs it to open an account under a project's own owner without ever
+// letting the caller name one.
+func (c *ProvisionClient) WalletForMerchant(ctx context.Context, merchantID string) (string, error) {
+	return c.findWallet(ctx, merchantID)
+}

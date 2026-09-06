@@ -17,11 +17,12 @@ type Service struct {
 	apiKeyPepper    string
 	inviteTTL       time.Duration
 	payee           PayeeValidator
-	refunder        Refunder           // Core refund boundary; nil until wired (see refunds.go)
-	provisioner     SandboxProvisioner // Sandbox financial owner provisioning; nil until wired
-	sandboxEnv      bool               // self-service financial setup is sandbox-only
-	paymentReleased bool               // deploy-vs-release control (RT04C §1)
-	fixturesEnabled bool               // operator E2E fixture-key path, sandbox-only (RT04D §2)
+	refunder        Refunder                 // Core refund boundary; nil until wired (see refunds.go)
+	provisioner     SandboxProvisioner       // Sandbox financial owner provisioning; nil until wired
+	sandboxEnv      bool                     // self-service financial setup is sandbox-only
+	walletProv      WalletAccountProvisioner // segregated destination creation; nil until wired
+	paymentReleased bool                     // deploy-vs-release control (RT04C §1)
+	fixturesEnabled bool                     // operator E2E fixture-key path, sandbox-only (RT04D §2)
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the

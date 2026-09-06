@@ -121,8 +121,11 @@ func main() {
 	// no financial owner and no way to get one that the developer could perform
 	// or even see; this is what makes that step theirs. Sandbox-only, gated on
 	// the deployment's own environment in the same fail-closed shape as fixtures.
-	if pv := developer.NewSandboxProvisioner(coreclient.NewProvision(cfg.CoreAPIURL)); pv != nil {
-		devSvc.SetSandboxProvisioner(pv)
+	if pc := coreclient.NewProvision(cfg.CoreAPIURL); pc != nil {
+		devSvc.SetSandboxProvisioner(developer.NewSandboxProvisioner(pc))
+		// The same client opens segregated destinations: a developer should not
+		// need to write code merely to get a Sandbox project into a usable shape.
+		devSvc.SetWalletAccountProvisioner(pc)
 	} else {
 		slog.Warn("CORE_API_URL not set — sandbox financial setup reports as unavailable")
 	}

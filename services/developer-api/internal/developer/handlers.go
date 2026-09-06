@@ -239,6 +239,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Delete("/keys/{keyID}", h.revokeKey)
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
 		r.Post("/projects/{projID}/financial-setup", h.configureFinancialSetup)
+		r.Post("/projects/{projID}/wallet-accounts", h.createWalletAccount)
 	})
 }
 
@@ -316,6 +317,47 @@ func (h *Handlers) listTransactions(w http.ResponseWriter, r *http.Request) {
 		next = tx[len(tx)-1].CreatedAt.Format(time.RFC3339Nano)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"transactions": tx, "next_cursor": next})
+}
+
+// POST /projects/{projID}/wallet-accounts
+//
+// Opens a segregated destination under the project's own financial owner — the
+// same primitive DOA uses for a campaign, and the same one the published SDK
+// exposes. The body carries a label, a purpose and a reference of the caller's
+// choosing, and nothing that decides whose money it is.
+func (h *Handlers) createWalletAccount(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Label     string `json:"label"`
+		Purpose   string `json:"purpose"`
+		Reference string `json:"reference"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid body")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	acct, err := h.svc.CreateProjectWalletAccount(r.Context(), u.ID, chi.URLParam(r, "projID"),
+		WalletAccountRequest{Label: in.Label, Purpose: in.Purpose, Reference: in.Reference}, ip, reqID)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrUnsupportedPurpose):
+			httpx.Error(w, http.StatusBadRequest, "UNSUPPORTED_PURPOSE",
+				"that account purpose is not available to developer projects")
+			return
+		case errors.Is(err, ErrSetupUnavailable):
+			httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE",
+				"wallet accounts are not available on this deployment")
+			return
+		}
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, acct)
 }
 
 // GET /projects/{projID}/financial-setup
