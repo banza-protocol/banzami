@@ -30,6 +30,12 @@ set -uo pipefail
 REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
 MODE="${1:---plan}"
 
+# api_key_pepper has its own mode, because it is the only secret here whose
+# rotation reaches outside this host: it invalidates every developer API key,
+# and those live in deployments that have to be given replacements. Rotating it
+# alongside the others would have made a two-repository, four-deployment
+# operation look like one more line of output.
+
 # The canonical remote-execution contract: prove the host, run there, and return
 # the proof's own exit status. See tools/ops/lib/remote.sh.
 for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
@@ -84,6 +90,30 @@ echo "      take DOA's donations down until the allowance resets."
 echo "      Sequence when it can be done: mint replacements under the new pepper,"
 echo "      install them into their deployments, redeploy, prove each consumer,"
 echo "      then revoke the old records."
+
+if [ "$MODE" = "--api-key-pepper" ]; then
+  BACKUP="$DIR/../rotation-backup-$(date +%Y%m%dT%H%M%SZ)"
+  mkdir -p "$BACKUP" && chmod 700 "$BACKUP"
+  cp -p "$DIR/api_key_pepper" "$BACKUP"/ && chmod 600 "$BACKUP"/*
+  openssl rand -hex 32 > "$DIR/api_key_pepper.new" 2>/dev/null \
+    || head -c 32 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$DIR/api_key_pepper.new"
+  if [ "$(wc -c < "$DIR/api_key_pepper.new" | tr -d ' ')" -ge 64 ]; then
+    mv "$DIR/api_key_pepper.new" "$DIR/api_key_pepper"; chmod 644 "$DIR/api_key_pepper"
+    echo
+    echo "  ✓ api_key_pepper rotated (previous value at $BACKUP)"
+    echo
+    echo "EVERY developer API key is now unverifiable. Until developer-api is"
+    echo "redeployed it still holds the old pepper, so nothing has changed yet"
+    echo "for callers — the moment it restarts, all of them stop working."
+    echo
+    echo "  ./deploy.sh developer-api"
+    echo "  then mint and install the replacements before anything else."
+    exit 0
+  fi
+  rm -f "$DIR/api_key_pepper.new"
+  echo "  ✗ api_key_pepper NOT rotated (generation failed)"
+  exit 1
+fi
 
 if [ "$MODE" != "--apply" ]; then
   echo
