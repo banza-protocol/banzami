@@ -1,0 +1,53 @@
+# Banzami Sandbox host — the containers that are supposed to exist.
+#
+# Checked by tests/phase0/sandbox-host-attestation.sh, which runs ON the host
+# and compares this file against `docker ps -a`. An unlisted container fails.
+# A listed one that is missing fails. So does one whose secret exposure or
+# restart policy differs from what is written here.
+#
+# It exists because a container nobody deployed ran here for five days with
+# every operator secret mounted, and nothing could see it: every check looked at
+# something it already knew about. This is the list, so "what else is running?"
+# has an answer to compare against (RA-080).
+#
+# {P} stands for the generated Sandbox project prefix — bzsandbox-<generation>.
+# Writing the generation in here would make the file expire on the next rebuild
+# of the project, and an expired manifest gets ignored rather than fixed.
+#
+# NO SECRETS. Names, images, networks, and whether a container is given
+# credentials at all — never a value.
+#
+# name	image repository	networks	secrets	restart	state
+# ─────────────────────────────────────────────────────────────────────────────
+
+# The operator itself. Deployed by infra/blueprint/sandbox-ops/sandbox-deploy.sh;
+# restart policy is deliberately "no" — the deployer owns the lifecycle, and a
+# container that comes back by itself hides a crash.
+{P}-core-api-staging	banzami-sandbox/core-api-staging	app,data	yes	no	running
+{P}-api-gateway-staging	banzami-sandbox/api-gateway-staging	app,data,egress	yes	no	running
+{P}-public-api-staging	banzami-sandbox/public-api-staging	app,data	yes	no	running
+{P}-developer-api	banzami-sandbox/developer-api	app,data,egress	yes	no	running
+
+# The payer surface. No secret, no database, no Core credential — app plane only
+# (ADR-052). It restarts on its own because it holds no financial authority and
+# an outage is visible to every payer.
+{P}-pay-frontend	banzami-sandbox/pay-frontend	app	no	unless-stopped	running
+
+# Sandbox data plane.
+{P}-postgres-1	postgres	data	yes	no	running
+{P}-redis-1	redis	data	no	no	running
+
+# Public routing for the Sandbox. Not on the legacy network, so it cannot reach
+# the older stack.
+bzsbedge-sandbox-edge	nginx	app,edge-ingress,sink	no	unless-stopped	running
+
+# The webhook receiver the end-to-end harnesses deliver to. Isolated on its own
+# network; holds nothing.
+banzami-webhook-sink	banzami-sandbox/webhook-sink	sink	no	unless-stopped	running
+
+# The older stack, still serving the website. Separate network, no Sandbox
+# credentials, and no path from here into the Sandbox data plane.
+banzami-postgres-1	postgres	legacy	no	unless-stopped	running
+banzami-redis-1	redis	legacy	no	unless-stopped	running
+banzami-website-frontend-1	banzami/website-frontend	legacy	no	unless-stopped	running
+banzami-website-nginx-1	nginx	legacy	no	unless-stopped	running

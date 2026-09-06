@@ -62,7 +62,14 @@ remote_self_or_continue() {
   # on the far side can source it by a path that exists there. Sending only the
   # script leaves it unable to find the very contract it is calling.
   ssh "$target" "mkdir -p $dir" >/dev/null 2>&1 || { echo "✗ could not reach $target" >&2; exit 2; }
-  scp -q "$0" "$lib" "$target:$dir/" || { echo "✗ could not copy $base to $target" >&2; exit 2; }
+  # A caller whose proof needs data files — a manifest, an allowlist — names
+  # them in REMOTE_EXTRA_FILES. Sending the script without the file it compares
+  # against produces a check that cannot run, which historically becomes a check
+  # that is quietly skipped.
+  local extra=(); local f
+  for f in ${REMOTE_EXTRA_FILES:-}; do [ -f "$f" ] && extra+=("$f"); done
+  scp -q "$0" "$lib" "${extra[@]}" "$target:$dir/" \
+    || { echo "✗ could not copy $base to $target" >&2; exit 2; }
 
   # The remote side runs the script, keeps its status, removes the copies from a
   # trap so cleanup happens on any exit, and then exits with the status it kept.
