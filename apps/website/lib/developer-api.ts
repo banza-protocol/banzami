@@ -289,6 +289,33 @@ export const developerApi = {
       `/projects/${projectID}/transactions${qs ? `?${qs}` : ''}`);
   },
 
+  // ── Refunds (real, project-scoped, OWNER/ADMIN) ────────────────────────────
+  // What the Console may show. `allowed` is this member's role; `configured` is
+  // whether the deployment has a refund path at all. They are separate because
+  // they lead somewhere different — one is a permission to ask a colleague for,
+  // the other is nobody's to grant — and a UI that showed one for the other
+  // would send someone to ask for something that would not help.
+  //
+  // Advice to the UI and nothing more: every refund is authorised again on the
+  // server at the moment it is attempted.
+  refundCapability: (projectID: string) =>
+    req<{ allowed: boolean; configured: boolean; role: string }>(
+      `/projects/${projectID}/refund-capability`),
+
+  // The idempotency key is the CALLER's and is minted by the page, once, when
+  // the dialog opens — not here and not per attempt. A retry of the same
+  // confirmed refund carries the same key and cannot become a second refund;
+  // a deliberate second partial refund is a new dialog and a new key.
+  refundPayment: (
+    projectID: string,
+    paymentID: string,
+    body: { amount_minor: number; reason: string; idempotency_key: string },
+    csrf: string,
+  ) =>
+    req<{ id: string; status: string; amount_minor: number; currency: string }>(
+      `/projects/${projectID}/payments/${paymentID}/refund`,
+      { method: 'POST', body, csrf }),
+
   // ── Webhooks (real, project-scoped) ────────────────────────────────────────
   // Served by developer-api from the gateway's own webhook tables, scoped by the
   // merchant the project's binding names. No secret is ever returned: the view

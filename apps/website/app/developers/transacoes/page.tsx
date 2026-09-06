@@ -5,6 +5,7 @@ import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/developer-api';
+import { RefundDialog } from '@/components/developers/portal/RefundDialog';
 
 // Transações — the money that moved under this project.
 //
@@ -27,6 +28,22 @@ function money(minor: number | null, currency: string): string {
   const major = Math.round(minor / 100);
   const grouped = major.toLocaleString('pt-PT').replace(/ |,/g, ' ');
   return currency === 'AOA' ? `${grouped} Kz` : `${grouped} ${currency}`;
+}
+
+// A payment can be given back once it has actually been paid. Every other status
+// is a payment that never moved money, and offering to refund one would be
+// offering an operation that cannot succeed.
+// Visually hidden, still announced. The actions column needs a header a screen
+// reader can read out — an empty <th> leaves the cell under it unlabelled — and
+// a visible one would be a column title over a single button.
+const SR_ONLY: React.CSSProperties = {
+  position: 'absolute', width: 1, height: 1, padding: 0, margin: -1,
+  overflow: 'hidden', clip: 'rect(0 0 0 0)', whiteSpace: 'nowrap', border: 0,
+};
+
+const PAID = ['PAID', 'COMPLETED', 'SUCCEEDED', 'SETTLED'];
+function refundable(t: DeveloperTransaction): boolean {
+  return t.type === 'payment' && PAID.includes(t.status.toUpperCase());
 }
 
 const TYPES = [
@@ -58,6 +75,11 @@ function Transactions() {
   const [type, setType] = useState('');
   const [state, setState] = useState<State>({ k: 'loading' });
   const [more, setMore] = useState(false);
+  // Whether THIS member may refund, and whether this deployment can at all.
+  // Asked once per project; the server authorises again on every attempt, so a
+  // stale answer here can only hide a control, never grant one.
+  const [refundCap, setRefundCap] = useState<{ allowed: boolean; configured: boolean } | null>(null);
+  const [refunding, setRefunding] = useState<DeveloperTransaction | null>(null);
 
   const load = useCallback(async (cursor?: string) => {
     if (!activeProject) return;
@@ -83,6 +105,20 @@ function Transactions() {
   }, [activeProject, type]);
 
   useEffect(() => { setState({ k: 'loading' }); void load(); }, [load]);
+
+  useEffect(() => {
+    if (!activeProject) return;
+    let live = true;
+    // A failure here leaves the control hidden. That is the safe direction: the
+    // page still shows every operation, and the one thing missing is a button
+    // whose authority we could not confirm.
+    developerApi.refundCapability(activeProject.id)
+      .then((c) => { if (live) setRefundCap(c); })
+      .catch(() => { if (live) setRefundCap({ allowed: false, configured: false }); });
+    return () => { live = false; };
+  }, [activeProject]);
+
+  const canRefund = Boolean(refundCap?.allowed && refundCap?.configured);
 
   if (!activeProject) return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>Nenhum projeto selecionado.</p>;
 
@@ -139,9 +175,13 @@ function Transactions() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
                 <thead>
                   <tr style={{ background: '#FDFAFA' }}>
-                    {['DATA', 'TIPO', 'REFERÊNCIA', 'MONTANTE', 'ESTADO'].map((h) => (
-                      <th key={h} scope="col" style={{ textAlign: h === 'MONTANTE' ? 'right' : 'left', padding: '11px 16px', fontSize: 11, fontWeight: 800, color: '#a89a9e', letterSpacing: '.04em', borderBottom: '1px solid #F2E6E4' }}>
-                        {h}
+                    {['DATA', 'TIPO', 'REFERÊNCIA', 'MONTANTE', 'ESTADO', ...(canRefund ? [''] : [])].map((h, i) => (
+                      <th
+                        key={h || `actions-${i}`}
+                        scope="col"
+                        style={{ textAlign: h === 'MONTANTE' ? 'right' : 'left', padding: '11px 16px', fontSize: 11, fontWeight: 800, color: '#a89a9e', letterSpacing: '.04em', borderBottom: '1px solid #F2E6E4' }}
+                      >
+                        {h || <span style={SR_ONLY}>Acções</span>}
                       </th>
                     ))}
                   </tr>
@@ -162,6 +202,19 @@ function Transactions() {
                       <td style={{ padding: '12px 16px' }}>
                         <Pill kind={kindOf(t.status)}>{t.status}</Pill>
                       </td>
+                      {canRefund && (
+                        <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                          {refundable(t) && (
+                            <button
+                              onClick={() => setRefunding(t)}
+                              aria-label={`Reembolsar o pagamento ${t.reference_id || t.id}`}
+                              style={{ padding: '7px 13px', border: '1.5px solid #EBDBD9', borderRadius: 9, background: '#fff', fontSize: 12.5, fontWeight: 800, color: '#B5101F', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              Reembolsar
+                            </button>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -178,6 +231,14 @@ function Transactions() {
             </button>
           )}
         </>
+      )}
+
+      {refunding && (
+        <RefundDialog
+          payment={refunding}
+          onClose={() => setRefunding(null)}
+          onRefunded={() => { setState({ k: 'loading' }); void load(); }}
+        />
       )}
     </>
   );
