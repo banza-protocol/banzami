@@ -1,0 +1,147 @@
+{
+  "suite": "CAP-SDK-001 \u2014 the published @banzami/sdk drives a real refund",
+  "test": "tests/phase0/refund-published-sdk-e2e.sh",
+  "environment": "deployed sandbox \u2014 installed from npm on the Sandbox VM, run against the running containers",
+  "sdk_version": "0.8.3",
+  "sdk_source": "registry (@banzami/sdk@latest), not the working tree",
+  "builds": {
+    "api-gateway-staging": "ef120f9c5da4",
+    "core-api-staging": "11f54da654e9",
+    "developer-api": "b5722d71366e"
+  },
+  "generated_at": "2026-09-06T22:00:00.000Z",
+  "canonical_refund_path": "POST /v1/refunds",
+  "why": "0.8.1 and 0.8.2 call the retired /v1/business/refunds, which is unmounted rather than redirected, so every refund on those versions answers 404. Monorepo source is not evidence for what an external developer installs.",
+  "total": 25,
+  "passed": 25,
+  "failed": 0,
+  "harness_summary": "REFUND_PUBLISHED_SDK_E2E: PASS=25 FAIL=0",
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "SDK_FROM_NPM",
+      "pass": true,
+      "observed": "0.8.3"
+    },
+    {
+      "id": "SDK_REGISTRY_SOURCE",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "KEY_ISSUED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "ACCOUNTS_OPENED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "PAYMENT_COMPLETED",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "ACCOUNT_A_CREDITED",
+      "pass": true,
+      "observed": "200000"
+    },
+    {
+      "id": "REFUND_SOURCE_RECORDED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "PARTIAL_REFUND_SUCCEEDED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "A_DEBITED_BY_PARTIAL",
+      "pass": true,
+      "observed": "150000"
+    },
+    {
+      "id": "B_UNTOUCHED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "WALLET_DEFAULT_UNTOUCHED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "LEDGER_BALANCED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "REPLAY_SAME_REFUND",
+      "pass": true,
+      "observed": "4a956bb6-2286-4ac9-9afa-c38bbef90195"
+    },
+    {
+      "id": "REPLAY_MOVED_NOTHING",
+      "pass": true,
+      "observed": "150000"
+    },
+    {
+      "id": "CHANGED_PAYLOAD_REFUSED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "CONFLICT_MOVED_NOTHING",
+      "pass": true,
+      "observed": "150000"
+    },
+    {
+      "id": "REMAINDER_REFUNDED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "A_FULLY_REFUNDED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "OVER_REFUND_REFUSED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "OVER_REFUND_MOVED_NOTHING",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "REFUND_READABLE",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "FOREIGN_REFUND_REFUSED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "FOREIGN_SEES_NOT_FOUND",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "VICTIM_UNCHANGED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "LEDGER_STILL_BALANCED",
+      "pass": true,
+      "observed": "0"
+    }
+  ]
+}

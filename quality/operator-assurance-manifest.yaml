@@ -696,10 +696,15 @@ capabilities:
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
     #
-    # latest = 0.8.3, which follows the refund route to its canonical public
-    # path. 0.8.1 had moved the client to /v1/business/refunds to match the
-    # server; the server moved to /v1/refunds instead, so 0.8.1 and 0.8.2 now
-    # 404 on every refund — the retired path is unmounted, not redirected.
+    # latest = 0.8.3, PUBLISHED 2026-09-06, which follows the refund route to
+    # its canonical public path. 0.8.1 had moved the client to
+    # /v1/business/refunds to match the server; the server moved to /v1/refunds
+    # instead, so 0.8.1 and 0.8.2 now 404 on every refund — the retired path is
+    # unmounted, not redirected. Proven from the registry, not from the working
+    # tree: a clean install of @banzami/sdk@latest on the Sandbox VM drives the
+    # full refund matrix at 25/25 (partial, idempotent replay, changed-payload
+    # conflict, remainder, over-refund refusal, cross-project denial), and the
+    # types clean room typechecks it at 4/4 with no @types/node.
     #
     # Every version through 0.8.0 is deprecated; 0.7.0/0.8.0
     # because createRefund pointed at a merchant-JWT route and answered 401 for
