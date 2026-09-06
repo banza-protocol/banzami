@@ -151,7 +151,7 @@ function Transactions() {
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700 }}>{TYPE_LABEL[t.type] ?? t.type}</td>
                       <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12, color: '#8a7a7e', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {t.reference_id ?? t.id}
+                        {t.reference_id || t.id}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
                         {money(t.amount_minor, t.currency)}

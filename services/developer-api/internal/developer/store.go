@@ -346,11 +346,12 @@ type APIRequestLogView struct {
 // operator, and a Developer read model that exposed them would make every
 // integration depend on internals it cannot be promised.
 type WalletAccountView struct {
-	ID            string    `json:"id"`
-	Label         *string   `json:"label"`
-	Purpose       string    `json:"purpose"`
-	ReferenceType *string   `json:"reference_type"`
-	ReferenceID   *string   `json:"reference_id"`
+	ID    string `json:"id"`
+	Label string `json:"label"`
+	// Coalesced in SQL, like the transaction view and for the same reason.
+	Purpose       string `json:"purpose"`
+	ReferenceType string `json:"reference_type"`
+	ReferenceID   string `json:"reference_id"`
 	Currency      string    `json:"currency"`
 	// BalanceMinor is the sum of the account's ledger entries, in minor units.
 	// Sandbox balances move only through Sandbox operations.
@@ -374,14 +375,19 @@ type WalletAccountFilter struct {
 // operator's, and a read model that leaked them would make every integration
 // depend on internals nobody promised to keep.
 type TransactionView struct {
-	ID              string    `json:"id"`
-	Type            string    `json:"type"` // payment | refund | transfer
+	ID   string `json:"id"`
+	Type string `json:"type"` // payment | refund | transfer
+	// Nullable columns are coalesced to "" in SQL rather than scanned into
+	// pointers. A UNION over three tables makes some of these NULL on some
+	// branches, and a page that happened to contain only non-null rows scanned
+	// cleanly while the next one failed — which is how this arrived as a 503
+	// that appeared only past the twenty-first row.
 	Status          string    `json:"status"`
 	AmountMinor     int64     `json:"amount_minor"`
 	Currency        string    `json:"currency"`
-	WalletAccountID *string   `json:"wallet_account_id"`
-	ReferenceType   *string   `json:"reference_type"`
-	ReferenceID     *string   `json:"reference_id"`
+	WalletAccountID string    `json:"wallet_account_id"`
+	ReferenceType   string    `json:"reference_type"`
+	ReferenceID     string    `json:"reference_id"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 

@@ -123,10 +123,10 @@ export type Project = {
  */
 export type WalletAccount = {
   id: string;
-  label: string | null;
+  label: string;
   purpose: string;
-  reference_type: string | null;
-  reference_id: string | null;
+  reference_type: string;
+  reference_id: string;
   currency: string;
   balance_minor: number;
   status: string;
@@ -141,9 +141,9 @@ export type DeveloperTransaction = {
   status: string;
   amount_minor: number;
   currency: string;
-  wallet_account_id: string | null;
-  reference_type: string | null;
-  reference_id: string | null;
+  wallet_account_id: string;
+  reference_type: string;
+  reference_id: string;
   created_at: string;
 };
 

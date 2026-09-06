@@ -116,7 +116,7 @@ function Balances() {
                   </td>
                   <td style={{ padding: '12px 16px', fontWeight: 700 }}>{a.purpose}</td>
                   <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12, color: '#8a7a7e', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {a.reference_id ?? '—'}
+                    {a.reference_id || '—'}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
                     {money(a.balance_minor, a.currency)}

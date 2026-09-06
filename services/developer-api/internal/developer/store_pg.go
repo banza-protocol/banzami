@@ -579,7 +579,8 @@ func (s *pgStore) WalletAccountsForMerchant(ctx context.Context, merchantID stri
 		limit = 50
 	}
 	rows, err := s.pool.Query(ctx,
-		`SELECT wa.id, wa.label, wa.purpose, wa.reference_type, wa.reference_id,
+		`SELECT wa.id, COALESCE(wa.label,''), wa.purpose,
+		        COALESCE(wa.reference_type::text,''), COALESCE(wa.reference_id::text,''),
 		        wa.currency,
 		        COALESCE(SUM(CASE WHEN e.entry_type = 'CREDIT' THEN e.amount_minor
 		                          ELSE -e.amount_minor END), 0)::bigint,
@@ -626,19 +627,21 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		`WITH ops AS (
 		   SELECT s.id::text AS id, 'payment' AS type, s.status::text AS status,
 		          s.amount_minor::bigint AS amount_minor, s.currency::text AS currency,
-		          s.wallet_account_id::text AS wallet_account_id,
-		          s.reference_type::text AS reference_type, s.reference_id::text AS reference_id,
+		          COALESCE(s.wallet_account_id::text,'') AS wallet_account_id,
+		          COALESCE(s.reference_type::text,'') AS reference_type,
+		          COALESCE(s.reference_id::text,'') AS reference_id,
 		          s.created_at
 		     FROM payment_sessions s WHERE s.merchant_id = $1
 		   UNION ALL
 		   SELECT r.id::text, 'refund', r.status::text,
 		          r.amount_minor::bigint, r.currency::text,
-		          NULL, r.source_type::text, r.source_id::text, r.created_at
+		          '', COALESCE(r.source_type::text,''), COALESCE(r.source_id::text,''), r.created_at
 		     FROM refunds r WHERE r.merchant_id = $1
 		   UNION ALL
 		   SELECT t.id::text, 'transfer', t.status::text,
 		          t.amount_minor::bigint, t.currency::text,
-		          t.dest_account_id::text, 'WALLET_ACCOUNT', t.source_account_id::text, t.created_at
+		          COALESCE(t.dest_account_id::text,''), 'WALLET_ACCOUNT',
+		          COALESCE(t.source_account_id::text,''), t.created_at
 		     FROM wallet_account_transfers t WHERE t.merchant_id = $1
 		 )
 		 SELECT id, type, status, amount_minor, currency, wallet_account_id,
