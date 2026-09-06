@@ -27,6 +27,7 @@
  * Usage: node tools/e2e/console/rbac-matrix.mjs
  */
 import { execFileSync } from 'node:child_process';
+import { registerCleanup } from './lib/run-cleanup.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = 'https://developers.banzami.com';
@@ -58,34 +59,14 @@ async function call(token, path, method = 'GET', body) {
   return { status: r.status, body: j };
 }
 
-/** Everything this run creates, removed whatever happens. Matched by the run
- *  stamp, so a concurrent run is untouched. */
-function cleanupRun(stamp) {
-  try {
-    ssh(`
-      set -uo pipefail
-      P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
-      PG="$P-postgres-1"; CORE="$P-core-api-staging"
-      PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
-      q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
-      q "update developer.dev_api_keys set status='REVOKED', revoked_at=now()
-          where status='ACTIVE' and name like 'rbac-%-${stamp}'" >/dev/null
-      q "update developer.dev_projects set status='ARCHIVED'
-          where status='ACTIVE' and name in ('rbac-${stamp}','rbac-other-${stamp}')" >/dev/null
-      q "delete from developer.dev_workspace_members where user_id in
-           (select id from account_identity.identity_users where email like 'console-rbac-%${stamp}@banzami-e2e.test')" >/dev/null
-      q "delete from account_identity.identity_sessions where user_id in
-           (select id from account_identity.identity_users where email like 'console-rbac-%${stamp}@banzami-e2e.test')" >/dev/null
-      q "delete from account_identity.identity_users
-          where email like 'console-rbac-%${stamp}@banzami-e2e.test'" >/dev/null
-      echo cleaned`);
-  } catch (e) {
-    console.error(`  ✗ cleanup failed: ${e instanceof Error ? e.message.slice(0, 120) : e}`);
-  }
-}
-
 const stamp = Date.now().toString(36);
-process.on('exit', () => cleanupRun(stamp));
+// Everything this run creates, removed whatever happens — including on the
+// failure paths, which is when leaks actually happen. Matched on the run stamp,
+// so a concurrent run is untouched.
+registerCleanup({
+  emailPattern: `console-rbac-%${stamp}@banzami-e2e.test`,
+  namePattern: `rbac-%${stamp}`,
+});
 process.on('uncaughtException', (e) => { console.error(e); process.exit(1); });
 const ROLES = ['OWNER', 'ADMIN', 'DEVELOPER', 'FINANCE', 'VIEWER'];
 const email = (r) => `console-rbac-${r.toLowerCase()}-${stamp}@banzami-e2e.test`;

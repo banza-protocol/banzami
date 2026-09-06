@@ -20,6 +20,7 @@
  * Usage: node tools/e2e/console/cross-project-isolation.mjs
  */
 import { execFileSync } from 'node:child_process';
+import { registerCleanup } from './lib/run-cleanup.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const HERE = new URL('.', import.meta.url).pathname;
@@ -47,6 +48,15 @@ async function api(token, path) {
 const stamp = Date.now().toString(36);
 const A = `console-iso-a-${stamp}@banzami-e2e.test`;
 const B = `console-iso-b-${stamp}@banzami-e2e.test`;
+
+// Give the authority back, however this run ends. Two accounts, two workspaces
+// and two projects were created and, until now, kept: the point of the suite is
+// that one tenant cannot reach another's, and leaving both tenants live forever
+// was the one thing it did not check.
+registerCleanup({
+  emailPattern: `console-iso-%${stamp}@banzami-e2e.test`,
+  namePattern: `iso-%${stamp}`,
+});
 
 step('two controlled accounts');
 const made = ssh(`

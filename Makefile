@@ -302,6 +302,7 @@ check-repo-layout:
 check-harness-hygiene:
 	node tools/check-harness-hygiene.mjs
 	node tools/check-harness-hygiene.selftest.mjs
+	node tools/check-harness-hygiene.console.selftest.mjs
 
 # Remote proofs must report what happened on the far side. Needs the Sandbox
 # host, so it is not a CI job — CI has no credentials for it, deliberately.

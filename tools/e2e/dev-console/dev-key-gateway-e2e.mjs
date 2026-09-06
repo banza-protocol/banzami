@@ -13,6 +13,7 @@ import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { registerCleanup } from '../console/lib/run-cleanup.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../../..');
@@ -26,6 +27,16 @@ const stamp = process.env.E2E_TS || String(Math.floor(Date.now() / 1000));
 const results = [];
 const rec = (id, ok, note = '') => { results.push({ id, ok, note }); console.log(`  ${ok ? '✓' : '✗'} ${id}${note ? ' — ' + note : ''}`); };
 const email = n => `rt02-${n}-${stamp}@banzami-e2e.test`;
+
+// Give the authority back. This harness signs accounts in, creates workspaces,
+// projects and keys, and until now kept every one of them: the fixtures from
+// each run stayed live on the operator, one set at a time, forever. Financial
+// history is untouched — what goes is the authority, because a leftover account
+// that can still sign in is not a leftover, it is a way in.
+registerCleanup({
+  emailPattern: `rt02-%${stamp}@banzami-e2e.test`,
+  namePattern: `rt02-%${stamp}%`,
+});
 const getOTP = e => execFileSync('bash', [resolve(HERE, 'otp-retrieve.sh'), e], { encoding: 'utf8' }).trim();
 
 async function signIn(ctx, e) {

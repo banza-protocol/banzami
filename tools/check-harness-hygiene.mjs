@@ -25,12 +25,22 @@
  * Detection is by what a harness CALLS, not by a list of filenames: a list is
  * out of date the moment someone adds a file, which is the case this exists for.
  *
+ * The Node harnesses that drive the Console mint a different kind of authority
+ * and so get their own rule. They create console ACCOUNTS — an identity that can
+ * sign in, its sessions, its workspaces and its projects — and for a while none
+ * of them cleaned up: 33 accounts with 33 live sessions had accumulated on the
+ * operator, one set per run, kept forever. A leftover account that can still
+ * sign in is not a leftover, it is a way in. So a script that inserts into
+ * identity_users must register cleanup for what it created.
+ *
  * Usage: node tools/check-harness-hygiene.mjs
  */
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const DIR = 'tests/phase0';
+/** The Node harnesses that sign accounts into the Console. */
+const CONSOLE_DIRS = ['tools/e2e/console', 'tools/e2e/dev-console'];
 
 /** Routes that mint operator authority. Creating any of these is the trigger. */
 const MINTS = [
@@ -79,6 +89,45 @@ for (const f of files) {
     continue;
   }
   console.log(`  ✓ ${f.padEnd(36)} creates ${mints.length} kind(s), records ${owns}`);
+}
+
+// ── the Console harnesses ───────────────────────────────────────────────────
+// Same principle, different currency: these mint accounts rather than keys, and
+// the thing that must exist is a registered cleanup rather than a manifest.
+const consoleFiles = CONSOLE_DIRS.flatMap((d) => {
+  let names = [];
+  try { names = readdirSync(d); } catch { return []; }
+  return names.filter((f) => f.endsWith('.mjs')).map((f) => join(d, f));
+}).filter((f) => !f.includes('/lib/')).sort();
+
+console.log(`\nconsole harness hygiene — ${consoleFiles.length} script(s)\n`);
+
+for (const f of consoleFiles) {
+  const src = readFileSync(f, 'utf8');
+  // Two ways a harness ends up owning an account, and the second is the one
+  // that was missed: an insert into identity_users is obvious, but signing in
+  // through /auth/request-otp with a fresh address creates the account
+  // server-side just the same. Three harnesses did exactly that and read as
+  // creating nothing.
+  const makesAccounts =
+    /insert into account_identity\.identity_users/i.test(src) ||
+    (/auth\/request-otp/.test(src) && /@banzami-e2e\.test/.test(src));
+  const short = f.replace(/^tools\/e2e\//, '');
+  if (!makesAccounts) {
+    // A harness that only reads, or that signs in as an account somebody else
+    // provisioned, has nothing to give back.
+    console.log(`  ·  ${short.padEnd(44)} creates no console account`);
+    continue;
+  }
+  if (!/\bregisterCleanup\s*\(/.test(src)) {
+    bad(short, 'creates console accounts but never calls registerCleanup — the accounts, their sessions and their workspaces stay live forever');
+    continue;
+  }
+  if (!/emailPattern\s*:/.test(src)) {
+    bad(short, 'calls registerCleanup without an emailPattern — cleanup would match nothing');
+    continue;
+  }
+  console.log(`  ✓ ${short.padEnd(44)} creates console accounts, registers cleanup`);
 }
 
 console.log();

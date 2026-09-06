@@ -16,6 +16,7 @@
  * Usage: node tools/e2e/console/refund-rbac.mjs
  */
 import { execFileSync } from 'node:child_process';
+import { registerCleanup } from './lib/run-cleanup.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = 'https://developers.banzami.com';
@@ -63,28 +64,15 @@ const ROLES = ['OWNER', 'ADMIN', 'DEVELOPER', 'FINANCE', 'VIEWER'];
 const email = (r) => `console-refund-${r.toLowerCase()}-${stamp}@banzami-e2e.test`;
 const outsiderEmail = `console-refund-outsider-${stamp}@banzami-e2e.test`;
 
-/** Everything this run created, removed whatever happens — including on the
- *  failure paths, which is when leaks used to happen. Matched on the run stamp,
- *  so a concurrent run is untouched. */
-let createdKeyID = '';
+// Everything this run created, removed whatever happens — including on the
+// failure paths, which is when leaks actually happen. Matched on the run stamp,
+// so a concurrent run is untouched. The wallet account and its payments stay:
+// they are financial history, and history is not a fixture.
 let canonWs = '';
-function cleanupRun() {
-  try {
-    ssh(`${PRE}
-      q "update developer.dev_api_keys set status='REVOKED', revoked_at=now()
-          where status='ACTIVE' and name like 'console-refund-${stamp}%'" >/dev/null
-      q "delete from developer.dev_workspace_members where user_id in
-           (select id from account_identity.identity_users where email like 'console-refund-%${stamp}@banzami-e2e.test')" >/dev/null
-      q "delete from account_identity.identity_sessions where user_id in
-           (select id from account_identity.identity_users where email like 'console-refund-%${stamp}@banzami-e2e.test')" >/dev/null
-      q "delete from account_identity.identity_users
-          where email like 'console-refund-%${stamp}@banzami-e2e.test'" >/dev/null
-      echo cleaned`);
-  } catch (e) {
-    console.error(`  ✗ cleanup failed: ${e instanceof Error ? e.message.slice(0, 160) : e}`);
-  }
-}
-process.on('exit', cleanupRun);
+registerCleanup({
+  emailPattern: `console-refund-%${stamp}@banzami-e2e.test`,
+  namePattern: `console-refund-${stamp}%`,
+});
 process.on('uncaughtException', (e) => { console.error(e); process.exit(1); });
 
 // ── the people ───────────────────────────────────────────────────────────────
@@ -133,7 +121,6 @@ const paid = ssh(`${PRE}
     -H "X-Internal-Key: $DEVINT" -H 'Content-Type: application/json' \\
     --data "{\\"name\\":\\"console-refund-${stamp}\\",\\"scopes\\":$SC,\\"created_by\\":\\"11111111-2222-4333-8444-555555555555\\"}")
   KEY=$(printf '%s' "$KEYJSON" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).secret||"")}catch(e){}})')
-  KEYID=$(printf '%s' "$KEYJSON" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).id||"")}catch(e){}})')
   ACCT=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/business/wallet-accounts \\
     -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \\
     --data '{"purpose":"CAMPAIGN","reference_type":"DOA_CAMPAIGN","reference_id":"console-refund-${stamp}","label":"Console refund probe"}' \\
@@ -156,10 +143,9 @@ const paid = ssh(`${PRE}
     -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \\
     --data "{\\"wallet_account_id\\":\\"$ACCT\\",\\"purpose\\":\\"DONATION\\",\\"reference_type\\":\\"DOA_DONATION\\",\\"reference_id\\":\\"console-refund-unpaid-${stamp}\\",\\"amount_minor\\":100000,\\"currency\\":\\"AOA\\"}" \\
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).session_id||"")}catch(e){}})')
-  printf '%s|%s|%s|%s|%s\\n' "$SESSION" "$ACCT" "$PAYCODE" "$UNPAID" "$KEYID"`).trim().split('\n').pop().split('|');
+  printf '%s|%s|%s|%s\\n' "$SESSION" "$ACCT" "$PAYCODE" "$UNPAID"`).trim().split('\n').pop().split('|');
 
-const [paymentID, acctID, payCode, unpaidID, keyID] = paid;
-createdKeyID = keyID;
+const [paymentID, acctID, payCode, unpaidID] = paid;
 payCode === '200' ? ok(`payment of 3 000 Kz completed (${String(paymentID).slice(0, 8)})`) : bad(`payment failed (http ${payCode})`);
 if (payCode !== '200') process.exit(1);
 
