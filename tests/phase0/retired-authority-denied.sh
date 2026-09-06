@@ -112,6 +112,10 @@ echo "### the credentials that had to survive"
 # Read from the database, because the canonical secrets are held only by the
 # deployments that use them and are not readable from here — which is the point.
 chk CANONICAL_KEYS_STILL_ACTIVE "$(psql "SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id=k.project_id WHERE k.status='ACTIVE' AND p.name='DOA Sandbox'")" "3"
+# The api_key_pepper rotation superseded three keys. Their records are revoked,
+# and they were unverifiable from the moment the pepper changed — the hash they
+# were stored under can no longer be produced from any input.
+chk SUPERSEDED_KEYS_REVOKED "$(psql "SELECT count(*) FROM developer.dev_api_keys WHERE status='ACTIVE' AND name NOT LIKE '%[rotated%'")" "0"
 chk CANONICAL_PROJECT_ACTIVE "$(psql "SELECT status FROM developer.dev_projects WHERE name='DOA Sandbox'")" "ACTIVE"
 chk CANONICAL_MERCHANT_ACTIVE "$(psql "SELECT status FROM merchants WHERE name='Doa'")" "ACTIVE"
 chk NO_OTHER_ACTIVE_MERCHANT "$(psql "SELECT count(*) FROM merchants WHERE status='ACTIVE' AND name<>'Doa'")" "0"

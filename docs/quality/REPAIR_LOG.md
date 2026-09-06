@@ -2437,13 +2437,18 @@ its own, so no superuser credential need exist), `jwt_secret`,
 old internal key refused by the guarded route and new one through it; a token
 signed with the old JWT key rejected and one signed with the new key accepted.
 
-`api_key_pepper` is **deferred**, with the reason recorded rather than the
-inconvenience hidden: rotating it invalidates every developer API key including
-the three DOA holds, and those live in Vercel environment variables that take
-effect only on a new deployment. Vercel's daily build allowance was exhausted,
-so the replacement could not be installed and donations would have stopped until
-it reset. The sequence it needs — mint under the new pepper, install, redeploy,
-prove each consumer, then revoke the old records — is in the tool's own output.
+`api_key_pepper` was deferred for several hours and then **done**, once
+Vercel's daily build allowance reset — it invalidates every developer API key,
+and those live in environment variables that take effect only on a new
+deployment, so rotating it earlier would have stopped donations until the
+allowance returned. The controlled reissue ran in the order the blast radius
+demands: rotate the pepper, redeploy developer-api, mint three replacements each
+inheriting its predecessor's scopes read from the operator's own records rather
+than retyped, install each into its own deployment over stdin, redeploy, prove,
+then revoke the three superseded records. The donation journey and the admin
+refund both pass under the new keys; the predecessors were unverifiable from the
+moment the pepper changed, because the hash they were stored under can no longer
+be produced from any input.
 
 **Controls added.** `ops/sandbox-host-manifest.tsv` says what the host should
 contain; `tests/phase0/sandbox-host-attestation.sh` compares the whole of

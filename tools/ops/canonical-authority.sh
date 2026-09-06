@@ -78,11 +78,14 @@ PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:
 q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -F'|' -c "$1"; }
 
 # ── the allowlist ───────────────────────────────────────────────────────────
-# Developer keys, by exact name, each with the deployment that holds it:
-#   DOA production (final)                 www.doadoa.app
-#   DOA admin surface (admin.doadoa.app)   admin.doadoa.app
-#   DOA Sandbox server key                 doa-sandbox
-CANON_KEYS="DOA production (final)|DOA admin surface (admin.doadoa.app)|DOA Sandbox server key"
+# Developer keys, by exact name, each with the deployment that holds it. The
+# names carry the rotation date because these are the keys minted under the new
+# api_key_pepper on 2026-09-06 (RA-080); their predecessors are revoked, and
+# were already unverifiable the moment the pepper changed.
+#   DOA production (final) [rotated 2026-09-06]                www.doadoa.app
+#   DOA admin surface (admin.doadoa.app) [rotated 2026-09-06]  admin.doadoa.app
+#   DOA Sandbox server key [rotated 2026-09-06]                doa-sandbox
+CANON_KEYS="DOA production (final) [rotated 2026-09-06]|DOA admin surface (admin.doadoa.app) [rotated 2026-09-06]|DOA Sandbox server key [rotated 2026-09-06]"
 CANON_PROJECT="DOA Sandbox"
 CANON_MERCHANT="Doa"
 
@@ -156,7 +159,7 @@ echo "canonical authority — banzami_staging"
 echo
 
 echo "developer keys on the canonical project"
-q "select case when k.name in ('DOA production (final)','DOA admin surface (admin.doadoa.app)','DOA Sandbox server key')
+q "select case when k.name in ('DOA production (final) [rotated 2026-09-06]','DOA admin surface (admin.doadoa.app) [rotated 2026-09-06]','DOA Sandbox server key [rotated 2026-09-06]')
               then '  ✓ ' else '  · ' end
         || rpad(k.name, 40) || ' ' || k.key_prefix
         || '  calls=' || (select count(*) from developer.dev_api_request_logs l where l.key_id = k.id)
@@ -193,7 +196,7 @@ echo "retiring"
 q "with doomed as (
      select k.id, k.name, k.key_prefix from developer.dev_api_keys k
      where k.status='ACTIVE'
-       and k.name not in ('DOA production (final)','DOA admin surface (admin.doadoa.app)','DOA Sandbox server key')
+       and k.name not in ('DOA production (final) [rotated 2026-09-06]','DOA admin surface (admin.doadoa.app) [rotated 2026-09-06]','DOA Sandbox server key [rotated 2026-09-06]')
        and not exists (select 1 from developer.dev_api_request_logs l where l.key_id = k.id))
    update developer.dev_api_keys k set status='REVOKED', revoked_at=now()
    from doomed d where k.id = d.id
