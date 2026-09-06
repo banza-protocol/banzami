@@ -26,18 +26,15 @@ REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
 # is the ownership signal, and the prefix is read from a container that is
 # certainly the deployer's rather than hard-coded into this file.
 
-# `command -v docker` alone is not the test: this machine has docker too, and the
-# first version of this script ran happily against it, found no Banzami
-# containers at all, and reported that every secret-holding container was owned.
-# A check that runs in the wrong place and passes is worse than no check.
-if ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q core-api-staging; then
-  if [ "${BANZAMI_ON_VM:-0}" = "1" ]; then echo "✗ on the VM, but core-api-staging is not running." >&2; exit 2; fi
-  scp -q "$0" "$REMOTE:/tmp/$(basename "$0")" || { echo "✗ could not reach $REMOTE" >&2; exit 2; }
-  # `ssh host "cmd; rm -f ..."` returns the status of the LAST command — the rm —
-  # so the check's own result was being thrown away and every run looked green.
-  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0"); rc=\$?; rm -f /tmp/$(basename "$0"); exit \$rc"
-  exit $?
-fi
+# The canonical remote-execution contract: prove the host, run there, and return
+# the proof's own exit status. See tools/ops/lib/remote.sh.
+for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
+          "$(dirname "$0")/../lib/remote.sh" "$(dirname "$0")/../../tools/ops/lib/remote.sh"; do
+  [ -f "$_p" ] && { . "$_p"; break; }
+done
+command -v remote_self_or_continue >/dev/null 2>&1 \
+  || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
+remote_self_or_continue 
 
 OWNED_PREFIX=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1 | sed -E 's/-core-api-staging$//')
 [ -n "$OWNED_PREFIX" ] || { echo "✗ cannot identify the deployed Sandbox project" >&2; exit 2; }

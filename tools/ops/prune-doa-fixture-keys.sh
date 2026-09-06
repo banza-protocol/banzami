@@ -20,23 +20,15 @@ set -uo pipefail
 
 REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
 
-# Not on the VM? Go there. The first version simply reported "containers not
-# found", which is true and useless: run from the repository root — the obvious
-# place — it named a symptom and left the reader to guess the machine.
-if ! command -v docker >/dev/null 2>&1 || ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q developer-api; then
-  if [ "${BANZAMI_ON_VM:-0}" = "1" ]; then
-    echo "✗ on the VM, but no developer-api container is running." >&2
-    docker ps --format '  {{.Names}}' 2>/dev/null | head -20 >&2
-    exit 2
-  fi
-  echo "· the containers are not here — running on $REMOTE"
-  scp -q "$0" "$REMOTE:/tmp/$(basename "$0")" || { echo "✗ could not copy the script to $REMOTE" >&2; exit 2; }
-  # `ssh host "cmd; rm -f ..."` returns the status of the LAST command — the rm —
-  # so the result of the run itself was being discarded and every invocation
-  # looked successful.
-  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0") ${1:-}; rc=\$?; rm -f /tmp/$(basename "$0"); exit \$rc"
-  exit $?
-fi
+# The canonical remote-execution contract: prove the host, run there, and return
+# the proof's own exit status. See tools/ops/lib/remote.sh.
+for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
+          "$(dirname "$0")/../lib/remote.sh" "$(dirname "$0")/../../tools/ops/lib/remote.sh"; do
+  [ -f "$_p" ] && { . "$_p"; break; }
+done
+command -v remote_self_or_continue >/dev/null 2>&1 \
+  || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
+remote_self_or_continue "$@"
 
 PROJECT=6367749d-ba77-47b6-80bd-982382ddd1c9
 ACTOR=11111111-2222-4333-8444-555555555555

@@ -130,8 +130,28 @@ REMOTE_BOOTSTRAP
 # ---- optional E2E (opt-in) ----
 if [ "$RUN_E2E" = 1 ] && [ "$BUILD_ONLY" != 1 ]; then
   step E2E "run developer-platform E2E (--run-e2e)"
-  scp -o BatchMode=yes "$REPO_ROOT/tests/phase0/developer-platform-e2e.sh" "$REMOTE:/tmp/dpe2e.sh" >/dev/null 2>&1 && \
-  ssh -o BatchMode=yes "$REMOTE" 'bash /tmp/dpe2e.sh 2>&1 | tail -3; rm -f /tmp/dpe2e.sh' || info "E2E harness not run"
+  # Two ways this used to discard the harness's verdict: the remote string ended
+  # with the cleanup `rm`, whose status is what ssh returns, and the output went
+  # through `tail`, whose status is what the pipeline returns. A failing E2E
+  # reported "OK" at the end of a deploy.
+  #
+  # The harness now needs the run library beside it, so both files are sent, the
+  # status is captured before cleanup, and it is reported.
+  if scp -o BatchMode=yes "$REPO_ROOT/tests/phase0/developer-platform-e2e.sh" \
+        "$REPO_ROOT/tests/phase0/lib/e2e-run.sh" "$REMOTE:/tmp/" >/dev/null 2>&1; then
+    if ssh -o BatchMode=yes "$REMOTE" 'mkdir -p /tmp/dpe2e/lib && mv /tmp/developer-platform-e2e.sh /tmp/dpe2e/ && mv /tmp/e2e-run.sh /tmp/dpe2e/lib/ && bash -c "
+        rc=0
+        trap \"rm -rf /tmp/dpe2e\" EXIT
+        out=\$(bash /tmp/dpe2e/developer-platform-e2e.sh 2>&1) || rc=\$?
+        printf %s\\\\n \"\$out\" | tail -3
+        exit \$rc"'; then
+      info "E2E harness PASS"
+    else
+      echo "  E2E harness FAILED (exit $?)"; exit 4
+    fi
+  else
+    info "E2E harness not sent"
+  fi
 fi
 
 echo "SANDBOX_SOURCE_DEPLOY: OK (commit $SHORT, services ${SERVICES[*]}, mode $DEPLOY_MODE)"

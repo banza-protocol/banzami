@@ -22,16 +22,15 @@ set -uo pipefail
 REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
 E2E_STATE_DIR="${E2E_STATE_DIR:-/var/tmp/banzami-e2e}"
 
-if ! command -v docker >/dev/null 2>&1 || ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q core-api-staging; then
-  if [ "${BANZAMI_ON_VM:-0}" = "1" ]; then echo "✗ on the VM, but core-api-staging is not running." >&2; exit 2; fi
-  echo "· the containers are not here — running on $REMOTE"
-  scp -q "$0" "$REMOTE:/tmp/$(basename "$0")" || { echo "✗ could not reach $REMOTE" >&2; exit 2; }
-  # `ssh host "cmd; rm -f ..."` returns the status of the LAST command — the rm —
-  # so the result of the run itself was being discarded and every invocation
-  # looked successful.
-  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0") ${*:-}; rc=\$?; rm -f /tmp/$(basename "$0"); exit \$rc"
-  exit $?
-fi
+# The canonical remote-execution contract: prove the host, run there, and return
+# the proof's own exit status. See tools/ops/lib/remote.sh.
+for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
+          "$(dirname "$0")/../lib/remote.sh" "$(dirname "$0")/../../tools/ops/lib/remote.sh"; do
+  [ -f "$_p" ] && { . "$_p"; break; }
+done
+command -v remote_self_or_continue >/dev/null 2>&1 \
+  || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
+remote_self_or_continue "$@"
 
 RUN=""; APPLY=0; ALL=0
 for a in "$@"; do

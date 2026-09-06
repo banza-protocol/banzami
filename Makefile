@@ -94,6 +94,7 @@ help:
 	@printf "    make security-check  Security regressions, secret scan, dependency audit\n"
 	@printf "    make check-repo-layout  Repository layout compliance check (CLAUDE.md §20)\n"
 	@printf "    make check-harness-hygiene  E2E harnesses can give back what they mint\n"
+	@printf "    make check-remote-contract  remote proofs report their real exit status\n"
 	@printf "    make check-sdk-payment-boundary  SDK is the single source of payment flows\n"
 	@printf "    make banza-conformance-l0  Run BANZA L0 conformance against the sandbox (evidence)\n"
 	@printf "    make test-all        Run all test suites\n"
@@ -290,7 +291,7 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-harness-hygiene check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+.PHONY: check-all test-all check-repo-layout check-harness-hygiene check-remote-contract check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
@@ -300,6 +301,13 @@ check-repo-layout:
 check-harness-hygiene:
 	node tools/check-harness-hygiene.mjs
 	node tools/check-harness-hygiene.selftest.mjs
+
+# Remote proofs must report what happened on the far side. Needs the Sandbox
+# host, so it is not a CI job — CI has no credentials for it, deliberately.
+check-remote-contract:
+	node tools/check-remote-wrappers.mjs
+	node tools/check-remote-wrappers.selftest.mjs
+	bash tools/ops/lib/remote.selftest.sh
 
 # ─── Security gate ────────────────────────────────────────────────────────────
 # Aggregates the repository-owned security checks: the regression suites that

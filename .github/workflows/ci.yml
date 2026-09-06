@@ -321,6 +321,16 @@ jobs:
           node tools/check-harness-hygiene.mjs
           node tools/check-harness-hygiene.selftest.mjs
 
+      # A proof that runs over ssh must report what happened on the far side.
+      # Six assurance scripts and one deploy step were discarding it — the
+      # remote command ended in a cleanup `rm`, whose status is what ssh
+      # returns. This is the static half; the behavioural half needs the
+      # Sandbox host and runs there as `make check-remote-contract`.
+      - name: Remote exit-status contract
+        run: |
+          node tools/check-remote-wrappers.mjs
+          node tools/check-remote-wrappers.selftest.mjs
+
       - name: Asset inventory gate (cleanup dispositions + secret hygiene)
         run: node tools/check-asset-inventory.mjs
 
