@@ -33,7 +33,13 @@ SERVICES=(
   #
   # It is the ONLY entry here with no financial authority: no secret mount, no
   # database URL, no Core credential. See PAY_FRONTEND_APP_PLANE_ONLY below.
-  "pay-frontend|3002|node"
+  # The third field is what the entrypoint execs. For the Go services it is a
+  # binary; for this one it is a Next.js standalone server, and `node` alone is
+  # a REPL. Deployed that way the container started, found stdin was not a
+  # terminal, exited 0 in under a second, and pay.banzami.com answered 502 to
+  # every payer for twelve hours. A clean exit code is what made it quiet:
+  # nothing crashed, nothing restarted, no log line was written.
+  "pay-frontend|3002|node server.js"
 )
 # Services that must never exist in this project.
 #
