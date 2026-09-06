@@ -307,6 +307,20 @@ jobs:
       - name: Repository layout gate
         run: node tools/check-repository-layout.mjs
 
+      # Every harness that mints operator authority must be able to give it
+      # back. This is the static half — sources the cleanup library, records
+      # what it creates, does not install a second EXIT trap that would replace
+      # the run's cleanup handler. The dynamic half (run the suite, compare the
+      # operator's inventory before and after) needs the deployed Sandbox and
+      # deliberately does NOT run here: this runner executes repository code,
+      # including code from a branch under review, and must never hold Sandbox
+      # credentials. It runs on the operator's machine as
+      # tests/phase0/fixture-hygiene-suite.sh.
+      - name: E2E fixture hygiene gate
+        run: |
+          node tools/check-harness-hygiene.mjs
+          node tools/check-harness-hygiene.selftest.mjs
+
       - name: Asset inventory gate (cleanup dispositions + secret hygiene)
         run: node tools/check-asset-inventory.mjs
 
