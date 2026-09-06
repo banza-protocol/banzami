@@ -39,7 +39,12 @@ inventory() {
   echo "live merchant API keys|$(q "select count(*) from api_keys where revoked_at is null")"
   echo "live developer keys|$(q "select count(*) from developer.dev_api_keys where status='ACTIVE'")"
   echo "active webhook endpoints|$(q "select count(*) from webhook_endpoints where active")"
-  echo "usable app PINs|$(q "select count(*) from merchant_app_credentials where locked_until is null or locked_until < now()")"
+  # A PIN is only a way in if the merchant it belongs to can log in at all.
+  # Suspension refuses the login (proved in retired-authority-denied.sh), so an
+  # unlocked PIN row on a suspended merchant is inert — counting it as live
+  # authority made this gate fail a run whose fixture merchant it had correctly
+  # suspended.
+  echo "app PINs that can log in|$(q "select count(*) from merchant_app_credentials c join merchants m on m.id = c.merchant_id where m.status = 'ACTIVE' and (c.locked_until is null or c.locked_until < now())")"
   echo "active developer projects|$(q "select count(*) from developer.dev_projects where status='ACTIVE'")"
   echo "active merchants|$(q "select count(*) from merchants where status='ACTIVE'")"
   echo "open payment links|$(q "select count(*) from payment_links where status='ACTIVE'")"
