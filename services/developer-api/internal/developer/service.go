@@ -319,7 +319,12 @@ func (s *Service) projectAuthz(ctx context.Context, actor, projectID string) (*P
 	}
 	role, err := s.roleOf(ctx, p.WorkspaceID, actor)
 	if err != nil {
-		return nil, "", ErrForbidden // cross-workspace project access denied
+		// Not found, not forbidden. 403 for a project that exists and 404 for one
+		// that does not tells a caller which project ids are real — an oracle
+		// that costs nothing to query and answers a question no outsider should
+		// be able to ask. A project you are not a member of is, as far as you are
+		// concerned, a project that does not exist.
+		return nil, "", ErrNotFound
 	}
 	return p, role, nil
 }

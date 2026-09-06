@@ -24,7 +24,9 @@ func TestProject_CreateAndIsolation(t *testing.T) {
 		t.Fatalf("developer create project: %v", err)
 	}
 	// Outsider (no membership) cannot read the project → isolation.
-	if _, err := s.GetProject(bg, "u_outsider", p.ID); err != ErrForbidden {
+	// A project you are not a member of is, as far as you are concerned, a
+	// project that does not exist.
+	if _, err := s.GetProject(bg, "u_outsider", p.ID); err != ErrNotFound {
 		t.Errorf("cross-workspace project read: want Forbidden, got %v", err)
 	}
 	// Viewer can read but cannot create.
@@ -178,8 +180,12 @@ func TestAPIKey_CreateAuthz(t *testing.T) {
 	if _, _, err := s.CreateAPIKey(bg, "u_view", pid, KindSecret, "k", nil, "", ""); err != ErrForbidden {
 		t.Errorf("viewer create key: want Forbidden, got %v", err)
 	}
-	if _, _, err := s.CreateAPIKey(bg, "u_outsider", pid, KindSecret, "k", nil, "", ""); err != ErrForbidden {
-		t.Errorf("outsider create key: want Forbidden, got %v", err)
+	// An outsider is told the project does not exist, not that they are not
+	// allowed near it — the same rule as every project-scoped read, so a write
+	// path cannot become the oracle the reads refuse to be. A viewer, who IS a
+	// member, still gets Forbidden: they know the project exists.
+	if _, _, err := s.CreateAPIKey(bg, "u_outsider", pid, KindSecret, "k", nil, "", ""); err != ErrNotFound {
+		t.Errorf("outsider create key: want NotFound, got %v", err)
 	}
 }
 

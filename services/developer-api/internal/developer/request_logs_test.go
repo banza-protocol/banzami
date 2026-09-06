@@ -76,7 +76,9 @@ func TestRequestLogs_CrossProjectRejected(t *testing.T) {
 		{"u_outsider", projA},
 	} {
 		got, err := s.ProjectAPIRequestLogs(bg, c.actor, c.project, RequestLogFilter{})
-		if err != ErrForbidden {
+		// Not found, not forbidden: 403 for a project that exists and 404 for one
+		// that does not is an oracle for which project ids are real.
+		if err != ErrNotFound {
 			t.Errorf("%s reading %s: err = %v, want Forbidden", c.actor, c.project, err)
 		}
 		if len(got) != 0 {
