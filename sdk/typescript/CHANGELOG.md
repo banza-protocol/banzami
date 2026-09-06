@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.3] — 2026-09-06
+
+### Changed — refunds moved to the canonical public path `/v1/refunds`
+
+`/business/` described where the refund handler happened to be mounted back
+when a refund could only be asked for with a merchant credential. It was never
+a word in the developer-facing vocabulary, and an external developer reading
+the reference had no way to know why this one financial verb sat behind a noun
+naming nothing they own.
+
+0.8.1 moved the *client* to `/v1/business/refunds` so it would match the server.
+The server has now moved instead, and this release follows it back:
+`createRefund`, `getRefund` and `listRefunds` call `/v1/refunds`. The method
+names, parameters and return types are unchanged — only the URL the SDK sends.
+
+**Upgrade:** if you are on 0.8.1 or 0.8.2, refunds now 404 against the deployed
+Sandbox, because the retired path is unmounted rather than redirected. Upgrade
+to 0.8.3; no code of yours changes.
+
 ## [0.8.2] — 2026-09-05
 
 ### Fixed — the documented `@banzami/sdk/webhooks` import did not resolve
@@ -18,28 +37,6 @@ no `./webhooks` subpath, so under `NodeNext` resolution that import failed with
 all along, which is why it went unnoticed — the documented path was the broken
 one. `./webhooks` is now exported (ESM, CJS and types); the root export is
 unchanged.
-
-### Fixed — the documented `@banzami/sdk/webhooks` import did not resolve
-
-The webhooks module's own example teaches
-`import { constructEvent } from '@banzami/sdk/webhooks'`, but `exports` declared
-no `./webhooks` subpath, so under `NodeNext` resolution that import failed with
-**TS2307 Cannot find module**. The names were reachable from the package root
-all along, which is why it went unnoticed — the documented path was the broken
-one. `./webhooks` is now exported (ESM, CJS and types), and the root export is
-unchanged.
-
-### Fixed — the published types required Node globals the package never declared
-
-`webhooks.d.ts` typed the raw body as `string | Buffer`, putting a Node global
-in the package's public type surface without the package supplying or requiring
-`@types/node`. A consumer with `skipLibCheck: false` and no Node types got five
-errors out of a file they never imported.
-
-The public signatures now take `string | Uint8Array`. `Buffer` extends
-`Uint8Array`, so every existing caller still compiles; the implementation is
-unchanged. Low severity — invisible with `skipLibCheck: true` (the common app
-default) or with `@types/node` present, and runtime was never affected.
 
 ## [0.8.1] — 2026-09-05
 

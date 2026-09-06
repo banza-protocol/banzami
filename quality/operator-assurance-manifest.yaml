@@ -696,7 +696,12 @@ capabilities:
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
     #
-    # latest = 0.8.2. Every version through 0.8.0 is deprecated; 0.7.0/0.8.0
+    # latest = 0.8.3, which follows the refund route to its canonical public
+    # path. 0.8.1 had moved the client to /v1/business/refunds to match the
+    # server; the server moved to /v1/refunds instead, so 0.8.1 and 0.8.2 now
+    # 404 on every refund — the retired path is unmounted, not redirected.
+    #
+    # Every version through 0.8.0 is deprecated; 0.7.0/0.8.0
     # because createRefund pointed at a merchant-JWT route and answered 401 for
     # the only credential the SDK documents. 0.8.2 additionally fixed two defects
     # a consumer meets before writing any business code, both invisible in-repo
