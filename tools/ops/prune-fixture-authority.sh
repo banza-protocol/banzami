@@ -66,6 +66,21 @@ q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_sta
 #   "M3077617520"  "WAO224149731"  "WH3016131357"  "RF152141024"  "TR260514357"
 FIX="^(E2E |SYN |SYNTHETIC |E0[0-9] |E1 |E2 |[A-Z]{2,4}[0-9]{4,}$|M[0-9]+$)"
 
+# Named, and excluded by name in every statement below — a belt to go with the
+# braces. An earlier version matched a project through ANY binding to a fixture
+# merchant, and the canonical DOA project has one: the retired binding to the
+# fixture merchant it was corrected away from. It was archived by that rule.
+# Nothing broke, because key authorisation does not consult project status, and
+# that is luck rather than a design — so the project is now named and skipped,
+# and the binding test asks only about ACTIVE bindings.
+CANON_PROJECT="DOA Sandbox"
+
+# Developer projects carry their own harness names, and most of them are never
+# bound to a merchant at all — an unbound project was the point of several
+# tests — so matching them through a binding missed 88 of them. These are the
+# shapes the harnesses generate; 'DOA Sandbox' and 'Loja Online' match none.
+PFIX="^(DevPlatform |Synthetic Platform |Phase0 |adr055-|wa-unbound-|wa-other-|wh-unbound-|wh-other-|rt[0-9]{2}-|seal-test|gj-|refund-other-|rfpub-b-|tr-other-|e2e-|dp-|sdk-|k-[0-9]+$)"
+
 echo "fixture authority on the sandbox operator database"
 [ "$APPLY" -eq 1 ] && echo "mode: APPLY" || echo "mode: dry run"
 echo
@@ -93,9 +108,20 @@ q "select '  active merchants   ' || count(*) from merchants where status='ACTIV
 # own name: a fixture project is disposable because its payee is a fixture, and
 # the project's name is whatever the harness happened to type.
 q "select '  active projects    ' || count(*) from developer.dev_projects p
-   where p.status='ACTIVE' and exists (
+   where p.status='ACTIVE' and (p.name ~ '$PFIX' or exists (
      select 1 from developer.dev_project_sandbox_binding b join merchants m on m.id = b.merchant_id
-      where b.project_id = p.id and m.name ~ '$FIX')"
+      where b.project_id = p.id and b.state = 'ACTIVE' and m.name ~ '$FIX'))
+     and p.name <> '$CANON_PROJECT'"
+q "select '  live fixture keys  ' || count(*) from developer.dev_api_keys k
+   join developer.dev_projects p on p.id = k.project_id
+   where k.status='ACTIVE' and (p.status='ARCHIVED' or p.name ~ '$PFIX')
+     and p.name <> '$CANON_PROJECT'"
+
+echo
+echo "developer projects that survive — the pattern calls none of these a fixture"
+q "select '  ' || rpad(p.name, 28) || ' keys=' ||
+     (select count(*) from developer.dev_api_keys k where k.project_id=p.id and k.status='ACTIVE')
+   from developer.dev_projects p where p.status='ACTIVE' and p.name !~ '$PFIX' order by p.created_at"
 
 echo
 echo "endpoints pointing at the real product, held by a fixture"
@@ -122,9 +148,18 @@ q "begin;
    update payment_links l set status = 'CANCELLED', updated_at = now()
      from merchants m where m.id = l.merchant_id and l.status = 'ACTIVE' and m.name ~ '$FIX';
    update developer.dev_projects p set status = 'ARCHIVED', updated_at = now()
-     where p.status = 'ACTIVE' and exists (
+     where p.status = 'ACTIVE' and (p.name ~ '$PFIX' or exists (
        select 1 from developer.dev_project_sandbox_binding b join merchants m on m.id = b.merchant_id
-        where b.project_id = p.id and m.name ~ '$FIX');
+        where b.project_id = p.id and b.state = 'ACTIVE' and m.name ~ '$FIX'))
+     and p.name <> '$CANON_PROJECT';
+   -- A retired project must not leave live keys behind. Archiving the container
+   -- and leaving its credentials valid is authority pointing at something
+   -- nothing is watching any more.
+   update developer.dev_api_keys k set status = 'REVOKED', revoked_at = now()
+     from developer.dev_projects p
+    where p.id = k.project_id and k.status = 'ACTIVE'
+      and (p.status = 'ARCHIVED' or p.name ~ '$PFIX')
+      and p.name <> '$CANON_PROJECT';
    -- Suspension is the operator's retirement for a merchant, and since the
    -- handle+PIN login now honours it, it retires the app credential too.
    update merchants set status = 'SUSPENDED', updated_at = now()
@@ -138,6 +173,7 @@ q "select '  active webhooks    ' || count(*) from webhook_endpoints where activ
 q "select '  open payment links ' || count(*) from payment_links where status='ACTIVE'"
 q "select '  active merchants   ' || count(*) from merchants where status='ACTIVE'"
 q "select '  active projects    ' || count(*) from developer.dev_projects where status='ACTIVE'"
+q "select '  live developer keys' || count(*) from developer.dev_api_keys where status='ACTIVE'"
 echo
 echo "the canonical merchant, untouched"
 q "select '  ' || m.name || '  key=' || k.key_prefix || '  env=' || k.environment
