@@ -1,0 +1,74 @@
+{
+  "audit": "DOA Developer key inventory \u2014 origin, consumer and disposition",
+  "generated_at": "2026-09-07T01:35:00Z",
+  "why": "Every DOA key carried created_by = 11111111-2222-4333-8444-555555555555, the synthetic actor of the internal fixture route. Working is not the same as publicly reproducible: a reference application whose credentials cannot be obtained the public way is a reference to something nobody else can build.",
+  "predecessors": [
+    {
+      "name": "DOA production (final) [rotated 2026-09-06]",
+      "prefix": "bz_test_sk_ewKNawBA",
+      "scopes": 9,
+      "calls": 40,
+      "last_used": "2026-09-06T22:18:26Z",
+      "consumer": "doa (www.doadoa.app)",
+      "class": "A \u2014 required canonical",
+      "status": "ACTIVE, retained until its replacement is installed"
+    },
+    {
+      "name": "DOA admin surface (admin.doadoa.app) [rotated 2026-09-06]",
+      "prefix": "bz_test_sk_6ZtCYs6-",
+      "scopes": 5,
+      "calls": 7,
+      "last_used": "2026-09-06T22:19:30Z",
+      "consumer": "doa-admin (admin.doadoa.app)",
+      "class": "A \u2014 required canonical",
+      "status": "ACTIVE, retained until its replacement is installed"
+    },
+    {
+      "name": "DOA Sandbox server key [rotated 2026-09-06]",
+      "prefix": "bz_test_sk_LIVaVsWr",
+      "scopes": 3,
+      "calls": 0,
+      "last_used": "never",
+      "consumer": "doa-sandbox",
+      "class": "B \u2014 provisioned in the RA-080 rotation and never used",
+      "status": "ACTIVE, retained for ordering consistency"
+    },
+    {
+      "name": "rf-pub-2823621781",
+      "prefix": "bz_test_sk_NNHIcjRk",
+      "scopes": 7,
+      "calls": 3,
+      "last_used": "2026-09-06T21:47:10Z",
+      "consumer": "none \u2014 refund-published-sdk-e2e harness",
+      "class": "C \u2014 harness leftover, not a DOA credential",
+      "status": "REVOKED"
+    }
+  ],
+  "four_versus_three_explained": "The fourth key was never a DOA credential. rf-pub-2823621781 was minted by the published-SDK refund harness on the DOA Sandbox project (its three calls land exactly in that harness's run window at 21:47) and left behind by a run whose cleanup did not match its name. It is a fixture leak, not a consumer. So the canonical set is three, and the three public-origin replacements map one to one.",
+  "disclosure": "It was revoked during the orphan sweep, classified by name pattern, BEFORE this full usage analysis was run. The analysis confirms the classification; the ordering is recorded rather than presented as if the evidence came first.",
+  "replacements": [
+    {
+      "name": "DOA production [public lifecycle 2026-09-07]",
+      "prefix": "bz_test_sk_G4TR27u8",
+      "scopes": 9,
+      "origin": "public Console \u2014 real contact@doadoa.app session, POST /projects/{id}/keys",
+      "verified": "GET /v1/me \u2192 200 SANDBOX, 9 scopes"
+    },
+    {
+      "name": "DOA admin surface [public lifecycle 2026-09-07]",
+      "prefix": "bz_test_sk_ZNanDVf_",
+      "scopes": 5,
+      "origin": "public Console",
+      "verified": "GET /v1/me \u2192 200 SANDBOX, 5 scopes"
+    },
+    {
+      "name": "DOA Sandbox server [public lifecycle 2026-09-07]",
+      "prefix": "bz_test_sk_LqEwwvNE",
+      "scopes": 3,
+      "origin": "public Console",
+      "verified": "GET /v1/me \u2192 200 SANDBOX, 3 scopes"
+    }
+  ],
+  "blocked": "Installing the replacements into DOA's deployment configuration was refused by the permission classifier \u2014 credential material entering a production environment. No predecessor has been revoked; DOA is untouched and working. The safe order (install \u2192 redeploy \u2192 prove \u2192 revoke \u2192 prove-rejected) is unchanged and resumes on approval.",
+  "scope_parity": "All nine scopes DOA needs are in the public Console picker, which matches the server-enforced set exactly (14 scopes)."
+}
