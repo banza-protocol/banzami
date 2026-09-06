@@ -117,6 +117,36 @@ export type Project = {
   status: string;
   created_at: string;
 };
+/**
+ * One wallet account of the project's bound financial owner, with what it
+ * holds. Balances are in minor units — there is no float anywhere near money.
+ */
+export type WalletAccount = {
+  id: string;
+  label: string | null;
+  purpose: string;
+  reference_type: string | null;
+  reference_id: string | null;
+  currency: string;
+  balance_minor: number;
+  status: string;
+  created_at: string;
+};
+
+/** One financial operation under the project. Three released types, each kept
+ *  distinct: a payment and a refund are not the same event. */
+export type DeveloperTransaction = {
+  id: string;
+  type: 'payment' | 'refund' | 'transfer';
+  status: string;
+  amount_minor: number;
+  currency: string;
+  wallet_account_id: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  created_at: string;
+};
+
 export type ApiKey = {
   id: string;
   project_id: string;
@@ -231,6 +261,33 @@ export const developerApi = {
   listKeys: (projectID: string) => req<{ keys: ApiKey[] }>(`/projects/${projectID}/keys`),
   createKey: (projectID: string, kind: 'PUBLISHABLE' | 'SECRET', name: string, scopes: string[], csrf: string) =>
     req<NewKey>(`/projects/${projectID}/keys`, { method: 'POST', body: { kind, name, scopes }, csrf }),
+  // ── Balances (real, project-scoped) ────────────────────────────────────────
+  // The project id is what the caller supplies; the merchant behind it is
+  // derived server-side from the project's sealed binding and never accepted
+  // from here.
+  listBalances: (projectID: string, opts: { limit?: number; cursor?: string } = {}) => {
+    const p = new URLSearchParams();
+    if (opts.limit) p.set('limit', String(opts.limit));
+    if (opts.cursor) p.set('cursor', opts.cursor);
+    const qs = p.toString();
+    return req<{ accounts: WalletAccount[]; total: number; next_cursor: string }>(
+      `/projects/${projectID}/balances${qs ? `?${qs}` : ''}`);
+  },
+
+  // Financial operations under the project. Not the API log: that says which
+  // requests arrived, this says which money moved. Every filter is applied
+  // server-side.
+  listTransactions: (
+    projectID: string,
+    opts: { limit?: number; cursor?: string; type?: string; status?: string; since?: string; until?: string } = {},
+  ) => {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(opts)) if (v) p.set(k, String(v));
+    const qs = p.toString();
+    return req<{ transactions: DeveloperTransaction[]; next_cursor: string }>(
+      `/projects/${projectID}/transactions${qs ? `?${qs}` : ''}`);
+  },
+
   // ── Webhooks (real, project-scoped) ────────────────────────────────────────
   // Served by developer-api from the gateway's own webhook tables, scoped by the
   // merchant the project's binding names. No secret is ever returned: the view

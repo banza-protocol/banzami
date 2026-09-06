@@ -215,6 +215,8 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/workspaces/{wsID}/projects", h.listProjects)
 	r.Get("/projects/{projID}", h.getProject)
 	r.Get("/projects/{projID}/keys", h.listKeys)
+	r.Get("/projects/{projID}/balances", h.listBalances)
+	r.Get("/projects/{projID}/transactions", h.listTransactions)
 	r.Get("/projects/{projID}/webhooks/endpoints", h.listWebhookEndpoints)
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
@@ -233,6 +235,82 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/keys/{keyID}/rotate", h.rotateKey)
 		r.Delete("/keys/{keyID}", h.revokeKey)
 	})
+}
+
+// GET /projects/{projID}/balances?limit=&cursor=
+//
+// The wallet accounts of the merchant this project is bound to, with what each
+// one holds. Project-scoped by derivation, read-only, and paged — a project can
+// hold hundreds of campaign accounts, and returning all of them because the
+// first page happened to be small is how a list becomes a download.
+func (h *Handlers) listBalances(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	f := WalletAccountFilter{Cursor: r.URL.Query().Get("cursor")}
+	if n, err := strconv.Atoi(r.URL.Query().Get("limit")); err == nil {
+		f.Limit = n
+	}
+	accounts, total, err := h.svc.ProjectBalances(r.Context(), u.ID, chi.URLParam(r, "projID"), f)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	// The cursor is the last row's id; absent when the page did not fill, which
+	// is the only honest signal that there is nothing after it.
+	next := ""
+	if f.Limit > 0 && len(accounts) == f.Limit {
+		next = accounts[len(accounts)-1].ID
+	} else if f.Limit == 0 && len(accounts) == 50 {
+		next = accounts[len(accounts)-1].ID
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"accounts": accounts, "total": total, "next_cursor": next,
+	})
+}
+
+// GET /projects/{projID}/transactions?type=&status=&since=&until=&cursor=&limit=
+//
+// Every filter is applied in SQL. Filtering a capped page in the browser
+// answers a different question from the one the user asked — and answers it
+// wrongly the moment there is more history than one page.
+func (h *Handlers) listTransactions(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	q := r.URL.Query()
+	f := TransactionFilter{
+		Cursor: q.Get("cursor"),
+		Type:   q.Get("type"),
+		Status: q.Get("status"),
+	}
+	if n, err := strconv.Atoi(q.Get("limit")); err == nil {
+		f.Limit = n
+	}
+	if t, err := time.Parse(time.RFC3339, q.Get("since")); err == nil {
+		f.Since = &t
+	}
+	if t, err := time.Parse(time.RFC3339, q.Get("until")); err == nil {
+		f.Until = &t
+	}
+	tx, err := h.svc.ProjectTransactions(r.Context(), u.ID, chi.URLParam(r, "projID"), f)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	limit := f.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	next := ""
+	if len(tx) == limit {
+		next = tx[len(tx)-1].CreatedAt.Format(time.RFC3339Nano)
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"transactions": tx, "next_cursor": next})
 }
 
 func (h *Handlers) listWebhookEndpoints(w http.ResponseWriter, r *http.Request) {

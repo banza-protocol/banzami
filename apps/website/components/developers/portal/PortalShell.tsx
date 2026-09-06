@@ -11,7 +11,6 @@ import { PreviewNotice } from './PreviewNotice';
 import {
   BrandTile,
   IconArrowRight,
-  IconBell,
   IconBolt,
   IconBriefcase,
   IconChevronDown,
@@ -23,7 +22,6 @@ import {
   IconKey,
   IconList,
   IconSwap,
-  IconUsers,
   IconWallet,
   IconWebhook,
 } from './icons';
@@ -37,21 +35,18 @@ type PortalKey =
   | 'dashboard'
   | 'saldos'
   | 'transacoes'
-  | 'clientes'
   | 'apikeys'
   | 'webhooks'
   | 'logs'
   | 'docs'
   | 'settings'
   | 'golive'
-  | 'suporte'
-  | 'status';
+  | 'suporte';
 
 const NAV: { key: PortalKey; label: string; href: string; icon: (p: { size?: number }) => ReactNode }[] = [
   { key: 'dashboard', label: 'Visão geral', href: '/', icon: IconGrid },
   { key: 'saldos', label: 'Saldos', href: '/saldos', icon: IconWallet },
   { key: 'transacoes', label: 'Transações', href: '/transacoes', icon: IconSwap },
-  { key: 'clientes', label: 'Clientes', href: '/clientes', icon: IconUsers },
   { key: 'apikeys', label: 'API Keys', href: '/api-keys', icon: IconKey },
   { key: 'webhooks', label: 'Webhooks', href: '/webhooks', icon: IconWebhook },
   { key: 'logs', label: 'Logs / Eventos', href: '/logs', icon: IconList },
@@ -157,22 +152,12 @@ function Sidebar({ active }: { active: PortalKey }) {
           gap: 2,
         }}
       >
+        {/* Status was a green dot and the word "Operacional", painted into the
+            markup. It asked nothing and could not go amber, so it reported
+            healthy through every outage this platform has had. There is no
+            status service to connect it to, and inventing one to justify a dot
+            would be the same mistake in a larger form. */}
         <NavItem href="/suporte" label="Suporte" active={active === 'suporte'} icon={IconHelp} />
-        <NavItem href="/status" active={active === 'status'}>
-          <span style={{ width: 18, display: 'inline-flex', justifyContent: 'center' }}>
-            <span
-              style={{
-                width: 9,
-                height: 9,
-                borderRadius: '50%',
-                background: '#1F8A5B',
-                boxShadow: '0 0 0 4px rgba(31,138,91,.16)',
-              }}
-            />
-          </span>
-          Status
-          <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: '#1F8A5B' }}>Operacional</span>
-        </NavItem>
       </div>
     </aside>
   );
@@ -272,37 +257,10 @@ function TopBar() {
           <IconBolt size={15} />
           Switch to Live
         </Link>
-        <button
-          className="bz-icobtn"
-          aria-label="Notificações"
-          style={{
-            position: 'relative',
-            width: 40,
-            height: 40,
-            border: '1px solid #F0E2E0',
-            borderRadius: 11,
-            background: '#fff',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#6a5a5e',
-          }}
-        >
-          <IconBell size={18} />
-          <span
-            style={{
-              position: 'absolute',
-              top: 9,
-              right: 10,
-              width: 7,
-              height: 7,
-              borderRadius: '50%',
-              background: '#B5101F',
-              border: '1.5px solid #fff',
-            }}
-          />
-        </button>
+        {/* No notification bell. It had no handler and a red unread dot that was
+            always on, so it announced messages that did not exist and did
+            nothing when clicked. There is no notification backend, and building
+            one to justify an icon is not a reason to build one. */}
         <Link
           href="/suporte"
           className="bz-icobtn"
@@ -322,9 +280,11 @@ function TopBar() {
         >
           <IconHelp size={18} />
         </Link>
+        {/* An avatar with a chevron reads as a menu, and this one signed you out
+            on the first click. It is now labelled as what it does. */}
         <button
           onClick={onLogout}
-          aria-label="Terminar sessão"
+          aria-label={user?.email ? `Terminar sessão (${user.email})` : 'Terminar sessão'}
           title={user?.email ? `${user.email} — Terminar sessão` : 'Terminar sessão'}
           style={{
             display: 'flex',
@@ -353,8 +313,8 @@ function TopBar() {
           >
             {initialsOf(user)}
           </span>
-          <span style={{ color: '#b8a4a6', display: 'inline-flex' }}>
-            <IconChevronDown size={14} />
+          <span style={{ color: '#6a5a5e', fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
+            Terminar sessão
           </span>
         </button>
       </div>

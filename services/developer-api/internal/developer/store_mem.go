@@ -446,6 +446,16 @@ func (m *memStore) MarkBindingArtifactCreated(_ context.Context, bindingID strin
 // is the truthful answer for a store that holds no webhook state, and inventing
 // rows here is how a Console screen ends up showing fiction again.
 
+func (m *memStore) WalletAccountsForMerchant(context.Context, string, WalletAccountFilter) ([]WalletAccountView, error) {
+	return []WalletAccountView{}, nil
+}
+
+func (m *memStore) WalletAccountCountForMerchant(context.Context, string) (int, error) { return 0, nil }
+
+func (m *memStore) TransactionsForMerchant(context.Context, string, TransactionFilter) ([]TransactionView, error) {
+	return []TransactionView{}, nil
+}
+
 func (m *memStore) WebhookEndpointsForMerchant(context.Context, string) ([]WebhookEndpointView, error) {
 	return []WebhookEndpointView{}, nil
 }

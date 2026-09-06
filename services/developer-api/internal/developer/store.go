@@ -254,6 +254,26 @@ type Store interface {
 	//
 	// Read-only by construction: there is no write counterpart, and no query
 	// selects the signing secret.
+	// WalletAccountsForMerchant returns the wallet accounts belonging to the
+	// merchant a project's binding names, with the balance each one actually
+	// holds. The balance is summed from ledger entries in SQL rather than
+	// returned from a stored total: a cached figure that drifts from the ledger
+	// is worse than no figure, because it looks authoritative.
+	//
+	// Read-only, like every other view here. There is no write counterpart.
+	WalletAccountsForMerchant(ctx context.Context, merchantID string, f WalletAccountFilter) ([]WalletAccountView, error)
+	WalletAccountCountForMerchant(ctx context.Context, merchantID string) (int, error)
+
+	// TransactionsForMerchant returns the financial operations that happened
+	// under the merchant a project is bound to: payment sessions, refunds and
+	// wallet-account transfers. Three released types, unioned into one ordered
+	// stream, each keeping its own type so nothing is flattened into a generic
+	// "transaction" that means less than the row it came from.
+	//
+	// Not the same question as the API log. The log says which HTTP requests
+	// arrived; this says which money moved.
+	TransactionsForMerchant(ctx context.Context, merchantID string, f TransactionFilter) ([]TransactionView, error)
+
 	WebhookEndpointsForMerchant(ctx context.Context, merchantID string) ([]WebhookEndpointView, error)
 	WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error)
 	WebhookDeliveriesForEvent(ctx context.Context, merchantID, eventID string) ([]WebhookDeliveryView, error)
@@ -320,6 +340,63 @@ type APIRequestLogView struct {
 // WebhookEndpointView is an endpoint as the Console shows it. The signing secret
 // is absent from the struct, not merely unselected — a field that does not exist
 // cannot be leaked by a later change to a query.
+// WalletAccountView is what a Developer may see of one wallet account: what it
+// is for, what it holds, and nothing about the ledger underneath it. No account
+// id from the ledger, no posting, no merchant identifier — those belong to the
+// operator, and a Developer read model that exposed them would make every
+// integration depend on internals it cannot be promised.
+type WalletAccountView struct {
+	ID            string    `json:"id"`
+	Label         *string   `json:"label"`
+	Purpose       string    `json:"purpose"`
+	ReferenceType *string   `json:"reference_type"`
+	ReferenceID   *string   `json:"reference_id"`
+	Currency      string    `json:"currency"`
+	// BalanceMinor is the sum of the account's ledger entries, in minor units.
+	// Sandbox balances move only through Sandbox operations.
+	BalanceMinor int64     `json:"balance_minor"`
+	Status       string    `json:"status"`
+	CreatedAt    time.Time `json:"created_at"`
+}
+
+// WalletAccountFilter pages through a merchant's accounts. Cursor is the id of
+// the last row of the previous page, and ordering is (created_at DESC, id DESC)
+// so the sequence is stable when several accounts share a timestamp — which
+// they do, because a run of campaigns is opened in the same second.
+type WalletAccountFilter struct {
+	Limit  int
+	Cursor string
+}
+
+// TransactionView is one financial operation as a Developer may see it.
+//
+// No payer identity, no ledger posting, no merchant id: those are the
+// operator's, and a read model that leaked them would make every integration
+// depend on internals nobody promised to keep.
+type TransactionView struct {
+	ID              string    `json:"id"`
+	Type            string    `json:"type"` // payment | refund | transfer
+	Status          string    `json:"status"`
+	AmountMinor     int64     `json:"amount_minor"`
+	Currency        string    `json:"currency"`
+	WalletAccountID *string   `json:"wallet_account_id"`
+	ReferenceType   *string   `json:"reference_type"`
+	ReferenceID     *string   `json:"reference_id"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
+// TransactionFilter narrows and pages the stream. Every field is applied in
+// SQL: filtering a capped page in the browser answers a different question from
+// the one the user asked, and answers it wrongly as soon as there is history.
+type TransactionFilter struct {
+	Limit  int
+	Cursor string // created_at of the last row of the previous page, RFC3339
+	Type   string // payment | refund | transfer
+	Status string
+	Since  *time.Time
+	Until  *time.Time
+}
+
 type WebhookEndpointView struct {
 	ID        string    `json:"id"`
 	URL       string    `json:"url"`

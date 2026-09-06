@@ -353,6 +353,43 @@ func (s *Service) projectMerchant(ctx context.Context, actor, projectID string) 
 	return b.MerchantID, nil
 }
 
+// ProjectBalances answers "what does this project's financial owner hold?".
+//
+// The authority chain is the same as every other project-scoped read here:
+// session → workspace membership → project → its ACTIVE binding → the merchant
+// that binding names. The caller supplies a project id and nothing else; the
+// merchant is derived, never accepted. A project with no binding has no
+// balances to show and says so, rather than falling back to anything.
+func (s *Service) ProjectBalances(ctx context.Context, actor, projectID string, f WalletAccountFilter) ([]WalletAccountView, int, error) {
+	m, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return nil, 0, err
+	}
+	accounts, err := s.store.WalletAccountsForMerchant(ctx, m, f)
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	total, err := s.store.WalletAccountCountForMerchant(ctx, m)
+	if err != nil {
+		return nil, 0, ErrUnavailable
+	}
+	return accounts, total, nil
+}
+
+// ProjectTransactions answers "what money moved under this project?" — the
+// question the API log deliberately does not answer.
+func (s *Service) ProjectTransactions(ctx context.Context, actor, projectID string, f TransactionFilter) ([]TransactionView, error) {
+	m, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := s.store.TransactionsForMerchant(ctx, m, f)
+	if err != nil {
+		return nil, ErrUnavailable
+	}
+	return tx, nil
+}
+
 func (s *Service) ProjectWebhookEndpoints(ctx context.Context, actor, projectID string) ([]WebhookEndpointView, error) {
 	m, err := s.projectMerchant(ctx, actor, projectID)
 	if err != nil {

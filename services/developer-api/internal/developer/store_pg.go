@@ -565,6 +565,132 @@ func nz(s string) any {
 // never taken from a request; the caller resolves it from the project binding
 // before calling here.
 
+// WalletAccountsForMerchant lists the merchant's accounts with the balance each
+// one holds, summed from the ledger in the same query. Summing here rather than
+// reading a stored total means the number cannot drift from the entries it
+// claims to describe — and a balance that drifts is worse than none, because it
+// still looks authoritative.
+//
+// Ordering is (created_at DESC, id DESC): a run of campaigns is opened inside
+// the same second, so created_at alone is not a stable key to page by.
+func (s *pgStore) WalletAccountsForMerchant(ctx context.Context, merchantID string, f WalletAccountFilter) ([]WalletAccountView, error) {
+	limit := f.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT wa.id, wa.label, wa.purpose, wa.reference_type, wa.reference_id,
+		        wa.currency,
+		        COALESCE(SUM(CASE WHEN e.entry_type = 'CREDIT' THEN e.amount_minor
+		                          ELSE -e.amount_minor END), 0)::bigint,
+		        wa.status, wa.created_at
+		   FROM wallet_accounts wa
+		   JOIN wallets w ON w.id = wa.wallet_id
+		   LEFT JOIN ledger_entries e ON e.account_id = wa.account_id
+		  WHERE w.merchant_id = $1
+		    AND ($2 = '' OR (wa.created_at, wa.id) <
+		         (SELECT c.created_at, c.id FROM wallet_accounts c WHERE c.id::text = $2))
+		  GROUP BY wa.id, wa.label, wa.purpose, wa.reference_type, wa.reference_id,
+		           wa.currency, wa.status, wa.created_at
+		  ORDER BY wa.created_at DESC, wa.id DESC
+		  LIMIT $3`, merchantID, f.Cursor, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []WalletAccountView{}
+	for rows.Next() {
+		var v WalletAccountView
+		if err := rows.Scan(&v.ID, &v.Label, &v.Purpose, &v.ReferenceType, &v.ReferenceID,
+			&v.Currency, &v.BalanceMinor, &v.Status, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// TransactionsForMerchant unions the three released financial operation types
+// into one ordered stream. Each keeps its own type: a payment and a refund are
+// not the same event, and flattening them into "transaction" would lose the
+// distinction a developer is reading the page to see.
+//
+// Paged by created_at rather than an offset, so a new operation arriving
+// between two pages cannot shift rows across the boundary and make one vanish.
+func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string, f TransactionFilter) ([]TransactionView, error) {
+	limit := f.Limit
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	rows, err := s.pool.Query(ctx,
+		`WITH ops AS (
+		   SELECT s.id::text AS id, 'payment' AS type, s.status::text AS status,
+		          s.amount_minor::bigint AS amount_minor, s.currency::text AS currency,
+		          s.wallet_account_id::text AS wallet_account_id,
+		          s.reference_type::text AS reference_type, s.reference_id::text AS reference_id,
+		          s.created_at
+		     FROM payment_sessions s WHERE s.merchant_id = $1
+		   UNION ALL
+		   SELECT r.id::text, 'refund', r.status::text,
+		          r.amount_minor::bigint, r.currency::text,
+		          NULL, r.source_type::text, r.source_id::text, r.created_at
+		     FROM refunds r WHERE r.merchant_id = $1
+		   UNION ALL
+		   SELECT t.id::text, 'transfer', t.status::text,
+		          t.amount_minor::bigint, t.currency::text,
+		          t.dest_account_id::text, 'WALLET_ACCOUNT', t.source_account_id::text, t.created_at
+		     FROM wallet_account_transfers t WHERE t.merchant_id = $1
+		 )
+		 SELECT id, type, status, amount_minor, currency, wallet_account_id,
+		        reference_type, reference_id, created_at
+		   FROM ops
+		  WHERE ($2 = '' OR type = $2)
+		    AND ($3 = '' OR status = $3)
+		    AND ($4::timestamptz IS NULL OR created_at >= $4)
+		    AND ($5::timestamptz IS NULL OR created_at <= $5)
+		    AND ($6::timestamptz IS NULL OR created_at < $6)
+		  ORDER BY created_at DESC
+		  LIMIT $7`,
+		merchantID, f.Type, f.Status, f.Since, f.Until, cursorTime(f.Cursor), limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []TransactionView{}
+	for rows.Next() {
+		var v TransactionView
+		if err := rows.Scan(&v.ID, &v.Type, &v.Status, &v.AmountMinor, &v.Currency,
+			&v.WalletAccountID, &v.ReferenceType, &v.ReferenceID, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+// cursorTime turns the opaque cursor back into a timestamp, or nil when there
+// is none. An unparseable cursor becomes nil rather than an error: the worst it
+// can do is return the first page, and refusing the whole request because a
+// query string was mangled helps nobody.
+func cursorTime(c string) *time.Time {
+	if c == "" {
+		return nil
+	}
+	t, err := time.Parse(time.RFC3339Nano, c)
+	if err != nil {
+		return nil
+	}
+	return &t
+}
+
+func (s *pgStore) WalletAccountCountForMerchant(ctx context.Context, merchantID string) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM wallet_accounts wa JOIN wallets w ON w.id = wa.wallet_id
+		  WHERE w.merchant_id = $1`, merchantID).Scan(&n)
+	return n, err
+}
+
 func (s *pgStore) WebhookEndpointsForMerchant(ctx context.Context, merchantID string) ([]WebhookEndpointView, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, url, events, active, created_at
