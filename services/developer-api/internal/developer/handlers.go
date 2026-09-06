@@ -2,6 +2,7 @@ package developer
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
@@ -217,6 +218,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/keys", h.listKeys)
 	r.Get("/projects/{projID}/balances", h.listBalances)
 	r.Get("/projects/{projID}/transactions", h.listTransactions)
+	r.Get("/projects/{projID}/refund-capability", h.refundCapability)
 	r.Get("/projects/{projID}/webhooks/endpoints", h.listWebhookEndpoints)
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
@@ -234,6 +236,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/projects/{projID}/keys", h.createKey)
 		r.Post("/keys/{keyID}/rotate", h.rotateKey)
 		r.Delete("/keys/{keyID}", h.revokeKey)
+		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
 	})
 }
 
@@ -311,6 +314,80 @@ func (h *Handlers) listTransactions(w http.ResponseWriter, r *http.Request) {
 		next = tx[len(tx)-1].CreatedAt.Format(time.RFC3339Nano)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"transactions": tx, "next_cursor": next})
+}
+
+// GET /projects/{projID}/refund-capability
+//
+// What the Console may show. The answer separates "your role may not" from
+// "this deployment has no refund path", because they lead somewhere different:
+// one is a permission to ask a colleague for, and the other is nobody's to grant.
+func (h *Handlers) refundCapability(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	cap, err := h.svc.ProjectRefundCapability(r.Context(), u.ID, chi.URLParam(r, "projID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, cap)
+}
+
+// POST /projects/{projID}/payments/{payID}/refund
+//
+// Behind the CSRF guard with the other state-changing routes, because it is the
+// most state-changing one there is: it moves money out of an account.
+//
+// The body carries an amount, a reason and an idempotency key. It does not carry
+// a merchant, a wallet or a source — those are derived from the project's binding
+// and from the payment itself, so there is no field here an attacker could aim.
+func (h *Handlers) refundPayment(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		AmountMinor    int64  `json:"amount_minor"`
+		Reason         string `json:"reason"`
+		IdempotencyKey string `json:"idempotency_key"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid body")
+		return
+	}
+	res, err := h.svc.ProjectRefund(r.Context(), u.ID, chi.URLParam(r, "projID"), RefundRequest{
+		PaymentID:      chi.URLParam(r, "payID"),
+		AmountMinor:    in.AmountMinor,
+		Reason:         in.Reason,
+		IdempotencyKey: in.IdempotencyKey,
+	})
+	if err != nil {
+		// Core's own refusals reach the caller intact. A ceiling that has been
+		// reached, a balance that cannot cover it and a reused idempotency key
+		// are three different things to do next, and collapsing them into one
+		// message leaves someone pressing a button that can never work.
+		var rej *RefundRejection
+		if errors.As(err, &rej) {
+			httpx.Error(w, http.StatusConflict, rej.Code, rej.Message)
+			return
+		}
+		switch {
+		case errors.Is(err, ErrNoRefundSource):
+			httpx.Error(w, http.StatusConflict, "NOT_REFUNDABLE",
+				"this payment has not been paid, so there is nothing to return")
+			return
+		case errors.Is(err, ErrNotConfigured):
+			httpx.Error(w, http.StatusServiceUnavailable, "REFUNDS_NOT_CONFIGURED",
+				"refunds are not configured on this deployment")
+			return
+		}
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, res)
 }
 
 func (h *Handlers) listWebhookEndpoints(w http.ResponseWriter, r *http.Request) {

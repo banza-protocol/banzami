@@ -13,9 +13,9 @@ func TestRenderVerificationCode(t *testing.T) {
 
 	for _, m := range []string{
 		"O seu código de verificação",
-		"Developers",                        // header subtitle
-		"Segurança",                         // security badge
-		"expira em 10 minutos",              // expiry notice
+		"Developers",           // header subtitle
+		"Segurança",            // security badge
+		"expira em 10 minutos", // expiry notice
 		"'Nunito'", "border-collapse:separate", "email-assets/",
 	} {
 		if !strings.Contains(html, m) {

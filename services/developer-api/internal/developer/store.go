@@ -352,7 +352,7 @@ type WalletAccountView struct {
 	Purpose       string `json:"purpose"`
 	ReferenceType string `json:"reference_type"`
 	ReferenceID   string `json:"reference_id"`
-	Currency      string    `json:"currency"`
+	Currency      string `json:"currency"`
 	// BalanceMinor is the sum of the account's ledger entries, in minor units.
 	// Sandbox balances move only through Sandbox operations.
 	BalanceMinor int64     `json:"balance_minor"`
@@ -386,9 +386,9 @@ type TransactionView struct {
 	// Null for a session opened without a fixed amount — the payer chooses.
 	// Coalescing it to 0 would print "0 Kz" for an operation that has no amount
 	// yet, which is a number where there is none.
-	AmountMinor     *int64 `json:"amount_minor"`
-	Currency        string `json:"currency"`
-	WalletAccountID string `json:"wallet_account_id"`
+	AmountMinor     *int64    `json:"amount_minor"`
+	Currency        string    `json:"currency"`
+	WalletAccountID string    `json:"wallet_account_id"`
 	ReferenceType   string    `json:"reference_type"`
 	ReferenceID     string    `json:"reference_id"`
 	CreatedAt       time.Time `json:"created_at"`

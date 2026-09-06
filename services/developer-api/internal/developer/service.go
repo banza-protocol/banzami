@@ -16,8 +16,9 @@ type Service struct {
 	apiKeyPepper    string
 	inviteTTL       time.Duration
 	payee           PayeeValidator
-	paymentReleased bool // deploy-vs-release control (RT04C §1)
-	fixturesEnabled bool // operator E2E fixture-key path, sandbox-only (RT04D §2)
+	refunder        Refunder // Core refund boundary; nil until wired (see refunds.go)
+	paymentReleased bool     // deploy-vs-release control (RT04C §1)
+	fixturesEnabled bool     // operator E2E fixture-key path, sandbox-only (RT04D §2)
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the

@@ -109,6 +109,14 @@ func main() {
 	} else {
 		slog.Warn("CORE_API_URL / CORE_INTERNAL_KEY not set — project binding fails closed until configured")
 	}
+	// The Console's own refund (the first financial write this service makes).
+	// Unset key → nil Refunder → the Console reports the capability as
+	// unavailable rather than rendering a control that would fail when pressed.
+	if rf := developer.NewCoreRefunder(coreclient.NewRefund(cfg.CoreAPIURL, cfg.CoreRefundKey)); rf != nil {
+		devSvc.SetRefunder(rf)
+	} else {
+		slog.Warn("CORE_API_URL / CORE_REFUND_KEY not set — Console refunds report as unavailable")
+	}
 	// Deploy-vs-release control (RT04C §1): logged without secrets. Config already
 	// forces this false outside a sandbox environment.
 	devSvc.SetPaymentCapabilityReleased(cfg.PaymentCapabilityReleased)

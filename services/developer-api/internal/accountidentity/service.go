@@ -139,10 +139,10 @@ func (s *Service) RequestOTP(ctx context.Context, email, ip, requestID string) e
 // VerifyResult carries the raw session token (for the host-only cookie) and the
 // CSRF token (returned in the JSON body).
 type VerifyResult struct {
-	User        User
-	SessionRaw  string
-	CSRFToken   string
-	SessionTTL  time.Duration
+	User       User
+	SessionRaw string
+	CSRFToken  string
+	SessionTTL time.Duration
 }
 
 // VerifyOTP atomically verifies the code; on success it lazily creates+verifies

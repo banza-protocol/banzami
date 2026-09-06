@@ -47,6 +47,15 @@ type Config struct {
 	CoreAPIURL             string
 	CorePayeeValidationKey string
 
+	// CoreRefundKey authorises this service to create refunds at Core. It is the
+	// Console's own refund path and the first financial WRITE this service makes;
+	// everything else it does with money is a read. Core gates its refund group
+	// on one shared service credential, so this holds the same value the Gateway
+	// does — named for what it authorises rather than for where it came from.
+	// Empty → the Console reports refunds as unavailable, which is true, instead
+	// of offering a button that fails when pressed.
+	CoreRefundKey string
+
 	// PaymentCapabilityReleased is the deploy-vs-release control (ADR-047 / RT04C
 	// §1). Deploying the payment code does NOT make payment scopes publicly
 	// available: until this is explicitly set (a separate operator action, AFTER
@@ -130,6 +139,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_PAYEE_VALIDATION_KEY"); v != "" {
 		cfg.CorePayeeValidationKey = v
+	}
+	if v := os.Getenv("CORE_REFUND_KEY"); v != "" {
+		cfg.CoreRefundKey = v
 	}
 	// Deploy-vs-release: only honoured in a sandbox environment; can NEVER
 	// activate in production/Live (fail-closed).
