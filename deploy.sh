@@ -192,13 +192,22 @@ _deploy_frontend() {
   # it behind grep's. Without PIPESTATUS this reported "Image built" after a
   # failed build and then started the container on the PREVIOUS image — a
   # deploy that looked green while shipping nothing.
-  set -o pipefail
-  ssh "$REMOTE" "cd /srv/banzami/src/apps/$app_name && docker build $NO_CACHE $LABEL_ARGS -t $image_tag . 2>&1" \
+  # `cmd | grep || true` was the previous shape, and the `|| true` is what broke
+  # it: PIPESTATUS is rewritten by the last pipeline the shell ran, and after the
+  # `||` that pipeline is `true`. So build_rc read 0 for a build that had failed,
+  # and the deploy went on to start the PREVIOUS image and print "Deploy
+  # complete" — twice, on a website build that was failing to compile.
+  #
+  # The output is captured, the status is taken from the capture, and only then
+  # is anything filtered for display. Nothing between the build and the status.
+  local build_out build_rc
+  build_out=$(ssh "$REMOTE" "cd /srv/banzami/src/apps/$app_name && docker build $NO_CACHE $LABEL_ARGS -t $image_tag . 2>&1")
+  build_rc=$?
+  printf '%s\n' "$build_out" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Type error|Step|Successfully)" || true
-  local build_rc=${PIPESTATUS[0]}
-  set +o pipefail
   if [[ $build_rc -ne 0 ]]; then
-    die "Image build FAILED for $app_name (exit $build_rc) — the running container was left untouched. Re-run the build on the host to read the full error: ssh $REMOTE 'cd /srv/banzami/src/apps/$app_name && docker build -t $image_tag .'"
+    printf '%s\n' "$build_out" | tail -25 >&2
+    die "Image build FAILED for $app_name (exit $build_rc) — the running container was left untouched. The last 25 lines of the build are above; the full log: ssh $REMOTE 'cd /srv/banzami/src/apps/$app_name && docker build -t $image_tag .'"
   fi
   ok "Image built"
 

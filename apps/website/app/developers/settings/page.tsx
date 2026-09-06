@@ -56,12 +56,14 @@ function CopyId({ value }: { value: string }) {
   );
 }
 
-export default function SettingsPage() {
+// The hook has to be called INSIDE PortalPage, which is what mounts the data
+// provider. Calling it in the page component put it outside that provider, so
+// the hook threw during static generation and the whole website build failed —
+// while the deploy reported success and started the previous image.
+function General() {
   const { activeProject, prjLoad } = useDeveloperData();
-
   return (
-    <PortalPage active="settings">
-      <div className="bz-view" style={{ maxWidth: 860 }}>
+    <>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Configurações</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           O projeto tal como a plataforma o regista, e a sua equipa.
@@ -112,6 +114,15 @@ export default function SettingsPage() {
             </>
           )}
         </Card>
+    </>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <PortalPage active="settings">
+      <div className="bz-view" style={{ maxWidth: 860 }}>
+        <General />
 
         <Card style={{ padding: 24, marginBottom: 16 }}>
           <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 900 }}>Membros da equipa</h3>
