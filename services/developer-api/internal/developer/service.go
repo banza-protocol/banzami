@@ -2,6 +2,7 @@ package developer
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -385,6 +386,11 @@ func (s *Service) ProjectTransactions(ctx context.Context, actor, projectID stri
 	}
 	tx, err := s.store.TransactionsForMerchant(ctx, m, f)
 	if err != nil {
+		// Logged because the alternative is what happened while building this:
+		// a 503 with no server-side trace, diagnosed by bisecting the page size
+		// from outside. The message is the driver's, not the caller's — it never
+		// reaches the response.
+		slog.ErrorContext(ctx, "developer.transactions.query_failed", "err", err.Error())
 		return nil, ErrUnavailable
 	}
 	return tx, nil
