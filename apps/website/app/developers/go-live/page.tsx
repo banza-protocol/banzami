@@ -1,151 +1,80 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import Link from 'next/link';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card } from '@/components/developers/portal/ui';
-import { IconCheck, IconCircle, IconClock, IconHelp } from '@/components/developers/portal/icons';
 
-// Go Live / KYB — dossier ecrã 9. No sandbox banner. Checklist of KYB steps +
-// what-happens-next card. Live is unlocked only after KYB approval.
+// Go Live — the truthful state of an environment that does not exist yet.
+//
+// This page used to show a KYB checklist with three steps marked "Concluído",
+// one "Pendente" and one "Em análise", and a "Solicitar revisão" button. None of
+// it was connected to anything: no company information had been submitted, no
+// documents existed, no review was pending, and the button had no handler. A
+// developer reading it would have believed their Live application was three
+// fifths of the way through a queue.
+//
+// Financial Live is not available on the Banzami platform. Not "coming soon for
+// you" — not built, not enabled, and not reachable by anything in this Console.
+// Saying that once, plainly, is the whole page. When there is a real Live
+// onboarding flow with real state behind it, this becomes that flow; until
+// then, an honest closed door beats a progress bar over an empty queue.
 
-type Status = 'done' | 'pending' | 'analysis';
-
-type Item = { title: string; desc: string; status: Status; descColor?: string };
-const ITEMS: Item[] = [
-  { title: 'Informações da empresa', desc: 'Nome legal, NIF, morada', status: 'done' },
-  { title: 'Documentos legais', desc: 'Certidão comercial, estatutos', status: 'done' },
-  { title: 'Proprietários / Beneficiários', desc: 'Titulares com >25%', status: 'done' },
-  { title: 'Verificação KYB', desc: 'Aguarda o envio dos beneficiários finais', status: 'pending', descColor: '#C77A0A' },
-  { title: 'Revisão final', desc: 'Aprovação da equipa Banzami', status: 'analysis' },
-];
-
-function statusIcon(s: Status): { tile: string; color: string; icon: ReactNode } {
-  if (s === 'done') return { tile: '#EAF7F0', color: '#1F8A5B', icon: <IconCheck size={19} strokeWidth={2.2} /> };
-  if (s === 'pending') return { tile: '#FDF3E2', color: '#C77A0A', icon: <IconClock size={19} /> };
-  return { tile: '#F3EDEC', color: '#b8a4a6', icon: <IconCircle size={19} /> };
-}
-
-function badge(s: Status) {
-  const map = {
-    done: { bg: '#EAF7F0', color: '#1F8A5B', label: 'Concluído' },
-    pending: { bg: '#FDF3E2', color: '#B8770A', label: 'Pendente' },
-    analysis: { bg: '#F3EDEC', color: '#8a7a7e', label: 'Em análise' },
-  }[s];
-  return (
-    <span style={{ padding: '4px 11px', borderRadius: 30, background: map.bg, fontSize: 11.5, fontWeight: 800, color: map.color }}>
-      {map.label}
-    </span>
-  );
-}
-
-const WHATS_NEXT = [
-  'Acesso às chaves Live de produção',
-  'Processamento de pagamentos reais',
-  'Configuração de liquidações',
-  'Suporte prioritário dedicado',
-];
+const mono = "'JetBrains Mono', ui-monospace, monospace";
 
 export default function GoLivePage() {
   return (
     <PortalPage active="golive">
-      <div className="bz-view" style={{ maxWidth: 920 }}>
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 7,
-            padding: '5px 12px',
-            borderRadius: 30,
-            background: '#FDF3E2',
-            fontSize: 11.5,
-            fontWeight: 900,
-            color: '#B8770A',
-            marginBottom: 12,
-          }}
-        >
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#E0930F' }} />
-          SANDBOX → PRODUÇÃO
-        </span>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, letterSpacing: '-.02em' }}>Go Live</h1>
-        <p style={{ margin: '8px 0 24px', fontSize: 15, color: '#8a7a7e', fontWeight: 600, maxWidth: 560 }}>
-          Complete os requisitos abaixo para desbloquear o ambiente de produção e processar pagamentos reais.
+      <div className="bz-view" style={{ maxWidth: 760 }}>
+        <p style={{ margin: 0, fontSize: 11.5, fontWeight: 900, letterSpacing: '.09em', color: '#B5101F' }}>
+          AMBIENTE DE PRODUÇÃO
+        </p>
+        <h1 style={{ margin: '8px 0 0', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em' }}>
+          Live ainda não está disponível
+        </h1>
+        <p style={{ margin: '14px 0 26px', fontSize: 15, lineHeight: 1.6, color: '#7a6a6e', fontWeight: 600 }}>
+          O Banzami está em Sandbox. Os trilhos financeiros de produção não estão activados para
+          nenhuma conta, não há candidaturas em curso, e nada nesta consola — nenhum botão, nenhuma
+          definição, nenhuma chave — os pode activar.
         </p>
 
-        <div className="bz-2col" style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16, alignItems: 'start' }}>
-          <Card style={{ padding: '8px 6px' }}>
-            {ITEMS.map((it, i) => {
-              const si = statusIcon(it.status);
-              return (
-                <div
-                  key={it.title}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 14,
-                    padding: 16,
-                    borderRadius: 14,
-                    borderTop: i === 0 ? undefined : '1px solid #F5E9E7',
-                    background: it.status === 'pending' ? '#FFFAF3' : undefined,
-                  }}
-                >
-                  <span
-                    style={{
-                      flex: 'none',
-                      width: 38,
-                      height: 38,
-                      borderRadius: 11,
-                      background: si.tile,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: si.color,
-                    }}
-                  >
-                    {si.icon}
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 14.5, fontWeight: 900, color: it.status === 'analysis' ? '#8a7a7e' : undefined }}>{it.title}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 12.5, color: it.descColor || '#a89a9e', fontWeight: it.descColor ? 800 : 700 }}>{it.desc}</p>
-                  </div>
-                  {badge(it.status)}
-                </div>
-              );
-            })}
-          </Card>
+        <Card style={{ padding: 24, marginBottom: 16 }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 900 }}>O que isto significa em concreto</h3>
+          <ul style={{ margin: 0, paddingLeft: 20, fontSize: 14, lineHeight: 1.75, color: '#5a4a4e', fontWeight: 600 }}>
+            <li>
+              As chaves deste projeto começam por{' '}
+              <code style={{ fontFamily: mono, fontSize: 13 }}>bz_test_</code>. Chaves{' '}
+              <code style={{ fontFamily: mono, fontSize: 13 }}>bz_live_</code> não são emitidas por
+              nenhuma via, incluindo o suporte.
+            </li>
+            <li>Nenhum pagamento feito em Sandbox move dinheiro real, nem hoje nem retroactivamente.</li>
+            <li>Não há migração automática de Sandbox para produção. Quando Live existir, será uma decisão sua.</li>
+            <li>O trabalho que fizer aqui — integração, webhooks, reconciliação — continua válido.</li>
+          </ul>
+        </Card>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'linear-gradient(155deg,#B5101F,#6E0E14)', borderRadius: 18, padding: 24, color: '#fff', boxShadow: '0 26px 56px -34px rgba(122,16,22,.6)' }}>
-              <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 900 }}>O que acontece após a aprovação</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-                {WHATS_NEXT.map((t) => (
-                  <span key={t} style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,.92)' }}>
-                    <span style={{ flex: 'none', marginTop: 1, color: '#fff', display: 'inline-flex' }}>
-                      <IconCheck size={17} strokeWidth={2.2} />
-                    </span>
-                    {t}
-                  </span>
-                ))}
-              </div>
-              <button
-                className="bz-cta"
-                style={{ width: '100%', marginTop: 20, padding: 13, border: 'none', borderRadius: 12, background: '#fff', color: '#9A1B22', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}
-              >
-                Solicitar revisão
-              </button>
-            </div>
-            <Card style={{ padding: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ width: 32, height: 32, borderRadius: 9, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#B5101F' }}>
-                  <IconHelp size={17} />
-                </span>
-                <h4 style={{ margin: 0, fontSize: 14, fontWeight: 900 }}>Precisa de ajuda?</h4>
-              </div>
-              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: '#8a7a7e', fontWeight: 600 }}>
-                Fale com a nossa equipa de compliance para acelerar a verificação.
-              </p>
-            </Card>
-          </div>
-        </div>
+        <Card style={{ padding: 24 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 900 }}>Se quiser ser avisado</h3>
+          <p style={{ margin: '0 0 14px', fontSize: 14, lineHeight: 1.65, color: '#7a6a6e', fontWeight: 600 }}>
+            Não há lista de espera nem formulário de candidatura — criar um daria a impressão de
+            uma fila que não existe. Escreva-nos a partir do email da sua conta e responderemos
+            quando houver algo concreto a dizer.
+          </p>
+          <a
+            href="mailto:developers@banzami.com?subject=Interesse%20em%20produ%C3%A7%C3%A3o"
+            style={{
+              display: 'inline-block', padding: '12px 20px', borderRadius: 12,
+              border: '1.5px solid #EBDBD9', background: '#fff',
+              fontSize: 14, fontWeight: 800, color: '#B5101F', textDecoration: 'none',
+            }}
+          >
+            developers@banzami.com
+          </a>
+          <p style={{ margin: '18px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>
+            Entretanto,{' '}
+            <Link href="/dashboard" style={{ color: '#B5101F', fontWeight: 800 }}>a sua actividade em Sandbox</Link>
+            {' '}é real e mostra-lhe exactamente o que a integração está a fazer.
+          </p>
+        </Card>
       </div>
     </PortalPage>
   );
