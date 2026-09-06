@@ -2448,7 +2448,9 @@ prove each consumer, then revoke the old records — is in the tool's own output
 **Controls added.** `ops/sandbox-host-manifest.tsv` says what the host should
 contain; `tests/phase0/sandbox-host-attestation.sh` compares the whole of
 `docker ps -a` against it, including stopped containers and the capability
-settings that would let a container leave its boundary. 13/13 after the removals.
+settings that would let a container leave its boundary. 13/13 after the
+removals, and wired as `make check-host-attestation` so it is something to run
+rather than something that was run once.
 
 **Re-proved after rotation.** The full stateful suite (13 harnesses, no
 authority leaked), the DOA golden journey, the admin refund through the deployed

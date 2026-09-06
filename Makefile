@@ -95,6 +95,7 @@ help:
 	@printf "    make check-repo-layout  Repository layout compliance check (CLAUDE.md §20)\n"
 	@printf "    make check-harness-hygiene  E2E harnesses can give back what they mint\n"
 	@printf "    make check-remote-contract  remote proofs report their real exit status\n"
+	@printf "    make check-host-attestation the Sandbox host matches ops/sandbox-host-manifest.tsv\n"
 	@printf "    make check-sdk-payment-boundary  SDK is the single source of payment flows\n"
 	@printf "    make banza-conformance-l0  Run BANZA L0 conformance against the sandbox (evidence)\n"
 	@printf "    make test-all        Run all test suites\n"
@@ -291,7 +292,7 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-harness-hygiene check-remote-contract check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+.PHONY: check-all test-all check-repo-layout check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
@@ -308,6 +309,11 @@ check-remote-contract:
 	node tools/check-remote-wrappers.mjs
 	node tools/check-remote-wrappers.selftest.mjs
 	bash tools/ops/lib/remote.selftest.sh
+
+# What is actually running on the Sandbox host, against ops/sandbox-host-manifest.tsv.
+# Needs the host, so it is not a CI job: CI holds no credentials for it.
+check-host-attestation:
+	bash tests/phase0/sandbox-host-attestation.sh
 
 # ─── Security gate ────────────────────────────────────────────────────────────
 # Aggregates the repository-owned security checks: the regression suites that
