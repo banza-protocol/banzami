@@ -2197,3 +2197,32 @@ the entrypoint and dropped the argument.
 are the same failure: an operation that does not work and does not say so. A
 502 from a container that exited cleanly, and a contact hash computed with an
 empty pepper. The loud failures get fixed the day they happen.
+
+## RA-077 — 169 live merchant keys and 55 webhook endpoints, left by the harnesses
+
+- **Found:** 2026-09-06
+- **Status:** TOOLING SHIPPED, PRUNE PENDING (2026-09-06)
+
+RA-075 revoked 156 API keys on DOA's Developer project. That was one population
+of harness residue. The merchant-side population is larger and nothing had
+looked at it: 288 merchants on the sandbox operator database, 276 of them
+fixtures created by end-to-end runs, holding 169 unrevoked API keys, 55 active
+webhook endpoints and 169 unlocked application PINs.
+
+One of those endpoints posts to `https://www.doadoa.app/api/webhooks/banzami`.
+A fixture merchant named `E2E doa b3b8e76f` holds a live signing secret for the
+real product's webhook route — created by a harness that needed a webhook to
+exist, and never withdrawn because nothing was responsible for withdrawing it.
+
+`tools/ops/prune-fixture-authority.sh` revokes the keys, deactivates the
+endpoints and locks the PINs in one transaction. It selects fixtures positively,
+by the name shapes the harnesses generate, and prints every merchant it does not
+match so a wrong pattern leaves a credential alive rather than killing the one
+that takes donations — the same correction RA-075's script needed. Nothing is
+deleted: an audit needs to see that a credential existed and when it stopped
+working.
+
+**Worth noticing about the shape of this.** Every harness in this repository
+creates authority and none of them removes it, so residue accumulates in
+proportion to how much the system is tested. The prune scripts are a cure. The
+fix is for the harnesses to withdraw what they mint, and that is not yet done.
