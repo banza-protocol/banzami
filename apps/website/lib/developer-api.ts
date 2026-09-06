@@ -298,8 +298,12 @@ export const developerApi = {
   //
   // Advice to the UI and nothing more: every refund is authorised again on the
   // server at the moment it is attempted.
+  // Three separate facts, because they lead three different places: `allowed`
+  // is this member's role, `configured` is whether the deployment has a refund
+  // path, and `bound` is whether the project has a financial owner at all. A
+  // fresh project is allowed and configured and has nothing to refund.
   refundCapability: (projectID: string) =>
-    req<{ allowed: boolean; configured: boolean; role: string }>(
+    req<{ allowed: boolean; configured: boolean; bound: boolean; role: string }>(
       `/projects/${projectID}/refund-capability`),
 
   // The idempotency key is the CALLER's and is minted by the page, once, when

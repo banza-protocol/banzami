@@ -306,3 +306,45 @@ func TestRefund_UnboundProjectHasNothingToRefund(t *testing.T) {
 		t.Fatalf("VIEWER on an unbound project must be refused for the role, got %v", err)
 	}
 }
+
+// A project with no financial owner has nothing to refund, and the capability
+// must say so. This is the case the cleanroom found: a fresh external project
+// reported allowed=true, configured=true to its OWNER while balances,
+// transactions and webhooks all answered 404 for want of a payee. Each answer
+// was right on its own; together they told a new developer they could refund on
+// a project that could not take a payment.
+func TestRefundCapability_UnboundProjectIsNotRefundable(t *testing.T) {
+	s, st := newSvc(time.Hour)
+	_ = st
+	ws, _ := s.CreateWorkspace(bg, "u_owner", "WS", "", "")
+	s.SetRefunder(&fakeRefunder{})
+	pid := mkProject(t, s, "u_owner", ws.ID)
+
+	cap, err := s.ProjectRefundCapability(bg, "u_owner", pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cap.Bound {
+		t.Error("an unbound project reports bound=true")
+	}
+	// The role and the deployment are still reported truthfully: what is missing
+	// is the payee, not the permission and not the credential. Collapsing the
+	// three would send someone to ask a colleague for access they already have.
+	if !cap.Allowed {
+		t.Error("the OWNER's role still permits refunding")
+	}
+	if !cap.Configured {
+		t.Error("the deployment still has a refund path")
+	}
+}
+
+func TestRefundCapability_BoundProjectReportsBound(t *testing.T) {
+	s, _, pid := refundSvc(t)
+	cap, err := s.ProjectRefundCapability(bg, "u_owner", pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !cap.Bound {
+		t.Error("a bound project reports bound=false — the control would be hidden on a project that can refund")
+	}
+}

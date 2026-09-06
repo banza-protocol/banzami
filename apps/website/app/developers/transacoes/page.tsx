@@ -81,7 +81,7 @@ function Transactions() {
   // Whether THIS member may refund, and whether this deployment can at all.
   // Asked once per project; the server authorises again on every attempt, so a
   // stale answer here can only hide a control, never grant one.
-  const [refundCap, setRefundCap] = useState<{ allowed: boolean; configured: boolean } | null>(null);
+  const [refundCap, setRefundCap] = useState<{ allowed: boolean; configured: boolean; bound: boolean } | null>(null);
   const [refunding, setRefunding] = useState<DeveloperTransaction | null>(null);
 
   const load = useCallback(async (cursor?: string) => {
@@ -117,11 +117,14 @@ function Transactions() {
     // whose authority we could not confirm.
     developerApi.refundCapability(activeProject.id)
       .then((c) => { if (live) setRefundCap(c); })
-      .catch(() => { if (live) setRefundCap({ allowed: false, configured: false }); });
+      .catch(() => { if (live) setRefundCap({ allowed: false, configured: false, bound: false }); });
     return () => { live = false; };
   }, [activeProject]);
 
-  const canRefund = Boolean(refundCap?.allowed && refundCap?.configured);
+  // All three, not just the role. A project with no financial owner has taken no
+  // payment, so there is nothing on this page to refund and the control would be
+  // an offer the product cannot honour.
+  const canRefund = Boolean(refundCap?.allowed && refundCap?.configured && refundCap?.bound);
 
   if (!activeProject) return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>Nenhum projeto selecionado.</p>;
 

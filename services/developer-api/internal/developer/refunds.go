@@ -47,6 +47,16 @@ type RefundCapability struct {
 	// facts, and a Console that showed one for the other would send someone to
 	// ask for a permission that would not help.
 	Configured bool `json:"configured"`
+	// Bound is false when the project has no financial owner yet — no ACTIVE
+	// binding, so no merchant, so no payments and nothing that could be refunded.
+	//
+	// This is a third distinct fact and it was missing. A fresh project reported
+	// allowed=true, configured=true to its OWNER while balances, transactions and
+	// webhooks all answered 404 for want of a payee. The role answer was correct
+	// in isolation and the whole was not true: there is nothing here to refund,
+	// and saying "you may" is the wrong first thing to tell someone whose project
+	// has not been onboarded.
+	Bound bool `json:"bound"`
 	// Role is the actor's own role, so the Console can say why rather than only
 	// that. Never another member's.
 	Role string `json:"role"`
@@ -118,13 +128,20 @@ func (s *Service) SetRefunder(r Refunder) { s.refunder = r }
 
 // ProjectRefundCapability answers what the Console may show.
 func (s *Service) ProjectRefundCapability(ctx context.Context, actor, projectID string) (RefundCapability, error) {
-	_, role, err := s.projectAuthz(ctx, actor, projectID)
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
 	if err != nil {
 		return RefundCapability{}, err
+	}
+	// The binding is read here rather than inferred from the role, because they
+	// answer different questions and only both together mean "you can refund".
+	bound := false
+	if b, err := s.store.ActiveBindingForProject(ctx, p.ID); err == nil && b != nil && b.MerchantID != "" {
+		bound = true
 	}
 	return RefundCapability{
 		Allowed:    canRefund(role),
 		Configured: s.refunder != nil,
+		Bound:      bound,
 		Role:       role,
 	}, nil
 }
