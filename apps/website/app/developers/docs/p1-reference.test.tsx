@@ -106,7 +106,13 @@ describe('P1 — key sections exist in BOTH PT and EN', () => {
 
 describe('P1 — claim safety holds in EN and the shared reference', () => {
   const FORBIDDEN_EVENTS = ['payment.created', 'payment.confirmed', 'payment.failed', 'payment.refunded', 'wallet.credit', 'wallet.debit', 'transfer.completed'];
-  const FAKE_INSTALLS = ['npm install @banzami', 'pip install banzami', 'composer require banzami', 'pub add banzami', 'pod "Banzami"', 'com.banzami:sdk'];
+  // 'pub add banzami' was blanket-forbidden until banzami_client shipped to
+  // pub.dev. It is narrowed to the package that genuinely has no registry —
+  // banzami_flutter, Banzami's own application framework, deliberately never
+  // published (ADR-053). Forbidding the published one would have made the
+  // test enforce the very false claim it exists to prevent.
+  const FAKE_INSTALLS = ['npm install @banzami', 'pip install banzami', 'composer require banzami', 'pub add banzami_flutter', 'pod "Banzami"', 'com.banzami:sdk'];
+  const PUBLISHED_INSTALLS = ['npm install @banzami/sdk', 'dart pub add banzami_client'];
 
   it('no invented endpoints or unverified events in EN or the shared reference', () => {
     for (const src of [EN, REF]) {
@@ -127,7 +133,10 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
         expect(occurrences, `EN must not contain "${cmd}"`).toBe(0);
       }
     }
-    expect(EN).toContain('not yet published');
+    for (const cmd of PUBLISHED_INSTALLS) {
+      expect(EN.includes(cmd), `EN must document the real install "${cmd}"`).toBe(true);
+    }
+    expect(EN).toContain('not published yet');
   });
   it('EN names the refunds/transfers project scopes and matches the manifest', () => {
     expect(EN).toContain('refunds:write');

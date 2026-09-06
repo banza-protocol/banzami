@@ -8,8 +8,9 @@ import { Badge, Callout, INK, LI, MUT, P, RED, UL } from '../ui';
 // Kept in lockstep with STATE_PT — see the note there. A row moves only when
 // deployed-Sandbox evidence moves it, in either direction.
 const STATE_EN: [string, string][] = [
-  ['TypeScript SDK', 'published — npm install @banzami/sdk'],
-  ['Other SDKs', 'controlled preview, not publicly published'],
+  ['TypeScript SDK (server)', 'published — npm install @banzami/sdk'],
+  ['Client SDK (Dart/Flutter)', 'published — dart pub add banzami_client'],
+  ['Python and PHP SDKs', 'source-only, not published yet'],
   ['HTTP/OpenAPI', 'secondary technical reference'],
   ['Production / live rails', 'not available'],
   ['Developer Console', 'operational in Sandbox'],

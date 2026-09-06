@@ -15,8 +15,9 @@ import { Badge, Callout, INK, LI, MUT, P, RED, UL } from './ui';
 // signature, tamper rejection, retry and failure isolation). Understating those
 // is as much a false claim as overstating them.
 const STATE_PT: [string, string][] = [
-  ['SDK TypeScript', 'publicado — npm install @banzami/sdk'],
-  ['Outros SDKs', 'pré-visualização controlada, não publicados'],
+  ['SDK TypeScript (servidor)', 'publicado — npm install @banzami/sdk'],
+  ['SDK cliente (Dart/Flutter)', 'publicado — dart pub add banzami_client'],
+  ['SDKs Python e PHP', 'código-fonte, ainda não publicados'],
   ['HTTP/OpenAPI', 'referência técnica secundária'],
   ['Produção / trilhos live', 'não disponíveis'],
   ['Console de developers', 'operacional em Sandbox'],

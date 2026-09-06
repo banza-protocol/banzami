@@ -23,28 +23,40 @@ const TS_EX = read(`${PUB}/examples/sdk-preview/typescript-payment-session.examp
 const PY_EX = read(`${PUB}/examples/sdk-preview/python-payment-session.example.py`);
 const PHP_EX = read(`${PUB}/examples/sdk-preview/php-payment-session.example.php`);
 
-describe('P2C — controlled preview sections (PT/EN)', () => {
-  it('PT has the section and the required wording', () => {
-    expect(PT).toContain('SDKs em pré-visualização controlada');
-    expect(PT).toContain('pré-visualização controlada');
-    expect(PT).toContain('contrato esperado dos SDKs');
+// Was "controlled preview sections". The preview is now the exception, not the
+// rule: two packages are on public registries with clean-room install evidence,
+// so these assert that the page says which are published and which are not —
+// and that the blanket "install nothing" instruction is gone. That instruction
+// was the damaging half: it did not merely misinform, it recommended the wrong
+// integration path over one that works.
+describe('P2C — SDK publication sections (PT/EN)', () => {
+  it('PT names the published packages and keeps the contract section', () => {
+    expect(PT).toContain('Publicação dos SDKs');
+    expect(PT).toContain('npm install @banzami/sdk');
+    expect(PT).toContain('dart pub add banzami_client');
     expect(PT).toContain('Contrato esperado do SDK');
     expect(PT).toContain('Os exemplos SDK-style são exemplos de ergonomia prevista');
+    // The preview language survives only where it is still true.
+    expect(PT).toContain('pré-visualização controlada até publicação oficial');
   });
-  it('EN has the section and the required wording', () => {
-    expect(EN).toContain('SDKs in controlled preview');
-    expect(EN).toContain('treated as controlled preview');
-    expect(EN).toContain('expected SDK contract');
+  it('EN names the published packages and keeps the contract section', () => {
+    expect(EN).toContain('SDK publication');
+    expect(EN).toContain('npm install @banzami/sdk');
+    expect(EN).toContain('dart pub add banzami_client');
     expect(EN).toContain('Expected SDK contract');
     expect(EN).toContain('The SDK-style examples describe intended ergonomics');
+    expect(EN).toContain('controlled preview until official publication');
   });
-  it('SDK family table exists in PT and EN with conservative values', () => {
-    for (const [src, vals] of [
-      [PT, ['Estado por família de SDK', 'não publicado publicamente', 'não instale de registos públicos ainda', 'acesso de pré-visualização aprovado']],
-      [EN, ['SDK family status', 'not publicly published', 'do not install from public registries yet', 'use only through approved preview access']],
-    ] as [string, string[]][]) {
-      for (const v of vals) expect(src.includes(v), `missing table value: ${v}`).toBe(true);
-      for (const fam of ['JavaScript/TypeScript', 'Python', 'PHP', 'Flutter']) expect(src).toContain(fam);
+  it('the SDK family table distinguishes published from source-only, and forbids the blanket warning', () => {
+    for (const [src, published, sourceOnly, banned] of [
+      [PT, ['publicado'], ['não publicado', 'consumir por código-fonte'],
+        ['não instale de registos públicos ainda', 'acesso de pré-visualização aprovado']],
+      [EN, ['published'], ['not published', 'consume from source'],
+        ['do not install from public registries yet', 'use only through approved preview access']],
+    ] as [string, string[], string[], string[]][]) {
+      for (const v of [...published, ...sourceOnly]) expect(src.includes(v), `missing table value: ${v}`).toBe(true);
+      for (const v of banned) expect(src.includes(v), `stale table value must be gone: ${v}`).toBe(false);
+      for (const fam of ['JavaScript/TypeScript', 'Python', 'PHP']) expect(src).toContain(fam);
     }
   });
 });

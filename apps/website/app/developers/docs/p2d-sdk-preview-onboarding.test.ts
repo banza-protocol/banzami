@@ -130,7 +130,7 @@ describe('P2D — previous honesty preserved', () => {
   it('HTTP remains secondary; SDKs not published; PT/EN only; pending-E2E and simulated persist', () => {
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');
-    expect(EN).toContain('not publicly published');
+    expect(EN).toContain('The Python and PHP packages are not published yet');
     // "Pendente E2E" wording belongs on the page only while the manifest still
     // withholds a release. Asserting it unconditionally would pin a claim the
     // evidence has since overtaken.

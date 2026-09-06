@@ -126,10 +126,12 @@ describe('P0 — /docs content contracts (rendered)', () => {
     render(<PtGetStartedPage />);
     expect(screen.getByText('Estado atual desta documentação')).toBeTruthy();
     expect(DOCS).toContain('Produção e trilhos de dinheiro real não estão disponíveis');
-    // Webhooks and Actividade now show the project's real data; the dashboard
-    // is the page that is still a preview, and the docs must name it precisely
-    // rather than sweep three pages together.
-    expect(DOCS).toContain('pré-visualização demo, não operacional');
+    // The Console left preview entirely: no page renders illustrative data
+    // (see illustrative-data.test.ts), and the Overview derives from the
+    // project's own request log. Claiming a demo dashboard is now the false
+    // statement, so the docs must assert the opposite.
+    expect(DOCS).toContain('nenhuma página da Consola apresenta dados ilustrativos');
+    expect(DOCS).not.toContain('pré-visualização demo, não operacional');
   });
   it('documents the canonical error envelope and the status↔code table', () => {
     expect(DOCS).toContain('"request_id"');

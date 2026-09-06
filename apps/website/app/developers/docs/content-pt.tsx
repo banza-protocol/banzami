@@ -78,7 +78,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; badgeTone:
 
 // -- SDK maturity matrix (verified: complete source, none published) ------------
 const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: string }[] = [
-  { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Completo (código-fonte)', tone: 'ok', consume: 'vendored / caminho local' },
+  { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Publicado — servidor, chave secreta', tone: 'ok', consume: 'npm install @banzami/sdk' },
   { name: 'banzami-python', lang: 'Python', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
   { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
   // banzami_client is the PUBLIC client SDK; banzami_flutter is Banzami's own
@@ -289,7 +289,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <UL>
                   <LI>Esta é documentação <strong>Sandbox / Pré-visualização</strong>. A capacidade Sandbox está limitada a fluxos de teste controlados.</LI>
                   <LI><strong>Produção e trilhos de dinheiro real não estão disponíveis.</strong> Pay/checkout públicos, trilhos live e fornecedores externos não estão disponíveis.</LI>
-                  <LI>Na Consola, <strong>Webhooks</strong> e <strong>Actividade</strong> mostram os dados reais do seu projeto. O <strong>dashboard</strong> continua a ser uma <strong>pré-visualização demo, não operacional</strong>, e está rotulado como tal na própria página. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
+                  <LI>A Consola é <strong>operacional em Sandbox</strong>. A Visão geral, os Webhooks e os Registos derivam do tráfego real do seu projeto — nenhuma página da Consola apresenta dados ilustrativos. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
                 </UL>
               </div>
 
@@ -315,7 +315,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
               <H3>Três camadas</H3>
               <P>Ao integrar Banzami, distinga sempre três camadas:</P>
               <UL>
-                <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e <GlossaryTerm id="otp">OTP</GlossaryTerm>, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis. A Console não é uma API pública para terceiros chamarem diretamente. As restantes páginas visuais da Consola (dashboard, webhooks, logs) são <strong>pré-visualizações demo com dados ilustrativos — não operacionais</strong>; não é possível gerir chaves, webhooks ou logs de forma operacional através dessas páginas.</LI>
+                <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e <GlossaryTerm id="otp">OTP</GlossaryTerm>, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis, regista webhooks e consulta os registos da API. A Console não é uma API pública para terceiros chamarem diretamente. A Visão geral, os Webhooks e os Registos mostram o tráfego real do seu projeto.</LI>
                 <LI><strong>Camada de integração Banzami</strong> — o que a sua aplicação usa para pagamentos: links de pagamento, sessões, QR, confirmação, comprovativos, <GlossaryTerm id="webhook">webhooks</GlossaryTerm> assinados e <GlossaryTerm id="liquidacao">liquidação</GlossaryTerm> controlada pelo operador.</LI>
                 <LI><strong>Banzami Operator / Core</strong> — a camada financeira do Banzami: executa o pagamento, mantém saldos e integridade, calcula e controla a liquidação. A sua aplicação nunca cria nem gere um <GlossaryTerm id="ledger">ledger</GlossaryTerm> financeiro próprio.</LI>
               </UL>
@@ -399,7 +399,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
     <>
 <Section id="sdks">
               <H2>SDKs</H2>
-              <PageLede>Modelo <strong>SDK-first</strong>, SDKs em pré-visualização controlada (não publicados), contrato esperado do SDK, estado por família e exemplos de ergonomia prevista.</PageLede>
+              <PageLede>Modelo <strong>SDK-first</strong>, dois SDKs publicados em registos públicos, contrato do SDK, estado por família e exemplos de ergonomia.</PageLede>
               <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
 <H3 id="sdk-first">Modelo de integração SDK-first</H3>
               <P>
@@ -413,16 +413,18 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 avançados.
               </P>
               <P>
-                Nesta fase, os SDKs ainda não estão publicados publicamente em npm, PyPI, Packagist ou pub.dev. Por isso,
-                esta documentação não apresenta comandos de instalação pública. O acesso a SDKs deve ser tratado como
-                pré-visualização controlada até publicação oficial.
+                Dois SDKs estão publicados em registos públicos e instalam-se sem contacto comercial:{' '}
+                <Code>npm install @banzami/sdk</Code> (servidor) e <Code>dart pub add banzami_client</Code> (cliente).
+                Os pacotes Python e PHP ainda não foram publicados e consomem-se por código-fonte; para esses, e só
+                para esses, o acesso continua em pré-visualização controlada até publicação oficial.
               </P>
 
               <H3 id="sdk-matriz">Matriz de maturidade dos SDKs</H3>
               <P>
                 Os SDKs tratam automaticamente de autenticação, idempotência, retries e verificação de assinatura de webhooks.
-                Hoje são consumidos como <strong>código-fonte</strong> (por exemplo, vendored na aplicação, como faz o DOA);
-                ainda não estão publicados em npm, PyPI, Packagist ou pub.dev.
+                O <Code>@banzami/sdk</Code> está publicado em npm e o <Code>banzami_client</Code> em pub.dev — cada publicação
+                foi provada por uma instalação limpa a partir do registo, fora de qualquer repositório Banzami. Os restantes
+                consomem-se como <strong>código-fonte</strong>.
               </P>
               <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
                 <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13.5 }}>
@@ -451,15 +453,15 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 gerar QR, resolver <Code>@banza</Code>, validar webhooks e solicitar liquidação — sem chamadas HTTP diretas.
               </P>
 
-              <H3 id="sdk-preview">SDKs em pré-visualização controlada</H3>
+              <H3 id="sdk-preview">Publicação dos SDKs</H3>
               <P>
-                Os SDKs Banzami são o caminho recomendado para integrações de produção no futuro, mas ainda não estão
-                publicados publicamente. Nesta fase, o acesso aos SDKs deve ser tratado como pré-visualização controlada.
+                O <Code>@banzami/sdk</Code> (npm) e o <Code>banzami_client</Code> (pub.dev) estão publicados e são o caminho
+                recomendado. Instalam-se a partir do registo público, sem convite e sem contacto comercial.
               </P>
               <P>
-                Esta documentação descreve o contrato esperado dos SDKs: autenticação, criação de sessões, idempotência,
-                validação de respostas, erros, webhooks e limites de disponibilidade. Não apresenta comandos de instalação
-                pública porque os pacotes ainda não estão publicados em npm, PyPI, Packagist ou pub.dev.
+                Os pacotes Python e PHP ainda não foram publicados e permanecem em pré-visualização controlada: esta
+                documentação não apresenta comandos de instalação para eles, porque um comando que aponta para um pacote
+                que nenhum registo tem devolve um erro que parece culpa de quem integra.
               </P>
 
               <H3 id="sdk-contrato">Contrato esperado do SDK</H3>
@@ -487,14 +489,19 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {['JavaScript/TypeScript', 'Python', 'PHP', 'Flutter'].map((fam) => (
+                    {([
+                      ['JavaScript/TypeScript', 'publicado', '@banzami/sdk', 'npm install @banzami/sdk', 'caminho recomendado (servidor)', 'chave secreta — nunca no cliente'],
+                      ['Dart / Flutter (cliente)', 'publicado', 'banzami_client', 'dart pub add banzami_client', 'caminho recomendado (cliente)', 'chave publicável, apenas leitura'],
+                      ['Python', 'não publicado', 'nenhum', 'não disponível', 'consumir por código-fonte', 'publicação por fazer'],
+                      ['PHP', 'não publicado', 'nenhum', 'não disponível', 'consumir por código-fonte', 'publicação por fazer'],
+                    ] as [string, string, string, string, string, string][]).map(([fam, st, pkg, cmd, use, note]) => (
                       <tr key={fam}>
                         <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{fam}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>pré-visualização controlada / não publicado publicamente</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>nenhum</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>não disponível</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>não instale de registos públicos ainda</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>usar apenas via acesso de pré-visualização aprovado</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{st}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{pkg}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{cmd}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{use}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{note}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -840,8 +847,8 @@ export function PtReference({ copy }: { copy: CopyFn }) {
               <P>
                 Workspaces, projetos, membros e <strong>chaves</strong> são geridos no portal Banzami Developers — pela interface,
                 com sessão e permissões por papel. Não é uma API pública para chamar diretamente, por isso não expomos aqui os
-                seus endpoints internos. As páginas de Webhooks e Actividade mostram os dados reais do projeto; o dashboard é ainda
-                uma <strong>pré-visualização demo, não operacional</strong>, rotulada como tal na própria página.
+                seus endpoints internos. A Visão geral, os Webhooks e os Registos mostram os dados reais do projeto —
+                pedidos, latências, erros e eventos emitidos, correlacionáveis por <Code>request_id</Code>.
               </P>
 
               <H3 id="credenciais">Credenciais e capacidades</H3>
@@ -1051,7 +1058,8 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {([
                       ['Modelo de integração SDK-first', 'documented_preview'],
-                      ['SDK em pré-visualização controlada', 'not_public'],
+                      ['SDKs publicados (npm, pub.dev)', 'available_controlled_sandbox'],
+                      ['SDKs Python e PHP (código-fonte)', 'not_public'],
                       ['HTTP/OpenAPI (referência do protocolo)', 'documented_preview'],
                       ['Rotas da API Sandbox', 'available_controlled_sandbox'],
                       ['Sessões de pagamento', 'available_controlled_sandbox'],
@@ -1061,7 +1069,8 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                       ['Entrega outbound de webhooks', 'available_controlled_sandbox'],
                       ['Reembolsos (chave de projeto)', 'available_controlled_sandbox'],
                       ['Transferências (chave de projeto)', 'available_controlled_sandbox'],
-                      ['Developer Console (páginas visuais)', 'documented_preview'],
+                      ['Developer Console (Sandbox, dados reais)', 'available_controlled_sandbox'],
+                      ['Registo self-service por email + OTP', 'available_controlled_sandbox'],
                       ['Trilhos de Produção/live', 'not_available'],
                       ['Pay/checkout/trilhos live', 'not_approved'],
                       ['Trilhos de fornecedores externos', 'not_approved'],
@@ -1099,12 +1108,11 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                   </thead>
                   <tbody>
                     {([
-                      ['Pacotes SDK não publicados publicamente', 'not_public', 'Não instalar de registries públicos.', 'Acesso controlado por onboarding.'],
-                      ['Acesso preview controlado, não self-service', 'not_public', 'Não existe registo público; aguardar aprovação.', 'Processo de elegibilidade e aprovação documentado.'],
+                      ['Pacotes Python e PHP ainda não publicados', 'not_public', 'Consumir por código-fonte; npm e pub.dev já estão disponíveis.', 'Publicação por fazer; instalação limpa provada antes de cada anúncio.'],
                       ['HTTP/OpenAPI é referência, não caminho recomendado', 'documented_preview', 'HTTP direto só para diagnóstico/auditoria.', 'SDK-first; artefactos marcados protocol_reference.'],
                       ['Entrega outbound verificada apenas em Sandbox', 'available_controlled_sandbox', 'Verificada contra um recetor público; a Produção não está coberta.', 'Assinatura confirmada de forma independente, rejeição de adulteração, retries e isolamento de falhas.'],
                       ['Reembolsos/transferências apenas em Sandbox', 'available_controlled_sandbox', 'Disponíveis a chaves de projeto em Sandbox; nunca em trilhos live.', 'E2E no ambiente implantado, incluindo as recusas: chave de leitura e recursos de outro projeto.'],
-                      ['Páginas visuais da Console demo/não-operacionais', 'documented_preview', 'Não confiar nos dados dessas páginas.', 'Rotuladas na documentação.'],
+                      ['Console e registos cobrem apenas Sandbox', 'available_controlled_sandbox', 'A telemetria mostra tráfego real de Sandbox; a Produção não está coberta.', 'Correlação por request_id provada contra o ambiente implantado.'],
                       ['Trilhos de Produção/live indisponíveis', 'not_available', 'Nenhum dinheiro real; nenhuma chave live.', 'bz_live_ recusado fail-closed.'],
                       ['Trilhos de fornecedores externos inativos', 'not_approved', 'Não assumir integrações externas.', 'Decisão de governance separada.'],
                       ['Stage C não implementado/não aprovado', 'not_approved', 'Rotas públicas adicionais não existem ainda.', 'Portões de decisão e aprovações explícitas.'],

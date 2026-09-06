@@ -14,7 +14,7 @@ export type CopyFn = (text: string, label: string) => void;
 export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
   { slug: '', label: 'Início', desc: 'Página inicial da documentação.' },
   { slug: 'get-started', label: 'Começar', desc: 'Visão geral, estado atual e quickstart.' },
-  { slug: 'sdk', label: 'SDKs', desc: 'Modelo SDK-first, preview controlado e onboarding.' },
+  { slug: 'sdk', label: 'SDKs', desc: 'Modelo SDK-first, pacotes publicados e onboarding.' },
   { slug: 'guides', label: 'Guias', desc: 'Cobranças, transferências, reembolsos e webhooks.' },
   { slug: 'reference', label: 'Referência API', desc: 'Credenciais, endpoints, erros e idempotência.' },
   { slug: 'testing', label: 'Testar no Sandbox', desc: 'O que o Sandbox é, validação e limites.' },

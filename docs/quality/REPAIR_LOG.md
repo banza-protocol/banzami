@@ -2236,3 +2236,57 @@ webhook delivered, DOA confirming: 11/11 each.
 creates authority and none of them removes it, so residue accumulates in
 proportion to how much the system is tested. The prune scripts are a cure. The
 fix is for the harnesses to withdraw what they mint, and that is not yet done.
+
+## RA-078 — the public docs told developers not to install the packages that were published
+
+- **Found:** 2026-09-06
+- **Status:** FIXED (2026-09-06)
+- **Severity: high** (the recommended integration path was documented as unavailable)
+- **Environment:** `developers.banzami.com/docs`, public.
+
+`@banzami/sdk` has been on npm since 2026-09-04 and `banzami_client` on pub.dev
+since 2026-09-05, each proven by a clean-room install from the public registry
+outside every Banzami repository. `published-packages.ts` — the canonical list —
+recorded both. The documentation did not.
+
+The `/docs` landing said "Outros SDKs — pré-visualização controlada, não
+publicados". The SDK page said the packages were "não publicados publicamente em
+npm, PyPI, Packagist ou pub.dev" and that the documentation therefore "não
+apresenta comandos de instalação pública". The per-family table marked all four
+families `não publicado publicamente`, install command `não disponível`, and
+recommended use **"não instale de registos públicos ainda"** — for
+JavaScript/TypeScript and Flutter included. The risk matrix repeated it as
+`Pacotes SDK não publicados publicamente → Não instalar de registries públicos`.
+
+That last one is the damaging half. It does not merely misinform; it steers a
+reader away from an install that works and toward hand-rolled HTTP, which the
+SDK-first policy exists to prevent. `sdk-publication-claim.test.ts` was written
+for exactly this defect on the landing page, and it held there — the same claim
+simply survived one directory over, in the docs content, where no test looked.
+
+**Two more claims had been overtaken by their own evidence.** The docs described
+the Console dashboard as a "pré-visualização demo, não operacional" with
+"dados ilustrativos", and the trust matrix carried `Developer Console (páginas
+visuais) → documented_preview`. `illustrative-data.test.ts` already asserts the
+opposite — the ILLUSTRATIVE list is empty, and the Overview derives every figure
+from the project's own request log. The deployed Console shows real Sandbox
+traffic. Understating a capability is as much a false claim as overstating one.
+
+**Fixed.** PT and EN now name the two published packages with their real install
+commands, keep the controlled-preview language only for Python and PHP, which are
+genuinely source-only, and describe the Console as operational in Sandbox with no
+illustrative data anywhere.
+
+**The tests were the reason it survived.** Six of them pinned the stale
+wording — `p2c` asserted "não instale de registos públicos ainda" as a required
+value, `p1` blanket-forbade `pub add banzami` after `banzami_client` had shipped
+under that very prefix, and `p0` required the demo-Console sentence. Each was
+enforcing the false claim. They now assert the corrected one, with negative
+assertions so the old wording cannot come back: 231 tests in `app/developers`,
+393 across the app, all passing.
+
+**Worth noticing about the shape of this.** A claim-safety test that pins a
+literal string protects the claim, not the truth. When the world moves, the test
+holds the page still — and the more thorough the suite, the more confidently it
+does so. The narrowed assertions here name the families rather than the phrase,
+so the next publication breaks the test instead of being contradicted by it.

@@ -70,9 +70,14 @@ describe('P2B — install commands match what is actually published', () => {
     expect(PT.includes('Não corra'), 'PT anti-instruction must not survive publication').toBe(false);
     expect(EN.includes('Do not run'), 'EN anti-instruction must not survive publication').toBe(false);
   });
+  // Narrowed when npm and pub.dev went live: the flag must name the families
+  // that are genuinely unpublished. A blanket "nothing is published" is now the
+  // false claim, and it was the one steering readers away from a real install.
   it('the unpublished families are still flagged in both languages', () => {
-    expect(PT).toContain('não estão publicados');
-    expect(EN).toContain('not yet publicly published');
+    expect(PT).toContain('Os pacotes Python e PHP ainda não foram publicados');
+    expect(EN).toContain('The Python and PHP packages are not published yet');
+    expect(PT).not.toMatch(/SDKs ainda não estão publicados publicamente/);
+    expect(EN).not.toMatch(/SDKs are not yet publicly published/);
   });
 });
 

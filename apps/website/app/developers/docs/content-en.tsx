@@ -116,13 +116,13 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <UL>
                   <LI>This is <strong>Sandbox / Preview</strong> documentation. Sandbox capability is limited to controlled test flows.</LI>
                   <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
-                  <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. Pages that still show illustrative rather than live data are labelled as such on the page itself.</LI>
+                  <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. The Overview, Webhooks and Logs derive from the project&rsquo;s own traffic — no Console page renders illustrative data.</LI>
                 </UL>
               </div>
 
               <H3>Three layers</H3>
               <UL>
-                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly; pages that still show illustrative rather than live data say so on the page itself.</LI>
+                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly. The Overview, Webhooks and Logs show your project&rsquo;s real traffic.</LI>
                 <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
                 <LI><strong>Banzami Operator / Core</strong> — the financial layer: it executes payments and owns balances and integrity. Your application never creates or manages its own financial ledger.</LI>
               </UL>
@@ -192,7 +192,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
     <>
 <Section id="sdks">
               <H2>SDKs</H2>
-              <PageLede><strong>SDK-first</strong> model, SDKs in controlled preview (not published), the expected SDK contract, per-family status and intended-ergonomics examples.</PageLede>
+              <PageLede><strong>SDK-first</strong> model, two SDKs published to public registries, the SDK contract, per-family status and ergonomics examples.</PageLede>
               <NextSteps label="Next:" links={[{ href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/trust', text: 'Trust and readiness' }]} />
 <H3 id="sdk-first">SDK-first integration model</H3>
               <P>
@@ -205,16 +205,18 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 is secondary and should be reserved for diagnostics, audits, controlled testing, or advanced integrators.
               </P>
               <P>
-                At this stage, SDKs are not yet publicly published to npm, PyPI, Packagist or pub.dev. Therefore, this
-                documentation does not provide public package installation commands. SDK access should be treated as
-                controlled preview until official publication.
+                Two SDKs are published to public registries and install with no commercial contact:{' '}
+                <Code>npm install @banzami/sdk</Code> (server) and <Code>dart pub add banzami_client</Code> (client).
+                The Python and PHP packages are not published yet and are consumed from source; for those, and only
+                those, access remains a controlled preview until official publication.
               </P>
 
               <H3 id="sdk-maturity">SDK maturity matrix</H3>
               <P>
                 The SDKs handle authentication, idempotency, retries and webhook signature verification. Today they are
-                consumed as <strong>source code</strong> (for example vendored into the application, as DOA does); they are{' '}
-                <strong>not yet published</strong> to npm, PyPI, Packagist or pub.dev. Banzami is SDK-first: the curl examples
+                published: <Code>@banzami/sdk</Code> on npm and <Code>banzami_client</Code> on pub.dev, each proven by a
+                clean-room install from the public registry outside every Banzami repository; the rest are consumed as{' '}
+                <strong>source code</strong>. Banzami is SDK-first: the curl examples
                 in this documentation are the <strong>protocol reference</strong> layer, not the recommended implementation
                 path; internal or approved SDK packages may exist but are not public install paths.
               </P>
@@ -239,10 +241,10 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
-              <H3 id="sdk-preview">SDKs in controlled preview</H3>
+              <H3 id="sdk-preview">SDK publication</H3>
               <P>
-                Banzami SDKs are the recommended path for future production integrations, but they are not publicly
-                published yet. At this stage, SDK access must be treated as controlled preview.
+                <Code>@banzami/sdk</Code> (npm) and <Code>banzami_client</Code> (pub.dev) are published and are the
+                recommended path. They install from the public registry, with no invite and no commercial contact.
               </P>
               <P>
                 This documentation describes the expected SDK contract: authentication, session creation, idempotency,
@@ -275,14 +277,19 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {['JavaScript/TypeScript', 'Python', 'PHP', 'Flutter'].map((fam) => (
+                    {([
+                      ['JavaScript/TypeScript', 'published', '@banzami/sdk', 'npm install @banzami/sdk', 'recommended path (server)', 'secret key — never in the client'],
+                      ['Dart / Flutter (client)', 'published', 'banzami_client', 'dart pub add banzami_client', 'recommended path (client)', 'publishable key, read-only'],
+                      ['Python', 'not published', 'none', 'not available', 'consume from source', 'publication pending'],
+                      ['PHP', 'not published', 'none', 'not available', 'consume from source', 'publication pending'],
+                    ] as [string, string, string, string, string, string][]).map(([fam, st, pkg, cmd, use, note]) => (
                       <tr key={fam}>
                         <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{fam}</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>controlled preview / not publicly published</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>none</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>not available</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>do not install from public registries yet</td>
-                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>use only through approved preview access</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{st}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{pkg}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{cmd}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{use}</td>
+                        <td style={{ padding: '9px 10px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{note}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -740,7 +747,8 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {([
                       ['SDK-first integration model', 'documented_preview'],
-                      ['SDK controlled preview', 'not_public'],
+                      ['Published SDKs (npm, pub.dev)', 'available_controlled_sandbox'],
+                      ['Python and PHP SDKs (source)', 'not_public'],
                       ['HTTP/OpenAPI protocol reference', 'documented_preview'],
                       ['Sandbox API routes', 'available_controlled_sandbox'],
                       ['Payment sessions', 'available_controlled_sandbox'],
@@ -789,12 +797,11 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                   </thead>
                   <tbody>
                     {([
-                      ['SDK packages not publicly published', 'not_public', 'Do not install from public registries.', 'Controlled access via onboarding.'],
-                      ['Preview access is controlled, not self-service', 'not_public', 'No public signup; wait for approval.', 'Documented eligibility and approval process.'],
+                      ['Python and PHP packages not published yet', 'not_public', 'Consume from source; npm and pub.dev are already available.', 'Publication pending; clean-room install proven before every announcement.'],
                       ['HTTP/OpenAPI is reference, not recommended path', 'documented_preview', 'Direct HTTP for diagnostics/audits only.', 'SDK-first; artifacts labelled protocol_reference.'],
                       ['Outbound delivery is verified in Sandbox only', 'available_controlled_sandbox', 'Verified against a public receiver; Production is not covered.', 'Independently verified signature, tamper rejection, retry and failure isolation.'],
                       ['Refunds/transfers are Sandbox-only', 'available_controlled_sandbox', 'Released to project keys in Sandbox; never on live rails.', 'Deployed E2E including the refusals: read-only keys and foreign resources.'],
-                      ['Some Console pages still show illustrative data', 'documented_preview', 'Those pages are labelled on the page itself.', 'Sign-in, projects and keys are operational and verified.'],
+                      ['Console and logs cover Sandbox only', 'available_controlled_sandbox', 'Telemetry shows real Sandbox traffic; Production is not covered.', 'request_id correlation proven against the deployed environment.'],
                       ['Production/live rails not available', 'not_available', 'No real money; no live keys.', 'bz_live_ rejected fail-closed.'],
                       ['External provider rails not active', 'not_approved', 'Do not assume external integrations.', 'Separate governance decision.'],
                       ['Stage C not implemented/approved', 'not_approved', 'Additional public routes do not exist yet.', 'Decision gates and explicit approvals.'],

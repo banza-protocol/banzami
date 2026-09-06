@@ -87,9 +87,10 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
     expect(PT).toContain('sandbox-api.banzami.com');
     expect(PT.includes('/v1/charges')).toBe(false);
   });
-  it('SDKs are shown as source-only (not published) with a maturity matrix (sdk route)', () => {
+  it('SDKs are shown with what is published and what is still source-only (sdk route)', () => {
     render(<PtSdkPage />);
-    expect(screen.getAllByText(/ainda não estão publicados/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/ainda não foram publicados/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/npm install @banzami\/sdk/).length).toBeGreaterThan(0);
     expect(screen.getAllByText('@banzami/sdk').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Parcial — webhooks + payment links').length).toBeGreaterThan(0);
   });
