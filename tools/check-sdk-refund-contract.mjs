@@ -10,6 +10,11 @@
 //   4. createRefund auto-minting a key (crypto.randomUUID / uuid) — forbidden
 //   5. a public transaction_id refund INPUT, or a literal internal TRANSACTION
 //      token in the public refund types
+//   6. a refund method pointed at anything but the canonical public path.
+//      /v1/refunds is the endpoint an external developer is told to call;
+//      /business/ named where the handler used to be mounted and was never
+//      part of the developer vocabulary. A published build that still calls it
+//      would 404 on every refund, so the path is contract, not cosmetics.
 //
 // Usage:
 //   node tools/check-sdk-refund-contract.mjs <dist-dir> [<package.json>] [expectVersion]
@@ -51,6 +56,28 @@ if (!client) {
     if (/transaction_id:\s*params\./.test(body)) {
       fail.push('createRefund sends a transaction_id input — the public contract is source_type + source_id');
     }
+    if (!/'\/refunds'|"\/refunds"/.test(body)) {
+      fail.push('createRefund does not call the canonical path /refunds');
+    }
+  }
+
+  // The read side travels with it: a client that creates at the canonical path
+  // and reads at the retired one is half-migrated, and only the read half 404s.
+  for (const [name, re] of [
+    ['getRefund', /getRefund\s*\(id\)\s*\{[\s\S]*?\n {4}\}/],
+    ['listRefunds', /listRefunds\s*\(params[\s\S]*?\n {4}\}/],
+  ]) {
+    const mm = client.match(re);
+    if (mm && /\/business\/refunds/.test(mm[0])) {
+      fail.push(`${name} still calls the retired /business/refunds path`);
+    }
+  }
+  // Comments are stripped first: the migration deliberately left a note naming
+  // the old path, and a guard that cannot tell a record of history from a live
+  // call site would force the record to be deleted to stay green.
+  const code = client.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+  if (/\/business\/refunds/.test(code)) {
+    fail.push('client.js still contains the retired /business/refunds path');
   }
 }
 

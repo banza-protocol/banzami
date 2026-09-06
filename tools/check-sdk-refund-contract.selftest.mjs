@@ -22,6 +22,12 @@ const GOOD_CLIENT = `
             reason: params.reason ?? null, idempotency_key: params.idempotency_key,
         }) });
     }
+    getRefund(id) {
+        return this.request('/refunds/' + id, { method: 'GET' });
+    }
+    listRefunds(params = {}) {
+        return this.request('/refunds' + this.qs(params), { method: 'GET' });
+    }
 `;
 const GOOD_TYPES = `
 export type RefundSourceType = 'ACQUIRING_PAYMENT' | 'WALLET_PAYMENT';
@@ -81,6 +87,37 @@ check('good dist passes', runGuard(GOOD_CLIENT, GOOD_TYPES, '0.3.0').pass);
 { const bad = GOOD_CLIENT.replace('idempotency_key: params.idempotency_key,', 'idempotency_key: params.idempotency_key ?? crypto.randomUUID(),');
   const r = runGuard(bad, GOOD_TYPES, '0.3.0');
   check('auto-minted key (randomUUID) → fail', !r.pass && /auto-generate|randomUUID/i.test(r.out)); }
+
+// 7. The write path regressed to the retired mount.
+//    This is the mutation that a docs-only migration leaves behind: everything
+//    else about the method is still correct, and every refund 404s.
+{ const bad = GOOD_CLIENT.replace("this.request('/refunds'", "this.request('/business/refunds'");
+  const r = runGuard(bad, GOOD_TYPES, '0.3.0');
+  check('createRefund on the retired /business/refunds → fail', !r.pass && /business\/refunds|canonical path/.test(r.out)); }
+
+// 8. Only the READ side regressed. Half-migrated is the harder case to notice by
+//    hand — creating works, so the first refund looks fine, and reading it back
+//    is what breaks.
+{ const bad = GOOD_CLIENT.replace('/refunds/', '/business/refunds/');
+  const r = runGuard(bad, GOOD_TYPES, '0.3.0');
+  check('getRefund on the retired path → fail', !r.pass && /business\/refunds/.test(r.out)); }
+
+// 9. The list side alone.
+{ const bad = GOOD_CLIENT.replace("'/refunds' + this.qs", "'/business/refunds' + this.qs");
+  const r = runGuard(bad, GOOD_TYPES, '0.3.0');
+  check('listRefunds on the retired path → fail', !r.pass && /business\/refunds/.test(r.out)); }
+
+// 10. A COMMENT naming the old path is history, not a call site, and must not
+//     fail the guard — otherwise staying green means deleting the record of why
+//     the path moved.
+{ const ok = '\n    // Was /business/refunds until the route moved.\n' + GOOD_CLIENT;
+  check('a comment naming the retired path still passes', runGuard(ok, GOOD_TYPES, '0.3.0').pass); }
+
+// 11. …and the exemption must not become the hole: a real call site keeps
+//     failing even when the same line carries a comment.
+{ const bad = GOOD_CLIENT.replace("this.request('/refunds',", "this.request('/business/refunds', // legacy\n           ");
+  const r = runGuard(bad, GOOD_TYPES, '0.3.0');
+  check('a call site with a trailing comment still fails', !r.pass && /business\/refunds|canonical path/.test(r.out)); }
 
 if (failed) { console.error(`\n✗ guard self-test: ${failed} case(s) failed`); process.exit(1); }
 console.log('\n✓ guard self-test: all violation classes are caught, good dist passes');

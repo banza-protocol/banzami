@@ -119,6 +119,20 @@ echo "### readable through the supported API"
 call "$GW" 8080 GET "/v1/refunds/$RID" - "$KEY"
 chk REFUND_READABLE "$CODE" "200"
 
+echo "### the retired path is gone from the runtime, not just from the docs"
+# A route that still answers is still a contract, whatever the reference says.
+# /business/refunds was the merchant-credential-only mount; it is unmounted, so
+# the router falls through to its own not-found rather than to an auth error —
+# the same answer a developer gets for any path this API does not have.
+call "$GW" 8080 POST /v1/business/refunds "$RB" "$KEY"
+chk RETIRED_CREATE_PATH_NOT_FOUND "$CODE" "404"
+call "$GW" 8080 GET "/v1/business/refunds/$RID" - "$KEY"
+chk RETIRED_READ_PATH_NOT_FOUND "$CODE" "404"
+call "$GW" 8080 GET /v1/business/refunds - "$KEY"
+chk RETIRED_LIST_PATH_NOT_FOUND "$CODE" "404"
+# And the money is where it was: a 404 must not have been a silent second refund.
+chk RETIRED_PATH_MOVED_NO_MONEY "$(bal "$ACCT" "$KEY")" "$AFTER_REFUND"
+
 echo "### scope separation"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"refund-ro-$R\",\"scopes\":[\"identity:read\",\"refunds:read\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"

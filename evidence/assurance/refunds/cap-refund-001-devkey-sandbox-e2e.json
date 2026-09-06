@@ -1,19 +1,19 @@
 {
-  "suite": "CAP-REFUND-001 — Reembolsos under a developer credential",
+  "suite": "CAP-REFUND-001 \u2014 Reembolsos under a developer credential",
   "test": "tests/phase0/refund-devkey-e2e.sh",
-  "environment": "deployed sandbox (sandbox-api.banzami.com) — run on the Sandbox VM against running containers",
+  "environment": "deployed sandbox (sandbox-api.banzami.com) \u2014 run on the Sandbox VM against running containers",
   "builds": {
-    "api-gateway-staging": "f6b11769a482",
-    "core-api-staging": "9b9a70af3a5b",
-    "developer-api": "11eb90c546c6"
+    "api-gateway-staging": "ef120f9c5da4",
+    "core-api-staging": "11f54da654e9",
+    "developer-api": "714b1e1342d4"
   },
-  "generated_at": "2026-09-05T06:12:07.488Z",
+  "generated_at": "2026-09-06T00:00:00.000Z",
   "post_financial_reset": true,
   "credential": "developer API key (bz_test_), not an operator or merchant session",
-  "total": 15,
-  "passed": 15,
+  "total": 19,
+  "passed": 19,
   "failed": 0,
-  "harness_summary": "REFUND_DEVKEY_E2E: PASS=15 FAIL=0",
+  "harness_summary": "REFUND_DEVKEY_E2E: PASS=19 FAIL=0",
   "promotable": true,
   "assertions": [
     {
@@ -59,7 +59,7 @@
     {
       "id": "IDEMPOTENT_REPLAY",
       "pass": true,
-      "observed": "cd2884e8-e12c-4153-9646-9a7f9b6dfb2c"
+      "observed": "1c740e1b-35c4-4197-9a7c-a3530b008ed0"
     },
     {
       "id": "REPLAY_MOVED_NO_MONEY",
@@ -70,6 +70,26 @@
       "id": "REFUND_READABLE",
       "pass": true,
       "observed": "200"
+    },
+    {
+      "id": "RETIRED_CREATE_PATH_NOT_FOUND",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "RETIRED_READ_PATH_NOT_FOUND",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "RETIRED_LIST_PATH_NOT_FOUND",
+      "pass": true,
+      "observed": "404"
+    },
+    {
+      "id": "RETIRED_PATH_MOVED_NO_MONEY",
+      "pass": true,
+      "observed": "150000"
     },
     {
       "id": "READ_SCOPE_CANNOT_REFUND",
@@ -91,5 +111,6 @@
       "pass": true,
       "observed": "404"
     }
-  ]
+  ],
+  "canonical_refund_path": "POST /v1/refunds \u2014 /v1/business/refunds is unmounted and answers 404"
 }
