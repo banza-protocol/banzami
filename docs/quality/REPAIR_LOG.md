@@ -2351,7 +2351,7 @@ ACTIVE bindings, and the canonical project is excluded by name as well.
 ## RA-079 — an unmanaged container holding every operator secret, running for five days
 
 - **Found:** 2026-09-06
-- **Status:** DETECTOR SHIPPED, CONTAINER PENDING REMOVAL (2026-09-06)
+- **Status:** FIXED (2026-09-06)
 
 A container named `silly_swirles` was running on the Sandbox host. Docker
 generates that kind of name when `docker run` is given none, so it was started
@@ -2388,4 +2388,9 @@ returns the status of the `rm`. Ledger reconciliation, the canonical binding
 proof, both prunes and both audits had been returning 0 regardless of outcome.
 Seven scripts fixed.
 
-The container itself still needs stopping.
+Stopped and removed 2026-09-06. It had been started with `--rm`, so the removal
+was already under way the moment it was stopped — five days of holding every
+operator secret, and it would have left no trace at all when it finally went.
+The detector now reports 5 secret-holding containers, all owned, and every
+public surface, the ledger reconciliation and the canonical binding proof were
+re-checked afterwards.
