@@ -139,7 +139,8 @@ export type DeveloperTransaction = {
   id: string;
   type: 'payment' | 'refund' | 'transfer';
   status: string;
-  amount_minor: number;
+  /** Null when the session was opened without a fixed amount. */
+  amount_minor: number | null;
   currency: string;
   wallet_account_id: string;
   reference_type: string;

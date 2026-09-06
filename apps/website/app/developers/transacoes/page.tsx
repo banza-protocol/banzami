@@ -20,7 +20,10 @@ import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/develop
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 
-function money(minor: number, currency: string): string {
+function money(minor: number | null, currency: string): string {
+  // A session opened without a fixed amount has none yet. "0 Kz" would be a
+  // figure where there is not one.
+  if (minor === null || minor === undefined) return 'Em aberto';
   const major = Math.round(minor / 100);
   const grouped = major.toLocaleString('pt-PT').replace(/ |,/g, ' ');
   return currency === 'AOA' ? `${grouped} Kz` : `${grouped} ${currency}`;
