@@ -58,9 +58,17 @@ chk "BINDING_ACTIVE" "$([ -n "$BOUND_WALLET" ] && echo yes)" "yes"
 
 echo "### keys (canonical project, and a second project for cross-project checks)"
 SCOPES='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create"]'
+
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits — a failed assertion used to
+# skip cleanup entirely, which is precisely when residue was left behind.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"wa-e2e-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 chk "KEY_ISSUED" "$([ -n "$KEY" ] && echo yes)" "yes"
 
 # The second project must be BOUND to a different owner. An unbound project is
@@ -71,16 +79,18 @@ mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const 
 
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"WAO$R\",\"email\":\"wao$R@synthetic.test\"}" "$MJWT"
-OMID=$(jget id); MJWT=$(mint merchant_id "$OMID")
+OMID=$(jget id); e2e_own merchant "$OMID"; MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"
 OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")
 
 call "$DEV" 8086 POST "/internal/v1/fixture-projects" "{\"name\":\"wa-other-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OTHER=$(jget project_id)
+e2e_own fixture_project "$OTHER"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" \
   "{\"name\":\"wa-other-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" \
   "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 chk "OTHER_PROJECT_BOUND" "$([ -n "$OMID" ] && [ -n "$OWID" ] && [ "$CODE" -lt 300 ] && echo yes)" "yes"
@@ -90,9 +100,11 @@ chkne "OWNERS_DIFFER" "$OWID" "$BOUND_WALLET"
 # account is loaded. Pinned here so it is never mistaken for the ownership check.
 call "$DEV" 8086 POST "/internal/v1/fixture-projects" "{\"name\":\"wa-unbound-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UNBOUND=$(jget project_id)
+e2e_own fixture_project "$UNBOUND"
 call "$DEV" 8086 POST "/internal/v1/projects/$UNBOUND/fixture-keys" \
   "{\"name\":\"wa-unbound-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 GET "/v1/business/wallet-accounts" - "$UKEY"
 chk "UNBOUND_PROJECT_403" "$CODE" "403"
 

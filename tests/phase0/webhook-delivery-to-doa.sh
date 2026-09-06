@@ -15,6 +15,11 @@
 set -uo pipefail
 
 DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 DOA_URL="${DOA_URL:-https://www.doadoa.app/api/webhooks/banzami}"
 
@@ -54,6 +59,7 @@ echo "### a real payment on a DOA campaign account"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"wh-deliver-$R\",\"scopes\":[\"payment_sessions:read\",\"payment_sessions:write\",\"wallet_accounts:read\",\"wallet_accounts:create\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 POST /v1/business/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"whdel-$R\",\"label\":\"Delivery probe\"}" "$KEY"
 ACCT=$(jget id)

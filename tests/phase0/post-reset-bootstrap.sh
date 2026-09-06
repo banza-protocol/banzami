@@ -20,6 +20,11 @@ PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 
 PASS=0; FAIL=0
+# Ownership and cleanup. The bootstrap merchant is a probe for the top-up path,
+# not canonical state, so it is retired with everything else.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 chk(){ if [ "$2" = "$3" ]; then echo "  $1 PASS ($2)"; PASS=$((PASS+1)); else echo "  $1 FAIL (got '$2' want '$3')"; FAIL=$((FAIL+1)); fi; }
 LAST=""; CODE=""
 call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5" au="$6"
@@ -74,7 +79,7 @@ chk AFTER_CONSUMER_UNBALANCED "$(unbalanced)" "0"
 echo "### merchant top-up (RA-060: the path that wrote a lone CREDIT)"
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"BS$R\",\"email\":\"bs$R@synthetic.test\"}" "$MJWT"
-MID=$(jget id); MJWT=$(mint merchant_id "$MID")
+MID=$(jget id); e2e_own merchant "$MID"; MJWT=$(mint merchant_id "$MID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"
 WID=$(jget id)
 call "$CORE" 8081 POST "/internal/v1/wallets/$WID/sandbox-credit" '{"amount_minor":100000,"currency":"AOA"}' -

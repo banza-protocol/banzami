@@ -44,10 +44,18 @@ unbalanced(){ psqlro "SELECT COUNT(*) FROM (SELECT p.id FROM ledger_postings p J
 R="${RANDOM}${RANDOM}"
 SC='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create","transfers:write"]'
 
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits — a failed assertion used to
+# skip cleanup entirely, which is precisely when residue was left behind.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
+
 echo "### key"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"transfer-e2e-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
@@ -132,8 +140,10 @@ chk REJECTIONS_MOVED_NOTHING "$A3:$B3" "$A1:$B1"
 echo "### another project cannot use these accounts"
 call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"tr-other-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OTHER=$(jget project_id)
+e2e_own fixture_project "$OTHER"
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"TR$R\",\"email\":\"tr$R@synthetic.test\"}" "$MJWT"; OMID=$(jget id)
+e2e_own merchant "$OMID"
 MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")

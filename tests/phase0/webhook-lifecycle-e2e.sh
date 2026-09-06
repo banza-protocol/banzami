@@ -42,12 +42,19 @@ mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const 
 R="${RANDOM}${RANDOM}"
 RW='["identity:read","webhooks:read","webhooks:write"]'
 RO='["identity:read","webhooks:read"]'
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 
 echo "### keys"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"wh-rw-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"wh-ro-$R\",\"scopes\":$RO,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 RKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 chk KEYS_ISSUED "$([ -n "$KEY" ] && [ -n "$RKEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
@@ -58,6 +65,7 @@ call "$GW" 8080 POST /v1/business/webhooks/endpoints \
   "{\"url\":\"https://www.doadoa.app/api/webhooks/banzami?probe=$R\",\"events\":[\"payment_session.paid\"]}" "$KEY"
 chk REGISTERED "$CODE" "201"
 EP=$(jget id)
+e2e_own webhook_endpoint "$EP" "$(jget merchant_id)"
 SEC1=$(sighash)
 chk SECRET_RETURNED_ONCE "$([ -n "$SEC1" ] && echo yes)" yes
 chk UNDER_BOUND_MERCHANT "$(jget merchant_id)" "$BOUND_MERCHANT"
@@ -86,13 +94,16 @@ chk ROTATED_SECRET_IS_NEW "$([ -n "$SEC2" ] && [ "$SEC2" != "$SEC1" ] && echo ye
 echo "### another project cannot see or touch it"
 call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"wh-other-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OTHER=$(jget project_id)
+e2e_own fixture_project "$OTHER"
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"WH$R\",\"email\":\"wh$R@synthetic.test\"}" "$MJWT"; OMID=$(jget id)
+e2e_own merchant "$OMID"
 MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"wh-other-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 call "$GW" 8080 GET "/v1/business/webhooks/endpoints/$EP" - "$OKEY"
@@ -112,8 +123,10 @@ chk FOREIGN_LIST_CLEAN "$LEAK" "clean"
 echo "### an unbound project has no webhooks at all"
 call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"wh-unbound-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UNB=$(jget project_id)
+e2e_own fixture_project "$UNB"
 call "$DEV" 8086 POST "/internal/v1/projects/$UNB/fixture-keys" "{\"name\":\"wh-unbound-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 GET /v1/business/webhooks/endpoints - "$UKEY"
 chk UNBOUND_403 "$CODE" "403"
 

@@ -52,9 +52,14 @@ note(){ echo "  $1"; }
 
 echo "env: pilot=$(docker exec "$CORE" printenv BANZAMI_PILOT_LIMITS 2>/dev/null) sandbox=$(docker exec "$GW" printenv ENVIRONMENT 2>/dev/null) devkey_enabled=$(docker exec "$GW" printenv DEVELOPER_KEY_AUTH_ENABLED 2>/dev/null) dev_url=$(docker exec "$GW" printenv DEVELOPER_API_URL 2>/dev/null)"
 
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 # ---- merchant + payer fixtures ----
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
-gw - POST /v1/merchants "{\"name\":\"M$RR\",\"email\":\"m$RR@synthetic.test\"}" "$MJWT" >/dev/null;MID=$(jget id);MJWT=$(mint merchant_id "$MID")
+gw - POST /v1/merchants "{\"name\":\"M$RR\",\"email\":\"m$RR@synthetic.test\"}" "$MJWT" >/dev/null;MID=$(jget id); e2e_own merchant "$MID"; MJWT=$(mint merchant_id "$MID")
 gw - POST /v1/wallets '{"currency":"AOA"}' "$MJWT" >/dev/null;WID=$(jget id)
 WACCT=$(jget available_account_id); [ -z "$WACCT" ] && WACCT=$(psqlro "SELECT available_account_id FROM wallets WHERE id='$WID'")
 onboard; A=$OCID;AW=$OWID;AH="k${RR}s${SEQ}"; kyc "$A"; fund "$A" 300000 >/dev/null
@@ -65,12 +70,12 @@ echo "fixtures: merchant=$([ -n "$MID" ]&&echo ok) wallet=$([ -n "$WID" ]&&echo 
 OP=$(cat /proc/sys/kernel/random/uuid 2>/dev/null || uuidgen | tr 'A-Z' 'a-z')
 echo "### platform fixture (new sandbox fixture-projects endpoint)"
 devint pf_create POST /internal/v1/fixture-projects "{\"name\":\"Synthetic Platform $RR\",\"created_by\":\"$OP\"}"
-PROJ=$(jget project_id); PKEY=""; RKEY=""
+PROJ=$(jget project_id); e2e_own fixture_project "$PROJ"; PKEY=""; RKEY=""
 if [ -n "$PROJ" ]; then
   devint pf_key POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"e2e $RR\",\"scopes\":[\"payment_sessions:write\",\"payment_sessions:read\",\"identity:read\"],\"created_by\":\"$OP\"}"
-  PKEY=$(jget secret)
+  PKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
   devint pf_key_ro POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"ro $RR\",\"scopes\":[\"payment_sessions:read\"],\"created_by\":\"$OP\"}"
-  RKEY=$(jget secret)
+  RKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
 fi
 echo "  platform provisioned: project=$([ -n "$PROJ" ]&&echo ok||echo BLOCKED) key=$([ -n "$PKEY" ]&&echo ok||echo BLOCKED) ro_key=$([ -n "$RKEY" ]&&echo ok||echo BLOCKED)"
 

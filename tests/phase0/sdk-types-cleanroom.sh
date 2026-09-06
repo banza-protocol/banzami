@@ -20,8 +20,16 @@ PASS=0; FAIL=0
 ok()   { echo "  ✅ $1"; PASS=$((PASS+1)); }
 bad()  { echo "  ❌ $1"; FAIL=$((FAIL+1)); }
 
+# This one creates nothing on the operator — no keys, no merchants, no
+# endpoints. It uses the shared handler purely so its clean room is removed by
+# the same path as everything else.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 DIR=$(mktemp -d "${TMPDIR:-/tmp}/bz-cleanroom.XXXXXX")
-trap 'rm -rf "$DIR"' EXIT
+# Not a second trap: the shell keeps one EXIT handler, and installing another
+# here would replace the run's cleanup handler and silently stop it.
+E2E_ALSO='rm -rf "$DIR"'
 cd "$DIR" || exit 1
 echo "clean room: $DIR"
 echo "spec:       $SPEC"

@@ -13,6 +13,11 @@
 set -uo pipefail
 
 DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
@@ -51,7 +56,7 @@ echo "### project key"
 SCOPES='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create"]'
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"seg-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret); chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
+KEY=$(jget secret); e2e_own fixture_key "$(jget id)"; chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
 echo "### two campaigns"

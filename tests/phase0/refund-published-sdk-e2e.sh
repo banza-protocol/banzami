@@ -11,6 +11,11 @@
 # that debits the right account and cannot be made twice.
 set -uo pipefail
 DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 SDK_SPEC="${SDK_SPEC:-@banzami/sdk@latest}"
 
@@ -67,7 +72,8 @@ RESOLVED=$(node -e "const l=JSON.parse(require('fs').readFileSync('$WORK/package
 chk SDK_REGISTRY_SOURCE "$(printf '%s' "$RESOLVED" | grep -c '^https://registry.npmjs.org/')" "1"
 
 echo "### two project keys and two accounts of the same owner"
-KEY=$(call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"rf-pub-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"; jget secret)
+call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"rf-pub-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+KEY=$(jget secret); e2e_own fixture_key "$(jget id)"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 mk(){ call "$GW" 8080 POST /v1/business/wallet-accounts \
@@ -150,13 +156,15 @@ OUT=$(sdk get "$RID")
 chk REFUND_READABLE "$(printf '%s' "$OUT" | grep -c "$RID")" "1"
 
 echo "### another project cannot refund this payment"
-PROJ2=$(call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"rfpub-b-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"; jget project_id)
+call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"rfpub-b-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+PROJ2=$(jget project_id); e2e_own fixture_project "$PROJ2"
 if [ -n "$PROJ2" ]; then
   MID2=$(psqlro "SELECT id FROM merchants ORDER BY created_at DESC LIMIT 1")
   W2=$(psqlro "SELECT id FROM wallets WHERE merchant_id='$MID2' LIMIT 1")
   WA2=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$W2' LIMIT 1")
   call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/binding" "{\"merchant_id\":\"$MID2\",\"wallet_id\":\"$W2\",\"wallet_account_id\":\"$WA2\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-  FKEY=$(call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/fixture-keys" "{\"name\":\"rf-foreign-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"; jget secret)
+  call "$DEV" 8086 POST "/internal/v1/projects/$PROJ2/fixture-keys" "{\"name\":\"rf-foreign-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+  FKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
   export FKEY
   VB=$(bal "$A")
   OUT=$(sdk foreign "rff-$R")

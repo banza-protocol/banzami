@@ -256,6 +256,40 @@ func (s *pgStore) CreateProject(ctx context.Context, workspaceID, name, slug str
 	return p, nil
 }
 
+// ArchiveProject moves a project to ARCHIVED and revokes its remaining ACTIVE
+// keys in the same transaction. It deliberately does not touch the project's
+// sandbox binding: a sealed binding is immutable by ADR-055, and retiring the
+// container that holds it is the supported way to dispose of a fixture without
+// weakening that invariant.
+func (s *pgStore) ArchiveProject(ctx context.Context, id string) (int, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	ct, err := tx.Exec(ctx,
+		`UPDATE developer.dev_projects SET status = 'ARCHIVED', updated_at = now()
+		  WHERE id = $1 AND status = 'ACTIVE'`, id)
+	if err != nil {
+		return 0, err
+	}
+	if ct.RowsAffected() == 0 {
+		return 0, ErrNotFound
+	}
+
+	keys, err := tx.Exec(ctx,
+		`UPDATE developer.dev_api_keys SET status = 'REVOKED', revoked_at = now()
+		  WHERE project_id = $1 AND status = 'ACTIVE'`, id)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return int(keys.RowsAffected()), nil
+}
+
 func (s *pgStore) ProjectsForWorkspace(ctx context.Context, workspaceID string) ([]Project, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, workspace_id, name, slug, status, created_at, updated_at

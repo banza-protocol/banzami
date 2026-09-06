@@ -19,6 +19,11 @@ JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
 [ -n "$JWTSEC" ] || { echo "NO_SECRET"; exit 1; }
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 
 PASS=0; FAIL=0
 chk(){ if [ "$2" = "$3" ]; then echo "  $1 PASS ($2)"; PASS=$((PASS+1)); else echo "  $1 FAIL (got '$2' want '$3')"; FAIL=$((FAIL+1)); fi; }
@@ -70,10 +75,12 @@ if [ -z "$WID" ]; then
   call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
     "{\"name\":\"payout-fund-$R\",\"scopes\":[\"identity:read\",\"payment_sessions:read\",\"payment_sessions:write\"],\"created_by\":\"$ACTOR\"}" \
     "$DEVINT" >/dev/null 2>&1 || true
-  DKEY=$(printf '%s' "{\"name\":\"payout-fund-$R\",\"scopes\":[\"identity:read\",\"payment_sessions:read\",\"payment_sessions:write\"],\"created_by\":\"$ACTOR\"}" \
+  MINTED=$(printf '%s' "{\"name\":\"payout-fund-$R\",\"scopes\":[\"identity:read\",\"payment_sessions:read\",\"payment_sessions:write\"],\"created_by\":\"$ACTOR\"}" \
     | docker exec -i "$DEV" curl -s -X POST "http://localhost:8086/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
         -H "X-Internal-Key: $DEVINT" -H 'Content-Type: application/json' --data @- \
-    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).secret||"")}catch(e){}})')
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write((j.secret||"")+" "+(j.id||""))}catch(e){}})')
+  DKEY=${MINTED%% *}
+  e2e_own fixture_key "${MINTED##* }"
 
   PH="+2449${R:0:4}52"; HH="po${R:0:5}p"
   call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -

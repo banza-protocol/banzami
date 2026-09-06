@@ -49,10 +49,15 @@ mbal(){ local j=$(mint merchant_id "$MID");call "$GW" 8080 - GET "/v1/wallets/$W
 PASS=0;FAIL=0;SIM=0;BLK=0
 chk(){ local id="$1" got="$2" want="$3";if [ "$got" = "$want" ];then echo "  $id PASS ($got)";PASS=$((PASS+1));else echo "  $id FAIL (got '$got' want '$want')";FAIL=$((FAIL+1));fi;}
 
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 echo "env: sandbox=$(docker exec "$GW" printenv ENVIRONMENT 2>/dev/null) devkey=$(docker exec "$GW" printenv DEVELOPER_KEY_AUTH_ENABLED 2>/dev/null)"
 # --- fixtures: merchant + wallet + payer ---
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
-gw - POST /v1/merchants "{\"name\":\"M$RR\",\"email\":\"m$RR@synthetic.test\"}" "$MJWT" >/dev/null;MID=$(jget id);MJWT=$(mint merchant_id "$MID")
+gw - POST /v1/merchants "{\"name\":\"M$RR\",\"email\":\"m$RR@synthetic.test\"}" "$MJWT" >/dev/null;MID=$(jget id); e2e_own merchant "$MID"; MJWT=$(mint merchant_id "$MID")
 gw - POST /v1/wallets '{"currency":"AOA"}' "$MJWT" >/dev/null;WID=$(jget id)
 WACCT=$(psqlro "SELECT available_account_id FROM wallets WHERE id='$WID'")
 onboard; A=$OCID;AW=$OWID;AH="d${RR}s${SEQ}"; kyc "$A"; fund "$A" 300000 >/dev/null
@@ -60,11 +65,11 @@ echo "fixtures: merchant=$([ -n "$MID" ]&&echo ok) wallet=$([ -n "$WID" ]&&echo 
 
 echo "### platform lifecycle (workspace/project/keys)"
 devint pf POST /internal/v1/fixture-projects "{\"name\":\"DevPlatform $RR\",\"created_by\":\"$OP\"}"
-PROJ=$(jget project_id); WS=$(jget workspace_id)
+PROJ=$(jget project_id); WS=$(jget workspace_id); e2e_own fixture_project "$PROJ"
 devint pk POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"e2e $RR\",\"scopes\":[\"payment_sessions:write\",\"payment_sessions:read\",\"payment_links:write\",\"payment_links:read\",\"identity:read\"],\"created_by\":\"$OP\"}"
-PKEY=$(jget secret); KEYID=$(jget id)
+PKEY=$(jget secret); KEYID=$(jget id); e2e_own fixture_key "$KEYID"
 devint pkro POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"ro $RR\",\"scopes\":[\"payment_sessions:read\"],\"created_by\":\"$OP\"}"
-RKEY=$(jget secret)
+RKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
 devint bind POST "/internal/v1/projects/$PROJ/binding" "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"wallet_account_id\":\"$WACCT\",\"actor_user_id\":\"$OP\"}" >/dev/null
 if [ -z "$PROJ" ] || [ -z "$PKEY" ]; then echo "BLOCKER — WORKSPACE/PROJECT MODEL MISSING (fixture unavailable)"; echo "### SUMMARY pass=$PASS fail=$FAIL simulated=$SIM blocked=$((BLK+1))"; echo "=== DONE ==="; exit 0; fi
 
@@ -76,7 +81,7 @@ echo "### F0-DP-005 API key scope enforced (read-only key on write route)"; gw s
 
 echo "### F0-DP-006 payment link from developer/platform context"
 gw pl POST /v1/payment-links "{\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"dp link\"}" "$PKEY"
-LID=$(jget id)
+LID=$(jget id); e2e_own payment_link "$LID" "$MID"
 if [ -n "$LID" ]; then chk F0-DP-006 ok ok; note_ctx="dev-key (payee from binding)"; else
   gw pl_m POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"dp link\"}" "$MJWT"; LID=$(jget id); chk F0-DP-006 "$([ -n "$LID" ]&&echo ok)" ok; note_ctx="merchant-auth (dev-key link create not accepted by core)"; fi
 LSLUG=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).slug||""))}catch(e){}})')

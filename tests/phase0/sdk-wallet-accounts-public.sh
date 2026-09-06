@@ -29,14 +29,23 @@ DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/de
 
 R="${RANDOM}${RANDOM}"
 SCOPES='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create"]'
-KEY=$(printf '%s' "{\"name\":\"sdk-public-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" \
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
+MINTED=$(printf '%s' "{\"name\":\"sdk-public-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" \
   | docker exec -i "$DEV" curl -s -X POST "http://localhost:8086/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
       -H "X-Internal-Key: $DEVINT" -H "Content-Type: application/json" --data @- \
-  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).secret||"")}catch(e){}})')
+  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write((j.secret||"")+" "+(j.id||""))}catch(e){}})')
+KEY=${MINTED%% *}
+e2e_own fixture_key "${MINTED##* }"
 [ -n "$KEY" ] || { echo "KEY_MINT_FAILED"; exit 1; }
 
 WORK=$(mktemp -d)
-trap 'rm -rf "$WORK"' EXIT
+# Not a second trap: the shell keeps one EXIT handler, and installing another
+# here would replace the run's cleanup handler and silently stop it.
+E2E_ALSO='rm -rf "$WORK"'
 
 cat > "$WORK/proof.mjs" <<'JS'
 import { BanzamiClient } from '@banzami/sdk';

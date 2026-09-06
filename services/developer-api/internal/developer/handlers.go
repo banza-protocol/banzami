@@ -42,6 +42,28 @@ func (h *Handlers) MountInternal(r chi.Router) {
 	// fixture-keys, so the revoked-key rejection path can be proven end-to-end.
 	// Hard sandbox-gated + internal-key guarded.
 	r.Post("/internal/v1/fixture-keys/{keyID}/revoke", h.revokeFixtureKey)
+	// Operator-controlled E2E fixture project retirement — the disposal
+	// counterpart to fixture-projects, so a harness can retire what it created
+	// instead of leaving a live project behind. Archives the project and revokes
+	// its remaining ACTIVE keys; never touches the sandbox binding, which is
+	// immutable once sealed (ADR-055).
+	r.Post("/internal/v1/fixture-projects/{projID}/retire", h.retireFixtureProject)
+}
+
+// retireFixtureProject archives a disposable fixture project and revokes the
+// keys still live on it. Body (optional): {"created_by"}.
+func (h *Handlers) retireFixtureProject(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		CreatedBy string `json:"created_by"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192)).Decode(&in)
+	ip, rid := reqMeta(r)
+	revoked, err := h.svc.RetireFixtureProject(r.Context(), chi.URLParam(r, "projID"), in.CreatedBy, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true, "status": "ARCHIVED", "keys_revoked": revoked})
 }
 
 // revokeFixtureKey revokes a fixture API key by id for isolated Sandbox E2E.

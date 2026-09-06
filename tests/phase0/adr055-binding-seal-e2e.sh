@@ -46,6 +46,11 @@ IK=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key')
 DBURL=$(docker exec "$DEV" sh -c 'cat /run/secrets/db_url')
 ACTOR=11111111-2222-4333-8444-555555555555
 
+# Ownership and cleanup. Everything this run creates is recorded by id and
+# retired on the way out, however the script exits.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 # @doa's payee, and two wallet accounts under it. The seal is about which payee
 # a project resolves to, so A and B differ by account: a real correction, and
 # one that cannot move money outside the same owner.
@@ -95,6 +100,7 @@ step "1 — a fresh project binds, unsealed"
 R=$(dev POST /internal/v1/fixture-projects "{\"name\":\"adr055-$(date +%s)\",\"created_by\":\"$ACTOR\"}")
 [ "$(code "$R")" = "201" ] || { bad "fixture project: $(code "$R") $(body "$R" | head -c 200)"; exit 1; }
 PROJ=$(uuid_or_die "$(jget "$(body "$R")" project_id)")
+e2e_own fixture_project "$PROJ"
 ok "project $PROJ"
 
 R=$(dev POST "/internal/v1/projects/$PROJ/binding" \
@@ -123,6 +129,7 @@ R=$(dev POST "/internal/v1/projects/$PROJ/fixture-keys" \
 [ "$(code "$R")" = "201" ] || { bad "fixture key: $(code "$R") $(body "$R" | head -c 200)"; exit 1; }
 KEY=$(jget "$(body "$R")" secret)
 KEYID=$(uuid_or_die "$(jget "$(body "$R")" id)")
+e2e_own fixture_key "$KEYID"
 ok "key minted with payment_sessions:write"
 
 gw() { docker exec -e K="$KEY" "$DEV" sh -c \
@@ -169,12 +176,14 @@ AFTER_SEAL=$(sql "select artifact_created from developer.dev_project_sandbox_bin
 step "6 — two artifacts at once leave one sealed binding"
 R=$(dev POST /internal/v1/fixture-projects "{\"name\":\"adr055-race-$(date +%s)\",\"created_by\":\"$ACTOR\"}")
 PROJ2=$(uuid_or_die "$(jget "$(body "$R")" project_id)")
+e2e_own fixture_project "$PROJ2"
 dev POST "/internal/v1/projects/$PROJ2/binding" \
   "{\"merchant_id\":\"$MERCHANT\",\"wallet_id\":\"$WALLET\",\"wallet_account_id\":\"$ACC_A\",\"actor_user_id\":\"$ACTOR\"}" >/dev/null
 R=$(dev POST "/internal/v1/projects/$PROJ2/fixture-keys" \
   "{\"name\":\"adr055-race\",\"kind\":\"SECRET\",\"created_by\":\"$ACTOR\",\"scopes\":[\"identity:read\",\"payment_sessions:read\",\"payment_sessions:write\"]}")
 KEY2=$(jget "$(body "$R")" secret)
 KEYID2=$(uuid_or_die "$(jget "$(body "$R")" id)")
+e2e_own fixture_key "$KEYID2"
 
 docker exec -e K="$KEY2" "$DEV" sh -c \
   "for i in 1 2 3 4 5; do curl -s -o /dev/null -X POST '$GW/v1/business/payment-sessions' -H \"Authorization: Bearer \$K\" -H 'Content-Type: application/json' -d '{\"amount\":100000,\"currency\":\"AOA\",\"description\":\"race\"}' & done; wait" >/dev/null 2>&1
@@ -185,14 +194,11 @@ SEALED2=$(sql "select artifact_created from developer.dev_project_sandbox_bindin
 [ "$SEALED2" = "t" ] && ok "and it is sealed" || bad "it is not sealed ($SEALED2)"
 
 # ── cleanup ───────────────────────────────────────────────────────────────────
+# Handled by the run trap: keys revoked, projects archived. The sealed bindings
+# stay exactly as they are — there is no unseal and there must never be one, so
+# the disposable unit is the project that holds the binding, not the binding.
 step "cleanup"
-for k in "$KEYID" "$KEYID2"; do
-  [ -n "$k" ] && dev POST "/internal/v1/fixture-keys/$k/revoke" "{\"created_by\":\"$ACTOR\"}" >/dev/null
-done
-ok "probe keys revoked"
-echo
-echo "  (the fixture projects and their sealed bindings are left in place: a sealed"
-echo "   binding cannot be deleted, which is the property this proved)"
+echo "  the sealed bindings are left sealed; their fixture projects are retired"
 
 echo
 [ "$FAIL" -eq 0 ] && echo "✓ ADR-055 holds on the deployed Sandbox — $PASS checks" \

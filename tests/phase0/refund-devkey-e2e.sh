@@ -25,6 +25,12 @@ PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's
 [ -n "$DEVINT" ] && [ -n "$JWTSEC" ] || { echo "NO_SECRET"; exit 1; }
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 
+# Ownership and cleanup. Every key, project and merchant below is recorded by id
+# and retired on the way out — including when an assertion fails, which is when
+# it used to leak.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 PASS=0; FAIL=0
 chk(){ if [ "$2" = "$3" ]; then echo "  $1 PASS ($2)"; PASS=$((PASS+1)); else echo "  $1 FAIL (got '$2' want '$3')"; FAIL=$((FAIL+1)); fi; }
 LAST=""; CODE=""
@@ -47,6 +53,7 @@ echo "### keys"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"refund-e2e-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
@@ -116,14 +123,18 @@ echo "### scope separation"
 call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"refund-ro-$R\",\"scopes\":[\"identity:read\",\"refunds:read\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 ROKEY=$(jget secret)
+e2e_own fixture_key "$(jget id)"
+e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 POST /v1/business/refunds "$RB" "$ROKEY"
 chk READ_SCOPE_CANNOT_REFUND "$CODE" "403"
 
 echo "### another project cannot refund this payment"
 call "$DEV" 8086 POST /internal/v1/fixture-projects "{\"name\":\"refund-other-$R\",\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 OTHER=$(jget project_id)
+e2e_own fixture_project "$OTHER"
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"RF$R\",\"email\":\"rf$R@synthetic.test\"}" "$MJWT"; OMID=$(jget id)
+e2e_own merchant "$OMID"
 MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")

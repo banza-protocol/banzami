@@ -208,6 +208,10 @@ type Store interface {
 	CreateProject(ctx context.Context, workspaceID, name, slug string) (Project, error)
 	ProjectsForWorkspace(ctx context.Context, workspaceID string) ([]Project, error)
 	Project(ctx context.Context, id string) (*Project, error)
+	// ArchiveProject retires a project and revokes every key still ACTIVE on it,
+	// in one transaction. Retiring a project while its credentials stay live
+	// would leave authority pointing at something nothing is watching any more.
+	ArchiveProject(ctx context.Context, id string) (keysRevoked int, err error)
 
 	// API keys
 	CreateAPIKey(ctx context.Context, in APIKeyInsert) (APIKey, error)

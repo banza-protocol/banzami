@@ -648,6 +648,36 @@ func (s *Service) RevokeFixtureKey(ctx context.Context, keyID, actor, ip, reqID 
 	return nil
 }
 
+// RetireFixtureProject archives a disposable fixture project and revokes every
+// key still ACTIVE on it. It is the disposal counterpart to CreateFixtureProject:
+// hard sandbox-gated via fixturesEnabled, operator-controlled, never public.
+//
+// It does NOT touch the project's sandbox binding, and there is deliberately no
+// route that does. A binding seals on the first payer-facing artifact and is
+// immutable from that moment (ADR-055); adding an unseal or a force-rebind so
+// that tests could tidy up would destroy the invariant the tests exist to prove.
+// The disposable unit is the project, not its payee, so retiring the project
+// disposes of the fixture with the seal intact.
+func (s *Service) RetireFixtureProject(ctx context.Context, projectID, actor, ip, reqID string) (int, error) {
+	if !s.fixturesEnabled {
+		return 0, ErrForbidden
+	}
+	projectID = strings.TrimSpace(projectID)
+	if projectID == "" {
+		return 0, ErrValidation
+	}
+	revoked, err := s.store.ArchiveProject(ctx, projectID)
+	if err != nil {
+		return 0, err // ErrNotFound when it is absent or already archived
+	}
+	if strings.TrimSpace(actor) == "" {
+		actor = "fixture-operator"
+	}
+	s.audit(ctx, &actor, nil, &projectID, "project.fixture_retired", "PROJECT:"+projectID, ip, reqID,
+		map[string]any{"e2e_fixture": true, "keys_revoked": revoked})
+	return revoked, nil
+}
+
 func (s *Service) ListAPIKeys(ctx context.Context, actor, projectID string) ([]APIKey, error) {
 	if _, _, err := s.projectAuthz(ctx, actor, projectID); err != nil {
 		return nil, err

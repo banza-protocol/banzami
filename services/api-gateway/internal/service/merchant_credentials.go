@@ -110,17 +110,23 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 	}
 
 	var (
-		merchantID  string
-		environment string
-		pinHash     *string // NULL until the merchant activates and sets a PIN
-		activatedAt *time.Time
-		locked      *time.Time
+		merchantID     string
+		environment    string
+		pinHash        *string // NULL until the merchant activates and sets a PIN
+		activatedAt    *time.Time
+		locked         *time.Time
+		merchantStatus string
 	)
+	// The merchant's status is joined in, not looked up afterwards, because it
+	// is part of whether this credential may sign in at all — not a detail to
+	// check once the token has already been issued.
 	err := s.pool.QueryRow(ctx,
-		`SELECT merchant_id::text, environment, pin_hash, activated_at, locked_until
-		   FROM merchant_app_credentials
-		  WHERE handle = $1`, handle).
-		Scan(&merchantID, &environment, &pinHash, &activatedAt, &locked)
+		`SELECT c.merchant_id::text, c.environment, c.pin_hash, c.activated_at, c.locked_until,
+		        COALESCE(m.status, '')
+		   FROM merchant_app_credentials c
+		   LEFT JOIN merchants m ON m.id = c.merchant_id
+		  WHERE c.handle = $1`, handle).
+		Scan(&merchantID, &environment, &pinHash, &activatedAt, &locked, &merchantStatus)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", "", ErrMerchantCredsInvalid
@@ -130,6 +136,18 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 
 	// Not yet activated (no PIN set) → cannot log in (non-enumerating).
 	if pinHash == nil || activatedAt == nil {
+		return "", "", ErrMerchantCredsInvalid
+	}
+
+	// A suspended merchant must not be able to sign in to the merchant app.
+	//
+	// It could. Suspension changed the merchant row and nothing else, while this
+	// query never looked at it, so a handle and PIN issued before the suspension
+	// still returned a full session token. Suspension is the operator's canonical
+	// way to retire a merchant — including every disposable merchant an E2E
+	// harness creates — and a retirement that leaves a working login is not a
+	// retirement. Same non-enumerating 401 as a wrong PIN.
+	if merchantStatus != "" && merchantStatus != "ACTIVE" {
 		return "", "", ErrMerchantCredsInvalid
 	}
 

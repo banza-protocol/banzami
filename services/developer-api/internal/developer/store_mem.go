@@ -264,6 +264,25 @@ func (m *memStore) Project(_ context.Context, id string) (*Project, error) {
 	return nil, ErrNotFound
 }
 
+func (m *memStore) ArchiveProject(_ context.Context, id string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p, ok := m.projects[id]
+	if !ok || p.Status != "ACTIVE" {
+		return 0, ErrNotFound
+	}
+	p.Status = "ARCHIVED"
+	p.UpdatedAt = time.Now().UTC()
+	revoked := 0
+	for _, r := range m.apiKeys {
+		if r.ProjectID == id && r.Status == "ACTIVE" {
+			r.Status = "REVOKED"
+			revoked++
+		}
+	}
+	return revoked, nil
+}
+
 // ── api keys ─────────────────────────────────────────────────────────────────
 
 func (m *memStore) insertKey(in APIKeyInsert) APIKey {
