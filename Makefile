@@ -309,6 +309,7 @@ check-remote-contract:
 	node tools/check-remote-wrappers.mjs
 	node tools/check-remote-wrappers.selftest.mjs
 	node tools/check-deploy-status-capture.mjs
+	node tools/check-deploy-status-capture.selftest.mjs
 	bash tools/ops/lib/remote.selftest.sh
 
 # What is actually running on the Sandbox host, against ops/sandbox-host-manifest.tsv.

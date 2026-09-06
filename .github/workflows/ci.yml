@@ -331,6 +331,7 @@ jobs:
           node tools/check-remote-wrappers.mjs
           node tools/check-remote-wrappers.selftest.mjs
           node tools/check-deploy-status-capture.mjs
+          node tools/check-deploy-status-capture.selftest.mjs
 
       - name: Asset inventory gate (cleanup dispositions + secret hygiene)
         run: node tools/check-asset-inventory.mjs
