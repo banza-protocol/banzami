@@ -1,0 +1,30 @@
+{
+  "suite": "DOA reference integration on @banzami/sdk 0.8.3",
+  "environment": "deployed \u2014 www.doadoa.app / admin.doadoa.app (doa), Banzami Sandbox (sandbox-api.banzami.com)",
+  "generated_at": "2026-09-07T00:30:00.000Z",
+  "doa_head": "ef42d48",
+  "doa_runtime_head": "059203c",
+  "doa_runtime_note": "ef42d48 is docs-only; the diff against 059203c outside docs/ is empty, so the deployed runtime is unchanged by it.",
+  "sdk_version": "0.8.3",
+  "canonical_refund_path": "POST /v1/refunds",
+  "operator_builds": {
+    "api-gateway-staging": "ef120f9c5da4",
+    "developer-api": "b5722d71366e"
+  },
+  "results": {
+    "local_prod_env_file_removed": "PASS",
+    "sdk_0_8_3_installed": "PASS",
+    "refund_live_executed_not_skipped": "PASS (total=2 passed=2 skipped=0)",
+    "doa_real_refund_on_v1_refunds": "PASS",
+    "idempotency": "PASS \u2014 two concurrent callers, one refund id, one debit",
+    "cross_campaign_isolation": "PASS \u2014 sibling campaign account unmoved throughout",
+    "ledger_balanced": "PASS \u2014 zero unbalanced postings",
+    "legacy_route_runtime_refs": 0,
+    "deployed_journey": "PASS \u2014 campaign, wallet, donation, hosted checkout, Sandbox settlement, signed webhook, exactly-once, admin refund",
+    "doa_final_ci": "PASS \u2014 check:sdk, check:deps, check:env, typecheck, 318 tests, build:web, build:admin, check:secrets, refund-live"
+  },
+  "operator_request_log_proof": "POST /v1/refunds -> 201 at 2026-09-06T22:19:30Z, the refund taken through the deployed admin interface",
+  "guard_mutation_proof": "DOA scripts/check-banzami-sdk.mjs fails on @banzami/sdk 0.8.2 (path + floor) and passes on 0.8.3",
+  "sandbox_branch": "recorded, not converged \u2014 doa-sandbox builds from main; the branch named sandbox deploys nowhere (docs/sandbox-branch-drift.md in ~/doa)",
+  "residue": "doa-live holds 2 campaigns, 2 donations, 10 donation events, 1 refund intent and 2 fixture profiles from the deployed journey. Removable only through scripts/ops/launch-reset.mjs, which requires the owner's confirmation phrase."
+}
