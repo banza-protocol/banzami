@@ -116,13 +116,13 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <UL>
                   <LI>This is <strong>Sandbox / Preview</strong> documentation. Sandbox capability is limited to controlled test flows.</LI>
                   <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
-                  <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. The Overview, Webhooks and Logs derive from the project&rsquo;s own traffic — no Console page renders illustrative data.</LI>
+                  <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. The Overview, Balances, Transactions, Webhooks and Logs derive from the project&rsquo;s own data — no Console page renders illustrative data, and nothing is shown that the platform cannot answer for.</LI>
                 </UL>
               </div>
 
               <H3>Three layers</H3>
               <UL>
-                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly. The Overview, Webhooks and Logs show your project&rsquo;s real traffic.</LI>
+                <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly. The Overview, Balances, Transactions, Webhooks and Logs show your project&rsquo;s real data: Balances the accounts of the payee the project is bound to, Transactions the payments, refunds and transfers that happened, and Logs every request made with one of the project&rsquo;s keys. There is no customer directory and no status page — neither exists as a product.</LI>
                 <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
                 <LI><strong>Banzami Operator / Core</strong> — the financial layer: it executes payments and owns balances and integrity. Your application never creates or manages its own financial ledger.</LI>
               </UL>
