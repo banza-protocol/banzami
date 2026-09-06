@@ -2169,3 +2169,31 @@ admin.doadoa.app. Revoking 156 credentials moved nothing that was in use.
 
 **The harnesses should revoke what they mint.** Pruning after the fact is the
 repair; the fix is that a fixture key outlives its run only by accident.
+
+---
+
+## RA-076 — the hosted payer surface was deployed as a Node REPL
+
+- **Found:** 2026-09-06
+- **Status:** FIXED (2026-09-06)
+
+`pay.banzami.com` answered 502 to every payer for twelve hours. Its container
+had been created with `exec node` — no script — so it started, found stdin was
+not a terminal, and exited 0 in under a second.
+
+The exit code is why nobody noticed. Nothing crashed, nothing restarted, no log
+line was written; the container sat there `Exited (0)` while Cloudflare reported
+a bad gateway to anyone opening a payment link. A crash loop would have been
+visible in a minute.
+
+The service table in `sandbox-deploy.sh` carries the binary each entrypoint
+execs. For the Go services that is a binary name; `pay-frontend` is a Next.js
+standalone server whose own Dockerfile says `CMD ["node", "server.js"]`. The
+table said `node`. Under `docker compose` the image's CMD applies and it works,
+which is how it was ever seen running — the single-service deploy path overrides
+the entrypoint and dropped the argument.
+
+**Worth noticing about the shape of this.** Both this and RA-074's Vault finding
+are the same failure: an operation that does not work and does not say so. A
+502 from a container that exited cleanly, and a contact hash computed with an
+empty pepper. The loud failures get fixed the day they happen.
