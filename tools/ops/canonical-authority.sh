@@ -20,17 +20,37 @@
 # revoked by this script no matter what it is called: if something is using it,
 # that is the fact that matters, and a human decides.
 #
+# A key that HAS served traffic and is still not canonical is reported and left
+# alone. Retiring one is a named decision: --retire-key <prefix>, one at a time,
+# by the person who knows what it was.
+#
+# --cancel-orphan-links cancels the ACTIVE payment links on the canonical
+# merchant. Every one was opened by a pre-launch DOA journey against a campaign
+# that no longer exists — doa-live was reset to a clean launch baseline and holds
+# zero campaigns — so nothing on the application side can ever settle them, while
+# the URLs stay payable into wallet accounts nobody is watching. Payment links
+# carry no expiry; they do not go away on their own.
+#
+# THE PREMISE IS NOT CHECKABLE FROM HERE. The operator database cannot see DOA's,
+# so this cannot verify that no campaign exists; whoever runs it must know that
+# it is true. After launch it will not be, and the flag becomes the wrong thing
+# to run.
+#
 #   bash tools/ops/canonical-authority.sh
 #   bash tools/ops/canonical-authority.sh --retire
+#   bash tools/ops/canonical-authority.sh --retire-key bz_test_sk_XXXXXXXX
+#   bash tools/ops/canonical-authority.sh --cancel-orphan-links
 set -uo pipefail
 REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
-RETIRE=0; [ "${1:-}" = "--retire" ] && RETIRE=1
+RETIRE=0;       [ "${1:-}" = "--retire" ] && RETIRE=1
+RETIRE_KEY="";  [ "${1:-}" = "--retire-key" ] && RETIRE_KEY="${2:?--retire-key needs a key prefix}"
+CANCEL_LINKS=0; [ "${1:-}" = "--cancel-orphan-links" ] && CANCEL_LINKS=1
 
 if ! command -v docker >/dev/null 2>&1 || ! docker ps --format '{{.Names}}' 2>/dev/null | grep -q core-api-staging; then
   if [ "${BANZAMI_ON_VM:-0}" = "1" ]; then echo "✗ on the VM, but core-api-staging is not running." >&2; exit 2; fi
   echo "· the containers are not here — running on $REMOTE"
   scp -q "$0" "$REMOTE:/tmp/$(basename "$0")" || { echo "✗ could not reach $REMOTE" >&2; exit 2; }
-  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0") ${1:-}; rm -f /tmp/$(basename "$0")"
+  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0") ${1:-} ${2:-}; rm -f /tmp/$(basename "$0")"
   exit $?
 fi
 
@@ -47,6 +67,26 @@ q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_sta
 CANON_KEYS="DOA production (final)|DOA admin surface (admin.doadoa.app)|DOA Sandbox server key"
 CANON_PROJECT="DOA Sandbox"
 CANON_MERCHANT="Doa"
+
+if [ "$CANCEL_LINKS" -eq 1 ]; then
+  echo "cancelling the canonical merchant's open payment links"
+  echo "  premise: doa-live holds no campaigns, so none of these can ever settle"
+  q "update payment_links l set status='CANCELLED', updated_at=now()
+      from merchants m
+     where m.id = l.merchant_id and m.name = '$CANON_MERCHANT' and l.status = 'ACTIVE'
+     returning '  cancelled ' || l.slug"
+  echo
+  q "select '  open payment links now: ' || count(*) from payment_links where status='ACTIVE'"
+  exit 0
+fi
+
+if [ -n "$RETIRE_KEY" ]; then
+  echo "retiring one key by prefix: $RETIRE_KEY"
+  q "update developer.dev_api_keys set status='REVOKED', revoked_at=now()
+      where status='ACTIVE' and key_prefix = '$RETIRE_KEY'
+      returning '  revoked ' || name || ' ' || key_prefix"
+  exit 0
+fi
 
 echo "canonical authority — banzami_staging"
 echo
