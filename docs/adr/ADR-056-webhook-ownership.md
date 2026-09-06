@@ -67,10 +67,27 @@ because telling those two apart is the oracle that answer exists to prevent.
 
 ## What would reopen this
 
-A non-financial Developer Platform event. The moment there is something to
-deliver that is about a project rather than about money — a key nearing
-expiry, a member added, a quota reached — the argument above stops holding and
-webhooks need an owner that exists before the money does.
+Three conditions, any one of which breaks an argument this decision rests on.
+They are written down because a decision that was right about today's evidence
+becomes dogma the moment nobody remembers what the evidence was.
+
+**1. The first non-financial Developer Platform event.** The moment there is
+something to deliver that is about a project rather than about money — a key
+nearing expiry, a member added, a quota reached — "every event is financial"
+stops being true, and a webhook needs an owner that exists before the money does.
+
+**2. Multiple projects binding to one financial owner.** The 1:1 relation is what
+makes project-scoping and owner-scoping equivalent today. If two projects can
+ever share an owner, they would receive each other's events, and the equivalence
+becomes a leak.
+
+**3. Different subscriptions per project under one owner.** Even with sharing
+allowed, if two projects on one owner must subscribe to different event sets,
+merchant-scoped endpoints cannot express it.
+
+Until one of those is true, this decision holds. When one becomes true, the
+migration this ADR declined is the right change, and this section is the record
+that it was declined on evidence rather than avoided.
 
 ## Alternatives considered
 
