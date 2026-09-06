@@ -2347,3 +2347,45 @@ merchant and DOA's project keeps the retired binding it was corrected away from.
 Nothing broke — key authorisation reads the key's status and never the
 project's — but that is luck rather than design. The rule now asks only about
 ACTIVE bindings, and the canonical project is excluded by name as well.
+
+## RA-079 — an unmanaged container holding every operator secret, running for five days
+
+- **Found:** 2026-09-06
+- **Status:** DETECTOR SHIPPED, CONTAINER PENDING REMOVAL (2026-09-06)
+
+A container named `silly_swirles` was running on the Sandbox host. Docker
+generates that kind of name when `docker run` is given none, so it was started
+by hand, on 2026-09-01, and never stopped.
+
+It held the full operator secret set as mounted files: `db_url`, `jwt_secret`,
+`core_internal_key`, `api_key_pepper`, `developer_internal_key`,
+`session_secret`, `otp_pepper`. It ran an old `public-api` image
+(`7d680db65049`) on the data network, with no host port — unreachable from
+outside, and able to reach Postgres and Core with real credentials from inside.
+It was answering its own health checks the whole time.
+
+**Why nothing saw it.** Every check in this repository looks at something it
+already knows about. The deployment tooling inspects the containers it manages.
+The credential inventory reads the database. The health checks ask whether the
+known services are up. None of them asks *what else is running in here*, and a
+container nobody deployed is invisible to all of them by construction — the same
+shape as RA-076, where a container that had exited cleanly was invisible to
+every check that asked whether the service had started.
+
+`tests/phase0/sandbox-container-inventory.sh` asks the opposite question: every
+container with a secret mounted under `/run/secrets` must be one the deployer
+created. Ownership is the name prefix of the generated Sandbox project, read
+from a container that is certainly the deployer's — it applies no labels, so the
+name is what there is.
+
+**Two ways that check could have lied, both found before it was believed.** It
+first ran against the docker daemon on the author's own machine, found no
+Banzami containers at all, and reported that every secret-holding container was
+owned; it now requires the Sandbox services to be present and exits distinctly
+when it inspects nothing. And every script in this repository that copies itself
+to the VM was discarding its own exit status: `ssh host "cmd; rm -f /tmp/x"`
+returns the status of the `rm`. Ledger reconciliation, the canonical binding
+proof, both prunes and both audits had been returning 0 regardless of outcome.
+Seven scripts fixed.
+
+The container itself still needs stopping.
