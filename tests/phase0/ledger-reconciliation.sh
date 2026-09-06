@@ -31,7 +31,10 @@ if ! command -v docker >/dev/null 2>&1 || ! docker ps --format '{{.Names}}' 2>/d
     echo "✗ on the VM, but core-api-staging is not running." >&2; exit 2
   fi
   scp -q "$0" "$REMOTE:/tmp/$(basename "$0")" || { echo "✗ could not reach $REMOTE" >&2; exit 2; }
-  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0"); rm -f /tmp/$(basename "$0")"
+  # `ssh host "cmd; rm -f ..."` returns the status of the LAST command — the rm —
+  # so the result of the run itself was being discarded and every invocation
+  # looked successful.
+  ssh "$REMOTE" "BANZAMI_ON_VM=1 bash /tmp/$(basename "$0"); rc=\$?; rm -f /tmp/$(basename "$0"); exit \$rc"
   exit $?
 fi
 
