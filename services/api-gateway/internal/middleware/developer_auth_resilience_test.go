@@ -110,7 +110,8 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 		client := service.NewDeveloperKeyClient("http://127.0.0.1:1", "k")
 		var called int32
 		h := DeveloperKeyAuth(client)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			atomic.AddInt32(&called, 1); w.WriteHeader(200)
+			atomic.AddInt32(&called, 1)
+			w.WriteHeader(200)
 		}))
 		assertClosed(t, doReq(h, valid), &called, http.StatusServiceUnavailable, "network-unreachable")
 	})
@@ -120,7 +121,10 @@ func TestDeveloperKeyResilience_FailClosed(t *testing.T) {
 		var wg sync.WaitGroup
 		for i := 0; i < 25; i++ {
 			wg.Add(1)
-			go func() { defer wg.Done(); assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "concurrent") }()
+			go func() {
+				defer wg.Done()
+				assertClosed(t, doReq(h, valid), called, http.StatusServiceUnavailable, "concurrent")
+			}()
 		}
 		wg.Wait()
 	})

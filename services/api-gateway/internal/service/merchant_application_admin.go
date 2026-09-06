@@ -24,41 +24,41 @@ var (
 )
 
 type MerchantApplication struct {
-	ID                  string     `json:"id"`
-	Status              string     `json:"status"`
-	Environment         string     `json:"environment"`
-	DesiredHandle       string     `json:"desired_handle"`
-	BusinessName        string     `json:"business_name"`
-	Category            string     `json:"category"`
-	Subcategory         string     `json:"subcategory"`
-	Email               string     `json:"email"`
-	Phone               string     `json:"phone"`
-	Nif                 string     `json:"nif"`
-	Country             string     `json:"country"`
-	Province            string     `json:"province"`
-	Municipality        string     `json:"municipality"`
-	City                string     `json:"city"`
-	Address             string     `json:"address"`
-	AddressReference    string     `json:"address_reference"`
-	LegalRepresentative string     `json:"legal_representative"`
-	RepresentativeRole  string     `json:"representative_role"`
-	RepresentativeEmail string     `json:"representative_email"`
-	RepresentativePhone string     `json:"representative_phone"`
-	BusinessActivity    string     `json:"business_activity"`
-	EstimatedVolume     string     `json:"estimated_volume"`
-	BusinessAccountType string     `json:"business_account_type"`
-	AdminNotes          string     `json:"admin_notes"`
-	MerchantMessage     string     `json:"merchant_message"`
-	CreatedMerchantID   string     `json:"created_merchant_id"`
+	ID                  string `json:"id"`
+	Status              string `json:"status"`
+	Environment         string `json:"environment"`
+	DesiredHandle       string `json:"desired_handle"`
+	BusinessName        string `json:"business_name"`
+	Category            string `json:"category"`
+	Subcategory         string `json:"subcategory"`
+	Email               string `json:"email"`
+	Phone               string `json:"phone"`
+	Nif                 string `json:"nif"`
+	Country             string `json:"country"`
+	Province            string `json:"province"`
+	Municipality        string `json:"municipality"`
+	City                string `json:"city"`
+	Address             string `json:"address"`
+	AddressReference    string `json:"address_reference"`
+	LegalRepresentative string `json:"legal_representative"`
+	RepresentativeRole  string `json:"representative_role"`
+	RepresentativeEmail string `json:"representative_email"`
+	RepresentativePhone string `json:"representative_phone"`
+	BusinessActivity    string `json:"business_activity"`
+	EstimatedVolume     string `json:"estimated_volume"`
+	BusinessAccountType string `json:"business_account_type"`
+	AdminNotes          string `json:"admin_notes"`
+	MerchantMessage     string `json:"merchant_message"`
+	CreatedMerchantID   string `json:"created_merchant_id"`
 	// Provisioning recovery state (0079) — each Phase-A resource is recorded so a
 	// retry resumes the step instead of duplicating it.
-	ProvisioningWalletID      string `json:"provisioning_wallet_id"`
-	ProvisioningApiKeyPrefix  string `json:"provisioning_api_key_prefix"`
-	ProvisioningComplianceDone bool  `json:"provisioning_compliance_done"`
-	ProvisioningError         string `json:"provisioning_error"`    // failure reason, for operator visibility
-	ProvisioningAttempts      int    `json:"provisioning_attempts"`
-	CreatedAt           time.Time  `json:"created_at"`
-	ReviewedAt          *time.Time `json:"reviewed_at"`
+	ProvisioningWalletID       string     `json:"provisioning_wallet_id"`
+	ProvisioningApiKeyPrefix   string     `json:"provisioning_api_key_prefix"`
+	ProvisioningComplianceDone bool       `json:"provisioning_compliance_done"`
+	ProvisioningError          string     `json:"provisioning_error"` // failure reason, for operator visibility
+	ProvisioningAttempts       int        `json:"provisioning_attempts"`
+	CreatedAt                  time.Time  `json:"created_at"`
+	ReviewedAt                 *time.Time `json:"reviewed_at"`
 }
 
 type ApprovalResult struct {

@@ -34,11 +34,11 @@ type WalletRecord struct {
 }
 
 type WalletBalance struct {
-	WalletID       string    `json:"wallet_id"`
-	Currency       string    `json:"currency"`
-	AvailableMinor int64     `json:"available_minor"`
-	ReservedMinor  int64     `json:"reserved_minor"`
-	TotalMinor     int64     `json:"total_minor"`
+	WalletID       string `json:"wallet_id"`
+	Currency       string `json:"currency"`
+	AvailableMinor int64  `json:"available_minor"`
+	ReservedMinor  int64  `json:"reserved_minor"`
+	TotalMinor     int64  `json:"total_minor"`
 	// HeldMinor is money in the wallet's segregated non-PRIMARY accounts
 	// (e.g. campaign accounts) — received but not part of the spendable balance.
 	HeldMinor  int64     `json:"held_minor"`

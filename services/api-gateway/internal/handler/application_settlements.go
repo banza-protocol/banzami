@@ -21,10 +21,16 @@ type ApplicationSettlementHandler struct {
 	wallets     service.WalletService
 	accounts    service.WalletAccountService
 	parties     service.PartyResolver
+	// business resolves the merchant's own pricing category. Nil is fail-closed:
+	// an unresolvable category settles unpriced, and unpriced is what the caller
+	// could already achieve by omitting the field — so a missing dependency
+	// cannot make anyone pay LESS than the fixed behaviour, only fail to
+	// improve on it. It is wired in every real deployment.
+	business *service.BusinessSelfService
 }
 
-func NewApplicationSettlementHandler(s service.ApplicationSettlementService, w service.WalletService, a service.WalletAccountService, p service.PartyResolver) *ApplicationSettlementHandler {
-	return &ApplicationSettlementHandler{settlements: s, wallets: w, accounts: a, parties: p}
+func NewApplicationSettlementHandler(s service.ApplicationSettlementService, w service.WalletService, a service.WalletAccountService, p service.PartyResolver, b *service.BusinessSelfService) *ApplicationSettlementHandler {
+	return &ApplicationSettlementHandler{settlements: s, wallets: w, accounts: a, parties: p, business: b}
 }
 
 // POST /v1/application-settlements
@@ -42,8 +48,13 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		BeneficiaryWalletID    string `json:"beneficiary_wallet_id"`
 		ApplicationFeeWalletID string `json:"application_fee_wallet_id"`
 		FeePolicyRef           string `json:"fee_policy_ref"`
-		BusinessCategory       string `json:"business_category"`
 		PricingProfile         string `json:"pricing_profile"`
+		// business_category is deliberately NOT read from the request. It used to
+		// be, and it is the field that chooses which of the operator's rates
+		// applies — so a caller could settle unpriced, at nothing, by leaving it
+		// out. It is resolved from the merchant's own record below. A body that
+		// still sends it is accepted and ignored, which is the compatible answer:
+		// nothing the caller writes there can change what they are charged.
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -122,6 +133,20 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		}
 	}
 
+	// The operator's rate is chosen by the merchant's own category, never by the
+	// request. A caller that sends one is ignored rather than refused: refusing
+	// would break every existing integration to prevent something the caller can
+	// no longer do anyway.
+	pricingCategory := ""
+	if h.business != nil {
+		c, cerr := h.business.PricingCategoryForMerchant(r.Context(), principal.MerchantID)
+		if cerr != nil {
+			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve pricing")
+			return
+		}
+		pricingCategory = c
+	}
+
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
 		IdempotencyKey: body.IdempotencyKey,
 		OwnerRef:       body.OwnerRef,
@@ -134,7 +159,7 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		GrossAmountMinor:       grossMinor,
 		Currency:               sourceCurrency,
 		FeePolicyRef:           body.FeePolicyRef,
-		BusinessCategory:       body.BusinessCategory,
+		BusinessCategory:       pricingCategory,
 		PricingProfile:         body.PricingProfile,
 	})
 	if err != nil {
@@ -308,6 +333,20 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		ownerRef = body.Reason
 	}
 
+	// The operator's rate is chosen by the merchant's own category, never by the
+	// request. A caller that sends one is ignored rather than refused: refusing
+	// would break every existing integration to prevent something the caller can
+	// no longer do anyway.
+	pricingCategory := ""
+	if h.business != nil {
+		c, cerr := h.business.PricingCategoryForMerchant(r.Context(), callerMerchantID)
+		if cerr != nil {
+			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve pricing")
+			return
+		}
+		pricingCategory = c
+	}
+
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
 		IdempotencyKey: body.IdempotencyKey,
 		OwnerRef:       ownerRef,
@@ -319,6 +358,11 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		ApplicationFeeBps:       body.ApplicationFeeBps,
 		GrossAmountMinor:        acc.AvailableBalanceMinor,
 		Currency:                currency,
+		// This path never named a category, so every settlement through it was
+		// priced as an unknown category — which is to say, at nothing. The
+		// merchant's own category is now resolved and sent, so the operator's
+		// configured rate applies to the merchant it was configured for.
+		BusinessCategory: pricingCategory,
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "business_settlement.create.failed", "owner_ref", ownerRef, "error", err)

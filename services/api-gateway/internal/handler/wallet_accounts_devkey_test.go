@@ -252,5 +252,6 @@ func settlementHandlerForDev() *ApplicationSettlementHandler {
 			"theirs-wa": "someone-elses-wallet",
 		}},
 		&fakeParties{},
+		nil,
 	)
 }

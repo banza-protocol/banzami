@@ -4,12 +4,12 @@ import "testing"
 
 func TestPricingCategoryFromLabel(t *testing.T) {
 	cases := map[string]string{
-		"Doações e causas":       "DONATION",
-		"Doacoes":                "DONATION",
+		"Doações e causas":        "DONATION",
+		"Doacoes":                 "DONATION",
 		"Vaquinha / crowdfunding": "DONATION",
-		"Marketplace":            "MARKETPLACE",
-		"Retalho":                "",
-		"":                       "",
+		"Marketplace":             "MARKETPLACE",
+		"Retalho":                 "",
+		"":                        "",
 	}
 	for label, want := range cases {
 		if got := pricingCategoryFromLabel(label); got != want {

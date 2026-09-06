@@ -51,11 +51,11 @@ func (e ApiKeyEnvironment) keySecretPrefix() string {
 }
 
 type MerchantRecord struct {
-	ID        string         `json:"id"`
-	Name      string         `json:"name"`
-	Email     string         `json:"email"`
-	Status    MerchantStatus `json:"status"`
-	Verified  bool           `json:"verified"`
+	ID       string         `json:"id"`
+	Name     string         `json:"name"`
+	Email    string         `json:"email"`
+	Status   MerchantStatus `json:"status"`
+	Verified bool           `json:"verified"`
 	// BusinessAccountType is the ADR-028 operator taxonomy (MERCHANT default).
 	BusinessAccountType string    `json:"business_account_type"`
 	CreatedAt           time.Time `json:"created_at"`

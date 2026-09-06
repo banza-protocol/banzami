@@ -19,9 +19,9 @@ import (
 type DeveloperKeyContext struct {
 	KeyID       string   `json:"key_id"`
 	Environment string   `json:"environment"`
-	WorkspaceID string   `json:"workspace_id"`  // internal: tenant enforcement only, never exposed
-	ProjectID   string   `json:"project_id"`    // internal: tenant enforcement only, never exposed
-	ProjectSlug string   `json:"project_slug"`  // project-safe public identifier
+	WorkspaceID string   `json:"workspace_id"` // internal: tenant enforcement only, never exposed
+	ProjectID   string   `json:"project_id"`   // internal: tenant enforcement only, never exposed
+	ProjectSlug string   `json:"project_slug"` // project-safe public identifier
 	KeyStatus   string   `json:"key_status"`
 	Scopes      []string `json:"scopes"`
 
@@ -41,8 +41,8 @@ type DeveloperKeyContext struct {
 // (timeout, network, 5xx, config/credential problem, malformed body) — a
 // dependency failure that must NOT be reported as an invalid key (RT04 §1).
 var (
-	ErrDeveloperKeyInvalid       = errors.New("developer key invalid")
-	ErrAuthorizationUnavailable  = errors.New("developer authorization unavailable")
+	ErrDeveloperKeyInvalid      = errors.New("developer key invalid")
+	ErrAuthorizationUnavailable = errors.New("developer authorization unavailable")
 )
 
 // DeveloperKeyClient calls developer-api's internal introspection endpoint.

@@ -12,11 +12,11 @@ import (
 // Settlement-readiness blocker reason codes. Stable, machine-readable — apps map
 // them to their own copy. Absence of blockers ⇒ the account can be settled.
 const (
-	BlockerBusinessNotActive   = "BUSINESS_NOT_ACTIVE"
-	BlockerKybNotApproved      = "KYB_NOT_APPROVED"
-	BlockerWalletMissing       = "WALLET_MISSING"
+	BlockerBusinessNotActive    = "BUSINESS_NOT_ACTIVE"
+	BlockerKybNotApproved       = "KYB_NOT_APPROVED"
+	BlockerWalletMissing        = "WALLET_MISSING"
 	BlockerWalletAccountMissing = "WALLET_ACCOUNT_MISSING"
-	BlockerPricingMissing      = "PRICING_MISSING"
+	BlockerPricingMissing       = "PRICING_MISSING"
 
 	// WarnWebhookEndpointMissing is ADVISORY (not a settlement blocker): with no
 	// active webhook endpoint the app depends on client-side polling and may miss
@@ -255,4 +255,41 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	}
 
 	return &r, nil
+}
+
+// PricingCategoryForMerchant resolves the pricing category the operator will
+// charge a merchant under, from the merchant's OWN record.
+//
+// It exists because the settlement route used to take business_category from the
+// request body and pass it to the pricing engine, which selects the rate. The
+// body comment there is right that a client cannot send a fee — there is no
+// rate field — but it could send the CATEGORY, and the category is what chooses
+// among the operator's rates. With one priced category configured (DONATION at
+// 200 bps) and an unpriced one costing nothing, omitting it was worth two
+// percent of every settlement to the caller.
+//
+// A caller may describe itself in its own words anywhere those words are a
+// label. Where they decide what the operator charges, they are not a label, and
+// they come from here.
+//
+// Empty is a real answer: a merchant with no category is unpriced, and unpriced
+// is zero. That is the operator's configuration to fix, not the caller's to
+// supply.
+func (s *BusinessSelfService) PricingCategoryForMerchant(ctx context.Context, merchantID string) (string, error) {
+	if s == nil || s.pool == nil {
+		return "", errors.New("business self service is not configured")
+	}
+	var category *string
+	err := s.pool.QueryRow(ctx,
+		`SELECT category FROM merchant_profiles WHERE merchant_id = $1`, merchantID).Scan(&category)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	if category == nil {
+		return "", nil
+	}
+	return pricingCategoryFromLabel(*category), nil
 }
