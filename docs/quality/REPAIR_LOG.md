@@ -2201,7 +2201,7 @@ empty pepper. The loud failures get fixed the day they happen.
 ## RA-077 — 169 live merchant keys and 55 webhook endpoints, left by the harnesses
 
 - **Found:** 2026-09-06
-- **Status:** TOOLING SHIPPED, PRUNE PENDING (2026-09-06)
+- **Status:** FIXED (2026-09-06)
 
 RA-075 revoked 156 API keys on DOA's Developer project. That was one population
 of harness residue. The merchant-side population is larger and nothing had
@@ -2221,6 +2221,16 @@ match so a wrong pattern leaves a credential alive rather than killing the one
 that takes donations — the same correction RA-075's script needed. Nothing is
 deleted: an audit needs to see that a credential existed and when it stopped
 working.
+
+Applied 2026-09-06: 169 keys revoked, 55 endpoints deactivated, 169 PINs locked,
+in one transaction. What remains live on the whole database is one API key and
+one webhook endpoint, both the canonical `Doa` merchant's. A second dry run
+reports zero fixture authority of any kind.
+
+Then the donation path was run again end to end, because a mass revocation is
+only safe if the credential that had to survive still works — not as a row, as a
+working key. Two campaigns, two settlements, correct wallets, replay refused,
+webhook delivered, DOA confirming: 11/11 each.
 
 **Worth noticing about the shape of this.** Every harness in this repository
 creates authority and none of them removes it, so residue accumulates in
