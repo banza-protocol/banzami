@@ -387,3 +387,19 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bz-pop { animation: none !important; }
 }
+
+/* Visible to a screen reader, not to the eye. Used for table headers on
+   layouts where the columns are obvious visually but nameless without them —
+   the webhook events list is a disclosure row, so a printed header would be
+   noise while its absence left the ids unlabelled. */
+.bz-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

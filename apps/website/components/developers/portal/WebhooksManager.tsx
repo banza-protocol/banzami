@@ -176,6 +176,19 @@ export function WebhooksManager() {
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            {/* The events list had no header row: every cell is inside one
+                expanding button, so it read as a wall of ids to anything not
+                looking at it. The columns are named here and the header is
+                hidden visually rather than removed, because the layout is a
+                disclosure row and a printed header would be noise. */}
+            <thead className="bz-sr-only">
+              <tr>
+                <th scope="col">Tipo de evento</th>
+                <th scope="col">ID do evento</th>
+                <th scope="col">Data</th>
+                <th scope="col">Entregas</th>
+              </tr>
+            </thead>
             <tbody>
               {events.map((ev) => {
                 const ds = deliveries[ev.id];
