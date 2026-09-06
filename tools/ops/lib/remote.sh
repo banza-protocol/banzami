@@ -66,9 +66,19 @@ remote_self_or_continue() {
   # them in REMOTE_EXTRA_FILES. Sending the script without the file it compares
   # against produces a check that cannot run, which historically becomes a check
   # that is quietly skipped.
-  local extra=(); local f
-  for f in ${REMOTE_EXTRA_FILES:-}; do [ -f "$f" ] && extra+=("$f"); done
-  scp -q "$0" "$lib" "${extra[@]}" "$target:$dir/" \
+  # The caller's arguments are needed further down, so they are captured before
+  # anything touches the positional parameters. An earlier attempt used `set --`
+  # to build the file list and silently overwrote them — the remote script would
+  # have been invoked with the wrong arguments, which is the kind of break that
+  # shows up as a confusing failure somewhere else entirely.
+  local args; args=$(printf '%q ' "$@")
+
+  # `"${extra[@]}"` on an empty array is an unbound-variable error under `set -u`
+  # in the bash that ships with macOS, so the file list is a plain string.
+  local f files="$0 $lib"
+  for f in ${REMOTE_EXTRA_FILES:-}; do [ -f "$f" ] && files="$files $f"; done
+  # shellcheck disable=SC2086 — the paths here are ours and contain no spaces
+  scp -q $files "$target:$dir/" \
     || { echo "✗ could not copy $base to $target" >&2; exit 2; }
 
   # The remote side runs the script, keeps its status, removes the copies from a
@@ -78,7 +88,7 @@ remote_self_or_continue() {
   ssh "$target" "BANZAMI_ON_VM=1 bash -c '
       rc=0
       trap \"rm -rf $dir\" EXIT
-      bash $dir/$base $(printf '%q ' "$@") || rc=\$?
+      bash $dir/$base $args || rc=\$?
       exit \$rc
     '"
   exit $?
