@@ -117,6 +117,15 @@ func main() {
 	} else {
 		slog.Warn("CORE_API_URL / CORE_REFUND_KEY not set — Console refunds report as unavailable")
 	}
+	// Self-service Sandbox financial setup. A project created in the Console had
+	// no financial owner and no way to get one that the developer could perform
+	// or even see; this is what makes that step theirs. Sandbox-only, gated on
+	// the deployment's own environment in the same fail-closed shape as fixtures.
+	if pv := developer.NewSandboxProvisioner(coreclient.NewProvision(cfg.CoreAPIURL)); pv != nil {
+		devSvc.SetSandboxProvisioner(pv)
+	} else {
+		slog.Warn("CORE_API_URL not set — sandbox financial setup reports as unavailable")
+	}
 	// Deploy-vs-release control (RT04C §1): logged without secrets. Config already
 	// forces this false outside a sandbox environment.
 	devSvc.SetPaymentCapabilityReleased(cfg.PaymentCapabilityReleased)
@@ -127,6 +136,9 @@ func main() {
 	// being folded into the meaning of "sandbox".
 	fixturesEnabled := env.Parse(cfg.Environment).IsSandbox() || cfg.IsDevelopment()
 	devSvc.SetFixturesEnabled(fixturesEnabled)
+	// Same gate as fixtures, for the same reason: a self-service path into a
+	// real-money financial owner must not be reachable outside Sandbox.
+	devSvc.SetSandboxEnvironment(env.Parse(cfg.Environment).IsSandbox() || cfg.IsDevelopment())
 	slog.Info("payment capability release state", "released", cfg.PaymentCapabilityReleased, "fixtures", fixturesEnabled, "env", cfg.Environment)
 	devH := developer.NewHandlers(devSvc)
 

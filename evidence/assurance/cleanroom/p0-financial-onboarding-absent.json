@@ -1,0 +1,26 @@
+{
+  "finding": "P0 \u2014 a fresh public Sandbox project has no financial owner and no public way to get one",
+  "discovered": "2026-09-07T00:36:00Z",
+  "method": "external cleanroom \u2014 a brand-new identity, public interfaces only",
+  "environment": "deployed \u2014 developers.banzami.com / developer-api.banzami.com",
+  "reproduction": {
+    "1_identity": "POST /auth/request-otp \u2192 a real six-digit code, delivered by the product \u2192 POST /auth/verify \u2192 session. No SQL, no session minting.",
+    "2_workspace": "POST /workspaces \u2192 201",
+    "3_project": "POST /workspaces/{ws}/projects \u2192 201 (Sandbox)",
+    "4_what_the_developer_then_sees": {
+      "GET /projects/{id}/keys": "200, empty list",
+      "GET /projects/{id}/balances": "404 NOT_FOUND",
+      "GET /projects/{id}/transactions": "404 NOT_FOUND",
+      "GET /projects/{id}/webhooks/endpoints": "404 NOT_FOUND",
+      "GET /projects/{id}/refund-capability": "200 {allowed:true, configured:true, role:OWNER} \u2014 untrue, and fixed at c868fed3"
+    }
+  },
+  "cause": "The project has no ACTIVE binding, so no merchant, so every financially-derived surface answers not-found.",
+  "the_blocker": "The only binding endpoint is POST /internal/v1/projects/{projID}/binding, guarded by the internal service key. It is invisible to the developer, uncallable by them, and has no request mechanism, no pending state and no completion signal. Completion becomes visible only when three 404s silently turn into 200s.",
+  "verdict": "FAIL \u2014 an onboarding step required for the advertised journey that the developer can neither perform nor observe.",
+  "ids_at_discovery": {
+    "workspace": "5f7d6fa6-d443-40fa-8ae6-5348a0666cd4",
+    "project": "d26a3940-bd7b-4925-96a4-1ed2c84677de"
+  },
+  "note": "Preserved as written. The fix does not rewrite this record."
+}

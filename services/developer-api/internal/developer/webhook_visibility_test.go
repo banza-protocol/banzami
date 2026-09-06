@@ -1,6 +1,7 @@
 package developer
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 )
@@ -78,8 +79,8 @@ func TestWebhookVisibility_UnboundProjectHasNoWebhooks(t *testing.T) {
 	// Refused, not an empty list. An empty list asserts the question was
 	// meaningful and the answer was "none"; an unbound project has no financial
 	// owner for the question to be about.
-	if _, err := s.ProjectWebhookEndpoints(bg, "u_dev", p); err != ErrNotFound {
-		t.Fatalf("unbound project: want ErrNotFound, got %v", err)
+	if _, err := s.ProjectWebhookEndpoints(bg, "u_dev", p); !errors.Is(err, ErrFinancialSetupRequired) {
+		t.Fatalf("unbound project: want ErrFinancialSetupRequired, got %v", err)
 	}
 }
 

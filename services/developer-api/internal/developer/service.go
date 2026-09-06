@@ -2,6 +2,7 @@ package developer
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 	"time"
@@ -16,9 +17,11 @@ type Service struct {
 	apiKeyPepper    string
 	inviteTTL       time.Duration
 	payee           PayeeValidator
-	refunder        Refunder // Core refund boundary; nil until wired (see refunds.go)
-	paymentReleased bool     // deploy-vs-release control (RT04C §1)
-	fixturesEnabled bool     // operator E2E fixture-key path, sandbox-only (RT04D §2)
+	refunder        Refunder           // Core refund boundary; nil until wired (see refunds.go)
+	provisioner     SandboxProvisioner // Sandbox financial owner provisioning; nil until wired
+	sandboxEnv      bool               // self-service financial setup is sandbox-only
+	paymentReleased bool               // deploy-vs-release control (RT04C §1)
+	fixturesEnabled bool               // operator E2E fixture-key path, sandbox-only (RT04D §2)
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the
@@ -343,6 +346,22 @@ func (s *Service) projectAuthz(ctx context.Context, actor, projectID string) (*P
 // An unbound project has no webhooks — not an empty list, which would assert the
 // question was meaningful and the answer was "none".
 
+// ErrFinancialSetupRequired: the caller is authorised for this project and the
+// project has no financial owner yet.
+//
+// This used to be ErrNotFound, and that was wrong in a way that cost an external
+// developer their first hour. A fresh project answered 404 on balances,
+// transactions and webhooks — the same answer as a project that does not exist,
+// or one belonging to someone else — so the only signal that anything was
+// missing was three routes that looked broken. Not-found is the right answer for
+// a project you may not see; it is the wrong answer for your own project in a
+// state the product has a name for.
+//
+// The privacy-safe 404 is untouched: a non-member and a nonexistent project
+// still both get not-found, because telling them apart is the oracle that answer
+// exists to prevent.
+var ErrFinancialSetupRequired = errors.New("project financial setup required")
+
 // projectMerchant authorises the actor for the project and returns the merchant
 // its binding names.
 func (s *Service) projectMerchant(ctx context.Context, actor, projectID string) (string, error) {
@@ -355,7 +374,7 @@ func (s *Service) projectMerchant(ctx context.Context, actor, projectID string) 
 		return "", ErrUnavailable
 	}
 	if b == nil || b.MerchantID == "" {
-		return "", ErrNotFound
+		return "", ErrFinancialSetupRequired
 	}
 	return b.MerchantID, nil
 }

@@ -219,6 +219,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/balances", h.listBalances)
 	r.Get("/projects/{projID}/transactions", h.listTransactions)
 	r.Get("/projects/{projID}/refund-capability", h.refundCapability)
+	r.Get("/projects/{projID}/financial-setup", h.financialSetup)
 	r.Get("/projects/{projID}/webhooks/endpoints", h.listWebhookEndpoints)
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
@@ -237,6 +238,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/keys/{keyID}/rotate", h.rotateKey)
 		r.Delete("/keys/{keyID}", h.revokeKey)
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
+		r.Post("/projects/{projID}/financial-setup", h.configureFinancialSetup)
 	})
 }
 
@@ -314,6 +316,57 @@ func (h *Handlers) listTransactions(w http.ResponseWriter, r *http.Request) {
 		next = tx[len(tx)-1].CreatedAt.Format(time.RFC3339Nano)
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"transactions": tx, "next_cursor": next})
+}
+
+// GET /projects/{projID}/financial-setup
+//
+// The project's financial lifecycle, in the developer's own terms: is this
+// project able to take a payment yet, may I be the one to make it so, and has
+// the destination locked. Nothing about merchants, wallets or bindings — those
+// are how it works, not what they need to know.
+func (h *Handlers) financialSetup(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	st, err := h.svc.ProjectFinancialSetup(r.Context(), u.ID, chi.URLParam(r, "projID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, st)
+}
+
+// POST /projects/{projID}/financial-setup
+//
+// Behind the CSRF guard with the other state-changing routes. It takes no body:
+// there is no merchant, wallet or owner to supply, because supplying one is
+// exactly what this exists to make unnecessary.
+func (h *Handlers) configureFinancialSetup(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	st, err := h.svc.ConfigureProjectFinancialSandbox(r.Context(), u.ID,
+		chi.URLParam(r, "projID"), ip, reqID)
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrWrongEnvironment):
+			httpx.Error(w, http.StatusForbidden, "SANDBOX_ONLY",
+				"financial setup is available in the Sandbox only")
+			return
+		case errors.Is(err, ErrSetupUnavailable):
+			httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE",
+				"sandbox financial setup is not available on this deployment")
+			return
+		}
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, st)
 }
 
 // GET /projects/{projID}/refund-capability
@@ -492,6 +545,15 @@ func body(r *http.Request, v any) bool {
 
 // mapErr translates domain errors to HTTP status + stable code.
 func mapErr(w http.ResponseWriter, err error) {
+	// A project of yours that has not been set up is not a missing project. It is
+	// a state with a name, an action, and a place in the Console to perform it —
+	// so it gets a code that says which, rather than the not-found that a
+	// stranger's project gets.
+	if errors.Is(err, ErrFinancialSetupRequired) {
+		httpx.Error(w, http.StatusConflict, "PROJECT_FINANCIAL_SETUP_REQUIRED",
+			"this project has no Sandbox financial setup yet — configure it in the Developers Console")
+		return
+	}
 	switch err {
 	case ErrForbidden:
 		httpx.Error(w, http.StatusForbidden, "FORBIDDEN", "not allowed")

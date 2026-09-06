@@ -18,8 +18,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -251,4 +253,139 @@ func (c *RefundClient) CreateRefund(ctx context.Context, merchantID, sourceType,
 		return nil, ErrUnavailable
 	}
 	return &out, nil
+}
+
+// ── Sandbox financial provisioning ──────────────────────────────────────────
+//
+// The third thing that crosses this boundary, and the one that creates rather
+// than reads. A developer who has just made a Sandbox project has no financial
+// owner, and until now the only way to get one was an operator calling an
+// internal route the developer could not see. This is what makes that step the
+// developer's own.
+//
+// It creates exactly what the canonical model needs and nothing more: a Sandbox
+// merchant and one wallet. The wallet's PRIMARY account is created by Core's own
+// trigger, not by this client — a segregated CAMPAIGN account is the developer's
+// to open, through the public API, when their application needs one.
+//
+// These Core routes are not credential-gated; the network boundary is what
+// guards them. That is Core's decision and not this client's to work around, but
+// it is why every caller of this must have established its own authority first:
+// nothing downstream will ask again.
+
+// ProvisionClient creates a Sandbox financial owner. Nil when unconfigured.
+type ProvisionClient struct {
+	baseURL string
+	http    *http.Client
+}
+
+// NewProvision returns nil without a base URL, so an unconfigured deployment
+// reports the capability as unavailable rather than half-creating an owner.
+func NewProvision(baseURL string) *ProvisionClient {
+	if baseURL == "" {
+		return nil
+	}
+	return &ProvisionClient{baseURL: baseURL, http: &http.Client{Timeout: 20 * time.Second}}
+}
+
+// SandboxOwner is what was provisioned. The developer never sees these ids; they
+// exist so the binding can name a payee and so the audit trail can be followed.
+type SandboxOwner struct {
+	MerchantID      string
+	WalletID        string
+	WalletAccountID string
+}
+
+func (c *ProvisionClient) post(ctx context.Context, path string, body any, out any) error {
+	b, _ := json.Marshal(body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(b))
+	if err != nil {
+		return ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return ErrUnavailable
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("core %s: %d", path, resp.StatusCode)
+	}
+	if out != nil {
+		if err := json.Unmarshal(raw, out); err != nil {
+			return ErrUnavailable
+		}
+	}
+	return nil
+}
+
+// ProvisionSandboxOwner creates the merchant and wallet, and returns the PRIMARY
+// account Core's trigger made alongside the wallet.
+//
+// `name` and `email` identify the owner in the operator's own records. They are
+// derived from the project by the caller, never supplied by the developer: a
+// caller-chosen merchant name is a caller-chosen identity.
+func (c *ProvisionClient) ProvisionSandboxOwner(ctx context.Context, name, email string) (*SandboxOwner, error) {
+	var merchant struct {
+		ID string `json:"id"`
+	}
+	if err := c.post(ctx, "/internal/v1/merchants",
+		map[string]any{"name": name, "email": email}, &merchant); err != nil {
+		return nil, err
+	}
+	if merchant.ID == "" {
+		return nil, ErrUnavailable
+	}
+
+	var wallet struct {
+		ID string `json:"id"`
+	}
+	if err := c.post(ctx, "/internal/v1/wallets",
+		map[string]any{"merchant_id": merchant.ID, "currency": "AOA"}, &wallet); err != nil {
+		// The merchant exists and the wallet does not. Reported so the caller can
+		// resume rather than provision a second merchant on the next attempt.
+		return &SandboxOwner{MerchantID: merchant.ID}, err
+	}
+
+	acct, err := c.primaryAccount(ctx, wallet.ID)
+	if err != nil {
+		return &SandboxOwner{MerchantID: merchant.ID, WalletID: wallet.ID}, err
+	}
+	return &SandboxOwner{MerchantID: merchant.ID, WalletID: wallet.ID, WalletAccountID: acct}, nil
+}
+
+// primaryAccount reads the account Core's own trigger created with the wallet.
+// It is never created here: Core rejects an attempt to open a PRIMARY through
+// the wallet-accounts route, and rightly — one wallet has exactly one.
+func (c *ProvisionClient) primaryAccount(ctx context.Context, walletID string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		c.baseURL+"/internal/v1/wallet-accounts?wallet_id="+url.QueryEscape(walletID), nil)
+	if err != nil {
+		return "", ErrUnavailable
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", ErrUnavailable
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return "", fmt.Errorf("core wallet-accounts: %d", resp.StatusCode)
+	}
+	var page struct {
+		Data []struct {
+			ID      string `json:"id"`
+			Purpose string `json:"purpose"`
+		} `json:"data"`
+	}
+	if err := json.Unmarshal(raw, &page); err != nil {
+		return "", ErrUnavailable
+	}
+	for _, a := range page.Data {
+		if a.Purpose == "PRIMARY" {
+			return a.ID, nil
+		}
+	}
+	return "", fmt.Errorf("no PRIMARY account on wallet %s", walletID)
 }

@@ -299,8 +299,11 @@ func TestRefund_UnboundProjectHasNothingToRefund(t *testing.T) {
 	s.SetRefunder(&fakeRefunder{})
 	pid := mkProject(t, s, "u_owner", ws.ID)
 
-	if _, err := s.ProjectRefund(bg, "u_owner", pid, req()); !errors.Is(err, ErrNotFound) {
-		t.Fatalf("unbound project: want NotFound, got %v", err)
+	// Not NotFound. An OWNER asking about their own un-set-up project gets the
+	// state's own name, because there is something they can do about it; the
+	// privacy-safe not-found is for a project they may not see.
+	if _, err := s.ProjectRefund(bg, "u_owner", pid, req()); !errors.Is(err, ErrFinancialSetupRequired) {
+		t.Fatalf("unbound project: want FinancialSetupRequired, got %v", err)
 	}
 	if _, err := s.ProjectRefund(bg, "u_view", pid, req()); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("VIEWER on an unbound project must be refused for the role, got %v", err)
