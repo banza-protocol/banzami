@@ -195,6 +195,22 @@ fn transition_err(e: PayoutError) -> ApiError {
         PayoutError::InvalidStatusTransition { .. } => {
             ApiError::unprocessable("INVALID_TRANSITION", e.to_string())
         }
+        // A refused price is a configuration state someone can act on, not an
+        // outage. Reporting it as 500 would tell an operator their system is
+        // broken when what is missing is a rule they have to write, and would
+        // put a deliberate refusal in the same bucket as a database failure.
+        PayoutError::PricingNotConfigured => ApiError::conflict(
+            "PRICING_NOT_CONFIGURED",
+            "no PAYOUT pricing rule applies to this owner's pricing profile; \
+             the withdrawal was refused and nothing moved",
+        ),
+        PayoutError::PricingAmbiguous { candidates } => ApiError::conflict(
+            "PRICING_CONFIGURATION_ERROR",
+            format!(
+                "{candidates} PAYOUT pricing rules apply to this owner's pricing profile; \
+                 the withdrawal was refused rather than priced by guesswork"
+            ),
+        ),
         other => ApiError::internal(other.to_string()),
     }
 }

@@ -158,22 +158,18 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             Err(banzami_pricing::PricingFailure::Ambiguous { candidates }) => {
                 return Err(PayoutError::PricingAmbiguous { candidates });
             }
-            // The pre-cutover behaviour, and the last place in this operator
-            // where an absent decision still costs nothing. Loudly logged so it
-            // is visible while it lasts.
+            // No rule is not a fee of zero. This was the last place in the
+            // operator where an absent decision still cost nothing, and it is
+            // the exact shape RA-063 took: a payout of 80 000 left with no fee
+            // because the rule had not been created yet, 73 seconds before it
+            // was. The money had already gone.
             Err(_) => {
                 tracing::warn!(
                     environment = %self.environment,
                     gross_minor = gross.amount_minor(),
-                    "withdrawal priced at ZERO because no rule applies — pre-cutover behaviour, see REPAIR_LOG RA-063"
+                    "withdrawal refused: no PAYOUT rule applies to this owner's pricing profile"
                 );
-                return Ok(WithdrawalPricing {
-                    fee_minor: 0,
-                    rule_id: None,
-                    rule_version: None,
-                    rate_bps: None,
-                    decided_at,
-                });
+                return Err(PayoutError::PricingNotConfigured);
             }
         };
 
@@ -877,8 +873,12 @@ mod tests {
 
     /// No-fee engine (empty rule set) — preserves the pre-ADR-031 behaviour used
     /// by the lifecycle tests.
+    /// The default engine is PRICED, because an operator with no PAYOUT rule
+    /// refuses every withdrawal — so a fixture with no rules can only ever test
+    /// the refusal, never the lifecycle.
     fn make_engine(available_balance_minor: i64) -> (PayoutEngineT, WalletId, AccountId) {
-        let (e, w, a, _bank, _opfee) = make_engine_with(available_balance_minor, vec![]);
+        let (e, w, a, _bank, _opfee) =
+            make_engine_with(available_balance_minor, vec![withdrawal_rule(75)]);
         (e, w, a)
     }
 
@@ -1216,14 +1216,44 @@ mod tests {
         engine.process(p.id).await.unwrap()
     }
 
+    /// A payout with no applicable rule REFUSES, and moves nothing.
+    ///
+    /// This test asserted the opposite until the rule was made mandatory: no
+    /// rule meant a fee of zero and the bank leg carried the full gross. That is
+    /// not a hypothetical — REPAIR_LOG RA-063 records a real 80 000 withdrawal
+    /// that left with no fee, 73 seconds before anyone created the rule. The
+    /// money was already gone; only the next fifteen payouts were charged.
     #[tokio::test]
-    async fn payout_without_rule_is_free() {
+    async fn payout_without_a_rule_refuses_and_moves_nothing() {
         let (engine, wallet_id, avail_id, bank_id, opfee_id) = make_engine_with(200_000, vec![]);
-        init_process(&engine, wallet_id, "w-free", 100_000).await;
-        // No rule → fee 0: bank gets the full gross, operator fee untouched.
-        assert_eq!(net_of(&engine, opfee_id).await, 0);
-        assert_eq!(net_of(&engine, bank_id).await, 100_000); // ASSET credited full gross
-        assert_eq!(net_of(&engine, avail_id).await, 100_000); // LIABILITY: 200k cr − 100k dr
+        let p = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "w-unpriced".into(),
+                merchant_id: owner(),
+                wallet_id,
+                amount: kz(100_000),
+                destination: dest(),
+            })
+            .await
+            .unwrap();
+        assert!(
+            matches!(
+                engine.process(p.id).await,
+                Err(PayoutError::PricingNotConfigured)
+            ),
+            "an unpriced withdrawal must refuse, not leave for free"
+        );
+        assert_eq!(net_of(&engine, opfee_id).await, 0, "no fee posted");
+        assert_eq!(
+            net_of(&engine, bank_id).await,
+            0,
+            "nothing reached the bank"
+        );
+        assert_eq!(
+            net_of(&engine, avail_id).await,
+            200_000,
+            "the merchant's balance is untouched"
+        );
     }
 
     #[tokio::test]
@@ -1339,12 +1369,28 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn future_dated_rule_is_not_applied() {
-        // A rule effective only in the future must not price today → free.
+    async fn a_rule_that_starts_next_year_does_not_price_today() {
+        // A rule outside its window is not a rule that charges nothing; it is no
+        // rule at all, and no rule refuses. Asserting a fee of zero here would
+        // mean a policy scheduled for next year makes withdrawals free until it
+        // arrives.
         let mut future = withdrawal_rule(75);
         future.effective_from = Utc::now() + chrono::Duration::days(365);
         let (engine, wallet_id, _avail, _bank, opfee_id) = make_engine_with(200_000, vec![future]);
-        init_process(&engine, wallet_id, "w-future", 100_000).await;
+        let p = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "w-future".into(),
+                merchant_id: owner(),
+                wallet_id,
+                amount: kz(100_000),
+                destination: dest(),
+            })
+            .await
+            .unwrap();
+        assert!(matches!(
+            engine.process(p.id).await,
+            Err(PayoutError::PricingNotConfigured)
+        ));
         assert_eq!(net_of(&engine, opfee_id).await, 0);
     }
 
