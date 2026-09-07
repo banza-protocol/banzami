@@ -5,6 +5,7 @@ import { developerApi, type ApiKey, type NewKey } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
 import { Card, Pill } from './ui';
+import { ConfirmDialog } from './ConfirmDialog';
 import { IconCopy, IconRotate, IconShield } from './icons';
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
@@ -158,6 +159,8 @@ export function ApiKeysManager() {
   const [newKind, setNewKind] = useState<'PUBLISHABLE' | 'SECRET'>('SECRET');
   const [newScopes, setNewScopes] = useState<string[]>(['identity:read']);
   const [busy, setBusy] = useState(false);
+  // The key an irreversible action is pending on — the dialog names it.
+  const [confirming, setConfirming] = useState<{ action: 'revoke' | 'rotate'; key: ApiKey } | null>(null);
 
   const projectId = activeProject?.id ?? null;
 
@@ -202,31 +205,29 @@ export function ApiKeysManager() {
     }
   };
 
-  const rotate = async (id: string) => {
-    setBusy(true);
+  // Both of these stop an existing credential working, immediately and for good.
+  // Neither is undoable, so both go through a confirmation that names the key —
+  // and the failure stays in that dialog instead of closing over a row that did
+  // not change. `onApiError` is what turns a transport error into something a
+  // developer can read (and clears auth on 401), so it runs before the rethrow.
+  const rotate = async (k: ApiKey) => {
     try {
-      const k = await developerApi.rotateKey(id, csrf);
-      if (k.secret) setRevealSecret(k.secret);
+      const rotated = await developerApi.rotateKey(k.id, csrf);
+      if (rotated.secret) setRevealSecret(rotated.secret);
       await loadKeys();
       flash('Chave rotacionada — a antiga deixou de funcionar');
     } catch (e) {
-      flash(onApiError(e));
-    } finally {
-      setBusy(false);
+      throw new Error(onApiError(e));
     }
   };
 
-  const revoke = async (id: string) => {
-    if (!window.confirm('Revogar esta chave? Deixa de funcionar imediatamente.')) return;
-    setBusy(true);
+  const revoke = async (k: ApiKey) => {
     try {
-      await developerApi.revokeKey(id, csrf);
+      await developerApi.revokeKey(k.id, csrf);
       await loadKeys();
       flash('Chave revogada');
     } catch (e) {
-      flash(onApiError(e));
-    } finally {
-      setBusy(false);
+      throw new Error(onApiError(e));
     }
   };
 
@@ -358,7 +359,7 @@ export function ApiKeysManager() {
                     {k.status === 'ACTIVE' ? (
                       <>
                         <button
-                          onClick={() => rotate(k.id)}
+                          onClick={() => setConfirming({ action: 'rotate', key: k })}
                           disabled={busy}
                           title="Rotacionar"
                           aria-label="Rotacionar chave"
@@ -368,7 +369,7 @@ export function ApiKeysManager() {
                           <IconRotate size={14} />
                         </button>
                         <button
-                          onClick={() => revoke(k.id)}
+                          onClick={() => setConfirming({ action: 'revoke', key: k })}
                           disabled={busy}
                           style={{ padding: '6px 12px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
                         >
@@ -392,6 +393,22 @@ export function ApiKeysManager() {
         </span>
         Chaves revogadas e rotacionadas deixam de funcionar imediatamente. As chaves Live/produção não estão disponíveis.
       </p>
+
+      {confirming ? (
+        <ConfirmDialog
+          title={confirming.action === 'revoke' ? 'Revogar chave' : 'Rotacionar chave'}
+          body={
+            confirming.action === 'revoke'
+              ? 'A chave deixa de funcionar imediatamente e não pode ser reactivada. Qualquer integração que a use passa a receber 401.'
+              : 'É emitido um segredo novo e o actual deixa de funcionar imediatamente. O novo segredo é mostrado uma única vez.'
+          }
+          subject={`${confirming.key.name} · ${confirming.key.prefix}…`}
+          confirmLabel={confirming.action === 'revoke' ? 'Revogar' : 'Rotacionar'}
+          danger
+          onConfirm={() => (confirming.action === 'revoke' ? revoke(confirming.key) : rotate(confirming.key))}
+          onClose={() => setConfirming(null)}
+        />
+      ) : null}
 
       {revealSecret ? <SecretRevealDialog secret={revealSecret} onDismiss={() => setRevealSecret(null)} /> : null}
     </div>

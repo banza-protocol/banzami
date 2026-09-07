@@ -6,6 +6,7 @@ import { useDeveloperAuth } from './DeveloperAuth';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
 import { Card, Pill } from './ui';
+import { ConfirmDialog } from './ConfirmDialog';
 import { assignableRoles, canModifyTarget, isManager, roleSummary, ROLE_LABELS } from '@/lib/developer-roles';
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
@@ -21,6 +22,7 @@ export function MembersManager() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('DEVELOPER');
   const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState<Member | null>(null);
 
   const wsID = activeWs?.id ?? null;
   const myRole = members.find((m) => m.user_id === user?.id)?.role ?? 'VIEWER';
@@ -76,18 +78,18 @@ export function MembersManager() {
     }
   };
 
+  // Removing a member revokes their access to every project in the workspace.
+  // The confirmation names who, and a refusal the server makes on the way —
+  // FORBIDDEN, or LAST_OWNER — is shown in the dialog rather than in a toast
+  // over a list that still contains the member.
   const remove = async (m: Member) => {
     if (!wsID) return;
-    if (!window.confirm('Remover este membro do workspace?')) return;
-    setBusy(true);
     try {
       await developerApi.removeMember(wsID, m.user_id, csrf);
       await loadMembers();
       flash('Membro removido');
     } catch (e) {
-      flash(onApiError(e));
-    } finally {
-      setBusy(false);
+      throw new Error(onApiError(e));
     }
   };
 
@@ -141,7 +143,7 @@ export function MembersManager() {
             )}
             {modifiable ? (
               <button
-                onClick={() => remove(m)}
+                onClick={() => setRemoving(m)}
                 disabled={busy}
                 style={{ padding: '6px 11px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
               >
@@ -195,6 +197,18 @@ export function MembersManager() {
           Só Owners e Admins podem convidar ou gerir membros.
         </p>
       )}
+
+      {removing ? (
+        <ConfirmDialog
+          title="Remover membro"
+          body="O membro perde acesso a este workspace e a todos os seus projectos. Para voltar a entrar precisa de um convite novo."
+          subject={`${removing.user_id} · ${ROLE_LABELS[removing.role] ?? removing.role}`}
+          confirmLabel="Remover"
+          danger
+          onConfirm={() => remove(removing)}
+          onClose={() => setRemoving(null)}
+        />
+      ) : null}
     </div>
   );
 }
