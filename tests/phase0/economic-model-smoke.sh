@@ -229,8 +229,16 @@ chk F_PAYOUT_REFUSED  "$CODE" "409"
 chk F_REFUSAL_IS_NAMED "$(errcode)" "PRICING_NOT_CONFIGURED"
 chk F_WALLET_UNTOUCHED "$(wbal "$FW")" "$GROSS"
 chk F_NO_FEE_RECORDED  "$(q "SELECT COALESCE(fee_minor::text,'none') FROM payouts WHERE id='$FPID'")" "none"
-q "DELETE FROM pricing_rules   WHERE rule_key='smoke-settle-only-$R'" >/dev/null
-q "UPDATE pricing_profiles SET enabled=false WHERE code='smoke-settle-only-$R'" >/dev/null
+# The probe is removed, not disabled. A disabled profile is still a profile: it
+# accumulates, it shows up in every inventory, and "why is this here" has no
+# answer once the run that made it is gone. Nothing references it — the owner
+# assigned to it is retired by the run manifest, and its only rule is deleted
+# on the line above.
+q "DELETE FROM pricing_rules WHERE rule_key='smoke-settle-only-$R'" >/dev/null
+q "UPDATE merchants SET pricing_profile_id = NULL
+    WHERE pricing_profile_id = (SELECT id FROM pricing_profiles WHERE code='smoke-settle-only-$R')" >/dev/null
+q "DELETE FROM pricing_profiles WHERE code='smoke-settle-only-$R'" >/dev/null
+chk F_PROBE_PROFILE_REMOVED "$(q "SELECT COUNT(*) FROM pricing_profiles WHERE code='smoke-settle-only-$R'")" "0"
 
 echo "### G — two applicable rules refuse rather than rank"
 # The unique index makes two OPEN rules for one cell impossible, so the overlap
