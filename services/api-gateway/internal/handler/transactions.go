@@ -17,10 +17,14 @@ import (
 // TransactionHandler handles transaction-related HTTP routes.
 type TransactionHandler struct {
 	svc service.TransactionService
+	// pricing resolves the merchant's operator-assigned policy. The same
+	// interface the settlement handler uses, for the same reason: there is one
+	// question a fee path may ask, and it is "whose policy".
+	pricing PricingProfileResolver
 }
 
-func NewTransactionHandler(svc service.TransactionService) *TransactionHandler {
-	return &TransactionHandler{svc: svc}
+func NewTransactionHandler(svc service.TransactionService, pricing PricingProfileResolver) *TransactionHandler {
+	return &TransactionHandler{svc: svc, pricing: pricing}
 }
 
 type createTransactionBody struct {
@@ -30,13 +34,16 @@ type createTransactionBody struct {
 	Currency        string `json:"currency"`
 	Description     string `json:"description"`
 	WalletID        string `json:"wallet_id"` // optional
-	// BANZA ADR-019 fee references (operator-internal). Reference only — never a
-	// price. Optional; absent => unpriced => zero fee. A client never sends a
-	// fee/percentage: there is no rate_bps/fee_minor field, so any such value is
-	// ignored on decode.
-	BusinessCategory string `json:"business_category"`
-	PricingProfile   string `json:"pricing_profile"`
-	FeePolicyRef     string `json:"fee_policy_ref"`
+	// No pricing fields. The comment that used to stand here said these were
+	// "reference only — never a price", and that a client cannot send a fee
+	// because there is no rate field. Both halves were true and the conclusion
+	// was wrong: the client picked the reference, and the reference picks the
+	// price. It could even send pricing_profile, naming the operator's policy
+	// outright, and "absent => unpriced => zero fee" made omitting everything the
+	// cheapest option of all.
+	//
+	// The operator's policy is resolved from the authenticated merchant's own
+	// assignment. A body that still carries these fields is decoded and ignored.
 }
 
 // Create handles POST /v1/transactions.
@@ -78,18 +85,31 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		txType = "payment"
 	}
 
+	// The operator's policy, from the merchant's assignment. Unlike a settlement,
+	// a transaction with no policy is NOT refused: a transaction is the record of
+	// something that happened, and refusing to record it because pricing is
+	// unconfigured would lose the event rather than protect the money. It is
+	// created unpriced and the pricing gate catches the owner separately.
+	pricingProfile := ""
+	if h.pricing != nil {
+		code, perr := h.pricing.PricingProfileForMerchant(r.Context(), principal.MerchantID)
+		if perr != nil {
+			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve pricing")
+			return
+		}
+		pricingProfile = code
+	}
+
 	tx, err := h.svc.Create(r.Context(), service.CreateTransactionRequest{
-		IdempotencyKey:   body.IdempotencyKey,
-		TransactionType:  txType,
-		AmountMinor:      body.AmountMinor,
-		Currency:         body.Currency,
-		Description:      body.Description,
-		MerchantID:       principal.MerchantID,
-		WalletID:         body.WalletID,
-		Environment:      principal.Environment,
-		BusinessCategory: body.BusinessCategory,
-		PricingProfile:   body.PricingProfile,
-		FeePolicyRef:     body.FeePolicyRef,
+		IdempotencyKey:  body.IdempotencyKey,
+		TransactionType: txType,
+		AmountMinor:     body.AmountMinor,
+		Currency:        body.Currency,
+		Description:     body.Description,
+		MerchantID:      principal.MerchantID,
+		WalletID:        body.WalletID,
+		Environment:     principal.Environment,
+		PricingProfile:  pricingProfile,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",

@@ -143,7 +143,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
 	businessMeHandler := handler.NewBusinessMeHandler(deps.BusinessSelfSvc)
 	notificationsHandler := handler.NewNotificationsHandler(deps.NotificationsSvc)
-	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
+	txHandler := handler.NewTransactionHandler(deps.TransactionSvc, deps.BusinessSelfSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
 	teamHandler := handler.NewTeamHandler(deps.TeamSvc)

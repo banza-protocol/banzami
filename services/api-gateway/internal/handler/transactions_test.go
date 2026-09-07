@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -83,7 +85,7 @@ func decodeError(t *testing.T, body *bytes.Buffer) apierror.Response {
 // ---------------------------------------------------------------------------
 
 func TestTransactionCreate_NoMerchantPrincipal_Returns403(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
 		"idempotency_key": "idem-001",
@@ -102,7 +104,7 @@ func TestTransactionCreate_NoMerchantPrincipal_Returns403(t *testing.T) {
 }
 
 func TestTransactionCreate_MissingIdempotencyKey_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
 		"amount_minor": 50000,
@@ -119,7 +121,7 @@ func TestTransactionCreate_MissingIdempotencyKey_Returns400(t *testing.T) {
 }
 
 func TestTransactionCreate_ZeroAmount_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
 		"idempotency_key": "idem-001",
@@ -137,7 +139,7 @@ func TestTransactionCreate_ZeroAmount_Returns400(t *testing.T) {
 }
 
 func TestTransactionCreate_NegativeAmount_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
 		"idempotency_key": "idem-001",
@@ -151,7 +153,7 @@ func TestTransactionCreate_NegativeAmount_Returns400(t *testing.T) {
 }
 
 func TestTransactionCreate_MissingCurrency_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
 		"idempotency_key": "idem-001",
@@ -179,7 +181,7 @@ func TestTransactionCreate_ValidRequest_Returns201(t *testing.T) {
 			return stubbedTx(), nil
 		},
 	}
-	h := handler.NewTransactionHandler(svc)
+	h := handler.NewTransactionHandler(svc, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
 		"idempotency_key": "idem-001",
@@ -193,7 +195,7 @@ func TestTransactionCreate_ValidRequest_Returns201(t *testing.T) {
 }
 
 func TestTransactionCreate_InvalidJSON_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions",
 		bytes.NewBufferString("not json")), "merchant-001")
@@ -208,7 +210,7 @@ func TestTransactionCreate_InvalidJSON_Returns400(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTransactionGet_NoMerchantPrincipal_Returns403(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", "tx-001")
@@ -228,7 +230,7 @@ func TestTransactionGet_NotFound_Returns404(t *testing.T) {
 			return nil, service.ErrTransactionNotFound
 		},
 	}
-	h := handler.NewTransactionHandler(svc)
+	h := handler.NewTransactionHandler(svc, nil)
 
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", "tx-missing")
@@ -248,7 +250,7 @@ func TestTransactionGet_Success_Returns200(t *testing.T) {
 			return stubbedTx(), nil
 		},
 	}
-	h := handler.NewTransactionHandler(svc)
+	h := handler.NewTransactionHandler(svc, nil)
 
 	rctx := chi.NewRouteContext()
 	rctx.URLParams.Add("id", "tx-001")
@@ -267,7 +269,7 @@ func TestTransactionGet_Success_Returns200(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestTransactionList_InvalidLimit_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodGet, "/v1/transactions?limit=999", nil), "merchant-001")
 	h.List(w, r)
@@ -281,7 +283,7 @@ func TestTransactionList_InvalidLimit_Returns400(t *testing.T) {
 }
 
 func TestTransactionList_ZeroLimit_Returns400(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodGet, "/v1/transactions?limit=0", nil), "merchant-001")
 	h.List(w, r)
@@ -299,7 +301,7 @@ func TestTransactionList_DefaultLimit_Returns200(t *testing.T) {
 			return &service.TransactionPage{Data: []*service.Transaction{stubbedTx()}}, nil
 		},
 	}
-	h := handler.NewTransactionHandler(svc)
+	h := handler.NewTransactionHandler(svc, nil)
 	w := httptest.NewRecorder()
 	r := withMerchant(httptest.NewRequest(http.MethodGet, "/v1/transactions", nil), "merchant-001")
 	h.List(w, r)
@@ -309,11 +311,67 @@ func TestTransactionList_DefaultLimit_Returns200(t *testing.T) {
 }
 
 func TestTransactionList_NoMerchantPrincipal_Returns403(t *testing.T) {
-	h := handler.NewTransactionHandler(&mockTxSvc{})
+	h := handler.NewTransactionHandler(&mockTxSvc{}, nil)
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/v1/transactions", nil)
 	h.List(w, r)
 	if w.Code != http.StatusForbidden {
 		t.Errorf("expected 403, got %d", w.Code)
+	}
+}
+
+// The pricing selectors are gone from the transactions request.
+//
+// The comment that used to stand beside them said they were "reference only —
+// never a price", and that a client cannot send a fee because there is no rate
+// field. Both halves were true and the conclusion was wrong: the client picked
+// the reference and the reference picks the price. It could even send
+// pricing_profile, naming the operator's policy outright, and the documented
+// "absent => unpriced => zero fee" made omitting everything the cheapest option.
+//
+// Asserted on the source, because a field that does not exist cannot be sent.
+// stripComments removes // and /* */ so a check reads code rather than prose.
+func stripComments(s string) string {
+	var b strings.Builder
+	for _, line := range strings.Split(s, "\n") {
+		if i := strings.Index(line, "//"); i >= 0 {
+			line = line[:i]
+		}
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+	return b.String()
+}
+
+func TestTransactions_RequestCarriesNoPricingSelector(t *testing.T) {
+	src, err := os.ReadFile("transactions.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(src)
+
+	start := strings.Index(body, "type createTransactionBody struct {")
+	end := strings.Index(body[start:], "}")
+	if start < 0 || end < 0 {
+		t.Fatal("could not find the request struct")
+	}
+	// Comments stripped first. The struct now carries an explanation that names
+	// the very fields it no longer has, and a check that cannot tell a record of
+	// why from a live field would force the explanation to be deleted to stay
+	// green — the same trap the SDK route guard hit.
+	req := stripComments(body[start : start+end])
+	for _, field := range []string{"business_category", "pricing_profile", "fee_policy_ref"} {
+		if strings.Contains(req, field) {
+			t.Errorf("the request still accepts %q — the caller can name the policy that prices it", field)
+		}
+	}
+	// Whitespace-insensitive: gofmt aligns struct literals, so an exact-spacing
+	// match asserts the formatter's choices rather than the code's meaning.
+	flat := strings.Join(strings.Fields(body), " ")
+	if !strings.Contains(flat, "PricingProfile: pricingProfile,") {
+		t.Error("the transaction does not send the server-resolved pricing profile")
+	}
+	if strings.Contains(body, "body.BusinessCategory") || strings.Contains(body, "body.PricingProfile") {
+		t.Error("the caller's pricing input still reaches the service")
 	}
 }
