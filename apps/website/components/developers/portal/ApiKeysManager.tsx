@@ -278,26 +278,59 @@ export function ApiKeysManager() {
               </button>
             ))}
           </div>
-          <label style={{ display: 'block', fontSize: 13, fontWeight: 800, color: '#6a5a5e', marginBottom: 8 }}>Scopes</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          <p id="scopes-label" style={{ fontSize: 13, fontWeight: 800, color: '#6a5a5e', margin: '0 0 4px' }}>Scopes</p>
+          <p style={{ margin: '0 0 10px', fontSize: 12, color: '#8a7a7e', lineHeight: 1.5 }}>
+            Cada scope é uma decisão de autoridade. <code style={{ fontFamily: mono }}>application_settlements:write</code>{' '}
+            move dinheiro para um beneficiário — dá-o apenas a uma chave que precise de liquidar.
+          </p>
+          {/*
+            These were pills whose only selected/unselected signal was colour,
+            with no aria-pressed — so nothing announced the state, and what each
+            scope actually grants lived in a `title` tooltip that never appears
+            on touch and cannot be reached by keyboard. The picker asks for an
+            authority decision, so the state is now programmatic and the
+            explanation is on the screen.
+          */}
+          <div role="group" aria-labelledby="scopes-label" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(268px,1fr))', gap: 8, marginBottom: 16 }}>
             {ALL_SCOPES.map((sc) => {
               const on = newScopes.includes(sc);
               return (
                 <button
                   key={sc}
+                  type="button"
+                  role="switch"
+                  aria-checked={on}
                   onClick={() => setNewScopes((prev) => (on ? prev.filter((x) => x !== sc) : [...prev, sc]))}
-                  style={{ padding: '5px 11px', borderRadius: 30, border: `1.5px solid ${on ? '#B5101F' : '#EBDBD9'}`, background: on ? '#FFF1F0' : '#fff', color: on ? '#B5101F' : '#8a7a7e', fontFamily: mono, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}
-                  title={SCOPE_HELP[sc] ?? sc}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 9, textAlign: 'left',
+                    padding: '9px 11px', borderRadius: 11,
+                    border: `1.5px solid ${on ? '#B5101F' : '#EBDBD9'}`,
+                    background: on ? '#FFF1F0' : '#fff', cursor: 'pointer',
+                  }}
                 >
-                  {sc}
+                  <span
+                    aria-hidden
+                    style={{
+                      flex: 'none', width: 16, height: 16, marginTop: 1, borderRadius: 5,
+                      border: `1.5px solid ${on ? '#B5101F' : '#D8C6C4'}`,
+                      background: on ? '#B5101F' : '#fff', color: '#fff',
+                      fontSize: 11, fontWeight: 900, lineHeight: '13px', textAlign: 'center',
+                    }}
+                  >
+                    {on ? '✓' : ''}
+                  </span>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontFamily: mono, fontSize: 11.5, fontWeight: 700, color: on ? '#B5101F' : '#6a5a5e', wordBreak: 'break-all' }}>
+                      {sc}
+                    </span>
+                    <span style={{ display: 'block', marginTop: 2, fontSize: 11.5, fontWeight: 600, lineHeight: 1.4, color: '#9a8a8e' }}>
+                      {SCOPE_HELP[sc] ?? sc}
+                    </span>
+                  </span>
                 </button>
               );
             })}
           </div>
-          <p style={{ margin: '-8px 0 16px', fontSize: 12, color: '#8a7a7e', lineHeight: 1.5 }}>
-            Cada scope é uma decisão de autoridade. <code style={{ fontFamily: mono }}>application_settlements:write</code>{' '}
-            move dinheiro para um beneficiário — dá-o apenas a uma chave que precise de liquidar.
-          </p>
           <button
             onClick={create}
             disabled={busy}

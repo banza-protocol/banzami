@@ -56,4 +56,23 @@ describe('Console scope picker', () => {
     // The one scope on the list that pays funds away rather than taking them in.
     expect(readFileSync(UI, 'utf8')).toContain('move dinheiro para um beneficiário');
   });
+
+  // Offering the right scopes is only half of it. The picker asks the developer
+  // to decide what a credential may do, so the state of that decision has to be
+  // legible — and the explanation has to be somewhere they can actually read it.
+  it('makes the selected state programmatic rather than a colour', () => {
+    const ui = readFileSync(UI, 'utf8');
+    // Selection was signalled only by border and background. Nothing announced
+    // it, and nothing conveyed it without colour perception.
+    expect(ui).toContain('aria-checked={on}');
+    expect(ui).toContain("role=\"switch\"");
+  });
+
+  it('puts what a scope grants on the screen, not in a native tooltip', () => {
+    const ui = readFileSync(UI, 'utf8');
+    // SCOPE_HELP existed but only reached a `title` attribute: no keyboard, no
+    // touch, no screen reader.
+    expect(ui).toContain('{SCOPE_HELP[sc] ?? sc}');
+    expect(ui).not.toMatch(/title=\{SCOPE_HELP/);
+  });
 });
