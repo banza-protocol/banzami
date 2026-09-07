@@ -459,6 +459,25 @@ version, not an identity change.
 - Two enabled LIVE probe profiles remain as harness residue, because the probe
   is cleaned up by a manual statement rather than the run manifest.
 - `pricing_rules.pricing_profile` has no foreign key to `pricing_profiles.code`.
+- **The migration ledger does not reflect the deployed schema.** `_sqlx_migrations`
+  holds 102 rows with a highest version of 105, while the schema plainly carries
+  0106's and 0107's effects — `pricing_profiles` exists,
+  `merchants.pricing_profile_id` exists, and `merchant_profiles.pricing_profile_id`
+  has been dropped. They were applied through a path that did not record them.
+
+  No risk, and no action needed beyond knowing it: both migrations are
+  idempotent (`ADD COLUMN IF NOT EXISTS`, and every `CREATE TRIGGER` preceded by
+  `DROP TRIGGER IF EXISTS`), so `sqlx migrate run` would re-apply them harmlessly
+  and then apply 0108. The cost is that "which schema is deployed" cannot be
+  answered from the tracker, only by inspecting the schema.
+
+  Two false alarms on the way to this, both caught before reporting and both
+  worth recording as method: a query comparing the ledger against a dense
+  1..108 range reported 64, 65 and 66 as missing — those numbers were never used,
+  there are 105 files for versions up to 108; and a line-based grep for unguarded
+  DDL flagged `ALTER TABLE ... ADD COLUMN`, whose `IF NOT EXISTS` sits on the
+  next line. A deployed-database finding is worth re-deriving before it is
+  stated.
 
 **P3**
 - `donation-standard` is dead and should be retired with a recorded reason.
