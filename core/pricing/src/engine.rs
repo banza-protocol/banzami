@@ -390,6 +390,123 @@ mod tests {
         assert_eq!(mk(75, RoundingMode::HalfEven), 2);
     }
 
+    // ---- 200 bps boundary matrix ----------------------------------------
+
+    /// The rate every Sandbox owner on `sandbox-donation-200` is charged, swept
+    /// across every rounding boundary it has.
+    ///
+    /// At 200 bps the arithmetic is `amount * 200 / 10_000`, i.e. `amount / 50`,
+    /// so the remainder cycles with period 50 and the exact half falls at
+    /// `amount % 50 == 25`. Sweeping 1..=1000 covers twenty full cycles and
+    /// therefore every boundary the rate can produce, twenty times over.
+    ///
+    /// The expectation is recomputed here with independent integer arithmetic
+    /// rather than copied from the implementation: a test that reuses
+    /// `apply_bps` would agree with a float bug instead of catching one.
+    #[test]
+    fn two_hundred_bps_boundary_matrix_is_exact_integer_arithmetic() {
+        let fee = |amount: i64, mode: RoundingMode| {
+            let mut r = rule("r");
+            r.rate_bps = 200;
+            r.rounding = mode;
+            resolve(&[r], &ctx(amount, BusinessCategory::Donation)).fee_minor
+        };
+
+        let mut previous_half_up = 0;
+        for amount in 1..=1_000i64 {
+            let quotient = amount / 50;
+            let remainder = amount % 50;
+
+            assert_eq!(
+                fee(amount, RoundingMode::Floor),
+                quotient,
+                "floor at {amount}"
+            );
+            assert_eq!(
+                fee(amount, RoundingMode::Ceil),
+                if remainder == 0 {
+                    quotient
+                } else {
+                    quotient + 1
+                },
+                "ceil at {amount}"
+            );
+            // The half is at remainder 25 exactly, and HalfUp takes it upward.
+            assert_eq!(
+                fee(amount, RoundingMode::HalfUp),
+                if remainder >= 25 {
+                    quotient + 1
+                } else {
+                    quotient
+                },
+                "half-up at {amount}"
+            );
+            // Ties (remainder 25) go to the even neighbour; everything else
+            // behaves like half-up.
+            let half_even = if remainder > 25 || (remainder == 25 && quotient % 2 != 0) {
+                quotient + 1
+            } else {
+                quotient
+            };
+            assert_eq!(
+                fee(amount, RoundingMode::HalfEven),
+                half_even,
+                "half-even at {amount}"
+            );
+
+            // Invariants that must hold at every point, not just the boundaries.
+            let charged = fee(amount, RoundingMode::HalfUp);
+            assert!(charged <= amount, "fee {charged} exceeded amount {amount}");
+            assert!(
+                charged >= previous_half_up,
+                "fee went DOWN as the amount went up: {amount}"
+            );
+            previous_half_up = charged;
+        }
+    }
+
+    /// The brief's worked example, asserted as one case rather than inferred
+    /// from the sweep: gross 100 000 at 200 bps is a fee of 2 000 and a net of
+    /// 98 000, with no remainder to round.
+    #[test]
+    fn two_hundred_bps_on_one_hundred_thousand_is_exactly_two_thousand() {
+        for mode in [
+            RoundingMode::Floor,
+            RoundingMode::Ceil,
+            RoundingMode::HalfUp,
+            RoundingMode::HalfEven,
+        ] {
+            let mut r = rule("r");
+            r.rate_bps = 200;
+            r.rounding = mode;
+            let fee = resolve(&[r], &ctx(100_000, BusinessCategory::Donation)).fee_minor;
+            assert_eq!(fee, 2_000, "100_000 @ 200bps under {mode:?}");
+            assert_eq!(100_000 - fee, 98_000, "net under {mode:?}");
+        }
+    }
+
+    /// A large amount must not overflow on the way to a small fee.
+    ///
+    /// `apply_bps` computes `amount * rate_bps` in i128 before dividing,
+    /// precisely so this cannot wrap.
+    ///
+    /// `no_float_large_amount_does_not_overflow` below looks like it already
+    /// covers this and does not: 9e12 × 9999 is about 9e16, which fits in an
+    /// i64 with three orders of magnitude to spare, so that test passes
+    /// unchanged if the intermediate is narrowed. This one uses i64::MAX / 2,
+    /// where the product is about 9.2e20 and an i64 intermediate wraps — so it
+    /// fails if the i128 is ever removed, which is the property being claimed.
+    #[test]
+    fn a_very_large_amount_does_not_overflow_the_intermediate() {
+        let mut r = rule("r");
+        r.rate_bps = 200;
+        r.rounding = RoundingMode::Floor;
+        let huge = i64::MAX / 2;
+        let fee = resolve(&[r], &ctx(huge, BusinessCategory::Donation)).fee_minor;
+        assert_eq!(fee, huge / 50, "200 bps of a very large amount");
+        assert!(fee > 0 && fee < huge, "fee stayed positive and below gross");
+    }
+
     // ---- zero-fee paths --------------------------------------------------
 
     #[test]
