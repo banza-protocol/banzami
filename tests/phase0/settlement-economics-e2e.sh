@@ -14,7 +14,7 @@
 #
 #   wallet holds        100 000   (gross, from the payment leg)
 #   settle              100 000
-#   assigned profile    sandbox-donation-200
+#   assigned profile    sandbox-reference
 #   rate                    200 bps
 #   fee                   2 000
 #   net to beneficiary   98 000
@@ -28,6 +28,11 @@
 # for a second owner standing in for a reference application. Both carry the
 # same generic profile, so both must produce the same rate, the same fee and the
 # same net. The differential must be exactly zero — no tenant is special.
+#
+# The profile is `sandbox-reference`, renamed from `sandbox-donation-200` in
+# Pricing Model V2. The old code named a business vertical and a rate; a profile
+# names a commercial policy, and its per-operation rules name what that policy
+# charges. The rate here is unchanged — only the identity is stable now.
 set -uo pipefail
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
@@ -81,7 +86,7 @@ mkowner(){ # $1 = label -> prints merchant|source_wallet|beneficiary_wallet
            RETURNING id")
   [ -n "$mid" ] || return 1
   e2e_own merchant "$mid"
-  call "$CORE" 8081 PUT "/internal/v1/merchants/$mid/pricing-profile" '{"profile_code":"sandbox-donation-200"}'
+  call "$CORE" 8081 PUT "/internal/v1/merchants/$mid/pricing-profile" '{"profile_code":"sandbox-reference"}'
   call "$CORE" 8081 POST /internal/v1/wallets "{\"merchant_id\":\"$mid\",\"currency\":\"AOA\"}"; sw=$(jget id)
   call "$CORE" 8081 POST /internal/v1/wallets "{\"merchant_id\":\"$mid\",\"currency\":\"AOA\"}"; bw=$(jget id)
   # Stands in for the payment leg, which credits GROSS by design. The real
@@ -101,7 +106,7 @@ run_case(){ # $1 = label
   local label="$1" mid sw bw
   IFS='|' read -r mid sw bw <<<"$(mkowner "$label")"
   chk "${label}_OWNER_READY" "$([ -n "$mid" ] && [ -n "$sw" ] && [ -n "$bw" ] && echo yes)" yes
-  chk "${label}_PROFILE_ASSIGNED" "$(q "SELECT p.code FROM merchants m JOIN pricing_profiles p ON p.id=m.pricing_profile_id WHERE m.id='$mid'")" "sandbox-donation-200"
+  chk "${label}_PROFILE_ASSIGNED" "$(q "SELECT p.code FROM merchants m JOIN pricing_profiles p ON p.id=m.pricing_profile_id WHERE m.id='$mid'")" "sandbox-reference"
   chk "${label}_WALLET_HOLDS_GROSS" "$(wbal "$sw")" "$GROSS"
 
   settle "$mid" "$sw" "$bw" "$label"
