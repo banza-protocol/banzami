@@ -138,8 +138,16 @@ it, and it is why this is tracked as a defect rather than a nicety.
 
 Source-level, on `548706ea`:
 
-- every construction of `PricingContext` across `core/` was read, not just the
-  payout one, to check which fields are caller-reachable;
+- every crate that depends on `banzami_pricing` was enumerated first, so the
+  audit covers the consumers rather than the ones I thought of. There are five,
+  and only **three move money**: `core/transactions` (capture),
+  `core/app-settlement` (settlement) and `core/payouts` (withdrawal). The other
+  two — `core/api/src/routes/pricing_rules.rs` and `finance_catalogs.rs` — read
+  and manage rules rather than charge against them. Transfers, collections and
+  refunds do not resolve an operator fee at all;
+- every construction of `PricingContext` across `core/` was then read — three in
+  production code, matching the three money-moving crates — to check which
+  fields are caller-reachable;
 - the transaction and settlement paths were confirmed already refused (see
   `TransactionError::PricingNotConfigured` and
   `ApplicationSettlementError::Pricing`), with DB-backed tests holding them to
