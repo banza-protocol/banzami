@@ -112,10 +112,6 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		warnings = []string{}
 	}
 
-	var pricingCategory any
-	if res.PricingCategory != "" {
-		pricingCategory = res.PricingCategory
-	}
 	var category any
 	if res.CategoryLabel != "" {
 		category = res.CategoryLabel
@@ -139,15 +135,20 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"category":         category,
 		"wallet_ready":     res.WalletReady,
 		"settlement_ready": res.SettlementReady,
-		"pricing_category": pricingCategory,
 		"subcategory":      subcategory,
 
+		// What this account is actually charged, per fee-bearing operation,
+		// under the policy an operator assigned it.
+		//
+		// `pricing_category` and a single `fee_bps` used to be reported here.
+		// Both described a model where the category a merchant typed chose the
+		// rate, and a single number could stand for "the fee". Neither is true:
+		// nothing is priced by category, and settlement and payout are priced
+		// separately.
 		"pricing": map[string]any{
-			"category": pricingCategory,
-			"profile":  res.PricingProfile,
-			"rule_key": res.PricingRuleKey,
-			"fee_bps":  res.PricingRuleBps,
-			"found":    res.PricingFound,
+			"profile":    res.PricingProfile,
+			"operations": pricingOperations(res.PricingRules),
+			"found":      res.PricingFound,
 		},
 		"wallet": map[string]any{
 			"ready":                  res.WalletReady,
@@ -165,4 +166,19 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"blockers": blockers,
 		"warnings": warnings,
 	})
+}
+
+// pricingOperations renders the assigned rates as a stable list. Always a list,
+// never null: an account with no priced policy has zero operations, which is a
+// different and visible fact from the field being absent.
+func pricingOperations(rules []service.OperationRate) []map[string]any {
+	out := make([]map[string]any, 0, len(rules))
+	for _, r := range rules {
+		out = append(out, map[string]any{
+			"operation": r.Operation,
+			"rate_bps":  r.RateBps,
+			"rule_key":  r.RuleKey,
+		})
+	}
+	return out
 }

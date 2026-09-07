@@ -38,16 +38,22 @@ type BusinessResolution struct {
 	KybStatus           string
 	Verified            bool
 
-	CategoryLabel   string
-	Subcategory     string // captured at onboarding (merchant_applications)
-	PricingCategory string // derived: DONATION | MARKETPLACE | … | ""
+	CategoryLabel string
+	Subcategory   string // captured at onboarding (merchant_applications)
 
-	// Pricing rule the OPERATOR would apply for this category (its own fee), if
-	// one is configured for the environment. Informational — an app that declares
-	// its own application fee (ADR-029) is separate from this.
+	// The operator pricing policy ASSIGNED to this account, and the rate it
+	// resolves for each fee-bearing operation. Informational — an app that
+	// declares its own application fee (ADR-029) is separate from this.
+	//
+	// This used to derive a "pricing category" by substring-matching the free
+	// text label the merchant typed at onboarding — "doaç" meant DONATION — and
+	// then look up a rule keyed on that category. It reported a rate the account
+	// would never be charged, and raised a settlement BLOCKER when the lookup
+	// failed, which after the pricing model landed was always. No rule is keyed
+	// on a category any more, and a business does not choose its own tariff by
+	// how it describes itself.
 	PricingProfile string
-	PricingRuleKey string
-	PricingRuleBps int32
+	PricingRules   []OperationRate
 	PricingFound   bool
 
 	WalletID             string
@@ -72,23 +78,12 @@ func NewBusinessSelfService(pool *pgxpool.Pool) *BusinessSelfService {
 	return &BusinessSelfService{pool: pool}
 }
 
-// pricingCategoryFromLabel maps a human category label to a pricing category
-// key. DOA-style donation labels resolve to DONATION; unmapped labels return ""
-// (reported honestly rather than guessed).
-func pricingCategoryFromLabel(label string) string {
-	l := strings.ToLower(strings.TrimSpace(label))
-	switch {
-	case l == "":
-		return ""
-	case strings.Contains(l, "doaç"), strings.Contains(l, "doac"),
-		strings.Contains(l, "donation"), strings.Contains(l, "causa"),
-		strings.Contains(l, "crowd"), strings.Contains(l, "vaquinha"):
-		return "DONATION"
-	case strings.Contains(l, "marketplace"):
-		return "MARKETPLACE"
-	default:
-		return ""
-	}
+// OperationRate is one fee-bearing operation and what the account's assigned
+// policy charges for it.
+type OperationRate struct {
+	Operation string `json:"operation"`
+	RateBps   int32  `json:"rate_bps"`
+	RuleKey   string `json:"rule_key"`
 }
 
 // Self resolves the account for the given merchant id (always from the
@@ -98,10 +93,11 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	if s == nil || s.pool == nil {
 		return nil, errors.New("business self service is not configured")
 	}
-	env := "LIVE"
-	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
-		env = "SANDBOX"
-	}
+	// `environment` no longer selects anything here. The rates below come from
+	// the profile assigned to this owner, and a profile carries its own
+	// environment — an owner cannot be assigned a LIVE profile on a Sandbox
+	// deployment (merchants_pricing_env enforces it in the database).
+	_ = environment
 
 	var (
 		r         BusinessResolution
@@ -142,7 +138,6 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	if category != nil {
 		r.CategoryLabel = *category
 	}
-	r.PricingCategory = pricingCategoryFromLabel(r.CategoryLabel)
 
 	// Subcategory is captured at onboarding but not copied to the public profile;
 	// resolve it from the approved application (linked by the desired handle).
@@ -196,33 +191,39 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	r.WalletReady = r.WalletID != "" &&
 		strings.EqualFold(r.WalletStatus, "ACTIVE") && r.PrimaryAccountID != ""
 
-	// Operator pricing rule for this category (informational).
-	if r.PricingCategory != "" {
-		var profile *string
-		var ruleKey *string
-		var bps *int32
-		perr := s.pool.QueryRow(ctx, `
-			SELECT COALESCE(pricing_profile,''), rule_key, rate_bps
-			  FROM pricing_rules
-			 WHERE environment = $1 AND enabled
-			   AND upper(business_category) = $2
-			 ORDER BY priority DESC, version DESC
-			 LIMIT 1`, env, r.PricingCategory).Scan(&profile, &ruleKey, &bps)
-		if perr == nil {
-			r.PricingFound = true
-			if profile != nil {
-				r.PricingProfile = *profile
-			}
-			if ruleKey != nil {
-				r.PricingRuleKey = *ruleKey
-			}
-			if bps != nil {
-				r.PricingRuleBps = *bps
-			}
-		} else if !errors.Is(perr, pgx.ErrNoRows) {
-			return nil, perr
-		}
+	// The rates this account is actually charged: resolved the same way the
+	// settlement and payout paths resolve them — from the profile an operator
+	// ASSIGNED to this owner, per fee-bearing operation. Nothing here reads a
+	// label, and nothing a merchant can type changes what comes back.
+	rows, perr := s.pool.Query(ctx, `
+		SELECT pp.code, r.pricing_operation, r.rate_bps, r.rule_key
+		  FROM merchants m
+		  JOIN pricing_profiles pp ON pp.id = m.pricing_profile_id
+		  JOIN pricing_rules r ON r.pricing_profile = pp.code
+		                      AND r.environment = pp.environment
+		 WHERE m.id = $1 AND pp.enabled AND r.enabled
+		   AND r.pricing_operation IS NOT NULL
+		   AND (r.effective_from IS NULL OR r.effective_from <= now())
+		   AND (r.effective_to   IS NULL OR r.effective_to   >  now())
+		 ORDER BY r.pricing_operation`, merchantID)
+	if perr != nil {
+		return nil, perr
 	}
+	for rows.Next() {
+		var code, op, key string
+		var bps int32
+		if err := rows.Scan(&code, &op, &bps, &key); err != nil {
+			rows.Close()
+			return nil, err
+		}
+		r.PricingProfile = code
+		r.PricingRules = append(r.PricingRules, OperationRate{Operation: op, RateBps: bps, RuleKey: key})
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	r.PricingFound = len(r.PricingRules) > 0
 
 	// Compute settlement blockers from real state.
 	r.Blockers = r.Blockers[:0]
@@ -237,7 +238,10 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	} else if r.PrimaryAccountID == "" {
 		r.Blockers = append(r.Blockers, BlockerWalletAccountMissing)
 	}
-	if r.PricingCategory != "" && !r.PricingFound {
+	// An owner with no priced policy cannot settle: the resolver refuses rather
+	// than charging zero. That is a genuine blocker, and unlike the old one it
+	// reflects the assignment an operator made rather than a word in a label.
+	if !r.PricingFound {
 		r.Blockers = append(r.Blockers, BlockerPricingMissing)
 	}
 	r.SettlementReady = len(r.Blockers) == 0
@@ -290,47 +294,4 @@ func (s *BusinessSelfService) PricingProfileForMerchant(ctx context.Context, mer
 		return "", nil
 	}
 	return *code, nil
-}
-
-// PricingCategoryForMerchant resolves the pricing category the operator will
-// charge a merchant under, from the merchant's OWN record.
-//
-// DEPRECATED as pricing authority. Retained only for the Integration Health
-// display, which shows a merchant what category it is recorded under. It must
-// not be reintroduced into a fee path; PricingProfileForMerchant is the one
-// that decides money.
-//
-// It exists because the settlement route used to take business_category from the
-// request body and pass it to the pricing engine, which selects the rate. The
-// body comment there is right that a client cannot send a fee — there is no
-// rate field — but it could send the CATEGORY, and the category is what chooses
-// among the operator's rates. With one priced category configured (DONATION at
-// 200 bps) and an unpriced one costing nothing, omitting it was worth two
-// percent of every settlement to the caller.
-//
-// A caller may describe itself in its own words anywhere those words are a
-// label. Where they decide what the operator charges, they are not a label, and
-// they come from here.
-//
-// Empty is a real answer: a merchant with no category is unpriced. That used to
-// end "and unpriced is zero", which is no longer true anywhere that moves money
-// — capture and settlement refuse an absent pricing decision rather than
-// charging nothing. Here, empty simply means the display has nothing to show.
-func (s *BusinessSelfService) PricingCategoryForMerchant(ctx context.Context, merchantID string) (string, error) {
-	if s == nil || s.pool == nil {
-		return "", errors.New("business self service is not configured")
-	}
-	var category *string
-	err := s.pool.QueryRow(ctx,
-		`SELECT category FROM merchant_profiles WHERE merchant_id = $1`, merchantID).Scan(&category)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", nil
-		}
-		return "", err
-	}
-	if category == nil {
-		return "", nil
-	}
-	return pricingCategoryFromLabel(*category), nil
 }
