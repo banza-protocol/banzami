@@ -8,7 +8,7 @@
 #   an owner on the explicit 0-bps policy captures, at zero, WITH a rule id
 #   an owner on the 200-bps policy captures, at 200 bps
 #   an owner with no policy is REFUSED at capture, and 409 rather than 500
-#   an owner with no policy is REFUSED at settlement, and 409 rather than 500
+#   a settlement that resolves no rule is REFUSED, and 409 rather than 500
 #   every refusal leaves the ledger exactly where it was
 #
 # The 409 matters as much as the refusal. Falling through to a 500 was the bug
@@ -121,13 +121,19 @@ chk C_NOTHING_MOVED "$(wbal "$NW")" "0"
 chk C_NOT_CAPTURED "$(q "SELECT (status <> 'CAPTURED')::text FROM transactions WHERE id='$TXID'")" "true"
 
 echo
-echo "### D — no policy: settlement refuses too, same code"
+echo "### D — a settlement that resolves no rule refuses, with the same code"
+# Honest about what this asserts. The request carries no pricing_profile, so
+# nothing matches and Core refuses — which is Core's half of the contract. It is
+# NOT the same claim as "this owner is unpriced": the gateway is what resolves an
+# owner's assigned profile, and pricing-authority-e2e.sh covers that half.
 SRC=$(q "SELECT available_account_id FROM wallets WHERE id='$NW'")
 BEN=$(q "SELECT available_account_id FROM wallets WHERE id='$ZW'")
 call "$CORE" 8081 POST /internal/v1/application-settlements \
   "{\"idempotency_key\":\"smoke-d-$R\",\"owner_ref\":\"smoke-$R\",\"source_account_id\":\"$SRC\",\"beneficiary_account_id\":\"$BEN\",\"gross_amount_minor\":1000,\"currency\":\"AOA\"}"
 chk D_SETTLEMENT_REFUSED "$CODE" "409"
 chk D_REFUSAL_IS_NAMED "$(errcode)" "PRICING_NOT_CONFIGURED"
+# And it refused before touching money, which is the part that matters.
+chk D_SOURCE_UNTOUCHED "$(wbal "$NW")" "0"
 
 echo
 echo "### E — the ledger is exactly as sound as it was"
