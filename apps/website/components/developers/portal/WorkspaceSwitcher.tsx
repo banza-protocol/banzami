@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useDeveloperData } from './DeveloperData';
 import { useToast } from './Toast';
+import { NamePrompt } from './NamePrompt';
 
 // Compact workspace + project switcher for the sidebar. Lists accessible
 // workspaces/projects, selects the active one (persisted as a non-sensitive UI
@@ -35,41 +36,38 @@ export function WorkspaceSwitcher() {
   } = useDeveloperData();
   const { flash } = useToast();
   const [busy, setBusy] = useState(false);
+  // Which creation dialog is open, if any. These were window.prompt() calls —
+  // see NamePrompt for why that was the wrong control for the first two actions
+  // a new developer performs.
+  const [creating, setCreating] = useState<'workspace' | 'project' | null>(null);
 
-  const onWsChange = async (v: string) => {
-    if (v === NEW) {
-      const name = window.prompt('Nome do novo workspace');
-      if (!name?.trim() || busy) return;
-      setBusy(true);
-      try {
-        await createWorkspace(name.trim());
-        flash('Workspace criado');
-      } catch (e) {
-        flash(onApiError(e));
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+  const onWsChange = (v: string) => {
+    if (v === NEW) { setCreating('workspace'); return; }
     selectWorkspace(v);
   };
 
-  const onPrjChange = async (v: string) => {
-    if (v === NEW) {
-      const name = window.prompt('Nome do novo projeto (Sandbox)');
-      if (!name?.trim() || busy) return;
-      setBusy(true);
-      try {
-        await createProject(name.trim());
-        flash('Projeto criado');
-      } catch (e) {
-        flash(onApiError(e));
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
+  const onPrjChange = (v: string) => {
+    if (v === NEW) { setCreating('project'); return; }
     selectProject(v);
+  };
+
+  // The dialog surfaces the failure against the field; the toast confirms the
+  // success. A rejected promise keeps the dialog open with the reason on it.
+  const submitNew = async (name: string) => {
+    setBusy(true);
+    try {
+      if (creating === 'workspace') {
+        await createWorkspace(name);
+        flash('Workspace criado');
+      } else {
+        await createProject(name);
+        flash('Projeto criado');
+      }
+    } catch (e) {
+      throw new Error(onApiError(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -99,6 +97,22 @@ export function WorkspaceSwitcher() {
             <option value={NEW}>+ Novo projeto…</option>
           </select>
         </div>
+      ) : null}
+
+      {creating ? (
+        <NamePrompt
+          title={creating === 'workspace' ? 'Novo workspace' : 'Novo projeto'}
+          description={
+            creating === 'workspace'
+              ? 'Um workspace agrupa os seus projetos e as pessoas que lhes acedem.'
+              : 'Um projeto é o que detém chaves, webhooks e contas. Este será criado em Sandbox.'
+          }
+          label="Nome"
+          placeholder={creating === 'workspace' ? 'A minha empresa' : 'Integração de pagamentos'}
+          submitLabel="Criar"
+          onSubmit={submitNew}
+          onClose={() => setCreating(null)}
+        />
       ) : null}
     </div>
   );
