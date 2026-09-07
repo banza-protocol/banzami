@@ -106,8 +106,14 @@ function Balances() {
   const reload = () => { setState({ k: 'loading' }); void load(); };
 
   // PRIMARY is the account made with the project's financial environment. It is
-  // the operator's bookkeeping, not something the developer opened, and counting
-  // it among "your accounts" would make an empty project look furnished.
+  // the operator's bookkeeping, not something the developer opened, so a project
+  // with only a PRIMARY has not created any account yet and is shown the empty
+  // state rather than a furnished-looking list.
+  //
+  // That distinction belongs to the empty-state decision and nowhere else. It
+  // used to drive the count above the table too, while the table listed every
+  // account — so a project with two of its own accounts read "2 contas neste
+  // projeto" above three rows, the third being the one holding all the money.
   const own = state.accounts.filter((a) => a.purpose !== 'PRIMARY');
 
   if (own.length === 0) {
@@ -129,7 +135,7 @@ function Balances() {
     <>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <p style={{ margin: 0, fontSize: 13, color: '#8a7a7e', fontWeight: 700 }}>
-          {own.length} conta{own.length === 1 ? '' : 's'} neste projeto
+          {state.accounts.length} conta{state.accounts.length === 1 ? '' : 's'} neste projeto
         </p>
         <WalletAccountForm onCreated={reload} />
       </div>
@@ -151,7 +157,18 @@ function Balances() {
                   <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12.5, color: '#5a4a4e' }}>
                     {a.label || a.id}
                   </td>
-                  <td style={{ padding: '12px 16px', fontWeight: 700 }}>{a.purpose}</td>
+                  <td style={{ padding: '12px 16px', fontWeight: 700 }}>
+                    {a.purpose}
+                    {a.purpose === 'PRIMARY' ? (
+                      // Say whose account this is. It is in the list because it
+                      // holds money and hiding it would be worse — a developer
+                      // would see every account at 0 Kz after a payment landed —
+                      // but they did not open it, and the name does not say so.
+                      <span style={{ display: 'block', marginTop: 2, fontSize: 11, fontWeight: 700, color: '#a89a9e' }}>
+                        aberta com o ambiente financeiro
+                      </span>
+                    ) : null}
+                  </td>
                   <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12, color: '#8a7a7e', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {a.reference_id || '—'}
                   </td>
