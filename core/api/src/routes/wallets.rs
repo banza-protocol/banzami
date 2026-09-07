@@ -337,6 +337,24 @@ pub async fn admin_credit(
     let now = chrono::Utc::now();
     let description = format!("[ADMIN] Manual wallet credit — {}", body.reason.trim());
 
+    // Double entry, in one transaction.
+    //
+    // This wrote a single CREDIT and no counter-DEBIT, outside any transaction.
+    // Every call left an unbalanced, single-leg posting, and money appeared in a
+    // merchant wallet from nowhere — the ledger could not say what funded it. On
+    // a freshly reset Sandbox the economic smoke counted 51 such postings and a
+    // book that summed to 5 100 000 instead of zero.
+    //
+    // The counter-leg is the acquiring transit ASSET account, the same shape the
+    // consumer top-up path already used correctly: funds notionally arrive
+    // (DEBIT the asset) and the operator now owes them to the merchant (CREDIT
+    // the liability).
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
     sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",
@@ -349,24 +367,31 @@ pub async fn admin_credit(
         uuid::Uuid::new_v4()
     ))
     .bind(now)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
     sqlx::query(
         "INSERT INTO ledger_entries
          (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)",
+         VALUES ($1, $2, $3, 'DEBIT',  $4, $5, $6),
+                ($7, $2, $8, 'CREDIT', $4, $5, $6)",
     )
     .bind(LedgerEntryId::new().as_uuid())
     .bind(posting_id.as_uuid())
-    .bind(available_account_id)
+    .bind(state.transit_account_id.as_uuid())
     .bind(body.amount_minor)
     .bind(currency_code)
     .bind(now)
-    .execute(&state.pool)
+    .bind(LedgerEntryId::new().as_uuid())
+    .bind(available_account_id)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    tx.commit()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
     let new_balance: i64 = sqlx::query_scalar(
         "SELECT COALESCE(

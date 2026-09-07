@@ -154,3 +154,75 @@ async fn sandbox_credit_leaves_no_posting_without_entries(pool: PgPool) {
     .unwrap();
     assert_eq!(orphans, 0, "a posting was written with no entries");
 }
+
+// ── the merchant twin ────────────────────────────────────────────────────────
+//
+// `sandbox_credit` funds a CONSUMER wallet; `admin_credit` funds a MERCHANT one.
+// They had the same defect and only the consumer one was fixed, so the merchant
+// path kept writing lone CREDIT legs for months afterwards. The economic smoke
+// found 51 of them on a Sandbox that was three hours old.
+//
+// Both are tested here, together, so the next person to fix one has the other in
+// front of them.
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn admin_credit_posts_a_balanced_entry(pool: PgPool) {
+    let wallet = seed_wallet(&pool).await;
+    let state = build_state(pool.clone()).await;
+
+    let before: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE entry_type WHEN 'CREDIT' THEN amount_minor
+                                             ELSE -amount_minor END), 0)::BIGINT
+           FROM ledger_entries",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    let _ = routes::admin_credit(
+        State(state),
+        Path(wallet.to_string()),
+        Json(crate::routes::wallets::AdminCreditBody {
+            amount_minor: 50_000,
+            currency: Some("AOA".to_string()),
+            reason: "balanced-entry test".to_string(),
+        }),
+    )
+    .await
+    .expect("admin credit should succeed");
+
+    let unbalanced: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM (
+             SELECT p.id
+               FROM ledger_postings p
+               JOIN ledger_entries e ON e.posting_id = p.id
+              GROUP BY p.id
+             HAVING SUM(CASE e.entry_type WHEN 'DEBIT' THEN -e.amount_minor
+                                          ELSE e.amount_minor END) <> 0) x",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(unbalanced, 0, "admin credit wrote an unbalanced posting");
+
+    let single_leg: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM (SELECT posting_id FROM ledger_entries
+                                GROUP BY posting_id HAVING COUNT(*) < 2) x",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(single_leg, 0, "admin credit wrote a single-legged posting");
+
+    // The book still sums to what it summed to. Funding a wallet moves value
+    // between accounts; it does not create any.
+    let after: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE entry_type WHEN 'CREDIT' THEN amount_minor
+                                             ELSE -amount_minor END), 0)::BIGINT
+           FROM ledger_entries",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(after, before, "the book gained value out of nothing");
+}
