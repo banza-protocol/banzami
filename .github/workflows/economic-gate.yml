@@ -1,0 +1,157 @@
+name: Economic gate
+
+# Database-backed Rust gate for the financial core, on GitHub-hosted Linux.
+#
+# Why this exists separately from ci.yml:
+#
+# The Rust job in ci.yml historically ran on a single self-hosted runner. That
+# runner is one machine, and when its Docker/containerd state broke, financial
+# correctness could not be verified at all — a laptop's health became a release
+# dependency. Nothing in this job needs that machine: it needs a checkout, a Rust
+# toolchain, an ephemeral PostgreSQL, and the repository's own migrations. So it
+# runs hosted, and it can be dispatched against an EXACT commit rather than
+# whatever main happens to be, which is what a deployment gate actually needs.
+#
+# Two SHAs matter here and they are deliberately different things:
+#
+#   workflow definition SHA — the ref this workflow file was read from
+#   target application SHA  — the commit whose code is compiled and tested
+#
+# The second is the one being certified for deployment.
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: 'Exact application commit to test (full or short SHA)'
+        required: true
+        type: string
+  # Also guards main directly, so the hosted DB-backed gate is not only a
+  # manual instrument.
+  push:
+    branches: [main]
+    paths:
+      - 'core/**'
+      - 'db/migrations/**'
+      - '.github/workflows/economic-gate.yml'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  CARGO_TERM_COLOR: always
+  # Ephemeral CI database only — created by the service container below and
+  # destroyed with the runner. Never an operator, Sandbox or production database.
+  DATABASE_URL: postgres://banzami:banzami_dev@localhost:5433/banzami_dev
+
+jobs:
+  rust-economic:
+    name: Rust economic gate — DB-backed
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     banzami
+          POSTGRES_PASSWORD: banzami_dev
+          POSTGRES_DB:       banzami_dev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U banzami -d banzami_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    steps:
+      - name: Resolve target commit
+        id: target
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "ref=${{ inputs.target_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ steps.target.outputs.ref }}
+          # A short SHA is not fetchable as a ref, so fetch history and let the
+          # explicit checkout below resolve it.
+          fetch-depth: 0
+
+      # Provenance. A conclusion is only evidence if it names what was tested.
+      - name: Provenance
+        run: |
+          git checkout --detach "${{ steps.target.outputs.ref }}"
+          RESOLVED="$(git rev-parse HEAD)"
+          echo "workflow definition SHA : ${{ github.sha }}"
+          echo "requested target SHA    : ${{ steps.target.outputs.ref }}"
+          echo "resolved target SHA     : ${RESOLVED}"
+          echo "runner                  : ${RUNNER_OS}/${RUNNER_ARCH} $(uname -srm)"
+          {
+            echo "### Economic gate provenance"
+            echo ""
+            echo "| fact | value |"
+            echo "| --- | --- |"
+            echo "| workflow definition SHA | \`${{ github.sha }}\` |"
+            echo "| target application SHA | \`${RESOLVED}\` |"
+            echo "| runner | \`${RUNNER_OS}/${RUNNER_ARCH}\` (GitHub-hosted) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable @ 2026-08-05
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+            core/target
+          key: economic-${{ runner.os }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: economic-${{ runner.os }}-
+
+      - name: Install sqlx-cli
+        run: |
+          if ! command -v sqlx >/dev/null 2>&1; then
+            cargo install sqlx-cli --no-default-features --features postgres --locked
+          fi
+          sqlx --version
+
+      # The sqlx query macros verify against a live schema when DATABASE_URL is
+      # set, so the base database has to carry the migrations before anything
+      # compiles. The #[sqlx::test] suites additionally create their own
+      # throwaway databases and migrate those independently.
+      - name: Apply migrations
+        working-directory: core
+        run: sqlx migrate run --source ../db/migrations
+
+      - name: Check formatting
+        working-directory: core
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (deny warnings)
+        working-directory: core
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run tests (unit + DB-backed integration)
+        working-directory: core
+        run: cargo test --workspace 2>&1 | tee ../cargo-test.log
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+      # A green job is not the gate. The gate is that the economic suites
+      # actually executed against PostgreSQL — a suite that silently skipped,
+      # was filtered out or was compiled away would leave this job green while
+      # proving nothing.
+      - name: Prove the economic suites executed
+        run: node tools/ci/assert-economic-suites.mjs cargo-test.log
