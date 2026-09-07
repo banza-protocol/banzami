@@ -273,56 +273,79 @@ async fn government_zero_bps_gross_equals_net(pool: PgPool) -> sqlx::Result<()> 
     Ok(())
 }
 
-// ─── unknown/unpriced category → no fee, no rule ────────────────────────────
+// ─── no applicable rule → capture refuses (fails closed) ───────────────
+
+// These two tests used to assert that an unmatched category captured at a zero
+// fee. That was the defect, not the contract: `resolve` reports fee 0 with no
+// rule id when nothing matches, which in the ledger is indistinguishable from an
+// operator policy of zero. Capture is where money moves, so it is where the two
+// have to be told apart. Zero-when-intended is covered by
+// `government_zero_bps_gross_equals_net`, which seeds an explicit 0-bps rule.
 
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn unknown_category_no_fee(pool: PgPool) -> sqlx::Result<()> {
+async fn unknown_category_refuses_capture(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await;
 
     // category that no rule matches
     let tx = authorize_tx(&fx, "idem-unknown", 8_000_00, Some("SPACE_TOURISM")).await;
-    let captured = fx
+    let err = fx
         .engine
         .capture(CaptureRequest { tx_id: tx.id })
         .await
-        .unwrap();
+        .expect_err("no applicable rule must refuse capture, not capture for free");
+    assert!(
+        matches!(err, TransactionError::PricingNotConfigured),
+        "expected PricingNotConfigured, got {err:?}"
+    );
 
-    assert_eq!(captured.fee.amount_minor(), 0, "unpriced -> no fee");
-    let bal = fx.wallet_engine.balance(captured.wallet_id).await.unwrap();
-    assert_eq!(bal.available.amount_minor(), 8_000_00);
+    // A refused capture moves nothing and records no fee decision.
+    let wallet_id = tx.wallet_id;
+    let bal = fx.wallet_engine.balance(wallet_id).await.unwrap();
+    assert_eq!(bal.available.amount_minor(), 0, "no credit on refusal");
     assert_eq!(
         account_balance(&fx.pool, fx.operator_fee_account_id).await,
         0
     );
 
-    let rule_id: Option<Uuid> =
-        sqlx::query_scalar("SELECT pricing_rule_id FROM operator_fees WHERE transaction_id = $1")
+    let fee_rows: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM operator_fees WHERE transaction_id = $1")
             .bind(tx.id.as_uuid())
             .fetch_one(&fx.pool)
             .await
             .unwrap();
-    assert!(rule_id.is_none(), "no rule matched -> NULL rule id");
+    assert_eq!(fee_rows, 0, "refused capture must not record a fee row");
+
+    let status: String =
+        sqlx::query_scalar("SELECT status FROM transactions WHERE id = $1")
+            .bind(tx.id.as_uuid())
+            .fetch_one(&fx.pool)
+            .await
+            .unwrap();
+    assert_ne!(status, "CAPTURED", "refused capture must not mark CAPTURED");
     Ok(())
 }
 
-// ─── no category at all → unchanged behaviour (zero fee) ─────────────────────
+// ─── no category at all → still no decision, so still refused ────────────
 
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn no_category_is_unchanged_zero_fee(pool: PgPool) -> sqlx::Result<()> {
+async fn no_category_refuses_capture(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
     seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await;
 
     let tx = authorize_tx(&fx, "idem-nocat", 1_000_00, None).await;
-    let captured = fx
+    let err = fx
         .engine
         .capture(CaptureRequest { tx_id: tx.id })
         .await
-        .unwrap();
+        .expect_err("an absent category resolves no rule and must refuse");
+    assert!(
+        matches!(err, TransactionError::PricingNotConfigured),
+        "expected PricingNotConfigured, got {err:?}"
+    );
 
-    assert_eq!(captured.fee.amount_minor(), 0);
-    let bal = fx.wallet_engine.balance(captured.wallet_id).await.unwrap();
-    assert_eq!(bal.available.amount_minor(), 1_000_00);
+    let bal = fx.wallet_engine.balance(tx.wallet_id).await.unwrap();
+    assert_eq!(bal.available.amount_minor(), 0, "no credit on refusal");
     Ok(())
 }
 

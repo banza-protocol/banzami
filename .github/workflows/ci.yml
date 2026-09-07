@@ -61,7 +61,18 @@ jobs:
   # ─── Rust core ──────────────────────────────────────────────────────────────
   rust:
     name: Rust — build, lint, test
-    runs-on: [self-hosted, banzami-ci, linux, arm64]
+    # GitHub-hosted, deliberately.
+    #
+    # This job needs a checkout, a Rust toolchain, an ephemeral PostgreSQL and
+    # the repository's own migrations — nothing that belongs to one particular
+    # machine. It ran self-hosted for historical reasons, and the cost of that
+    # showed up as a release dependency on a single runner's Docker state:
+    # when the runner broke, financial correctness could not be verified at
+    # all. Hosted infrastructure removes the coupling.
+    #
+    # See also .github/workflows/economic-gate.yml, which runs the same
+    # DB-backed suites and can be dispatched against an exact commit.
+    runs-on: ubuntu-latest
 
     services:
       postgres:

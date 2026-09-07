@@ -328,6 +328,53 @@ async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()>
     Ok(())
 }
 
+// ─── no applicable rule → settlement refuses (fails closed) ────────────────
+
+// The companion to `zero_application_fee_net_equals_gross`. That test proves an
+// explicit 0-bps rule settles at zero; this one proves the absence of any rule
+// does not settle at all. Without both, "fee 0" in the ledger has two possible
+// meanings and no way to tell them apart after the fact.
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn no_applicable_rule_refuses_settlement(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    // A rule exists, but for a different category — so nothing matches.
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    fund(&fx, source, 50_000).await;
+
+    let err = fx
+        .engine
+        .create(req(
+            "s-unpriced",
+            source,
+            beneficiary,
+            None,
+            50_000,
+            Some("SPACE_TOURISM"),
+        ))
+        .await
+        .expect_err("no applicable rule must refuse, not settle for free");
+    assert!(
+        matches!(err, ApplicationSettlementError::Pricing(_)),
+        "expected Pricing refusal, got {err:?}"
+    );
+
+    // Nothing moved: the beneficiary was never credited and the source is intact.
+    assert_eq!(
+        net_credit(&fx.pool, beneficiary).await,
+        0,
+        "refused settlement must not credit the beneficiary"
+    );
+    assert_eq!(
+        net_credit(&fx.pool, source).await,
+        50_000,
+        "refused settlement must not debit the source"
+    );
+    Ok(())
+}
+
 // ─── fee > gross rejected at create ─────────────────────────────────────────
 
 #[sqlx::test(migrations = "../../db/migrations")]
