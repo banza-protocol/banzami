@@ -1,5 +1,17 @@
 # Pricing model re-audit
 
+> **HISTORICAL — evidence, not configuration.**
+>
+> This audit describes the pricing model as it stood on 2026-09-07 and the
+> defects found in it. It is kept because the defects are worth remembering, not
+> because anything here still runs. The design it recommended was implemented
+> and is documented in [economic-model.md](../architecture/economic-model.md);
+> the pre-release Sandbox this audit inspected has since been destroyed and
+> rebuilt from zero.
+>
+> Where this document says "V2", read "the canonical pricing model". No earlier
+> pricing model was ever released, so there is no V1 to have succeeded.
+
 **Date:** 2026-09-07
 **Against:** the owner's confirmed economic model — generic Transfer is neutral;
 an incoming payment/donation credits the wallet **gross**; operator fees apply

@@ -143,7 +143,7 @@ if (!hasOperation) {
   console.log('  · this database predates the operation dimension (migration 0109).');
   console.log('    Per-operation completeness cannot be checked yet, and nothing is wrong:');
   console.log('    the deployed resolver does not use it either. Apply the migration first —');
-  console.log('    docs/runbooks/pricing-v2-migration.md — then run this again.');
+  console.log('    docs/runbooks/sandbox-pricing-bootstrap.md — then run this again.');
   console.log();
   if (fail) { console.error(`✗ pricing assignment gate FAILED (${fail})`); process.exit(1); }
   console.log('✓ every settlement-capable owner has exactly one active, environment-correct rate');

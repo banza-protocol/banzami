@@ -1,7 +1,7 @@
 # The economic model — where Banzami charges, and where it does not
 
 **Status:** the canonical model. Owner-confirmed 2026-09-07.
-**Implemented by:** Pricing Model V2 (migrations 0109–0110, `core/pricing`).
+**Implemented by:** the Banzami Pricing Model (migrations 0106–0107, `core/pricing`).
 **Financial LIVE remains NOT READY / fail-closed.** Everything here describes
 Sandbox.
 
@@ -20,7 +20,7 @@ Money moving is not the same as money being charged for. Banzami charges at
 | --- | --- | --- | --- |
 | **Transfer** | yes | **no** | The generic primitive. It carries merchant payments *and* P2P, so a fee inside it would charge people for sending money to each other. |
 | **Payment / donation** | yes | **no** | Credits the merchant or campaign wallet **gross**. |
-| **Capture** | yes | **no** | Left operator pricing in V2. `core/transactions` does not depend on the Pricing Engine at all. |
+| **Capture** | yes | **no** | Left operator pricing. `core/transactions` does not depend on the Pricing Engine at all. |
 | **Collection** | yes | **no** | Splits an already-priced charge. |
 | **Refund** | yes | **no** | Reverses value that was already priced. Re-pricing would charge for the same money twice. |
 | **Application settlement** | yes | **YES** | Settling accumulated value to a beneficiary. |
@@ -153,7 +153,7 @@ what base, what fee, decided when.
 Settlement has always recorded this. Payouts did **not** — the row held
 `amount_minor` and nothing else, and explaining the RA-063 incident required
 joining `ledger_postings` on a derived idempotency key (`<key>:process:fee`).
-V2 gives payouts their own snapshot, written once at the decision point and
+Payouts carry their own snapshot, written once at the decision point and
 refused thereafter, so a later rule change cannot rewrite what was charged.
 
 ---

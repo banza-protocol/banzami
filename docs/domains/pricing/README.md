@@ -90,7 +90,7 @@ easy to read this as "every payment is now refused":
 
 | operation | priced? |
 | --- | --- |
-| capture (`core/transactions`) | **no** — removed in V2; a payment credits the wallet gross |
+| capture (`core/transactions`) | **no** — a payment credits the wallet gross |
 | application settlement (`core/app-settlement`) | yes — names `operation=SETTLEMENT`; refuses 0 or >1 rules |
 | payout / withdrawal (`core/payouts`) | yes — names `operation=PAYOUT`; refuses ambiguity |
 | **generic transfer** (`core/transfers`) | **no, deliberately** |

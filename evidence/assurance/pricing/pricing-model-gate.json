@@ -1,5 +1,5 @@
 {
-  "suite": "Pricing Model V2 — DB-backed economic gate",
+  "suite": "the Banzami Pricing Model — DB-backed economic gate",
   "workflow": ".github/workflows/economic-gate.yml",
   "run_id": 34126202031,
   "workflow_definition_sha": "4d2614fdbcc9670396facd6f089a3fbf1cfa112b",
@@ -26,9 +26,9 @@
     { "id": "initiate_to_confirmed_happy_path", "proves": "the payout bank leg carries the NET; the fee is its own paired posting" },
     { "id": "processed_payout_persists_its_pricing_decision", "proves": "a completed payout explains its own price — rule, version, rate, fee, net, decided_at" }
   ],
-  "note": "This gate certifies the CODE. It does not certify the deployed Sandbox: migrations 0109-0111 are not applied there, and must be applied through the operator-TTY path (docs/runbooks/pricing-v2-migration.md) before the V2 code is deployed. The deployed Sandbox remains on the transitional baseline 858d80d8, which is correct until then.",
+  "note": "This gate certifies the CODE at the commit named above. It does not certify any deployed environment. The pre-release Sandbox it was written against was destroyed and rebuilt from zero afterwards; deployed evidence is recorded separately.",
   "not_proved_here": [
-    "deployed behaviour — the economic smoke (tests/phase0/economic-model-smoke.sh) has not run against a V2 Sandbox",
+    "deployed behaviour — the economic smoke (tests/phase0/economic-model-smoke.sh) has not run against a Sandbox",
     "DOA post-cutover settlement economics",
     "ordinary-vs-reference parity on the deployed runtime",
     "the refund/settlement interaction matrix"
