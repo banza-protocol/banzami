@@ -23,6 +23,7 @@ Where everything lives. This is the only meta-document — start here.
 | **Compliance** | [docs/compliance/](compliance/) |
 | **Operator governance** | [BANZAMI_GOVERNANCE.md](../BANZAMI_GOVERNANCE.md) |
 | **Validation / operator readiness** | [docs/validation/](validation/) + the Validation Studio (`apps/validation-studio`) |
+| **The economic model — where Banzami charges** | [docs/architecture/economic-model.md](architecture/economic-model.md) |
 | **Audits — what was found, and what it cost** | [docs/audit/](audit/) |
 | **Glossary** | [docs/glossary.md](glossary.md) |
 
