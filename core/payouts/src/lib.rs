@@ -119,6 +119,20 @@ pub struct CreatePayoutRequest {
 // Error
 // ---------------------------------------------------------------------------
 
+/// What the pricing engine decided about one withdrawal, in a shape that can be
+/// stored beside the payout.
+///
+/// A completed payout must be able to answer "what rule, what version, what
+/// rate, what fee" from its own row. Before this it could answer none of them.
+#[derive(Debug, Clone)]
+pub struct WithdrawalPricing {
+    pub fee_minor: i64,
+    pub rule_id: Option<banzami_types::PricingRuleId>,
+    pub rule_version: Option<i32>,
+    pub rate_bps: Option<u32>,
+    pub decided_at: chrono::DateTime<chrono::Utc>,
+}
+
 #[derive(Debug, Error)]
 pub enum PayoutError {
     /// No pricing rule applies to this withdrawal.

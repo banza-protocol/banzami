@@ -13,6 +13,19 @@ use crate::{BankDestination, Payout, PayoutError, PayoutStatus};
 #[allow(async_fn_in_trait)]
 pub trait PayoutRepository: Send + Sync {
     async fn create(&self, payout: &Payout) -> Result<(), PayoutError>;
+    /// Persist the pricing decision for a payout, at the moment it is decided.
+    ///
+    /// `payouts` used to record `amount_minor` and nothing else, so explaining
+    /// why a withdrawal cost what it did meant joining to `ledger_postings` on
+    /// a derived idempotency key. That is how the RA-063 incident was eventually
+    /// reconstructed, and it is not a reasonable way to answer "which rule
+    /// priced this".
+    async fn record_pricing(
+        &self,
+        id: PayoutId,
+        pricing: &crate::WithdrawalPricing,
+        net_minor: i64,
+    ) -> Result<(), PayoutError>;
     async fn get(&self, id: PayoutId) -> Result<Payout, PayoutError>;
     async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Payout>, PayoutError>;
     async fn list_for_merchant(
@@ -195,6 +208,36 @@ impl PayoutRepository for PostgresPayoutRepository {
             .await?
         };
         rows.into_iter().map(row_to_payout).collect()
+    }
+
+    async fn record_pricing(
+        &self,
+        id: PayoutId,
+        pricing: &crate::WithdrawalPricing,
+        net_minor: i64,
+    ) -> Result<(), PayoutError> {
+        // Written once, at the decision point. A later rule change must never
+        // reach back and alter what a completed payout was charged.
+        sqlx::query(
+            "UPDATE payouts SET
+                 fee_minor            = $2,
+                 net_minor            = $3,
+                 pricing_rule_id      = $4,
+                 pricing_rule_version = $5,
+                 pricing_rate_bps     = $6,
+                 pricing_decided_at   = $7
+               WHERE id = $1 AND pricing_decided_at IS NULL",
+        )
+        .bind(id.as_uuid())
+        .bind(pricing.fee_minor)
+        .bind(net_minor)
+        .bind(pricing.rule_id.map(|r| r.as_uuid()))
+        .bind(pricing.rule_version)
+        .bind(pricing.rate_bps.map(|b| b as i32))
+        .bind(pricing.decided_at)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
 
     async fn update_status(

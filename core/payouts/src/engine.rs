@@ -3,28 +3,17 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use banzami_ledger::{LedgerEngine, PostingBuilder};
-use banzami_pricing::{resolve, BusinessCategory, PricingContext, PricingRuleProvider};
+use banzami_pricing::{BusinessCategory, PricingContext, PricingRuleProvider};
 use banzami_types::{AccountId, MerchantId, Money, PayoutId};
 use banzami_wallets::WalletRepository;
 
-use crate::{repository::PayoutRepository, CreatePayoutRequest, Payout, PayoutError, PayoutStatus};
+use crate::{
+    repository::PayoutRepository, CreatePayoutRequest, Payout, PayoutError, PayoutStatus,
+    WithdrawalPricing,
+};
 
 /// The operator transaction-type this engine prices against (Banzami ADR-031).
 const WITHDRAWAL_TX_TYPE: &str = "wallet_withdrawal";
-
-/// What the pricing engine decided about one withdrawal, in a shape that can be
-/// stored beside the payout.
-///
-/// A completed payout must be able to answer "what rule, what version, what
-/// rate, what fee" from its own row. Before this it could answer none of them.
-#[derive(Debug, Clone)]
-pub struct WithdrawalPricing {
-    pub fee_minor: i64,
-    pub rule_id: Option<banzami_types::PricingRuleId>,
-    pub rule_version: Option<i32>,
-    pub rate_bps: Option<u32>,
-    pub decided_at: chrono::DateTime<chrono::Utc>,
-}
 
 // ---------------------------------------------------------------------------
 // Trait
@@ -217,6 +206,14 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         let gross = payout.amount;
         let pricing = self.resolve_withdrawal_fee(gross).await?;
         let fee_minor = pricing.fee_minor;
+
+        // Persist the decision before the money moves, so a completed payout can
+        // explain its own price without ledger archaeology. Written once — the
+        // repository refuses to overwrite an existing decision, so a later rule
+        // change cannot reach back and rewrite history.
+        self.repo
+            .record_pricing(payout.id, &pricing, gross.amount_minor() - fee_minor)
+            .await?;
         let net = Money::new(gross.amount_minor() - fee_minor, gross.currency);
 
         // Posting 1 — net to bank. (net == gross when fee == 0.)
@@ -676,6 +673,19 @@ mod tests {
     }
 
     impl PayoutRepository for MockPayoutRepo {
+        // The unit tests here assert the resolver's arithmetic and the ledger
+        // legs; persistence is exercised by the real-DB suite. Recording is a
+        // no-op rather than a panic so a test that does not care about the
+        // snapshot is not forced to model it.
+        async fn record_pricing(
+            &self,
+            _id: PayoutId,
+            _pricing: &crate::WithdrawalPricing,
+            _net_minor: i64,
+        ) -> Result<(), PayoutError> {
+            Ok(())
+        }
+
         async fn create(&self, p: &Payout) -> Result<(), PayoutError> {
             let mut lock = self.payouts.lock().unwrap();
             if lock.iter().any(|x| x.idempotency_key == p.idempotency_key) {
@@ -777,8 +787,12 @@ mod tests {
         }
     }
 
-    /// A wallet_withdrawal rule at `bps`, FLOOR rounding (matches the documented
-    /// `floor(gross*bps/10000)`), AOA, effective since 2020, no version bounds.
+    /// A PAYOUT rule at `bps`, FLOOR rounding (matches the documented
+    /// `floor(gross*bps/10000)`), AOA, effective since 2020.
+    ///
+    /// It names its operation. Under the V2 resolver an operation-less rule is
+    /// not a wildcard — it applies to nothing — which is the behaviour that
+    /// stops a future fee-bearing operation inheriting today's rate.
     fn withdrawal_rule(bps: u32) -> PricingRule {
         PricingRule {
             id: PricingRuleId::new(),
@@ -790,6 +804,7 @@ mod tests {
             currency: Some(Currency::AOA),
             country: None,
             transaction_type: Some("wallet_withdrawal".into()),
+            operation: Some(banzami_pricing::PricingOperation::Payout),
             rate_bps: bps,
             flat_minor: 0,
             min_fee_minor: None,

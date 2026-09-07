@@ -356,6 +356,63 @@ async fn fail_from_pending_writes_no_ledger_entry(pool: PgPool) -> sqlx::Result<
     Ok(())
 }
 
+/// A completed payout explains its own price.
+///
+/// Before this, `payouts` held `amount_minor` and nothing else. Explaining a
+/// withdrawal meant joining to `ledger_postings` on a derived idempotency key
+/// (`<key>:process:fee`) — which is literally how the RA-063 incident was
+/// reconstructed, and not a reasonable way to answer "which rule priced this".
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn processed_payout_persists_its_pricing_decision(pool: PgPool) -> sqlx::Result<()> {
+    let fix = setup(pool).await;
+    let gross = 50_000_000i64;
+
+    let payout = fix
+        .payout_engine
+        .initiate(CreatePayoutRequest {
+            idempotency_key: "payout-snapshot-01".into(),
+            merchant_id: fix.merchant_id,
+            wallet_id: fix.wallet_id,
+            amount: kz(gross),
+            destination: destination(),
+        })
+        .await
+        .unwrap();
+    fix.payout_engine.process(payout.id).await.unwrap();
+
+    let row: (
+        Option<i64>,
+        Option<i64>,
+        Option<uuid::Uuid>,
+        Option<i32>,
+        Option<i32>,
+        Option<chrono::DateTime<chrono::Utc>>,
+    ) = sqlx::query_as(
+        "SELECT fee_minor, net_minor, pricing_rule_id, pricing_rule_version,
+                    pricing_rate_bps, pricing_decided_at
+               FROM payouts WHERE id = $1",
+    )
+    .bind(payout.id.as_uuid())
+    .fetch_one(&fix.pool)
+    .await
+    .unwrap();
+
+    let bps = seeded_withdrawal_bps(&fix.pool).await;
+    let expected_fee = gross * bps / 10_000;
+
+    assert_eq!(
+        row.0,
+        Some(expected_fee),
+        "the fee is recorded on the payout"
+    );
+    assert_eq!(row.1, Some(gross - expected_fee), "and so is the net");
+    assert!(row.2.is_some(), "the rule that priced it is identified");
+    assert_eq!(row.3, Some(1), "with its version");
+    assert_eq!(row.4, Some(bps as i32), "and the rate it applied");
+    assert!(row.5.is_some(), "and when the decision was made");
+    Ok(())
+}
+
 // ─── Idempotency ─────────────────────────────────────────────────────────────
 
 #[sqlx::test(migrations = "../../db/migrations")]

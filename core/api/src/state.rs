@@ -117,11 +117,10 @@ use banzami_wallets::{PostgresWalletEngine, PostgresWalletRepository};
 
 pub type LedgerRepo = PostgresLedgerRepository;
 pub type WalletEng = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
-pub type TxEng = PostgresTransactionEngine<
-    WalletEng,
-    PostgresTransactionRepository,
-    PostgresPricingRuleProvider,
->;
+// Two parameters, not three. The transaction engine no longer takes a Pricing
+// Engine provider: capture is not a fee-bearing operation, so it resolves
+// nothing and the crate does not depend on banzami-pricing at all.
+pub type TxEng = PostgresTransactionEngine<WalletEng, PostgresTransactionRepository>;
 pub type MerchantEng = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
 pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
 pub type PayoutEng = PostgresPayoutEngine<
@@ -207,17 +206,18 @@ impl AppState {
             PostgresWalletEngine::new(Arc::new(tx_wallet_ledger), tx_wallet_repo);
 
         // --- Transaction engine ---
-        // The operator Pricing Engine (ADR-021) resolves the per-payment operator
-        // fee at capture; it is the only place fees are computed.
+        // No Pricing Engine here.
+        //
+        // This comment used to say the Pricing Engine "resolves the per-payment
+        // operator fee at capture; it is the only place fees are computed".
+        // Neither half survives: a payment credits the merchant wallet GROSS,
+        // and fees are computed at settlement and payout, which are the two
+        // fee-bearing operations under the confirmed economic model.
         let tx_repo = PostgresTransactionRepository::new(pool.clone());
-        let pricing_provider = PostgresPricingRuleProvider::new(pool.clone());
         let tx_engine = Arc::new(PostgresTransactionEngine::new(
             Arc::new(tx_wallet_engine),
             tx_repo,
             transit_account_id,
-            Arc::new(pricing_provider),
-            operator_fee_account_id,
-            environment.as_str(),
         ));
 
         // --- Merchant engine ---

@@ -90,10 +90,22 @@ async fn fund(fx: &Fixture, account_id: AccountId, amount: i64) {
     fx.ledger.post(posting).await.unwrap();
 }
 
+/// Seed a SETTLEMENT rule for a business category.
+///
+/// It names its operation now, because under the V2 resolver a rule that does
+/// not is not a wildcard — it applies to nothing. That is the whole point: an
+/// operation-less rule can no longer be inherited by a fee-bearing operation
+/// nobody meant it for.
+///
+/// The `category` argument is kept because these tests distinguish rules by it,
+/// but it is no longer what selects: the V2 path matches on operation and
+/// profile. Category rules are seeded WITHOUT a profile, which under V2 means
+/// "prices this operation for every profile" — which is what these tests want.
 async fn seed_rule(pool: &PgPool, key: &str, category: &str, rate_bps: i32) {
     sqlx::query(
-        "INSERT INTO pricing_rules (id, rule_key, business_category, rate_bps, environment)
-         VALUES ($1, $2, $3, $4, $5)",
+        "INSERT INTO pricing_rules
+           (id, rule_key, business_category, rate_bps, environment, pricing_operation)
+         VALUES ($1, $2, $3, $4, $5, 'SETTLEMENT')",
     )
     .bind(Uuid::new_v4())
     .bind(key)
@@ -330,35 +342,54 @@ async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()>
 
 // ─── no applicable rule → settlement refuses (fails closed) ────────────────
 
-// The companion to `zero_application_fee_net_equals_gross`. That test proves an
-// explicit 0-bps rule settles at zero; this one proves the absence of any rule
-// does not settle at all. Without both, "fee 0" in the ledger has two possible
-// meanings and no way to tell them apart after the fact.
+/// Seed a SETTLEMENT rule pinned to a specific pricing profile.
+///
+/// Under V2 a rule with no profile prices EVERY profile, so "no applicable
+/// rule" cannot be arranged by using a different business category — the
+/// category stopped being a selector. It is arranged the way it actually
+/// happens in production: rules exist, but none of them is for this owner.
+async fn seed_profile_rule(pool: &PgPool, key: &str, profile: &str, rate_bps: i32) {
+    sqlx::query(
+        "INSERT INTO pricing_rules
+           (id, rule_key, pricing_profile, rate_bps, environment, pricing_operation)
+         VALUES ($1, $2, $3, $4, $5, 'SETTLEMENT')",
+    )
+    .bind(Uuid::new_v4())
+    .bind(key)
+    .bind(profile)
+    .bind(rate_bps)
+    .bind(ENV)
+    .execute(pool)
+    .await
+    .unwrap();
+}
 
+// The companion to `zero_application_fee_net_equals_gross`. That test proves an
+// explicit 0-bps rule settles at zero; this one proves the absence of any
+// applicable rule does not settle at all. Without both, "fee 0" in the ledger
+// has two possible meanings and no way to tell them apart afterwards.
+//
+// The earlier version of this test seeded a CROWDFUNDING rule and settled a
+// SPACE_TOURISM category, expecting no match. That worked under V1, where the
+// category selected the rule. Under V2 it does not: the resolver matches on
+// operation and profile, so a category rule with no profile applies to
+// everyone — and the test failed with MissingFeeAccount for a 500 bps fee it
+// did not expect to be charged. Which is the resolver behaving correctly and
+// the fixture describing the old model.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn no_applicable_rule_refuses_settlement(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    // A rule exists, but for a different category — so nothing matches.
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    // Rules exist — just not for this settlement, which carries no profile.
+    seed_profile_rule(&fx.pool, "someone-elses-plan", "another-profile", 500).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     fund(&fx, source, 50_000).await;
 
     let err = fx
         .engine
-        .create(req(
-            "s-unpriced",
-            source,
-            beneficiary,
-            None,
-            50_000,
-            Some("SPACE_TOURISM"),
-        ))
+        .create(req("s-unpriced", source, beneficiary, None, 50_000, None))
         .await
         .expect_err("no applicable rule must refuse, not settle for free");
-    // The specific variant, not the generic Pricing(String). That variant also
-    // carries real internal faults — a snapshot that fails to serialise — and
-    // matching it loosely would let a 500-worthy bug pass as this refusal.
     assert!(
         matches!(err, ApplicationSettlementError::PricingNotConfigured),
         "expected PricingNotConfigured, got {err:?}"
@@ -374,6 +405,44 @@ async fn no_applicable_rule_refuses_settlement(pool: PgPool) -> sqlx::Result<()>
         net_credit(&fx.pool, source).await,
         50_000,
         "refused settlement must not debit the source"
+    );
+    Ok(())
+}
+
+/// More than one applicable rule is refused, not ranked.
+///
+/// V1 ranked candidates by counting non-null matchers and broke ties by
+/// comparing UUIDs — deterministic, and economically arbitrary. A financial tie
+/// is a configuration error someone has to resolve.
+///
+/// The database prevents this for profile-pinned rules via a unique index, but
+/// PostgreSQL treats NULLs as distinct, so two unpinned rules for the same
+/// operation can still coexist. The runtime check is what closes that.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn two_applicable_rules_refuse_rather_than_rank(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "settlement-a", "DONATION", 200).await;
+    seed_rule(&fx.pool, "settlement-b", "CROWDFUNDING", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    fund(&fx, source, 50_000).await;
+
+    let err = fx
+        .engine
+        .create(req("s-ambiguous", source, beneficiary, None, 50_000, None))
+        .await
+        .expect_err("an ambiguous configuration must refuse, not pick one");
+    assert!(
+        matches!(
+            err,
+            ApplicationSettlementError::PricingAmbiguous { candidates: 2 }
+        ),
+        "expected PricingAmbiguous with 2 candidates, got {err:?}"
+    );
+    assert_eq!(
+        net_credit(&fx.pool, source).await,
+        50_000,
+        "a refused settlement moves nothing"
     );
     Ok(())
 }

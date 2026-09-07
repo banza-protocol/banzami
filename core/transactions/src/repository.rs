@@ -50,12 +50,20 @@ pub trait TransactionRepository: Send + Sync {
     /// Atomically record the operator fee (one per transaction, idempotent) and
     /// mark the transaction CAPTURED with its retained fee. The settle ledger
     /// posting has already committed; this persists the derived records.
-    async fn finalize_capture(
-        &self,
-        id: TransactionId,
-        fee: Money,
-        fee_record: OperatorFeeInsert,
-    ) -> Result<Transaction, TransactionError>;
+    /// Mark a transaction CAPTURED.
+    ///
+    /// No fee, and no `operator_fees` row. Capture is not a fee-bearing
+    /// operation under the confirmed economic model: a payment credits the
+    /// merchant wallet GROSS, and the operator's rate is resolved one step
+    /// later, at settlement or withdrawal.
+    ///
+    /// This used to take a `Money` fee and an `OperatorFeeInsert`, because
+    /// capture resolved the Pricing Engine and wrote a fee row even when the
+    /// fee was zero. Removing the parameters rather than passing zeroes is the
+    /// point: an explicit 0-bps capture rule would simulate the same behaviour
+    /// while leaving capture inside operator pricing, and the next person would
+    /// have to rediscover that it does not belong there.
+    async fn finalize_capture(&self, id: TransactionId) -> Result<Transaction, TransactionError>;
     /// Keyset-paginated list for a merchant, newest first.
     /// Pass `before_ts` + `before_id` (from the last returned row) to get the next page.
     /// Pass `since_ts` to restrict results to transactions created at or after that timestamp.
@@ -206,62 +214,25 @@ impl TransactionRepository for PostgresTransactionRepository {
         self.get(id).await
     }
 
-    async fn finalize_capture(
-        &self,
-        id: TransactionId,
-        fee: Money,
-        r: OperatorFeeInsert,
-    ) -> Result<Transaction, TransactionError> {
+    async fn finalize_capture(&self, id: TransactionId) -> Result<Transaction, TransactionError> {
         let now = Utc::now();
-        let mut db = self
-            .pool
-            .begin()
-            .await
-            .map_err(TransactionError::Database)?;
 
-        // One operator fee per transaction; a replay is a no-op (idempotent).
-        sqlx::query(
-            "INSERT INTO operator_fees
-               (id, transaction_id, posting_id, amount_minor, currency,
-                business_category, pricing_profile, fee_policy_ref,
-                pricing_rule_id, pricing_rule_version, engine_version,
-                snapshot_json, status, environment, idempotency_key, settled_at)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'APPLIED',$13,$14,$15)
-             ON CONFLICT (transaction_id) DO NOTHING",
-        )
-        .bind(r.id.as_uuid())
-        .bind(r.transaction_id.as_uuid())
-        .bind(r.posting_id.as_uuid())
-        .bind(r.amount_minor)
-        .bind(r.currency.code())
-        .bind(&r.business_category)
-        .bind(&r.pricing_profile)
-        .bind(&r.fee_policy_ref)
-        .bind(r.pricing_rule_id.map(|x| x.as_uuid()))
-        .bind(r.pricing_rule_version)
-        .bind(r.engine_version)
-        .bind(&r.snapshot_json)
-        .bind(&r.environment)
-        .bind(&r.idempotency_key)
-        .bind(now)
-        .execute(&mut *db)
-        .await
-        .map_err(TransactionError::Database)?;
-
+        // fee_minor stays 0 because there is no capture fee to record — not
+        // because a rule decided zero. The column is retained for the rows
+        // written before capture left operator pricing; nothing writes a
+        // non-zero value to it any more.
         sqlx::query(
             "UPDATE transactions
-                SET status = $1, fee_minor = $2, updated_at = $3
-              WHERE id = $4",
+                SET status = $1, updated_at = $2
+              WHERE id = $3",
         )
         .bind(TransactionStatus::Captured.as_str())
-        .bind(fee.amount_minor())
         .bind(now)
         .bind(id.as_uuid())
-        .execute(&mut *db)
+        .execute(&self.pool)
         .await
         .map_err(TransactionError::Database)?;
 
-        db.commit().await.map_err(TransactionError::Database)?;
         self.get(id).await
     }
 

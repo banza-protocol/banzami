@@ -405,6 +405,10 @@ mod tests {
             currency: None,
             country: None,
             transaction_type: None,
+            // The V1 test helpers build operation-less rules on purpose: they
+            // exercise the legacy `resolve`, whose matching they still describe.
+            // The V2 tests build their own rules that name an operation.
+            operation: None,
             rate_bps: 0,
             flat_minor: 0,
             min_fee_minor: None,
@@ -425,6 +429,7 @@ mod tests {
             fee_policy_ref: None,
             country: Some("AO".into()),
             transaction_type: None,
+            operation: None,
             as_of: t(2026, 6, 29),
         }
     }

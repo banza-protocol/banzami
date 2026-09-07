@@ -131,6 +131,26 @@ SELECT gen_random_uuid(), 'sandbox-donation-200-payout', 1, 'SANDBOX', true,
     WHERE environment = 'SANDBOX' AND pricing_profile = 'sandbox-donation-200'
       AND pricing_operation = 'PAYOUT');
 
+-- ── the network-wide withdrawal rule names its operation ──────────────────
+--
+-- 0108 seeded wallet_withdrawal_default before pricing_operation existed, so it
+-- carries none — and under the V2 resolver an operation-less rule applies to
+-- NOTHING, not to everything. Left as it was, every withdrawal would resolve no
+-- rule the moment the operation-aware resolver deployed.
+--
+-- This rule is deliberately not profile-pinned: the deployed withdrawal rate is
+-- network-wide, applying to every owner. Under V2 a rule with no profile prices
+-- every profile, which preserves exactly that.
+--
+-- Found by the payout integration suite: the bank leg carried the gross instead
+-- of the net, because the fee resolved to zero. Which is the resolver being
+-- right and the migration being incomplete.
+UPDATE pricing_rules
+   SET pricing_operation = 'PAYOUT'
+ WHERE environment = 'SANDBOX'
+   AND transaction_type = 'wallet_withdrawal'
+   AND pricing_operation IS NULL;
+
 -- ── overlap prevention ─────────────────────────────────────────────────────
 --
 -- One rule per (environment, profile, operation) among ENABLED, open-ended

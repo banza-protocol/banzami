@@ -448,7 +448,6 @@ name = "banzami-transactions"
 version = "0.1.0"
 dependencies = [
  "banzami-ledger",
- "banzami-pricing",
  "banzami-types",
  "banzami-wallets",
  "chrono",

@@ -32,9 +32,8 @@ const CORE = 'core';
 
 // Money-moving consumers: each resolves a fee and posts against it.
 const FEE_BEARING = {
-  transactions:      'capture — the operator fee on a payment. Refuses when no rule applies.',
-  'app-settlement':  'application settlement — the fee on settling accumulated value. Refuses when no rule applies.',
-  payouts:           'withdrawal — the operator fee on money leaving. Cutover in progress: still treats a missing rule as zero, gated by tools/check-pricing-assignment.mjs.',
+  'app-settlement': 'application settlement — the fee on settling accumulated value. Names operation=SETTLEMENT; refuses when 0 or >1 rules apply.',
+  payouts:          'withdrawal — the fee on money leaving. Names operation=PAYOUT; refuses ambiguity now, and a missing rule once the completeness gate has proven it would refuse nothing legitimate.',
 };
 
 // Non-money-moving: these read or manage rules. They charge nothing.
@@ -51,6 +50,7 @@ const ALLOWED = { ...FEE_BEARING, ...ADMINISTRATIVE };
 // Deliberate non-consumers, named so a future author sees the decision rather
 // than an absence and "fixes" it.
 const DELIBERATELY_NEUTRAL = {
+  transactions: 'capture. It LEFT operator pricing in Pricing Model V2: a payment or donation credits the merchant wallet GROSS, and the rate is resolved one step later at settlement or payout. Deliberately not solved with an explicit 0-bps capture rule, which would have produced the same numbers while leaving capture inside pricing.',
   transfers:   'the generic money-movement primitive. It carries merchant payments AND P2P, so a fee inside it would charge people for sending money to each other. Pricing belongs at the fee-bearing operation above it.',
   collections: 'splits an existing charge; the fee was resolved when that charge was captured.',
   refunds:     'reverses value that was already priced. Re-resolving would price the same money twice.',

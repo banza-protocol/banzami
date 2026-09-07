@@ -2,14 +2,11 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 
-use banzami_pricing::{
-    BusinessCategory, FeePolicyRef, PricingContext, PricingProfile, PricingRuleProvider,
-};
-use banzami_types::{AccountId, MerchantId, Money, OperatorFeeId, TransactionId};
+use banzami_types::{AccountId, MerchantId, Money, TransactionId};
 use banzami_wallets::{ReleaseRequest, ReserveRequest, SettleRequest, WalletEngine};
 
 use crate::{
-    repository::{OperatorFeeInsert, TransactionRepository},
+    repository::TransactionRepository,
     transaction::{
         AuthorizeRequest, CaptureRequest, CreateTransactionRequest, FailRequest, ReverseRequest,
         Transaction, TransactionStatus,
@@ -72,52 +69,27 @@ pub trait TransactionEngine: Send + Sync {
 // Production implementation
 // ---------------------------------------------------------------------------
 
-pub struct PostgresTransactionEngine<
-    W: WalletEngine,
-    R: TransactionRepository,
-    P: PricingRuleProvider,
-> {
+pub struct PostgresTransactionEngine<W: WalletEngine, R: TransactionRepository> {
     wallet: Arc<W>,
     repo: R,
     /// System ASSET account used as the debit side of wallet reserve / credit
     /// side of wallet release. Represents the acquiring float — money arriving
     /// from or returning to the payment network.
     transit_account_id: AccountId,
-    /// Operator Pricing Engine rule source (Banzami ADR-021). The ONLY place
-    /// fees are resolved; the engine never hard-codes a percentage.
-    pricing: Arc<P>,
-    /// Internal REVENUE account the operator fee is credited to (never a merchant
-    /// wallet). Fixed at boot, mirroring the transit/bank system accounts.
-    operator_fee_account_id: AccountId,
-    /// Environment the engine runs in (LIVE/SANDBOX) — scopes rule loading and
-    /// the recorded operator_fee row.
-    environment: String,
 }
 
-impl<W: WalletEngine, R: TransactionRepository, P: PricingRuleProvider>
-    PostgresTransactionEngine<W, R, P>
-{
-    pub fn new(
-        wallet: Arc<W>,
-        repo: R,
-        transit_account_id: AccountId,
-        pricing: Arc<P>,
-        operator_fee_account_id: AccountId,
-        environment: impl Into<String>,
-    ) -> Self {
+impl<W: WalletEngine, R: TransactionRepository> PostgresTransactionEngine<W, R> {
+    pub fn new(wallet: Arc<W>, repo: R, transit_account_id: AccountId) -> Self {
         Self {
             wallet,
             repo,
             transit_account_id,
-            pricing,
-            operator_fee_account_id,
-            environment: environment.into(),
         }
     }
 }
 
-impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider> TransactionEngine
-    for PostgresTransactionEngine<W, R, P>
+impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
+    for PostgresTransactionEngine<W, R>
 {
     async fn create(&self, req: CreateTransactionRequest) -> Result<Transaction, TransactionError> {
         // Idempotency: return existing transaction if the key was already used.
@@ -202,124 +174,40 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
         let tx = self.repo.get(req.tx_id).await?;
         guard_transition(&tx, TransactionStatus::Captured)?;
 
-        // --- Resolve the operator fee (Banzami ADR-021 / BANZA ADR-039) -------
-        // The fee comes ONLY from the Pricing Engine. An unpriced/unknown
-        // category resolves to 0, so capture behaviour is unchanged until a
-        // category is configured. No percentage is ever hard-coded here.
-        let rules = self
-            .pricing
-            .load_rules(&self.environment)
-            .await
-            .map_err(|e| TransactionError::Pricing(e.to_string()))?;
-
-        let ctx = PricingContext {
-            amount_minor: tx.amount.amount_minor(),
-            currency: tx.currency,
-            business_category: tx
-                .business_category
-                .as_deref()
-                .map(BusinessCategory::from_code)
-                // Retained as a rule dimension, but it is no longer something a
-                // caller supplies: the gateway stops accepting it and stores the
-                // merchant's assigned profile instead. An empty reference here
-                // simply matches no category-keyed rule.
-                .unwrap_or_else(|| BusinessCategory::Other(String::new())),
-            pricing_profile: tx.pricing_profile.as_deref().map(PricingProfile::from_code),
-            fee_policy_ref: tx.fee_policy_ref.clone().map(FeePolicyRef::new),
-            country: None,
-            transaction_type: None,
-            // None on purpose: capture is not a fee-bearing operation under the
-            // confirmed economic model, and this whole block is being removed.
-            operation: None,
-            as_of: Utc::now(),
-        };
-        let resolution = banzami_pricing::resolve(&rules, &ctx);
-
-        // No applicable rule is a refusal, not a free capture.
+        // --- No operator fee. Capture is not a fee-bearing operation. -------
         //
-        // `resolve` reports a fee of 0 with no rule id when nothing matched, and
-        // that is indistinguishable in the ledger from an operator policy that
-        // says zero. Capture is the moment money moves, so this is where the two
-        // have to be told apart: an explicit 0-bps rule captures at zero, and an
-        // absent decision does not capture at all.
-        if resolution.snapshot.rule_id.is_none() {
-            return Err(TransactionError::PricingNotConfigured);
-        }
-        let fee_minor = resolution.fee_minor;
-
-        // Net-to-payee guard: a fee may never exceed the amount (loud fail; never
-        // a silent clamp, never a negative net). The ledger leg would also reject
-        // it, but we fail early with a clear error.
-        if fee_minor > tx.amount.amount_minor() {
-            return Err(TransactionError::FeeExceedsAmount {
-                fee: fee_minor,
-                amount: tx.amount.amount_minor(),
-            });
-        }
-        let fee_money = Money::new(fee_minor, tx.currency);
+        // This block used to load the pricing rules, build a PricingContext,
+        // resolve a fee and refuse when no rule applied. All of it is gone,
+        // and deliberately not replaced by an explicit 0-bps capture rule.
+        //
+        // Under the confirmed economic model a payment or donation credits the
+        // merchant wallet GROSS, and the operator's rate is resolved one step
+        // later at a genuinely fee-bearing operation — settlement or payout. A
+        // zero rule would produce the same numbers while leaving capture inside
+        // operator pricing, so the next person would have to rediscover that it
+        // does not belong there.
+        //
+        // The audit's P0 was that the engine could not tell a settlement from a
+        // capture, because both passed no operation. The fix is not to give
+        // capture an operation. It is to take capture out.
         let capture_key = format!("{}:capture", tx.idempotency_key);
 
-        // --- Settle: payee NET + operator fee, ONE balanced posting ----------
-        // Idempotent on `capture_key`: a replay returns the existing posting and
-        // never double-charges the fee.
-        let (operator_fee, operator_fee_account_id) = if fee_minor > 0 {
-            (Some(fee_money), Some(self.operator_fee_account_id))
-        } else {
-            (None, None)
-        };
-        let posting_id = self
-            .wallet
+        // --- Settle: the payee receives the GROSS, in one balanced posting ---
+        // Idempotent on `capture_key`: a replay returns the existing posting.
+        self.wallet
             .settle(SettleRequest {
                 idempotency_key: capture_key.clone(),
                 wallet_id: tx.wallet_id,
                 amount: tx.amount,
-                operator_fee,
-                operator_fee_account_id,
+                operator_fee: None,
+                operator_fee_account_id: None,
             })
             .await
             .map_err(TransactionError::Wallet)?;
 
-        // --- Persist the (immutable) operator_fee record + set tx.fee --------
-        // One row per transaction; ON CONFLICT keeps replay idempotent. Recorded
-        // even when the fee is 0, for full auditability.
-        let operator_fee_id = OperatorFeeId::new();
-        let snapshot_json = serde_json::to_value(&resolution.snapshot)
-            .map_err(|e| TransactionError::Pricing(format!("snapshot serialize: {e}")))?;
-        let fee_record = OperatorFeeInsert {
-            id: operator_fee_id,
-            transaction_id: tx.id,
-            posting_id,
-            amount_minor: fee_minor,
-            currency: tx.currency,
-            business_category: tx.business_category.clone(),
-            pricing_profile: tx.pricing_profile.clone(),
-            fee_policy_ref: tx.fee_policy_ref.clone(),
-            pricing_rule_id: resolution.snapshot.rule_id,
-            pricing_rule_version: resolution.snapshot.rule_version,
-            engine_version: resolution.snapshot.engine_version as i32,
-            snapshot_json,
-            environment: self.environment.clone(),
-            idempotency_key: capture_key,
-        };
-        let updated = self
-            .repo
-            .finalize_capture(tx.id, fee_money, fee_record)
-            .await?;
+        let updated = self.repo.finalize_capture(tx.id).await?;
 
-        // --- Internal event (no PII, no commercial rule beyond refs) ---------
-        // Operator-internal only; never a public webhook.
-        tracing::info!(
-            event = "operator.fee.applied",
-            operator_fee_id = %operator_fee_id,
-            transaction_id = %tx.id,
-            amount_minor = fee_minor,
-            currency = %tx.currency,
-            pricing_rule_id = ?resolution.snapshot.rule_id,
-            rule_version = ?resolution.snapshot.rule_version,
-            engine_version = resolution.snapshot.engine_version,
-            "operator fee applied"
-        );
-        tracing::info!(tx_id = %tx.id, amount = %tx.amount, fee = %fee_money, "transaction captured");
+        tracing::info!(tx_id = %tx.id, amount = %tx.amount, "transaction captured — gross to payee, no operator fee");
         Ok(updated)
     }
 
@@ -477,57 +365,14 @@ mod tests {
         }
     }
 
-    // Mock pricing provider — an EXPLICIT 0-bps wildcard rule.
+    // The pricing mocks that used to live here are gone.
     //
-    // It used to return no rules at all, with the note "no rules => every
-    // category resolves to a zero fee, so these state-machine tests exercise
-    // capture with net == gross". The first half became false: capture now
-    // refuses when nothing matched. Keeping net == gross is still what these
-    // state-machine tests want, so the zero comes from a rule that says zero —
-    // which is the distinction the whole change is about, applied to the
-    // fixture instead of worked around in it.
-    fn zero_bps_wildcard() -> banzami_pricing::PricingRule {
-        banzami_pricing::PricingRule {
-            id: banzami_types::PricingRuleId::new(),
-            key: "test-explicit-zero".into(),
-            version: 1,
-            business_category: None,
-            pricing_profile: None,
-            fee_policy_ref: None,
-            currency: None,
-            country: None,
-            transaction_type: None,
-            rate_bps: 0,
-            flat_minor: 0,
-            min_fee_minor: None,
-            max_fee_minor: None,
-            rounding: banzami_pricing::RoundingMode::HalfUp,
-            priority: 0,
-            effective_from: DateTime::from_timestamp(0, 0).expect("epoch"),
-            effective_to: None,
-        }
-    }
-
-    struct MockPricing;
-    impl PricingRuleProvider for MockPricing {
-        async fn load_rules(
-            &self,
-            _environment: &str,
-        ) -> Result<Vec<banzami_pricing::PricingRule>, banzami_pricing::PricingError> {
-            Ok(vec![zero_bps_wildcard()])
-        }
-    }
-
-    /// A provider that has nothing to say — the state the refusal exists for.
-    struct UnpricedMockPricing;
-    impl PricingRuleProvider for UnpricedMockPricing {
-        async fn load_rules(
-            &self,
-            _environment: &str,
-        ) -> Result<Vec<banzami_pricing::PricingRule>, banzami_pricing::PricingError> {
-            Ok(vec![])
-        }
-    }
+    // They existed because capture resolved the Pricing Engine: one provider
+    // returning an explicit 0-bps wildcard so the state-machine tests captured
+    // at net == gross, and one returning nothing so the refusal could be
+    // exercised. Capture is no longer a fee-bearing operation, so there is no
+    // fee to mock and no refusal to exercise here — the equivalent assurance
+    // now lives on settlement and payout.
 
     // -----------------------------------------------------------------------
     // In-memory transaction repository
@@ -600,8 +445,6 @@ mod tests {
         async fn finalize_capture(
             &self,
             id: TransactionId,
-            fee: Money,
-            _fee_record: crate::repository::OperatorFeeInsert,
         ) -> Result<Transaction, TransactionError> {
             let mut rows = self.rows.lock().unwrap();
             let tx = rows
@@ -609,7 +452,6 @@ mod tests {
                 .find(|r| r.id == id)
                 .ok_or(TransactionError::NotFound(id))?;
             tx.status = TransactionStatus::Captured;
-            tx.fee = fee;
             tx.updated_at = Utc::now();
             Ok(tx.clone())
         }
@@ -633,39 +475,18 @@ mod tests {
         }
     }
 
-    fn make_engine() -> PostgresTransactionEngine<MockWallet, MockRepo, MockPricing> {
-        PostgresTransactionEngine::new(
-            Arc::new(MockWallet),
-            MockRepo::new(),
-            AccountId::new(),
-            Arc::new(MockPricing),
-            AccountId::new(),
-            "SANDBOX",
-        )
+    fn make_engine() -> PostgresTransactionEngine<MockWallet, MockRepo> {
+        PostgresTransactionEngine::new(Arc::new(MockWallet), MockRepo::new(), AccountId::new())
     }
 
     fn kz(minor: i64) -> Money {
         Money::new(minor, Currency::AOA)
     }
 
-    fn make_unpriced_engine() -> PostgresTransactionEngine<MockWallet, MockRepo, UnpricedMockPricing>
-    {
-        PostgresTransactionEngine::new(
-            Arc::new(MockWallet),
-            MockRepo::new(),
-            AccountId::new(),
-            Arc::new(UnpricedMockPricing),
-            AccountId::new(),
-            "SANDBOX",
-        )
-    }
-
     // Generic over the pricing provider so the same setup serves both the
     // priced and the unpriced engine — the two fixtures differ only in whether
     // a rule exists, which is the point being tested.
-    async fn pending_tx<P: PricingRuleProvider>(
-        engine: &PostgresTransactionEngine<MockWallet, MockRepo, P>,
-    ) -> Transaction {
+    async fn pending_tx(engine: &PostgresTransactionEngine<MockWallet, MockRepo>) -> Transaction {
         engine
             .create(CreateTransactionRequest {
                 idempotency_key: "idem-001".into(),
@@ -752,37 +573,41 @@ mod tests {
         assert_eq!(captured.status, TransactionStatus::Captured);
     }
 
-    /// The state machine does NOT advance when nobody has priced the payment.
+    /// Capture credits the payee the GROSS.
     ///
-    /// The companion to the test above: that one proves capture works when a
-    /// rule says zero, this one proves it refuses when no rule says anything.
-    /// Without both, "fee 0, CAPTURED" has two causes and the tests cannot tell
-    /// which one they just exercised.
+    /// This replaces capture_refuses_when_no_rule_applies, which asserted that
+    /// capture refused when nothing had priced the payment. That refusal was
+    /// correct while capture was a fee-bearing operation and is meaningless now
+    /// that it is not: a payment credits the merchant wallet gross, and the
+    /// operator's rate is decided later at settlement or payout.
+    ///
+    /// What is worth holding is the replacement contract — capture asks nobody
+    /// what it costs, and hands over the whole amount.
     #[tokio::test]
-    async fn capture_refuses_when_no_rule_applies() {
-        let engine = make_unpriced_engine();
+    async fn capture_credits_the_payee_the_gross_amount() {
+        let engine = make_engine();
         let tx = pending_tx(&engine).await;
         let authorized = engine
             .authorize(AuthorizeRequest { tx_id: tx.id })
             .await
             .unwrap();
 
-        let err = engine
+        let captured = engine
             .capture(CaptureRequest {
                 tx_id: authorized.id,
             })
             .await
-            .expect_err("an unpriced capture must refuse");
-        assert!(
-            matches!(err, TransactionError::PricingNotConfigured),
-            "expected PricingNotConfigured, got {err:?}"
-        );
+            .expect("capture must not depend on any pricing decision");
 
-        let after = engine.get(authorized.id).await.unwrap();
+        assert_eq!(captured.status, TransactionStatus::Captured);
         assert_eq!(
-            after.status,
-            TransactionStatus::Authorized,
-            "a refused capture leaves the transaction where it was"
+            captured.fee.amount_minor(),
+            0,
+            "capture charges no operator fee at all — not a fee of zero decided by a rule"
+        );
+        assert_eq!(
+            captured.amount, tx.amount,
+            "the payee receives the gross, unchanged"
         );
     }
 
