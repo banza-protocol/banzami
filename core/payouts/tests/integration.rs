@@ -44,6 +44,25 @@ struct TestFixture {
     merchant_id: MerchantId,
     wallet_id: WalletId,
     bank_id: AccountId,
+    operator_fee_id: AccountId,
+    pool: PgPool,
+}
+
+/// The withdrawal rate the migrations seeded, read rather than restated.
+///
+/// Migration 0108 makes the Sandbox withdrawal rule a repository fact so a
+/// financial reset cannot silently make withdrawals free (REPAIR_LOG RA-063).
+/// A test that hard-coded the number would have to be edited to match a policy
+/// change rather than following it, and would go quiet in exactly the case that
+/// matters: a rule that vanished.
+async fn seeded_withdrawal_bps(pool: &PgPool) -> i64 {
+    sqlx::query_scalar::<_, i32>(
+        "SELECT rate_bps FROM pricing_rules
+          WHERE environment = 'SANDBOX' AND transaction_type = 'wallet_withdrawal' AND enabled",
+    )
+    .fetch_one(pool)
+    .await
+    .expect("the Sandbox withdrawal rule must exist — 0108 seeds it") as i64
 }
 
 async fn setup(pool: PgPool) -> TestFixture {
@@ -101,20 +120,39 @@ async fn setup(pool: PgPool) -> TestFixture {
         .await
         .unwrap();
 
-    // Payout engine. No wallet_withdrawal rule exists in the test DB, so the fee
-    // resolves to 0 (2-leg posting) — these lifecycle tests are fee-agnostic.
+    // Payout engine, priced by whatever rule the migrations seeded. These
+    // lifecycle tests assert transitions, not a rate, so they read the rate from
+    // the database rather than restating it — a test that hard-codes 75 bps
+    // would have to be edited to match a policy change instead of following it.
+    // The operator-fee account is a REAL ledger account now.
+    //
+    // It used to be a throwaway AccountId::new() with the note "unused while
+    // fee == 0", and the note above it said "no wallet_withdrawal rule exists in
+    // the test DB, so the fee resolves to 0". Migration 0108 seeds that rule
+    // durably — precisely so a Sandbox reset cannot make withdrawals free again
+    // — so the fee is no longer zero, the posting is no longer two legs, and an
+    // id with no account behind it now fails with AccountNotFound.
+    let operator_fee = ledger
+        .create_account(Account::new(
+            AccountType::Revenue,
+            "operator-fee-payout-test",
+            Currency::AOA,
+        ))
+        .await
+        .unwrap();
+    let operator_fee_id = operator_fee.id;
     let wallet_repo_for_payout = PostgresWalletRepository::new(pool.clone());
     let pricing = std::sync::Arc::new(banzami_pricing::PostgresPricingRuleProvider::new(
         pool.clone(),
     ));
-    let payout_repo = PostgresPayoutRepository::new(pool);
+    let payout_repo = PostgresPayoutRepository::new(pool.clone());
     let payout_engine = PostgresPayoutEngine::new(
         wallet_repo_for_payout,
         ledger.clone(),
         payout_repo,
         bank.id,
         pricing,
-        AccountId::new(), // operator-fee account (unused while fee == 0)
+        operator_fee_id,
         "SANDBOX",
     );
 
@@ -124,6 +162,8 @@ async fn setup(pool: PgPool) -> TestFixture {
         merchant_id,
         wallet_id: wallet.id,
         bank_id: bank.id,
+        operator_fee_id,
+        pool,
     }
 }
 
@@ -162,12 +202,28 @@ async fn initiate_to_confirmed_happy_path(pool: PgPool) -> sqlx::Result<()> {
         "processing must record a posting ID"
     );
 
-    // Ledger entry posted: bank account credited (funds earmarked to leave).
+    // Ledger entry posted: the bank leg carries the NET, and the operator fee is
+    // its own paired posting rather than a third leg on this one (ADR-031).
+    //
+    // This asserted a flat 50_000_000 while no withdrawal rule existed. That was
+    // not a fee-agnostic assertion, it was an assertion that the fee was zero —
+    // which is the state migration 0108 exists to make impossible.
+    let gross = 50_000_000i64;
+    let bps = seeded_withdrawal_bps(&fix.pool).await;
+    let fee = gross * bps / 10_000;
+    assert!(fee > 0, "a seeded withdrawal rule must charge something");
+
     let bank_balance_after = fix.ledger.balance(fix.bank_id).await.unwrap();
     assert_eq!(
         bank_balance_after.amount_minor().abs(),
-        50_000_000,
-        "bank account must be adjusted at process time"
+        gross - fee,
+        "the bank leg must carry the net, not the gross"
+    );
+    let fee_balance = fix.ledger.balance(fix.operator_fee_id).await.unwrap();
+    assert_eq!(
+        fee_balance.amount_minor().abs(),
+        fee,
+        "the operator fee must be posted, and posted separately"
     );
 
     let sent = fix.payout_engine.mark_sent(payout.id).await.unwrap();
