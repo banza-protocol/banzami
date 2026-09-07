@@ -71,9 +71,19 @@ fee on the net).
 | `PricingProfile` | Commercial tier (STANDARD, PARTNER, NGO, …) | No |
 | `FeePolicyRef` | Opaque handle to a commercial policy (`pol_…`) | No |
 
-Both enums are **open**: an unknown value is carried verbatim and resolves to a
-**zero fee** until policy is configured — a payment is never blocked because a
-category is new.
+Both enums are **open**: an unknown value is carried verbatim and matches no
+rule. The resolver reports that as `rule_id = None` — a *sentinel*, not a price.
+
+It used to say the unknown value "resolves to a zero fee until policy is
+configured — a payment is never blocked because a category is new". That
+sentence is where this defect lived. It is true that nothing was blocked; what
+was not said is that nothing was charged either, and that a caller choosing the
+reference could therefore choose to pay nothing by choosing a reference nobody
+had priced.
+
+A payment IS now blocked at capture when no policy applies. Being new is not a
+discount, and an operator that cannot say what something costs should not move
+the money.
 
 ---
 

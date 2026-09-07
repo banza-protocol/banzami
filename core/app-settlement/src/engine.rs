@@ -166,7 +166,7 @@ where
                 (fee, snapshot, None, None, 0_i32)
             } else {
                 // OPERATOR-PRICED: the percentage lives only in pricing_rules;
-                // nothing is hard-coded. Unpriced => 0.
+                // nothing is hard-coded. No rule => no decision => refused below.
                 let rules = self
                     .pricing
                     .load_rules(&self.environment)

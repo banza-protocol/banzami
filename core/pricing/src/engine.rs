@@ -131,10 +131,27 @@ fn select_rule<'a>(rules: &'a [PricingRule], ctx: &PricingContext) -> Option<&'a
         })
 }
 
-/// Resolve the fee for `ctx` against `rules`. When no rule matches (unknown
-/// category, unpriced combination, NGO/GOVERNMENT with no rule, …) the fee is
-/// **0** and the snapshot records `rule_id = None` — the caller still posts a
-/// balanced, fee-less entry.
+/// Resolve the fee for `ctx` against `rules`.
+///
+/// When no rule matches, this returns a fee of **0** with `rule_id = None`.
+///
+/// **That zero is a sentinel, not a policy.** It means "no decision was found",
+/// and it is numerically identical to a rule that decides zero — which is why
+/// callers MUST branch on `snapshot.rule_id` rather than on `fee_minor`. A
+/// caller that only looks at the amount cannot tell an operator policy of free
+/// from nobody having configured anything, and will post a free transaction
+/// either way.
+///
+/// This doc used to call the no-match case a "safe default" and say the caller
+/// "still posts a balanced, fee-less entry". Balanced, yes. Safe, no: it is the
+/// sentence the rest of the codebase learned the behaviour from, and both the
+/// capture and settlement paths implemented it faithfully. Both now refuse when
+/// `rule_id` is `None` — see `TransactionError::PricingNotConfigured` and
+/// `ApplicationSettlementError::PricingNotConfigured`.
+///
+/// The sentinel stays here rather than becoming an `Option`, because pure
+/// resolution genuinely has no opinion about what an absent decision should
+/// cost. Deciding that is the money-moving caller's job, and each one now does.
 pub fn resolve(rules: &[PricingRule], ctx: &PricingContext) -> FeeResolution {
     let echoed = |fee_minor: i64,
                   rule: Option<&PricingRule>,
@@ -170,7 +187,9 @@ pub fn resolve(rules: &[PricingRule], ctx: &PricingContext) -> FeeResolution {
     };
 
     let Some(rule) = select_rule(rules, ctx) else {
-        // Safe default: no policy configured for this combination -> zero fee.
+        // No decision found. `rule_id = None` in the snapshot is how the caller
+        // is told that — NOT the 0, which a real rule can also produce. Callers
+        // that move money refuse on this; see the doc comment above.
         return echoed(0, None, 0, 0, None, None, RoundingMode::Floor);
     };
 

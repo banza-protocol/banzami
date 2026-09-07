@@ -14,7 +14,9 @@ use banzami_types::{Currency, PricingRuleId};
 // ---------------------------------------------------------------------------
 // Reference concepts (mirror ~/banza/contracts/fees/*.schema.json exactly).
 // Open enums: the protocol marks BusinessCategory/PricingProfile `_extensible`,
-// so an unknown value is carried verbatim and resolves to a zero fee.
+// so an unknown value is carried verbatim. It then matches no rule, which the
+// resolver reports as `rule_id = None` — and every money-moving caller refuses
+// on that rather than charging nothing.
 // ---------------------------------------------------------------------------
 
 /// What kind of commerce a payment represents. Reference only — never a price.
@@ -38,7 +40,11 @@ pub enum BusinessCategory {
     Ngo,
     Government,
     /// Forward-compatible: a category this operator build does not yet know.
-    /// Always resolves to a zero fee (safe default) until policy is configured.
+    ///
+    /// It matches no rule, so the resolver reports no decision. That is not a
+    /// zero-fee default: capture and settlement refuse until a policy exists.
+    /// Reading it as "free" was how an unknown category became the cheapest
+    /// thing a caller could send.
     Other(String),
 }
 
