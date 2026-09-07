@@ -49,7 +49,13 @@ export 'client/api_exception.dart';
 // Models
 export 'models/activity_item.dart';
 export 'models/consumer.dart';
-export 'models/fee_references.dart';
+// models/fee_references.dart is deliberately gone.
+//
+// It exported BusinessCategory and PricingProfile enums, documented as
+// "references only ... an unknown wire value maps to unknown and resolves to a
+// zero fee". No method in this SDK ever took either type, and the operator no
+// longer accepts a pricing selector on any public surface — naming a rule
+// dimension is naming the rate. Nothing in this repository imported them.
 export 'models/consumer_pay_link.dart';
 export 'models/kyc.dart';
 export 'models/merchant.dart';
