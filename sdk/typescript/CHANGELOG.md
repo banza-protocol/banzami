@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-09-07
+
+### Removed — `createTransaction` no longer accepts pricing selectors (breaking)
+
+`businessCategory`, `pricingProfile` and `feePolicyRef` are gone, along with the
+exported `BusinessCategory` and `PricingProfile` types.
+
+They were documented as "reference only: the SDK never sends or receives a fee
+or percentage; the operator resolves any fee internally". That was accurate
+about the wire and wrong about the consequence. Each of the three is a
+rule-matching dimension in the operator's pricing engine, and rule selection
+ranks by specificity — the more dimensions a rule pins, the higher it wins. So
+choosing the reference chose the rate, one level of indirection away from
+naming a price.
+
+The same documentation then promised that "omitting these keeps the legacy
+zero-fee behaviour", which made sending nothing the cheapest thing a caller
+could do. That is now a refusal on the operator side rather than a discount: a
+transaction with no applicable pricing rule does not capture at all, and an
+explicit 0 bps rule is how zero gets said.
+
+Pricing is resolved by the operator from the merchant's assigned profile. There
+is nothing for a client to pass.
+
+**Upgrade:** delete the three arguments from any `createTransaction` call. The
+gateway already ignores them, so behaviour does not change when you do —
+removal is a compile-time correction, not a runtime one. If you imported
+`BusinessCategory` or `PricingProfile`, remove those imports; no SDK method
+takes either type any more.
+
 ## [0.8.3] — 2026-09-06
 
 ### Changed — refunds moved to the canonical public path `/v1/refunds`

@@ -197,9 +197,18 @@ emitted (tracing; never a public webhook).
 
 The fee is **operator-internal**: no public/SDK/payer surface accepts or returns
 it; the payer sees the gross amount; the merchant sees the net in their wallet.
-`business_category`/`pricing_profile`/`fee_policy_ref` are not yet accepted on the
-public API (a later SDK increment) — until set, every transaction is unpriced and
-resolves to a zero fee, so existing behaviour is unchanged.
+`business_category`/`pricing_profile`/`fee_policy_ref` are **not accepted on the
+public API**, and this is now a deliberate refusal rather than an unfinished
+increment. Each of the three selects a rule, and rule selection ranks by
+specificity, so naming one is naming the price through a level of indirection.
+The operator resolves the merchant's assigned pricing profile server-side.
+
+An earlier version of this paragraph said they were "not yet accepted (a later
+SDK increment) — until set, every transaction is unpriced and resolves to a zero
+fee, so existing behaviour is unchanged". That was the defect stated as a
+roadmap: it made sending nothing the cheapest option a caller had. An absent
+pricing decision now **refuses** at capture and at settlement; zero is something
+an explicit rule has to say.
 
 ### Refunds (deferred)
 
@@ -226,12 +235,16 @@ percentage outside this crate.
   persistence, operator revenue account, real-DB invariant tests.
 - **Increment 4 (done):** Application Settlement application fee
   ([core/app-settlement](../application-settlement/README.md)).
-- **Increment 5 (done):** the **references** (`business_category` /
-  `pricing_profile` / `fee_policy_ref`) are carried on the transaction-creation
-  surface end-to-end (gateway → core-api → operator fee) and on the internal
-  Application Settlement API; the TypeScript server SDK and Flutter SDK expose the
-  reference types. **References only** cross the wire — never a fee, percentage or
-  rule; public responses never return the operator fee.
+- **Increment 5 (superseded):** the references were carried end-to-end from the
+  public transaction-creation surface, and the TypeScript and Flutter SDKs
+  exposed the reference types. That is **reversed**. The public surface accepts
+  no selector; the SDK types are removed; the gateway resolves the merchant's
+  assigned profile and sends only that. Public responses still never return the
+  operator fee, which was never the problem.
+- **Pricing authority (done):** every merchant carries an assigned
+  `pricing_profile`, stored explicitly — including an explicit **0 bps** for the
+  Sandbox default, because "no rule" and "a rule that says zero" must not be the
+  same state. Capture and settlement refuse when no rule applies.
 - **Not yet** (per ADR-021 sequencing): app consumers — DOA then
   Mongo/marketplace/crowdfunding (6). The payment-link / QR / collections /
   wallet-payment surfaces and the Flutter client methods are **not** wired for

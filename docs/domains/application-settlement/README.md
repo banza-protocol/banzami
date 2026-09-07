@@ -156,10 +156,19 @@ internally by the Pricing Engine.
 | `GET  /internal/v1/application-settlements?owner_ref=…` | list by owner |
 
 Create body carries only: `idempotency_key`, `owner_ref`, `source_account_id`,
-`beneficiary_account_id`, `application_fee_account_id` (optional), `gross_amount_minor`,
-`currency`, and the references `business_category` / `pricing_profile` /
-`fee_policy_ref`. There is **no** `rate_bps` / `fee_minor` field — a client can
-neither choose nor send a fee.
+`beneficiary_account_id`, `application_fee_account_id` (optional),
+`gross_amount_minor`, `currency`, and `pricing_profile`.
+
+This is the **internal** API, called by the gateway, which supplies the profile
+it resolved from the merchant's own record. The **public** settlement surface
+accepts no pricing selector at all — not `business_category`, not
+`pricing_profile`, not `fee_policy_ref`.
+
+There is no `rate_bps` / `fee_minor` field anywhere, which this document used to
+summarise as "a client can neither choose nor send a fee". The second half was
+true and the first half was not: a client that names the reference chooses among
+the operator's rates, and the more dimensions a rule pins the higher it ranks. A
+selector is a price with extra steps.
 
 ## Scope (Increments 4–5)
 
