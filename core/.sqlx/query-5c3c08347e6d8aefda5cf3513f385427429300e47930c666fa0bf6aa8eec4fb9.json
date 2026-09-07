@@ -1,0 +1,128 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE payouts SET\n                status              = $2,\n                ledger_posting_id   = COALESCE($3, ledger_posting_id),\n                failure_reason      = COALESCE($4, failure_reason),\n                sent_at             = CASE WHEN $2 = 'SENT'      THEN $5 ELSE sent_at      END,\n                confirmed_at        = CASE WHEN $2 = 'CONFIRMED' THEN $5 ELSE confirmed_at  END,\n                returned_at         = CASE WHEN $2 = 'RETURNED'  THEN $5 ELSE returned_at   END,\n                failed_at           = CASE WHEN $2 = 'FAILED'    THEN $5 ELSE failed_at     END\n            WHERE id = $1\n            -- Named, not `RETURNING *`.\n            --\n            -- The wildcard compiled fine until payouts gained pricing snapshot\n            -- columns, at which point query_as! found six fields PayoutRow does\n            -- not have and the crate stopped building. A star in a typed query\n            -- makes every future column an incompatible change to a struct that\n            -- has nothing to do with it.\n            RETURNING id, merchant_id, wallet_id, idempotency_key, status, environment,\n                      amount_minor, currency, bank_account_number, bank_code,\n                      account_holder_name, ledger_posting_id, failure_reason,\n                      created_at, sent_at, confirmed_at, returned_at, failed_at\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "wallet_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "idempotency_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "environment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "currency",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "bank_account_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "bank_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "account_holder_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "ledger_posting_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "returned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "failed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "5c3c08347e6d8aefda5cf3513f385427429300e47930c666fa0bf6aa8eec4fb9"
+}

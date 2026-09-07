@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM payouts ORDER BY created_at DESC LIMIT $1",
+  "query": "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,\n                    amount_minor, currency, bank_account_number, bank_code,\n                    account_holder_name, ledger_posting_id, failure_reason,\n                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT $2",
   "describe": {
     "columns": [
       {
@@ -30,72 +30,73 @@
       },
       {
         "ordinal": 5,
+        "name": "environment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
         "name": "amount_minor",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "currency",
         "type_info": "Bpchar"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "bank_account_number",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "bank_code",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "account_holder_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "ledger_posting_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "failure_reason",
         "type_info": "Text"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "sent_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "confirmed_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "returned_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "failed_at",
         "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 17,
-        "name": "environment",
-        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Int8"
       ]
     },
@@ -110,15 +111,15 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       false,
       true,
       true,
       true,
-      true,
-      false
+      true
     ]
   },
-  "hash": "17cbd6bdac27b8dace6d2e3196762849cf94259d080b982e207fef15ca4038e1"
+  "hash": "27ae5f777f713e59dfd84a38580e77be5dbf1871f7ccf07e56dabc2e0f5f1c96"
 }

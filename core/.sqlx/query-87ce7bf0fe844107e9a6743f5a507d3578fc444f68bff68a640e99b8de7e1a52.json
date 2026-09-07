@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE payouts SET\n                status              = $2,\n                ledger_posting_id   = COALESCE($3, ledger_posting_id),\n                failure_reason      = COALESCE($4, failure_reason),\n                sent_at             = CASE WHEN $2 = 'SENT'      THEN $5 ELSE sent_at      END,\n                confirmed_at        = CASE WHEN $2 = 'CONFIRMED' THEN $5 ELSE confirmed_at  END,\n                returned_at         = CASE WHEN $2 = 'RETURNED'  THEN $5 ELSE returned_at   END,\n                failed_at           = CASE WHEN $2 = 'FAILED'    THEN $5 ELSE failed_at     END\n            WHERE id = $1\n            RETURNING *\n            ",
+  "query": "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,\n                    amount_minor, currency, bank_account_number, bank_code,\n                    account_holder_name, ledger_posting_id, failure_reason,\n                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE idempotency_key = $1",
   "describe": {
     "columns": [
       {
@@ -30,77 +30,73 @@
       },
       {
         "ordinal": 5,
+        "name": "environment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
         "name": "amount_minor",
         "type_info": "Int8"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "currency",
         "type_info": "Bpchar"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "bank_account_number",
         "type_info": "Text"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "bank_code",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "account_holder_name",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "ledger_posting_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "failure_reason",
         "type_info": "Text"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "sent_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "confirmed_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "returned_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "failed_at",
         "type_info": "Timestamptz"
-      },
-      {
-        "ordinal": 17,
-        "name": "environment",
-        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text",
-        "Uuid",
-        "Text",
-        "Timestamptz"
+        "Text"
       ]
     },
     "nullable": [
@@ -114,15 +110,15 @@
       false,
       false,
       false,
+      false,
       true,
       true,
       false,
       true,
       true,
       true,
-      true,
-      false
+      true
     ]
   },
-  "hash": "b085312e408815c7acf3eb355eaa461bc3a8e43e3920caf32aababbd186dcc84"
+  "hash": "87ce7bf0fe844107e9a6743f5a507d3578fc444f68bff68a640e99b8de7e1a52"
 }

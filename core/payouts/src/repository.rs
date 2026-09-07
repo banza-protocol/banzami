@@ -161,7 +161,10 @@ impl PayoutRepository for PostgresPayoutRepository {
     async fn get(&self, id: PayoutId) -> Result<Payout, PayoutError> {
         let row = sqlx::query_as!(
             PayoutRow,
-            "SELECT * FROM payouts WHERE id = $1",
+            "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,
+                    amount_minor, currency, bank_account_number, bank_code,
+                    account_holder_name, ledger_posting_id, failure_reason,
+                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE id = $1",
             id.as_uuid()
         )
         .fetch_optional(&self.pool)
@@ -173,7 +176,10 @@ impl PayoutRepository for PostgresPayoutRepository {
     async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Payout>, PayoutError> {
         let row = sqlx::query_as!(
             PayoutRow,
-            "SELECT * FROM payouts WHERE idempotency_key = $1",
+            "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,
+                    amount_minor, currency, bank_account_number, bank_code,
+                    account_holder_name, ledger_posting_id, failure_reason,
+                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE idempotency_key = $1",
             key
         )
         .fetch_optional(&self.pool)
@@ -188,7 +194,10 @@ impl PayoutRepository for PostgresPayoutRepository {
     ) -> Result<Vec<Payout>, PayoutError> {
         let rows = sqlx::query_as!(
             PayoutRow,
-            "SELECT * FROM payouts WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT $2",
+            "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,
+                    amount_minor, currency, bank_account_number, bank_code,
+                    account_holder_name, ledger_posting_id, failure_reason,
+                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE merchant_id = $1 ORDER BY created_at DESC LIMIT $2",
             merchant_id.as_uuid(),
             limit
         )
@@ -201,7 +210,10 @@ impl PayoutRepository for PostgresPayoutRepository {
         let rows = if let Some(s) = status {
             sqlx::query_as!(
                 PayoutRow,
-                "SELECT * FROM payouts WHERE status = $1 ORDER BY created_at DESC LIMIT $2",
+                "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,
+                    amount_minor, currency, bank_account_number, bank_code,
+                    account_holder_name, ledger_posting_id, failure_reason,
+                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE status = $1 ORDER BY created_at DESC LIMIT $2",
                 s,
                 limit
             )
@@ -210,7 +222,10 @@ impl PayoutRepository for PostgresPayoutRepository {
         } else {
             sqlx::query_as!(
                 PayoutRow,
-                "SELECT * FROM payouts ORDER BY created_at DESC LIMIT $1",
+                "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,
+                    amount_minor, currency, bank_account_number, bank_code,
+                    account_holder_name, ledger_posting_id, failure_reason,
+                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts ORDER BY created_at DESC LIMIT $1",
                 limit
             )
             .fetch_all(&self.pool)
@@ -286,7 +301,17 @@ impl PayoutRepository for PostgresPayoutRepository {
                 returned_at         = CASE WHEN $2 = 'RETURNED'  THEN $5 ELSE returned_at   END,
                 failed_at           = CASE WHEN $2 = 'FAILED'    THEN $5 ELSE failed_at     END
             WHERE id = $1
-            RETURNING *
+            -- Named, not `RETURNING *`.
+            --
+            -- The wildcard compiled fine until payouts gained pricing snapshot
+            -- columns, at which point query_as! found six fields PayoutRow does
+            -- not have and the crate stopped building. A star in a typed query
+            -- makes every future column an incompatible change to a struct that
+            -- has nothing to do with it.
+            RETURNING id, merchant_id, wallet_id, idempotency_key, status, environment,
+                      amount_minor, currency, bank_account_number, bank_code,
+                      account_holder_name, ledger_posting_id, failure_reason,
+                      created_at, sent_at, confirmed_at, returned_at, failed_at
             "#,
             id.as_uuid(),
             status.as_str(),
