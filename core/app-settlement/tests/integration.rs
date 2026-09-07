@@ -356,9 +356,12 @@ async fn no_applicable_rule_refuses_settlement(pool: PgPool) -> sqlx::Result<()>
         ))
         .await
         .expect_err("no applicable rule must refuse, not settle for free");
+    // The specific variant, not the generic Pricing(String). That variant also
+    // carries real internal faults — a snapshot that fails to serialise — and
+    // matching it loosely would let a 500-worthy bug pass as this refusal.
     assert!(
-        matches!(err, ApplicationSettlementError::Pricing(_)),
-        "expected Pricing refusal, got {err:?}"
+        matches!(err, ApplicationSettlementError::PricingNotConfigured),
+        "expected PricingNotConfigured, got {err:?}"
     );
 
     // Nothing moved: the beneficiary was never credited and the source is intact.
