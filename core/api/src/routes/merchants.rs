@@ -314,3 +314,89 @@ pub async fn set_business_account_type(
 
     Ok(Json(serde_json::to_value(&merchant).unwrap()))
 }
+
+// ---------------------------------------------------------------------------
+// Pricing profile assignment (operator-governed)
+// ---------------------------------------------------------------------------
+
+/// Which pricing policy applies to this financial owner.
+///
+/// This is the operator's decision and lives here rather than being inferred,
+/// because inferring it is what went wrong: the rate used to follow a substring
+/// match on the merchant's own KYB category text, so a shop whose description
+/// mentioned donations was priced as a donation platform. The profile is now
+/// named explicitly, by whoever is entitled to decide it.
+///
+/// The route takes a profile CODE rather than an id: codes are what an operator
+/// reasons about, and resolving one here means a caller cannot name a profile
+/// that does not exist by passing a uuid that happens to parse.
+#[derive(Deserialize)]
+pub struct AssignPricingProfileBody {
+    pub profile_code: String,
+}
+
+#[derive(Serialize)]
+pub struct PricingProfileAssignment {
+    pub merchant_id: String,
+    pub profile_code: String,
+    pub environment: String,
+}
+
+/// PUT /internal/v1/merchants/:id/pricing-profile
+///
+/// Environment is checked here as well as by the database trigger. Two guards
+/// for one rule is deliberate: this one gives a caller a usable error, and the
+/// trigger is what holds if some future path forgets to ask.
+pub async fn assign_pricing_profile(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<AssignPricingProfileBody>,
+) -> ApiResult<Json<PricingProfileAssignment>> {
+    let merchant_id = uuid::Uuid::parse_str(&id)
+        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
+
+    let code = body.profile_code.trim().to_string();
+    if code.is_empty() {
+        return Err(ApiError::bad_request("profile_code is required"));
+    }
+
+    let profile = sqlx::query_as::<_, (uuid::Uuid, String, bool)>(
+        "SELECT id, environment, enabled FROM pricing_profiles WHERE code = $1",
+    )
+    .bind(&code)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("pricing profile not found"))?;
+
+    if !profile.2 {
+        return Err(ApiError::bad_request("pricing profile is disabled"));
+    }
+    if profile.1 != "SANDBOX" {
+        // Financial LIVE is fail-closed; a LIVE profile has no business being
+        // assigned by anything reachable from here.
+        return Err(ApiError::bad_request(
+            "only SANDBOX pricing profiles may be assigned on this deployment",
+        ));
+    }
+
+    let updated = sqlx::query_scalar::<_, uuid::Uuid>(
+        "UPDATE merchants SET pricing_profile_id = $1, updated_at = now()
+          WHERE id = $2 RETURNING id",
+    )
+    .bind(profile.0)
+    .bind(merchant_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    if updated.is_none() {
+        return Err(ApiError::not_found("merchant not found"));
+    }
+
+    Ok(Json(PricingProfileAssignment {
+        merchant_id: merchant_id.to_string(),
+        profile_code: code,
+        environment: profile.1,
+    }))
+}

@@ -244,6 +244,12 @@ async fn main() {
             "/internal/v1/merchants/:id",
             get(routes::merchants::get_merchant),
         )
+        // Operator-governed pricing assignment. The rate follows this, not a
+        // substring of the merchant's own description.
+        .route(
+            "/internal/v1/merchants/:id/pricing-profile",
+            axum::routing::put(routes::merchants::assign_pricing_profile),
+        )
         .route(
             "/internal/v1/merchants/:id",
             axum::routing::delete(routes::merchants::delete_merchant),
