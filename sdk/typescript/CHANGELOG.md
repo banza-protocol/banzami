@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-09-08
+
 ### Fixed — the ESM half of the dual build shipped undeclared
 
 The package emits ESM into `dist/` and CommonJS into `dist/cjs/`, and `exports`
@@ -29,8 +31,6 @@ webhook documentation tells them to write.
 `dist/cjs/package.json` (`commonjs`). `tools/check-sdk-dual-package.mjs` packs
 the tarball, installs it, and loads it both ways with syntax detection off, so
 the guess is no longer what holds it up.
-
-## [0.10.0] — 2026-09-07
 
 ### Removed — `createApplicationSettlement` no longer accepts pricing selectors (breaking)
 
