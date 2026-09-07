@@ -689,11 +689,14 @@ mod tests {
     impl PayoutRepository for MockPayoutRepo {
         // The unit tests build their own rules, unpinned, so no profile is
         // needed to match them. The real-DB suite exercises the lookup.
+        /// Every financial owner in these tests carries the same assigned
+        /// plan. Returning None here would make the withdrawal rule unresolvable
+        /// for the right reason and the tests pass for the wrong one.
         async fn pricing_profile_for_merchant(
             &self,
             _merchant_id: banzami_types::MerchantId,
         ) -> Result<Option<String>, PayoutError> {
-            Ok(None)
+            Ok(Some(TEST_PROFILE.to_string()))
         }
 
         // The unit tests here assert the resolver's arithmetic and the ledger
@@ -813,7 +816,10 @@ mod tests {
     /// A PAYOUT rule at `bps`, FLOOR rounding (matches the documented
     /// `floor(gross*bps/10000)`), AOA, effective since 2020.
     ///
-    /// It names its operation. Under the V2 resolver an operation-less rule is
+    /// The plan every owner in these tests is assigned.
+    const TEST_PROFILE: &str = "test-standard";
+
+    /// It names its operation. Under the resolver an operation-less rule is
     /// not a wildcard — it applies to nothing — which is the behaviour that
     /// stops a future fee-bearing operation inheriting today's rate.
     fn withdrawal_rule(bps: u32) -> PricingRule {
@@ -822,7 +828,10 @@ mod tests {
             key: "wallet-withdrawal-standard".into(),
             version: 1,
             business_category: None,
-            pricing_profile: None,
+            // It names its profile for the same reason it names its operation:
+            // an unnamed dimension is a wildcard, and a wildcard prices owners
+            // whose plan nobody wrote this rate for.
+            pricing_profile: Some(banzami_pricing::PricingProfile::from_code(TEST_PROFILE)),
             fee_policy_ref: None,
             currency: Some(Currency::AOA),
             country: None,

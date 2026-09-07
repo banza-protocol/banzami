@@ -99,14 +99,20 @@ ALTER TABLE pricing_rules
   ADD CONSTRAINT pricing_rules_operation_check
   CHECK (pricing_operation IS NULL OR pricing_operation IN ('SETTLEMENT', 'PAYOUT'));
 
--- No wildcard pricing. An enabled rule MUST name the operation it prices, so a
--- future fee-bearing operation cannot inherit a rate that was never written for
--- it. Disabled rows are exempt: history stays readable.
+-- No wildcard pricing, on EITHER dimension. An enabled rule must name both the
+-- profile it belongs to and the operation it prices.
+--
+-- The operation half stops a future fee-bearing operation inheriting a rate that
+-- was never written for it. The profile half closes the same hole one axis over:
+-- a rule with no profile would apply to every profile, including profiles
+-- created years later by someone who never saw this row.
+--
+-- Disabled rows are exempt, so history stays readable.
 ALTER TABLE pricing_rules
   DROP CONSTRAINT IF EXISTS pricing_rules_enabled_requires_operation;
 ALTER TABLE pricing_rules
   ADD CONSTRAINT pricing_rules_enabled_requires_operation
-  CHECK (NOT enabled OR pricing_operation IS NOT NULL);
+  CHECK (NOT enabled OR (pricing_operation IS NOT NULL AND pricing_profile IS NOT NULL));
 
 CREATE INDEX IF NOT EXISTS idx_pricing_rules_profile_operation
   ON pricing_rules (environment, pricing_profile, pricing_operation) WHERE enabled;

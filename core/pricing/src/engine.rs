@@ -201,15 +201,15 @@ pub fn resolve_for_operation(
     let applicable: Vec<&PricingRule> = rules
         .iter()
         .filter(|r| r.operation == Some(operation))
+        // Both sides must NAME each other. A rule with no profile does not price
+        // every profile — it prices nothing, exactly as a rule with no operation
+        // prices nothing. "Applies to anything unspecified" is the wildcard this
+        // model exists to remove, and it is no safer on the profile axis than on
+        // the operation axis: a network-wide rule silently prices profiles that
+        // did not exist when it was written.
         .filter(|r| match (&r.pricing_profile, &ctx.pricing_profile) {
             (Some(rule_profile), Some(ctx_profile)) => rule_profile == ctx_profile,
-            // A rule with no profile prices every profile. That is legitimate
-            // for an operation charged at one rate network-wide, which is what
-            // the deployed withdrawal rate is.
-            (None, _) => true,
-            // A rule pinned to a profile cannot apply when the caller named no
-            // profile — otherwise one owner's plan would price another's.
-            (Some(_), None) => false,
+            _ => false,
         })
         .filter(|r| window_contains(r, ctx.as_of))
         .collect();

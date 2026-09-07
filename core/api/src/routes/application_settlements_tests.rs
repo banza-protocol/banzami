@@ -118,17 +118,18 @@ async fn seed_business_account(pool: &PgPool, account_type: &str, kyb: &str) -> 
 /// fee-bearing operation inheriting a rate nobody chose for it. Without the
 /// operation this test got a 409 PRICING_NOT_CONFIGURED, correctly.
 ///
-/// No profile, so it prices every profile: this route test is about the HTTP
-/// contract, not about which owner is on which plan.
-async fn seed_rule(pool: &PgPool, category: &str, bps: i32) {
+/// It names a profile, because a rule that names none prices nothing. This
+/// route test is about the HTTP contract, so the profile is simply the one the
+/// request carries.
+async fn seed_rule(pool: &PgPool, profile: &str, bps: i32) {
     sqlx::query(
         "INSERT INTO pricing_rules
-           (id, rule_key, business_category, rate_bps, environment, pricing_operation)
+           (id, rule_key, pricing_profile, rate_bps, environment, pricing_operation)
          VALUES ($1, $2, $3, $4, 'SANDBOX', 'SETTLEMENT')",
     )
     .bind(Uuid::new_v4())
-    .bind(format!("rule-{category}"))
-    .bind(category)
+    .bind(format!("rule-{profile}"))
+    .bind(profile)
     .bind(bps)
     .execute(pool)
     .await
@@ -137,7 +138,7 @@ async fn seed_rule(pool: &PgPool, category: &str, bps: i32) {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
-    seed_rule(&pool, "CROWDFUNDING", 500).await; // 5%
+    seed_rule(&pool, "route-standard", 500).await; // 5%
     let funding = account(&pool, "ASSET", "Funding").await;
     let source = account(&pool, "LIABILITY", "Campaign").await;
     let beneficiary = account(&pool, "LIABILITY", "Beneficiary").await;
@@ -160,7 +161,7 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
                 "application_fee_account_id": app_fee.to_string(),
                 "gross_amount_minor": 98_000,
                 "currency": "AOA",
-                "business_category": "CROWDFUNDING"
+                "pricing_profile": "route-standard"
             }))
             .unwrap(),
         ),

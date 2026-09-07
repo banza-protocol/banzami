@@ -36,6 +36,10 @@ pub struct PricingRuleRecord {
     pub currency: Option<String>,
     pub country: Option<String>,
     pub transaction_type: Option<String>,
+    /// The fee-bearing operation this rule prices. Nullable on the read side
+    /// only: a disabled historical row may carry none. Every ENABLED rule has
+    /// one, enforced by `pricing_rules_enabled_requires_operation`.
+    pub pricing_operation: Option<String>,
     pub rate_bps: i32,
     pub flat_minor: i64,
     pub min_fee_minor: Option<i64>,
@@ -63,6 +67,10 @@ pub struct PricingRuleInput {
     pub currency: Option<String>,
     pub country: Option<String>,
     pub transaction_type: Option<String>,
+    /// The fee-bearing operation this rule prices. Required: a rule naming no
+    /// operation prices nothing, so accepting one would let an operator create a
+    /// rule they believe is live and that resolves for no request.
+    pub pricing_operation: String,
     pub rate_bps: i32,
     pub flat_minor: i64,
     pub min_fee_minor: Option<i64>,
@@ -75,6 +83,9 @@ pub struct PricingRuleInput {
 }
 
 const VALID_ROUNDING: [&str; 4] = ["HALF_UP", "HALF_EVEN", "FLOOR", "CEIL"];
+/// The released fee-bearing operations. Kept in step with `PricingOperation`
+/// and the DB CHECK constraint by `tools/check-released-operations.mjs`.
+const VALID_OPERATION: [&str; 2] = ["SETTLEMENT", "PAYOUT"];
 const VALID_ENV: [&str; 2] = ["LIVE", "SANDBOX"];
 
 impl PricingRuleInput {
@@ -96,6 +107,26 @@ impl PricingRuleInput {
                 "rounding must be one of HALF_UP/HALF_EVEN/FLOOR/CEIL, got {}",
                 self.rounding
             )));
+        }
+        if !VALID_OPERATION.contains(&self.pricing_operation.as_str()) {
+            return Err(PricingError::Config(format!(
+                "pricing_operation must be one of SETTLEMENT/PAYOUT, got {}",
+                self.pricing_operation
+            )));
+        }
+        // A rule must name the profile it belongs to for the same reason it must
+        // name its operation: an unnamed dimension is a wildcard, and a wildcard
+        // prices things nobody wrote a price for.
+        if self
+            .pricing_profile
+            .as_deref()
+            .unwrap_or("")
+            .trim()
+            .is_empty()
+        {
+            return Err(PricingError::Config(
+                "pricing_profile is required — a rule with no profile prices nothing".into(),
+            ));
         }
         if self.rate_bps < 0 {
             return Err(PricingError::Config("rate_bps must be >= 0".into()));
@@ -165,7 +196,7 @@ impl PostgresPricingRuleAdminRepository {
         format!(
             "SELECT pr.id, pr.rule_key, pr.version, pr.environment, pr.enabled,
                     pr.business_category, pr.pricing_profile, pr.fee_policy_ref, pr.currency,
-                    pr.country, pr.transaction_type, pr.rate_bps, pr.flat_minor, pr.min_fee_minor, pr.max_fee_minor,
+                    pr.country, pr.transaction_type, pr.pricing_operation, pr.rate_bps, pr.flat_minor, pr.min_fee_minor, pr.max_fee_minor,
                     pr.rounding, pr.priority, pr.effective_from, pr.effective_to, pr.description,
                     {USED_EXPR} AS used, pr.created_at, pr.updated_at
                FROM pricing_rules pr"
@@ -200,14 +231,24 @@ impl PostgresPricingRuleAdminRepository {
         input: &PricingRuleInput,
         version: i32,
     ) -> Result<PricingRuleRecord, PricingError> {
+        self.insert_version_enabled(input, version, true).await
+    }
+
+    async fn insert_version_enabled(
+        &self,
+        input: &PricingRuleInput,
+        version: i32,
+        enabled: bool,
+    ) -> Result<PricingRuleRecord, PricingError> {
         let id = PricingRuleId::new();
         sqlx::query(
             "INSERT INTO pricing_rules
                (id, rule_key, version, environment, enabled, business_category, pricing_profile,
-                fee_policy_ref, currency, country, transaction_type, rate_bps, flat_minor, min_fee_minor,
+                fee_policy_ref, currency, country, transaction_type, pricing_operation,
+                rate_bps, flat_minor, min_fee_minor,
                 max_fee_minor, rounding, priority, effective_from, effective_to, description)
-             VALUES ($1,$2,$3,$4,TRUE,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
-                     COALESCE($17, NOW()),$18,$19)",
+             VALUES ($1,$2,$3,$4,$21,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
+                     COALESCE($18, NOW()),$19,$20)",
         )
         .bind(id.as_uuid())
         .bind(&input.rule_key)
@@ -219,6 +260,7 @@ impl PostgresPricingRuleAdminRepository {
         .bind(&input.currency)
         .bind(&input.country)
         .bind(&input.transaction_type)
+        .bind(&input.pricing_operation)
         .bind(input.rate_bps)
         .bind(input.flat_minor)
         .bind(input.min_fee_minor)
@@ -228,6 +270,7 @@ impl PostgresPricingRuleAdminRepository {
         .bind(input.effective_from)
         .bind(input.effective_to)
         .bind(&input.description)
+        .bind(enabled)
         .execute(&self.pool)
         .await?;
         self.get(id).await
@@ -327,15 +370,19 @@ impl PostgresPricingRuleAdminRepository {
         input.validate()?;
 
         if base.used {
-            // Immutable: supersede with a new version, disable the old one.
+            // Immutable: supersede with a new version. The OLD row is retired
+            // first, then the new one is written — never the other way round.
+            // At most one live rule may exist per (environment, profile,
+            // operation), so inserting first would create a second live rule for
+            // the same cell and be refused by the unique index.
             let next = self.max_version(&base.environment, &base.rule_key).await? + 1;
-            let created = self.insert_version(&input, next).await?;
             sqlx::query(
                 "UPDATE pricing_rules SET enabled = FALSE, updated_at = NOW() WHERE id = $1",
             )
             .bind(id.as_uuid())
             .execute(&self.pool)
             .await?;
+            let created = self.insert_version(&input, next).await?;
             Ok(created)
         } else {
             sqlx::query(
@@ -344,8 +391,8 @@ impl PostgresPricingRuleAdminRepository {
                     currency = $4, country = $5, rate_bps = $6, flat_minor = $7,
                     min_fee_minor = $8, max_fee_minor = $9, rounding = $10, priority = $11,
                     effective_from = COALESCE($12, effective_from), effective_to = $13,
-                    description = $14, updated_at = NOW()
-                  WHERE id = $15",
+                    description = $14, pricing_operation = $15, updated_at = NOW()
+                  WHERE id = $16",
             )
             .bind(&input.business_category)
             .bind(&input.pricing_profile)
@@ -361,6 +408,7 @@ impl PostgresPricingRuleAdminRepository {
             .bind(input.effective_from)
             .bind(input.effective_to)
             .bind(&input.description)
+            .bind(&input.pricing_operation)
             .bind(id.as_uuid())
             .execute(&self.pool)
             .await?;
@@ -392,6 +440,14 @@ impl PostgresPricingRuleAdminRepository {
         new_rule_key: String,
     ) -> Result<PricingRuleRecord, PricingError> {
         let src = self.get(id).await?;
+        // A source rule with no operation prices nothing. Copying it would
+        // produce another rule that prices nothing, which is not a duplicate of
+        // anything useful — say so instead of writing it.
+        let Some(pricing_operation) = src.pricing_operation.clone() else {
+            return Err(PricingError::Config(
+                "cannot duplicate a rule that names no pricing operation".into(),
+            ));
+        };
         let input = PricingRuleInput {
             rule_key: new_rule_key,
             environment: src.environment,
@@ -401,6 +457,7 @@ impl PostgresPricingRuleAdminRepository {
             currency: src.currency,
             country: src.country,
             transaction_type: src.transaction_type,
+            pricing_operation,
             rate_bps: src.rate_bps,
             flat_minor: src.flat_minor,
             min_fee_minor: src.min_fee_minor,
@@ -411,7 +468,23 @@ impl PostgresPricingRuleAdminRepository {
             effective_to: src.effective_to,
             description: src.description,
         };
-        self.create(input).await
+        input.validate()?;
+        if self
+            .max_version(&input.environment, &input.rule_key)
+            .await?
+            > 0
+        {
+            return Err(PricingError::Config(format!(
+                "rule_key '{}' already exists in {}; edit it instead of creating",
+                input.rule_key, input.environment
+            )));
+        }
+        // The copy is created DISABLED. A duplicate carries the source's profile
+        // and operation, and only one enabled rule may exist per cell — so an
+        // enabled copy could never be written at all. Disabled makes the feature
+        // mean what an operator wants it to mean: start a draft from an existing
+        // rule, edit it, then enable it deliberately.
+        self.insert_version_enabled(&input, 1, false).await
     }
 
     /// All versions of a (environment, rule_key), newest first — the version
@@ -451,6 +524,7 @@ fn row_to_record(row: PgRow) -> Result<PricingRuleRecord, PricingError> {
         currency: row.try_get("currency")?,
         country: row.try_get("country")?,
         transaction_type: row.try_get("transaction_type")?,
+        pricing_operation: row.try_get("pricing_operation")?,
         rate_bps: row.try_get("rate_bps")?,
         flat_minor: row.try_get("flat_minor")?,
         min_fee_minor: row.try_get("min_fee_minor")?,

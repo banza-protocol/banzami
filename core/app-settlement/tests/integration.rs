@@ -25,6 +25,9 @@ use banzami_pricing::PostgresPricingRuleProvider;
 use banzami_types::{AccountId, Currency, Money};
 
 const ENV: &str = "LIVE";
+/// The pricing profile these settlements are assigned. A code, not a vertical:
+/// nothing about the rate or the kind of business is encoded in it.
+const PROFILE: &str = "assurance-standard";
 
 fn kz(minor: i64) -> Money {
     Money::new(minor, Currency::AOA)
@@ -97,24 +100,14 @@ async fn fund(fx: &Fixture, account_id: AccountId, amount: i64) {
 /// operation-less rule can no longer be inherited by a fee-bearing operation
 /// nobody meant it for.
 ///
-/// The `category` argument is kept because these tests distinguish rules by it,
-/// but it is no longer what selects: the V2 path matches on operation and
-/// profile. Category rules are seeded WITHOUT a profile, which under V2 means
-/// "prices this operation for every profile" — which is what these tests want.
-async fn seed_rule(pool: &PgPool, key: &str, category: &str, rate_bps: i32) {
-    sqlx::query(
-        "INSERT INTO pricing_rules
-           (id, rule_key, business_category, rate_bps, environment, pricing_operation)
-         VALUES ($1, $2, $3, $4, $5, 'SETTLEMENT')",
-    )
-    .bind(Uuid::new_v4())
-    .bind(key)
-    .bind(category)
-    .bind(rate_bps)
-    .bind(ENV)
-    .execute(pool)
-    .await
-    .unwrap();
+/// Seed the SETTLEMENT rule for the profile these tests settle under.
+///
+/// It names a profile because that is the only thing that selects a rule. An
+/// earlier version of this helper seeded rules with no profile and relied on
+/// them pricing every profile — a wildcard the model now refuses outright, in
+/// the database as well as in the resolver.
+async fn seed_rule(pool: &PgPool, key: &str, rate_bps: i32) {
+    seed_profile_rule(pool, key, PROFILE, rate_bps).await;
 }
 
 /// Net credit of a ledger account (credits +, debits −).
@@ -149,7 +142,7 @@ fn req(
     beneficiary: AccountId,
     fee_account: Option<AccountId>,
     gross: i64,
-    category: Option<&str>,
+    profile: Option<&str>,
 ) -> CreateApplicationSettlementRequest {
     CreateApplicationSettlementRequest {
         idempotency_key: idem.into(),
@@ -160,8 +153,8 @@ fn req(
         application_fee_account_id: fee_account,
         gross_amount: kz(gross),
         application_fee_bps: None,
-        business_category: category.map(str::to_string),
-        pricing_profile: None,
+        business_category: None,
+        pricing_profile: profile.map(str::to_string),
         fee_policy_ref: None,
         metadata: None,
     }
@@ -172,7 +165,7 @@ fn req(
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn settles_net_and_application_fee_balanced(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await; // 5%
+    seed_rule(&fx.pool, "crowd-standard", 500).await; // 5%
 
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
@@ -187,7 +180,7 @@ async fn settles_net_and_application_fee_balanced(pool: PgPool) -> sqlx::Result<
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();
@@ -238,7 +231,14 @@ async fn app_defined_fee_bypasses_pricing_engine(pool: PgPool) -> sqlx::Result<(
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
     fund(&fx, source, 200_000).await;
 
-    let mut r = req("doa-1", source, beneficiary, Some(app_fee), 200_000, None);
+    let mut r = req(
+        "doa-1",
+        source,
+        beneficiary,
+        Some(app_fee),
+        200_000,
+        Some(PROFILE),
+    );
     r.application_fee_bps = Some(500); // DOA's 5% — app policy
 
     let created = fx.engine.create(r).await.unwrap();
@@ -283,7 +283,14 @@ async fn app_defined_fee_bps_over_bound_is_rejected(pool: PgPool) -> sqlx::Resul
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
     fund(&fx, source, 100_000).await;
 
-    let mut r = req("doa-2", source, beneficiary, Some(app_fee), 100_000, None);
+    let mut r = req(
+        "doa-2",
+        source,
+        beneficiary,
+        Some(app_fee),
+        100_000,
+        Some(PROFILE),
+    );
     r.application_fee_bps = Some(6000); // 60% > 50% cap
     let err = fx.engine.create(r).await.unwrap_err();
     assert!(
@@ -307,21 +314,14 @@ async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()>
     // the defect rather than the behaviour: an absent pricing decision and a
     // decision of zero produce the same number in a ledger and are entirely
     // different facts. Zero is now something a rule has to say.
-    seed_rule(&fx.pool, "donation-zero", "DONATION", 0).await;
+    seed_rule(&fx.pool, "donation-zero", 0).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     fund(&fx, source, 50_000).await;
 
     let created = fx
         .engine
-        .create(req(
-            "s2",
-            source,
-            beneficiary,
-            None,
-            50_000,
-            Some("DONATION"),
-        ))
+        .create(req("s2", source, beneficiary, None, 50_000, Some(PROFILE)))
         .await
         .unwrap();
     assert_eq!(created.application_fee.amount_minor(), 0);
@@ -387,7 +387,14 @@ async fn no_applicable_rule_refuses_settlement(pool: PgPool) -> sqlx::Result<()>
 
     let err = fx
         .engine
-        .create(req("s-unpriced", source, beneficiary, None, 50_000, None))
+        .create(req(
+            "s-unpriced",
+            source,
+            beneficiary,
+            None,
+            50_000,
+            Some("assurance-unpriced"),
+        ))
         .await
         .expect_err("no applicable rule must refuse, not settle for free");
     assert!(
@@ -415,21 +422,44 @@ async fn no_applicable_rule_refuses_settlement(pool: PgPool) -> sqlx::Result<()>
 /// comparing UUIDs — deterministic, and economically arbitrary. A financial tie
 /// is a configuration error someone has to resolve.
 ///
-/// The database prevents this for profile-pinned rules via a unique index, but
-/// PostgreSQL treats NULLs as distinct, so two unpinned rules for the same
-/// operation can still coexist. The runtime check is what closes that.
+/// The unique index covers rules with an OPEN window — at most one enabled,
+/// open rule per (environment, profile, operation). It cannot cover a rule that
+/// carries an end date, because a closing rule and its replacement legitimately
+/// coexist. So the overlap this test builds is the one the database is unable to
+/// forbid: an open rule and a still-current dated one for the same cell. Exactly
+/// the case the runtime check has to catch, which is why it is tested here and
+/// not left to the constraint.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn two_applicable_rules_refuse_rather_than_rank(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "settlement-a", "DONATION", 200).await;
-    seed_rule(&fx.pool, "settlement-b", "CROWDFUNDING", 500).await;
+    seed_rule(&fx.pool, "settlement-a", 200).await;
+    sqlx::query(
+        "INSERT INTO pricing_rules
+           (id, rule_key, pricing_profile, rate_bps, environment, pricing_operation,
+            effective_from, effective_to)
+         VALUES ($1, 'settlement-b', $2, 500, $3, 'SETTLEMENT',
+                 now() - interval '1 day', now() + interval '1 day')",
+    )
+    .bind(Uuid::new_v4())
+    .bind(PROFILE)
+    .bind(ENV)
+    .execute(&fx.pool)
+    .await
+    .unwrap();
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     fund(&fx, source, 50_000).await;
 
     let err = fx
         .engine
-        .create(req("s-ambiguous", source, beneficiary, None, 50_000, None))
+        .create(req(
+            "s-ambiguous",
+            source,
+            beneficiary,
+            None,
+            50_000,
+            Some(PROFILE),
+        ))
         .await
         .expect_err("an ambiguous configuration must refuse, not pick one");
     assert!(
@@ -452,7 +482,7 @@ async fn two_applicable_rules_refuse_rather_than_rank(pool: PgPool) -> sqlx::Res
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn fee_exceeding_gross_rejected(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "absurd", "CROWDFUNDING", 20_000).await; // 200%
+    seed_rule(&fx.pool, "absurd", 20_000).await; // 200%
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
@@ -465,7 +495,7 @@ async fn fee_exceeding_gross_rejected(pool: PgPool) -> sqlx::Result<()> {
             beneficiary,
             Some(app_fee),
             10_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await;
     assert!(
@@ -483,7 +513,7 @@ async fn fee_exceeding_gross_rejected(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn insufficient_funds_rejected_no_partial(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
@@ -497,7 +527,7 @@ async fn insufficient_funds_rejected_no_partial(pool: PgPool) -> sqlx::Result<()
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();
@@ -529,7 +559,7 @@ async fn insufficient_funds_rejected_no_partial(pool: PgPool) -> sqlx::Result<()
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
@@ -543,7 +573,7 @@ async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();
@@ -564,7 +594,7 @@ async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();
@@ -577,7 +607,7 @@ async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn completed_settlement_is_immutable(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
@@ -591,7 +621,7 @@ async fn completed_settlement_is_immutable(pool: PgPool) -> sqlx::Result<()> {
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();
@@ -614,7 +644,7 @@ async fn completed_settlement_is_immutable(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn rule_change_does_not_alter_completed(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await; // 5%
+    seed_rule(&fx.pool, "crowd-standard", 500).await; // 5%
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
@@ -628,7 +658,7 @@ async fn rule_change_does_not_alter_completed(pool: PgPool) -> sqlx::Result<()> 
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();
@@ -664,7 +694,7 @@ async fn list_filtered_by_owner_status_currency(pool: PgPool) -> sqlx::Result<()
     use banzami_app_settlement::PostgresApplicationSettlementRepository;
 
     let fx = setup(pool).await;
-    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "AppFee").await;
@@ -678,7 +708,7 @@ async fn list_filtered_by_owner_status_currency(pool: PgPool) -> sqlx::Result<()
             beneficiary,
             Some(app_fee),
             98_000,
-            Some("CROWDFUNDING"),
+            Some(PROFILE),
         ))
         .await
         .unwrap();

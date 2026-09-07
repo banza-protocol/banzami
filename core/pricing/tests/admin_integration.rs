@@ -9,16 +9,21 @@ use uuid::Uuid;
 use banzami_pricing::{PostgresPricingRuleAdminRepository, PricingRuleFilter, PricingRuleInput};
 use banzami_types::PricingRuleId;
 
-fn input(key: &str, env: &str, category: &str, bps: i32) -> PricingRuleInput {
+/// A rule the canonical model accepts: it names the profile it belongs to and
+/// the operation it prices. `business_category` is deliberately absent — it is
+/// descriptive KYB data and carries no pricing authority, so a rule keyed on it
+/// would select nothing.
+fn input(key: &str, env: &str, profile: &str, bps: i32) -> PricingRuleInput {
     PricingRuleInput {
         rule_key: key.into(),
         environment: env.into(),
-        business_category: Some(category.into()),
-        pricing_profile: None,
+        business_category: None,
+        pricing_profile: Some(profile.into()),
         fee_policy_ref: None,
         currency: Some("AOA".into()),
         country: None,
         transaction_type: None,
+        pricing_operation: "SETTLEMENT".into(),
         rate_bps: bps,
         flat_minor: 0,
         min_fee_minor: None,
@@ -40,12 +45,12 @@ fn filter() -> PricingRuleFilter {
 
 /// The database is not empty after migration.
 ///
-/// 0106 seeds two SANDBOX pricing rules — the explicit 0-bps `sandbox-default`
-/// and the generic 200-bps `sandbox-donation-200` — because "no rule" and "a
-/// rule that says zero" have to be different states. Tests that counted every
-/// row were counting those too, and started failing the moment CI ran again.
-/// The seeds are correct; an unscoped count is what was wrong, so these helpers
-/// scope each assertion to what the test itself created.
+/// The canonical matrix seeds four SANDBOX rules — sandbox-default and
+/// sandbox-reference, each priced for SETTLEMENT and PAYOUT — because "no rule"
+/// and "a rule that says zero" have to be different states. Tests that counted
+/// every row were counting those too. The seeds are correct; an unscoped count
+/// is what was wrong, so these helpers scope each assertion to what the test
+/// itself created.
 fn live_filter() -> PricingRuleFilter {
     PricingRuleFilter {
         environment: Some("LIVE".into()),
@@ -84,7 +89,7 @@ async fn mark_used(pool: &PgPool, rule_id: PricingRuleId, key: &str) {
 async fn create_get_list(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
     let r = repo
-        .create(input("donation-standard", "LIVE", "DONATION", 200))
+        .create(input("donation-standard", "LIVE", "live-standard", 200))
         .await
         .unwrap();
     assert_eq!(r.version, 1);
@@ -103,10 +108,10 @@ async fn create_get_list(pool: PgPool) -> sqlx::Result<()> {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn duplicate_key_create_is_rejected(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    repo.create(input("k", "LIVE", "DONATION", 200))
+    repo.create(input("k", "LIVE", "live-standard", 200))
         .await
         .unwrap();
-    let err = repo.create(input("k", "LIVE", "DONATION", 300)).await;
+    let err = repo.create(input("k", "LIVE", "live-standard", 300)).await;
     assert!(
         err.is_err(),
         "duplicate rule_key in same env must be rejected"
@@ -118,12 +123,12 @@ async fn duplicate_key_create_is_rejected(pool: PgPool) -> sqlx::Result<()> {
 async fn update_unused_rule_edits_in_place(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
     let r = repo
-        .create(input("k", "LIVE", "DONATION", 200))
+        .create(input("k", "LIVE", "live-standard", 200))
         .await
         .unwrap();
 
     let updated = repo
-        .update(r.id, input("k", "LIVE", "DONATION", 250))
+        .update(r.id, input("k", "LIVE", "live-standard", 250))
         .await
         .unwrap();
     assert_eq!(updated.id, r.id, "same row edited in place");
@@ -141,14 +146,14 @@ async fn update_unused_rule_edits_in_place(pool: PgPool) -> sqlx::Result<()> {
 async fn update_used_rule_creates_new_version_and_disables_old(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
     let v1 = repo
-        .create(input("k", "LIVE", "DONATION", 200))
+        .create(input("k", "LIVE", "live-standard", 200))
         .await
         .unwrap();
     mark_used(&pool, v1.id, "k").await;
     assert!(repo.get(v1.id).await.unwrap().used);
 
     let v2 = repo
-        .update(v1.id, input("k", "LIVE", "DONATION", 500))
+        .update(v1.id, input("k", "LIVE", "live-standard", 500))
         .await
         .unwrap();
     assert_ne!(v2.id, v1.id, "a NEW row is created");
@@ -171,7 +176,7 @@ async fn update_used_rule_creates_new_version_and_disables_old(pool: PgPool) -> 
 async fn disable_then_enable(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
     let r = repo
-        .create(input("k", "LIVE", "DONATION", 200))
+        .create(input("k", "LIVE", "live-standard", 200))
         .await
         .unwrap();
     assert!(!repo.set_enabled(r.id, false).await.unwrap().enabled);
@@ -183,7 +188,7 @@ async fn disable_then_enable(pool: PgPool) -> sqlx::Result<()> {
 async fn duplicate_into_new_key(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
     let src = repo
-        .create(input("k", "LIVE", "DONATION", 200))
+        .create(input("k", "LIVE", "live-standard", 200))
         .await
         .unwrap();
     let dup = repo.duplicate(src.id, "k-copy".into()).await.unwrap();
@@ -195,16 +200,16 @@ async fn duplicate_into_new_key(pool: PgPool) -> sqlx::Result<()> {
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn filters_by_env_category_status(pool: PgPool) -> sqlx::Result<()> {
+async fn filters_by_env_profile_status(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
-    repo.create(input("a", "LIVE", "DONATION", 200))
+    repo.create(input("a", "LIVE", "live-standard", 200))
         .await
         .unwrap();
-    repo.create(input("b", "LIVE", "MARKETPLACE", 300))
+    repo.create(input("b", "LIVE", "live-marketplace", 300))
         .await
         .unwrap();
     let sb = repo
-        .create(input("c", "SANDBOX", "DONATION", 100))
+        .create(input("c", "SANDBOX", "sandbox-probe", 100))
         .await
         .unwrap();
     repo.set_enabled(sb.id, false).await.unwrap();
@@ -218,14 +223,30 @@ async fn filters_by_env_category_status(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(live.len(), 2);
 
-    let donations = repo
+    // Filtering is by PROFILE, which is what actually selects a rule. The
+    // category filter still exists on the admin surface for descriptive search,
+    // but no rule is keyed on a category any more, so it selects nothing.
+    let standard = repo
+        .list(&PricingRuleFilter {
+            pricing_profile: Some("live-standard".into()),
+            ..filter()
+        })
+        .await
+        .unwrap();
+    assert_eq!(standard.len(), 1);
+    assert_eq!(standard[0].rule_key, "a");
+
+    let by_category = repo
         .list(&PricingRuleFilter {
             business_category: Some("DONATION".into()),
             ..filter()
         })
         .await
         .unwrap();
-    assert_eq!(donations.len(), 2);
+    assert!(
+        by_category.is_empty(),
+        "a business category must not select a pricing rule"
+    );
 
     let disabled = repo
         .list(&PricingRuleFilter {
@@ -243,19 +264,19 @@ async fn filters_by_env_category_status(pool: PgPool) -> sqlx::Result<()> {
 async fn validation_rejects_bad_input(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresPricingRuleAdminRepository::new(pool.clone());
 
-    let mut bad = input("k", "LIVE", "DONATION", -1);
+    let mut bad = input("k", "LIVE", "live-standard", -1);
     assert!(repo.create(bad.clone()).await.is_err(), "negative rate");
 
-    bad = input("k", "LIVE", "DONATION", 200);
+    bad = input("k", "LIVE", "live-standard", 200);
     bad.min_fee_minor = Some(500);
     bad.max_fee_minor = Some(100);
     assert!(repo.create(bad.clone()).await.is_err(), "min > max");
 
-    bad = input("k", "LIVE", "DONATION", 200);
+    bad = input("k", "LIVE", "live-standard", 200);
     bad.rounding = "WONKY".into();
     assert!(repo.create(bad.clone()).await.is_err(), "bad rounding");
 
-    bad = input("k", "BADENV", "DONATION", 200);
+    bad = input("k", "BADENV", "live-standard", 200);
     assert!(repo.create(bad).await.is_err(), "bad environment");
     Ok(())
 }

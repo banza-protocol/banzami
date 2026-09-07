@@ -84,15 +84,20 @@ async fn setup(pool: PgPool) -> Fixture {
     }
 }
 
-/// Seeds a rule that would have priced this capture under the old model, at a
-/// rate impossible to mistake for a rounding artefact.
+/// Seeds a rule at a rate impossible to mistake for a rounding artefact.
 ///
-/// Its presence is the point: even with a matching, enabled, generous rule
-/// sitting in the table, capture must charge nothing — because it does not look.
+/// Its presence is the point: a fully valid, enabled, generous rule sits in the
+/// table while this capture runs, and the capture still charges nothing —
+/// because the transactions crate does not resolve pricing at all. It no longer
+/// links the pricing engine, so there is nothing to look with.
+///
+/// The rule is a real SETTLEMENT rule rather than a malformed one on purpose. A
+/// rule the database would reject anyway proves nothing about capture.
 async fn seed_a_rule_that_must_not_apply(pool: &PgPool) {
     sqlx::query(
-        "INSERT INTO pricing_rules (id, rule_key, business_category, rate_bps, environment)
-         VALUES ($1, 'would-have-charged-5pc', 'DONATION', 500, $2)",
+        "INSERT INTO pricing_rules
+           (id, rule_key, pricing_profile, pricing_operation, rate_bps, environment)
+         VALUES ($1, 'would-have-charged-5pc', 'capture-probe', 'SETTLEMENT', 500, $2)",
     )
     .bind(Uuid::new_v4())
     .bind(ENV)
