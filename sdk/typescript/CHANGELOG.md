@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — the ESM half of the dual build shipped undeclared
+
+The package emits ESM into `dist/` and CommonJS into `dist/cjs/`, and `exports`
+points at both. Nothing said which was which: the root `package.json` has no
+`type`, so every `.js` in the package is CommonJS by default — including
+`dist/index.js`, which is pure ESM syntax.
+
+Node ≥22 covers that up by sniffing the file, so it worked on a laptop and in
+CI. It did not work in the first place an external developer put it: a
+serverless webhook receiver, where the import resolved as CommonJS and
+
+```js
+import { constructEvent } from '@banzami/sdk';
+```
+
+failed with `Named export 'constructEvent' not found` — the exact line the
+webhook documentation tells them to write.
+
+`npm run build` now emits `dist/package.json` (`module`) and
+`dist/cjs/package.json` (`commonjs`). `tools/check-sdk-dual-package.mjs` packs
+the tarball, installs it, and loads it both ways with syntax detection off, so
+the guess is no longer what holds it up.
+
 ## [0.10.0] — 2026-09-07
 
 ### Removed — `createApplicationSettlement` no longer accepts pricing selectors (breaking)

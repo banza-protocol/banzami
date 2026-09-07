@@ -298,6 +298,14 @@ jobs:
         working-directory: sdk/typescript
         run: npm run build
 
+      # The published tarball must load in both module systems on a runtime that
+      # does not guess. The ESM half of the dual build shipped undeclared, so a
+      # named import of constructEvent — the line the webhook documentation gives
+      # — threw inside a serverless function while every check here stayed green,
+      # because Node's syntax detection covered for it locally.
+      - name: SDK dual-package loading guard
+        run: node tools/check-sdk-dual-package.mjs
+
       # WS2 provenance guard — the built dist must honour the typed-source refund
       # contract (mandatory idempotency key, no auto-minted key, no transaction_id
       # input, no internal TRANSACTION token) at the version it claims. This is
