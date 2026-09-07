@@ -1,0 +1,62 @@
+{
+  "artefact": "developer-platform-project-key-lifecycle",
+  "date": "2026-09-07",
+  "superseded_by": "CORRECTED — see `corrected_finding` below. The original verdict in this file was wrong.",
+
+  "original_verdict_WRONG": "NOT RELEASED",
+
+  "why_it_was_wrong": {
+    "what_I_probed": "POST /v1/developers/projects, /v1/projects, /v1/workspaces, /v1/api-keys and two more, all on https://sandbox-api.banzami.com",
+    "what_I_concluded": "six 404s plus a marketing page at developers.banzami.com means no public lifecycle exists",
+    "the_error": "The Developer Platform is not on sandbox-api.banzami.com and is not under /v1. It is mounted at the ROOT of a separate host, developer-api.banzami.com, which the sandbox edge routes explicitly. I never probed it.",
+    "how_it_should_have_been_caught": "The handler file says so in its own comment — 'Account Identity auth surface (developer-api.banzami.com)' — and Mount() lists every route. I read MountInternal, saw fixture routes, and stopped. Reading forty lines further would have shown the public surface."
+  },
+
+  "corrected_finding": {
+    "developer_platform_api": "RELEASED and live",
+    "host": "https://developer-api.banzami.com",
+    "auth": "Account Identity — POST /auth/request-otp returns 200 with the Console origin, and delivers a real email OTP via the configured provider. /auth/verify, /auth/me and /auth/logout are live behind an Origin guard.",
+    "probed_and_present": {
+      "GET /workspaces": 401,
+      "GET /wallet-account-purposes": 401,
+      "GET /projects/{id}/keys": 401,
+      "GET /projects/{id}/financial-setup": 401,
+      "GET /projects/{id}/logs": 401
+    },
+    "note_on_401": "401 and not 404. The routes exist and demand a session — which is what a released, guarded surface looks like.",
+    "mounted_lifecycle": [
+      "POST /workspaces, GET /workspaces, GET /workspaces/{id}, members, invites, roles",
+      "POST /workspaces/{id}/projects, GET /projects/{id}",
+      "POST /projects/{id}/financial-setup, GET .../financial-setup",
+      "POST /projects/{id}/keys, POST /keys/{id}/rotate, DELETE /keys/{id}, GET .../keys",
+      "POST /projects/{id}/wallet-accounts, GET /wallet-account-purposes",
+      "GET .../webhooks/endpoints, .../events, .../events/{id}/deliveries",
+      "GET .../balances, .../transactions, .../logs, .../refund-capability",
+      "POST .../payments/{id}/refund"
+    ],
+    "service_layer": "133 exported methods covering the whole model. The `developer` schema already holds dev_workspaces, dev_workspace_members, dev_workspace_invites, dev_projects, dev_api_keys, dev_project_business_link, dev_project_sandbox_binding, dev_api_request_logs and audit_events; `account_identity` holds identity_users, identity_sessions and identity_otp_codes."
+  },
+
+  "what_is_actually_missing": {
+    "developer_console": "MISSING. developers.banzami.com serves the marketing website's documentation — its <title> is the wallet site's, /console, /projects, /keys and /signup are 404, and apps/ contains no console application. ConsoleOrigin is configured as https://developers.banzami.com and the API accepts that origin, so the API is waiting for a Console that was never built.",
+    "consequence": "An ordinary developer has a working API and no way to discover or use it. That is a real P0 for the public-Sandbox verdict — but it is a missing UI, not a missing lifecycle, and the difference decides what gets built."
+  },
+
+  "what_was_done_and_then_undone": {
+    "note": "A Project and key WERE created through the internal fixture route and installed in DOA's production Vercel before the owner stopped it. Recorded because an artefact that omits its own false start is not evidence — and this one now has two.",
+    "project": "6d9e8d13-23dd-4a0d-b158-9724521f5d7a — ARCHIVED",
+    "key": "8a68d114-4556-41a5-8f56-f4c12b7b2e27 — REVOKED, confirmed rejected with 401 afterwards",
+    "vercel": "BANZAMI_API_KEY and BANZAMI_WEBHOOK_SECRET removed from DOA production",
+    "webhook_endpoint": "d03f2e56-6914-4aeb-a1d1-88cdbbe44bd8 — deleted (204)",
+    "local_secret_files": "deleted",
+    "still_correct": "Creating that key through a fixture route was wrong regardless of this correction. The public route existed the whole time."
+  },
+
+  "what_remains_valid": {
+    "@doa_business_account": "created through the ordinary public onboarding flow against sandbox-api.banzami.com. Not synthetic.",
+    "merchant_id": "a779d287-8422-4d0f-b6af-6f392720f8e4",
+    "operator_configuration": "APPLICATION account type and the sandbox-reference pricing assignment — operator economic policy, the one permitted difference."
+  },
+
+  "incidentally_exposed": "Running `supabase projects api-keys` for the doa-sandbox project printed its legacy anon and service_role JWTs into the session transcript. The anon key is public by design; the service_role key is privileged and must be treated as exposed. It has no consumer — all three DOA Vercel projects use the newer SUPABASE_SECRET_KEY model — so disabling the project's legacy keys breaks nothing. That is a Supabase Dashboard action."
+}
