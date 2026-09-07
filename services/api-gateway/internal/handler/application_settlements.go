@@ -214,7 +214,11 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		PricingProfile:         pricingProfile,
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not create settlement")
+		// Core's 4xx are decisions, not outages, and this collapsed every one of
+		// them into 502 UPSTREAM_ERROR. A caller settling into a wallet whose
+		// owner is not KYB-approved was told "could not create settlement" and
+		// had no way to learn why, or that the fault was theirs to fix.
+		respondCoreError(w, r, err, "could not create settlement")
 		return
 	}
 
@@ -223,10 +227,12 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 	if st.Status == "CREATED" || st.Status == "PENDING" {
 		completed, cerr := h.settlements.Complete(r.Context(), st.ID)
 		if cerr != nil {
-			// The settlement exists but could not be completed (e.g. insufficient
-			// funds). Surface it; the app keeps the campaign settlement-pending/failed.
+			// The settlement exists but could not be completed. Core says WHY —
+			// insufficient funds, an ambiguous rate, a closed account — and a
+			// single SETTLEMENT_NOT_COMPLETED erased all of it, leaving the app
+			// to guess whether to retry, fix something, or alert someone.
 			slog.ErrorContext(r.Context(), "application_settlement.complete.failed", "settlement_id", st.ID, "error", cerr)
-			apierror.Respond(w, r, http.StatusUnprocessableEntity, "SETTLEMENT_NOT_COMPLETED", "settlement could not be completed")
+			respondCoreError(w, r, cerr, "settlement could not be completed")
 			return
 		}
 		st = completed
