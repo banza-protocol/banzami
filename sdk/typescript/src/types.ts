@@ -7,41 +7,19 @@
  *  LIVE and SANDBOX data are completely isolated — they never mix. */
 export type BanzamiEnvironment = 'live' | 'sandbox';
 
-/**
- * BANZA ADR-019 fee references — operator-internal categorization. These are
- * **references only**: they let the operator price a payment internally. The SDK
- * never sends or receives a fee, a percentage, or a pricing rule. `string` is
- * permitted for forward-compatibility with categories not yet in this list
- * (an unknown value resolves to a zero fee).
+/*
+ * BusinessCategory and PricingProfile used to live here.
+ *
+ * They were the argument types for createTransaction's pricing selectors, and
+ * their own documentation said the quiet part out loud: "an unknown value
+ * resolves to a zero fee". A public type whose contract explains how to be
+ * charged nothing is not a reference — it is a price list with one entry.
+ *
+ * Pricing is resolved by the operator from the merchant's assigned profile.
+ * No SDK method accepts a category or profile any more, so the types have no
+ * argument left to describe and are removed rather than left exported as a
+ * shape nothing consumes.
  */
-export type BusinessCategory =
-  | 'DONATION'
-  | 'CROWDFUNDING'
-  | 'MARKETPLACE'
-  | 'ECOMMERCE'
-  | 'DELIVERY'
-  | 'FOOD_DELIVERY'
-  | 'RIDE_HAILING'
-  | 'SUBSCRIPTION'
-  | 'TICKETING'
-  | 'DIGITAL_GOODS'
-  | 'PHYSICAL_GOODS'
-  | 'P2P'
-  | 'BILL_PAYMENT'
-  | 'NGO'
-  | 'GOVERNMENT'
-  | (string & {});
-
-/** Commercial pricing tier (reference only; never a price). */
-export type PricingProfile =
-  | 'STANDARD'
-  | 'BUSINESS'
-  | 'ENTERPRISE'
-  | 'PARTNER'
-  | 'NGO'
-  | 'GOVERNMENT'
-  | 'CUSTOM'
-  | (string & {});
 
 // ---------------------------------------------------------------------------
 // Shared

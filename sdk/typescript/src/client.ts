@@ -2,8 +2,6 @@ import { BanzamiApiError, BanzamiConfigError, BanzamiAuthError } from './errors.
 import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
-  BusinessCategory,
-  PricingProfile,
   Consumer,
   ConsumerWallet,
   WalletBalance,

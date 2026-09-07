@@ -352,8 +352,8 @@ pub async fn assign_pricing_profile(
     Path(id): Path<String>,
     Json(body): Json<AssignPricingProfileBody>,
 ) -> ApiResult<Json<PricingProfileAssignment>> {
-    let merchant_id = uuid::Uuid::parse_str(&id)
-        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
+    let merchant_id =
+        uuid::Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("invalid merchant id"))?;
 
     let code = body.profile_code.trim().to_string();
     if code.is_empty() {

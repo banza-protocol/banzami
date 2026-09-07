@@ -316,12 +316,11 @@ async fn unknown_category_refuses_capture(pool: PgPool) -> sqlx::Result<()> {
             .unwrap();
     assert_eq!(fee_rows, 0, "refused capture must not record a fee row");
 
-    let status: String =
-        sqlx::query_scalar("SELECT status FROM transactions WHERE id = $1")
-            .bind(tx.id.as_uuid())
-            .fetch_one(&fx.pool)
-            .await
-            .unwrap();
+    let status: String = sqlx::query_scalar("SELECT status FROM transactions WHERE id = $1")
+        .bind(tx.id.as_uuid())
+        .fetch_one(&fx.pool)
+        .await
+        .unwrap();
     assert_ne!(status, "CAPTURED", "refused capture must not mark CAPTURED");
     Ok(())
 }
