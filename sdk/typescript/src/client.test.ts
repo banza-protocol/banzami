@@ -245,29 +245,38 @@ describe('createTransaction', () => {
     expect(body.transaction_type).toBe('top_up');
   });
 
-  it('serializes fee references (ADR-039) as snake_case, never a fee', async () => {
+  it('puts no pricing selector on the wire at all', async () => {
     mockFetch(201, tx);
-    await client.createTransaction({
-      idempotencyKey:   'ik-5',
-      amountMinor:      5000,
-      businessCategory: 'DONATION',
-      pricingProfile:   'STANDARD',
-      feePolicyRef:     'pol_donation_standard',
-    });
+    await client.createTransaction({ idempotencyKey: 'ik-5', amountMinor: 5000 });
     const body = JSON.parse(lastFetchCall().init.body as string);
-    expect(body.business_category).toBe('DONATION');
-    expect(body.pricing_profile).toBe('STANDARD');
-    expect(body.fee_policy_ref).toBe('pol_donation_standard');
-    // the SDK must never put a fee/percentage on the wire
+
+    // These three used to be accepted and forwarded, defended as "reference
+    // only, never a fee". The defence was accurate about the wire and wrong
+    // about the consequence: the caller chose the reference, and the reference
+    // chose the price. The operator now resolves pricing from the merchant's
+    // assigned profile, server-side.
+    expect('business_category' in body).toBe(false);
+    expect('pricing_profile' in body).toBe(false);
+    expect('fee_policy_ref' in body).toBe(false);
+
+    // And still no amount, which was true before and remains true.
     expect(body.fee_minor).toBeUndefined();
     expect(body.rate_bps).toBeUndefined();
     expect(body.operator_fee).toBeUndefined();
     expect(body.application_fee).toBeUndefined();
   });
 
-  it('omits fee references when unset (backwards compatible)', async () => {
+  it('cannot be made to send a pricing selector by passing one anyway', async () => {
     mockFetch(201, tx);
-    await client.createTransaction({ idempotencyKey: 'ik-6', amountMinor: 100 });
+    // A JavaScript caller has no types. Excess properties must not reach the
+    // wire just because TypeScript would have refused them at compile time.
+    await client.createTransaction({
+      idempotencyKey: 'ik-6',
+      amountMinor:    100,
+      businessCategory: 'DONATION',
+      pricingProfile:   'STANDARD',
+      feePolicyRef:     'pol_donation_standard',
+    } as Parameters<typeof client.createTransaction>[0]);
     const body = JSON.parse(lastFetchCall().init.body as string);
     expect('business_category' in body).toBe(false);
     expect('pricing_profile' in body).toBe(false);

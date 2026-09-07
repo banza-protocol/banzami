@@ -554,15 +554,21 @@ export class BanzamiClient {
     description?:     string;
     walletId?:        string;
     transactionType?: string;
-    /**
-     * BANZA ADR-019 fee references — operator-internal categorization only.
-     * Reference only: the SDK never sends or receives a fee/percentage; the
-     * operator resolves any fee internally. Omitting these keeps the legacy
-     * zero-fee behaviour (backwards compatible).
+    /*
+     * There are deliberately no pricing fields here.
+     *
+     * This method used to accept businessCategory, pricingProfile and
+     * feePolicyRef, described as "reference only: the SDK never sends or
+     * receives a fee/percentage". That was true and beside the point — the
+     * caller picked the reference, and the reference picks the price. The same
+     * doc then promised that omitting them "keeps the legacy zero-fee
+     * behaviour", which made sending nothing the cheapest option on offer.
+     *
+     * Pricing is now resolved by the operator from the merchant's assigned
+     * profile, server-side, and the gateway rejects these fields outright. They
+     * are listed here so their absence reads as a decision rather than an
+     * oversight.
      */
-    businessCategory?: BusinessCategory;
-    pricingProfile?:   PricingProfile;
-    feePolicyRef?:     string;
   }): Promise<Transaction> {
     return this.request<Transaction>('/transactions', {
       method: 'POST',
@@ -573,10 +579,6 @@ export class BanzamiClient {
         description:      params.description ?? null,
         wallet_id:        params.walletId ?? null,
         transaction_type: params.transactionType ?? 'payment',
-        // references only; omitted when unset so the operator treats them as unpriced
-        ...(params.businessCategory ? { business_category: params.businessCategory } : {}),
-        ...(params.pricingProfile   ? { pricing_profile:   params.pricingProfile   } : {}),
-        ...(params.feePolicyRef     ? { fee_policy_ref:    params.feePolicyRef     } : {}),
       }),
     });
   }

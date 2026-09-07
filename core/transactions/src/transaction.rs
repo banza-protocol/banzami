@@ -117,7 +117,14 @@ pub struct Transaction {
     pub status: TransactionStatus,
     /// Gross transaction amount before fees — always positive.
     pub amount: Money,
-    /// Platform fee retained — zero until the fee engine is wired.
+    /// Operator fee retained, decided at capture.
+    ///
+    /// Zero before capture is a PLACEHOLDER, not a price: the pricing decision
+    /// has not been made yet. Do not surface this value as economic truth while
+    /// the transaction is still PENDING or AUTHORIZED — an unpriced zero and a
+    /// rule that says zero are the same number and completely different facts.
+    /// Once CAPTURED, an accompanying `operator_fees` row carries the rule id
+    /// that makes the amount attributable.
     pub fee: Money,
     pub currency: Currency,
     pub merchant_id: MerchantId,
@@ -127,8 +134,15 @@ pub struct Transaction {
     /// Set when status transitions to FAILED; human-readable for the merchant.
     pub failure_reason: Option<String>,
     /// BANZA ADR-039 fee references (operator-internal). Reference only — never a
-    /// price. Drive operator-fee resolution at capture; `None` => unpriced =>
-    /// zero fee, so behaviour is unchanged until a category is set.
+    /// price, and no longer caller-supplied: the gateway resolves the merchant's
+    /// assigned pricing profile server-side and stores that.
+    ///
+    /// These drive operator-fee resolution at capture. `None` resolves no rule,
+    /// and no rule is a REFUSAL, not a free capture — see
+    /// `TransactionError::PricingNotConfigured`. The earlier note here promised
+    /// the opposite ("`None` => unpriced => zero fee, so behaviour is unchanged")
+    /// and that promise was the defect: it made sending nothing the cheapest
+    /// option available to a caller.
     pub business_category: Option<String>,
     pub pricing_profile: Option<String>,
     pub fee_policy_ref: Option<String>,

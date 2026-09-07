@@ -31,9 +31,17 @@ pub struct CreateTransactionBody {
     pub wallet_id: String,
     pub description: Option<String>,
     /// BANZA ADR-039 fee references (operator-internal). Reference only — never a
-    /// price. Optional and forward-compatible; absent => unpriced => zero fee, so
-    /// existing clients are unaffected. A client-supplied `rate_bps`/`fee_minor`
-    /// is simply ignored (not a field here): the client can never choose a fee.
+    /// price: there is no `rate_bps`/`fee_minor` field, so no caller can name an
+    /// amount.
+    ///
+    /// This is an INTERNAL route. The public gateway no longer accepts these at
+    /// all — it resolves the merchant's assigned pricing profile server-side —
+    /// because naming the reference is naming the price by proxy.
+    ///
+    /// Absent does NOT mean zero. It resolves no rule, and capture refuses with
+    /// `PricingNotConfigured`. The note here used to say "absent => unpriced =>
+    /// zero fee, so existing clients are unaffected", which described the
+    /// vulnerability rather than the contract.
     pub business_category: Option<String>,
     pub pricing_profile: Option<String>,
     pub fee_policy_ref: Option<String>,
