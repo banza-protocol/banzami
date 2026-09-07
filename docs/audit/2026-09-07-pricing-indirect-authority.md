@@ -111,6 +111,25 @@ rate was created through the pricing admin surface. That is precisely the gap:
 the operator's withdrawal economics presently depend on a row nothing in the
 repository guarantees.
 
+### This is not hypothetical — it has already happened once
+
+`evidence/assurance/payouts/cap-payout-001-sandbox-e2e.json` records it in its
+own note:
+
+> the first run of that harness measured a fee of **zero**, because
+> `pricing_rules` was empty on the deployed Sandbox and the payout path fails
+> "safe" to zero when no rule matches. The rule was then restored by hand
+> through core's internal pricing API (REPAIR_LOG RA-063).
+
+So the deployed operator has already withdrawn money at no fee because a
+configuration row was missing, and the only reason anyone noticed was that a
+test harness happened to assert the amount. Nothing in the system objected. The
+repair was to re-add the row — which leaves the same failure available the next
+time the row is absent.
+
+That is the argument for seeding the rule in a migration and refusing without
+it, and it is why this is tracked as a defect rather than a nicety.
+
 **Tracked as the remaining item in this defect class.**
 
 ---
