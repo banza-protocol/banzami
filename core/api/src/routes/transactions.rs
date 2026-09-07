@@ -105,7 +105,10 @@ pub async fn create(
             merchant_id,
             wallet_id,
             description: body.description,
-            // References only (never a fee/percentage). Absent => zero fee.
+            // References only — never a fee or a percentage. Absent does NOT
+            // mean zero: it resolves no rule, and capture then refuses with
+            // PricingNotConfigured. This comment said "Absent => zero fee",
+            // which was the defect rather than the contract.
             business_category: body.business_category,
             pricing_profile: body.pricing_profile,
             fee_policy_ref: body.fee_policy_ref,

@@ -70,21 +70,21 @@ mk(){ # $1 = profile code or "none" | prints merchant_id|wallet_id
   [ -n "$mid" ] || return 1
   e2e_own merchant "$mid"
   if [ "$1" != "none" ]; then
-    call "$CORE" 8080 PUT "/internal/v1/merchants/$mid/pricing-profile" "{\"profile_code\":\"$1\"}"
+    call "$CORE" 8081 PUT "/internal/v1/merchants/$mid/pricing-profile" "{\"profile_code\":\"$1\"}"
   fi
-  call "$CORE" 8080 POST /internal/v1/wallets "{\"merchant_id\":\"$mid\",\"currency\":\"AOA\"}"
+  call "$CORE" 8081 POST /internal/v1/wallets "{\"merchant_id\":\"$mid\",\"currency\":\"AOA\"}"
   wid=$(jget id)
   printf '%s|%s' "$mid" "$wid"
 }
 
 # Authorize a transaction and try to capture it. Prints the capture status code.
 cap(){ # $1=merchant $2=wallet $3=idem-suffix -> sets TXID, CODE, LAST
-  call "$CORE" 8080 POST /internal/v1/transactions \
+  call "$CORE" 8081 POST /internal/v1/transactions \
     "{\"idempotency_key\":\"smoke-$3-$R\",\"transaction_type\":\"PAYMENT\",\"amount_minor\":$GROSS,\"currency\":\"AOA\",\"merchant_id\":\"$1\",\"wallet_id\":\"$2\"}"
   TXID=$(jget id)
   [ -n "$TXID" ] || return 1
-  call "$CORE" 8080 POST "/internal/v1/transactions/$TXID/authorize" "-"
-  call "$CORE" 8080 POST "/internal/v1/transactions/$TXID/capture" "-"
+  call "$CORE" 8081 POST "/internal/v1/transactions/$TXID/authorize" "-"
+  call "$CORE" 8081 POST "/internal/v1/transactions/$TXID/capture" "-"
 }
 
 echo
@@ -124,7 +124,7 @@ echo
 echo "### D — no policy: settlement refuses too, same code"
 SRC=$(q "SELECT available_account_id FROM wallets WHERE id='$NW'")
 BEN=$(q "SELECT available_account_id FROM wallets WHERE id='$ZW'")
-call "$CORE" 8080 POST /internal/v1/application-settlements \
+call "$CORE" 8081 POST /internal/v1/application-settlements \
   "{\"idempotency_key\":\"smoke-d-$R\",\"owner_ref\":\"smoke-$R\",\"source_account_id\":\"$SRC\",\"beneficiary_account_id\":\"$BEN\",\"gross_amount_minor\":1000,\"currency\":\"AOA\"}"
 chk D_SETTLEMENT_REFUSED "$CODE" "409"
 chk D_REFUSAL_IS_NAMED "$(errcode)" "PRICING_NOT_CONFIGURED"
