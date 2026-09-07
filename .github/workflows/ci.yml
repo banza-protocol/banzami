@@ -327,6 +327,12 @@ jobs:
       - name: Repository layout gate
         run: node tools/check-repository-layout.mjs
 
+      # BANZA is the protocol; Banzami is the operator. On the hosted checkout
+      # the wordmark said BANZA — the protocol's name, on the one page whose
+      # reader is a person about to pay.
+      - name: Payer-surface naming gate
+        run: node tools/check-payer-surface-naming.mjs
+
       # Where this operator is allowed to charge money.
       #
       # Exactly three operations resolve an operator fee, and each was audited

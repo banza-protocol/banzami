@@ -288,8 +288,16 @@ function HeroCard({
       <div className="relative z-10 flex flex-col items-center">
         {/* Brand label + security badge */}
         <div className="flex w-full items-center justify-between">
+          {/*
+            Banzami, not BANZA. This is the page a payer looks at, and the two
+            names are different things: BANZA is the protocol, Banzami is the
+            operator whose product this is (BANZA ADR-002 §15.2). Everything
+            else on the card already says Banzami — "Pagamento seguro Banzami",
+            "Abrir app Banzami" — so the wordmark was the one place naming the
+            protocol at someone about to pay.
+          */}
           <span className="text-[10px] font-bold tracking-[0.22em] text-white/40 uppercase">
-            BANZA
+            Banzami
           </span>
           <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5
                            text-[10px] font-semibold text-white/75 backdrop-blur-sm">
