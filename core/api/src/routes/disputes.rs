@@ -451,6 +451,11 @@ pub async fn resolve(
                 posting_key: format!("dispute-refund-{dispute_id}"),
                 posting_description: format!("dispute-refund:{dispute_id}"),
                 transit_account_id: state.transit_account_id.as_uuid(),
+                // A dispute is imposed from outside. The operator may have to honour
+                // it whether or not the merchant is still in funds, so the deficit
+                // becomes a debt to collect rather than a refusal the cardholder
+                // never asked about.
+                require_available_funds: false,
             },
         )
         .await
@@ -556,6 +561,15 @@ fn map_dispute_restitution_err(e: restitution::RestitutionError) -> ApiError {
         InvalidTransactionStatus(s) | InvalidPaymentStatus(s) => ApiError::unprocessable(
             "SOURCE_NOT_ELIGIBLE",
             format!("source status {s} is not eligible"),
+        ),
+        // Unreachable on this path: disputes pass require_available_funds:false,
+        // because a chargeback is imposed and the operator honours it whether or
+        // not the merchant is in funds. Named rather than swept into the
+        // catch-all, so that flipping that flag produces a clear answer instead
+        // of an internal error.
+        InsufficientFunds { .. } => ApiError::unprocessable(
+            "DISPUTE_NOT_FUNDABLE",
+            "the merchant does not hold the disputed amount",
         ),
         CurrencyMismatch { .. } => {
             ApiError::unprocessable("CURRENCY_MISMATCH", "currency mismatch")

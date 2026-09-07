@@ -89,6 +89,37 @@ async fn seed_captured_tx(pool: &PgPool, amount: i64) -> Seed {
     .await
     .expect("seed transaction");
 
+    // A CAPTURED payment means the merchant HOLDS the money. The seed used to
+    // write the transaction row and no ledger entries, so every refund test ran
+    // against a merchant with a zero balance. That was invisible while a refund
+    // checked only the captured ceiling; now that it must also be funded, a seed
+    // that skips the credit is describing a capture that never happened.
+    let posting = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES ($1, 'seed capture', $2, now())",
+    )
+    .bind(posting)
+    .bind(format!("seed-capture-{transaction_id}"))
+    .execute(pool)
+    .await
+    .expect("seed capture posting");
+    sqlx::query(
+        "INSERT INTO ledger_entries
+           (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'DEBIT',  $5, 'AOA', now()),
+                ($4, $2, $6, 'CREDIT', $5, 'AOA', now())",
+    )
+    .bind(Uuid::new_v4())
+    .bind(posting)
+    .bind(ledger_account(pool, "ASSET", "seed-transit").await)
+    .bind(Uuid::new_v4())
+    .bind(amount)
+    .bind(available)
+    .execute(pool)
+    .await
+    .expect("seed capture entries");
+
     Seed {
         merchant_id,
         transaction_id,
@@ -190,6 +221,34 @@ async fn seed_wallet_payment(pool: &PgPool, amount: i64) -> WalletPaymentSeed {
     )
     .bind(wp_id).bind(Uuid::new_v4()).bind(merchant_id).bind(consumer_id).bind(amount)
     .execute(pool).await.unwrap();
+
+    // A COMPLETED wallet payment means the merchant holds the money — same
+    // reason as the acquiring seed above.
+    let posting = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES ($1, 'seed wallet payment', $2, now())",
+    )
+    .bind(posting)
+    .bind(format!("seed-wp-{wp_id}"))
+    .execute(pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO ledger_entries
+           (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'DEBIT',  $5, 'AOA', now()),
+                ($4, $2, $6, 'CREDIT', $5, 'AOA', now())",
+    )
+    .bind(Uuid::new_v4())
+    .bind(posting)
+    .bind(c_avail)
+    .bind(Uuid::new_v4())
+    .bind(amount)
+    .bind(m_avail)
+    .execute(pool)
+    .await
+    .unwrap();
 
     WalletPaymentSeed {
         merchant_id,
@@ -1520,4 +1579,74 @@ async fn refund_write_err_maps_unique_to_409_and_never_leaks(pool: PgPool) {
             api2.message
         );
     }
+}
+
+// ─── entitlement is not fundability ──────────────────────────────────────────
+//
+// Refundability asks "how much of this payment has not been returned yet". It is
+// a fact about history, and it survives the money leaving. Whether the money is
+// still here is a different question, and nothing asked it.
+//
+// On the deployed Sandbox, a payment of 100 000 was captured, settled in full,
+// and then refunded in full. The refund was accepted with 201 and drove the
+// merchant's liability account to -98 000: the operator returned money it did
+// not hold. Both ledger legs were present, so every per-posting balance check
+// stayed green — the invariant that catches this is "no account below zero", and
+// nothing asked it at the point of the write.
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_is_refused_when_the_merchant_no_longer_holds_the_funds(pool: PgPool) {
+    let seed = seed_captured_tx(&pool, 100_000).await;
+    let state = build_state(pool.clone()).await;
+
+    // The value leaves, as a settlement or a payout would take it.
+    let elsewhere = ledger_account(&pool, "LIABILITY", "somewhere-else").await;
+    let posting = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES ($1, 'value settled away', 'settle-away', now())",
+    )
+    .bind(posting)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO ledger_entries
+           (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'DEBIT',  100000, 'AOA', now()),
+                ($4, $2, $5, 'CREDIT', 100000, 'AOA', now())",
+    )
+    .bind(Uuid::new_v4())
+    .bind(posting)
+    .bind(seed.merchant_account)
+    .bind(Uuid::new_v4())
+    .bind(elsewhere)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let err = refunds::create(
+        axum::extract::State(state),
+        axum::Json(refund_body(&seed, 100_000, "after-settlement")),
+    )
+    .await
+    .expect_err("a refund with no funds behind it must be refused");
+    assert_eq!(
+        err.code, "REFUND_NOT_FUNDABLE",
+        "expected REFUND_NOT_FUNDABLE, got {}",
+        err.code
+    );
+
+    // The account that would have funded it is untouched, and nothing anywhere
+    // went below zero.
+    let balance: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor
+                                  ELSE -amount_minor END), 0)::BIGINT
+           FROM ledger_entries WHERE account_id = $1",
+    )
+    .bind(seed.merchant_account)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(balance, 0, "the merchant account moved");
 }

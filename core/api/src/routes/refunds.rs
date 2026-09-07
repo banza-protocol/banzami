@@ -143,6 +143,9 @@ pub async fn create(
             posting_key: format!("refund-{refund_id}"),
             posting_description: format!("refund:{refund_id}"),
             transit_account_id: state.transit_account_id.as_uuid(),
+            // A refund is voluntary, so it must be funded. Asking to give money
+            // back does not create it.
+            require_available_funds: true,
         },
     )
     .await
@@ -276,6 +279,17 @@ fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
             "REFUND_EXCEEDS_CAPTURED",
             format!(
                 "cannot refund {requested} — only {remaining} remaining of original {captured}"
+            ),
+        ),
+        InsufficientFunds {
+            available,
+            requested,
+        } => ApiError::unprocessable(
+            "REFUND_NOT_FUNDABLE",
+            format!(
+                "cannot refund {requested} — the source wallet holds {available}. \
+                 The payment is still refundable in principle; the funds are not here \
+                 to return, because they have already been settled or paid out."
             ),
         ),
         IdempotencyKeyConflict => ApiError::conflict(

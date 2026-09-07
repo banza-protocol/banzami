@@ -71,6 +71,18 @@ pub struct ApplyParams {
     pub posting_key: String,
     pub posting_description: String,
     pub transit_account_id: Uuid,
+    /// Whether the merchant must actually HOLD the money being returned.
+    ///
+    /// A refund is voluntary: the merchant asks to give value back, and asking
+    /// does not create funds. A dispute is imposed from outside and the operator
+    /// may have to honour it whether or not the merchant is in funds, so that
+    /// path passes `false` and the deficit becomes a debt to collect rather than
+    /// a refusal.
+    ///
+    /// Entitlement and fundability are different questions. The ceiling above
+    /// answers "how much of this payment has not yet been returned"; this
+    /// answers "is the money still here".
+    pub require_available_funds: bool,
 }
 
 #[allow(dead_code)] // pre-existing: constructed/consumed only on paths not yet enabled; kept for wire and audit completeness
@@ -110,6 +122,10 @@ pub enum RestitutionError {
         remaining: i64,
         requested: i64,
         captured: i64,
+    },
+    InsufficientFunds {
+        available: i64,
+        requested: i64,
     },
     IdempotencyKeyConflict,
     WalletNotFound,
@@ -303,6 +319,35 @@ pub async fn apply_restitution(
             cumulative_after: already,
             fully_reversed: already >= r.captured_amount,
         });
+    }
+
+    // 6b. Is the money still here?
+    //
+    // The ceiling above is an ENTITLEMENT check: how much of the original
+    // payment has not yet been returned. It says nothing about whether the
+    // merchant still holds it. Once a settlement has moved the value out, the
+    // entitlement survives and the funds do not.
+    //
+    // Without this, a refund posted a perfectly balanced pair of legs and drove
+    // the merchant's liability account to -98 000: the operator returned money
+    // it did not have, and every per-posting balance check stayed green because
+    // both legs were there. Proven on the deployed Sandbox before it was closed.
+    if p.require_available_funds {
+        let available: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(SUM(CASE WHEN entry_type = 'CREDIT' THEN amount_minor
+                                      ELSE -amount_minor END), 0)::BIGINT
+               FROM ledger_entries WHERE account_id = $1",
+        )
+        .bind(r.merchant_account_id)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(db)?;
+        if effective > available {
+            return Err(RestitutionError::InsufficientFunds {
+                available,
+                requested: effective,
+            });
+        }
     }
 
     // 7. Balanced double-entry posting (idempotent on the posting key).
