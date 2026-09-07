@@ -153,7 +153,19 @@ export default function OperatorFeesPage() {
               <Row label="Categoria" value={selected.business_category ?? '—'} />
               <Row label="Perfil" value={selected.pricing_profile ?? '—'} />
               <Row label="Fee policy" value={selected.fee_policy_ref ?? '—'} />
-              <Row label="Regra / versão" value={selected.pricing_rule_id ? `${selected.pricing_rule_id.slice(0, 8)}… · v${selected.pricing_rule_version}` : 'sem regra (0)'} />
+              {/* "sem regra (0)" said that no rule means a fee of zero. It does
+                  not: no rule means no pricing decision was recorded, and a
+                  capture in that state is now refused rather than charged
+                  nothing. A row without a rule id can only be historical, from
+                  before that refusal, and must read as an absent decision — not
+                  as a rate of zero. An explicit 0-bps rule looks completely
+                  different here: it has an id and a version. */}
+              <Row
+                label="Regra / versão"
+                value={selected.pricing_rule_id
+                  ? `${selected.pricing_rule_id.slice(0, 8)}… · v${selected.pricing_rule_version}`
+                  : 'sem decisão de preço registada'}
+              />
               <Row label="Engine" value={`v${selected.engine_version}`} />
               <Row label="Ambiente" value={selected.environment} />
               <Row label="Criado" value={formatDate(selected.created_at)} />

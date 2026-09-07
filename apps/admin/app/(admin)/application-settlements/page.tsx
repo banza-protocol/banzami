@@ -200,7 +200,15 @@ export default function ApplicationSettlementsPage() {
               <Row label="Beneficiário" value={selected.beneficiary_account_id} mono />
               <Row label="Destino taxa app" value={selected.application_fee_account_id ?? '—'} mono />
               <Row label="Categoria" value={selected.business_category ?? '—'} />
-              <Row label="Regra / versão" value={selected.pricing_rule_id ? `${selected.pricing_rule_id.slice(0, 8)}… · v${selected.pricing_rule_version}` : 'sem regra (0)'} />
+              {/* Same correction as the operator-fees view: an absent rule is
+                  an absent DECISION, not a rate of zero. A settlement without a
+                  rule id is historical — the engine refuses one now. */}
+              <Row
+                label="Regra / versão"
+                value={selected.pricing_rule_id
+                  ? `${selected.pricing_rule_id.slice(0, 8)}… · v${selected.pricing_rule_version}`
+                  : 'sem decisão de preço registada'}
+              />
               <Row label="Posting líquido" value={selected.settlement_posting_id ?? '—'} mono />
               <Row label="Posting taxa" value={selected.fee_posting_id ?? '—'} mono />
               <Row label="Criado" value={formatDate(selected.created_at)} />
