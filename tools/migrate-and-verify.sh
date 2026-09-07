@@ -64,6 +64,43 @@ if printf '%s\n' "$db_name $BANZAMI_DB_TARGET" | grep -qiE 'prod|banzami_live'; 
   echo "  ⚠ PRODUCTION target explicitly acknowledged."
 fi
 
+# ── Step 1b: identity gate — the NAME is not the identity ────────────────────
+#
+# Two clusters on the same host can hold a database with the same name. Every
+# check that compares `$db_name` passes for both, so this compares the cluster
+# the database was stamped in against the cluster it is being reached in.
+#
+# Three outcomes:
+#   no identity, empty database   -> a fresh target; the migration stamps it
+#   no identity, populated        -> REFUSE: a stranger wearing the right name
+#   identity, different cluster   -> REFUSE: copied, restored, or wrong target
+echo "── [1b/4] target identity ──"
+live_cluster="$(psql "$DATABASE_URL" -Atc 'SELECT system_identifier::text FROM pg_control_system()' 2>/dev/null)" || {
+  echo "✗ cannot reach the target to establish its identity." >&2; exit 4; }
+has_identity="$(psql "$DATABASE_URL" -Atc "SELECT to_regclass('public.deployment_identity') IS NOT NULL" 2>/dev/null)"
+if [ "$has_identity" = "t" ]; then
+  stored_cluster="$(psql "$DATABASE_URL" -Atc 'SELECT cluster_system_identifier FROM deployment_identity' 2>/dev/null)"
+  if [ -n "$stored_cluster" ] && [ "$stored_cluster" != "$live_cluster" ]; then
+    echo "✗ IDENTITY MISMATCH on '$BANZAMI_DB_TARGET' ($db_name)." >&2
+    echo "  stamped in cluster : $stored_cluster" >&2
+    echo "  reached in cluster : $live_cluster" >&2
+    echo "  This database was created somewhere else. Refusing — the name matching" >&2
+    echo "  is exactly what makes this dangerous rather than obvious." >&2
+    exit 5
+  fi
+  echo "  identity     : cluster $live_cluster (stamped, matches)"
+else
+  user_tables="$(psql "$DATABASE_URL" -Atc \
+    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public'" 2>/dev/null)"
+  if [ "${user_tables:-0}" -gt 0 ]; then
+    echo "✗ UNIDENTIFIED TARGET '$BANZAMI_DB_TARGET' ($db_name) in cluster $live_cluster." >&2
+    echo "  It holds $user_tables tables but carries no deployment identity, so there is" >&2
+    echo "  no way to tell whether it is the database this rollout means. Refusing." >&2
+    exit 5
+  fi
+  echo "  identity     : cluster $live_cluster (fresh target — will be stamped)"
+fi
+
 # ── Step 2: sqlx migrate run (the only approved migration path) ──────────────
 echo "── [2/4] sqlx migrate run ──"
 ( cd "$REPO_ROOT" && sqlx migrate run --source "$MIGRATIONS" )
