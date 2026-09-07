@@ -1,0 +1,68 @@
+{
+  "artefact": "banzami-final-head-provenance",
+  "date": "2026-09-07",
+  "gate": "exact-final-HEAD CI and economic gate, on one SHA",
+
+  "sha": "1de7cfe426c32bd985063d1b8d428d7fdbee3087",
+
+  "economic_gate": {
+    "run": 34162687123,
+    "conclusion": "success",
+    "workflow_definition_sha": "1de7cfe426c32bd985063d1b8d428d7fdbee3087",
+    "requested_target_sha": "1de7cfe426c32bd985063d1b8d428d7fdbee3087",
+    "resolved_target_sha": "1de7cfe426c32bd985063d1b8d428d7fdbee3087",
+    "runner": "Linux/X64 (GitHub-hosted)",
+    "suites_reporting": 64,
+    "tests_passed": 509,
+    "tests_failed": 0,
+    "tests_ignored": 0,
+    "economic_invariants_required": 14,
+    "economic_invariants_executed": 14,
+    "fresh_migration_chain": "PASSED — 105 of 105 migrations recorded, replayed 0001 to latest into a database created for the purpose",
+    "note": "The three SHAs are recorded separately on purpose. A gate that reports only the workflow's own commit cannot tell you what it tested."
+  },
+
+  "ci": {
+    "run": 34162926544,
+    "conclusion": "success",
+    "jobs": {
+      "Rust — build, lint, test": "success",
+      "Go api-gateway — vet, test": "success",
+      "Go public-api — vet, test": "success",
+      "Go admin-api — vet, test": "success",
+      "Go sandbox-operator — fmt, vet, test": "success",
+      "TypeScript SDK — typecheck, test": "success",
+      "Dart client SDK — format, analyze, test, publish-guard": "success",
+      "Migrations — sequence, tracking, freeze": "success",
+      "Security — regressions, secrets, dependencies": "success",
+      "Production artefacts — linux/amd64 build": "success",
+      "Deploy to production": "skipped"
+    },
+    "security_jobs_green": true,
+    "artefact_build_green": true,
+    "infrastructure": "GitHub-hosted. No self-hosted runner is registered on the repository; the old one was deregistered and no workflow requires one."
+  },
+
+  "deployed_runtime": {
+    "revision": "cf92dc00b73b",
+    "services": ["core-api-staging", "api-gateway-staging", "public-api-staging", "developer-api", "pay-frontend"],
+    "relationship_to_final_sha": "1de7cfe4 is cf92dc00 plus three commits that touch only tests/, tools/, docs/ and evidence/ — no service source. The deployed images are the last revision that changed service code, and the harnesses below ran against them.",
+    "provenance_chain": "repository SHA -> git archive source bundle -> checksum verified on the host -> native linux/amd64 build -> image tag -> running container"
+  },
+
+  "deployed_harnesses": {
+    "post-reset-bootstrap": "12/0",
+    "economic-model-smoke": "45/0",
+    "refund-settlement-matrix": "26/0",
+    "settlement-economics-e2e": "24/0",
+    "developer-platform-e2e": "20/0 (1 simulated: outbound webhook delivery needs a public HTTPS sink)",
+    "sandbox-host-attestation": "12/0",
+    "total": "139 assertions, 0 failures"
+  },
+
+  "not_covered_by_this_artefact": [
+    "the DOA integration, which is not rebound and cannot be until its production database is identified",
+    "ordinary-vs-DOA parity, which needs DOA as one of the two owners. Parity between two ORDINARY owners on the same profile is proved above with a differential of zero.",
+    "Financial LIVE, which remains NOT READY and fail-closed and was not touched"
+  ]
+}
