@@ -87,13 +87,25 @@ for (const [name, code, enabled, env, rules] of rows) {
 // returned three rows and reported the explicit zero as missing. The claim was
 // always about SETTLEMENT specifically — sandbox-default settles free, it does
 // not withdraw free — so it now says so.
-const zero = q(`select rate_bps from pricing_rules
-                 where environment = 'SANDBOX' and enabled
-                   and pricing_profile = 'sandbox-default'
-                   and pricing_operation = 'SETTLEMENT'`);
-zero === '0'
-  ? ok('sandbox-default SETTLEMENT is an EXPLICIT zero rule, not the absence of one')
-  : bad(`sandbox-default SETTLEMENT rate is "${zero.replace(/\n/g, ',')}" — expected exactly one explicit 0`);
+const zeroColumnExists = q(`
+  select count(*) from information_schema.columns
+   where table_name = 'pricing_rules' and column_name = 'pricing_operation'`) === '1';
+if (zeroColumnExists) {
+  const zero = q(`select rate_bps from pricing_rules
+                   where environment = 'SANDBOX' and enabled
+                     and pricing_profile = 'sandbox-default'
+                     and pricing_operation = 'SETTLEMENT'`);
+  zero === '0'
+    ? ok('sandbox-default SETTLEMENT is an EXPLICIT zero rule, not the absence of one')
+    : bad(`sandbox-default SETTLEMENT rate is "${zero.replace(/\n/g, ',')}" — expected exactly one explicit 0`);
+} else {
+  const zero = q(`select rate_bps from pricing_rules
+                   where environment = 'SANDBOX' and enabled
+                     and pricing_profile = 'sandbox-default'`);
+  zero === '0'
+    ? ok('sandbox-default is an EXPLICIT zero rule, not the absence of one (pre-0109 shape)')
+    : bad(`sandbox-default rate is "${zero.replace(/\n/g, ',')}" — the explicit zero is missing`);
+}
 
 // ── completeness v2: every profile × every required operation ──────────────
 //
@@ -114,6 +126,30 @@ zero === '0'
 const REQUIRED_OPERATIONS = ['SETTLEMENT', 'PAYOUT'];
 
 console.log(`\nper-operation completeness (${REQUIRED_OPERATIONS.join(', ')})\n`);
+
+// Does this deployment even have the operation dimension?
+//
+// Asked explicitly, because the alternative is what happened the first time this
+// ran against the Sandbox: every query below referenced pricing_operation, the
+// column did not exist yet, and the gate died with a raw psql stack trace. The
+// runbook tells an operator to run this gate — and running it a moment too early
+// is the likeliest way to do that, so it has to answer clearly rather than
+// crash.
+const hasOperation = q(`
+  select count(*) from information_schema.columns
+   where table_name = 'pricing_rules' and column_name = 'pricing_operation'`) === '1';
+
+if (!hasOperation) {
+  console.log('  · this database predates the operation dimension (migration 0109).');
+  console.log('    Per-operation completeness cannot be checked yet, and nothing is wrong:');
+  console.log('    the deployed resolver does not use it either. Apply the migration first —');
+  console.log('    docs/runbooks/pricing-v2-migration.md — then run this again.');
+  console.log();
+  if (fail) { console.error(`✗ pricing assignment gate FAILED (${fail})`); process.exit(1); }
+  console.log('✓ every settlement-capable owner has exactly one active, environment-correct rate');
+  console.log('· per-operation completeness: NOT YET APPLICABLE (pre-0109)');
+  process.exit(0);
+}
 
 // Profiles that actually matter: those assigned to an active owner. An unused
 // profile with an incomplete policy is untidy, not dangerous.
