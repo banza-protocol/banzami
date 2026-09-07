@@ -474,10 +474,50 @@ mod tests {
         }
     }
 
-    // Mock pricing provider — no rules => every category resolves to a zero fee,
-    // so these state-machine tests exercise capture with net == gross.
+    // Mock pricing provider — an EXPLICIT 0-bps wildcard rule.
+    //
+    // It used to return no rules at all, with the note "no rules => every
+    // category resolves to a zero fee, so these state-machine tests exercise
+    // capture with net == gross". The first half became false: capture now
+    // refuses when nothing matched. Keeping net == gross is still what these
+    // state-machine tests want, so the zero comes from a rule that says zero —
+    // which is the distinction the whole change is about, applied to the
+    // fixture instead of worked around in it.
+    fn zero_bps_wildcard() -> banzami_pricing::PricingRule {
+        banzami_pricing::PricingRule {
+            id: banzami_types::PricingRuleId::new(),
+            key: "test-explicit-zero".into(),
+            version: 1,
+            business_category: None,
+            pricing_profile: None,
+            fee_policy_ref: None,
+            currency: None,
+            country: None,
+            transaction_type: None,
+            rate_bps: 0,
+            flat_minor: 0,
+            min_fee_minor: None,
+            max_fee_minor: None,
+            rounding: banzami_pricing::RoundingMode::HalfUp,
+            priority: 0,
+            effective_from: DateTime::from_timestamp(0, 0).expect("epoch"),
+            effective_to: None,
+        }
+    }
+
     struct MockPricing;
     impl PricingRuleProvider for MockPricing {
+        async fn load_rules(
+            &self,
+            _environment: &str,
+        ) -> Result<Vec<banzami_pricing::PricingRule>, banzami_pricing::PricingError> {
+            Ok(vec![zero_bps_wildcard()])
+        }
+    }
+
+    /// A provider that has nothing to say — the state the refusal exists for.
+    struct UnpricedMockPricing;
+    impl PricingRuleProvider for UnpricedMockPricing {
         async fn load_rules(
             &self,
             _environment: &str,
@@ -605,8 +645,23 @@ mod tests {
         Money::new(minor, Currency::AOA)
     }
 
-    async fn pending_tx(
-        engine: &PostgresTransactionEngine<MockWallet, MockRepo, MockPricing>,
+    fn make_unpriced_engine() -> PostgresTransactionEngine<MockWallet, MockRepo, UnpricedMockPricing>
+    {
+        PostgresTransactionEngine::new(
+            Arc::new(MockWallet),
+            MockRepo::new(),
+            AccountId::new(),
+            Arc::new(UnpricedMockPricing),
+            AccountId::new(),
+            "SANDBOX",
+        )
+    }
+
+    // Generic over the pricing provider so the same setup serves both the
+    // priced and the unpriced engine — the two fixtures differ only in whether
+    // a rule exists, which is the point being tested.
+    async fn pending_tx<P: PricingRuleProvider>(
+        engine: &PostgresTransactionEngine<MockWallet, MockRepo, P>,
     ) -> Transaction {
         engine
             .create(CreateTransactionRequest {
@@ -692,6 +747,40 @@ mod tests {
             .unwrap();
 
         assert_eq!(captured.status, TransactionStatus::Captured);
+    }
+
+    /// The state machine does NOT advance when nobody has priced the payment.
+    ///
+    /// The companion to the test above: that one proves capture works when a
+    /// rule says zero, this one proves it refuses when no rule says anything.
+    /// Without both, "fee 0, CAPTURED" has two causes and the tests cannot tell
+    /// which one they just exercised.
+    #[tokio::test]
+    async fn capture_refuses_when_no_rule_applies() {
+        let engine = make_unpriced_engine();
+        let tx = pending_tx(&engine).await;
+        let authorized = engine
+            .authorize(AuthorizeRequest { tx_id: tx.id })
+            .await
+            .unwrap();
+
+        let err = engine
+            .capture(CaptureRequest {
+                tx_id: authorized.id,
+            })
+            .await
+            .expect_err("an unpriced capture must refuse");
+        assert!(
+            matches!(err, TransactionError::PricingNotConfigured),
+            "expected PricingNotConfigured, got {err:?}"
+        );
+
+        let after = engine.get(authorized.id).await.unwrap();
+        assert_eq!(
+            after.status,
+            TransactionStatus::Authorized,
+            "a refused capture leaves the transaction where it was"
+        );
     }
 
     #[tokio::test]

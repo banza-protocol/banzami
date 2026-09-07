@@ -24,6 +24,20 @@ fn filter() -> CatalogFilter {
     }
 }
 
+/// The catalog is not empty after migration.
+///
+/// 0106 seeds two SANDBOX pricing profiles — the explicit 0-bps
+/// `sandbox-default` and the generic 200-bps `sandbox-donation-200` — because
+/// "no policy" and "a policy of zero" must be different states, which means the
+/// zero has to exist as a row. Counting every row therefore counted those too.
+/// The seeds are correct; the unscoped counts were not.
+fn code_filter(code: &str) -> CatalogFilter {
+    CatalogFilter {
+        code: Some(code.into()),
+        ..filter()
+    }
+}
+
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn profiles_crud_and_unique(pool: PgPool) -> sqlx::Result<()> {
     let repo = PostgresCatalogRepository::new(pool);
@@ -41,7 +55,9 @@ async fn profiles_crud_and_unique(pool: PgPool) -> sqlx::Result<()> {
     // same code, other env is fine
     repo.create(k, input("STANDARD", "SANDBOX")).await.unwrap();
 
-    let all = repo.list(k, &filter()).await.unwrap();
+    // Both rows this test created, scoped by their shared code — the claim is
+    // "the same code exists once per environment", not "the table has two rows".
+    let all = repo.list(k, &code_filter("STANDARD")).await.unwrap();
     assert_eq!(all.len(), 2);
 
     // update descriptive fields
@@ -93,11 +109,15 @@ async fn filters_by_env_status_code(pool: PgPool) -> sqlx::Result<()> {
         .unwrap();
     assert_eq!(live.len(), 2);
 
+    // Scoped to LIVE: both profiles this test left enabled are LIVE, and the
+    // seeded SANDBOX ones are enabled too, so an unscoped count answers a
+    // different question than the one being asked.
     let enabled = repo
         .list(
             k,
             &CatalogFilter {
                 enabled: Some(true),
+                environment: Some("LIVE".into()),
                 ..filter()
             },
         )
