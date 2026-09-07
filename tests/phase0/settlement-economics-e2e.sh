@@ -22,6 +22,14 @@
 # The gross-credit half is proved separately by doa-public-donation-e2e.sh,
 # which asserts the campaign account is credited the FULL link amount.
 #
+# WHY THIS EXISTS ALONGSIDE economic-model-smoke.sh
+#
+# That smoke proves the model broadly — one settlement per profile, plus the
+# refusals and the ledger invariants. This harness proves ONE thing that a
+# single settlement cannot: that two different owners on the same plan are
+# charged identically. The differential is the assertion, and it needs two runs
+# to exist at all.
+#
 # AND ECONOMIC PARITY
 #
 # The same settlement runs twice: once for an ordinary controlled owner and once
