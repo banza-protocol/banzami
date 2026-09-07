@@ -15,10 +15,11 @@
  * merchant uses — application → activation → auth — rather than by writing rows.
  * Sandbox auto-approves KYB; nothing here is a shortcut around that gate.
  *
- * Taxonomy matters: category `donation` maps to pricing category DONATION
- * (services/api-gateway/internal/service/business_self.go), which is what DOA's
- * settlement path expects. The E2E fixture was retail/general, which is why the
- * card showed no pricing.
+ * The category is DESCRIPTIVE and nothing else. This comment used to say the
+ * taxonomy mattered because `donation` mapped to a pricing category, which then
+ * chose a rate — that mapping is gone, and it was the defect: what an account is
+ * charged comes from a pricing profile an operator assigns it, never from how
+ * the account describes itself. Assign the profile explicitly after this runs.
  *
  * Prints the ids needed to bind, and the PIN it generated (Sandbox only —
  * without it the account cannot be signed into again).
@@ -47,7 +48,7 @@ const application = {
   environment: 'SANDBOX',
   desired_handle: HANDLE,
   business_name: 'Doa',
-  // Doações e causas → pricing category DONATION (apps/website/lib/business-taxonomy.ts).
+  // Doações e causas. Descriptive only — it selects no rate.
   category: 'donation',
   subcategory: 'Crowdfunding comunitário',
   email: 'contact@doadoa.app',
@@ -93,7 +94,7 @@ console.log(JSON.stringify({
   primary_account_id: me.body.wallet?.primary_account_id,
   kyb_status: me.body.kyb_status ?? me.body.kyb?.status ?? null,
   category: me.body.category ?? null,
-  pricing_category: me.body.pricing_category ?? null,
+  pricing: me.body.pricing ?? null,
   environment: auth.body.environment,
   pin,
   next: 'bind the DOA Sandbox project to merchant_id / wallet_id / primary_account_id',
