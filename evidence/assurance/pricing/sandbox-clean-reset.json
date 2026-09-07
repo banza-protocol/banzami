@@ -1,0 +1,68 @@
+{
+  "artefact": "banzami-sandbox-clean-reset",
+  "date": "2026-09-07",
+  "authorised_by": "owner, explicitly and after being shown what the database held",
+
+  "what_was_destroyed": {
+    "note": "Recorded because it was not empty. The owner authorised the reset knowing this.",
+    "doa_campaign_accounts_with_balance": 88,
+    "value_in_those_accounts_minor": 15919500,
+    "open_payment_sessions": 269,
+    "paid_sessions_in_prior_30_days": 182,
+    "active_api_keys": 1,
+    "last_activity": "2026-09-06T22:23:06Z"
+  },
+
+  "method": {
+    "database": "dropped and recreated empty, then migrated 0001 -> 0108",
+    "path": "infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh apply",
+    "not_used": "the RT04E path, which identifies its target by database name and reached a disused instance that shared it",
+    "backfill": "none. No migration ledger row was written by hand, no schema effect reproduced, no balance carried across, no identifier recreated."
+  },
+
+  "resulting_database": {
+    "migrations_applied": 105,
+    "highest_version": 108,
+    "failed_migrations": 0,
+    "tables": 86,
+    "pricing_profiles": 2,
+    "pricing_rules": 4,
+    "matrix": {
+      "sandbox-default": { "SETTLEMENT": 0, "PAYOUT": 75 },
+      "sandbox-reference": { "SETTLEMENT": 200, "PAYOUT": 75 }
+    },
+    "cluster_identity_stamped": true,
+    "carried_forward": "nothing — 0 merchants, 0 wallets, 0 ledger entries, 0 api keys, 0 payment sessions"
+  },
+
+  "deployed": {
+    "revision": "cf92dc00b73b",
+    "services": ["core-api-staging", "api-gateway-staging", "public-api-staging", "developer-api", "pay-frontend"],
+    "provenance": "repository SHA -> source bundle -> native amd64 build -> image tag -> running container, all five carrying the same tag"
+  },
+
+  "deployed_evidence": {
+    "post-reset-bootstrap": { "pass": 12, "fail": 0, "proves": "both credit paths post balanced double entry from an empty ledger" },
+    "economic-model-smoke": { "pass": 45, "fail": 0, "proves": "A-H: payment credits gross with a matching rule present; explicit zero; 200 bps; payout priced and persisted; missing settlement rule refuses; missing payout rule refuses; ambiguity refuses; ledger invariants" },
+    "refund-settlement-matrix": { "pass": 26, "fail": 0, "proves": "refund before settlement leaves 80 000 to settle at 200 bps -> fee 1 600 net 78 400; a refund beyond the remaining ceiling refuses; a refund after full settlement refuses rather than draining a wallet it cannot fund" },
+    "developer-platform-e2e": { "pass": 20, "fail": 0, "simulated": 1, "proves": "a self-service tenant created entirely through the public lifecycle" },
+    "sandbox-host-attestation": { "pass": 12, "fail": 0, "proves": "every container on the host is one the manifest declares, and every declared one is present" }
+  },
+
+  "defects_found_by_running_it": [
+    "admin_credit wrote a lone CREDIT with no counter-DEBIT, outside a transaction. 51 unbalanced postings on a Sandbox three hours old. The same defect RA-060 fixed on the consumer path, in the merchant twin twelve lines away.",
+    "a refund of an already-settled payment was accepted and drove a wallet to -98 000. Refundability is entitlement; nothing asked whether the funds were still there.",
+    "the gateway collapsed every core 4xx on the settlement path into 502 UPSTREAM_ERROR, so FEE_DESTINATION_KYB_NOT_APPROVED reached the caller as 'could not create settlement'.",
+    "the Integration Health surface derived a pricing category by substring-matching the merchant's own free-text label and reported a rate from it. Since no rule is keyed on a category, the lookup always failed and raised a settlement blocker for a rule that will never exist.",
+    "the blueprint pinned sqlx-cli 0.7.4 against a workspace locked to 0.8.6. The only sanctioned migration path could not build; the legacy one could.",
+    "the sanctioned migration could only ever run once per database: the role bootstrap's DROP ROLE failed on a grant left by the previous run.",
+    "migrating rotated the runtime role's password without updating the copy the services read, locking them out of the database it had just migrated.",
+    "every deploy silently reset the container restart policy to 'no'."
+  ],
+
+  "not_proved_here": [
+    "the DOA integration. Its Banzami resources were destroyed with everything else and its DOA-side references have not been rebound — that needs production Supabase access this session does not have.",
+    "ordinary-vs-DOA parity, which requires the DOA tenant to exist again.",
+    "anything about Financial LIVE, which remains NOT READY and fail-closed."
+  ]
+}
