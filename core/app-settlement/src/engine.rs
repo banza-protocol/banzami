@@ -198,9 +198,7 @@ where
                 // having made one. An explicit 0-bps rule settles at zero; an
                 // absent decision does not settle.
                 if resolution.snapshot.rule_id.is_none() {
-                    return Err(ApplicationSettlementError::Pricing(
-                        "no pricing rule applies to this settlement".to_string(),
-                    ));
+                    return Err(ApplicationSettlementError::PricingNotConfigured);
                 }
                 let snapshot = serde_json::to_value(&resolution.snapshot).map_err(|e| {
                     ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))

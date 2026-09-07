@@ -233,6 +233,14 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
         E::InvalidStatus { .. } => {
             ApiError::conflict("INVALID_STATUS", "invalid settlement status transition")
         }
+        // A refusal, not a fault. Without this arm it fell through to `internal`
+        // and a deliberate decision was reported as a 500 — indistinguishable
+        // from an outage, and retried by every client that saw it. The code
+        // matches what the gateway already returns on the same condition.
+        E::PricingNotConfigured => ApiError::conflict(
+            "PRICING_NOT_CONFIGURED",
+            "no pricing rule applies — this owner has no assigned pricing policy",
+        ),
         other => ApiError::internal(other.to_string()),
     }
 }

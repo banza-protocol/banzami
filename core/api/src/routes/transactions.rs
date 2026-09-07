@@ -284,6 +284,15 @@ pub async fn capture(
                 "INVALID_TRANSITION",
                 format!("cannot transition {from:?} → {to:?}"),
             ),
+            // Refusing to capture without a pricing decision is a decision, and
+            // it must not answer like a broken server. Falling through to
+            // `internal` made a permanent, actionable configuration state look
+            // like a transient fault — a 500 that every client retries and no
+            // retry can fix.
+            TransactionError::PricingNotConfigured => ApiError::conflict(
+                "PRICING_NOT_CONFIGURED",
+                "no pricing rule applies — this merchant has no assigned pricing policy",
+            ),
             other => ApiError::internal(other.to_string()),
         })?;
 

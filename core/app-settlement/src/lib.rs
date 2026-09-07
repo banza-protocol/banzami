@@ -57,6 +57,17 @@ pub enum ApplicationSettlementError {
     #[error("invalid status transition: {from} -> {to}")]
     InvalidStatus { from: String, to: String },
 
+    /// No pricing rule applies to this settlement.
+    ///
+    /// Deliberately its own variant rather than a `Pricing(String)`. It is a
+    /// refusal caused by configuration — someone has to assign this owner a
+    /// policy — while the other pricing failures are genuine internal faults.
+    /// Collapsing the two makes a 500 out of a decision, which reads to the
+    /// caller as "the operator is broken" and invites a retry that can never
+    /// succeed.
+    #[error("no pricing rule applies to this settlement")]
+    PricingNotConfigured,
+
     #[error("pricing error: {0}")]
     Pricing(String),
 
