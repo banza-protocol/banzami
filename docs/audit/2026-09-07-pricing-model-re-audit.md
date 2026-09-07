@@ -242,6 +242,36 @@ Only three crates depend on `banzami-pricing`, now guarded by
   place — the seed and the completeness gate come first, or a revenue leak
   becomes a customer-facing outage
 
+### The incident, reconstructed from the ledger
+
+The evidence file said the harness "measured a fee of ZERO". The ledger says
+exactly which withdrawal, and exactly when:
+
+| fact | value |
+| --- | --- |
+| payouts on record | 34 (18 PENDING, 16 PROCESSING) |
+| processed, i.e. carrying a ledger posting | 16 |
+| carrying a paired operator-fee posting | **15** |
+| the one without a fee | **80 000** minor units, 2026-09-05 **06:55:36** |
+| `wallet_withdrawal_default` created | 2026-09-05 **06:56:49** |
+| gap | **73 seconds** |
+
+One withdrawal was processed 73 seconds before the rule existed, and it moved
+money out at no fee. Everything after it was charged correctly: 15 payouts,
+gross 1 060 000, fee 7 950 — exactly 0.75%, to the minor unit.
+
+The uncharged amount is 600 minor units of Sandbox money, so nothing of value
+was lost. What the reconstruction shows is the shape of the failure: it is
+silent, it is bounded only by how long the rule is missing, and the only reason
+anyone found it was a test asserting an amount. The current repair — a row added
+by hand — leaves that same 73-second shape available after every reset, which is
+why migration 0108 seeds the rule and why the refusal has to follow.
+
+It also demonstrates the P1 above: the payout record cannot tell you any of
+this. Reconstructing it required joining `payouts` to `ledger_postings` on a
+derived idempotency key (`<key>:process:fee`), because the payout row itself
+holds no fee, no rule, and no version.
+
 Two further findings on this path:
 
 **P1 — `payouts` records no pricing evidence at all.** Its columns are
