@@ -26,6 +26,14 @@ var ErrTransactionNotFound = errors.New("transaction not found")
 
 // Transaction is the gateway-level view of a payment transaction.
 // It mirrors the response shape exposed to API consumers.
+//
+// There is deliberately no fee field, and adding one needs more thought than it
+// looks like it needs. Core carries `fee` on its own transaction record, and
+// before capture that value is 0 because no pricing decision has been made yet
+// — a placeholder, not a price. Publishing it would make an undecided
+// transaction indistinguishable from one priced at zero, which is the exact
+// confusion this whole change exists to remove. If a fee ever becomes public,
+// it has to be null while unpriced, not 0.
 type Transaction struct {
 	ID             string    `json:"id"`
 	Status         string    `json:"status"`

@@ -343,6 +343,37 @@ func stripComments(s string) string {
 	return b.String()
 }
 
+// An unpriced transaction must not read as one priced at zero.
+//
+// Core's transaction record carries a `fee`, and before capture it is 0 —
+// because nothing has been decided, not because the answer is nothing. The
+// public response has no fee field at all, so the ambiguity never reaches a
+// consumer. This asserts that stays true: the cheapest way to reintroduce the
+// bug is to publish the placeholder.
+func TestTransactions_ResponseDoesNotPublishAnUndecidedFee(t *testing.T) {
+	src, err := os.ReadFile("../service/transactions.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(src)
+
+	start := strings.Index(body, "type Transaction struct {")
+	if start < 0 {
+		t.Fatal("could not find the response struct")
+	}
+	end := strings.Index(body[start:], "}")
+	if end < 0 {
+		t.Fatal("could not find the end of the response struct")
+	}
+	dto := body[start : start+end]
+
+	for _, tag := range []string{`json:"fee"`, `json:"fee_minor"`, `json:"operator_fee"`, `json:"rate_bps"`} {
+		if strings.Contains(dto, tag) {
+			t.Errorf("the public transaction response carries %s — an unpriced transaction would publish 0 and read as priced at zero", tag)
+		}
+	}
+}
+
 func TestTransactions_RequestCarriesNoPricingSelector(t *testing.T) {
 	src, err := os.ReadFile("transactions.go")
 	if err != nil {
