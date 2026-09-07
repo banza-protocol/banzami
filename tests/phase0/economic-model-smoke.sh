@@ -24,9 +24,9 @@
 #   A  a 100 000 payment credits the wallet 100 000, with a matching rule present
 #   B  sandbox-default settlement    -> explicit 0 bps, net 100 000
 #   C  sandbox-reference settlement  -> 200 bps, fee 2 000, net 98 000
-#   D  payout                        -> 75 bps, and the decision is persisted
+#   D  payout                        -> priced at the deployed rate, persisted
 #   E  settlement with no rule       -> refused, nothing moves
-#   F  payout with no rule           -> pre-cutover behaviour, recorded honestly
+#   F  payout with no rule           -> refused, nothing moves
 #   G  two applicable rules          -> refused rather than ranked
 #   H  ledger invariants unchanged
 set -uo pipefail
@@ -98,6 +98,11 @@ mk(){ # $1 = profile code or "none" -> prints merchant|wallet
 fund(){ call "$CORE" 8081 POST "/internal/v1/wallets/$1/admin-credit" \
           "{\"amount_minor\":$2,\"reason\":\"economic model smoke $R\"}"; }
 
+payout(){ # $1=merchant $2=wallet $3=amount $4=idem -> leaves the payout id in LAST
+  call "$CORE" 8081 POST /internal/v1/payouts \
+    "{\"idempotency_key\":\"po-$4-$R\",\"merchant_id\":\"$1\",\"wallet_id\":\"$2\",\"amount_minor\":$3,\"currency\":\"AOA\",\"bank_account_number\":\"000$R\",\"bank_code\":\"BAI\",\"account_holder_name\":\"Smoke $R\"}"
+}
+
 settle(){ # $1=merchant $2=source_wallet $3=beneficiary_wallet $4=idem
   local jwt; jwt=$(mint "$1")
   call "$GW" 8080 POST /v1/application-settlements \
@@ -151,13 +156,28 @@ chk C_NET "$(q "SELECT net_amount_minor FROM app_settlements WHERE id='$CSID'")"
 chk C_BENEFICIARY_GETS_NET "$(wbal "$CBEN")" "$(( GROSS - EXPECTED_FEE ))"
 
 echo
-echo "### D — payout: 75 bps, and the decision is persisted on the payout itself"
+echo "### D — payout: priced at the deployed rate, and the decision is persisted"
 PAYOUT_BPS=$(q "SELECT rate_bps FROM pricing_rules WHERE environment='SANDBOX' AND enabled
                   AND pricing_operation='PAYOUT' AND pricing_profile='sandbox-default' AND effective_to IS NULL")
 chk D_PAYOUT_RULE_EXISTS "$([ -n "$PAYOUT_BPS" ] && echo yes)" yes
-echo "  (the deployed PAYOUT rate for sandbox-default is ${PAYOUT_BPS:-?} bps)"
+D_FEE=$(( GROSS * PAYOUT_BPS / 10000 ))
+IFS='|' read -r DM DW <<<"$(mk sandbox-default)"
+fund "$DW" "$GROSS"
+payout "$DM" "$DW" "$GROSS" d
+chk D_PAYOUT_CREATED "$CODE" "201"
+DPID=$(jget id)
+call "$CORE" 8081 POST "/internal/v1/payouts/$DPID/process" "-"
+chk D_PAYOUT_PROCESSED "$CODE" "200"
+# The fee is computed from the rate in the database, not from a number written
+# here: a smoke that hard-codes the rate stops testing the rule and starts
+# testing itself.
+chk D_FEE_MATCHES_THE_RULE "$(q "SELECT fee_minor FROM payouts WHERE id='$DPID'")" "$D_FEE"
+chk D_NET_IS_GROSS_LESS_FEE "$(q "SELECT net_minor FROM payouts WHERE id='$DPID'")" "$(( GROSS - D_FEE ))"
+# ...and the payout can explain its own price without ledger archaeology.
+chk D_RULE_PERSISTED     "$(q "SELECT (pricing_rule_id IS NOT NULL)::text FROM payouts WHERE id='$DPID'")" "true"
+chk D_RATE_PERSISTED     "$(q "SELECT pricing_rate_bps FROM payouts WHERE id='$DPID'")" "$PAYOUT_BPS"
+chk D_DECIDED_AT_PERSISTED "$(q "SELECT (pricing_decided_at IS NOT NULL)::text FROM payouts WHERE id='$DPID'")" "true"
 
-echo
 echo "### E — a settlement that resolves no rule refuses, and moves nothing"
 IFS='|' read -r EM EW <<<"$(mk none)"
 IFS='|' read -r _ EBEN <<<"$(mk sandbox-default)"
@@ -170,46 +190,52 @@ chk E_SOURCE_UNTOUCHED "$(wbal "$EW")" "$GROSS"
 chk E_BENEFICIARY_UNTOUCHED "$(wbal "$EBEN")" "0"
 
 echo
-echo "### F — the payout cutover state, recorded rather than asserted"
-# A missing PAYOUT rule still resolves to zero. That is deliberate and temporary:
-# the completeness gate must first prove on this deployment that refusing would
-# refuse nothing legitimate. Refusing first turns a revenue leak into an outage.
-UNPRICED_PAYOUT=$(q "SELECT COUNT(*) FROM merchants m
-                      LEFT JOIN pricing_profiles p ON p.id=m.pricing_profile_id
-                      WHERE m.status='ACTIVE' AND (p.code IS NULL OR NOT EXISTS (
-                        SELECT 1 FROM pricing_rules r WHERE r.environment='SANDBOX' AND r.enabled
-                          AND r.pricing_operation='PAYOUT'
-                          AND (r.pricing_profile IS NULL OR r.pricing_profile=p.code)
-                          AND r.effective_to IS NULL))")
-echo "  active owners with no applicable PAYOUT rule: ${UNPRICED_PAYOUT:-?}"
-chk F_EVERY_ACTIVE_OWNER_HAS_A_PAYOUT_RULE "$UNPRICED_PAYOUT" "0"
+echo "### F — a payout that resolves no rule refuses, and moves nothing"
+# Arranged the way it actually happens: a plan exists and is assigned, but nobody
+# ever wrote its PAYOUT rule. This is the exact shape of RA-063, where an 80 000
+# withdrawal left with no fee 73 seconds before the rule was created.
+q "INSERT INTO pricing_profiles (id, code, name, description, enabled, environment)
+   VALUES (gen_random_uuid(), 'smoke-settle-only-$R', 'Smoke settle-only',
+           'Probe: priced for settlement, deliberately unpriced for payout.', true, 'SANDBOX')" >/dev/null
+q "INSERT INTO pricing_rules (id, rule_key, version, environment, enabled, pricing_profile,
+                              pricing_operation, rate_bps, flat_minor, rounding, priority)
+   VALUES (gen_random_uuid(), 'smoke-settle-only-$R', 1, 'SANDBOX', true,
+           'smoke-settle-only-$R', 'SETTLEMENT', 100, 0, 'HALF_UP', 100)" >/dev/null
+IFS='|' read -r FM FW <<<"$(mk "smoke-settle-only-$R")"
+fund "$FW" "$GROSS"
+payout "$FM" "$FW" "$GROSS" f
+FPID=$(jget id)
+call "$CORE" 8081 POST "/internal/v1/payouts/$FPID/process" "-"
+chk F_PAYOUT_REFUSED  "$CODE" "409"
+chk F_REFUSAL_IS_NAMED "$(errcode)" "PRICING_NOT_CONFIGURED"
+chk F_WALLET_UNTOUCHED "$(wbal "$FW")" "$GROSS"
+chk F_NO_FEE_RECORDED  "$(q "SELECT COALESCE(fee_minor::text,'none') FROM payouts WHERE id='$FPID'")" "none"
+q "DELETE FROM pricing_rules   WHERE rule_key='smoke-settle-only-$R'" >/dev/null
+q "UPDATE pricing_profiles SET enabled=false WHERE code='smoke-settle-only-$R'" >/dev/null
 
-echo
 echo "### G — two applicable rules refuse rather than rank"
-# Created and removed in ONE statement, so no window exists in which the Sandbox
-# carries an ambiguous pricing configuration.
-GOUT=$(qerr "DO \$\$
-DECLARE dup uuid; msg text;
-BEGIN
-  INSERT INTO pricing_rules (id, rule_key, version, environment, enabled,
-                             pricing_operation, rate_bps, flat_minor, rounding, priority)
-  VALUES (gen_random_uuid(), 'smoke-ambiguity-$R', 1, 'SANDBOX', true,
-          'SETTLEMENT', 999, 0, 'HALF_UP', 100)
-  RETURNING id INTO dup;
-  SELECT COUNT(*)::text INTO msg FROM pricing_rules
-   WHERE environment='SANDBOX' AND enabled AND pricing_operation='SETTLEMENT'
-     AND (pricing_profile IS NULL OR pricing_profile='sandbox-default')
-     AND effective_to IS NULL;
-  DELETE FROM pricing_rules WHERE id = dup;
-  RAISE NOTICE 'CANDIDATES %', msg;
-END \$\$;")
-case "$GOUT" in
-  *"CANDIDATES 2"*) chk G_AMBIGUITY_IS_DETECTABLE yes yes ;;
-  *)                chk G_AMBIGUITY_IS_DETECTABLE "unexpected($GOUT)" yes ;;
-esac
+# The unique index makes two OPEN rules for one cell impossible, so the overlap
+# has to be the one it cannot cover: an open rule and a still-current dated one.
+# That is the case the runtime check exists for, and the only way to reach it.
+IFS='|' read -r GM GW2 <<<"$(mk sandbox-reference)"
+IFS='|' read -r _ GBEN <<<"$(mk sandbox-reference)"
+fund "$GW2" "$GROSS"
+q "INSERT INTO pricing_rules (id, rule_key, version, environment, enabled, pricing_profile,
+                              pricing_operation, rate_bps, flat_minor, rounding, priority,
+                              effective_from, effective_to)
+   VALUES (gen_random_uuid(), 'smoke-ambiguity-$R', 1, 'SANDBOX', true, 'sandbox-reference',
+           'SETTLEMENT', 999, 0, 'HALF_UP', 100, now() - interval '1 day', now() + interval '1 day')" >/dev/null
+chk G_OVERLAP_EXISTS "$(q "SELECT COUNT(*) FROM pricing_rules WHERE environment='SANDBOX' AND enabled
+                            AND pricing_operation='SETTLEMENT' AND pricing_profile='sandbox-reference'
+                            AND (effective_to IS NULL OR effective_to > now())")" "2"
+settle "$GM" "$GW2" "$GBEN" g
+chk G_SETTLEMENT_REFUSED "$CODE" "409"
+chk G_REFUSAL_IS_NAMED   "$(errcode)" "PRICING_CONFIGURATION_ERROR"
+chk G_SOURCE_UNTOUCHED   "$(wbal "$GW2")" "$GROSS"
+chk G_BENEFICIARY_UNTOUCHED "$(wbal "$GBEN")" "0"
+q "DELETE FROM pricing_rules WHERE rule_key='smoke-ambiguity-$R'" >/dev/null
 chk G_PROBE_LEFT_NOTHING "$(q "SELECT COUNT(*) FROM pricing_rules WHERE rule_key='smoke-ambiguity-$R'")" "0"
 
-echo
 echo "### H — the ledger is exactly as sound as it was"
 chk H_UNBALANCED "$(unbalanced)" "0"
 chk H_SINGLE_LEG "$(single_leg)" "0"
