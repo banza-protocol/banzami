@@ -1,0 +1,37 @@
+{
+  "suite": "Pricing Model V2 — DB-backed economic gate",
+  "workflow": ".github/workflows/economic-gate.yml",
+  "run_id": 34126202031,
+  "workflow_definition_sha": "4d2614fdbcc9670396facd6f089a3fbf1cfa112b",
+  "target_application_sha": "4d2614fdbcc9670396facd6f089a3fbf1cfa112b",
+  "runner": "GitHub-hosted Linux/X64 (ephemeral)",
+  "database": "ephemeral postgres:16-alpine service container, migrated 0001 -> 0111",
+  "generated_at": "2026-09-07T14:20:00Z",
+  "result": "pass",
+  "suites_reporting": 64,
+  "tests_passed": 511,
+  "tests_failed": 0,
+  "tests_ignored": 0,
+  "tests_filtered_out": 0,
+  "economic_invariants_required": 10,
+  "economic_invariants": [
+    { "id": "capture_credits_gross_even_with_a_matching_rule_present", "proves": "a payment credits the wallet GROSS even with a matching 5% rule present — capture consults nobody" },
+    { "id": "capture_records_no_operator_fee", "proves": "no operator_fees row is written — not a row with a fee of zero" },
+    { "id": "capture_posts_two_legs_and_stays_balanced", "proves": "a single balanced two-leg posting; a fee would have added a paired one" },
+    { "id": "zero_application_fee_net_equals_gross", "proves": "an explicit 0-bps SETTLEMENT rule settles at zero, attributably" },
+    { "id": "no_applicable_rule_refuses_settlement", "proves": "the ABSENCE of a rule refuses and moves nothing" },
+    { "id": "two_applicable_rules_refuse_rather_than_rank", "proves": "ambiguity is a configuration error, never settled by comparing UUIDs" },
+    { "id": "settles_net_and_application_fee_balanced", "proves": "a nonzero rate produces the correct fee, balanced" },
+    { "id": "rule_change_does_not_alter_completed", "proves": "a later rule change never reprices a completed settlement" },
+    { "id": "initiate_to_confirmed_happy_path", "proves": "the payout bank leg carries the NET; the fee is its own paired posting" },
+    { "id": "processed_payout_persists_its_pricing_decision", "proves": "a completed payout explains its own price — rule, version, rate, fee, net, decided_at" }
+  ],
+  "note": "This gate certifies the CODE. It does not certify the deployed Sandbox: migrations 0109-0111 are not applied there, and must be applied through the operator-TTY path (docs/runbooks/pricing-v2-migration.md) before the V2 code is deployed. The deployed Sandbox remains on the transitional baseline 858d80d8, which is correct until then.",
+  "not_proved_here": [
+    "deployed behaviour — the economic smoke (tests/phase0/economic-model-smoke.sh) has not run against a V2 Sandbox",
+    "DOA post-cutover settlement economics",
+    "ordinary-vs-reference parity on the deployed runtime",
+    "the refund/settlement interaction matrix"
+  ],
+  "promotable": true
+}
