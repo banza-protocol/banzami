@@ -312,9 +312,10 @@ func (s *BusinessSelfService) PricingProfileForMerchant(ctx context.Context, mer
 // label. Where they decide what the operator charges, they are not a label, and
 // they come from here.
 //
-// Empty is a real answer: a merchant with no category is unpriced, and unpriced
-// is zero. That is the operator's configuration to fix, not the caller's to
-// supply.
+// Empty is a real answer: a merchant with no category is unpriced. That used to
+// end "and unpriced is zero", which is no longer true anywhere that moves money
+// — capture and settlement refuse an absent pricing decision rather than
+// charging nothing. Here, empty simply means the display has nothing to show.
 func (s *BusinessSelfService) PricingCategoryForMerchant(ctx context.Context, merchantID string) (string, error) {
 	if s == nil || s.pool == nil {
 		return "", errors.New("business self service is not configured")

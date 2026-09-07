@@ -330,6 +330,22 @@ jobs:
       - name: Pricing consumer inventory
         run: node tools/check-pricing-consumers.mjs
 
+      # CLIENT-CONTROLLED ECONOMIC-POLICY AUTHORITY.
+      #
+      # A caller influencing what it is charged without ever sending an amount.
+      # Every instance was defended as "reference only, never a fee" — true, and
+      # beside the point, because choosing the reference chooses the rate. Three
+      # fixes each looked complete; fee_policy_ref survived the first two
+      # because the guard of the day checked one field by name.
+      #
+      # The self-test reintroduces each instance and requires the gate to fail
+      # on it, so a gate that has never failed cannot be mistaken for one that
+      # cannot.
+      - name: Economic authority gate
+        run: |
+          node tools/check-economic-authority.mjs
+          node tools/check-economic-authority.selftest.mjs
+
       # Every harness that mints operator authority must be able to give it
       # back. This is the static half — sources the cleanup library, records
       # what it creates, does not install a second EXIT trap that would replace

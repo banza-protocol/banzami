@@ -292,7 +292,7 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-pricing-consumers check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+.PHONY: check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
@@ -302,6 +302,14 @@ check-repo-layout:
 # must be reviewed rather than merged as a dependency line.
 check-pricing-consumers:
 	node tools/check-pricing-consumers.mjs
+
+# CLIENT-CONTROLLED ECONOMIC-POLICY AUTHORITY — a caller influencing what it is
+# charged without ever sending an amount. Three separate fixes each looked
+# complete and each left another door open, so the class gets a named gate and a
+# self-test that reintroduces every instance.
+check-economic-authority:
+	node tools/check-economic-authority.mjs
+	node tools/check-economic-authority.selftest.mjs
 
 # Static half of the E2E fixture-hygiene gate. The dynamic half needs the
 # deployed Sandbox: tests/phase0/fixture-hygiene-suite.sh, run by the operator.
