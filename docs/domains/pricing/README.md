@@ -90,9 +90,9 @@ easy to read this as "every payment is now refused":
 
 | operation | priced? |
 | --- | --- |
-| capture (`core/transactions`) | yes — refuses without a rule |
-| application settlement (`core/app-settlement`) | yes — refuses without a rule |
-| payout / withdrawal (`core/payouts`) | yes, by transaction type |
+| capture (`core/transactions`) | **no** — removed in V2; a payment credits the wallet gross |
+| application settlement (`core/app-settlement`) | yes — names `operation=SETTLEMENT`; refuses 0 or >1 rules |
+| payout / withdrawal (`core/payouts`) | yes — names `operation=PAYOUT`; refuses ambiguity |
 | **generic transfer** (`core/transfers`) | **no, deliberately** |
 
 The transfer primitive stays neutral because the same capability carries
@@ -177,50 +177,60 @@ to a zero fee.
 
 ---
 
-## Operator Fee on capture (Increment 3)
+## Capture is not a fee-bearing operation (superseded)
 
-At transaction **capture** (`core/transactions`), the engine resolves the operator
-fee from `(amount, currency, business_category, pricing_profile?, fee_policy_ref?,
-environment)` and applies it as a ledger movement — invisible to the payer, who
-always sees the gross amount.
+**This section described a behaviour that has been removed.** It is rewritten
+rather than deleted, because the ledger shape it documented still explains the
+`operator_fees` rows written before the change.
 
-### Ledger realization — two balanced postings
+### What it used to say, and why it changed
 
-This ledger is **strictly one DEBIT + one CREDIT per posting** (DB constraint
-`uq_ledger_entry_posting_type` on `(posting_id, entry_type)`), so the fee cannot
-be a third leg of the settle posting. It is realized as **two balanced postings**
-that share the gross reservation:
+Capture resolved an operator fee from `(amount, currency, business_category,
+pricing_profile?, fee_policy_ref?, environment)` and split it out of the gross as
+a second balanced posting:
 
 ```text
-authorize:  DR transit(gross)      CR wallet:reserved(gross)
-
-capture, posting 1 (key <idem>:capture):
-            DR wallet:reserved(net)   CR wallet:available(net)    ← payee NET
-capture, posting 2 (key <idem>:capture:fee):
-            DR wallet:reserved(fee)   CR operator_fee_revenue(fee) ← operator fee
+authorize:  DR transit(gross)        CR wallet:reserved(gross)
+capture 1:  DR wallet:reserved(net)  CR wallet:available(net)     ← payee NET
+capture 2:  DR wallet:reserved(fee)  CR operator_fee_revenue(fee) ← operator fee
 ```
 
-`reserved` is debited `net + fee = gross` (fully cleared); `available` receives
-only the **net**; the **operator-fee REVENUE account** receives the fee. No money
-is created or destroyed; each posting nets to zero; everything is append-only
-(ADR-002). When the fee is 0 there is a single legacy settle posting.
+Under the confirmed economic model that is wrong at the first step: a payment or
+donation credits the merchant wallet **gross**. The operator's rate is resolved
+one step later, at settlement or withdrawal. Capture now posts a single balanced
+two-leg posting and writes no `operator_fees` row.
+
+`core/transactions` no longer depends on `banzami-pricing` at all — asserted, not
+assumed, by `tools/check-economic-authority.mjs`. Capture was removed from
+pricing rather than given an explicit 0-bps rule: a zero rule would have produced
+identical numbers while leaving capture inside operator pricing, so a future
+change to a "default" rate would have started charging payments without anyone
+intending it.
+
+### The historical rows
+
+`operator_fees` is retained and still explains itself: each row carries the
+resolved fee, the references, `pricing_rule_id` + `pricing_rule_version`,
+`engine_version`, the immutable `snapshot_json`, and the fee `posting_id`. The
+two-posting shape above is what those rows describe. Nothing writes to it any
+more.
+
+### Where the fee is now
+
+| operation | posting shape |
+| --- | --- |
+| **settlement** | net to the beneficiary, plus a separate paired fee posting when the fee is non-zero |
+| **payout** | net to the bank leg, plus a separate paired fee posting (`<idem>:process:fee`) |
+
+Both share the same constraint that shaped the capture design: this ledger is
+strictly one DEBIT + one CREDIT per posting (`uq_ledger_entry_posting_type`), so
+a fee is always its own paired posting and never a third leg.
 
 ### Operator revenue account
 
-A single internal `AccountType::Revenue` account (`OPERATOR_FEE_REVENUE_ACCOUNT_ID`,
-fixed in env, ensured at boot — mirrors the transit/bank system accounts). **Never**
-a merchant wallet. The fee is fully auditable/reconcilable in the ledger.
-
-### Persistence, idempotency & audit
-
-Each capture writes one immutable `operator_fees` row (migration 0071): the
-resolved `fee_minor`, the references, `pricing_rule_id` + `pricing_rule_version`,
-`engine_version`, the immutable `snapshot_json`, and the fee `posting_id`.
-`UNIQUE(transaction_id)` + the ledger's idempotent posting keys make a capture
-replay a no-op — no double fee, no duplicate posting. A row is recorded even when
-the fee is 0 (auditable). `fee > amount` is **rejected** (loud fail; never a
-silent clamp, never a negative net). An internal `operator.fee.applied` event is
-emitted (tracing; never a public webhook).
+Unchanged: a single internal `AccountType::Revenue` account, fixed in env and
+ensured at boot, mirroring the transit/bank system accounts. **Never** a merchant
+wallet.
 
 ### Visibility
 
