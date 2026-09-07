@@ -38,6 +38,28 @@ fn filter() -> PricingRuleFilter {
     }
 }
 
+/// The database is not empty after migration.
+///
+/// 0106 seeds two SANDBOX pricing rules — the explicit 0-bps `sandbox-default`
+/// and the generic 200-bps `sandbox-donation-200` — because "no rule" and "a
+/// rule that says zero" have to be different states. Tests that counted every
+/// row were counting those too, and started failing the moment CI ran again.
+/// The seeds are correct; an unscoped count is what was wrong, so these helpers
+/// scope each assertion to what the test itself created.
+fn live_filter() -> PricingRuleFilter {
+    PricingRuleFilter {
+        environment: Some("LIVE".into()),
+        ..filter()
+    }
+}
+
+fn key_filter(key: &str) -> PricingRuleFilter {
+    PricingRuleFilter {
+        rule_key: Some(key.into()),
+        ..filter()
+    }
+}
+
 /// Mark a rule as "used" by inserting an app_settlements row referencing it
 /// (app_settlements.pricing_rule_id has no FK; any UUID is accepted).
 async fn mark_used(pool: &PgPool, rule_id: PricingRuleId, key: &str) {
@@ -73,8 +95,8 @@ async fn create_get_list(pool: PgPool) -> sqlx::Result<()> {
     let got = repo.get(r.id).await.unwrap();
     assert_eq!(got.rule_key, "donation-standard");
 
-    let all = repo.list(&filter()).await.unwrap();
-    assert_eq!(all.len(), 1);
+    let all = repo.list(&live_filter()).await.unwrap();
+    assert_eq!(all.len(), 1, "exactly the one LIVE rule this test created");
     Ok(())
 }
 
@@ -108,8 +130,9 @@ async fn update_unused_rule_edits_in_place(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(updated.version, 1, "version unchanged");
     assert_eq!(updated.rate_bps, 250);
 
-    // still exactly one row for the key
-    let all = repo.list(&filter()).await.unwrap();
+    // still exactly one row for the key — asserted BY key, which is what the
+    // claim actually is; counting the whole table also counted the seeds.
+    let all = repo.list(&key_filter("k")).await.unwrap();
     assert_eq!(all.len(), 1);
     Ok(())
 }
