@@ -39,7 +39,7 @@ func settlementGetReq(id, callerMerchant string) *http.Request {
 }
 
 func settlementHandler(s service.ApplicationSettlementService) *ApplicationSettlementHandler {
-	return NewApplicationSettlementHandler(s, &fakeWallets{merchantID: "victim-merchant"}, &fakeWalletAccounts{}, &fakeParties{}, nil)
+	return NewApplicationSettlementHandler(s, &fakeWallets{merchantID: "victim-merchant"}, &fakeWalletAccounts{}, &fakeParties{}, pricedFake())
 }
 
 // SEC-002: a settlement belonging to another Business Account must not be
@@ -91,7 +91,7 @@ func TestApplicationSettlementGet_OwnerStillAllowed(t *testing.T) {
 // so that the read-side check has something trustworthy to compare against.
 func TestApplicationSettlementCreate_BindsToAuthenticatedMerchant(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 100000}, &fakeWalletAccounts{}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 100000}, &fakeWalletAccounts{}, &fakeParties{}, pricedFake())
 
 	req := httptest.NewRequest("POST", "/v1/application-settlements",
 		strings.NewReader(`{"idempotency_key":"k1","owner_ref":"campaign-1","source_wallet_id":"w-1","beneficiary_wallet_id":"w-2"}`))

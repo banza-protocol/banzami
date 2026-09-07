@@ -257,8 +257,48 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	return &r, nil
 }
 
+// PricingProfileForMerchant resolves the operator-governed pricing policy that
+// applies to a merchant, from the merchant's own assignment.
+//
+// This replaces reading a category — from the request, and then from the
+// merchant's KYB description — as the thing that chooses a rate. Both were
+// wrong in the same way: one let the caller pick its own tariff, and the other
+// let a substring of prose pick it, so a shop whose description mentioned
+// donations was priced as a donation platform.
+//
+// Empty means UNPRICED, and unpriced is not free: the settlement path refuses
+// it. That distinction is the entire point of the change — "no rule matched" and
+// "the rule says zero" produce the same number in a fee column and are
+// completely different facts.
+func (s *BusinessSelfService) PricingProfileForMerchant(ctx context.Context, merchantID string) (string, error) {
+	if s == nil || s.pool == nil {
+		return "", errors.New("business self service is not configured")
+	}
+	var code *string
+	err := s.pool.QueryRow(ctx,
+		`SELECT p.code
+		   FROM merchants m
+		   JOIN pricing_profiles p ON p.id = m.pricing_profile_id
+		  WHERE m.id = $1 AND p.enabled AND p.environment = 'SANDBOX'`, merchantID).Scan(&code)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil
+		}
+		return "", err
+	}
+	if code == nil {
+		return "", nil
+	}
+	return *code, nil
+}
+
 // PricingCategoryForMerchant resolves the pricing category the operator will
 // charge a merchant under, from the merchant's OWN record.
+//
+// DEPRECATED as pricing authority. Retained only for the Integration Health
+// display, which shows a merchant what category it is recorded under. It must
+// not be reintroduced into a fee path; PricingProfileForMerchant is the one
+// that decides money.
 //
 // It exists because the settlement route used to take business_category from the
 // request body and pass it to the pricing engine, which selects the rate. The

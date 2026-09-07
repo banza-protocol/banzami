@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -21,16 +23,59 @@ type ApplicationSettlementHandler struct {
 	wallets     service.WalletService
 	accounts    service.WalletAccountService
 	parties     service.PartyResolver
-	// business resolves the merchant's own pricing category. Nil is fail-closed:
-	// an unresolvable category settles unpriced, and unpriced is what the caller
-	// could already achieve by omitting the field — so a missing dependency
-	// cannot make anyone pay LESS than the fixed behaviour, only fail to
-	// improve on it. It is wired in every real deployment.
-	business *service.BusinessSelfService
+	// pricing resolves the merchant's operator-assigned policy. An interface
+	// rather than the concrete service so a test can supply one — and so nothing
+	// here can reach for a category by accident.
+	//
+	// Nil is fail-closed. A deployment that cannot price anyone must refuse, not
+	// charge everyone nothing: "no resolver" and "the rate is zero" are the same
+	// pair of states this whole change exists to keep apart.
+	pricing PricingProfileResolver
 }
 
-func NewApplicationSettlementHandler(s service.ApplicationSettlementService, w service.WalletService, a service.WalletAccountService, p service.PartyResolver, b *service.BusinessSelfService) *ApplicationSettlementHandler {
-	return &ApplicationSettlementHandler{settlements: s, wallets: w, accounts: a, parties: p, business: b}
+// PricingProfileResolver answers which operator-governed policy prices a
+// financial owner. One method, deliberately: the only question a settlement is
+// allowed to ask about pricing is "whose policy", and never "what does this
+// merchant call itself".
+type PricingProfileResolver interface {
+	PricingProfileForMerchant(ctx context.Context, merchantID string) (string, error)
+}
+
+func NewApplicationSettlementHandler(s service.ApplicationSettlementService, w service.WalletService, a service.WalletAccountService, p service.PartyResolver, pricing PricingProfileResolver) *ApplicationSettlementHandler {
+	return &ApplicationSettlementHandler{settlements: s, wallets: w, accounts: a, parties: p, pricing: pricing}
+}
+
+// errPricingNotConfigured: this owner has no operator-governed pricing policy.
+//
+// It is a refusal rather than a zero. An owner nobody has priced settling for
+// free is exactly the behaviour this replaced, and it stayed invisible because
+// zero is a perfectly ordinary-looking fee.
+var errPricingNotConfigured = errors.New("pricing not configured")
+
+// resolvePricingProfile returns the merchant's assigned policy, or refuses.
+func (h *ApplicationSettlementHandler) resolvePricingProfile(ctx context.Context, merchantID string) (string, error) {
+	if h.pricing == nil {
+		// Fail closed. A deployment without the resolver cannot price anyone, and
+		// pricing everyone at nothing is not the safe reading of that.
+		return "", errPricingNotConfigured
+	}
+	code, err := h.pricing.PricingProfileForMerchant(ctx, merchantID)
+	if err != nil {
+		return "", err
+	}
+	if code == "" {
+		return "", errPricingNotConfigured
+	}
+	return code, nil
+}
+
+func respondPricing(w http.ResponseWriter, r *http.Request, err error) {
+	if errors.Is(err, errPricingNotConfigured) {
+		apierror.Respond(w, r, http.StatusConflict, "PRICING_NOT_CONFIGURED",
+			"this account has no pricing policy configured; settlement cannot be priced")
+		return
+	}
+	apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve pricing")
 }
 
 // POST /v1/application-settlements
@@ -133,18 +178,15 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	// The operator's rate is chosen by the merchant's own category, never by the
-	// request. A caller that sends one is ignored rather than refused: refusing
-	// would break every existing integration to prevent something the caller can
-	// no longer do anyway.
-	pricingCategory := ""
-	if h.business != nil {
-		c, cerr := h.business.PricingCategoryForMerchant(r.Context(), principal.MerchantID)
-		if cerr != nil {
-			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve pricing")
-			return
-		}
-		pricingCategory = c
+	// The operator's rate follows the merchant's assigned pricing profile, and
+	// nothing else. Not the request, not the merchant's description.
+	//
+	// No assignment is a refusal, not a discount: an owner nobody has priced must
+	// not settle for free while everyone waits to notice.
+	pricingProfile, perr := h.resolvePricingProfile(r.Context(), principal.MerchantID)
+	if perr != nil {
+		respondPricing(w, r, perr)
+		return
 	}
 
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
@@ -159,8 +201,7 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		GrossAmountMinor:       grossMinor,
 		Currency:               sourceCurrency,
 		FeePolicyRef:           body.FeePolicyRef,
-		BusinessCategory:       pricingCategory,
-		PricingProfile:         body.PricingProfile,
+		PricingProfile:         pricingProfile,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not create settlement")
@@ -337,14 +378,10 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	// request. A caller that sends one is ignored rather than refused: refusing
 	// would break every existing integration to prevent something the caller can
 	// no longer do anyway.
-	pricingCategory := ""
-	if h.business != nil {
-		c, cerr := h.business.PricingCategoryForMerchant(r.Context(), callerMerchantID)
-		if cerr != nil {
-			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve pricing")
-			return
-		}
-		pricingCategory = c
+	pricingProfile, perr := h.resolvePricingProfile(r.Context(), callerMerchantID)
+	if perr != nil {
+		respondPricing(w, r, perr)
+		return
 	}
 
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
@@ -358,11 +395,11 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		ApplicationFeeBps:       body.ApplicationFeeBps,
 		GrossAmountMinor:        acc.AvailableBalanceMinor,
 		Currency:                currency,
-		// This path never named a category, so every settlement through it was
-		// priced as an unknown category — which is to say, at nothing. The
-		// merchant's own category is now resolved and sent, so the operator's
-		// configured rate applies to the merchant it was configured for.
-		BusinessCategory: pricingCategory,
+		// This path never named anything, so every settlement through it resolved
+		// no rule — which is to say, cost nothing. It now carries the merchant's
+		// assigned policy, so the operator's rate applies to the owner it was
+		// assigned to.
+		PricingProfile: pricingProfile,
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "business_settlement.create.failed", "owner_ref", ownerRef, "error", err)

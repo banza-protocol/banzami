@@ -98,7 +98,7 @@ func postSettlement(t *testing.T, h *ApplicationSettlementHandler, principalMerc
 
 // Ownership: an app may only settle FROM a wallet it owns.
 func TestApplicationSettlement_RejectsForeignSourceWallet(t *testing.T) {
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant", available: 100000}, &fakeWalletAccounts{}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant", available: 100000}, &fakeWalletAccounts{}, &fakeParties{}, pricedFake())
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben"}`)
 	if rec.Code != http.StatusForbidden {
@@ -109,7 +109,7 @@ func TestApplicationSettlement_RejectsForeignSourceWallet(t *testing.T) {
 // Happy path: owned source + balance → create + complete, gross = read balance.
 func TestApplicationSettlement_CreatesAndCompletes(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 100000}, &fakeWalletAccounts{}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 100000}, &fakeWalletAccounts{}, &fakeParties{}, pricedFake())
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben","application_fee_wallet_id":"w-fee","fee_policy_ref":"doa-5pct"}`)
 	if rec.Code != http.StatusCreated {
@@ -128,7 +128,7 @@ func TestApplicationSettlement_CreatesAndCompletes(t *testing.T) {
 // Nothing to settle: zero balance → 422, never creates a settlement.
 func TestApplicationSettlement_ZeroBalance(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 0}, &fakeWalletAccounts{}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 0}, &fakeWalletAccounts{}, &fakeParties{}, pricedFake())
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben"}`)
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -143,7 +143,7 @@ func TestApplicationSettlement_ZeroBalance(t *testing.T) {
 // account balance; the app sends no amount and never sees the ledger account id.
 func TestApplicationSettlement_FromCampaignAccount(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 95000}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 95000}, &fakeParties{}, pricedFake())
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_account_id":"wa-1","beneficiary_wallet_id":"w-ben"}`)
 	if rec.Code != http.StatusCreated {
@@ -157,7 +157,7 @@ func TestApplicationSettlement_FromCampaignAccount(t *testing.T) {
 // Ownership: a campaign account whose parent wallet belongs to another merchant
 // must be rejected.
 func TestApplicationSettlement_FromForeignCampaignAccount(t *testing.T) {
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant"}, &fakeWalletAccounts{}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant"}, &fakeWalletAccounts{}, &fakeParties{}, pricedFake())
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_account_id":"wa-1","beneficiary_wallet_id":"w-ben"}`)
 	if rec.Code != http.StatusForbidden {
@@ -175,7 +175,7 @@ const doaBody = `{"idempotency_key":"doa-c1","source_account_id":"wa-camp","bene
 // fee bps + resolved beneficiary/fee accounts passed to core.
 func TestBusinessSettlement_AppDefinedFee(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, pricedFake())
 	rec := postBusiness(h, "doa-merchant", doaBody)
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
@@ -196,7 +196,7 @@ func TestBusinessSettlement_AppDefinedFee(t *testing.T) {
 
 // Source must be a segregated account, never the PRIMARY/default.
 func TestBusinessSettlement_RejectsPrimarySource(t *testing.T) {
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000, purpose: "PRIMARY"}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000, purpose: "PRIMARY"}, &fakeParties{}, pricedFake())
 	rec := postBusiness(h, "doa-merchant", doaBody)
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("PRIMARY source must be 422, got %d (%s)", rec.Code, rec.Body.String())
@@ -205,7 +205,7 @@ func TestBusinessSettlement_RejectsPrimarySource(t *testing.T) {
 
 // A fee > 0 with no fee destination is a bad request.
 func TestBusinessSettlement_FeeWithoutDestination(t *testing.T) {
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, nil)
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, pricedFake())
 	rec := postBusiness(h, "doa-merchant",
 		`{"idempotency_key":"k","source_account_id":"wa","beneficiary_banza_name":"@maria","application_fee_bps":500}`)
 	if rec.Code != http.StatusBadRequest {
@@ -216,7 +216,7 @@ func TestBusinessSettlement_FeeWithoutDestination(t *testing.T) {
 // The fee destination must be the caller's OWN business account.
 func TestBusinessSettlement_RejectsForeignFeeDestination(t *testing.T) {
 	parties := &fakeParties{ownerType: "MERCHANT", ownerID: "someone-else"}
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, parties, nil)
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, parties, pricedFake())
 	rec := postBusiness(h, "doa-merchant", doaBody)
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("foreign fee destination must be 403, got %d (%s)", rec.Code, rec.Body.String())
@@ -226,7 +226,7 @@ func TestBusinessSettlement_RejectsForeignFeeDestination(t *testing.T) {
 // A beneficiary handle that resolves to no wallet → 422.
 func TestBusinessSettlement_BeneficiaryNotFound(t *testing.T) {
 	parties := &fakeParties{err: service.ErrNotFound}
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, parties, nil)
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, parties, pricedFake())
 	rec := postBusiness(h, "doa-merchant", doaBody)
 	if rec.Code != http.StatusUnprocessableEntity {
 		t.Fatalf("unresolvable beneficiary must be 422, got %d", rec.Code)
@@ -246,7 +246,7 @@ func TestBusinessSettlement_BeneficiaryNotFound(t *testing.T) {
 // A struct field cannot be sent, so this asserts the shape rather than the
 // behaviour: the request type has no business_category, so there is nothing to
 // send and nothing to honour.
-func TestApplicationSettlement_CallerCannotChooseItsOwnPricingCategory(t *testing.T) {
+func TestApplicationSettlement_CallerCannotChooseItsOwnPricing(t *testing.T) {
 	src, err := os.ReadFile("application_settlements.go")
 	if err != nil {
 		t.Fatal(err)
@@ -263,12 +263,64 @@ func TestApplicationSettlement_CallerCannotChooseItsOwnPricingCategory(t *testin
 		t.Error("the request body accepts business_category — the caller can choose which rate applies to it")
 	}
 
-	// …and the value sent onward must be the derived one.
-	if !strings.Contains(body, "BusinessCategory:       pricingCategory,") &&
-		!strings.Contains(body, "BusinessCategory: pricingCategory,") {
-		t.Error("the settlement does not send the server-derived pricing category")
+	// The value sent onward must be the merchant's assigned POLICY, and the
+	// category must not appear in the fee path at all. Reading a category was the
+	// second version of this bug, not the fix for the first.
+	if !strings.Contains(body, "PricingProfile:         pricingProfile,") &&
+		!strings.Contains(body, "PricingProfile: pricingProfile,") {
+		t.Error("the settlement does not send the server-resolved pricing profile")
 	}
-	if strings.Contains(body, "BusinessCategory:       body.BusinessCategory") {
-		t.Error("the settlement still sends the caller's category")
+	if strings.Contains(body, "BusinessCategory:") {
+		t.Error("the settlement still sends a business category — it has no place in a fee path")
+	}
+	if strings.Contains(body, "PricingProfile:         body.PricingProfile") {
+		t.Error("the settlement sends the caller's pricing profile")
+	}
+}
+
+// A resolver that prices every merchant under one named policy — enough for the
+// handler tests, which are about routing and authorisation rather than rates.
+type fakePricing struct {
+	profile string
+	err     error
+}
+
+func (f *fakePricing) PricingProfileForMerchant(context.Context, string) (string, error) {
+	return f.profile, f.err
+}
+
+// The default for these tests: an owner priced by the explicit Sandbox zero.
+func pricedFake() *fakePricing { return &fakePricing{profile: "sandbox-default"} }
+
+// An owner with no assigned policy must be refused, not settled for free. This
+// is the invariant the whole pricing change turns on, and it is asserted at the
+// handler because that is where a missing policy would otherwise become a
+// perfectly ordinary-looking zero.
+func TestApplicationSettlement_UnpricedOwnerIsRefused(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		pricing PricingProfileResolver
+	}{
+		{"no resolver at all", nil},
+		{"resolver with no assignment", &fakePricing{profile: ""}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fs := &fakeSettlements{}
+			h := NewApplicationSettlementHandler(fs,
+				&fakeWallets{merchantID: "doa-merchant", available: 100000},
+				&fakeWalletAccounts{}, &fakeParties{}, tc.pricing)
+
+			rr := postSettlement(t, h, "doa-merchant",
+				`{"idempotency_key":"k1","owner_ref":"c1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben","gross_amount_minor":1000}`)
+			if rr.Code != http.StatusConflict {
+				t.Fatalf("status = %d, want 409 — body %s", rr.Code, rr.Body.String())
+			}
+			if !strings.Contains(rr.Body.String(), "PRICING_NOT_CONFIGURED") {
+				t.Errorf("body = %s", rr.Body.String())
+			}
+			if fs.created != 0 {
+				t.Error("an unpriced settlement reached the settlement service")
+			}
+		})
 	}
 }
