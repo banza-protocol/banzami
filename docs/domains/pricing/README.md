@@ -101,8 +101,13 @@ money to each other. So an incoming payment or donation credits the merchant or
 campaign Wallet **gross**, and the operator's rate is resolved one step later,
 when those funds are settled or withdrawn.
 
-That is why an owner assigned `sandbox-donation-200` is not "charged 200 bps on
+That is why an owner assigned `sandbox-reference` is not "charged 200 bps on
 donations" — their eligible **settlement** is priced at 200 bps.
+
+(The profile used to be called `sandbox-donation-200`. It was renamed for the
+same reason this paragraph exists: a code naming a vertical and a rate invites
+exactly the sentence above. See
+[the economic model](../../architecture/economic-model.md).)
 
 ---
 
