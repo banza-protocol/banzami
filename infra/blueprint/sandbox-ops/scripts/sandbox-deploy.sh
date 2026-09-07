@@ -280,6 +280,13 @@ cmd_deploy_one() {
   # clone config from the running container
   local nets; mapfile -t nets < <(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{println $k}}{{end}}' "$cname")
   local run=(docker run -d --name "$cname" --security-opt "no-new-privileges:true" --network "${nets[0]}")
+  # Carry the restart policy across. Everything else about the container is
+  # cloned from its predecessor and this was not, so every deploy silently reset
+  # it to "no" — an intent set once, lost the next time anyone deployed. The
+  # host attestation caught it on pay-frontend, which is declared
+  # unless-stopped and would not have come back after a host reboot.
+  local rp; rp="$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$cname" 2>/dev/null || true)"
+  case "$rp" in ''|no) : ;; *) run+=(--restart "$rp") ;; esac
   [ "$name" = developer-api ] && run+=(--network-alias developer-api)
   local x; while IFS= read -r x; do [ -n "$x" ] && run+=(-v "$x"); done < <(docker inspect -f '{{range .HostConfig.Binds}}{{println .}}{{end}}' "$cname")
   # Clone the previous container's env EXCEPT anything the new image is the

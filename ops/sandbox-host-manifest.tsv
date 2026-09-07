@@ -47,7 +47,10 @@ banzami-webhook-sink	banzami-sandbox/webhook-sink	sink	no	unless-stopped	running
 
 # The older stack, still serving the website. Separate network, no Sandbox
 # credentials, and no path from here into the Sandbox data plane.
-banzami-postgres-1	postgres	legacy	no	unless-stopped	running
+# banzami-postgres-1 — REMOVED 2026-09-07. A disused PostgreSQL instance holding
+# a database that shared the name of the real Sandbox one, on a network the
+# Sandbox stack could not reach. Its only effect was that every migration check
+# comparing the NAME passed for both. Container, data and compose definition gone.
 banzami-redis-1	redis	legacy	no	unless-stopped	running
 banzami-website-frontend-1	banzami/website-frontend	legacy	no	unless-stopped	running
 banzami-website-nginx-1	nginx	legacy	no	unless-stopped	running
