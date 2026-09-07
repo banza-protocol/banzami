@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -82,28 +81,23 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Uppercased, and validated here rather than discovered upstream.
+	// Mapped, not uppercased.
 	//
 	// This defaulted to the lowercase "payment" and sent it verbatim. Core
 	// accepts only SCREAMING_SNAKE_CASE — its own wire contract, and what the
-	// transactions table's CHECK constraint enforces — so it answered 400
-	// "unknown transaction_type: payment" and the block below turned that into
-	// a 500. POST /v1/transactions therefore failed for every caller, always,
-	// with an error that named nothing. The deployed Sandbox has 0 rows in
-	// `transactions` and 263 in `transfers`, which is what that looks like from
-	// the outside.
+	// transactions table's CHECK constraint enforces — so it answered
+	// 400 "unknown transaction_type: payment". Every call. Always. The deployed
+	// Sandbox is what that looks like from outside: 0 rows in `transactions`,
+	// 263 in `transfers`.
 	//
-	// Case is not the caller's problem, so both forms are accepted and
-	// normalised; an unknown type is a 400 naming the field, not a 500.
-	txType := strings.ToUpper(strings.TrimSpace(body.TransactionType))
-	if txType == "" {
-		txType = "PAYMENT"
-	}
-	switch txType {
-	case "PAYMENT", "REFUND", "REVERSAL", "PAYOUT":
-	default:
+	// The fix is an explicit table rather than strings.ToUpper, because the
+	// mapping IS the contract: it names every value this gateway will ever emit,
+	// it is the thing coreTransactionTypes is checked against, and a casing
+	// mistake cannot slip through a transformation nobody enumerated.
+	txType, ok := coreTransactionType(body.TransactionType)
+	if !ok {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD",
-			"transaction_type must be one of PAYMENT, REFUND, REVERSAL, PAYOUT")
+			"transaction_type must be one of payment, refund, reversal, payout")
 		return
 	}
 
