@@ -148,7 +148,9 @@ deploy_one() { # <name> <port> <binary> <tag>
   # gateway and developer-api survived only because they do not hard-fail on a
   # boot-time database ping. The container now has every network before its first
   # instruction runs.
-  docker create --name "$cname" --network "$BZSB_DATA_NET" "${alias_args[@]}" \
+  local cfg_args=(); local cfg_line
+  while IFS= read -r cfg_line; do [ -n "$cfg_line" ] && cfg_args+=(-e "$cfg_line"); done < <(release_config_env "$name")
+  docker create --name "$cname" --network "$BZSB_DATA_NET" "${alias_args[@]}" "${cfg_args[@]}" \
     --label "$LABEL=1" --label "$LABEL.run=$BZSB_PROJECT" --label "$LABEL.service=$name" \
     --security-opt "no-new-privileges:true" \
     -v "$DBURL_FILE:/run/secrets/db_url:ro" \
@@ -163,7 +165,6 @@ deploy_one() { # <name> <port> <binary> <tag>
     -e "BANZAMI_PILOT_LIMITS=1" \
     -e "CORE_API_URL=http://${BZSB_PROJECT}-core-api-staging:8081" \
     -e "DEVELOPER_API_URL=http://developer-api:8086" \
-    -e "PAY_BASE_URL=https://pay.banzami.com" \
     -e "DEVELOPER_KEY_AUTH_ENABLED=true" -e "PAYMENT_CAPABILITY_RELEASED=true" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
@@ -237,6 +238,30 @@ cmd_clean() {
 # preserved), and does NOT run any migration, VM reset or prune. The file-only-secret
 # entrypoint is reconstructed (secrets are exported in-process from /run/secrets, never
 # via -e). Rollback redeploys the previously-running image.
+# release_config_env — non-secret configuration the RELEASE is the authority on.
+#
+# Everything else about a redeployed container is cloned from its predecessor,
+# which is right for secrets and networks and wrong for configuration: a new
+# setting introduced by a commit would never reach the Sandbox, because the
+# running container has never heard of it and the clone faithfully reproduces
+# its absence. Deploying the code that reads PAY_BASE_URL therefore changed
+# nothing at all, and the only way to pick it up would have been a full gated
+# bootstrap — which regenerates secrets.
+#
+# So these are declared once, used by both the bootstrap create and the
+# single-service swap, and re-applied on every deploy: the release wins over
+# whatever the previous container happened to carry.
+release_config_env() {
+  case "$1" in
+    api-gateway-staging)
+      # The origin of the hosted payer surface (ADR-052). Without it, every
+      # payment link the API hands an integration points at the gateway's own
+      # JSON route instead of a page a person can pay on.
+      echo "PAY_BASE_URL=https://pay.banzami.com"
+      ;;
+  esac
+}
+
 cmd_deploy_one() {
   local name="$1" tag="$2" rollback="${3:-}"
   local e n p b bin port; for e in "${SERVICES[@]}"; do IFS='|' read -r n p b <<<"$e"; [ "$n" = "$name" ] && { bin="$b"; port="$p"; }; done
@@ -301,10 +326,15 @@ cmd_deploy_one() {
   # created from image :9c2d0f428fec, whose ENV says 9c2d0f428fec, while /readyz
   # answered 4a924e764024. Build identity that silently freezes is worse than no
   # build identity, because it looks like an answer.
+  local owned; owned="$(release_config_env "$name")"
   while IFS= read -r x; do
     case "$x" in BANZAMI_BUILD_COMMIT=*) continue ;; esac
+    # A release-owned name is re-applied below from the release, not carried
+    # over from the container that happened to be running.
+    if [ -n "$owned" ] && printf '%s\n' "$owned" | grep -q "^${x%%=*}="; then continue; fi
     [ -n "$x" ] && run+=(-e "$x")
   done < <(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$cname")
+  while IFS= read -r x; do [ -n "$x" ] && run+=(-e "$x"); done < <(printf '%s\n' "$owned")
   # reconstruct the file-only-secret entrypoint (secrets exported in-process, never -e).
   #
   # core_internal_key appears twice, under two names. Core gates its refund group
