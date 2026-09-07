@@ -64,7 +64,7 @@ echo "### two owners, two policies"
 ZERO_M=$(q "select m.id from merchants m join pricing_profiles p on p.id=m.pricing_profile_id
              where m.status='ACTIVE' and p.code='sandbox-default' order by m.created_at desc limit 1")
 PAID_M=$(q "select m.id from merchants m join pricing_profiles p on p.id=m.pricing_profile_id
-             where m.status='ACTIVE' and p.code='sandbox-donation-200' limit 1")
+             where m.status='ACTIVE' and p.code='sandbox-reference' limit 1")
 chk ZERO_OWNER_FOUND "$([ -n "$ZERO_M" ] && echo yes)" yes
 chk PAID_OWNER_FOUND "$([ -n "$PAID_M" ] && echo yes)" yes
 [ -n "$ZERO_M" ] && [ -n "$PAID_M" ] || { echo "no owners to price"; exit 1; }

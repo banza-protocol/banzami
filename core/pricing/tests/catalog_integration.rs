@@ -27,7 +27,7 @@ fn filter() -> CatalogFilter {
 /// The catalog is not empty after migration.
 ///
 /// 0106 seeds two SANDBOX pricing profiles — the explicit 0-bps
-/// `sandbox-default` and the generic 200-bps `sandbox-donation-200` — because
+/// `sandbox-default` and the nonzero assurance `sandbox-reference` — because
 /// "no policy" and "a policy of zero" must be different states, which means the
 /// zero has to exist as a row. Counting every row therefore counted those too.
 /// The seeds are correct; the unscoped counts were not.

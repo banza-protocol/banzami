@@ -1,5 +1,17 @@
 # RT04E Sandbox Rollout — provenance & deployment integrity
 
+> **SUPERSEDED — do not follow this procedure.**
+>
+> RT04E was the rollout of migration `0100`. It is kept as a record of how that
+> rollout was performed and reviewed, not as an instruction.
+>
+> The only sanctioned path that migrates the Sandbox database is
+> `infra/blueprint/sandbox-ops/scripts/sandbox-migration.sh`, which says so in
+> its own header: *"the ONLY controlled path that migrates banzami_staging …
+> never the legacy RT04E path"*. It binds the target to the generated Sandbox
+> project's own network and secrets, so it cannot reach a database that merely
+> shares the name — which is the failure this path allowed.
+
 **Status:** design repaired; **not executed**. Sandbox-only. **Version:** 1.0
 
 RT04E replaces the current unproven Sandbox runtime with images **built and

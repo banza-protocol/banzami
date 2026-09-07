@@ -24,7 +24,7 @@ const APPLY = process.argv.includes('--apply');
 // a category. The default is the default because it is the default, not because
 // anything about the merchant suggested it.
 const KNOWN = {
-  Doa: 'sandbox-donation-200',
+  Doa: 'sandbox-reference',
 };
 const DEFAULT_PROFILE = 'sandbox-default';
 

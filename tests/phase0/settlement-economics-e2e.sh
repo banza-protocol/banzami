@@ -37,7 +37,8 @@
 # same generic profile, so both must produce the same rate, the same fee and the
 # same net. The differential must be exactly zero — no tenant is special.
 #
-# The profile is `sandbox-reference`, renamed from `sandbox-donation-200` in
+# The profile is `sandbox-reference`. It replaced a profile whose name carried
+# a vertical and a rate; the rename happened before either shipped, in
 # the canonical pricing model. The old code named a business vertical and a rate; a profile
 # names a commercial policy, and its per-operation rules name what that policy
 # charges. The rate here is unchanged — only the identity is stable now.

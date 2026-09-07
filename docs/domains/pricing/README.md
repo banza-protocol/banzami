@@ -104,7 +104,7 @@ when those funds are settled or withdrawn.
 That is why an owner assigned `sandbox-reference` is not "charged 200 bps on
 donations" — their eligible **settlement** is priced at 200 bps.
 
-(The profile used to be called `sandbox-donation-200`. It was renamed for the
+(An earlier draft called this profile `sandbox-donation-200`. It was renamed, before anything shipped, for the
 same reason this paragraph exists: a code naming a vertical and a rate invites
 exactly the sentence above. See
 [the economic model](../../architecture/economic-model.md).)

@@ -335,7 +335,7 @@ mod tests {
 
     // ---- 200 bps boundary matrix ----------------------------------------
 
-    /// The rate every Sandbox owner on `sandbox-donation-200` is charged, swept
+    /// The rate every Sandbox owner on `sandbox-reference` is charged, swept
     /// across every rounding boundary it has.
     ///
     /// At 200 bps the arithmetic is `amount * 200 / 10_000`, i.e. `amount / 50`,

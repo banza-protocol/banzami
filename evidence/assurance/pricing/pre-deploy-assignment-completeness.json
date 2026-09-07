@@ -1,5 +1,6 @@
 {
-  "check": "pricing assignment completeness — the pre-deploy safety condition for the refusal",
+  "_historical": "Records the pre-release Sandbox as it stood before the clean reset of 2026-09-07. That environment - its profiles, its owners and its rows - was destroyed and rebuilt from zero. Kept as evidence of what was observed, not as a description of anything that runs. The profile named here, sandbox-donation-200, no longer exists in any seed or database.",
+  "check": "pricing assignment completeness \u2014 the pre-deploy safety condition for the refusal",
   "tool": "tools/check-pricing-assignment.mjs",
   "environment": "deployed Sandbox (bzsandbox stack, banzami_staging)",
   "why": "The change being deployed makes an absent pricing decision refuse at capture and at settlement. Between 'the engine refuses' and 'every owner is assigned' lies the one dangerous state this can produce: an engine that fails closed and owners with nothing assigned, which is an outage rather than a fix. This is the check that the dangerous state does not exist BEFORE the refusal ships.",
@@ -7,16 +8,48 @@
   "result": "pass",
   "active_financial_owners": 3,
   "owners": [
-    { "name": "Doa", "profile": "sandbox-donation-200", "active_rules": 1 },
-    { "name": "Sandbox · Cleanroom Checkout", "profile": "sandbox-default", "active_rules": 1 },
-    { "name": "Sandbox · Pricing Probe mtqhecso", "profile": "sandbox-default", "active_rules": 1 }
+    {
+      "name": "Doa",
+      "profile": "sandbox-donation-200",
+      "active_rules": 1
+    },
+    {
+      "name": "Sandbox \u00b7 Cleanroom Checkout",
+      "profile": "sandbox-default",
+      "active_rules": 1
+    },
+    {
+      "name": "Sandbox \u00b7 Pricing Probe mtqhecso",
+      "profile": "sandbox-default",
+      "active_rules": 1
+    }
   ],
   "assertions": [
-    { "id": "EVERY_OWNER_ASSIGNED", "pass": true, "observed": "3/3" },
-    { "id": "EXACTLY_ONE_ACTIVE_RULE_EACH", "pass": true, "observed": "1 per owner" },
-    { "id": "ENVIRONMENT_CORRECT", "pass": true, "observed": "all SANDBOX" },
-    { "id": "SANDBOX_DEFAULT_IS_AN_EXPLICIT_ZERO", "pass": true, "observed": "explicit 0-bps rule, not an absent one" },
-    { "id": "DOA_IS_NOT_SPECIAL_CASED", "pass": true, "observed": "Doa carries the generic sandbox-donation-200 profile, the same object any owner can be assigned" }
+    {
+      "id": "EVERY_OWNER_ASSIGNED",
+      "pass": true,
+      "observed": "3/3"
+    },
+    {
+      "id": "EXACTLY_ONE_ACTIVE_RULE_EACH",
+      "pass": true,
+      "observed": "1 per owner"
+    },
+    {
+      "id": "ENVIRONMENT_CORRECT",
+      "pass": true,
+      "observed": "all SANDBOX"
+    },
+    {
+      "id": "SANDBOX_DEFAULT_IS_AN_EXPLICIT_ZERO",
+      "pass": true,
+      "observed": "explicit 0-bps rule, not an absent one"
+    },
+    {
+      "id": "DOA_IS_NOT_SPECIAL_CASED",
+      "pass": true,
+      "observed": "Doa carries the generic sandbox-donation-200 profile, the same object any owner can be assigned"
+    }
   ],
   "note": "DOA being ASSIGNED the 200-bps profile is not the same claim as DOA having SETTLED at 200 bps. No post-cutover economic E2E has been run yet; that is a separate, still-outstanding proof.",
   "promotable": true
