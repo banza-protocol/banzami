@@ -41,6 +41,24 @@ ALTER ROLE bl_app_runtime PASSWORD :'runtime_pw';
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='bl_control_plane') THEN CREATE ROLE bl_control_plane LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS; END IF; END $$;
 ALTER ROLE bl_control_plane PASSWORD :'control_pw';
 
+-- The migration login is short-lived by design: dropped and recreated with a
+-- fresh password and validity window on every controlled migration.
+--
+-- Its database-level GRANT has to go first. Without this, the DROP fails with
+-- "role bl_migration cannot be dropped because some objects depend on it —
+-- privileges for database banzami_staging", and the whole apply aborts. It was
+-- invisible for as long as every apply ran against a database that had just
+-- been created, because then there was no prior grant to depend on. The second
+-- controlled migration against the same database could never have worked.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bl_migration') THEN
+    EXECUTE format('REVOKE ALL PRIVILEGES ON DATABASE %I FROM bl_migration', current_database());
+  END IF;
+END $$;
+-- Deliberately NOT `DROP OWNED BY bl_migration`. That would also drop objects
+-- the role owns, and on a financial database a cleanup step must not be able to
+-- delete tables. The dependency in the error is a database privilege, and that
+-- is exactly what the REVOKE above removes.
 DROP ROLE IF EXISTS bl_migration;
 CREATE ROLE bl_migration LOGIN
   NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS

@@ -118,6 +118,25 @@ cmd_apply() {
     --entrypoint bash "$PG_IMAGE" /roles.sh >/dev/null 2>&1 \
     || die "migration-login refresh (canonical role bootstrap) failed"
   echo "  migration_login_refreshed PASS (canonical roles, fresh validity)"
+  # The role bootstrap above re-sets bl_app_runtime's password from
+  # secrets/mi_runtime. The services read their connection string from
+  # evidence/db_url, which held a SEPARATE COPY of that password — so this step
+  # silently locked every service out of the database it had just migrated, and
+  # the only symptom was "password authentication failed for user
+  # bl_app_runtime" at the next boot.
+  #
+  # db_url is derived from mi_runtime here rather than duplicated, so the two
+  # cannot diverge again. Written in place: replacing the inode leaves running
+  # containers bound to the old file. Mode matches its siblings — the services
+  # run non-root and must be able to read it.
+  if [ -f "$BZSB_SECRET_ROOT/mi_runtime" ] && [ -f "${EVIDENCE_ROOT:-}/db_url" ]; then
+    _u="$(sed -E 's#^(.*://[^:]+):[^@]+@(.*)$#\1#' "$EVIDENCE_ROOT/db_url")"
+    _t="$(sed -E 's#^.*://[^:]+:[^@]+@(.*)$#\1#'   "$EVIDENCE_ROOT/db_url")"
+    printf '%s:%s@%s' "$_u" "$(cat "$BZSB_SECRET_ROOT/mi_runtime")" "$_t" | cat > "$EVIDENCE_ROOT/db_url"
+    chmod 0644 "$EVIDENCE_ROOT/db_url"
+    unset _u _t
+    echo "  runtime_connection_string_realigned PASS (derived from mi_runtime, not a second copy)"
+  fi
   # issue single-use authorisation + receipt bound to the manifest identities
   authz_issue "$AUTHZ_ROOT" "$SOURCE_REVISION" "$PARENT_DIGEST" "$(mget executor.image_digest)" "$MIG_DIGEST" "$(mget service_set)" 600 >/dev/null
   receipt_issue "$RECEIPT_ROOT" "$SOURCE_REVISION" "$PARENT_DIGEST" "$(mget executor.image_digest)" "$MIG_DIGEST" "authz.record" "bl_migration" 600 >/dev/null
