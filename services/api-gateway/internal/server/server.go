@@ -35,6 +35,9 @@ type Dependencies struct {
 	MerchantSvc              service.MerchantService
 	WalletSvc                service.WalletService
 	ApplicationSettlementSvc service.ApplicationSettlementService
+	// PayBaseURL is the origin of the hosted payer surface (ADR-052). Empty
+	// leaves payment links pointing at this gateway's own JSON route.
+	PayBaseURL               string
 	WalletAccountSvc         service.WalletAccountService
 	WalletAccountTransferSvc service.WalletAccountTransferService
 	PartyResolverSvc         service.PartyResolver
@@ -177,7 +180,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
 	walletAccountTransferHandler := handler.NewWalletAccountTransferHandler(deps.WalletAccountTransferSvc)
 	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc, deps.WalletAccountSvc).
-		WithBindingSeal(deps.BindingSeal)
+		WithBindingSeal(deps.BindingSeal).
+		WithPayBaseURL(deps.PayBaseURL)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight

@@ -56,6 +56,18 @@ type Config struct {
 	// alone must never activate developer-key authentication. Fail-closed.
 	DeveloperKeyAuthEnabled bool
 
+	// PayBaseURL is the origin of the hosted payer surface — pay.banzami.com
+	// (Banzami ADR-052). It is what a payment session's PAYMENT_LINK interface
+	// points at, and that value is the one a developer sends to a human.
+	//
+	// It has to be configured because the gateway cannot infer it: the gateway
+	// serves /public/pay/{slug} itself, as JSON, for the payer app to consume.
+	// Building the link from the request host therefore produced a URL that
+	// returns a JSON document to anyone who opens it — correct for the app,
+	// useless for the person meant to pay. Empty keeps that old behaviour and
+	// logs a warning at startup rather than serving a broken link silently.
+	PayBaseURL string
+
 	// KYB document storage (Track 3). All empty → storage disabled and the
 	// document endpoints respond 503 STORAGE_NOT_CONFIGURED (no startup panic).
 	KYBStorageProvider     string // "r2" | "s3"
@@ -95,6 +107,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("LOG_FORMAT"); v != "" {
 		cfg.LogFormat = v
+	}
+	if v := os.Getenv("PAY_BASE_URL"); v != "" {
+		cfg.PayBaseURL = strings.TrimRight(v, "/")
 	}
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		cfg.DatabaseURL = v

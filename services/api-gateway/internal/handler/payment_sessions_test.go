@@ -218,3 +218,86 @@ func TestPaymentSession_QrRender(t *testing.T) {
 		}
 	}
 }
+
+// The link an integration hands to a person must open a payment page.
+//
+// PAYMENT_LINK used to be built from the request host: https://<api>/public/pay/{slug}.
+// That route exists and answers 200 — with JSON, because it is what the payer app
+// reads. So the single field in the API response named PAYMENT_LINK, the one an
+// integration puts in a message to a customer, opened a JSON document. The payer
+// surface is a different origin (pay.banzami.com, ADR-052) that the gateway cannot
+// derive, so it is configuration.
+func TestPaymentSession_PaymentLinkPointsAtTheHostedPayerSurface(t *testing.T) {
+	h := psHandler("doa-merchant", true).WithPayBaseURL("https://pay.banzami.com")
+	rec := httptest.NewRecorder()
+	h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/business/payment-sessions",
+		`{"wallet_account_id":"wa-1","purpose":"DONATION","amount_minor":50000}`, "doa-merchant"))
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
+	}
+
+	var resp struct {
+		Interfaces []struct {
+			Type  string `json:"type"`
+			Value string `json:"value"`
+		} `json:"interfaces"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("bad DTO: %v", err)
+	}
+	byType := map[string]string{}
+	for _, i := range resp.Interfaces {
+		byType[i.Type] = i.Value
+	}
+	if got := byType["PAYMENT_LINK"]; got != "https://pay.banzami.com/pay/abc123" {
+		t.Fatalf("PAYMENT_LINK = %q, want the hosted payer surface", got)
+	}
+	// The API origin must not appear in a value meant for a human. This is the
+	// specific regression: the host is right there on the request.
+	if strings.Contains(byType["PAYMENT_LINK"], "sandbox-api.banzami.com") {
+		t.Fatalf("PAYMENT_LINK still points at the API: %q", byType["PAYMENT_LINK"])
+	}
+	// The deep link is a scheme, not an origin, and must be untouched by this.
+	if got := byType["DEEP_LINK"]; got != "banzami://pay/abc123" {
+		t.Fatalf("DEEP_LINK = %q, want banzami://pay/abc123", got)
+	}
+}
+
+// A trailing slash in configuration must not produce a double slash in a link
+// someone is expected to open.
+func TestPaymentSession_PayBaseURLTrailingSlashIsNormalised(t *testing.T) {
+	h := psHandler("doa-merchant", false).WithPayBaseURL("https://pay.banzami.com/")
+	rec := httptest.NewRecorder()
+	h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/business/payment-sessions",
+		`{"wallet_account_id":"wa-1","purpose":"DONATION"}`, "doa-merchant"))
+
+	var resp struct {
+		Interfaces []struct{ Type, Value string } `json:"interfaces"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	for _, i := range resp.Interfaces {
+		if i.Type == "PAYMENT_LINK" && i.Value != "https://pay.banzami.com/pay/abc123" {
+			t.Fatalf("PAYMENT_LINK = %q", i.Value)
+		}
+	}
+}
+
+// Unconfigured, the gateway keeps the old shape rather than inventing a host —
+// and says so at startup. A wrong guess at the payer origin would be worse than
+// the JSON route, because it would look right.
+func TestPaymentSession_WithoutPayBaseURLTheLegacyShapeIsKept(t *testing.T) {
+	h := psHandler("doa-merchant", false)
+	rec := httptest.NewRecorder()
+	h.Create(rec, reqWith("POST", "https://x/v1/business/payment-sessions",
+		`{"wallet_account_id":"wa-1","purpose":"DONATION"}`, "doa-merchant"))
+
+	var resp struct {
+		Interfaces []struct{ Type, Value string } `json:"interfaces"`
+	}
+	_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+	for _, i := range resp.Interfaces {
+		if i.Type == "PAYMENT_LINK" && i.Value != "https://x/public/pay/abc123" {
+			t.Fatalf("PAYMENT_LINK = %q, want the unchanged legacy value", i.Value)
+		}
+	}
+}

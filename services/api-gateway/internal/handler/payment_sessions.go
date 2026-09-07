@@ -27,6 +27,8 @@ type PaymentSessionHandler struct {
 	// ownership can be checked against the project binding. nil disables
 	// sub-account selection (the binding's default account is still used).
 	accounts walletAccountLookup
+	// payBase is the origin of the hosted payer surface. See payURL.
+	payBase string
 }
 
 func NewPaymentSessionHandler(s service.PaymentSessionService, m merchantLookup, a walletAccountLookup) *PaymentSessionHandler {
@@ -40,9 +42,29 @@ func (h *PaymentSessionHandler) WithBindingSeal(sl bindingSealer) *PaymentSessio
 	return h
 }
 
-// publicURL builds the hosted pay URL for a link slug from the request host (the
-// gateway serves both /v1/business and /public/pay).
-func publicURL(r *http.Request, slug string) string {
+// WithPayBaseURL supplies the origin of the hosted payer surface — the page a
+// human opens to pay (Banzami ADR-052). Unset keeps the legacy request-host
+// behaviour; see payURL.
+func (h *PaymentSessionHandler) WithPayBaseURL(base string) *PaymentSessionHandler {
+	h.payBase = strings.TrimRight(base, "/")
+	return h
+}
+
+// payURL builds the link a developer hands to a payer.
+//
+// It used to be built from the request host: https://<api host>/public/pay/{slug}.
+// That route exists and answers 200 — with JSON, because it is the endpoint the
+// payer app reads. So the one field in the API response called PAYMENT_LINK, the
+// one thing an integration puts in a message to a customer, opened a JSON
+// document. The payer surface is a different origin (pay.banzami.com) and the
+// gateway cannot derive it, so it is configuration.
+//
+// With no payBase configured this keeps the old shape rather than inventing a
+// host; the gateway warns about it at startup.
+func (h *PaymentSessionHandler) payURL(r *http.Request, slug string) string {
+	if h.payBase != "" {
+		return h.payBase + "/pay/" + slug
+	}
 	scheme := "https"
 	if r.TLS == nil && (strings.HasPrefix(r.Host, "localhost") || strings.HasPrefix(r.Host, "127.0.0.1")) {
 		scheme = "http"
@@ -58,7 +80,7 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 	interfaces := []map[string]any{}
 	if s.PaymentLinkSlug != nil && *s.PaymentLinkSlug != "" {
 		interfaces = append(interfaces,
-			map[string]any{"type": "PAYMENT_LINK", "value": publicURL(r, *s.PaymentLinkSlug), "format": "URL", "expires_at": s.ExpiresAt},
+			map[string]any{"type": "PAYMENT_LINK", "value": h.payURL(r, *s.PaymentLinkSlug), "format": "URL", "expires_at": s.ExpiresAt},
 			map[string]any{"type": "DEEP_LINK", "value": "banzami://pay/" + *s.PaymentLinkSlug, "format": "URL", "expires_at": s.ExpiresAt},
 		)
 	}
@@ -71,7 +93,7 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 	} else if s.PaymentLinkSlug != nil && *s.PaymentLinkSlug != "" {
 		// Open-amount session: a static QR rendering the link URL.
 		interfaces = append(interfaces, map[string]any{
-			"type": "STATIC_QR", "value": publicURL(r, *s.PaymentLinkSlug), "format": "QR_PAYLOAD",
+			"type": "STATIC_QR", "value": h.payURL(r, *s.PaymentLinkSlug), "format": "QR_PAYLOAD",
 			"qr_url": qrURL, "expires_at": s.ExpiresAt,
 		})
 	}
@@ -269,7 +291,7 @@ func (h *PaymentSessionHandler) Link(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, map[string]any{
 		"type": "PAYMENT_LINK",
 		"slug": *sess.PaymentLinkSlug,
-		"url":  publicURL(r, *sess.PaymentLinkSlug),
+		"url":  h.payURL(r, *sess.PaymentLinkSlug),
 	})
 }
 
@@ -286,7 +308,7 @@ func (h *PaymentSessionHandler) Qr(w http.ResponseWriter, r *http.Request) {
 	if sess.QrPayload != nil && *sess.QrPayload != "" {
 		value = *sess.QrPayload
 	} else if sess.PaymentLinkSlug != nil && *sess.PaymentLinkSlug != "" {
-		value = publicURL(r, *sess.PaymentLinkSlug)
+		value = h.payURL(r, *sess.PaymentLinkSlug)
 	}
 	if value == "" {
 		apierror.Respond(w, r, http.StatusNotFound, "NO_QR", "session has no QR interface")

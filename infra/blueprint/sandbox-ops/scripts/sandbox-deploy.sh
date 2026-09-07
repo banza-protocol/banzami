@@ -163,6 +163,7 @@ deploy_one() { # <name> <port> <binary> <tag>
     -e "BANZAMI_PILOT_LIMITS=1" \
     -e "CORE_API_URL=http://${BZSB_PROJECT}-core-api-staging:8081" \
     -e "DEVELOPER_API_URL=http://developer-api:8086" \
+    -e "PAY_BASE_URL=https://pay.banzami.com" \
     -e "DEVELOPER_KEY_AUTH_ENABLED=true" -e "PAYMENT_CAPABILITY_RELEASED=true" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \

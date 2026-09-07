@@ -35,6 +35,15 @@ func main() {
 
 	initLogger(cfg)
 
+	if cfg.PayBaseURL == "" {
+		// Not fatal, because local development has no payer surface to point at.
+		// It is loud because the consequence is silent: PAYMENT_LINK keeps
+		// resolving to this gateway's own /public/pay route, which answers with
+		// JSON — so every link an integration hands a customer opens a JSON
+		// document instead of a payment page (ADR-052).
+		slog.Warn("PAY_BASE_URL not set — payment links will point at this gateway's JSON route, not the hosted payer surface")
+	}
+
 	// Initialise OpenTelemetry. Metrics are always active (Prometheus);
 	// tracing is active only when OTLP_ENDPOINT is set.
 	ctx := context.Background()
@@ -202,6 +211,7 @@ func main() {
 		MerchantSvc:              service.NewCoreApiMerchantService(coreClient),
 		WalletSvc:                service.NewCoreApiWalletService(coreClient),
 		ApplicationSettlementSvc: service.NewCoreApiApplicationSettlementService(coreClient),
+		PayBaseURL:               cfg.PayBaseURL,
 		WalletAccountSvc:         service.NewCoreApiWalletAccountService(coreClient),
 		WalletAccountTransferSvc: service.NewCoreApiWalletAccountTransferService(coreClient),
 		PartyResolverSvc:         service.NewCoreApiPartyResolver(coreClient),
