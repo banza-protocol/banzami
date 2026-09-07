@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-09-07
+
+### Removed — `createApplicationSettlement` no longer accepts pricing selectors (breaking)
+
+`feePolicyRef`, `businessCategory` and `pricingProfile` are gone from
+`CreateApplicationSettlementParams` and are no longer sent on the wire.
+
+0.9.0 removed the same three from `createTransaction` and left them here,
+describing this method as remaining "for backwards compatibility". There is no
+backwards compatibility to preserve: nothing has officially launched, and the
+three fields were rule-matching dimensions in the operator's pricing engine.
+A caller that supplied them was choosing between tariffs without ever sending an
+amount.
+
+The operator resolves the fee from the pricing profile it has assigned the
+authenticated owner. There is no request field that influences it, and a test
+asserts that passing the old names anyway — as an untyped JavaScript caller
+would — leaves them off the wire.
+
 ## [0.9.0] — 2026-09-07
 
 ### Removed — `createTransaction` no longer accepts pricing selectors (breaking)
@@ -222,7 +241,7 @@ version installable as `npm install @banzami/sdk`.
 - Payment Sessions (BANZA ADR-015): `createPaymentSession`, `getPaymentSession`, `listPaymentSessions` — one financial object bound to a `walletAccountId`, returning display interfaces (payment link, deep link, dynamic/static QR) that all credit that account. `interfaces` is the canonical ARRAY of `{ type, value, format, qr_url?, expires_at?, status? }`; use `client.paymentSessionInterface(session, 'DYNAMIC_QR')` to pick one. Omit `amountMinor` for an open-amount session. Types: `PaymentSession`, `PaymentSessionInterface`, `PaymentSessionInterfaceType`, `CreatePaymentSessionParams`
 
 ### Note
-- The legacy `createApplicationSettlement` (operator-priced, `feePolicyRef` / `sourceWalletId`) remains for backwards compatibility. New app-defined-fee flows should use `createBusinessApplicationSettlement`.
+- The legacy `createApplicationSettlement` (operator-priced, `sourceWalletId`) remains alongside it. New app-defined-fee flows should use `createBusinessApplicationSettlement`. (Its pricing selectors were removed in 0.10.0.)
 
 ## [0.1.0] — 2026-05-15
 

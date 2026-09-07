@@ -627,10 +627,17 @@ export class BanzamiClient {
   /**
    * Settle accumulated net value from one of YOUR wallets to a beneficiary,
    * splitting off an application fee. The operator moves the money: it reads the
-   * gross from the source wallet's available balance and resolves the fee from
-   * `feePolicyRef` (you never send an amount or a fee). Idempotent on
-   * `idempotencyKey`. Completion is also delivered as an
-   * `application_settlement.completed` webhook. Account ids are never exposed.
+   * gross from the source wallet's available balance and resolves the operator
+   * fee from the pricing profile it has assigned you. You never send an amount,
+   * a fee, or anything that selects one. Idempotent on `idempotencyKey`.
+   * Completion is also delivered as an `application_settlement.completed`
+   * webhook. Account ids are never exposed.
+   *
+   * This used to send `feePolicyRef`, `businessCategory` and `pricingProfile`.
+   * All three were rule-matching dimensions in the operator's pricing engine,
+   * so a caller supplying them was choosing between tariffs — see the 0.9.0
+   * entry in CHANGELOG.md, which removed them from `createTransaction` for the
+   * same reason and left them here.
    */
   createApplicationSettlement(p: CreateApplicationSettlementParams): Promise<ApplicationSettlement> {
     return this.request<ApplicationSettlement>('/application-settlements', {
@@ -641,9 +648,6 @@ export class BanzamiClient {
         source_wallet_id:          p.sourceWalletId,
         beneficiary_wallet_id:     p.beneficiaryWalletId,
         application_fee_wallet_id: p.applicationFeeWalletId,
-        fee_policy_ref:            p.feePolicyRef,
-        business_category:         p.businessCategory,
-        pricing_profile:           p.pricingProfile,
       }),
     });
   }

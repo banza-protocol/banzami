@@ -526,9 +526,6 @@ export interface CreateApplicationSettlementParams {
   sourceWalletId: string;
   beneficiaryWalletId: string;
   applicationFeeWalletId?: string;
-  feePolicyRef?: string;
-  businessCategory?: string;
-  pricingProfile?: string;
 }
 
 // ---------------------------------------------------------------------------

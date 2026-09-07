@@ -672,6 +672,26 @@ describe('app-defined application settlement', () => {
     expect(body.amount_minor).toBeUndefined();
     expect(body.application_fee_minor).toBeUndefined();
   });
+
+  it('createApplicationSettlement cannot be made to send a pricing selector', async () => {
+    mockFetch(201, settled);
+    // A JavaScript caller has no types. These three used to be accepted here
+    // and forwarded, and each one is a rule-matching dimension in the
+    // operator's pricing engine — so sending them was choosing a tariff.
+    await client.createApplicationSettlement({
+      idempotencyKey:      'as-selector',
+      ownerRef:            'campaign_42',
+      sourceWalletId:      'w-1',
+      beneficiaryWalletId: 'w-2',
+      businessCategory:    'DONATION',
+      pricingProfile:      'sandbox-reference',
+      feePolicyRef:        'pol_donation_standard',
+    } as Parameters<typeof client.createApplicationSettlement>[0]);
+    const body = JSON.parse(lastFetchCall().init.body as string);
+    expect('business_category' in body).toBe(false);
+    expect('pricing_profile' in body).toBe(false);
+    expect('fee_policy_ref' in body).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
