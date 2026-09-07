@@ -190,6 +190,18 @@ where
                     as_of: Utc::now(),
                 };
                 let resolution = banzami_pricing::resolve(&rules, &ctx);
+
+                // Same refusal as capture, for the same reason. `resolve` reports
+                // a fee of 0 with no rule id when nothing matched, which in a
+                // ledger is indistinguishable from an operator policy of zero —
+                // and one of those is a decision while the other is nobody
+                // having made one. An explicit 0-bps rule settles at zero; an
+                // absent decision does not settle.
+                if resolution.snapshot.rule_id.is_none() {
+                    return Err(ApplicationSettlementError::Pricing(
+                        "no pricing rule applies to this settlement".to_string(),
+                    ));
+                }
                 let snapshot = serde_json::to_value(&resolution.snapshot).map_err(|e| {
                     ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))
                 })?;

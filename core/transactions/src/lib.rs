@@ -40,6 +40,17 @@ pub enum TransactionError {
     #[error("duplicate idempotency key: {0}")]
     DuplicateIdempotencyKey(String),
 
+    /// No operator pricing rule applied to this capture.
+    ///
+    /// This used to be a fee of zero. The comment beside the resolver said so
+    /// plainly — "no category => an empty reference that matches no rule => 0
+    /// fee" — and it is the same defect the settlement path had: an absent
+    /// pricing decision and a decision of zero produce the same number and are
+    /// entirely different facts. One is a policy; the other is nobody having
+    /// chosen. Money moves at capture, so capture is where this has to refuse.
+    #[error("no pricing rule applies to this transaction")]
+    PricingNotConfigured,
+
     #[error("unknown currency code: {0}")]
     UnknownCurrency(String),
 

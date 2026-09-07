@@ -219,7 +219,10 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
                 .business_category
                 .as_deref()
                 .map(BusinessCategory::from_code)
-                // No category => an empty reference that matches no rule => 0 fee.
+                // Retained as a rule dimension, but it is no longer something a
+                // caller supplies: the gateway stops accepting it and stores the
+                // merchant's assigned profile instead. An empty reference here
+                // simply matches no category-keyed rule.
                 .unwrap_or_else(|| BusinessCategory::Other(String::new())),
             pricing_profile: tx.pricing_profile.as_deref().map(PricingProfile::from_code),
             fee_policy_ref: tx.fee_policy_ref.clone().map(FeePolicyRef::new),
@@ -228,6 +231,17 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
             as_of: Utc::now(),
         };
         let resolution = banzami_pricing::resolve(&rules, &ctx);
+
+        // No applicable rule is a refusal, not a free capture.
+        //
+        // `resolve` reports a fee of 0 with no rule id when nothing matched, and
+        // that is indistinguishable in the ledger from an operator policy that
+        // says zero. Capture is the moment money moves, so this is where the two
+        // have to be told apart: an explicit 0-bps rule captures at zero, and an
+        // absent decision does not capture at all.
+        if resolution.snapshot.rule_id.is_none() {
+            return Err(TransactionError::PricingNotConfigured);
+        }
         let fee_minor = resolution.fee_minor;
 
         // Net-to-payee guard: a fee may never exceed the amount (loud fail; never

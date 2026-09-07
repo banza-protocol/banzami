@@ -289,7 +289,13 @@ async fn app_defined_fee_bps_over_bound_is_rejected(pool: PgPool) -> sqlx::Resul
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
-    // no rule for this category -> 0 fee
+    // An EXPLICIT zero rule, not the absence of one.
+    //
+    // This test used to rely on "no rule for this category -> 0 fee", which is
+    // the defect rather than the behaviour: an absent pricing decision and a
+    // decision of zero produce the same number in a ledger and are entirely
+    // different facts. Zero is now something a rule has to say.
+    seed_rule(&fx.pool, "donation-zero", "DONATION", 0).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     fund(&fx, source, 50_000).await;
