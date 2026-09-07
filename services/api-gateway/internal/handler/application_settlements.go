@@ -92,14 +92,25 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		SourceWalletAccountID  string `json:"source_wallet_account_id"`
 		BeneficiaryWalletID    string `json:"beneficiary_wallet_id"`
 		ApplicationFeeWalletID string `json:"application_fee_wallet_id"`
-		FeePolicyRef           string `json:"fee_policy_ref"`
-		PricingProfile         string `json:"pricing_profile"`
-		// business_category is deliberately NOT read from the request. It used to
-		// be, and it is the field that chooses which of the operator's rates
-		// applies — so a caller could settle unpriced, at nothing, by leaving it
-		// out. It is resolved from the merchant's own record below. A body that
-		// still sends it is accepted and ignored, which is the compatible answer:
-		// nothing the caller writes there can change what they are charged.
+		// No pricing selector is read from the request — not business_category,
+		// not pricing_profile, and not fee_policy_ref.
+		//
+		// Each of the three is a rule-matching dimension in the Pricing Engine,
+		// and the engine ranks a more specific rule higher: a rule keyed on a
+		// fee policy reference outranks one keyed only on the merchant's profile.
+		// So a caller who knew any policy reference could steer their own
+		// settlement onto the rule behind it, and a caller who sent nothing at
+		// all matched nothing — which used to settle for free.
+		//
+		// Only fee_policy_ref survived the first pass of this cleanup, defended
+		// as "resolved by the Pricing Engine, never a number". True, and beside
+		// the point: naming the policy is naming the price through one level of
+		// indirection.
+		//
+		// The pricing profile is resolved from the merchant's own record below.
+		// A body that still sends any of the three is accepted and ignored,
+		// which is the compatible answer — nothing the caller writes there can
+		// change what they are charged.
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -200,7 +211,6 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		ApplicationFeeWalletID: body.ApplicationFeeWalletID,
 		GrossAmountMinor:       grossMinor,
 		Currency:               sourceCurrency,
-		FeePolicyRef:           body.FeePolicyRef,
 		PricingProfile:         pricingProfile,
 	})
 	if err != nil {

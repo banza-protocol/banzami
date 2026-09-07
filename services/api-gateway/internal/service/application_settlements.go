@@ -55,9 +55,11 @@ type CreateApplicationSettlementInput struct {
 	ApplicationFeeBps int
 	GrossAmountMinor  int64
 	Currency          string
-	FeePolicyRef      string
-	BusinessCategory  string
-	PricingProfile    string
+	// The merchant's assigned operator policy, resolved server-side. As on
+	// transactions, fee_policy_ref and business_category are gone rather than
+	// merely unused: a field that still exists is a field something can start
+	// populating again.
+	PricingProfile string
 }
 
 type ApplicationSettlementService interface {
@@ -130,12 +132,6 @@ func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in Cre
 	// ADR-029: app-defined fee rate. When set, core ignores pricing references.
 	if in.ApplicationFeeBps > 0 {
 		body["application_fee_bps"] = in.ApplicationFeeBps
-	}
-	if in.FeePolicyRef != "" {
-		body["fee_policy_ref"] = in.FeePolicyRef
-	}
-	if in.BusinessCategory != "" {
-		body["business_category"] = in.BusinessCategory
 	}
 	if in.PricingProfile != "" {
 		body["pricing_profile"] = in.PricingProfile

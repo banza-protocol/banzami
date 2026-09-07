@@ -259,8 +259,24 @@ func TestApplicationSettlement_CallerCannotChooseItsOwnPricing(t *testing.T) {
 	if start < 0 || end < 0 {
 		t.Fatal("could not find the request struct")
 	}
-	if strings.Contains(body[start:start+end], `json:"business_category"`) {
-		t.Error("the request body accepts business_category — the caller can choose which rate applies to it")
+	// All three selectors, not just the category.
+	//
+	// The first version of this test checked business_category alone, and
+	// fee_policy_ref survived the cleanup precisely because nothing looked for
+	// it — defended as "resolved by the Pricing Engine, never a number", which
+	// is how the category was defended too. Each of the three matches a rule,
+	// and the engine ranks the more specific rule higher: a rule keyed on a
+	// policy reference beats one keyed only on the merchant's profile. Naming
+	// any of them is naming the price through one level of indirection.
+	//
+	// Checked as struct tags, so the explanatory comment inside the struct —
+	// which necessarily names the fields it no longer has — cannot satisfy or
+	// trip the assertion.
+	req := body[start : start+end]
+	for _, field := range []string{"business_category", "pricing_profile", "fee_policy_ref"} {
+		if strings.Contains(req, `json:"`+field+`"`) {
+			t.Errorf("the request body accepts %q — the caller can steer which rate applies to it", field)
+		}
 	}
 
 	// The value sent onward must be the merchant's assigned POLICY, and the
@@ -275,6 +291,12 @@ func TestApplicationSettlement_CallerCannotChooseItsOwnPricing(t *testing.T) {
 	}
 	if strings.Contains(body, "PricingProfile:         body.PricingProfile") {
 		t.Error("the settlement sends the caller's pricing profile")
+	}
+	if strings.Contains(body, "FeePolicyRef:") {
+		t.Error("the settlement still forwards a fee policy reference — it selects a rule, so it selects the price")
+	}
+	if strings.Contains(body, "body.FeePolicyRef") || strings.Contains(body, "body.BusinessCategory") {
+		t.Error("the caller's pricing input still reaches the service")
 	}
 }
 

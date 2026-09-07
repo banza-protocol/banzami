@@ -48,11 +48,11 @@ type CreateTransactionRequest struct {
 	MerchantID      string // populated from the authenticated principal, not the request body
 	WalletID        string // optional; core derives from merchant context if empty
 	Environment     string // "LIVE" | "SANDBOX" — populated from the authenticated principal
-	// BANZA ADR-019 fee references (operator-internal). Reference only — never a
-	// price; forwarded to the core which resolves the fee. Empty => zero fee.
-	BusinessCategory string
-	PricingProfile   string
-	FeePolicyRef     string
+	// PricingProfile is the merchant's assigned operator policy, resolved
+	// server-side from their own record. It is not a caller input and there is
+	// no field for one: business_category and fee_policy_ref were removed with
+	// it, because each selects a rule and selecting the rule selects the price.
+	PricingProfile string
 }
 
 // ListTransactionsRequest parameterises a paginated transaction listing.
