@@ -299,13 +299,36 @@ no longer accepts them and the types are removed. Guarded by
 `tools/check-economic-authority.mjs` with a self-test that reintroduces every
 instance.
 
-**P2 — two enabled LIVE pricing profiles exist as harness residue**
-(`live-probe-*`, created 2026-09-07 00:12, no rules, no assignments). Not
-exploitable — LIVE is fail-closed and nothing is assigned — but they are
-authority-shaped objects in a financial table. The cause is a design flaw in
-`pricing-authority-e2e.sh`: the probe profile is deleted by a manual statement
-rather than recorded in the run manifest, so any early exit between insert and
-delete leaks one.
+**P2 — two enabled LIVE pricing profiles exist as harness residue.**
+
+`live-probe-227833730` and `live-probe-987313125`, created 2026-09-07 00:12,
+25 seconds apart. Verified referenced by nothing:
+
+| profile | env | enabled | assignments | rules | settlements | operator fees |
+| --- | --- | --- | --- | --- | --- | --- |
+| `live-probe-227833730` | LIVE | yes | 0 | 0 | 0 | 0 |
+| `live-probe-987313125` | LIVE | yes | 0 | 0 | 0 | 0 |
+
+Not exploitable — LIVE is fail-closed and neither is assigned — but they are
+authority-shaped objects sitting in a financial table.
+
+**Cause, now fixed.** `pricing-authority-e2e.sh` created the probe, tested it,
+and deleted it in three separate statements. Any exit between the first and the
+last leaked one. The run manifest is the usual answer and does not fit: it
+retires objects over HTTP, and a pricing profile has no retirement route. So the
+window is closed rather than cleaned up after — the insert, the attempted
+assignment and the delete are now a single `DO` block, which either completes
+with the probe deleted or aborts entirely and rolls the insert back with it.
+There is no state in which the probe survives. The harness also asserts
+afterwards that nothing named `live-probe-<run>` remains, so a regression in the
+block itself cannot quietly reintroduce the leak.
+
+**The two existing rows are NOT deleted here.** They are referenced by no
+financial operation, so removing them would destroy no history — but deleting
+rows from a financial table on a deployed system is the owner's call, not a
+side effect of an audit, and the standing instruction is that cleanup must never
+rest on a name prefix alone. The evidence above is assembled so the decision is
+a one-word one.
 
 ---
 

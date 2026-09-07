@@ -91,16 +91,42 @@ NOPROFILE=$(q "select coalesce(pricing_profile_id::text,'none') from merchants w
 chk UNPRICED_HAS_NO_POLICY "$NOPROFILE" "none"
 
 echo "### the environment guard refuses a non-Sandbox policy"
-GUARD=$(q "insert into pricing_profiles (id, code, name, enabled, environment)
-           values (gen_random_uuid(), 'live-probe-$R', 'probe', true, 'LIVE') returning id")
-if [ -n "$GUARD" ]; then
-  OUT=$(qerr "update merchants set pricing_profile_id='$GUARD' where id='$UNPRICED'")
-  case "$OUT" in *"Sandbox-only"*) chk LIVE_PROFILE_REFUSED refused refused ;;
-                 *) chk LIVE_PROFILE_REFUSED "allowed($OUT)" refused ;; esac
-  q "delete from pricing_profiles where id='$GUARD'" >/dev/null
-else
-  echo "  LIVE_PROFILE_REFUSED SKIP (could not create a probe profile)"
-fi
+# Create the probe, test it and destroy it in ONE statement.
+#
+# This used to be three: insert, attempt, delete. Any exit between the first and
+# the last leaked an enabled LIVE pricing profile into the deployed database,
+# and two of them are sitting there now from a run that did not reach its third
+# statement. Nothing bad came of it — LIVE is fail-closed and they were assigned
+# to no one — but an authority-shaped object in a financial table is not
+# something a test should be able to leave behind.
+#
+# The run manifest is the usual answer and does not fit: it retires objects over
+# HTTP, and a pricing profile has no retirement route. So the window is closed
+# instead of cleaned up after. A DO block is a single statement, so either it
+# completes — probe deleted — or it aborts entirely and the insert rolls back
+# with it. There is no state in which the probe survives.
+OUT=$(qerr "DO \$\$
+DECLARE gid uuid; msg text;
+BEGIN
+  INSERT INTO pricing_profiles (id, code, name, enabled, environment)
+  VALUES (gen_random_uuid(), 'live-probe-$R', 'probe', true, 'LIVE')
+  RETURNING id INTO gid;
+  BEGIN
+    UPDATE merchants SET pricing_profile_id = gid WHERE id = '$UNPRICED';
+    msg := 'ALLOWED';
+  EXCEPTION WHEN others THEN msg := 'REFUSED ' || SQLERRM;
+  END;
+  DELETE FROM pricing_profiles WHERE id = gid;
+  RAISE NOTICE '%', msg;
+END \$\$;")
+case "$OUT" in
+  *REFUSED*Sandbox-only*) chk LIVE_PROFILE_REFUSED refused refused ;;
+  *ALLOWED*)              chk LIVE_PROFILE_REFUSED allowed refused ;;
+  *)                      chk LIVE_PROFILE_REFUSED "inconclusive($OUT)" refused ;;
+esac
+# And prove the probe is gone, so a future regression in the block itself cannot
+# quietly reintroduce the leak this was written to stop.
+chk LIVE_PROBE_LEFT_NOTHING "$(q "SELECT COUNT(*) FROM pricing_profiles WHERE code = 'live-probe-$R'")" "0"
 
 echo "### descriptive text cannot move a rate"
 BEFORE=$(q "select p.code from merchants m join pricing_profiles p on p.id=m.pricing_profile_id where m.id='$ZERO_M'")
