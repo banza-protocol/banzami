@@ -27,23 +27,43 @@ const log = readFileSync(logPath, 'utf8');
 // Each entry is an economic invariant that must be exercised against a real
 // PostgreSQL. The comment is the fact the test defends, not a restatement of
 // its name — if a test is renamed, this list should be updated deliberately.
+//
+// It was updated deliberately for Pricing Model V2. The previous list named
+// five capture-pricing invariants that were all correct and are all now
+// meaningless: capture left operator pricing entirely, so there is no fee to
+// charge at zero, no rule to be missing, and no fee to reprice. Their
+// replacements assert the contract that took over — capture moves the gross and
+// consults nobody — and the settlement and payout entries gained the ambiguity
+// and snapshot cases V2 introduced.
 const REQUIRED = [
-  // An explicit 0-bps rule is a pricing DECISION: capture succeeds, fee is
-  // zero, and a rule id is recorded so the zero is attributable.
-  'government_zero_bps_gross_equals_net',
-  // No applicable rule is the ABSENCE of a decision: capture must refuse.
-  'unknown_category_refuses_capture',
-  'no_category_refuses_capture',
-  // A nonzero rate produces the arithmetically correct fee, balanced.
-  'donation_two_percent_net_fee_balanced',
-  // A later rule change never reprices a settled fee.
-  'rule_change_does_not_change_old_fee',
-  // The same explicit-zero / absent-decision split, on the settlement path.
+  // ── capture is NOT fee-bearing ───────────────────────────────────────────
+  // A payment credits the merchant wallet gross. The first of these seeds a
+  // matching 5% rule and proves capture ignores it — asserting the absence of
+  // pricing by putting pricing in front of it.
+  'capture_credits_gross_even_with_a_matching_rule_present',
+  'capture_records_no_operator_fee',
+  'capture_posts_two_legs_and_stays_balanced',
+
+  // ── settlement: the three outcomes must stay three ───────────────────────
+  // An explicit 0-bps rule settles at zero and is attributable.
   'zero_application_fee_net_equals_gross',
+  // No applicable rule is the ABSENCE of a decision: it refuses.
   'no_applicable_rule_refuses_settlement',
+  // More than one is a configuration error, refused rather than ranked. This is
+  // the one V1 got wrong by comparing UUIDs.
+  'two_applicable_rules_refuse_rather_than_rank',
+  // A nonzero rate produces the arithmetically correct fee, balanced.
   'settles_net_and_application_fee_balanced',
-  // A completed settlement is immutable under later rule changes.
+  // A later rule change never reprices a completed settlement.
   'rule_change_does_not_alter_completed',
+
+  // ── payout: priced, and able to explain itself afterwards ────────────────
+  // The bank leg carries the net and the fee is its own paired posting.
+  'initiate_to_confirmed_happy_path',
+  // The decision is on the payout row — not reconstructable only by joining
+  // ledger_postings on a derived idempotency key, which is how RA-063 had to be
+  // explained.
+  'processed_payout_persists_its_pricing_decision',
 ];
 
 const failures = [];
