@@ -109,13 +109,31 @@ jobs:
         with:
           components: clippy, rustfmt
 
-      - name: Cache Cargo
+      # Two caches, deliberately, and the tool cache saves even when the job
+      # fails.
+      #
+      # actions/cache only writes its cache when the job SUCCEEDS. That is
+      # usually harmless and here it was not: this gate's whole job is to fail
+      # on real defects, so it failed on its first four runs — and each one
+      # rebuilt sqlx-cli from source, about eight minutes, before reaching the
+      # code under test. A gate that costs eight minutes to tell you anything
+      # is a gate people stop running.
+      #
+      # sqlx-cli depends only on the toolchain, so restore/save with `always()`
+      # is safe: nothing about a failing test can poison it.
+      - name: Restore sqlx-cli
+        id: sqlx-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cargo/bin
+          key: sqlx-cli-${{ runner.os }}-v1
+
+      - name: Cache Cargo build
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ~/.cargo/bin
             core/target
           key: economic-${{ runner.os }}-${{ hashFiles('core/Cargo.lock') }}
           restore-keys: economic-${{ runner.os }}-
@@ -126,6 +144,13 @@ jobs:
             cargo install sqlx-cli --no-default-features --features postgres --locked
           fi
           sqlx --version
+
+      - name: Save sqlx-cli
+        if: always() && steps.sqlx-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cargo/bin
+          key: sqlx-cli-${{ runner.os }}-v1
 
       # The sqlx query macros verify against a live schema when DATABASE_URL is
       # set, so the base database has to carry the migrations before anything
@@ -145,7 +170,12 @@ jobs:
 
       - name: Run tests (unit + DB-backed integration)
         working-directory: core
-        run: cargo test --workspace 2>&1 | tee ../cargo-test.log
+        # --no-fail-fast: without it cargo stops at the first failing test
+        # binary, so a run reveals exactly one defect and the next one costs
+        # another full cycle. This gate takes ~25 minutes; learning about every
+        # failure in one pass is the difference between fixing a batch and
+        # discovering them one per half hour.
+        run: cargo test --workspace --no-fail-fast 2>&1 | tee ../cargo-test.log
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 

@@ -135,7 +135,8 @@ jobs:
 
       - name: Run tests (unit + integration)
         working-directory: core
-        run: cargo test --workspace
+        # See economic-gate.yml: one failing binary must not hide the rest.
+        run: cargo test --workspace --no-fail-fast
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
