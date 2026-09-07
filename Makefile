@@ -292,10 +292,16 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+.PHONY: check-all test-all check-repo-layout check-pricing-consumers check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
+
+# Where this operator is allowed to charge money. Static, so it runs in CI: a
+# new crate depending on banzami-pricing is a new economic entrypoint, and it
+# must be reviewed rather than merged as a dependency line.
+check-pricing-consumers:
+	node tools/check-pricing-consumers.mjs
 
 # Static half of the E2E fixture-hygiene gate. The dynamic half needs the
 # deployed Sandbox: tests/phase0/fixture-hygiene-suite.sh, run by the operator.

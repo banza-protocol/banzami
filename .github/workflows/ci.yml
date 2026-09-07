@@ -319,6 +319,17 @@ jobs:
       - name: Repository layout gate
         run: node tools/check-repository-layout.mjs
 
+      # Where this operator is allowed to charge money.
+      #
+      # Exactly three operations resolve an operator fee, and each was audited
+      # for whether a caller could steer which rule applies. That audit is only
+      # worth something while the list is complete — a fourth consumer added
+      # quietly would inherit none of the review, and on current evidence would
+      # inherit the defect: every consumer that predated this work treated
+      # "no rule matched" as a fee of zero.
+      - name: Pricing consumer inventory
+        run: node tools/check-pricing-consumers.mjs
+
       # Every harness that mints operator authority must be able to give it
       # back. This is the static half — sources the cleanup library, records
       # what it creates, does not install a second EXIT trap that would replace
