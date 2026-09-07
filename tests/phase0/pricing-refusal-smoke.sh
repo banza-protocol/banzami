@@ -20,7 +20,10 @@ GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
 CORE=$(docker ps --format '{{.Names}}'| grep core-api-staging    | head -1)
 PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
 [ -n "$CORE" ] || { echo "NO_CORE_CONTAINER"; exit 1; }
+[ -n "$GW" ]   || { echo "NO_GATEWAY_CONTAINER"; exit 1; }
 PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret')
+[ -n "$JWTSEC" ] || { echo "NO_JWT_SECRET"; exit 1; }
 
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
 e2e_begin
@@ -34,13 +37,15 @@ chk(){ if [ "$2" = "$3" ]; then echo "  $1 PASS ($2)"; PASS=$((PASS+1));
        else echo "  $1 FAIL (got '$2' want '$3')"; FAIL=$((FAIL+1)); fi; }
 
 LAST=""; CODE=""
-call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5"
+call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5" au="${6:--}"
   local a=(curl -s -w $'\n%{http_code}' -X "$m" "http://localhost:$port$p")
+  [ "$au" != "-" ] && a+=(-H "Authorization: Bearer $au")
   local r
   if [ "$bd" = "-" ]; then r=$(docker exec "$ct" "${a[@]}" 2>/dev/null)
   else a+=(-H "Content-Type: application/json" --data @-); r=$(printf '%s' "$bd" | docker exec -i "$ct" "${a[@]}" 2>/dev/null); fi
   CODE=$(printf '%s' "$r" | tail -n1); LAST=$(printf '%s' "$r" | sed '$d'); }
 jget(){ printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s)["'"$1"'"]??""))}catch(e){}})'; }
+mint(){ SECRET="$JWTSEC" M="$1" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={merchant_id:process.env.M,scopes:["*"],environment:"SANDBOX",iat:n,exp:n+900};const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));'; }
 errcode(){ printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).error?.code??JSON.parse(s).code??""))}catch(e){}})'; }
 
 # Ledger health, read straight from the entries — the neutral observer.
@@ -77,10 +82,21 @@ mk(){ # $1 = profile code or "none" | prints merchant_id|wallet_id
   printf '%s|%s' "$mid" "$wid"
 }
 
-# Authorize a transaction and try to capture it. Prints the capture status code.
+# Create through the GATEWAY, capture through Core.
+#
+# The split matters. Core prices from the pricing_profile stored ON the
+# transaction and does not look up the merchant — resolving an owner's assigned
+# profile is the gateway's job. An earlier version of this harness created the
+# transaction straight in Core without a profile, then asserted the merchant's
+# assigned rate applied; it got 409 for both priced owners and the failure was
+# the harness's, not the product's. Creating through the gateway exercises the
+# real path and proves the resolution as a side effect.
+#
+# Capture has no public route, so it stays on Core's internal API.
 cap(){ # $1=merchant $2=wallet $3=idem-suffix -> sets TXID, CODE, LAST
-  call "$CORE" 8081 POST /internal/v1/transactions \
-    "{\"idempotency_key\":\"smoke-$3-$R\",\"transaction_type\":\"PAYMENT\",\"amount_minor\":$GROSS,\"currency\":\"AOA\",\"merchant_id\":\"$1\",\"wallet_id\":\"$2\"}"
+  local jwt; jwt=$(mint "$1")
+  call "$GW" 8080 POST /v1/transactions \
+    "{\"idempotency_key\":\"smoke-$3-$R\",\"amount_minor\":$GROSS,\"currency\":\"AOA\",\"wallet_id\":\"$2\"}" "$jwt"
   TXID=$(jget id)
   [ -n "$TXID" ] || return 1
   call "$CORE" 8081 POST "/internal/v1/transactions/$TXID/authorize" "-"
@@ -93,6 +109,9 @@ IFS='|' read -r ZM ZW <<<"$(mk sandbox-default)"
 chk A_MERCHANT_READY "$([ -n "$ZM" ] && [ -n "$ZW" ] && echo yes)" yes
 cap "$ZM" "$ZW" a
 chk A_CAPTURE_OK "$CODE" "200"
+# The gateway resolved the owner's policy server-side and stored it: the caller
+# sent no selector and could not have.
+chk A_PROFILE_RESOLVED_SERVER_SIDE "$(q "SELECT COALESCE(pricing_profile,'none') FROM transactions WHERE id='$TXID'")" "sandbox-default"
 chk A_FEE_ZERO "$(q "SELECT amount_minor FROM operator_fees WHERE transaction_id='$TXID'")" "0"
 # The whole point: a zero that a RULE said, not a zero nobody decided.
 chk A_ZERO_IS_A_DECISION "$(q "SELECT (pricing_rule_id IS NOT NULL)::text FROM operator_fees WHERE transaction_id='$TXID'")" "true"
@@ -104,6 +123,7 @@ IFS='|' read -r PM PW2 <<<"$(mk sandbox-donation-200)"
 chk B_MERCHANT_READY "$([ -n "$PM" ] && [ -n "$PW2" ] && echo yes)" yes
 cap "$PM" "$PW2" b
 chk B_CAPTURE_OK "$CODE" "200"
+chk B_PROFILE_RESOLVED_SERVER_SIDE "$(q "SELECT COALESCE(pricing_profile,'none') FROM transactions WHERE id='$TXID'")" "sandbox-donation-200"
 EXPECTED_FEE=$(( GROSS * 200 / 10000 ))
 chk B_FEE_IS_200BPS "$(q "SELECT amount_minor FROM operator_fees WHERE transaction_id='$TXID'")" "$EXPECTED_FEE"
 chk B_WALLET_GETS_NET "$(wbal "$PW2")" "$(( GROSS - EXPECTED_FEE ))"

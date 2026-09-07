@@ -175,8 +175,19 @@ func TestTransactionCreate_ValidRequest_Returns201(t *testing.T) {
 			if req.MerchantID != "merchant-001" {
 				t.Errorf("expected merchant-001, got %s", req.MerchantID)
 			}
-			if req.TransactionType != "payment" {
-				t.Errorf("expected default type 'payment', got %s", req.TransactionType)
+			// UPPERCASE, which is core's wire contract and what the
+			// transactions table's CHECK constraint enforces.
+			//
+			// This asserted "payment" and passed for as long as it existed,
+			// because the service here is a mock that accepts any string. The
+			// real core answered 400 "unknown transaction_type: payment" for
+			// every call, so POST /v1/transactions never once worked in the
+			// deployed Sandbox — 0 rows in `transactions`, 263 in `transfers`.
+			//
+			// A mock that accepts what the real upstream rejects is how a
+			// contract mismatch stays green.
+			if req.TransactionType != "PAYMENT" {
+				t.Errorf("expected default type 'PAYMENT', got %s", req.TransactionType)
 			}
 			return stubbedTx(), nil
 		},
@@ -191,6 +202,66 @@ func TestTransactionCreate_ValidRequest_Returns201(t *testing.T) {
 	h.Create(w, r)
 	if w.Code != http.StatusCreated {
 		t.Errorf("expected 201, got %d\nbody: %s", w.Code, w.Body.String())
+	}
+}
+
+// The caller's casing is not the caller's problem — but an unknown type is
+// theirs to fix, and must say so.
+func TestTransactionCreate_NormalisesTypeAndRejectsUnknown(t *testing.T) {
+	for _, tc := range []struct {
+		sent string
+		want string
+	}{
+		{"payment", "PAYMENT"},
+		{"PAYMENT", "PAYMENT"},
+		{"  refund  ", "REFUND"},
+		{"Payout", "PAYOUT"},
+	} {
+		var got string
+		svc := &mockTxSvc{
+			createFn: func(_ context.Context, req service.CreateTransactionRequest) (*service.Transaction, error) {
+				got = req.TransactionType
+				return stubbedTx(), nil
+			},
+		}
+		h := handler.NewTransactionHandler(svc, nil)
+		w := httptest.NewRecorder()
+		r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
+			"idempotency_key":  "idem-" + tc.want + tc.sent,
+			"amount_minor":     1000,
+			"currency":         "AOA",
+			"transaction_type": tc.sent,
+		})), "merchant-001")
+		h.Create(w, r)
+		if w.Code != http.StatusCreated {
+			t.Fatalf("%q: expected 201, got %d (%s)", tc.sent, w.Code, w.Body.String())
+		}
+		if got != tc.want {
+			t.Errorf("%q normalised to %q, want %q", tc.sent, got, tc.want)
+		}
+	}
+
+	// Garbage is a 400 naming the field, not a 500 blamed on the operator.
+	svc := &mockTxSvc{
+		createFn: func(context.Context, service.CreateTransactionRequest) (*service.Transaction, error) {
+			t.Error("the service must not be reached for an unknown transaction_type")
+			return nil, nil
+		},
+	}
+	h := handler.NewTransactionHandler(svc, nil)
+	w := httptest.NewRecorder()
+	r := withMerchant(httptest.NewRequest(http.MethodPost, "/v1/transactions", jsonBody(map[string]any{
+		"idempotency_key":  "idem-bad",
+		"amount_minor":     1000,
+		"currency":         "AOA",
+		"transaction_type": "free_money",
+	})), "merchant-001")
+	h.Create(w, r)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected 400 for an unknown type, got %d", w.Code)
+	}
+	if !strings.Contains(w.Body.String(), "transaction_type") {
+		t.Errorf("the refusal must name the field, got %s", w.Body.String())
 	}
 }
 

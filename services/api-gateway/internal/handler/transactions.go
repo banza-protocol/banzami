@@ -3,8 +3,10 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -80,9 +82,29 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	txType := body.TransactionType
+	// Uppercased, and validated here rather than discovered upstream.
+	//
+	// This defaulted to the lowercase "payment" and sent it verbatim. Core
+	// accepts only SCREAMING_SNAKE_CASE — its own wire contract, and what the
+	// transactions table's CHECK constraint enforces — so it answered 400
+	// "unknown transaction_type: payment" and the block below turned that into
+	// a 500. POST /v1/transactions therefore failed for every caller, always,
+	// with an error that named nothing. The deployed Sandbox has 0 rows in
+	// `transactions` and 263 in `transfers`, which is what that looks like from
+	// the outside.
+	//
+	// Case is not the caller's problem, so both forms are accepted and
+	// normalised; an unknown type is a 400 naming the field, not a 500.
+	txType := strings.ToUpper(strings.TrimSpace(body.TransactionType))
 	if txType == "" {
-		txType = "payment"
+		txType = "PAYMENT"
+	}
+	switch txType {
+	case "PAYMENT", "REFUND", "REVERSAL", "PAYOUT":
+	default:
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD",
+			"transaction_type must be one of PAYMENT, REFUND, REVERSAL, PAYOUT")
+		return
 	}
 
 	// The operator's policy, from the merchant's assignment. Unlike a settlement,
@@ -112,6 +134,20 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		PricingProfile:  pricingProfile,
 	})
 	if err != nil {
+		// An upstream rejection is not an operator fault, and reporting it as
+		// one is how the case-mismatch above stayed invisible: core answered a
+		// precise 400 and the caller was told "internal error". CoreError
+		// already distinguishes the two — nothing was using it here.
+		if ce, ok := service.AsCoreError(err); ok && ce.IsClientError() {
+			code := ce.Code
+			if code == "" {
+				code = "REJECTED_UPSTREAM"
+			}
+			apierror.Respond(w, r, ce.Status, code, ce.Message)
+			return
+		}
+		slog.ErrorContext(r.Context(), "transaction.create.failed",
+			"merchant_id", principal.MerchantID, "error", err)
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"transaction could not be created")
 		return
