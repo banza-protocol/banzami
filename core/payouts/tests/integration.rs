@@ -58,11 +58,14 @@ struct TestFixture {
 async fn seeded_withdrawal_bps(pool: &PgPool) -> i64 {
     sqlx::query_scalar::<_, i32>(
         "SELECT rate_bps FROM pricing_rules
-          WHERE environment = 'SANDBOX' AND transaction_type = 'wallet_withdrawal' AND enabled",
+          WHERE environment = 'SANDBOX' AND enabled
+            AND pricing_operation = 'PAYOUT'
+            AND pricing_profile = 'sandbox-default'
+            AND effective_to IS NULL",
     )
     .fetch_one(pool)
     .await
-    .expect("the Sandbox withdrawal rule must exist — 0108 seeds it") as i64
+    .expect("the Sandbox PAYOUT rule for sandbox-default must exist — 0110 seeds it") as i64
 }
 
 async fn setup(pool: PgPool) -> TestFixture {
@@ -91,6 +94,31 @@ async fn setup(pool: PgPool) -> TestFixture {
     let wallet_repo_for_engine = PostgresWalletRepository::new(pool.clone());
     let wallet_engine = PostgresWalletEngine::new(ledger.clone(), wallet_repo_for_engine);
     let merchant_id = MerchantId::new();
+
+    // The merchant carries an assigned pricing profile, because in production it
+    // must: PAYOUT rules are per-profile now, and a rule pinned to a profile
+    // cannot price an owner that has none.
+    //
+    // The fixture used to create a bare MerchantId with no row and no profile,
+    // which worked while one network-wide withdrawal rule priced everyone. It
+    // stopped working the moment that rule was superseded — the fee resolved to
+    // zero and the bank leg carried the gross. Which is the resolver being right
+    // and the fixture describing a state production does not allow.
+    sqlx::query(
+        "INSERT INTO merchants (id, name, email, status, pricing_profile_id)
+         SELECT $1, 'Payout fixture', $2, 'ACTIVE', p.id
+           FROM pricing_profiles p
+          WHERE p.environment = 'SANDBOX' AND p.code = 'sandbox-default'",
+    )
+    .bind(merchant_id.as_uuid())
+    .bind(format!(
+        "payout-fixture-{}@projects.banzami.test",
+        merchant_id.as_uuid()
+    ))
+    .execute(&pool)
+    .await
+    .unwrap();
+
     let wallet = wallet_engine
         .create(CreateWalletRequest {
             merchant_id,
@@ -380,14 +408,18 @@ async fn processed_payout_persists_its_pricing_decision(pool: PgPool) -> sqlx::R
         .unwrap();
     fix.payout_engine.process(payout.id).await.unwrap();
 
-    let row: (
+    /// The pricing snapshot as it is stored: fee, net, rule, version, rate, and
+    /// when it was decided.
+    type Snapshot = (
         Option<i64>,
         Option<i64>,
         Option<uuid::Uuid>,
         Option<i32>,
         Option<i32>,
         Option<chrono::DateTime<chrono::Utc>>,
-    ) = sqlx::query_as(
+    );
+
+    let row: Snapshot = sqlx::query_as(
         "SELECT fee_minor, net_minor, pricing_rule_id, pricing_rule_version,
                     pricing_rate_bps, pricing_decided_at
                FROM payouts WHERE id = $1",

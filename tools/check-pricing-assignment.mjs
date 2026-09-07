@@ -68,63 +68,104 @@ for (const [name, code, enabled, env, rules] of rows) {
   // check is allowed to be wrong in that direction and not the other.
   if (enabled !== 'true') { bad(`${name} is assigned ${code}, which is disabled`); continue; }
   if (env !== 'SANDBOX') { bad(`${name} is assigned a ${env} profile on a Sandbox deployment`); continue; }
+  // Rule COUNT is no longer the question here.
+  //
+  // It was, while a profile had exactly one rule that priced everything. With a
+  // rule per operation, "more than one active rule" is now the normal, correct
+  // state — a settlement rate and a payout rate — and this check reported every
+  // healthy profile as ambiguous. Cardinality is asked per operation below,
+  // where it means something.
   const n = Number(rules);
-  if (n === 0) { bad(`${name} is assigned ${code}, which has no active rule — assigned on paper, unpriced in practice`); continue; }
-  if (n > 1) { bad(`${name}: ${code} has ${n} active rules — selection would be ambiguous`); continue; }
-  ok(`${name.padEnd(34)} ${code} (1 active rule)`);
+  if (n === 0) { bad(`${name} is assigned ${code}, which has no active rule at all — assigned on paper, unpriced in practice`); continue; }
+  ok(`${name.padEnd(34)} ${code} (${n} active rule${n === 1 ? '' : 's'})`);
 }
 
-// The two states that must never collapse into each other.
+// The two states that must never collapse into each other, asked per operation.
+//
+// This used to select rate_bps for the whole profile and compare it to '0'. That
+// worked while a profile had exactly one rule; with a rule per operation it
+// returned three rows and reported the explicit zero as missing. The claim was
+// always about SETTLEMENT specifically — sandbox-default settles free, it does
+// not withdraw free — so it now says so.
 const zero = q(`select rate_bps from pricing_rules
-                 where pricing_profile = 'sandbox-default' and environment = 'SANDBOX' and enabled`);
+                 where environment = 'SANDBOX' and enabled
+                   and pricing_profile = 'sandbox-default'
+                   and pricing_operation = 'SETTLEMENT'`);
 zero === '0'
-  ? ok('sandbox-default is an EXPLICIT zero rule, not the absence of one')
-  : bad(`sandbox-default rate is "${zero}" — the explicit zero is missing`);
+  ? ok('sandbox-default SETTLEMENT is an EXPLICIT zero rule, not the absence of one')
+  : bad(`sandbox-default SETTLEMENT rate is "${zero.replace(/\n/g, ',')}" — expected exactly one explicit 0`);
 
-// ── withdrawals ─────────────────────────────────────────────────────────────
+// ── completeness v2: every profile × every required operation ──────────────
 //
-// The gate that must pass BEFORE payouts start refusing an absent rule, for the
-// same reason as above: an engine that fails closed with nothing configured is
-// an outage, not a fix.
+// The old check asked "does this owner have SOME applicable rule". That is the
+// question the wildcard model made sense of, and it is the wrong one: a single
+// rule with no operation satisfied it while silently pricing every operation,
+// including ones that did not exist yet.
 //
-// This half is not about owners. Withdrawal pricing is keyed on the operation's
-// transaction type, which the payout engine hard-codes — no caller supplies it
-// — so the question is simply whether exactly one enabled rule applies to a
-// Sandbox withdrawal.
+// The question now is per OPERATION. For each active profile that an active
+// financial owner is assigned, each released fee-bearing operation must resolve
+// to exactly one explicit rule. Not zero — that is PRICING_NOT_CONFIGURED at
+// runtime. Not two — that is PRICING_CONFIGURATION_ERROR. And not a wildcard,
+// which no longer satisfies anything.
 //
-// It has been zero before. The payout harness once measured a fee of ZERO
-// because pricing_rules was empty after a financial reset, and the operator
-// withdrew money charging nothing (REPAIR_LOG RA-063). Migration 0108 seeds the
-// rule so a reset cannot repeat that; this proves the seed actually took.
-console.log('\nwithdrawal pricing completeness\n');
+// This is the gate that must PASS before the payout resolver starts refusing a
+// missing rule. Refusing first would turn a revenue leak into a customer-facing
+// outage, and this path has already produced the leak once (RA-063).
+const REQUIRED_OPERATIONS = ['SETTLEMENT', 'PAYOUT'];
 
-const wRows = q(`
-  select rule_key, rate_bps, coalesce(business_category, '*'), coalesce(pricing_profile, '*')
-    from pricing_rules
-   where environment = 'SANDBOX'
-     and transaction_type = 'wallet_withdrawal'
-     and enabled
-     and (effective_from is null or effective_from <= now())
-     and (effective_to   is null or effective_to   >  now())`).split('\n').filter(Boolean).map((l) => l.split('|'));
+console.log(`\nper-operation completeness (${REQUIRED_OPERATIONS.join(', ')})\n`);
 
-if (wRows.length === 0) {
-  bad('no enabled rule applies to a Sandbox withdrawal — every payout would be free');
-} else if (wRows.length > 1) {
-  bad(`${wRows.length} enabled rules apply to a Sandbox withdrawal — selection would be ambiguous`);
-} else {
-  const [key, rate, cat, profile] = wRows[0];
-  ok(`${key.padEnd(34)} ${rate} bps (1 active rule)`);
-  // A withdrawal rule pinned to a category or a profile would apply to some
-  // withdrawals and not others, which is the ambiguity above wearing a
-  // different hat: the ones it misses would be free.
-  if (cat !== '*' || profile !== '*') {
-    bad(`${key} is narrowed to category=${cat} profile=${profile} — withdrawals outside it would resolve no rule`);
-  } else {
-    ok('the withdrawal rule is unconditional — no withdrawal can fall outside it');
+// Profiles that actually matter: those assigned to an active owner. An unused
+// profile with an incomplete policy is untidy, not dangerous.
+const assigned = q(`
+  select distinct pp.code
+    from merchants m
+    join pricing_profiles pp on pp.id = m.pricing_profile_id
+   where m.status = 'ACTIVE' and pp.enabled
+   order by pp.code`).split('\n').filter(Boolean);
+
+if (assigned.length === 0) bad('no active owner is assigned any pricing profile');
+
+for (const profile of assigned) {
+  for (const op of REQUIRED_OPERATIONS) {
+    // Mirrors the resolver: operation must match exactly, and a rule with no
+    // profile prices every profile. Nothing else participates.
+    const rows = q(`
+      select rule_key, rate_bps
+        from pricing_rules
+       where environment = 'SANDBOX'
+         and enabled
+         and pricing_operation = '${op}'
+         and (pricing_profile is null or pricing_profile = '${profile}')
+         and (effective_from is null or effective_from <= now())
+         and (effective_to   is null or effective_to   >  now())`)
+      .split('\n').filter(Boolean).map((l) => l.split('|'));
+
+    if (rows.length === 0) {
+      bad(`${profile} has no ${op} rule — that operation would be refused at runtime`);
+    } else if (rows.length > 1) {
+      bad(`${profile} has ${rows.length} applicable ${op} rules (${rows.map((r) => r[0]).join(', ')}) — the resolver refuses rather than choosing`);
+    } else {
+      ok(`${profile.padEnd(24)} ${op.padEnd(11)} ${rows[0][1]} bps  (${rows[0][0]})`);
+    }
   }
+}
+
+// A wildcard-operation rule cannot satisfy anything above, but it can still
+// exist — and while it does, an older resolver or a hand-written query could
+// still consume it. Reported so the cleanup is visible rather than assumed.
+const wildcards = q(`
+  select rule_key
+    from pricing_rules
+   where environment = 'SANDBOX' and enabled and pricing_operation is null
+   order by rule_key`).split('\n').filter(Boolean);
+
+if (wildcards.length > 0) {
+  console.log(`\n  · ${wildcards.length} legacy wildcard-operation rule(s) still present: ${wildcards.join(', ')}`);
+  console.log('    They satisfy no requirement above and the V2 resolver ignores them. Retire them once nothing reads the legacy path.');
 }
 
 console.log();
 if (fail) { console.error(`✗ pricing assignment gate FAILED (${fail})`); process.exit(1); }
 console.log('✓ every settlement-capable owner has exactly one active, environment-correct rate');
-console.log('✓ exactly one unconditional rule prices a Sandbox withdrawal');
+console.log(`✓ every assigned profile has exactly one explicit rule for each of ${REQUIRED_OPERATIONS.join(' and ')}`);

@@ -13,6 +13,15 @@ use crate::{BankDestination, Payout, PayoutError, PayoutStatus};
 #[allow(async_fn_in_trait)]
 pub trait PayoutRepository: Send + Sync {
     async fn create(&self, payout: &Payout) -> Result<(), PayoutError>;
+    /// The pricing profile the operator assigned to this merchant.
+    ///
+    /// Resolved inside Core, from the merchant's own record. There is no payout
+    /// request field for it and there must not be: a caller that could name its
+    /// profile could name its tariff.
+    async fn pricing_profile_for_merchant(
+        &self,
+        merchant_id: banzami_types::MerchantId,
+    ) -> Result<Option<String>, PayoutError>;
     /// Persist the pricing decision for a payout, at the moment it is decided.
     ///
     /// `payouts` used to record `amount_minor` and nothing else, so explaining
@@ -208,6 +217,23 @@ impl PayoutRepository for PostgresPayoutRepository {
             .await?
         };
         rows.into_iter().map(row_to_payout).collect()
+    }
+
+    async fn pricing_profile_for_merchant(
+        &self,
+        merchant_id: banzami_types::MerchantId,
+    ) -> Result<Option<String>, PayoutError> {
+        let code: Option<String> = sqlx::query_scalar(
+            "SELECT p.code
+               FROM merchants m
+               JOIN pricing_profiles p ON p.id = m.pricing_profile_id
+              WHERE m.id = $1 AND p.enabled",
+        )
+        .bind(merchant_id.as_uuid())
+        .fetch_optional(&self.pool)
+        .await?
+        .flatten();
+        Ok(code)
     }
 
     async fn record_pricing(

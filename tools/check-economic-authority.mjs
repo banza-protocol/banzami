@@ -122,34 +122,64 @@ for (const [file, surface] of FEE_PATH_HANDLERS) {
     : ok(`${surface.padEnd(38)} no label-derived category in the fee path`);
 }
 
-// ── 4. a missing rule must refuse, not resolve to zero ─────────────────────
+// ── 4. capture must not resolve pricing at all ─────────────────────────────
 //
-// The root instance. `resolve` reports fee 0 with rule_id = None when nothing
-// matched, which is indistinguishable in a ledger from a rule that decides zero.
-// Every money-moving caller has to tell them apart at the point money moves.
-const FEE_BEARING = [
-  ['core/transactions/src/engine.rs', 'PricingNotConfigured', 'capture'],
-  ['core/app-settlement/src/engine.rs', 'PricingNotConfigured', 'settlement'],
-];
-
-for (const [file, marker, op] of FEE_BEARING) {
-  if (!existsSync(file)) { bad(`${file} is missing — cannot verify ${op} refuses`); continue; }
-  const src = readFileSync(file, 'utf8');
-  const guards = src.includes('rule_id.is_none()') && src.includes(marker);
-  guards
-    ? ok(`${op.padEnd(38)} refuses when no rule applies`)
-    : bad(`${op} does not refuse an absent pricing decision — an unmatched rule would move money for free`);
+// Under the confirmed economic model a payment or donation credits the merchant
+// wallet GROSS. Capture is not fee-bearing, and this is asserted as ABSENCE OF
+// THE DEPENDENCY rather than as "capture refuses correctly": a crate that
+// cannot see the Pricing Engine cannot accidentally start consulting it, and no
+// explicit 0-bps capture rule can quietly reintroduce the behaviour.
+const CAPTURE_MANIFEST = 'core/transactions/Cargo.toml';
+if (existsSync(CAPTURE_MANIFEST)) {
+  const toml = readFileSync(CAPTURE_MANIFEST, 'utf8');
+  /^\s*banzami-pricing\s*=/m.test(toml)
+    ? bad('core/transactions depends on banzami-pricing again — capture left operator pricing in V2 and a payment must credit the wallet gross')
+    : ok('capture                                 resolves no pricing at all');
 }
 
-// payouts is mid-cutover by design: the rule is seeded (0108) and gated
-// (check-pricing-assignment.mjs) before the refusal lands, because refusing
-// first would turn a revenue leak into a customer-facing outage.
+// ── 5. the fee-bearing operations resolve deterministically ────────────────
+//
+// V2 replaced "resolve, then check whether a rule id came back" with a typed
+// result: no operation, no rule, or more than one. The old shape ranked
+// candidates by counting non-null matchers and broke ties by comparing UUIDs —
+// deterministic, and economically arbitrary.
+//
+// Each fee-bearing engine must name its operation and handle BOTH failures.
+// Handling only one is how ambiguity would quietly become "not configured", and
+// an operator would go looking for a missing rule that is not missing.
+const FEE_BEARING = [
+  ['core/app-settlement/src/engine.rs', 'PricingOperation::Settlement', 'settlement'],
+  ['core/payouts/src/engine.rs', 'PricingOperation::Payout', 'payout'],
+];
+
+for (const [file, operation, label] of FEE_BEARING) {
+  if (!existsSync(file)) { bad(`${file} is missing — cannot verify ${label}`); continue; }
+  const src = readFileSync(file, 'utf8');
+  const problems = [];
+  if (!src.includes('resolve_for_operation')) {
+    problems.push('does not use the deterministic resolver');
+  }
+  if (!src.includes(operation)) {
+    problems.push(`does not name its operation (${operation})`);
+  }
+  if (!src.includes('PricingFailure::Ambiguous')) {
+    problems.push('does not handle an ambiguous configuration');
+  }
+  problems.length
+    ? bad(`${label} ${problems.join('; ')}`)
+    : ok(`${label.padEnd(38)} names its operation and refuses 0 or >1 rules`);
+}
+
+// Payout's MISSING-rule refusal is the one piece deliberately still pending:
+// the completeness gate must first prove on the deployed Sandbox that it would
+// refuse nothing legitimate. Ambiguity already refuses, because there is no
+// cutover risk in refusing a configuration that should not exist.
 const PAYOUTS = 'core/payouts/src/engine.rs';
 if (existsSync(PAYOUTS)) {
-  const refuses = readFileSync(PAYOUTS, 'utf8').includes('rule_id.is_none()');
+  const refuses = readFileSync(PAYOUTS, 'utf8').includes('PayoutError::PricingNotConfigured)');
   console.log(refuses
-    ? '  ✓ withdrawal                             refuses when no rule applies'
-    : '  · withdrawal                             still resolves zero when no rule applies — cutover in progress, see docs/audit/2026-09-07-pricing-indirect-authority.md');
+    ? '  ✓ withdrawal                             refuses a missing rule'
+    : '  · withdrawal                             still resolves zero when no rule applies — cutover pending the completeness gate, by design');
 }
 
 console.log();

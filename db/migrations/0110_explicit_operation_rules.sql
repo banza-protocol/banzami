@@ -145,11 +145,29 @@ SELECT gen_random_uuid(), 'sandbox-donation-200-payout', 1, 'SANDBOX', true,
 -- Found by the payout integration suite: the bank leg carried the gross instead
 -- of the net, because the fee resolved to zero. Which is the resolver being
 -- right and the migration being incomplete.
+-- It is superseded rather than relabelled.
+--
+-- Naming its operation was the first instinct and it created a collision the
+-- completeness gate caught immediately: a rule with no profile prices EVERY
+-- profile, so sandbox-reference would have had two applicable PAYOUT rules —
+-- its own, and this one. That is precisely the ambiguity the model now refuses,
+-- introduced by the migration meant to remove ambiguity.
+--
+-- So its effective window is CLOSED instead. The rule is not deleted and not
+-- disabled: it was genuinely in force until this moment, and a payout priced by
+-- it must stay explicable. Closing the window is the truthful record — in force
+-- until here, superseded by the per-profile rules from here.
+--
+-- The per-profile rules open at the same instant, so there is no interval in
+-- which a withdrawal resolves nothing.
 UPDATE pricing_rules
-   SET pricing_operation = 'PAYOUT'
+   SET effective_to = now(),
+       description  = COALESCE(description, '')
+                      || ' Superseded by the per-profile PAYOUT rules (0110); window closed rather than deleted so payouts priced by it stay explicable.'
  WHERE environment = 'SANDBOX'
    AND transaction_type = 'wallet_withdrawal'
-   AND pricing_operation IS NULL;
+   AND pricing_operation IS NULL
+   AND effective_to IS NULL;
 
 -- ── overlap prevention ─────────────────────────────────────────────────────
 --

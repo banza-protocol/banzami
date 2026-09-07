@@ -50,16 +50,28 @@ const CASES = [
     expect: 'label-derived category is reaching a fee path',
   },
   {
-    name: 'capture no longer refusing an absent decision',
-    file: 'core/transactions/src/engine.rs',
-    mutate: (s) => s.replace('resolution.snapshot.rule_id.is_none()', 'false'),
-    expect: 'capture does not refuse an absent pricing decision',
+    name: 'capture consulting the Pricing Engine again',
+    file: 'core/transactions/Cargo.toml',
+    mutate: (s) => s.replace(/(\[dependencies\])/, '$1\nbanzami-pricing = { path = "../pricing" }'),
+    expect: 'depends on banzami-pricing again',
   },
   {
-    name: 'settlement no longer refusing an absent decision',
+    name: 'settlement back on the ranking resolver',
     file: 'core/app-settlement/src/engine.rs',
-    mutate: (s) => s.replace('resolution.snapshot.rule_id.is_none()', 'false'),
-    expect: 'settlement does not refuse an absent pricing decision',
+    mutate: (s) => s.replace('resolve_for_operation', 'resolve_by_ranking'),
+    expect: 'settlement does not use the deterministic resolver',
+  },
+  {
+    name: 'settlement no longer naming its operation',
+    file: 'core/app-settlement/src/engine.rs',
+    mutate: (s) => s.replace('PricingOperation::Settlement', 'PricingOperation::Payout'),
+    expect: 'does not name its operation',
+  },
+  {
+    name: 'payout ignoring an ambiguous configuration',
+    file: 'core/payouts/src/engine.rs',
+    mutate: (s) => s.replace('PricingFailure::Ambiguous', 'PricingFailure::NeverHappens'),
+    expect: 'does not handle an ambiguous configuration',
   },
 ];
 

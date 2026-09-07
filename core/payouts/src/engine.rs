@@ -120,7 +120,11 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
     /// Ambiguity, however, refuses NOW. There is no cutover risk in refusing a
     /// configuration that should not exist and that the database's unique index
     /// prevents from being created.
-    async fn resolve_withdrawal_fee(&self, gross: Money) -> Result<WithdrawalPricing, PayoutError> {
+    async fn resolve_withdrawal_fee(
+        &self,
+        gross: Money,
+        merchant_id: banzami_types::MerchantId,
+    ) -> Result<WithdrawalPricing, PayoutError> {
         let rules = self
             .pricing
             .load_rules(&self.environment)
@@ -130,7 +134,15 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             amount_minor: gross.amount_minor(),
             currency: gross.currency,
             business_category: BusinessCategory::Other(String::new()),
-            pricing_profile: None,
+            // The merchant's assigned plan, read from its own record inside
+            // Core. It used to be None, which was fine while one network-wide
+            // rule priced every withdrawal; with per-profile PAYOUT rules a
+            // profile-pinned rule cannot price an owner that names none.
+            pricing_profile: self
+                .repo
+                .pricing_profile_for_merchant(merchant_id)
+                .await?
+                .map(|c| banzami_pricing::PricingProfile::from_code(&c)),
             fee_policy_ref: None,
             country: None,
             transaction_type: Some(WITHDRAWAL_TX_TYPE.to_string()),
@@ -204,7 +216,9 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         available_account_id: banzami_types::AccountId,
     ) -> Result<banzami_ledger::LedgerPosting, PayoutError> {
         let gross = payout.amount;
-        let pricing = self.resolve_withdrawal_fee(gross).await?;
+        let pricing = self
+            .resolve_withdrawal_fee(gross, payout.merchant_id)
+            .await?;
         let fee_minor = pricing.fee_minor;
 
         // Persist the decision before the money moves, so a completed payout can
@@ -673,6 +687,15 @@ mod tests {
     }
 
     impl PayoutRepository for MockPayoutRepo {
+        // The unit tests build their own rules, unpinned, so no profile is
+        // needed to match them. The real-DB suite exercises the lookup.
+        async fn pricing_profile_for_merchant(
+            &self,
+            _merchant_id: banzami_types::MerchantId,
+        ) -> Result<Option<String>, PayoutError> {
+            Ok(None)
+        }
+
         // The unit tests here assert the resolver's arithmetic and the ledger
         // legs; persistence is exercised by the real-DB suite. Recording is a
         // no-op rather than a panic so a test that does not care about the

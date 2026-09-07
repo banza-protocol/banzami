@@ -111,10 +111,20 @@ async fn seed_business_account(pool: &PgPool, account_type: &str, kyb: &str) -> 
     (mid, avail)
 }
 
+/// Seed a SETTLEMENT rule.
+///
+/// It names its operation, because under the V2 resolver a rule that does not
+/// applies to nothing rather than to everything — which is what stops a future
+/// fee-bearing operation inheriting a rate nobody chose for it. Without the
+/// operation this test got a 409 PRICING_NOT_CONFIGURED, correctly.
+///
+/// No profile, so it prices every profile: this route test is about the HTTP
+/// contract, not about which owner is on which plan.
 async fn seed_rule(pool: &PgPool, category: &str, bps: i32) {
     sqlx::query(
-        "INSERT INTO pricing_rules (id, rule_key, business_category, rate_bps, environment)
-         VALUES ($1, $2, $3, $4, 'SANDBOX')",
+        "INSERT INTO pricing_rules
+           (id, rule_key, business_category, rate_bps, environment, pricing_operation)
+         VALUES ($1, $2, $3, $4, 'SANDBOX', 'SETTLEMENT')",
     )
     .bind(Uuid::new_v4())
     .bind(format!("rule-{category}"))
