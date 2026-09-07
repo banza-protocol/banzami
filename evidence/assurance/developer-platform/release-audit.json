@@ -1,0 +1,59 @@
+{
+  "artefact": "developer-platform-release-audit",
+  "date": "2026-09-07",
+  "status": "CORRECTED TWICE. Both of my earlier verdicts were wrong. This is the accurate one.",
+
+  "verdicts_I_got_wrong": [
+    {
+      "claimed": "DEVELOPER PLATFORM KEY LIFECYCLE = NOT RELEASED",
+      "actual": "The public API is deployed at developer-api.banzami.com. I probed /v1/... on sandbox-api.banzami.com — wrong host, wrong prefix — got six 404s, and concluded the lifecycle did not exist."
+    },
+    {
+      "claimed": "DEVELOPER CONSOLE = MISSING; apps/ contains no console application",
+      "actual": "The Console is at apps/website/app/developers/ and is deployed. I probed /console, /projects, /keys and /signup on developers.banzami.com. The real routes are /developers/login, /developers/dashboard, /developers/api-keys, /developers/webhooks, /developers/saldos, /developers/transacoes, /developers/logs, /developers/settings, /developers/go-live, /developers/suporte, /developers/docs and /developers/onboarding/{profile,project} — every one of them 200."
+    }
+  ],
+
+  "the_mistake_both_times": "I guessed URLs instead of reading the routing, twice, and reported a conclusion from the guesses. The handler file names its own host in a comment; the Console's release manifest lists every route it serves. Both were in the repository the whole time.",
+
+  "actual_state": {
+    "public_developer_api": {
+      "state": "DEPLOYED",
+      "host": "https://developer-api.banzami.com",
+      "auth": "Account Identity. POST /auth/request-otp returns 200 with the Console origin and sends a real email OTP; /auth/verify, /auth/me, /auth/logout live behind an Origin guard.",
+      "guarded_routes_confirmed_401": ["/workspaces", "/wallet-account-purposes", "/projects/{id}/keys", "/projects/{id}/financial-setup", "/projects/{id}/logs"],
+      "lifecycle_mounted": "workspaces and members and invites; projects; financial setup; API keys create/rotate/revoke; wallet accounts; webhook endpoints, events and deliveries; balances; transactions; logs; refund",
+      "service_layer": "133 exported methods over an existing schema — developer.dev_workspaces, dev_workspace_members, dev_workspace_invites, dev_projects, dev_api_keys, dev_project_business_link, dev_project_sandbox_binding, dev_api_request_logs, audit_events; account_identity.identity_users, identity_sessions, identity_otp_codes"
+    },
+    "developer_console": {
+      "state": "DEPLOYED",
+      "host": "https://developers.banzami.com/developers",
+      "client": "apps/website/lib/developer-api.ts — a typed credentialed client for developer-api.banzami.com. Session is a __Host- HttpOnly cookie the client never reads; CSRF lives in React memory only; no token or secret in localStorage.",
+      "release_manifest": "apps/website/app/developers/console-release-manifest.ts declares ten RELEASED surfaces and three NOT_RELEASED with reasons — customers, status and notifications, each removed rather than faked. A guard test compares the manifest against the navigation and the routes on disk.",
+      "calls_the_public_api_only": "confirmed by inspection: /workspaces, /projects/{id}/{keys,balances,transactions,logs,webhooks,wallet-accounts,financial-setup,refund-capability}, /keys/{id}/rotate, /invites/accept, /wallet-account-purposes. No internal or fixture route."
+    },
+    "external_developer_journey": {
+      "state": "NOT YET PROVEN",
+      "why": "Nobody has run it. It needs a real email OTP, which is the one input this session cannot produce.",
+      "this_is_the_only_remaining_gap": true
+    }
+  },
+
+  "scope_model_read_from_source": {
+    "AllowedScopes": "the closed set a sandbox key may carry",
+    "ClientSafeScopes": "the subset a PUBLISHABLE key may hold — reads only, never money movement, because a publishable key ships inside something a user can read",
+    "EnforcedScopes": "the subset a released Gateway route actually checks. The distinction is load-bearing: the Console's picker once offered eight scopes, every one inert and none of the ones the golden journey needs.",
+    "console_must_not_hardcode": "there is no public endpoint serving this catalogue — /wallet-account-purposes exists for exactly that reason and scopes have no equivalent. Flagged."
+  },
+
+  "what_was_done_and_then_undone": {
+    "project": "6d9e8d13-23dd-4a0d-b158-9724521f5d7a — ARCHIVED",
+    "key": "8a68d114-4556-41a5-8f56-f4c12b7b2e27 — REVOKED, confirmed rejected with 401",
+    "vercel": "BANZAMI_API_KEY and BANZAMI_WEBHOOK_SECRET removed from DOA production",
+    "webhook_endpoint": "d03f2e56-6914-4aeb-a1d1-88cdbbe44bd8 — deleted (204)",
+    "local_secret_files": "deleted",
+    "still_wrong_either_way": "Creating that key through a fixture route was wrong regardless. The Console route existed the whole time, and using it was never blocked by anything except my not having looked."
+  },
+
+  "incidentally_exposed": "supabase projects api-keys printed doa-sandbox's legacy anon and service_role JWTs into the transcript. The anon key is public by design; service_role is privileged and must be treated as exposed. It has no consumer — all three DOA Vercel projects use SUPABASE_SECRET_KEY — so disabling the project's legacy keys breaks nothing. Owner action, Supabase Dashboard."
+}
