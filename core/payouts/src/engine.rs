@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use banzami_ledger::{LedgerEngine, PostingBuilder};
-use banzami_pricing::{BusinessCategory, PricingContext, PricingRuleProvider};
+use banzami_pricing::{PricingContext, PricingRuleProvider};
 use banzami_types::{AccountId, MerchantId, Money, PayoutId};
 use banzami_wallets::WalletRepository;
 
@@ -12,8 +12,11 @@ use crate::{
     WithdrawalPricing,
 };
 
-/// The operator transaction-type this engine prices against (Banzami ADR-031).
-const WITHDRAWAL_TX_TYPE: &str = "wallet_withdrawal";
+// This engine used to price against a transaction-type label,
+// "wallet_withdrawal". It prices against the PAYOUT operation now: a label
+// describes the row that happens to be written, an operation names the economic
+// act being charged for, and only the second is something a rule can be written
+// against without guessing.
 
 // ---------------------------------------------------------------------------
 // Trait
@@ -133,7 +136,6 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         let ctx = PricingContext {
             amount_minor: gross.amount_minor(),
             currency: gross.currency,
-            business_category: BusinessCategory::Other(String::new()),
             // The merchant's assigned plan, read from its own record inside
             // Core. It used to be None, which was fine while one network-wide
             // rule priced every withdrawal; with per-profile PAYOUT rules a
@@ -143,9 +145,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 .pricing_profile_for_merchant(merchant_id)
                 .await?
                 .map(|c| banzami_pricing::PricingProfile::from_code(&c)),
-            fee_policy_ref: None,
             country: None,
-            transaction_type: Some(WITHDRAWAL_TX_TYPE.to_string()),
             // Derived from the operation being executed, never from a caller.
             // There is no payout request field for it and there must not be:
             // choosing your own operation is choosing your own tariff.
@@ -827,15 +827,12 @@ mod tests {
             id: PricingRuleId::new(),
             key: "wallet-withdrawal-standard".into(),
             version: 1,
-            business_category: None,
             // It names its profile for the same reason it names its operation:
             // an unnamed dimension is a wildcard, and a wildcard prices owners
             // whose plan nobody wrote this rate for.
             pricing_profile: Some(banzami_pricing::PricingProfile::from_code(TEST_PROFILE)),
-            fee_policy_ref: None,
             currency: Some(Currency::AOA),
             country: None,
-            transaction_type: Some("wallet_withdrawal".into()),
             operation: Some(banzami_pricing::PricingOperation::Payout),
             rate_bps: bps,
             flat_minor: 0,

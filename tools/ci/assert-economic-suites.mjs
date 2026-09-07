@@ -28,13 +28,13 @@ const log = readFileSync(logPath, 'utf8');
 // PostgreSQL. The comment is the fact the test defends, not a restatement of
 // its name — if a test is renamed, this list should be updated deliberately.
 //
-// It was updated deliberately for Pricing Model V2. The previous list named
+// It was updated deliberately for the canonical pricing model. The previous list named
 // five capture-pricing invariants that were all correct and are all now
 // meaningless: capture left operator pricing entirely, so there is no fee to
 // charge at zero, no rule to be missing, and no fee to reprice. Their
 // replacements assert the contract that took over — capture moves the gross and
 // consults nobody — and the settlement and payout entries gained the ambiguity
-// and snapshot cases V2 introduced.
+// and snapshot cases the model introduced.
 const REQUIRED = [
   // ── capture is NOT fee-bearing ───────────────────────────────────────────
   // A payment credits the merchant wallet gross. The first of these seeds a
@@ -49,8 +49,9 @@ const REQUIRED = [
   'zero_application_fee_net_equals_gross',
   // No applicable rule is the ABSENCE of a decision: it refuses.
   'no_applicable_rule_refuses_settlement',
-  // More than one is a configuration error, refused rather than ranked. This is
-  // the one V1 got wrong by comparing UUIDs.
+  // More than one is a configuration error, refused rather than ranked. The
+  // resolver this replaced ranked candidates by counting non-null matchers and
+  // broke ties on rule id — deterministic, and economically arbitrary.
   'two_applicable_rules_refuse_rather_than_rank',
   // A nonzero rate produces the arithmetically correct fee, balanced.
   'settles_net_and_application_fee_balanced',
@@ -64,6 +65,14 @@ const REQUIRED = [
   // ledger_postings on a derived idempotency key, which is how RA-063 had to be
   // explained.
   'processed_payout_persists_its_pricing_decision',
+
+  // ── nothing is priced by accident ────────────────────────────────────────
+  // The three ways a rule can fail to name what it prices. Each one used to
+  // resolve to a fee rather than a refusal, on one axis or another.
+  'no_rules_at_all_refuses',
+  'another_profiles_rule_does_not_price_this_one',
+  'a_rule_for_another_operation_does_not_apply',
+  'an_unnamed_operation_is_refused',
 ];
 
 const failures = [];

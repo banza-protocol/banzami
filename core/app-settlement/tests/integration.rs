@@ -95,7 +95,7 @@ async fn fund(fx: &Fixture, account_id: AccountId, amount: i64) {
 
 /// Seed a SETTLEMENT rule for a business category.
 ///
-/// It names its operation now, because under the V2 resolver a rule that does
+/// It names its operation, because a rule that does
 /// not is not a wildcard — it applies to nothing. That is the whole point: an
 /// operation-less rule can no longer be inherited by a fee-bearing operation
 /// nobody meant it for.
@@ -344,7 +344,7 @@ async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()>
 
 /// Seed a SETTLEMENT rule pinned to a specific pricing profile.
 ///
-/// Under V2 a rule with no profile prices EVERY profile, so "no applicable
+/// A rule with no profile prices nothing, so "no applicable
 /// rule" cannot be arranged by using a different business category — the
 /// category stopped being a selector. It is arranged the way it actually
 /// happens in production: rules exist, but none of them is for this owner.
@@ -371,7 +371,7 @@ async fn seed_profile_rule(pool: &PgPool, key: &str, profile: &str, rate_bps: i3
 //
 // The earlier version of this test seeded a CROWDFUNDING rule and settled a
 // SPACE_TOURISM category, expecting no match. That worked under V1, where the
-// category selected the rule. Under V2 it does not: the resolver matches on
+// category selected the rule. It does not: the resolver matches on
 // operation and profile, so a category rule with no profile applies to
 // everyone — and the test failed with MissingFeeAccount for a 500 bps fee it
 // did not expect to be charged. Which is the resolver behaving correctly and

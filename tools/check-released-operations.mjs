@@ -6,7 +6,7 @@
  *
  * The wildcard model's failure was that a fee-bearing operation introduced
  * tomorrow inherited today's rate the day it shipped — free under one profile,
- * 200 bps under another, with nobody deciding either. V2 removes that by
+ * 200 bps under another, with nobody deciding either. The model removes that by
  * refusing to price an operation no rule names.
  *
  * But refusing at RUNTIME means the discovery happens in production, on a real

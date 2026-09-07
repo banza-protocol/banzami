@@ -417,7 +417,7 @@
       ]
     },
     {
-      "feature": "pricing-model-v2 operation dimension + payout snapshot (0109 / 0110)",
+      "feature": "pricing model: operation dimension + payout snapshot (0106 / 0107)",
       "why": "A rule must name the fee-bearing operation it prices, and a completed payout must explain its own price without ledger archaeology.",
       "tables": [
         {

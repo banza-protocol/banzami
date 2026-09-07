@@ -38,7 +38,7 @@
 # same net. The differential must be exactly zero — no tenant is special.
 #
 # The profile is `sandbox-reference`, renamed from `sandbox-donation-200` in
-# Pricing Model V2. The old code named a business vertical and a rate; a profile
+# the canonical pricing model. The old code named a business vertical and a rate; a profile
 # names a commercial policy, and its per-operation rules name what that policy
 # charges. The rate here is unchanged — only the identity is stable now.
 set -uo pipefail

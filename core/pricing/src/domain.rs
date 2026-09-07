@@ -184,25 +184,20 @@ pub struct PricingContext {
     /// Gross amount the fee is computed on, in integer minor units. Never float.
     pub amount_minor: i64,
     pub currency: Currency,
-    pub business_category: BusinessCategory,
-    /// Optional commercial tier.
+    /// The owner's assigned commercial policy. Resolved from the financial
+    /// owner's own record, never from a request field.
     pub pricing_profile: Option<PricingProfile>,
-    /// Optional opaque policy handle.
-    pub fee_policy_ref: Option<FeePolicyRef>,
     /// ISO 3166-1 alpha-2 country, e.g. "AO". Optional.
     pub country: Option<String>,
-    /// Operator transaction-type label (e.g. "wallet_transfer", "merchant_payment",
-    /// "wallet_withdrawal"). Reference only — never a price (ADR-031). Optional.
-    ///
-    /// LEGACY, superseded by `operation`. Kept so rules written before V2 keep
-    /// resolving during the cutover.
-    pub transaction_type: Option<String>,
     /// Which fee-bearing operation is being priced.
     ///
     /// A caller that does not say what it is charging for cannot be charged
-    /// correctly, so `None` resolves nothing under the V2 path rather than
-    /// matching everything. That is the whole difference between this and the
-    /// dimension it replaces.
+    /// correctly, so `None` resolves nothing rather than matching everything.
+    ///
+    /// This replaced a free-text `transaction_type` label. That label described
+    /// a transaction ROW, not an economic act, so it could never name a
+    /// settlement — and only the payout path ever set it, which meant a rule
+    /// pinned to it matched nothing and a rule without it matched everything.
     pub operation: Option<PricingOperation>,
     /// The instant resolution is "as of" — caller-supplied so the result is
     /// reproducible. Drives the effective-window match; never `Utc::now()` inside
@@ -311,24 +306,23 @@ pub struct PricingRule {
     /// Monotonic version of THIS rule key; preserved into the snapshot.
     pub version: i32,
 
-    // --- matchers (None = wildcard) ---
-    pub business_category: Option<BusinessCategory>,
+    // --- matchers ---
+    //
+    // A rule prices what it NAMES. `pricing_profile` and `operation` are the two
+    // that decide whether it applies at all, and an enabled rule must carry both
+    // (`pricing_rules_enabled_requires_operation`). Currency and country narrow
+    // further. There is deliberately no business-category matcher and no fee
+    // policy handle: a rate selected by what a merchant wrote about itself, or
+    // by a string a caller passed, is the defect this model was built to remove.
     pub pricing_profile: Option<PricingProfile>,
-    pub fee_policy_ref: Option<String>,
     pub currency: Option<Currency>,
     pub country: Option<String>,
-    /// Operator transaction-type matcher (ADR-031). None = wildcard.
-    ///
-    /// LEGACY. Superseded by `operation` and kept only so rules written before
-    /// V2 keep resolving during the cutover. Nothing new should set it: it
-    /// describes a transaction row rather than an economic act, which is why it
-    /// could never name a settlement.
-    pub transaction_type: Option<String>,
     /// The fee-bearing operation this rule prices.
     ///
-    /// `None` is legacy — a rule from before operations existed, which matches
-    /// any operation and is exactly the wildcard V2 removes. Once every runtime
-    /// rule names its operation, the resolver refuses the ones that do not.
+    /// `None` prices NOTHING, and the database refuses it on an enabled rule.
+    /// The alternative — treating it as "any operation" — is the wildcard that
+    /// lets a future fee-bearing operation inherit a rate written before it
+    /// existed.
     pub operation: Option<PricingOperation>,
 
     // --- fee components (operator policy) ---
@@ -351,18 +345,11 @@ pub struct PricingRule {
     pub effective_to: Option<DateTime<Utc>>,
 }
 
-impl PricingRule {
-    /// Number of non-wildcard matchers — the rule's specificity. The most
-    /// specific matching rule wins (`priority` breaks ties).
-    pub fn specificity(&self) -> u8 {
-        self.business_category.is_some() as u8
-            + self.pricing_profile.is_some() as u8
-            + self.fee_policy_ref.is_some() as u8
-            + self.currency.is_some() as u8
-            + self.country.is_some() as u8
-            + self.transaction_type.is_some() as u8
-    }
-}
+// `specificity()` lived here. It counted non-wildcard matchers so the most
+// specific rule could win, with priority and then rule id breaking ties. Nothing
+// ranks any more: exactly one rule applies, or the operation refuses. Ranking is
+// what made a caller able to outrank an operator's assignment by supplying one
+// more field than the operator had.
 
 /// Immutable audit record of one resolution. Persisted alongside whatever the
 /// fee funds (e.g. an `operator_fee` row) so the number is always reproducible
@@ -378,9 +365,13 @@ pub struct FeeSnapshot {
     pub rule_version: Option<i32>,
 
     // resolved context (echoed for audit)
-    pub business_category: String,
+    //
+    // What is echoed is what DECIDED: the profile the owner was assigned and the
+    // operation being priced. The snapshot used to echo the business category and
+    // a fee policy handle instead, which described how the old resolver chose —
+    // and reading one back told you nothing about why this fee is this number.
     pub pricing_profile: Option<String>,
-    pub fee_policy_ref: Option<String>,
+    pub pricing_operation: Option<String>,
     pub currency: String,
     pub country: Option<String>,
     pub amount_minor: i64,

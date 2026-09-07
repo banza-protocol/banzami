@@ -13,9 +13,7 @@ use sqlx::{PgPool, Row};
 
 use banzami_types::{Currency, PricingRuleId};
 
-use crate::domain::{
-    BusinessCategory, PricingOperation, PricingProfile, PricingRule, RoundingMode,
-};
+use crate::domain::{PricingOperation, PricingProfile, PricingRule, RoundingMode};
 use crate::PricingError;
 
 /// Loads the operator's active pricing rules for an environment. Implemented by
@@ -75,13 +73,9 @@ impl PricingRuleProvider for PostgresPricingRuleProvider {
                 id: PricingRuleId::from_uuid(row.try_get("id")?),
                 key: row.try_get("rule_key")?,
                 version: row.try_get("version")?,
-                business_category: row
-                    .try_get::<Option<String>, _>("business_category")?
-                    .map(|s| BusinessCategory::from_code(&s)),
                 pricing_profile: row
                     .try_get::<Option<String>, _>("pricing_profile")?
                     .map(|s| PricingProfile::from_code(&s)),
-                fee_policy_ref: row.try_get("fee_policy_ref")?,
                 currency: match currency {
                     Some(c) => Some(
                         Currency::from_code(&c)
@@ -90,8 +84,7 @@ impl PricingRuleProvider for PostgresPricingRuleProvider {
                     None => None,
                 },
                 country: row.try_get("country")?,
-                transaction_type: row.try_get("transaction_type")?,
-                // An unrecognised operation resolves to None, which under the V2
+                // An unrecognised operation resolves to None, which under the
                 // path means the rule applies to nothing — not to everything.
                 // A rule naming an operation this build does not know is a rule
                 // this build must not apply.

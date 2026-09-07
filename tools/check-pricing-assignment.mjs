@@ -198,7 +198,7 @@ const wildcards = q(`
 
 if (wildcards.length > 0) {
   console.log(`\n  · ${wildcards.length} legacy wildcard-operation rule(s) still present: ${wildcards.join(', ')}`);
-  console.log('    They satisfy no requirement above and the V2 resolver ignores them. Retire them once nothing reads the legacy path.');
+  console.log('    They satisfy no requirement above and the resolver ignores them. Retire them once nothing reads the legacy path.');
 }
 
 console.log();

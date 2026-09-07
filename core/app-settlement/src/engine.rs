@@ -10,9 +10,7 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use banzami_ledger::{LedgerEngine, PostingBuilder};
-use banzami_pricing::{
-    BusinessCategory, FeePolicyRef, PricingContext, PricingProfile, PricingRuleProvider,
-};
+use banzami_pricing::{PricingContext, PricingProfile, PricingRuleProvider};
 use banzami_types::{ApplicationSettlementId, Money};
 
 use crate::domain::{
@@ -175,18 +173,11 @@ where
                 let ctx = PricingContext {
                     amount_minor: gross_minor,
                     currency,
-                    business_category: req
-                        .business_category
-                        .as_deref()
-                        .map(BusinessCategory::from_code)
-                        .unwrap_or_else(|| BusinessCategory::Other(String::new())),
                     pricing_profile: req
                         .pricing_profile
                         .as_deref()
                         .map(PricingProfile::from_code),
-                    fee_policy_ref: req.fee_policy_ref.clone().map(FeePolicyRef::new),
                     country: None,
-                    transaction_type: None,
                     // Named explicitly. This is the dimension the model was
                     // missing: before it, a settlement and a capture were the
                     // same thing to the resolver, so no rule could price one

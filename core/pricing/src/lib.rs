@@ -5,7 +5,7 @@
 //! (`BusinessCategory`, `PricingProfile`, `FeePolicyRef`) and the resolved
 //! `fee_minor`; the numbers behind them are operator policy and never leave here.
 //!
-//! - [`engine::resolve`] is pure and deterministic: `(rules, context) ->
+//! - [`engine::resolve_for_operation`] is pure and deterministic: `(rules, context) ->
 //!   fee_minor + audit snapshot`. No clock, no I/O, no float.
 //! - [`repository`] loads the operator's active rule set from the `pricing_rules`
 //!   table (migration 0070) and hands it to the engine.
@@ -31,7 +31,7 @@ pub use domain::{
     BusinessCategory, FeePolicyRef, FeeResolution, FeeSnapshot, PricingContext, PricingOperation,
     PricingProfile, PricingRule, RoundingMode,
 };
-pub use engine::{resolve, resolve_for_operation, PricingFailure, ENGINE_VERSION};
+pub use engine::{resolve_for_operation, PricingFailure, ENGINE_VERSION};
 pub use repository::{PostgresPricingRuleProvider, PricingRuleProvider};
 
 use thiserror::Error;

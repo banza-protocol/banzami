@@ -133,13 +133,13 @@ const CAPTURE_MANIFEST = 'core/transactions/Cargo.toml';
 if (existsSync(CAPTURE_MANIFEST)) {
   const toml = readFileSync(CAPTURE_MANIFEST, 'utf8');
   /^\s*banzami-pricing\s*=/m.test(toml)
-    ? bad('core/transactions depends on banzami-pricing again — capture left operator pricing in V2 and a payment must credit the wallet gross')
+    ? bad('core/transactions depends on banzami-pricing again — capture left operator pricing and a payment must credit the wallet gross')
     : ok('capture                                 resolves no pricing at all');
 }
 
 // ── 5. the fee-bearing operations resolve deterministically ────────────────
 //
-// V2 replaced "resolve, then check whether a rule id came back" with a typed
+// The model replaced "resolve, then check whether a rule id came back" with a typed
 // result: no operation, no rule, or more than one. The old shape ranked
 // candidates by counting non-null matchers and broke ties by comparing UUIDs —
 // deterministic, and economically arbitrary.

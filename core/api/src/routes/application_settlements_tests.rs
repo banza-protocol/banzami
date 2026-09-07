@@ -113,7 +113,7 @@ async fn seed_business_account(pool: &PgPool, account_type: &str, kyb: &str) -> 
 
 /// Seed a SETTLEMENT rule.
 ///
-/// It names its operation, because under the V2 resolver a rule that does not
+/// It names its operation, because a rule that does not
 /// applies to nothing rather than to everything — which is what stops a future
 /// fee-bearing operation inheriting a rate nobody chose for it. Without the
 /// operation this test got a 409 PRICING_NOT_CONFIGURED, correctly.
