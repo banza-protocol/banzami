@@ -103,11 +103,11 @@ if (zeroColumnExists) {
                    where environment = 'SANDBOX' and enabled
                      and pricing_profile = 'sandbox-default'`);
   zero === '0'
-    ? ok('sandbox-default is an EXPLICIT zero rule, not the absence of one (pre-0109 shape)')
+    ? ok('sandbox-default is an EXPLICIT zero rule, not the absence of one (pre-operation-dimension shape)')
     : bad(`sandbox-default rate is "${zero.replace(/\n/g, ',')}" — the explicit zero is missing`);
 }
 
-// ── completeness v2: every profile × every required operation ──────────────
+// ── completeness: every profile × every required operation ─────────────────
 //
 // The old check asked "does this owner have SOME applicable rule". That is the
 // question the wildcard model made sense of, and it is the wrong one: a single
@@ -140,7 +140,7 @@ const hasOperation = q(`
    where table_name = 'pricing_rules' and column_name = 'pricing_operation'`) === '1';
 
 if (!hasOperation) {
-  console.log('  · this database predates the operation dimension (migration 0109).');
+  console.log('  · this database predates the operation dimension (migration 0106).');
   console.log('    Per-operation completeness cannot be checked yet, and nothing is wrong:');
   console.log('    the deployed resolver does not use it either. Apply the migration first —');
   console.log('    docs/runbooks/sandbox-pricing-bootstrap.md — then run this again.');
@@ -160,12 +160,22 @@ const assigned = q(`
    where m.status = 'ACTIVE' and pp.enabled
    order by pp.code`).split('\n').filter(Boolean);
 
-if (assigned.length === 0) bad('no active owner is assigned any pricing profile');
+// An empty operator and an operator whose owners are all unpriced are the same
+// row count and completely different facts — the distinction this whole model
+// exists to keep. A freshly reset Sandbox legitimately has nobody on it yet.
+const activeOwners = Number(q("select count(*) from merchants where status = 'ACTIVE'"));
+if (assigned.length === 0) {
+  if (activeOwners === 0) {
+    console.log('  · no financial owners exist yet — nothing to price, and nothing missing');
+  } else {
+    bad(`${activeOwners} active financial owners exist and none is assigned a pricing profile`);
+  }
+}
 
 for (const profile of assigned) {
   for (const op of REQUIRED_OPERATIONS) {
-    // Mirrors the resolver: operation must match exactly, and a rule with no
-    // profile prices every profile. Nothing else participates.
+    // Mirrors the resolver: the operation and the profile must both match
+    // exactly. Nothing else participates, and nothing is a wildcard.
     const rows = q(`
       select rule_key, rate_bps
         from pricing_rules
