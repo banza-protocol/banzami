@@ -346,6 +346,16 @@ jobs:
           node tools/check-economic-authority.mjs
           node tools/check-economic-authority.selftest.mjs
 
+      # A new fee-bearing operation cannot ship without a policy.
+      #
+      # The wildcard model's failure was that an operation introduced tomorrow
+      # inherited today's rate the day it shipped. V2 refuses to price an
+      # operation no rule names — but refusing at runtime means discovering it
+      # in production, on a real withdrawal. This moves the discovery to CI: the
+      # enum, the database constraint and the completeness gate must agree.
+      - name: Released fee-bearing operations
+        run: node tools/check-released-operations.mjs
+
       # Every harness that mints operator authority must be able to give it
       # back. This is the static half — sources the cleanup library, records
       # what it creates, does not install a second EXIT trap that would replace

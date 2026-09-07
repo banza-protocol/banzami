@@ -292,7 +292,7 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+.PHONY: check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-released-operations check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
@@ -310,6 +310,12 @@ check-pricing-consumers:
 check-economic-authority:
 	node tools/check-economic-authority.mjs
 	node tools/check-economic-authority.selftest.mjs
+
+# A new fee-bearing operation is a new place this operator charges money. The
+# enum, the database constraint and the completeness gate must agree, so adding
+# a variant alone fails here rather than at runtime on a real withdrawal.
+check-released-operations:
+	node tools/check-released-operations.mjs
 
 # Static half of the E2E fixture-hygiene gate. The dynamic half needs the
 # deployed Sandbox: tests/phase0/fixture-hygiene-suite.sh, run by the operator.
