@@ -68,6 +68,18 @@ pub enum ApplicationSettlementError {
     #[error("no pricing rule applies to this settlement")]
     PricingNotConfigured,
 
+    /// More than one rule applies, and choosing between them would be guessing.
+    ///
+    /// Its own variant, and a REFUSAL, because the alternative is what the V1
+    /// resolver did: rank candidates by counting non-null matchers and break
+    /// ties by comparing UUIDs. Deterministic, and economically arbitrary. A
+    /// financial tie is a configuration error someone has to resolve, not a
+    /// choice for whichever identifier sorts first.
+    #[error(
+        "{candidates} pricing rules apply to this settlement — the configuration is ambiguous"
+    )]
+    PricingAmbiguous { candidates: usize },
+
     #[error("pricing error: {0}")]
     Pricing(String),
 

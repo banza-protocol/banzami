@@ -13,7 +13,9 @@ use sqlx::{PgPool, Row};
 
 use banzami_types::{Currency, PricingRuleId};
 
-use crate::domain::{BusinessCategory, PricingProfile, PricingRule, RoundingMode};
+use crate::domain::{
+    BusinessCategory, PricingOperation, PricingProfile, PricingRule, RoundingMode,
+};
 use crate::PricingError;
 
 /// Loads the operator's active pricing rules for an environment. Implemented by
@@ -53,6 +55,7 @@ impl PricingRuleProvider for PostgresPricingRuleProvider {
             SELECT id, rule_key, version,
                    business_category, pricing_profile, fee_policy_ref, currency, country,
                    transaction_type,
+                   pricing_operation,
                    rate_bps, flat_minor, min_fee_minor, max_fee_minor, rounding,
                    priority, effective_from, effective_to
               FROM pricing_rules
@@ -88,6 +91,14 @@ impl PricingRuleProvider for PostgresPricingRuleProvider {
                 },
                 country: row.try_get("country")?,
                 transaction_type: row.try_get("transaction_type")?,
+                // An unrecognised operation resolves to None, which under the V2
+                // path means the rule applies to nothing — not to everything.
+                // A rule naming an operation this build does not know is a rule
+                // this build must not apply.
+                operation: row
+                    .try_get::<Option<String>, _>("pricing_operation")?
+                    .as_deref()
+                    .and_then(PricingOperation::from_code),
                 rate_bps: rate_bps as u32,
                 flat_minor: row.try_get("flat_minor")?,
                 min_fee_minor: row.try_get("min_fee_minor")?,

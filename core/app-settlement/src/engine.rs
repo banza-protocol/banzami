@@ -187,19 +187,34 @@ where
                     fee_policy_ref: req.fee_policy_ref.clone().map(FeePolicyRef::new),
                     country: None,
                     transaction_type: None,
+                    // Named explicitly. This is the dimension the model was
+                    // missing: before it, a settlement and a capture were the
+                    // same thing to the resolver, so no rule could price one
+                    // without pricing the other.
+                    operation: Some(banzami_pricing::PricingOperation::Settlement),
                     as_of: Utc::now(),
                 };
-                let resolution = banzami_pricing::resolve(&rules, &ctx);
-
-                // Same refusal as capture, for the same reason. `resolve` reports
-                // a fee of 0 with no rule id when nothing matched, which in a
-                // ledger is indistinguishable from an operator policy of zero —
-                // and one of those is a decision while the other is nobody
-                // having made one. An explicit 0-bps rule settles at zero; an
-                // absent decision does not settle.
-                if resolution.snapshot.rule_id.is_none() {
-                    return Err(ApplicationSettlementError::PricingNotConfigured);
-                }
+                // The deterministic path: one operation, one profile, one
+                // effective window, exactly one rule.
+                //
+                // This used to call `resolve`, which returned a fee of 0 with no
+                // rule id when nothing matched — a number indistinguishable in a
+                // ledger from an operator policy of zero. The refusal was then
+                // reconstructed by the caller from that sentinel. Now the three
+                // outcomes are three outcomes: nobody said which operation,
+                // nobody configured a rule, or more than one applies.
+                let resolution =
+                    banzami_pricing::resolve_for_operation(&rules, &ctx).map_err(|e| match e {
+                        banzami_pricing::PricingFailure::Ambiguous { candidates } => {
+                            ApplicationSettlementError::PricingAmbiguous { candidates }
+                        }
+                        // A settlement always names its operation, so
+                        // OperationNotSpecified would be a bug in this crate
+                        // rather than a configuration state — it is reported as
+                        // "not configured" because from the operator's side
+                        // that is the actionable half.
+                        _ => ApplicationSettlementError::PricingNotConfigured,
+                    })?;
                 let snapshot = serde_json::to_value(&resolution.snapshot).map_err(|e| {
                     ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))
                 })?;

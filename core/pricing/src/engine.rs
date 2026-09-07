@@ -152,6 +152,158 @@ fn select_rule<'a>(rules: &'a [PricingRule], ctx: &PricingContext) -> Option<&'a
 /// The sentinel stays here rather than becoming an `Option`, because pure
 /// resolution genuinely has no opinion about what an absent decision should
 /// cost. Deciding that is the money-moving caller's job, and each one now does.
+/// Why a V2 resolution produced no fee.
+///
+/// The whole point of V2 is that these are different facts. Before it, all
+/// three collapsed into "fee 0 with no rule id", and every money-moving caller
+/// had to re-derive the distinction from a sentinel.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PricingFailure {
+    /// The caller did not say which operation it was pricing. A caller that
+    /// cannot name what it is charging for must not be given a number.
+    OperationNotSpecified,
+    /// No rule applies. Someone has to configure one; this is not zero.
+    NotConfigured,
+    /// More than one rule applies, and choosing between them would be guessing.
+    ///
+    /// The V1 resolver ranked candidates by counting non-null matchers and broke
+    /// ties by comparing UUIDs — deterministic, and economically arbitrary. A
+    /// financial tie is a configuration error, not something to settle by
+    /// which identifier sorts first.
+    Ambiguous { candidates: usize },
+}
+
+/// Resolve the fee for a fee-bearing operation. **This is the V2 path.**
+///
+/// Deterministic by construction: a rule applies when it names this exact
+/// operation, this exact profile, and its effective window contains `as_of`.
+/// There is no ranking, no specificity, and no tiebreak, because there is
+/// nothing to rank — the database carries a unique index on
+/// `(environment, profile, operation)` among enabled open-ended rules, so more
+/// than one applying is a broken configuration rather than a choice.
+///
+///   0 rules -> `NotConfigured`
+///   1 rule  -> apply it
+///  >1 rules -> `Ambiguous`, refused
+///
+/// Legacy rules — those with no operation — are deliberately NOT eligible.
+/// Treating an operation-less rule as a wildcard is precisely the behaviour
+/// being removed: it is what would make a fee-bearing operation introduced
+/// tomorrow inherit today's rate without anyone deciding.
+pub fn resolve_for_operation(
+    rules: &[PricingRule],
+    ctx: &PricingContext,
+) -> Result<FeeResolution, PricingFailure> {
+    let Some(operation) = ctx.operation else {
+        return Err(PricingFailure::OperationNotSpecified);
+    };
+
+    let applicable: Vec<&PricingRule> = rules
+        .iter()
+        .filter(|r| r.operation == Some(operation))
+        .filter(|r| match (&r.pricing_profile, &ctx.pricing_profile) {
+            (Some(rule_profile), Some(ctx_profile)) => rule_profile == ctx_profile,
+            // A rule with no profile prices every profile. That is legitimate
+            // for an operation charged at one rate network-wide, which is what
+            // the deployed withdrawal rate is.
+            (None, _) => true,
+            // A rule pinned to a profile cannot apply when the caller named no
+            // profile — otherwise one owner's plan would price another's.
+            (Some(_), None) => false,
+        })
+        .filter(|r| window_contains(r, ctx.as_of))
+        .collect();
+
+    match applicable.len() {
+        0 => Err(PricingFailure::NotConfigured),
+        1 => Ok(apply_rule(applicable[0], ctx)),
+        n => Err(PricingFailure::Ambiguous { candidates: n }),
+    }
+}
+
+fn window_contains(rule: &PricingRule, as_of: chrono::DateTime<chrono::Utc>) -> bool {
+    rule.effective_from <= as_of && rule.effective_to.is_none_or(|to| as_of < to)
+}
+
+/// Compute the fee a rule produces for a context, and snapshot the decision.
+///
+/// ONE implementation, shared by both resolution paths. The V1 `resolve` and
+/// the V2 `resolve_for_operation` differ in how they CHOOSE a rule and in
+/// nothing else — extracting this is what makes that true rather than
+/// aspirational. A second copy is how "one rate and one base give one
+/// deterministic fee" quietly stops holding.
+fn apply_rule(rule: &PricingRule, ctx: &PricingContext) -> FeeResolution {
+    let pct = apply_bps(ctx.amount_minor, rule.rate_bps, rule.rounding);
+    // A flat component applies only to value that actually moves.
+    let flat = if ctx.amount_minor > 0 {
+        rule.flat_minor
+    } else {
+        0
+    };
+    let mut fee = pct.saturating_add(flat);
+
+    if let Some(min) = rule.min_fee_minor {
+        if fee < min {
+            fee = min;
+        }
+    }
+    if let Some(max) = rule.max_fee_minor {
+        if fee > max {
+            fee = max;
+        }
+    }
+    if fee < 0 {
+        fee = 0;
+    }
+
+    snapshot_of(
+        ctx,
+        fee,
+        Some(rule),
+        rule.rate_bps,
+        rule.flat_minor,
+        rule.min_fee_minor,
+        rule.max_fee_minor,
+        rule.rounding,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn snapshot_of(
+    ctx: &PricingContext,
+    fee_minor: i64,
+    rule: Option<&PricingRule>,
+    rate_bps: u32,
+    flat_minor: i64,
+    min_fee_minor: Option<i64>,
+    max_fee_minor: Option<i64>,
+    rounding: RoundingMode,
+) -> FeeResolution {
+    let snapshot = FeeSnapshot {
+        engine_version: ENGINE_VERSION,
+        rule_id: rule.map(|r| r.id),
+        rule_key: rule.map(|r| r.key.clone()),
+        rule_version: rule.map(|r| r.version),
+        business_category: ctx.business_category.as_str().to_string(),
+        pricing_profile: ctx.pricing_profile.as_ref().map(|p| p.as_str().to_string()),
+        fee_policy_ref: ctx.fee_policy_ref.as_ref().map(|r| r.ref_.clone()),
+        currency: ctx.currency.code().to_string(),
+        country: ctx.country.clone(),
+        amount_minor: ctx.amount_minor,
+        rate_bps,
+        flat_minor,
+        min_fee_minor,
+        max_fee_minor,
+        rounding,
+        fee_minor,
+        resolved_at: ctx.as_of,
+    };
+    FeeResolution {
+        fee_minor,
+        snapshot,
+    }
+}
+
 pub fn resolve(rules: &[PricingRule], ctx: &PricingContext) -> FeeResolution {
     let echoed = |fee_minor: i64,
                   rule: Option<&PricingRule>,

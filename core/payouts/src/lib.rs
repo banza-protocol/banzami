@@ -121,6 +121,24 @@ pub struct CreatePayoutRequest {
 
 #[derive(Debug, Error)]
 pub enum PayoutError {
+    /// No pricing rule applies to this withdrawal.
+    ///
+    /// NOT yet raised. The refusal lands only after the completeness gate proves
+    /// on the deployed Sandbox that every eligible payout has exactly one
+    /// explicit rule — refusing first would turn a revenue leak into a
+    /// customer-facing outage, and this path has already produced the leak once
+    /// (REPAIR_LOG RA-063: one 80 000 withdrawal, 73 seconds before the rule
+    /// existed).
+    #[error("no pricing rule applies to this withdrawal")]
+    PricingNotConfigured,
+
+    /// More than one rule applies. A financial tie is a configuration error,
+    /// never something to settle by comparing identifiers.
+    #[error(
+        "{candidates} pricing rules apply to this withdrawal — the configuration is ambiguous"
+    )]
+    PricingAmbiguous { candidates: usize },
+
     #[error("payout not found: {0}")]
     NotFound(PayoutId),
 

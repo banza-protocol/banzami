@@ -28,10 +28,10 @@ pub use catalog::{
 };
 
 pub use domain::{
-    BusinessCategory, FeePolicyRef, FeeResolution, FeeSnapshot, PricingContext, PricingProfile,
-    PricingRule, RoundingMode,
+    BusinessCategory, FeePolicyRef, FeeResolution, FeeSnapshot, PricingContext, PricingOperation,
+    PricingProfile, PricingRule, RoundingMode,
 };
-pub use engine::{resolve, ENGINE_VERSION};
+pub use engine::{resolve, resolve_for_operation, PricingFailure, ENGINE_VERSION};
 pub use repository::{PostgresPricingRuleProvider, PricingRuleProvider};
 
 use thiserror::Error;

@@ -228,6 +228,9 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
             fee_policy_ref: tx.fee_policy_ref.clone().map(FeePolicyRef::new),
             country: None,
             transaction_type: None,
+            // None on purpose: capture is not a fee-bearing operation under the
+            // confirmed economic model, and this whole block is being removed.
+            operation: None,
             as_of: Utc::now(),
         };
         let resolution = banzami_pricing::resolve(&rules, &ctx);

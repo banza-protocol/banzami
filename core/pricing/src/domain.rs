@@ -193,7 +193,17 @@ pub struct PricingContext {
     pub country: Option<String>,
     /// Operator transaction-type label (e.g. "wallet_transfer", "merchant_payment",
     /// "wallet_withdrawal"). Reference only — never a price (ADR-031). Optional.
+    ///
+    /// LEGACY, superseded by `operation`. Kept so rules written before V2 keep
+    /// resolving during the cutover.
     pub transaction_type: Option<String>,
+    /// Which fee-bearing operation is being priced.
+    ///
+    /// A caller that does not say what it is charging for cannot be charged
+    /// correctly, so `None` resolves nothing under the V2 path rather than
+    /// matching everything. That is the whole difference between this and the
+    /// dimension it replaces.
+    pub operation: Option<PricingOperation>,
     /// The instant resolution is "as of" — caller-supplied so the result is
     /// reproducible. Drives the effective-window match; never `Utc::now()` inside
     /// the engine.
@@ -202,6 +212,66 @@ pub struct PricingContext {
 
 /// Deterministic rounding strategy for the percentage component. Stored in the
 /// snapshot so a fee can always be re-derived exactly.
+/// A fee-bearing economic operation — the thing a rate is *for*.
+///
+/// The audit's P0 was that the engine could not tell a settlement from a
+/// capture: `transaction_type` was the only operation discriminator and only
+/// the payout path set it, so a rule pinned to an operation could never match
+/// either of the other two, and a rule that matched settlement necessarily also
+/// matched capture. There was no way to write a settlement-only rate.
+///
+/// This is that missing dimension, and it is deliberately not `transaction_type`
+/// reused. A transaction type describes a row in `transactions`. An operation
+/// names an act the operator charges for. Conflating them produced a rule
+/// requiring `transaction_type = "payment"` that has never matched anything.
+///
+/// The set is closed on purpose. Under the confirmed economic model these are
+/// the only two fee-bearing operations:
+///
+///   - the generic transfer primitive is neutral, because it also carries P2P
+///     and a fee inside it would charge people for sending money to each other
+///   - a payment or donation credits the merchant wallet GROSS
+///   - capture is leaving operator pricing entirely
+///   - a refund reverses value that was already priced
+///
+/// Adding a variant here is an economic decision, not a refactor: it is a new
+/// place this operator charges money, and the completeness gate is written so
+/// that adding one without a policy fails.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum PricingOperation {
+    /// Settling accumulated value to a beneficiary.
+    Settlement,
+    /// A withdrawal — money leaving the network.
+    Payout,
+}
+
+impl PricingOperation {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            PricingOperation::Settlement => "SETTLEMENT",
+            PricingOperation::Payout => "PAYOUT",
+        }
+    }
+
+    /// Parses the stored form. Unknown values are `None` rather than a
+    /// fallback: a rule naming an operation this build does not know is a rule
+    /// this build must not apply, and silently treating it as a wildcard is how
+    /// an unrecognised policy becomes a free one.
+    pub fn from_code(code: &str) -> Option<Self> {
+        match code {
+            "SETTLEMENT" => Some(PricingOperation::Settlement),
+            "PAYOUT" => Some(PricingOperation::Payout),
+            _ => None,
+        }
+    }
+
+    /// Every released fee-bearing operation. The completeness gate requires an
+    /// explicit rule for each of these, per active profile.
+    pub const RELEASED: [PricingOperation; 2] =
+        [PricingOperation::Settlement, PricingOperation::Payout];
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RoundingMode {
@@ -248,7 +318,18 @@ pub struct PricingRule {
     pub currency: Option<Currency>,
     pub country: Option<String>,
     /// Operator transaction-type matcher (ADR-031). None = wildcard.
+    ///
+    /// LEGACY. Superseded by `operation` and kept only so rules written before
+    /// V2 keep resolving during the cutover. Nothing new should set it: it
+    /// describes a transaction row rather than an economic act, which is why it
+    /// could never name a settlement.
     pub transaction_type: Option<String>,
+    /// The fee-bearing operation this rule prices.
+    ///
+    /// `None` is legacy — a rule from before operations existed, which matches
+    /// any operation and is exactly the wildcard V2 removes. Once every runtime
+    /// rule names its operation, the resolver refuses the ones that do not.
+    pub operation: Option<PricingOperation>,
 
     // --- fee components (operator policy) ---
     /// Percentage in basis points. 200 = 2.00%. May be 0.

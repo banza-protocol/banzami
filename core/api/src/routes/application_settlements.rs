@@ -241,6 +241,14 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
             "PRICING_NOT_CONFIGURED",
             "no pricing rule applies — this owner has no assigned pricing policy",
         ),
+        // A distinct code, because it is a distinct thing to fix. "Not
+        // configured" tells an operator to assign a policy; this one tells them
+        // two policies apply and one has to go. Collapsing them would send
+        // someone looking for a missing rule that is not missing.
+        E::PricingAmbiguous { .. } => ApiError::conflict(
+            "PRICING_CONFIGURATION_ERROR",
+            "more than one pricing rule applies to this settlement",
+        ),
         other => ApiError::internal(other.to_string()),
     }
 }

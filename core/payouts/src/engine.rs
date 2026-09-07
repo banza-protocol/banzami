@@ -12,6 +12,20 @@ use crate::{repository::PayoutRepository, CreatePayoutRequest, Payout, PayoutErr
 /// The operator transaction-type this engine prices against (Banzami ADR-031).
 const WITHDRAWAL_TX_TYPE: &str = "wallet_withdrawal";
 
+/// What the pricing engine decided about one withdrawal, in a shape that can be
+/// stored beside the payout.
+///
+/// A completed payout must be able to answer "what rule, what version, what
+/// rate, what fee" from its own row. Before this it could answer none of them.
+#[derive(Debug, Clone)]
+pub struct WithdrawalPricing {
+    pub fee_minor: i64,
+    pub rule_id: Option<banzami_types::PricingRuleId>,
+    pub rule_version: Option<i32>,
+    pub rate_bps: Option<u32>,
+    pub decided_at: chrono::DateTime<chrono::Utc>,
+}
+
 // ---------------------------------------------------------------------------
 // Trait
 // ---------------------------------------------------------------------------
@@ -97,10 +111,27 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         }
     }
 
-    /// Resolve the operator withdrawal fee for `gross` from the Pricing Engine
-    /// (transaction_type = wallet_withdrawal). No matching/enabled rule → 0 (free,
-    /// fail-safe). Guards: fee is non-negative (u32 rate) and never exceeds gross.
-    async fn resolve_withdrawal_fee(&self, gross: Money) -> Result<i64, PayoutError> {
+    /// Resolve the operator withdrawal fee, and return the decision — not just
+    /// the number.
+    ///
+    /// The decision is returned so it can be PERSISTED. `payouts` used to record
+    /// `amount_minor` and nothing else, so reconstructing why a withdrawal cost
+    /// what it did meant joining to `ledger_postings` on a derived idempotency
+    /// key. That is how the RA-063 incident was eventually explained, and it is
+    /// not a reasonable way to answer "which rule priced this".
+    ///
+    /// **Missing still resolves to zero, deliberately.** The doc here used to
+    /// call that "fail-safe", which described who it was safe for: the failure
+    /// mode is silent operator revenue loss. It stays until the completeness
+    /// gate proves on the deployed Sandbox that every eligible payout has
+    /// exactly one explicit rule — refusing before that would turn a revenue
+    /// leak into a customer-facing outage. The refusal is written and unraised;
+    /// see `PayoutError::PricingNotConfigured`.
+    ///
+    /// Ambiguity, however, refuses NOW. There is no cutover risk in refusing a
+    /// configuration that should not exist and that the database's unique index
+    /// prevents from being created.
+    async fn resolve_withdrawal_fee(&self, gross: Money) -> Result<WithdrawalPricing, PayoutError> {
         let rules = self
             .pricing
             .load_rules(&self.environment)
@@ -114,16 +145,51 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             fee_policy_ref: None,
             country: None,
             transaction_type: Some(WITHDRAWAL_TX_TYPE.to_string()),
+            // Derived from the operation being executed, never from a caller.
+            // There is no payout request field for it and there must not be:
+            // choosing your own operation is choosing your own tariff.
+            operation: Some(banzami_pricing::PricingOperation::Payout),
             as_of: Utc::now(),
         };
-        let fee = resolve(&rules, &ctx).fee_minor;
+        let decided_at = ctx.as_of;
+        let resolution = match banzami_pricing::resolve_for_operation(&rules, &ctx) {
+            Ok(r) => r,
+            Err(banzami_pricing::PricingFailure::Ambiguous { candidates }) => {
+                return Err(PayoutError::PricingAmbiguous { candidates });
+            }
+            // The pre-cutover behaviour, and the last place in this operator
+            // where an absent decision still costs nothing. Loudly logged so it
+            // is visible while it lasts.
+            Err(_) => {
+                tracing::warn!(
+                    environment = %self.environment,
+                    gross_minor = gross.amount_minor(),
+                    "withdrawal priced at ZERO because no rule applies — pre-cutover behaviour, see REPAIR_LOG RA-063"
+                );
+                return Ok(WithdrawalPricing {
+                    fee_minor: 0,
+                    rule_id: None,
+                    rule_version: None,
+                    rate_bps: None,
+                    decided_at,
+                });
+            }
+        };
+
+        let fee = resolution.fee_minor;
         if fee > gross.amount_minor() {
             return Err(PayoutError::FeeExceedsGross {
                 fee,
                 gross: gross.amount_minor(),
             });
         }
-        Ok(fee)
+        Ok(WithdrawalPricing {
+            fee_minor: fee,
+            rule_id: resolution.snapshot.rule_id,
+            rule_version: resolution.snapshot.rule_version,
+            rate_bps: Some(resolution.snapshot.rate_bps),
+            decided_at,
+        })
     }
 
     /// Compute merchant-facing available balance from the ledger.
@@ -149,7 +215,8 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         available_account_id: banzami_types::AccountId,
     ) -> Result<banzami_ledger::LedgerPosting, PayoutError> {
         let gross = payout.amount;
-        let fee_minor = self.resolve_withdrawal_fee(gross).await?;
+        let pricing = self.resolve_withdrawal_fee(gross).await?;
+        let fee_minor = pricing.fee_minor;
         let net = Money::new(gross.amount_minor() - fee_minor, gross.currency);
 
         // Posting 1 — net to bank. (net == gross when fee == 0.)
