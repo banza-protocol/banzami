@@ -81,9 +81,28 @@ was not said is that nothing was charged either, and that a caller choosing the
 reference could therefore choose to pay nothing by choosing a reference nobody
 had priced.
 
-A payment IS now blocked at capture when no policy applies. Being new is not a
-discount, and an operator that cannot say what something costs should not move
-the money.
+A **fee-bearing operation** IS now blocked when no policy applies. Being new is
+not a discount, and an operator that cannot say what something costs should not
+charge for it.
+
+Which operations those are is the part worth stating precisely, because it is
+easy to read this as "every payment is now refused":
+
+| operation | priced? |
+| --- | --- |
+| capture (`core/transactions`) | yes — refuses without a rule |
+| application settlement (`core/app-settlement`) | yes — refuses without a rule |
+| payout / withdrawal (`core/payouts`) | yes, by transaction type |
+| **generic transfer** (`core/transfers`) | **no, deliberately** |
+
+The transfer primitive stays neutral because the same capability carries
+merchant payments and P2P; pricing inside it would charge people for sending
+money to each other. So an incoming payment or donation credits the merchant or
+campaign Wallet **gross**, and the operator's rate is resolved one step later,
+when those funds are settled or withdrawn.
+
+That is why an owner assigned `sandbox-donation-200` is not "charged 200 bps on
+donations" — their eligible **settlement** is priced at 200 bps.
 
 ---
 
