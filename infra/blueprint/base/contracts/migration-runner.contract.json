@@ -5,7 +5,7 @@
   "image": {
     "build": "multi-stage",
     "rust_tooling_scope": "build-stage-only",
-    "sqlx_cli_version": "0.7.4",
+    "sqlx_cli_version": "0.8.6",
     "sqlx_crate_line": "0.7",
     "postgres_client": "pinned",
     "locked_dependency_resolution": true,

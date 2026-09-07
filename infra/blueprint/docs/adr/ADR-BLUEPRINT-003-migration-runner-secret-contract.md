@@ -1,6 +1,6 @@
 # ADR-BLUEPRINT-003 — Immutable migration runner and read-only file secret contract
 
-**Status:** Accepted (Increment 1.1 — source-only; digests resolved, SQLx pinned to locked 0.7.4). **Version:** 1.0
+**Status:** Accepted (Increment 1.1 — source-only; digests resolved, SQLx pinned to the version locked in `core/Cargo.lock`). **Version:** 1.0
 
 ## Context
 The VM must not become a Rust/Cargo/SQLx/psql/PostgreSQL workstation, and database
@@ -12,7 +12,7 @@ Ship a source-controlled, immutable **migration-runner image**
 (`infra/blueprint/migration-runner/`):
 
 - multi-stage build; the SQLx CLI (locked to the repo's `sqlx = "0.7"` line, pinned
-  `0.7.4`) and Rust tooling exist only in the build stage;
+  the locked version) and Rust tooling exist only in the build stage;
 - runtime carries only the `sqlx` binary, a pinned PostgreSQL client and the
   entrypoint; no application runtime, no secrets, no host port;
 - base images pinned by immutable digest (`digests.lock`); mutable `latest` forbidden;

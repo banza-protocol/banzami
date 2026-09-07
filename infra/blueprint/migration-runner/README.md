@@ -3,7 +3,7 @@
 Multi-stage image that carries the migration toolchain so the VM needs **no** global
 Rust/Cargo/SQLx/psql/PostgreSQL install. See ADR-BLUEPRINT-003.
 
-- `Dockerfile` — build stage compiles `sqlx-cli` (locked `0.7.4`, matching the repo's
+- `Dockerfile` — build stage compiles `sqlx-cli` (locked `0.8.6`, matching the repo's
   `sqlx = "0.7"`); runtime carries only the `sqlx` binary + a pinned `postgresql-client`
   + the entrypoint. Non-root, no host port, no secrets in layers/args/labels.
 - `entrypoint.sh` — reads the database URL **only** from the read-only mounted file

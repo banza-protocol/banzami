@@ -19,7 +19,7 @@ ARG RUNTIME_BASE=debian:bookworm-slim@sha256:60eac759739651111db372c07be67863818
 
 # ── build stage: compile the SQLx CLI locked to the repo's sqlx = "0.7" line ──
 FROM ${RUST_BUILDER} AS build
-ARG SQLX_CLI_VERSION=0.7.4
+ARG SQLX_CLI_VERSION=0.8.6
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install sqlx-cli \
       --version "${SQLX_CLI_VERSION}" \
