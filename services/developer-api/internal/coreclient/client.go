@@ -504,3 +504,31 @@ func (c *ProvisionClient) CreateWalletAccount(ctx context.Context, walletID, mer
 func (c *ProvisionClient) WalletForMerchant(ctx context.Context, merchantID string) (string, error) {
 	return c.findWallet(ctx, merchantID)
 }
+
+// AssignPricingProfile records the operator-governed pricing policy for a
+// financial owner.
+//
+// Self-service provisioning calls this with the explicit Sandbox default, so a
+// developer's project is priced by a rule that says zero rather than by nothing
+// matching. Those are different states and the whole point of this work is that
+// they stay different.
+func (c *ProvisionClient) AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error {
+	b, _ := json.Marshal(map[string]string{"profile_code": profileCode})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut,
+		c.baseURL+"/internal/v1/merchants/"+url.PathEscape(merchantID)+"/pricing-profile",
+		bytes.NewReader(b))
+	if err != nil {
+		return ErrUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return ErrUnavailable
+	}
+	defer resp.Body.Close()
+	_, _ = io.ReadAll(resp.Body)
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("core pricing-profile assign: %d", resp.StatusCode)
+	}
+	return nil
+}

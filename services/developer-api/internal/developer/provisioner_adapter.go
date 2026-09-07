@@ -20,6 +20,10 @@ func NewSandboxProvisioner(c *coreclient.ProvisionClient) SandboxProvisioner {
 	return &coreProvisioner{c: c}
 }
 
+func (p *coreProvisioner) AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error {
+	return p.c.AssignPricingProfile(ctx, merchantID, profileCode)
+}
+
 func (p *coreProvisioner) ProvisionSandboxOwner(ctx context.Context, name, email string) (*SandboxOwner, error) {
 	o, err := p.c.ProvisionSandboxOwner(ctx, name, email)
 	if o == nil {

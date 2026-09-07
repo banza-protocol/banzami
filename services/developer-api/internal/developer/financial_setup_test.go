@@ -23,7 +23,24 @@ type fakeProvisioner struct {
 	stopAt   string
 	gotName  string
 	gotEmail string
+
+	// Pricing assignment, which provisioning must perform before the project is
+	// ever READY.
+	pricingCalls  int
+	gotProfile    string
+	gotPricingFor string
+	pricingErr    error
 }
+
+func (f *fakeProvisioner) AssignPricingProfile(_ context.Context, merchantID, profileCode string) error {
+	f.mu.Lock()
+	f.pricingCalls++
+	f.gotPricingFor, f.gotProfile = merchantID, profileCode
+	f.mu.Unlock()
+	return f.pricingErr
+}
+
+func (f *fakeProvisioner) pricingCount() int { f.mu.Lock(); defer f.mu.Unlock(); return f.pricingCalls }
 
 func (f *fakeProvisioner) ProvisionSandboxOwner(_ context.Context, name, email string) (*SandboxOwner, error) {
 	f.mu.Lock()
@@ -398,5 +415,80 @@ func TestFinancialSetup_ExactlyOneOfEverything(t *testing.T) {
 	}
 	if len(held) != 1 || held[0] != pid {
 		t.Errorf("owner %s is held by %v, want exactly [%s]", b.MerchantID, held, pid)
+	}
+}
+
+// A project is never READY without a pricing policy.
+//
+// "Unpriced" and "priced at zero" look identical in a fee column and are
+// completely different facts. Provisioning assigns the explicit Sandbox default
+// so a new project is priced by a rule that says zero, never by nothing
+// matching — which is the state that used to be worth the whole fee to whoever
+// noticed it.
+func TestFinancialSetup_AssignsExplicitDefaultPricing(t *testing.T) {
+	s, f, pid := setupSvc(t)
+
+	st, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.State != FinancialReady {
+		t.Fatalf("state = %q", st.State)
+	}
+	if f.pricingCount() != 1 {
+		t.Errorf("pricing assigned %d times, want 1", f.pricingCount())
+	}
+	if f.gotProfile != SandboxDefaultPricingProfile {
+		t.Errorf("assigned profile %q, want %s", f.gotProfile, SandboxDefaultPricingProfile)
+	}
+	b, _ := s.store.ActiveBindingForProject(bg, pid)
+	if b == nil || f.gotPricingFor != b.MerchantID {
+		t.Error("pricing was assigned to a different owner than the one bound")
+	}
+}
+
+// Pricing comes before the binding, so a project that cannot be priced never
+// becomes usable. The alternative is an owner settling unpriced for however
+// long it takes somebody to notice.
+func TestFinancialSetup_PricingFailureLeavesProjectUnconfigured(t *testing.T) {
+	s, f, pid := setupSvc(t)
+	f.pricingErr = errors.New("core unavailable")
+
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err == nil {
+		t.Fatal("a project with no pricing reported success")
+	}
+	st, _ := s.ProjectFinancialSetup(bg, "u_owner", pid)
+	if st.State != FinancialUnconfigured {
+		t.Errorf("state after a pricing failure = %q, want %s", st.State, FinancialUnconfigured)
+	}
+	if b, _ := s.store.ActiveBindingForProject(bg, pid); b != nil {
+		t.Error("a binding was recorded for an owner with no pricing policy")
+	}
+}
+
+// …and the retry resumes it: same owner, one pricing assignment that sticks.
+func TestFinancialSetup_PricingFailureRecovers(t *testing.T) {
+	s, f, pid := setupSvc(t)
+	f.pricingErr = errors.New("core unavailable")
+	_, _ = s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", "")
+
+	f.pricingErr = nil
+	f.mu.Lock()
+	f.seq = 0 // the provisioner hands back the owner it already made
+	f.mu.Unlock()
+
+	st, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", "")
+	if err != nil {
+		t.Fatalf("the retry did not converge: %v", err)
+	}
+	if st.State != FinancialReady {
+		t.Errorf("state = %q", st.State)
+	}
+	if f.callCount() != 2 {
+		t.Errorf("provisioner called %d times across two attempts", f.callCount())
+	}
+	b, _ := s.store.ActiveBindingForProject(bg, pid)
+	if b == nil || b.MerchantID != "m_1" {
+		t.Error("the retry bound a different owner than the one it had already priced")
 	}
 }

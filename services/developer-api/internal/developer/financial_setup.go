@@ -81,12 +81,24 @@ func canConfigureFinancialSandbox(role string) bool {
 	return role == RoleOwner || role == RoleAdmin
 }
 
-// SandboxProvisioner creates a Sandbox financial owner. An interface so the
-// service is testable without Core, and so an unconfigured deployment is a nil
-// value rather than a half-built client.
+// SandboxProvisioner creates a Sandbox financial owner and gives it a pricing
+// policy. An interface so the service is testable without Core, and so an
+// unconfigured deployment is a nil value rather than a half-built client.
 type SandboxProvisioner interface {
 	ProvisionSandboxOwner(ctx context.Context, name, email string) (*SandboxOwner, error)
+	// AssignPricingProfile records which operator-governed policy prices this
+	// owner. Provisioning assigns the explicit Sandbox default, so a new project
+	// is priced by a rule that says zero — never by nothing matching.
+	AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error
 }
+
+// SandboxDefaultPricingProfile is what every self-provisioned project gets.
+//
+// Its rate is zero, and it is assigned rather than assumed. "Unpriced" and
+// "priced at zero" look identical in a fee column and are completely different
+// facts: one is a decision, the other is an absence that used to be worth the
+// whole fee to whoever noticed.
+const SandboxDefaultPricingProfile = "sandbox-default"
 
 // SandboxOwner is what Core provisioned.
 type SandboxOwner struct {
@@ -213,6 +225,23 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 			})
 		slog.ErrorContext(ctx, "developer.financial_setup.provision_failed",
 			"project", projectID, "stage", provisionStage(owner))
+		return FinancialSetup{}, ErrUnavailable
+	}
+
+	// Pricing before binding, and before READY. A project that can take a payment
+	// must already have a policy that prices it: the alternative is an owner that
+	// settles unpriced for however long it takes someone to notice, which is
+	// precisely the defect this whole change exists to close.
+	//
+	// A failure here leaves the project UNCONFIGURED with no binding, so the
+	// retry path resumes it like any other partial provisioning.
+	if perr := s.provisioner.AssignPricingProfile(ctx, owner.MerchantID, SandboxDefaultPricingProfile); perr != nil {
+		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
+			"PROJECT:"+projectID, ip, reqID, map[string]any{
+				"stage": "pricing", "merchant_id": owner.MerchantID,
+			})
+		slog.ErrorContext(ctx, "developer.financial_setup.pricing_failed",
+			"project", projectID, "merchant", owner.MerchantID, "err", perr.Error())
 		return FinancialSetup{}, ErrUnavailable
 	}
 
