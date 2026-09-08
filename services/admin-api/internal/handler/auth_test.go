@@ -17,6 +17,7 @@ type fakeStore struct {
 	updatedHash string
 	resetCalls  int
 	attempts    []string // "success:reason"
+	transitions []string // "FROM→TO"
 }
 
 func (f *fakeStore) GetByEmail(_ context.Context, email string) (service.AdminUser, error) {
@@ -59,6 +60,17 @@ func (f *fakeStore) ResetLoginCountersAndTouch(_ context.Context, id string) {
 func (f *fakeStore) RecordLoginAttempt(_ context.Context, _ string, _ *string, _, _ string, success bool, reason string) {
 	f.attempts = append(f.attempts, map[bool]string{true: "success", false: "fail"}[success]+":"+reason)
 }
+// Records the lifecycle transitions a test drove, so an assertion can check the
+// state moved and not merely that a response was 200.
+func (f *fakeStore) AdvanceLifecycle(_ context.Context, id, from, to string) error {
+	if f.user != nil && f.user.ID == id && f.user.Status == from {
+		f.user.Status = to
+		f.transitions = append(f.transitions, from+"→"+to)
+		return nil
+	}
+	return service.ErrLifecycleNotApplicable
+}
+
 func (f *fakeStore) BumpTokenVersion(_ context.Context, id string) error {
 	if f.user != nil && f.user.ID == id {
 		f.user.TokenVersion++

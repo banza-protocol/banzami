@@ -79,7 +79,21 @@ func (f *fakeMFA) RegenerateRecoveryCodes(context.Context, string) ([]string, er
 	return []string{"eeeee-fffff", "ggggg-hhhhh"}, nil
 }
 
-type fakeLogins struct{ user service.AdminUser }
+type fakeLogins struct {
+	user service.AdminUser
+	// "FROM→TO" for each lifecycle transition, so a test can assert the state
+	// actually moved rather than that a response was 200.
+	transitions []string
+}
+
+func (f *fakeLogins) AdvanceLifecycle(_ context.Context, id, from, to string) error {
+	if f.user.ID == id && f.user.Status == from {
+		f.user.Status = to
+		f.transitions = append(f.transitions, from+"\u2192"+to)
+		return nil
+	}
+	return service.ErrLifecycleNotApplicable
+}
 
 func (f *fakeLogins) GetByEmail(context.Context, string) (service.AdminUser, error) {
 	return f.user, nil

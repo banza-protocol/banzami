@@ -192,7 +192,13 @@ func (s *AdminUserService) CompleteReset(ctx context.Context, raw, passwordHash 
 		if err := tx.QueryRow(ctx,
 			`UPDATE admin_users
 			    SET password_hash=$2, password_set_at=now(), activated_at=now(),
-			        status = CASE WHEN status='INVITED' THEN 'ACTIVE' ELSE status END,
+			        -- Completing an invite sets a password. It does NOT make the
+			        -- account active: a privileged identity is active only once it
+			        -- also has a confirmed second factor and acknowledged recovery
+			        -- codes. This used to write 'ACTIVE' here, which made the word
+			        -- mean "has a password" and left the real guarantee living in
+			        -- a branch inside the login handler instead of in the state.
+			        status = CASE WHEN status='INVITED' THEN 'MFA_ENROLMENT_REQUIRED' ELSE status END,
 			        token_version = token_version + 1,
 			        failed_login_attempts=0, locked_until=NULL, updated_at=now()
 			  WHERE id=$1

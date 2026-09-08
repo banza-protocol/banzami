@@ -55,7 +55,10 @@ func AdminJWT(secret string, users OperatorStore) func(http.Handler) http.Handle
 				deny(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
 				return
 			}
-			if u.Status != "ACTIVE" {
+			// Exactly one status may hold a session. Written as the predicate
+			// rather than a literal so a new lifecycle state cannot be added
+			// without deciding which side of this line it belongs on.
+			if !service.CanHoldSession(u.Status) {
 				deny(w, http.StatusForbidden, "FORBIDDEN", "account suspended")
 				return
 			}

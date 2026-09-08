@@ -234,8 +234,10 @@ func (h *OperatorHandler) SetRole(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
-	// Cannot demote the last active SUPER_ADMIN.
-	if target.Role == "SUPER_ADMIN" && target.Status == "ACTIVE" && body.Role != "SUPER_ADMIN" {
+	// Cannot demote the last SUPER_ADMIN who is not suspended — including one
+	// still enrolling a factor, who is a super admin who cannot sign in yet, not
+	// an absent one.
+	if target.Role == "SUPER_ADMIN" && target.Status != service.StatusSuspended && body.Role != "SUPER_ADMIN" {
 		if n, _ := h.ops.CountActiveSuperAdmins(r.Context()); n <= 1 {
 			writeError(w, http.StatusConflict, "LAST_SUPER_ADMIN", "cannot demote the last active SUPER_ADMIN")
 			return
@@ -262,8 +264,9 @@ func (h *OperatorHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
-	// Cannot suspend the last active SUPER_ADMIN (covers suspending oneself).
-	if target.Role == "SUPER_ADMIN" && target.Status == "ACTIVE" {
+	// Cannot suspend the last SUPER_ADMIN who is not already suspended (covers
+	// suspending oneself, and covers one mid-enrolment).
+	if target.Role == "SUPER_ADMIN" && target.Status != service.StatusSuspended {
 		if n, _ := h.ops.CountActiveSuperAdmins(r.Context()); n <= 1 {
 			writeError(w, http.StatusConflict, "LAST_SUPER_ADMIN", "cannot suspend the last active SUPER_ADMIN")
 			return

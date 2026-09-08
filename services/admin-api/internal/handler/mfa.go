@@ -134,6 +134,15 @@ func (h *MFAHandler) ConfirmEnrol(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not confirm the second factor")
 		return
 	}
+	// The state moves with the fact. Confirming a factor does not make the
+	// account active — the codes are on screen and unacknowledged — so it lands
+	// in MFA_RECOVERY_ACK_REQUIRED and can hold no session there either.
+	if err := h.users.AdvanceLifecycle(r.Context(), p.ID,
+		service.StatusMFAEnrolmentRequired, service.StatusMFARecoveryAck); err != nil &&
+		!errors.Is(err, service.ErrLifecycleNotApplicable) {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not record the enrolment state")
+		return
+	}
 	h.writeAudit(r, p, "MFA_ENROLLED", map[string]string{"factor": "TOTP", "recovery_codes_issued": itoa(len(codes))})
 	slog.InfoContext(r.Context(), "admin.mfa.enrolled", "admin_user_id", p.ID) // never the seed or the codes
 
@@ -169,6 +178,14 @@ func (h *MFAHandler) AcknowledgeRecovery(w http.ResponseWriter, r *http.Request)
 	}
 	p, ok := h.bearer(w, r, auth.PurposeMFAAck)
 	if !ok {
+		return
+	}
+	// The one transition that produces ACTIVE. Guarded on the previous state, so
+	// acknowledgement cannot be skipped and cannot be replayed into anything.
+	if err := h.users.AdvanceLifecycle(r.Context(), p.ID,
+		service.StatusMFARecoveryAck, service.StatusActive); err != nil &&
+		!errors.Is(err, service.ErrLifecycleNotApplicable) {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not complete the enrolment")
 		return
 	}
 	h.writeAudit(r, p, "MFA_RECOVERY_CODES_ACKNOWLEDGED", nil)
@@ -236,7 +253,10 @@ func (h *MFAHandler) reauthenticate(w http.ResponseWriter, r *http.Request) (aut
 		return auth.Principal{}, false
 	}
 	u, err := h.users.GetByID(r.Context(), p.ID)
-	if err != nil || u.Status != "ACTIVE" {
+	// Re-authentication is a privileged act (regenerating recovery codes,
+	// replacing a factor), so it needs an account that can hold a session — not
+	// merely one that is not suspended.
+	if err != nil || !service.CanHoldSession(u.Status) {
 		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
 		return auth.Principal{}, false
 	}
@@ -342,7 +362,7 @@ func (h *MFAHandler) issueSession(w http.ResponseWriter, r *http.Request, p auth
 	// Re-checked here, not trusted from the challenge: status and token_version
 	// can have changed between the password step and this one, and a suspended
 	// operator finishing an in-flight MFA is exactly the case that matters.
-	if u.Status != "ACTIVE" || u.TokenVersion != p.TokenVersion {
+	if !service.CanHoldSession(u.Status) || u.TokenVersion != p.TokenVersion {
 		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
 		return
 	}

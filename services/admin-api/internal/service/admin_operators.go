@@ -114,8 +114,17 @@ func (s *AdminUserService) execOperator(ctx context.Context, sql, id string, arg
 }
 
 // CountActiveSuperAdmins underpins the "last SUPER_ADMIN" guards.
+//
+// "Active" here means NOT SUSPENDED, not status='ACTIVE'. Splitting the
+// lifecycle so that ACTIVE means fully enrolled would otherwise have quietly
+// weakened this guard: an organisation whose only SUPER_ADMIN is part-way
+// through enrolling a factor would count zero, and the guard would then permit
+// demoting or suspending them — leaving nobody who can ever administer the
+// console. They are still the super admin; they simply cannot sign in yet.
 func (s *AdminUserService) CountActiveSuperAdmins(ctx context.Context) (int, error) {
 	var n int
-	err := s.pool.QueryRow(ctx, `SELECT count(*) FROM admin_users WHERE role='SUPER_ADMIN' AND status='ACTIVE'`).Scan(&n)
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM admin_users
+		  WHERE role = 'SUPER_ADMIN' AND status <> 'SUSPENDED'`).Scan(&n)
 	return n, err
 }
