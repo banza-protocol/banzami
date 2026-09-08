@@ -12,18 +12,28 @@ import (
 // memStore is an in-memory Store with the same semantics as pgStore (tests /
 // local dev). Concurrency-safe.
 type memStore struct {
-	mu          sync.Mutex
-	seq         int
-	workspaces  map[string]*Workspace
-	members     []*Member
-	invites     map[string]*Invite
-	inviteHash  map[string]string // tokenHash -> inviteID
-	projects    map[string]*Project
-	apiKeys     []*apiKeyRec
-	bindings    []*SandboxBinding
-	requestLogs []memRequestLog
+	mu               sync.Mutex
+	seq              int
+	workspaces       map[string]*Workspace
+	members          []*Member
+	invites          map[string]*Invite
+	inviteHash       map[string]string // tokenHash -> inviteID
+	projects         map[string]*Project
+	apiKeys          []*apiKeyRec
+	bindings         []*SandboxBinding
+	requestLogs      []memRequestLog
+	webhookEndpoints map[string]*memWebhookEndpoint
 
 	Audits []AuditEvent
+}
+
+// memWebhookEndpoint keeps the owner and the stored secret beside the view, so
+// the in-memory store can enforce the same merchant scoping the SQL does and
+// still never hand the secret back.
+type memWebhookEndpoint struct {
+	merchantID string
+	secret     string
+	view       WebhookEndpointView
 }
 
 // memRequestLog pairs a log row with the project that owns it, so the in-memory
@@ -468,8 +478,21 @@ func (m *memStore) TransactionsForMerchant(context.Context, string, TransactionF
 	return []TransactionView{}, nil
 }
 
-func (m *memStore) WebhookEndpointsForMerchant(context.Context, string) ([]WebhookEndpointView, error) {
-	return []WebhookEndpointView{}, nil
+// WebhookEndpointsForMerchant returns what this merchant owns, newest first —
+// the same scoping and ordering the SQL uses. It used to be a stub returning
+// nothing, which was harmless while nothing could create an endpoint in memory
+// and became a lie the moment the Console could.
+func (m *memStore) WebhookEndpointsForMerchant(_ context.Context, merchantID string) ([]WebhookEndpointView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []WebhookEndpointView{}
+	for _, e := range m.webhookEndpoints {
+		if e.merchantID == merchantID {
+			out = append(out, e.view)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
+	return out, nil
 }
 
 func (m *memStore) WebhookEventsForMerchant(context.Context, string, int) ([]WebhookEventView, error) {
@@ -478,6 +501,52 @@ func (m *memStore) WebhookEventsForMerchant(context.Context, string, int) ([]Web
 
 func (m *memStore) WebhookDeliveriesForEvent(context.Context, string, string) ([]WebhookDeliveryView, error) {
 	return []WebhookDeliveryView{}, nil
+}
+
+// Webhook endpoint management, in memory.
+//
+// Real enough to exercise ownership: endpoints are keyed by merchant, and a
+// rotate or a disable for a merchant that does not own the id answers not-found
+// exactly as the SQL does. The secret is stored as given and never returned —
+// the view type has no field for it.
+func (m *memStore) CreateWebhookEndpoint(_ context.Context, merchantID, url string, events []string, storedSecret string) (*WebhookEndpointView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.webhookEndpoints == nil {
+		m.webhookEndpoints = map[string]*memWebhookEndpoint{}
+	}
+	id := m.id("wh_")
+	m.webhookEndpoints[id] = &memWebhookEndpoint{
+		merchantID: merchantID,
+		secret:     storedSecret,
+		view:       WebhookEndpointView{ID: id, URL: url, Events: events, Active: true, CreatedAt: time.Now().UTC()},
+	}
+	v := m.webhookEndpoints[id].view
+	return &v, nil
+}
+
+func (m *memStore) RotateWebhookEndpointSecret(_ context.Context, merchantID, endpointID, storedSecret string) (*WebhookEndpointView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e, ok := m.webhookEndpoints[endpointID]
+	if !ok || e.merchantID != merchantID {
+		return nil, ErrNotFound
+	}
+	e.secret = storedSecret
+	v := e.view
+	return &v, nil
+}
+
+func (m *memStore) SetWebhookEndpointActive(_ context.Context, merchantID, endpointID string, active bool) (*WebhookEndpointView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e, ok := m.webhookEndpoints[endpointID]
+	if !ok || e.merchantID != merchantID {
+		return nil, ErrNotFound
+	}
+	e.view.Active = active
+	v := e.view
+	return &v, nil
 }
 
 // APIRequestLogs — the in-memory store keeps request logs so authority and

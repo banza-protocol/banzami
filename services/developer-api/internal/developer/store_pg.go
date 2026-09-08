@@ -739,6 +739,60 @@ func (s *pgStore) WebhookEndpointsForMerchant(ctx context.Context, merchantID st
 	return out, rows.Err()
 }
 
+// CreateWebhookEndpoint inserts an endpoint owned by merchantID.
+//
+// The secret arrives already encrypted (or already plaintext, in a deployment
+// without a key). This layer does not know which, deliberately: choosing how a
+// secret is protected is not a decision for a SQL statement.
+func (s *pgStore) CreateWebhookEndpoint(ctx context.Context, merchantID, url string, events []string, storedSecret string) (*WebhookEndpointView, error) {
+	var v WebhookEndpointView
+	err := s.pool.QueryRow(ctx,
+		`INSERT INTO webhook_endpoints (id, merchant_id, url, events, active, secret, created_at)
+		 VALUES (gen_random_uuid(), $1, $2, $3, true, $4, now())
+		 RETURNING id, url, events, active, created_at`,
+		merchantID, url, events, storedSecret,
+	).Scan(&v.ID, &v.URL, &v.Events, &v.Active, &v.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &v, nil
+}
+
+// RotateWebhookEndpointSecret replaces the stored secret.
+//
+// merchant_id is in the WHERE clause rather than checked beforehand: a caller
+// who guesses an endpoint id belonging to someone else updates zero rows and is
+// told the endpoint does not exist, which is the same answer they get for one
+// that really does not.
+func (s *pgStore) RotateWebhookEndpointSecret(ctx context.Context, merchantID, endpointID, storedSecret string) (*WebhookEndpointView, error) {
+	var v WebhookEndpointView
+	err := s.pool.QueryRow(ctx,
+		`UPDATE webhook_endpoints SET secret = $3
+		  WHERE id = $2 AND merchant_id = $1
+		 RETURNING id, url, events, active, created_at`,
+		merchantID, endpointID, storedSecret,
+	).Scan(&v.ID, &v.URL, &v.Events, &v.Active, &v.CreatedAt)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return &v, nil
+}
+
+// SetWebhookEndpointActive enables or disables delivery. Same merchant scoping.
+func (s *pgStore) SetWebhookEndpointActive(ctx context.Context, merchantID, endpointID string, active bool) (*WebhookEndpointView, error) {
+	var v WebhookEndpointView
+	err := s.pool.QueryRow(ctx,
+		`UPDATE webhook_endpoints SET active = $3
+		  WHERE id = $2 AND merchant_id = $1
+		 RETURNING id, url, events, active, created_at`,
+		merchantID, endpointID, active,
+	).Scan(&v.ID, &v.URL, &v.Events, &v.Active, &v.CreatedAt)
+	if err != nil {
+		return nil, ErrNotFound
+	}
+	return &v, nil
+}
+
 func (s *pgStore) WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 50

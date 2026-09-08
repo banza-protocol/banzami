@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/banzami/banzami/services/common/env"
+	"github.com/banzami/banzami/services/common/webhookprov"
 	"log/slog"
 	"net/http"
 	"os"
@@ -114,6 +115,25 @@ func main() {
 	// unavailable rather than rendering a control that would fail when pressed.
 	if rf := developer.NewCoreRefunder(coreclient.NewRefund(cfg.CoreAPIURL, cfg.CoreRefundKey)); rf != nil {
 		devSvc.SetRefunder(rf)
+
+		// Webhook signing secrets at rest. The Console creates endpoints now, so this
+		// service writes the same column the gateway reads — and must protect it the
+		// same way. Without a key the secret is stored in the clear, which is only
+		// tolerable in a sandbox; anywhere else the service refuses to start rather
+		// than persist a signing secret a database dump would hand over.
+		if cfg.WebhookEncryptionKey != "" {
+			cipher, err := webhookprov.NewSecretCipher(cfg.WebhookEncryptionKey)
+			if err != nil {
+				slog.Error("[SEC-002] WEBHOOK_ENCRYPTION_KEY is not a valid key", "error", err)
+				os.Exit(1)
+			}
+			devSvc.SetWebhookCipher(cipher)
+		} else if strings.EqualFold(cfg.Environment, "sandbox") || strings.EqualFold(cfg.Environment, "development") {
+			slog.Warn("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set — webhook signing secrets stored in plaintext (sandbox only)")
+		} else {
+			slog.Error("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set outside sandbox — refusing to start")
+			os.Exit(1)
+		}
 	} else {
 		slog.Warn("CORE_API_URL / CORE_REFUND_KEY not set — Console refunds report as unavailable")
 	}

@@ -1,6 +1,8 @@
 package developer
 
 import (
+	"github.com/banzami/banzami/services/common/webhookprov"
+
 	"context"
 	"errors"
 	"log/slog"
@@ -23,6 +25,9 @@ type Service struct {
 	walletProv      WalletAccountProvisioner // segregated destination creation; nil until wired
 	paymentReleased bool                     // deploy-vs-release control (RT04C §1)
 	fixturesEnabled bool                     // operator E2E fixture-key path, sandbox-only (RT04D §2)
+	// webhookCipher encrypts webhook signing secrets at rest. Nil stores them in
+	// the clear, which only sandbox permits.
+	webhookCipher *webhookprov.SecretCipher
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the

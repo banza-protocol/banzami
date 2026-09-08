@@ -2,105 +2,32 @@ package service
 
 // Webhook SSRF protection (Assurance RA-023).
 //
-// A merchant supplies the destination URL for webhook delivery. Without
-// validation, a merchant could point an endpoint at loopback, link-local
-// (cloud metadata 169.254.169.254), or RFC1918 addresses and have the
-// gateway make authenticated requests into internal infrastructure.
+// Two layers of defence, and they now live in two places for a reason:
 //
-// Two layers of defence:
-//  1. ValidateWebhookURL — rejected at registration time (https only, no
-//     private/loopback/link-local/ULA hosts, no bare IPs into private space).
-//  2. safeWebhookTransport — a delivery-time DialContext guard that re-checks
-//     the *resolved* IP for every connection, defeating DNS-rebinding where a
-//     hostname passes step 1 but resolves to a private address at delivery.
+//  1. registration-time policy — moved to services/common/webhookprov, because
+//     the Developers Console creates endpoints too and a second copy of an SSRF
+//     policy is a second place to get it wrong;
+//  2. delivery-time guard — stays here, because the gateway is the only thing
+//     that delivers. It re-checks the *resolved* IP of every connection, which
+//     is what defeats DNS rebinding where a hostname passes step 1 and resolves
+//     to a private address at delivery.
 
 import (
 	"context"
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
-	"strings"
 	"time"
+
+	"github.com/banzami/banzami/services/common/webhookprov"
 )
 
-// ValidateWebhookURL enforces the registration-time policy. Returns a
-// caller-safe error message (no internal detail).
-func ValidateWebhookURL(raw string) error {
-	u, err := url.Parse(strings.TrimSpace(raw))
-	if err != nil {
-		return fmt.Errorf("invalid webhook URL")
-	}
-	if u.Scheme != "https" {
-		return fmt.Errorf("webhook URL must use https")
-	}
-	host := u.Hostname()
-	if host == "" {
-		return fmt.Errorf("webhook URL must include a host")
-	}
-	// Literal IPs: check directly. Hostnames: block obvious internal names and
-	// defer the authoritative check to resolution time (safeWebhookTransport).
-	if ip := net.ParseIP(host); ip != nil {
-		if isDisallowedIP(ip) {
-			return fmt.Errorf("webhook URL host is not a public address")
-		}
-		return nil
-	}
-	lower := strings.ToLower(host)
-	if lower == "localhost" || strings.HasSuffix(lower, ".localhost") ||
-		strings.HasSuffix(lower, ".internal") || strings.HasSuffix(lower, ".local") {
-		return fmt.Errorf("webhook URL host is not a public address")
-	}
-	return nil
-}
+// ValidateWebhookURL enforces the registration-time policy. Kept as the
+// gateway's name for it so every existing caller and test still reads the same.
+func ValidateWebhookURL(raw string) error { return webhookprov.ValidateURL(raw) }
 
-// extraDisallowedCIDRs covers ranges that net.IP's own predicates do NOT report.
-// net.IP.IsPrivate only knows 10/8, 172.16/12, 192.168/16 and fc00::/7, and
-// IsUnspecified matches only the single address 0.0.0.0 — so without these a
-// webhook could still be pointed at carrier-grade-NAT space (widely used for
-// cloud-internal endpoints and mesh VPNs) or at "this network" addresses.
-var extraDisallowedCIDRs = func() []*net.IPNet {
-	nets := []*net.IPNet{}
-	for _, c := range []string{
-		"0.0.0.0/8",       // "this network" (RFC 1122) — 0.0.0.0 alone is IsUnspecified
-		"100.64.0.0/10",   // carrier-grade NAT (RFC 6598) — cloud-internal / mesh VPN space
-		"192.0.0.0/24",    // IETF protocol assignments (RFC 6890)
-		"192.0.2.0/24",    // TEST-NET-1
-		"198.18.0.0/15",   // benchmarking (RFC 2544)
-		"198.51.100.0/24", // TEST-NET-2
-		"203.0.113.0/24",  // TEST-NET-3
-		"240.0.0.0/4",     // reserved (RFC 1112), includes 255.255.255.255 broadcast
-		"::/128",          // IPv6 unspecified
-		"64:ff9b::/96",    // NAT64 — embeds an IPv4 destination
-		"2001:db8::/32",   // IPv6 documentation
-	} {
-		if _, n, err := net.ParseCIDR(c); err == nil {
-			nets = append(nets, n)
-		}
-	}
-	return nets
-}()
-
-// isDisallowedIP reports whether an IP is in a range a public webhook must
-// never target: loopback, private, link-local, ULA, unspecified, multicast, and
-// the additional reserved/internal ranges in extraDisallowedCIDRs.
-func isDisallowedIP(ip net.IP) bool {
-	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
-		ip.IsLinkLocalMulticast() || ip.IsMulticast() || ip.IsUnspecified() ||
-		ip.IsInterfaceLocalMulticast() {
-		return true
-	}
-	// IPv4-mapped IPv6 (::ffff:a.b.c.d) — unwrap and re-check.
-	if v4 := ip.To4(); v4 != nil && !ip.Equal(v4) {
-		return isDisallowedIP(v4)
-	}
-	for _, n := range extraDisallowedCIDRs {
-		if n.Contains(ip) {
-			return true
-		}
-	}
-	return false
-}
+// isDisallowedIP is the delivery-time predicate, shared with registration.
+func isDisallowedIP(ip net.IP) bool { return webhookprov.IsDisallowedIP(ip) }
 
 // newSafeWebhookClient builds the delivery http.Client whose dialer refuses to
 // connect to disallowed IPs even if a hostname resolves to one (DNS rebinding).

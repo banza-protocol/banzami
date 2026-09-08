@@ -14,8 +14,15 @@ import (
 type Config struct {
 	Port        int
 	Environment string // "development" | "sandbox" | "production"
-	LogLevel    string
-	LogFormat   string
+
+	// WebhookEncryptionKey is the base64 32-byte key webhook signing secrets are
+	// encrypted with at rest (SEC-002). It MUST be the same value the gateway
+	// holds: the gateway decrypts what this service writes in order to sign a
+	// delivery. Empty stores them in the clear, which only a sandbox may do —
+	// enforced at startup, not here.
+	WebhookEncryptionKey string
+	LogLevel             string
+	LogFormat            string
 
 	DatabaseURL string
 	RedisURL    string
@@ -103,6 +110,9 @@ func Load() (*Config, error) {
 			return nil, fmt.Errorf("invalid PORT %q: %w", v, err)
 		}
 		cfg.Port = p
+	}
+	if v := os.Getenv("WEBHOOK_ENCRYPTION_KEY"); v != "" {
+		cfg.WebhookEncryptionKey = v
 	}
 	if v := os.Getenv("ENVIRONMENT"); v != "" {
 		cfg.Environment = v

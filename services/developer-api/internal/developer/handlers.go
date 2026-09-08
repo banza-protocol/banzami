@@ -245,6 +245,9 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
 		r.Post("/projects/{projID}/financial-setup", h.configureFinancialSetup)
 		r.Post("/projects/{projID}/wallet-accounts", h.createWalletAccount)
+		r.Post("/projects/{projID}/webhooks/endpoints", h.createWebhookEndpoint)
+		r.Post("/projects/{projID}/webhooks/endpoints/{epID}/rotate-secret", h.rotateWebhookSecret)
+		r.Patch("/projects/{projID}/webhooks/endpoints/{epID}", h.setWebhookEndpointActive)
 	})
 }
 
@@ -501,6 +504,86 @@ func (h *Handlers) refundPayment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, res)
+}
+
+// POST /projects/{projID}/webhooks/endpoints   {url, events[]}
+//
+// Returns the signing secret exactly once, in this response. Nothing else ever
+// returns it: the view type has no field for it, and the row holds it encrypted.
+func (h *Handlers) createWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var body struct {
+		URL    string   `json:"url"`
+		Events []string `json:"events"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&body); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+		return
+	}
+	ep, err := h.svc.CreateProjectWebhookEndpoint(r.Context(), u.ID, chi.URLParam(r, "projID"), body.URL, body.Events)
+	if err != nil {
+		mapWebhookErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, ep)
+}
+
+// POST /projects/{projID}/webhooks/endpoints/{epID}/rotate-secret
+func (h *Handlers) rotateWebhookSecret(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	ep, err := h.svc.RotateProjectWebhookSecret(r.Context(), u.ID, chi.URLParam(r, "projID"), chi.URLParam(r, "epID"))
+	if err != nil {
+		mapWebhookErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, ep)
+}
+
+// PATCH /projects/{projID}/webhooks/endpoints/{epID}   {active}
+func (h *Handlers) setWebhookEndpointActive(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var body struct {
+		Active *bool `json:"active"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body); err != nil || body.Active == nil {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "active is required")
+		return
+	}
+	ep, err := h.svc.SetProjectWebhookEndpointActive(r.Context(), u.ID, chi.URLParam(r, "projID"), chi.URLParam(r, "epID"), *body.Active)
+	if err != nil {
+		mapWebhookErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, ep)
+}
+
+// mapWebhookErr keeps the two rejections a developer can act on distinguishable
+// from the generic ones. "Your URL is not allowed" and "that event does not
+// exist" are fixable at the keyboard; collapsing them into 400 INVALID_BODY
+// would send someone hunting through their JSON.
+func mapWebhookErr(w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, ErrWebhookURLRejected):
+		httpx.Error(w, http.StatusBadRequest, "WEBHOOK_URL_REJECTED",
+			"the endpoint must be a public https URL")
+	case errors.Is(err, ErrUnsupportedEvent):
+		httpx.Error(w, http.StatusBadRequest, "UNSUPPORTED_EVENT",
+			"one of the event types is not emitted by this platform")
+	default:
+		mapErr(w, err)
+	}
 }
 
 func (h *Handlers) listWebhookEndpoints(w http.ResponseWriter, r *http.Request) {

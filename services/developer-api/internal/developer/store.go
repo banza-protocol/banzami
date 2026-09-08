@@ -282,6 +282,13 @@ type Store interface {
 	WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error)
 	WebhookDeliveriesForEvent(ctx context.Context, merchantID, eventID string) ([]WebhookDeliveryView, error)
 
+	// Webhook endpoint management, from the Console (ADR-051 follow-up). Every
+	// one of these is scoped by merchantID inside the statement, not by a prior
+	// read: knowing an endpoint id must never be authority over it.
+	CreateWebhookEndpoint(ctx context.Context, merchantID, url string, events []string, storedSecret string) (*WebhookEndpointView, error)
+	RotateWebhookEndpointSecret(ctx context.Context, merchantID, endpointID, storedSecret string) (*WebhookEndpointView, error)
+	SetWebhookEndpointActive(ctx context.Context, merchantID, endpointID string, active bool) (*WebhookEndpointView, error)
+
 	// APIRequestLogs returns the project's own Developer API request log. The
 	// project id is applied inside the query, so a filter can narrow the result
 	// but can never widen it past one project.
