@@ -228,6 +228,29 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// No second-factor service, and the caller is privileged.
+	//
+	// Reaching here means h.mfa is nil, which today can only happen when there is
+	// no database — and then there is no user to authenticate either, so the path
+	// is unreachable. That is a coincidence of wiring, not a rule, and it is the
+	// wrong thing to rest a SUPER_ADMIN session on: one refactor that constructs
+	// the handler without WithMFA turns this into password-only administration,
+	// silently, with every existing test still passing.
+	//
+	// So it is written down. A privileged operator is never issued a session by a
+	// build that cannot verify a second factor.
+	if h.mfa == nil && u.Role == "SUPER_ADMIN" {
+		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, "MFA_UNAVAILABLE")
+		h.writeAudit(ctx, service.AuditEntry{
+			AdminUserID: u.ID, AdminEmail: u.Email, FullName: u.FullName, Role: u.Role,
+			Action: "LOGIN_REFUSED_MFA_UNAVAILABLE", EntityType: "operator", EntityID: u.ID,
+			StatusCode: http.StatusServiceUnavailable, IP: ip, UserAgent: ua,
+		})
+		writeError(w, http.StatusServiceUnavailable, "MFA_UNAVAILABLE",
+			"this deployment cannot verify a second factor, and a privileged session requires one")
+		return
+	}
+
 	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession}
 	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, now)
 	if err != nil {
