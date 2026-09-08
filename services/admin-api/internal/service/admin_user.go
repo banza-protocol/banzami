@@ -155,9 +155,17 @@ func (s *AdminUserService) RecordLoginAttempt(ctx context.Context, emailNorm str
 // Create inserts a new operator (bootstrap). Fails if the email exists.
 func (s *AdminUserService) Create(ctx context.Context, email, fullName, passwordHash, role string) (string, error) {
 	id := uuid.NewString()
+	// A password is not an enrolment.
+	//
+	// This wrote 'ACTIVE', which is how the very first operator came to exist as
+	// an active SUPER_ADMIN with no second factor. The invite flow was corrected
+	// to land in MFA_ENROLMENT_REQUIRED and this legacy path was not, so the one
+	// route that creates a privileged identity with a credential attached was
+	// also the one route that skipped the lifecycle. It is the route the first
+	// operator on a new deployment goes through.
 	_, err := s.pool.Exec(ctx,
 		`INSERT INTO admin_users (id, email, full_name, password_hash, role, status)
-		 VALUES ($1, $2, $3, $4, $5, 'ACTIVE')`,
+		 VALUES ($1, $2, $3, $4, $5, 'MFA_ENROLMENT_REQUIRED')`,
 		id, email, fullName, passwordHash, role)
 	if err != nil {
 		// 23505 = unique_violation
