@@ -11,33 +11,76 @@ None of these asks anyone to send a secret to Claude, to chat, or into a file.
 
 Possession of the published client key grants access to nothing: Firestore,
 Realtime Database and Storage do not exist in the project, and Firebase Auth
-answers `CONFIGURATION_NOT_FOUND`. That was tested, not assumed.
+answers `CONFIGURATION_NOT_FOUND`. Tested, not assumed.
 
-But the keys accept a request carrying no application identity at all — a bare
-call registered an installation — so they are unrestricted, and that is the gap.
+The gap is that the keys accept a request carrying no application identity at
+all — a bare call registered an installation — so they are unrestricted.
 
-**Console → project `banzami` → APIs & Services → Credentials**, per key:
+### The mapping, explicitly
 
-* Android → *Android apps*: `com.banzami.consumer` and `com.banzami.merchant`,
-  each with its Play **App signing** SHA-1 — not only the upload key, or
-  installs from Play break.
-* iOS → *iOS apps*: the same two bundle identifiers.
-* No web key exists, so no referrer restriction applies.
-* API restrictions → only Firebase Installations, Cloud Messaging and
-  Crashlytics. Do not enable Firestore, Storage or Identity Toolkit to make
-  something pass — their absence is what makes the published key harmless.
+**There are two keys, not four.** GitHub raises four alerts because the same two
+keys appear in several files. Values are never written here; `keyhash` is
+`sha256(key)[0:12]`, enough to prove two files carry the same key and useless for
+anything else.
+
+| Key | keyhash | Platform | Identities the ONE key must serve | Alerts it accounts for |
+|---|---|---|---|---|
+| **A** | `a2626d564b36` | Android | `com.banzami.consumer` **and** `com.banzami.merchant` | #2, #3 |
+| **B** | `83f573718a5b` | iOS | bundles `com.banzami.consumer` **and** `com.banzami.merchant` | #1, #4 |
+
+**This is the part that breaks an app if it is got wrong.** Each key serves two
+applications, so each restriction needs **two** entries. Restricting key A to one
+package silently kills the other.
+
+No web key exists anywhere in the repository, so no referrer restriction applies.
+
+### Fingerprints
+
+| | |
+|---|---|
+| **Debug** (from this machine's `~/.android/debug.keystore`, whose password is the published constant `android`) | SHA-1 `86:2D:43:62:4E:DF:3A:E5:6E:9C:20:35:76:6C:25:E9:9E:88:76:0D` |
+| **Release** | not obtainable from here — `key.properties` is absent and no keystore is present |
+
+For the release fingerprint, the distinction matters:
+
+* **On Play** → Play Console → your app → *Setup → App integrity → App signing
+  key certificate*. Use that SHA-1, **not** the upload key: using the upload key
+  makes every Play install fail while local builds keep working.
+* **Not on Play yet** → `keytool -list -v -keystore <release>.jks -alias <alias>`
+
+One keystore signs both applications, so one release fingerprint covers both
+packages. Add the debug fingerprint only if debug builds must keep working —
+every fingerprint added widens the restriction.
+
+### APIs to allow
+
+Derived from the application's dependencies, which is authoritative: the app can
+only call what its SDKs call. (Reading the enabled-service list with the API key
+was inconclusive — those endpoints require OAuth, not a key — so this is derived,
+and the console's *Enabled APIs* page is where to confirm the intersection.)
+
+| Package in `pubspec.yaml` | API |
+|---|---|
+| `firebase_core` | Firebase Installations API |
+| `firebase_messaging` | Firebase Cloud Messaging API |
+| `firebase_crashlytics` | Firebase Crashlytics API |
+
+Nothing else — not Remote Config, which the app does not import. And do **not**
+enable Firestore, Storage, RTDB or Identity Toolkit: their absence is precisely
+what makes the published key harmless today.
+
+### The outcome to reach
+
+    application restriction   configured, both identities per key
+    API restriction           configured, the three above only
+    the probe that succeeded  403
+    GitHub alerts #1–#4       resolved only after that 403
 
 App Check is **not applicable** and is recorded as that rather than as a pass: it
-attests requests to Firestore, RTDB, Storage, Functions and Auth, none of which
-this project uses.
+attests Firestore, RTDB, Storage, Functions and Auth, none of which this project
+uses.
 
-Afterwards, re-run the probe that was accepted; it must answer `403`. Only then
-do the four GitHub secret-scanning alerts close, and they close as *a client key
-that is intentionally public, now restricted* — never as a false positive. The
-command and the full inventory are in
-`evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
-
----
+The re-test command is in `evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
 
 ## 2 · DMARC aggregate reporting — Cloudflare
 
