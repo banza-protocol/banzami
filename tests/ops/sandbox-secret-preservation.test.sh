@@ -119,6 +119,21 @@ else
   no "the guarded form still aborts on an empty match"
 fi
 
+# 8. A frontend health check must exercise the application, not the process.
+#
+# The qrcode regression is the argument: a module-scope import of a
+# browser-only dependency made / throw on the server, and the container still
+# printed "Ready in 62ms". A liveness probe would have called that healthy. The
+# check fetching / is what caught it.
+for df in "$ROOT/apps/admin/Dockerfile" "$ROOT/apps/pay/Dockerfile"; do
+  name="$(basename "$(dirname "$df")")"
+  if grep -A 2 '^HEALTHCHECK' "$df" | grep -qE 'CMD .*(wget|curl).*127\.0\.0\.1:[0-9]+/'; then
+    ok "$name health check requests a page, not just the process"
+  else
+    no "$name health check does not exercise an application path"
+  fi
+done
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
