@@ -13,7 +13,9 @@
  * It is server-side only — never import from browser or client-component code.
  */
 
-import { createHmac, timingSafeEqual } from 'node:crypto';
+// Resolved through this package's own "imports" map — see internal/node-crypto.ts.
+// A browser bundler substitutes a stub here; Node resolves the real built-in.
+import { createHmac, timingSafeEqual } from '#node-crypto';
 import type { WebhookEvent, WebhookEventType } from './types.js';
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@
   "license": "MIT",
   "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
+  "sideEffects": false,
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -30,6 +31,14 @@
       "import": "./dist/sandbox.js",
       "require": "./dist/cjs/sandbox.js",
       "types": "./dist/sandbox.d.ts"
+    }
+  },
+  "imports": {
+    "#node-crypto": {
+      "types": "./dist/internal/node-crypto.d.ts",
+      "browser": "./dist/internal/node-crypto.browser.js",
+      "import": "./dist/internal/node-crypto.js",
+      "require": "./dist/cjs/internal/node-crypto.js"
     }
   },
   "files": [

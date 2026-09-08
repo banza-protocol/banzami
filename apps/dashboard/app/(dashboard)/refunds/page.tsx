@@ -8,15 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
 
-const STATUS_COLORS: Record<string, string> = {
-  SUCCEEDED: 'bg-green-100 text-green-800',
-  PENDING:   'bg-yellow-100 text-yellow-800',
-  FAILED:    'bg-red-100 text-red-800',
-};
 
-function statusColor(s: string) {
-  return STATUS_COLORS[s] ?? 'bg-gray-100 text-gray-700';
-}
 
 export default function RefundsPage() {
   const [rows, setRows]     = useState<Refund[]>([]);
@@ -140,7 +132,7 @@ export default function RefundsPage() {
       {error   && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && rows.length === 0 && (
-        <EmptyState title="Sem reembolsos" description="Nenhum reembolso encontrado." />
+        <EmptyState message="Nenhum reembolso encontrado." />
       )}
 
       {!loading && rows.length > 0 && (
@@ -164,7 +156,7 @@ export default function RefundsPage() {
                     <td className="px-xl py-md font-mono text-xs text-gray-500">{r.transaction_id.slice(0, 8)}…</td>
                     <td className="px-xl py-md font-semibold">{formatMinor(r.amount_minor, r.currency)}</td>
                     <td className="px-xl py-md">
-                      <Badge className={statusColor(r.status)}>{r.status}</Badge>
+                      <Badge label={r.status} />
                     </td>
                     <td className="px-xl py-md text-gray-500 truncate max-w-xs">{r.reason ?? '—'}</td>
                     <td className="px-xl py-md text-gray-400 whitespace-nowrap">

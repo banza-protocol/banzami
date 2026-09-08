@@ -8,19 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
 
-const STATUS_COLORS: Record<string, string> = {
-  OPEN:             'bg-yellow-100 text-yellow-800',
-  UNDER_REVIEW:     'bg-blue-100 text-blue-800',
-  WON_BY_CONSUMER:  'bg-green-100 text-green-800',
-  WON_BY_MERCHANT:  'bg-gray-100 text-gray-700',
-  CLOSED:           'bg-gray-100 text-gray-500',
-};
 
 const STATUSES = ['', 'OPEN', 'UNDER_REVIEW', 'WON_BY_CONSUMER', 'WON_BY_MERCHANT', 'CLOSED'];
 
-function statusColor(s: string) {
-  return STATUS_COLORS[s] ?? 'bg-gray-100 text-gray-700';
-}
 
 export default function DisputesPage() {
   const [rows, setRows]       = useState<Dispute[]>([]);
@@ -71,7 +61,7 @@ export default function DisputesPage() {
       {error   && <p className="text-sm text-red-600">{error}</p>}
 
       {!loading && !error && rows.length === 0 && (
-        <EmptyState title="Sem disputas" description="Nenhuma disputa encontrada." />
+        <EmptyState message="Nenhuma disputa encontrada." />
       )}
 
       {!loading && rows.length > 0 && (
@@ -99,7 +89,7 @@ export default function DisputesPage() {
                     <td className="px-xl py-md font-mono text-xs text-gray-500">{d.transaction_id.slice(0, 8)}…</td>
                     <td className="px-xl py-md font-semibold">{formatMinor(d.amount_minor, d.currency)}</td>
                     <td className="px-xl py-md">
-                      <Badge className={statusColor(d.status)}>{d.status}</Badge>
+                      <Badge label={d.status} />
                     </td>
                     <td className="px-xl py-md text-gray-500 truncate max-w-xs">{d.reason}</td>
                     <td className="px-xl py-md text-gray-400 whitespace-nowrap">
@@ -137,12 +127,7 @@ function DisputeDetail({ dispute, onBack }: { dispute: Dispute; onBack: () => vo
       <div className="bg-white rounded-lg shadow-card p-xl flex flex-col gap-md">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">Disputa</h2>
-          <Badge className={dispute.status === 'OPEN' ? 'bg-yellow-100 text-yellow-800' :
-            dispute.status === 'UNDER_REVIEW' ? 'bg-blue-100 text-blue-800' :
-            dispute.status.startsWith('WON_BY_CONSUMER') ? 'bg-green-100 text-green-800' :
-            'bg-gray-100 text-gray-700'}>
-            {dispute.status}
-          </Badge>
+          <Badge label={dispute.status} />
         </div>
 
         <div className="grid grid-cols-2 gap-md text-sm">

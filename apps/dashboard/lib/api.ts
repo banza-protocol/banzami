@@ -14,6 +14,7 @@
  */
 
 import { BanzamiClient } from '@banzami/sdk';
+import type { Wallet } from '@banzami/sdk';
 
 // Re-export the error type from the SDK so callers don't need a separate import.
 export { BanzamiApiError } from '@banzami/sdk';
@@ -190,7 +191,10 @@ export class BanzamiApi {
    * The SDK requires a wallet ID; this method falls back to a direct request.
    */
   async getMerchantWallet(currency = 'AOA') {
-    return this._legacyReq<{ id: string; merchant_id?: string; currency: string; status: string; created_at: string }>(
+    // Typed as the SDK's Wallet, not a structurally similar inline shape: the
+    // inline one declared `status: string`, which does not fit WalletStatus and
+    // made every consumer that stored the result a type error.
+    return this._legacyReq<Wallet>(
       `/wallets?currency=${encodeURIComponent(currency)}`,
     );
   }
@@ -291,8 +295,18 @@ export class BanzamiApi {
     return this.client.deleteWebhookEndpoint(id);
   }
 
-  listWebhookEvents(opts: { limit?: number; cursor?: string } = {}): Promise<WebhookEventPage> {
-    return this.client.listWebhookEvents(opts) as Promise<WebhookEventPage>;
+  /**
+   * Recent webhook events.
+   *
+   * `limit` only. The Gateway route takes no cursor — GET /v1/webhooks/events
+   * accepts an integer 1–100 and nothing else — so the previous signature,
+   * which advertised `cursor` and forwarded the whole options object to an SDK
+   * method whose parameter is a number, sent `limit=[object Object]` and got
+   * back 400 INVALID_PARAM every time. The list never loaded.
+   */
+  async listWebhookEvents(opts: { limit?: number } = {}): Promise<WebhookEventPage> {
+    const { data } = await this.client.listWebhookEvents(opts.limit);
+    return { data };
   }
 
   /** @deprecated Pending SDK support for endpoint health. */

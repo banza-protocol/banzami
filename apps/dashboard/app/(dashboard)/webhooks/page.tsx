@@ -82,7 +82,10 @@ function EndpointsTab() {
     setLoading(true); setError('');
     try {
       const api  = banzamiApi();
-      const list = await api.listWebhookEndpoints();
+      // listWebhookEndpoints resolves to { data }, not to the array itself.
+      // Treating it as an array meant .map on an object — the endpoints tab
+      // threw before it rendered a row.
+      const { data: list } = await api.listWebhookEndpoints();
       setEndpoints(list);
       // Load health for each endpoint in parallel (best-effort)
       const healthResults = await Promise.allSettled(list.map(ep => api.getEndpointHealth(ep.id)));
@@ -156,7 +159,7 @@ function EndpointsTab() {
                     </div>
                     <div className="flex items-center gap-md shrink-0">
                       {h && <HealthPill rate={h.success_rate_pct} />}
-                      <Badge label={ep.status} />
+                      <Badge label={ep.status ?? 'UNKNOWN'} />
                       <button
                         onClick={e => { e.stopPropagation(); handleDelete(ep.id); }}
                         className="text-gray-400 hover:text-error transition-colors"
@@ -234,7 +237,7 @@ function EndpointDetail({
             <p className="text-xs font-mono text-gray-400 mt-xs">{endpoint.id}</p>
           </div>
           <div className="flex items-center gap-md shrink-0">
-            <Badge label={endpoint.status} />
+            <Badge label={endpoint.status ?? 'UNKNOWN'} />
             <button onClick={onDelete} className="text-gray-400 hover:text-error transition-colors" title="Remover endpoint">
               <Trash2 size={15} />
             </button>
@@ -324,17 +327,16 @@ function EventsTab() {
   const [events, setEvents]   = useState<WebhookEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
-  const [cursor, setCursor]   = useState<string | undefined>();
-  const [hasMore, setHasMore] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<WebhookEvent | null>(null);
 
-  async function load(nextCursor?: string) {
+  // No cursor state: GET /v1/webhooks/events is not paginated. It takes a limit
+  // and returns that many most-recent events. Carrying a cursor here only
+  // produced a "load more" button that could never advance.
+  async function load() {
     setLoading(true);
     try {
-      const page = await banzamiApi().listWebhookEvents({ limit: 25, cursor: nextCursor });
-      setEvents(prev => nextCursor ? [...prev, ...page.data] : page.data);
-      setCursor(page.next_cursor);
-      setHasMore(!!page.next_cursor);
+      const page = await banzamiApi().listWebhookEvents({ limit: 25 });
+      setEvents(page.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
     } finally {
@@ -381,10 +383,10 @@ function EventsTab() {
       {!loading && events.length === 0 && <EmptyState message="Nenhum evento ainda" />}
       {error && <p className="px-xl py-lg text-sm text-error">{error}</p>}
 
-      {hasMore && !loading && (
+      {!loading && !error && events.length > 0 && (
         <div className="border-t border-gray-100 px-xl py-md">
-          <button onClick={() => load(cursor)} className="text-sm font-medium text-banzami hover:underline">
-            Carregar mais
+          <button onClick={() => load()} className="text-sm font-medium text-banzami hover:underline">
+            Actualizar
           </button>
         </div>
       )}
