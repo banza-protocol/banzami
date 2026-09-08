@@ -85,26 +85,36 @@ must_allow() { # must_allow <description> <path> <line>
   fi
 }
 
-# Synthetic throughout. None of these values authenticates to anything: the
-# secret-key and webhook bodies are keyboard noise of the right shape, and the
-# allowed ones are the literals already committed in this repository.
+# Synthetic throughout, and assembled at runtime rather than spelled out.
+#
+# Several of these prefixes are shared with real providers — whsec_ is Stripe's
+# webhook secret, sbp_ is a Supabase personal access token, re_ is Resend — so a
+# realistic value written as a literal here is indistinguishable, to a scanner,
+# from a leaked one. GitHub push protection refused this file for the Supabase
+# value and raised an alert for the Stripe-shaped one, which is both controls
+# working exactly as intended.
+#
+# The answer is not to add them to an unblock list. A file whose whole purpose is
+# to contain credential-shaped strings should not also be the file that trains
+# everyone to wave alerts through. The bodies are built below, so nothing here
+# reads as a credential at rest, and the rules under test only ever see the
+# assembled value.
+# bz_*_sk_ is this operator's own prefix and collides with no provider format,
+# so it is the one value that can safely be written out in full.
 KEY_BODY='9Kq2mZx7Lp4Rt8Wn3Vc6Yb1Hd5Fg0Js'
-
-# Assembled at runtime, never written out as one literal. GitHub push protection
-# recognises the Supabase personal-access-token format and refused this file when
-# the value was spelled out — which is the control working, so the value is built
-# here instead of being added to an unblock list. The body is self-evidently not
-# a token; only its shape matters to the rule under test.
+WHSEC_TOKEN="whsec_$(printf 'deadbeef%.0s' 1 2 3 4)"
 SBP_TOKEN="sbp_$(printf 'deadbeef%.0s' 1 2 3 4 5)"
+RESEND_TOKEN="re_$(printf 'deadbeef%.0s' 1 2 3)"
+SUPABASE_TOKEN="sb_secret_$(printf 'deadbeef%.0s' 1 2 3)"
 
 echo
 echo "▸ A real credential must be reported, in any file and under any name"
 must_detect "Banzami secret key, plainly assigned"  src/x.go   "var leaked = \"bz_test_sk_${KEY_BODY}\""
 must_detect "Banzami secret key, live prefix"       src/l.go   "k := \"bz_live_sk_${KEY_BODY}\""
 must_detect "Banzami secret key, in a comment"      src/c.go   "// TODO: remove bz_test_sk_${KEY_BODY}"
-must_detect "generated webhook signing secret"      src/y.py   "S = \"whsec_7Fq2XmZp9Lr4Tw8Nv3Kc6Yb1Hd5Gj0As\""
-must_detect "Resend API key"                        src/z.sh   "RESEND=\"re_8Kd2mVx7Qp4Rt9Wn3Bc6Yb1Hd5Fg0Js\""
-must_detect "Supabase secret key"                   src/s.env  "K=sb_secret_9Kq2mZx7Lp4Rt8Wn3Vc6Yb1Hd5Fg0J"
+must_detect "generated webhook signing secret"      src/y.py   "S = \"${WHSEC_TOKEN}\""
+must_detect "Resend API key"                        src/z.sh   "RESEND=\"${RESEND_TOKEN}\""
+must_detect "Supabase secret key"                   src/s.env  "K=${SUPABASE_TOKEN}"
 must_detect "Supabase access token"                 src/t.env  "SBP=${SBP_TOKEN}"
 must_detect "Postgres URL carrying a real password" src/p.env  "DATABASE_URL=postgres://banzami:Tr0ub4dor-Xk9-Qz@db.prod:5432/app"
 must_detect "PEM private key block"                 src/k.pem  "-----BEGIN RSA PRIVATE KEY-----"
