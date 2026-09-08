@@ -89,6 +89,19 @@ if command -v gitleaks >/dev/null 2>&1; then
     ' "$report" 2>/dev/null || true
   fi
   rm -f "$report"
+
+  # A clean scan is only reassuring if the scanner can still see. On 2026-09-08
+  # this reported "no findings" while a real bz_test_sk_ key sat in a tracked
+  # file, because no rule knew the format. So the gate now proves itself: the
+  # suite plants a credential of every class it claims to catch and fails if any
+  # of them is excused.
+  if tests/security/gitleaks-mutations.test.sh >/tmp/gitleaks-mut.$$ 2>&1; then
+    ok "gitleaks: detects a planted credential of every class it claims"
+  else
+    bad "gitleaks: the scan is not catching what it claims to catch"
+    grep -E '✗|NOT DETECTED|reported as' /tmp/gitleaks-mut.$$ | sed 's/^/    /' || true
+  fi
+  rm -f /tmp/gitleaks-mut.$$
 else
   skip "gitleaks not installed — install it to scan for committed credentials"
 fi

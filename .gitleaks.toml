@@ -9,11 +9,79 @@
 # Every allowlist entry below is a path or a documented placeholder, never a
 # blanket rule suppression: real credentials in these files would still be a
 # finding in any file not listed here.
+#
+# That sentence was aspirational until 2026-09-08. The default rule set has no
+# idea what a Banzami key looks like, so the credential class this repository is
+# most responsible for was the one it did not check — see the rules below. The
+# claim is now enforced by tests/security/gitleaks-mutations.test.sh, which
+# plants a real-shaped credential of each class and fails if the gate excuses
+# it. Change this file and run that.
 
 [extend]
 useDefault = true
 
-[allowlist]
+# ── Rules for the credential classes this system actually issues.
+#
+# The default gitleaks rule set does not know what a Banzami key looks like, and
+# its generic-api-key heuristic only fires when a keyword like "key" or "secret"
+# sits near the value. So this was true until it was tested:
+#
+#     var leaked = "bz_test_sk_9Kq2mZx7Lp4Rt8Wn3Vc6Yb1Hd5Fg0Js"   → not detected
+#
+# A real, working secret key, committed to a tracked file, passed the gate — the
+# one credential class this repository is most responsible for. The publication
+# audit carried these rules and the standing gate did not, which is backwards:
+# the continuous control was weaker than the one-off one.
+#
+# Prefixes are taken from services/developer-api/internal/developer/crypto.go.
+# Publishable keys (bz_*_pk_) are deliberately absent: they are public by design
+# and read-only, and flagging them would train reviewers to ignore this gate.
+
+[[rules]]
+id = "banzami-secret-key"
+description = "Banzami secret API key (server-side)"
+regex = '''bz_(?:test|live)_sk_[A-Za-z0-9]{20,}'''
+keywords = ["bz_test_sk_", "bz_live_sk_"]
+
+[[rules]]
+id = "banzami-webhook-secret"
+description = "Banzami webhook signing secret"
+regex = '''whsec_[A-Za-z0-9_-]{20,}'''
+keywords = ["whsec_"]
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Supabase secret key"
+regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_secret_"]
+
+[[rules]]
+id = "supabase-access-token"
+description = "Supabase personal access token"
+regex = '''sbp_[a-f0-9]{40,}'''
+keywords = ["sbp_"]
+
+[[rules]]
+id = "resend-api-key"
+description = "Resend API key"
+regex = '''re_[A-Za-z0-9]{20,}'''
+keywords = ["re_"]
+
+[[rules]]
+id = "postgres-url-with-password"
+description = "Postgres connection string carrying a password"
+# Non-capturing on purpose: gitleaks reports the first capture group as the
+# secret, so `(ql)?` made a postgresql:// finding report its secret as "ql".
+regex = '''postgres(?:ql)?:\/\/[A-Za-z0-9_.-]+:[^@\s'"]{6,}@'''
+keywords = ["postgres://", "postgresql://"]
+
+[[rules]]
+id = "pem-private-key-block"
+description = "PEM private key block"
+regex = '''-----BEGIN (?:[A-Z ]+ )?PRIVATE KEY-----'''
+keywords = ["BEGIN", "PRIVATE KEY"]
+
+[[allowlists]]
 description = "Generated output, vendored dependencies, and documented placeholders"
 
 paths = [
@@ -25,6 +93,9 @@ paths = [
 
   # ── Build output / vendored dependencies (gitignored, not repository content)
   '''(^|/)node_modules/''',
+  # Compiled Python bytecode: generated, gitignored, and only ever a copy of a
+  # literal that is already being judged in the .py source next to it.
+  '''(^|/)__pycache__/''',
   '''(^|/)\.next/''',
   '''(^|/)target/''',
   '''(^|/)dist/''',
@@ -54,13 +125,28 @@ paths = [
   #    restrictions, not by keeping the value private.
   '''apps/mobile/android/app/src/.*/google-services\.json$''',
   '''apps/mobile/ios/.*GoogleService-Info\.plist$''',
+
+  # ── The suite that tests this very file. It is, by construction, a list of
+  #    realistic credentials of every class the gate knows about — that is what
+  #    it plants in a scratch directory to check the gate reports them. Scanning
+  #    it finds exactly what it was written to contain.
+  '''tests/security/gitleaks-mutations\.test\.sh$''',
 ]
 
-# Match the allowlist regexes against the whole LINE, not just the extracted
-# secret: the justification for these suppressions is contextual (the field is an
-# idempotency key; the literal is a documented placeholder), which is only
-# visible in the surrounding line.
-regexTarget = "line"
+# Match the allowlist regexes against the extracted SECRET, not the whole line.
+#
+# This block used to target the line, and that quietly turned every entry below
+# into a licence to hide anything sharing a line with it. It was not theoretical:
+# a real-shaped key appended to an excused local database URL stopped being
+# reported, and so did one appended to an excused resource id. An exception must
+# excuse its own value and nothing else, which is what targeting the secret
+# means. tests/security/gitleaks-mutations.test.sh plants a key beside two of
+# these exceptions and fails if it disappears.
+#
+# The one exception that genuinely needs its surrounding line — an idempotency
+# key, which is only identifiable by the field it is assigned to — has its own
+# line-targeted block further down.
+regexTarget = "secret"
 
 regexes = [
   # ── Documentation and example placeholders — not credentials.
@@ -69,13 +155,6 @@ regexes = [
   '''\$(\{)?(BANZA|BANZAMI)_[A-Z_]*(KEY|SECRET|TOKEN)''',
   '''<your[- _](api[- _])?(key|secret|token)>''',
   '''REPLACE_ME|CHANGE_ME|EXAMPLE_ONLY|FAKE''',
-
-  # ── Idempotency keys are NOT credentials. They are caller-chosen request
-  #    references (an order number, an attempt counter) that appear throughout
-  #    the API documentation and tests. gitleaks' generic rule matches them only
-  #    because the field name ends in "key". Suppressed by value shape, so a real
-  #    credential assigned to a differently-named field is still reported.
-  '''(?i)idem(potency)?[-_]?key["\047]?\s*[:=]\s*["\047][a-z0-9][a-z0-9._-]{3,64}["\047]''',
 
   # ── Self-evidently synthetic fixture credentials. Each is a literal that
   #    announces itself as test material; none authenticates to any system.
@@ -97,4 +176,76 @@ regexes = [
   #    nothing outside the test binary.
   '''test-secret-at-least-32-bytes-long''',
   '''0123456789abcdef0123456789abcdef''',
+
+  # ── The RFC 6238 appendix-B test vector. This is the base32 encoding of the
+  #    ASCII string "12345678901234567890", printed in the RFC itself, and the
+  #    TOTP implementation is verified against it because a TOTP that does not
+  #    reproduce the published vector is simply wrong. Matched as an exact
+  #    literal: any other base32 seed — including a real enrolment seed, which
+  #    comes from crypto/rand and will never equal this — is still reported.
+  '''GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ''',
+
+
+  # ── The two local development database passwords, which are paired with the
+  #    POSTGRES_PASSWORD literals a few lines above them in the same compose
+  #    file and named after the database they open. Nothing deployed uses them:
+  #    the Sandbox Postgres takes POSTGRES_PASSWORD_FILE (a docker secret) and
+  #    publishes no port to the host. Matched on user AND password together, so
+  #    any other connection string — a real one, or the same user with a real
+  #    password — is still reported.
+  '''postgres(?:ql)?:\/\/banzami:(?:banzami_dev|banzami_sandbox)@''',
+
+  # ── Synthetic webhook secrets. Every one is lowercase English words joined by
+  #    underscores; a secret issued by webhookprov.GenerateSecret is 32 random
+  #    bytes and cannot look like this. Two of these live in a Rust list whose
+  #    entire purpose is to assert that each credential in it is REJECTED.
+  '''whsec_[a-z]+(_[a-z]+)+!*''',
+
+  # ── Forged keys in the gateway negative-path E2E. They exist to assert 401:
+  #    RT02.bz_live-fails-closed and RT02.unknown-key-fails. "deadbeef" repeated
+  #    is not an issued key — real ones are random base62 from crypto/rand.
+  '''bz_(test|live)_sk_(deadbeef)+''',
 ]
+
+# ── Dead identifiers in generated audit evidence.
+#
+# The release audit records which project and which API key were retired, by id,
+# next to the proof that they were retired ("REVOKED, confirmed rejected with
+# 401"). gitleaks' generic rule matches the UUID only because the JSON field is
+# named "key". A UUID is an identifier in this system and never a credential:
+# every issued secret carries a prefix — bz_test_sk_, bz_live_sk_, whsec_ — and
+# none of them is UUID-shaped.
+#
+# This is a SEPARATE allowlist block, and that is the whole point. The block
+# above uses regexTarget = "line", which suppresses the entire line it matches.
+# Written there, this entry would have hidden anything else on the same line —
+# and it did: a real secret key appended after "— REVOKED" stopped being
+# reported. Judged against the captured secret instead, and confined to
+# evidence/, it can only ever excuse a bare UUID; a credential sitting beside
+# one is a different finding, with a different secret, and is still reported.
+# ── Idempotency keys are NOT credentials.
+#
+# They are caller-chosen request references — an order number, an attempt
+# counter — and they run through the API documentation, the SDK examples and the
+# refund tests. gitleaks' generic rule matches them only because the field they
+# are assigned to ends in "key".
+#
+# This is the one exception that cannot judge the value alone: `pedido-4471` is
+# indistinguishable from a short credential in isolation. What makes it safe is
+# the field name, and the field name is only visible in the line. So this entry
+# targets the line, and it is kept separate and deliberately narrow — the value
+# must be lowercase and short, so a real key assigned to an idempotency field is
+# still reported.
+[[allowlists]]
+description = "Idempotency keys, identifiable only by the field they are assigned to"
+regexTarget = "line"
+regexes = [
+  '''(?i)idem(potency)?[-_]?key["\047]?\s*[:=]\s*["\047][a-z0-9][a-z0-9._-]{3,64}["\047]''',
+]
+
+[[allowlists]]
+description = "Retired resource ids in generated release evidence"
+matchCondition = "AND"
+regexTarget = "secret"
+paths = ['''^evidence/''']
+regexes = ['''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''']
