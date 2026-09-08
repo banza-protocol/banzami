@@ -111,26 +111,52 @@ write_db_url() { # file-only runtime credential (bl_app_runtime → banzami_stag
   printf '%sbl_app_runtime:%s@%s/%s' "$proto" "$(cat "$BZSB_SECRET_ROOT/mi_runtime")" "$host" "$db" > "$DBURL_FILE"; chmod 0644 "$DBURL_FILE"
 }
 uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(uuid.uuid4())'; }
+
+# keep_or_mint — write a synthetic credential ONLY if the file is not already there.
+#
+# Every one of these used to be regenerated on each apply, which reads as
+# harmless for "disposable, per-run" secrets and is not. api_key_pepper is what
+# every issued API key is hashed with: minting a new one silently invalidates
+# every key that exists — including keys installed in other people's production
+# environments, which cannot be re-read and have to be reissued by hand.
+# session_secret does the same to every signed-in Console session, and
+# core_internal_key to the service pairs mid-flight.
+#
+# So an apply now preserves what is already there. Deliberate rotation is a
+# deliberate act: BZSB_ROTATE_SECRETS=1 (or deleting the file) mints a new one,
+# and the caller is expected to know what has to be reissued afterwards.
+keep_or_mint() { # <file> <label>
+  local f="$1" label="$2"
+  if [ -f "$f" ] && [ -s "$f" ] && [ "${BZSB_ROTATE_SECRETS:-0}" != "1" ]; then
+    echo "  $label kept (already provisioned)"
+    return 0
+  fi
+  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$f"; chmod 0644 "$f"
+  echo "  $label minted"
+}
 # file-only synthetic signing secret for services that hard-require JWT_SECRET at
 # boot (e.g. public-api). Disposable, generated per run, NOT a real credential;
 # delivered file-only + exported in-process so it never lands in Docker config.
-write_jwt_secret() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$JWT_FILE"; chmod 0644 "$JWT_FILE"; }
+write_jwt_secret() { keep_or_mint "$JWT_FILE" jwt_secret; }
 # file-only synthetic Gateway↔Core service credential (X-Internal-Key ↔ CORE_INTERNAL_KEY).
 # Enables the fail-closed internal route groups (refunds, F4) inside the Sandbox. Disposable,
 # generated per run, delivered file-only + exported in-process so it never lands in Docker
 # config; the SAME value is mounted into every service so the shared secret matches.
-write_core_internal_key() { printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$CIK_FILE"; chmod 0644 "$CIK_FILE"; }
+write_core_internal_key() { keep_or_mint "$CIK_FILE" core_internal_key; }
 # file-only synthetic credentials for the developer/platform API-key layer. All
 # disposable, generated per run, delivered file-only + exported in-process so they
 # never land in Docker-inspectable config. The shared ones (developer_internal_key,
 # core_payee_validation_key) are the SAME value in every service so the pairs match.
 # Sandbox/Phase-0 only; the fixture + dev-key paths are hard-gated to ENVIRONMENT=sandbox.
 write_devkey_secrets() {
-  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$APIKEY_PEPPER_FILE"; chmod 0644 "$APIKEY_PEPPER_FILE"
-  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$DEVINT_FILE";       chmod 0644 "$DEVINT_FILE"
-  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$PAYEEVAL_FILE";     chmod 0644 "$PAYEEVAL_FILE"
-  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$SESSION_FILE";      chmod 0644 "$SESSION_FILE"
-  printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$OTP_FILE";          chmod 0644 "$OTP_FILE"
+  # api_key_pepper first, and named, because it is the one whose regeneration is
+  # invisible: nothing fails at deploy time, and every API key in the world stops
+  # verifying the moment developer-api restarts.
+  keep_or_mint "$APIKEY_PEPPER_FILE" api_key_pepper
+  keep_or_mint "$DEVINT_FILE"        developer_internal_key
+  keep_or_mint "$PAYEEVAL_FILE"      core_payee_validation_key
+  keep_or_mint "$SESSION_FILE"       session_secret
+  keep_or_mint "$OTP_FILE"           otp_pepper
 }
 
 deploy_one() { # <name> <port> <binary> <tag>

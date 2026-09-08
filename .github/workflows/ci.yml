@@ -333,6 +333,14 @@ jobs:
       - name: Payer-surface naming gate
         run: node tools/check-payer-surface-naming.mjs
 
+      # The gated Sandbox apply used to regenerate api_key_pepper on every run,
+      # which silently invalidates every API key ever issued — including keys
+      # installed in production environments that cannot read them back. No
+      # Docker or network: the function is extracted and run against a scratch
+      # directory.
+      - name: Sandbox secret-preservation gate
+        run: bash tests/ops/sandbox-secret-preservation.test.sh
+
       # Where this operator is allowed to charge money.
       #
       # Exactly three operations resolve an operator fee, and each was audited
