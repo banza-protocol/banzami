@@ -21,7 +21,16 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self'",
-      "connect-src 'self' https://api.banzami.com",
+      // 'self' only. The console calls admin-api on its own origin, through
+      // /api on admin.banzami.com — the browser never talks to a second host.
+      //
+      // This used to also allow https://api.banzami.com, the LIVE gateway. That
+      // origin is not reachable from this console and Financial LIVE is
+      // fail-closed, so the entry granted nothing and described a connection
+      // that does not exist. A CSP naming a live money host from a Sandbox
+      // console is worse than a narrow one: it is the document people read to
+      // learn what this page talks to.
+      "connect-src 'self'",
       "object-src 'none'",
       "frame-src 'none'",
       "frame-ancestors 'none'",
