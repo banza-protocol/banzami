@@ -60,6 +60,25 @@ func (h *MerchantApplicationHandler) gatewayFor(environment string) GatewayAppli
 	return h.gw
 }
 
+// gatewayForRequest picks the stack for a request that may not have said which.
+//
+// An unqualified call used to fall through to the live stack unconditionally.
+// While the platform is SANDBOX that stack is not merely empty — it is not
+// deployed, so the call fails at the socket and the operator sees 502 on a
+// console whose every other page works. The admin UI always sends the
+// environment, which is why this went unnoticed; anything else calling the same
+// route got a connection error dressed as a bad gateway.
+//
+// With nothing specified, the answer is the platform's own mode. Fail-safe
+// through platformEnv: an unreadable mode resolves to SANDBOX, so an error can
+// never route an operator's request at the live stack by accident.
+func (h *MerchantApplicationHandler) gatewayForRequest(ctx context.Context, environment string) GatewayApplications {
+	if strings.TrimSpace(environment) == "" {
+		environment = h.platformEnv(ctx)
+	}
+	return h.gatewayFor(environment)
+}
+
 // rawAcrossStacks runs a raw gateway call against the live stack and, on 404,
 // retries the sandbox stack — so an id-addressed request resolves wherever the
 // application lives, without the admin UI having to pass the environment.
@@ -104,7 +123,7 @@ func (h *MerchantApplicationHandler) List(w http.ResponseWriter, r *http.Request
 	// Route the listing to the stack matching the requested environment (ADR-025):
 	// SANDBOX applications live in banzami_staging, LIVE in banzami.
 	environment := r.URL.Query().Get("environment")
-	raw, code, err := h.gatewayFor(environment).ListApplicationsRaw(r.Context(), r.URL.Query().Get("status"), environment)
+	raw, code, err := h.gatewayForRequest(r.Context(), environment).ListApplicationsRaw(r.Context(), r.URL.Query().Get("status"), environment)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not list applications")
 		return
