@@ -40,6 +40,11 @@ svc_build_spec() {
     # the gateway origin is baked in: NEXT_PUBLIC_* is read by client bundles at
     # build time, so it cannot be supplied at run time.
     pay-frontend)          echo "$REL/apps/pay|$REL/apps/pay/Dockerfile|3002" ;;
+    # The operator console. admin-api reads the same Sandbox database every other
+    # service does; admin-frontend is a browser app and, like pay-frontend, bakes
+    # its API origin at build time because NEXT_PUBLIC_* is read by client bundles.
+    admin-api)             echo "$REL/services|$REL/services/admin-api/Dockerfile|8082" ;;
+    admin-frontend)        echo "$REL/apps/admin|$REL/apps/admin/Dockerfile|3002" ;;
     *) return 1 ;;
   esac
 }

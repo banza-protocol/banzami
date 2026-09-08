@@ -40,6 +40,19 @@ SERVICES=(
   # every payer for twelve hours. A clean exit code is what made it quiet:
   # nothing crashed, nothing restarted, no log line was written.
   "pay-frontend|3002|node server.js"
+  # The operator console (Stage D, approved 2026-09-08). Two entries, because it
+  # is two things: an API that reads this Sandbox database, and a browser app.
+  #
+  # It is here rather than in a separate topology for the same reason
+  # pay-frontend is: the operator console is part of the released Sandbox
+  # product — a platform whose routine operations require psql is not a platform
+  # — and it reads exactly the database these services already write.
+  #
+  # ENVIRONMENT=SANDBOX is not decoration. admin-api used to label its primary
+  # database LIVE, and the primary database here is banzami_staging; the console
+  # would have reported Sandbox balances and compliance cases as real money.
+  "admin-api|8082|admin-api"
+  "admin-frontend|3002|node server.js"
 )
 # Services that must never exist in this project.
 #
@@ -47,7 +60,12 @@ SERVICES=(
 # payer surface, which is now an authorised Sandbox application (above). What
 # they were really protecting — that no ADMIN or LIVE surface is deployed here —
 # is unchanged and named precisely instead of by substring.
-FORBIDDEN="admin-api admin-api-staging admin-frontend dashboard-frontend checkout-frontend reverse-proxy banza-docs banzai"
+# admin-api and admin-frontend left this list when Stage D approved the operator
+# console for the Sandbox. What the list protects is unchanged: no LIVE surface
+# and no merchant dashboard in this project. admin-api-staging stays forbidden
+# because it does not exist — a second admin under a different name would be a
+# second source of operator truth.
+FORBIDDEN="admin-api-staging dashboard-frontend checkout-frontend reverse-proxy banza-docs banzai"
 
 # pay-frontend gets the APPLICATION plane only.
 #
@@ -79,6 +97,9 @@ load_context() {
   PAYEEVAL_FILE="$EVIDENCE_ROOT/core_payee_validation_key"
   SESSION_FILE="$EVIDENCE_ROOT/session_secret"
   OTP_FILE="$EVIDENCE_ROOT/otp_pepper"
+  # Operator console (Stage D). Signs BANZADMIN sessions; regenerating it signs
+  # every operator out, so it is preserved across applies like the rest.
+  ADMINJWT_FILE="$EVIDENCE_ROOT/admin_jwt_secret"
 }
 svc_image() { docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$1" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1; }
 
@@ -279,6 +300,12 @@ cmd_clean() {
 # whatever the previous container happened to carry.
 release_config_env() {
   case "$1" in
+    admin-api)
+      # The console must label what it shows for what it is. Without this the
+      # primary database defaults to LIVE, and the primary database here is the
+      # Sandbox one.
+      echo "ENVIRONMENT=SANDBOX"
+      ;;
     api-gateway-staging)
       # The origin of the hosted payer surface (ADR-052). Without it, every
       # payment link the API hands an integration points at the gateway's own
@@ -297,32 +324,81 @@ cmd_deploy_one() {
   # died silently before reaching the create path below, reporting only rc=1.
   local cname; cname="$(docker ps -a --format '{{.Names}}' | grep -E -- "-${name}\$" | head -1 || true)"
 
-  # First deploy of the hosted payer surface.
+  # First deploy of a service that has never run here.
   #
-  # The clone-the-running-container path below cannot bootstrap a service that
-  # has never run, and every other service here was created by the gated apply
-  # with its secret mounts. pay-frontend has none to clone: no secret, no
-  # database URL, no Core credential — only the public gateway origin it reads.
-  # So its first create is explicit, minimal, and on the APPLICATION plane only.
-  if [ -z "$cname" ] && [ "$name" = "pay-frontend" ]; then
-    local proj net
+  # The clone-the-running-container path below cannot bootstrap one: there is no
+  # predecessor to clone. Three services need it and they need different things,
+  # so each first-create is written out rather than inferred.
+  #
+  #   pay-frontend    application plane only. No secret, no database URL, no Core
+  #                   credential — only the public gateway origin it reads.
+  #   admin-frontend  the same shape: a browser app that talks to admin-api
+  #                   through the edge, never directly to a database.
+  #   admin-api       data plane, and the only one here that needs credentials.
+  #                   It reads the same database as core-api and calls Core's
+  #                   internal routes, so it gets the same file-only mounts and
+  #                   the same in-process export the other services use — never
+  #                   a credential in `-e`, which docker inspect would print.
+  if [ -z "$cname" ] && { [ "$name" = "pay-frontend" ] || [ "$name" = "admin-frontend" ] || [ "$name" = "admin-api" ]; }; then
+    local proj appnet datanet
     proj="$(docker ps --format '{{.Names}}' | grep -oE '^bzsandbox-[0-9]+-[0-9]+-[0-9]+' | head -1)"
     [ -n "$proj" ] || die "no bootstrapped Sandbox project found"
-    net="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-app-' | head -1)"
-    [ -n "$net" ] || die "no Sandbox application network found"
-    cname="${proj}-pay-frontend"
-    echo "  $name first create on $net (application plane only, no secrets)"
-    docker run -d --name "$cname" --network "$net" \
-      --security-opt "no-new-privileges:true" \
-      --label "$LABEL.service=$name" \
-      -e NEXT_PUBLIC_GATEWAY_URL="${PAY_GATEWAY_URL:-https://sandbox-api.banzami.com}" \
-      -e GATEWAY_INTERNAL_URL="http://${proj}-api-gateway-staging:8080" \
-      -e PORT="$port" -e HOSTNAME=0.0.0.0 \
-      "$tag" >/dev/null 2>&1 || { echo "  $name first create FAIL"; return 1; }
+    appnet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-app-' | head -1)"
+    [ -n "$appnet" ] || die "no Sandbox application network found"
+    cname="${proj}-${name}"
+
+    if [ "$name" = "admin-api" ]; then
+      # deploy-one normally needs no context — it clones a container. This one
+      # branch does: the credential FILES it mounts are named there, and their
+      # paths come from the bootstrapped Sandbox state rather than being
+      # recomputed here, so admin-api mounts the same db_url the other services
+      # do instead of a second copy that could drift.
+      load_context
+      datanet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-data-' | head -1)"
+      [ -n "$datanet" ] || die "no Sandbox data network found"
+      # The admin JWT signing key. Preserved across applies like every other
+      # credential — regenerating it would sign every operator out and, worse,
+      # would do it silently at the next deploy.
+      keep_or_mint "$ADMINJWT_FILE" admin_jwt_secret
+      echo "  $name first create on $datanet + $appnet (file-only credentials)"
+      docker create --name "$cname" --network "$datanet" \
+        --security-opt "no-new-privileges:true" \
+        --label "$LABEL.service=$name" \
+        -v "$DBURL_FILE:/run/secrets/db_url:ro" \
+        -v "$CIK_FILE:/run/secrets/core_internal_key:ro" \
+        -v "$ADMINJWT_FILE:/run/secrets/admin_jwt_secret:ro" \
+        -e "ADMIN_API_PORT=$port" \
+        -e "ENVIRONMENT=SANDBOX" \
+        -e "CORE_API_URL=http://${proj}-core-api-staging:8081" \
+        -e "GATEWAY_STAGING_INTERNAL_URL=http://${proj}-api-gateway-staging:8080" \
+        --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export INTERNAL_API_KEY="$(cat /run/secrets/core_internal_key)"; export STAGING_INTERNAL_API_KEY="$INTERNAL_API_KEY"; export ADMIN_JWT_SECRET="$(cat /run/secrets/admin_jwt_secret)"; exec admin-api' >/dev/null 2>&1 \
+        || { echo "  $name first create FAIL"; return 1; }
+      docker network connect "$appnet" "$cname" >/dev/null 2>&1 || true
+      docker start "$cname" >/dev/null 2>&1 || { echo "  $name first start FAIL"; return 1; }
+    else
+      local extra_env=()
+      if [ "$name" = "pay-frontend" ]; then
+        extra_env=(-e NEXT_PUBLIC_GATEWAY_URL="${PAY_GATEWAY_URL:-https://sandbox-api.banzami.com}"
+                   -e GATEWAY_INTERNAL_URL="http://${proj}-api-gateway-staging:8080")
+      else
+        # The browser calls admin-api through the same origin the console is
+        # served on, so the bundle needs no host of its own.
+        extra_env=(-e NEXT_PUBLIC_ADMIN_API_URL="${ADMIN_API_PUBLIC_URL:-https://admin.banzami.com/api}")
+      fi
+      echo "  $name first create on $appnet (application plane only, no secrets)"
+      docker run -d --name "$cname" --network "$appnet" \
+        --security-opt "no-new-privileges:true" \
+        --label "$LABEL.service=$name" \
+        "${extra_env[@]}" \
+        -e PORT="$port" -e HOSTNAME=0.0.0.0 \
+        "$tag" >/dev/null 2>&1 || { echo "  $name first create FAIL"; return 1; }
+    fi
+
     local c=0 st
     while :; do st="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}nohc{{end}}' "$cname" 2>/dev/null)"
       case "$st" in healthy) echo "  $name deployed_and_healthy PASS"; return 0 ;; esac
-      c=$((c+1)); [ "$c" -gt 45 ] && { echo "  $name first create FAIL (health timeout)"; return 1; }; sleep 2
+      [ "$st" = nohc ] && { docker exec "$cname" true >/dev/null 2>&1 && { echo "  $name deployed PASS (no healthcheck)"; return 0; }; }
+      c=$((c+1)); [ "$c" -gt 45 ] && { echo "  $name first create FAIL (health timeout)"; docker logs --tail 20 "$cname" 2>&1 | sed 's/^/    /'; return 1; }; sleep 2
     done
   fi
 
