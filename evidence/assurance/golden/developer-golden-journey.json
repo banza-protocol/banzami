@@ -1,9 +1,9 @@
 {
   "suite": "BANZAMI DEVELOPERS × DOA GOLDEN JOURNEY (developer key)",
   "environment": "sandbox",
-  "build": "5f8700635485",
+  "build": "f81888b631c6",
   "gateway": "https://sandbox-api.banzami.com",
-  "generated_at": "2026-09-05T18:28:38.111Z",
+  "generated_at": "2026-09-08T14:33:24.946Z",
   "total": 42,
   "passed": 42,
   "failed": 0,
@@ -62,7 +62,7 @@
     {
       "id": "GJ.session.link-is-usable-url",
       "pass": true,
-      "note": "no id-to-URL reconstruction needed"
+      "note": "https://pay.banzami.com/pay/…"
     },
     {
       "id": "GJ.session.qr-payload-signed",

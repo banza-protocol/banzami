@@ -168,7 +168,16 @@ let session, linkSlug, qrPayload, payRef;
   const deep = ifaces.find((i) => i.type === 'DEEP_LINK');
   const qr = ifaces.find((i) => i.type === 'DYNAMIC_QR');
   rec('GJ.session.interfaces-issued', !!link && !!deep && !!qr, ifaces.map((i) => i.type).join(','));
-  rec('GJ.session.link-is-usable-url', !!link && /^https:\/\/.+\/public\/pay\/[A-Za-z0-9]+$/.test(link.value), 'no id-to-URL reconstruction needed');
+  // The canonical payer surface is pay.banzami.com/pay/<slug> (Banzami ADR-052);
+  // this used to assert the older /public/pay/<slug> shape the Gateway emitted
+  // before PAY_BASE_URL existed, and kept failing against a link that is
+  // correct. What the assertion is actually for is that a developer can hand the
+  // value straight to a payer — an absolute https URL, no id-to-URL
+  // reconstruction — so that is what it checks, with the path shape pinned so a
+  // regression back to an API origin is still caught.
+  rec('GJ.session.link-is-usable-url',
+      !!link && /^https:\/\/[^/]+\/pay\/[A-Za-z0-9]+$/.test(link.value),
+      link ? `${new URL(link.value).origin}/pay/…` : 'no PAYMENT_LINK interface');
   rec('GJ.session.qr-payload-signed', !!qr && typeof qr.value === 'string' && qr.value.length > 40 && !!qr.qr_url);
   linkSlug = link ? link.value.split('/').pop() : null;
   qrPayload = qr?.value;
