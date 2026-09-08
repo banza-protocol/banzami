@@ -47,6 +47,7 @@ func main() {
 	fullName := flag.String("full-name", "", "operator full name")
 	role := flag.String("role", "OPERATIONS", "role: SUPER_ADMIN|OPERATIONS|COMPLIANCE|SUPPORT|READ_ONLY")
 	force := flag.Bool("force", false, "(reserved) overwrite an existing operator — not supported")
+	resend := flag.Bool("resend-invite", false, "re-issue the activation link for an operator that already exists (the first one has no session to do it from the console)")
 	withPassword := flag.Bool("with-password", false, "legacy: set a password here instead of emailing an activation link (only for a deployment with no mail path)")
 	flag.Parse()
 
@@ -76,8 +77,22 @@ func main() {
 	defer pool.Close()
 
 	users := service.NewAdminUserService(pool)
+
+	if *resend {
+		// The first operator cannot be re-invited from the console: doing that
+		// needs a SUPER_ADMIN session, and the SUPER_ADMIN is the one who cannot
+		// sign in. Without this, an invite that failed to send left an identity
+		// that could never activate and could not be recreated.
+		op, ferr := users.GetByEmail(ctx, strings.ToLower(strings.TrimSpace(*email)))
+		if ferr != nil {
+			fail("no operator with that email")
+		}
+		sendInvite(ctx, users, op.ID, op.Email, op.FullName, op.Role)
+		return
+	}
+
 	if exists, _ := users.Exists(ctx, *email); exists {
-		fail("an operator with that email already exists")
+		fail("an operator with that email already exists — use --resend-invite to re-issue the activation link")
 	}
 
 	var id string
@@ -121,6 +136,17 @@ func main() {
 		fail("create: " + err.Error())
 	}
 
+	sendInvite(ctx, users, id, *email, *fullName, *role)
+}
+
+// sendInvite issues an activation link and delivers it, or fails the command.
+//
+// It used to print "activation email sent" whether or not the transport worked:
+// Deliver logged the error and returned nothing. The first real run said sent
+// while Resend had failed a DNS lookup, and the operator was left INVITED,
+// unable to activate, and impossible to recreate. A result the caller must act
+// on does not belong in a log line.
+func sendInvite(ctx context.Context, users *service.AdminUserService, id, email, fullName, role string) {
 	raw, exp, err := users.CreateInviteToken(ctx, id, "")
 	if err != nil {
 		fail("activation token: " + err.Error())
@@ -140,20 +166,16 @@ func main() {
 		NoreplyName:    envOr("EMAIL_NOREPLY_NAME", "Banzami"),
 		NoreplyAddress: envOr("EMAIL_NOREPLY_ADDRESS", "noreply@banzami.com"),
 	})
-	if !mailer.Enabled() {
-		// Fail loudly rather than leave an operator who can never activate. The
-		// identity is created; re-running after fixing mail would hit "already
-		// exists", so say what to do about it.
-		fmt.Fprintln(os.Stderr, "error: no mail provider configured — the activation email cannot be sent.")
-		fmt.Fprintf(os.Stderr, "the operator %s was created and is INVITED; configure mail and resend the invite from the console.\n", *email)
+	if err := mailer.AdminOperatorInviteErr(email, fullName, role, "bootstrap", inviteURL); err != nil {
+		fmt.Fprintln(os.Stderr, "error: the activation email did not send — "+err.Error())
+		fmt.Fprintf(os.Stderr, "the operator %s exists and is INVITED. Fix mail, then re-run with --resend-invite.\n", email)
 		os.Exit(1)
 	}
-	mailer.AdminOperatorInvite(*email, *fullName, *role, "bootstrap", inviteURL)
 
-	// The link is a credential. It is never printed here, and never logged.
-	fmt.Printf("created operator %s (%s) role=%s id=%s status=INVITED\n", *fullName, *email, *role, id)
-	fmt.Printf("activation email sent to %s; the link expires %s\n", *email, exp.UTC().Format(time.RFC3339))
-	fmt.Println("the operator sets their own password from that link. Nothing here holds one.")
+	// The link is a credential. Never printed here, never logged.
+	fmt.Printf("operator %s (%s) role=%s id=%s status=INVITED\n", fullName, email, role, id)
+	fmt.Printf("activation email delivered to %s; the link expires %s\n", email, exp.UTC().Format(time.RFC3339))
+	fmt.Println("the operator sets their own credential from that link. Nothing here holds one.")
 }
 
 func envOr(k, def string) string {

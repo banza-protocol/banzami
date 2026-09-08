@@ -432,6 +432,17 @@ cmd_deploy_one() {
         --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export INTERNAL_API_KEY="$(cat /run/secrets/core_internal_key)"; export STAGING_INTERNAL_API_KEY="$INTERNAL_API_KEY"; export ADMIN_JWT_SECRET="$(cat /run/secrets/admin_jwt_secret)"; [ -s /run/secrets/resend_api_key ] && export RESEND_API_KEY="$(cat /run/secrets/resend_api_key)"; exec admin-api' >/dev/null 2>&1 \
         || { echo "  $name first create FAIL"; return 1; }
       docker network connect "$appnet" "$cname" >/dev/null 2>&1 || true
+      # Outbound internet. The data and application networks are both internal:
+      # bzsb-egress is the only one that is not, and api-gateway and
+      # developer-api are on it because they call Resend and deliver webhooks.
+      #
+      # admin-api was not, and the symptom was not a startup failure — it was a
+      # DNS error inside a send that had already reported success. The console
+      # sends the operator activation and password-reset mail; without egress it
+      # can create an operator who can never activate.
+      local egressnet
+      egressnet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-egress$' | head -1)"
+      [ -n "$egressnet" ] && docker network connect "$egressnet" "$cname" >/dev/null 2>&1 || true
       docker start "$cname" >/dev/null 2>&1 || { echo "  $name first start FAIL"; return 1; }
     else
       local extra_env=()

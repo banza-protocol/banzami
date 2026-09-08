@@ -27,8 +27,16 @@ func (s *Sender) MerchantApplicationRejected(to, businessName, message, environm
 // AdminOperatorInvite — "Foi convidado para o BANZADMIN". Security → From
 // noreply@, no Reply-To. fullName is accepted for compatibility (not shown).
 func (s *Sender) AdminOperatorInvite(to, fullName, role, invitedBy, inviteURL string) {
+	_ = s.AdminOperatorInviteErr(to, fullName, role, invitedBy, inviteURL)
+}
+
+// AdminOperatorInviteErr reports whether the invite actually left.
+//
+// The bootstrap needs this: an operator it created is INVITED, cannot activate
+// without the link, and cannot be created a second time. "Sent" has to mean sent.
+func (s *Sender) AdminOperatorInviteErr(to, fullName, role, invitedBy, inviteURL string) error {
 	html, text := RenderAdminInvite(AdminInviteData{Role: role, InvitedBy: invitedBy, AcceptURL: inviteURL})
-	s.Deliver(s.Automated("admin_operator_invite", to,
+	return s.DeliverErr(s.Automated("admin_operator_invite", to,
 		"Foi convidado para o BANZADMIN", html, text, ""))
 }
 

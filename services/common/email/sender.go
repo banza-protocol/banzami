@@ -1,6 +1,7 @@
 package email
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -19,9 +20,9 @@ type Sender struct {
 	dryRun   bool
 	provider string
 
-	fromName    string
-	fromAddress string
-	replyTo     string
+	fromName       string
+	fromAddress    string
+	replyTo        string
 	noreplyName    string
 	noreplyAddress string
 }
@@ -38,9 +39,9 @@ type Config struct {
 	SMTPUser     string
 	SMTPPassword string
 
-	FromName    string
-	FromAddress string
-	ReplyTo     string
+	FromName       string
+	FromAddress    string
+	ReplyTo        string
 	NoreplyName    string
 	NoreplyAddress string
 
@@ -147,15 +148,32 @@ func (s *Sender) Automated(purpose, to, subject, html, text, replyTo string) Mes
 
 // Deliver sends (or dry-runs) a message, skipping cleanly when the transport is
 // not configured and dry-run is off. Never logs the body.
-func (s *Sender) Deliver(m Message) {
+//
+// It swallows the error on purpose: almost every caller is a request handler
+// where a failed notification must not fail the operation that triggered it.
+func (s *Sender) Deliver(m Message) { _ = s.DeliverErr(m) }
+
+// DeliverErr is Deliver for the callers where the send IS the outcome.
+//
+// One exists: the operator bootstrap. Its whole job is to put an activation
+// link in a mailbox, and it printed "activation email sent" while the transport
+// had failed with a DNS error — the operator existed, could never activate, and
+// could not be created again because duplicates are refused. A log line is the
+// wrong channel for a result the caller has to act on.
+func (s *Sender) DeliverErr(m Message) error {
 	if !s.Enabled() && !s.dryRun {
 		slog.Warn("email not configured — skipping", "email", m.Purpose, "to", m.To)
-		return
+		return ErrNotConfigured
 	}
 	if err := s.send(m); err != nil {
 		slog.Error("failed to send email", "email", m.Purpose, "error", err, "to", m.To)
+		return err
 	}
+	return nil
 }
+
+// ErrNotConfigured: no transport, and dry-run off — nothing was sent.
+var ErrNotConfigured = errors.New("email transport is not configured")
 
 func (s *Sender) send(m Message) error {
 	if s.dryRun {

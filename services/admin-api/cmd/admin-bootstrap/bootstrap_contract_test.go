@@ -30,7 +30,7 @@ func source(t *testing.T) string {
 func TestBootstrap_DefaultPathCreatesAnIdentityNotACredential(t *testing.T) {
 	src := source(t)
 	// The canonical path: create INVITED, issue an activation token, email it.
-	for _, want := range []string{"users.CreateOperator(", "users.CreateInviteToken(", "AdminOperatorInvite("} {
+	for _, want := range []string{"users.CreateOperator(", "users.CreateInviteToken(", "AdminOperatorInviteErr("} {
 		if !strings.Contains(src, want) {
 			t.Fatalf("the default path does not call %s", want)
 		}
@@ -67,19 +67,26 @@ func TestBootstrap_NeverPrintsTheActivationLinkOrAPassword(t *testing.T) {
 
 func TestBootstrap_RefusesToLeaveAnOperatorWhoCannotActivate(t *testing.T) {
 	src := source(t)
-	// An INVITED operator with no mail path can never activate and cannot be
-	// re-created (the tool refuses duplicates). It must say so and exit non-zero
-	// rather than report success.
-	if !strings.Contains(src, "!mailer.Enabled()") {
-		t.Fatal("the tool does not check that mail is configured")
+	// An INVITED operator whose invite did not leave can never activate and
+	// cannot be re-created (duplicates are refused). The command must fail, and
+	// it must say how to recover — which is why --resend-invite exists at all.
+	//
+	// It must also learn the truth from the SEND, not from a config check: the
+	// first real run passed the config check, printed "sent", and the transport
+	// had failed a DNS lookup.
+	i := strings.Index(src, "AdminOperatorInviteErr(")
+	if i < 0 {
+		t.Fatal("the tool does not use the error-returning invite")
 	}
-	i := strings.Index(src, "!mailer.Enabled()")
 	tail := src[i:min(len(src), i+900)]
 	if !strings.Contains(tail, "os.Exit(1)") {
-		t.Fatal("an unsendable invite does not fail the command")
+		t.Fatal("a failed invite does not fail the command")
 	}
-	if !strings.Contains(tail, "resend the invite") {
+	if !strings.Contains(tail, "--resend-invite") {
 		t.Fatal("the failure does not say how to recover")
+	}
+	if !regexp.MustCompile(`flag\.Bool\("resend-invite"`).MatchString(src) {
+		t.Fatal("--resend-invite does not exist, so a failed invite is unrecoverable")
 	}
 }
 
