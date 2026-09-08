@@ -13,6 +13,16 @@ WORKDIR /app/admin-api
 RUN go mod download
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
     go build -ldflags="-s -w" -o /app/bin/admin-api ./cmd/admin
+# The operator bootstrap ships in the same image on purpose.
+#
+# Creating the first administrator is a real, audited operation that has to be
+# possible on the deployed system — and the alternative to shipping the tool is
+# an INSERT written by hand, which is exactly the "SQL as normal operator
+# workflow" this platform is not supposed to have. It reads the password from
+# the environment or a no-echo prompt, never prints it, and refuses to overwrite
+# an existing operator.
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags="-s -w" -o /app/bin/admin-bootstrap ./cmd/admin-bootstrap
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM alpine:3.21 AS runtime
@@ -23,6 +33,7 @@ RUN apk --no-cache add ca-certificates curl \
 ENV BANZAMI_CHROME_BIN=/usr/bin/chromium-browser
 
 COPY --from=builder /app/bin/admin-api /usr/local/bin/admin-api
+COPY --from=builder /app/bin/admin-bootstrap /usr/local/bin/admin-bootstrap
 
 # Run as an unprivileged user (Assurance RA-024 — container hardening).
 RUN addgroup -S banzami && adduser -S -G banzami -H -s /sbin/nologin banzami
