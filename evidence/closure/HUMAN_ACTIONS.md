@@ -141,6 +141,20 @@ account is not in the product.
 
 ## What is NOT on this list, and why
 
+**Identity separation (corrected 2026-09-09).** Three identities, never
+conflated: `contact@doadoa.app` is the DOA **organisation** on the Banzami
+Developers Platform (Workspace, Project, API key, webhooks);
+`fidel.monteiro@doadoa.app` is the **human administrator** of the DOA
+application; `fidel.monteiro@banzami.com` is the **human Banzami operator**.
+Every mention of the Fidel address in this file and in
+`PUBLIC_SANDBOX_CLOSURE.md` is the human administrator and is correct as
+written — no Developers identity had ever been recorded, so nothing needed
+replacing.
+
+There is no read path to `contact@doadoa.app`: the isolated IMAP store holds
+only the Fidel account, and it must not be substituted. Until an authorised
+isolated path exists, the Developers OTP is a **human boundary**.
+
 **DOA — the admin transition is done.** `fidel.monteiro@doadoa.app` already
 holds admin authority and `fidelrmonteiro@gmail.com` no longer does. An earlier
 revision of this document described a three-session promotion and demotion, and
