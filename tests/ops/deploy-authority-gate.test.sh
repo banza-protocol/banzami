@@ -9,7 +9,7 @@
 # Asserts:
 #   1. live core-api/api-gateway/public-api fail closed;
 #   2. checkout no longer exists; pay is Stage F approved with the approval recorded;
-#   3. admin/dashboard fail closed;
+#   3. admin-api/admin-frontend carry a recorded Stage D approval; dashboard fails closed;
 #   4. sandbox-operator fails closed (pending Stage C execution approval);
 #   5. legacy `staging` path fails closed;
 #   6. legacy compose-based developer-api path (mixed invocation) fails closed;
@@ -68,9 +68,22 @@ else
 fi
 
 # 3. Admin / merchant surfaces.
-for svc in admin-api admin-frontend dashboard-frontend; do
-  deny_check "$svc" "$svc" "Stage D approval"
+#
+# admin-api and admin-frontend became APPROVED under Stage D (2026-09-08): the
+# operator console is a release blocker, not a future project, and the owner
+# approved it by name. The assertion is not dropped, it is inverted — an
+# approved surface must carry its approval in the gate, exactly as pay-frontend
+# does, so nobody can quietly open one by deleting a line.
+for svc in admin-api admin-frontend; do
+  if grep -qE "^\s+admin-api\|admin-frontend\)" deploy.sh && grep -q "STAGE D APPROVED" deploy.sh; then
+    ok "$svc is approved with the Stage D approval recorded in the gate itself"
+  else
+    no "$svc is approved without a recorded Stage D approval"
+  fi
 done
+
+# The merchant dashboard is NOT covered by Stage D and still fails closed.
+deny_check "dashboard-frontend" "dashboard-frontend" "Stage D covers the operator console only"
 
 # 4. sandbox-operator pending Stage C execution approval.
 deny_check "sandbox-operator" "sandbox-operator" "Stage C execution approval"

@@ -99,8 +99,23 @@ _authority_gate() {
         # payment surface — core-api/api-gateway/public-api below still fail
         # closed, and external provider rails remain Stage G.
         : ;;
-      admin-api|admin-frontend|dashboard-frontend)
-        _deny_unapproved "$svc" "admin/merchant surface: requires Stage D approval and an approved runbook" ;;
+      admin-api|admin-frontend)
+        # STAGE D APPROVED 2026-09-08 — SANDBOX SCOPE ONLY.
+        #
+        # The owner approved this surface by name in the final pre-launch closure
+        # brief: "admin.banzami.com currently returns 503 ... This must be
+        # resolved before final release. Do NOT dismiss it as a future admin
+        # project", and instructed the bring-up through the canonical
+        # source-bundle deployment process.
+        #
+        # Bounded exactly as pay-frontend's Stage F approval is. admin-api runs
+        # against the Sandbox stack with ENVIRONMENT=SANDBOX, so the operator
+        # console labels what it shows for what it is; there is no LIVE database
+        # for it to reach, and the live payment rails below still fail closed.
+        # Revoke by restoring _deny_unapproved for these two services.
+        : ;;
+      dashboard-frontend)
+        _deny_unapproved "$svc" "merchant surface: Stage D covers the operator console only; this needs its own approval and runbook" ;;
       sandbox-operator)
         _deny_unapproved "$svc" "rebuild pending explicit Stage C execution approval (Decision 5)" ;;
       developer-api)
