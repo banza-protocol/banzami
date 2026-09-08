@@ -100,6 +100,25 @@ m="$(stat -c '%a' "$F" 2>/dev/null || stat -f '%Lp' "$F" 2>/dev/null)"
   && ok "keeping a credential re-asserts its mode without changing its value" \
   || no "a kept credential stayed at mode $m"
 
+# 7. A service with NO secret mounts must still deploy.
+#
+# The script runs under `set -euo pipefail`. Resolving the secret directory
+# greps the container's binds, and for pay-frontend or admin-frontend that grep
+# matches nothing — making the ASSIGNMENT the failing command and aborting the
+# deploy before it starts. Two admin-frontend deploys rolled back a perfectly
+# good image because of it.
+sed -n '/^cmd_deploy_one() {/,/^  local prev pf/p' "$SRC" | grep -A 3 'local sd' > "$WORK/sd.txt"
+grep -q '|| true)"' "$WORK/sd.txt" \
+  && ok "the secret-directory lookup tolerates a service with no secret mounts" \
+  || no "the secret-directory assignment can abort the deploy under set -e"
+
+# And the shape itself, so the guard is not merely present but correct.
+if bash -c 'set -euo pipefail; f() { local sd; sd="$(printf "" | grep x | head -1 || true)"; [ -z "$sd" ]; }; f' 2>/dev/null; then
+  ok "an empty match yields an empty value instead of aborting"
+else
+  no "the guarded form still aborts on an empty match"
+fi
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

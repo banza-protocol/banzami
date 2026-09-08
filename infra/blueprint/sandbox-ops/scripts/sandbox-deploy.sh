@@ -507,14 +507,17 @@ cmd_deploy_one() {
   [ -n "$cname" ] || die "no running $name container to redeploy (run a full gated apply first)"
   # The mounts are cloned from the predecessor, so their modes are whatever the
   # host has now — assert them before a container is built around them.
+  # The `|| true` is on the ASSIGNMENT, and that is the whole point.
+  #
+  # The script runs under `set -euo pipefail`. A service with no secret mounts —
+  # pay-frontend, admin-frontend — makes the grep match nothing, the pipeline
+  # exits non-zero, and `sd="$(...)"` is itself the failing command, so the
+  # deploy aborts before it starts. Two admin-frontend deploys reported
+  # "deployed_and_healthy FAIL" and rolled back an image that was fine, which
+  # sent me looking at the image rather than at this line.
   local sd
   sd="$(docker inspect "$cname" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' 2>/dev/null \
-        | grep '/run/secrets/' | head -1 | sed 's#/[^/]*:/run/secrets/.*##')"
-  # `|| true` matters: the script runs under `set -e`, and a service with NO
-  # secret mounts — pay-frontend, admin-frontend — leaves $sd empty, so the
-  # test fails and the whole deploy aborts. It did: two frontend deploys
-  # reported "deployed_and_healthy FAIL" and rolled back an image that was
-  # perfectly good, which sent me looking at the image instead of at this line.
+        | grep '/run/secrets/' | head -1 | sed 's#/[^/]*:/run/secrets/.*##' || true)"
   if [ -n "$sd" ]; then assert_secret_modes "$sd" || true; fi
 
   local prev pf; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"; pf="/tmp/.banzami-prev-img-$name"
