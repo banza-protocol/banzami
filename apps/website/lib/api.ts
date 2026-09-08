@@ -29,8 +29,17 @@ function baseForMode(mode: 'LIVE' | 'SANDBOX'): string {
 // operator-driven; a few seconds of staleness is harmless.
 let _modeMemo: { at: number; v: { base: string; env: 'LIVE' | 'SANDBOX' } } | null = null;
 
-/** Resolve the onboarding base + environment from the live Platform Mode. */
-export async function onboardingTarget(): Promise<{ base: string; env: 'LIVE' | 'SANDBOX' }> {
+/**
+ * Resolve the gateway stack + environment from the live Platform Mode.
+ *
+ * Every public call has to go through this, not through API_BASE. API_BASE is
+ * the LIVE rail by default, and while the platform is SANDBOX that rail is
+ * fail-closed: it answers 503 with an HTML error page. getPlatformMode() itself
+ * still calls it and that is fine — it treats any failure as SANDBOX, and a
+ * fail-closed LIVE rail is precisely evidence of not being LIVE — but a caller
+ * that reads a response body needs the stack that can actually answer.
+ */
+export async function platformTarget(): Promise<{ base: string; env: 'LIVE' | 'SANDBOX' }> {
   const now = Date.now();
   if (_modeMemo && now - _modeMemo.at < 30_000) return _modeMemo.v;
   const { mode } = await getPlatformMode();
@@ -38,6 +47,9 @@ export async function onboardingTarget(): Promise<{ base: string; env: 'LIVE' | 
   _modeMemo = { at: now, v };
   return v;
 }
+
+/** @deprecated Use platformTarget — the resolution is not onboarding-specific. */
+export const onboardingTarget = platformTarget;
 
 export interface PlatformModeInfo {
   mode: 'SANDBOX' | 'LIVE';
@@ -69,7 +81,13 @@ export interface ProofResult {
 // safe "invalid" outcome, never an exception that leaks internals.
 export async function getProof(ref: string): Promise<ProofResult> {
   try {
-    const res = await fetch(`${API_BASE}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
+    // The stack that matches Platform Mode, not API_BASE. Pinned to API_BASE
+    // this asked the LIVE rail, which is fail-closed and answers 503 with an
+    // HTML page — json() threw, and the page told the reader their genuine
+    // Sandbox proof "does not exist or may have been forged". A verification
+    // feature that calls a real record a forgery is worse than one that errors.
+    const { base } = await platformTarget();
+    const res = await fetch(`${base}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
     const j = (await res.json().catch(() => null)) as ProofResult | null;
     if (j && typeof j.exists === 'boolean') return j;
     return { exists: false, status: 'NOT_FOUND', message: 'Este comprovativo não existe ou pode ter sido falsificado.' };

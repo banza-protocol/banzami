@@ -31,6 +31,10 @@ var allowedOrigins = map[string]bool{
 	"https://pay.banzami.com": true,
 	"https://banzami.com":     true,
 	"https://www.banzami.com": true,
+	// The Developer Console. It is the same Next app as banzami.com but a
+	// different origin, and it was never added here when it moved to its own
+	// host — so every Console page load failed its platform-mode call on CORS.
+	"https://developers.banzami.com": true,
 }
 
 func isAllowedOrigin(origin string) bool {
