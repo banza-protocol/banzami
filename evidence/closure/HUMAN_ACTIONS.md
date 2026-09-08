@@ -140,17 +140,35 @@ to anyone, in any channel, including this one.
 
 ---
 
-## What left this list, and where it went
+## What is NOT on this list, and why
 
-**DOA.** The admin replacement and the real donation journey are not human-only.
-An isolated read-only IMAP MCP is configured for `/Users/fm65/doa` with its own
-store (`~/.claude-mcp-homes/doa`), pointing at `fidel.monteiro@doadoa.app` — so a
-Claude session started **in that repository** reads its own mailbox and its own
-login code. That this Banzami session cannot see that mailbox is the isolation
+**DOA — the admin transition is done.** `fidel.monteiro@doadoa.app` already
+holds admin authority and `fidelrmonteiro@gmail.com` no longer does. An earlier
+revision of this document described a three-session promotion and demotion, and
+said the middle step needed a Gmail-authenticated session. That is obsolete and
+wrong now: there is nothing to promote, nothing to demote, no temporary second
+admin, and **no Gmail account, session or OTP involved anywhere**.
+
+**DOA — the rest is not human work either.** An isolated read-only IMAP MCP is
+configured for `/Users/fm65/doa` with its own store
+(`~/.claude-mcp-homes/doa`), pointing at `fidel.monteiro@doadoa.app`. A Claude
+session started **in that repository** reads its own mailbox and its own login
+code. That this Banzami session cannot see that mailbox is the isolation
 working, not a blocker.
 
-The work is written out in `~/doa/docs/handoff/BANZAMI_SANDBOX_CLOSURE_HANDOFF.md`.
-Open Claude Code in `/Users/fm65/doa` and point it at that file.
+The programme is written out in
+`~/doa/docs/handoff/BANZAMI_SANDBOX_CLOSURE_HANDOFF.md`: confirm the existing
+admin authority, then the real public donation, the campaign wallet gross
+credit, the signed webhook, the DOA confirmation, settlement under
+`sandbox-reference`, and the ordinary-vs-DOA parity. Open Claude Code in
+`/Users/fm65/doa` and point it at that file.
+
+One thing was **not** verified from here and is stated as such rather than
+assumed: the deployed DOA admin state. It is not exposed on any public surface —
+correctly — and the two routes that reach it are both closed to this session:
+SQL is forbidden, and an authenticated session needs an OTP only the DOA
+mailbox holds. So confirming it is the first act of the DOA session, and the
+handoff says to stop and report rather than repair if it does not hold.
 
 Also corrected there: the note recording a missing DOA email credential is
 **wrong**. `RESEND_API_KEY` is installed and the sending path was exercised —
