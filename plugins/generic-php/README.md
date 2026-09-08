@@ -11,7 +11,7 @@ Official PHP library for integrating with the Banza payment platform.
 ## Installation
 
 ```bash
-composer require banzami/banzami-php
+composer require banzami/sdk-php
 ```
 
 ## Quick Start

@@ -29,12 +29,27 @@ class WebhookControllerTest extends TestCase
     // Helpers
     // -------------------------------------------------------------------------
 
+    /**
+     * Sign a body the way Banzami actually signs one.
+     *
+     * This used to produce `sha256=<hmac(body)>`, a format nothing in the
+     * platform emits or accepts. The canonical header is
+     *
+     *     banza-signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
+     *
+     * where the HMAC covers "{timestamp}.{raw_body}" — defined in
+     * docs/standards/webhook-signature-spec.md, produced by
+     * services/api-gateway/internal/webhook/signer.go, and verified by
+     * Banzami\Webhooks::verifySignature. Signing the wrong shape meant these
+     * tests asserted the controller against a contract that does not exist.
+     */
     private function signedPayload(array $data): array
     {
         $body = json_encode($data);
-        $sig  = 'sha256=' . hash_hmac('sha256', $body, 'test-secret');
+        $ts   = time();
+        $mac  = hash_hmac('sha256', $ts . '.' . $body, 'test-secret');
 
-        return [$body, $sig];
+        return [$body, "t={$ts},v1={$mac}"];
     }
 
     private function postWebhook(string $body, string $signature): \Illuminate\Testing\TestResponse

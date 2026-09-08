@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Banzami\Laravel\Http;
 
-use Banzami\BanzamiException;
-use Banzami\WebhookHandler;
+use Banzami\Exceptions\WebhookSignatureException;
+use Banzami\Webhooks;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -33,14 +33,17 @@ class WebhookController extends Controller
     {
         $secret = config('banzami.webhook_secret', '');
 
-        $handler = new WebhookHandler($secret);
-
+        // Banzami\Webhooks::constructEvent is the SDK's actual API: static,
+        // and it verifies the signature before decoding. The previous code
+        // instantiated Banzami\WebhookHandler and called ->parse(), neither of
+        // which exists — every webhook this controller received answered 500.
         try {
-            $event = $handler->parse(
+            $event = Webhooks::constructEvent(
                 $request->getContent(),
-                $request->header('Banza-Signature', '')
+                $request->header('Banza-Signature', ''),
+                $secret,
             );
-        } catch (BanzamiException $e) {
+        } catch (WebhookSignatureException | \JsonException $e) {
             return response('Invalid signature', 401);
         }
 
