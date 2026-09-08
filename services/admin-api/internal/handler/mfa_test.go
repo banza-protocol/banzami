@@ -181,19 +181,80 @@ func TestMFA_EnrolmentRevealsTheRecoveryCodesExactlyOnceAndThenASession(t *testi
 		t.Fatalf("confirmation failed: %d %s", w.Code, w.Body.String())
 	}
 	var out struct {
-		Token         string   `json:"token"`
-		RecoveryCodes []string `json:"recovery_codes"`
+		Token            string   `json:"token"`
+		AcknowledgeToken string   `json:"acknowledge_token"`
+		RecoveryCodes    []string `json:"recovery_codes"`
 	}
 	_ = json.Unmarshal(w.Body.Bytes(), &out)
 	if len(out.RecoveryCodes) == 0 {
 		t.Fatal("enrolment issued no recovery codes")
 	}
-	if out.Token == "" {
-		t.Fatal("enrolment did not complete the login")
+	// Confirming the factor must NOT hand back a session. The codes are on
+	// screen exactly once; a session here lets the operator navigate away with
+	// the only copy still showing.
+	if out.Token != "" {
+		t.Fatal("confirmation returned a session before the codes were acknowledged")
 	}
-	p, _ := auth.Parse(testSecret, out.Token)
-	if p.Purpose != auth.PurposeSession {
-		t.Fatalf("enrolment issued a %q token", p.Purpose)
+	if out.AcknowledgeToken == "" {
+		t.Fatal("confirmation issued no acknowledgement step")
+	}
+	ackP, err := auth.Parse(testSecret, out.AcknowledgeToken)
+	if err != nil || ackP.Purpose != auth.PurposeMFAAck {
+		t.Fatalf("confirmation issued a %q token, want an acknowledgement token", ackP.Purpose)
+	}
+
+	// And the acknowledgement completes the login.
+	done := post(h.AcknowledgeRecovery, out.AcknowledgeToken, "")
+	if done.Code != http.StatusOK {
+		t.Fatalf("acknowledgement failed: %d %s", done.Code, done.Body.String())
+	}
+	var fin struct {
+		Token         string   `json:"token"`
+		RecoveryCodes []string `json:"recovery_codes"`
+	}
+	_ = json.Unmarshal(done.Body.Bytes(), &fin)
+	sess, _ := auth.Parse(testSecret, fin.Token)
+	if sess.Purpose != auth.PurposeSession {
+		t.Fatalf("acknowledgement issued a %q token", sess.Purpose)
+	}
+	// The codes are hashed by now — nothing can show them again, including this.
+	if len(fin.RecoveryCodes) != 0 {
+		t.Fatal("the acknowledgement response repeated the recovery codes")
+	}
+}
+
+func TestMFA_TheAcknowledgementTokenCanDoNothingElse(t *testing.T) {
+	h, _, u := mfaFixture(t, true)
+	ackTok := tokenFor(t, u, auth.PurposeMFAAck)
+
+	// It exists for one click. It must not enrol, verify, or pass the session
+	// middleware — otherwise "I saved the codes" would be a login.
+	if w := post(h.Enrol, ackTok, ""); w.Code != http.StatusForbidden {
+		t.Fatalf("an acknowledgement token enrolled a factor: %d", w.Code)
+	}
+	if w := post(h.Verify, ackTok, `{"code":"123456"}`); w.Code != http.StatusForbidden {
+		t.Fatalf("an acknowledgement token completed a challenge: %d", w.Code)
+	}
+}
+
+func TestMFA_RecoveryCodesAreManyAndSingleUseShaped(t *testing.T) {
+	h, _, u := mfaFixture(t, false)
+	w := post(h.ConfirmEnrol, tokenFor(t, u, auth.PurposeMFAEnroll), `{"code":"123456"}`)
+	var out struct {
+		RecoveryCodes []string `json:"recovery_codes"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &out)
+	// Several codes, not one reusable master key: losing an authenticator is
+	// not the only thing that happens, and one code is one chance.
+	if len(out.RecoveryCodes) < 2 {
+		t.Fatalf("only %d recovery code(s) issued", len(out.RecoveryCodes))
+	}
+	seen := map[string]bool{}
+	for _, c := range out.RecoveryCodes {
+		if seen[c] {
+			t.Fatal("a recovery code was issued twice")
+		}
+		seen[c] = true
 	}
 }
 

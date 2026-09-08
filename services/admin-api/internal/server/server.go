@@ -89,6 +89,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	// tight per-IP limiter as login: this is a code-guessing surface.
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/enrol", mfaH.Enrol)
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/enrol/confirm", mfaH.ConfirmEnrol)
+	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/enrol/acknowledge", mfaH.AcknowledgeRecovery)
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/verify", mfaH.Verify)
 	// Password-reset validate/complete are public (the operator has no session).
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/password-reset/validate", resetH.Validate)

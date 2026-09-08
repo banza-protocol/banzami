@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { saveSession } from '@/lib/session';
-import { adminLoginStep1, adminMfaEnrol, adminMfaConfirm, adminMfaVerify, AdminApiError } from '@/lib/admin-api';
+import { adminLoginStep1, adminMfaEnrol, adminMfaConfirm, adminMfaAcknowledge, adminMfaVerify, AdminApiError } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
 
 const inputCls =
@@ -25,6 +25,9 @@ export default function LoginPage() {
   const [secret, setSecret] = useState<{ secret: string; otpauth_uri: string } | null>(null);
   const [code, setCode] = useState('');
   const [recovery, setRecovery] = useState<string[] | null>(null);
+  const [ackToken, setAckToken] = useState<string | null>(null);
+  const [acked, setAcked] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState(false);
 
@@ -87,10 +90,10 @@ export default function LoginPage() {
     try {
       if (enrol) {
         const r = await adminMfaConfirm(challenge, code.trim());
-        // The recovery codes are shown once, here, before the dashboard. Going
-        // straight in would mean the only copy scrolled past.
+        // No session yet. The codes are on screen exactly once, and the session
+        // is what the acknowledgement buys.
         setRecovery(r.recovery_codes);
-        saveSession({ token: r.token, user: r.user });
+        setAckToken(r.acknowledge_token);
       } else {
         const r = await adminMfaVerify(challenge, code.trim());
         saveSession({ token: r.token, user: r.user });
@@ -127,6 +130,44 @@ export default function LoginPage() {
 
   // Recovery codes, once. Shown before the dashboard and behind an explicit
   // acknowledgement, because this is the only time they exist in readable form.
+  async function finish() {
+    if (!ackToken || !acked) return;
+    setLoading(true);
+    try {
+      const r = await adminMfaAcknowledge(ackToken);
+      saveSession({ token: r.token, user: r.user });
+      router.replace('/');
+    } catch {
+      setError('A confirmação expirou. Volte a entrar — o seu segundo factor já está configurado.');
+      setRecovery(null);
+      setChallenge(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function downloadCodes() {
+    if (!recovery) return;
+    // Built and downloaded in the browser. Nothing is written server-side: a
+    // plaintext copy of these on a disk somewhere is the thing being avoided.
+    const body = [
+      'BANZADMIN — Códigos de recuperação',
+      `Conta: ${email.trim()}`,
+      `Gerados: ${new Date().toISOString()}`,
+      '',
+      'Cada código serve uma única vez. Guarde este ficheiro em local seguro.',
+      '',
+      ...recovery,
+      '',
+    ].join('\n');
+    const url = URL.createObjectURL(new Blob([body], { type: 'text/plain' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'banzadmin-recovery-codes.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   if (recovery) {
     return shell(
       <>
@@ -135,14 +176,49 @@ export default function LoginPage() {
           Cada código serve <strong>uma vez</strong>, e é o que lhe devolve o acesso se perder o
           autenticador. São mostrados agora e nunca mais.
         </p>
-        <div className="mb-5 grid grid-cols-2 gap-2 rounded-[14px] bg-[#2A1E20] p-4 font-mono text-[13px] text-[#EDE3E1]">
+        <div className="mb-4 grid grid-cols-2 gap-2 rounded-[14px] bg-[#2A1E20] p-4 font-mono text-[13px] text-[#EDE3E1]">
           {recovery.map((c) => <span key={c}>{c}</span>)}
         </div>
+
+        <div className="mb-5 flex gap-2">
+          <button
+            type="button"
+            onClick={() => { void navigator.clipboard.writeText(recovery.join('\n')).then(() => setCopied(true)).catch(() => {}); }}
+            aria-label="Copiar os códigos de recuperação"
+            className="flex-1 rounded-[12px] border-[1.5px] border-[#f1e3e3] bg-white py-[11px] text-[13.5px] font-extrabold text-[#5a4a4e]"
+          >
+            {copied ? 'Copiados' : 'Copiar códigos'}
+          </button>
+          <button
+            type="button"
+            onClick={downloadCodes}
+            aria-label="Descarregar os códigos de recuperação"
+            className="flex-1 rounded-[12px] border-[1.5px] border-[#f1e3e3] bg-white py-[11px] text-[13.5px] font-extrabold text-[#5a4a4e]"
+          >
+            Guardar ficheiro
+          </button>
+        </div>
+
+        <label className="mb-4 flex cursor-pointer items-start gap-2.5 text-[13.5px] font-bold text-[#5a4a4e]">
+          <input
+            type="checkbox"
+            checked={acked}
+            onChange={(e) => setAcked(e.target.checked)}
+            className="mt-0.5 h-4 w-4"
+          />
+          Guardei os códigos de recuperação num local seguro.
+        </label>
+
+        {error ? (
+          <p role="alert" className="mb-3 text-[13px] font-bold text-[#B5101F]">{error}</p>
+        ) : null}
+
         <button
-          onClick={() => router.replace('/')}
-          className="w-full rounded-[14px] bg-[#B5101F] py-[13px] text-[15px] font-extrabold text-white"
+          onClick={() => void finish()}
+          disabled={!acked || loading}
+          className="w-full rounded-[14px] bg-[#B5101F] py-[13px] text-[15px] font-extrabold text-white disabled:opacity-40"
         >
-          Guardei-os — entrar
+          {loading ? 'A concluir…' : 'Concluir e entrar'}
         </button>
       </>,
     );

@@ -132,11 +132,57 @@ func (h *MFAHandler) ConfirmEnrol(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not confirm the second factor")
 		return
 	}
-	h.writeAudit(r, p, "MFA_ENROLLED", map[string]string{"factor": "TOTP", "recovery_codes_issued": "10"})
+	h.writeAudit(r, p, "MFA_ENROLLED", map[string]string{"factor": "TOTP", "recovery_codes_issued": itoa(len(codes))})
 	slog.InfoContext(r.Context(), "admin.mfa.enrolled", "admin_user_id", p.ID) // never the seed or the codes
 
-	// Enrolment completes the login: the operator has now proven both factors.
-	h.issueSession(w, r, p, "MFA_ENROLLED", codes)
+	// NOT a session yet.
+	//
+	// The recovery codes exist in readable form exactly once, in this response.
+	// Handing back a session here would let the operator navigate away with the
+	// only copy still on screen — so the session is issued by /acknowledge, and
+	// this token can do nothing else.
+	ack := p
+	ack.Purpose = auth.PurposeMFAAck
+	tok, exp, err := auth.Issue(h.jwtSecret, ack, mfaChallengeTTL, time.Now())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue the acknowledgement step")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"recovery_codes":    codes,
+		"acknowledge_token": tok,
+		"expires_at":        exp,
+		"account":           p.Email,
+	})
+}
+
+// POST /admin/v1/auth/mfa/enrol/acknowledge   (acknowledgement token)
+//
+// The operator confirms they have stored the recovery codes. Only then does the
+// login complete. Nothing is re-issued here and nothing is shown again: the
+// codes are already hashed, and this endpoint cannot produce them.
+func (h *MFAHandler) AcknowledgeRecovery(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) {
+		return
+	}
+	p, ok := h.bearer(w, r, auth.PurposeMFAAck)
+	if !ok {
+		return
+	}
+	h.writeAudit(r, p, "MFA_RECOVERY_CODES_ACKNOWLEDGED", nil)
+	h.issueSession(w, r, p, "MFA_ENROLLED", nil)
+}
+
+func itoa(n int) string {
+	if n == 0 {
+		return "0"
+	}
+	var b []byte
+	for n > 0 {
+		b = append([]byte{byte('0' + n%10)}, b...)
+		n /= 10
+	}
+	return string(b)
 }
 
 // POST /admin/v1/auth/mfa/verify   (challenge token)  {code}

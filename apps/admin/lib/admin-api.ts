@@ -416,12 +416,25 @@ export async function adminMfaEnrol(challengeToken: string): Promise<{ secret: s
   return mfaCall('/admin/v1/auth/mfa/enrol', challengeToken, undefined);
 }
 
-/** Confirm enrolment with the first code. Completes the login and returns the recovery codes once. */
+/**
+ * Confirm enrolment with the first code.
+ *
+ * Returns the recovery codes once and an acknowledgement token — NOT a session.
+ * The codes exist in readable form exactly here; a session at this point would
+ * let the operator navigate away with the only copy still on screen.
+ */
 export async function adminMfaConfirm(
   challengeToken: string,
   code: string,
-): Promise<{ token: string; expires_at: string; user: AuthedUser; recovery_codes: string[] }> {
+): Promise<{ recovery_codes: string[]; acknowledge_token: string; account: string }> {
   return mfaCall('/admin/v1/auth/mfa/enrol/confirm', challengeToken, { code });
+}
+
+/** Acknowledge the recovery codes. This is what completes the login. */
+export async function adminMfaAcknowledge(
+  acknowledgeToken: string,
+): Promise<{ token: string; expires_at: string; user: AuthedUser }> {
+  return mfaCall('/admin/v1/auth/mfa/enrol/acknowledge', acknowledgeToken, undefined);
 }
 
 /** Complete a challenge with a TOTP or a recovery code. */

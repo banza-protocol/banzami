@@ -111,6 +111,14 @@ const (
 	// PurposeMFAEnroll — the password was correct and the operator has no
 	// confirmed factor. Usable only to enrol one.
 	PurposeMFAEnroll = "mfa_enroll"
+	// PurposeMFAAck — the factor is enrolled and the recovery codes have just
+	// been shown, once. Usable only to acknowledge them.
+	//
+	// The state lives in the token rather than a column because it is a state of
+	// the LOGIN, not of the operator: the factor is already confirmed and the
+	// codes already issued, so an operator who closes the tab has lost nothing
+	// but this session. Their next login takes the ordinary challenge path.
+	PurposeMFAAck = "mfa_ack"
 )
 
 // Issue signs an admin JWT valid for ttl. Returns the token and its expiry.
