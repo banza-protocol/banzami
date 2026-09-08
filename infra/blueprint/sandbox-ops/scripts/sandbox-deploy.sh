@@ -510,7 +510,12 @@ cmd_deploy_one() {
   local sd
   sd="$(docker inspect "$cname" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' 2>/dev/null \
         | grep '/run/secrets/' | head -1 | sed 's#/[^/]*:/run/secrets/.*##')"
-  [ -n "$sd" ] && assert_secret_modes "$sd"
+  # `|| true` matters: the script runs under `set -e`, and a service with NO
+  # secret mounts — pay-frontend, admin-frontend — leaves $sd empty, so the
+  # test fails and the whole deploy aborts. It did: two frontend deploys
+  # reported "deployed_and_healthy FAIL" and rolled back an image that was
+  # perfectly good, which sent me looking at the image instead of at this line.
+  if [ -n "$sd" ]; then assert_secret_modes "$sd" || true; fi
 
   local prev pf; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"; pf="/tmp/.banzami-prev-img-$name"
   if [ "$rollback" = "--rollback" ]; then tag="$(cat "$pf" 2>/dev/null || echo "$tag")"; else [ -n "$prev" ] && printf '%s' "$prev" > "$pf" || true; fi
