@@ -1,0 +1,178 @@
+{
+  "captured_at": "2026-09-08T19:40:36.994Z",
+  "repository": {
+    "visibility": "public",
+    "default_branch": "main",
+    "created_at": "2025-11-17T09:44:01Z",
+    "security": {
+      "secret_scanning": {
+        "status": "enabled"
+      },
+      "secret_scanning_push_protection": {
+        "status": "enabled"
+      },
+      "dependabot_security_updates": {
+        "status": "disabled"
+      },
+      "secret_scanning_non_provider_patterns": {
+        "status": "disabled"
+      },
+      "secret_scanning_validity_checks": {
+        "status": "disabled"
+      }
+    },
+    "has_issues": true,
+    "description": "First commercial operator built on the BANZA open financial protocol.",
+    "topics": [
+      "africa",
+      "angola",
+      "banza",
+      "banzami",
+      "digital-payments",
+      "fintech",
+      "kwanza",
+      "operator",
+      "payment-network",
+      "payments",
+      "wallet"
+    ],
+    "stargazers": 0,
+    "watchers": 0,
+    "forks": 0
+  },
+  "workflow_runs_total": 978,
+  "green_runs": [
+    {
+      "workflow": "CI",
+      "head_sha": "19d07404b4f56f5e66904a1afdbc7fde3512fd31",
+      "conclusion": "success",
+      "created_at": "2026-09-08T19:29:07Z",
+      "event": "push"
+    },
+    {
+      "workflow": "Economic gate",
+      "head_sha": "faa355f1d14a585a77f520bb3e5ec9fae24f780c",
+      "conclusion": "success",
+      "created_at": "2026-09-08T19:19:48Z",
+      "event": "workflow_dispatch"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "faa355f1d14a585a77f520bb3e5ec9fae24f780c",
+      "conclusion": "success",
+      "created_at": "2026-09-08T19:19:45Z",
+      "event": "workflow_dispatch"
+    },
+    {
+      "workflow": "Economic gate",
+      "head_sha": "faa355f1d14a585a77f520bb3e5ec9fae24f780c",
+      "conclusion": "success",
+      "created_at": "2026-09-08T19:17:28Z",
+      "event": "push"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "faa355f1d14a585a77f520bb3e5ec9fae24f780c",
+      "conclusion": "success",
+      "created_at": "2026-09-08T19:17:28Z",
+      "event": "push"
+    },
+    {
+      "workflow": "Economic gate",
+      "head_sha": "229363b529a7eb4c932f0c0844e2186e0c5c49c4",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:56:37Z",
+      "event": "workflow_dispatch"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "229363b529a7eb4c932f0c0844e2186e0c5c49c4",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:56:35Z",
+      "event": "workflow_dispatch"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "229363b529a7eb4c932f0c0844e2186e0c5c49c4",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:56:25Z",
+      "event": "push"
+    },
+    {
+      "workflow": "Economic gate",
+      "head_sha": "5ae92e20483ea2bc1d71f64c00b5290a808f48cf",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:40:41Z",
+      "event": "workflow_dispatch"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "5ae92e20483ea2bc1d71f64c00b5290a808f48cf",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:40:39Z",
+      "event": "workflow_dispatch"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "5ae92e20483ea2bc1d71f64c00b5290a808f48cf",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:38:49Z",
+      "event": "push"
+    },
+    {
+      "workflow": "CI",
+      "head_sha": "cef6abbffa44e2464d5ae926b07de20de64f2734",
+      "conclusion": "success",
+      "created_at": "2026-09-08T18:31:53Z",
+      "event": "push"
+    }
+  ],
+  "secret_scanning": [
+    {
+      "number": 5,
+      "type": "Stripe Webhook Signing Secret",
+      "state": "resolved",
+      "resolution": "used_in_tests",
+      "resolution_comment": "Synthetic value planted by tests/security/gitleaks-mutations.test.sh to prove the secret gate detects a whsec_-shaped credential. Never valid anywhere; whsec_ is also Stripe's prefix, hence the match. Literal removed — the value is assembled at runtime (73ff9667).",
+      "created_at": "2026-09-08T12:21:03Z",
+      "locations_hint": "see evidence/firebase/CLIENT_KEY_RESTRICTIONS.md"
+    },
+    {
+      "number": 4,
+      "type": "Google API Key",
+      "state": "open",
+      "resolution": null,
+      "resolution_comment": null,
+      "created_at": "2026-09-01T08:55:56Z",
+      "locations_hint": "see evidence/firebase/CLIENT_KEY_RESTRICTIONS.md"
+    },
+    {
+      "number": 3,
+      "type": "Google API Key",
+      "state": "open",
+      "resolution": null,
+      "resolution_comment": null,
+      "created_at": "2026-09-01T08:55:55Z",
+      "locations_hint": "see evidence/firebase/CLIENT_KEY_RESTRICTIONS.md"
+    },
+    {
+      "number": 2,
+      "type": "Google API Key",
+      "state": "open",
+      "resolution": null,
+      "resolution_comment": null,
+      "created_at": "2026-09-01T08:55:54Z",
+      "locations_hint": "see evidence/firebase/CLIENT_KEY_RESTRICTIONS.md"
+    },
+    {
+      "number": 1,
+      "type": "Google API Key",
+      "state": "open",
+      "resolution": null,
+      "resolution_comment": null,
+      "created_at": "2026-09-01T08:55:53Z",
+      "locations_hint": "see evidence/firebase/CLIENT_KEY_RESTRICTIONS.md"
+    }
+  ],
+  "dependabot_open": 0
+}
