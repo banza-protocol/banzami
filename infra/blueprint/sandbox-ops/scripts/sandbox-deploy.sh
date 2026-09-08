@@ -149,11 +149,43 @@ uuid() { uuidgen 2>/dev/null | tr 'A-Z' 'a-z' || python3 -c 'import uuid;print(u
 keep_or_mint() { # <file> <label>
   local f="$1" label="$2"
   if [ -f "$f" ] && [ -s "$f" ] && [ "${BZSB_ROTATE_SECRETS:-0}" != "1" ]; then
+    # Re-assert the mode even when keeping the value. See secret_mode below.
+    chmod 0644 "$f"
     echo "  $label kept (already provisioned)"
     return 0
   fi
   printf '%s%s' "$(uuid)" "$(uuid)" | tr -d '-' > "$f"; chmod 0644 "$f"
   echo "  $label minted"
+}
+
+# assert_secret_modes — every mounted secret must be readable by the service user.
+#
+# All five services run non-root. A bind mount preserves the host's permissions,
+# so a 0600 or 0700 root-owned file is simply unreadable inside the container —
+# and the service does not crash. It starts, logs one warning, and runs without
+# the credential: admin-api came up healthy with "ADMIN_JWT_SECRET not set —
+# operator login disabled (503)" and no mailer, and the only visible symptom was
+# an operator who could not sign in with a password that was correct.
+#
+# Worse, it is latent. A running process has already read its secrets, so a mode
+# change breaks nothing until the next restart — which is how every service on
+# the stack ended up one restart away from the same failure.
+#
+# Confidentiality lives in the 0700 root-only directory these files sit in, not
+# in the file bits, exactly as write_db_url has always documented. This asserts
+# that on every deploy rather than trusting whatever last touched them.
+assert_secret_modes() { # <dir>
+  local d="$1" f fixed=0
+  [ -d "$d" ] || return 0
+  for f in "$d"/*; do
+    [ -f "$f" ] || continue
+    case "$(stat -c '%a' "$f" 2>/dev/null || stat -f '%Lp' "$f" 2>/dev/null)" in
+      644) ;;
+      *) chmod 0644 "$f"; fixed=$((fixed+1)) ;;
+    esac
+  done
+  [ "$fixed" -gt 0 ] && echo "  secret_modes_reasserted ($fixed file(s) were unreadable by the non-root service user)"
+  return 0
 }
 # file-only synthetic signing secret for services that hard-require JWT_SECRET at
 # boot (e.g. public-api). Disposable, generated per run, NOT a real credential;
@@ -408,6 +440,7 @@ cmd_deploy_one() {
       # The admin JWT signing key. Preserved across applies like every other
       # credential — regenerating it would sign every operator out and, worse,
       # would do it silently at the next deploy.
+      assert_secret_modes "$secret_dir"
       keep_or_mint "$ADMINJWT_FILE" admin_jwt_secret
       echo "  $name first create on $datanet + $appnet (file-only credentials)"
       docker create --name "$cname" --network "$datanet" \
@@ -472,6 +505,13 @@ cmd_deploy_one() {
   fi
 
   [ -n "$cname" ] || die "no running $name container to redeploy (run a full gated apply first)"
+  # The mounts are cloned from the predecessor, so their modes are whatever the
+  # host has now — assert them before a container is built around them.
+  local sd
+  sd="$(docker inspect "$cname" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' 2>/dev/null \
+        | grep '/run/secrets/' | head -1 | sed 's#/[^/]*:/run/secrets/.*##')"
+  [ -n "$sd" ] && assert_secret_modes "$sd"
+
   local prev pf; prev="$(docker inspect -f '{{.Config.Image}}' "$cname" 2>/dev/null || true)"; pf="/tmp/.banzami-prev-img-$name"
   if [ "$rollback" = "--rollback" ]; then tag="$(cat "$pf" 2>/dev/null || echo "$tag")"; else [ -n "$prev" ] && printf '%s' "$prev" > "$pf" || true; fi
   # clone config from the running container

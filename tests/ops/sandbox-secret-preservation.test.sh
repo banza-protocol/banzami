@@ -68,6 +68,38 @@ for label in jwt_secret core_internal_key api_key_pepper developer_internal_key 
     || no "$label is not written through keep_or_mint"
 done
 
+# 6. Every mounted secret must be readable by the non-root service user.
+#
+# All five services run non-root and a bind mount preserves the host's
+# permissions, so a root-only file is unreadable inside the container — and
+# nothing crashes. The service starts, logs one warning, and runs without the
+# credential. admin-api came up healthy with operator login disabled and no
+# mailer, and the only symptom was a correct password being refused.
+sed -n '/^assert_secret_modes() {/,/^}/p' "$SRC" > "$WORK/modes.sh"
+# shellcheck disable=SC1090
+. "$WORK/modes.sh"
+
+MD="$WORK/secrets"; mkdir -p "$MD"
+printf 'x' > "$MD/root_only";  chmod 0600 "$MD/root_only"
+printf 'x' > "$MD/dir_style";  chmod 0700 "$MD/dir_style"
+printf 'x' > "$MD/already_ok"; chmod 0644 "$MD/already_ok"
+assert_secret_modes "$MD" >/dev/null
+
+allok=1
+for f in root_only dir_style already_ok; do
+  m="$(stat -c '%a' "$MD/$f" 2>/dev/null || stat -f '%Lp' "$MD/$f" 2>/dev/null)"
+  [ "$m" = 644 ] || { no "$f left at mode $m — the service user cannot read it"; allok=0; }
+done
+[ "$allok" = 1 ] && ok "every mounted secret is readable by the non-root service user"
+
+# And the keep path must not leave a kept secret unreadable either.
+printf 'kept-value' > "$F"; chmod 0600 "$F"
+keep_or_mint "$F" api_key_pepper >/dev/null
+m="$(stat -c '%a' "$F" 2>/dev/null || stat -f '%Lp' "$F" 2>/dev/null)"
+[ "$m" = 644 ] && [ "$(cat "$F")" = "kept-value" ] \
+  && ok "keeping a credential re-asserts its mode without changing its value" \
+  || no "a kept credential stayed at mode $m"
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
