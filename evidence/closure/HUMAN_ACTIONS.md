@@ -1,86 +1,70 @@
 # What still needs a human
 
-Three things. Everything else in the Public Sandbox programme is done, and the
-DOA work that was on this list has moved to where it belongs.
+Two things, neither of them a release blocker. The third — the SUPER_ADMIN MFA
+enrolment — is done, and is kept below with its evidence. Everything else in the
+Public Sandbox programme is complete, and the DOA work that was on this list has
+moved to where it belongs.
 
 None of these asks anyone to send a secret to Claude, to chat, or into a file.
 
 ---
 
-## 1 · Firebase key restrictions — Google Cloud Console
+## 1 · Firebase key API restrictions — Google Cloud Console
 
-Possession of the published client key grants access to nothing: Firestore,
-Realtime Database and Storage do not exist in the project, and Firebase Auth
-answers `CONFIGURATION_NOT_FOUND`. Tested, not assumed.
+**This is hardening, not a blocker.** An earlier revision of this document made
+it one, and required an unidentified request to return `403` before the release
+could close. That was wrong, and wrong in a specific way worth naming: it
+optimised for what a scanner would say rather than for what an attacker could
+reach.
 
-The gap is that the keys accept a request carrying no application identity at
-all — a bare call registered an installation — so they are unrestricted.
+A Firebase client key is **public by design**. It ships inside every APK and
+IPA. "Someone without the app can use it" describes the format, not a defect.
 
-### The mapping, explicitly
+What the key actually grants was probed, not assumed:
 
-**There are two keys, not four.** GitHub raises four alerts because the same two
-keys appear in several files. Values are never written here; `keyhash` is
-`sha256(key)[0:12]`, enough to prove two files carry the same key and useless for
-anything else.
+* Firestore, Realtime Database, Storage — **do not exist** in the project (`404`).
+* Project administration — **structurally closed**: `firebase.googleapis.com`
+  and `cloudresourcemanager.googleapis.com` answer *"API keys are not supported
+  by this API"*, whatever the key's restrictions.
+* Firebase Auth — enabled but unconfigured, so it creates nothing today.
 
-| Key | keyhash | Platform | Identities the ONE key must serve | Alerts it accounts for |
-|---|---|---|---|---|
-| **A** | `a2626d564b36` | Android | `com.banzami.consumer` **and** `com.banzami.merchant` | #2, #3 |
-| **B** | `83f573718a5b` | iOS | bundles `com.banzami.consumer` **and** `com.banzami.merchant` | #1, #4 |
+So the published keys grant access to nothing right now.
 
-**This is the part that breaks an app if it is got wrong.** Each key serves two
-applications, so each restriction needs **two** entries. Restricting key A to one
-package silently kills the other.
+**The one thing worth acting on**, and the reason this is on the list at all:
+Identity Toolkit and Secure Token are *enabled and reachable* with both keys.
+They are inert only because no sign-in provider is configured. Enable one
+someday and the key already in every published APK can create accounts — with
+nothing having leaked in the meantime.
 
-No web key exists anywhere in the repository, so no referrer restriction applies.
+### The action
 
-### Fingerprints
+Google Cloud Console → project `banzami` → **APIs & Services → Credentials**.
+For **each** of the two keys (`a2626d564b36` Android, `83f573718a5b` iOS):
+**Restrict key**, and select only
 
-| | |
-|---|---|
-| **Debug** (from this machine's `~/.android/debug.keystore`, whose password is the published constant `android`) | SHA-1 `86:2D:43:62:4E:DF:3A:E5:6E:9C:20:35:76:6C:25:E9:9E:88:76:0D` |
-| **Release** | not obtainable from here — `key.properties` is absent and no keystore is present |
+    Firebase Installations API
+    Firebase Cloud Messaging API      (+ FCM Registration API, if listed)
+    Firebase Crashlytics API
 
-For the release fingerprint, the distinction matters:
+Nothing else. Those three are what `firebase_core`, `firebase_messaging` and
+`firebase_crashlytics` call, and the app declares no other Firebase package.
 
-* **On Play** → Play Console → your app → *Setup → App integrity → App signing
-  key certificate*. Use that SHA-1, **not** the upload key: using the upload key
-  makes every Play install fail while local builds keep working.
-* **Not on Play yet** → `keytool -list -v -keystore <release>.jks -alias <alias>`
+This is safe on a working configuration — it removes only reach the app never
+uses. Verify with `tests/security/firebase-key-restrictions.test.sh` (today it
+fails 6/8, which is the honest current state), then confirm on device: both apps
+still receive a push and still report a crash.
 
-One keystore signs both applications, so one release fingerprint covers both
-packages. Add the debug fingerprint only if debug builds must keep working —
-every fingerprint added widens the restriction.
+**Do not** set Android package / iOS bundle *Application* restrictions as part
+of this. One key serves two applications each, so a per-app entry silently kills
+the other app; the release SHA-1 is not obtainable from here; and on Play the
+correct fingerprint is Play's re-signing certificate, not the upload key.
+Reasoning and preconditions in `evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
 
-### APIs to allow
-
-Derived from the application's dependencies, which is authoritative: the app can
-only call what its SDKs call. (Reading the enabled-service list with the API key
-was inconclusive — those endpoints require OAuth, not a key — so this is derived,
-and the console's *Enabled APIs* page is where to confirm the intersection.)
-
-| Package in `pubspec.yaml` | API |
-|---|---|
-| `firebase_core` | Firebase Installations API |
-| `firebase_messaging` | Firebase Cloud Messaging API |
-| `firebase_crashlytics` | Firebase Crashlytics API |
-
-Nothing else — not Remote Config, which the app does not import. And do **not**
-enable Firestore, Storage, RTDB or Identity Toolkit: their absence is precisely
-what makes the published key harmless today.
-
-### The outcome to reach
-
-    application restriction   configured, both identities per key
-    API restriction           configured, the three above only
-    the probe that succeeded  403
-    GitHub alerts #1–#4       resolved only after that 403
-
-App Check is **not applicable** and is recorded as that rather than as a pass: it
-attests Firestore, RTDB, Storage, Functions and Auth, none of which this project
-uses.
-
-The re-test command is in `evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
+**The four GitHub alerts** do not depend on any of this. They are correct
+detections of a public-by-construction credential class, not vulnerabilities —
+resolve them as *public client configuration*, citing that same file. Rotation
+is not indicated: it would replace one public value with another and require a
+new mobile release.
 
 ## 2 · DMARC aggregate reporting — Cloudflare
 
@@ -117,28 +101,43 @@ and outside anyone's control — do not hold anything waiting for it.
 
 ---
 
-## 3 · Your BANZADMIN MFA enrolment
+## 3 · Your BANZADMIN MFA enrolment — DONE 2026-09-08 20:55 UTC
 
-`fidel.monteiro@banzami.com` is `MFA_ENROLMENT_REQUIRED`: password set, no second
-factor. That is a persisted state now, not an inference — the account cannot hold
-a privileged session, and login returns an enrolment token rather than one.
+Completed by the account holder on the deployed console. The audit trail, read
+back from `admin_audit_log` against the real `admin_user_id`:
 
-The state machine was proven on the deployed console with a throwaway identity,
-10/10, before this was asked of you.
+    20:50:40  ADMIN_INVITE_COMPLETE             password set by the operator
+    20:51:00  LOGIN_PASSWORD_OK_MFA_PENDING     password accepted, SESSION REFUSED
+    20:54:36  MFA_ENROLLED                      second factor confirmed
+    20:54:59  MFA_RECOVERY_CODES_ACKNOWLEDGED
+    20:55:08  session issued
 
-At `admin.banzami.com`: sign in with your password, scan the QR with your
-authenticator, type the current six digits, then **save the recovery codes** —
-they are shown once, and the session is only issued after you acknowledge them.
+Persisted state: `ACTIVE`, factor confirmed `20:54:35`, 10 recovery codes,
+`failed_login_attempts = 0`, no lock, `token_version = 3`.
 
-Afterwards the persisted state will read `ACTIVE` with a confirmed factor, and
-the audit trail will carry `LOGIN_PASSWORD_OK_MFA_PENDING → MFA_ENROLLED →
-MFA_RECOVERY_CODES_ACKNOWLEDGED` against your real `admin_user_id` — verifiable
-without anyone seeing a secret.
+**The window between 20:51:00 and 20:54:36 is the evidence.** For three and a
+half minutes the correct password was held and no privileged session existed.
+That is the whole point of the lifecycle change, demonstrated on a real human
+identity on the real deployed system — not on a fixture, not by SQL, and with no
+secret ever leaving the operator: no password, seed, QR or recovery code was
+seen by, sent to, or written down by anyone else.
 
-Do not send the password, the QR, the seed, the six digits or the recovery codes
-to anyone, in any channel, including this one.
+### Getting there also surfaced two things worth recording
 
----
+**The lockout is a trap for the only SUPER_ADMIN.** `MaxFailedLogins = 5` and the
+counter is cleared *only* by a successful login or a completed reset — it never
+decays. An account that once reaches 5 is permanently one typo away from a
+15-minute lock. This account reached 9. Combined with the deliberate generic
+`INVALID_CREDENTIALS` on lockout, the operator sees "wrong password" and cannot
+tell why retrying keeps failing. **Open defect — not fixed.**
+
+**There is no self-service password reset.** A reset can only be requested by an
+authenticated SUPER_ADMIN (`POST /admin/v1/operators/{id}/password-reset`,
+capability `CapOperatorReset`), so the sole SUPER_ADMIN locking themselves out
+is unrecoverable from the product. `admin-bootstrap --resend-invite` exists
+precisely to break that deadlock and is a shell command on the host — which is
+correct as a break-glass, but means the recovery path for the most privileged
+account is not in the product.
 
 ## What is NOT on this list, and why
 

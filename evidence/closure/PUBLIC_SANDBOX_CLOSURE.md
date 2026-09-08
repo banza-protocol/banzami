@@ -51,8 +51,9 @@ Ten are inside the mutation suite itself — the file whose purpose is to hold
 credential-shaped strings — and the eleventh is the RFC 6238 appendix-B vector.
 **No new exposure.**
 
-Four secret-scanning alerts remain open **on purpose**: the Firebase client keys
-(section F).
+Four secret-scanning alerts concern the Firebase client keys. They are correct
+detections of a credential class that is public by construction, not
+vulnerabilities, and they gate nothing (section F).
 
 ## D. Next.js 14 → 15
 
@@ -168,6 +169,29 @@ persisted state ends `ACTIVE` with a confirmed factor, audited in order —
 `LOGIN_PASSWORD_OK_MFA_PENDING → MFA_ENROLLED →
 MFA_RECOVERY_CODES_ACKNOWLEDGED`.
 
+**Then the real one, on the real account, 2026-09-08 20:55 UTC.** The account
+holder enrolled `fidel.monteiro@banzami.com` on the deployed console:
+
+    20:50:40  ADMIN_INVITE_COMPLETE             password set by the operator
+    20:51:00  LOGIN_PASSWORD_OK_MFA_PENDING     password accepted, SESSION REFUSED
+    20:54:36  MFA_ENROLLED                      second factor confirmed
+    20:54:59  MFA_RECOVERY_CODES_ACKNOWLEDGED
+    20:55:08  session issued
+
+Ending `ACTIVE`, factor confirmed, 10 recovery codes, `token_version = 3`. For
+the three and a half minutes between the password being accepted and the factor
+being confirmed, no privileged session existed — which is the property the whole
+change was for, now demonstrated on a human identity rather than a fixture. No
+password, seed, QR or recovery code was seen by anyone but the account holder.
+
+Two operability defects surfaced while getting there, both recorded in
+`evidence/closure/HUMAN_ACTIONS.md` and **neither fixed**: the failed-login
+counter never decays, so an account that once reaches `MaxFailedLogins = 5` stays
+permanently one typo from a 15-minute lock; and there is no self-service password
+reset, so the sole SUPER_ADMIN locking themselves out is unrecoverable from
+inside the product — `admin-bootstrap --resend-invite` on the host is the only
+way back.
+
 ## A3. Final history re-scan, on the final HEAD
 
 The strong rule set — default gitleaks plus every credential class this system
@@ -208,13 +232,40 @@ Negative test with the public client key, unauthenticated:
 **Possession of the key grants access to nothing, because none of those products
 exist in the project.**
 
-But the same probes proved the keys are **UNRESTRICTED**: a bare call to
-`firebaseinstallations` with no `X-Android-Package` / `X-Android-Cert` header is
-accepted with 200, and it registered an installation — which is exactly the abuse
-an application restriction prevents. GCP restrictions are **FAIL**, and fixing
-them needs the Google Cloud console. The GitHub alerts are left **open** rather
-than dismissed, because dismissing them would assert a verification that has not
-happened.
+The same probes were first read as proving the keys **UNRESTRICTED** and the
+finding recorded as FAIL: a bare call to `firebaseinstallations` carrying no
+`X-Android-Package` / `X-Android-Cert` is accepted and registers an installation.
+
+The probe stands; the verdict drawn from it does not. It measures the
+*application* restriction, and a Firebase client key ships in every APK and IPA
+by design — "usable without the app" describes the format, not a defect. Making
+that call return 403 was a scanner outcome, not a reduction in reach, and it was
+wrong to gate a release on it.
+
+What bounds reach is the **API** restriction, probed directly by calling APIs the
+app does not use and reading which layer answers:
+
+| API called with either key | Answer | Meaning |
+|---|---|---|
+| Identity Toolkit `accounts:signUp` | 400 `CONFIGURATION_NOT_FOUND` | the service answered — key admitted |
+| Secure Token `v1/token` | 400 `MISSING_GRANT_TYPE` | the service answered — key admitted |
+| Remote Config `:fetch` | 400 `INVALID_ARGUMENT` | the service answered — key admitted |
+| `firebase.googleapis.com`, `cloudresourcemanager` | 401 *"API keys are not supported by this API"* | administration is closed structurally |
+
+A restricted key is refused as `403 API_KEY_SERVICE_BLOCKED` *before* the service
+sees the request. None was. **Neither key carries an API restriction**, and three
+unused APIs are reachable.
+
+Today that is inert — no Auth provider is configured, and the data products do
+not exist. The durable point is that Identity Toolkit and Secure Token are
+*enabled*: whoever enables a sign-in provider later hands account creation to a
+key that is already in every published APK, with nothing having leaked.
+
+So: **not a release blocker; an API restriction is warranted and is ordinary
+hardening.** `tests/security/firebase-key-restrictions.test.sh` asserts it and
+fails 6/8 today, which is the honest state. Application restrictions are
+deliberately deferred — one key serves two apps each, and a per-app entry kills
+the other. Detail in `evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
 
 App Check: not applicable to this client set (it protects Firestore, RTDB,
 Storage, Functions and Auth — none in use). Stated from the dependency list, not
@@ -333,7 +384,7 @@ later, at settlement, so a donation is never charged on the way in.
   What remains is the donor half itself, which needs someone to read a code out
   of a mailbox this session cannot open.
 * **Mailbox receipt** of any message (section G).
-* **Firebase restrictions and App Check** (section F).
+* **Firebase API restriction** — an ordinary console change, not a blocker (section F).
 * **DMARC aggregate reporting** (section G).
 * **`dashboard-frontend` deployment** — refused by the service authority matrix.
 

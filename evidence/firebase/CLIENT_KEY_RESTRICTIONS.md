@@ -1,7 +1,13 @@
 # Firebase client keys — inventory, what was tested, what must be applied
 
-Date: 2026-09-08 · Project `banzami` (number 473654224852) · 4 GitHub secret
-alerts left **open**, deliberately.
+Date: 2026-09-08 · Project `banzami` (number 473654224852)
+
+**Verdict: the two keys are Firebase client keys, public by design, and grant
+access to nothing today. Not a release blocker.** What is warranted, and is
+recorded here as an ordinary hardening action rather than a gate, is an **API
+restriction** limiting each key to the three Firebase APIs the applications
+actually use. The four GitHub alerts are correct detections of a public-by-
+construction credential class — see the last section.
 
 ## Inventory — there are TWO keys, not four
 
@@ -61,91 +67,139 @@ Firebase Storage, no Firebase Auth.**
 in this project.** That is the substantive answer to "is the published key an
 exposure": no.
 
-## The real gap — the keys are unrestricted
+## What restriction the keys carry today — probed, not assumed
 
-    POST firebaseinstallations.googleapis.com/v1/projects/banzami/installations
-      bare, no X-Android-Package, no X-Android-Cert   → 200, installation created
+An earlier revision of this file called the keys "unrestricted" and recorded
+**FAIL**, on the strength of one probe: a bare installations call, carrying no
+`X-Android-Package` and no `X-Android-Cert`, was accepted and registered an
+installation.
 
-An application-restricted key answers `403` to that. It was accepted, and it
-registered an installation — which is precisely the abuse a restriction prevents.
+That probe is real and its result stands. What was wrong was the conclusion
+drawn from it. It measures the **application** restriction — whether the key
+demands proof of which app is calling — and a Firebase client key ships inside
+the application binary and inside this repository *by design*. Every Android
+APK on every device carries it in the clear. Treating "someone without the app
+can use it" as a release blocker measures a property the key never had.
 
-**Status: FAIL.** Closing it needs the Google Cloud console.
+The question that actually bounds exposure is the **API** restriction: which
+Google APIs this key is permitted to reach at all. That was probed directly, by
+calling APIs the application does not use and reading which layer answers.
 
-## Signing fingerprints — what is known here, and what is not
+| API called with the key | Used by the app? | Key A `a2626d564b36` | Key B `83f573718a5b` |
+|---|---|---|---|
+| Identity Toolkit `accounts:signUp` | no | `400 CONFIGURATION_NOT_FOUND` | `400 CONFIGURATION_NOT_FOUND` |
+| Secure Token `v1/token` | no | `400 MISSING_GRANT_TYPE` | `400 MISSING_GRANT_TYPE` |
+| Remote Config `namespaces/firebase:fetch` | no | `400 INVALID_ARGUMENT` | `400 INVALID_ARGUMENT` |
+| Firebase Installations | yes | `400 INVALID_ARGUMENT` | `400 INVALID_ARGUMENT` |
 
-**Debug**, read from this machine's `~/.android/debug.keystore` (its password is
-the published constant `android`, so this is not a secret):
+**Read the layer that answered, not the status code.** Every one of those is the
+target API's *own* application-level complaint about an empty request body — the
+call reached the service. A key carrying an API restriction that omits the
+service answers `403 API_KEY_SERVICE_BLOCKED` ("Requests to this API … are
+blocked") *before* the service ever sees the request. No probe produced that.
 
-    SHA-1    86:2D:43:62:4E:DF:3A:E5:6E:9C:20:35:76:6C:25:E9:9E:88:76:0D
-    SHA-256  E1:1D:4D:04:F6:49:1D:E9:89:0F:7A:CA:54:F4:BB:6B:DE:D9:FE:DA:F5:30:5E:F7:B8:F7:D1:9D:84:D6:03:CC
+**Conclusion: neither key carries an API restriction today.** Three APIs the
+application does not use are reachable with a published key.
 
-Needed only if debug builds must keep working against the restricted key. If
-they do not, leave it out — every fingerprint added widens the restriction.
+### What that does and does not expose
 
-**Release is not obtainable from here.** `apps/mobile/android/key.properties` is
-absent and no keystore is present; the build reads the release signing config
-from that gitignored file or from the environment. So the release fingerprint
-comes from one of two places, and the distinction matters:
+The management plane is closed structurally, not by configuration:
 
-* **If the app is distributed through Play**, the signature Google sees is
-  Play's re-signing key, not the upload key. Take the SHA-1 from
-  **Play Console → your app → Setup → App integrity → App signing key
-  certificate**. Using the upload key here makes every Play install fail while
-  local builds keep working — the worst shape of this mistake.
-* **If it is not on Play yet**, it is the release keystore's own:
+    firebase.googleapis.com   (project management)   401 "API keys are not
+    cloudresourcemanager.googleapis.com               supported by this API"
 
-      keytool -list -v -keystore /path/to/banzami-release.jks -alias <alias>
+An API key cannot reach project administration at all, whatever its
+restrictions. And the data products remain absent — Firestore, Realtime
+Database and Storage answer `404` because they do not exist in this project.
 
-Both applications are built from one keystore in this configuration, so one
-release fingerprint covers both packages.
+So the exposure today is **inert**, and one thing is worth naming precisely
+because it is the part that can stop being inert without anyone touching a key:
+
+> Identity Toolkit and Secure Token are **enabled** on the project and reachable
+> with the published key. They do nothing today only because no Auth provider is
+> configured — that is what `CONFIGURATION_NOT_FOUND` means. On the day someone
+> enables a sign-in provider in this project, the key already in every published
+> APK can create accounts and mint tokens. Nothing would need to leak.
+
+That is the real argument for an API restriction, and it is an argument about
+reachable surface — not about making an unidentified request return `403`.
+
+**Status: the keys are public by design and currently harmless. Restricting them
+by API is warranted and is not a release blocker.**
 
 ## Exact human actions
 
 Google Cloud Console → project `banzami` → **APIs & Services → Credentials**.
-For each key, open it and set:
 
-**Application restrictions**
+### 1 · API restrictions — the action that matters
 
-**Key A (Android, `a2626d564b36`)** → *Android apps*. It needs **two** entries,
-because one key serves both applications:
+For **each** of the two keys: open it, choose **Restrict key**, and select only:
 
-| Package | SHA-1 |
+| API | Why |
 |---|---|
-| `com.banzami.consumer` | the release fingerprint (see above) |
-| `com.banzami.merchant` | the same release fingerprint |
+| **Firebase Installations API** | every Firebase SDK registers an app instance through it |
+| **Firebase Cloud Messaging API** (and *FCM Registration API* if listed separately) | `firebase_messaging` |
+| **Firebase Crashlytics API** | `firebase_crashlytics` |
 
-Add the debug fingerprint as further entries for the same two packages only if
-debug builds must work.
+Nothing else. The list is derived from dependencies, which is authoritative —
+the app can only call what its SDKs call. `apps/mobile/pubspec.yaml` declares
+exactly `firebase_core`, `firebase_messaging`, `firebase_crashlytics`; the lock
+file adds no other Firebase package; Dart source references only
+`FirebaseMessaging.instance` and `FirebaseCrashlytics.instance`. So no Remote
+Config, no Analytics, no Auth.
 
-**Key B (iOS, `83f573718a5b`)** → *iOS apps*, again **two** entries:
-`com.banzami.consumer` and `com.banzami.merchant`.
-
-No web key exists, so no HTTP-referrer restriction applies.
-
-**API restrictions** — *Restrict key*, and select only what the SDK set needs.
-
-The list is derived from the application's dependencies, which is the
-authoritative source: the app can only call what its SDKs call. An attempt to
-read the enabled-service list with the API key was inconclusive — those
-management endpoints answer `401 UNAUTHENTICATED` because they require OAuth, not
-a key — so this is derived rather than probed, and the console's *Enabled APIs*
-page is where to confirm the intersection.
-
-`pubspec.yaml` declares exactly three Firebase packages, and Dart source
-references only `FirebaseMessaging.instance` and `FirebaseCrashlytics.instance`:
-
-| Package | API to allow |
-|---|---|
-| `firebase_core` | **Firebase Installations API** — every Firebase SDK registers an app instance through it |
-| `firebase_messaging` | **Firebase Cloud Messaging API** (+ Installations, above) |
-| `firebase_crashlytics` | **Firebase Crashlytics API** / Crashlytics Report API (+ Installations) |
-
-Nothing else. In particular do not add Remote Config: the app does not import
-it.
+This is safe to apply to a working configuration: it removes reach the
+application never uses. It also closes the one surface named above — after it,
+enabling a sign-in provider later can no longer make the published key useful
+against Identity Toolkit.
 
 Do **not** enable Firestore, Realtime Database, Storage or Identity Toolkit to
-make anything pass. They are not used, and their absence is what makes the
-published key harmless today.
+make anything pass. Their absence is what makes the published key harmless.
+
+**Verify by the same method that established the gap** — after applying, the
+three unused APIs must answer `403 API_KEY_SERVICE_BLOCKED` instead of their own
+`400`, and Installations must keep answering its own `400`:
+
+```bash
+tests/security/firebase-key-restrictions.test.sh
+```
+
+Then confirm on device, which is the check that outranks any probe: both apps
+still receive a push notification and still report a crash.
+
+### 2 · Application restrictions — deliberately NOT done now
+
+An Android/iOS application restriction would additionally require the caller to
+prove which app it is. It is **not** required for release and is **not** what
+the alerts are about.
+
+It is deferred rather than skipped, because applying it blind breaks shipped
+apps, and the preconditions are not met from here:
+
+* **One key serves two applications.** Key A is shared by `com.banzami.consumer`
+  and `com.banzami.merchant`; key B by both iOS bundles. Each restriction needs
+  **two** entries — restricting a key to one package silently kills the other
+  app. This is the mistake that would be made by following a per-app template.
+* **The release SHA-1 is not obtainable here.** `apps/mobile/android/key.properties`
+  is absent and no keystore is present.
+* **On Play, the right fingerprint is Play's re-signing certificate**, not the
+  upload key — Play Console → Setup → App integrity → *App signing key
+  certificate*. Using the upload key makes every Play install fail while local
+  builds keep working, which is the worst shape of this mistake because it
+  passes local testing.
+
+Revisit it only when all three hold: both packages' behaviour verified, the Play
+App Signing certificate known, and Messaging/Installations/Crashlytics confirmed
+still working on both apps afterwards.
+
+Debug fingerprint, if debug builds must keep working against a restricted key —
+read from this machine's `~/.android/debug.keystore`, whose password is the
+published constant `android`, so it is not a secret:
+
+    SHA-1    86:2D:43:62:4E:DF:3A:E5:6E:9C:20:35:76:6C:25:E9:9E:88:76:0D
+    SHA-256  E1:1D:4D:04:F6:49:1D:E9:89:0F:7A:CA:54:F4:BB:6B:DE:D9:FE:DA:F5:30:5E:F7:B8:F7:D1:9D:84:D6:03:CC
+
+Every fingerprint added widens the restriction; add none that is not needed.
 
 ## App Check
 
@@ -157,24 +211,19 @@ Cloud Messaging token registration or Crashlytics ingestion, so there is nothing
 here for it to enforce. If Firestore, Storage or Auth are ever adopted, App Check
 becomes applicable on the same day and this line stops being true.
 
-## After the restrictions are applied
+## The four GitHub alerts
 
-Re-run the probe that was accepted:
+They are **not** false positives and are **not** vulnerabilities. They are
+correct detections of a credential class that is public by construction: a
+Firebase client key, shipped in every APK and IPA, present in this repository
+because the build requires it there.
 
-```bash
-node /dev/stdin <<'JS'
-import { readFileSync } from 'node:fs';
-const k = JSON.parse(readFileSync('apps/mobile/android/app/src/consumer/google-services.json','utf8'))
-  .client[0].api_key[0].current_key;
-const r = await fetch(`https://firebaseinstallations.googleapis.com/v1/projects/banzami/installations?key=${k}`, {
-  method:'POST', headers:{'content-type':'application/json'},
-  body: JSON.stringify({ fid:'cZZZZZZZZZZZZZZZZZZZZZ', appId:'1:473654224852:android:0000000000000000', authVersion:'FIS_v2', sdkVersion:'a:probe' }),
-});
-console.log(r.status, (await r.text()).slice(0,120));   // expect 403, not 200
-JS
-```
+Resolve them as **used in tests / won't fix — public client configuration**,
+with this file as the reason. They do not depend on the API restriction and were
+never a release blocker; an earlier revision of this file said they should stay
+open until a probe returned `403`, which optimised for a scanner outcome rather
+than for exposure.
 
-A `403` naming the restriction is the evidence. **Only then** resolve the four
-GitHub alerts, and resolve them as what they are — a client key that is
-intentionally public, now restricted — not as a false positive. The alerts stay
-open until that evidence exists.
+Rotating these keys is not indicated. Rotation means shipping a new mobile
+release, and it would replace a public value with a different public value —
+buying nothing, since neither was ever secret.
