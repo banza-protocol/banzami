@@ -78,17 +78,31 @@ jobs:
             echo "ref=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # Deliberately NOT `ref:`. actions/checkout resolves `ref` server-side as a
+      # branch or tag, so a short SHA fails there — "A branch or tag with the
+      # name '1dddce92' could not be found" — before any of this job's own logic
+      # runs. That reads as broken infrastructure when it is in fact a rejected
+      # input, which is the worst way for a deployment gate to fail.
+      #
+      # So: check out the default branch with complete history (fetch-depth 0
+      # fetches every branch and tag), then resolve the target locally, where a
+      # short SHA, a full SHA, a branch and a tag all work and a bad one can be
+      # reported as a bad input.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ steps.target.outputs.ref }}
-          # A short SHA is not fetchable as a ref, so fetch history and let the
-          # explicit checkout below resolve it.
           fetch-depth: 0
 
       # Provenance. A conclusion is only evidence if it names what was tested.
       - name: Provenance
         run: |
-          git checkout --detach "${{ steps.target.outputs.ref }}"
+          TARGET='${{ steps.target.outputs.ref }}'
+          if ! git rev-parse --verify --quiet "${TARGET}^{commit}" >/dev/null; then
+            echo "::error::target_sha '${TARGET}' is not a commit in this repository."
+            echo "Pass a commit that has been pushed — a short SHA, a full SHA, a"
+            echo "branch or a tag are all accepted. Nothing was tested."
+            exit 1
+          fi
+          git checkout --detach "${TARGET}"
           RESOLVED="$(git rev-parse HEAD)"
           echo "workflow definition SHA : ${{ github.sha }}"
           echo "requested target SHA    : ${{ steps.target.outputs.ref }}"
