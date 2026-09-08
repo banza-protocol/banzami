@@ -214,6 +214,11 @@ export interface WebhookEndpoint {
   created_at: string;
 }
 
+// NewWebhookEndpoint adds the one-time signing secret. Present only in the
+// response to creation or rotation — the same reveal-once rule as a secret key,
+// for the same reason: the row holds it encrypted and nothing can show it again.
+export type NewWebhookEndpoint = WebhookEndpoint & { secret: string };
+
 export interface WebhookEvent {
   id: string;
   event_type: string;
@@ -396,6 +401,22 @@ export const developerApi = {
     req<{ events: WebhookEvent[] }>(`/projects/${projectID}/webhooks/events?limit=${limit}`),
   listWebhookDeliveries: (projectID: string, eventID: string) =>
     req<{ deliveries: WebhookDelivery[] }>(`/projects/${projectID}/webhooks/events/${eventID}/deliveries`),
+
+  // Webhook endpoint management. Creating one used to require a project key and
+  // code; the Console's own empty state said so. The signing secret is returned
+  // exactly once here and never again.
+  createWebhookEndpoint: (projectID: string, url: string, events: string[], csrf: string) =>
+    req<NewWebhookEndpoint>(`/projects/${projectID}/webhooks/endpoints`, {
+      method: 'POST', body: { url, events }, csrf,
+    }),
+  rotateWebhookSecret: (projectID: string, endpointID: string, csrf: string) =>
+    req<NewWebhookEndpoint>(`/projects/${projectID}/webhooks/endpoints/${endpointID}/rotate-secret`, {
+      method: 'POST', csrf,
+    }),
+  setWebhookEndpointActive: (projectID: string, endpointID: string, active: boolean, csrf: string) =>
+    req<WebhookEndpoint>(`/projects/${projectID}/webhooks/endpoints/${endpointID}`, {
+      method: 'PATCH', body: { active }, csrf,
+    }),
 
   listApiRequestLogs: (projectID: string, q: RequestLogQuery = {}) => {
     const p = new URLSearchParams();

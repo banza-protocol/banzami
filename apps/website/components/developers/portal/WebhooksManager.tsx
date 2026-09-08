@@ -6,10 +6,14 @@ import {
   type WebhookEndpoint,
   type WebhookEvent,
   type WebhookDelivery,
+  type NewWebhookEndpoint,
 } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
 import { Card, Pill, type PillKind } from './ui';
 import { IconWebhook } from './icons';
+import { WebhookEndpointForm } from './WebhookEndpointForm';
+import { SecretRevealDialog } from './ApiKeysManager';
+import { ConfirmDialog } from './ConfirmDialog';
 
 // Real, project-scoped webhook history.
 //
@@ -42,7 +46,7 @@ function when(iso: string): string {
 }
 
 export function WebhooksManager() {
-  const { activeProject } = useDeveloperData();
+  const { activeProject, csrf, onApiError } = useDeveloperData();
   const projectId = activeProject?.id ?? null;
 
   const [endpoints, setEndpoints] = useState<WebhookEndpoint[]>([]);
@@ -51,6 +55,12 @@ export function WebhooksManager() {
   const [open, setOpen] = useState<string | null>(null);
   const [state, setState] = useState<'idle' | 'loading' | 'ready' | 'error' | 'unprovisioned'>('idle');
   const [error, setError] = useState('');
+  // The signing secret, transiently, exactly once — same rule as a secret key.
+  const [revealSecret, setRevealSecret] = useState<string | null>(null);
+  // The endpoint an irreversible action is pending on. Rotation invalidates the
+  // secret the developer's server is holding; disabling stops delivery. Neither
+  // should happen because a row was clicked.
+  const [confirming, setConfirming] = useState<{ action: 'rotate' | 'disable' | 'enable'; ep: WebhookEndpoint } | null>(null);
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -89,6 +99,27 @@ export function WebhooksManager() {
     }
   }, [open, deliveries, projectId]);
 
+  const rotate = async (ep: WebhookEndpoint) => {
+    if (!projectId) return;
+    try {
+      const rotated = await developerApi.rotateWebhookSecret(projectId, ep.id, csrf);
+      setRevealSecret(rotated.secret);
+      await load();
+    } catch (e) {
+      throw new Error(onApiError(e));
+    }
+  };
+
+  const setActive = async (ep: WebhookEndpoint, active: boolean) => {
+    if (!projectId) return;
+    try {
+      await developerApi.setWebhookEndpointActive(projectId, ep.id, active, csrf);
+      await load();
+    } catch (e) {
+      throw new Error(onApiError(e));
+    }
+  };
+
   if (!projectId) {
     return (
       <Card style={{ padding: '40px 30px', textAlign: 'center' }}>
@@ -118,16 +149,20 @@ export function WebhooksManager() {
     <>
       <Card style={{ overflow: 'hidden', marginBottom: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 22px', borderBottom: '1px solid #F5E9E7' }}>
-          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900 }}>Endpoints</h3>
-          <span style={{ fontSize: 12, color: '#a89a9e', fontWeight: 700 }}>
-            {state === 'loading' ? 'A carregar…' : `${endpoints.length}`}
-          </span>
+          <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900 }}>
+            Endpoints{' '}
+            <span style={{ fontSize: 12, color: '#a89a9e', fontWeight: 700 }}>
+              {state === 'loading' ? '· a carregar…' : `· ${endpoints.length}`}
+            </span>
+          </h3>
+          <WebhookEndpointForm onCreated={(ep: NewWebhookEndpoint) => { setRevealSecret(ep.secret); void load(); }} />
         </div>
         {endpoints.length === 0 && state === 'ready' ? (
           <div style={{ padding: '28px 22px', textAlign: 'center' }}>
             <p style={{ margin: '0 0 6px', fontSize: 14, fontWeight: 800 }}>Ainda não há endpoints</p>
             <p style={{ margin: 0, fontSize: 13, color: '#8a7a7e', fontWeight: 600 }}>
-              Registe um com <code style={{ fontFamily: mono }}>createWebhookEndpoint</code> usando a chave do projecto.
+              Registe um aqui para começar a receber eventos. Também pode fazê-lo pela API,
+              com <code style={{ fontFamily: mono }}>createWebhookEndpoint</code>.
             </p>
           </div>
         ) : (
@@ -137,7 +172,8 @@ export function WebhooksManager() {
                 <th style={{ padding: '13px 22px', fontSize: 11, fontWeight: 800 }}>ENDPOINT</th>
                 <th style={{ padding: '13px 12px', fontSize: 11, fontWeight: 800 }}>SUBSCRIÇÕES</th>
                 <th style={{ padding: '13px 12px', fontSize: 11, fontWeight: 800 }}>ESTADO</th>
-                <th style={{ padding: '13px 22px', fontSize: 11, fontWeight: 800 }}>CRIADO</th>
+                <th style={{ padding: '13px 12px', fontSize: 11, fontWeight: 800 }}>CRIADO</th>
+                <th style={{ padding: '13px 22px', fontSize: 11, fontWeight: 800, textAlign: 'right' }}>AÇÕES</th>
               </tr>
             </thead>
             <tbody>
@@ -150,7 +186,21 @@ export function WebhooksManager() {
                   <td style={{ padding: '15px 12px' }}>
                     <Pill kind={e.active ? 'success' : 'neutral'} dot>{e.active ? 'Ativo' : 'Inativo'}</Pill>
                   </td>
-                  <td style={{ padding: '15px 22px', color: '#a89a9e', fontWeight: 700 }}>{when(e.created_at)}</td>
+                  <td style={{ padding: '15px 12px', color: '#a89a9e', fontWeight: 700, whiteSpace: 'nowrap' }}>{when(e.created_at)}</td>
+                  <td style={{ padding: '15px 22px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button
+                      onClick={() => setConfirming({ action: 'rotate', ep: e })}
+                      style={{ padding: '6px 12px', border: '1.5px solid #EBDBD9', borderRadius: 9, background: '#fff', color: '#5a4a4e', fontSize: 12.5, fontWeight: 800, cursor: 'pointer', marginRight: 6 }}
+                    >
+                      Rodar segredo
+                    </button>
+                    <button
+                      onClick={() => setConfirming({ action: e.active ? 'disable' : 'enable', ep: e })}
+                      style={{ padding: '6px 12px', border: `1.5px solid ${e.active ? '#EBC7C4' : '#EBDBD9'}`, borderRadius: 9, background: '#fff', color: e.active ? '#B5101F' : '#5a4a4e', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+                    >
+                      {e.active ? 'Desactivar' : 'Reactivar'}
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -250,6 +300,46 @@ export function WebhooksManager() {
       {state === 'error' && (
         <p style={{ marginTop: 12, fontSize: 13, color: '#B5101F', fontWeight: 700 }}>{error}</p>
       )}
+
+      {confirming ? (
+        <ConfirmDialog
+          title={
+            confirming.action === 'rotate' ? 'Rodar o segredo de assinatura'
+              : confirming.action === 'disable' ? 'Desactivar endpoint'
+              : 'Reactivar endpoint'
+          }
+          body={
+            confirming.action === 'rotate'
+              ? 'É emitido um segredo novo e o actual deixa de assinar imediatamente. O seu servidor recusa as entregas até o novo estar instalado. O segredo é mostrado uma única vez.'
+              : confirming.action === 'disable'
+                ? 'O Banzami deixa de entregar eventos a este endereço. O histórico de entregas mantém-se, e pode reactivá-lo depois.'
+                : 'O Banzami volta a entregar eventos a este endereço.'
+          }
+          subject={confirming.ep.url}
+          confirmLabel={
+            confirming.action === 'rotate' ? 'Rodar segredo'
+              : confirming.action === 'disable' ? 'Desactivar' : 'Reactivar'
+          }
+          danger={confirming.action !== 'enable'}
+          onConfirm={() =>
+            confirming.action === 'rotate'
+              ? rotate(confirming.ep)
+              : setActive(confirming.ep, confirming.action === 'enable')
+          }
+          onClose={() => setConfirming(null)}
+        />
+      ) : null}
+
+      {revealSecret ? (
+        <SecretRevealDialog
+          secret={revealSecret}
+          onDismiss={() => setRevealSecret(null)}
+          title="Guarde o segredo de assinatura"
+          description="Este segredo é mostrado uma única vez. Instale-o no servidor que recebe os webhooks — é com ele que verifica a assinatura de cada entrega. Não é uma chave de API e não deve ser usado para autenticar chamadas."
+          label="Segredo de assinatura"
+          ack="Instalei o segredo no meu servidor."
+        />
+      ) : null}
     </>
   );
 }

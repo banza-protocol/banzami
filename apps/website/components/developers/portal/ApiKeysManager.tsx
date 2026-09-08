@@ -60,14 +60,31 @@ const SCOPE_HELP: Record<string, string> = {
 // The raw secret is passed in as a prop and lives only in the parent's transient
 // state. It is shown once, requires explicit acknowledgement, and the parent
 // drops it on dismiss / navigation / logout. Never stored or re-fetchable.
-export function SecretRevealDialog({ secret, onDismiss }: { secret: string; onDismiss: () => void }) {
+export function SecretRevealDialog({
+  secret,
+  onDismiss,
+  title = 'Guarde a sua chave secreta',
+  description = 'Esta chave de teste (Sandbox) é mostrada uma única vez. Copie-a agora — não poderá vê-la novamente. Não movimenta dinheiro real.',
+  label = 'Chave secreta',
+  ack: ackLabel = 'Guardei a chave num local seguro.',
+}: {
+  secret: string;
+  onDismiss: () => void;
+  // A webhook signing secret is revealed under exactly the same rule and the
+  // same dialog; only the words differ, and calling it "a sua chave secreta"
+  // there would tell the developer to put it where their API key goes.
+  title?: string;
+  description?: string;
+  label?: string;
+  ack?: string;
+}) {
   const { flash } = useToast();
   const [ack, setAck] = useState(false);
   return (
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Nova chave secreta"
+      aria-label={title}
       style={{
         position: 'fixed',
         inset: 0,
@@ -84,11 +101,10 @@ export function SecretRevealDialog({ secret, onDismiss }: { secret: string; onDi
           <span style={{ width: 32, height: 32, borderRadius: 9, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#B5101F' }}>
             <IconShield size={17} />
           </span>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Guarde a sua chave secreta</h3>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>{title}</h3>
         </div>
         <p style={{ margin: '0 0 14px', fontSize: 13.5, lineHeight: 1.5, color: '#8a7a7e', fontWeight: 600 }}>
-          Esta chave de teste (Sandbox) é mostrada <strong>uma única vez</strong>. Copie-a agora — não poderá vê-la
-          novamente. Não movimenta dinheiro real.
+          {description}
         </p>
         <div
           style={{
@@ -101,15 +117,15 @@ export function SecretRevealDialog({ secret, onDismiss }: { secret: string; onDi
             marginBottom: 14,
           }}
         >
-          <code aria-label="Chave secreta" style={{ flex: 1, fontFamily: mono, fontSize: 12.5, color: '#EDE3E1', wordBreak: 'break-all' }}>
+          <code aria-label={label} style={{ flex: 1, fontFamily: mono, fontSize: 12.5, color: '#EDE3E1', wordBreak: 'break-all' }}>
             {secret}
           </code>
           <button
             onClick={() => {
               void copyText(secret);
-              flash('Chave copiada — guarde-a em segurança');
+              flash(`${label} copiada — guarde-a em segurança`);
             }}
-            aria-label="Copiar chave"
+            aria-label={`Copiar ${label.toLowerCase()}`}
             style={{ flex: 'none', width: 32, height: 32, border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <IconCopy size={14} strokeWidth={1.9} />
@@ -117,7 +133,7 @@ export function SecretRevealDialog({ secret, onDismiss }: { secret: string; onDi
         </div>
         <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, fontSize: 13, fontWeight: 700, color: '#6a5a5e', marginBottom: 16, cursor: 'pointer' }}>
           <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} style={{ marginTop: 2 }} />
-          Guardei a chave num local seguro.
+          {ackLabel}
         </label>
         <button
           onClick={onDismiss}
