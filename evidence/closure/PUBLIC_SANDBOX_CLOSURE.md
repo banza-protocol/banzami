@@ -58,9 +58,18 @@ Four secret-scanning alerts remain open **on purpose**: the Firebase client keys
 
 Every remaining high advisory sat in `next@14.2.35` with no 14.x fix, so the
 migration was the remediation. Five apps on 15.5.25 / React 19; four deployed.
-`dashboard-frontend` is built, typechecked and smoke-tested but **not deployed**:
-`deploy.sh`'s authority matrix refuses it without its own approval, and that gate
-was not bypassed.
+`dashboard-frontend` is **explicitly NOT RELEASED**, which is a decision the
+repository already carries rather than an ambiguity: `CAP-APP-002` in
+`quality/operator-assurance-manifest.yaml` reads `launch_scope: excluded`,
+`surface: none`, `environments: sandbox false / live false`, `status: blocked`.
+`dashboard.banzami.com`, `business.banzami.com` and `merchant.banzami.com` are
+all NXDOMAIN, and `./deploy.sh dashboard-frontend` fails closed.
+
+Closing that out found documentation still claiming it: `docs/sandbox/README.md`
+and three DOA integration guides sent readers to
+`sandbox-dashboard.banzami.com`, and the architecture diagram drew
+`dashboard.banzami.com` as routed. All corrected to the Developer Console, which
+is where API keys are actually issued.
 
 Details, including what the migration did NOT cover, in
 `evidence/migration/NEXT15_MIGRATION.md`.
@@ -89,6 +98,38 @@ markers where a resolver actually looks.
 
 Not covered: an expired link — no link in the Sandbox currently carries an
 expiry.
+
+## A2. Privileged-identity lifecycle
+
+`admin_users.status` answered "has this person set a password?" and was read as
+if it answered "is this person fully enrolled?". So the first SUPER_ADMIN sat at
+ACTIVE with a password and no factor, and the only thing between that and a
+privileged session was a branch inside the login handler.
+
+That branch is correct, and it is not the same as the state saying so. A status
+whose meaning depends on a row in another table is one a reader will get wrong —
+an export, a support query, a dashboard counting "active admins", or the next
+authorisation branch someone writes.
+
+    INVITED                   → identity exists, no credential
+    MFA_ENROLMENT_REQUIRED    → password set, no confirmed factor
+    MFA_RECOVERY_ACK_REQUIRED → factor confirmed, codes not acknowledged
+    ACTIVE                    → password + factor + codes + acknowledgement
+    SUSPENDED                 → disabled
+
+Transitions are guarded on the FROM state, so a replay is a no-op rather than a
+route to ACTIVE the lifecycle does not have — proven by pointing acknowledgement
+at the wrong FROM state, which makes the suite report "acknowledging without a
+confirmed factor reached ACTIVE".
+
+One guard had to widen rather than follow: `CountActiveSuperAdmins` counted
+`status='ACTIVE'`, and splitting the lifecycle would have silently weakened it —
+an organisation whose only SUPER_ADMIN is mid-enrolment would count zero, and the
+guard would then permit demoting or suspending them. It counts everyone not
+SUSPENDED.
+
+Migration 0110 backfills every operator ACTIVE without a confirmed factor. It
+grants and removes nothing; it makes the row say what was already true.
 
 ## F. Firebase — verified, not dismissed
 
@@ -225,10 +266,14 @@ later, at settlement, so a donation is never charged on the way in.
 
 ## O. What is NOT proven
 
-* **A real DOA donation end to end.** `doa-public-donation-e2e.sh` needs a
-  `PAY_SLUG` from a real donation on doadoa.app, which requires an email OTP that
-  the documented Resend credential blocker prevents. The settlement half and the
-  gross-credit half are proven separately above; the donor half is not.
+* **A real DOA donation end to end.** The blocker was previously recorded as a
+  missing DOA email credential. That is no longer true and the record was wrong
+  to leave generic: `RESEND_API_KEY` is installed in the DOA production project,
+  and the sending path was exercised directly — requesting a login code for
+  `fidel.monteiro@doadoa.app` returns `POST /login → 200` and the app advances to
+  "Enviámos um código de 6 dígitos … Expira em 10 minutos". DOA can send.
+  What remains is the donor half itself, which needs someone to read a code out
+  of a mailbox this session cannot open.
 * **Mailbox receipt** of any message (section G).
 * **Firebase restrictions and App Check** (section F).
 * **DMARC aggregate reporting** (section G).
