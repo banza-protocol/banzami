@@ -288,6 +288,19 @@ func (c *CoreAdminClient) SetMerchantBusinessAccountType(ctx context.Context, id
 		map[string]any{"business_account_type": accountType}, &out)
 }
 
+// AssignMerchantPricingProfile puts a Business Account on a pricing profile.
+//
+// This is the operator's commercial decision about one customer, and it is the
+// only thing that decides what that customer is charged: the pricing model
+// resolves exactly one rule from (assigned profile, operation), and a merchant
+// with no profile resolves nothing at all. Core validates the code, refuses a
+// disabled profile, and refuses any LIVE profile outright.
+func (c *CoreAdminClient) AssignMerchantPricingProfile(ctx context.Context, id, profileCode string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.put(ctx, "/internal/v1/merchants/"+id+"/pricing-profile",
+		map[string]any{"profile_code": profileCode}, &out)
+}
+
 func (c *CoreAdminClient) DeleteMerchant(ctx context.Context, id string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/internal/v1/merchants/"+id, nil)
 	if err != nil {
@@ -667,6 +680,26 @@ func (c *CoreAdminClient) patch(ctx context.Context, path string, body any, out 
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.baseURL+path, bodyReader)
+	if err != nil {
+		return fmt.Errorf("core-api request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	return c.do(req, out)
+}
+
+func (c *CoreAdminClient) put(ctx context.Context, path string, body any, out any) error {
+	var bodyReader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("core-api marshal: %w", err)
+		}
+		bodyReader = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+path, bodyReader)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
 	}

@@ -494,6 +494,25 @@ export class AdminApi {
     return this.req(`/admin/v1/merchants${q}`);
   }
   getMerchant(id: string): Promise<Merchant> { return this.req(`/admin/v1/merchants/${id}`); }
+  /**
+   * Put a Business Account on a pricing profile — what that customer is charged.
+   *
+   * Not a plain setter: the model resolves exactly one rule from (assigned
+   * profile, operation), so this single value is the whole answer, and a rate
+   * changed by accident is invisible until an invoice is wrong. The server
+   * requires a reason and the profile code typed back, and records before/after
+   * in the audit trail.
+   */
+  assignMerchantPricingProfile(
+    id: string,
+    profileCode: string,
+    reason: string,
+  ): Promise<{ merchant_id: string; profile_code: string; environment: string }> {
+    return this.req(`/admin/v1/merchants/${id}/pricing-profile`, {
+      method: 'PUT',
+      body: JSON.stringify({ profile_code: profileCode, confirmation_text: profileCode, reason }),
+    });
+  }
   deleteMerchant(id: string): Promise<void>   { return this.req(`/admin/v1/merchants/${id}`, { method: 'DELETE' }); }
   setMerchantVerified(id: string, verified: boolean): Promise<Merchant> {
     return this.req(`/admin/v1/merchants/${id}/verified`, { method: 'PATCH', body: JSON.stringify({ verified }) });

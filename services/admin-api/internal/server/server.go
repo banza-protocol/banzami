@@ -151,6 +151,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapMerchantManage)).Delete("/admin/v1/merchants/{id}", merchantH.Delete)
 		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/verified", merchantH.SetVerified)
 		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/business-account-type", merchantH.SetBusinessAccountType)
+		// What a customer is charged. Guarded by the pricing capability rather
+		// than merchant management: this is a commercial decision, and the people
+		// who edit a Business Account's details are not necessarily the people who
+		// price it.
+		r.With(cap(auth.CapPricingManage)).Put("/admin/v1/merchants/{id}/pricing-profile", merchantH.AssignPricingProfile)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/api-keys", merchantSetupH.CreateApiKey)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/wallets", merchantSetupH.CreateWallet)
