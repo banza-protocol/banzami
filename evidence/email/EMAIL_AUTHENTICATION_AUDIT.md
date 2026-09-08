@@ -87,6 +87,30 @@ it happens; do not hold anything waiting for it.
 message content, which is a privacy exposure, and most receivers do not send
 them.
 
+## Delivery, proven in the mailbox
+
+Sender-side acceptance is not delivery, and the two were reported separately for
+exactly that reason. The receiving half is now proven too, from the operator
+mailbox itself over its isolated read-only IMAP connection:
+
+| | |
+|---|---|
+| Subject | *Foi convidado para o BANZADMIN* |
+| From | `Banzami <noreply@banzami.com>` |
+| To | `fidel.monteiro@banzami.com` |
+| Message-ID | `…@eu-west-1.amazonses.com` |
+| Folder | INBOX — **not** Junk |
+| Date | 2026-09-08 09:11 UTC |
+
+The Message-ID is the part that closes the loop: it says the message left through
+Amazon SES, which is the infrastructure Resend sends on and the one this domain's
+SPF authorises with `include:amazonses.com`. So the chain is end to end —
+BANZADMIN → Resend → SES → the public internet → the LWS mailbox — and not a
+provider log saying it tried.
+
+The body was deliberately not opened. It carries a single-use activation token,
+and that token is the operator's alone; the headers already establish delivery.
+
 ## DOA, for contrast
 
 `doadoa.app` publishes `v=DMARC1; p=none` with `~all` SPF (IONOS). That is a
