@@ -38,27 +38,48 @@ the system reporting success it has not verified.
 ## Required change — human, provider-side
 
 DNS for banzami.com is on Cloudflare (`cesar`/`deborah.ns.cloudflare.com`). No
-Cloudflare credential is available to the engineering session, so this is a
-dashboard action.
+Cloudflare credential exists in this repository, on the deploy host, or in this
+engineering session, and no browser is connected carrying the owner's session —
+so this is a dashboard action and not a documentation choice.
 
-Record to update — Cloudflare → banzami.com → DNS:
+**Cloudflare → banzami.com → DNS → edit the existing `_dmarc` TXT record.**
 
-    Type:  TXT
-    Name:  _dmarc
-    Value: v=DMARC1; p=quarantine; rua=mailto:security@banzami.com; sp=quarantine; fo=1
+    from:  v=DMARC1; p=quarantine;
+    to:    v=DMARC1; p=quarantine; rua=mailto:dmarc@banzami.com
 
-What each added term does, and why it is safe:
+Edit, do not replace. `p=quarantine` is the enforcement decision already taken
+and nothing here changes it; `rua` adds reporting and no receiver treats a
+message differently because of it. There is exactly one tag to add.
 
-* `rua=` — where aggregate reports are sent. Purely observational; it does not
-  change how any message is treated. Reports are daily XML, low volume at this
-  scale. The address is same-domain, so no `_report._dmarc` authorisation record
-  is needed. **`security@banzami.com` must be a real mailbox or an alias** — if
-  it is not, point this at a mailbox that exists.
-* `sp=quarantine` — states the subdomain policy explicitly instead of relying on
-  inheritance. Behaviour is unchanged; the intent becomes readable.
-* `fo=1` — report when either SPF or DKIM fails, rather than only when both do.
+**`dmarc@banzami.com` must exist first** — a mailbox or an alias, either is
+fine. It is deliberately not a person's address: aggregate reports are daily
+XML from every receiver that sees mail claiming this domain, and pointing them
+at a privileged human identity mixes machine output into the inbox that
+administers the operator. Same-domain, so no `_report._dmarc` authorisation
+record is needed.
 
-Deliverability risk: none. No term here changes enforcement; `p` is untouched.
+Optionally, `fo=1` asks receivers to report when either SPF or DKIM fails rather
+than only when both do. Useful, not required, and left out of the line above so
+the change stays one tag.
+
+`ruf=` is deliberately not proposed. Forensic reports carry message content,
+which is a privacy exposure, and most receivers do not send them anyway.
+
+## Verifying it afterwards
+
+    dig +short TXT _dmarc.banzami.com
+
+Expect exactly one TXT record, `v=DMARC1` first, `p=quarantine` still present,
+`rua=mailto:dmarc@banzami.com` added. SPF and DKIM are untouched by this edit and
+should be re-read to confirm that:
+
+    dig +short TXT banzami.com | grep spf
+    dig +short TXT resend._domainkey.banzami.com
+
+**Configuration and receipt are separate facts.** DNS can be verified within
+minutes. The first aggregate report arrives when a receiver decides to send one —
+typically within a day, and outside anyone's control. Record it separately when
+it happens; do not hold anything waiting for it.
 
 ## Not changed
 
