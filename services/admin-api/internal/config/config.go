@@ -9,6 +9,14 @@ import (
 
 // Config holds all runtime configuration for the admin-api service.
 type Config struct {
+	// Environment labels the PRIMARY database this deployment is pointed at.
+	//
+	// It used to be the literal "LIVE" in three places, which was true while the
+	// only deployment was the live one. On a Sandbox-only stack the primary pool
+	// is banzami_staging, and a console that labels Sandbox data LIVE is worse
+	// than one that shows nothing: every number on it is a claim about real
+	// money. Set ENVIRONMENT=SANDBOX there.
+	Environment  string
 	Port         int
 	CoreAPIURL   string
 	AdminAPIKey  string // secret required in every request via X-Admin-Key header
@@ -85,6 +93,14 @@ type Config struct {
 // Load reads config from environment variables.
 // Missing required values cause an error.
 func Load() (*Config, error) {
+	// The primary database's environment label. Defaults to LIVE so an existing
+	// live deployment behaves exactly as before; a Sandbox-only stack sets
+	// ENVIRONMENT=SANDBOX and the console stops calling Sandbox data LIVE.
+	environment := strings.ToUpper(strings.TrimSpace(os.Getenv("ENVIRONMENT")))
+	if environment == "" {
+		environment = "LIVE"
+	}
+
 	port := 8082
 	if raw := os.Getenv("ADMIN_API_PORT"); raw != "" {
 		p, err := strconv.Atoi(raw)
@@ -141,6 +157,7 @@ func Load() (*Config, error) {
 	noreplyAddress := getenvDefault("EMAIL_NOREPLY_ADDRESS", "noreply@banzami.com")
 
 	return &Config{
+		Environment:  environment,
 		Port:         port,
 		CoreAPIURL:   coreURL,
 		AdminAPIKey:  adminKey,
