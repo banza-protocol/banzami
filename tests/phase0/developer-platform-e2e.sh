@@ -71,7 +71,10 @@ PKEY=$(jget secret); KEYID=$(jget id); e2e_own fixture_key "$KEYID"
 devint pkro POST "/internal/v1/projects/$PROJ/fixture-keys" "{\"name\":\"ro $RR\",\"scopes\":[\"payment_sessions:read\"],\"created_by\":\"$OP\"}"
 RKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
 devint bind POST "/internal/v1/projects/$PROJ/binding" "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"wallet_account_id\":\"$WACCT\",\"actor_user_id\":\"$OP\"}" >/dev/null
-if [ -z "$PROJ" ] || [ -z "$PKEY" ]; then echo "BLOCKER — WORKSPACE/PROJECT MODEL MISSING (fixture unavailable)"; echo "### SUMMARY pass=$PASS fail=$FAIL simulated=$SIM blocked=$((BLK+1))"; echo "=== DONE ==="; exit 0; fi
+# A blocked run has proved nothing, so it must not report success. This used to
+# exit 0: the suite printed BLOCKER, printed a summary counting the block, and
+# then told every caller that trusts exit status that all was well.
+if [ -z "$PROJ" ] || [ -z "$PKEY" ]; then echo "BLOCKER — WORKSPACE/PROJECT MODEL MISSING (fixture unavailable)"; echo "### SUMMARY pass=$PASS fail=$FAIL simulated=$SIM blocked=$((BLK+1))"; echo "=== DONE ==="; exit 3; fi
 
 echo "### F0-DP-001 developer/platform auth"; gw me GET /v1/me - "$PKEY"; chk F0-DP-001 "$(jget key_status)" active
 echo "### F0-DP-002 workspace available"; chk F0-DP-002 "$([ -n "$WS" ]&&echo ok)" ok
@@ -164,3 +167,15 @@ chk F0-DP-016 "$([ "${ACNT:-0}" -ge 3 ]&&echo ok)" ok
 
 echo "### SUMMARY pass=$PASS fail=$FAIL simulated=$SIM blocked=$BLK"
 echo "=== DONE ==="
+
+# Exit status is what release orchestration trusts first (see
+# tools/e2e/lib/parse-suite-summary.mjs). This file used to end here, with no
+# exit at all, so it returned the status of the final echo — zero — no matter
+# how many assertions had failed.
+#   0  every required assertion passed
+#   1  at least one required assertion failed
+#   3  a required assertion could not run (blocked)
+if [ "${FAIL:-0}" -gt 0 ]; then exit 1; fi
+if [ "${BLK:-0}" -gt 0 ]; then exit 3; fi
+if [ "${PASS:-0}" -eq 0 ]; then echo "no assertions ran — refusing to report a vacuous pass"; exit 1; fi
+exit 0

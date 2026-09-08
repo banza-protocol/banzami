@@ -32,9 +32,9 @@
  */
 import { createHmac, randomUUID, randomBytes } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { writeAssuranceResult } from '../lib/assurance-output.mjs';
 import {
   req, provisionMerchant, newRunId, assertSandboxAndBuild, assertExplicitRun, assertNominal,
 } from '../payments/harness.mjs';
@@ -50,6 +50,7 @@ const SINK_CONTAINER = 'banzami-webhook-sink';
 const AMOUNT = 250_000; // 2 500,00 Kz — nominal, inside the harness ceiling
 assertNominal(AMOUNT);
 
+const startedAt = new Date().toISOString();
 const results = [];
 const rec = (id, ok, note = '') => {
   results.push({ id, pass: !!ok, note });
@@ -358,8 +359,20 @@ const summary = {
   promotable: passed === total,
   assertions: results,
 };
-mkdirSync(resolve(ROOT, 'evidence/assurance/golden'), { recursive: true });
-writeFileSync(resolve(ROOT, 'evidence/assurance/golden/developer-golden-journey.json'), JSON.stringify(summary, null, 2) + '\n');
+// Generated evidence goes OUTSIDE the worktree — see tools/e2e/lib/assurance-output.mjs.
+// This used to overwrite evidence/assurance/golden/developer-golden-journey.json,
+// which made the canonical post-deploy run dirty the very revision it verified.
+const { file, verdict } = writeAssuranceResult({
+  suiteSlug: 'developer-golden-journey',
+  suite: summary.suite,
+  runtime_sha: build,
+  environment,
+  pass: passed,
+  fail: total - passed,
+  started_at: startedAt,
+  payload: { gateway: GW, total, promotable: passed === total, assertions: results },
+});
 
 console.log(`\nBANZAMI DEVELOPERS GOLDEN JOURNEY\n${passed}/${total} PASS`);
-process.exit(passed === total ? 0 : 1);
+console.log(`evidence: ${file}`);
+process.exit(verdict === 'PASS' ? 0 : 1);

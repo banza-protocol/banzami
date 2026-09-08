@@ -21,8 +21,9 @@ import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
 import { registerCleanup } from '../console/lib/run-cleanup.mjs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../../..');
@@ -219,8 +220,8 @@ try {
   await ctxB.close(); await ctxA.close();
 
   const passed = results.filter(r => r.ok).length, failed = results.length - passed;
-  mkdirSync(resolve(ROOT, 'evidence/assurance/dev-foundation'), { recursive: true });
-  writeFileSync(resolve(ROOT, `evidence/assurance/dev-foundation/api-logs-correlation-${stamp}.json`), JSON.stringify({
+  const EVIDENCE_DIR = assuranceDir('api-logs-correlation');
+  writeFileSync(join(EVIDENCE_DIR, `api-logs-correlation-${stamp}.json`), JSON.stringify({
     programme: 'BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Console API Logs (ADR-054)',
     test: 'tools/e2e/dev-console/api-logs-correlation-e2e.mjs',
     date_stamp: stamp, console_host: CONSOLE, api_host: API, gateway_host: GW,

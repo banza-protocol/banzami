@@ -14,6 +14,8 @@
  * Run: BANZAMI_E2E=RUN node tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs
  */
 import { writeFileSync, mkdirSync } from 'node:fs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
+import { join } from 'node:path';
 import {
   API, PURPOSE, assertExplicitRun, assertNominal, assertSandboxAndBuild,
   provisionMerchant, req, newRunId, idemKey,
@@ -196,8 +198,8 @@ const evidence = {
   failed: failed.length,
   verdict: failed.length === 0 ? 'PASS' : 'FAIL',
 };
-mkdirSync('evidence/assurance/payments', { recursive: true });
-const out = `evidence/assurance/payments/cap-pay-001-${runId.slice(0, 8)}.json`;
+const EVIDENCE_DIR = assuranceDir('cap-pay-001');
+const out = join(EVIDENCE_DIR, `cap-pay-001-${runId.slice(0, 8)}.json`);
 writeFileSync(out, JSON.stringify(evidence, null, 2) + '\n');
 
 console.log(`\n  evidence: ${out}`);

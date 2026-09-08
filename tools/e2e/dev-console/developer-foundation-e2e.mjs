@@ -17,8 +17,9 @@ import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
 import { registerCleanup } from '../console/lib/run-cleanup.mjs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../../..');
@@ -246,7 +247,7 @@ try {
 
   const passed = results.filter(r => r.ok).length;
   const failed = results.length - passed;
-  mkdirSync(resolve(ROOT, 'evidence/assurance/dev-foundation'), { recursive: true });
+  const EVIDENCE_DIR = assuranceDir('developer-foundation');
   const out = {
     programme: 'BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 01',
     test: 'tools/e2e/dev-console/developer-foundation-e2e.mjs',
@@ -260,7 +261,7 @@ try {
     matrix: results,
     secrets_note: 'No OTP, session token, CSRF token or raw API key was printed or stored in this artifact.',
   };
-  writeFileSync(resolve(ROOT, `evidence/assurance/dev-foundation/e2e-${stamp}.json`), JSON.stringify(out, null, 2));
+  writeFileSync(join(EVIDENCE_DIR, `e2e-${stamp}.json`), JSON.stringify(out, null, 2));
   console.log(`\n${failed === 0 ? '✓' : '✗'} developer-foundation E2E: ${passed}/${results.length} passed`);
   process.exit(failed === 0 ? 0 : 1);
 } finally {

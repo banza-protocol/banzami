@@ -22,6 +22,8 @@ import {
   provisionMerchant, req, newRunId, idemKey,
 } from './harness.mjs';
 import { assessRuntimeFreshness } from './runtime-freshness.mjs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
+import { join } from 'node:path';
 
 assertExplicitRun(process.env.BANZAMI_E2E);
 const AMOUNT = 50_000;
@@ -156,8 +158,8 @@ const evidence = {
   verdict: failed.length === 0 ? 'PASS (partial scope)' : 'FAIL',
   promotable: false,
 };
-mkdirSync('evidence/assurance/payments', { recursive: true });
-const out = `evidence/assurance/payments/cap-pay-003-partial-${runId.slice(0, 8)}.json`;
+const EVIDENCE_DIR = assuranceDir('cap-pay-003');
+const out = join(EVIDENCE_DIR, `cap-pay-003-partial-${runId.slice(0, 8)}.json`);
 writeFileSync(out, JSON.stringify(evidence, null, 2) + '\n');
 console.log(`\n  evidence: ${out}`);
 console.log(failed.length === 0

@@ -12,8 +12,9 @@ import { chromium } from 'playwright';
 import { execFileSync } from 'node:child_process';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, resolve, join } from 'node:path';
 import { registerCleanup } from '../console/lib/run-cleanup.mjs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '../../..');
@@ -144,8 +145,8 @@ try {
   await ctxB.close(); await ctxA.close();
 
   const passed = results.filter(r => r.ok).length, failed = results.length - passed;
-  mkdirSync(resolve(ROOT, 'evidence/assurance/dev-foundation'), { recursive: true });
-  writeFileSync(resolve(ROOT, `evidence/assurance/dev-foundation/dev-key-gateway-${stamp}.json`), JSON.stringify({
+  const EVIDENCE_DIR = assuranceDir('dev-key-gateway');
+  writeFileSync(join(EVIDENCE_DIR, `dev-key-gateway-${stamp}.json`), JSON.stringify({
     programme: 'BANZAMI-SANDBOX-RELEASE-ASSURANCE-001 / Release Train 02 (ADR-046)',
     test: 'tools/e2e/dev-console/dev-key-gateway-e2e.mjs',
     date_stamp: stamp, console_host: CONSOLE, api_host: API, gateway_host: GW,
