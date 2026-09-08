@@ -1,41 +1,13 @@
-# The actions that need a human, and exactly what each one is
+# What still needs a human
 
-Everything else in the Public Sandbox programme is done. These need either a
-provider console this session cannot authenticate to, or a private act that
-should not pass through anyone else — including me.
+Three things. Everything else in the Public Sandbox programme is done, and the
+DOA work that was on this list has moved to where it belongs.
 
-None of them asks anyone to send a secret to Claude, to chat, or into a file.
-
----
-
-## 1 · DMARC aggregate reporting — Cloudflare
-
-`banzami.com` enforces `p=quarantine` and publishes no `rua=`, so the domain
-imposes a policy it cannot observe: no receiver reports failures, and an operator
-invitation silently quarantined is indistinguishable from one delivered.
-
-**Cloudflare → banzami.com → DNS → edit the existing `_dmarc` TXT record:**
-
-    from:  v=DMARC1; p=quarantine;
-    to:    v=DMARC1; p=quarantine; rua=mailto:dmarc@banzami.com
-
-Edit, do not replace — `p=quarantine` is the enforcement decision already taken,
-and `rua` changes how no message is treated. One tag.
-
-`dmarc@banzami.com` must exist first: a mailbox or an alias, either works. It is
-deliberately not a person's address — aggregate reports are daily XML from every
-receiver that sees mail claiming this domain, and they do not belong in the inbox
-that administers the operator.
-
-Verify: `dig +short TXT _dmarc.banzami.com` — one record, `p=quarantine` still
-there, `rua` added. Receipt of the first report is a separate event, typically
-within a day and outside anyone's control; do not hold anything waiting for it.
-
-Detail: `evidence/email/EMAIL_AUTHENTICATION_AUDIT.md`.
+None of these asks anyone to send a secret to Claude, to chat, or into a file.
 
 ---
 
-## 2 · Firebase key restrictions — Google Cloud Console
+## 1 · Firebase key restrictions — Google Cloud Console
 
 Possession of the published client key grants access to nothing: Firestore,
 Realtime Database and Storage do not exist in the project, and Firebase Auth
@@ -47,79 +19,97 @@ call registered an installation — so they are unrestricted, and that is the ga
 **Console → project `banzami` → APIs & Services → Credentials**, per key:
 
 * Android → *Android apps*: `com.banzami.consumer` and `com.banzami.merchant`,
-  each with its Play **App signing** SHA-1 (not only the upload key, or installs
-  from Play break).
+  each with its Play **App signing** SHA-1 — not only the upload key, or
+  installs from Play break.
 * iOS → *iOS apps*: the same two bundle identifiers.
+* No web key exists, so no referrer restriction applies.
 * API restrictions → only Firebase Installations, Cloud Messaging and
   Crashlytics. Do not enable Firestore, Storage or Identity Toolkit to make
   something pass — their absence is what makes the published key harmless.
 
-App Check is **not applicable** here and is recorded as that, not as a pass: it
+App Check is **not applicable** and is recorded as that rather than as a pass: it
 attests requests to Firestore, RTDB, Storage, Functions and Auth, none of which
 this project uses.
 
-The re-test command that must return `403`, and the four GitHub alerts that stay
-open until it does: `evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
+Afterwards, re-run the probe that was accepted; it must answer `403`. Only then
+do the four GitHub secret-scanning alerts close, and they close as *a client key
+that is intentionally public, now restricted* — never as a false positive. The
+command and the full inventory are in
+`evidence/firebase/CLIENT_KEY_RESTRICTIONS.md`.
 
 ---
 
-## 3 · DOA — make `fidel.monteiro@doadoa.app` the only admin
+## 2 · DMARC aggregate reporting — Cloudflare
 
-`fidelrmonteiro@gmail.com` is currently the only user and the only admin, and the
-application refuses to remove it: `adminDemoteAdmin` returns `last_admin` when
-the demotion would empty the admin team, and `cannot_demote_self` when an admin
-tries to demote itself. Both refusals are correct. So this is a **replacement**,
-and the order matters.
+`banzami.com` enforces `p=quarantine` and publishes no `rua=`, so the domain
+imposes a policy it cannot observe. An operator invitation silently quarantined
+is indistinguishable from one delivered.
 
-DOA's email sending works — verified, not assumed: requesting a login code for
-`fidel.monteiro@doadoa.app` returns `POST /login → 200` and the app advances to
-the six-digit step. The credential blocker recorded previously is resolved.
+This was re-checked before being asked of anyone. The Cloudflare MCP servers
+configured on this machine are `docs`, `radar`, `dns-analytics`, `observability`
+and `audit-logs` — documentation, internet insights, analytics, telemetry and
+audit. **All read-only. None writes DNS.** The server that could
+(`mcp.cloudflare.com/mcp`, Code Mode) is not configured here, and three of the
+five are unauthenticated in a session that cannot run an OAuth flow. So there is
+no supported write path, and this is genuinely a dashboard action.
 
-1. **Sign in once as `fidel.monteiro@doadoa.app`** at `admin.doadoa.app`. The
-   code arrives by email. The login creates the account; the console will bounce
-   you out because it is not an admin yet, which is expected — the profile is
-   what matters.
-2. **Sign in as `fidelrmonteiro@gmail.com`** → *Utilizadores* → the new account
-   → **Tornar admin**. You will be asked to type the email to confirm.
-3. **Sign in as `fidel.monteiro@doadoa.app`** → *Utilizadores* →
-   `fidelrmonteiro@gmail.com` → remove admin. This step must be done from the new
-   identity: an admin cannot demote itself.
+**Cloudflare → banzami.com → DNS → edit the existing `_dmarc` TXT record:**
 
-After step 3 the gmail account remains an ordinary user with no admin rights. Ban
-or delete it separately if you want it gone entirely.
+    from:  v=DMARC1; p=quarantine;
+    to:    v=DMARC1; p=quarantine; rua=mailto:dmarc@banzami.com
 
-This session cannot do any of it: the DOA mailbox is deliberately not reachable
-from here. `imap_list_accounts` returns exactly one account,
-`fidel.monteiro@banzami.com` — the isolation between the two identities holding.
+Edit, do not replace. `p=quarantine` is the enforcement decision already taken,
+and `rua` changes how no message is treated. One tag.
+
+**First, `dmarc@banzami.com` must exist** — a mailbox or an alias, created
+through the LWS panel. It is deliberately not a person's address: aggregate
+reports are daily XML from every receiver that sees mail claiming this domain,
+and they do not belong in the inbox that administers the operator. Do not point
+`rua` at an address that does not receive.
+
+Verify with `dig +short TXT _dmarc.banzami.com`: one record, `p=quarantine`
+still present, `rua` added; then re-read SPF and DKIM to confirm the edit touched
+neither. Receipt of the first report is a separate event, typically within a day
+and outside anyone's control — do not hold anything waiting for it.
 
 ---
 
-## 4 · BANZADMIN — your MFA enrolment
+## 3 · Your BANZADMIN MFA enrolment
 
 `fidel.monteiro@banzami.com` is `MFA_ENROLMENT_REQUIRED`: password set, no second
-factor. That is a real persisted state now, not an inference — the account cannot
-hold a privileged session, and login returns an enrolment token rather than one.
+factor. That is a persisted state now, not an inference — the account cannot hold
+a privileged session, and login returns an enrolment token rather than one.
+
+The state machine was proven on the deployed console with a throwaway identity,
+10/10, before this was asked of you.
 
 At `admin.banzami.com`: sign in with your password, scan the QR with your
 authenticator, type the current six digits, then **save the recovery codes** —
 they are shown once, and the session is only issued after you acknowledge them.
 
-The state then walks `MFA_ENROLMENT_REQUIRED → MFA_RECOVERY_ACK_REQUIRED →
-ACTIVE`, which is verifiable afterwards without anyone seeing a secret.
+Afterwards the persisted state will read `ACTIVE` with a confirmed factor, and
+the audit trail will carry `LOGIN_PASSWORD_OK_MFA_PENDING → MFA_ENROLLED →
+MFA_RECOVERY_CODES_ACKNOWLEDGED` against your real `admin_user_id` — verifiable
+without anyone seeing a secret.
 
 Do not send the password, the QR, the seed, the six digits or the recovery codes
 to anyone, in any channel, including this one.
 
 ---
 
-## 5 · The real DOA donation
+## What left this list, and where it went
 
-Once you hold a DOA session, the last unproven thing is the donor half: a real
-donation on `www.doadoa.app`, through the email OTP, landing in a campaign wallet
-with a signed webhook back to DOA.
+**DOA.** The admin replacement and the real donation journey are not human-only.
+An isolated read-only IMAP MCP is configured for `/Users/fm65/doa` with its own
+store (`~/.claude-mcp-homes/doa`), pointing at `fidel.monteiro@doadoa.app` — so a
+Claude session started **in that repository** reads its own mailbox and its own
+login code. That this Banzami session cannot see that mailbox is the isolation
+working, not a blocker.
 
-The economics either side of it are already proven on the deployed Sandbox — a
-campaign account is credited gross and only that one (10/10), and a settlement of
-100 000 at 200 bps yields fee 2 000 and net 98 000 with a parity differential of
-zero (24/24). What is missing is the journey through the public site, which needs
-a code read out of a mailbox this session cannot open.
+The work is written out in `~/doa/docs/handoff/BANZAMI_SANDBOX_CLOSURE_HANDOFF.md`.
+Open Claude Code in `/Users/fm65/doa` and point it at that file.
+
+Also corrected there: the note recording a missing DOA email credential is
+**wrong**. `RESEND_API_KEY` is installed and the sending path was exercised —
+requesting a login code returns `POST /login → 200` and the app advances to the
+six-digit step.
