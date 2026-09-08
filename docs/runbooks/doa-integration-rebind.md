@@ -15,62 +15,71 @@ session has no authorisation to reach it.
 
 ## Already done, on the Banzami side
 
-`@doa` was created through the ordinary public onboarding flow — application,
-activation, auth — not by writing rows.
+DOA was rebuilt through the **public Developers Console**, the same lifecycle any
+external developer uses — sign in, workspace, project, financial environment,
+API key. No operator route, no fixture, no SQL.
 
 | | |
 | --- | --- |
-| handle | `@doa` |
-| merchant id | `a779d287-8422-4d0f-b6af-6f392720f8e4` |
-| wallet id | `0271d995-734f-49c4-931f-5f47ee89534f` |
-| primary account id | `48ebb417-292a-4c99-865b-52ec6afd7a27` |
-| business account type | `APPLICATION` |
-| KYB | `APPROVED` |
-| pricing profile | `sandbox-reference` |
-| settlement ready | yes, no blockers |
+| workspace | `DOA` |
+| project | `DOA Sandbox` · `2515de46-f73d-42c5-8de8-ff8588821d33` |
+| financial owner | `8565edf9-b128-4a0d-ae6d-beeaf652a233` — provisioned by the project's own Financial Setup |
+| business account type | `MERCHANT` |
+| pricing profile | `sandbox-default` (settlement 0 bps, payout 75 bps) |
+| API key | 10 scopes, installed in DOA's Vercel production as `BANZAMI_API_KEY` (Sensitive) |
 
-Its rates, read back from `GET /v1/business/me`:
+Scopes granted: `identity:read`, `payment_sessions:write`, `payment_sessions:read`,
+`wallet_accounts:create`, `wallet_accounts:read`, `refunds:write`, `refunds:read`,
+`customers:read`, `webhooks:write`, `webhooks:read` — exactly what DOA's code
+calls. `application_settlements:write` is deliberately **not** granted: nothing
+in DOA creates a settlement, and it is the scope that pays money out.
 
-```
-SETTLEMENT  200 bps   sandbox-reference-settlement
-PAYOUT       75 bps   sandbox-reference-payout
-```
+### Corrections to the previous version of this runbook
 
-The activation PIN was written to a local file during provisioning and is not
-recorded here. Without it the account cannot be signed into again.
+An earlier revision recorded a `@doa` Business Account (`a779d287-…`, wallet
+`0271d995-…`, `APPLICATION`, KYB `APPROVED`, `sandbox-reference`). **No such
+merchant exists in the Sandbox database.** It was created against a different
+cluster during the period when two databases shared the name `banzami_staging`;
+the cluster-identity gate now makes that mistake impossible, but the record it
+produced was wrong and is removed rather than left to be trusted.
 
-**Nothing about DOA is special.** It carries the same profile any owner can be
-assigned, and `settlement-economics-e2e.sh` proves an ordinary owner on that
-profile is charged an identical fee and net — differential zero. There is no
-DOA branch anywhere in the runtime.
+Nothing about DOA is special. It is an ordinary Console tenant, on the profile
+every self-provisioned project gets, with no DOA branch anywhere in the runtime.
 
 ---
 
 ## Not done, and why
 
-**No API key and no webhook secret were created.** Creating a live credential
-that no consumer holds is how unused authority accumulates, and it cannot be
-installed in DOA from here anyway. They are issued in the window below, at the
-moment they can be installed.
+**The webhook endpoint is not registered.** It cannot be done from here: the
+Console can list endpoints, events and deliveries but cannot create one, and the
+key that could create it is Sensitive in Vercel and unreadable. The one command
+that does it lives in DOA's own repository — see the window below.
 
----
+**The pricing profile is `sandbox-default`, not `sandbox-reference`.** Assigning
+a profile is an operator decision, and BANZADMIN could not make it until now:
+`PUT /admin/v1/merchants/{id}/pricing-profile` exists but admin-api is a
+Stage-D-gated surface and has not been deployed. Until then DOA settles at 0 bps,
+which is a configured price rather than a missing one.
 
 ## The window
 
-Everything here needs DOA's production Supabase and Vercel, which this session
-must not reach without an explicit maintenance window.
+Everything here needs DOA's production Supabase and Vercel.
 
-**1. Issue the credentials** (Banzami side, mine)
+**1. Register the webhook endpoint** (yours, one command)
 
-A fresh Developer API key with exactly the scopes DOA needs, and a webhook
-endpoint with a fresh signing secret — both through the public Developers
-lifecycle, not operator-minted.
+```bash
+cd ~/doa && npm run banzami:webhook
+```
 
-**2. Install them** (yours)
+It asks for the project key once without echoing it, subscribes the endpoint to
+exactly the events `apps/web/app/api/webhooks/banzami/route.ts` handles, and
+pipes the signing secret straight into `vercel env add BANZAMI_WEBHOOK_SECRET
+production`. Neither secret is printed, stored or passed as an argument.
 
-`BANZAMI_API_KEY` and `BANZAMI_WEBHOOK_SECRET` in DOA's Vercel environment, then
-redeploy. The old values are dead: their key is revoked and their merchant no
-longer exists.
+**2. Redeploy** (yours)
+
+From the Vercel dashboard — never `vercel deploy --prod` from `~/doa`. An
+environment variable only takes effect on the next production deployment.
 
 **3. Rebind DOA's stored Banzami identifiers** (yours, or mine with access)
 
