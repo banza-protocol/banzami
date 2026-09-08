@@ -3,7 +3,8 @@ import { getPaymentLink, getPlatformMode, formatAmount } from '@/lib/api';
 import PayClient from './pay-client';
 
 interface Props {
-  params: { slug: string };
+  // Next 15: route params arrive as a Promise.
+  params: Promise<{ slug: string }>;
 }
 
 /**
@@ -14,7 +15,8 @@ interface Props {
  * /<slug> route redirects here for backward compatibility.
  */
 export default async function PayPage({ params }: Props) {
-  const link = await getPaymentLink(params.slug);
+  const { slug } = await params;
+  const link = await getPaymentLink(slug);
   if (!link) notFound();
 
   if (link.status === 'USED') {

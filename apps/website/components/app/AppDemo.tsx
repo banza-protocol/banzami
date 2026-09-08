@@ -41,8 +41,8 @@ export function AppDemo({ className = '' }: { className?: string }) {
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [clock, setClock] = useState('14:30:10');
 
-  const splashT = useRef<ReturnType<typeof setTimeout>>();
-  const pinT = useRef<ReturnType<typeof setTimeout>>();
+  const splashT = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pinT = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const cvRef = useRef<HTMLInputElement>(null); // criar @banza
   const cnRef = useRef<HTMLInputElement>(null); // criar nome
   const evRef = useRef<HTMLInputElement>(null); // entrar @banza
@@ -562,7 +562,7 @@ function QrCode({ size }: { size: number }) {
 
 type Tab = 'inicio' | 'historico' | 'receber' | 'perfil';
 function BottomNav({ active, go }: { active: Tab; go: (s: Screen) => () => void }) {
-  const icons: Record<Tab, (s: string) => JSX.Element> = {
+  const icons: Record<Tab, (s: string) => React.JSX.Element> = {
     inicio: (s) => (<><path d="M3 11l9-7 9 7" stroke={s} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 10v9h14v-9" stroke={s} strokeWidth="1.9" strokeLinejoin="round" /></>),
     historico: (s) => (<><circle cx="12" cy="12" r="8.5" stroke={s} strokeWidth="1.9" /><path d="M12 7.5v5l3 1.8" stroke={s} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></>),
     receber: (s) => (<><rect x="3" y="3" width="7" height="7" rx="1.6" stroke={s} strokeWidth="1.9" /><rect x="14" y="3" width="7" height="7" rx="1.6" stroke={s} strokeWidth="1.9" /><rect x="3" y="14" width="7" height="7" rx="1.6" stroke={s} strokeWidth="1.9" /><path d="M14 14h3v3M21 14v7h-7" stroke={s} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></>),
@@ -611,7 +611,7 @@ function ReceiptRow({ label, value, mono, border }: { label: string; value: stri
   );
 }
 
-function SettingRow({ icon, title, sub, border }: { icon: JSX.Element; title: string; sub: string; border?: boolean }) {
+function SettingRow({ icon, title, sub, border }: { icon: React.JSX.Element; title: string; sub: string; border?: boolean }) {
   return (
     <div className="flex items-center" style={{ gap: 13, padding: '13px 0', borderBottom: border ? '1px solid #F4E7E5' : undefined }}>
       <span className="flex items-center justify-center" style={{ width: 38, height: 38, borderRadius: 12, background: '#F0ECEC' }}>

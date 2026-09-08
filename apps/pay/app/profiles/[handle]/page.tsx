@@ -4,11 +4,13 @@ import type { Metadata } from 'next';
 import ProfilePayCard from './profile-pay-card';
 
 interface Props {
-  params: { handle: string };
+  // Next 15: route params arrive as a Promise.
+  params: Promise<{ handle: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const profile = await getMerchantProfile(params.handle).catch(() => null);
+  const { handle } = await params;
+  const profile = await getMerchantProfile(handle).catch(() => null);
   if (!profile) return { title: 'Perfil não encontrado — Banzami' };
   return {
     title: `${profile.display_name} (@${profile.handle}) — Banzami`,
@@ -17,7 +19,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function MerchantProfilePage({ params }: Props) {
-  const profile = await getMerchantProfile(params.handle);
+  const { handle } = await params;
+  const profile = await getMerchantProfile(handle);
   if (!profile || !profile.public) notFound();
 
   return (

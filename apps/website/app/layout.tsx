@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { headers } from 'next/headers';
 import './globals.css';
 import { PlatformBanner } from '@/components/PlatformBanner';
 
@@ -45,9 +46,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // The nonce middleware minted for this request. Next stamps it onto every
+  // inline <script> it emits, which is what lets the policy use 'strict-dynamic'
+  // instead of 'unsafe-inline'. headers() is a Promise in Next 15 — without the
+  // await this reads .get off the Promise, the nonce is undefined, and our own
+  // CSP then blocks the framework's bootstrap scripts.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
-    <html lang="pt">
+    <html lang="pt" nonce={nonce}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />

@@ -2,21 +2,23 @@ import type { Metadata } from 'next';
 import { formatAmount } from '@/lib/api';
 
 interface Props {
-  params:       { handle: string };
-  searchParams: { amount?: string; currency?: string };
+  // Next 15: both arrive as Promises.
+  params:       Promise<{ handle: string }>;
+  searchParams: Promise<{ amount?: string; currency?: string }>;
 }
 
-export function generateMetadata({ params }: Props): Metadata {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { handle } = await params;
   return {
-    title: `Pagar @${params.handle} — Banzami`,
-    description: `Envie dinheiro instantaneamente para @${params.handle} pelo Banzami.`,
+    title: `Pagar @${handle} — Banzami`,
+    description: `Envie dinheiro instantaneamente para @${handle} pelo Banzami.`,
   };
 }
 
-export default function UserPayPage({ params, searchParams }: Props) {
-  const handle    = params.handle;
-  const rawAmount = searchParams.amount ? parseInt(searchParams.amount, 10) : null;
-  const currency  = searchParams.currency ?? 'AOA';
+export default async function UserPayPage({ params, searchParams }: Props) {
+  const [{ handle }, sp] = await Promise.all([params, searchParams]);
+  const rawAmount = sp.amount ? parseInt(sp.amount, 10) : null;
+  const currency  = sp.currency ?? 'AOA';
 
   const amountMinor   = rawAmount != null && !isNaN(rawAmount) ? rawAmount : null;
   const amountDisplay = amountMinor != null ? formatAmount(amountMinor, currency) : null;

@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 
 interface Props {
-  params: { slug: string };
+  // Next 15: route params arrive as a Promise.
+  params: Promise<{ slug: string }>;
 }
 
 /**
@@ -10,6 +11,7 @@ interface Props {
  * mobile app deep-links). A 308 keeps old links working without making the
  * bare path canonical.
  */
-export default function BareSlugRedirect({ params }: Props) {
-  redirect(`/pay/${params.slug}`);
+export default async function BareSlugRedirect({ params }: Props) {
+  const { slug } = await params;
+  redirect(`/pay/${slug}`);
 }
