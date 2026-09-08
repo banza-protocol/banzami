@@ -340,6 +340,18 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/flags", riskH.ListRiskFlags)
 		r.With(cap(auth.CapRiskResolve)).Post("/admin/v1/risk/flags/{id}/resolve", riskH.ResolveRiskFlag)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/audit-log", riskH.QueryAuditLog)
+
+		// The OPERATOR audit trail — a different thing from the risk one above.
+		//
+		// /risk/audit-log is Core's record of what happened to money: refunds,
+		// credits, KYC status. admin_audit_log is the record of what an operator
+		// did in this console: who signed in, who enrolled a factor, who changed
+		// a pricing rule. Every action here has been written since the table
+		// existed and no route ever read it, so the only way to answer "who did
+		// this" was a psql session on the host — the operator SQL workaround this
+		// console is meant to remove.
+		adminAuditH := handler.NewAdminAuditHandler(audit)
+		r.With(cap(auth.CapAuditView)).Get("/admin/v1/audit-log", adminAuditH.Query)
 		r.With(cap(auth.CapRiskResolve)).Post("/admin/v1/risk/acquiring-recon", riskH.RunAcquiringReconciliation)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/acquiring-recon", riskH.ListAcquiringReconciliationRuns)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/acquiring-recon/{id}", riskH.GetAcquiringReconciliationRun)
