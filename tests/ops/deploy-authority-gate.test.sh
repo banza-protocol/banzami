@@ -132,7 +132,10 @@ fi
 #
 # What is still worth asserting is what Stage C actually bounded: the sandbox
 # edge must not become a route to the LIVE payment stack.
-if grep -qE "^\s*server_name (api|admin)\.banzami\.com" infra/nginx/sandbox-edge.conf.template 2>/dev/null; then
+# admin.banzami.com left this pattern under Stage D: it is the SANDBOX operator
+# console, served by admin-api with ENVIRONMENT=SANDBOX against the Sandbox
+# database. api.banzami.com — the LIVE gateway — is what must never appear here.
+if grep -qE "^\s*server_name api\.banzami\.com" infra/nginx/sandbox-edge.conf.template 2>/dev/null; then
   no "the sandbox edge serves a LIVE hostname"
 else
   ok "sandbox-edge carries sandbox hosts only — no LIVE hostname"

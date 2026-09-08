@@ -67,31 +67,25 @@ exposure happens only within a separately approved Stage C implementation.
 The stateless sandbox-operator image (no database, no secrets, simulated-only) may be
 rebuilt **only** during a separately approved Stage C implementation.
 
-## Decision 3 — amendment (2026-09-08, Stage D)
+## Decision 3 — reaffirmed (2026-09-08, Stage D)
 
-Decision 3 bounded the website edge to website-only upstreams. That is amended
-for exactly one hostname: **`admin.banzami.com`**.
+Stage D added `admin.banzami.com`. It is served by the **sandbox edge**, which
+is already on the Sandbox application network and already carries every other
+Sandbox host — and Cloudflare routes it there with the same Origin Rule
+(→ `2053`) rather than letting it fall to the default origin port the website
+nginx owns.
 
-Cloudflare routes each hostname to an origin port with an Origin Rule
-(`banzami.com` → 8443, the Sandbox hosts → 2053). A hostname with no rule lands
-on the default origin port 443, which the website nginx container owns — so
-`admin.banzami.com` already arrived there and answered the maintenance 503.
-Serving it from the sandbox edge would need a new Origin Rule, and the only
-Cloudflare credential on the host is a DNS-01 token that cannot read a zone.
+Decision 3 therefore stands unamended: the website edge keeps zero
+sandbox/payment/admin upstreams. `tests/ops/website-edge-isolation.test.sh`
+asserts it rather than trusting it.
 
-The amendment is bounded so Decision 3's reason still holds, and the bounds are
-asserted by `tests/ops/website-edge-isolation.test.sh`:
-
-- the `banzami.com` / `www` block is untouched and proxies only the website;
-- every upstream in the admin vhost is held in a **variable** and resolved at
-  request time. nginx resolves a literal `proxy_pass` host at config load, so
-  one absent container would stop the whole proxy — including `banzami.com` —
-  from starting. Through a variable, a missing admin container is a 502 on
-  `admin.banzami.com` and nothing else;
-- no LIVE payment hostname is served by this edge.
-
-If a Cloudflare credential that can write Origin Rules becomes available, moving
-this hostname to the sandbox edge restores Decision 3 unamended.
+It was briefly done the other way. The first attempt put the vhost on the
+website edge, because that is where a hostname with no Origin Rule arrives and
+the only Cloudflare credential on the host is a DNS-01 token that cannot read a
+zone. That was a real amendment to Decision 3 and was recorded as one. It was
+withdrawn as soon as a credential that can write rulesets was available — the
+routing is now what the architecture always said it should be, and the website
+edge was disconnected from the Sandbox application network again.
 
 ## Decision 6 — Unsupported surfaces
 
