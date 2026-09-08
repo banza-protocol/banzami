@@ -569,7 +569,21 @@ cmd_deploy_one() {
   # entrypoint from this list, and the console came back up with operator login
   # disabled (503) and no mailer. Nothing failed; the service was healthy and
   # nobody could sign in.
-  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
+  #
+  # INTERNAL_API_KEY and STAGING_INTERNAL_API_KEY were the same omission, one
+  # layer down, and it stayed hidden for the same reason. admin-api's first
+  # create exports both from core_internal_key; this list did not, so every
+  # redeploy dropped them. The Gateway then ran InternalAuth("") — which answers
+  # 503 "internal API is not configured" to the whole internal route group — and
+  # admin-api, which cannot tell that apart from an unreachable upstream, turned
+  # it into 502. The visible symptom was the operator console's Business
+  # applications and KYB review being permanently unavailable, with both
+  # services reporting healthy.
+  #
+  # One value on both sides, named for what it authorises at each end: the
+  # Gateway reads INTERNAL_API_KEY to decide whether to accept an internal call,
+  # admin-api reads STAGING_INTERNAL_API_KEY to decide what to send.
+  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
   docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
   "${run[@]}" --entrypoint sh "$tag" -c "$ep" >/dev/null 2>&1 || { echo "  $name docker run FAIL"; return 1; }
   local i; for i in "${nets[@]:1}"; do docker network connect "$i" "$cname" >/dev/null 2>&1 || true; done

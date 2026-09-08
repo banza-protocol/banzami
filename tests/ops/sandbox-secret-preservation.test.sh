@@ -134,6 +134,41 @@ for df in "$ROOT/apps/admin/Dockerfile" "$ROOT/apps/pay/Dockerfile"; do
   fi
 done
 
+# 9. Redeploy must export everything first-create exports.
+#
+# This is the shape of two separate outages, and it will be the shape of the
+# next one. A service's FIRST create writes its own entrypoint and exports the
+# variables it needs; every REDEPLOY rebuilds the entrypoint from one shared
+# list. A variable in the first but not the second disappears on the first
+# redeploy, and nothing reports it — the container is healthy, the process is
+# up, and only a feature is gone.
+#
+#   admin_jwt_secret / resend_api_key   → operator login 503, no mail
+#   INTERNAL_API_KEY / STAGING_INTERNAL_API_KEY
+#                                       → the Gateway ran InternalAuth("") and
+#                                         answered 503 to its whole internal
+#                                         route group; Business applications and
+#                                         KYB review were permanently 502 in the
+#                                         operator console
+#
+# So the two are compared directly rather than reviewed.
+first_create_vars="$(grep -oE 'export [A-Z_]+=' "$SRC" | sed -E 's/export ([A-Z_]+)=/\1/' | sort -u)"
+redeploy_list="$(sed -n 's/.*local ep=.for s in \(.*\); do f=.*/\1/p' "$SRC")"
+missing=""
+for v in $first_create_vars; do
+  # DATABASE_URL and friends are exported by name in both places; the redeploy
+  # list names them after the colon.
+  case "$redeploy_list" in
+    *":$v "*|*":$v"*) : ;;
+    *) missing="$missing $v" ;;
+  esac
+done
+if [ -z "$missing" ]; then
+  ok "every variable a first create exports is also in the redeploy entrypoint list"
+else
+  no "redeploy would drop:$missing"
+fi
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
