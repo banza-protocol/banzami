@@ -171,14 +171,24 @@ export default function LoginPage() {
   if (recovery) {
     return shell(
       <>
-        <h1 className="m-0 text-[24px] font-black tracking-[-0.02em]">Guarde os códigos de recuperação</h1>
+        <h1 className="m-0 text-[24px] font-black tracking-[-0.02em]" tabIndex={-1} autoFocus>
+          Guarde os códigos de recuperação
+        </h1>
         <p className="m-0 mb-5 mt-2 text-[14px] font-semibold leading-relaxed text-[#9a8a8e]">
           Cada código serve <strong>uma vez</strong>, e é o que lhe devolve o acesso se perder o
           autenticador. São mostrados agora e nunca mais.
         </p>
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-[14px] bg-[#2A1E20] p-4 font-mono text-[13px] text-[#EDE3E1]">
-          {recovery.map((c) => <span key={c}>{c}</span>)}
-        </div>
+        {/*
+          A list, not a grid of loose spans: a screen reader announces "10 items"
+          and can walk them one by one, which is the only way to read these aloud
+          to someone writing them down.
+        */}
+        <ul
+          aria-label={`${recovery.length} códigos de recuperação, cada um utilizável uma única vez`}
+          className="mb-4 grid list-none grid-cols-2 gap-2 rounded-[14px] bg-[#2A1E20] p-4 font-mono text-[13px] text-[#EDE3E1]"
+        >
+          {recovery.map((c) => <li key={c}>{c}</li>)}
+        </ul>
 
         <div className="mb-5 flex gap-2">
           <button
@@ -187,7 +197,7 @@ export default function LoginPage() {
             aria-label="Copiar os códigos de recuperação"
             className="flex-1 rounded-[12px] border-[1.5px] border-[#f1e3e3] bg-white py-[11px] text-[13.5px] font-extrabold text-[#5a4a4e]"
           >
-            {copied ? 'Copiados' : 'Copiar códigos'}
+            <span aria-live="polite">{copied ? 'Copiados' : 'Copiar códigos'}</span>
           </button>
           <button
             type="button"
@@ -242,11 +252,20 @@ export default function LoginPage() {
               Leia este código com o seu autenticador
             </p>
             {qr ? (
-              <div
-                className="mx-auto mb-3 inline-block rounded-[10px] bg-white p-2"
-                aria-label="Código QR de configuração"
-                dangerouslySetInnerHTML={{ __html: qr }}
-              />
+              <>
+                {/*
+                  The QR itself is an image with no meaning to a screen reader,
+                  so it is hidden from the accessibility tree and the sentence
+                  below carries the instruction — including the way in that does
+                  not need a camera.
+                */}
+                <div
+                  role="img"
+                  aria-label="Código QR para configurar o autenticador. Se não puder lê-lo, use o botão Introduzir a chave manualmente."
+                  className="mx-auto mb-3 inline-block rounded-[10px] bg-white p-2"
+                  dangerouslySetInnerHTML={{ __html: qr }}
+                />
+              </>
             ) : (
               <p className="m-0 mb-3 text-[13px] font-semibold text-[#9a8a8e]">
                 Não foi possível desenhar o código — use a chave manual abaixo.
@@ -283,10 +302,17 @@ export default function LoginPage() {
             inputMode="text"
             placeholder="000000"
             className={inputCls}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'mfa-code-error' : 'mfa-code-help'}
             autoFocus
           />
+          <p id="mfa-code-help" className="mt-1.5 text-[12px] font-semibold text-[#9a8a8e]">
+            {enrol
+              ? 'Seis dígitos do autenticador que acabou de configurar.'
+              : 'Seis dígitos do autenticador, ou um código de recuperação.'}
+          </p>
           {error ? (
-            <p role="alert" className="mt-3 flex items-center gap-2 text-[13px] font-bold text-[#B5101F]">
+            <p id="mfa-code-error" role="alert" className="mt-3 flex items-center gap-2 text-[13px] font-bold text-[#B5101F]">
               <AlertCircle size={15} /> {error}
             </p>
           ) : null}

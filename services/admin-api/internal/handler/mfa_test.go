@@ -23,18 +23,38 @@ import (
 const testSecret = "test-jwt-secret-for-the-mfa-handler-tests"
 
 type fakeMFA struct {
-	enrolled   bool
-	acceptCode string
-	verifies   int
-	confirms   int
-	resetCalls int
+	enrolled     bool
+	acceptCode   string
+	verifies     int
+	confirms     int
+	resetCalls   int
+	replacements int
+	regenerated  int
+	seeds        []string
+	reauths      int
 }
 
 func (f *fakeMFA) Status(context.Context, string) (service.MFAStatus, error) {
 	return service.MFAStatus{Enrolled: f.enrolled}, nil
 }
 func (f *fakeMFA) BeginEnrolment(_ context.Context, _, email string) (string, string, error) {
-	return "SECRETSECRETSECRET", auth.TOTPProvisioningURI("SECRETSECRETSECRET", email, "BANZADMIN"), nil
+	// A different seed every time, so a test can tell a fresh one from a reused
+	// one — which is the whole of "the exposed seed must not come back".
+	seed := "SEED" + itoa(len(f.seeds)) + "AAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+	f.seeds = append(f.seeds, seed)
+	return seed, auth.TOTPProvisioningURI(seed, email, "BANZADMIN"), nil
+}
+func (f *fakeMFA) BeginReplacement(ctx context.Context, id, email string) (string, string, error) {
+	f.replacements++
+	f.enrolled = false // the old factor is gone until the new one proves a code
+	return f.BeginEnrolment(ctx, id, email)
+}
+func (f *fakeMFA) VerifyForReauthentication(_ context.Context, _, code string) error {
+	f.reauths++
+	if code != f.acceptCode {
+		return service.ErrMFACodeRejected
+	}
+	return nil
 }
 func (f *fakeMFA) ConfirmEnrolment(_ context.Context, _, code string) ([]string, error) {
 	f.confirms++
@@ -55,7 +75,8 @@ func (f *fakeMFA) Verify(_ context.Context, _, code string) error {
 }
 func (f *fakeMFA) Reset(context.Context, string) error { f.resetCalls++; return nil }
 func (f *fakeMFA) RegenerateRecoveryCodes(context.Context, string) ([]string, error) {
-	return []string{"eeeee-fffff"}, nil
+	f.regenerated++
+	return []string{"eeeee-fffff", "ggggg-hhhhh"}, nil
 }
 
 type fakeLogins struct{ user service.AdminUser }
@@ -341,4 +362,153 @@ func mustHash(t *testing.T, pw string) string {
 		t.Fatal(err)
 	}
 	return h
+}
+
+// ── Re-authentication: a session is not enough to change what guards the account
+
+func sessionReq(t *testing.T, u service.AdminUser, body string) *http.Request {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodPost, "/x", strings.NewReader(body))
+	return req.WithContext(auth.WithPrincipal(req.Context(), auth.Principal{
+		ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession,
+	}))
+}
+
+func reauthFixture(t *testing.T) (*MFAHandler, *fakeMFA, service.AdminUser) {
+	t.Helper()
+	u := service.AdminUser{
+		ID: "op-1", Email: "fidel.monteiro@banzami.com", FullName: "Fidel Monteiro",
+		Role: "SUPER_ADMIN", Status: "ACTIVE", TokenVersion: 3,
+		PasswordHash: mustHash(t, "the real password"),
+	}
+	f := &fakeMFA{enrolled: true, acceptCode: "123456"}
+	return NewMFAHandler(f, &fakeLogins{user: u}, testSecret, time.Hour), f, u
+}
+
+func TestMFA_RegeneratingRecoveryCodesNeedsMoreThanASession(t *testing.T) {
+	h, f, u := reauthFixture(t)
+
+	// A session is what someone has who walked past an unlocked laptop.
+	// Regenerating invalidates every code the operator holds, so it must not be
+	// reachable from that position.
+	w := httptest.NewRecorder()
+	h.RegenerateRecoveryCodes(w, sessionReq(t, u, `{}`))
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("regeneration without re-authentication returned %d", w.Code)
+	}
+	if f.regenerated != 0 {
+		t.Fatal("codes were regenerated without re-authentication")
+	}
+
+	w = httptest.NewRecorder()
+	h.RegenerateRecoveryCodes(w, sessionReq(t, u, `{"password":"wrong","code":"123456"}`))
+	if w.Code != http.StatusUnauthorized || f.regenerated != 0 {
+		t.Fatalf("a wrong password regenerated codes (%d)", w.Code)
+	}
+
+	w = httptest.NewRecorder()
+	h.RegenerateRecoveryCodes(w, sessionReq(t, u, `{"password":"the real password","code":"000000"}`))
+	if w.Code != http.StatusUnauthorized || f.regenerated != 0 {
+		t.Fatalf("a wrong second factor regenerated codes (%d)", w.Code)
+	}
+
+	w = httptest.NewRecorder()
+	h.RegenerateRecoveryCodes(w, sessionReq(t, u, `{"password":"the real password","code":"123456"}`))
+	if w.Code != http.StatusOK || f.regenerated != 1 {
+		t.Fatalf("correct re-authentication did not regenerate: %d %s", w.Code, w.Body.String())
+	}
+	var out struct {
+		RecoveryCodes []string `json:"recovery_codes"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &out)
+	if len(out.RecoveryCodes) < 2 {
+		t.Fatalf("regeneration returned %d codes", len(out.RecoveryCodes))
+	}
+}
+
+func TestMFA_ReplacementNeedsReauthenticationAndIssuesAFreshSeed(t *testing.T) {
+	h, f, u := reauthFixture(t)
+
+	w := httptest.NewRecorder()
+	h.Replace(w, sessionReq(t, u, `{"password":"wrong","code":"123456"}`))
+	if w.Code != http.StatusUnauthorized || f.replacements != 0 {
+		t.Fatalf("a wrong password started a replacement (%d)", w.Code)
+	}
+
+	w = httptest.NewRecorder()
+	h.Replace(w, sessionReq(t, u, `{"password":"the real password","code":"123456"}`))
+	if w.Code != http.StatusOK {
+		t.Fatalf("replacement refused after correct re-authentication: %d %s", w.Code, w.Body.String())
+	}
+	var out struct {
+		Secret         string `json:"secret"`
+		OtpauthURI     string `json:"otpauth_uri"`
+		EnrolmentToken string `json:"enrolment_token"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &out)
+
+	// A genuinely new seed, not the old one handed back.
+	if len(f.seeds) < 1 || out.Secret == "" {
+		t.Fatal("replacement issued no seed")
+	}
+	if out.Secret != f.seeds[len(f.seeds)-1] {
+		t.Fatal("replacement did not return the seed it just minted")
+	}
+	// The manual key and the QR must describe the same secret — otherwise one of
+	// the two enrolment paths silently produces an authenticator that never works.
+	if !strings.Contains(out.OtpauthURI, "secret="+out.Secret) {
+		t.Fatalf("the otpauth URI does not carry the same seed as the manual key: %s", out.OtpauthURI)
+	}
+	// And what comes back is an ENROLMENT step, not a session.
+	p, err := auth.Parse(testSecret, out.EnrolmentToken)
+	if err != nil || p.Purpose != auth.PurposeMFAEnroll {
+		t.Fatalf("replacement issued a %q token", p.Purpose)
+	}
+}
+
+func TestMFA_ReplacementNeverLeavesASuperAdminWithoutAFactor(t *testing.T) {
+	h, f, u := reauthFixture(t)
+	w := httptest.NewRecorder()
+	h.Replace(w, sessionReq(t, u, `{"password":"the real password","code":"123456"}`))
+	if w.Code != http.StatusOK {
+		t.Fatalf("replacement failed: %d", w.Code)
+	}
+	// The old factor is gone — and that is precisely why the account must not be
+	// loginable on a password alone now. Status() reports not-enrolled, so login
+	// issues an ENROLMENT token: still not a session.
+	st, _ := f.Status(context.Background(), u.ID)
+	if st.Enrolled {
+		t.Fatal("the old factor survived the replacement")
+	}
+	login := NewAuthHandler(&fakeLogins{user: u}, testSecret, time.Hour).WithMFA(f)
+	lw := post(login.Login, "", `{"email":"fidel.monteiro@banzami.com","password":"the real password"}`)
+	var out struct {
+		Token          string `json:"token"`
+		ChallengeToken string `json:"challenge_token"`
+	}
+	_ = json.Unmarshal(lw.Body.Bytes(), &out)
+	if out.Token != "" {
+		t.Fatal("mid-replacement, a password alone produced a session")
+	}
+	p, _ := auth.Parse(testSecret, out.ChallengeToken)
+	if p.Purpose != auth.PurposeMFAEnroll {
+		t.Fatalf("mid-replacement login issued a %q token", p.Purpose)
+	}
+}
+
+func TestMFA_EveryEnrolmentMintsADifferentSeed(t *testing.T) {
+	h, f, u := mfaFixture(t, false)
+	for i := 0; i < 3; i++ {
+		w := post(h.Enrol, tokenFor(t, u, auth.PurposeMFAEnroll), "")
+		if w.Code != http.StatusOK {
+			t.Fatalf("enrolment %d failed: %d", i, w.Code)
+		}
+	}
+	seen := map[string]bool{}
+	for _, s := range f.seeds {
+		if seen[s] {
+			t.Fatal("a seed was reused across enrolments — an exposed one could come back")
+		}
+		seen[s] = true
+	}
 }

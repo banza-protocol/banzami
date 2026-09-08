@@ -30,8 +30,10 @@ import (
 type MFAStore interface {
 	Status(ctx context.Context, adminUserID string) (service.MFAStatus, error)
 	BeginEnrolment(ctx context.Context, adminUserID, accountEmail string) (secret, uri string, err error)
+	BeginReplacement(ctx context.Context, adminUserID, accountEmail string) (secret, uri string, err error)
 	ConfirmEnrolment(ctx context.Context, adminUserID, code string) ([]string, error)
 	Verify(ctx context.Context, adminUserID, code string) error
+	VerifyForReauthentication(ctx context.Context, adminUserID, code string) error
 	Reset(ctx context.Context, adminUserID string) error
 	RegenerateRecoveryCodes(ctx context.Context, adminUserID string) ([]string, error)
 }
@@ -211,6 +213,84 @@ func (h *MFAHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	h.issueSession(w, r, p, "MFA_VERIFIED", nil)
 }
 
+// reauthenticate re-proves the operator, in a session, before an operation that
+// changes what guards the account.
+//
+// A long-lived session is not enough for these. A session is what an attacker
+// has if they walked past an unlocked laptop, and "regenerate the recovery
+// codes" or "replace the factor" from that position is the whole account. So
+// both ask for the password AND a current second factor again.
+func (h *MFAHandler) reauthenticate(w http.ResponseWriter, r *http.Request) (auth.Principal, bool) {
+	p, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
+		return auth.Principal{}, false
+	}
+	var body struct {
+		Password string `json:"password"`
+		Code     string `json:"code"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body)
+	if body.Password == "" || body.Code == "" {
+		writeError(w, http.StatusBadRequest, "REAUTH_REQUIRED", "password and a current code are required")
+		return auth.Principal{}, false
+	}
+	u, err := h.users.GetByID(r.Context(), p.ID)
+	if err != nil || u.Status != "ACTIVE" {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
+		return auth.Principal{}, false
+	}
+	if u.PasswordHash == "" || !auth.VerifyPassword(u.PasswordHash, body.Password) {
+		auth.DummyVerify(body.Password)
+		h.writeAudit(r, p, "MFA_REAUTH_FAILED", map[string]string{"reason": "BAD_PASSWORD"})
+		writeError(w, http.StatusUnauthorized, "REAUTH_FAILED", "password or code incorrect")
+		return auth.Principal{}, false
+	}
+	if err := h.mfa.VerifyForReauthentication(r.Context(), p.ID, body.Code); err != nil {
+		h.writeAudit(r, p, "MFA_REAUTH_FAILED", map[string]string{"reason": "BAD_CODE"})
+		writeError(w, http.StatusUnauthorized, "REAUTH_FAILED", "password or code incorrect")
+		return auth.Principal{}, false
+	}
+	return p, true
+}
+
+// POST /admin/v1/auth/mfa/replace   (session + re-authentication)
+//
+// The authenticator is gone. This does NOT disable the factor — it discards the
+// old one and starts enrolling a new one, and until the new authenticator
+// proves a code the operator's login yields an enrolment token, never a
+// session. A SUPER_ADMIN with a password and no second factor cannot hold a
+// privileged session at any point in this flow.
+func (h *MFAHandler) Replace(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) {
+		return
+	}
+	p, ok := h.reauthenticate(w, r)
+	if !ok {
+		return
+	}
+	secret, uri, err := h.mfa.BeginReplacement(r.Context(), p.ID, p.Email)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not start the replacement")
+		return
+	}
+	h.writeAudit(r, p, "MFA_FACTOR_REPLACEMENT_STARTED", map[string]string{"factor": "TOTP"})
+	slog.InfoContext(r.Context(), "admin.mfa.replacement_started", "admin_user_id", p.ID) // never the seed
+
+	// An enrolment token, exactly as a first-time enrolment gets: the next step
+	// is confirming a code from the new authenticator, and nothing else.
+	enr := p
+	enr.Purpose = auth.PurposeMFAEnroll
+	tok, exp, terr := auth.Issue(h.jwtSecret, enr, mfaChallengeTTL, time.Now())
+	if terr != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue the enrolment step")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"secret": secret, "otpauth_uri": uri, "enrolment_token": tok, "expires_at": exp,
+	})
+}
+
 // GET /admin/v1/auth/mfa/status   (session)
 func (h *MFAHandler) Status(w http.ResponseWriter, r *http.Request) {
 	if !h.ready(w) {
@@ -229,14 +309,17 @@ func (h *MFAHandler) Status(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, st)
 }
 
-// POST /admin/v1/auth/mfa/recovery-codes   (session) — regenerate, shown once.
+// POST /admin/v1/auth/mfa/recovery-codes   (session + re-authentication)
+//
+// Regenerating invalidates every unused code the operator holds, so it is not
+// something a long-lived session should be able to do on its own: password and
+// a current second factor are required again.
 func (h *MFAHandler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Request) {
 	if !h.ready(w) {
 		return
 	}
-	p, ok := auth.FromContext(r.Context())
+	p, ok := h.reauthenticate(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
 		return
 	}
 	codes, err := h.mfa.RegenerateRecoveryCodes(r.Context(), p.ID)
@@ -244,7 +327,7 @@ func (h *MFAHandler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Requ
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue recovery codes")
 		return
 	}
-	auditAfter(r, "admin_user", p.ID, map[string]any{"action": "MFA_RECOVERY_CODES_REGENERATED", "count": len(codes)})
+	h.writeAudit(r, p, "MFA_RECOVERY_CODES_REGENERATED", map[string]string{"count": itoa(len(codes))})
 	writeJSON(w, http.StatusOK, map[string]any{"recovery_codes": codes})
 }
 

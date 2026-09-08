@@ -112,6 +112,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/auth/logout", authH.Logout)
 		r.Get("/admin/v1/auth/mfa/status", mfaH.Status)
 		r.Post("/admin/v1/auth/mfa/recovery-codes", mfaH.RegenerateRecoveryCodes)
+		r.Post("/admin/v1/auth/mfa/replace", mfaH.Replace)
 		r.With(authLimit.Middleware).Post("/admin/v1/auth/change-password", authH.ChangePassword)
 		r.Post("/admin/v1/auth/terminate-sessions", authH.TerminateSessions)
 

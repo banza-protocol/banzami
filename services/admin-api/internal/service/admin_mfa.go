@@ -78,15 +78,31 @@ func (s *MFAService) Status(ctx context.Context, adminUserID string) (MFAStatus,
 //
 // It replaces any UNCONFIRMED enrolment: someone who abandoned a setup halfway
 // must be able to start again. It refuses to replace a CONFIRMED one, because
-// that would let anyone holding a session silently swap the factor guarding it
-// — resetting a confirmed factor is a separate, audited operation.
+// that would let anyone holding a session silently swap the factor guarding it.
 func (s *MFAService) BeginEnrolment(ctx context.Context, adminUserID, accountEmail string) (secret, uri string, err error) {
+	return s.begin(ctx, adminUserID, accountEmail, false)
+}
+
+// BeginReplacement is BeginEnrolment for an operator whose authenticator is
+// gone, and it is deliberately a different entry point.
+//
+// The caller must have re-authenticated — password plus a valid unused recovery
+// code — because this discards a working factor. What it does NOT do is leave
+// the account without one: confirmed_at goes back to NULL, so until the new
+// authenticator proves a code the operator's login yields an enrolment token
+// and never a session. There is no state in which a SUPER_ADMIN has a password
+// and no second factor and a privileged session.
+func (s *MFAService) BeginReplacement(ctx context.Context, adminUserID, accountEmail string) (secret, uri string, err error) {
+	return s.begin(ctx, adminUserID, accountEmail, true)
+}
+
+func (s *MFAService) begin(ctx context.Context, adminUserID, accountEmail string, replacing bool) (secret, uri string, err error) {
 	var confirmed *time.Time
 	err = s.pool.QueryRow(ctx, `SELECT confirmed_at FROM admin_mfa WHERE admin_user_id = $1`, adminUserID).Scan(&confirmed)
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return "", "", err
 	}
-	if confirmed != nil {
+	if confirmed != nil && !replacing {
 		return "", "", errors.New("a confirmed second factor already exists")
 	}
 
@@ -154,6 +170,25 @@ func (s *MFAService) Verify(ctx context.Context, adminUserID, code string) error
 			`UPDATE admin_mfa SET last_step = $2, updated_at = now() WHERE admin_user_id = $1`,
 			adminUserID, step)
 		return err
+	}
+	return s.consumeRecoveryCode(ctx, adminUserID, code)
+}
+
+// VerifyForReauthentication checks a second factor WITHOUT consuming a TOTP
+// step, for an operation that is re-proving identity rather than logging in.
+//
+// A recovery code IS still consumed: it is one-time by definition, and letting
+// a re-authentication reuse one would make it many-time. A TOTP step is not
+// recorded, because the operator is about to be asked for another code in the
+// same minute and refusing their own current code would be indistinguishable
+// from a broken authenticator.
+func (s *MFAService) VerifyForReauthentication(ctx context.Context, adminUserID, code string) error {
+	secret, _, err := s.load(ctx, adminUserID)
+	if err != nil {
+		return err
+	}
+	if _, ok := auth.VerifyTOTP(secret, code, time.Now()); ok {
+		return nil
 	}
 	return s.consumeRecoveryCode(ctx, adminUserID, code)
 }
