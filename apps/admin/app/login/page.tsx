@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
+import QRCode from 'qrcode';
 import { saveSession } from '@/lib/session';
 import { adminLoginStep1, adminMfaEnrol, adminMfaConfirm, adminMfaVerify, AdminApiError } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
@@ -25,6 +26,21 @@ export default function LoginPage() {
   const [secret, setSecret] = useState<{ secret: string; otpauth_uri: string } | null>(null);
   const [code, setCode] = useState('');
   const [recovery, setRecovery] = useState<string[] | null>(null);
+  const [qr, setQr] = useState<string | null>(null);
+  const [showSecret, setShowSecret] = useState(false);
+
+  // A TOTP seed is a credential. Printing it as text is how it ends up in a
+  // screenshot, a screen recording or a support thread — this one did. The QR
+  // is the normal path: the camera reads it, the eye does not. The text stays
+  // available behind a deliberate click, for a device with no camera.
+  useEffect(() => {
+    if (!secret) { setQr(null); return; }
+    let live = true;
+    QRCode.toString(secret.otpauth_uri, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, width: 190 })
+      .then((svg) => { if (live) setQr(svg); })
+      .catch(() => { if (live) setQr(null); });   // no QR: the manual key still works
+    return () => { live = false; };
+  }, [secret]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -140,14 +156,37 @@ export default function LoginPage() {
         </p>
 
         {enrol && secret ? (
-          <div className="mb-5 rounded-[14px] border border-[#f1e3e3] bg-[#FFF7F6] p-4">
-            <p className="m-0 mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[#8a7a7e]">
-              Adicione esta conta ao seu autenticador
+          <div className="mb-5 rounded-[14px] border border-[#f1e3e3] bg-[#FFF7F6] p-4 text-center">
+            <p className="m-0 mb-3 text-[12px] font-extrabold uppercase tracking-wide text-[#8a7a7e]">
+              Leia este código com o seu autenticador
             </p>
-            <code className="block break-all font-mono text-[13px] font-bold text-[#2a2024]">{secret.secret}</code>
-            <p className="m-0 mt-2 text-[12px] font-semibold text-[#9a8a8e]">
+            {qr ? (
+              <div
+                className="mx-auto mb-3 inline-block rounded-[10px] bg-white p-2"
+                aria-label="Código QR de configuração"
+                dangerouslySetInnerHTML={{ __html: qr }}
+              />
+            ) : (
+              <p className="m-0 mb-3 text-[13px] font-semibold text-[#9a8a8e]">
+                Não foi possível desenhar o código — use a chave manual abaixo.
+              </p>
+            )}
+            <p className="m-0 text-[12px] font-semibold text-[#9a8a8e]">
               Depois introduza o código de 6 dígitos que a app mostrar.
             </p>
+            {showSecret ? (
+              <code className="mt-3 block break-all font-mono text-[13px] font-bold text-[#2a2024]">
+                {secret.secret}
+              </code>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowSecret(true)}
+                className="mt-3 text-[12px] font-extrabold text-[#B5101F] underline"
+              >
+                Introduzir a chave manualmente
+              </button>
+            )}
           </div>
         ) : null}
 
