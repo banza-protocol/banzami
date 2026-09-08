@@ -1,0 +1,251 @@
+# Public Sandbox closure — evidence
+
+HEAD `3bffc095` · 2026-09-08 · Financial LIVE: **NOT READY / FAIL-CLOSED** ·
+no freeze, no tag.
+
+## A. Repository and CI
+
+Public. Hosted CI green on the exact HEAD: 10 jobs pass, one skipped — the
+deploy job, gated by `vars.ENABLE_CI_DEPLOY` and deliberately off. The economic
+gate is green on the same commit, including the fresh migration chain 0001 →
+latest from an empty PostgreSQL.
+
+The gate itself had a defect worth naming: it advertised "full or short SHA" and
+`actions/checkout` resolves `ref` as a branch or tag, so a short SHA failed
+before any of the job's own logic ran — a rejected input that read as broken
+infrastructure. It now resolves the target locally and reports a bad SHA as a
+bad input: *"is not a commit in this repository … Nothing was tested."*
+
+## B. Dependency advisories
+
+**0 critical · 0 high · 0 moderate · 0 low.** From 205 at first index.
+
+Two of these were not what they looked like:
+
+* the 21 critical `x/crypto` advisories are all in `golang.org/x/crypto/ssh`,
+  which no Banzami service speaks — which is why `govulncheck` reported nothing
+  while Dependabot reported twenty-one. Both tools were right; they answer
+  different questions. The pins were raised anyway.
+* twenty `postcss` alerts stayed open after every lockfile already held 8.5.28.
+  They were not stale: the vulnerable copy is `next/node_modules/postcss@8.4.31`,
+  nested inside Next. Reading the top-level version said the problem was solved
+  when it was not. An npm override deduplicates it, written `$postcss` so it
+  cannot drift from the direct dependency.
+
+## C. Secret scanning
+
+The continuous gate was weaker than the pre-publication audit, and the gap was
+the credential class this operator issues: a real `bz_test_sk_` key in a tracked
+file passed `make security-check`, because no rule knew the format and the
+generic heuristic only fires near a keyword.
+
+Rules added for every class this system has. More importantly, the exceptions
+were matching the whole LINE, which made each one a licence to hide anything
+beside it — a key appended after an excused resource id, or after an excused
+local database URL, stopped being reported. They judge the value now.
+`tests/security/gitleaks-mutations.test.sh` (17 assertions) runs inside
+`security-check`, so a clean scan means the scanner can still see.
+
+Final full-history scan: 104 findings, 11 more than the publication baseline.
+Ten are inside the mutation suite itself — the file whose purpose is to hold
+credential-shaped strings — and the eleventh is the RFC 6238 appendix-B vector.
+**No new exposure.**
+
+Four secret-scanning alerts remain open **on purpose**: the Firebase client keys
+(section F).
+
+## D. Next.js 14 → 15
+
+Every remaining high advisory sat in `next@14.2.35` with no 14.x fix, so the
+migration was the remediation. Five apps on 15.5.25 / React 19; four deployed.
+`dashboard-frontend` is built, typechecked and smoke-tested but **not deployed**:
+`deploy.sh`'s authority matrix refuses it without its own approval, and that gate
+was not bypassed.
+
+Details, including what the migration did NOT cover, in
+`evidence/migration/NEXT15_MIGRATION.md`.
+
+The migration surfaced defects the old build had never enforced: the webhooks tab
+called `.map` on `{data: […]}` and threw before rendering; `listWebhookEvents`
+sent `limit=[object Object]` to a route that answers 400 to anything but an
+integer, so the events list never loaded; two pages rendered an empty state with
+no text and a badge with no label.
+
+It also surfaced why the SDK could not be bundled for a browser at all —
+`webhooks.ts` imported `node:crypto` at module scope and `BanzamiClient`
+constructs a `WebhooksClient`, so every consumer dragged it in. Fixed through a
+`#node-crypto` subpath with a browser condition, declared in the dual-package
+markers where a resolver actually looks.
+
+## E. Hosted checkout, deployed
+
+| | |
+|---|---|
+| ACTIVE link | 200, amount and description exact |
+| USED link | "Pagamento recebido" — not a payable form |
+| cross-checkout leakage | the other link's slug and description appear 0 times |
+| unknown slug | 404, not an error page |
+| cache | `private, no-cache, no-store, must-revalidate`; `cf-cache-status: DYNAMIC`; a different CSP nonce per request |
+
+Not covered: an expired link — no link in the Sandbox currently carries an
+expiry.
+
+## F. Firebase — verified, not dismissed
+
+One project (`banzami`), five config files, two Android packages and two iOS
+bundles. The app uses `firebase_core`, `firebase_messaging` and
+`firebase_crashlytics` — no Firestore, no Realtime Database, no Storage, no
+Firebase Auth.
+
+Negative test with the public client key, unauthenticated:
+
+| Probe | Result |
+|---|---|
+| Firestore documents | 404 — no `(default)` database exists (a locked one answers 403) |
+| Realtime Database, two regions | 404 — no instance |
+| Storage bucket listing | 404 |
+| Identity Toolkit sign-in | 400 `CONFIGURATION_NOT_FOUND` — Auth is not configured |
+
+**Possession of the key grants access to nothing, because none of those products
+exist in the project.**
+
+But the same probes proved the keys are **UNRESTRICTED**: a bare call to
+`firebaseinstallations` with no `X-Android-Package` / `X-Android-Cert` header is
+accepted with 200, and it registered an installation — which is exactly the abuse
+an application restriction prevents. GCP restrictions are **FAIL**, and fixing
+them needs the Google Cloud console. The GitHub alerts are left **open** rather
+than dismissed, because dismissing them would assert a verification that has not
+happened.
+
+App Check: not applicable to this client set (it protects Firestore, RTDB,
+Storage, Functions and Auth — none in use). Stated from the dependency list, not
+from provider-side enforcement, which needs the same console.
+
+## G. Email
+
+Reported separately, as they are separate facts:
+
+| Control | State |
+|---|---|
+| SPF | PASS — `include:amazonses.com`, `-all` |
+| DKIM | PASS — `resend._domainkey` published |
+| DMARC enforcement | PASS — `p=quarantine` |
+| DMARC aggregate reporting | **FAIL** — no `rua=` |
+| Sender-side delivery | PASS — an operator invite returns `ok: true`, is audited `admin.operator_invited`, and logs no error (the failure mode where `Deliver` swallowed the error was fixed earlier) |
+| Banzami mailbox receipt | **not verified** — no IMAP access from this session |
+| DOA mailbox receipt | **not verified** — same |
+
+The `rua=` record and the exact Cloudflare action are in
+`evidence/email/EMAIL_AUTHENTICATION_AUDIT.md`. No Cloudflare credential exists
+in the repository, on the deploy host, or in this session, and no browser is
+connected with the owner's session — so it is a dashboard action, not a
+documentation choice.
+
+## H. BANZADMIN
+
+Every route answers on a real MFA-backed session: operators, merchants, pricing
+rules, merchant applications, compliance cases, risk audit log, operator audit
+log, wallet payments.
+
+`merchant-applications` had been 502 for every environment parameter with both
+services reporting healthy. The cause was two configuration omissions on the same
+credential: admin-api's FIRST create exports `INTERNAL_API_KEY` and
+`STAGING_INTERNAL_API_KEY`, every REDEPLOY rebuilds the entrypoint from a shared
+list, and that list did not carry them. The Gateway then ran `InternalAuth("")`,
+which answers 503 to its entire internal route group. This is the second time
+that exact shape has happened here, so the fix is not only the two names:
+`tests/ops/sandbox-secret-preservation.test.sh` now compares what first-create
+exports against what redeploy carries, and fails on any difference.
+
+A separate defect in the same area: an unqualified request routed at the live
+stack unconditionally, which is not deployed while the platform is SANDBOX. It
+follows the platform's own mode now, failing safe to SANDBOX.
+
+## I. MFA and recovery — 29 assertions, deployed
+
+Login never returns a session while a factor is pending — it returns an
+enrolment or challenge token whose purpose the middleware refuses. Proven end to
+end against `admin.banzami.com`: enrolment, a wrong code refused, confirmation
+returning codes but no session, acknowledgement issuing the session, a TOTP that
+cannot be replayed, a recovery code usable exactly once, regeneration requiring
+password **and** current factor, replacement returning an enrolment token and
+never a session, and a login mid-replacement still refusing a password-only
+session.
+
+One more thing was written down rather than left to coincidence: that whole
+guarantee sat inside `if h.mfa != nil`, and below it a password alone issued a
+full session. Unreachable today only because `h.mfa` is nil exactly when there is
+no database. A privileged operator is now refused by any build that cannot verify
+a second factor — 503, audited, never a token.
+
+## J. RBAC — 12 assertions, deployed
+
+A READ_ONLY operator must enrol MFA like anyone else, can read operators,
+merchants, pricing rules and the audit trail, and is refused creating an
+operator, suspending one and creating a pricing rule — 403 each — on routes the
+SUPER_ADMIN session reads 200.
+
+## K. Audit
+
+The operator trail was written and never readable: every action recorded since
+the table existed, no route returning any of it, so "who changed this pricing
+rule" was a psql session on the host. `GET /admin/v1/audit-log` now exposes it,
+gated by the existing `audit.view` capability, keyset-paginated because an offset
+walk over an append-only log skips rows as it reads.
+
+Unconfigured it answers 503, not 200 with an empty list — an audit endpoint that
+looks empty when unwired answers "nothing happened" to the person who came to
+check whether it did.
+
+## L. Developer platform — 42/42, deployed
+
+The full external journey against the public Gateway: project, binding, key,
+identity, payment session, all three interfaces, idempotent replay, cross-project
+isolation refused, scope refusal, three validation refusals, the payer surface
+without auth, settlement, a signed webhook verified independently over the raw
+bytes, replay producing no second business event, and a revoked key rejected
+immediately.
+
+## M. Economics — 24/24 and 45/45, deployed
+
+Settlement of 100 000 on `sandbox-reference`: rate 200 bps, fee 2 000, net
+98 000, beneficiary credited the net, source retaining only the fee. Two
+different owners on the same plan: **PARITY_FEE_DIFFERENTIAL 0,
+PARITY_NET_DIFFERENTIAL 0.** The ledger is exactly as sound after as before.
+
+The broader model holds: a settlement that resolves no rule refuses 409
+`PRICING_NOT_CONFIGURED` and moves nothing; two applicable rules refuse
+`PRICING_CONFIGURATION_ERROR` rather than rank.
+
+## N. Campaign segregation — 10/10, deployed
+
+Each campaign account is credited the full amount, gross, and only that account
+moves. This is the incoming half of the DOA model: pricing is resolved one step
+later, at settlement, so a donation is never charged on the way in.
+
+## O. What is NOT proven
+
+* **A real DOA donation end to end.** `doa-public-donation-e2e.sh` needs a
+  `PAY_SLUG` from a real donation on doadoa.app, which requires an email OTP that
+  the documented Resend credential blocker prevents. The settlement half and the
+  gross-credit half are proven separately above; the donor half is not.
+* **Mailbox receipt** of any message (section G).
+* **Firebase restrictions and App Check** (section F).
+* **DMARC aggregate reporting** (section G).
+* **`dashboard-frontend` deployment** — refused by the service authority matrix.
+
+## P. Financial LIVE
+
+NOT READY / FAIL-CLOSED throughout. `api.banzami.com` answers 503; the live
+Gateway host does not resolve on the Sandbox network; `core-api`, `api-gateway`
+and `public-api` remain denied by the deploy authority matrix. Nothing in this
+programme created or used LIVE financial authority.
+
+## Q. Test identities
+
+Three operator identities were created for the proofs above and retired: they
+could not be deleted, because `admin_audit_log` holds a foreign key to every
+operator that ever acted and the trail is append-only. That constraint is
+correct. They are SUSPENDED with their passwords cleared, their token versions
+bumped and their factors removed; both refuse authentication with 401. The record
+of what they did remains.
