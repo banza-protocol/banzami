@@ -2,6 +2,7 @@
   "name": "banzami-dashboard",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev --port 3010",
     "build": "next build",

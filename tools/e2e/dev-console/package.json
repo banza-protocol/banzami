@@ -1,2 +1,3 @@
 { "name": "banzami-dev-console-e2e", "private": true, "type": "module",
+  "license": "UNLICENSED",
   "dependencies": { "playwright": "1.61.1" } }

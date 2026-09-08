@@ -2,6 +2,7 @@
   "name": "validation-studio",
   "version": "1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev --port 3099 --hostname localhost",
     "build": "echo 'Validation Studio is local-only — production build is disabled.' && exit 1",

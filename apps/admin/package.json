@@ -2,6 +2,7 @@
   "name": "banzami-admin",
   "version": "0.1.0",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev --port 3002",
     "build": "next build",

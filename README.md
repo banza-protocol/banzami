@@ -549,4 +549,15 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
+Banzami operator and platform source is **proprietary and All Rights Reserved**.
+This repository is public so the engineering can be read and reviewed, and so CI
+runs on public infrastructure — publication is not a grant of licence.
+
+Two published packages carry their own licence and are not covered by that:
+`sdk/typescript` (`@banzami/sdk`) and `sdk/dart-client` (`banzami_client`), both
+**MIT**.
+
+The BANZA protocol is a separate project with its own licence. Banzami
+implements BANZA; it does not own it.
+
 See [LICENSE](LICENSE).

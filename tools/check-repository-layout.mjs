@@ -141,7 +141,7 @@ const ACCEPTED_TOP_LEVEL = new Set([
   'BANZAMI_ARCHITECTURE.md', 'BANZAMI_DEPLOYMENT.md', 'BANZAMI_GOVERNANCE.md',
   'BANZAMI_OPERATIONS.md', 'BANZAMI_REFERENCE.md', 'BANZAMI_REFERENCIA.md',
   'BANZAMI_SECURITY.md',
-  'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'LICENSE',
+  'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'LICENSE', 'SECURITY.md',
 ]);
 
 const topLevel = readdirSync(ROOT, { withFileTypes: true }).map(d => d.name);
