@@ -305,6 +305,17 @@ release_config_env() {
       # primary database defaults to LIVE, and the primary database here is the
       # Sandbox one.
       echo "ENVIRONMENT=SANDBOX"
+      # Mail configuration, re-applied on every deploy. deploy-one clones the
+      # previous container's env, so a setting introduced later would otherwise
+      # never arrive — and BANZADMIN without a mailer hands password-reset links
+      # back through the API instead of sending them.
+      echo "EMAIL_PROVIDER=resend"
+      echo "EMAIL_FROM_NAME=Banzami"
+      echo "EMAIL_FROM_ADDRESS=contact@banzami.com"
+      echo "EMAIL_NOREPLY_NAME=Banzami"
+      echo "EMAIL_NOREPLY_ADDRESS=noreply@banzami.com"
+      echo "EMAIL_REPLY_TO=contact@banzami.com"
+      echo "ADMIN_BASE_URL=https://admin.banzami.com"
       ;;
     api-gateway-staging)
       # The origin of the hosted payer surface (ADR-052). Without it, every
@@ -366,6 +377,29 @@ cmd_deploy_one() {
       DBURL_FILE="$secret_dir/db_url"
       CIK_FILE="$secret_dir/core_internal_key"
       ADMINJWT_FILE="$secret_dir/admin_jwt_secret"
+      # The transactional-mail credential, shared with developer-api.
+      #
+      # BANZADMIN needs to send: an operator password reset is the only way an
+      # administrator can ever set their own password, and the first one has no
+      # session to request it with. Without a mailer the reset link is returned
+      # in the API response instead — which turns a password into something that
+      # travels through whoever happened to call the endpoint.
+      #
+      # Copied file-to-file on the host so the value is never an argument, never
+      # in `-e`, and never printed. Absent, admin-api still starts and simply
+      # cannot send, which it warns about.
+      RESEND_FILE="$secret_dir/resend_api_key"
+      if [ ! -s "$RESEND_FILE" ]; then
+        local dev_c
+        dev_c="$(docker ps --format '{{.Names}}' | grep -E -- '-developer-api$' | head -1)"
+        if [ -n "$dev_c" ]; then
+          docker inspect "$dev_c" --format '{{range .Config.Env}}{{println .}}{{end}}' \
+            | sed -n 's/^RESEND_API_KEY=//p' | head -1 | tr -d '\r\n' > "$RESEND_FILE"
+          chmod 0644 "$RESEND_FILE"
+        fi
+        [ -s "$RESEND_FILE" ] && echo "  resend_api_key provisioned from developer-api" \
+                              || echo "  resend_api_key NOT available — BANZADMIN cannot send mail"
+      fi
       datanet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-data-' | head -1)"
       [ -n "$datanet" ] || die "no Sandbox data network found"
       # The admin JWT signing key. Preserved across applies like every other
@@ -379,11 +413,19 @@ cmd_deploy_one() {
         -v "$DBURL_FILE:/run/secrets/db_url:ro" \
         -v "$CIK_FILE:/run/secrets/core_internal_key:ro" \
         -v "$ADMINJWT_FILE:/run/secrets/admin_jwt_secret:ro" \
+        -v "$RESEND_FILE:/run/secrets/resend_api_key:ro" \
         -e "ADMIN_API_PORT=$port" \
         -e "ENVIRONMENT=SANDBOX" \
+        -e "EMAIL_PROVIDER=resend" \
+        -e "EMAIL_FROM_NAME=Banzami" \
+        -e "EMAIL_FROM_ADDRESS=contact@banzami.com" \
+        -e "EMAIL_NOREPLY_NAME=Banzami" \
+        -e "EMAIL_NOREPLY_ADDRESS=noreply@banzami.com" \
+        -e "EMAIL_REPLY_TO=contact@banzami.com" \
+        -e "ADMIN_BASE_URL=https://admin.banzami.com" \
         -e "CORE_API_URL=http://${proj}-core-api-staging:8081" \
         -e "GATEWAY_STAGING_INTERNAL_URL=http://${proj}-api-gateway-staging:8080" \
-        --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export INTERNAL_API_KEY="$(cat /run/secrets/core_internal_key)"; export STAGING_INTERNAL_API_KEY="$INTERNAL_API_KEY"; export ADMIN_JWT_SECRET="$(cat /run/secrets/admin_jwt_secret)"; exec admin-api' >/dev/null 2>&1 \
+        --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export INTERNAL_API_KEY="$(cat /run/secrets/core_internal_key)"; export STAGING_INTERNAL_API_KEY="$INTERNAL_API_KEY"; export ADMIN_JWT_SECRET="$(cat /run/secrets/admin_jwt_secret)"; [ -s /run/secrets/resend_api_key ] && export RESEND_API_KEY="$(cat /run/secrets/resend_api_key)"; exec admin-api' >/dev/null 2>&1 \
         || { echo "  $name first create FAIL"; return 1; }
       docker network connect "$appnet" "$cname" >/dev/null 2>&1 || true
       docker start "$cname" >/dev/null 2>&1 || { echo "  $name first start FAIL"; return 1; }
