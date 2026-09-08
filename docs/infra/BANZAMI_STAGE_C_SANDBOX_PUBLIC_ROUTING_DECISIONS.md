@@ -71,8 +71,18 @@ rebuilt **only** during a separately approved Stage C implementation.
 
 **CONFIRMED (not pending):**
 
-- No operational Developer Console claim (`developers.banzami.com` remains
-  demo/docs/non-operational until a real console is implemented and tested).
+- ~~No operational Developer Console claim (`developers.banzami.com` remains
+  demo/docs/non-operational until a real console is implemented and tested).~~
+  **SUPERSEDED 2026-09-08.** The condition this set — "until a real console is
+  implemented and tested" — has been met. The Console runs the full external
+  developer lifecycle against the deployed Sandbox: email + OTP sign-in,
+  workspaces, projects, financial setup, the API-key lifecycle including
+  reveal-once and revocation, wallet accounts, balances, transactions, refunds,
+  webhook endpoints/events/deliveries and request logs, all on the project's own
+  data. Two independent tenants were taken through it end to end from outside the
+  monorepo, using only the published SDK and a key copied once from the Console.
+  Nothing here approves a LIVE console: the surface is Sandbox, and Financial
+  LIVE remains fail-closed.
 - No pay/checkout public restore.
 - No live core-api/api-gateway/public-api restore.
 - No external-provider/payment-rail activation.
