@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
-import QRCode from 'qrcode';
 import { saveSession } from '@/lib/session';
 import { adminLoginStep1, adminMfaEnrol, adminMfaConfirm, adminMfaVerify, AdminApiError } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
@@ -36,7 +35,13 @@ export default function LoginPage() {
   useEffect(() => {
     if (!secret) { setQr(null); return; }
     let live = true;
-    QRCode.toString(secret.otpauth_uri, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, width: 190 })
+    // Imported here, not at module scope. This is a client component, so Next
+    // still evaluates its imports during SSR — and the standalone server build
+    // does not trace a dependency only the browser uses. A top-level import
+    // made the login page 500 on the server: the container started, reported
+    // "Ready", and failed its health check on the first request.
+    import('qrcode')
+      .then((m) => m.default.toString(secret.otpauth_uri, { type: 'svg', errorCorrectionLevel: 'M', margin: 1, width: 190 }))
       .then((svg) => { if (live) setQr(svg); })
       .catch(() => { if (live) setQr(null); });   // no QR: the manual key still works
     return () => { live = false; };
