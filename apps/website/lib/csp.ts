@@ -13,6 +13,12 @@
  * missing from the policy.
  */
 
+/**
+ * Just the shape this module reads. Not NodeJS.ProcessEnv, which requires
+ * NODE_ENV and so cannot be satisfied by a small literal in a test.
+ */
+type EnvLike = Record<string, string | undefined>;
+
 /** Origin of a URL, or '' if it is unset or unparseable. */
 function originOf(raw: string | undefined): string {
   if (!raw) return '';
@@ -31,7 +37,7 @@ function originOf(raw: string | undefined): string {
  * the browser somewhere else — a preview, or a different Sandbox — because an
  * override that is not in the policy is an app that cannot reach its own API.
  */
-export function connectOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
+export function connectOrigins(env: EnvLike = process.env): string[] {
   return [
     "'self'",
     'https://api.banzami.com', // lib/api.ts default
@@ -58,7 +64,7 @@ export function connectOrigins(env: NodeJS.ProcessEnv = process.env): string[] {
  */
 export function contentSecurityPolicy(
   nonce: string,
-  env: NodeJS.ProcessEnv = process.env,
+  env: EnvLike = process.env,
 ): string {
   return [
     "default-src 'self'",

@@ -51,13 +51,13 @@ describe('content security policy', () => {
   it('permits an overridden API origin too', () => {
     const origins = connectOrigins({
       NEXT_PUBLIC_DEVELOPER_API_URL: 'https://developer-api.sandbox.example/v1/',
-    } as NodeJS.ProcessEnv);
+    });
     // The origin, not the path — a path in connect-src would not match anyway.
     expect(origins).toContain('https://developer-api.sandbox.example');
   });
 
   it('ignores an unparseable override instead of emitting a broken directive', () => {
-    const origins = connectOrigins({ NEXT_PUBLIC_BANZAMI_API_URL: 'not a url' } as NodeJS.ProcessEnv);
+    const origins = connectOrigins({ NEXT_PUBLIC_BANZAMI_API_URL: 'not a url' });
     expect(origins.every(o => o === "'self'" || o.startsWith('https://'))).toBe(true);
   });
 
