@@ -52,6 +52,23 @@ The commit history itself is unchanged in content — the rewrite altered commit
 messages only, and the tree at the new HEAD is byte-identical to the tree before
 it.
 
+## Done, and re-established
+
+| | |
+|---|---|
+| Contributors | **1 — fm65.** Confirmed in the rendered sidebar, not only in the API |
+| History | pushed whole; the tree at HEAD is byte-identical to before the rewrite |
+| Branches | 65 besides main existed on the old repository. All 65 have their tip commit present in the new main — the six that were not ancestors were unreachable only because the rewrite changed every SHA, not because work was unmerged. Verified by subject before the archive was removed |
+| CI | re-run and green on the final HEAD: 10 jobs, one skipped (the deploy job, disabled by design) |
+| Economic gate | re-run and green, including the fresh migration chain from an empty database |
+| Secret scanning · push protection · vulnerability alerts | re-enabled |
+| `banza-core` collaborator | restored, admin |
+| Secret-scanning alerts | re-indexed to 5. The mutation-suite one re-resolved as `used_in_tests` with its reasoning; the four Firebase keys left **open**, which is where they belong until the GCP restrictions are verified |
+| Dependabot | 0 open |
+| Deployed runtime | untouched throughout, then realigned to the new HEAD — provenance is the commit in the image tag and the OCI revision label, never a GitHub reference |
+
+The archive was deleted by the owner once the new repository was verified.
+
 ## The instruction this came from
 
 Commits in this repository are authored by Fidel Monteiro and attributed to
