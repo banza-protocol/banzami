@@ -16,13 +16,19 @@ type Config struct {
 	// is banzami_staging, and a console that labels Sandbox data LIVE is worse
 	// than one that shows nothing: every number on it is a claim about real
 	// money. Set ENVIRONMENT=SANDBOX there.
-	Environment  string
-	Port         int
-	CoreAPIURL   string
-	AdminAPIKey  string // secret required in every request via X-Admin-Key header
-	LogLevel     string
-	LogFormat    string
-	OTLPEndpoint string // optional; tracing is a no-op when empty
+	Environment string
+
+	// WebhookEncryptionKey encrypts operator MFA secrets at rest. Named for the
+	// variable the rest of the platform already uses so a deployment holds ONE
+	// key rather than one per feature — the gateway encrypts webhook signing
+	// secrets with the same value.
+	WebhookEncryptionKey string
+	Port                 int
+	CoreAPIURL           string
+	AdminAPIKey          string // secret required in every request via X-Admin-Key header
+	LogLevel             string
+	LogFormat            string
+	OTLPEndpoint         string // optional; tracing is a no-op when empty
 
 	// Email provider — "resend" (HTTP API) or "smtp". Defaults to "resend" when
 	// RESEND_API_KEY is set, otherwise "smtp".
@@ -110,6 +116,8 @@ func Load() (*Config, error) {
 		port = p
 	}
 
+	webhookKey := os.Getenv("WEBHOOK_ENCRYPTION_KEY")
+
 	coreURL := os.Getenv("CORE_API_URL")
 	if coreURL == "" {
 		coreURL = "http://127.0.0.1:8081"
@@ -157,13 +165,14 @@ func Load() (*Config, error) {
 	noreplyAddress := getenvDefault("EMAIL_NOREPLY_ADDRESS", "noreply@banzami.com")
 
 	return &Config{
-		Environment:  environment,
-		Port:         port,
-		CoreAPIURL:   coreURL,
-		AdminAPIKey:  adminKey,
-		LogLevel:     logLevel,
-		LogFormat:    logFormat,
-		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
+		Environment:          environment,
+		WebhookEncryptionKey: webhookKey,
+		Port:                 port,
+		CoreAPIURL:           coreURL,
+		AdminAPIKey:          adminKey,
+		LogLevel:             logLevel,
+		LogFormat:            logFormat,
+		OTLPEndpoint:         os.Getenv("OTLP_ENDPOINT"),
 
 		EmailProvider: emailProvider,
 		ResendAPIKey:  resendKey,

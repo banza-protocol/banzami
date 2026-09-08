@@ -31,6 +31,9 @@ type Principal struct {
 	FullName     string
 	Role         string
 	TokenVersion int
+	// Purpose is what the presented token was issued for. Normalised to
+	// PurposeSession when the token predates the claim.
+	Purpose string
 }
 
 // Actor is the value stored in audit / reviewed_by fields.
@@ -85,16 +88,43 @@ type Claims struct {
 	Email        string `json:"email"`
 	Role         string `json:"role"`
 	TokenVersion int    `json:"token_version"`
+	// Purpose separates a full operator session from the short-lived tokens the
+	// second factor issues. A token that only proves a password must not be
+	// usable anywhere a session is, and the difference has to be IN the token —
+	// inferring it from which endpoint minted it is how a challenge token ends
+	// up authorising an approval.
+	//
+	// Empty means PurposeSession, so tokens issued before this existed keep
+	// working until they expire.
+	Purpose string `json:"purpose,omitempty"`
 	jwt.RegisteredClaims
 }
+
+// What a token is for.
+const (
+	// PurposeSession — a full operator session. The only purpose the
+	// authenticated middleware accepts.
+	PurposeSession = "session"
+	// PurposeMFAChallenge — the password was correct and the second factor has
+	// not been presented yet. Usable only to complete MFA.
+	PurposeMFAChallenge = "mfa"
+	// PurposeMFAEnroll — the password was correct and the operator has no
+	// confirmed factor. Usable only to enrol one.
+	PurposeMFAEnroll = "mfa_enroll"
+)
 
 // Issue signs an admin JWT valid for ttl. Returns the token and its expiry.
 func Issue(secret string, p Principal, ttl time.Duration, now time.Time) (string, time.Time, error) {
 	exp := now.Add(ttl)
+	purpose := p.Purpose
+	if purpose == "" {
+		purpose = PurposeSession
+	}
 	claims := Claims{
 		Email:        p.Email,
 		Role:         p.Role,
 		TokenVersion: p.TokenVersion,
+		Purpose:      purpose,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   p.ID,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -123,5 +153,9 @@ func Parse(secret, token string) (Principal, error) {
 	if err != nil || !t.Valid {
 		return Principal{}, ErrInvalidToken
 	}
-	return Principal{ID: claims.Subject, Email: claims.Email, Role: claims.Role, TokenVersion: claims.TokenVersion}, nil
+	purpose := claims.Purpose
+	if purpose == "" {
+		purpose = PurposeSession
+	}
+	return Principal{ID: claims.Subject, Email: claims.Email, Role: claims.Role, TokenVersion: claims.TokenVersion, Purpose: purpose}, nil
 }

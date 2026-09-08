@@ -68,3 +68,7 @@ replace github.com/banzami/banzami/services/common/email => ../common/email
 require github.com/banzami/banzami/services/common/env v0.0.0
 
 replace github.com/banzami/banzami/services/common/env => ../common/env
+
+require github.com/banzami/banzami/services/common/webhookprov v0.0.0
+
+replace github.com/banzami/banzami/services/common/webhookprov => ../common/webhookprov

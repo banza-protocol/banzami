@@ -26,7 +26,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService, mfa *service.MFAService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -68,9 +68,28 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	// on normal endpoints. Protects login + reset-token brute force.
 	authLimit := middleware.NewIPRateLimiter(20, time.Minute)
 
-	// Operator login — public (no token yet). Email + password → admin JWT.
-	authH := handler.NewAuthHandler(loginStore, cfg.AdminJWTSecret, 12*time.Hour).WithAudit(audit)
+	// The second factor. nil here means the deployment has no MFA tables, and
+	// login then behaves as it did before — which is the only way an operator can
+	// be onboarded on a deployment that predates this.
+	var mfaStore handler.MFAStore
+	var mfaGate handler.MFAGate
+	if mfa != nil {
+		mfaStore = mfa
+		mfaGate = mfa
+	}
+	mfaH := handler.NewMFAHandler(mfaStore, loginStore, cfg.AdminJWTSecret, 12*time.Hour).WithAudit(auditSink(audit))
+
+	// Operator login — public (no token yet). Email + password → MFA challenge.
+	authH := handler.NewAuthHandler(loginStore, cfg.AdminJWTSecret, 12*time.Hour).WithAudit(audit).WithMFA(mfaGate)
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/login", authH.Login)
+	// The second factor. These are outside the session middleware by necessity:
+	// the caller has proven a password and does not have a session yet — that is
+	// the whole point. Each endpoint states which token purpose it accepts, so a
+	// challenge token cannot be used to enrol a new factor and vice versa. Same
+	// tight per-IP limiter as login: this is a code-guessing surface.
+	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/enrol", mfaH.Enrol)
+	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/enrol/confirm", mfaH.ConfirmEnrol)
+	r.With(authLimit.Middleware).Post("/admin/v1/auth/mfa/verify", mfaH.Verify)
 	// Password-reset validate/complete are public (the operator has no session).
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/password-reset/validate", resetH.Validate)
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/password-reset/complete", resetH.Complete)
@@ -90,6 +109,8 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// limited too (brute force of the current password).
 		r.Get("/admin/v1/auth/me", authH.Me)
 		r.Post("/admin/v1/auth/logout", authH.Logout)
+		r.Get("/admin/v1/auth/mfa/status", mfaH.Status)
+		r.Post("/admin/v1/auth/mfa/recovery-codes", mfaH.RegenerateRecoveryCodes)
 		r.With(authLimit.Middleware).Post("/admin/v1/auth/change-password", authH.ChangePassword)
 		r.Post("/admin/v1/auth/terminate-sessions", authH.TerminateSessions)
 

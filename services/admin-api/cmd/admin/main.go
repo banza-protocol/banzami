@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"github.com/banzami/banzami/services/common/webhookprov"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"os"
@@ -75,6 +77,7 @@ func main() {
 	var compliance *service.ComplianceService
 	var complianceSandbox *service.ComplianceService
 	var platform *service.PlatformService
+	var mfa *service.MFAService
 	var proofAdmin *service.ProofAdminService
 	var proofAdminSandbox *service.ProofAdminService
 	if cfg.DatabaseURL != "" {
@@ -112,6 +115,28 @@ func main() {
 		notif = service.NewNotificationService(pool, cfg.Environment)
 		compliance = service.NewComplianceService(pool, cfg.Environment)
 		platform = service.NewPlatformService(pool)
+
+		// Operator second factors.
+		//
+		// The TOTP secret is encrypted at rest with the same construction the
+		// gateway uses for webhook signing secrets. Without a key it is stored as
+		// given — tolerable only in a sandbox, and said out loud rather than
+		// discovered later in a database dump.
+		var mfaCipher service.SecretCipher
+		if cfg.WebhookEncryptionKey != "" {
+			c, cerr := webhookprov.NewSecretCipher(cfg.WebhookEncryptionKey)
+			if cerr != nil {
+				slog.Error("[SEC-002] WEBHOOK_ENCRYPTION_KEY is not a valid key", "error", cerr)
+				os.Exit(1)
+			}
+			mfaCipher = c
+		} else if !strings.EqualFold(cfg.Environment, "SANDBOX") {
+			slog.Error("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set outside sandbox — refusing to store MFA secrets in the clear")
+			os.Exit(1)
+		} else {
+			slog.Warn("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set — operator MFA secrets stored in plaintext (sandbox only)")
+		}
+		mfa = service.NewMFAService(pool, mfaCipher)
 		proofAdmin = service.NewProofAdminService(pool)
 
 		// Optional sandbox KYC review: a second pool to banzami_staging lets the
@@ -169,7 +194,7 @@ func main() {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox)
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox, mfa)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

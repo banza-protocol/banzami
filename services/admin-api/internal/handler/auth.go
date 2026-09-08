@@ -52,7 +52,27 @@ type AuthHandler struct {
 	jwtSecret string
 	ttl       time.Duration
 	audit     AuditSink
+	// mfa gates the session. nil means no second factor is configured on this
+	// deployment, and login behaves as it did before — which is the only way an
+	// operator can be onboarded on a deployment that has no MFA tables yet.
+	mfa MFAGate
 }
+
+// MFAGate is the second-factor boundary the login path needs. An interface so
+// the handler can be tested without a database, and so an unconfigured
+// deployment is a nil value rather than a half-built service.
+type MFAGate interface {
+	Status(ctx context.Context, adminUserID string) (service.MFAStatus, error)
+	Verify(ctx context.Context, adminUserID, code string) error
+}
+
+// WithMFA attaches the second-factor gate.
+func (h *AuthHandler) WithMFA(g MFAGate) *AuthHandler { h.mfa = g; return h }
+
+// mfaChallengeTTL bounds the window between proving a password and proving the
+// second factor. Long enough to open an authenticator, short enough that a
+// stolen challenge token is not a standing invitation.
+const mfaChallengeTTL = 5 * time.Minute
 
 func NewAuthHandler(users LoginStore, jwtSecret string, ttl time.Duration) *AuthHandler {
 	return &AuthHandler{users: users, jwtSecret: jwtSecret, ttl: ttl}
@@ -166,7 +186,49 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion}
+	// The password is proven. Whether that is a session depends on the factor.
+	//
+	// Both branches below return a token that is NOT a session: the middleware
+	// refuses anything whose purpose is not "session", so a caller cannot skip
+	// the second step by simply using what login handed back.
+	if h.mfa != nil {
+		st, serr := h.mfa.Status(ctx, u.ID)
+		if serr != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not check the second factor")
+			return
+		}
+		purpose := auth.PurposeMFAChallenge
+		code := "MFA_REQUIRED"
+		if !st.Enrolled {
+			// A privileged operator with no factor gets exactly one thing: the
+			// ability to enrol one. Not a session.
+			purpose = auth.PurposeMFAEnroll
+			code = "MFA_ENROLMENT_REQUIRED"
+		}
+		chal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: purpose}
+		tok, cexp, cerr := auth.Issue(h.jwtSecret, chal, mfaChallengeTTL, now)
+		if cerr != nil {
+			writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue challenge")
+			return
+		}
+		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, code)
+		h.writeAudit(ctx, service.AuditEntry{
+			AdminUserID: u.ID, AdminEmail: u.Email, FullName: u.FullName, Role: u.Role,
+			Action: "LOGIN_PASSWORD_OK_MFA_PENDING", EntityType: "operator", EntityID: u.ID,
+			StatusCode: http.StatusOK, IP: ip, UserAgent: ua,
+			After: map[string]string{"next": code},
+		})
+		writeJSON(w, http.StatusOK, map[string]any{
+			"mfa_required":    true,
+			"mfa_enrolled":    st.Enrolled,
+			"challenge_token": tok,
+			"expires_at":      cexp,
+			"next":            code,
+		})
+		return
+	}
+
+	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession}
 	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, now)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue session")

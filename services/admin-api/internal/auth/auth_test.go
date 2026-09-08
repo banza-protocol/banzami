@@ -42,7 +42,9 @@ func TestJWTRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Principal{ID: "u1", Email: "op@banzami.com", Role: "OPERATIONS", TokenVersion: 7}
+	// Purpose defaults to a full session: a token issued without one is what
+	// every pre-MFA token is, and those must keep working until they expire.
+	want := Principal{ID: "u1", Email: "op@banzami.com", Role: "OPERATIONS", TokenVersion: 7, Purpose: PurposeSession}
 	if got != want {
 		t.Fatalf("round-trip mismatch: %+v != %+v", got, want)
 	}

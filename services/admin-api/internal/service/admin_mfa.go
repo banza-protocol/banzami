@@ -1,0 +1,286 @@
+package service
+
+// BANZADMIN second factors.
+//
+// A privileged operator must not reach a full session with a password alone.
+// Everything the console can do — approve KYB, price a customer, suspend a
+// business — is done in that operator's name, and a password is one reusable
+// secret that leaves a copy wherever it is typed.
+//
+// Two things live here: a TOTP factor, and recovery codes for the day the
+// authenticator is on a phone that is gone.
+
+import (
+	"context"
+	"crypto/rand"
+	"errors"
+	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/banzami/banzami/services/admin-api/internal/auth"
+)
+
+// ErrMFANotEnrolled: no confirmed factor for this operator.
+var ErrMFANotEnrolled = errors.New("no confirmed second factor")
+
+// ErrMFACodeRejected: the code did not verify, or has already been used.
+var ErrMFACodeRejected = errors.New("code rejected")
+
+// MFAService owns operator second factors.
+//
+// The secret is encrypted at rest with the same construction the rest of the
+// platform uses for secrets it must be able to read back. cipher may be nil in
+// a sandbox, in which case the secret is stored as-is and the deployment says
+// so at startup — the same trade the webhook secrets make.
+type MFAService struct {
+	pool   *pgxpool.Pool
+	cipher SecretCipher
+}
+
+// SecretCipher is the encryption boundary, an interface so this package does
+// not depend on which implementation a deployment wires in.
+type SecretCipher interface {
+	Encrypt(plaintext string) (string, error)
+	Decrypt(stored string) (string, error)
+}
+
+func NewMFAService(pool *pgxpool.Pool, cipher SecretCipher) *MFAService {
+	return &MFAService{pool: pool, cipher: cipher}
+}
+
+// MFAStatus is what the console may know about an operator's factors.
+type MFAStatus struct {
+	Enrolled          bool       `json:"enrolled"`
+	ConfirmedAt       *time.Time `json:"confirmed_at,omitempty"`
+	RecoveryCodesLeft int        `json:"recovery_codes_left"`
+}
+
+// Status reports whether the operator has a confirmed factor. Never the secret.
+func (s *MFAService) Status(ctx context.Context, adminUserID string) (MFAStatus, error) {
+	var confirmed *time.Time
+	err := s.pool.QueryRow(ctx,
+		`SELECT confirmed_at FROM admin_mfa WHERE admin_user_id = $1`, adminUserID).Scan(&confirmed)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return MFAStatus{}, err
+	}
+	var left int
+	_ = s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM admin_mfa_recovery_codes WHERE admin_user_id = $1 AND used_at IS NULL`,
+		adminUserID).Scan(&left)
+	return MFAStatus{Enrolled: confirmed != nil, ConfirmedAt: confirmed, RecoveryCodesLeft: left}, nil
+}
+
+// BeginEnrolment mints a secret and returns it with its provisioning URI.
+//
+// It replaces any UNCONFIRMED enrolment: someone who abandoned a setup halfway
+// must be able to start again. It refuses to replace a CONFIRMED one, because
+// that would let anyone holding a session silently swap the factor guarding it
+// — resetting a confirmed factor is a separate, audited operation.
+func (s *MFAService) BeginEnrolment(ctx context.Context, adminUserID, accountEmail string) (secret, uri string, err error) {
+	var confirmed *time.Time
+	err = s.pool.QueryRow(ctx, `SELECT confirmed_at FROM admin_mfa WHERE admin_user_id = $1`, adminUserID).Scan(&confirmed)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return "", "", err
+	}
+	if confirmed != nil {
+		return "", "", errors.New("a confirmed second factor already exists")
+	}
+
+	secret, err = auth.NewTOTPSecret()
+	if err != nil {
+		return "", "", err
+	}
+	stored := secret
+	if s.cipher != nil {
+		if stored, err = s.cipher.Encrypt(secret); err != nil {
+			return "", "", err
+		}
+	}
+	if _, err = s.pool.Exec(ctx,
+		`INSERT INTO admin_mfa (admin_user_id, secret_encrypted, confirmed_at, last_step)
+		 VALUES ($1, $2, NULL, NULL)
+		 ON CONFLICT (admin_user_id) DO UPDATE
+		    SET secret_encrypted = EXCLUDED.secret_encrypted,
+		        confirmed_at = NULL, last_step = NULL, updated_at = now()`,
+		adminUserID, stored); err != nil {
+		return "", "", err
+	}
+	return secret, auth.TOTPProvisioningURI(secret, accountEmail, "BANZADMIN"), nil
+}
+
+// ConfirmEnrolment verifies the first code and activates the factor, returning
+// the recovery codes once.
+//
+// Requiring a code before the factor counts is what stops an operator locking
+// themselves out of a console they are responsible for: an enrolment that was
+// never proven does not gate anything.
+func (s *MFAService) ConfirmEnrolment(ctx context.Context, adminUserID, code string) ([]string, error) {
+	secret, _, err := s.load(ctx, adminUserID)
+	if err != nil {
+		return nil, err
+	}
+	step, ok := auth.VerifyTOTP(secret, code, time.Now())
+	if !ok {
+		return nil, ErrMFACodeRejected
+	}
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE admin_mfa SET confirmed_at = now(), last_step = $2, updated_at = now()
+		  WHERE admin_user_id = $1`, adminUserID, step); err != nil {
+		return nil, err
+	}
+	return s.regenerateRecoveryCodes(ctx, adminUserID)
+}
+
+// Verify checks a TOTP code, or a recovery code, and consumes what it used.
+//
+// Replay is the thing being prevented in both halves. A TOTP code is valid for
+// a window, so accepting one twice inside that window makes it not one-time —
+// the last accepted step is recorded and anything at or below it is refused. A
+// recovery code is marked used in the same statement that selects it.
+func (s *MFAService) Verify(ctx context.Context, adminUserID, code string) error {
+	secret, lastStep, err := s.load(ctx, adminUserID)
+	if err != nil {
+		return err
+	}
+	if step, ok := auth.VerifyTOTP(secret, code, time.Now()); ok {
+		if lastStep != nil && step <= *lastStep {
+			return ErrMFACodeRejected // already used inside its window
+		}
+		_, err = s.pool.Exec(ctx,
+			`UPDATE admin_mfa SET last_step = $2, updated_at = now() WHERE admin_user_id = $1`,
+			adminUserID, step)
+		return err
+	}
+	return s.consumeRecoveryCode(ctx, adminUserID, code)
+}
+
+// Reset removes an operator's factor and their recovery codes.
+//
+// The caller audits it. This is the lock-out escape hatch and it is deliberately
+// blunt: after it, the operator has no second factor and must enrol again before
+// they can hold a session.
+func (s *MFAService) Reset(ctx context.Context, adminUserID string) error {
+	if _, err := s.pool.Exec(ctx, `DELETE FROM admin_mfa WHERE admin_user_id = $1`, adminUserID); err != nil {
+		return err
+	}
+	_, err := s.pool.Exec(ctx, `DELETE FROM admin_mfa_recovery_codes WHERE admin_user_id = $1`, adminUserID)
+	return err
+}
+
+// RegenerateRecoveryCodes issues a fresh set and invalidates the old ones.
+func (s *MFAService) RegenerateRecoveryCodes(ctx context.Context, adminUserID string) ([]string, error) {
+	if _, err := s.Status(ctx, adminUserID); err != nil {
+		return nil, err
+	}
+	return s.regenerateRecoveryCodes(ctx, adminUserID)
+}
+
+// ── internals ───────────────────────────────────────────────────────────────
+
+func (s *MFAService) load(ctx context.Context, adminUserID string) (secret string, lastStep *int64, err error) {
+	var stored string
+	err = s.pool.QueryRow(ctx,
+		`SELECT secret_encrypted, last_step FROM admin_mfa WHERE admin_user_id = $1`,
+		adminUserID).Scan(&stored, &lastStep)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil, ErrMFANotEnrolled
+	}
+	if err != nil {
+		return "", nil, err
+	}
+	if s.cipher != nil {
+		if secret, err = s.cipher.Decrypt(stored); err != nil {
+			return "", nil, err
+		}
+		return secret, lastStep, nil
+	}
+	return stored, lastStep, nil
+}
+
+func (s *MFAService) regenerateRecoveryCodes(ctx context.Context, adminUserID string) ([]string, error) {
+	if _, err := s.pool.Exec(ctx, `DELETE FROM admin_mfa_recovery_codes WHERE admin_user_id = $1`, adminUserID); err != nil {
+		return nil, err
+	}
+	out := make([]string, 0, 10)
+	for i := 0; i < 10; i++ {
+		c, err := newRecoveryCode()
+		if err != nil {
+			return nil, err
+		}
+		h, err := bcrypt.GenerateFromPassword([]byte(c), bcrypt.DefaultCost)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.pool.Exec(ctx,
+			`INSERT INTO admin_mfa_recovery_codes (admin_user_id, code_hash) VALUES ($1, $2)`,
+			adminUserID, string(h)); err != nil {
+			return nil, err
+		}
+		out = append(out, c)
+	}
+	return out, nil
+}
+
+func (s *MFAService) consumeRecoveryCode(ctx context.Context, adminUserID, code string) error {
+	code = strings.ToLower(strings.TrimSpace(code))
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, code_hash FROM admin_mfa_recovery_codes
+		  WHERE admin_user_id = $1 AND used_at IS NULL`, adminUserID)
+	if err != nil {
+		return err
+	}
+	type cand struct{ id, hash string }
+	var cands []cand
+	for rows.Next() {
+		var c cand
+		if err := rows.Scan(&c.id, &c.hash); err != nil {
+			rows.Close()
+			return err
+		}
+		cands = append(cands, c)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return err
+	}
+	for _, c := range cands {
+		if bcrypt.CompareHashAndPassword([]byte(c.hash), []byte(code)) != nil {
+			continue
+		}
+		// Mark used in a statement that only matches while it is still unused,
+		// so two concurrent attempts cannot both succeed.
+		tag, err := s.pool.Exec(ctx,
+			`UPDATE admin_mfa_recovery_codes SET used_at = now()
+			  WHERE id = $1 AND used_at IS NULL`, c.id)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrMFACodeRejected
+		}
+		return nil
+	}
+	return ErrMFACodeRejected
+}
+
+// newRecoveryCode returns a code in the shape people can read off paper:
+// lowercase, unambiguous alphabet, grouped.
+func newRecoveryCode() (string, error) {
+	const alphabet = "abcdefghjkmnpqrstuvwxyz23456789" // no i/l/o/0/1
+	b := make([]byte, 10)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	out := make([]byte, 0, 11)
+	for i, v := range b {
+		if i == 5 {
+			out = append(out, '-')
+		}
+		out = append(out, alphabet[int(v)%len(alphabet)])
+	}
+	return string(out), nil
+}

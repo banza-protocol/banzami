@@ -40,6 +40,16 @@ func AdminJWT(secret string, users OperatorStore) func(http.Handler) http.Handle
 				deny(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
 				return
 			}
+			// A token that only proves a password is not a session.
+			//
+			// The MFA challenge and enrolment tokens are signed with the same key
+			// and carry the same subject, so without this check they would open
+			// every operator route — which would make the second factor a screen
+			// rather than a control.
+			if p.Purpose != auth.PurposeSession {
+				deny(w, http.StatusUnauthorized, "MFA_REQUIRED", "second factor required")
+				return
+			}
 			u, err := users.GetByID(r.Context(), p.ID)
 			if err != nil {
 				deny(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
@@ -60,6 +70,7 @@ func AdminJWT(secret string, users OperatorStore) func(http.Handler) http.Handle
 			// token; token_version is the row's current value.
 			ctx := auth.WithPrincipal(r.Context(), auth.Principal{
 				ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion,
+				Purpose: auth.PurposeSession,
 			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
