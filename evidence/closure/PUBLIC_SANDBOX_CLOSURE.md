@@ -99,6 +99,21 @@ markers where a resolver actually looks.
 Not covered: an expired link — no link in the Sandbox currently carries an
 expiry.
 
+## A1. Deployment provenance
+
+`source HEAD = CI SHA = deployed runtime`, for every code-bearing released
+service, at `5ae92e20483e`:
+
+    admin-api · api-gateway-staging · core-api-staging · public-api-staging
+    developer-api · pay-frontend · admin-frontend
+
+`website-frontend` publishes as `:latest` and carries the commit where the
+convention puts it — `org.opencontainers.image.revision`, matching the same
+full SHA.
+
+`dashboard-frontend` is absent from that list because it is not released
+(section D).
+
 ## A2. Privileged-identity lifecycle
 
 `admin_users.status` answered "has this person set a password?" and was read as
@@ -129,7 +144,50 @@ guard would then permit demoting or suspending them. It counts everyone not
 SUSPENDED.
 
 Migration 0110 backfills every operator ACTIVE without a confirmed factor. It
-grants and removes nothing; it makes the row say what was already true.
+grants and removes nothing; it makes the row say what was already true. Applied
+through the gated blueprint path; the real operator moved
+`ACTIVE → MFA_ENROLMENT_REQUIRED`, and the suspended probe identities were left
+untouched, which is the backfill's `WHERE` clause working.
+
+**The fix was incomplete when first written, and using it is what showed that.**
+Creating a throwaway SUPER_ADMIN against the deployed console still returned
+`status=ACTIVE`: the invite flow had been corrected and the bootstrap's
+`--with-password` path had not — the one route that creates a privileged
+identity with a credential already attached, and the route the first operator on
+a new deployment takes. Fixed, with a test that reads the SQL and fails on any
+`INSERT INTO admin_users` naming `'ACTIVE'`.
+
+The tool then reported a state it was no longer creating: it printed
+`status=ACTIVE` as fixed text. Both output paths read the state back from the row
+now, and a test fails on any hardcoded lifecycle state in the output.
+
+Proven on the deployed console, 10/10: password accepted → no session, told to
+enrol; the enrolment token refused as a session; the factor confirms and still
+issues no session; acknowledgement is the only thing that produces one. The
+persisted state ends `ACTIVE` with a confirmed factor, audited in order —
+`LOGIN_PASSWORD_OK_MFA_PENDING → MFA_ENROLLED →
+MFA_RECOVERY_CODES_ACKNOWLEDGED`.
+
+## A3. Final history re-scan, on the final HEAD
+
+The strong rule set — default gitleaks plus every credential class this system
+has, with no repository allowlist — over all 2 565 reachable commits: **116
+findings, every one classified, none a live credential.**
+
+| Class | Verdict |
+|---|---|
+| `tests/security/gitleaks-mutations.test.sh` | by construction — the file exists to hold credential-shaped strings. The literals have since moved to runtime assembly, so they are in history and not at HEAD |
+| `infra/blueprint/validators/fixtures/bad-pem.sample` | a labelled fake, and the fixture a validator exists to reject |
+| `tools/e2e/dev-console/dev-key-gateway-e2e.mjs` | forged keys asserted to return 401 |
+| `google-services.json` × 2 | Firebase client keys, public by design (section F) |
+| `docs/APP_STORE_REVIEW_NOTES.md` | the legacy operator key — **dead**, 401 on the Sandbox rail; removed from HEAD in this programme |
+| `apps/website/.../api-keys/page.tsx` | a Stripe-shaped placeholder in a UI mock — 26 characters where a real Stripe key is ~107. Not a key, and gone from HEAD since 2026-07-03 |
+| postgres URLs | the two local development literals, paired in the same file |
+| `generic-api-key` | resource UUIDs, idempotency keys and test hex |
+
+The last two are worth one more line: the standing gate at HEAD was pointed at
+that Stripe-shaped placeholder and reported `stripe-access-token`. The control
+that would catch a real one is working.
 
 ## F. Firebase — verified, not dismissed
 

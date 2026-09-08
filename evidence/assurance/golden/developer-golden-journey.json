@@ -1,9 +1,9 @@
 {
   "suite": "BANZAMI DEVELOPERS × DOA GOLDEN JOURNEY (developer key)",
   "environment": "sandbox",
-  "build": "f81888b631c6",
+  "build": "5ae92e20483e",
   "gateway": "https://sandbox-api.banzami.com",
-  "generated_at": "2026-09-08T14:33:24.946Z",
+  "generated_at": "2026-09-08T18:53:36.163Z",
   "total": 42,
   "passed": 42,
   "failed": 0,
