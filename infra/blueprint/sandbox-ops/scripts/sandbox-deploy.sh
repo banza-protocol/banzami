@@ -348,12 +348,24 @@ cmd_deploy_one() {
     cname="${proj}-${name}"
 
     if [ "$name" = "admin-api" ]; then
-      # deploy-one normally needs no context — it clones a container. This one
-      # branch does: the credential FILES it mounts are named there, and their
-      # paths come from the bootstrapped Sandbox state rather than being
-      # recomputed here, so admin-api mounts the same db_url the other services
-      # do instead of a second copy that could drift.
-      load_context
+      # Where the credential files live is read from a service that is already
+      # running, not from the bootstrap state file.
+      #
+      # That state file lives under /tmp and does not survive a reboot; every
+      # other deploy-one works anyway because it clones a container rather than
+      # reading it. Deriving the paths from core-api-staging's own mounts is
+      # both more robust and more correct: admin-api gets the same db_url the
+      # rest of the stack has, by construction, instead of a second copy that
+      # could drift from it.
+      local core_c secret_dir
+      core_c="$(docker ps --format '{{.Names}}' | grep -E -- '-core-api-staging$' | head -1)"
+      [ -n "$core_c" ] || die "core-api-staging is not running — cannot locate the Sandbox credential files"
+      secret_dir="$(docker inspect "$core_c" --format '{{range .HostConfig.Binds}}{{println .}}{{end}}' \
+        | grep '/run/secrets/db_url:' | head -1 | sed 's#/db_url:.*##')"
+      [ -n "$secret_dir" ] && [ -d "$secret_dir" ] || die "cannot locate the Sandbox credential directory"
+      DBURL_FILE="$secret_dir/db_url"
+      CIK_FILE="$secret_dir/core_internal_key"
+      ADMINJWT_FILE="$secret_dir/admin_jwt_secret"
       datanet="$(docker network ls --format '{{.Name}}' | grep -E '^bzsb-data-' | head -1)"
       [ -n "$datanet" ] || die "no Sandbox data network found"
       # The admin JWT signing key. Preserved across applies like every other
