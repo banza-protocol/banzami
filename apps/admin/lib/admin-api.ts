@@ -377,6 +377,74 @@ export interface AuthedUser {
 }
 
 /** Operator login (unauthenticated). Throws AdminApiError on bad credentials. */
+/**
+ * What login returns now.
+ *
+ * A correct password no longer produces a session. It produces a CHALLENGE —
+ * either "prove your second factor" or, for an operator who has none yet,
+ * "enrol one". The session comes from the second step and nowhere else, so this
+ * type has no `token` on the challenge branch: there is nothing to save.
+ */
+export type LoginResult =
+  | { kind: 'session'; token: string; expires_at: string; user: AuthedUser }
+  | { kind: 'mfa'; enrolled: boolean; challenge_token: string; expires_at: string };
+
+export async function adminLoginStep1(email: string, password: string): Promise<LoginResult> {
+  const res = await fetch(`${ADMIN_API_BASE}/admin/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const b = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+    throw new AdminApiError(res.status, b.error?.code ?? 'UNAUTHORIZED', b.error?.message ?? 'invalid credentials');
+  }
+  const j = (await res.json()) as Record<string, unknown>;
+  if (j.mfa_required) {
+    return {
+      kind: 'mfa',
+      enrolled: !!j.mfa_enrolled,
+      challenge_token: String(j.challenge_token),
+      expires_at: String(j.expires_at),
+    };
+  }
+  return { kind: 'session', token: String(j.token), expires_at: String(j.expires_at), user: j.user as AuthedUser };
+}
+
+/** Begin TOTP enrolment. The secret and its URI are returned once. */
+export async function adminMfaEnrol(challengeToken: string): Promise<{ secret: string; otpauth_uri: string }> {
+  return mfaCall('/admin/v1/auth/mfa/enrol', challengeToken, undefined);
+}
+
+/** Confirm enrolment with the first code. Completes the login and returns the recovery codes once. */
+export async function adminMfaConfirm(
+  challengeToken: string,
+  code: string,
+): Promise<{ token: string; expires_at: string; user: AuthedUser; recovery_codes: string[] }> {
+  return mfaCall('/admin/v1/auth/mfa/enrol/confirm', challengeToken, { code });
+}
+
+/** Complete a challenge with a TOTP or a recovery code. */
+export async function adminMfaVerify(
+  challengeToken: string,
+  code: string,
+): Promise<{ token: string; expires_at: string; user: AuthedUser }> {
+  return mfaCall('/admin/v1/auth/mfa/verify', challengeToken, { code });
+}
+
+async function mfaCall<T>(path: string, challengeToken: string, body: unknown): Promise<T> {
+  const res = await fetch(`${ADMIN_API_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${challengeToken}` },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const j = (await res.json().catch(() => ({}))) as Record<string, unknown> & { error?: { code?: string; message?: string } };
+  if (!res.ok) {
+    throw new AdminApiError(res.status, j.error?.code ?? 'MFA_FAILED', j.error?.message ?? 'the code did not verify');
+  }
+  return j as T;
+}
+
 export async function adminLogin(
   email: string,
   password: string,

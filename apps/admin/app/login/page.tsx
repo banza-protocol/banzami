@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { saveSession } from '@/lib/session';
-import { adminLogin, AdminApiError } from '@/lib/admin-api';
+import { adminLoginStep1, adminMfaEnrol, adminMfaConfirm, adminMfaVerify, AdminApiError } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
 
 const inputCls =
@@ -17,6 +17,15 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // The second step. A correct password lands here, never on the dashboard:
+  // `challenge` holds the short-lived token that is NOT a session, and `enrol`
+  // says whether this operator still has to set a factor up.
+  const [challenge, setChallenge] = useState<string | null>(null);
+  const [enrol, setEnrol] = useState(false);
+  const [secret, setSecret] = useState<{ secret: string; otpauth_uri: string } | null>(null);
+  const [code, setCode] = useState('');
+  const [recovery, setRecovery] = useState<string[] | null>(null);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) {
@@ -26,9 +35,17 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const r = await adminLogin(email.trim(), password);
-      saveSession({ token: r.token, user: r.user });
-      router.replace('/');
+      const r = await adminLoginStep1(email.trim(), password);
+      if (r.kind === 'session') {
+        saveSession({ token: r.token, user: r.user });
+        router.replace('/');
+        return;
+      }
+      // Password proven, session withheld. Nothing is saved here — the
+      // challenge token cannot open a single operator route.
+      setChallenge(r.challenge_token);
+      setEnrol(!r.enrolled);
+      if (!r.enrolled) setSecret(await adminMfaEnrol(r.challenge_token));
     } catch (err) {
       if (err instanceof AdminApiError && err.status === 429) {
         setError('Muitas tentativas. Tente novamente mais tarde.');
@@ -39,6 +56,130 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function submitCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!challenge || !code.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      if (enrol) {
+        const r = await adminMfaConfirm(challenge, code.trim());
+        // The recovery codes are shown once, here, before the dashboard. Going
+        // straight in would mean the only copy scrolled past.
+        setRecovery(r.recovery_codes);
+        saveSession({ token: r.token, user: r.user });
+      } else {
+        const r = await adminMfaVerify(challenge, code.trim());
+        saveSession({ token: r.token, user: r.user });
+        router.replace('/');
+      }
+    } catch (err) {
+      if (err instanceof AdminApiError && err.status === 403) {
+        setError('Esta sessão de verificação expirou. Volte a entrar.');
+        setChallenge(null);
+      } else {
+        setError('Esse código não confere.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const shell = (children: React.ReactNode) => (
+    <div
+      className="flex min-h-screen items-center justify-center p-6"
+      style={{ background: 'radial-gradient(1200px 600px at 50% -10%, #fff, #FFF7F6 60%)' }}
+    >
+      <div className="w-full max-w-[430px] rounded-[26px] border border-[#f1e3e3] bg-white px-[34px] py-[38px] shadow-[0_40px_90px_-50px_rgba(181,16,31,0.45)]">
+        <div className="mb-[26px] flex items-center gap-[11px]">
+          <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[12px] bg-[#B5101F] shadow-[0_6px_14px_-4px_rgba(181,16,31,0.5)]">
+            <BanzamiLogo size={21} />
+          </span>
+          <span className="text-[13px] font-black tracking-[0.16em] text-[#B5101F]">BANZADMIN</span>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+
+  // Recovery codes, once. Shown before the dashboard and behind an explicit
+  // acknowledgement, because this is the only time they exist in readable form.
+  if (recovery) {
+    return shell(
+      <>
+        <h1 className="m-0 text-[24px] font-black tracking-[-0.02em]">Guarde os códigos de recuperação</h1>
+        <p className="m-0 mb-5 mt-2 text-[14px] font-semibold leading-relaxed text-[#9a8a8e]">
+          Cada código serve <strong>uma vez</strong>, e é o que lhe devolve o acesso se perder o
+          autenticador. São mostrados agora e nunca mais.
+        </p>
+        <div className="mb-5 grid grid-cols-2 gap-2 rounded-[14px] bg-[#2A1E20] p-4 font-mono text-[13px] text-[#EDE3E1]">
+          {recovery.map((c) => <span key={c}>{c}</span>)}
+        </div>
+        <button
+          onClick={() => router.replace('/')}
+          className="w-full rounded-[14px] bg-[#B5101F] py-[13px] text-[15px] font-extrabold text-white"
+        >
+          Guardei-os — entrar
+        </button>
+      </>,
+    );
+  }
+
+  if (challenge) {
+    return shell(
+      <>
+        <h1 className="m-0 text-[24px] font-black tracking-[-0.02em]">
+          {enrol ? 'Configure a verificação em dois passos' : 'Verificação em dois passos'}
+        </h1>
+        <p className="m-0 mb-5 mt-2 text-[14px] font-semibold leading-relaxed text-[#9a8a8e]">
+          {enrol
+            ? 'A sua palavra-passe está correcta. Um operador privilegiado precisa de um segundo factor antes de ter sessão.'
+            : 'Introduza o código do seu autenticador, ou um código de recuperação.'}
+        </p>
+
+        {enrol && secret ? (
+          <div className="mb-5 rounded-[14px] border border-[#f1e3e3] bg-[#FFF7F6] p-4">
+            <p className="m-0 mb-2 text-[12px] font-extrabold uppercase tracking-wide text-[#8a7a7e]">
+              Adicione esta conta ao seu autenticador
+            </p>
+            <code className="block break-all font-mono text-[13px] font-bold text-[#2a2024]">{secret.secret}</code>
+            <p className="m-0 mt-2 text-[12px] font-semibold text-[#9a8a8e]">
+              Depois introduza o código de 6 dígitos que a app mostrar.
+            </p>
+          </div>
+        ) : null}
+
+        <form onSubmit={submitCode}>
+          <label htmlFor="mfa-code" className="mb-1.5 block text-[12px] font-extrabold uppercase tracking-wide text-[#8a7a7e]">
+            Código
+          </label>
+          <input
+            id="mfa-code"
+            value={code}
+            onChange={(e) => { setCode(e.target.value); if (error) setError(''); }}
+            autoComplete="one-time-code"
+            inputMode="text"
+            placeholder="000000"
+            className={inputCls}
+            autoFocus
+          />
+          {error ? (
+            <p role="alert" className="mt-3 flex items-center gap-2 text-[13px] font-bold text-[#B5101F]">
+              <AlertCircle size={15} /> {error}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={loading || !code.trim()}
+            className="mt-5 w-full rounded-[14px] bg-[#B5101F] py-[13px] text-[15px] font-extrabold text-white disabled:opacity-50"
+          >
+            {loading ? 'A verificar…' : enrol ? 'Confirmar e entrar' : 'Entrar'}
+          </button>
+        </form>
+      </>,
+    );
   }
 
   return (
