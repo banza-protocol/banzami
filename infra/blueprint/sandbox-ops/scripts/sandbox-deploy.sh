@@ -310,6 +310,9 @@ release_config_env() {
       # never arrive — and BANZADMIN without a mailer hands password-reset links
       # back through the API instead of sending them.
       echo "EMAIL_PROVIDER=resend"
+      # Defaults to true, which is the right default and the wrong setting here:
+      # a password-reset link that is only logged never reaches the operator.
+      echo "EMAIL_DRY_RUN=false"
       echo "EMAIL_FROM_NAME=Banzami"
       echo "EMAIL_FROM_ADDRESS=contact@banzami.com"
       echo "EMAIL_NOREPLY_NAME=Banzami"
@@ -417,6 +420,7 @@ cmd_deploy_one() {
         -e "ADMIN_API_PORT=$port" \
         -e "ENVIRONMENT=SANDBOX" \
         -e "EMAIL_PROVIDER=resend" \
+        -e "EMAIL_DRY_RUN=false" \
         -e "EMAIL_FROM_NAME=Banzami" \
         -e "EMAIL_FROM_ADDRESS=contact@banzami.com" \
         -e "EMAIL_NOREPLY_NAME=Banzami" \
