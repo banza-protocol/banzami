@@ -17,14 +17,14 @@ The app uses handle + PIN authentication.
 A dedicated sandbox account has been provisioned for App Review.
 
 Review account:
-  Handle:  review
-  PIN:     123456
+  Handle:  <issued for the submission — see the note below this block>
+  PIN:     <issued for the submission — see the note below this block>
 
 Instructions:
 1. Open the app
 2. Tap "Entrar" (Log in)
-3. Enter the handle:  review
-4. Enter the PIN:     123456
+3. Enter the review handle
+4. Enter the review PIN
 
 The review account has full access to:
 * Wallet balance and transaction history
@@ -43,7 +43,7 @@ Security behaviour:
   pressing the Home button, or opening the app switcher)
 * When returning to the app you will be prompted for the PIN — this is intentional
   security behaviour, not a bug
-* Use PIN 123456 to unlock after any background/foreground transition
+* The app asks for the review PIN again after any background/foreground transition
 ```
 
 ### TestFlight — What to Test
@@ -96,7 +96,7 @@ A dedicated sandbox merchant account has been provisioned for App Review.
 
 Review credentials:
   Merchant ID:  b7f088ce-ca5e-4810-8624-d503da4d83dc
-  API Key:      bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2
+  API Key:      <issued for the submission — see the note below this block>
 
 Instructions:
 1. Open the app
@@ -188,7 +188,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
 5. Para o **Demo Account**:
-   - Consumer: Username = `review`, Password = `123456`
+   - Consumer: the review handle and PIN issued for the submission
    - Business: Username = Merchant ID, Password = API Key
 6. Grava → submete o build para revisão
 
@@ -214,7 +214,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 | Campo       | Valor                                    | Estado  |
 |-------------|------------------------------------------|---------|
 | Handle      | review                                   | ACTIVE  |
-| PIN         | 123456                                   | —       |
+| PIN         | *(não publicado — emitido para a submissão)* | — |
 | Consumer ID | 8d94dd9c-73d6-4743-94f5-4235249dbb79     | ACTIVE  |
 | Criada em   | 2026-05-24                               | —       |
 
@@ -228,10 +228,22 @@ foi removida por não ter autorização (auditoria de segurança, SEC-003).
 | Campo       | Valor                                                                      | Estado                |
 |-------------|----------------------------------------------------------------------------|-----------------------|
 | Merchant ID | b7f088ce-ca5e-4810-8624-d503da4d83dc                                       | Desactivar no sandbox |
-| API Key     | bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2  | Revogar no dashboard  |
+| API Key     | *(não publicada — ver abaixo)*                                              | Revogada              |
 | Ambiente    | SANDBOX                                                                    | —                     |
 
-Para desactivar: revogar a API Key acima em dashboard.banzami.com → Definições → API Keys.
+A chave desta conta de revisão foi **revogada** e deliberadamente não está aqui.
+
+Este documento continha a chave em texto claro, num repositório que é público, e
+dizia para a revogar em `dashboard.banzami.com` — um host que não existe
+(NXDOMAIN). Ambas as coisas eram falsas de maneiras diferentes: a chave já não
+autenticava (401 no rail Sandbox), e o sítio indicado para a revogar nunca
+esteve lá.
+
+As chaves de API do Sandbox são emitidas e revogadas na Consola de programadores,
+em **https://developers.banzami.com/api-keys**. Uma chave é mostrada uma única
+vez, no momento em que é criada; a partir daí só existe o seu prefixo. Se a
+revisão precisar de uma credencial nova, ela é emitida aí e entregue pelo canal
+privado do pedido — nunca num ficheiro versionado.
 
 ---
 

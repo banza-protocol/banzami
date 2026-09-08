@@ -44,6 +44,17 @@ regex = '''bz_(?:test|live)_sk_[A-Za-z0-9]{20,}'''
 keywords = ["bz_test_sk_", "bz_live_sk_"]
 
 [[rules]]
+id = "banzami-legacy-api-key"
+description = "Banzami API key, pre-sk_/pk_ format"
+# Keys issued before the sk_/pk_ infix existed are bz_test_<hex> with no marker
+# in the middle, so banzami-secret-key above does not see them. One was sitting
+# in docs/APP_STORE_REVIEW_NOTES.md — in a public repository, inside the block
+# that gets pasted into App Store Connect — and every gate in this repo was green.
+# Hex-only, so this cannot double-match a bz_*_sk_ / bz_*_pk_ key.
+regex = '''bz_(?:test|live)_[0-9a-f]{32,}'''
+keywords = ["bz_test_", "bz_live_"]
+
+[[rules]]
 id = "banzami-webhook-secret"
 description = "Banzami webhook signing secret"
 regex = '''whsec_[A-Za-z0-9_-]{20,}'''
@@ -93,6 +104,11 @@ paths = [
 
   # ── Build output / vendored dependencies (gitignored, not repository content)
   '''(^|/)node_modules/''',
+  # Composer's equivalent of node_modules. Gitignored (.gitignore:54) and zero
+  # files under it are tracked, so nothing here is repository exposure — the
+  # findings are a framework's .env.example and a MIME table. It only started
+  # appearing once the PHP plugin became installable and acquired a vendor tree.
+  '''(^|/)vendor/''',
   # Compiled Python bytecode: generated, gitignored, and only ever a copy of a
   # literal that is already being judged in the .py source next to it.
   '''(^|/)__pycache__/''',

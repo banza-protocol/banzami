@@ -225,7 +225,7 @@ npm run dev
 
 ### 4. Simulate payment
 
-In the Banza sandbox dashboard (`https://sandbox-dashboard.banzami.com`), find the payment link and click **Simulate Payment**. The Doa UI confirms within 3 seconds.
+In the Developer Console (`https://developers.banzami.com`), find the payment link under Logs / Eventos. The Doa UI confirms within 3 seconds.
 
 ---
 

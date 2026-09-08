@@ -40,6 +40,10 @@ trap 'rm -rf "$WORK"' EXIT
 pass=0
 fail=0
 
+# Used by the assertions that are not a plant-and-scan.
+ok() { printf '  \033[0;32m✓\033[0m %s\n' "$1"; pass=$((pass + 1)); }
+no() { printf '  \033[0;31m✗\033[0m %s\n' "$1"; fail=$((fail + 1)); }
+
 # Scans $WORK/tree and echoes the rule ids that fired, or nothing.
 detect() {
   rm -f "$REPORT"
@@ -106,12 +110,18 @@ WHSEC_TOKEN="whsec_$(printf 'deadbeef%.0s' 1 2 3 4)"
 SBP_TOKEN="sbp_$(printf 'deadbeef%.0s' 1 2 3 4 5)"
 RESEND_TOKEN="re_$(printf 'deadbeef%.0s' 1 2 3)"
 SUPABASE_TOKEN="sb_secret_$(printf 'deadbeef%.0s' 1 2 3)"
+LEGACY_KEY="bz_test_$(printf 'deadbeef%.0s' 1 2 3 4 5 6 7 8)"
 
 echo
 echo "▸ A real credential must be reported, in any file and under any name"
 must_detect "Banzami secret key, plainly assigned"  src/x.go   "var leaked = \"bz_test_sk_${KEY_BODY}\""
 must_detect "Banzami secret key, live prefix"       src/l.go   "k := \"bz_live_sk_${KEY_BODY}\""
 must_detect "Banzami secret key, in a comment"      src/c.go   "// TODO: remove bz_test_sk_${KEY_BODY}"
+# The pre-sk_/pk_ format. One of these sat in a committed document — inside the
+# block that gets pasted into App Store Connect — while every gate in this repo
+# was green, because the rule for issued keys keys on an sk_ infix this format
+# does not have.
+must_detect "Banzami API key, legacy hex format"    doc/notes.md "API Key: ${LEGACY_KEY}"
 must_detect "generated webhook signing secret"      src/y.py   "S = \"${WHSEC_TOKEN}\""
 must_detect "Resend API key"                        src/z.sh   "RESEND=\"${RESEND_TOKEN}\""
 must_detect "Supabase secret key"                   src/s.env  "K=${SUPABASE_TOKEN}"
@@ -138,6 +148,32 @@ must_allow "local sandbox database URL"                 infra/s.env "DATABASE_UR
 must_allow "self-describing fixture webhook secret"     src/m.rs    "let s = \"whsec_webhook_signing_secret\";"
 must_allow "forged key asserted to return 401"          src/e.mjs   "rec('unknown-key-fails', await me('bz_test_sk_deadbeefdeadbeefdeadbeefdeadbeef') === 401)"
 must_allow "a retired resource id in release evidence"  evidence/b.json "\"key\": \"8a68d114-4556-41a5-8f56-f4c12b7b2e27 — REVOKED, confirmed rejected with 401\","
+
+echo
+echo "▸ A directory exemption may only cover untracked content"
+#
+# A path exemption is absolute in a way a value exemption is not: a real
+# credential inside node_modules/ or vendor/ is not reported, full stop. The
+# whole justification is "those directories are gitignored, so nothing in them
+# is repository exposure" — which is an assumption, and the kind that stops
+# being true quietly, one `git add -f` at a time.
+#
+# So it is checked rather than assumed. For every directory this config excuses,
+# git must hold nothing under it. File exemptions (lockfiles, the Firebase
+# configs) are deliberately tracked and are justified by their content, not by
+# being absent, so they are not part of this.
+exempt_dirs="$(grep -oE "^  '''\(\^\|/\)[A-Za-z_.-]+/'''," "$CONFIG" \
+  | sed -E "s@^  '''\(\^\|/\)@@; s@/''',\$@@")"
+tracked_in_exempt=""
+for d in $exempt_dirs; do
+  n="$(git -C "$PWD" ls-files -- "*/$d/*" "$d/*" 2>/dev/null | wc -l | tr -d ' ')"
+  [ "$n" != "0" ] && tracked_in_exempt="$tracked_in_exempt $d($n)"
+done
+if [ -z "$tracked_in_exempt" ]; then
+  ok "every exempted directory holds no tracked files ($(echo $exempt_dirs | wc -w | tr -d ' ') checked)"
+else
+  no "exempted directories contain TRACKED files:$tracked_in_exempt"
+fi
 
 echo
 if [ "$fail" -eq 0 ]; then

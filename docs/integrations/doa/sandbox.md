@@ -13,7 +13,7 @@ The Banza sandbox is a complete replica of the production environment — same A
 | Service | URL |
 |---------|-----|
 | API Gateway | `https://sandbox-api.banzami.com` |
-| Business Dashboard | `https://sandbox-dashboard.banzami.com` |
+| Developer Console | `https://developers.banzami.com` |
 | Pay Page | `https://pay.banzami.com` (same domain — sandbox links are isolated by environment) |
 
 ---
@@ -67,7 +67,7 @@ No other code changes are needed. The `bz_test_` prefix is the only switch.
 
 ## Getting a Sandbox Account
 
-1. Visit `https://sandbox-dashboard.banzami.com` and register a sandbox merchant.
+1. Visit `https://developers.banzami.com` and create a workspace and project.
 2. The admin dashboard auto-approves KYB for sandbox accounts.
 3. A `bz_test_` API key is issued and emailed.
 4. Create a sandbox wallet via the dashboard or API:
@@ -113,7 +113,7 @@ Maximum: 100,000,000 centavos (1,000,000.00 AOA) per call. No daily limit.
 
 ### Method 1: Sandbox dashboard
 
-1. Open `https://sandbox-dashboard.banzami.com`
+1. Open `https://developers.banzami.com`
 2. Navigate to **Payment Links**
 3. Find the link created by Doa (description: `DOA-{prefix}`)
 4. Click **Simulate Payment**
