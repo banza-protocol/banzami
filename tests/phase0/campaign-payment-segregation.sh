@@ -12,7 +12,10 @@
 # Secrets are read into memory and never printed.
 set -uo pipefail
 
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
+# The DOA project id used to be a hard-coded default here, and it stopped
+# existing at the last Sandbox reset — so the harness failed at KEY_ISSUED with
+# an empty secret and said nothing about why. Resolved by name below instead,
+# after the containers are located; an explicit DOA_PROJECT still wins.
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
@@ -28,6 +31,16 @@ PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+
+# The DOA Sandbox project, by name. A resolved id survives a Sandbox reset; a
+# literal one does not, and the failure it produces points at the wrong thing.
+if [ -z "${DOA_PROJECT:-}" ]; then
+  DOA_PROJECT=$(docker exec -e PGPASSWORD="$PW" "$PG" psql -q -U bl_app_runtime -d banzami_staging -At -c \
+    "SELECT p.id FROM developer.dev_projects p
+       JOIN developer.dev_workspaces w ON w.id = p.workspace_id
+      WHERE w.name = 'DOA' ORDER BY p.created_at DESC LIMIT 1" 2>/dev/null | tr -d '\r\n')
+fi
+[ -n "${DOA_PROJECT:-}" ] || { echo "  no DOA project found — pass DOA_PROJECT=<id>"; exit 1; }
 [ -n "$DEVINT" ] && [ -n "$JWTSEC" ] || { echo "NO_SECRET"; exit 1; }
 
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
