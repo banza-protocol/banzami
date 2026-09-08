@@ -120,7 +120,18 @@ func main() {
 			}
 			fail("create: " + err.Error())
 		}
-		fmt.Printf("created operator %s (%s) role=%s id=%s status=ACTIVE\n", *fullName, *email, *role, id)
+		// Read the state back rather than asserting one. This line used to name
+		// a state as fixed text, and kept naming it after the row it had just
+		// written stopped being in that state — so the tool reported the exact
+		// thing the lifecycle change existed to stop being true.
+		created, gerr := users.GetByID(ctx, id)
+		status := service.StatusMFAEnrolmentRequired
+		if gerr == nil {
+			status = created.Status
+		}
+		fmt.Printf("created operator %s (%s) role=%s id=%s status=%s\n", *fullName, *email, *role, id, status)
+		fmt.Fprintln(os.Stderr, "note: this operator cannot sign in until it enrols a second factor "+
+			"and acknowledges its recovery codes. A password alone yields no session.")
 		return
 	}
 
@@ -173,7 +184,13 @@ func sendInvite(ctx context.Context, users *service.AdminUserService, id, email,
 	}
 
 	// The link is a credential. Never printed here, never logged.
-	fmt.Printf("operator %s (%s) role=%s id=%s status=INVITED\n", fullName, email, role, id)
+	// Read back, for the same reason as the password path above.
+	invited, gerr := users.GetByID(ctx, id)
+	invitedStatus := service.StatusInvited
+	if gerr == nil {
+		invitedStatus = invited.Status
+	}
+	fmt.Printf("operator %s (%s) role=%s id=%s status=%s\n", fullName, email, role, id, invitedStatus)
 	fmt.Printf("activation email delivered to %s; the link expires %s\n", email, exp.UTC().Format(time.RFC3339))
 	fmt.Println("the operator sets their own credential from that link. Nothing here holds one.")
 }
