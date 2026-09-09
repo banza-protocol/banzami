@@ -112,22 +112,40 @@ impl<R: PaymentLinkRepository> PaymentLinkEngine for PostgresPaymentLinkEngine<R
             .await
     }
 
+    /// Claim the link for THIS payment, or report that someone else already did.
+    ///
+    /// This read the status, checked it in Rust, and then updated
+    /// unconditionally. Six concurrent confirmations of one payment therefore
+    /// all read ACTIVE, all passed the check, and all wrote — and because the
+    /// caller emits `payment_link.paid` whenever this returns Ok, one payment
+    /// produced several events with different ids. An integrator deduplicating
+    /// by event id could not collapse them; a donation platform would have
+    /// credited the donor once per event. Observed on the deployed Sandbox: six
+    /// parallel confirmations, three distinct events, one ledger credit.
+    ///
+    /// The money was never at risk — the settlement posting is idempotent on a
+    /// UNIQUE key — but "exactly one financial effect" has to include the event
+    /// that tells the outside world the effect happened.
+    ///
+    /// Eligibility now lives in the UPDATE's own WHERE clause, so the database
+    /// picks the winner: `RETURNING` yields a row to exactly one caller. This is
+    /// the pattern payment_sessions::settle_for_interface already uses, for the
+    /// same reason.
     async fn mark_used(&self, id: PaymentLinkId) -> Result<PaymentLink, PaymentLinkError> {
-        let link = self.get(id).await?;
-        if !matches!(link.status, PaymentLinkStatus::Active) {
-            return Err(PaymentLinkError::NotActive(id));
+        let paid_at = Utc::now();
+        if let Some(updated) = self.repo.claim_used(id, paid_at).await? {
+            tracing::info!(link_id = %id, "payment link marked as used");
+            return Ok(updated);
         }
+        // The claim failed. Read the link to say WHY — a link that is already
+        // USED is a losing race, a missing one is a genuine not-found, and an
+        // expired one deserves its own error. The caller distinguishes them.
+        let link = self.get(id).await?;
         if let Some(expires_at) = link.expires_at {
             if expires_at <= Utc::now() {
                 return Err(PaymentLinkError::Expired(id));
             }
         }
-        let paid_at = Utc::now();
-        let updated = self
-            .repo
-            .update_status(id, PaymentLinkStatus::Used, Some(paid_at))
-            .await?;
-        tracing::info!(link_id = %id, "payment link marked as used");
-        Ok(updated)
+        Err(PaymentLinkError::NotActive(id))
     }
 }

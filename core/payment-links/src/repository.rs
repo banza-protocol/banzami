@@ -23,6 +23,17 @@ pub trait PaymentLinkRepository: Send + Sync {
         status: PaymentLinkStatus,
         paid_at: Option<DateTime<Utc>>,
     ) -> Result<PaymentLink, PaymentLinkError>;
+    /// Atomically move an ACTIVE, unexpired link to USED.
+    ///
+    /// Returns `Some(link)` to the ONE caller whose UPDATE performed the
+    /// transition and `None` to every other caller, so a race has a winner
+    /// instead of several. The eligibility test lives in the WHERE clause
+    /// precisely so it cannot be evaluated against a row that then changes.
+    async fn claim_used(
+        &self,
+        id: PaymentLinkId,
+        paid_at: DateTime<Utc>,
+    ) -> Result<Option<PaymentLink>, PaymentLinkError>;
     /// Mark all ACTIVE links whose `expires_at` is in the past as EXPIRED.
     async fn expire_overdue(&self) -> Result<u64, PaymentLinkError>;
 }
@@ -183,6 +194,32 @@ impl PaymentLinkRepository for PostgresPaymentLinkRepository {
         .await
         .map_err(PaymentLinkError::Database)?;
         Ok(row.into_link())
+    }
+
+    async fn claim_used(
+        &self,
+        id: PaymentLinkId,
+        paid_at: DateTime<Utc>,
+    ) -> Result<Option<PaymentLink>, PaymentLinkError> {
+        // ACTIVE and unexpired are conditions of the UPDATE itself. Checking them
+        // in Rust first and updating second is the read-then-write race this
+        // replaces: every concurrent caller read ACTIVE, every one passed, and
+        // every one wrote.
+        let row = sqlx::query_as::<_, LinkRow>(
+            "UPDATE payment_links
+                SET status = 'USED', paid_at = $2, updated_at = NOW()
+              WHERE id = $1
+                AND status = 'ACTIVE'
+                AND (expires_at IS NULL OR expires_at > NOW())
+             RETURNING id, slug, merchant_id, wallet_id, wallet_account_id, amount_minor, currency,
+                       description, status, expires_at, paid_at, created_at, updated_at",
+        )
+        .bind(id.as_uuid())
+        .bind(paid_at)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(PaymentLinkError::Database)?;
+        Ok(row.map(|r| r.into_link()))
     }
 
     async fn expire_overdue(&self) -> Result<u64, PaymentLinkError> {

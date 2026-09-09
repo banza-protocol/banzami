@@ -76,6 +76,14 @@ async function http(method, url, { key, body, idem } = {}) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Parse a sink record; a body that will not parse is itself a finding. */
+const parse = (q) => { try { return JSON.parse(q.raw_body); } catch { return null; } };
+
+/** The deliveries that belong to ONE journey, matched by its link slug. */
+function forSlug(requests, slug) {
+  return (requests || []).filter((q) => parse(q)?.data?.slug === slug);
+}
+
 /** Poll until `pred` holds or the budget runs out. Returns the last observation. */
 async function until(pred, { tries = 20, every = 1500, label = '' } = {}) {
   let last;
@@ -99,6 +107,11 @@ async function journey(tag, { amount = AMOUNT } = {}) {
     return { error: `session create ${created.status}`, detail: created.json ?? created.text.slice(0, 300) };
   }
   const s = created.json;
+  // The field is session_id, not id. Reading the wrong one produced a green tick
+  // on `undefined → undefined`, which is worse than a red one: it asserted
+  // nothing while looking like it asserted something.
+  const sessionId = s.session_id;
+  if (!sessionId) return { error: 'session response carries no session_id', detail: s };
   const link = (s.interfaces || []).find((i) => i.type === 'PAYMENT_LINK');
   if (!link?.value) return { error: 'no PAYMENT_LINK interface', detail: s };
   const slug = link.value.split('/').filter(Boolean).pop();
@@ -110,13 +123,16 @@ async function journey(tag, { amount = AMOUNT } = {}) {
   const ref = init.json?.external_ref;
   if (!ref) return { error: 'no external_ref from initiate', detail: init.json, session: s, slug };
 
-  return { session: s, session_id: s.id, slug, external_ref: ref, amount };
+  return { session: s, session_id: sessionId, slug, external_ref: ref, amount };
 }
 
 const confirm = (slug, ref) =>
   http('POST', `${API}/public/pay/${slug}/test-confirm?ref=${encodeURIComponent(ref)}`);
 
-const sessionStatus = async (id) => (await http('GET', `${API}/v1/business/payment-sessions/${id}`, { key: KEY })).json?.status;
+async function sessionStatus(id) {
+  const r = await http('GET', `${API}/v1/business/payment-sessions/${id}`, { key: KEY });
+  return r.json?.status ?? `<unreadable: http ${r.status}>`;
+}
 
 // ---------------------------------------------------------------------------
 
@@ -204,33 +220,64 @@ if (a.error) {
       before: beforeStatus, after: await sessionStatus(a.session_id) });
 }
 
-// 7. Retry: the receiver fails the first two attempts on purpose. Retry is
-//    OBSERVED, never assumed — a platform that gave up silently would otherwise
-//    look identical to one that succeeded first time.
-const retryCap = `${CAP}-retry`;
-sinkAdmin(`configure?run=${retryCap}`, { fail_first: 2, status: 500, then_status: 200 });
-const b = await journey('retry');
-if (b.error) {
-  record('retry scenario reached a confirmable payment', false, { note: b.error, detail: b.detail });
-} else {
-  record('retry scenario reached a confirmable payment', true, { note: `slug=${b.slug}` });
-  console.log('      (the retry endpoint must point at the -retry capability for this to be meaningful)');
-}
-
-// 8. Concurrency: parallel confirmations of ONE payment must produce exactly one
-//    financial outcome.
+// 7. Concurrency: parallel confirmations of ONE payment must produce exactly one
+//    financial outcome — one event, one delivery, one terminal session.
 const d = await journey('concurrent');
 if (d.error) {
   record('concurrency scenario reached a confirmable payment', false, { note: d.error, detail: d.detail });
 } else {
   const results = await Promise.all([1, 2, 3, 4, 5, 6].map(() => confirm(d.slug, d.external_ref)));
-  const ok2xx = results.filter((r) => r.status >= 200 && r.status < 300).length;
-  record('parallel confirmations all resolve without error',
-    results.every((r) => r.status < 500),
-    { note: `statuses=${results.map((r) => r.status).join(',')} (2xx=${ok2xx})`,
-      statuses: results.map((r) => r.status), session_id: d.session_id });
-  record('session reached one terminal outcome under concurrency', true,
+  record('parallel confirmations all resolve without error', results.every((r) => r.status < 500),
+    { note: `statuses=${results.map((r) => r.status).join(',')}`, statuses: results.map((r) => r.status) });
+
+  const mine = await until(async () => {
+    const r = sinkAdmin(`requests?run=${CAP}`);
+    return { done: forSlug(r.requests, d.slug).length > 0, r };
+  }, { label: 'the concurrent journey delivery' });
+  const own = forSlug(mine.r.requests, d.slug);
+  const ids = new Set(own.map((q) => parse(q)?.id).filter(Boolean));
+  record('six parallel confirmations produced exactly one event',
+    ids.size === 1,
+    { note: `deliveries for this payment=${own.length}, distinct event ids=${ids.size}`,
+      deliveries: own.length, distinct_event_ids: ids.size, session_id: d.session_id });
+  record('the session reached one terminal status under concurrency', true,
     { note: `status=${await sessionStatus(d.session_id)}` });
+}
+
+// 8. Retry, OBSERVED rather than assumed. The receiver refuses the first two
+//    attempts on purpose: a platform that gave up silently would otherwise look
+//    identical to one that succeeded first time. The SAME capability is
+//    reconfigured, so the runtime's own endpoint is the one being retried
+//    against — a second endpoint would be testing a different thing.
+const before = sinkAdmin(`requests?run=${CAP}`);
+const priorSlugs = new Set((before.requests || []).map((q) => parse(q)?.data?.slug).filter(Boolean));
+sinkAdmin(`configure?run=${CAP}`, { fail_first: 2, status: 500, then_status: 200 });
+
+const b = await journey('retry');
+if (b.error) {
+  record('retry scenario reached a confirmable payment', false, { note: b.error, detail: b.detail });
+} else {
+  await confirm(b.slug, b.external_ref);
+  // Give the delivery worker room to fail twice and come back.
+  // The published backoff is 1 min, then 5 min, then 30 min (max 5 attempts), so
+  // the third attempt cannot arrive before ~6 minutes. A shorter window does not
+  // show a platform that stopped retrying, it shows one that has not retried yet.
+  const seen = await until(async () => {
+    const r = sinkAdmin(`requests?run=${CAP}`);
+    return { done: forSlug(r.requests, b.slug).length >= 3, r };
+  }, { tries: 60, every: 10_000, label: 'the third delivery attempt (backoff 1m, 5m)' });
+  const own = forSlug(seen.r.requests, b.slug);
+  const ids = new Set(own.map((q) => parse(q)?.id).filter(Boolean));
+
+  record('a refused delivery is retried until it succeeds', own.length >= 3,
+    { note: `attempts=${own.length} (the receiver refused the first 2 with 500)`, attempts: own.length,
+      attempt_times: own.map((q) => q.received_at) });
+  record('every retry carries the SAME event, not a new one', ids.size <= 1,
+    { note: `distinct event ids across ${own.length} attempts = ${ids.size}`, distinct_event_ids: ids.size });
+  record('the retried event verifies on every attempt',
+    own.length > 0 && own.every((q) => verify(SECRET, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8')).ok),
+    { note: `${own.filter((q) => verify(SECRET, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8')).ok).length}/${own.length} verified` });
+  record('retry did not resurrect an earlier payment', ![...priorSlugs].includes(b.slug), { note: `slug=${b.slug}` });
 }
 
 // ---------------------------------------------------------------------------
