@@ -1,6 +1,7 @@
 package developer
 
 import (
+	"strings"
 	"context"
 	"errors"
 	"sync"
@@ -30,6 +31,34 @@ type fakeProvisioner struct {
 	gotProfile    string
 	gotPricingFor string
 	pricingErr    error
+
+	// Business readiness — the @banza handle and Sandbox KYB without which the
+	// Business can receive money and never move it.
+	readinessCalls  int
+	gotReadinessFor string
+	gotReadinessPrj string
+	readinessErr    error
+}
+
+func (f *fakeProvisioner) ProvisionSandboxReadiness(_ context.Context, merchantID, projectID string) (string, string, error) {
+	f.mu.Lock()
+	f.readinessCalls++
+	f.gotReadinessFor, f.gotReadinessPrj = merchantID, projectID
+	f.mu.Unlock()
+	if f.readinessErr != nil {
+		return "", "", f.readinessErr
+	}
+	h := strings.ReplaceAll(projectID, "-", "")
+	for len(h) < 12 {
+		h += "0"
+	}
+	return "p" + h[:12], "APPROVED", nil
+}
+
+func (f *fakeProvisioner) readinessCount() int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.readinessCalls
 }
 
 func (f *fakeProvisioner) AssignPricingProfile(_ context.Context, merchantID, profileCode string) error {

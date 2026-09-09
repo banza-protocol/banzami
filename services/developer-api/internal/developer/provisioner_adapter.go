@@ -24,6 +24,10 @@ func (p *coreProvisioner) AssignPricingProfile(ctx context.Context, merchantID, 
 	return p.c.AssignPricingProfile(ctx, merchantID, profileCode)
 }
 
+func (p *coreProvisioner) ProvisionSandboxReadiness(ctx context.Context, merchantID, projectID string) (string, string, error) {
+	return p.c.ProvisionSandboxReadiness(ctx, merchantID, projectID)
+}
+
 func (p *coreProvisioner) ProvisionSandboxOwner(ctx context.Context, name, email string) (*SandboxOwner, error) {
 	o, err := p.c.ProvisionSandboxOwner(ctx, name, email)
 	if o == nil {

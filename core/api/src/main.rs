@@ -768,6 +768,14 @@ async fn main() {
             post(routes::acquiring::emis_callback),
         )
         .route(
+            // Sandbox Business readiness — the @banza handle and test KYB that
+            // public Financial Setup could not create, without which no ordinary
+            // Developer Project could complete an application settlement.
+            // Refuses in LIVE on its own reading of the environment.
+            "/internal/v1/sandbox/business-readiness",
+            post(routes::sandbox_business::business_readiness),
+        )
+        .route(
             "/internal/v1/acquiring/test/confirm",
             post(routes::acquiring::test_confirm),
         )

@@ -86,6 +86,11 @@ func canConfigureFinancialSandbox(role string) bool {
 // unconfigured deployment is a nil value rather than a half-built client.
 type SandboxProvisioner interface {
 	ProvisionSandboxOwner(ctx context.Context, name, email string) (*SandboxOwner, error)
+	// ProvisionSandboxReadiness completes the Business so it can SETTLE, not
+	// merely receive: the @banza handle settlement names its parties by, and the
+	// Sandbox KYB state ADR-028 requires of a fee destination. Core refuses it in
+	// LIVE on its own reading of the environment.
+	ProvisionSandboxReadiness(ctx context.Context, merchantID, projectID string) (handle, kybStatus string, err error)
 	// AssignPricingProfile records which operator-governed policy prices this
 	// owner. Provisioning assigns the explicit Sandbox default, so a new project
 	// is priced by a rule that says zero — never by nothing matching.
@@ -185,7 +190,22 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 
 	// Already done. Returned rather than refused: a developer who double-clicks,
 	// or a page that retries, is asking for the project to be ready — and it is.
+	//
+	// Readiness is still ensured on this path, and that is how projects
+	// provisioned before it existed converge. Five Sandbox owners had been
+	// created without a @banza handle and so could never settle; rather than a
+	// migration or an operator sweep, the same public, idempotent operation a
+	// developer already calls completes them. A backfill that is a separate path
+	// is a second onboarding nobody maintains — this one cannot drift from the
+	// lifecycle because it IS the lifecycle.
 	if b, err := s.store.ActiveBindingForProject(ctx, p.ID); err == nil && b != nil && b.MerchantID != "" {
+		if _, _, rerr := s.provisioner.ProvisionSandboxReadiness(ctx, b.MerchantID, projectID); rerr != nil {
+			// Not fatal: the project IS bound and can already take payments. A
+			// readiness that could not be completed is reported and retried on the
+			// next call rather than turning a working project into an error.
+			slog.WarnContext(ctx, "developer.financial_setup.readiness_backfill_failed",
+				"project", projectID, "merchant", b.MerchantID, "err", rerr.Error())
+		}
 		return s.ProjectFinancialSetup(ctx, actor, projectID)
 	}
 
@@ -245,6 +265,29 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 		return FinancialSetup{}, ErrUnavailable
 	}
 
+	// Readiness before binding, for the same reason pricing is: a project that
+	// reaches READY should be able to complete the lifecycle it is told it can.
+	//
+	// Without this the Business could receive money and never move it. Settlement
+	// names its parties by @banza, and a Business with no handle cannot be named
+	// as a beneficiary or as its own fee destination — so POST
+	// /v1/business/application-settlements was unreachable for every ordinary
+	// Developer Project. Zero of the five Sandbox owners this platform had
+	// provisioned had a handle.
+	//
+	// Idempotent and resumable in Core: a retry keeps the handle it already
+	// registered, and never overwrites a compliance decision an operator made.
+	handle, kyb, rerr := s.provisioner.ProvisionSandboxReadiness(ctx, owner.MerchantID, projectID)
+	if rerr != nil {
+		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
+			"PROJECT:"+projectID, ip, reqID, map[string]any{
+				"stage": "business_readiness", "merchant_id": owner.MerchantID,
+			})
+		slog.ErrorContext(ctx, "developer.financial_setup.readiness_failed",
+			"project", projectID, "merchant", owner.MerchantID, "err", rerr.Error())
+		return FinancialSetup{}, ErrUnavailable
+	}
+
 	_, berr := s.BindProjectSandbox(ctx, projectID, owner.MerchantID, owner.WalletID, owner.WalletAccountID, actor, ip, reqID)
 	if berr != nil {
 		// A conflict here means another caller won the race and bound first. The
@@ -264,6 +307,8 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 		"PROJECT:"+projectID, ip, reqID, map[string]any{
 			"environment": s.environmentName(),
 			"merchant_id": owner.MerchantID,
+			"handle":      handle,
+			"kyb_status":  kyb,
 		})
 	return s.ProjectFinancialSetup(ctx, actor, projectID)
 }

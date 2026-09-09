@@ -16,6 +16,8 @@ package coreclient
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -382,6 +384,57 @@ func (c *ProvisionClient) ProvisionSandboxOwner(ctx context.Context, name, email
 	}
 	owner.WalletAccountID = acct
 	return owner, nil
+}
+
+// ProvisionSandboxReadiness completes a Business so it can actually SETTLE.
+//
+// Financial Setup created a merchant, a wallet and its PRIMARY account and
+// stopped there. That is enough to receive money and not enough to move it:
+// application settlement names its parties by @banza, and a Business with no
+// entry in the handle registry cannot be named — not as a beneficiary, and not
+// as its own application-fee destination. Zero of the Sandbox owners this
+// platform had provisioned had a handle, so no ordinary external Developer
+// Project could complete a settlement.
+//
+// The handle is DERIVED from the project, exactly as the merchant's name and
+// address already are. A caller-chosen handle is a caller-chosen identity, and
+// handles are a scarce public namespace: a developer naming their Sandbox
+// Business "banco" would reserve it.
+//
+// Core refuses this in LIVE on its own reading of the environment; the gate here
+// is the second of two, not the only one.
+func (c *ProvisionClient) ProvisionSandboxReadiness(ctx context.Context, merchantID, projectID string) (handle, kybStatus string, err error) {
+	var out struct {
+		Handle    string `json:"handle"`
+		KybStatus string `json:"kyb_status"`
+	}
+	if err := c.post(ctx, "/internal/v1/sandbox/business-readiness", map[string]any{
+		"merchant_id": merchantID,
+		"handle":      DeriveSandboxHandle(projectID),
+	}, &out); err != nil {
+		return "", "", err
+	}
+	return out.Handle, out.KybStatus, nil
+}
+
+// DeriveSandboxHandle turns a project id into a valid @banza handle.
+//
+// Deterministic, so a retry asks for the same one; prefixed with a letter
+// because a handle must start with one; hex only, so it can never spell a word
+// someone would want or read as an endorsement. 13 characters, inside the 3..20
+// the registry allows.
+//
+// It hashes rather than slicing the id. Taking a prefix and padding short input
+// made distinct projects derive the same handle — the empty string and the
+// all-zero UUID both produced p000000000000 — and two Businesses contending for
+// one identity is not a thing to leave to whether project ids are always
+// well-formed. A hash is total: every distinct input gets its own handle.
+//
+// A collision would still be refused by Core rather than resolved in anyone's
+// favour, so the worst case is an error, never a stolen identity.
+func DeriveSandboxHandle(projectID string) string {
+	sum := sha256.Sum256([]byte(projectID))
+	return "p" + hex.EncodeToString(sum[:])[:12]
 }
 
 // findMerchantByEmail returns this project's own merchant from an earlier
