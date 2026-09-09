@@ -730,7 +730,14 @@ sandbox-bootstrap-full:
 check-sandbox-release-package:
 	node infra/blueprint/validators/check-sandbox-release-package.mjs
 
-sandbox-release-package:
+# Capacity is a gate, not an afterthought. Disk exhaustion killed a Rust
+# attestation build mid-compile twice, and ENOSPC surfaces as a compiler error
+# or a hung daemon rather than as "no disk" — an hour after the decision.
+.PHONY: release-preflight
+release-preflight:
+	node tools/release/preflight.mjs
+
+sandbox-release-package: release-preflight
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh build
 
 sandbox-release-package-verify:

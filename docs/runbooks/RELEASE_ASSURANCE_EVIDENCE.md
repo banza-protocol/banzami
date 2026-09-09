@@ -95,6 +95,59 @@ records. Nothing rewrites them any more.
 Both are mutation-proven: reintroduce the old behaviour and they fail for the
 right reason.
 
+## Durability — /tmp is execution space, not authority
+
+The harnesses write to `<tmpdir>/banzami-assurance/<sha>/`. That is correct as a
+workspace and wrong as a system of record: temp is swept by the OS, and evidence
+that disappears on reboot cannot support a release claim made a week later.
+
+So publication is a second, distinct step:
+
+```bash
+node tools/release/publish-assurance.mjs --sha <full-sha>
+```
+
+It copies every file into `$BANZAMI_ASSURANCE_STORE` (default
+`~/.banzami/assurance/<sha>/`), **re-reads each one at the destination and
+compares checksums** — a copy that reports success and lands truncated is
+precisely what a full disk produces — and writes an `index.json` carrying the
+candidate SHA, the per-suite verdicts, and the totals for `simulated` and
+`blocked` so a non-zero count cannot hide inside a file.
+
+It never deletes the workspace, so a failed publish cannot destroy the only copy.
+`proveDurable()` asserts the destination is outside both the repository and temp.
+
+## Capacity — fail before the build, not inside it
+
+```bash
+make release-preflight     # runs automatically before sandbox-release-package
+```
+
+Checks free capacity and whether the Docker daemon actually answers, then lists
+regenerable consumers largest-first if it fails.
+
+**The threshold is measured, not chosen.** Two observations bound it: a full
+release package build starting with 13 GiB free completed; one starting with
+≈2.3 GiB free died with ENOSPC. The floor sits inside that interval. After the
+first build completed under `recordBuildConsumption()`, the requirement becomes
+that measurement × 1.25 — the number calibrates itself out of the guess.
+
+Measured artefact sizes, for classification: one source bundle ≈92 MiB; one
+release package directory ≈770 MiB.
+
+### Cleanup
+
+Only regenerable build products are ever candidates. **Never** deleted:
+
+    */banzami-source-deploy/*.manifest.json    the bundle → full source SHA chain
+    */banzami-source-deploy/*.receipt.txt      deploy receipts
+    <assurance store>/**                       published evidence
+    /run/secrets/**, databases, runtime state, deployed images
+
+A cleanup must never destroy the chain that proves *bundle → full source SHA →
+deployed runtime*. `tests/ops/release-preflight.test.mjs` asserts the classifier
+cannot select any of them.
+
 ## Not acceptable
 
 Reverting evidence after a run · `git checkout --` after each suite ·
