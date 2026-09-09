@@ -134,7 +134,7 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	err := s.pool.QueryRow(ctx, `
 		SELECT m.id::text, m.name, COALESCE(m.status,''),
 		       COALESCE(m.business_account_type,'MERCHANT'),
-		       mp.handle, mp.display_name, mp.category,
+		       COALESCE(mp.handle, hr.handle), mp.display_name, mp.category,
 		       COALESCE(w.id, ow.id)::text,
 		       mc.kyb_status,
 		       COALESCE(w.currency, ow.currency),
@@ -150,6 +150,14 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 		       ORDER BY created_at
 		       LIMIT 1
 		  ) ow ON TRUE
+		  -- The @banza this Business is actually reachable by. handle_registry is
+		  -- the routing table a payment resolves a named party through; the public
+		  -- profile is a copy that a self-service Business never has. A developer
+		  -- who cannot discover their own handle cannot name themselves as a
+		  -- settlement beneficiary or fee destination — which is the whole point of
+		  -- having one.
+		  LEFT JOIN handle_registry hr
+		         ON hr.owner_id = m.id AND hr.owner_type = 'MERCHANT'
 		 WHERE m.id = $1`, merchantID).
 		Scan(&r.MerchantID, &r.BusinessName, &r.Status, &r.BusinessAccountType,
 			&handle, &display, &category, &walletID, &kybStatus, &walCur, &walStatus)

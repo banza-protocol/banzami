@@ -98,6 +98,21 @@ func TestSelf_ResolvesTheWalletTheMerchantOwns(t *testing.T) {
 	if res.WalletCurrency != "AOA" {
 		t.Errorf("wallet_currency = %q, want AOA", res.WalletCurrency)
 	}
+	// The handle lives in handle_registry, which is what a payment resolves a
+	// named party through. Reading it only from the public profile left a
+	// self-service Business unable to discover the @banza it settles by.
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`,
+		"p"+merchant[:12], merchant); err == nil {
+		again, aerr := svc.Self(ctx, merchant, "SANDBOX")
+		if aerr != nil {
+			t.Fatalf("Self after handle: %v", aerr)
+		}
+		if again.Handle != "p"+merchant[:12] {
+			t.Errorf("handle = %q, want the registered @banza — a developer who cannot "+
+				"discover their own handle cannot name themselves as a settlement party", again.Handle)
+		}
+	}
 	if res.PrimaryAccountID == "" {
 		t.Error("no PRIMARY account resolved — the wallet trigger creates one with every wallet")
 	}
