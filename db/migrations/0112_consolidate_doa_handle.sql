@@ -132,7 +132,21 @@ BEGIN
     -- merchant_profiles is the optional public-profile layer, not the routing
     -- namespace — but a stale copy pointing at the old owner would contradict the
     -- resolver, and one of them would be wrong wherever it was read.
-    UPDATE merchant_profiles SET handle = NULL
+    --
+    -- The name cannot simply be blanked. merchant_profiles.handle is NOT NULL,
+    -- UNIQUE and format-checked (`^[a-z0-9][a-z0-9_]{1,48}[a-z0-9]$`), which is
+    -- the schema stating that a profile row exists only for a merchant that HAS
+    -- a handle. An earlier version set it to NULL and failed on the not-null
+    -- constraint — correctly: after the move the old owner has no handle at all,
+    -- so it is not a merchant with a blank profile, it is a merchant with no
+    -- profile. Nor is a synthetic replacement right, because that would invent a
+    -- name in a UNIQUE namespace that no identity ever answered to.
+    --
+    -- The row is therefore removed. Only the public profile goes: the merchant,
+    -- its (empty) financial history and its audit trail are untouched, and the
+    -- retirement of the NAME is recorded in handle_registry above, where the
+    -- namespace is — reserved, never re-issued.
+    DELETE FROM merchant_profiles
      WHERE merchant_id = v_from_owner AND handle = v_handle;
 
     RAISE NOTICE '0112: @% consolidated from % to %', v_handle, v_from_owner, v_to_owner;
