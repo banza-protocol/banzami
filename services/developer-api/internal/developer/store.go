@@ -469,7 +469,6 @@ const AcquiringProtocolNote = "Estado do protocolo mantém-se ACTIVE: o BANZA ex
 	"o que um pagamento externo não é. O crédito acima é a verdade operacional " +
 	"da execução (BANZA RFC-0007)."
 
-
 // TransactionFilter narrows and pages the stream. Every field is applied in
 // SQL: filtering a capped page in the browser answers a different question from
 // the one the user asked, and answers it wrongly as soon as there is history.

@@ -14,8 +14,8 @@ func TestDeriveSandboxHandle(t *testing.T) {
 		"84b0e8e6-fbda-417e-a537-19ad8574827a",
 		"00000000-0000-0000-0000-000000000000",
 		"ffffffff-ffff-ffff-ffff-ffffffffffff",
-		"AB",  // short and uppercase — still must produce a valid handle
-		"",    // absent — must not produce something the registry rejects
+		"AB", // short and uppercase — still must produce a valid handle
+		"",   // absent — must not produce something the registry rejects
 	}
 	seen := map[string]string{}
 	for _, id := range cases {
