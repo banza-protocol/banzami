@@ -427,8 +427,13 @@ func (s *ProofService) GetByReference(ctx context.Context, ref string) (*Proof, 
 	if class == ReferenceInvalid {
 		return nil, ErrProofNotFound
 	}
+	// Exact equality, not upper(...)=upper(...). The parser above already fixed the
+	// canonical spelling, and a case-insensitive query would quietly restore the
+	// second definition it exists to remove — leaving persistence and the public
+	// contract disagreeing about what "the same reference" means, and giving
+	// UNIQUE(proof_reference) a different notion of identity than lookup.
 	p, err := scanProof(s.pool.QueryRow(ctx,
-		`SELECT `+proofCols+` FROM transaction_proofs WHERE upper(proof_reference)=upper($1)`, ref))
+		`SELECT `+proofCols+` FROM transaction_proofs WHERE proof_reference=$1`, ref))
 	if err != nil {
 		return nil, err
 	}
