@@ -29,6 +29,28 @@ const (
 // Business account (identity + KYB + category/pricing + wallet + settlement
 // readiness), assembled for the account itself. Non-secret only: never API keys,
 // PINs, storage keys, balances, or another tenant's data.
+// FeeDestinationCheck answers "can this @banza actually receive the application
+// fee?" — one field per condition ADR-028 requires, so a caller learns which one
+// failed rather than that something did.
+type FeeDestinationCheck struct {
+	Handle string `json:"handle"`
+	// Resolved says the @banza names a party at all.
+	Resolved bool `json:"resolved"`
+	// OwnedByCaller: the contract requires an application fee to land in the
+	// caller's OWN business account. A destination belonging to somebody else is
+	// refused by Core, and saying so here is the difference between a fixable
+	// message and a mystery.
+	OwnedByCaller bool   `json:"owned_by_caller"`
+	WalletActive  bool   `json:"wallet_active"`
+	Currency      string `json:"currency"`
+	KybApproved   bool   `json:"kyb_approved"`
+	// TypeAllowed: only APPLICATION/PLATFORM accounts may take an application fee.
+	TypeAllowed bool `json:"type_allowed"`
+	Ready       bool `json:"ready"`
+	// Blocker names the FIRST unmet condition, in the order Core checks them.
+	Blocker string `json:"blocker,omitempty"`
+}
+
 type BusinessResolution struct {
 	MerchantID          string
 	Handle              string
@@ -66,6 +88,11 @@ type BusinessResolution struct {
 	Blockers        []string
 	Warnings        []string // advisory (does not block settlement) — e.g. WEBHOOK_ENDPOINT_MISSING
 	SettlementReady bool
+	// Present only when a fee destination was asked about. Its readiness is
+	// reported beside the account's own, never merged into it: a settlement that
+	// charges no fee needs no destination, so an unready one is not a blocker on
+	// the account.
+	FeeDestination *FeeDestinationCheck
 }
 
 // BusinessSelfService resolves the consolidated profile of a Business account
@@ -89,7 +116,7 @@ type OperationRate struct {
 // Self resolves the account for the given merchant id (always from the
 // authenticated principal — a self lookup, not an oracle). Returns
 // ErrMerchantNotFound when the merchant row is absent.
-func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment string) (*BusinessResolution, error) {
+func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment, feeDestination string) (*BusinessResolution, error) {
 	if s == nil || s.pool == nil {
 		return nil, errors.New("business self service is not configured")
 	}
@@ -264,6 +291,31 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 	}
 	r.PricingFound = len(r.PricingRules) > 0
 
+	// A fee destination, checked as a DESTINATION.
+	//
+	// The DOA integration reported "integração com problemas" because a local
+	// setting expected @doa while the Project key resolved @p1a5f17b3cc7e, and
+	// something compared the two as if they were one identity. They are not.
+	// Three separate identities exist in an application settlement:
+	//
+	//   the Project's own financial identity  — from key, project, sealed binding
+	//   the platform fee destination          — where the app's commission goes
+	//   the campaign beneficiary              — who receives the net
+	//
+	// All three may legitimately differ, so equality with the caller's own handle
+	// proves nothing about any of them. What matters for a fee destination is
+	// whether it can actually RECEIVE the fee, which is what ADR-028 states and
+	// what Core enforces: it must resolve, be ACTIVE, hold an ACTIVE wallet in the
+	// currency, be KYB-approved, be of a type permitted to take an application
+	// fee, and belong to the caller.
+	//
+	// Each of those failing gets its own reason. Collapsing them into one generic
+	// "integration has problems" is what left an operator guessing which of six
+	// conditions was unmet.
+	if strings.TrimSpace(feeDestination) != "" {
+		r.FeeDestination = s.checkFeeDestination(ctx, merchantID, feeDestination)
+	}
+
 	// Compute settlement blockers from real state.
 	r.Blockers = r.Blockers[:0]
 	if !strings.EqualFold(r.Status, string(MerchantStatusActive)) {
@@ -333,4 +385,74 @@ func (s *BusinessSelfService) PricingProfileForMerchant(ctx context.Context, mer
 		return "", nil
 	}
 	return *code, nil
+}
+
+// checkFeeDestination walks the same conditions Core enforces on an application
+// fee destination (ADR-028), reporting each one rather than a verdict.
+//
+// It resolves through handle_registry — the one namespace every @banza lookup
+// goes through — so a handle that is not registered is simply not resolvable,
+// whatever else exists under that name elsewhere.
+func (s *BusinessSelfService) checkFeeDestination(ctx context.Context, callerMerchantID, handle string) *FeeDestinationCheck {
+	h := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(handle), "@"))
+	out := &FeeDestinationCheck{Handle: h}
+
+	var ownerType string
+	var ownerID *string
+	err := s.pool.QueryRow(ctx,
+		`SELECT owner_type, owner_id::text FROM handle_registry WHERE handle = $1`, h).
+		Scan(&ownerType, &ownerID)
+	if err != nil || ownerID == nil {
+		out.Blocker = "FEE_DESTINATION_NOT_FOUND"
+		return out
+	}
+	out.Resolved = true
+
+	// The fee must land in the caller's own account. This is checked before the
+	// rest because it is the one an integrator can act on immediately, and
+	// because reporting a stranger's compliance state would leak it.
+	out.OwnedByCaller = *ownerID == callerMerchantID
+	if !out.OwnedByCaller {
+		out.Blocker = "FEE_DESTINATION_NOT_OWNED"
+		return out
+	}
+
+	var status, acctType string
+	var kyb *string
+	var currency, walletStatus *string
+	if err := s.pool.QueryRow(ctx, `
+		SELECT m.status, COALESCE(m.business_account_type,'MERCHANT'), c.kyb_status, w.currency, w.status
+		  FROM merchants m
+		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = m.id
+		  LEFT JOIN LATERAL (SELECT kyb_status FROM merchant_compliance WHERE merchant_id = m.id) c ON TRUE
+		  LEFT JOIN LATERAL (
+		      SELECT currency, status FROM wallets
+		       WHERE merchant_id = m.id AND status = 'ACTIVE' ORDER BY created_at LIMIT 1
+		  ) w ON TRUE
+		 WHERE m.id = $1`, *ownerID).
+		Scan(&status, &acctType, &kyb, &currency, &walletStatus); err != nil {
+		out.Blocker = "FEE_DESTINATION_NOT_FOUND"
+		return out
+	}
+
+	if currency != nil {
+		out.Currency = *currency
+	}
+	out.WalletActive = walletStatus != nil && strings.EqualFold(*walletStatus, "ACTIVE")
+	out.KybApproved = kyb != nil && *kyb == "APPROVED"
+	out.TypeAllowed = acctType == "APPLICATION" || acctType == "PLATFORM"
+
+	switch {
+	case !strings.EqualFold(status, string(MerchantStatusActive)):
+		out.Blocker = "FEE_DESTINATION_NOT_ACTIVE"
+	case !out.WalletActive:
+		out.Blocker = "FEE_DESTINATION_WALLET_UNAVAILABLE"
+	case !out.KybApproved:
+		out.Blocker = "FEE_DESTINATION_KYB_NOT_APPROVED"
+	case !out.TypeAllowed:
+		out.Blocker = "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+	default:
+		out.Ready = true
+	}
+	return out
 }

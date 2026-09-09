@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
@@ -80,7 +81,10 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(r.Context(), "business_resolution_started",
 		"merchant_id", merchantID, "environment", env)
 
-	res, err := h.svc.Self(r.Context(), merchantID, env)
+	// A fee destination is configuration the integration supplies, not authority.
+	// Asked about here so an operator learns whether it can receive the fee —
+	// and which condition fails if it cannot.
+	res, err := h.svc.Self(r.Context(), merchantID, env, r.URL.Query().Get("fee_destination"))
 	if err != nil {
 		if errors.Is(err, service.ErrMerchantNotFound) {
 			slog.WarnContext(r.Context(), "business_resolution_failed",
@@ -121,7 +125,7 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		subcategory = res.Subcategory
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
+	body := map[string]any{
 		"environment":           env,
 		"id":                    res.MerchantID,
 		"handle":                res.Handle,
@@ -163,9 +167,18 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 			"enabled":  true,
 			"blockers": blockers,
 		},
-		"blockers": blockers,
-		"warnings": warnings,
-	})
+		"blockers":   blockers,
+		"warnings":   warnings,
+		"checked_at": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	// Reported beside the account's own readiness, never merged into it. A
+	// settlement that charges no fee needs no destination at all, so an unready
+	// one is configuration to fix, not a blocker on the Business.
+	if res.FeeDestination != nil {
+		body["fee_destination"] = res.FeeDestination
+	}
+	writeJSON(w, http.StatusOK, body)
 }
 
 // pricingOperations renders the assigned rates as a stable list. Always a list,

@@ -18,6 +18,7 @@ package service
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -83,7 +84,7 @@ func TestSelf_ResolvesTheWalletTheMerchantOwns(t *testing.T) {
 		t.Fatalf("fixture has %d profile rows — it must reproduce a self-service owner, which has none", profiles)
 	}
 
-	res, err := svc.Self(ctx, merchant, "SANDBOX")
+	res, err := svc.Self(ctx, merchant, "SANDBOX", "")
 	if err != nil {
 		t.Fatalf("Self: %v", err)
 	}
@@ -104,7 +105,7 @@ func TestSelf_ResolvesTheWalletTheMerchantOwns(t *testing.T) {
 	if _, err := pool.Exec(ctx,
 		`INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`,
 		"p"+merchant[:12], merchant); err == nil {
-		again, aerr := svc.Self(ctx, merchant, "SANDBOX")
+		again, aerr := svc.Self(ctx, merchant, "SANDBOX", "")
 		if aerr != nil {
 			t.Fatalf("Self after handle: %v", aerr)
 		}
@@ -136,7 +137,7 @@ func TestSelf_StillReportsTheBlockersThatAreReal(t *testing.T) {
 	svc := &BusinessSelfService{pool: pool}
 
 	merchant, _ := seedSelfServiceOwner(ctx, t, pool)
-	res, err := svc.Self(ctx, merchant, "SANDBOX")
+	res, err := svc.Self(ctx, merchant, "SANDBOX", "")
 	if err != nil {
 		t.Fatalf("Self: %v", err)
 	}
@@ -191,7 +192,7 @@ func TestSelf_TheProfilesWalletStillWinsWhenSet(t *testing.T) {
 		t.Skipf("merchant_profiles shape differs: %v", err)
 	}
 
-	res, err := svc.Self(ctx, merchant, "SANDBOX")
+	res, err := svc.Self(ctx, merchant, "SANDBOX", "")
 	if err != nil {
 		t.Fatalf("Self: %v", err)
 	}
@@ -199,4 +200,102 @@ func TestSelf_TheProfilesWalletStillWinsWhenSet(t *testing.T) {
 		t.Fatalf("wallet_id = %q, want the profile's wallet %q (the owner's oldest was %q) — the "+
 			"fallback must not override a deliberate choice", res.WalletID, second, first)
 	}
+}
+
+// A fee destination is a DESTINATION, not the caller's identity.
+//
+// The DOA integration showed "integração com problemas" because a local setting
+// expected @doa while the Project key resolved @p1a5f17b3cc7e, and the two were
+// compared as though they were one thing. They are three separate identities in
+// an application settlement — the Project's own, the platform fee destination,
+// and the campaign beneficiary — and all three may legitimately differ.
+//
+// What matters is whether the destination can RECEIVE the fee. Each condition
+// ADR-028 requires gets its own answer, so an operator learns which one failed.
+func TestSelf_FeeDestinationIsCheckedAsADestination(t *testing.T) {
+	ctx := context.Background()
+	pool := selfPoolOrSkip(t)
+	defer pool.Close()
+	svc := &BusinessSelfService{pool: pool}
+
+	caller, _ := seedSelfServiceOwner(ctx, t, pool)
+
+	t.Run("absent unless asked about", func(t *testing.T) {
+		res, err := svc.Self(ctx, caller, "SANDBOX", "")
+		if err != nil {
+			t.Fatalf("Self: %v", err)
+		}
+		if res.FeeDestination != nil {
+			t.Error("a fee destination was reported although none was asked about")
+		}
+	})
+
+	t.Run("an unregistered handle is not found, not 'broken integration'", func(t *testing.T) {
+		res, _ := svc.Self(ctx, caller, "SANDBOX", "@nobody-here-at-all")
+		if res.FeeDestination == nil || res.FeeDestination.Resolved {
+			t.Fatalf("expected an unresolved destination, got %+v", res.FeeDestination)
+		}
+		if res.FeeDestination.Blocker != "FEE_DESTINATION_NOT_FOUND" {
+			t.Errorf("blocker = %q, want FEE_DESTINATION_NOT_FOUND", res.FeeDestination.Blocker)
+		}
+	})
+
+	t.Run("a destination owned by somebody else says so precisely", func(t *testing.T) {
+		other, _ := seedSelfServiceOwner(ctx, t, pool)
+		h := "other" + other[:8]
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`,
+			h, other); err != nil {
+			t.Skipf("cannot register: %v", err)
+		}
+		res, _ := svc.Self(ctx, caller, "SANDBOX", "@"+h)
+		fd := res.FeeDestination
+		if fd == nil || !fd.Resolved {
+			t.Fatalf("destination did not resolve: %+v", fd)
+		}
+		if fd.OwnedByCaller {
+			t.Error("a destination belonging to another merchant was reported as owned by the caller")
+		}
+		if fd.Blocker != "FEE_DESTINATION_NOT_OWNED" {
+			t.Errorf("blocker = %q, want FEE_DESTINATION_NOT_OWNED — this is the condition "+
+				"an integrator can act on, and it must not hide behind a generic error", fd.Blocker)
+		}
+		// Another party's compliance state is not the caller's business.
+		if fd.KybApproved {
+			t.Error("a stranger's KYB state was disclosed")
+		}
+	})
+
+	t.Run("the caller's own account is checked through to type and KYB", func(t *testing.T) {
+		h := "self" + caller[:8]
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)`,
+			h, caller); err != nil {
+			t.Skipf("cannot register: %v", err)
+		}
+		res, _ := svc.Self(ctx, caller, "SANDBOX", "@"+h)
+		fd := res.FeeDestination
+		if fd == nil || !fd.OwnedByCaller {
+			t.Fatalf("the caller's own handle was not recognised as owned: %+v", fd)
+		}
+		// A plain MERCHANT may not take an application fee (ADR-028), and this
+		// fixture has no compliance record — so the first unmet condition is
+		// reported, not a verdict.
+		if fd.Ready {
+			t.Error("a MERCHANT with no KYB was reported ready to take an application fee")
+		}
+		if fd.Blocker == "" {
+			t.Error("not ready, and no reason given")
+		}
+	})
+
+	t.Run("an unready destination is not a blocker on the Business itself", func(t *testing.T) {
+		res, _ := svc.Self(ctx, caller, "SANDBOX", "@nobody-here-at-all")
+		for _, b := range res.Blockers {
+			if strings.Contains(b, "FEE_DESTINATION") {
+				t.Errorf("%q leaked into the account's own blockers — a settlement that "+
+					"charges no fee needs no destination at all", b)
+			}
+		}
+	})
 }
