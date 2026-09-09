@@ -152,7 +152,28 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 
 	payment, err := h.svc.TestConfirm(r.Context(), externalRef, link.Currency)
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		// `ref` is caller-supplied. An unknown one is the caller's mistake, not this
+		// server failing, and it answered 500 INTERNAL_ERROR with err.Error() pasted
+		// into the body — the wrong class, and internal text on a public surface.
+		// The block above already distinguishes not-found correctly; this one now
+		// does the same, and never echoes the upstream error.
+		if errors.Is(err, service.ErrNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "no pending payment for that reference")
+			return
+		}
+		if ce, ok := service.AsCoreError(err); ok && ce.IsClientError() {
+			code, msg := ce.Code, ce.Message
+			if code == "" {
+				code = "REJECTED"
+			}
+			if msg == "" {
+				msg = "the confirmation was rejected"
+			}
+			apierror.Respond(w, r, ce.Status, code, msg)
+			return
+		}
+		slog.ErrorContext(r.Context(), "test-confirm failed", "external_ref", externalRef, "error", err)
+		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not confirm the payment")
 		return
 	}
 

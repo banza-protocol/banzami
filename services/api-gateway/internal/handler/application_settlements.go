@@ -367,8 +367,17 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	// Fee destination @banza → its account (only when a fee is charged). It must
 	// be the caller's OWN business account; core further enforces APPLICATION/PLATFORM
 	// type + KYB (ADR-028).
+	//
+	// Resolved whenever the caller NAMES a destination — not only when the caller
+	// also sends application_fee_bps. The rate comes from the merchant's assigned
+	// pricing profile and a caller-supplied bps is explicitly ignored (see below),
+	// so gating the DESTINATION on that same ignored field meant an integrator who
+	// followed the documented model named @doa, sent no bps, and had the fee
+	// account silently dropped. Core then refused the settlement it was asked to
+	// make — "application_fee_account_id is required for this category" — for a
+	// field the public contract never told the caller to send.
 	feeAccountID := ""
-	if body.ApplicationFeeBps > 0 {
+	if body.FeeDestinationBanzaName != "" || body.ApplicationFeeBps > 0 {
 		if body.FeeDestinationBanzaName == "" {
 			apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "fee_destination_banza_name is required when application_fee_bps > 0")
 			return
@@ -419,6 +428,20 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	})
 	if err != nil {
 		slog.ErrorContext(r.Context(), "business_settlement.create.failed", "owner_ref", ownerRef, "error", err)
+		// A deliberate core 4xx is a decision the caller can act on, and collapsing
+		// it into 502 hid the one sentence that said what to fix. 5xx and transport
+		// failures still become 502: the request may have been perfectly valid.
+		if ce, ok := service.AsCoreError(err); ok && ce.IsClientError() {
+			code, msg := ce.Code, ce.Message
+			if code == "" {
+				code = "SETTLEMENT_REJECTED"
+			}
+			if msg == "" {
+				msg = "settlement was rejected"
+			}
+			apierror.Respond(w, r, ce.Status, code, msg)
+			return
+		}
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not create settlement")
 		return
 	}

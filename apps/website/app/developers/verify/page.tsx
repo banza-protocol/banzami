@@ -1,16 +1,28 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconChevronLeft, IconEnvelopeOpen } from '@/components/developers/portal/icons';
 import { developerApi, ApiError } from '@/lib/developer-api';
 
-// OTP verification — dossier ecrã 2. Six single-digit inputs with auto-focus,
-// backspace-to-previous, paste-distribute; the "Verificar código" button stays
-// disabled until all six are filled. Resend counts down from 45s, then becomes
-// a clickable "Reenviar código". The real code comes from the backend later.
+// OTP verification — six single-digit inputs with auto-focus,
+// backspace-to-previous, paste-distribute, and AUTO-SUBMIT on the sixth digit.
+//
+// The sixth digit verifies on its own. Requiring a click after the code is
+// already complete is a step the user has no reason to take, and it reads as a
+// hang: the form looks finished and nothing happens. The button stays as a
+// fallback for anyone who wants it, and both paths call the SAME verify().
+//
+// Auto-submit is only safe if it fires exactly once. The completed code can
+// arrive from a keystroke, a paste, a browser one-time-code autofill, Enter, or
+// the button — and React may re-run the effect without the code changing. So the
+// in-flight flag is a REF, not state: state updates are batched and a second
+// trigger in the same tick would read a stale `false`. The last submitted code is
+// remembered for the same reason, and cleared as soon as the code is incomplete
+// again so that correcting a digit re-arms submission — including retyping the
+// same code after a failure.
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 const OTP_LEN = 6;
@@ -49,6 +61,13 @@ function VerifyInner() {
   const onKeyDown = (i: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace' && !e.currentTarget.value && i > 0) {
       refs.current[i - 1]?.focus();
+      return;
+    }
+    // Enter with a complete code submits too. It races the sixth-digit effect by
+    // design; the in-flight ref is what makes that a single request.
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void verify(digits.join(''));
     }
   };
 
@@ -65,15 +84,22 @@ function VerifyInner() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Refs, not state: two triggers in the same tick (sixth digit + Enter, or a
+  // paste that also completes the code) would both read a stale `false` from
+  // batched state and fire twice.
+  const inFlight = useRef(false);
+  const lastSubmitted = useRef('');
 
-  const verify = async () => {
-    if (!filled || busy) return;
+  const verify = useCallback(async (code: string) => {
+    if (code.length !== OTP_LEN || inFlight.current) return;
+    inFlight.current = true;
+    lastSubmitted.current = code;
     setError('');
     setBusy(true);
     try {
       // On success the API sets the host-only session cookie; the portal restores
       // the session (and a fresh CSRF token) via /auth/me on load.
-      await developerApi.verify(email, digits.join(''));
+      await developerApi.verify(email, code);
       router.push('/');
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
@@ -85,8 +111,28 @@ function VerifyInner() {
             : 'Não foi possível verificar. Tente novamente.',
       );
       setBusy(false);
+      inFlight.current = false;
+      // Leave the digits in place — a network blip is not a reason to make the
+      // user retype a code that may still be valid — but put the caret back so
+      // correcting it takes no mouse.
+      refs.current[OTP_LEN - 1]?.focus();
     }
-  };
+  }, [email, router]);
+
+  // The sixth digit submits. Completion can arrive from a keystroke, a paste, or
+  // a browser one-time-code autofill, and this effect is the single place that
+  // notices. `lastSubmitted` stops a re-render from submitting the same code
+  // twice, and clearing it the moment the code is incomplete re-arms submission
+  // so that fixing a digit — or retyping the same code after a failure — works.
+  useEffect(() => {
+    const code = digits.join('');
+    if (!filled) {
+      lastSubmitted.current = '';
+      return;
+    }
+    if (inFlight.current || lastSubmitted.current === code) return;
+    void verify(code);
+  }, [digits, filled, verify]);
 
   const resendOtp = async () => {
     if (resend > 0) return;
@@ -165,6 +211,7 @@ function VerifyInner() {
             }}
             className="bz-otp"
             inputMode="numeric"
+            autoComplete="one-time-code"
             maxLength={1}
             value={d}
             onChange={onChange(i)}
@@ -196,7 +243,7 @@ function VerifyInner() {
       ) : null}
 
       <button
-        onClick={verify}
+        onClick={() => void verify(digits.join(''))}
         disabled={!filled || busy}
         className="bz-cta"
         style={{
