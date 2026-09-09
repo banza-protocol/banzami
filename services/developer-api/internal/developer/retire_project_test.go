@@ -14,6 +14,8 @@ package developer
 
 import (
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestRetireProject_RevokesKeysAndDisablesAnUnsealedBinding(t *testing.T) {
@@ -90,6 +92,20 @@ func TestRetireProject_RequiresAReason(t *testing.T) {
 			}
 			if a.Metadata != nil && a.Metadata["e2e_fixture"] == true {
 				t.Error("a real retirement was audited as an e2e fixture")
+			}
+			// actor_user_id is a uuid column. A label must not be written into it:
+			// the row is rejected and the retirement then reports success with no
+			// record. The caller is recorded in metadata, where it can be read.
+			if a.ActorUserID != nil {
+				if _, err := uuid.Parse(*a.ActorUserID); err != nil {
+					t.Errorf("actor_user_id = %q, which is not a uuid — this row cannot be "+
+						"inserted, and the audit would be lost while the operation succeeded",
+						*a.ActorUserID)
+				}
+			}
+			if a.Metadata["requested_by"] != "operator" {
+				t.Errorf("requested_by = %v, want the caller recorded where it is readable",
+					a.Metadata["requested_by"])
 			}
 		}
 	}

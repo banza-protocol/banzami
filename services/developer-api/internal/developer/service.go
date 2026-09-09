@@ -2,6 +2,7 @@ package developer
 
 import (
 	"github.com/banzami/banzami/services/common/webhookprov"
+	"github.com/google/uuid"
 
 	"context"
 	"errors"
@@ -752,11 +753,21 @@ func (s *Service) RetireProject(ctx context.Context, projectID, actor, reason, i
 	if err != nil {
 		return 0, err
 	}
-	if strings.TrimSpace(actor) == "" {
-		actor = "operator"
+	// actor_user_id is a uuid column. A label like "operator" is not one, and
+	// inventing a value to fill the field is how the audit row was rejected while
+	// the retirement reported success. An operator action has no Account Identity
+	// behind it, so the column is left NULL and the caller is recorded where it
+	// can actually be read.
+	caller := strings.TrimSpace(actor)
+	if caller == "" {
+		caller = "operator"
 	}
-	s.audit(ctx, &actor, nil, &projectID, "project.retired", "PROJECT:"+projectID, ip, reqID,
-		map[string]any{"reason": reason, "keys_revoked": revoked})
+	var actorRef *string
+	if _, err := uuid.Parse(caller); err == nil {
+		actorRef = &caller
+	}
+	s.audit(ctx, actorRef, nil, &projectID, "project.retired", "PROJECT:"+projectID, ip, reqID,
+		map[string]any{"reason": reason, "keys_revoked": revoked, "requested_by": caller})
 	return revoked, nil
 }
 
@@ -1029,11 +1040,21 @@ func (s *Service) RebindProjectSandbox(ctx context.Context, projectID, merchantI
 // the ACTIVE binding. There is exactly one sealing mechanism, and it is the one
 // that can see the artifact it is sealing for.
 
+// audit records what happened. Fire-and-forget by design — an audit failure must
+// not fail the operation it describes — but never SILENT.
+//
+// The error used to be discarded. A retirement then reported success while its
+// audit row was rejected (actor_user_id is a uuid and the caller had passed a
+// label), so the operation looked recorded and was not. An audit that can fail
+// quietly is worse than none: it is the record you would trust later.
 func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action, subject, ip, reqID string, meta map[string]any) {
-	_ = s.store.InsertAudit(ctx, AuditEvent{
+	if err := s.store.InsertAudit(ctx, AuditEvent{
 		ActorUserID: actor, WorkspaceID: wsID, ProjectID: projID,
 		Action: action, Subject: subject, Metadata: meta, RequestIP: ip, RequestID: reqID,
-	})
+	}); err != nil {
+		slog.ErrorContext(ctx, "developer.audit.insert_failed",
+			"action", action, "subject", subject, "err", err.Error())
+	}
 }
 
 // KeyIntrospection is the resolved authorization context of a verified external
