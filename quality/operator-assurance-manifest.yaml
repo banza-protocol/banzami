@@ -423,6 +423,7 @@ capabilities:
       e2e_sandbox:
         - tests/phase0/webhook-lifecycle-e2e.sh (18/18 on deployed sandbox, post-reset)
         - tests/phase0/webhook-delivery-to-doa.sh (signed delivery accepted by production DOA)
+        - tests/phase0/developer-platform-e2e.sh F0-DP-011 (24/24, simulated=0) — real outbound delivery from the deployed runtime to a public HTTPS sink it does not control, verified by an implementation that imports nothing from the signer; previously SIMULATED for want of such a sink
       negative_security:
         - the endpoint secret is returned once and never re-exposed on read
         - a read-only key can list but cannot register or rotate (403)
@@ -430,6 +431,8 @@ capabilities:
         - an unbound project has no webhook surface at all (403)
         - rotation issues a genuinely different secret
         - signature is over the raw bytes: body, digest and timestamp tampering all fail
+        - the same delivery rejected under a wrong secret, asserted in the E2E itself — a verifier that accepts everything would report a green delivery for a platform that signed nothing
+        - a refused delivery is retried on the published backoff (observed +0s, +65s, +5m6s) carrying the SAME event id, each attempt re-signed with a fresh timestamp so a long backoff never expires mid-retry
         - destination guard rejects http, loopback, RFC1918 and link-local metadata targets
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
