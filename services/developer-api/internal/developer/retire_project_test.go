@@ -151,3 +151,28 @@ func TestRetireProject_UnknownProjectIsStillNotFound(t *testing.T) {
 		t.Error("retiring a project that does not exist succeeded")
 	}
 }
+
+// isUUID is a shape check, and its negatives are the point: anything that is not
+// a uuid must be kept out of a uuid column.
+func TestIsUUID(t *testing.T) {
+	for _, ok := range []string{
+		"11111111-2222-4333-8444-555555555555",
+		"AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE",
+	} {
+		if !isUUID(ok) {
+			t.Errorf("%q rejected, want accepted", ok)
+		}
+	}
+	for _, bad := range []string{
+		"operator", "", "fixture-operator",
+		"11111111-2222-4333-8444-55555555555",   // too short
+		"11111111-2222-4333-8444-5555555555555", // too long
+		"11111111x2222-4333-8444-555555555555",  // wrong separator
+		"1111111g-2222-4333-8444-555555555555",  // non-hex
+	} {
+		if isUUID(bad) {
+			t.Errorf("%q accepted, want rejected — it would be written into a uuid column "+
+				"and the row silently lost", bad)
+		}
+	}
+}

@@ -2,7 +2,6 @@ package developer
 
 import (
 	"github.com/banzami/banzami/services/common/webhookprov"
-	"github.com/google/uuid"
 
 	"context"
 	"errors"
@@ -763,7 +762,7 @@ func (s *Service) RetireProject(ctx context.Context, projectID, actor, reason, i
 		caller = "operator"
 	}
 	var actorRef *string
-	if _, err := uuid.Parse(caller); err == nil {
+	if isUUID(caller) {
 		actorRef = &caller
 	}
 	s.audit(ctx, actorRef, nil, &projectID, "project.retired", "PROJECT:"+projectID, ip, reqID,
@@ -1115,4 +1114,29 @@ func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrosp
 		out.WalletAccountID = b.WalletAccountID
 	}
 	return out, nil
+}
+
+// isUUID reports whether s has the canonical 8-4-4-4-12 hexadecimal shape.
+//
+// A shape check, not a parser: the only question here is whether a value can go
+// into a uuid column at all. Adding a dependency to answer it would put a module
+// in the build for one format test.
+func isUUID(s string) bool {
+	if len(s) != 36 {
+		return false
+	}
+	for i, c := range s {
+		switch i {
+		case 8, 13, 18, 23:
+			if c != '-' {
+				return false
+			}
+		default:
+			isHex := (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')
+			if !isHex {
+				return false
+			}
+		}
+	}
+	return true
 }
