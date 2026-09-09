@@ -419,7 +419,56 @@ type TransactionView struct {
 	ReferenceType   string    `json:"reference_type"`
 	ReferenceID     string    `json:"reference_id"`
 	CreatedAt       time.Time `json:"created_at"`
+
+	// Operator acquiring/execution state — NOT a protocol state, and never a
+	// substitute for Status above. Nil for anything that is not a payment.
+	Acquiring *AcquiringView `json:"acquiring,omitempty"`
 }
+
+// AcquiringView is what the OPERATOR knows about a payment's execution, kept in
+// its own object so it cannot be mistaken for the protocol status beside it.
+//
+// The two genuinely differ, and the Console showed only one of them. A Payment
+// Session paid by an externally acquired payment — a card, an ATM reference, a
+// Multicaixa Express confirmation relayed by an acquirer — credits its Wallet
+// Account correctly and still reads ACTIVE, because BANZA's payment_session.paid
+// requires a transfer_id and a Transfer must originate from a consumer wallet.
+// An external payer is not one. See BANZA RFC-0007.
+//
+// So a developer saw thirteen sessions marked ACTIVE beside a balance of 1 100
+// 000 Kz and had no way to reconcile the two. That is an observability defect in
+// this console, not a licence to relabel the session: PAID here is the
+// operator's truth about execution, ACTIVE there remains the protocol's
+// representation, and neither is edited to agree with the other.
+//
+// This is an operator read model. It adds no field to any BANZA wire contract
+// and changes no public protocol schema.
+type AcquiringView struct {
+	// PAID once a payer's confirmation has settled one of the session's
+	// interfaces; UNPAID before that. Deliberately not the protocol's vocabulary.
+	State string `json:"state"`
+	// What was actually received, and when. Nil while UNPAID — a timestamp or an
+	// amount on an unpaid operation is a number where there is none.
+	AmountMinor *int64     `json:"amount_minor"`
+	PaidAt      *time.Time `json:"paid_at"`
+	// The Wallet Account the credit landed on. Empty while UNPAID.
+	CreditedWalletAccountID string `json:"credited_wallet_account_id"`
+	// Which interface the payer used, so the state above can be traced.
+	Interface string `json:"interface"`
+	// Why the protocol status can disagree with this. Carried in the payload so
+	// a developer reading the API alone, without the Console's chrome, gets the
+	// explanation too.
+	ProtocolNote string `json:"protocol_note,omitempty"`
+}
+
+// AcquiringProtocolNote explains a PAID acquiring state sitting beside a
+// non-PAID protocol status. One sentence, in the payload, rather than a footnote
+// only the Console renders.
+const AcquiringProtocolNote = "Estado do protocolo mantém-se ACTIVE: o BANZA exige um transfer_id " +
+	"para payment_session.paid e um Transfer parte de uma carteira de consumidor, " +
+	"o que um pagamento externo não é. O crédito acima é a verdade operacional " +
+	"da execução (BANZA RFC-0007)."
+
 
 // TransactionFilter narrows and pages the stream. Every field is applied in
 // SQL: filtering a capped page in the browser answers a different question from

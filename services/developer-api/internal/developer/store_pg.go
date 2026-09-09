@@ -669,28 +669,62 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		limit = 50
 	}
 	rows, err := s.pool.Query(ctx,
+		// The acquiring columns are the OPERATOR's view of execution, resolved from
+		// whichever interface the payer actually used. A session can be paid
+		// through its link or its QR, so both are consulted: reading only the link
+		// would report a QR-paid session as UNPAID, which is a worse answer than
+		// the one this query exists to replace.
+		//
+		// Nothing here edits the session's own status. The two columns sit side by
+		// side precisely so a developer can see that value arrived while the
+		// protocol representation has not moved (BANZA RFC-0007).
 		`WITH ops AS (
 		   SELECT s.id::text AS id, 'payment' AS type, s.status::text AS status,
 		          s.amount_minor::bigint AS amount_minor, s.currency::text AS currency,
 		          COALESCE(s.wallet_account_id::text,'') AS wallet_account_id,
 		          COALESCE(s.reference_type::text,'') AS reference_type,
 		          COALESCE(s.reference_id::text,'') AS reference_id,
-		          s.created_at
-		     FROM payment_sessions s WHERE s.merchant_id = $1
+		          s.created_at,
+		          CASE WHEN pl.status = 'USED' OR q.status = 'USED' THEN 'PAID' ELSE 'UNPAID' END AS acq_state,
+		          CASE WHEN pl.status = 'USED' THEN 'PAYMENT_LINK'
+		               WHEN q.status  = 'USED' THEN 'DYNAMIC_QR' ELSE '' END AS acq_interface,
+		          COALESCE(pl.paid_at, q.used_at) AS acq_paid_at,
+		          -- What was RECEIVED, never what was requested. Both sources here
+		          -- are receipts: the confirmed acquiring payment is the amount the
+		          -- provider actually took, and a fixed-amount link's own figure is
+		          -- what a payer of that link paid. Falling back to the session's
+		          -- requested amount would answer a different question, and for an
+		          -- open-amount session it would report a figure nobody paid.
+		          CASE WHEN pl.status = 'USED' OR q.status = 'USED'
+		               THEN COALESCE(ap.amount_minor, pl.amount_minor)::bigint END AS acq_amount_minor,
+		          CASE WHEN pl.status = 'USED' OR q.status = 'USED'
+		               THEN COALESCE(pl.wallet_account_id::text, s.wallet_account_id::text, '')
+		               ELSE '' END AS acq_account
+		     FROM payment_sessions s
+		     LEFT JOIN payment_links pl ON pl.id = s.payment_link_id
+		     LEFT JOIN qr_codes      q  ON q.id  = s.qr_code_id
+		     -- The receipt for an externally acquired payment. At most one is
+		     -- CONFIRMED per link, so this cannot multiply the row.
+		     LEFT JOIN acquiring_payments ap
+		            ON ap.payment_link_id = s.payment_link_id AND ap.status = 'CONFIRMED'
+		    WHERE s.merchant_id = $1
 		   UNION ALL
 		   SELECT r.id::text, 'refund', r.status::text,
 		          r.amount_minor::bigint, r.currency::text,
-		          '', COALESCE(r.source_type::text,''), COALESCE(r.source_id::text,''), r.created_at
+		          '', COALESCE(r.source_type::text,''), COALESCE(r.source_id::text,''), r.created_at,
+		          '', '', NULL::timestamptz, NULL::bigint, ''
 		     FROM refunds r WHERE r.merchant_id = $1
 		   UNION ALL
 		   SELECT t.id::text, 'transfer', t.status::text,
 		          t.amount_minor::bigint, t.currency::text,
 		          COALESCE(t.dest_account_id::text,''), 'WALLET_ACCOUNT',
-		          COALESCE(t.source_account_id::text,''), t.created_at
+		          COALESCE(t.source_account_id::text,''), t.created_at,
+		          '', '', NULL::timestamptz, NULL::bigint, ''
 		     FROM wallet_account_transfers t WHERE t.merchant_id = $1
 		 )
 		 SELECT id, type, status, amount_minor, currency, wallet_account_id,
-		        reference_type, reference_id, created_at
+		        reference_type, reference_id, created_at,
+		        acq_state, acq_interface, acq_paid_at, acq_amount_minor, acq_account
 		   FROM ops
 		  WHERE ($2 = '' OR type = $2)
 		    AND ($3 = '' OR status = $3)
@@ -707,9 +741,31 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 	out := []TransactionView{}
 	for rows.Next() {
 		var v TransactionView
+		var acqState, acqInterface, acqAccount string
+		var acqPaidAt *time.Time
+		var acqAmount *int64
 		if err := rows.Scan(&v.ID, &v.Type, &v.Status, &v.AmountMinor, &v.Currency,
-			&v.WalletAccountID, &v.ReferenceType, &v.ReferenceID, &v.CreatedAt); err != nil {
+			&v.WalletAccountID, &v.ReferenceType, &v.ReferenceID, &v.CreatedAt,
+			&acqState, &acqInterface, &acqPaidAt, &acqAmount, &acqAccount); err != nil {
 			return nil, err
+		}
+		// Only a payment has an execution state; a refund or an internal transfer
+		// has no acquiring rail, and inventing an UNPAID for one would say
+		// something false about it.
+		if acqState != "" {
+			a := &AcquiringView{
+				State:                   acqState,
+				AmountMinor:             acqAmount,
+				PaidAt:                  acqPaidAt,
+				CreditedWalletAccountID: acqAccount,
+				Interface:               acqInterface,
+			}
+			// The note belongs only where the two genuinely disagree. Attaching it
+			// to every row would train the reader to skip it.
+			if acqState == "PAID" && v.Status != "PAID" {
+				a.ProtocolNote = AcquiringProtocolNote
+			}
+			v.Acquiring = a
 		}
 		out = append(out, v)
 	}

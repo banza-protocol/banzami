@@ -183,6 +183,27 @@ export type DeveloperTransaction = {
   reference_type: string;
   reference_id: string;
   created_at: string;
+  /**
+   * What the OPERATOR knows about this payment's execution — never a protocol
+   * state, and never a replacement for `status` above.
+   *
+   * The two genuinely differ. A Payment Session paid by an externally acquired
+   * payment credits its Wallet Account correctly and still reads ACTIVE, because
+   * BANZA's payment_session.paid requires a transfer_id and a Transfer must come
+   * from a consumer wallet — which an external payer is not (BANZA RFC-0007).
+   * Showing only `status` left a developer with sessions marked ACTIVE beside a
+   * balance that had moved, and no way to reconcile the two.
+   */
+  acquiring?: {
+    state: 'PAID' | 'UNPAID';
+    /** What was received. Null while UNPAID — not zero, which would be a figure. */
+    amount_minor: number | null;
+    paid_at: string | null;
+    credited_wallet_account_id: string;
+    interface: string;
+    /** Present only where the acquiring state and the protocol status disagree. */
+    protocol_note?: string;
+  };
 };
 
 /** Where a project stands financially, in the developer's own terms. */

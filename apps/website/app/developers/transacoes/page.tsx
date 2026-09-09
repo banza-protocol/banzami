@@ -46,8 +46,12 @@ const SR_ONLY: React.CSSProperties = {
 };
 
 const PAID = ['PAID', 'COMPLETED', 'SUCCEEDED', 'SETTLED'];
+// Money can be given back once it has actually been received. For an externally
+// acquired payment that is true while the protocol status still reads ACTIVE, so
+// asking `status` alone would refuse to refund payments the merchant is holding.
 function refundable(t: DeveloperTransaction): boolean {
-  return t.type === 'payment' && PAID.includes(t.status.toUpperCase());
+  if (t.type !== 'payment') return false;
+  return PAID.includes(t.status.toUpperCase()) || t.acquiring?.state === 'PAID';
 }
 
 const TYPES = [
@@ -197,7 +201,7 @@ function Transactions() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
                 <thead>
                   <tr style={{ background: '#FDFAFA' }}>
-                    {['DATA', 'TIPO', 'REFERÊNCIA', 'MONTANTE', 'ESTADO', ...(canRefund ? [''] : [])].map((h, i) => (
+                    {['DATA', 'TIPO', 'REFERÊNCIA', 'MONTANTE', 'ESTADO (PROTOCOLO)', 'PAGAMENTO (OPERADOR)', ...(canRefund ? [''] : [])].map((h, i) => (
                       <th
                         key={h || `actions-${i}`}
                         scope="col"
@@ -223,6 +227,48 @@ function Transactions() {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <Pill kind={kindOf(t.status)}>{t.status}</Pill>
+                      </td>
+                      {/* The operator's execution state, in its own column.
+                          Deliberately NOT merged with the protocol status beside
+                          it: they can legitimately disagree, and a single cell
+                          would have to pick one and hide the other — which is the
+                          defect this column exists to end. */}
+                      <td style={{ padding: '12px 16px' }}>
+                        {t.acquiring ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <span>
+                              <Pill kind={t.acquiring.state === 'PAID' ? 'success' : 'neutral'}>
+                                {t.acquiring.state === 'PAID' ? 'PAGO' : 'POR PAGAR'}
+                              </Pill>
+                            </span>
+                            {t.acquiring.state === 'PAID' && (
+                              <span style={{ fontSize: 11.5, color: '#8a7a7e', whiteSpace: 'nowrap' }}>
+                                {t.acquiring.amount_minor !== null &&
+                                  `Recebido ${formatMoneyDisplay(t.acquiring.amount_minor, t.currency)}`}
+                                {t.acquiring.paid_at &&
+                                  ` · ${t.acquiring.paid_at.replace('T', ' ').slice(0, 19)}Z`}
+                              </span>
+                            )}
+                            {t.acquiring.protocol_note && (
+                              <span
+                                title={t.acquiring.protocol_note}
+                                style={{ fontSize: 11, color: '#8a7a7e', maxWidth: 260 }}
+                              >
+                                O estado do protocolo mantém-se {t.status}.{' '}
+                                <a
+                                  href="https://github.com/banza-protocol/banza/pull/63"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ color: '#B5101F', fontWeight: 700 }}
+                                >
+                                  RFC-0007
+                                </a>
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: 12, color: '#b9a9ad' }}>—</span>
+                        )}
                       </td>
                       {canRefund && (
                         <td style={{ padding: '12px 16px', textAlign: 'right' }}>
