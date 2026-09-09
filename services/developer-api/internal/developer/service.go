@@ -732,6 +732,34 @@ func (s *Service) RevokeFixtureKey(ctx context.Context, keyID, actor, ip, reqID 
 // that tests could tidy up would destroy the invariant the tests exist to prove.
 // The disposable unit is the project, not its payee, so retiring the project
 // disposes of the fixture with the seal intact.
+// RetireProject archives a project, revokes its keys and — when the binding
+// never issued a payer-facing artifact — disables it.
+//
+// Distinct from RetireFixtureProject, which is gated on the fixtures flag and
+// audits every retirement as an e2e fixture. Retiring a real project that way
+// would record a reason that is not true, and an audit trail that says the wrong
+// thing about why authority was removed is worse than none.
+//
+// Operator-scoped: the historical projects this exists for were created by
+// bootstrap paths whose workspace owner is not a real Account Identity, so no
+// one can reach them through the Console. The reason is required and recorded.
+func (s *Service) RetireProject(ctx context.Context, projectID, actor, reason, ip, reqID string) (int, error) {
+	projectID = strings.TrimSpace(projectID)
+	if projectID == "" || strings.TrimSpace(reason) == "" {
+		return 0, ErrValidation
+	}
+	revoked, err := s.store.ArchiveProject(ctx, projectID)
+	if err != nil {
+		return 0, err
+	}
+	if strings.TrimSpace(actor) == "" {
+		actor = "operator"
+	}
+	s.audit(ctx, &actor, nil, &projectID, "project.retired", "PROJECT:"+projectID, ip, reqID,
+		map[string]any{"reason": reason, "keys_revoked": revoked})
+	return revoked, nil
+}
+
 func (s *Service) RetireFixtureProject(ctx context.Context, projectID, actor, ip, reqID string) (int, error) {
 	if !s.fixturesEnabled {
 		return 0, ErrForbidden

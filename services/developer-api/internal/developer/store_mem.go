@@ -290,6 +290,15 @@ func (m *memStore) ArchiveProject(_ context.Context, id string) (int, error) {
 			revoked++
 		}
 	}
+	// Mirrors the SQL: retiring a project retires its authority. An UNSEALED
+	// binding is disabled; a SEALED one is left as the immutable record it is
+	// (ADR-055). A mock that skipped this would let the real behaviour regress
+	// with every in-memory test still green.
+	for _, b := range m.bindings {
+		if b.ProjectID == id && b.State == "ACTIVE" && !b.ArtifactCreated {
+			b.State = "DISABLED"
+		}
+	}
 	return revoked, nil
 }
 

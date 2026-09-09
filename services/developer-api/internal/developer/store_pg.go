@@ -284,6 +284,23 @@ func (s *pgStore) ArchiveProject(ctx context.Context, id string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
+	// Retiring a project must retire its authority, or the project is archived
+	// while its financial owner still answers to an ACTIVE binding — which is
+	// exactly the state that left a historical Sandbox merchant holding a handle
+	// under a live binding nobody could reach.
+	//
+	// A SEALED binding is immutable (ADR-055) and is deliberately left alone: it
+	// is the record that this owner once issued a payer-facing artifact, and that
+	// record does not stop being true because the project was archived. Only an
+	// UNSEALED binding — one that never issued anything — is disabled.
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_project_sandbox_binding
+		    SET state = 'DISABLED', updated_at = now()
+		  WHERE project_id = $1 AND state = 'ACTIVE' AND artifact_created = false`, id); err != nil {
+		return 0, err
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return 0, err
 	}
