@@ -15,7 +15,7 @@
  *
  * Run: node tests/ops/build-disk-sampling.test.mjs
  */
-import { HARD_FLOOR_BYTES, PEAK_MARGIN, gib, proposedRequirementBytes, summarise }
+import { REQUIREMENT_FLOOR_BYTES, ABORT_FLOOR_BYTES, PEAK_MARGIN, gib, proposedRequirementBytes, summarise }
   from '../../tools/release/disk-sampler.mjs';
 
 let pass = 0, fail = 0;
@@ -61,10 +61,11 @@ console.log('\n▸ a requirement may rise on evidence, never fall');
 {
   const small = run({ init: 20 * G, min: 19 * G, fin: 19.5 * G });   // 1 GiB peak
   is('a small peak cannot lower the floor',
-     proposedRequirementBytes(small) === HARD_FLOOR_BYTES, `${gib(proposedRequirementBytes(small))}`);
+     proposedRequirementBytes(small) === REQUIREMENT_FLOOR_BYTES, `${gib(proposedRequirementBytes(small))}`);
   const large = run({ init: 40 * G, min: 15 * G, fin: 30 * G });     // 25 GiB peak
   is('a large peak raises the requirement above the floor',
-     proposedRequirementBytes(large) === Math.ceil(25 * G * PEAK_MARGIN), `${gib(proposedRequirementBytes(large))}`);
+     proposedRequirementBytes(large) === ABORT_FLOOR_BYTES + Math.ceil(25 * G * PEAK_MARGIN),
+     `${gib(proposedRequirementBytes(large))}`);
   is('the margin is applied over the peak',
      proposedRequirementBytes(large) > large.peak_consumed_bytes, 'no margin');
 }
@@ -74,7 +75,7 @@ console.log('\n▸ a dead sampler must not look like a cheap build');
   const s = run({ init: 20 * G, min: 20 * G, fin: 20 * G, samples: 0 });
   is('zero samples is failed, not ok', s.sampling_status === 'failed', s.sampling_status);
   is('a failed run cannot calibrate', s.usable_for_calibration === false, 'usable');
-  is('and proposes only the floor', proposedRequirementBytes(s) === HARD_FLOOR_BYTES, `${gib(proposedRequirementBytes(s))}`);
+  is('and proposes only the floor', proposedRequirementBytes(s) === REQUIREMENT_FLOOR_BYTES, `${gib(proposedRequirementBytes(s))}`);
 }
 {
   // Sampler died early: 3 samples where ~120 were due.
@@ -96,10 +97,12 @@ console.log('\n▸ a dead sampler must not look like a cheap build');
 
 console.log('\n▸ the hard floor is a live boundary, not just a preflight one');
 {
-  const s = run({ init: 12 * G, min: 7.2 * G, fin: 7.5 * G, floor: true, floorAt: 7.2 * G });
+  const s = run({ init: 12 * G, min: 2.7 * G, fin: 3.1 * G, floor: true, floorAt: 2.7 * G });
   is('a breach during the build is recorded', s.floor_breached === true, 'not recorded');
-  is('the breaching value is kept', gib(s.floor_breach_free_bytes) === 7.2, `${gib(s.floor_breach_free_bytes)}`);
-  is('the floor travels with the record', s.hard_floor_bytes === HARD_FLOOR_BYTES, `${gib(s.hard_floor_bytes)}`);
+  is('the breaching value is kept', gib(s.floor_breach_free_bytes) === 2.7, `${gib(s.floor_breach_free_bytes)}`);
+  is('the abort floor travels with the record', s.abort_floor_bytes === ABORT_FLOOR_BYTES, `${gib(s.abort_floor_bytes)}`);
+  is('so does the start minimum, so a reader can tell them apart',
+     s.requirement_floor_bytes === REQUIREMENT_FLOOR_BYTES, `${gib(s.requirement_floor_bytes)}`);
 }
 {
   const s = run({ init: 14 * G, min: 8.4 * G, fin: 9 * G });
@@ -114,11 +117,33 @@ console.log('\n▸ historical calibration that cannot be trusted');
                    { usable_for_calibration: true },                        // claims usable, no peak
                    { usable_for_calibration: true, peak_consumed_bytes: NaN },
                    { usable_for_calibration: true, peak_consumed_bytes: -1 }];
-  const bad = corrupt.filter((c) => proposedRequirementBytes(c) !== HARD_FLOOR_BYTES);
+  const bad = corrupt.filter((c) => proposedRequirementBytes(c) !== REQUIREMENT_FLOOR_BYTES);
   is('every corrupt or missing calibration falls back to the floor', bad.length === 0,
      bad.map((b) => JSON.stringify(b)).join(' | '));
   const first = run({ init: 30 * G, min: 25 * G, fin: 27 * G });
   is('a first-ever build still produces a usable record', first.usable_for_calibration === true, first.sampling_status);
+}
+
+console.log('\n▸ the two floors answer different questions and must stay compatible');
+{
+  // These were ONE constant, and that made the gate approve builds the guard was
+  // certain to kill — a release build passed at 11.07 GiB free, consumed its 3.24
+  // GiB peak, crossed the floor at 7.84 and was aborted seventeen minutes in.
+  is('the abort floor is below the start minimum',
+     ABORT_FLOOR_BYTES < REQUIREMENT_FLOOR_BYTES,
+     `abort ${gib(ABORT_FLOOR_BYTES)} >= start ${gib(REQUIREMENT_FLOOR_BYTES)}`);
+  is('the abort floor sits above the free space where a build actually died (2.3 GiB)',
+     ABORT_FLOOR_BYTES > 2.3 * G, `${gib(ABORT_FLOOR_BYTES)}`);
+
+  // The invariant that was missing: start at the requirement, consume the peak,
+  // and you must still be clear of the abort floor.
+  for (const peakGiB of [0.5, 3.24, 4, 8]) {
+    const s = run({ init: 20 * G, min: (20 - peakGiB) * G, fin: (20 - peakGiB) * G, samples: 200 });
+    const required = proposedRequirementBytes(s);
+    is(`a ${peakGiB} GiB build starting at its requirement never reaches the abort floor`,
+       required - peakGiB * G > ABORT_FLOOR_BYTES,
+       `required ${gib(required)} − peak ${peakGiB} = ${gib(required - peakGiB * G)} <= abort ${gib(ABORT_FLOOR_BYTES)}`);
+  }
 }
 
 console.log('\n▸ the schema cannot confuse peak with net');

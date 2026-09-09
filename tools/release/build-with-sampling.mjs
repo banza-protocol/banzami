@@ -6,9 +6,11 @@
  *
  * Wraps the command, samples free space throughout, and writes the measurement
  * to the durable assurance store keyed by the revision being built. If free
- * space crosses the hard floor mid-build the child is terminated: losing a build
+ * space crosses the ABORT floor mid-build the child is terminated: losing a build
  * is cheap, and an exhausted host that leaves the Docker daemon unresponsive is
- * not — that has already happened twice in this programme.
+ * not — that has already happened twice in this programme. That floor is the
+ * danger line (3 GiB), not the start requirement (8 GiB): aborting at the
+ * requirement killed a healthy build seventeen minutes in.
  *
  * The measurement is recorded whether the build succeeds or fails. A build that
  * died of ENOSPC is exactly the one whose disk profile is worth keeping.
@@ -16,7 +18,7 @@
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { HARD_FLOOR_BYTES, gib, proposedRequirementBytes, startSampler } from './disk-sampler.mjs';
+import { ABORT_FLOOR_BYTES, gib, proposedRequirementBytes, startSampler } from './disk-sampler.mjs';
 import { candidateSha } from '../e2e/lib/assurance-output.mjs';
 import { storeRoot } from './preflight.mjs';
 
@@ -35,11 +37,11 @@ const child = spawn(cmd[0], cmd.slice(1), { stdio: 'inherit' });
 
 const sampler = startSampler({
   intervalMs,
-  hardFloorBytes: HARD_FLOOR_BYTES,
+  hardFloorBytes: ABORT_FLOOR_BYTES,
   onFloorBreach(free) {
     aborted = true;
     console.error(`\n\x1b[0;31m✗ release build aborted: free space crossed the hard floor\x1b[0m`);
-    console.error(`  ${gib(free)} GiB free < ${gib(HARD_FLOOR_BYTES)} GiB floor — stopping before the filesystem is exhausted.\n`);
+    console.error(`  ${gib(free)} GiB free < ${gib(ABORT_FLOOR_BYTES)} GiB abort floor — stopping before the filesystem is exhausted.\n`);
     child.kill('SIGTERM');
     setTimeout(() => child.kill('SIGKILL'), 10_000).unref?.();
   },

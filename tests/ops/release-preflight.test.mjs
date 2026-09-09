@@ -17,9 +17,9 @@
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { FLOOR_GIB, CALIBRATION_MARGIN, UNCALIBRATED_BUILD_GIB, preflight, freeGiB, requiredGiB,
-         regenerableConsumers, PROTECTED } from '../../tools/release/preflight.mjs';
-import { HARD_FLOOR_BYTES } from '../../tools/release/disk-sampler.mjs';
+import { FLOOR_GIB, ABORT_FLOOR_GIB, CALIBRATION_MARGIN, UNCALIBRATED_BUILD_GIB, preflight, freeGiB,
+         requiredGiB, regenerableConsumers, PROTECTED } from '../../tools/release/preflight.mjs';
+import { ABORT_FLOOR_BYTES, REQUIREMENT_FLOOR_BYTES } from '../../tools/release/disk-sampler.mjs';
 
 let pass = 0, fail = 0;
 const ok = (d) => { console.log(`  \x1b[0;32m✓\x1b[0m ${d}`); pass++; };
@@ -43,7 +43,7 @@ const req = requiredGiB();
 // The source string must show the arithmetic, because a bare number is what let
 // a reserve be mistaken for a requirement in the first place.
 is('the requirement shows how it was reached',
-   req.source === 'env' || /reserve \+/.test(req.source), req.source);
+   req.source === 'env' || /abort floor \+/.test(req.source), req.source);
 is('the floor sits inside the observed interval (>2.3 failed, <13 succeeded)',
    FLOOR_GIB > 2.3 && FLOOR_GIB < 13, `FLOOR_GIB=${FLOOR_GIB}`);
 
@@ -69,34 +69,37 @@ for (const peak of [0.5, 3.24, 9]) {
   const r = requiredGiB();
   // Start with `required`, consume `peak`: what remains must still clear the
   // floor. Anything less and the gate is predicting a death it calls a pass.
-  is(`a ${peak} GiB build starting at the requirement still clears the floor`,
-     r.gib - peak >= FLOOR_GIB,
-     `required=${r.gib.toFixed(2)} − peak=${peak} = ${(r.gib - peak).toFixed(2)} < floor ${FLOOR_GIB}`);
-  is(`the requirement for a ${peak} GiB build exceeds the floor itself`,
-     r.gib > FLOOR_GIB, `${r.gib.toFixed(2)} <= ${FLOOR_GIB}`);
+  is(`a ${peak} GiB build starting at the requirement never reaches the abort floor`,
+     r.gib - peak > ABORT_FLOOR_GIB,
+     `required=${r.gib.toFixed(2)} − peak=${peak} = ${(r.gib - peak).toFixed(2)} <= abort ${ABORT_FLOOR_GIB}`);
+  is(`the requirement for a ${peak} GiB build is never below the start minimum`,
+     r.gib >= FLOOR_GIB, `${r.gib.toFixed(2)} < ${FLOOR_GIB}`);
 }
 
 writeCal(3.24);
 const calibrated = requiredGiB();
 is('the requirement comes from the measurement, and says so',
    /peak 3\.24 GiB observed/.test(calibrated.source), calibrated.source);
-is('the requirement is the reserve PLUS the measured build, not the larger of the two',
-   Math.abs(calibrated.gib - (FLOOR_GIB + 3.24 * CALIBRATION_MARGIN)) < 1e-9,
+is('the requirement is the abort floor PLUS the measured build, floored at the start minimum',
+   Math.abs(calibrated.gib - Math.max(FLOOR_GIB, ABORT_FLOOR_GIB + 3.24 * CALIBRATION_MARGIN)) < 1e-9,
    `${calibrated.gib}`);
 
 rmSync(join(store, 'build-capacity.json'), { force: true });
 const uncal = requiredGiB();
-is('an uncalibrated requirement also leaves room above the floor',
-   uncal.gib - UNCALIBRATED_BUILD_GIB >= FLOOR_GIB, `${uncal.gib}`);
+is('an uncalibrated requirement also leaves room above the abort floor',
+   uncal.gib - UNCALIBRATED_BUILD_GIB > ABORT_FLOOR_GIB, `${uncal.gib}`);
 is('the uncalibrated allowance covers the peaks actually observed (3.09, 3.24)',
    UNCALIBRATED_BUILD_GIB >= 3.24, `${UNCALIBRATED_BUILD_GIB}`);
 rmSync(store, { recursive: true, force: true });
 delete process.env.BANZAMI_ASSURANCE_STORE;
 
-console.log('\n▸ the reserve is one number, not two that can drift');
-is('the gate and the guard read the same floor',
-   FLOOR_GIB === HARD_FLOOR_BYTES / 1024 ** 3,
-   `gate=${FLOOR_GIB} guard=${HARD_FLOOR_BYTES / 1024 ** 3}`);
+console.log('\n▸ each floor is defined once, where it is enforced');
+is('the gate reads the start minimum from the sampler',
+   FLOOR_GIB === REQUIREMENT_FLOOR_BYTES / 1024 ** 3, `${FLOOR_GIB}`);
+is('the gate reads the abort floor from the sampler that enforces it',
+   ABORT_FLOOR_GIB === ABORT_FLOOR_BYTES / 1024 ** 3, `${ABORT_FLOOR_GIB}`);
+is('the abort floor is below the start minimum — otherwise the gate permits what the guard kills',
+   ABORT_FLOOR_GIB < FLOOR_GIB, `abort=${ABORT_FLOOR_GIB} start=${FLOOR_GIB}`);
 
 console.log('\n▸ net can no longer be written into the peak field');
 // A helper here stored `beforeGiB - afterGiB` under `peak_build_gib`. Net is not

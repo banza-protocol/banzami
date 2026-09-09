@@ -24,15 +24,42 @@
  *
  * FAIL BEFORE THE FILESYSTEM DOES
  *
- * Sampling is also a live guard. If free space crosses the hard floor mid-build,
+ * Sampling is also a live guard. If free space crosses the abort floor mid-build,
  * the sampler says so and the caller aborts — losing a build is cheap, an
  * exhausted host that corrupts a Docker daemon is not. That is not theoretical
  * here: it has happened twice.
+ *
+ * TWO FLOORS, TWO QUESTIONS
+ *
+ * These were one constant, and that made the gate approve builds the guard was
+ * certain to kill: a release build passed the preflight at 11.07 GiB free,
+ * consumed its 3.24 GiB peak, crossed the floor at 7.84 GiB and was aborted
+ * after seventeen minutes of compiling. Nothing was wrong with either check —
+ * they were answering different questions with the same number.
+ *
+ *   REQUIREMENT_FLOOR  "is this machine fit to start a release build at all?"
+ *                      8 GiB. A policy minimum, never lowered by measurement.
+ *   ABORT_FLOOR        "is the host now in danger?"
+ *                      3 GiB. Bounded by the failure actually observed at 2.3
+ *                      GiB free, where the build died and the daemon hung.
+ *
+ * Aborting at 8 GiB free was not protecting anything: the host is nowhere near
+ * exhaustion there. The requirement must leave room for the build to run all the
+ * way down to the abort floor without reaching it.
  */
 import { statfsSync } from 'node:fs';
 
-/** Never lowered by measurement. See preflight.mjs for how it was bounded. */
-export const HARD_FLOOR_BYTES = 8 * 1024 ** 3;
+/**
+ * Minimum free space before a release build may START. Policy, never lowered by
+ * measurement however small a peak turns out to be.
+ */
+export const REQUIREMENT_FLOOR_BYTES = 8 * 1024 ** 3;
+/**
+ * The live danger line: free space at which a running build is killed rather
+ * than allowed to exhaust the host. Bounded by observation — a build died and
+ * left the Docker daemon unresponsive at 2.3 GiB free.
+ */
+export const ABORT_FLOOR_BYTES = 3 * 1024 ** 3;
 /** Margin over the observed peak when proposing a future requirement. */
 export const PEAK_MARGIN = 1.5;
 const GIB = 1024 ** 3;
@@ -51,7 +78,7 @@ export function freeBytes(path = process.cwd()) {
  * @param {Function} o.onFloorBreach called once, when free space crosses it
  */
 export function startSampler({ path = process.cwd(), intervalMs = 5_000,
-                               hardFloorBytes = HARD_FLOOR_BYTES,
+                               hardFloorBytes = ABORT_FLOOR_BYTES,
                                onFloorBreach = null } = {}) {
   const startedAt = Date.now();
   let initial;
@@ -129,7 +156,8 @@ export function summarise(state, durationSeconds) {
     sampling_status,
     floor_breached: state.floor_breached,
     floor_breach_free_bytes: state.floor_breach_free_bytes,
-    hard_floor_bytes: HARD_FLOOR_BYTES,
+    abort_floor_bytes: ABORT_FLOOR_BYTES,
+    requirement_floor_bytes: REQUIREMENT_FLOOR_BYTES,
     // Only a trustworthy measurement may inform a future requirement, and even
     // then it can only ever RAISE it — the floor is not negotiable downward.
     usable_for_calibration: sampling_status === 'ok' && measurable,
@@ -137,17 +165,23 @@ export function summarise(state, durationSeconds) {
 }
 
 /**
- * The requirement a measurement proposes. It can raise the floor; it can never
- * lower it, however small the observed peak.
+ * The requirement a measurement proposes: enough to run the whole build without
+ * ever reaching the abort floor, and never below the policy minimum.
+ *
+ *     max(REQUIREMENT_FLOOR, ABORT_FLOOR + peak × margin)
+ *
+ * The second term is what was missing. `max(FLOOR, peak × margin)` returned the
+ * floor itself for any peak under 5.3 GiB, so the gate approved a start whose
+ * own consumption would cross the line the guard watches.
  */
 export function proposedRequirementBytes(summary) {
-  if (!summary?.usable_for_calibration) return HARD_FLOOR_BYTES;
+  if (!summary?.usable_for_calibration) return REQUIREMENT_FLOOR_BYTES;
   // A record may claim to be usable and still be corrupt. Trusting the flag
   // alone yields NaN here, and NaN compares false against every threshold —
   // a requirement that silently permits any build.
   const peak = summary.peak_consumed_bytes;
-  if (!Number.isFinite(peak) || peak < 0) return HARD_FLOOR_BYTES;
-  return Math.max(HARD_FLOOR_BYTES, Math.ceil(peak * PEAK_MARGIN));
+  if (!Number.isFinite(peak) || peak < 0) return REQUIREMENT_FLOOR_BYTES;
+  return Math.max(REQUIREMENT_FLOOR_BYTES, ABORT_FLOOR_BYTES + Math.ceil(peak * PEAK_MARGIN));
 }
 
 export const gib = (b) => (b === null || b === undefined ? null : Math.round((b / GIB) * 100) / 100);

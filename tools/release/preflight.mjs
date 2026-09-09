@@ -36,7 +36,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, statfsSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { HARD_FLOOR_BYTES } from './disk-sampler.mjs';
+import { ABORT_FLOOR_BYTES, REQUIREMENT_FLOOR_BYTES } from './disk-sampler.mjs';
 
 /**
  * The RESERVE: free space that must still be there when the build finishes.
@@ -46,7 +46,9 @@ import { HARD_FLOOR_BYTES } from './disk-sampler.mjs';
  * copies of the same number is one edit away from a gate that permits what the
  * guard then kills.
  */
-export const FLOOR_GIB = HARD_FLOOR_BYTES / 1024 ** 3;
+export const FLOOR_GIB = REQUIREMENT_FLOOR_BYTES / 1024 ** 3;
+/** The live danger line the sampler aborts on, in GiB. */
+export const ABORT_FLOOR_GIB = ABORT_FLOOR_BYTES / 1024 ** 3;
 /** Margin applied to a calibrated measurement. */
 export const CALIBRATION_MARGIN = 1.25;
 /**
@@ -94,18 +96,20 @@ export function requiredGiB() {
   try {
     const c = JSON.parse(readFileSync(calibrationFile(), 'utf8'));
     if (Number.isFinite(c.peak_build_gib) && c.peak_build_gib > 0) {
-      const gib = FLOOR_GIB + c.peak_build_gib * CALIBRATION_MARGIN;
+      const gib = Math.max(FLOOR_GIB, ABORT_FLOOR_GIB + c.peak_build_gib * CALIBRATION_MARGIN);
       return {
         gib,
-        source: `${FLOOR_GIB} GiB reserve + ${(c.peak_build_gib * CALIBRATION_MARGIN).toFixed(2)} GiB ` +
-                `(peak ${c.peak_build_gib.toFixed(2)} GiB observed ${c.observed_at} × ${CALIBRATION_MARGIN})`,
+        source: `max(${FLOOR_GIB} GiB start minimum, ${ABORT_FLOOR_GIB} GiB abort floor + ` +
+                `${(c.peak_build_gib * CALIBRATION_MARGIN).toFixed(2)} GiB) — peak ` +
+                `${c.peak_build_gib.toFixed(2)} GiB observed ${c.observed_at} × ${CALIBRATION_MARGIN}`,
       };
     }
   } catch { /* not calibrated yet */ }
   return {
-    gib: FLOOR_GIB + UNCALIBRATED_BUILD_GIB,
-    source: `${FLOOR_GIB} GiB reserve + ${UNCALIBRATED_BUILD_GIB} GiB assumed build (not yet calibrated; ` +
-            `bounded by observed failure <2.3 GiB and success at 13 GiB)`,
+    gib: Math.max(FLOOR_GIB, ABORT_FLOOR_GIB + UNCALIBRATED_BUILD_GIB),
+    source: `max(${FLOOR_GIB} GiB start minimum, ${ABORT_FLOOR_GIB} GiB abort floor + ` +
+            `${UNCALIBRATED_BUILD_GIB} GiB assumed build) — not yet calibrated; ` +
+            `bounded by observed failure <2.3 GiB and success at 13 GiB`,
   };
 }
 
