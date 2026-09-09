@@ -144,9 +144,98 @@ M1=$(mbal); C1=$(cbal "$AW")
 echo "  merchant $M0 → $M1 · payer $C0 → $C1"
 chk F0-DP-010 "$((M1-M0))|$((C0-C1))" "50000|50000"
 
-echo "### F0-DP-011 webhook event emitted/simulated (signed payload)"
-gw wh GET "/v1/webhooks/events?limit=10" - "$MJWT"
-SIM=$((SIM+1)); echo "  F0-DP-011 SIMULATED (event emission pipeline reachable; Banza-Signature HMAC + retry/backoff 1m/5m/30m/2h/8h max-5 + idempotency verified in code+unit tests; live outbound 2xx delivery needs a public HTTPS sink — excluded by no-external/no-public)"
+echo "### F0-DP-011 real signed webhook delivery to an independent public sink"
+# This was SIMULATED, on the stated ground that "live outbound 2xx delivery needs
+# a public HTTPS sink — excluded by no-external/no-public". That sink now exists:
+# sandbox-webhook.banzami.com is a genuinely public HTTPS receiver (the SSRF
+# policy RA-023 rightly refuses private targets, and no exception was added for
+# it), so the ground no longer holds and the assertion is made for real.
+#
+# The receiver is independent of the signer in the two ways that matter: it is a
+# separate process that records what arrived without judging it, and the
+# signature is verified below by an implementation written from the published
+# contract that imports nothing from services/api-gateway/internal/webhook.
+#
+# The signing secret is read into a variable and never printed.
+EDGE=$(docker ps --format '{{.Names}}' | grep sandbox-edge | head -1)
+sink(){ docker exec "$EDGE" curl -s -m 10 "$@" 2>/dev/null; }
+WHCAP="e2e${RR}$(date +%s)"
+sink -X POST "http://banzami-webhook-sink:8090/admin/configure?run=$WHCAP" -H 'content-type: application/json' -d '{"status":200}' >/dev/null
+
+gw whep POST /v1/webhooks/endpoints "{\"url\":\"https://sandbox-webhook.banzami.com/receive/$WHCAP\",\"events\":[\"payment_link.paid\"]}" "$MJWT" >/dev/null
+WHSECRET=$(jget secret); WHEP=$(jget id)
+[ -n "$WHEP" ] && e2e_own webhook_endpoint "$WHEP" "$MID"
+chk F0-DP-011-endpoint "$([ -n "$WHEP" ] && [ -n "$WHSECRET" ] && echo ok)" ok
+
+# A fresh link: the F0-DP-010 link is already USED, and a used link cannot be paid
+# again — which would make this prove nothing rather than fail honestly.
+gw pl2 POST /v1/payment-links "{\"merchant_id\":\"$MID\",\"wallet_id\":\"$WID\",\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"dp wh link\"}" "$MJWT" >/dev/null
+WLID=$(jget id); [ -n "$WLID" ] && e2e_own payment_link "$WLID" "$MID"
+WSLUG=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).slug||""))}catch(e){}})')
+
+# Payer-facing and unauthenticated, exactly as a real payer reaches it.
+gw whpay POST "/public/pay/$WSLUG/pay" '{"amount_minor":50000}' - >/dev/null
+WREF=$(jget external_ref)
+gw whconf POST "/public/pay/$WSLUG/test-confirm?ref=$WREF" - - >/dev/null
+chk F0-DP-011-payer-confirm "$CODE" 200
+
+# The deployed runtime delivers on its own schedule; wait for it rather than
+# asserting on an empty sink.
+WHJSON=""; for _ in $(seq 1 30); do
+  WHJSON=$(sink "http://banzami-webhook-sink:8090/admin/requests?run=$WHCAP")
+  printf '%s' "$WHJSON" | grep -q '"count":0' || break
+  sleep 2
+done
+
+# Independent verification. Written from the published contract only:
+#   Banza-Signature: t=<unix>,v1=<hex hmac-sha256 of "<unix>.<raw body>">
+# Judged as of the moment each delivery ARRIVED — a stored signature checked
+# against the current clock reports every delivery older than the tolerance
+# window as invalid, which is a statement about the clock, not the platform.
+WHVERDICT=$(WH_SECRET="$WHSECRET" printf '%s' "$WHJSON" | WH_SECRET="$WHSECRET" node -e '
+const c=require("crypto");let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
+ let j;try{j=JSON.parse(s)}catch(e){return process.stdout.write("no-sink-response")}
+ const rs=j.requests||[];if(!rs.length)return process.stdout.write("no-delivery");
+ const sec=process.env.WH_SECRET||"";if(!sec)return process.stdout.write("no-secret");
+ const out=[];
+ for(const r of rs){
+  const h=(r.headers||{})["banza-signature"]||"";
+  const m=/^t=(\d+),v1=([0-9a-f]+)$/.exec(h.trim());
+  if(!m){out.push("bad-header");continue}
+  const ts=Number(m[1]);
+  if(Math.abs(Date.parse(r.received_at)-ts*1000)>300000){out.push("stale");continue}
+  const mac=c.createHmac("sha256",sec);mac.update(ts+".");mac.update(Buffer.from(r.raw_body,"utf8"));
+  const exp=mac.digest("hex");
+  const a=Buffer.from(m[2]),b=Buffer.from(exp);
+  if(a.length!==b.length||!c.timingSafeEqual(a,b)){out.push("mismatch");continue}
+  // A valid signature over the wrong event would still be the wrong evidence.
+  let body=null;try{body=JSON.parse(r.raw_body)}catch(e){}
+  out.push(body&&body.type==="payment_link.paid"&&body.id?"ok":"wrong-event");
+ }
+ process.stdout.write(out.every(x=>x==="ok")?"ok":out.join(","));
+})')
+WHCOUNT=$(printf '%s' "$WHJSON" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(String(JSON.parse(s).count??0))}catch(e){process.stdout.write("0")}})')
+echo "  deliveries received: $WHCOUNT · independent verification: $WHVERDICT"
+chk F0-DP-011 "$WHVERDICT" ok
+
+# A verifier that accepts everything would have reported ok above for a platform
+# that signed nothing, so the negative cases are asserted too.
+WHNEG=$(WH_SECRET="${WHSECRET}x" printf '%s' "$WHJSON" | WH_SECRET="${WHSECRET}x" node -e '
+const c=require("crypto");let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
+ let j;try{j=JSON.parse(s)}catch(e){return process.stdout.write("no-sink-response")}
+ const rs=j.requests||[];if(!rs.length)return process.stdout.write("no-delivery");
+ for(const r of rs){
+  const h=(r.headers||{})["banza-signature"]||"";
+  const m=/^t=(\d+),v1=([0-9a-f]+)$/.exec(h.trim());if(!m)continue;
+  const mac=c.createHmac("sha256",process.env.WH_SECRET);mac.update(m[1]+".");
+  mac.update(Buffer.from(r.raw_body,"utf8"));
+  if(mac.digest("hex")===m[2])return process.stdout.write("accepted-wrong-secret");
+ }
+ process.stdout.write("rejected");
+})')
+chk F0-DP-011-wrong-secret-rejected "$WHNEG" rejected
+sink -X POST "http://banzami-webhook-sink:8090/admin/reset?run=$WHCAP" >/dev/null
+unset WHSECRET
 
 echo "### F0-DP-015 no-mutation baseline (capture before rejected ops)"
 MB=$(mbal); CB=$(cbal "$AW")
