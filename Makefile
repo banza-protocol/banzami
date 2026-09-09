@@ -737,8 +737,11 @@ check-sandbox-release-package:
 release-preflight:
 	node tools/release/preflight.mjs
 
+# The build runs under continuous disk observation: peak is what decides whether
+# a build survives, and it is only visible while the build is running. Crossing
+# the hard floor mid-build aborts the child rather than exhausting the host.
 sandbox-release-package: release-preflight
-	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh build
+	node tools/release/build-with-sampling.mjs -- bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh build
 
 sandbox-release-package-verify:
 	bash infra/blueprint/sandbox-ops/scripts/sandbox-release-package.sh verify
