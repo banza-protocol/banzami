@@ -51,13 +51,20 @@ export class ApiError extends Error {
 // not listed falls through to the server's own message, which is the one written
 // for that situation — a generic sentence here would be a worse answer than the
 // one the server already gave.
-const MESSAGES: Record<string, string> = {
+export const MESSAGES: Record<string, string> = {
   UNAUTHENTICATED: 'A sua sessão expirou. Inicie sessão novamente.',
   FORBIDDEN: 'Não tem permissão para esta ação.',
   RATE_LIMITED: 'Demasiados pedidos. Tente novamente daqui a pouco.',
   CONFLICT: 'Já existe.',
   LAST_OWNER: 'Não pode remover ou despromover o último proprietário.',
   VALIDATION: 'Dados inválidos.',
+  // The API distinguishes a malformed address from generic bad input, and that
+  // distinction is worth keeping: it is the difference between "fix the email"
+  // and "something went wrong". Without an entry here the client fell through to
+  // the server's own English sentence, and callers that branch on the code alone
+  // showed a generic failure instead — which sends the developer to retry, and
+  // straight into the rate limiter.
+  INVALID_EMAIL: 'Introduza um email válido.',
   INVITE_INVALID: 'O convite expirou, foi revogado ou já foi usado.',
   NOT_FOUND: 'Não encontrado.',
   UNAVAILABLE: 'Serviço indisponível. Tente novamente.',

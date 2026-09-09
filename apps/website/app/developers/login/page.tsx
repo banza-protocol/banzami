@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconEnvelope } from '@/components/developers/portal/icons';
-import { developerApi, ApiError } from '@/lib/developer-api';
+import { developerApi, ApiError, MESSAGES } from '@/lib/developer-api';
 
 // Login (Email only) — dossier ecrã 1. Auth V1 is Email + OTP: no password,
 // phone, Google or name at entry. "Continuar" sends the email to the OTP screen;
@@ -27,13 +27,14 @@ export default function DevelopersLoginPage() {
       // Uniform response — always advance to the code screen.
       router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch (e) {
-      const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
+      // The API names the situation precisely — INVALID_EMAIL is not the same as
+      // "could not send". Re-deriving a message from a short list of codes threw
+      // that diagnosis away and told a developer with a typo to try again, which
+      // is exactly how they reach the rate limiter. Look the code up; keep the
+      // generic sentence only for a genuine send failure.
+      const err = e instanceof ApiError ? e : null;
       setError(
-        code === 'RATE_LIMITED'
-          ? 'Demasiados pedidos. Tente novamente daqui a pouco.'
-          : code === 'VALIDATION'
-            ? 'Introduza um email válido.'
-            : 'Não foi possível enviar o código. Tente novamente.',
+        (err && MESSAGES[err.code]) || 'Não foi possível enviar o código. Tente novamente.',
       );
       setBusy(false);
     }
