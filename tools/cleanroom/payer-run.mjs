@@ -79,6 +79,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Parse a sink record; a body that will not parse is itself a finding. */
 const parse = (q) => { try { return JSON.parse(q.raw_body); } catch { return null; } };
 
+/**
+ * Verify a captured delivery the way its receiver would have: as of the moment
+ * it ARRIVED, not as of now.
+ *
+ * Judging a stored signature against the current clock reports every delivery
+ * older than the tolerance window as invalid. That is what a replay check is
+ * for, and it is not what happened — this run scored a correctly re-signed
+ * retry 1/3 purely because two of its attempts were minutes old by the time the
+ * report was written. The deployed runtime re-signs each attempt with a fresh
+ * timestamp (observed skew 0s, 0s, 1s), so each was valid when it landed.
+ */
+const verifyAsReceived = (q) =>
+  verify(SECRET, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8'),
+         300_000, Date.parse(q.received_at));
+
 /** The deliveries that belong to ONE journey, matched by its link slug. */
 function forSlug(requests, slug) {
   return (requests || []).filter((q) => parse(q)?.data?.slug === slug);
@@ -171,7 +186,7 @@ if (a.error) {
   // 4. Every delivery verifies under the published contract — judged by an
   //    implementation that has never seen the signer.
   const verdicts = reqs.map((q) => {
-    const v = verify(SECRET, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8'));
+    const v = verifyAsReceived(q);
     let body = null;
     try { body = JSON.parse(q.raw_body); } catch { /* non-JSON is a finding */ }
     return {
@@ -194,8 +209,9 @@ if (a.error) {
   //    "validates" above means nothing.
   if (reqs[0]) {
     const q = reqs[0];
-    const wrongSecret = verify(`${SECRET}x`, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8'));
-    const altered = verify(SECRET, q.headers['banza-signature'], Buffer.from(`${q.raw_body} `, 'utf8'));
+    const at = Date.parse(q.received_at);
+    const wrongSecret = verify(`${SECRET}x`, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8'), 300_000, at);
+    const altered = verify(SECRET, q.headers['banza-signature'], Buffer.from(`${q.raw_body} `, 'utf8'), 300_000, at);
     record('a wrong secret is rejected', !wrongSecret.ok, { note: wrongSecret.reason ?? 'accepted!' });
     record('an altered payload is rejected', !altered.ok, { note: altered.reason ?? 'accepted!' });
   }
@@ -274,9 +290,16 @@ if (b.error) {
       attempt_times: own.map((q) => q.received_at) });
   record('every retry carries the SAME event, not a new one', ids.size <= 1,
     { note: `distinct event ids across ${own.length} attempts = ${ids.size}`, distinct_event_ids: ids.size });
-  record('the retried event verifies on every attempt',
-    own.length > 0 && own.every((q) => verify(SECRET, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8')).ok),
-    { note: `${own.filter((q) => verify(SECRET, q.headers['banza-signature'], Buffer.from(q.raw_body, 'utf8')).ok).length}/${own.length} verified` });
+  const verified = own.filter((q) => verifyAsReceived(q).ok).length;
+  record('every retry attempt verifies as of the moment it arrived',
+    own.length > 0 && verified === own.length,
+    { note: `${verified}/${own.length} verified`,
+      // A retry re-signed with a fresh timestamp stays acceptable however long
+      // the backoff runs; one that reused the original would expire mid-retry.
+      signature_skew_seconds: own.map((q) => {
+        const t = Number(/t=(\d+)/.exec(q.headers['banza-signature'] ?? '')?.[1] ?? 0);
+        return Math.round(Date.parse(q.received_at) / 1000) - t;
+      }) });
   record('retry did not resurrect an earlier payment', ![...priorSlugs].includes(b.slug), { note: `slug=${b.slug}` });
 }
 
