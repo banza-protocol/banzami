@@ -402,10 +402,40 @@ func (s *ProofService) getByTxn(ctx context.Context, txnID, env string) (*Proof,
 		`SELECT `+proofCols+` FROM transaction_proofs WHERE transaction_id=$1 AND environment=$2`, txnID, env))
 }
 
-// GetByReference looks up a proof by its public reference (case-insensitive).
+// GetByReference looks up a proof by its public reference.
+//
+// Two gates run BEFORE the query, because both are lookup-authority decisions
+// and every caller must get them:
+//
+//  1. The reference must be canonically spelled. The SQL matches case-
+//     insensitively, so without this a single proof would answer to many
+//     spellings — and a rate limit keyed on the reference could be evaded by
+//     rotating case. A non-canonical spelling is not a different identity for
+//     the same proof; it is not a reference at all.
+//
+//  2. LEGACY_HEX_V0 carries roughly 32 bits of guessing resistance and exists
+//     only as compatibility for Sandbox receipts already in people's hands. It
+//     is never LIVE proof authority. This holds even if a LIVE row of that shape
+//     were somehow inserted, which is the point of checking here rather than
+//     trusting the data — "Financial LIVE does not exist yet" is a fact about
+//     today, not a rule.
+//
+// Both refuse with ErrProofNotFound rather than a distinct reason: a caller
+// probing LIVE must not learn that a reference is a real Sandbox receipt.
 func (s *ProofService) GetByReference(ctx context.Context, ref string) (*Proof, error) {
-	return scanProof(s.pool.QueryRow(ctx,
+	class := ClassifyReference(ref)
+	if class == ReferenceInvalid {
+		return nil, ErrProofNotFound
+	}
+	p, err := scanProof(s.pool.QueryRow(ctx,
 		`SELECT `+proofCols+` FROM transaction_proofs WHERE upper(proof_reference)=upper($1)`, ref))
+	if err != nil {
+		return nil, err
+	}
+	if class == ReferenceLegacyV0 && !strings.EqualFold(strings.TrimSpace(p.Environment), "SANDBOX") {
+		return nil, ErrProofNotFound
+	}
+	return p, nil
 }
 
 // RecordVerification logs a public verification (hashed ip/ua only) and bumps the

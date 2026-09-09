@@ -31,7 +31,9 @@ func proofPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 	return pool
 }
 
-var refRe = regexp.MustCompile(`^BZM-[0-9A-HJKMNP-TV-Z]{4}-[0-9A-HJKMNP-TV-Z]{4}$`)
+// SECURE_V1: six groups, 120 bits. The two-group shape this used to assert is
+// now the LEGACY_HEX_V0 compatibility class and must never be minted.
+var refRe = regexp.MustCompile(`^BZM(?:-[0-9A-HJKMNP-TV-Z]{4}){6}$`)
 
 func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 	ctx := context.Background()
@@ -63,7 +65,7 @@ func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 		t.Fatalf("not idempotent: %s vs %s", p1.ProofReference, p2.ProofReference)
 	}
 	if !refRe.MatchString(p1.ProofReference) {
-		t.Fatalf("reference not in secure BZM-XXXX-XXXX form: %q", p1.ProofReference)
+		t.Fatalf("reference not in SECURE_V1 six-group form: %q", p1.ProofReference)
 	}
 	if p1.ProofHash == "" || len(p1.ProofHash) != 64 {
 		t.Fatalf("proof hash missing/short: %q", p1.ProofHash)
