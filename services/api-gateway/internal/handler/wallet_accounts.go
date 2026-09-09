@@ -89,7 +89,7 @@ func (h *WalletAccountHandler) authorizeOwnedWallet(w http.ResponseWriter, r *ht
 	return wal, true
 }
 
-// POST /v1/business/wallet-accounts
+// POST /v1/wallet-accounts
 func (h *WalletAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		WalletID      string `json:"wallet_id"`
@@ -134,7 +134,7 @@ func (h *WalletAccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusCreated, acc)
 }
 
-// GET /v1/business/wallet-accounts?wallet_id=...
+// GET /v1/wallet-accounts?wallet_id=...
 func (h *WalletAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	walletID, _, ok := h.resolveWalletAuthority(w, r, "wallet_accounts:read", r.URL.Query().Get("wallet_id"))
 	if !ok {
@@ -148,7 +148,7 @@ func (h *WalletAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, map[string]any{"data": list})
 }
 
-// GET /v1/business/wallet-accounts/{id}
+// GET /v1/wallet-accounts/{id}
 func (h *WalletAccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 	walletID, _, ok := h.resolveWalletAuthority(w, r, "wallet_accounts:read", "")
 	if !ok {

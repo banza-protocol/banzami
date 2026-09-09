@@ -300,20 +300,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// wallet_payments data.
 			r.Get("/merchant/transactions/{id}/receipt.pdf", receiptHandler.MerchantReceipt)
 
-			r.Route("/webhooks", func(r chi.Router) {
-				r.Post("/endpoints", wbhHandler.Register)
-				r.Get("/endpoints", wbhHandler.ListEndpoints)
-				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)
-				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
-				r.Get("/endpoints/{id}/health", wbhHandler.EndpointHealth)
-				r.Post("/endpoints/{id}/rotate-secret", wbhHandler.RotateSecret)
-
-				r.Get("/events", wbhHandler.ListEvents)
-				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
-
-				// Replay a permanently-failed delivery (dead-letter recovery).
-				r.Post("/deliveries/{id}/replay", wbhHandler.ReplayDelivery)
-			})
+			// Webhooks moved to the canonical dual-credential mount below. Keeping a
+			// merchant-only copy here would be the second mount ADR-047 §5 forbids,
+			// and chi cannot carry both on one path anyway.
 
 			r.Route("/merchants", func(r chi.Router) {
 				r.Use(middleware.RequireMerchant) // SEC-004
@@ -362,10 +351,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// Application Settlement (ADR-021) — app-facing: settle a campaign/app
 			// wallet to a beneficiary, splitting off an app fee. Money moves in the
 			// operator; the app never sees account ids or computes the fee.
-			r.Route("/application-settlements", func(r chi.Router) {
-				r.Post("/", appSettlementHandler.Create)
-				r.Get("/{id}", appSettlementHandler.Get)
-			})
+			// Application settlements moved to the canonical dual-credential mount
+			// below, for the same reason as webhooks.
 
 			// ADR-029 — app-defined settlement: the app names the source campaign
 			// account, beneficiary/fee-destination @banza, and its OWN fee bps; the
@@ -511,7 +498,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// This group is merchant-JWT only, and that is what made refunds
 			// unreachable for the credential the SDK documents: a project key
 			// answered 401 on /v1/refunds, so 0.8.1 moved the client to
-			// /v1/business/refunds instead — the client changed to match the
+			// /v1/refunds instead — the client changed to match the
 			// server. The route now lives in the dual-auth group below, where a
 			// merchant JWT and a Developer Platform key both work, so the public
 			// path is the one the documentation always named.
@@ -578,7 +565,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Use(middleware.Auth(cfg))
 			}
 			r.Use(middleware.Idempotency(deps.Redis))
-			r.Route("/business/payment-sessions", func(r chi.Router) {
+			r.Route("/payment-sessions", func(r chi.Router) {
 				r.Post("/", paymentSessionHandler.Create)
 				r.Get("/", paymentSessionHandler.List)
 				r.Get("/{id}", paymentSessionHandler.Get)
@@ -593,7 +580,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// dual-credential group so a project-bound application can close its
 			// own campaigns without holding a merchant credential; the source
 			// account's ownership is re-checked against the caller either way.
-			r.Route("/business/application-settlements", func(r chi.Router) {
+			r.Route("/application-settlements", func(r chi.Router) {
 				r.Post("/", appSettlementHandler.CreateBusiness)
 				r.Get("/{id}", appSettlementHandler.Get)
 			})
@@ -607,9 +594,14 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// reported "the key does not authenticate the Business account",
 			// which was true of the route and not of the key. The merchant still
 			// comes from the binding, never from the request.
-			r.Get("/business/me", businessMeHandler.Me)
+			// The integration's own resolved state: identity, financial setup,
+			// wallet, pricing and what — if anything — actually blocks a settlement.
+			// It replaces /business/me, which named the caller ("me") rather than
+			// the thing being described, in a vocabulary ("business") the Developer
+			// Console and docs do not use.
+			r.Get("/integration", businessMeHandler.Me)
 
-			r.Route("/business/wallet-accounts", func(r chi.Router) {
+			r.Route("/wallet-accounts", func(r chi.Router) {
 				r.Post("/", walletAccountHandler.Create)
 				r.Get("/", walletAccountHandler.List)
 				r.Get("/{id}", walletAccountHandler.Get)
@@ -637,7 +629,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// only — enough to confirm a destination exists, and not a directory
 			// of strangers' accounts.
 			r.Get("/consumers/handle/{handle}", consumerHandler.ResolveHandleForProject)
-			r.Route("/business/transfers", func(r chi.Router) {
+			r.Route("/transfers", func(r chi.Router) {
 				r.Post("/", walletAccountTransferHandler.Create)
 			})
 			// Refunds are a first-class public primitive, so they live at the
@@ -652,7 +644,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Get("/", refundHandler.List)
 				r.Get("/{id}", refundHandler.Get)
 			})
-			r.Route("/business/webhooks", func(r chi.Router) {
+			r.Route("/webhooks", func(r chi.Router) {
 				r.Post("/endpoints", wbhHandler.Register)
 				r.Get("/endpoints", wbhHandler.ListEndpoints)
 				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)

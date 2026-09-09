@@ -6,7 +6,7 @@ package developer
 // Application settlement names its parties by @banza, so a Business with no
 // handle cannot be named — not as a beneficiary, and not as its own
 // application-fee destination. Zero of the five Sandbox owners the platform had
-// provisioned had one, so POST /v1/business/application-settlements was
+// provisioned had one, so POST /v1/application-settlements was
 // unreachable for every ordinary external Developer Project. ADR-028 separately
 // requires a KYB-approved fee destination, which nothing public could produce.
 

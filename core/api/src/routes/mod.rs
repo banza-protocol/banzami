@@ -45,6 +45,8 @@ pub mod restitution;
 pub mod risk;
 pub mod sandbox_business;
 #[cfg(test)]
+mod handle_namespace_tests;
+#[cfg(test)]
 mod sandbox_business_tests;
 #[cfg(test)]
 mod sandbox_credit_tests;

@@ -69,7 +69,7 @@ func (h *WalletAccountTransferHandler) resolveTransferAuthority(
 	return principal.MerchantID, true
 }
 
-// POST /v1/business/transfers
+// POST /v1/transfers
 func (h *WalletAccountTransferHandler) Create(w http.ResponseWriter, r *http.Request) {
 	merchantID, ok := h.resolveTransferAuthority(w, r, "transfers:write")
 	if !ok {

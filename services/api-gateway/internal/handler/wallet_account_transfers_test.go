@@ -44,7 +44,7 @@ func (f *devTransfers) Create(_ context.Context, in service.CreateWalletAccountT
 }
 
 func devTransferReq(body string, scopes ...string) *http.Request {
-	req := httptest.NewRequest("POST", "https://x/v1/business/transfers", strings.NewReader(body))
+	req := httptest.NewRequest("POST", "https://x/v1/transfers", strings.NewReader(body))
 	return req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), boundDevPrincipal(scopes...)))
 }
 
@@ -97,7 +97,7 @@ func TestDevKeyTransfer_UnboundProjectCannotTransfer(t *testing.T) {
 	h := NewWalletAccountTransferHandler(f)
 	dp := boundDevPrincipal("transfers:write")
 	dp.Bound, dp.MerchantID = false, ""
-	req := httptest.NewRequest("POST", "https://x/v1/business/transfers", strings.NewReader(okTransfer))
+	req := httptest.NewRequest("POST", "https://x/v1/transfers", strings.NewReader(okTransfer))
 	req = req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), dp))
 
 	rec := httptest.NewRecorder()

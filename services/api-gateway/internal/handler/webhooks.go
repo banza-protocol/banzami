@@ -127,7 +127,7 @@ func (h *WebhookHandler) Register(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusCreated, ep)
 }
 
-// RotateSecret handles POST /v1/business/webhooks/endpoints/{id}/rotate-secret.
+// RotateSecret handles POST /v1/webhooks/endpoints/{id}/rotate-secret.
 //
 // The new secret is shown exactly once, like registration. The old one stops
 // signing immediately; update the receiver before rotating, or accept a window

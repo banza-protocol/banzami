@@ -270,7 +270,7 @@ func (h *ApplicationSettlementHandler) Get(w http.ResponseWriter, r *http.Reques
 	respond(w, http.StatusOK, st)
 }
 
-// CreateBusiness handles POST /v1/business/application-settlements (ADR-029).
+// CreateBusiness handles POST /v1/application-settlements (ADR-029).
 //
 // The app closes a campaign: it names the source segregated account, the
 // beneficiary @banza, an optional fee destination @banza, and its OWN fee rate

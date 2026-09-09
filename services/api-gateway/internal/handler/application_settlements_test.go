@@ -81,7 +81,7 @@ func (f *fakeParties) Resolve(ctx context.Context, handle, currency string) (*se
 }
 
 func postBusiness(h *ApplicationSettlementHandler, principalMerchant, body string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest("POST", "/v1/business/application-settlements", strings.NewReader(body))
+	req := httptest.NewRequest("POST", "/v1/application-settlements", strings.NewReader(body))
 	req = req.WithContext(middleware.ContextWithPrincipal(req.Context(), &middleware.Principal{MerchantID: principalMerchant, Environment: "SANDBOX"}))
 	rec := httptest.NewRecorder()
 	h.CreateBusiness(rec, req)
@@ -166,7 +166,7 @@ func TestApplicationSettlement_FromForeignCampaignAccount(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// ADR-029 — app-defined business settlement (/v1/business/application-settlements)
+// ADR-029 — app-defined business settlement (/v1/application-settlements)
 // ---------------------------------------------------------------------------
 
 const doaBody = `{"idempotency_key":"doa-c1","source_account_id":"wa-camp","beneficiary_banza_name":"@maria","fee_destination_banza_name":"@doa","application_fee_bps":500,"reason":"CAMPAIGN_CLOSE","reference_type":"DOA_CAMPAIGN","reference_id":"campaign_123"}`

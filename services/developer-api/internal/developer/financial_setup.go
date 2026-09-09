@@ -271,7 +271,7 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 	// Without this the Business could receive money and never move it. Settlement
 	// names its parties by @banza, and a Business with no handle cannot be named
 	// as a beneficiary or as its own fee destination — so POST
-	// /v1/business/application-settlements was unreachable for every ordinary
+	// /v1/application-settlements was unreachable for every ordinary
 	// Developer Project. Zero of the five Sandbox owners this platform had
 	// provisioned had a handle.
 	//

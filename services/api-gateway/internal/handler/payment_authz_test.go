@@ -34,7 +34,7 @@ func TestDevKeySession_PayeeDerivedFromBinding(t *testing.T) {
 	h := psHandler("bound-merchant", false)
 	// A clean request (no payee fields) succeeds; the payee is the binding's.
 	rec := httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"purpose":"DONATION","amount_minor":50000}`, boundDevPrincipal("payment_sessions:write")))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
@@ -57,7 +57,7 @@ func TestDevKeySession_RejectsClientSuppliedOwner(t *testing.T) {
 		`{"payee_wallet":"attacker","amount_minor":1000}`,
 	} {
 		rec := httptest.NewRecorder()
-		h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions", body, boundDevPrincipal("payment_sessions:write")))
+		h.Create(rec, devReq("POST", "https://x/v1/payment-sessions", body, boundDevPrincipal("payment_sessions:write")))
 		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "PAYEE_NOT_ALLOWED") {
 			t.Fatalf("client owner %s must be rejected, got %d (%s)", body, rec.Code, rec.Body.String())
 		}
@@ -76,7 +76,7 @@ func TestDevKeySession_SubAccountMustBelongToTheBoundWallet(t *testing.T) {
 	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "bound-merchant"}, activeMerchant(), accounts)
 
 	rec := httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"wallet_account_id":"mine-wa","amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("own sub-account must be accepted, got %d (%s)", rec.Code, rec.Body.String())
@@ -86,14 +86,14 @@ func TestDevKeySession_SubAccountMustBelongToTheBoundWallet(t *testing.T) {
 	}
 
 	rec = httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"wallet_account_id":"foreign-wa","amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("foreign sub-account must be NOT_FOUND, got %d (%s)", rec.Code, rec.Body.String())
 	}
 
 	rec = httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"wallet_account_id":"does-not-exist","amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
 	if rec.Code != http.StatusNotFound {
 		t.Fatalf("unknown sub-account must be NOT_FOUND, got %d", rec.Code)
@@ -104,7 +104,7 @@ func TestDevKeySession_SubAccountMustBelongToTheBoundWallet(t *testing.T) {
 func TestDevKeySession_OmittedSubAccountUsesTheBindingDefault(t *testing.T) {
 	h := psHandler("bound-merchant", false)
 	rec := httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"amount_minor":1000}`, boundDevPrincipal("payment_sessions:write")))
 	if rec.Code != http.StatusCreated || !strings.Contains(rec.Body.String(), `"wallet_account_id":"bound-wa"`) {
 		t.Fatalf("omitted id must use the binding default, got %d (%s)", rec.Code, rec.Body.String())
@@ -125,14 +125,14 @@ func TestDevKeySession_MissingScopeFailsBeforeCreate(t *testing.T) {
 	h := psHandler("bound-merchant", false)
 	// identity-only key (no payment scope) must not create a session.
 	rec := httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"amount_minor":1000}`, boundDevPrincipal("identity:read")))
 	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "INSUFFICIENT_SCOPE") {
 		t.Fatalf("missing scope must 403 before create, got %d (%s)", rec.Code, rec.Body.String())
 	}
 	// read scope does not imply write.
 	rec = httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"amount_minor":1000}`, boundDevPrincipal("payment_sessions:read")))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("read scope must not authorize write, got %d", rec.Code)
@@ -145,7 +145,7 @@ func TestDevKeySession_UnboundFailsClosed(t *testing.T) {
 	unbound.Bound = false
 	unbound.MerchantID, unbound.WalletID, unbound.WalletAccountID = "", "", ""
 	rec := httptest.NewRecorder()
-	h.Create(rec, devReq("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, devReq("POST", "https://x/v1/payment-sessions",
 		`{"amount_minor":1000}`, unbound))
 	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "PAYMENTS_UNAVAILABLE") {
 		t.Fatalf("unbound project must fail closed with PAYMENTS_UNAVAILABLE, got %d (%s)", rec.Code, rec.Body.String())
@@ -156,7 +156,7 @@ func TestDevKeySession_TenantIsolationOnRead(t *testing.T) {
 	// The session belongs to a DIFFERENT merchant than the key's binding.
 	h := psHandler("other-merchant", false)
 	rec := httptest.NewRecorder()
-	req := devReq("GET", "https://x/v1/business/payment-sessions/sess-1", "", boundDevPrincipal("payment_sessions:read"))
+	req := devReq("GET", "https://x/v1/payment-sessions/sess-1", "", boundDevPrincipal("payment_sessions:read"))
 	// chi URL param needs to resolve {id}; the handler reads it via chi.URLParam,
 	// which returns "" without a route context — load() still fetches by "" and the
 	// fake returns a session owned by other-merchant, so the tenant check applies.

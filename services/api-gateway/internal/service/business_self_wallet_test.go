@@ -3,7 +3,7 @@ package service
 // The wallet a Business owns, resolved from its owner rather than from a public
 // profile that a self-service Business never has.
 //
-// GET /v1/business/me read `wallets` only through `merchant_profiles.wallet_id`.
+// GET /v1/integration read `wallets` only through `merchant_profiles.wallet_id`.
 // That row is written by the @handle onboarding flow and by nothing else, so a
 // Business provisioned through the Developer Platform's own Financial Setup had
 // no profile — and the endpoint reported no wallet, no primary account, and

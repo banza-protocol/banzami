@@ -73,7 +73,7 @@ func reqWith(method, target, body, merchant string) *http.Request {
 func TestPaymentSession_CreateReturnsInterfaces(t *testing.T) {
 	h := psHandler("doa-merchant", true)
 	rec := httptest.NewRecorder()
-	h.Create(rec, reqWith("POST", "https://x/v1/business/payment-sessions", `{"wallet_account_id":"wa-1","purpose":"DONATION","amount_minor":50000}`, "doa-merchant"))
+	h.Create(rec, reqWith("POST", "https://x/v1/payment-sessions", `{"wallet_account_id":"wa-1","purpose":"DONATION","amount_minor":50000}`, "doa-merchant"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
 	}
@@ -132,9 +132,9 @@ func TestPaymentSession_RefundSourceExposedWhenPaid(t *testing.T) {
 	}
 	h := NewPaymentSessionHandler(fake, activeMerchant(), nil)
 	r := chi.NewRouter()
-	r.Get("/v1/business/payment-sessions/{id}", h.Get)
+	r.Get("/v1/payment-sessions/{id}", h.Get)
 	rec := httptest.NewRecorder()
-	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/business/payment-sessions/sess-1", "", "doa-merchant"))
+	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/payment-sessions/sess-1", "", "doa-merchant"))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("want 200, got %d (%s)", rec.Code, rec.Body.String())
 	}
@@ -161,9 +161,9 @@ func TestPaymentSession_RefundSourceExposedWhenPaid(t *testing.T) {
 func TestPaymentSession_RefundSourceOmittedWhenUnpaid(t *testing.T) {
 	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, activeMerchant(), nil)
 	r := chi.NewRouter()
-	r.Get("/v1/business/payment-sessions/{id}", h.Get)
+	r.Get("/v1/payment-sessions/{id}", h.Get)
 	rec := httptest.NewRecorder()
-	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/business/payment-sessions/sess-1", "", "doa-merchant"))
+	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/payment-sessions/sess-1", "", "doa-merchant"))
 	if strings.Contains(rec.Body.String(), "refund_source") {
 		t.Fatalf("unsettled session must omit refund_source entirely: %s", rec.Body.String())
 	}
@@ -172,7 +172,7 @@ func TestPaymentSession_RefundSourceOmittedWhenUnpaid(t *testing.T) {
 func TestPaymentSession_Unauthenticated(t *testing.T) {
 	h := psHandler("doa-merchant", true)
 	rec := httptest.NewRecorder()
-	h.Create(rec, reqWith("POST", "https://x/v1/business/payment-sessions", `{"wallet_account_id":"wa-1"}`, ""))
+	h.Create(rec, reqWith("POST", "https://x/v1/payment-sessions", `{"wallet_account_id":"wa-1"}`, ""))
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("want 401, got %d", rec.Code)
 	}
@@ -182,7 +182,7 @@ func TestPaymentSession_InactiveMerchant(t *testing.T) {
 	suspended := &fakeMerchants{rec: &service.MerchantRecord{ID: "doa-merchant", Status: service.MerchantStatusSuspended}}
 	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, suspended, nil)
 	rec := httptest.NewRecorder()
-	h.Create(rec, reqWith("POST", "https://x/v1/business/payment-sessions", `{"wallet_account_id":"wa-1"}`, "doa-merchant"))
+	h.Create(rec, reqWith("POST", "https://x/v1/payment-sessions", `{"wallet_account_id":"wa-1"}`, "doa-merchant"))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("suspended merchant must be 403, got %d", rec.Code)
 	}
@@ -201,9 +201,9 @@ func TestPaymentSession_QrRender(t *testing.T) {
 	for _, c := range cases {
 		h := psHandler("doa-merchant", true)
 		r := chi.NewRouter()
-		r.Get("/v1/business/payment-sessions/{id}/qr", h.Qr)
+		r.Get("/v1/payment-sessions/{id}/qr", h.Qr)
 		rec := httptest.NewRecorder()
-		r.ServeHTTP(rec, reqWith("GET", "https://x/v1/business/payment-sessions/sess-1/qr?format="+c.format, "", "doa-merchant"))
+		r.ServeHTTP(rec, reqWith("GET", "https://x/v1/payment-sessions/sess-1/qr?format="+c.format, "", "doa-merchant"))
 		if rec.Code != c.code {
 			t.Fatalf("format %s: want %d, got %d (%s)", c.format, c.code, rec.Code, rec.Body.String())
 		}
@@ -230,7 +230,7 @@ func TestPaymentSession_QrRender(t *testing.T) {
 func TestPaymentSession_PaymentLinkPointsAtTheHostedPayerSurface(t *testing.T) {
 	h := psHandler("doa-merchant", true).WithPayBaseURL("https://pay.banzami.com")
 	rec := httptest.NewRecorder()
-	h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/business/payment-sessions",
+	h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/payment-sessions",
 		`{"wallet_account_id":"wa-1","purpose":"DONATION","amount_minor":50000}`, "doa-merchant"))
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
@@ -268,7 +268,7 @@ func TestPaymentSession_PaymentLinkPointsAtTheHostedPayerSurface(t *testing.T) {
 func TestPaymentSession_PayBaseURLTrailingSlashIsNormalised(t *testing.T) {
 	h := psHandler("doa-merchant", false).WithPayBaseURL("https://pay.banzami.com/")
 	rec := httptest.NewRecorder()
-	h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/business/payment-sessions",
+	h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/payment-sessions",
 		`{"wallet_account_id":"wa-1","purpose":"DONATION"}`, "doa-merchant"))
 
 	var resp struct {
@@ -288,7 +288,7 @@ func TestPaymentSession_PayBaseURLTrailingSlashIsNormalised(t *testing.T) {
 func TestPaymentSession_WithoutPayBaseURLTheLegacyShapeIsKept(t *testing.T) {
 	h := psHandler("doa-merchant", false)
 	rec := httptest.NewRecorder()
-	h.Create(rec, reqWith("POST", "https://x/v1/business/payment-sessions",
+	h.Create(rec, reqWith("POST", "https://x/v1/payment-sessions",
 		`{"wallet_account_id":"wa-1","purpose":"DONATION"}`, "doa-merchant"))
 
 	var resp struct {

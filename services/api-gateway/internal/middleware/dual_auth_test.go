@@ -55,7 +55,7 @@ func TestDualAuth_SeparatesCredentialsNoFallback(t *testing.T) {
 				_, sawMerch = GetPrincipal(r.Context())
 				w.WriteHeader(http.StatusOK)
 			}))
-			req := httptest.NewRequest(http.MethodPost, "/v1/business/payment-sessions", nil)
+			req := httptest.NewRequest(http.MethodPost, "/v1/payment-sessions", nil)
 			if c.authz != "" {
 				req.Header.Set("Authorization", c.authz)
 			}

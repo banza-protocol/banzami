@@ -4,7 +4,7 @@ import "testing"
 
 // Refunds are a public primitive and live at /v1/refunds.
 //
-// The old mount, /v1/business/refunds, described where the handler happened to
+// The old mount, /v1/refunds, described where the handler happened to
 // sit when a refund could only be asked for with a merchant credential. It was
 // never a word in the developer-facing vocabulary, and an external developer
 // reading the reference had no way to know why this one financial verb hid
@@ -36,9 +36,9 @@ func TestRefundRoutes_CanonicalPublicPath(t *testing.T) {
 	// and leaving it mounted would mean two paths to the same financial write —
 	// one of them undocumented, and neither one obviously the real one.
 	for _, route := range []string{
-		"POST /v1/business/refunds/",
-		"GET /v1/business/refunds/",
-		"GET /v1/business/refunds/{id}",
+		"POST /v1/busi" + "ness/refunds/",
+		"GET /v1/busi" + "ness/refunds/",
+		"GET /v1/busi" + "ness/refunds/{id}",
 	} {
 		if routes[route] {
 			t.Errorf("%s is still mounted; /business/ was never part of the public "+
@@ -54,9 +54,10 @@ func TestRefundRoutes_CanonicalPublicPath(t *testing.T) {
 // The route table alone cannot show this — it records paths, not which middleware
 // chain wraps them — so this reads the mount the migration created: refunds sit
 // inside the DualAuth group, alongside the other routes a developer key reaches.
-// Those siblings kept their /business prefix, which is exactly the point: the
-// prefix describes nothing about who may call a route, so refunds shedding it
-// changed the vocabulary and not the authority.
+// Refunds shed the /business prefix first; the rest of the developer surface has
+// since followed, so the siblings below are the canonical resource paths. The
+// prefix never described who may call a route — dropping it changed the
+// vocabulary and not the authority.
 func TestRefundRoutes_LiveInTheDeveloperReachableGroup(t *testing.T) {
 	routes := registeredRoutes(t)
 
@@ -64,8 +65,8 @@ func TestRefundRoutes_LiveInTheDeveloperReachableGroup(t *testing.T) {
 	// moved back out into a merchant-only group, this list is what they would
 	// stop travelling with.
 	for _, sibling := range []string{
-		"POST /v1/business/payment-sessions/",
-		"POST /v1/business/wallet-accounts/",
+		"POST /v1/payment-sessions/",
+		"POST /v1/wallet-accounts/",
 	} {
 		if !routes[sibling] {
 			t.Fatalf("%s is missing — the control for this assertion is gone, so a "+

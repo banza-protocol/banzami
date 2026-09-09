@@ -76,7 +76,7 @@ func (h *PaymentSessionHandler) payURL(r *http.Request, slug string) string {
 // interfaces is an ARRAY of {type, value, format, expires_at, status}; never a
 // ledger/account id. Every interface resolves to the same session + destination.
 func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSession) map[string]any {
-	qrURL := "/v1/business/payment-sessions/" + s.SessionID + "/qr"
+	qrURL := "/v1/payment-sessions/" + s.SessionID + "/qr"
 	interfaces := []map[string]any{}
 	if s.PaymentLinkSlug != nil && *s.PaymentLinkSlug != "" {
 		interfaces = append(interfaces,
@@ -156,7 +156,7 @@ func (h *PaymentSessionHandler) resolveActor(w http.ResponseWriter, r *http.Requ
 	return mID, nil, ok
 }
 
-// POST /v1/business/payment-sessions
+// POST /v1/payment-sessions
 func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	merchantID, dev, ok := h.resolveActor(w, r, "payment_sessions:write")
 	if !ok {
@@ -230,7 +230,7 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusCreated, h.safeDTO(r, sess))
 }
 
-// GET /v1/business/payment-sessions?status=&limit=
+// GET /v1/payment-sessions?status=&limit=
 func (h *PaymentSessionHandler) List(w http.ResponseWriter, r *http.Request) {
 	merchantID, _, ok := h.resolveActor(w, r, "payment_sessions:read")
 	if !ok {
@@ -269,7 +269,7 @@ func (h *PaymentSessionHandler) load(w http.ResponseWriter, r *http.Request) (*s
 	return sess, true
 }
 
-// GET /v1/business/payment-sessions/{id}
+// GET /v1/payment-sessions/{id}
 func (h *PaymentSessionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	sess, ok := h.load(w, r)
 	if !ok {
@@ -278,7 +278,7 @@ func (h *PaymentSessionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, h.safeDTO(r, sess))
 }
 
-// GET /v1/business/payment-sessions/{id}/link
+// GET /v1/payment-sessions/{id}/link
 func (h *PaymentSessionHandler) Link(w http.ResponseWriter, r *http.Request) {
 	sess, ok := h.load(w, r)
 	if !ok {
@@ -295,7 +295,7 @@ func (h *PaymentSessionHandler) Link(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /v1/business/payment-sessions/{id}/qr?format=png|svg|pdf
+// GET /v1/payment-sessions/{id}/qr?format=png|svg|pdf
 // The QR encodes the dynamic-QR payload when present (fixed amount), else the
 // session's public pay URL (open amount). The image is rendered server-side (U4);
 // without a format it returns the encodable value as JSON.

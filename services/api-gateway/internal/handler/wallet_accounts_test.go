@@ -46,7 +46,7 @@ func activeMerchant() *fakeMerchants {
 }
 
 func postAccount(h *WalletAccountHandler, principalMerchant, body string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest("POST", "/v1/business/wallet-accounts", strings.NewReader(body))
+	req := httptest.NewRequest("POST", "/v1/wallet-accounts", strings.NewReader(body))
 	req = req.WithContext(middleware.ContextWithPrincipal(req.Context(), &middleware.Principal{MerchantID: principalMerchant, Environment: "SANDBOX"}))
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
@@ -84,7 +84,7 @@ func TestWalletAccount_RejectsPrimary(t *testing.T) {
 // Unauthenticated callers are rejected before any work.
 func TestWalletAccount_RejectsUnauthenticated(t *testing.T) {
 	h := NewWalletAccountHandler(&fakeWalletAccounts{}, &fakeWallets{merchantID: "doa-merchant"}, activeMerchant())
-	req := httptest.NewRequest("POST", "/v1/business/wallet-accounts", strings.NewReader(`{"wallet_id":"w-src","purpose":"CAMPAIGN"}`))
+	req := httptest.NewRequest("POST", "/v1/wallet-accounts", strings.NewReader(`{"wallet_id":"w-src","purpose":"CAMPAIGN"}`))
 	rec := httptest.NewRecorder()
 	h.Create(rec, req)
 	if rec.Code != http.StatusUnauthorized {

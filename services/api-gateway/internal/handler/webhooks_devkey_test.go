@@ -83,7 +83,7 @@ func withURLParam(r *http.Request, key, val string) *http.Request {
 func TestDevKeyWebhook_RegisteredUnderTheBoundMerchant(t *testing.T) {
 	h := NewWebhookHandler(&devWebhooks{})
 	rec := httptest.NewRecorder()
-	h.Register(rec, devWbhReq("POST", "https://x/v1/business/webhooks/endpoints",
+	h.Register(rec, devWbhReq("POST", "https://x/v1/webhooks/endpoints",
 		`{"url":"https://www.doadoa.app/api/webhooks/banzami","events":["payment_link.paid"]}`,
 		"webhooks:write"))
 	if rec.Code != http.StatusCreated {
@@ -104,7 +104,7 @@ func TestDevKeyWebhook_ScopeIsRequiredPerOperation(t *testing.T) {
 
 	// A read scope must never authorize a mutation.
 	rec := httptest.NewRecorder()
-	h.Register(rec, devWbhReq("POST", "https://x/v1/business/webhooks/endpoints",
+	h.Register(rec, devWbhReq("POST", "https://x/v1/webhooks/endpoints",
 		`{"url":"https://www.doadoa.app/api/webhooks/banzami","events":["payment_link.paid"]}`,
 		"webhooks:read"))
 	if rec.Code != http.StatusForbidden {
@@ -113,7 +113,7 @@ func TestDevKeyWebhook_ScopeIsRequiredPerOperation(t *testing.T) {
 
 	// Nor may a payment scope stand in for a webhook one.
 	rec = httptest.NewRecorder()
-	h.ListEndpoints(rec, devWbhReq("GET", "https://x/v1/business/webhooks/endpoints", "",
+	h.ListEndpoints(rec, devWbhReq("GET", "https://x/v1/webhooks/endpoints", "",
 		"payment_sessions:write"))
 	if rec.Code != http.StatusForbidden {
 		t.Errorf("list with an unrelated scope: want 403, got %d", rec.Code)
@@ -157,7 +157,7 @@ func TestDevKeyWebhook_UnboundProjectHasNoWebhooks(t *testing.T) {
 	h := NewWebhookHandler(&devWebhooks{})
 	dp := boundDevPrincipal("webhooks:read")
 	dp.Bound, dp.MerchantID = false, ""
-	req := httptest.NewRequest("GET", "https://x/v1/business/webhooks/endpoints", nil)
+	req := httptest.NewRequest("GET", "https://x/v1/webhooks/endpoints", nil)
 	req = req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), dp))
 
 	rec := httptest.NewRecorder()

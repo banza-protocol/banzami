@@ -54,7 +54,7 @@ func TestDevKeyWalletAccount_CreatedUnderTheBoundWallet(t *testing.T) {
 	acc := &devAccounts{}
 	h := devWalletHandler(acc)
 	rec := httptest.NewRecorder()
-	h.Create(rec, devWalletReq("POST", "https://x/v1/business/wallet-accounts",
+	h.Create(rec, devWalletReq("POST", "https://x/v1/wallet-accounts",
 		`{"purpose":"CAMPAIGN","reference_type":"DOA_CAMPAIGN","reference_id":"c-1","label":"School A"}`,
 		"wallet_accounts:create"))
 	if rec.Code != http.StatusCreated {
@@ -78,7 +78,7 @@ func TestDevKeyWalletAccount_RejectsClientSuppliedWallet(t *testing.T) {
 		`{"wallet_id":"bound-wallet","purpose":"CAMPAIGN"}`,
 	} {
 		rec := httptest.NewRecorder()
-		h.Create(rec, devWalletReq("POST", "https://x/v1/business/wallet-accounts", body, "wallet_accounts:create"))
+		h.Create(rec, devWalletReq("POST", "https://x/v1/wallet-accounts", body, "wallet_accounts:create"))
 		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "PAYEE_NOT_ALLOWED") {
 			t.Fatalf("client wallet %s must be rejected, got %d (%s)", body, rec.Code, rec.Body.String())
 		}
@@ -93,12 +93,12 @@ func TestDevKeyWalletAccount_ListIsScopedToTheBoundWallet(t *testing.T) {
 	h := devWalletHandler(acc)
 	// A wallet_id in the query must not redirect the listing.
 	rec := httptest.NewRecorder()
-	h.List(rec, devWalletReq("GET", "https://x/v1/business/wallet-accounts?wallet_id=someone-elses-wallet", "", "wallet_accounts:read"))
+	h.List(rec, devWalletReq("GET", "https://x/v1/wallet-accounts?wallet_id=someone-elses-wallet", "", "wallet_accounts:read"))
 	if rec.Code != http.StatusBadRequest {
 		t.Fatalf("a supplied wallet_id must be refused, got %d (%s)", rec.Code, rec.Body.String())
 	}
 	rec = httptest.NewRecorder()
-	h.List(rec, devWalletReq("GET", "https://x/v1/business/wallet-accounts", "", "wallet_accounts:read"))
+	h.List(rec, devWalletReq("GET", "https://x/v1/wallet-accounts", "", "wallet_accounts:read"))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("list = %d (%s)", rec.Code, rec.Body.String())
 	}
@@ -114,7 +114,7 @@ func TestDevKeyWalletAccount_ForeignReadIsNotFound(t *testing.T) {
 	}}
 	h := devWalletHandler(acc)
 	for id, want := range map[string]int{"mine-1": http.StatusOK, "theirs-1": http.StatusNotFound, "nope": http.StatusNotFound} {
-		req := devWalletReq("GET", "https://x/v1/business/wallet-accounts/"+id, "", "wallet_accounts:read")
+		req := devWalletReq("GET", "https://x/v1/wallet-accounts/"+id, "", "wallet_accounts:read")
 		rctx := chi.NewRouteContext()
 		rctx.URLParams.Add("id", id)
 		req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
@@ -130,14 +130,14 @@ func TestDevKeyWalletAccount_ScopeIsRequired(t *testing.T) {
 	h := devWalletHandler(&devAccounts{})
 	// Payment scopes do not imply wallet-account authority.
 	rec := httptest.NewRecorder()
-	h.Create(rec, devWalletReq("POST", "https://x/v1/business/wallet-accounts",
+	h.Create(rec, devWalletReq("POST", "https://x/v1/wallet-accounts",
 		`{"purpose":"CAMPAIGN"}`, "payment_sessions:write"))
 	if rec.Code != http.StatusForbidden || !strings.Contains(rec.Body.String(), "INSUFFICIENT_SCOPE") {
 		t.Fatalf("missing scope must 403, got %d (%s)", rec.Code, rec.Body.String())
 	}
 	// Read does not imply create.
 	rec = httptest.NewRecorder()
-	h.Create(rec, devWalletReq("POST", "https://x/v1/business/wallet-accounts",
+	h.Create(rec, devWalletReq("POST", "https://x/v1/wallet-accounts",
 		`{"purpose":"CAMPAIGN"}`, "wallet_accounts:read"))
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("read scope must not authorize create, got %d", rec.Code)
@@ -149,7 +149,7 @@ func TestDevKeyWalletAccount_ScopeIsRequired(t *testing.T) {
 // pay funds away.
 
 func devSettlementReq(body string, scopes ...string) *http.Request {
-	req := httptest.NewRequest("POST", "https://x/v1/business/application-settlements", strings.NewReader(body))
+	req := httptest.NewRequest("POST", "https://x/v1/application-settlements", strings.NewReader(body))
 	return req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), boundDevPrincipal(scopes...)))
 }
 
@@ -183,7 +183,7 @@ func TestDevKeySettlement_UnboundProjectCannotSettle(t *testing.T) {
 	h := settlementHandlerForDev()
 	p := boundDevPrincipal("application_settlements:write")
 	p.Bound = false
-	req := httptest.NewRequest("POST", "https://x/v1/business/application-settlements",
+	req := httptest.NewRequest("POST", "https://x/v1/application-settlements",
 		strings.NewReader(`{"idempotency_key":"k3","source_account_id":"mine-wa","beneficiary_banza_name":"@ben"}`))
 	req = req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), p))
 	rec := httptest.NewRecorder()

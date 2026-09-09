@@ -60,7 +60,7 @@ func (h *BusinessMeHandler) resolveSelfAuthority(w http.ResponseWriter, r *http.
 	return principal.MerchantID, principal.Environment, true
 }
 
-// GET /v1/business/me
+// GET /v1/integration
 func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if h.svc == nil {
 		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "business profile is not available")

@@ -11,7 +11,7 @@ import (
 func TestBusinessMe_Unavailable503WhenUnconfigured(t *testing.T) {
 	h := NewBusinessMeHandler(nil)
 	w := httptest.NewRecorder()
-	h.Me(w, httptest.NewRequest(http.MethodGet, "/v1/business/me", nil))
+	h.Me(w, httptest.NewRequest(http.MethodGet, "/v1/integration", nil))
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("nil svc: status = %d, want 503", w.Code)
 	}

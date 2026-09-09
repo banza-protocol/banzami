@@ -563,7 +563,43 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
             }
         })?;
 
-        // 2. Create wallet row.
+        // 2. Register the handle in the ONE namespace parties are routed through.
+        //
+        // `consumers.handle` is the identity's own column; `handle_registry` is
+        // the routing table every @banza lookup goes through — parties/resolve
+        // reads it and nothing else. Migration 0051 backfilled consumer handles
+        // into it, which settles what the design intends: one namespace, holding
+        // CONSUMER, MERCHANT, APPLICATION and reserved SYSTEM names together.
+        //
+        // The backfill was one-time and no ongoing write was ever added, so every
+        // consumer onboarded since has been invisible to the router. All 27 in
+        // the Sandbox were: @fm65 shows an ACTIVE AOA wallet holding 10 000 Kz in
+        // the Consumer app and an application settlement to it answered "has no
+        // active wallet in this currency", because the resolver could not find
+        // the handle at all. It is not one identity's problem — no consumer could
+        // be named as a settlement beneficiary.
+        //
+        // Inside the same transaction as the identity, so a handle cannot exist
+        // in one store and not the other. Uniqueness now spans every party type:
+        // a merchant could previously claim a name a consumer already answered
+        // to, because only this table enforced it and consumers were not in it.
+        sqlx::query(
+            "INSERT INTO handle_registry (handle, owner_type, owner_id, created_at)
+             VALUES ($1, 'CONSUMER', $2, now())",
+        )
+        .bind(&completed.banza_handle)
+        .bind(consumer_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| {
+            if is_unique_violation(&e) {
+                ConsumerWalletError::HandleTaken(completed.banza_handle.clone())
+            } else {
+                ConsumerWalletError::Database(e)
+            }
+        })?;
+
+        // 3. Create wallet row.
         let wallet_id = Uuid::new_v4();
         let now = Utc::now();
         sqlx::query(
@@ -585,7 +621,7 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
         .await
         .map_err(ConsumerWalletError::Database)?;
 
-        // 3. Delete the onboarding session.
+        // 4. Delete the onboarding session.
         sqlx::query("DELETE FROM consumer_onboarding WHERE id = $1")
             .bind(completed.session_id)
             .execute(&mut *tx)
