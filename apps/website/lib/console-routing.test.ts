@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
   CONSOLE_HOST,
+  isConsoleSubPath,
+  marketingToConsoleUrl,
+  CONSOLE_ORIGIN,
   isLegacyConsolePath,
   legacyToClean,
   cleanToInternal,
@@ -94,5 +97,53 @@ describe('Developer Console routing map', () => {
       const internal = cleanToInternal(clean);
       expect(legacyToClean(internal)).toBe(clean);
     }
+  });
+
+  // The Console on the marketing host was not a duplicate, it was a dead end:
+  // developer-api allows one credentialed CORS origin, so the OTP request from
+  // banzami.com/developers/login failed preflight and the page said "Sem ligação
+  // ao serviço". These pin the consolidation that ends that.
+  describe('console pages on a marketing host', () => {
+    it.each([
+      '/developers/login',
+      '/developers/verify',
+      '/developers/api-keys',
+      '/developers/webhooks',
+      '/developers/saldos',
+      '/developers/dashboard',
+      '/developers/invites/accept',
+      '/developers/docs',
+    ])('%s is a console sub-path and leaves the marketing host', (p) => {
+      expect(isConsoleSubPath(p)).toBe(true);
+      expect(marketingToConsoleUrl(p).startsWith(CONSOLE_ORIGIN)).toBe(true);
+    });
+
+    it('the developer LANDING page stays on the marketing host', () => {
+      // /developers is marketing content — the page that sells the platform.
+      // Redirecting it would send someone reading about Banzami to a login form.
+      expect(isConsoleSubPath('/developers')).toBe(false);
+    });
+
+    it.each([
+      ['/developers/login', '/login'],
+      ['/developers/verify', '/verify'],
+      ['/developers/dashboard', '/'],
+      ['/developers/accept-invite', '/invites/accept'],
+      ['/developers/docs', '/docs'],
+    ])('%s lands on the console at %s', (from, to) => {
+      expect(marketingToConsoleUrl(from)).toBe(CONSOLE_ORIGIN + to);
+    });
+
+    it('no marketing path outside the console is touched', () => {
+      for (const p of ['/', '/precos', '/comerciantes', '/sobre', '/developers']) {
+        expect(isConsoleSubPath(p)).toBe(false);
+      }
+    });
+
+    it('the destination is always the console host, never the marketing one', () => {
+      for (const p of ['/developers/login', '/developers/settings', '/developers/logs']) {
+        expect(marketingToConsoleUrl(p)).not.toContain('//banzami.com');
+      }
+    });
   });
 });

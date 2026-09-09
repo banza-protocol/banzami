@@ -4,8 +4,10 @@ import {
   CONSOLE_HOST,
   MARKETING_HOSTS,
   CANONICAL_DOCS_URL,
+  isConsoleSubPath,
   isDocsPath,
   isLegacyConsolePath,
+  marketingToConsoleUrl,
   legacyToClean,
   cleanToInternal,
 } from '@/lib/console-routing';
@@ -58,14 +60,28 @@ export function middleware(req: NextRequest): NextResponse {
     return harden(NextResponse.rewrite(dest, { request: { headers: reqHeaders } }), nonce);
   }
 
-  // Marketing hosts (banzami.com / www): the documentation is canonical on the
-  // console host only. Consolidate any docs URL (clean /docs or legacy
-  // /developers/docs) to https://developers.banzami.com/docs with a 308, so the
-  // marketing host never renders a duplicated / second-canonical docs experience.
-  // The browser preserves the original URL fragment (e.g. #reembolsos). Every
-  // other marketing path is untouched.
-  if (MARKETING_HOSTS.includes(host) && isDocsPath(url.pathname)) {
-    return NextResponse.redirect(CANONICAL_DOCS_URL, 308);
+  // Marketing hosts (banzami.com / www): the Console and the documentation are
+  // canonical on the console host only.
+  //
+  // Consolidating docs was about a duplicated canonical URL. Consolidating the
+  // Console is about a surface that cannot work here at all: developer-api
+  // allows one credentialed CORS origin, so the OTP request from
+  // banzami.com/developers/login failed preflight and the developer saw "Sem
+  // ligação ao serviço" — a login page that looked complete and could never
+  // authenticate anyone. /developers itself stays: it is the developer landing
+  // page, and it is marketing.
+  //
+  // 308 preserves the method, and the query string is carried over so the
+  // Console's own /verify?email=… navigation survives the hop.
+  if (MARKETING_HOSTS.includes(host)) {
+    if (isConsoleSubPath(url.pathname)) {
+      const dest = new URL(marketingToConsoleUrl(url.pathname));
+      dest.search = url.search;
+      return NextResponse.redirect(dest, 308);
+    }
+    if (isDocsPath(url.pathname)) {
+      return NextResponse.redirect(CANONICAL_DOCS_URL, 308);
+    }
   }
 
   // Every other host/path renders normally — with the policy attached.

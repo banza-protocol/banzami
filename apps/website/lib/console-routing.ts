@@ -12,13 +12,16 @@
 
 export const CONSOLE_HOST = 'developers.banzami.com';
 
-// Marketing hosts (banzami.com + its www alias). The Developer Documentation is
-// canonical on the console host only; on these hosts any docs URL is redirected
-// there so the marketing site never becomes a second canonical docs host.
+export const CONSOLE_ORIGIN = `https://${CONSOLE_HOST}`;
+
+// Marketing hosts (banzami.com + its www alias). The Console and the Developer
+// Documentation are canonical on the console host only; on these hosts a console
+// URL is redirected there so the marketing site never becomes a second canonical
+// host for either.
 export const MARKETING_HOSTS = ['banzami.com', 'www.banzami.com'];
 
 // The single canonical documentation URL.
-export const CANONICAL_DOCS_URL = 'https://developers.banzami.com/docs';
+export const CANONICAL_DOCS_URL = `${CONSOLE_ORIGIN}/docs`;
 
 // Physical Next segment the console pages live under.
 const INTERNAL_PREFIX = '/developers';
@@ -37,6 +40,37 @@ export function isDocsPath(pathname: string): boolean {
     pathname === INTERNAL_PREFIX + '/docs' ||
     pathname.startsWith(INTERNAL_PREFIX + '/docs/')
   );
+}
+
+/**
+ * True for a CONSOLE page reached on a marketing host — any /developers/ SUB-path.
+ *
+ * Deliberately not /developers itself: that is the developer landing page, which
+ * is marketing content and belongs on the marketing host. Everything beneath it
+ * — login, verify, api-keys, webhooks, saldos — is the Console.
+ *
+ * Serving those on the marketing host does not merely duplicate them, it breaks
+ * them. developer-api allows exactly one credentialed CORS origin (the console
+ * host), so the OTP request from banzami.com/developers/login fails preflight and
+ * the developer is told "Sem ligação ao serviço" with no way to learn that the
+ * Console is on another host. The page it navigates to next, /verify, does not
+ * exist on the marketing host at all.
+ *
+ * The docs rule below already consolidated one console surface for a weaker
+ * reason — a duplicate canonical URL. This is the same rule applied to the
+ * surface that actually fails.
+ */
+export function isConsoleSubPath(pathname: string): boolean {
+  return pathname.startsWith(INTERNAL_PREFIX + '/');
+}
+
+/**
+ * The canonical console URL for a console path seen on a marketing host.
+ * Reuses legacyToClean, so /developers/login → /login and /developers/dashboard
+ * → / exactly as they map on the console host itself.
+ */
+export function marketingToConsoleUrl(pathname: string): string {
+  return CONSOLE_ORIGIN + legacyToClean(pathname);
 }
 
 /** True for the legacy prefixed console URLs that must permanently redirect. */

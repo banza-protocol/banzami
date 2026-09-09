@@ -90,8 +90,11 @@ describe('Developer Console host middleware', () => {
     });
   });
 
-  describe('banzami.com is completely unaffected by the developers-host middleware', () => {
-    it.each(['/', '/login', '/produto', '/developers', '/developers/login', '/developers/api-keys'])(
+  describe('marketing host: its own pages pass through untouched', () => {
+    // /developers is included on purpose: it is the developer LANDING page, and
+    // it is marketing. Redirecting it would send someone reading about the
+    // platform to a login form.
+    it.each(['/', '/login', '/produto', '/developers'])(
       'banzami.com%s passes through (no redirect, no rewrite)',
       (path) => {
         const res = run(`https://banzami.com${path}`, 'banzami.com');
@@ -100,6 +103,46 @@ describe('Developer Console host middleware', () => {
         expect(res.headers.get('x-middleware-rewrite')).toBeNull();
       },
     );
+  });
+
+  describe('marketing host: the Console is consolidated onto the console host', () => {
+    // These used to assert that banzami.com/developers/login "passes through".
+    // It did — and it could never work. developer-api allows one credentialed
+    // CORS origin, so the OTP request from banzami.com failed preflight and the
+    // page reported "Sem ligação ao serviço"; the page it navigates to next,
+    // /verify, does not exist on this host at all. A login form that looks
+    // finished and cannot authenticate anyone is worse than no login form, so
+    // the old assertion was pinning the defect.
+    it.each([
+      ['/developers/login', 'https://developers.banzami.com/login'],
+      ['/developers/verify', 'https://developers.banzami.com/verify'],
+      ['/developers/api-keys', 'https://developers.banzami.com/api-keys'],
+      ['/developers/dashboard', 'https://developers.banzami.com/'],
+      ['/developers/invites/accept', 'https://developers.banzami.com/invites/accept'],
+    ])('banzami.com%s → 308 → %s', (path, dest) => {
+      const res = run(`https://banzami.com${path}`, 'banzami.com');
+      expect(res.status).toBe(308);
+      expect(res.headers.get('location')).toBe(dest);
+    });
+
+    it('the query string survives the hop (the Console passes ?email= to /verify)', () => {
+      const res = run('https://banzami.com/developers/verify?email=a%40b.test', 'banzami.com');
+      expect(res.status).toBe(308);
+      expect(res.headers.get('location')).toBe(
+        'https://developers.banzami.com/verify?email=a%40b.test',
+      );
+    });
+
+    it('the redirect leaves the marketing host — otherwise it is a loop', () => {
+      const res = run('https://banzami.com/developers/login', 'banzami.com');
+      expect(res.headers.get('location')).not.toContain('//banzami.com');
+    });
+
+    it('www is treated the same as the apex', () => {
+      const res = run('https://www.banzami.com/developers/login', 'www.banzami.com');
+      expect(res.status).toBe(308);
+      expect(res.headers.get('location')).toBe('https://developers.banzami.com/login');
+    });
   });
 
   describe('documentation canonical/legacy routing (regression: no loop, no second canonical host)', () => {
@@ -149,13 +192,22 @@ describe('Developer Console host middleware', () => {
       }
     });
 
-    it('marketing docs redirect leaves other /developers/* marketing pages untouched', () => {
-      for (const path of ['/developers', '/developers/webhooks', '/produto']) {
+    it('the docs rule does not swallow the marketing pages around it', () => {
+      // /developers/webhooks used to be listed here as an untouched marketing
+      // page. It is a Console page, and it now consolidates with the rest of the
+      // Console; what must stay untouched is genuine marketing content.
+      for (const path of ['/developers', '/produto', '/precos']) {
         const res = run(`https://banzami.com${path}`, 'banzami.com');
         expect(res.status).not.toBe(308);
         expect(res.headers.get('location')).toBeNull();
         expect(res.headers.get('x-middleware-rewrite')).toBeNull();
       }
+    });
+
+    it('a Console page on the marketing host goes to the Console, not to /docs', () => {
+      const res = run('https://banzami.com/developers/webhooks', 'banzami.com');
+      expect(res.status).toBe(308);
+      expect(res.headers.get('location')).toBe('https://developers.banzami.com/webhooks');
     });
   });
 
