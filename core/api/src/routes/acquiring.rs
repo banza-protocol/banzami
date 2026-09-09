@@ -152,191 +152,288 @@ pub async fn emis_callback(
             other => map_err(other),
         })?;
 
-    // Wire the confirmed payment → wallet credit.
-    // Double-entry: system:transit DR / wallet:available CR
-    // Idempotency key is tied to the acquiring payment ID so retried callbacks
-    // result in a duplicate-key error on ledger_postings and are safely ignored.
+    settle_confirmed_payment(&state, &payment).await?;
+
+    Ok(Json(payment.into()))
+}
+
+/// Credit the destination wallet account for a CONFIRMED acquiring payment.
+///
+/// ONE RAIL, ONE BEHAVIOUR
+///
+/// This was the body of `emis_callback`, which meant the only confirmation path
+/// that exists in Sandbox — `test_confirm`, driving the simulated provider — ran
+/// `process_callback` and stopped. It flipped `acquiring_payments.status` to
+/// CONFIRMED and moved no money whatsoever: the payer was shown a terminal
+/// success, the merchant's balance never changed, and nothing was emitted. An
+/// integration that passed in Sandbox would have behaved differently in Live,
+/// which is the one thing a Sandbox may never do. Both callers now settle here.
+///
+/// THE DESTINATION IS THE ACCOUNT THE INTERFACE NAMED
+///
+/// The credit landed on `wallets.available_account_id` — the wallet default —
+/// ignoring `payment_links.wallet_account_id`, whose own migration (0084) states
+/// that a link carrying a destination account exists so that "when it is paid the
+/// transfer credits THAT account — not the wallet's default available account".
+/// Money paid to a segregated account (a DOA campaign, an escrow) therefore
+/// landed in the merchant's general balance. The destination is now the account
+/// the interface names; the wallet default applies only to a legacy link that
+/// names none.
+///
+/// A named account that does not validate does NOT fall back to the default.
+/// ADR-042 requires the account to belong to this wallet, be ACTIVE and match the
+/// currency, and the transfer engine re-checks exactly that at pay time — a check
+/// this path bypasses by posting directly, so it performs it itself. Crediting the
+/// default because the named account failed validation is the same defect in a
+/// quieter form, so the settlement is withheld for reconciliation instead.
+///
+/// THE POSTING IS ONE POSTING
+///
+/// The header and the two entries were three separate statements with no
+/// enclosing transaction. A failure between them persists a posting with one leg
+/// — a direct violation of BANZA INV-LEDGER-004 ("a posting is atomic: partial
+/// postings never persist") and of the global zero-sum it underwrites. They now
+/// commit together or not at all.
+///
+/// Idempotency is the UNIQUE insert itself, not a preceding existence check. The
+/// old `SELECT EXISTS` left a window in which two concurrent callbacks for the
+/// same payment could both find nothing and both post; `ON CONFLICT DO NOTHING
+/// RETURNING id` lets exactly one of them win and tells the loser it lost.
+///
+/// Best-effort by intent: the money has already reached the provider, so a
+/// failure here must never un-confirm the payment.
+pub async fn settle_confirmed_payment(
+    state: &AppState,
+    payment: &AcquiringPayment,
+) -> ApiResult<()> {
+    // Double-entry: system:transit DR / destination wallet account CR.
     let idempotency_key = format!("acquiring-settle-{}", payment.id);
 
-    let already_settled: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM ledger_postings WHERE idempotency_key = $1)",
-    )
-    .bind(&idempotency_key)
-    .fetch_one(&state.pool)
-    .await
-    .unwrap_or(false);
-
-    if !already_settled {
-        // Look up wallet_id + merchant_id from the payment link.
-        let row: Option<(uuid::Uuid, uuid::Uuid)> = sqlx::query_as(
-            "SELECT pl.wallet_id, w.merchant_id
-             FROM acquiring_payments ap
-             JOIN payment_links pl ON pl.id = ap.payment_link_id
-             JOIN wallets w        ON w.id  = pl.wallet_id
-             WHERE ap.id = $1",
+    // Resolve the owner and the destination. `wallet_accounts.account_id` is the
+    // LEDGER account that holds the balance; `payment_links.wallet_account_id`
+    // names the wallet_account, so the join is what turns a routing hint into a
+    // postable account. The LEFT JOIN carries ADR-042's own conditions, so a
+    // named account that fails any of them comes back NULL and is refused below
+    // rather than silently becoming the wallet default.
+    let row: Option<(uuid::Uuid, uuid::Uuid, Option<uuid::Uuid>, Option<uuid::Uuid>, Option<uuid::Uuid>)> =
+        sqlx::query_as(
+            "SELECT pl.wallet_id,
+                    w.merchant_id,
+                    pl.wallet_account_id        AS named_account,
+                    wa.account_id               AS named_ledger_account,
+                    w.available_account_id      AS default_ledger_account
+               FROM acquiring_payments ap
+               JOIN payment_links pl ON pl.id = ap.payment_link_id
+               JOIN wallets w        ON w.id  = pl.wallet_id
+               LEFT JOIN wallet_accounts wa
+                      ON wa.id        = pl.wallet_account_id
+                     AND wa.wallet_id = pl.wallet_id
+                     AND wa.status    = 'ACTIVE'
+                     AND wa.currency  = ap.currency
+              WHERE ap.id = $1
+                AND w.status = 'ACTIVE'",
         )
         .bind(payment.id.as_uuid())
         .fetch_optional(&state.pool)
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-        if let Some((wallet_id_raw, merchant_id_raw)) = row {
-            let wallet_id: WalletId = wallet_id_raw
-                .to_string()
-                .parse()
-                .map_err(|_| ApiError::internal("invalid wallet_id from payment link"))?;
+    let Some((wallet_id_raw, merchant_id_raw, named_account, named_ledger, default_ledger)) = row
+    else {
+        tracing::warn!(
+            payment_id = %payment.id,
+            "acquiring: no active wallet for this payment link — skipping settlement credit"
+        );
+        return Ok(());
+    };
 
-            // Refuse to credit a frozen merchant's wallet.
-            if risk::is_frozen(&state.pool, "MERCHANT", merchant_id_raw).await {
-                risk::flag_suspicious(
-                    &state.pool,
-                    "MERCHANT",
-                    merchant_id_raw,
-                    "FROZEN_ACCOUNT_ATTEMPT",
-                    "acquiring callback received for a frozen merchant",
-                    serde_json::json!({ "payment_id": payment.id.to_string() }),
-                )
-                .await;
-                tracing::warn!(
-                    payment_id   = %payment.id,
-                    merchant_id  = %merchant_id_raw,
-                    "acquiring: merchant is frozen — skipping settlement credit"
-                );
-                return Ok(Json(payment.into()));
-            }
-
-            let available_account_id: Option<uuid::Uuid> = sqlx::query_scalar(
-                "SELECT available_account_id FROM wallets WHERE id = $1 AND status = 'ACTIVE'",
-            )
-            .bind(wallet_id_raw)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
-
-            if let Some(available_account_id) = available_account_id {
-                let posting_id = LedgerPostingId::new();
-                let now = Utc::now();
-                let currency = payment.amount.currency.code();
-
-                let _ = sqlx::query(
-                    "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
-                     VALUES ($1, $2, $3, $4)
-                     ON CONFLICT (idempotency_key) DO NOTHING",
-                )
-                .bind(posting_id.as_uuid())
-                .bind(format!("Acquiring settlement — {}", payment.id))
-                .bind(&idempotency_key)
-                .bind(now)
-                .execute(&state.pool)
-                .await;
-
-                let actual_posting_id: uuid::Uuid =
-                    sqlx::query_scalar("SELECT id FROM ledger_postings WHERE idempotency_key = $1")
-                        .bind(&idempotency_key)
-                        .fetch_one(&state.pool)
-                        .await
-                        .map_err(|e| ApiError::internal(e.to_string()))?;
-
-                let _ = sqlx::query(
-                    "INSERT INTO ledger_entries
-                     (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-                     VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)
-                     ON CONFLICT DO NOTHING",
-                )
-                .bind(LedgerEntryId::new().as_uuid())
-                .bind(actual_posting_id)
-                .bind(state.transit_account_id.as_uuid())
-                .bind(payment.amount.amount_minor())
-                .bind(currency)
-                .bind(now)
-                .execute(&state.pool)
-                .await;
-
-                let _ = sqlx::query(
-                    "INSERT INTO ledger_entries
-                     (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-                     VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)
-                     ON CONFLICT DO NOTHING",
-                )
-                .bind(LedgerEntryId::new().as_uuid())
-                .bind(actual_posting_id)
-                .bind(available_account_id)
-                .bind(payment.amount.amount_minor())
-                .bind(currency)
-                .bind(now)
-                .execute(&state.pool)
-                .await;
-
-                // Velocity counters (fire-and-forget).
-                let hour_start = now
-                    .date_naive()
-                    .and_hms_opt(now.hour(), 0, 0)
-                    .map(|d| d.and_utc())
-                    .unwrap_or(now);
-                let day_start = now
-                    .date_naive()
-                    .and_hms_opt(0, 0, 0)
-                    .map(|d| d.and_utc())
-                    .unwrap_or(now);
-                let amt = payment.amount.amount_minor();
-                risk::increment_velocity(
-                    &state.pool,
-                    "MERCHANT",
-                    merchant_id_raw,
-                    "HOURLY",
-                    hour_start,
-                    amt,
-                )
-                .await;
-                risk::increment_velocity(
-                    &state.pool,
-                    "MERCHANT",
-                    merchant_id_raw,
-                    "DAILY",
-                    day_start,
-                    amt,
-                )
-                .await;
-
-                // Audit log (fire-and-forget).
-                risk::audit(
-                    &state.pool,
-                    "SYSTEM",
-                    "ACQUIRING_SETTLED",
-                    &format!("WALLET:{wallet_id}"),
-                    serde_json::json!({
-                        "payment_id":   payment.id.to_string(),
-                        "merchant_id":  merchant_id_raw.to_string(),
-                        "amount_minor": amt,
-                        "currency":     currency,
-                        "posting_id":   actual_posting_id.to_string(),
-                    }),
-                    None,
-                )
-                .await;
-
-                tracing::info!(
-                    payment_id   = %payment.id,
-                    wallet_id    = %wallet_id,
-                    amount_minor = amt,
-                    currency     = currency,
-                    "acquiring: wallet credited after callback settlement"
-                );
-            } else {
-                tracing::warn!(
-                    payment_id = %payment.id,
-                    "acquiring: wallet not active or not found — skipping settlement credit"
-                );
-            }
-        } else {
-            tracing::warn!(
-                payment_id = %payment.id,
-                "acquiring: no wallet_id on payment link — skipping settlement credit"
-            );
-        }
+    // Refuse to credit a frozen merchant's wallet.
+    if risk::is_frozen(&state.pool, "MERCHANT", merchant_id_raw).await {
+        risk::flag_suspicious(
+            &state.pool,
+            "MERCHANT",
+            merchant_id_raw,
+            "FROZEN_ACCOUNT_ATTEMPT",
+            "acquiring callback received for a frozen merchant",
+            serde_json::json!({ "payment_id": payment.id.to_string() }),
+        )
+        .await;
+        tracing::warn!(
+            payment_id   = %payment.id,
+            merchant_id  = %merchant_id_raw,
+            "acquiring: merchant is frozen — skipping settlement credit"
+        );
+        return Ok(());
     }
 
-    Ok(Json(payment.into()))
+    let destination_account_id = match (named_account, named_ledger) {
+        // A legacy link names no account: the wallet's default, exactly as before.
+        (None, _) => default_ledger,
+        // The named account validated — this is the account the payer paid into.
+        (Some(_), Some(ledger)) => Some(ledger),
+        // Named but not valid for this wallet/currency/status. Crediting the
+        // default here would put segregated money in the general balance, which
+        // is the defect this function exists to correct, so nothing is posted.
+        (Some(named), None) => {
+            risk::flag_suspicious(
+                &state.pool,
+                "MERCHANT",
+                merchant_id_raw,
+                "SETTLEMENT_DESTINATION_INVALID",
+                "payment link names a wallet account that is not active/owned/matching currency",
+                serde_json::json!({
+                    "payment_id":        payment.id.to_string(),
+                    "wallet_account_id": named.to_string(),
+                    "wallet_id":         wallet_id_raw.to_string(),
+                    "currency":          payment.amount.currency.code(),
+                }),
+            )
+            .await;
+            tracing::error!(
+                payment_id        = %payment.id,
+                wallet_account_id = %named,
+                "acquiring: named destination account failed ADR-042 validation — \
+                 withholding settlement rather than crediting the wallet default"
+            );
+            return Ok(());
+        }
+    };
+
+    let Some(destination_account_id) = destination_account_id else {
+        tracing::warn!(
+            payment_id = %payment.id,
+            wallet_id  = %wallet_id_raw,
+            "acquiring: wallet has no available account — skipping settlement credit"
+        );
+        return Ok(());
+    };
+
+    let wallet_id: WalletId = wallet_id_raw
+        .to_string()
+        .parse()
+        .map_err(|_| ApiError::internal("invalid wallet_id from payment link"))?;
+
+    let now = Utc::now();
+    let currency = payment.amount.currency.code();
+    let amt = payment.amount.amount_minor();
+
+    // One transaction: the header and both legs, or neither (INV-LEDGER-004).
+    let mut tx = state
+        .pool
+        .begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // The UNIQUE key IS the idempotency check. A replayed callback inserts
+    // nothing and returns no row, so it posts nothing — and two concurrent
+    // callbacks cannot both win.
+    let posting_id: Option<uuid::Uuid> = sqlx::query_scalar(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (idempotency_key) DO NOTHING
+         RETURNING id",
+    )
+    .bind(LedgerPostingId::new().as_uuid())
+    .bind(format!("Acquiring settlement — {}", payment.id))
+    .bind(&idempotency_key)
+    .bind(now)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let Some(posting_id) = posting_id else {
+        // Already settled by an earlier callback. Nothing to add.
+        let _ = tx.rollback().await;
+        tracing::info!(
+            payment_id = %payment.id,
+            "acquiring: settlement already posted — replay credited nothing"
+        );
+        return Ok(());
+    };
+
+    for (entry_type, account_id) in [
+        ("DEBIT", state.transit_account_id.as_uuid()),
+        ("CREDIT", destination_account_id),
+    ] {
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id)
+        .bind(account_id)
+        .bind(entry_type)
+        .bind(amt)
+        .bind(currency)
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+    }
+
+    tx.commit()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Velocity counters (fire-and-forget).
+    let hour_start = now
+        .date_naive()
+        .and_hms_opt(now.hour(), 0, 0)
+        .map(|d| d.and_utc())
+        .unwrap_or(now);
+    let day_start = now
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
+        .map(|d| d.and_utc())
+        .unwrap_or(now);
+    risk::increment_velocity(
+        &state.pool,
+        "MERCHANT",
+        merchant_id_raw,
+        "HOURLY",
+        hour_start,
+        amt,
+    )
+    .await;
+    risk::increment_velocity(
+        &state.pool,
+        "MERCHANT",
+        merchant_id_raw,
+        "DAILY",
+        day_start,
+        amt,
+    )
+    .await;
+
+    // Audit log (fire-and-forget).
+    risk::audit(
+        &state.pool,
+        "SYSTEM",
+        "ACQUIRING_SETTLED",
+        &format!("WALLET:{wallet_id}"),
+        serde_json::json!({
+            "payment_id":        payment.id.to_string(),
+            "merchant_id":       merchant_id_raw.to_string(),
+            "amount_minor":      amt,
+            "currency":          currency,
+            "posting_id":        posting_id.to_string(),
+            "destination_account_id": destination_account_id.to_string(),
+        }),
+        None,
+    )
+    .await;
+
+    tracing::info!(
+        payment_id   = %payment.id,
+        wallet_id    = %wallet_id,
+        destination  = %destination_account_id,
+        amount_minor = amt,
+        currency     = currency,
+        "acquiring: wallet account credited after provider confirmation"
+    );
+
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------
@@ -386,6 +483,13 @@ pub async fn test_confirm(
         .process_callback(&body, &signature)
         .await
         .map_err(map_err)?;
+
+    // The simulated rail settles through the SAME function the provider callback
+    // uses. Without this the only confirmation available in Sandbox confirmed the
+    // provider and moved no money, so a payer saw success against an unchanged
+    // balance — and an integration verified here would have behaved differently
+    // in Live.
+    settle_confirmed_payment(&state, &payment).await?;
 
     Ok(Json(payment.into()))
 }

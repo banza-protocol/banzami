@@ -1,4 +1,6 @@
 pub mod acquiring;
+#[cfg(test)]
+mod acquiring_settlement_tests;
 pub mod activity;
 pub mod admin;
 pub mod analytics;

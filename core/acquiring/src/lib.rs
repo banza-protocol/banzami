@@ -4,11 +4,11 @@ pub mod providers;
 pub mod repository;
 
 pub use engine::{AcquirerKind, AcquiringEngine, PostgresAcquiringEngine};
-pub use provider::AcquirerProvider;
+pub use provider::{AcquirerProvider, PaymentInstructions};
 pub use providers::{EMISProvider, SimulatedProvider};
 pub use repository::{AcquiringRepository, PostgresAcquiringRepository};
 
-use crate::provider::{AcquirerError, PaymentInstructions};
+use crate::provider::AcquirerError;
 use banzami_types::{AcquiringPaymentId, Money, PaymentLinkId};
 use chrono::{DateTime, Utc};
 
