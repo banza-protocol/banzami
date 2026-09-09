@@ -36,11 +36,26 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, statfsSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HARD_FLOOR_BYTES } from './disk-sampler.mjs';
 
-/** Floor, in GiB. Bounded by observation: >2.3 (failed) and <13 (succeeded). */
-export const FLOOR_GIB = 8;
+/**
+ * The RESERVE: free space that must still be there when the build finishes.
+ *
+ * Defined once, in the sampler, because the sampler is what enforces it — it
+ * aborts the build the moment free space crosses this line. Two independent
+ * copies of the same number is one edit away from a gate that permits what the
+ * guard then kills.
+ */
+export const FLOOR_GIB = HARD_FLOOR_BYTES / 1024 ** 3;
 /** Margin applied to a calibrated measurement. */
 export const CALIBRATION_MARGIN = 1.25;
+/**
+ * What to assume a build consumes before anything has been measured.
+ *
+ * Covers the peaks actually observed (3.09 and 3.24 GiB) with headroom. A real
+ * measurement replaces it on the first sampled build.
+ */
+export const UNCALIBRATED_BUILD_GIB = 4;
 
 export const storeRoot = () =>
   process.env.BANZAMI_ASSURANCE_STORE || join(homedir(), '.banzami', 'assurance');
@@ -53,38 +68,59 @@ export function freeGiB(path = process.cwd()) {
   return (s.bavail * s.bsize) / 1024 ** 3;
 }
 
-/** The requirement: the calibrated peak plus margin, never below the floor. */
+/**
+ * How much free space a build needs BEFORE it starts.
+ *
+ * This was `max(FLOOR, peak × margin)`, which conflated two different numbers
+ * that happened to share a name. The floor is the space that must REMAIN; the
+ * peak is what the build CONSUMES on top of it. Taking the maximum meant a
+ * calibrated peak of 3.24 GiB produced a requirement of 8 GiB — the floor
+ * exactly — so a build could pass the gate at 8.0 GiB free and be aborted by the
+ * sampler the moment it wrote anything, because free space had crossed the same
+ * 8 GiB line.
+ *
+ * That is not hypothetical. This release build passed the gate at 11.07 GiB
+ * free, consumed its 3.24 GiB peak, crossed the floor at 7.84 GiB and was killed
+ * — after seventeen minutes of compiling. The gate said yes to a build the guard
+ * was always going to stop.
+ *
+ *     required = reserve + (peak × margin)
+ *
+ * so that surviving the build is what the gate actually predicts.
+ */
 export function requiredGiB() {
   const explicit = Number(process.env.BANZAMI_RELEASE_REQUIRE_GIB);
   if (Number.isFinite(explicit) && explicit > 0) return { gib: explicit, source: 'env' };
   try {
     const c = JSON.parse(readFileSync(calibrationFile(), 'utf8'));
     if (Number.isFinite(c.peak_build_gib) && c.peak_build_gib > 0) {
-      const gib = Math.max(FLOOR_GIB, c.peak_build_gib * CALIBRATION_MARGIN);
-      return { gib, source: `calibrated from ${c.peak_build_gib.toFixed(2)} GiB observed on ${c.observed_at}` };
+      const gib = FLOOR_GIB + c.peak_build_gib * CALIBRATION_MARGIN;
+      return {
+        gib,
+        source: `${FLOOR_GIB} GiB reserve + ${(c.peak_build_gib * CALIBRATION_MARGIN).toFixed(2)} GiB ` +
+                `(peak ${c.peak_build_gib.toFixed(2)} GiB observed ${c.observed_at} × ${CALIBRATION_MARGIN})`,
+      };
     }
   } catch { /* not calibrated yet */ }
-  return { gib: FLOOR_GIB, source: 'floor (bounded by observed failure <2.3 GiB and success at 13 GiB; not yet calibrated)' };
+  return {
+    gib: FLOOR_GIB + UNCALIBRATED_BUILD_GIB,
+    source: `${FLOOR_GIB} GiB reserve + ${UNCALIBRATED_BUILD_GIB} GiB assumed build (not yet calibrated; ` +
+            `bounded by observed failure <2.3 GiB and success at 13 GiB)`,
+  };
 }
 
-/** Record what a completed build actually consumed, so the floor stops guessing. */
-export function recordBuildConsumption({ beforeGiB, afterGiB, sha }) {
-  const used = Math.max(0, beforeGiB - afterGiB);
-  mkdirSync(storeRoot(), { recursive: true });
-  let prev = {};
-  try { prev = JSON.parse(readFileSync(calibrationFile(), 'utf8')); } catch { /* first run */ }
-  const peak = Math.max(used, prev.peak_build_gib ?? 0);
-  const next = {
-    schema: 'banzami-build-capacity/v1',
-    peak_build_gib: peak,
-    last_build_gib: used,
-    observed_at: new Date().toISOString(),
-    last_sha: sha ?? null,
-    note: 'peak is the largest observed consumption of a full release package build',
-  };
-  writeFileSync(calibrationFile(), JSON.stringify(next, null, 2) + '\n');
-  return next;
-}
+/**
+ * Calibration is written by the SAMPLER (build-with-sampling.mjs), from a peak
+ * measured while the build ran.
+ *
+ * A `recordBuildConsumption` helper used to live here and stored the difference
+ * between free space before and after the build — the NET — in a field named
+ * `peak_build_gib`. Net is not peak: a build that allocates 15 GiB and frees 12
+ * before exiting reports 3 while having come within a hair of exhausting the
+ * host. It had no production caller left and is removed rather than kept as a
+ * second, wrong way to write the same file.
+ */
+
 
 /** Is the Docker daemon actually answering? A hung daemon fails a build slowly. */
 function dockerResponsive(timeoutMs = 20_000) {
