@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -69,7 +70,7 @@ func NewProofService(pool *pgxpool.Pool, signingKey, keyID, operatorID, network,
 	return &ProofService{
 		pool: pool, signingKey: []byte(signingKey), keyID: keyID,
 		operatorID: operatorID, network: network, publicBase: publicBase,
-			newReference: secureReference,
+		newReference: secureReference,
 	}
 }
 
@@ -122,19 +123,89 @@ type Proof struct {
 	ReversedAt        *time.Time
 }
 
-// secureReference returns a random, non-enumerable public reference BZM-XXXX-XXXX
-// (Crockford-ish base32, no ambiguous chars).
+// The public reference alphabet: Crockford-ish base32 with I, L, O and U removed,
+// so a reference read aloud or copied off paper cannot become a different one.
+const refAlphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+// SECURE_V1 is 24 symbols in six groups: 24 x log2(32) = 120 bits.
+//
+// The previous format was 8 symbols — 40 bits. That is ample against a casual
+// guess and inadequate against a patient one. A public proof reference is a
+// BEARER capability: whoever holds it learns the amount, both @handles and the
+// description. At LIVE scale (~1e5 live proofs) a distributed prober working
+// within the anonymous rate ceiling lands roughly 8 valid references a day
+// against 40 bits; against 120 bits the same effort returns nothing in any
+// human timeframe. This repository already treats bearer material this way —
+// webhook signing secrets are 256 bits — so 40 bits was the outlier.
+//
+// Six groups of four keeps it copy-, dictate- and QR-friendly, and makes the
+// generation structurally obvious: 8 symbols is legacy, 24 is current.
+const (
+	secureRefGroups      = 6
+	secureRefGroupSize   = 4
+	secureRefSymbols     = secureRefGroups * secureRefGroupSize // 24
+	SecureRefEntropyBits = secureRefSymbols * 5                 // 120
+)
+
+// secureReference returns a random, non-enumerable SECURE_V1 public reference,
+// BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX.
+//
+// One random byte per symbol, reduced modulo 32. 256 is an exact multiple of 32,
+// so the reduction is bias-free — every symbol is uniform over the alphabet, and
+// the 120-bit figure above is real rather than nominal.
 func secureReference() (string, error) {
-	const alphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
-	b := make([]byte, 8)
+	b := make([]byte, secureRefSymbols)
 	if _, err := rand.Read(b); err != nil {
 		return "", err
 	}
-	out := make([]byte, 8)
+	out := make([]byte, secureRefSymbols)
 	for i, c := range b {
-		out[i] = alphabet[int(c)%len(alphabet)]
+		out[i] = refAlphabet[int(c)%len(refAlphabet)]
 	}
-	return fmt.Sprintf("BZM-%s-%s", out[0:4], out[4:8]), nil
+	groups := make([]string, 0, secureRefGroups)
+	for g := 0; g < secureRefGroups; g++ {
+		groups = append(groups, string(out[g*secureRefGroupSize:(g+1)*secureRefGroupSize]))
+	}
+	return "BZM-" + strings.Join(groups, "-"), nil
+}
+
+// ReferenceVersion classifies a public proof reference. The two generations are
+// structurally distinguishable by length alone, so no stored column is needed.
+type ReferenceVersion int
+
+const (
+	ReferenceInvalid ReferenceVersion = iota
+	// ReferenceLegacyV0 is BZM-XXXX-XXXX: 8 symbols derived from the first 32 bits
+	// of an object UUID by a receipt generator that no longer exists. Compatibility
+	// only, for artifacts already in people's hands, and Sandbox only.
+	ReferenceLegacyV0
+	// ReferenceSecureV1 is BZM + six groups of four: 120 random bits.
+	ReferenceSecureV1
+)
+
+var (
+	legacyRefPattern = regexp.MustCompile(`^BZM(?:-[0-9A-F]{4}){2}$`)
+	secureRefPattern = regexp.MustCompile(`^BZM(?:-[0-9A-HJKMNP-TV-Z]{4}){6}$`)
+)
+
+// ClassifyReference is the ONE parser. Every service and surface that needs to
+// know what kind of reference it is holding calls this, so a second, subtly
+// different regex cannot drift into existence somewhere else.
+//
+// Legacy is hex-only because that is what a UUID prefix can produce; the secure
+// alphabet is wider. Nothing is lower-cased or stripped here: the canonical form
+// is upper-case and hyphenated, and quietly accepting other spellings would mean
+// one proof had several spellings, which is exactly how a rate limit keyed on the
+// reference gets bypassed.
+func ClassifyReference(ref string) ReferenceVersion {
+	switch {
+	case secureRefPattern.MatchString(ref):
+		return ReferenceSecureV1
+	case legacyRefPattern.MatchString(ref):
+		return ReferenceLegacyV0
+	default:
+		return ReferenceInvalid
+	}
 }
 
 // canonicalPayload is the deterministic, ordered byte string that is hashed and
