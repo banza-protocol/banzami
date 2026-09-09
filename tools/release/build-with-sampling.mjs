@@ -70,15 +70,32 @@ child.on('exit', (code, signal) => {
 
   // Raise the stored requirement when a trustworthy measurement asks for more.
   // A measurement never lowers it, and an untrustworthy one never touches it.
+  //
+  // A BUILD THAT DID NOT FINISH DID NOT REACH ITS PEAK
+  //
+  // Both measurements this programme had recorded came from builds the sampler
+  // ABORTED, and both were stored as if they were the peak. They are not: an
+  // aborted build stopped consuming, so its figure is a LOWER BOUND on what the
+  // build actually needs. Storing 3.24 GiB from a build killed early set the
+  // requirement to 8 GiB, which let the next build start with 9.4 GiB free and
+  // abort again at a real peak of 6.45 GiB — itself another lower bound.
+  //
+  // The number is still worth keeping, because it proves the build needs AT
+  // LEAST that much. What must not happen is treating it as the whole answer, so
+  // the record says which it is and the requirement widens its margin
+  // accordingly.
   if (record.usable_for_calibration) {
     const f = join(storeRoot(), 'build-capacity.json');
     let prev = {};
     try { prev = JSON.parse(readFileSync(f, 'utf8')); } catch { /* first build */ }
     const peakGib = summary.peak_consumed_bytes / 1024 ** 3;
+    const lowerBound = aborted || (code ?? 1) !== 0;
     if (peakGib > (prev.peak_build_gib ?? 0)) {
       writeFileSync(f, JSON.stringify({
-        schema: 'banzami-build-capacity/v2',
+        schema: 'banzami-build-capacity/v3',
         peak_build_gib: peakGib,
+        // True when the build did not finish: the real peak is higher than this.
+        peak_is_lower_bound: lowerBound,
         measurement: 'peak (initial_free - minimum_free_observed)',
         observed_at: record.measured_at,
         last_sha: sha,

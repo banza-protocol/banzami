@@ -17,7 +17,7 @@
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { FLOOR_GIB, ABORT_FLOOR_GIB, CALIBRATION_MARGIN, UNCALIBRATED_BUILD_GIB, preflight, freeGiB,
+import { FLOOR_GIB, ABORT_FLOOR_GIB, CALIBRATION_MARGIN, LOWER_BOUND_MARGIN, UNCALIBRATED_BUILD_GIB, preflight, freeGiB,
          requiredGiB, regenerableConsumers, PROTECTED } from '../../tools/release/preflight.mjs';
 import { ABORT_FLOOR_BYTES, REQUIREMENT_FLOOR_BYTES } from '../../tools/release/disk-sampler.mjs';
 
@@ -56,10 +56,11 @@ console.log('\n▸ the gate must not permit a build the guard will kill');
 // killed after seventeen minutes of compiling.
 const store = mkdtempSync(join(tmpdir(), 'bz-cal-'));
 process.env.BANZAMI_ASSURANCE_STORE = store;
-const writeCal = (peak) => {
+const writeCal = (peak, lowerBound = false) => {
   mkdirSync(store, { recursive: true });
   writeFileSync(join(store, 'build-capacity.json'), JSON.stringify({
-    schema: 'banzami-build-capacity/v2', peak_build_gib: peak,
+    schema: 'banzami-build-capacity/v3', peak_build_gib: peak,
+    peak_is_lower_bound: lowerBound,
     measurement: 'peak (initial_free - minimum_free_observed)', observed_at: new Date().toISOString(),
   }));
 };
@@ -92,6 +93,46 @@ is('the uncalibrated allowance covers the peaks actually observed (3.09, 3.24)',
    UNCALIBRATED_BUILD_GIB >= 3.24, `${UNCALIBRATED_BUILD_GIB}`);
 rmSync(store, { recursive: true, force: true });
 delete process.env.BANZAMI_ASSURANCE_STORE;
+
+console.log('\n▸ a peak from a build that did not finish is a lower bound');
+{
+  // Both measurements this programme recorded came from builds the sampler
+  // ABORTED, and both were stored as if they were the peak. An aborted build
+  // stopped consuming, so its figure is a floor on what the build needs, not the
+  // number itself. Storing 3.24 GiB from a build killed early set the
+  // requirement to 8 GiB, the next build started with 9.4 GiB free, and it
+  // aborted again at a real peak of 6.45 GiB — another lower bound.
+  const store2 = mkdtempSync(join(tmpdir(), 'bz-lb-'));
+  process.env.BANZAMI_ASSURANCE_STORE = store2;
+  const cal = (peak, lowerBound) => {
+    mkdirSync(store2, { recursive: true });
+    writeFileSync(join(store2, 'build-capacity.json'), JSON.stringify({
+      schema: 'banzami-build-capacity/v3', peak_build_gib: peak,
+      peak_is_lower_bound: lowerBound, observed_at: new Date().toISOString(),
+    }));
+  };
+
+  cal(6.45, false); const complete = requiredGiB();
+  cal(6.45, true);  const bounded = requiredGiB();
+
+  is('a lower bound demands more headroom than a completed measurement',
+     bounded.gib > complete.gib, `${bounded.gib} <= ${complete.gib}`);
+  is('and says so, so a reader knows the figure will rise again',
+     /LOWER BOUND/.test(bounded.source), bounded.source);
+  is('a completed measurement makes no such claim',
+     !/LOWER BOUND/.test(complete.source), complete.source);
+  is('the lower-bound margin is the wider of the two',
+     LOWER_BOUND_MARGIN > CALIBRATION_MARGIN, `${LOWER_BOUND_MARGIN} <= ${CALIBRATION_MARGIN}`);
+  // The invariant that failed in practice: start at the requirement, consume the
+  // OBSERVED peak, and there must still be real room left — because the build
+  // will go further than the number we have.
+  is('a build starting at a lower-bound requirement has room beyond the observed peak',
+     bounded.gib - 6.45 > ABORT_FLOOR_GIB + 6.45 * 0.5,
+     `${(bounded.gib - 6.45).toFixed(2)} GiB left after the observed peak`);
+
+  rmSync(store2, { recursive: true, force: true });
+  delete process.env.BANZAMI_ASSURANCE_STORE;
+}
 
 console.log('\n▸ each floor is defined once, where it is enforced');
 is('the gate reads the start minimum from the sampler',

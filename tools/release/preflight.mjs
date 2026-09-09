@@ -52,6 +52,12 @@ export const ABORT_FLOOR_GIB = ABORT_FLOOR_BYTES / 1024 ** 3;
 /** Margin applied to a calibrated measurement. */
 export const CALIBRATION_MARGIN = 1.25;
 /**
+ * Margin for a peak that is only a lower bound — a build the sampler aborted, so
+ * it stopped consuming before reaching its true maximum. Wider than the
+ * calibrated margin because the number itself is known to be an underestimate.
+ */
+export const LOWER_BOUND_MARGIN = 2.0;
+/**
  * What to assume a build consumes before anything has been measured.
  *
  * Covers the peaks actually observed (3.09 and 3.24 GiB) with headroom. A real
@@ -96,12 +102,21 @@ export function requiredGiB() {
   try {
     const c = JSON.parse(readFileSync(calibrationFile(), 'utf8'));
     if (Number.isFinite(c.peak_build_gib) && c.peak_build_gib > 0) {
-      const gib = Math.max(FLOOR_GIB, ABORT_FLOOR_GIB + c.peak_build_gib * CALIBRATION_MARGIN);
+      // A peak from a build that did not finish is a LOWER BOUND: the build
+      // stopped consuming when it was killed, so the real figure is higher. It
+      // still tells us the build needs at least this much, but it cannot be
+      // margined as though it were the whole answer — that is how a requirement
+      // of 8 GiB was derived from a build killed early, and the next build
+      // aborted again.
+      const lowerBound = c.peak_is_lower_bound === true;
+      const margin = lowerBound ? LOWER_BOUND_MARGIN : CALIBRATION_MARGIN;
+      const gib = Math.max(FLOOR_GIB, ABORT_FLOOR_GIB + c.peak_build_gib * margin);
       return {
         gib,
         source: `max(${FLOOR_GIB} GiB start minimum, ${ABORT_FLOOR_GIB} GiB abort floor + ` +
-                `${(c.peak_build_gib * CALIBRATION_MARGIN).toFixed(2)} GiB) — peak ` +
-                `${c.peak_build_gib.toFixed(2)} GiB observed ${c.observed_at} × ${CALIBRATION_MARGIN}`,
+                `${(c.peak_build_gib * margin).toFixed(2)} GiB) — peak ` +
+                `${c.peak_build_gib.toFixed(2)} GiB observed ${c.observed_at} × ${margin}` +
+                (lowerBound ? ' (LOWER BOUND: that build did not finish, so the real peak is higher)' : ''),
       };
     }
   } catch { /* not calibrated yet */ }
