@@ -278,9 +278,11 @@ func (m *memStore) ArchiveProject(_ context.Context, id string) (int, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	p, ok := m.projects[id]
-	if !ok || p.Status != "ACTIVE" {
+	if !ok {
 		return 0, ErrNotFound
 	}
+	// Converge rather than refuse: a project archived before binding-disable
+	// existed must still be able to have its binding repaired.
 	p.Status = "ARCHIVED"
 	p.UpdatedAt = time.Now().UTC()
 	revoked := 0

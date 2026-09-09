@@ -268,14 +268,26 @@ func (s *pgStore) ArchiveProject(ctx context.Context, id string) (int, error) {
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	ct, err := tx.Exec(ctx,
-		`UPDATE developer.dev_projects SET status = 'ARCHIVED', updated_at = now()
-		  WHERE id = $1 AND status = 'ACTIVE'`, id)
-	if err != nil {
-		return 0, err
-	}
-	if ct.RowsAffected() == 0 {
+	// Converge, do not refuse.
+	//
+	// This returned NotFound when the project was already ARCHIVED, which made
+	// retirement non-idempotent in the one way that mattered: a project archived
+	// BEFORE binding-disable existed could never have its binding repaired,
+	// because the only operation that would repair it declined to run. A
+	// historical Sandbox project was found in exactly that state — ARCHIVED, and
+	// still holding an ACTIVE binding.
+	//
+	// NotFound now means the project does not exist. An archived one is brought
+	// the rest of the way.
+	var exists bool
+	if err := tx.QueryRow(ctx,
+		`SELECT true FROM developer.dev_projects WHERE id = $1`, id).Scan(&exists); err != nil {
 		return 0, ErrNotFound
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE developer.dev_projects SET status = 'ARCHIVED', updated_at = now()
+		  WHERE id = $1 AND status = 'ACTIVE'`, id); err != nil {
+		return 0, err
 	}
 
 	keys, err := tx.Exec(ctx,

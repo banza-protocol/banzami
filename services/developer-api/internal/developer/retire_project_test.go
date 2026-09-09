@@ -97,3 +97,41 @@ func TestRetireProject_RequiresAReason(t *testing.T) {
 		t.Error("no project.retired audit event was written")
 	}
 }
+
+// A project archived BEFORE binding-disable existed must still be repairable.
+//
+// Archiving used to return NotFound when the project was already ARCHIVED, which
+// made retirement non-idempotent in the one way that mattered: the only
+// operation that could disable a stranded binding declined to run on exactly the
+// projects that had one. A historical Sandbox project was found in that state —
+// ARCHIVED, and still holding an ACTIVE binding — and no supported call could
+// move it.
+func TestRetireProject_RepairsAnAlreadyArchivedProject(t *testing.T) {
+	s, _, pid := setupSvc(t)
+	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+		t.Fatalf("configure: %v", err)
+	}
+
+	// Archive the way the old code did: project only, binding untouched.
+	mem := s.store.(*memStore)
+	mem.projects[pid].Status = "ARCHIVED"
+	if b, _ := s.store.ActiveBindingForProject(bg, pid); b == nil {
+		t.Fatal("fixture did not leave an ACTIVE binding, so there is nothing to repair")
+	}
+
+	if _, err := s.RetireProject(bg, pid, "operator", "repairing a stranded binding", "", ""); err != nil {
+		t.Fatalf("retiring an already-archived project: %v — NotFound here is what left "+
+			"a stranded binding unrepairable", err)
+	}
+	if b, _ := s.store.ActiveBindingForProject(bg, pid); b != nil {
+		t.Error("the stranded ACTIVE binding survived retirement")
+	}
+}
+
+// NotFound must still mean the project does not exist.
+func TestRetireProject_UnknownProjectIsStillNotFound(t *testing.T) {
+	s, _, _ := setupSvc(t)
+	if _, err := s.RetireProject(bg, "prj_does_not_exist", "operator", "x", "", ""); err == nil {
+		t.Error("retiring a project that does not exist succeeded")
+	}
+}
