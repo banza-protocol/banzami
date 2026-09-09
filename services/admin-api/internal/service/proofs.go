@@ -90,8 +90,18 @@ func (s *ProofAdminService) List(ctx context.Context, q string, limit int) ([]Ad
 
 // Get returns one proof + its verification history.
 func (s *ProofAdminService) Get(ctx context.Context, ref string) (*AdminProof, []AdminProofVerification, error) {
+	// Exact equality. A proof reference has one canonical spelling — upper-case,
+	// exact prefix, grouping and alphabet — and that rule is not weaker for an
+	// operator than for the public. Case-folding here would let bzm-f993-38e2 and
+	// BZM-F993-38E2 be the same proof on this surface and different ones on the
+	// public surface, which is how two operators reading the same screen end up
+	// disagreeing about which reference they are looking at.
+	//
+	// List() below still searches with ILIKE. That is substring SEARCH, not
+	// identity resolution, and it establishes nothing about which proof a
+	// reference denotes.
 	p, err := scanAdminProof(s.pool.QueryRow(ctx,
-		`SELECT `+adminProofCols+` FROM transaction_proofs WHERE upper(proof_reference)=upper($1)`, ref))
+		`SELECT `+adminProofCols+` FROM transaction_proofs WHERE proof_reference=$1`, ref))
 	if err != nil {
 		return nil, nil, err
 	}
