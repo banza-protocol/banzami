@@ -418,6 +418,27 @@ func (s *pgStore) RevokeAPIKey(ctx context.Context, id string) error {
 	return nil
 }
 
+// apiKeyTouchInterval is how stale last_used_at may get before another write.
+//
+// A key is presented on every request, and stamping a row that often would add
+// a write to the busiest path in the service to gain precision nobody reads:
+// the Console renders this as "há 3 minutos", and rotation decisions are made
+// in hours. Five minutes keeps the answer honest at a cost that does not scale
+// with traffic.
+const apiKeyTouchInterval = 5 * time.Minute
+
+func (s *pgStore) TouchAPIKeyUsed(ctx context.Context, id string) error {
+	// The WHERE clause is the throttle. A busy key matches no rows almost every
+	// time, which is a single indexed lookup and no row write.
+	_, err := s.pool.Exec(ctx,
+		`UPDATE developer.dev_api_keys
+		    SET last_used_at = now()
+		  WHERE id = $1
+		    AND (last_used_at IS NULL OR last_used_at < now() - $2::interval)`,
+		id, apiKeyTouchInterval.String())
+	return err
+}
+
 func (s *pgStore) RotateAPIKey(ctx context.Context, oldID string, replacement APIKeyInsert) (APIKey, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {

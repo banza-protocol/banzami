@@ -346,6 +346,19 @@ func (m *memStore) APIKeyByHash(_ context.Context, keyHash string) (*APIKeyAuth,
 	return nil, ErrNotFound
 }
 
+func (m *memStore) TouchAPIKeyUsed(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, r := range m.apiKeys {
+		if r.ID == id {
+			now := time.Now().UTC()
+			r.LastUsedAt = &now
+			return nil
+		}
+	}
+	return ErrNotFound
+}
+
 func (m *memStore) RevokeAPIKey(_ context.Context, id string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

@@ -851,7 +851,27 @@ func (s *Service) AuthorizeKey(ctx context.Context, rawKey, requiredScope string
 			return nil, ErrForbidden
 		}
 	}
+	s.touchKeyUsed(auth.ID)
 	return auth, nil
+}
+
+// touchKeyUsed records a successful presentation of a key, best-effort.
+//
+// Deliberately after every check, so last_used_at answers "when did this key
+// last work", not "when was this string last guessed at" — a rejected key that
+// stamped a timestamp would make a brute-force attempt look like legitimate
+// traffic and, worse, make a revoked key look live.
+//
+// Detached from the request: its context is already on its way out when the
+// handler returns, and a caller must never wait on, or fail because of, a
+// telemetry write. Errors are dropped for the same reason — the key is
+// authorised either way, and a Console timestamp is not worth a 500.
+func (s *Service) touchKeyUsed(keyID string) {
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		_ = s.store.TouchAPIKeyUsed(ctx, keyID)
+	}()
 }
 
 // ── project→merchant sandbox binding (ADR-047) ───────────────────────────────

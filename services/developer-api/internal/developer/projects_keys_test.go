@@ -115,7 +115,7 @@ func TestAPIKey_ScopeEnforcement(t *testing.T) {
 	if _, err := s.AuthorizeKey(bg, raw, "payments:write"); err != nil {
 		t.Errorf("authorized scope should pass: %v", err)
 	}
-	if _, err := s.AuthorizeKey(bg, raw, "refunds:write"); err != ErrForbidden {
+	if _, err := s.AuthorizeKey(bg, raw, "customers:read"); err != ErrForbidden {
 		t.Errorf("missing scope: want Forbidden, got %v", err)
 	}
 	// Invalid scope at creation is rejected.
@@ -251,4 +251,86 @@ func TestCreateAPIKey_SecretStillAcceptsFinancialWriteScopes(t *testing.T) {
 	if _, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindSecret, "sk", []string{"transfers:write"}, "", ""); err != nil {
 		t.Fatalf("secret key with transfers:write rejected: %v", err)
 	}
+}
+
+// ── last_used_at ─────────────────────────────────────────────────────────────
+
+// The Console shows a "último uso" column for every key, and nothing had ever
+// written it: `last_used_at` was selected, rendered, and never set. Every key
+// read "never used", including the one a developer's production traffic was
+// authorising against that second.
+//
+// It matters because of exactly one workflow — rotation. The documented way to
+// retire a key is to install its replacement, confirm the old one has stopped
+// being used, and revoke it. A column stuck on "never" answers that question
+// wrongly in the dangerous direction: it tells a developer the credential
+// currently serving their users is safe to revoke.
+//
+// So the assertion is not "a timestamp appears somewhere". It is that a key
+// which WORKED is marked used, and a key which did NOT work is not — otherwise
+// a rejected key would look like live traffic, and a revoked one would look
+// alive.
+func TestAuthorizeKey_RecordsLastUsed(t *testing.T) {
+	s, st, ws := wsWithRoles(t)
+	p, _ := s.CreateProject(bg, "u_owner", ws, "Checkout", "", "")
+	key, raw, err := s.CreateAPIKey(bg, "u_owner", p.ID, KindSecret, "server",
+		[]string{"identity:read"}, "", "")
+	if err != nil {
+		t.Fatalf("create key: %v", err)
+	}
+	if k, _ := st.APIKeyByID(bg, key.ID); k.LastUsedAt != nil {
+		t.Fatalf("a key that was never presented must not carry a last-used time")
+	}
+
+	if _, err := s.AuthorizeKey(bg, raw, "identity:read"); err != nil {
+		t.Fatalf("authorize: %v", err)
+	}
+	// The write is detached from the request on purpose, so wait for it rather
+	// than asserting into a race.
+	if !eventually(func() bool {
+		k, _ := st.APIKeyByID(bg, key.ID)
+		return k != nil && k.LastUsedAt != nil
+	}) {
+		t.Errorf("a successfully presented key was not marked used — last_used_at is inert again")
+	}
+}
+
+func TestAuthorizeKey_RejectedKeyIsNotMarkedUsed(t *testing.T) {
+	s, st, ws := wsWithRoles(t)
+	p, _ := s.CreateProject(bg, "u_owner", ws, "Checkout", "", "")
+	key, raw, err := s.CreateAPIKey(bg, "u_owner", p.ID, KindSecret, "server",
+		[]string{"identity:read"}, "", "")
+	if err != nil {
+		t.Fatalf("create key: %v", err)
+	}
+
+	// Right key, wrong scope: authorisation fails, so nothing was used.
+	if _, err := s.AuthorizeKey(bg, raw, "customers:read"); err != ErrForbidden {
+		t.Fatalf("scope check: want Forbidden, got %v", err)
+	}
+	// And a revoked key, which is the case that would actively mislead: a
+	// retired credential must never start looking live again.
+	_ = st.RevokeAPIKey(bg, key.ID)
+	if _, err := s.AuthorizeKey(bg, raw, "identity:read"); err != ErrForbidden {
+		t.Fatalf("revoked key: want Forbidden, got %v", err)
+	}
+
+	time.Sleep(50 * time.Millisecond) // let any stray goroutine land
+	k, err := st.APIKeyByID(bg, key.ID)
+	if err != nil {
+		t.Fatalf("read key back: %v", err)
+	}
+	if k.LastUsedAt != nil {
+		t.Errorf("a key that never authorised anything was marked used")
+	}
+}
+
+func eventually(cond func() bool) bool {
+	for i := 0; i < 100; i++ {
+		if cond() {
+			return true
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	return false
 }

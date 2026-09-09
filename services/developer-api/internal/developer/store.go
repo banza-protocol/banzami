@@ -219,6 +219,22 @@ type Store interface {
 	APIKeyByID(ctx context.Context, id string) (*APIKey, error)
 	APIKeyByHash(ctx context.Context, keyHash string) (*APIKeyAuth, error)
 	RevokeAPIKey(ctx context.Context, id string) error
+	// TouchAPIKeyUsed records that a key was successfully presented, so
+	// last_used_at means what the Console says it means.
+	//
+	// The column shipped with the table, is selected, and is rendered next to
+	// every key — and nothing had ever written it. Every key read "never used",
+	// including the one a developer's production traffic was authorising against
+	// that second. That is not a missing nicety: rotation (revoke the old key
+	// once the new one is live) is the one workflow the field exists to inform,
+	// and an always-"never" column tells a developer it is safe to revoke the
+	// credential currently serving their users.
+	//
+	// Implementations MUST be cheap enough for the authorisation hot path and
+	// MUST NOT fail a request: this is telemetry about a key, not authority over
+	// it. The Postgres implementation throttles, so a busy key costs one write
+	// per interval rather than one per request.
+	TouchAPIKeyUsed(ctx context.Context, id string) error
 	// RotateAPIKey atomically inserts the replacement (rotated_from=oldID) and
 	// revokes the old key.
 	RotateAPIKey(ctx context.Context, oldID string, replacement APIKeyInsert) (APIKey, error)
