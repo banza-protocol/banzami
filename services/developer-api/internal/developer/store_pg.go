@@ -685,20 +685,32 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		          COALESCE(s.reference_type::text,'') AS reference_type,
 		          COALESCE(s.reference_id::text,'') AS reference_id,
 		          s.created_at,
-		          CASE WHEN pl.status = 'USED' OR q.status = 'USED' THEN 'PAID' ELSE 'UNPAID' END AS acq_state,
-		          CASE WHEN pl.status = 'USED' THEN 'PAYMENT_LINK'
-		               WHEN q.status  = 'USED' THEN 'DYNAMIC_QR' ELSE '' END AS acq_interface,
-		          COALESCE(pl.paid_at, q.used_at) AS acq_paid_at,
-		          -- What was RECEIVED, never what was requested. Both sources here
-		          -- are receipts: the confirmed acquiring payment is the amount the
-		          -- provider actually took, and a fixed-amount link's own figure is
-		          -- what a payer of that link paid. Falling back to the session's
-		          -- requested amount would answer a different question, and for an
-		          -- open-amount session it would report a figure nobody paid.
-		          CASE WHEN pl.status = 'USED' OR q.status = 'USED'
-		               THEN COALESCE(ap.amount_minor, pl.amount_minor)::bigint END AS acq_amount_minor,
-		          CASE WHEN pl.status = 'USED' OR q.status = 'USED'
-		               THEN COALESCE(pl.wallet_account_id::text, s.wallet_account_id::text, '')
+		          -- PAID means money moved, and the ledger is the only thing that
+		          -- knows. This asked whether the LINK was USED, which is a
+		          -- different fact: a payment confirmed before the acquiring
+		          -- settlement defect was fixed marks its link USED and posts
+		          -- nothing, so the column reported "PAGO · Recebido 100 000 Kz"
+		          -- against a campaign account holding zero. Reproduced on the
+		          -- deployed Sandbox for the 11:25 DOA payment, whose destination
+		          -- account balance is 0 to this day. A view that invents a receipt
+		          -- is worse than the blank one it replaced.
+		          CASE WHEN settled.credited_minor IS NOT NULL THEN 'PAID'
+		               WHEN s.status = 'PAID'                  THEN 'PAID'
+		               ELSE 'UNPAID' END AS acq_state,
+		          CASE WHEN settled.credited_minor IS NOT NULL THEN 'PAYMENT_LINK'
+		               WHEN s.status = 'PAID' AND pl.status = 'USED' THEN 'PAYMENT_LINK'
+		               WHEN s.status = 'PAID' AND q.status  = 'USED' THEN 'DYNAMIC_QR'
+		               ELSE '' END AS acq_interface,
+		          COALESCE(settled.posted_at,
+		                   CASE WHEN s.status = 'PAID' THEN COALESCE(pl.paid_at, q.used_at) END) AS acq_paid_at,
+		          -- What actually LANDED: the credit leg of the settlement posting.
+		          -- Never the requested amount, and for an open-amount session never
+		          -- a figure nobody paid.
+		          CASE WHEN settled.credited_minor IS NOT NULL THEN settled.credited_minor
+		               WHEN s.status = 'PAID' THEN s.amount_minor::bigint END AS acq_amount_minor,
+		          CASE WHEN settled.credited_account IS NOT NULL THEN settled.credited_account::text
+		               WHEN s.status = 'PAID'
+		                    THEN COALESCE(pl.wallet_account_id::text, s.wallet_account_id::text, '')
 		               ELSE '' END AS acq_account
 		     FROM payment_sessions s
 		     LEFT JOIN payment_links pl ON pl.id = s.payment_link_id
@@ -707,6 +719,20 @@ func (s *pgStore) TransactionsForMerchant(ctx context.Context, merchantID string
 		     -- CONFIRMED per link, so this cannot multiply the row.
 		     LEFT JOIN acquiring_payments ap
 		            ON ap.payment_link_id = s.payment_link_id AND ap.status = 'CONFIRMED'
+		     -- The settlement itself, read from the ledger. Its idempotency key is
+		     -- how the acquiring rail names a settlement, so its presence is the
+		     -- fact that money moved, and the CREDIT leg is what landed and where.
+		     LEFT JOIN LATERAL (
+		         SELECT le.amount_minor AS credited_minor,
+		                wa.id           AS credited_account,
+		                lp.created_at   AS posted_at
+		           FROM ledger_postings lp
+		           JOIN ledger_entries  le ON le.posting_id = lp.id AND le.entry_type = 'CREDIT'
+		           LEFT JOIN wallet_accounts wa ON wa.account_id = le.account_id
+		          WHERE ap.id IS NOT NULL
+		            AND lp.idempotency_key = 'acquiring-settle-' || ap.id::text
+		          LIMIT 1
+		     ) settled ON TRUE
 		    WHERE s.merchant_id = $1
 		   UNION ALL
 		   SELECT r.id::text, 'refund', r.status::text,

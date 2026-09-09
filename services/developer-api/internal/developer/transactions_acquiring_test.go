@@ -51,7 +51,7 @@ func seedAcquiringFixture(ctx context.Context, t *testing.T, pool *pgxpool.Pool)
 		t.Fatalf("primary wallet account: %v", err)
 	}
 
-	// One session whose link is still ACTIVE, and one whose link a payer used.
+	// One session whose link is still ACTIVE, and one that actually SETTLED.
 	newSession := func(linkStatus string, paidAt *time.Time) string {
 		link := uuid.NewString()
 		if _, err := pool.Exec(ctx,
@@ -69,7 +69,57 @@ func seedAcquiringFixture(ctx context.Context, t *testing.T, pool *pgxpool.Pool)
 		return sess
 	}
 	when := time.Now().UTC().Truncate(time.Second)
-	return m, newSession("ACTIVE", nil), newSession("USED", &when), wa
+	unpaidSession := newSession("ACTIVE", nil)
+	paidSession := newSession("USED", &when)
+	settle(ctx, t, pool, paidSession, wa, 100000, when)
+	return m, unpaidSession, paidSession, wa
+}
+
+// Record what the acquiring rail records when a payment settles: a CONFIRMED
+// acquiring payment against the session's link, and the balanced posting whose
+// CREDIT leg lands on the destination account. Money moving is the fact the
+// view reads; anything less is a link with a flag set.
+func settle(ctx context.Context, t *testing.T, pool *pgxpool.Pool, sessionID, walletAccount string, amount int64, at time.Time) {
+	t.Helper()
+	var link, ledgerAccount, transit string
+	if err := pool.QueryRow(ctx,
+		`SELECT payment_link_id::text FROM payment_sessions WHERE id = $1`, sessionID).Scan(&link); err != nil {
+		t.Fatalf("session link: %v", err)
+	}
+	if err := pool.QueryRow(ctx,
+		`SELECT account_id::text FROM wallet_accounts WHERE id = $1`, walletAccount).Scan(&ledgerAccount); err != nil {
+		t.Fatalf("destination ledger account: %v", err)
+	}
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO ledger_accounts (id, account_type, name, currency)
+		 VALUES (gen_random_uuid(),'ASSET','transit','AOA') RETURNING id::text`).Scan(&transit); err != nil {
+		t.Fatalf("transit: %v", err)
+	}
+	acq := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO acquiring_payments
+		   (id, payment_link_id, provider, external_ref, status, amount_minor, currency, instructions, confirmed_at, expires_at)
+		 VALUES ($1,$2,'EMIS_MULTICAIXA_SIMULATED',$3,'CONFIRMED',$4,'AOA','{}'::jsonb,$5,$6)`,
+		acq, link, acq[:9], amount, at, at.Add(time.Hour)); err != nil {
+		t.Fatalf("acquiring payment: %v", err)
+	}
+	var posting string
+	if err := pool.QueryRow(ctx,
+		`INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+		 VALUES (gen_random_uuid(), 'Acquiring settlement', $1, $2) RETURNING id::text`,
+		"acquiring-settle-"+acq, at).Scan(&posting); err != nil {
+		t.Fatalf("posting: %v", err)
+	}
+	for _, leg := range []struct {
+		kind, account string
+	}{{"DEBIT", transit}, {"CREDIT", ledgerAccount}} {
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+			 VALUES (gen_random_uuid(),$1,$2,$3,$4,'AOA',$5)`,
+			posting, leg.account, leg.kind, amount, at); err != nil {
+			t.Fatalf("%s leg: %v", leg.kind, err)
+		}
+	}
 }
 
 func acqRow(t *testing.T, rows []TransactionView, id string) TransactionView {
@@ -150,6 +200,69 @@ func TestTransactions_AcquiringStateIsVisibleBesideProtocolStatus(t *testing.T) 
 	})
 }
 
+// THE PHANTOM-SUCCESS GUARD.
+//
+// A payment confirmed before the acquiring settlement defect was fixed marks its
+// link USED and posts nothing to the ledger. Keying the view on the link
+// reported "PAGO · Recebido 100 000 Kz · creditado <account>" for a payment
+// where no money had moved — reproduced on the deployed Sandbox, where the DOA
+// 11:25 payment's destination campaign account holds 0 to this day.
+//
+// A view that invents a receipt is worse than the blank one it replaced: it
+// tells an integrator the money is there.
+func TestTransactions_AUsedLinkWithoutSettlementIsNotPaid(t *testing.T) {
+	ctx := context.Background()
+	pool := devPoolOrSkip(ctx, t)
+	defer pool.Close()
+	store := &pgStore{pool: pool}
+
+	merchant, _, paid, _ := seedAcquiringFixture(ctx, t, pool)
+
+	// Exactly the pre-fix shape: the link is USED, and nothing was posted.
+	var link string
+	if err := pool.QueryRow(ctx,
+		`SELECT payment_link_id::text FROM payment_sessions WHERE id = $1`, paid).Scan(&link); err != nil {
+		t.Fatalf("link: %v", err)
+	}
+	stranded := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO payment_links (id, merchant_id, wallet_id, wallet_account_id, slug, amount_minor, currency, status, paid_at)
+		 SELECT $1, merchant_id, wallet_id, wallet_account_id, $2, amount_minor, currency, 'USED', now()
+		   FROM payment_links WHERE id = $3`, stranded, "s"+uuid.NewString()[:11], link); err != nil {
+		t.Fatalf("stranded link: %v", err)
+	}
+	sess := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO payment_sessions (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, status, payment_link_id)
+		 SELECT $1, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, 'ACTIVE', $2
+		   FROM payment_sessions WHERE id = $3`, sess, stranded, paid); err != nil {
+		t.Fatalf("stranded session: %v", err)
+	}
+
+	rows, err := store.TransactionsForMerchant(ctx, merchant, TransactionFilter{Limit: 50})
+	if err != nil {
+		t.Fatalf("transactions: %v", err)
+	}
+	r := acqRow(t, rows, sess)
+	if r.Acquiring == nil {
+		t.Fatal("no acquiring state at all")
+	}
+	if r.Acquiring.State != "UNPAID" {
+		t.Fatalf("state = %q for a used link with NO ledger posting — the view is reporting a "+
+			"receipt for money that never moved", r.Acquiring.State)
+	}
+	if r.Acquiring.AmountMinor != nil {
+		t.Errorf("reports %d received where nothing was posted", *r.Acquiring.AmountMinor)
+	}
+	if r.Acquiring.PaidAt != nil {
+		t.Error("carries a paid_at for a settlement that never happened")
+	}
+	if r.Acquiring.CreditedWalletAccountID != "" {
+		t.Errorf("attributes a credit to %s that the ledger does not show",
+			r.Acquiring.CreditedWalletAccountID)
+	}
+}
+
 // A QR-paid session must not be reported UNPAID. Reading only the link would be
 // a worse answer than the one this view replaces.
 func TestTransactions_AcquiringStateFollowsTheInterfaceActuallyUsed(t *testing.T) {
@@ -195,7 +308,7 @@ func TestTransactions_AcquiringStateFollowsTheInterfaceActuallyUsed(t *testing.T
 	sess := uuid.NewString()
 	if _, err := pool.Exec(ctx,
 		`INSERT INTO payment_sessions (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, status, qr_code_id)
-		 VALUES ($1,$2,$3,$4,'AOA',100000,'ACTIVE',$5)`, sess, m, wallet, wa, qr); err != nil {
+		 VALUES ($1,$2,$3,$4,'AOA',100000,'PAID',$5)`, sess, m, wallet, wa, qr); err != nil {
 		t.Fatalf("session: %v", err)
 	}
 
