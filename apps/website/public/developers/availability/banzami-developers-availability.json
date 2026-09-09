@@ -36,7 +36,7 @@
     "webhook_configuration": {
       "state": "available_controlled_sandbox",
       "credential": "developer_key_scoped_or_merchant",
-      "note": "POST/GET /v1/business/webhooks/* with the webhooks:write and webhooks:read scopes. The signing secret is returned exactly once, on creation; another project’s endpoint answers 404."
+      "note": "POST/GET /v1/webhooks/* with the webhooks:write and webhooks:read scopes. The signing secret is returned exactly once, on creation; another project’s endpoint answers 404."
     },
     "webhook_outbound_delivery": {
       "state": "available_controlled_sandbox",
@@ -51,7 +51,7 @@
     "transfers": {
       "state": "available_controlled_sandbox",
       "credential": "developer_key_scoped",
-      "note": "POST /v1/business/transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
+      "note": "POST /v1/transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
     },
     "production_live_rails": {
       "state": "not_available",

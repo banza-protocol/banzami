@@ -44,7 +44,7 @@ console.log(`  setup: merchants ${A.handle} / ${B.handle}\n`);
 const base = { wallet_account_id: A.walletAccountId, amount_minor: AMOUNT, currency: 'AOA', purpose: PURPOSE };
 
 // ── Happy path ──────────────────────────────────────────────────────────────
-const created = await req('POST', '/v1/business/payment-sessions', {
+const created = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, description: 'CAP-PAY-001 happy path' }, idem: idemKey(runId, 'happy'),
 });
 rec('PAY001.create', created.status === 201, `HTTP ${created.status}`);
@@ -58,68 +58,68 @@ rec('PAY001.interfaces-issued', Array.isArray(session.interfaces) && session.int
   `${session.interfaces?.length || 0} interface(s)`);
 
 // ── Read back through the owning principal ──────────────────────────────────
-const readBack = await req('GET', `/v1/business/payment-sessions/${session.session_id}`, { token: A.token });
+const readBack = await req('GET', `/v1/payment-sessions/${session.session_id}`, { token: A.token });
 rec('PAY001.read-own', readBack.status === 200 && readBack.body?.session_id === session.session_id, `HTTP ${readBack.status}`);
 
 // ── Financial truth: an intent must not move money ──────────────────────────
-const accounts = await req('GET', `/v1/business/wallet-accounts?wallet_id=${A.walletId}`, { token: A.token });
+const accounts = await req('GET', `/v1/wallet-accounts?wallet_id=${A.walletId}`, { token: A.token });
 const balance = accounts.body?.data?.[0]?.available_balance_minor;
 rec('PAY001.no-ledger-movement', balance === 0,
   `balance ${balance} minor — session creation is an intent, not a settlement`);
 
 // ── Idempotency ─────────────────────────────────────────────────────────────
-const replay = await req('POST', '/v1/business/payment-sessions', {
+const replay = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, description: 'CAP-PAY-001 happy path' }, idem: idemKey(runId, 'happy'),
 });
 rec('PAY001.idempotent-replay', replay.status === 201 && replay.body?.session_id === session.session_id,
   `HTTP ${replay.status}, same session_id: ${replay.body?.session_id === session.session_id}`);
 
-const conflict = await req('POST', '/v1/business/payment-sessions', {
+const conflict = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, amount_minor: AMOUNT + 1 }, idem: idemKey(runId, 'happy'),
 });
 rec('PAY001.idempotency-conflict-rejected', conflict.status >= 400 && conflict.status < 500,
   `HTTP ${conflict.status} for a reused key with a different payload`);
 
 // ── Negative / security ─────────────────────────────────────────────────────
-const noAuth = await req('POST', '/v1/business/payment-sessions', { body: base, idem: idemKey(runId, 'noauth') });
+const noAuth = await req('POST', '/v1/payment-sessions', { body: base, idem: idemKey(runId, 'noauth') });
 rec('PAY001.neg.unauthenticated', noAuth.status === 401, `HTTP ${noAuth.status}`);
 
-const badAuth = await req('POST', '/v1/business/payment-sessions', {
+const badAuth = await req('POST', '/v1/payment-sessions', {
   token: 'not-a-real-token', body: base, idem: idemKey(runId, 'badauth'),
 });
 rec('PAY001.neg.bogus-credential', badAuth.status === 401, `HTTP ${badAuth.status}`);
 
 // Merchant B naming merchant A's wallet account: must fail closed, and must not
 // disclose whether that account exists.
-const crossCreate = await req('POST', '/v1/business/payment-sessions', {
+const crossCreate = await req('POST', '/v1/payment-sessions', {
   token: B.token, body: base, idem: idemKey(runId, 'cross'),
 });
 rec('PAY001.neg.cross-merchant-create', crossCreate.status === 403 || crossCreate.status === 404,
   `HTTP ${crossCreate.status} for B creating against A's wallet account`);
 
-const crossRead = await req('GET', `/v1/business/payment-sessions/${session.session_id}`, { token: B.token });
+const crossRead = await req('GET', `/v1/payment-sessions/${session.session_id}`, { token: B.token });
 rec('PAY001.neg.cross-merchant-read', crossRead.status === 403 || crossRead.status === 404,
   `HTTP ${crossRead.status} for B reading A's session`);
 
-const zero = await req('POST', '/v1/business/payment-sessions', {
+const zero = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, amount_minor: 0 }, idem: idemKey(runId, 'zero'),
 });
 rec('PAY001.neg.zero-amount', zero.status >= 400 && zero.status < 500, `HTTP ${zero.status}`);
 
-const negative = await req('POST', '/v1/business/payment-sessions', {
+const negative = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, amount_minor: -1 }, idem: idemKey(runId, 'negative'),
 });
 rec('PAY001.neg.negative-amount', negative.status >= 400 && negative.status < 500, `HTTP ${negative.status}`);
 
-const badCurrency = await req('POST', '/v1/business/payment-sessions', {
+const badCurrency = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, currency: 'XXX' }, idem: idemKey(runId, 'ccy'),
 });
 rec('PAY001.neg.unsupported-currency', badCurrency.status >= 400 && badCurrency.status < 500, `HTTP ${badCurrency.status}`);
 
-const unknown = await req('GET', '/v1/business/payment-sessions/00000000-0000-0000-0000-000000000000', { token: A.token });
+const unknown = await req('GET', '/v1/payment-sessions/00000000-0000-0000-0000-000000000000', { token: A.token });
 rec('PAY001.neg.unknown-session', unknown.status === 404, `HTTP ${unknown.status}`);
 
-const malformed = await req('GET', '/v1/business/payment-sessions/not-a-uuid', { token: A.token });
+const malformed = await req('GET', '/v1/payment-sessions/not-a-uuid', { token: A.token });
 rec('PAY001.neg.malformed-id', malformed.status >= 400 && malformed.status < 500, `HTTP ${malformed.status}`);
 
 // No internal detail may leak on any rejection.
@@ -130,7 +130,7 @@ rec('PAY001.neg.no-internal-leak', leaked.length === 0, `${leaked.length} respon
 // ── Purpose semantics (RA-045) ──────────────────────────────────────────────
 // Purpose is optional and core defaults an absent purpose to GENERIC. Omitting it
 // used to fail, because the gateway transmitted an empty string.
-const omitted = await req('POST', '/v1/business/payment-sessions', {
+const omitted = await req('POST', '/v1/payment-sessions', {
   token: A.token,
   body: { wallet_account_id: A.walletAccountId, amount_minor: AMOUNT, currency: 'AOA' },
   idem: idemKey(runId, 'purpose-omitted'),
@@ -138,12 +138,12 @@ const omitted = await req('POST', '/v1/business/payment-sessions', {
 rec('PAY001.purpose-omitted-defaults', omitted.status === 201 && omitted.body?.purpose === 'GENERIC',
   `HTTP ${omitted.status}, purpose=${omitted.body?.purpose}`);
 
-const explicitGeneric = await req('POST', '/v1/business/payment-sessions', {
+const explicitGeneric = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base }, idem: idemKey(runId, 'purpose-explicit'),
 });
 rec('PAY001.purpose-explicit-generic', explicitGeneric.status === 201, `HTTP ${explicitGeneric.status}`);
 
-const badPurpose = await req('POST', '/v1/business/payment-sessions', {
+const badPurpose = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base, purpose: 'NOT_A_PURPOSE' }, idem: idemKey(runId, 'purpose-bad'),
 });
 rec('PAY001.neg.unknown-purpose', badPurpose.status >= 400 && badPurpose.status < 500, `HTTP ${badPurpose.status}`);
@@ -152,10 +152,10 @@ rec('PAY001.neg.unknown-purpose', badPurpose.status >= 400 && badPurpose.status 
 // The same RAW key used by a DIFFERENT merchant must be independent: keys are
 // scoped per principal, so B's key must not collide with A's.
 const sharedKey = idemKey(runId, 'shared-raw-key');
-const aKeyed = await req('POST', '/v1/business/payment-sessions', {
+const aKeyed = await req('POST', '/v1/payment-sessions', {
   token: A.token, body: { ...base }, idem: sharedKey,
 });
-const bKeyed = await req('POST', '/v1/business/payment-sessions', {
+const bKeyed = await req('POST', '/v1/payment-sessions', {
   token: B.token,
   body: { wallet_account_id: B.walletAccountId, amount_minor: AMOUNT, currency: 'AOA', purpose: PURPOSE },
   idem: sharedKey,
@@ -167,7 +167,7 @@ rec('PAY001.idempotency-actor-scoped',
 // Concurrent identical requests under one key must yield exactly one session.
 const concurrentKey = idemKey(runId, 'concurrent');
 const concurrent = await Promise.all(
-  [0, 1, 2, 3].map(() => req('POST', '/v1/business/payment-sessions', {
+  [0, 1, 2, 3].map(() => req('POST', '/v1/payment-sessions', {
     token: A.token, body: { ...base }, idem: concurrentKey,
   })),
 );
@@ -187,7 +187,7 @@ const evidence = {
   expected_commit: EXPECTED_COMMIT || null,
   deployed_build: guard.build,
   public_endpoint: API,
-  surface: '/v1/business/payment-sessions',
+  surface: '/v1/payment-sessions',
   merchants: { a: A.handle, b: B.handle }, // handles only — no tokens, no PINs
   session_id: session.session_id || null,
   amount_minor: AMOUNT,

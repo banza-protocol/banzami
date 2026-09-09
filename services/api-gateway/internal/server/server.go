@@ -432,7 +432,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			//
 			//   POST /v1/transfers              — name ANY sender_id and move that
 			//                                     consumer's money to any recipient
-			//   GET  /v1/transfers/{id}         — read ANY transfer
+			//   GET  /v1/wallet-account-transfers/{id}         — read ANY transfer
 			//   GET  /v1/transfers?consumer_id= — read ANY consumer's whole history
 			//
 			// The sender-KYC compliance gate did not help: it authorised the SENDER
@@ -629,7 +629,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			// only — enough to confirm a destination exists, and not a directory
 			// of strangers' accounts.
 			r.Get("/consumers/handle/{handle}", consumerHandler.ResolveHandleForProject)
-			r.Route("/transfers", func(r chi.Router) {
+			r.Route("/wallet-account-transfers", func(r chi.Router) {
 				r.Post("/", walletAccountTransferHandler.Create)
 			})
 			// Refunds are a first-class public primitive, so they live at the

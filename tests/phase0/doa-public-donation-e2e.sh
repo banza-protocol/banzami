@@ -89,7 +89,7 @@ chk DOA_ACCEPTED_200 "$(printf '%s' "$ROW" | cut -d'|' -f2)" "200"
 
 echo "### a redelivery of the same event moves no money and adds no delivery effect"
 DELIV=$(psqlro "SELECT id FROM webhook_deliveries WHERE event_id='$EVID' AND endpoint_id='$EP' ORDER BY created_at DESC LIMIT 1")
-call "$GW" 8080 POST "/v1/business/webhooks/deliveries/$DELIV/replay" - "-"
+call "$GW" 8080 POST "/v1/webhooks/deliveries/$DELIV/replay" - "-"
 # The replay route needs a credential; the meaningful assertion is financial —
 # a duplicate event must never move money again.
 A2=$(bal "$ACC_A"); B2=$(bal "$ACC_B")

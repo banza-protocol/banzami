@@ -60,7 +60,7 @@ call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
   "{\"name\":\"wh-deliver-$R\",\"scopes\":[\"payment_sessions:read\",\"payment_sessions:write\",\"wallet_accounts:read\",\"wallet_accounts:create\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-call "$GW" 8080 POST /v1/business/wallet-accounts \
+call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"whdel-$R\",\"label\":\"Delivery probe\"}" "$KEY"
 ACCT=$(jget id)
 # The payer is onboarded and funded here rather than scavenged from whatever an
@@ -80,7 +80,7 @@ call "$GW" 8080 POST /v1/compliance/customers/verify \
   "{\"full_name\":\"WEBHOOK DELIVERY E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"WD$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
 call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":200000,"currency":"AOA"}' "$CJWT"
 [ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE) — the rest would be vacuous"; exit 1; }
-call "$GW" 8080 POST /v1/business/payment-sessions \
+call "$GW" 8080 POST /v1/payment-sessions \
   "{\"wallet_account_id\":\"$ACCT\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"whdel-$R\",\"amount_minor\":100000,\"currency\":\"AOA\"}" "$KEY"
 SESSION=$(jget session_id)
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')

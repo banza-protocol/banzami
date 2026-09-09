@@ -20,7 +20,7 @@ Operator Fee        (computed by the operator, per transaction)
 ```
 
 The resolved pricing is returned inside Business Resolution
-(`GET /v1/business/me` → `pricing`), so an application can *display* its fee but
+(`GET /v1/integration` → `pricing`), so an application can *display* its fee but
 can never *set* it.
 
 ## Why category-driven

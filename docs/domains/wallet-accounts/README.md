@@ -31,7 +31,7 @@ Wallet (owner + currency, 1 per pair)
 ## Flows
 
 ### Open an account (DOA → campaign)
-`POST /v1/business/wallet-accounts {wallet_id, purpose, reference_type,
+`POST /v1/wallet-accounts {wallet_id, purpose, reference_type,
 reference_id, label}` → merchant auth + ownership + ACTIVE-merchant gate →
 provisions a LIABILITY ledger account → returns the safe DTO (no ledger ids).
 Idempotent on `(wallet, purpose, reference)`.
@@ -43,7 +43,7 @@ the recipient wallet, ACTIVE, currency match) and credits it instead of the defa
 account. Plain QRs and P2P are unaffected.
 
 ### Settle out of an account
-`POST /v1/business/application-settlements {source_account_id, beneficiary_banza_name,
+`POST /v1/application-settlements {source_account_id, beneficiary_banza_name,
 fee_destination_banza_name, application_fee_bps}` → gross = the account's balance →
 only that account is debited → the fee is **app-defined** (`application_fee_bps`,
 ADR-029; operator `pricing_rules` are not used) → `application_settlement.completed`

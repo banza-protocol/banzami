@@ -98,7 +98,7 @@ it wanted to — the API surface does not expose it. The application receives
 ## 4. Business Resolution Engine
 
 One API key in → a fully-resolved business out, in a single call:
-`GET /v1/business/me`. Full field-by-field spec: [business-resolution-engine.md](business-resolution-engine.md).
+`GET /v1/integration`. Full field-by-field spec: [business-resolution-engine.md](business-resolution-engine.md).
 
 ![Business Resolution Engine](../diagrams/banzami-business-resolution-v1.svg)
 
@@ -185,7 +185,7 @@ everything else is the operator's.
 
 ## 8. Business Resolution DTO
 
-`GET /v1/business/me` returns (canonical fields — see
+`GET /v1/integration` returns (canonical fields — see
 [business-resolution-engine.md](business-resolution-engine.md) for types):
 
 | Group | Fields |
@@ -200,7 +200,7 @@ everything else is the operator's.
 
 `held_minor` is the sum of the wallet's non-PRIMARY sub-account balances
 (money received but not spendable — e.g. campaign funds awaiting settlement).
-Sub-accounts are listed via `GET /v1/business/wallet-accounts`.
+Sub-accounts are listed via `GET /v1/wallet-accounts`.
 
 ---
 

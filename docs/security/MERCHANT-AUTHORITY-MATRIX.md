@@ -41,8 +41,8 @@ No credentials, tokens or secrets appear here.
 | `/v1/refunds/{id}`, `/v1/refunds` | GET | — | scoped by principal | SAFE (derived) |
 | `/v1/application-settlements` | POST | `source_wallet_id`, `source_wallet_account_id`, beneficiary/fee wallet ids | `handler/application_settlements.go:78-119` — every wallet resolved then `wal.MerchantID != principal.MerchantID`; `ApplicationID` bound (SEC-002) | SAFE |
 | `/v1/application-settlements/{id}` | GET | path id | `:182` `st.ApplicationID != principal.MerchantID`, unknown ownership fails closed | SAFE |
-| `/v1/business/application-settlements` | POST | `source_account_id`, `fee_destination_banza_name` | `:235-241` account → parent wallet → `wal.MerchantID != principal.MerchantID` | SAFE |
-| `/v1/business/wallet-accounts` | POST/GET | `wallet_id` | `handler/wallet_accounts.go:45` `authorizeOwnedWallet`; core re-checks | SAFE |
+| `/v1/application-settlements` | POST | `source_account_id`, `fee_destination_banza_name` | `:235-241` account → parent wallet → `wal.MerchantID != principal.MerchantID` | SAFE |
+| `/v1/wallet-accounts` | POST/GET | `wallet_id` | `handler/wallet_accounts.go:45` `authorizeOwnedWallet`; core re-checks | SAFE |
 | `/v1/payment-requests/*` | ALL | `requester_id`, `payer_id` | **none — principal never read** | **FIXED** — unmounted (RA-057) |
 | `/v1/qr/pay` | POST | `payer` | **none** | FIXED — unmounted (RA-053) |
 | `/v1/transfers/*` | ALL | `sender_id`, `consumer_id` | **none** | FIXED — unmounted (SEC-015) |
@@ -58,7 +58,7 @@ No credentials, tokens or secrets appear here.
 | `/v1/consumers/{id}` | GET | path id | none — any merchant may read any consumer's handle/status/created_at | **See note 1** |
 | `/v1/consumers/handle/{handle}` | GET | handle | none — by design: handle lookup is how a payer is addressed | SAFE (directory) |
 | `/v1/merchant/wallet-payments` | GET | — | scoped by principal | SAFE (derived) |
-| `/v1/business/me` | GET | — | self-scoped | SAFE (derived) |
+| `/v1/integration` | GET | — | self-scoped | SAFE (derived) |
 | `/v1/merchant/transactions/{id}/receipt.pdf` | GET | path id | wallet_payments scoped by principal | SAFE |
 
 ## Merchant-owned resources
@@ -66,7 +66,7 @@ No credentials, tokens or secrets appear here.
 | Route | Method | Client authority fields | Binding site | Class |
 |---|---|---|---|---|
 | `/v1/payment-links/*` | ALL | `merchant_id`, `wallet_id` | `handler/payment_links.go` — `requireOwnedLink`, foreign `merchant_id` → 403, ownership checked before mutation | SAFE (RA-047) |
-| `/v1/business/payment-sessions/*` | ALL | `wallet_account_id` | payee derived from principal or Project binding (ADR-047) | SAFE |
+| `/v1/payment-sessions/*` | ALL | `wallet_account_id` | payee derived from principal or Project binding (ADR-047) | SAFE |
 | `/v1/qr/static`, `/qr/dynamic` | POST | `owner_id`, `owner_type` | `handler/qr.go:41` `requireOwnQrOwner` | SAFE (RA-049) |
 | `/v1/qr/{id}`, `/{id}/use` | GET/POST | path id | `:201` owner must equal principal | SAFE (RA-049) |
 | `/v1/collections/*`, `/collection-shares/{id}/surface` | ALL | — | merchant_id + environment derived; core 404s cross-tenant | SAFE (derived) |

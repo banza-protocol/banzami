@@ -11,7 +11,7 @@ Create Business → KYB → Wallet(+accounts) → Pricing → Application
       → Receber pagamento → Settlement → Beneficiário
 ```
 
-Every stage is **gated by Business Resolution** (`GET /v1/business/me`): the app
+Every stage is **gated by Business Resolution** (`GET /v1/integration`): the app
 polls it and renders `blockers[]` until the business is ready. The app owns none
 of these stages' money logic — it triggers them via the SDK and reflects state.
 

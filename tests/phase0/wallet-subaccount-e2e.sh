@@ -105,11 +105,11 @@ call "$DEV" 8086 POST "/internal/v1/projects/$UNBOUND/fixture-keys" \
   "{\"name\":\"wa-unbound-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-call "$GW" 8080 GET "/v1/business/wallet-accounts" - "$UKEY"
+call "$GW" 8080 GET "/v1/wallet-accounts" - "$UKEY"
 chk "UNBOUND_PROJECT_403" "$CODE" "403"
 
 echo "### campaign segregation — two campaigns, two accounts, one owner"
-mkacct(){ call "$GW" 8080 POST /v1/business/wallet-accounts \
+mkacct(){ call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"$1\",\"label\":\"$2\"}" "$3"; }
 
 mkacct "camp-a-$R" "Campaign A" "$KEY"; A_CODE="$CODE"; A_ID=$(jget id); A_WALLET=$(jget wallet_id)
@@ -125,29 +125,29 @@ mkacct "camp-a-$R" "Campaign A" "$KEY"; A2_ID=$(jget id)
 chk "A_IDEMPOTENT" "$A2_ID" "$A_ID"
 
 echo "### owner selection stays refused"
-call "$GW" 8080 POST /v1/business/wallet-accounts \
+call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"wallet_id\":\"$BOUND_WALLET\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"camp-x-$R\"}" "$KEY"
 # Refused even though the wallet id is the caller's OWN: a field that is
 # sometimes honoured teaches integrators it is meaningful.
 chk "OWN_WALLET_ID_REFUSED" "$([ "$CODE" -ge 400 ] && echo refused)" "refused"
 
-call "$GW" 8080 POST /v1/business/payment-sessions \
+call "$GW" 8080 POST /v1/payment-sessions \
   "{\"merchant_id\":\"$BOUND_MERCHANT\",\"amount_minor\":1000,\"currency\":\"AOA\"}" "$KEY"
 chk "MERCHANT_ID_REFUSED" "$CODE" "400"
 
 echo "### cross-project isolation reads as NOT_FOUND, never FORBIDDEN"
-call "$GW" 8080 GET "/v1/business/wallet-accounts/$A_ID" - "$OKEY"
+call "$GW" 8080 GET "/v1/wallet-accounts/$A_ID" - "$OKEY"
 chk "FOREIGN_ACCOUNT_404" "$CODE" "404"
-call "$GW" 8080 GET "/v1/business/wallet-accounts/$A_ID" - "$KEY"
+call "$GW" 8080 GET "/v1/wallet-accounts/$A_ID" - "$KEY"
 chk "OWN_ACCOUNT_200" "$CODE" "200"
 
 echo "### list returns only the bound wallet's accounts"
-call "$GW" 8080 GET "/v1/business/wallet-accounts?wallet_id=$BOUND_WALLET" - "$OKEY"
+call "$GW" 8080 GET "/v1/wallet-accounts?wallet_id=$BOUND_WALLET" - "$OKEY"
 FOREIGN_IN_LIST=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const xs=Array.isArray(j)?j:(j.data||j.wallet_accounts||[]);process.stdout.write(xs.some(a=>a.id==="'"$A_ID"'")?"leaked":"clean")}catch(e){process.stdout.write("clean")}})')
 chk "LIST_IGNORES_SUPPLIED_WALLET" "$FOREIGN_IN_LIST" "clean"
 
 echo "### payments land in the campaign's own account"
-sess(){ call "$GW" 8080 POST /v1/business/payment-sessions \
+sess(){ call "$GW" 8080 POST /v1/payment-sessions \
   "{\"wallet_account_id\":\"$1\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"don-$2-$R\",\"amount_minor\":250000,\"currency\":\"AOA\"}" "$KEY"; }
 sess "$A_ID" a; SA_CODE="$CODE"; SA=$(jget session_id); e2e_own payment_session "$SA" "$BOUND_MERCHANT"
 sess "$B_ID" b; SB_CODE="$CODE"; SB=$(jget session_id); e2e_own payment_session "$SB" "$BOUND_MERCHANT"
@@ -160,7 +160,7 @@ chk "SESSION_A_CREDITS_A" "$DEST_A" "$A_ID"
 chk "SESSION_B_CREDITS_B" "$DEST_B" "$B_ID"
 
 echo "### a foreign account cannot be named as a destination"
-call "$GW" 8080 POST /v1/business/payment-sessions \
+call "$GW" 8080 POST /v1/payment-sessions \
   "{\"wallet_account_id\":\"$A_ID\",\"purpose\":\"DONATION\",\"amount_minor\":1000,\"currency\":\"AOA\"}" "$OKEY"
 chk "FOREIGN_DESTINATION_404" "$CODE" "404"
 

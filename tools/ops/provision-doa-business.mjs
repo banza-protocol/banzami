@@ -84,7 +84,7 @@ if (done.status !== 200) { console.error(`activation complete ${done.status}: ${
 const auth = await req('POST', '/v1/merchant/auth/token', { handle: HANDLE, pin });
 if (auth.status !== 200) { console.error(`auth ${auth.status}: ${auth.raw.slice(0, 200)}`); process.exit(1); }
 
-const me = await req('GET', '/v1/business/me', null, auth.body.token);
+const me = await req('GET', '/v1/integration', null, auth.body.token);
 if (me.status !== 200) { console.error(`business/me ${me.status}: ${me.raw.slice(0, 200)}`); process.exit(1); }
 
 console.log(JSON.stringify({

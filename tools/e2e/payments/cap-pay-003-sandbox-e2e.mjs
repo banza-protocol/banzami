@@ -123,7 +123,7 @@ const leaked = [bReads, bMarks, bCreatesForA, badDecode].filter((r) =>
 rec('PAY003.neg.no-internal-leak', leaked.length === 0, `${leaked.length} response(s) leaked internals`);
 
 // ── Financial truth: creation alone moves nothing ───────────────────────────
-const accounts = await req('GET', `/v1/business/wallet-accounts?wallet_id=${A.walletId}`, { token: A.token });
+const accounts = await req('GET', `/v1/wallet-accounts?wallet_id=${A.walletId}`, { token: A.token });
 const balance = accounts.body?.data?.[0]?.available_balance_minor;
 rec('PAY003.no-ledger-movement-on-create', balance === 0,
   `payee balance ${balance} minor — issuing a QR is not a settlement`);

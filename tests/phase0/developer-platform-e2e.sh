@@ -80,7 +80,7 @@ echo "### F0-DP-001 developer/platform auth"; gw me GET /v1/me - "$PKEY"; chk F0
 echo "### F0-DP-002 workspace available"; chk F0-DP-002 "$([ -n "$WS" ]&&echo ok)" ok
 echo "### F0-DP-003 project available"; chk F0-DP-003 "$([ -n "$PROJ" ]&&echo ok)" ok
 echo "### F0-DP-004 API key active accepted"; gw me2 GET /v1/me - "$PKEY"; chk F0-DP-004 "$(jget key_status)" active
-echo "### F0-DP-005 API key scope enforced (read-only key on write route)"; gw sc POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "$RKEY"; chk F0-DP-005 "$(codeof)" INSUFFICIENT_SCOPE
+echo "### F0-DP-005 API key scope enforced (read-only key on write route)"; gw sc POST /v1/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "$RKEY"; chk F0-DP-005 "$(codeof)" INSUFFICIENT_SCOPE
 
 echo "### F0-DP-006 payment link from developer/platform context"
 gw pl POST /v1/payment-links "{\"amount_minor\":50000,\"currency\":\"AOA\",\"description\":\"dp link\"}" "$PKEY"
@@ -244,7 +244,7 @@ echo "### F0-DP-012 revoked API key rejected"
 devint rev POST "/internal/v1/fixture-keys/$KEYID/revoke" "{\"created_by\":\"$OP\"}"; chk F0-DP-012-revoke "$(jget status)" REVOKED
 gw me_rev GET /v1/me - "$PKEY"; chk F0-DP-012 "$CODE" 401
 echo "### F0-DP-013 invalid API key rejected"; gw inv GET /v1/me - "bz_test_sk_invalid${RR}deadbeef00"; chk F0-DP-013 "$CODE" 401
-echo "### F0-DP-014 unauthorised platform rejected"; gw noauth POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" -; chk F0-DP-014 "$CODE" 401
+echo "### F0-DP-014 unauthorised platform rejected"; gw noauth POST /v1/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" -; chk F0-DP-014 "$CODE" 401
 
 echo "### F0-DP-015 no ledger/balance mutation on rejected operations"
 chk F0-DP-015 "$(mbal)|$(cbal "$AW")" "$MB|$CB"

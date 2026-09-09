@@ -38,7 +38,7 @@ The portal's flagship walkthrough, mirroring a real integration from zero:
 
 1. **Criar a conta Business** `@doa` (donation category).
 2. **Autenticar** com a API Key sandbox (`bz_test_*`) → JWT via SDK.
-3. **Resolver o Business** com `GET /v1/business/me` (status, wallet, pricing,
+3. **Resolver o Business** com `GET /v1/integration` (status, wallet, pricing,
    settlement, blockers).
 4. **Configurar fees** — a *operator fee* vem da categoria `DONATION`; a *application
    fee* é definida pela DOA (`application_fee_bps`).

@@ -67,7 +67,7 @@
         }
       }
     },
-    "/v1/business/payment-sessions": {
+    "/v1/payment-sessions": {
       "post": {
         "tags": [
           "payment-sessions"
@@ -191,7 +191,7 @@
         }
       }
     },
-    "/v1/business/payment-sessions/{id}": {
+    "/v1/payment-sessions/{id}": {
       "get": {
         "tags": [
           "payment-sessions"
@@ -223,7 +223,7 @@
         }
       }
     },
-    "/v1/business/payment-sessions/{id}/link": {
+    "/v1/payment-sessions/{id}/link": {
       "get": {
         "tags": [
           "payment-sessions"
@@ -283,7 +283,7 @@
         }
       }
     },
-    "/v1/business/payment-sessions/{id}/qr": {
+    "/v1/payment-sessions/{id}/qr": {
       "get": {
         "tags": [
           "payment-sessions"
@@ -429,7 +429,7 @@
         }
       }
     },
-    "/v1/business/wallet-accounts": {
+    "/v1/wallet-accounts": {
       "post": {
         "tags": [
           "wallet-accounts"
@@ -546,7 +546,7 @@
         }
       }
     },
-    "/v1/business/wallet-accounts/{id}": {
+    "/v1/wallet-accounts/{id}": {
       "get": {
         "tags": [
           "wallet-accounts"
@@ -588,7 +588,7 @@
         }
       }
     },
-    "/v1/business/transfers": {
+    "/v1/wallet-account-transfers": {
       "post": {
         "tags": [
           "transfers"
@@ -677,7 +677,7 @@
         }
       }
     },
-    "/v1/business/webhooks/endpoints": {
+    "/v1/webhooks/endpoints": {
       "post": {
         "tags": [
           "webhooks"

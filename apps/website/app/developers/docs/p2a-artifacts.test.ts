@@ -24,17 +24,17 @@ const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/
 // the website deploy that ships this artifact.
 const ALLOWED_PATHS = [
   '/v1/me',
-  '/v1/business/payment-sessions',
-  '/v1/business/payment-sessions/{id}',
-  '/v1/business/payment-sessions/{id}/link',
-  '/v1/business/payment-sessions/{id}/qr',
+  '/v1/payment-sessions',
+  '/v1/payment-sessions/{id}',
+  '/v1/payment-sessions/{id}/link',
+  '/v1/payment-sessions/{id}/qr',
   '/v1/payment-links',
-  '/v1/business/wallet-accounts',
-  '/v1/business/wallet-accounts/{id}',
+  '/v1/wallet-accounts',
+  '/v1/wallet-accounts/{id}',
   // Released on deployed-Sandbox E2E evidence; see the assurance manifest.
-  '/v1/business/transfers',
+  '/v1/wallet-account-transfers',
   '/v1/refunds',
-  '/v1/business/webhooks/endpoints',
+  '/v1/webhooks/endpoints',
 ];
 // Surfaces the public Sandbox spec must not document. `/v1/refunds` used to be
 // on this list because it was the merchant-JWT twin of the project-scoped route
@@ -72,7 +72,7 @@ describe('P2A — OpenAPI spec', () => {
   });
   it('documents Bearer auth and the Idempotency-Key header on writes', () => {
     expect(OPENAPI.components.securitySchemes.bearerAuth.scheme).toBe('bearer');
-    for (const p of ['/v1/business/payment-sessions', '/v1/payment-links']) {
+    for (const p of ['/v1/payment-sessions', '/v1/payment-links']) {
       const post = OPENAPI.paths[p].post;
       const hasIdem = JSON.stringify(post.parameters ?? []).includes('IdempotencyKey');
       expect(hasIdem, `${p} POST must document Idempotency-Key`).toBe(true);

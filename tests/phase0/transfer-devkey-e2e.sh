@@ -37,7 +37,7 @@ call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5" au="$6" hdr="${7:-Authoriz
   CODE=$(printf '%s' "$r" | tail -n1); LAST=$(printf '%s' "$r" | sed '$d'); }
 jget(){ printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j["'"$1"'"]??""))}catch(e){}})'; }
 mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={scopes:["*"],environment:"SANDBOX",iat:n,exp:n+900};cl[process.env.K]=process.env.V;const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));'; }
-bal(){ call "$GW" 8080 GET "/v1/business/wallet-accounts/$1" - "$2"
+bal(){ call "$GW" 8080 GET "/v1/wallet-accounts/$1" - "$2"
   printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const v=JSON.parse(s).available_balance_minor;process.stdout.write(v===undefined?"?":String(v))}catch(e){process.stdout.write("?")}})'; }
 unbalanced(){ psqlro "SELECT COUNT(*) FROM (SELECT p.id FROM ledger_postings p JOIN ledger_entries e ON e.posting_id=p.id GROUP BY p.id HAVING SUM(CASE e.entry_type WHEN 'DEBIT' THEN -e.amount_minor ELSE e.amount_minor END) <> 0) x"; }
 
@@ -60,7 +60,7 @@ chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
 echo "### two accounts of the same owner, one of them funded"
-mk(){ call "$GW" 8080 POST /v1/business/wallet-accounts \
+mk(){ call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"tr-$1-$R\",\"label\":\"Transfer $1\"}" "$KEY"; jget id; }
 A=$(mk a); B=$(mk b)
 chk ACCOUNTS_OPENED "$([ -n "$A" ] && [ -n "$B" ] && [ "$A" != "$B" ] && echo yes)" yes
@@ -82,7 +82,7 @@ call "$GW" 8080 POST /v1/compliance/customers/verify \
   "{\"full_name\":\"TRANSFER E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"TR$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
 call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":400000,"currency":"AOA"}' "$CJWT"
 [ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE) — the rest would be vacuous"; exit 1; }
-call "$GW" 8080 POST /v1/business/payment-sessions \
+call "$GW" 8080 POST /v1/payment-sessions \
   "{\"wallet_account_id\":\"$A\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"tr-fund-$R\",\"amount_minor\":300000,\"currency\":\"AOA\"}" "$KEY"
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
 call "$PUB" 8083 POST "/v1/payment-links/$SLUG/pay" '{"amount_minor":300000}' "$CJWT"
@@ -94,7 +94,7 @@ chk SOURCE_FUNDED "$A0" "300000"
 echo "### the transfer"
 IDEM="tr-idem-$R"
 TB="{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":50000,\"currency\":\"AOA\",\"idempotency_key\":\"$IDEM\"}"
-call "$GW" 8080 POST /v1/business/transfers "$TB" "$KEY"
+call "$GW" 8080 POST /v1/transfers "$TB" "$KEY"
 echo "  create → http=$CODE $(printf '%s' "$LAST" | head -c 130)"
 chk TRANSFER_ACCEPTED "$CODE" "201"
 TID=$(jget id)
@@ -110,13 +110,13 @@ echo "### the ledger stays balanced"
 chk LEDGER_BALANCED "$(unbalanced)" "0"   # clean ledger: nothing unbalanced, ever
 
 echo "### idempotency"
-call "$GW" 8080 POST /v1/business/transfers "$TB" "$KEY"
+call "$GW" 8080 POST /v1/transfers "$TB" "$KEY"
 chk IDEMPOTENT_REPLAY "$(jget id)" "$TID"
 A2=$(bal "$A" "$KEY"); B2=$(bal "$B" "$KEY")
 chk REPLAY_MOVED_NOTHING "$A2:$B2" "$A1:$B1"
 
 echo "### the same key with a different request is a conflict, not a silent replay"
-call "$GW" 8080 POST /v1/business/transfers \
+call "$GW" 8080 POST /v1/transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":77000,\"currency\":\"AOA\",\"idempotency_key\":\"$IDEM\"}" "$KEY"
 # Returning the original here would answer a question the caller did not ask:
 # a 200 for a transfer of the wrong amount, which they would believe happened.
@@ -125,13 +125,13 @@ AC=$(bal "$A" "$KEY"); BC=$(bal "$B" "$KEY")
 chk CONFLICT_MOVED_NOTHING "$AC:$BC" "$A1:$B1"
 
 echo "### rejected transfers move nothing"
-call "$GW" 8080 POST /v1/business/transfers \
+call "$GW" 8080 POST /v1/transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":99999999,\"currency\":\"AOA\",\"idempotency_key\":\"over-$R\"}" "$KEY"
 chk INSUFFICIENT_FUNDS_REJECTED "$([ "$CODE" -ge 400 ] && echo rejected)" "rejected"
-call "$GW" 8080 POST /v1/business/transfers \
+call "$GW" 8080 POST /v1/transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":-50000,\"currency\":\"AOA\",\"idempotency_key\":\"neg-$R\"}" "$KEY"
 chk NEGATIVE_REJECTED "$CODE" "400"
-call "$GW" 8080 POST /v1/business/transfers \
+call "$GW" 8080 POST /v1/transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$A\",\"amount_minor\":1000,\"currency\":\"AOA\",\"idempotency_key\":\"self-$R\"}" "$KEY"
 chk SELF_TRANSFER_REJECTED "$CODE" "400"
 A3=$(bal "$A" "$KEY"); B3=$(bal "$B" "$KEY")
@@ -152,11 +152,11 @@ OKEY=$(jget secret)
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 # Foreign SOURCE — stealing from A.
-call "$GW" 8080 POST /v1/business/transfers \
+call "$GW" 8080 POST /v1/transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$OWACCT\",\"amount_minor\":10000,\"currency\":\"AOA\",\"idempotency_key\":\"steal-$R\"}" "$OKEY"
 chk FOREIGN_SOURCE_REJECTED "$CODE" "404"
 # Foreign DESTINATION — pushing into A from outside.
-call "$GW" 8080 POST /v1/business/transfers \
+call "$GW" 8080 POST /v1/transfers \
   "{\"source_wallet_account_id\":\"$OWACCT\",\"destination_wallet_account_id\":\"$A\",\"amount_minor\":10000,\"currency\":\"AOA\",\"idempotency_key\":\"push-$R\"}" "$OKEY"
 chk FOREIGN_DESTINATION_REJECTED "$CODE" "404"
 

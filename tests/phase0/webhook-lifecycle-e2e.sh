@@ -61,7 +61,7 @@ chk KEYS_ISSUED "$([ -n "$KEY" ] && [ -n "$RKEY" ] && echo yes)" yes
 BOUND_MERCHANT=$(psqlro "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$DOA_PROJECT' AND state='ACTIVE'")
 
 echo "### register — under the binding's merchant, for an event core actually emits"
-call "$GW" 8080 POST /v1/business/webhooks/endpoints \
+call "$GW" 8080 POST /v1/webhooks/endpoints \
   "{\"url\":\"https://www.doadoa.app/api/webhooks/banzami?probe=$R\",\"events\":[\"payment_session.paid\"]}" "$KEY"
 chk REGISTERED "$CODE" "201"
 EP=$(jget id)
@@ -71,21 +71,21 @@ chk SECRET_RETURNED_ONCE "$([ -n "$SEC1" ] && echo yes)" yes
 chk UNDER_BOUND_MERCHANT "$(jget merchant_id)" "$BOUND_MERCHANT"
 
 echo "### the secret is never readable again"
-call "$GW" 8080 GET "/v1/business/webhooks/endpoints/$EP" - "$KEY"
+call "$GW" 8080 GET "/v1/webhooks/endpoints/$EP" - "$KEY"
 chk GET_OK "$CODE" "200"
 chk GET_CARRIES_NO_SECRET "$(sighash)" ""
 
 echo "### scope separation"
-call "$GW" 8080 GET /v1/business/webhooks/endpoints - "$RKEY"
+call "$GW" 8080 GET /v1/webhooks/endpoints - "$RKEY"
 chk READ_KEY_CAN_LIST "$CODE" "200"
-call "$GW" 8080 POST "/v1/business/webhooks/endpoints/$EP/rotate-secret" - "$RKEY"
+call "$GW" 8080 POST "/v1/webhooks/endpoints/$EP/rotate-secret" - "$RKEY"
 chk READ_KEY_CANNOT_ROTATE "$CODE" "403"
-call "$GW" 8080 POST /v1/business/webhooks/endpoints \
+call "$GW" 8080 POST /v1/webhooks/endpoints \
   "{\"url\":\"https://example.com/x\",\"events\":[\"payment_session.paid\"]}" "$RKEY"
 chk READ_KEY_CANNOT_REGISTER "$CODE" "403"
 
 echo "### rotation issues a genuinely different secret"
-call "$GW" 8080 POST "/v1/business/webhooks/endpoints/$EP/rotate-secret" - "$KEY"
+call "$GW" 8080 POST "/v1/webhooks/endpoints/$EP/rotate-secret" - "$KEY"
 chk ROTATED "$CODE" "200"
 SEC2=$(sighash)
 chk ROTATED_SECRET_RETURNED "$([ -n "$SEC2" ] && echo yes)" yes
@@ -106,17 +106,17 @@ OKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
-call "$GW" 8080 GET "/v1/business/webhooks/endpoints/$EP" - "$OKEY"
+call "$GW" 8080 GET "/v1/webhooks/endpoints/$EP" - "$OKEY"
 chk FOREIGN_GET_404 "$CODE" "404"
-call "$GW" 8080 POST "/v1/business/webhooks/endpoints/$EP/rotate-secret" - "$OKEY"
+call "$GW" 8080 POST "/v1/webhooks/endpoints/$EP/rotate-secret" - "$OKEY"
 chk FOREIGN_ROTATE_404 "$CODE" "404"
 
 # And the victim is untouched: rotating with the owner's key still works, which
 # it would not if the foreign call had changed or removed anything.
-call "$GW" 8080 GET "/v1/business/webhooks/endpoints/$EP" - "$KEY"
+call "$GW" 8080 GET "/v1/webhooks/endpoints/$EP" - "$KEY"
 chk VICTIM_INTACT "$CODE" "200"
 
-call "$GW" 8080 GET /v1/business/webhooks/endpoints - "$OKEY"
+call "$GW" 8080 GET /v1/webhooks/endpoints - "$OKEY"
 LEAK=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const xs=j.data||[];process.stdout.write(xs.some(e=>e.id==="'"$EP"'")?"leaked":"clean")}catch(e){process.stdout.write("clean")}})')
 chk FOREIGN_LIST_CLEAN "$LEAK" "clean"
 
@@ -127,11 +127,11 @@ e2e_own fixture_project "$UNB"
 call "$DEV" 8086 POST "/internal/v1/projects/$UNB/fixture-keys" "{\"name\":\"wh-unbound-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 UKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
-call "$GW" 8080 GET /v1/business/webhooks/endpoints - "$UKEY"
+call "$GW" 8080 GET /v1/webhooks/endpoints - "$UKEY"
 chk UNBOUND_403 "$CODE" "403"
 
 echo "### cleanup — this probe endpoint is not the canonical one"
-call "$GW" 8080 DELETE "/v1/business/webhooks/endpoints/$EP" - "$KEY"
+call "$GW" 8080 DELETE "/v1/webhooks/endpoints/$EP" - "$KEY"
 chk PROBE_DEACTIVATED "$([ "$CODE" -lt 300 ] && echo yes)" yes
 
 echo

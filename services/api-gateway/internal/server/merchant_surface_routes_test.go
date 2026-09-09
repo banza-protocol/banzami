@@ -73,7 +73,7 @@ func TestMerchantSurface_P2PTransferRoutesNotMounted(t *testing.T) {
 	for _, route := range []string{
 		"POST /v1/transfers",
 		"GET /v1/transfers",
-		"GET /v1/transfers/{id}",
+		"GET /v1/wallet-account-transfers/{id}",
 	} {
 		if routes[route] {
 			t.Errorf("%s is mounted on the merchant surface; consumer P2P transfers "+

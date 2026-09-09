@@ -46,7 +46,7 @@ func TestPublicDeveloperSurface_CanonicalResourcesArePresent(t *testing.T) {
 		"POST /v1/wallet-accounts/",
 		"GET /v1/wallet-accounts/",
 		"POST /v1/application-settlements/",
-		"POST /v1/transfers/",
+		"POST /v1/wallet-account-transfers/",
 		"POST /v1/webhooks/endpoints",
 		"GET /v1/webhooks/events",
 		"GET /v1/integration",

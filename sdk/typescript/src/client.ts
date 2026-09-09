@@ -663,7 +663,7 @@ export class BanzamiClient {
   /** Open a segregated account inside a wallet you own (e.g. a CAMPAIGN account
    *  to isolate a fundraiser). Idempotent on (wallet, purpose, reference). */
   createWalletAccount(p: CreateWalletAccountParams): Promise<WalletAccount> {
-    return this.request<WalletAccount>('/business/wallet-accounts', {
+    return this.request<WalletAccount>('/wallet-accounts', {
       method: 'POST',
       body:   JSON.stringify({
         // Omitted entirely for a Developer Platform key — the API rejects a
@@ -687,12 +687,12 @@ export class BanzamiClient {
    */
   listWalletAccounts(walletId?: string): Promise<{ data: WalletAccount[] }> {
     return this.request<{ data: WalletAccount[] }>(
-      `/business/wallet-accounts${walletId ? this.qs({ wallet_id: walletId }) : ''}`,
+      `/wallet-accounts${walletId ? this.qs({ wallet_id: walletId }) : ''}`,
     );
   }
 
   getWalletAccount(id: string): Promise<WalletAccount> {
-    return this.request<WalletAccount>(`/business/wallet-accounts/${id}`);
+    return this.request<WalletAccount>(`/wallet-accounts/${id}`);
   }
 
   // ---------------------------------------------------------------------------
@@ -714,7 +714,7 @@ export class BanzamiClient {
    * and a source equal to the destination are all refused before any posting.
    */
   createTransfer(p: CreateTransferParams): Promise<WalletAccountTransfer> {
-    return this.request<WalletAccountTransfer>('/business/transfers', {
+    return this.request<WalletAccountTransfer>('/wallet-account-transfers', {
       method: 'POST',
       body:   JSON.stringify({
         source_wallet_account_id:      p.sourceWalletAccountId,
@@ -744,23 +744,23 @@ export class BanzamiClient {
    * usable secret again is to rotate.
    */
   createWebhookEndpoint(p: CreateWebhookEndpointParams): Promise<WebhookEndpoint> {
-    return this.request<WebhookEndpoint>('/business/webhooks/endpoints', {
+    return this.request<WebhookEndpoint>('/webhooks/endpoints', {
       method: 'POST',
       body:   JSON.stringify({ url: p.url, events: p.events }),
     });
   }
 
   listWebhookEndpoints(): Promise<{ data: WebhookEndpoint[] }> {
-    return this.request<{ data: WebhookEndpoint[] }>('/business/webhooks/endpoints');
+    return this.request<{ data: WebhookEndpoint[] }>('/webhooks/endpoints');
   }
 
   getWebhookEndpoint(id: string): Promise<WebhookEndpoint> {
-    return this.request<WebhookEndpoint>(`/business/webhooks/endpoints/${id}`);
+    return this.request<WebhookEndpoint>(`/webhooks/endpoints/${id}`);
   }
 
   /** Stop delivering to an endpoint. Past events and deliveries remain readable. */
   deactivateWebhookEndpoint(id: string): Promise<void> {
-    return this.request<void>(`/business/webhooks/endpoints/${id}`, { method: 'DELETE' });
+    return this.request<void>(`/webhooks/endpoints/${id}`, { method: 'DELETE' });
   }
 
   /**
@@ -773,32 +773,32 @@ export class BanzamiClient {
    */
   rotateWebhookEndpointSecret(id: string): Promise<WebhookEndpoint> {
     return this.request<WebhookEndpoint>(
-      `/business/webhooks/endpoints/${id}/rotate-secret`, { method: 'POST' },
+      `/webhooks/endpoints/${id}/rotate-secret`, { method: 'POST' },
     );
   }
 
   endpointHealth(id: string): Promise<WebhookEndpointHealth> {
-    return this.request<WebhookEndpointHealth>(`/business/webhooks/endpoints/${id}/health`);
+    return this.request<WebhookEndpointHealth>(`/webhooks/endpoints/${id}/health`);
   }
 
   /** Recent events generated for your project (not the deliveries of them). */
   listWebhookEvents(limit?: number): Promise<{ data: WebhookEvent[] }> {
     return this.request<{ data: WebhookEvent[] }>(
-      `/business/webhooks/events${limit ? this.qs({ limit: String(limit) }) : ''}`,
+      `/webhooks/events${limit ? this.qs({ limit: String(limit) }) : ''}`,
     );
   }
 
   /** Delivery attempts for one event — status, attempt count, response code. */
   listWebhookDeliveries(eventId: string): Promise<{ data: WebhookDeliveryRecord[] }> {
     return this.request<{ data: WebhookDeliveryRecord[] }>(
-      `/business/webhooks/events/${eventId}/deliveries`,
+      `/webhooks/events/${eventId}/deliveries`,
     );
   }
 
   /** Re-queue a permanently-failed delivery as a fresh attempt. */
   replayWebhookDelivery(deliveryId: string): Promise<WebhookDeliveryRecord> {
     return this.request<WebhookDeliveryRecord>(
-      `/business/webhooks/deliveries/${deliveryId}/replay`, { method: 'POST' },
+      `/webhooks/deliveries/${deliveryId}/replay`, { method: 'POST' },
     );
   }
 
@@ -813,7 +813,7 @@ export class BanzamiClient {
   createBusinessApplicationSettlement(
     p: CreateBusinessApplicationSettlementParams,
   ): Promise<ApplicationSettlement> {
-    return this.request<ApplicationSettlement>('/business/application-settlements', {
+    return this.request<ApplicationSettlement>('/application-settlements', {
       method: 'POST',
       body:   JSON.stringify({
         idempotency_key:            p.idempotencyKey,
@@ -842,7 +842,7 @@ export class BanzamiClient {
    *  CAMPAIGN account). Returns the session with its display interfaces (link,
    *  deep link, QR). Omit `amountMinor` for an open-amount session. */
   createPaymentSession(p: CreatePaymentSessionParams): Promise<PaymentSession> {
-    return this.request<PaymentSession>('/business/payment-sessions', {
+    return this.request<PaymentSession>('/payment-sessions', {
       method: 'POST',
       body:   JSON.stringify({
         wallet_account_id: p.walletAccountId,
@@ -859,13 +859,13 @@ export class BanzamiClient {
   }
 
   getPaymentSession(id: string): Promise<PaymentSession> {
-    return this.request<PaymentSession>(`/business/payment-sessions/${id}`);
+    return this.request<PaymentSession>(`/payment-sessions/${id}`);
   }
 
   /** List this merchant's payment sessions, newest first. Optional status filter. */
   listPaymentSessions(params: { status?: string; limit?: number } = {}): Promise<{ data: PaymentSession[] }> {
     return this.request<{ data: PaymentSession[] }>(
-      `/business/payment-sessions${this.qs({ status: params.status, limit: params.limit })}`,
+      `/payment-sessions${this.qs({ status: params.status, limit: params.limit })}`,
     );
   }
 
@@ -893,7 +893,7 @@ export class BanzamiClient {
    * only non-secret fields.
    */
   getBusinessMe(): Promise<BusinessProfile> {
-    return this.request<BusinessProfile>('/business/me');
+    return this.request<BusinessProfile>('/integration');
   }
 
   listApiKeys(merchantId: string): Promise<ApiKey[]> {
@@ -1025,7 +1025,7 @@ export class BanzamiClient {
   //
   // These named the merchant-only /webhooks/* routes, which a Developer
   // Platform key cannot reach. They now delegate to the canonical
-  // /business/webhooks/* methods above, which accept either credential — so a
+  // /webhooks/* methods above, which accept either credential — so a
   // merchant integration keeps working and a project key works for the first
   // time. Prefer the canonical names.
 
@@ -1056,11 +1056,11 @@ export class BanzamiClient {
         'createRefund requires an explicit idempotency_key (a stable, server-generated key scoped to the refund intent). The SDK does not generate one for financial writes.',
       );
     }
-    // The canonical public route. It was briefly /business/refunds: the bare
+    // The canonical public route. It was briefly /refunds: the bare
     // path was mounted under merchant-JWT authentication, so a project key —
     // the only credential this SDK documents — answered 401, and 0.8.1 moved
     // the client to match the server. The server moved instead: /v1/refunds is
-    // now dual-auth, and `/business/` is not part of the public vocabulary.
+    // now dual-auth, and `/` is not part of the public vocabulary.
     return this.request<Refund>('/refunds', {
       method: 'POST',
       body:   JSON.stringify({

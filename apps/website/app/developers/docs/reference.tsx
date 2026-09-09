@@ -60,7 +60,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-ps-create',
     method: 'POST',
-    path: '/v1/business/payment-sessions',
+    path: '/v1/payment-sessions',
     tone: 'ok',
     desc: {
       pt: 'Cria uma sessão de pagamento e devolve o id, o estado e as interfaces (link/QR) para apresentar ao pagador.',
@@ -82,7 +82,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'description', note: { pt: 'descrição apresentada ao pagador', en: 'description shown to the payer' } },
       { name: 'expires_at / metadata', note: { pt: 'opcionais', en: 'optional' } },
     ],
-    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_pedido_123" \\
@@ -125,18 +125,18 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-ps-get',
     method: 'GET',
-    path: '/v1/business/payment-sessions/{id}',
+    path: '/v1/payment-sessions/{id}',
     tone: 'ok',
     desc: {
-      pt: 'Consulta uma sessão (o mesmo corpo da criação, com o estado atual). GET /v1/business/payment-sessions lista as sessões do projeto/merchant, com filtro opcional ?status=.',
-      en: 'Fetches one session (same body as creation, with the current status). GET /v1/business/payment-sessions lists the project/merchant sessions, with an optional ?status= filter.',
+      pt: 'Consulta uma sessão (o mesmo corpo da criação, com o estado atual). GET /v1/payment-sessions lista as sessões do projeto/merchant, com filtro opcional ?status=.',
+      en: 'Fetches one session (same body as creation, with the current status). GET /v1/payment-sessions lists the project/merchant sessions, with an optional ?status= filter.',
     },
     credential: {
       pt: 'Como na criação',
       en: 'Same as creation',
     },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
-    curl: `curl https://sandbox-api.banzami.com/v1/business/payment-sessions/psess_exemplo \\
+    curl: `curl https://sandbox-api.banzami.com/v1/payment-sessions/psess_exemplo \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     errors: [
       { code: '404 NOT_FOUND', note: { pt: 'sessão inexistente ou fora do seu âmbito', en: 'session missing or outside your scope' } },
@@ -146,7 +146,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-ps-link',
     method: 'GET',
-    path: '/v1/business/payment-sessions/{id}/link',
+    path: '/v1/payment-sessions/{id}/link',
     tone: 'ok',
     desc: {
       pt: 'Devolve o link público de pagamento da sessão.',
@@ -166,7 +166,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-ps-qr',
     method: 'GET',
-    path: '/v1/business/payment-sessions/{id}/qr',
+    path: '/v1/payment-sessions/{id}/qr',
     tone: 'ok',
     desc: {
       pt: 'Devolve o QR da sessão. Sem parâmetros devolve o valor codificável em JSON; com ?format=png|svg|pdf devolve a imagem renderizada.',
@@ -174,7 +174,7 @@ export const ENDPOINTS: EndpointSpec[] = [
     },
     credential: { pt: 'Como na criação', en: 'Same as creation' },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
-    curl: `curl "https://sandbox-api.banzami.com/v1/business/payment-sessions/psess_exemplo/qr?format=svg" \\
+    curl: `curl "https://sandbox-api.banzami.com/v1/payment-sessions/psess_exemplo/qr?format=svg" \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     errors: [
       { code: '404 NOT_FOUND', note: { pt: 'sessão inexistente', en: 'session missing' } },
@@ -222,7 +222,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-wacc-create',
     method: 'POST',
-    path: '/v1/business/wallet-accounts',
+    path: '/v1/wallet-accounts',
     tone: 'ok',
     desc: {
       pt: 'Abre uma conta do seu projeto para segregar valor por referência de negócio (por exemplo, uma campanha). O titular vem do binding — não há campo que o possa indicar.',
@@ -235,7 +235,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'reference_type / reference_id', note: { pt: 'a sua referência de negócio', en: 'your business reference' } },
       { name: 'label', note: { pt: 'nome legível, opcional', en: 'human-readable label, optional' } },
     ],
-    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/wallet-accounts \\
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/wallet-accounts \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -265,7 +265,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-transfer-create',
     method: 'POST',
-    path: '/v1/business/transfers',
+    path: '/v1/wallet-account-transfers',
     tone: 'ok',
     desc: {
       pt: 'Move valor entre duas contas do mesmo titular do seu projeto. Débito e crédito atómicos: o total do titular não muda, apenas a distribuição.',
@@ -281,7 +281,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'idempotency_key', note: { pt: 'obrigatório — sem ele cada repetição seria uma transferência nova', en: 'required — without it every retry would be a new transfer' } },
       { name: 'description', note: { pt: 'opcional', en: 'optional' } },
     ],
-    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/transfers \\
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/transfers \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -365,7 +365,7 @@ export const ENDPOINTS: EndpointSpec[] = [
   {
     id: 'ref-webhook-register',
     method: 'POST',
-    path: '/v1/business/webhooks/endpoints',
+    path: '/v1/webhooks/endpoints',
     tone: 'ok',
     desc: {
       pt: 'Regista o endpoint HTTPS que recebe os eventos do seu projeto. O segredo de assinatura é devolvido uma única vez, na criação, e nunca mais é legível.',
@@ -377,7 +377,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'url', note: { pt: 'destino https público — http, loopback e endereços privados são recusados', en: 'public https destination — http, loopback and private addresses are refused' } },
       { name: 'events', note: { pt: 'pelo menos um tipo de evento suportado; um nome desconhecido é recusado em vez de aceite em silêncio', en: 'at least one supported event type; an unknown name is refused rather than silently accepted' } },
     ],
-    curl: `curl -X POST https://sandbox-api.banzami.com/v1/business/webhooks/endpoints \\
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/webhooks/endpoints \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -404,7 +404,7 @@ export const ENDPOINTS: EndpointSpec[] = [
 
 // Compact rows for surfaces that exist but are NOT public-key callable today.
 export const RESTRICTED_ROWS: { path: string; status: Bi }[] = [
-  { path: 'POST/GET /v1/webhooks/endpoints · /{id} · /health · /v1/webhooks/events · /deliveries · /replay', status: { pt: 'Caminho legado de merchant. Uma chave de projeto usa /v1/business/webhooks/*, documentado acima.', en: 'Legacy merchant path. A project key uses /v1/business/webhooks/*, documented above.' } },
+  { path: 'POST/GET /v1/webhooks/endpoints · /{id} · /health · /v1/webhooks/events · /deliveries · /replay', status: { pt: 'Caminho legado de merchant. Uma chave de projeto usa /v1/webhooks/*, documentado acima.', en: 'Legacy merchant path. A project key uses /v1/webhooks/*, documented above.' } },
   { path: 'POST/GET /v1/transfers', status: { pt: 'Superfície de consumidor apenas — o remetente deriva do token do consumidor; não disponível a credenciais de merchant', en: 'Consumer surface only — the sender derives from the consumer token; not available to merchant credentials' } },
 ];
 

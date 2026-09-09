@@ -93,13 +93,13 @@ else
 fi
 
 echo "### F0-033 unauthorised platform rejection"
-gw u_nokey POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" -    # no auth
+gw u_nokey POST /v1/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" -    # no auth
 chk F0-033-noauth "$CODE" 401
-gw u_forged POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "bz_test_sk_forged${RR}deadbeef1234"
+gw u_forged POST /v1/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "bz_test_sk_forged${RR}deadbeef1234"
 chk F0-033-forged "$CODE" 401
 # wrong-scope: an authenticated but read-only platform key on a write route is rejected.
 if [ -n "$RKEY" ]; then
-  gw u_scope POST /v1/business/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "$RKEY"
+  gw u_scope POST /v1/payment-sessions "{\"amount_minor\":50000,\"currency\":\"AOA\"}" "$RKEY"
   chk F0-033-scope "$(codeof)" INSUFFICIENT_SCOPE
 fi
 

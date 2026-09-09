@@ -43,7 +43,7 @@ call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5" au="$6" hdr="${7:-Authoriz
   CODE=$(printf '%s' "$r" | tail -n1); LAST=$(printf '%s' "$r" | sed '$d'); }
 jget(){ printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j["'"$1"'"]??""))}catch(e){}})'; }
 mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={scopes:["*"],environment:"SANDBOX",iat:n,exp:n+900};cl[process.env.K]=process.env.V;const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));'; }
-bal(){ call "$GW" 8080 GET "/v1/business/wallet-accounts/$1" - "$2"
+bal(){ call "$GW" 8080 GET "/v1/wallet-accounts/$1" - "$2"
   printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const v=JSON.parse(s).available_balance_minor;process.stdout.write(v===undefined?"?":String(v))}catch(e){process.stdout.write("?")}})'; }
 
 R="${RANDOM}${RANDOM}"
@@ -58,7 +58,7 @@ chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
 echo "### a real payment into the project's own account"
-call "$GW" 8080 POST /v1/business/wallet-accounts \
+call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"refund-$R\",\"label\":\"Refund probe\"}" "$KEY"
 ACCT=$(jget id)
 PAYER=$(psqlro "SELECT cw.consumer_id FROM consumer_wallets cw JOIN ledger_entries le ON le.account_id=cw.available_account_id WHERE cw.status='ACTIVE' AND cw.currency='AOA' GROUP BY cw.consumer_id HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= 300000 ORDER BY 1 LIMIT 1")
@@ -66,7 +66,7 @@ chk PAYER_AVAILABLE "$([ -n "$PAYER" ] && echo yes)" yes
 [ -n "$PAYER" ] || { echo "no funded payer in this Sandbox"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")
 
-call "$GW" 8080 POST /v1/business/payment-sessions \
+call "$GW" 8080 POST /v1/payment-sessions \
   "{\"wallet_account_id\":\"$ACCT\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"refund-$R\",\"amount_minor\":200000,\"currency\":\"AOA\"}" "$KEY"
 SESSION=$(jget session_id)
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
@@ -81,7 +81,7 @@ echo "### the refundable source, as the operator types it"
 # DOA's own refund driver does. Guessing at a table was wrong — a link-backed
 # session writes no wallet_payments row, so an earlier run looked for one that
 # never existed and then reported green on the emptiness.
-call "$GW" 8080 GET "/v1/business/payment-sessions/$SESSION" - "$KEY"
+call "$GW" 8080 GET "/v1/payment-sessions/$SESSION" - "$KEY"
 SRC_TYPE=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j.refund_source?.source_type??""))}catch(e){}})')
 SRC=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j.refund_source?.source_id??""))}catch(e){}})')
 echo "  refund_source: type=${SRC_TYPE:-<none>} id=${SRC:0:8}…"
@@ -124,11 +124,11 @@ echo "### the retired path is gone from the runtime, not just from the docs"
 # /business/refunds was the merchant-credential-only mount; it is unmounted, so
 # the router falls through to its own not-found rather than to an auth error —
 # the same answer a developer gets for any path this API does not have.
-call "$GW" 8080 POST /v1/business/refunds "$RB" "$KEY"
+call "$GW" 8080 POST /v1/refunds "$RB" "$KEY"
 chk RETIRED_CREATE_PATH_NOT_FOUND "$CODE" "404"
-call "$GW" 8080 GET "/v1/business/refunds/$RID" - "$KEY"
+call "$GW" 8080 GET "/v1/refunds/$RID" - "$KEY"
 chk RETIRED_READ_PATH_NOT_FOUND "$CODE" "404"
-call "$GW" 8080 GET /v1/business/refunds - "$KEY"
+call "$GW" 8080 GET /v1/refunds - "$KEY"
 chk RETIRED_LIST_PATH_NOT_FOUND "$CODE" "404"
 # And the money is where it was: a 404 must not have been a silent second refund.
 chk RETIRED_PATH_MOVED_NO_MONEY "$(bal "$ACCT" "$KEY")" "$AFTER_REFUND"

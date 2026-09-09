@@ -64,7 +64,7 @@ const SAMPLE_WEBHOOK_ENVELOPE = `# Event envelope delivered to your endpoint (im
 }`;
 
 const SAMPLE_IDEM_RETRY = `# Safe retry: the SAME Idempotency-Key replays the original response
-curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
+curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_order_123" \\
@@ -467,7 +467,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
               </Callout>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Credential: a project key with the <Code>transfers:write</Code> scope, on{' '}
-                <Code>POST /v1/business/transfers</Code>. The owner comes from the binding — no request field can
+                <Code>POST /v1/wallet-account-transfers</Code>. The owner comes from the binding — no request field can
                 name it. See the{' '}
                 <a href="/docs/en/reference#credentials" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credential matrix</a>.
                 Never real money — <em>Production in preparation</em>.
@@ -584,10 +584,10 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in controlled Sandbox'],
                       ['Payment sessions', 'Developer key (payment_sessions scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
                       ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
-                      ['Webhook endpoint registration (POST /v1/business/webhooks)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
+                      ['Webhook endpoint registration (POST /v1/webhooks)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
                       ['Outbound webhook delivery', '—', 'Verified in Sandbox — signature confirmed independently and delivery accepted by a public receiver'],
                       ['Refunds (POST /v1/refunds)', 'Project key (refunds:write) or merchant credential', 'Available in Sandbox — the refund debits the account that received the payment'],
-                      ['Transfers (POST /v1/business/transfers)', 'Project key (transfers:write)', 'Available in Sandbox — between accounts of the project’s own owner'],
+                      ['Transfers (POST /v1/wallet-account-transfers)', 'Project key (transfers:write)', 'Available in Sandbox — between accounts of the project’s own owner'],
                       ['Production / live rails / external providers', '—', 'Not available · Not approved'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}>
@@ -630,7 +630,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Credential note: refunds and transfers are reached with a project key holding
                 {' '}<Code>refunds:write</Code> and <Code>transfers:write</Code>, on <Code>/v1/refunds</Code> and
-                {' '}<Code>/v1/business/transfers</Code>. Both were verified end to end against the deployed Sandbox, including
+                {' '}<Code>/v1/transfers</Code>. Both were verified end to end against the deployed Sandbox, including
                 the refusals: a read-only key cannot write, and another project&rsquo;s payment or account answers <Code>404</Code>.
                 Sandbox only — never present either as available in Production.
               </P>
@@ -699,7 +699,7 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               <P><strong>What the Sandbox is not:</strong> there are no live rails, no external providers activated, and no Production key issuance. All test credentials in these examples are placeholders.</P>
               <UL>
                 <LI><strong>1. First call:</strong> <Code>GET /v1/me</Code> with your key — success is <Code>200</Code> with <Code>environment: SANDBOX</Code>; the typical failure is <Code>401 UNAUTHORIZED</Code> (wrong/revoked key).</LI>
-                <LI><strong>2. Create a session:</strong> <Code>POST /v1/business/payment-sessions</Code> — success is <Code>201</Code> with <Code>status: ACTIVE</Code> and the link/QR interfaces.</LI>
+                <LI><strong>2. Create a session:</strong> <Code>POST /v1/payment-sessions</Code> — success is <Code>201</Code> with <Code>status: ACTIVE</Code> and the link/QR interfaces.</LI>
                 <LI><strong>3. Test idempotency:</strong> repeat the same POST with the same <Code>Idempotency-Key</Code> — you should receive the original response with no duplicated effect; send two concurrently and one gets <Code>409 CONFLICT</Code>.</LI>
                 <LI><strong>4. Test errors:</strong> omit <Code>amount_minor</Code> to see <Code>400 MISSING_FIELD</Code>; use an invalid key to see <Code>401</Code>; always keep the <Code>request_id</Code> from the response.</LI>
                 <LI><strong>5. Interpreting results:</strong> any response carrying the error envelope (see <a href="/docs/en/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) is actionable via its <Code>code</Code>.</LI>

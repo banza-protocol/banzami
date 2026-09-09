@@ -159,7 +159,7 @@ const idem = `${runId}:session`;
 let session, linkSlug, qrPayload, payRef;
 {
   const body = { amount_minor: AMOUNT, currency: 'AOA', description: `Golden journey ${tag}` };
-  const r = await req('POST', '/v1/business/payment-sessions', { token: A, base: GW, idem, body });
+  const r = await req('POST', '/v1/payment-sessions', { token: A, base: GW, idem, body });
   session = r.body || {};
   rec('GJ.session.created', r.status === 201, `→ ${r.status}`);
   rec('GJ.session.amount-exact', session.amount_minor === AMOUNT && session.currency === 'AOA', `${session.amount_minor} ${session.currency}`);
@@ -184,24 +184,24 @@ let session, linkSlug, qrPayload, payRef;
   qrPayload = qr?.value;
 
   // Idempotent replay: same key + same body must not create a second session.
-  const again = await req('POST', '/v1/business/payment-sessions', { token: A, base: GW, idem, body });
+  const again = await req('POST', '/v1/payment-sessions', { token: A, base: GW, idem, body });
   rec('GJ.session.idempotent-replay', again.status === 201 || again.status === 200, `→ ${again.status}`);
   rec('GJ.session.idempotent-same-resource', !!session.session_id && again.body?.session_id === session.session_id, 'replay returns the same session');
 
   // Same key, materially different body → conflict, never a silent second charge.
-  const conflict = await req('POST', '/v1/business/payment-sessions', {
+  const conflict = await req('POST', '/v1/payment-sessions', {
     token: A, base: GW, idem, body: { ...body, amount_minor: AMOUNT + 1 },
   });
   rec('GJ.session.idempotency-conflict', conflict.status === 409, `→ ${conflict.status}`);
 
-  const read = await req('GET', `/v1/business/payment-sessions/${session.session_id}`, { token: A, base: GW });
+  const read = await req('GET', `/v1/payment-sessions/${session.session_id}`, { token: A, base: GW });
   rec('GJ.session.read-own', read.status === 200 && read.body?.session_id === session.session_id, `→ ${read.status}`);
 }
 
 // ── 4. Authority: the client never names its own payee ───────────────────────
 {
   // Naming another tenant's merchant/wallet must not move authority.
-  const forged = await req('POST', '/v1/business/payment-sessions', {
+  const forged = await req('POST', '/v1/payment-sessions', {
     token: A, base: GW, idem: `${runId}:forge`,
     body: {
       amount_minor: AMOUNT, currency: 'AOA', description: 'forged payee',
@@ -214,11 +214,11 @@ let session, linkSlug, qrPayload, payRef;
     forged.status === 201 ? 'created, but bound payee was used (client input ignored)' : `→ ${forged.status}`);
 
   // Cross-project read must not be possible.
-  const cross = await req('GET', `/v1/business/payment-sessions/${session.session_id}`, { token: B, base: GW });
+  const cross = await req('GET', `/v1/payment-sessions/${session.session_id}`, { token: B, base: GW });
   rec('GJ.isolation.cross-project-read-denied', cross.status === 404 || cross.status === 403, `→ ${cross.status}`);
 
   // A key without the payment scope must not reach the payment surface.
-  const noScope = await req('POST', '/v1/business/payment-sessions', {
+  const noScope = await req('POST', '/v1/payment-sessions', {
     token: NOPAY, base: GW, idem: `${runId}:noscope`, body: { amount_minor: AMOUNT, currency: 'AOA' },
   });
   rec('GJ.scope.missing-scope-denied', noScope.status === 403 || noScope.status === 401, `→ ${noScope.status}`);
@@ -226,7 +226,7 @@ let session, linkSlug, qrPayload, payRef;
   // Garbage and live-prefixed credentials are refused.
   const bogus = await req('GET', '/v1/me', { token: 'bz_test_sk_not_a_real_key_000000000000', base: GW });
   rec('GJ.auth.bogus-key-denied', bogus.status === 401 || bogus.status === 403, `→ ${bogus.status}`);
-  const unauth = await req('POST', '/v1/business/payment-sessions', { base: GW, body: { amount_minor: AMOUNT, currency: 'AOA' } });
+  const unauth = await req('POST', '/v1/payment-sessions', { base: GW, body: { amount_minor: AMOUNT, currency: 'AOA' } });
   rec('GJ.auth.unauthenticated-denied', unauth.status === 401, `→ ${unauth.status}`);
 }
 
@@ -236,7 +236,7 @@ for (const [label, body, want] of [
   ['negative-amount', { amount_minor: -100, currency: 'AOA' }, 400],
   ['unsupported-currency', { amount_minor: AMOUNT, currency: 'USD' }, 400],
 ]) {
-  const r = await req('POST', '/v1/business/payment-sessions', { token: A, base: GW, idem: `${runId}:${label}`, body });
+  const r = await req('POST', '/v1/payment-sessions', { token: A, base: GW, idem: `${runId}:${label}`, body });
   rec(`GJ.valid.${label}`, r.status === want, `→ ${r.status}`);
 }
 
@@ -249,7 +249,7 @@ for (const [label, body, want] of [
   const st = await req('GET', `/public/pay/${linkSlug}/status`, { base: GW });
   rec('GJ.payer.status-before-payment', st.status === 200 && st.body?.paid === false, JSON.stringify(st.body || {}));
 
-  const qrPng = await req('GET', `/v1/business/payment-sessions/${session.session_id}/qr`, { token: A, base: GW });
+  const qrPng = await req('GET', `/v1/payment-sessions/${session.session_id}/qr`, { token: A, base: GW });
   rec('GJ.payer.qr-renderable', qrPng.status === 200, `→ ${qrPng.status}`);
 }
 
@@ -342,7 +342,7 @@ let whSecret;
   const after = await req('GET', '/v1/me', { token: B, base: GW });
   rec('GJ.key.revoked-immediately', before.status === 200 && (after.status === 401 || after.status === 403),
     `${before.status} → ${after.status}`);
-  const pay = await req('POST', '/v1/business/payment-sessions', { token: B, base: GW, idem: `${runId}:revoked`, body: { amount_minor: AMOUNT, currency: 'AOA' } });
+  const pay = await req('POST', '/v1/payment-sessions', { token: B, base: GW, idem: `${runId}:revoked`, body: { amount_minor: AMOUNT, currency: 'AOA' } });
   rec('GJ.key.revoked-cannot-pay', pay.status === 401 || pay.status === 403, `→ ${pay.status}`);
 }
 

@@ -46,7 +46,7 @@ console.log(`CAP-PAY-002 deployed E2E — env=${guard.environment} runtime=${gua
 const A = await provisionMerchant(runId, 'pa');
 const B = await provisionMerchant(runId, 'pb');
 // Setup, not evidence: prove the credential works before testing the capability.
-const meA = await req('GET', '/v1/business/me', { token: A.token });
+const meA = await req('GET', '/v1/integration', { token: A.token });
 rec('PAY002.setup.merchant-auth', meA.status === 200, `HTTP ${meA.status}`);
 
 const linkBody = { wallet_id: A.walletId, amount_minor: AMOUNT, currency: 'AOA', description: 'CAP-PAY-002 happy path' };
@@ -166,7 +166,7 @@ rec('PAY002.public-reflects-cancellation', pubAfterCancel.status === 404 || pubA
   `HTTP ${pubAfterCancel.status}, status ${pubAfterCancel.body?.status}`);
 
 // ── Financial truth ─────────────────────────────────────────────────────────
-const accounts = await req('GET', `/v1/business/wallet-accounts?wallet_id=${A.walletId}`, { token: A.token });
+const accounts = await req('GET', `/v1/wallet-accounts?wallet_id=${A.walletId}`, { token: A.token });
 const balance = accounts.body?.data?.[0]?.available_balance_minor;
 rec('PAY002.no-ledger-movement', balance === 0,
   `balance ${balance} minor — creating and resolving a link is non-financial`);

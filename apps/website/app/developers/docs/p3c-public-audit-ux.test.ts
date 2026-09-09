@@ -78,7 +78,7 @@ describe('P3C — PT/EN guides parity', () => {
   });
   it('EN transfers is credential-scoped and bounded to the caller’s own owner', () => {
     expect(EN).toContain('transfers:write');
-    expect(EN).toContain('<Code>POST /v1/business/transfers</Code>');
+    expect(EN).toContain('<Code>POST /v1/wallet-account-transfers</Code>');
     // The boundary is the product: EN must say so as plainly as PT does.
     expect(EN.replace(/\s+/g, ' ')).toContain('same owner');
     expect(EN.replace(/\s+/g, ' ')).toContain('The owner comes from the binding');

@@ -35,7 +35,7 @@ receives the resolved values at settlement time.
 ## The request (DOA → Banzami)
 
 ```
-POST /v1/business/application-settlements        (merchant-authenticated; SDK-first)
+POST /v1/application-settlements        (merchant-authenticated; SDK-first)
 {
   "source_account_id":          "<campaign wallet_account id>",
   "beneficiary_banza_name":     "@maria",
@@ -90,7 +90,7 @@ account, estimated DOA fee, estimated beneficiary amount — with the notice tha
 1. @doa Business Account (APPLICATION, KYB-approved) exists
 2. activate campaign  → create CAMPAIGN wallet_account
 3. donations          → credit ONLY the campaign account (ADR-042 routing)
-4. close campaign     → POST /v1/business/application-settlements (bps = campaign_fee_bps)
+4. close campaign     → POST /v1/application-settlements (bps = campaign_fee_bps)
 5. Banzami            → fee → @doa, net → beneficiary, balanced posting, audited
 6. webhook            → application_settlement.completed
 7. DOA                → mark campaign SETTLED

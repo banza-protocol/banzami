@@ -184,7 +184,7 @@ export interface Merchant {
 
 /**
  * The authenticated Business account's own consolidated profile, returned by
- * `getBusinessMe()` (GET /v1/business/me). Non-secret fields only — safe to
+ * `getBusinessMe()` (GET /v1/integration). Non-secret fields only — safe to
  * render in an "Integration Health" surface. `settlement_ready` is derived by
  * the operator (ACTIVE + KYB APPROVED + a wallet exists).
  */

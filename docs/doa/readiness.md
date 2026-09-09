@@ -12,7 +12,7 @@ operator-side readiness checklist.
 
 | Need | Banzami capability | Surface |
 |------|--------------------|---------|
-| One isolated balance per campaign | `CAMPAIGN` wallet account | `POST /v1/business/wallet-accounts` |
+| One isolated balance per campaign | `CAMPAIGN` wallet account | `POST /v1/wallet-accounts` |
 | Donations land in the campaign balance | dynamic QR bound to the account | `wallet_account_id` on QR create |
 | Pay the campaign out (2% app fee + net to beneficiary) | settle FROM the account | `source_wallet_account_id` on `POST /v1/application-settlements` |
 | Know when a settlement finished | webhook | `application_settlement.completed` / `.failed` / `.cancelled` |
@@ -21,12 +21,12 @@ operator-side readiness checklist.
 ## Lifecycle (per campaign)
 
 ```
-1. activate campaign  → POST /v1/business/wallet-accounts
+1. activate campaign  → POST /v1/wallet-accounts
                          {wallet_id, purpose:"CAMPAIGN", reference_type:"DOA_CAMPAIGN",
                           reference_id:<campaign_id>}        (idempotent)
 2. collect donations  → dynamic QR / link bound to the campaign account
                          → each donation credits ONLY that account
-3. close campaign     → POST /v1/business/application-settlements
+3. close campaign     → POST /v1/application-settlements
                          {source_account_id:<campaign account>, beneficiary_banza_name:"@ngo",
                           fee_destination_banza_name:"@doa", application_fee_bps:500,
                           reference_type:"DOA_CAMPAIGN", reference_id:<campaign_id>,
@@ -63,7 +63,7 @@ KYB-approved `APPLICATION`/`PLATFORM` Business Account, the settlement is **reje
 ## The fee is DOA's, executed by the operator (ADR-029)
 
 DOA's 5% is **app-defined**: DOA sends `application_fee_bps = 500` to
-`POST /v1/business/application-settlements`; the operator computes the fee from the
+`POST /v1/application-settlements`; the operator computes the fee from the
 campaign account's real balance and bypasses operator `pricing_rules` entirely. No
 `doa-5pct` pricing policy is needed (or wanted) in the operator. See the full
 [settlement contract](settlement-contract.md).

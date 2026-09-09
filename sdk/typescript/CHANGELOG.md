@@ -89,7 +89,7 @@ a word in the developer-facing vocabulary, and an external developer reading
 the reference had no way to know why this one financial verb sat behind a noun
 naming nothing they own.
 
-0.8.1 moved the *client* to `/v1/business/refunds` so it would match the server.
+0.8.1 moved the *client* to `/v1/refunds` so it would match the server.
 The server has now moved instead, and this release follows it back:
 `createRefund`, `getRefund` and `listRefunds` call `/v1/refunds`. The method
 names, parameters and return types are unchanged — only the URL the SDK sends.
@@ -120,12 +120,12 @@ documents is a Developer Platform project key (`bz_test_sk_…`), so every refun
 call answered **401 INVALID_TOKEN** — the refunds capability was advertised as
 available and could not be used. DOA's production refund path was calling it.
 
-They now target `/v1/business/refunds`, the project-scoped route, which resolves
+They now target `/v1/refunds`, the project-scoped route, which resolves
 the financial owner from the key's binding and answers 404 for another project's
 payment. No signature changed; no caller needs to change anything but the version.
 
 `getBusinessMe()` was unreachable for the same reason and is fixed operator-side:
-`/v1/business/me` now accepts a project key (the route was built for an
+`/v1/integration` now accepts a project key (the route was built for an
 integrating application's Integration Health view, and that application holds a
 project key).
 
@@ -140,7 +140,7 @@ project key).
 ### Added
 
 - `createTransfer` — move value between two wallet accounts of the project's own
-  bound owner (BANZA ADR-052). `POST /v1/business/transfers`.
+  bound owner (BANZA ADR-052). `POST /v1/transfers`.
 - Webhook endpoint management scoped to the project.
 
 ## [0.6.0] — 2026-09-04
@@ -256,7 +256,7 @@ version installable as `npm install @banzami/sdk`.
 ## [0.2.0] — 2026-06-30
 
 ### Added
-- Segregated wallet accounts (BANZA ADR-020): `createWalletAccount`, `listWalletAccounts`, `getWalletAccount` — bind funds to an app reference (e.g. a campaign) under one merchant wallet via `POST/GET /v1/business/wallet-accounts`
+- Segregated wallet accounts (BANZA ADR-020): `createWalletAccount`, `listWalletAccounts`, `getWalletAccount` — bind funds to an app reference (e.g. a campaign) under one merchant wallet via `POST/GET /v1/wallet-accounts`
 - App-defined application settlement (BANZA ADR-019): `createBusinessApplicationSettlement` — the app names the source segregated account, the beneficiary `@banza`, an optional fee destination `@banza`, and its OWN `applicationFeeBps`; the operator reads the real balance as the gross, resolves the `@names`, splits (fee → app, net → beneficiary) and audits it. The app sends no amount and never computes the final fee. Idempotent on `idempotencyKey`
 - `resolveHandle(handle)` — resolve a `@banza` handle (backed by `GET /v1/consumers/handle/{handle}`) to pre-validate a beneficiary before settlement
 - Types: `WalletAccount`, `CreateWalletAccountParams`, `CreateBusinessApplicationSettlementParams`, `WalletAccountPurpose`

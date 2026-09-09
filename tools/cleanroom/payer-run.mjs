@@ -113,7 +113,7 @@ async function until(pred, { tries = 20, every = 1500, label = '' } = {}) {
 
 /** One full payer journey: Session → link → initiate → confirm. */
 async function journey(tag, { amount = AMOUNT } = {}) {
-  const created = await http('POST', `${API}/v1/business/payment-sessions`, {
+  const created = await http('POST', `${API}/v1/payment-sessions`, {
     key: KEY,
     idem: `cleanroom-${tag}-${Date.now()}`,
     body: { amount_minor: amount, currency: 'AOA', purpose: 'GENERIC', description: `Cleanroom ${tag}` },
@@ -145,7 +145,7 @@ const confirm = (slug, ref) =>
   http('POST', `${API}/public/pay/${slug}/test-confirm?ref=${encodeURIComponent(ref)}`);
 
 async function sessionStatus(id) {
-  const r = await http('GET', `${API}/v1/business/payment-sessions/${id}`, { key: KEY });
+  const r = await http('GET', `${API}/v1/payment-sessions/${id}`, { key: KEY });
   return r.json?.status ?? `<unreadable: http ${r.status}>`;
 }
 

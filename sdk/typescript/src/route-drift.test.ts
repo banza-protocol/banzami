@@ -102,7 +102,7 @@ describe('SDK ↔ gateway route drift', () => {
     // If this fails the router shape changed and every assertion below became
     // vacuous — which is far worse than a drift it might have caught.
     expect(mounted.size).toBeGreaterThan(20);
-    expect([...mounted]).toContain('/business/wallet-accounts');
+    expect([...mounted]).toContain('/wallet-accounts');
     expect(asked.length).toBeGreaterThan(20);
   });
 
@@ -125,7 +125,7 @@ describe('SDK ↔ gateway route drift', () => {
     // checked separately.
     //
     // That was fixed the wrong way round at first: the client moved to
-    // /business/refunds to match where the server had it. The server moved
+    // /refunds to match where the server had it. The server moved
     // instead — /v1/refunds is dual-auth now — so the assertion below is that
     // refunds are reachable at the PUBLIC path, not that the SDK avoids it.
     const dual = mountedRoutes(readFileSync(SERVER, 'utf8'), { dualAuthOnly: true });
@@ -136,19 +136,25 @@ describe('SDK ↔ gateway route drift', () => {
     // A merchant-only method is not a bug in itself; one of THESE being
     // merchant-only is.
     const FINANCIAL = [
-      '/business/payment-sessions',
-      '/business/wallet-accounts',
+      '/payment-sessions',
+      '/wallet-accounts',
       '/refunds',
-      '/business/transfers',
-      '/business/webhooks/endpoints',
-      '/business/me',
+      '/wallet-account-transfers',
+      '/webhooks/endpoints',
+      '/integration',
     ];
     const unreachable = FINANCIAL.filter((p) => !dual.has(p));
     expect(unreachable, 'financial routes a project key cannot reach').toEqual([]);
 
     // And the SDK must call the public path, never the withdrawn one.
+    //
+    // The retired literals are assembled rather than written whole: a path sweep
+    // rewrote them into the canonical form once, turning this assertion into
+    // "the canonical path must not appear" — a guard that fails on correct code
+    // and would have passed on the very drift it exists to catch.
+    const WITHDRAWN = "/busi" + "ness";
     const client = readFileSync(CLIENT, 'utf8');
-    for (const legacy of ["'/business/refunds'", "`/business/refunds/"]) {
+    for (const legacy of [`'${WITHDRAWN}/refunds'`, `\`${WITHDRAWN}/refunds/`]) {
       expect(client.includes(legacy), `SDK still calls the withdrawn ${legacy}`).toBe(false);
     }
     expect(client.includes("'/refunds'"), 'SDK does not call the public refund route').toBe(true);
@@ -156,12 +162,12 @@ describe('SDK ↔ gateway route drift', () => {
 
   it('the new webhook management routes are among them', () => {
     for (const p of [
-      '/business/webhooks/endpoints',
-      '/business/webhooks/endpoints/{p}',
-      '/business/webhooks/endpoints/{p}/rotate-secret',
-      '/business/webhooks/events',
-      '/business/webhooks/events/{p}/deliveries',
-      '/business/webhooks/deliveries/{p}/replay',
+      '/webhooks/endpoints',
+      '/webhooks/endpoints/{p}',
+      '/webhooks/endpoints/{p}/rotate-secret',
+      '/webhooks/events',
+      '/webhooks/events/{p}/deliveries',
+      '/webhooks/deliveries/{p}/replay',
     ]) {
       expect([...mounted], `${p} is not mounted`).toContain(p);
     }

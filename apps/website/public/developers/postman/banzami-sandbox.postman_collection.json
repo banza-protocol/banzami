@@ -30,7 +30,7 @@
       "name": "Payment Sessions",
       "item": [
         {
-          "name": "POST /v1/business/payment-sessions — create",
+          "name": "POST /v1/payment-sessions — create",
           "request": {
             "method": "POST",
             "header": [
@@ -41,35 +41,35 @@
               "mode": "raw",
               "raw": "{\n  \"wallet_account_id\": \"wacc_xxx\",\n  \"purpose\": \"ORDER\",\n  \"reference_type\": \"PEDIDO\",\n  \"reference_id\": \"order_123\",\n  \"amount_minor\": 25000,\n  \"currency\": \"AOA\",\n  \"description\": \"Order #123\"\n}"
             },
-            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"] }
+            "url": { "raw": "{{baseUrl}}/v1/payment-sessions", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"] }
           }
         },
         {
-          "name": "GET /v1/business/payment-sessions — list",
+          "name": "GET /v1/payment-sessions — list",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions?status=ACTIVE", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"], "query": [{ "key": "status", "value": "ACTIVE" }] }
+            "url": { "raw": "{{baseUrl}}/v1/payment-sessions?status=ACTIVE", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions"], "query": [{ "key": "status", "value": "ACTIVE" }] }
           }
         },
         {
-          "name": "GET /v1/business/payment-sessions/{id} — fetch",
+          "name": "GET /v1/payment-sessions/{id} — fetch",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}"] }
+            "url": { "raw": "{{baseUrl}}/v1/payment-sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}"] }
           }
         },
         {
-          "name": "GET /v1/business/payment-sessions/{id}/link — public link",
+          "name": "GET /v1/payment-sessions/{id}/link — public link",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions/{{sessionId}}/link", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}", "link"] }
+            "url": { "raw": "{{baseUrl}}/v1/payment-sessions/{{sessionId}}/link", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}", "link"] }
           }
         },
         {
-          "name": "GET /v1/business/payment-sessions/{id}/qr — QR (json/svg/png/pdf)",
+          "name": "GET /v1/payment-sessions/{id}/qr — QR (json/svg/png/pdf)",
           "request": {
             "method": "GET",
-            "url": { "raw": "{{baseUrl}}/v1/business/payment-sessions/{{sessionId}}/qr?format=svg", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}", "qr"], "query": [{ "key": "format", "value": "svg" }] }
+            "url": { "raw": "{{baseUrl}}/v1/payment-sessions/{{sessionId}}/qr?format=svg", "host": ["{{baseUrl}}"], "path": ["v1", "business", "payment-sessions", "{{sessionId}}", "qr"], "query": [{ "key": "format", "value": "svg" }] }
           }
         }
       ]

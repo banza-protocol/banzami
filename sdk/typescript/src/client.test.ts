@@ -608,14 +608,14 @@ describe('wallet accounts', () => {
     available_balance_minor: 0, currency: 'AOA', created_at: '2026-06-30T00:00:00Z',
   };
 
-  it('createWalletAccount posts to /business/wallet-accounts with the right body', async () => {
+  it('createWalletAccount posts to /wallet-accounts with the right body', async () => {
     mockFetch(201, wa);
     await client.createWalletAccount({
       walletId: 'w-1', purpose: 'CAMPAIGN',
       referenceType: 'DOA_CAMPAIGN', referenceId: 'camp-1', label: 'Campanha',
     });
     const { url, init } = lastFetchCall();
-    expect(url).toContain('/business/wallet-accounts');
+    expect(url).toContain('/wallet-accounts');
     expect(init.method).toBe('POST');
     const body = JSON.parse(init.body as string);
     expect(body.wallet_id).toBe('w-1');
@@ -628,14 +628,14 @@ describe('wallet accounts', () => {
     mockFetch(200, { data: [wa] });
     await client.listWalletAccounts('w-1');
     const { url, init } = lastFetchCall();
-    expect(url).toContain('/business/wallet-accounts?wallet_id=w-1');
+    expect(url).toContain('/wallet-accounts?wallet_id=w-1');
     expect((init.method ?? 'GET')).toBe('GET');
   });
 
   it('getWalletAccount GETs by id', async () => {
     mockFetch(200, wa);
     await client.getWalletAccount('wa-1');
-    expect(lastFetchCall().url).toContain('/business/wallet-accounts/wa-1');
+    expect(lastFetchCall().url).toContain('/wallet-accounts/wa-1');
   });
 });
 
@@ -659,7 +659,7 @@ describe('app-defined application settlement', () => {
       referenceId: 'camp-1',
     });
     const { url, init } = lastFetchCall();
-    expect(url).toContain('/business/application-settlements');
+    expect(url).toContain('/application-settlements');
     expect(init.method).toBe('POST');
     const body = JSON.parse(init.body as string);
     expect(body.source_account_id).toBe('wa-1');
@@ -710,7 +710,7 @@ describe('payment sessions', () => {
     ],
   };
 
-  it('createPaymentSession posts wallet_account_id + amount to /business/payment-sessions', async () => {
+  it('createPaymentSession posts wallet_account_id + amount to /payment-sessions', async () => {
     mockFetch(201, session);
     await client.createPaymentSession({
       walletAccountId: 'wa-1', amountMinor: 5000,
@@ -718,7 +718,7 @@ describe('payment sessions', () => {
       description: 'Doa',
     });
     const { url, init } = lastFetchCall();
-    expect(url).toContain('/business/payment-sessions');
+    expect(url).toContain('/payment-sessions');
     expect(init.method).toBe('POST');
     const body = JSON.parse(init.body as string);
     expect(body.wallet_account_id).toBe('wa-1');
@@ -737,7 +737,7 @@ describe('payment sessions', () => {
   it('getPaymentSession GETs by id and exposes the canonical interfaces array', async () => {
     mockFetch(200, session);
     const s = await client.getPaymentSession('ps-1');
-    expect(lastFetchCall().url).toContain('/business/payment-sessions/ps-1');
+    expect(lastFetchCall().url).toContain('/payment-sessions/ps-1');
     const qr = client.paymentSessionInterface(s, 'DYNAMIC_QR');
     expect(qr?.value).toBe('banzami://pay/abc');
     expect(client.paymentSessionInterface(s, 'PAYMENT_LINK')?.value).toBe('https://pay/abc');
@@ -747,14 +747,14 @@ describe('payment sessions', () => {
     mockFetch(200, { data: [session] });
     await client.listPaymentSessions({ status: 'PAID', limit: 10 });
     const { url } = lastFetchCall();
-    expect(url).toContain('/business/payment-sessions?');
+    expect(url).toContain('/payment-sessions?');
     expect(url).toContain('status=PAID');
     expect(url).toContain('limit=10');
   });
 });
 
 describe('getBusinessMe', () => {
-  it('GETs /v1/business/me and returns the typed self profile', async () => {
+  it('GETs /v1/integration and returns the typed self profile', async () => {
     mockFetch(200, {
       environment: 'SANDBOX', id: 'm-1', handle: 'doa', business_name: 'Doa',
       business_account_type: 'MERCHANT', status: 'ACTIVE', kyb_status: 'APPROVED',
@@ -767,7 +767,7 @@ describe('getBusinessMe', () => {
     });
     const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
     const me = await c.getBusinessMe();
-    expect(lastFetchCall().url).toContain('/v1/business/me');
+    expect(lastFetchCall().url).toContain('/v1/integration');
     expect(me.handle).toBe('doa');
     expect(me.kyb_status).toBe('APPROVED');
     expect(me.settlement_ready).toBe(true);

@@ -96,7 +96,7 @@ export async function provisionMerchant(runId, tag) {
   const auth = await req('POST', '/v1/merchant/auth/token', { body: { handle, pin } });
   if (auth.status !== 200) throw new Error(`merchant auth ${auth.status}`);
 
-  const me = await req('GET', '/v1/business/me', { token: auth.body.token });
+  const me = await req('GET', '/v1/integration', { token: auth.body.token });
   if (me.status !== 200) throw new Error(`business/me ${me.status}`);
 
   return {

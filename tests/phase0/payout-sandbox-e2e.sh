@@ -91,7 +91,7 @@ if [ -z "$WID" ]; then
   call "$GW" 8080 POST /v1/compliance/customers/verify \
     "{\"full_name\":\"PAYOUT FUNDER\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"PO$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$PJWT"
   call "$PUB" 8083 POST /v1/sandbox/fund "{\"amount_minor\":$((FUND + 50000)),\"currency\":\"AOA\"}" "$PJWT"
-  call "$GW" 8080 POST /v1/business/payment-sessions \
+  call "$GW" 8080 POST /v1/payment-sessions \
     "{\"purpose\":\"DONATION\",\"reference_type\":\"PAYOUT_FUND\",\"reference_id\":\"po-$R\",\"amount_minor\":$FUND,\"currency\":\"AOA\"}" "$DKEY"
   FSLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
   call "$PUB" 8083 POST "/v1/payment-links/$FSLUG/pay" "{\"amount_minor\":$FUND}" "$PJWT"

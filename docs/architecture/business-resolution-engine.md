@@ -1,6 +1,6 @@
 # Business Resolution — how an app resolves its Banzami Business account
 
-**Status:** Implemented · **Version:** 1.0 · **Endpoint:** `GET /v1/business/me`
+**Status:** Implemented · **Version:** 1.0 · **Endpoint:** `GET /v1/integration`
 
 An application built on Banzami (DOA today; Mongo and others later) must not
 guess its own operator state from local env vars. The operator is the source of
@@ -20,7 +20,7 @@ The rule (BANZA ADR-019/005): **the operator owns Business-account state; the
 app owns only its own policy** (e.g. DOA's application fee). So the app asks the
 operator "who am I?" and merges its local policy on top.
 
-## The surface: `GET /v1/business/me`
+## The surface: `GET /v1/integration`
 
 Self-scoped: the merchant id comes from the **authenticated token**, never from
 a path or query. It is therefore *not* a handle-enumeration oracle — an app can
@@ -92,7 +92,7 @@ Stable strings; apps map them to their own copy. `settlement_ready == (blockers 
 |---------|-------|--------|
 | Application fee (2% / 200 bps) | **DOA** | `doa_settings` (DOA DB) |
 | Fee destination (@doa) | **DOA** | `doa_settings` |
-| KYB, wallet, category, settlement readiness | **Operator** | `GET /v1/business/me` |
+| KYB, wallet, category, settlement readiness | **Operator** | `GET /v1/integration` |
 | Operator's own category fee (0.5%) | **Operator** | `pricing_rules` |
 
 DOA's `getBanzamiIntegrationStatus()` calls `getBusinessMe()`, maps `blockers[]`
@@ -109,7 +109,7 @@ Structured logs, no secrets: `business_resolution_started`,
 ## Future use
 
 Any operator app (Mongo, taxi apps, …) resolves its own account the same way:
-authenticate with its Business API key, call `GET /v1/business/me`, render its
+authenticate with its Business API key, call `GET /v1/integration`, render its
 integration health, and gate its flows on `settlement_ready` / `blockers[]`.
 
 ## Known limitations

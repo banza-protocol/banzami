@@ -153,8 +153,8 @@ const EMBEDDED_CHANGE: string[] = [
 
 /* ---------- API endpoints ---------- */
 const ENDPOINTS: { method: 'POST' | 'GET'; path: string; desc: string }[] = [
-  { method: 'POST', path: '/v1/business/payment-sessions', desc: 'Criar uma sessão de pagamento.' },
-  { method: 'GET', path: '/v1/business/payment-sessions/{id}', desc: 'Consultar o estado de um pagamento.' },
+  { method: 'POST', path: '/v1/payment-sessions', desc: 'Criar uma sessão de pagamento.' },
+  { method: 'GET', path: '/v1/payment-sessions/{id}', desc: 'Consultar o estado de um pagamento.' },
   { method: 'POST', path: '/v1/refunds', desc: 'Reembolsar um pagamento confirmado.' },
   { method: 'GET', path: '/v1/wallets/{id}/balance', desc: 'Consultar o saldo de uma carteira.' },
   { method: 'POST', path: '/v1/webhooks/endpoints', desc: 'Registar um endpoint de webhook.' },
@@ -167,8 +167,8 @@ const ENDPOINT_TABLE: {
   user: string;
   when: string;
 }[] = [
-  { endpoint: 'POST /v1/business/payment-sessions', purpose: 'Criar uma sessão de pagamento', user: 'Comerciante / app', when: 'Quando se quer pedir um pagamento.' },
-  { endpoint: 'GET /v1/business/payment-sessions/{id}', purpose: 'Consultar estado', user: 'App / backend', when: 'Quando uma app precisa de verificar o estado.' },
+  { endpoint: 'POST /v1/payment-sessions', purpose: 'Criar uma sessão de pagamento', user: 'Comerciante / app', when: 'Quando se quer pedir um pagamento.' },
+  { endpoint: 'GET /v1/payment-sessions/{id}', purpose: 'Consultar estado', user: 'App / backend', when: 'Quando uma app precisa de verificar o estado.' },
   { endpoint: 'POST /v1/refunds', purpose: 'Reembolsar', user: 'Comerciante', when: 'Quando é preciso devolver dinheiro.' },
   { endpoint: 'GET /v1/wallets/{id}/balance', purpose: 'Consultar saldo', user: 'Sistema', when: 'Quando é preciso mostrar o saldo disponível.' },
   { endpoint: 'POST /v1/webhooks/endpoints', purpose: 'Registar endpoint', user: 'Comerciante', when: 'Quando se quer receber eventos automaticamente.' },
@@ -186,7 +186,7 @@ const ENDPOINT_DETAILS: {
 }[] = [
   {
     method: 'POST',
-    path: '/v1/business/payment-sessions',
+    path: '/v1/payment-sessions',
     does: 'Cria uma sessão de pagamento e devolve o id, o estado e as interfaces (link/QR).',
     when: 'Quando o comerciante ou a app querem pedir um pagamento ao cliente.',
     fields: 'wallet_account_id, purpose, reference_type, reference_id, amount_minor, currency (e o header Idempotency-Key).',
@@ -195,7 +195,7 @@ const ENDPOINT_DETAILS: {
   },
   {
     method: 'GET',
-    path: '/v1/business/payment-sessions/{id}',
+    path: '/v1/payment-sessions/{id}',
     does: 'Devolve o estado atual e os detalhes de um pagamento existente.',
     when: 'Quando uma app precisa de mostrar ou reconfirmar o estado de um pagamento.',
     fields: 'O id do pagamento no caminho do URL.',
@@ -261,7 +261,7 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
     title: 'Loja de bairro',
     today: 'Venda registada à mão, sem confirmação fiável.',
     flow: 'Comerciante cria pedido de pagamento, cliente confirma, venda registada.',
-    integration: 'POST /v1/business/payment-sessions → payment_session.paid.',
+    integration: 'POST /v1/payment-sessions → payment_session.paid.',
   },
   {
     title: 'Táxi / moto-táxi',
@@ -348,7 +348,7 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
     desc: 'Camada de referência do protocolo — a mesma API REST, idempotente e versionada (diagnóstico e integradores avançados).',
     snippet: (
       <>
-        <K>POST</K> /v1/business/payment-sessions
+        <K>POST</K> /v1/payment-sessions
         {'\n'}
         Authorization: Bearer <S>bz_test_sk_xxx</S>
       </>
@@ -1074,8 +1074,8 @@ export default function DevelopersPage() {
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Reveal>
-              <CodeBlock title="request" lang="POST /v1/business/payment-sessions">
-                <K>POST</K> /v1/business/payment-sessions{'\n'}
+              <CodeBlock title="request" lang="POST /v1/payment-sessions">
+                <K>POST</K> /v1/payment-sessions{'\n'}
                 Authorization: Bearer <S>bz_test_sk_xxx</S>
                 {'\n'}
                 Idempotency-Key: <S>order_123</S>
@@ -1614,7 +1614,7 @@ export default function DevelopersPage() {
               </ul>
             </Reveal>
             <Reveal delay={70}>
-              <CodeBlock title="metadata" lang="POST /v1/business/payment-sessions">
+              <CodeBlock title="metadata" lang="POST /v1/payment-sessions">
                 {'{\n'}
                 {'  '}<F>&quot;amount&quot;</F>: <F>2500</F>, <F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>,{'\n'}
                 {'  '}<F>&quot;recipient&quot;</F>: <S>&quot;@cantina-alex&quot;</S>,{'\n'}

@@ -24,7 +24,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 console.log('\n▸ DOA reference journey — project key only\n');
 
 // 1. Who am I? Only the key says.
-const me = await http('GET', '/v1/business/me');
+const me = await http('GET', '/v1/integration');
 const handle = me.json?.handle;
 rec('business identity resolves from the key alone', me.status === 200 && me.json?.settlement_ready === true,
   { note: `handle=@${handle || '—'} kyb=${me.json?.kyb_status} settlement_ready=${me.json?.settlement_ready} blockers=${JSON.stringify(me.json?.blockers)}`,
@@ -32,7 +32,7 @@ rec('business identity resolves from the key alone', me.status === 200 && me.jso
 
 // 2. A fresh campaign account — clean before/after.
 const ref = `journey-${Date.now()}`;
-const wa = await http('POST', '/v1/business/wallet-accounts', {
+const wa = await http('POST', '/v1/wallet-accounts', {
   idem: `wa-${ref}`,
   body: { purpose: 'CAMPAIGN', label: 'Reference journey', reference_type: 'CAMPAIGN', reference_id: ref } });
 const account = wa.json?.id;
@@ -42,7 +42,7 @@ rec('fresh CAMPAIGN wallet account created', Boolean(account), { note: `account=
 // available_balance_minor. Reading the wrong one returns null, which is not zero
 // and must never be reported as a balance.
 const balOf = async (id) => {
-  const l = await http('GET', '/v1/business/wallet-accounts');
+  const l = await http('GET', '/v1/wallet-accounts');
   const rows = Array.isArray(l.json?.data) ? l.json.data : [];
   const a = rows.find((x) => x.id === id);
   return a ? a.available_balance_minor : null;
@@ -51,7 +51,7 @@ const before = await balOf(account);
 rec('campaign balance before', before === 0, { note: `${before}`, before });
 
 // 3. Session bound to that account, paid on the public payer rail.
-const s = await http('POST', '/v1/business/payment-sessions', { idem: `ps-${ref}`,
+const s = await http('POST', '/v1/payment-sessions', { idem: `ps-${ref}`,
   body: { amount_minor: 100000, currency: 'AOA', purpose: 'DONATION', wallet_account_id: account,
           reference_type: 'CAMPAIGN', reference_id: ref, description: 'Reference donation' } });
 const slug = (s.json?.interfaces ?? []).find((i) => i.type === 'PAYMENT_LINK')?.value?.split('/').filter(Boolean).pop();
@@ -74,7 +74,7 @@ if (slug) {
 
 // 4. Settlement — the fee-bearing operation, out of that campaign account.
 const bal = await balOf(account);
-const set = await http('POST', '/v1/business/application-settlements', { idem: `st-${ref}`,
+const set = await http('POST', '/v1/application-settlements', { idem: `st-${ref}`,
   body: { source_account_id: account, beneficiary_banza_name: handle,
           reason: 'Reference settlement', reference_type: 'CAMPAIGN', reference_id: ref,
           idempotency_key: `st-${ref}` } });

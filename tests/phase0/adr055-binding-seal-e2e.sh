@@ -147,7 +147,7 @@ e2e_own fixture_key "$KEYID"
 ok "key minted with payment_sessions:write"
 
 gw() { docker exec -e K="$KEY" "$DEV" sh -c \
-  "curl -s -w '\n%{http_code}' -X POST '$GW/v1/business/payment-sessions' -H \"Authorization: Bearer \$K\" -H 'Content-Type: application/json' -d '$1'"; }
+  "curl -s -w '\n%{http_code}' -X POST '$GW/v1/payment-sessions' -H \"Authorization: Bearer \$K\" -H 'Content-Type: application/json' -d '$1'"; }
 R=$(gw '{"amount":150000,"currency":"AOA","description":"adr055 seal probe"}')
 C=$(code "$R")
 { [ "$C" = "200" ] || [ "$C" = "201" ]; } && ok "payment session created ($C)" \
@@ -200,7 +200,7 @@ KEYID2=$(uuid_or_die "$(jget "$(body "$R")" id)")
 e2e_own fixture_key "$KEYID2"
 
 docker exec -e K="$KEY2" "$DEV" sh -c \
-  "for i in 1 2 3 4 5; do curl -s -o /dev/null -X POST '$GW/v1/business/payment-sessions' -H \"Authorization: Bearer \$K\" -H 'Content-Type: application/json' -d '{\"amount\":100000,\"currency\":\"AOA\",\"description\":\"race\"}' & done; wait" >/dev/null 2>&1
+  "for i in 1 2 3 4 5; do curl -s -o /dev/null -X POST '$GW/v1/payment-sessions' -H \"Authorization: Bearer \$K\" -H 'Content-Type: application/json' -d '{\"amount\":100000,\"currency\":\"AOA\",\"description\":\"race\"}' & done; wait" >/dev/null 2>&1
 
 own_sessions_since "$ACC_A" "$ACC_B"
 

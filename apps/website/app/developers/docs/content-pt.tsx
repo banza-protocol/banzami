@@ -141,7 +141,7 @@ curl https://sandbox-api.banzami.com/v1/me \\
 const SAMPLE_CURL_SESSION = `# Criar uma sessão de pagamento no Sandbox (valores placeholder).
 # Com uma chave developer NÃO se envia wallet_account_id: o destinatário vem
 # do binding do projeto e a API recusa um destinatário indicado pelo cliente.
-curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \\
+curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -H "Idempotency-Key: idem_pedido_123" \\
@@ -181,7 +181,7 @@ const SAMPLE_WEBHOOK_ENVELOPE = `# Envelope de evento entregue ao seu endpoint (
 }`;
 
 const SAMPLE_IDEM_RETRY = `# Repetição segura: a MESMA Idempotency-Key reproduz a resposta original
-curl -X POST https://sandbox-api.banzami.com/v1/business/payment-sessions \
+curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: idem_pedido_123" \
@@ -873,10 +873,10 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
                       ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
                       ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
-                      ['Registo de endpoints de webhooks (POST /v1/business/webhooks)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
+                      ['Registo de endpoints de webhooks (POST /v1/webhooks)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
                       ['Entrega outbound de webhooks', '—', 'Verificada em Sandbox — assinatura confirmada de forma independente e entrega aceite por um recetor público'],
                       ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
-                      ['Transferências (POST /v1/business/transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
+                      ['Transferências (POST /v1/wallet-account-transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
                       ['Produção / trilhos live / fornecedores externos', '—', 'Não disponível · Não aprovado'],
                     ] as [string, string, string][]).map(([cap, cred, st]) => (
                       <tr key={cap}>
@@ -1010,7 +1010,7 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
               <P><strong>O que o Sandbox não é:</strong> não há trilhos live, não há fornecedores externos ativados, não há emissão de chaves de Produção. Todas as credenciais de teste destes exemplos são placeholders.</P>
               <UL>
                 <LI><strong>1. Primeira chamada:</strong> <Code>GET /v1/me</Code> com a sua chave — sucesso é <Code>200</Code> com <Code>environment: SANDBOX</Code>; falha típica é <Code>401 UNAUTHORIZED</Code> (chave errada/revogada).</LI>
-                <LI><strong>2. Criar uma sessão:</strong> <Code>POST /v1/business/payment-sessions</Code> — sucesso é <Code>201</Code> com <Code>status: ACTIVE</Code> e as interfaces link/QR.</LI>
+                <LI><strong>2. Criar uma sessão:</strong> <Code>POST /v1/payment-sessions</Code> — sucesso é <Code>201</Code> com <Code>status: ACTIVE</Code> e as interfaces link/QR.</LI>
                 <LI><strong>3. Testar idempotência:</strong> repita o mesmo POST com a mesma <Code>Idempotency-Key</Code> — deve receber a resposta original, sem efeito duplicado; envie duas em simultâneo e uma recebe <Code>409 CONFLICT</Code>.</LI>
                 <LI><strong>4. Testar erros:</strong> omita <Code>amount_minor</Code> para ver <Code>400 MISSING_FIELD</Code>; use uma chave inválida para ver <Code>401</Code>; guarde sempre o <Code>request_id</Code> da resposta.</LI>
                 <LI><strong>5. Interpretar resultados:</strong> qualquer resposta com o envelope de erro (ver <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) é acionável pelo <Code>code</Code>.</LI>

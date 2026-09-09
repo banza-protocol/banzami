@@ -70,14 +70,14 @@ void main() {
 
     test('it cannot create a payment', () async {
       expect(
-          await post('/v1/business/payment-sessions',
+          await post('/v1/payment-sessions',
               '{"purpose":"ORDER","amount_minor":1000,"currency":"AOA"}'),
           403);
     });
 
     test('it cannot transfer', () async {
       expect(
-          await post('/v1/business/transfers',
+          await post('/v1/transfers',
               '{"source_wallet_account_id":"a","destination_wallet_account_id":"b","amount_minor":1,"currency":"AOA","idempotency_key":"k"}'),
           403);
     });
@@ -91,20 +91,20 @@ void main() {
 
     test('it cannot open a wallet account', () async {
       expect(
-          await post('/v1/business/wallet-accounts',
+          await post('/v1/wallet-accounts',
               '{"purpose":"CAMPAIGN","reference_type":"X","reference_id":"y"}'),
           403);
     });
 
     test('it cannot manage webhooks', () async {
       expect(
-          await post('/v1/business/webhooks/endpoints',
+          await post('/v1/webhooks/endpoints',
               '{"url":"https://x.example","events":["payment_session.paid"]}'),
           403);
     });
 
     test('it cannot list the owner\'s accounts', () async {
-      final res = await http.get(Uri.parse('$api/v1/business/wallet-accounts'),
+      final res = await http.get(Uri.parse('$api/v1/wallet-accounts'),
           headers: {'Authorization': 'Bearer $key'});
       expect(res.statusCode, 403);
     });

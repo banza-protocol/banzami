@@ -161,7 +161,7 @@ describe('P0 — /docs content contracts (rendered)', () => {
     expect(DOCS).toContain('refunds:write');
     expect(DOCS).toContain('transfers:write');
     expect(DOCS).toContain('/v1/refunds');
-    expect(DOCS).toContain('/v1/business/transfers');
+    expect(DOCS).toContain('/v1/wallet-account-transfers');
     expect(isReleased('CAP-REFUND-001')).toBe(true);
     expect(isReleased('CAP-TRANSFER-002')).toBe(true);
     expect(/reembolsos?[^.]{0,80}dispon[íi]vel em produ[çc][ãa]o/i.test(DOCS)).toBe(false);

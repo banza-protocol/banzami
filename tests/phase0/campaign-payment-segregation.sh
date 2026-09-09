@@ -62,7 +62,7 @@ mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const 
 R="${RANDOM}${RANDOM}"; SEQ=0
 
 # Balance of a wallet account, read back through the API the integrator uses.
-bal(){ call "$GW" 8080 GET "/v1/business/wallet-accounts/$1" - "$KEY"
+bal(){ call "$GW" 8080 GET "/v1/wallet-accounts/$1" - "$KEY"
   printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const v=j.available_balance_minor;process.stdout.write(v===undefined?"?":String(v))}catch(e){process.stdout.write("?")}})'; }
 
 echo "### project key"
@@ -73,7 +73,7 @@ KEY=$(jget secret); e2e_own fixture_key "$(jget id)"; chk KEY_ISSUED "$([ -n "$K
 [ -n "$KEY" ] || exit 1
 
 echo "### two campaigns"
-mk(){ call "$GW" 8080 POST /v1/business/wallet-accounts \
+mk(){ call "$GW" 8080 POST /v1/wallet-accounts \
   "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"seg-$1-$R\",\"label\":\"$2\"}" "$KEY"; jget id; }
 A=$(mk a "Campanha A — demo"); B=$(mk b "Campanha B — demo")
 chk A_OPENED "$([ -n "$A" ] && echo yes)" yes
@@ -123,7 +123,7 @@ chk PAYER_FUNDED "$([ "${PAYER_BAL:-0}" -ge 400000 ] && echo yes)" yes
 # free text on a merchant credential, so a merchant could debit any consumer.
 # The authority belongs with the payer, which is where this route puts it.
 pay(){ local acct="$1" amt="$2" ref="$3"
-  call "$GW" 8080 POST /v1/business/payment-sessions \
+  call "$GW" 8080 POST /v1/payment-sessions \
     "{\"wallet_account_id\":\"$acct\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"$ref\",\"amount_minor\":$amt,\"currency\":\"AOA\"}" "$KEY"
   local slug
   slug=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK")||(j.interfaces||[]).find(x=>x.type==="DEEP_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')

@@ -102,7 +102,7 @@ async function main() {
 
   // 2. Valid transfer — COMPLETED, exact debit/credit, currency preserved.
   const idem = uuid();
-  const t1 = await req('POST', '/v1/transfers', {
+  const t1 = await req('POST', '/v1/wallet-account-transfers', {
     token: A.token,
     body: { recipient: `@${B.handle}`, amount_minor: AMOUNT, currency: 'AOA', note: 'e2e', idempotency_key: idem },
   });
@@ -118,7 +118,7 @@ async function main() {
   log(`valid transfer ${txId} COMPLETED; balances moved by exactly ${AMOUNT}`);
 
   // 3. Idempotency replay — same key ⇒ same transfer, no second move.
-  const t2 = await req('POST', '/v1/transfers', {
+  const t2 = await req('POST', '/v1/wallet-account-transfers', {
     token: A.token,
     body: { recipient: `@${B.handle}`, amount_minor: AMOUNT, currency: 'AOA', note: 'e2e', idempotency_key: idem },
   });
@@ -149,7 +149,7 @@ async function main() {
     ['unauthorized', { recipient: `@${B.handle}`, amount_minor: 1000, currency: 'AOA', idempotency_key: uuid() }, undefined, 401, 'UNAUTHORIZED'],
   ];
   for (const [label, body, token, wantStatus, wantCode] of negatives) {
-    const r = await req('POST', '/v1/transfers', { token, body });
+    const r = await req('POST', '/v1/wallet-account-transfers', { token, body });
     assert.equal(r.status, wantStatus, `${label}: status ${r.status} != ${wantStatus}`);
     assert.equal(r.json.code, wantCode, `${label}: code ${r.json.code} != ${wantCode}`);
     log(`negative ${label} → ${r.status} ${r.json.code}`);

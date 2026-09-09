@@ -121,11 +121,11 @@ const paid = ssh(`${PRE}
     -H "X-Internal-Key: $DEVINT" -H 'Content-Type: application/json' \\
     --data "{\\"name\\":\\"console-refund-${stamp}\\",\\"scopes\\":$SC,\\"created_by\\":\\"11111111-2222-4333-8444-555555555555\\"}")
   KEY=$(printf '%s' "$KEYJSON" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).secret||"")}catch(e){}})')
-  ACCT=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/business/wallet-accounts \\
+  ACCT=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/wallet-accounts \\
     -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \\
     --data '{"purpose":"CAMPAIGN","reference_type":"DOA_CAMPAIGN","reference_id":"console-refund-${stamp}","label":"Console refund probe"}' \\
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).id||"")}catch(e){}})')
-  SESJSON=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/business/payment-sessions \\
+  SESJSON=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/payment-sessions \\
     -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \\
     --data "{\\"wallet_account_id\\":\\"$ACCT\\",\\"purpose\\":\\"DONATION\\",\\"reference_type\\":\\"DOA_DONATION\\",\\"reference_id\\":\\"console-refund-${stamp}\\",\\"amount_minor\\":300000,\\"currency\\":\\"AOA\\"}")
   SESSION=$(printf '%s' "$SESJSON" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).session_id||"")}catch(e){}})')
@@ -139,7 +139,7 @@ const paid = ssh(`${PRE}
     -H "Authorization: Bearer $CJWT" -H 'Content-Type: application/json' --data '{"amount_minor":300000}')
   # A second session, deliberately left unpaid: "nothing to give back" is its own
   # answer and needs its own subject.
-  UNPAID=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/business/payment-sessions \\
+  UNPAID=$(docker exec -i "$GW" curl -s -X POST http://localhost:8080/v1/payment-sessions \\
     -H "Authorization: Bearer $KEY" -H 'Content-Type: application/json' \\
     --data "{\\"wallet_account_id\\":\\"$ACCT\\",\\"purpose\\":\\"DONATION\\",\\"reference_type\\":\\"DOA_DONATION\\",\\"reference_id\\":\\"console-refund-unpaid-${stamp}\\",\\"amount_minor\\":100000,\\"currency\\":\\"AOA\\"}" \\
     | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).session_id||"")}catch(e){}})')

@@ -69,7 +69,7 @@ test-guarded honesty system, which must be extended, not diluted.**
 ## 4. Critical gaps
 
 1. **No API reference worth the name.** Three endpoints documented
-   (`POST /v1/business/payment-sessions`, `GET /v1/me`, `POST /v1/refunds`); the
+   (`POST /v1/payment-sessions`, `GET /v1/me`, `POST /v1/refunds`); the
    real gateway exposes dozens of developer-relevant routes (payment sessions incl.
    `/link` + `/qr`, payment links + public pay flow, payment requests, QR
    static/dynamic/decode/pay, webhooks endpoints/events/deliveries/replay, refunds,
