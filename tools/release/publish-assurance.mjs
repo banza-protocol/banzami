@@ -25,9 +25,10 @@
  *   node tools/release/publish-assurance.mjs --sha <full> [--json]
  */
 import { createHash } from 'node:crypto';
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { join, relative } from 'node:path';
+import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const storeRoot = () =>
   process.env.BANZAMI_ASSURANCE_STORE || join(homedir(), '.banzami', 'assurance');
@@ -80,11 +81,13 @@ export function publish(sha) {
     } catch { /* not a result envelope */ }
   }
 
+  const durability = proveDurable(dest);
   const index = {
-    schema: 'banzami-assurance-index/v1',
+    schema: 'banzami-assurance-index/v2',
     candidate_sha: sha,
     published_at: new Date().toISOString(),
     store: dest,
+    durability,
     files: published,
     suites,
     // A blocked or failing suite must be visible here, not buried in a file.
@@ -96,12 +99,39 @@ export function publish(sha) {
   return index;
 }
 
-/** Durability, proven rather than asserted: not in the repo, not under temp. */
+/**
+ * Durability, proven rather than asserted.
+ *
+ * The field names are deliberately unambiguous. An earlier report rendered
+ * `outside_tmp: true` as "fora do /tmp: NAO" — a human inversion in release
+ * provenance, which is worse than a missing field because it reads as evidence.
+ * Both the positive and the negative form are emitted so no reader has to
+ * mentally negate anything, and containment is decided by real path comparison
+ * rather than string prefixes, which `/tmpfoo` would defeat.
+ */
 export function proveDurable(dest) {
-  const t = process.env.TMPDIR || tmpdir();
-  const inTemp = dest.startsWith(t) || dest.startsWith('/tmp/') || dest.startsWith('/private/tmp/');
-  const inRepo = dest.includes('/banzami/evidence') || dest.includes('/banzami/tools');
-  return { path: dest, outside_tmp: !inTemp, outside_repo: !inRepo, durable: !inTemp && !inRepo };
+  const real = (p) => { try { return realpathSync(p); } catch { return resolve(p); } };
+  const under = (child, parent) => {
+    const c = real(child), p = real(parent);
+    return c === p || c.startsWith(p.endsWith(sep) ? p : p + sep);
+  };
+  const path = real(dest);
+  const tmpRoots = [process.env.TMPDIR || tmpdir(), '/tmp', '/private/tmp'].filter(Boolean);
+  const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
+
+  const inside_tmpdir = tmpRoots.some((t) => under(path, t));
+  const inside_repository = under(path, repoRoot);
+
+  return {
+    path,
+    repository_root: real(repoRoot),
+    tmpdir_roots: tmpRoots.map(real),
+    inside_tmpdir,
+    inside_repository,
+    durable_outside_tmpdir: !inside_tmpdir,
+    durable_outside_repository: !inside_repository,
+    durable: !inside_tmpdir && !inside_repository,
+  };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
@@ -120,7 +150,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.log(`  ${String(s.suite).padEnd(30)} ${s.verdict}  ${s.pass}/${s.pass + s.fail}` +
                   `${s.simulated ? `  simulated=${s.simulated}` : ''}${s.blocked ? `  blocked=${s.blocked}` : ''}`);
     }
-    console.log(`  durable      outside tmp: ${d.outside_tmp} · outside repo: ${d.outside_repo}`);
+    console.log(`  inside tmpdir      ${d.inside_tmpdir}`);
+    console.log(`  inside repository  ${d.inside_repository}`);
+    console.log(`  durable            outside tmpdir: ${d.durable_outside_tmpdir} · outside repository: ${d.durable_outside_repository}`);
     console.log(`  verdict      ${index.verdict}\n`);
   }
   process.exit(d.durable ? 0 : 1);
