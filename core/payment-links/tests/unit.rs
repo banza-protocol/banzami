@@ -80,6 +80,32 @@ impl PaymentLinkRepository for MemRepo {
         Ok(link.clone())
     }
 
+    /// The in-memory mirror of the atomic UPDATE: test and set under ONE lock.
+    /// Implementing it as get-then-set here would hide the very race the real
+    /// repository stopped having.
+    async fn claim_used(
+        &self,
+        id: PaymentLinkId,
+        paid_at: chrono::DateTime<Utc>,
+    ) -> Result<Option<PaymentLink>, PaymentLinkError> {
+        let mut guard = self.store.lock().unwrap();
+        let Some(link) = guard.get_mut(&id.to_string()) else {
+            return Ok(None);
+        };
+        if !matches!(link.status, PaymentLinkStatus::Active) {
+            return Ok(None);
+        }
+        if let Some(expires_at) = link.expires_at {
+            if expires_at <= Utc::now() {
+                return Ok(None);
+            }
+        }
+        link.status = PaymentLinkStatus::Used;
+        link.paid_at = Some(paid_at);
+        link.updated_at = Utc::now();
+        Ok(Some(link.clone()))
+    }
+
     async fn expire_overdue(&self) -> Result<u64, PaymentLinkError> {
         let mut guard = self.store.lock().unwrap();
         let now = Utc::now();

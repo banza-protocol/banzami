@@ -137,15 +137,22 @@ impl<R: PaymentLinkRepository> PaymentLinkEngine for PostgresPaymentLinkEngine<R
             tracing::info!(link_id = %id, "payment link marked as used");
             return Ok(updated);
         }
-        // The claim failed. Read the link to say WHY — a link that is already
-        // USED is a losing race, a missing one is a genuine not-found, and an
-        // expired one deserves its own error. The caller distinguishes them.
+        // The claim failed. Read the link to say WHY, in the order that names the
+        // real reason: a link that is no longer ACTIVE was already used,
+        // cancelled or expired-by-status, and saying "expired" about a link that
+        // was already PAID would send the caller after the wrong problem. Only a
+        // still-ACTIVE link that has passed its expiry is genuinely Expired.
         let link = self.get(id).await?;
+        if !matches!(link.status, PaymentLinkStatus::Active) {
+            return Err(PaymentLinkError::NotActive(id));
+        }
         if let Some(expires_at) = link.expires_at {
             if expires_at <= Utc::now() {
                 return Err(PaymentLinkError::Expired(id));
             }
         }
+        // ACTIVE, unexpired, and still not claimable: another caller won the race
+        // between the UPDATE and this read. It is not this call's payment.
         Err(PaymentLinkError::NotActive(id))
     }
 }
