@@ -129,7 +129,7 @@ capabilities:
       - services/api-gateway/internal/handler/wallet_account_transfers.go
       - db/migrations/0102_wallet_account_transfers.sql
     api_surface:
-      - /v1/business/transfers
+      - /v1/wallet-account-transfers
     threat_category: financial-money-movement
     tests:
       unit: []
@@ -164,7 +164,7 @@ capabilities:
       - services/api-gateway
       - core/transactions
     api_surface:
-      - /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
+      - /v1/payment-sessions
     threat_category: financial-money-movement
     tests:
       unit: []
@@ -413,7 +413,7 @@ capabilities:
     implementation:
       - services/api-gateway
     api_surface:
-      - /v1/business/webhooks
+      - /v1/webhooks/endpoints
       - webhook delivery + banza-signature header
     threat_category: identity-auth
     tests:

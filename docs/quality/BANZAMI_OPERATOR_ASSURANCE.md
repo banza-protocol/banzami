@@ -97,7 +97,7 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **Authority:** protocol — BANZA ADR-052 internal wallet-account transfers
 - **Threat category:** financial-money-movement
 - **Implementation:** core/api/src/routes/wallet_account_transfers.rs, services/api-gateway/internal/handler/wallet_account_transfers.go, db/migrations/0102_wallet_account_transfers.sql
-- **API/UI surface:** /v1/business/transfers
+- **API/UI surface:** /v1/wallet-account-transfers
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [balanced double-entry posting per transfer (source DEBIT / destination CREDIT)] · e2e_sandbox [tests/phase0/transfer-devkey-e2e.sh (20/20 on deployed sandbox, post-reset)] · negative/security [a foreign project cannot name another owner's account as source (404, not 403), a foreign project cannot name another owner's account as destination (404), the victim's two balances are unchanged after both refused attempts, insufficient funds, negative amount and self-transfer are all rejected and move nothing, the same idempotency key with a changed payload is a 409 conflict, not a silent replay]
 - **Evidence:** evidence/assurance/transfers/cap-transfer-002-devkey-sandbox-e2e.json
@@ -113,7 +113,7 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **Authority:** protocol — BANZA ADR-015
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway, core/transactions
-- **API/UI surface:** /v1/business/payment-sessions (merchant-JWT today; dev-key path pending ADR-047)
+- **API/UI surface:** /v1/payment-sessions
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox ['PAY001.create · amount-exact · currency-preserved · identifier-present · interfaces-issued (deployed sandbox)', 'PAY001.read-own · no-ledger-movement (session is an intent, not a settlement)', 'PAY001.idempotent-replay · idempotency-actor-scoped · idempotency-concurrent-single-resource', 'PAY001.purpose-omitted-defaults · purpose-explicit-generic (RA-045)'] · negative/security ['PAY001.neg.unauthenticated · neg.bogus-credential (401)', 'PAY001.neg.cross-merchant-create (403) · neg.cross-merchant-read (404) — two independently provisioned merchants', 'PAY001.neg.zero-amount · neg.negative-amount · neg.unsupported-currency · neg.unknown-purpose (400)', 'PAY001.neg.unknown-session · neg.malformed-id (404) · neg.no-internal-leak', 'PAY001.idempotency-conflict-rejected (409) — reused key, different payload (RA-044)']
 - **Evidence:** evidence/assurance/payments/cap-pay-001-db30ba00.json, evidence/assurance/golden/developer-golden-journey.json, tools/e2e/golden/developer-golden-journey-e2e.mjs, tools/e2e/payments/cap-pay-001-sandbox-e2e.mjs, docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
@@ -209,7 +209,7 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **Authority:** protocol — BANZA webhook signing contract
 - **Threat category:** identity-auth
 - **Implementation:** services/api-gateway
-- **API/UI surface:** /v1/business/webhooks, webhook delivery + banza-signature header
+- **API/UI surface:** /v1/webhooks/endpoints, webhook delivery + banza-signature header
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [guarded egress destination validation (ADR-049)] · e2e_sandbox [tests/phase0/webhook-lifecycle-e2e.sh (18/18 on deployed sandbox, post-reset), tests/phase0/webhook-delivery-to-doa.sh (signed delivery accepted by production DOA), tests/phase0/developer-platform-e2e.sh F0-DP-011 (24/24, simulated=0) — real outbound delivery from the deployed runtime to a public HTTPS sink it does not control, verified by an implementation that imports nothing from the signer; previously SIMULATED for want of such a sink] · negative/security [the endpoint secret is returned once and never re-exposed on read, a read-only key can list but cannot register or rotate (403), another project cannot read, rotate or even see the endpoint (404, and a clean list), an unbound project has no webhook surface at all (403), rotation issues a genuinely different secret, signature is over the raw bytes: body, digest and timestamp tampering all fail, the same delivery rejected under a wrong secret, asserted in the E2E itself — a verifier that accepts everything would report a green delivery for a platform that signed nothing, a refused delivery is retried on the published backoff (observed +0s, +65s, +5m6s) carrying the SAME event id, each attempt re-signed with a fresh timestamp so a long backoff never expires mid-retry, destination guard rejects http, loopback, RFC1918 and link-local metadata targets]
 - **Evidence:** evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json, evidence/assurance/webhooks/cap-webhook-001-devkey-lifecycle-sandbox-e2e.json
