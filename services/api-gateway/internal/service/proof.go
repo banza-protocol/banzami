@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,6 +28,27 @@ type ProofService struct {
 	operatorID string
 	network    string
 	publicBase string // e.g. https://banzami.com/r/
+	// newReference mints a candidate public reference. A field so a test can force
+	// the collision path deterministically instead of hoping for a 1-in-2^40 event.
+	newReference func() (string, error)
+}
+
+// A public reference collides with an already-issued one only by accident, but
+// "rare" is not "handled": the insert must then mint a DIFFERENT one, never reuse
+// or overwrite the reference somebody else's receipt already prints. Bounded, so
+// a systematically broken generator fails closed instead of spinning.
+const maxReferenceAttempts = 5
+
+// proofReferenceCollision reports a unique violation on the PUBLIC REFERENCE
+// specifically. The (transaction_id, environment) index is handled by ON CONFLICT
+// and must never be retried — that one means another caller already minted this
+// transaction's proof, and the answer is to read theirs, not to mint a second.
+func proofReferenceCollision(err error) bool {
+	var pg *pgconn.PgError
+	if !errors.As(err, &pg) || pg.Code != "23505" {
+		return false
+	}
+	return strings.Contains(pg.ConstraintName, "proof_reference")
 }
 
 var ErrProofNotFound = errors.New("transaction proof not found")
@@ -47,6 +69,7 @@ func NewProofService(pool *pgxpool.Pool, signingKey, keyID, operatorID, network,
 	return &ProofService{
 		pool: pool, signingKey: []byte(signingKey), keyID: keyID,
 		operatorID: operatorID, network: network, publicBase: publicBase,
+			newReference: secureReference,
 	}
 }
 
@@ -239,13 +262,7 @@ func (s *ProofService) Ensure(ctx context.Context, in ProofInput) (*Proof, error
 		return nil, err
 	}
 
-	ref, err := secureReference()
-	if err != nil {
-		return nil, err
-	}
-	proofHash, sig, alg := s.hashAndSign(ref, in)
-
-	_, err = s.pool.Exec(ctx, `
+	insert := `
 		INSERT INTO transaction_proofs
 		  (proof_reference, transaction_id, transfer_id, payment_intent_id, environment,
 		   payer_subject_type, payer_subject_id, payer_display_name, payer_handle,
@@ -253,14 +270,33 @@ func (s *ProofService) Ensure(ctx context.Context, in ProofInput) (*Proof, error
 		   amount_minor, currency, status, description, method, ledger_reference,
 		   proof_hash, signature_key_id, signature_algorithm, signature_value, confirmed_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
-		ON CONFLICT (transaction_id, environment) DO NOTHING`,
-		ref, in.TransactionID, nz(in.TransferID), nz(in.PaymentIntentID), in.Environment,
-		nz(in.PayerSubjectType), nz(in.PayerSubjectID), nz(in.PayerDisplayName), nz(in.PayerHandle),
-		nz(in.PayeeSubjectType), nz(in.PayeeSubjectID), nz(in.PayeeDisplayName), nz(in.PayeeHandle),
-		in.AmountMinor, in.Currency, in.Status, nz(in.Description), nz(in.Method), nz(in.LedgerReference),
-		proofHash, s.keyID, alg, sig, in.ConfirmedAt)
-	if err != nil {
-		return nil, err
+		ON CONFLICT (transaction_id, environment) DO NOTHING`
+
+	mint := s.newReference
+	if mint == nil {
+		mint = secureReference
+	}
+	for attempt := 1; ; attempt++ {
+		ref, rerr := mint()
+		if rerr != nil {
+			return nil, rerr
+		}
+		proofHash, sig, alg := s.hashAndSign(ref, in)
+		_, err := s.pool.Exec(ctx, insert,
+			ref, in.TransactionID, nz(in.TransferID), nz(in.PaymentIntentID), in.Environment,
+			nz(in.PayerSubjectType), nz(in.PayerSubjectID), nz(in.PayerDisplayName), nz(in.PayerHandle),
+			nz(in.PayeeSubjectType), nz(in.PayeeSubjectID), nz(in.PayeeDisplayName), nz(in.PayeeHandle),
+			in.AmountMinor, in.Currency, in.Status, nz(in.Description), nz(in.Method), nz(in.LedgerReference),
+			proofHash, s.keyID, alg, sig, in.ConfirmedAt)
+		if err == nil {
+			break
+		}
+		if !proofReferenceCollision(err) {
+			return nil, err
+		}
+		if attempt >= maxReferenceAttempts {
+			return nil, fmt.Errorf("could not mint a unique proof reference after %d attempts", maxReferenceAttempts)
+		}
 	}
 	// Whether we inserted or lost the race, the row now exists — read it back.
 	return s.getByTxn(ctx, in.TransactionID, in.Environment)
