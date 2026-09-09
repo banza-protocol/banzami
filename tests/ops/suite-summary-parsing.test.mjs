@@ -48,6 +48,27 @@ console.log('\n▸ the last summary wins when a suite prints several');
 eq('trailing summary is authoritative',
    parseSuiteSummary('A: PASS=1 FAIL=0\nB: PASS=2 FAIL=3').verdict, 'FAIL');
 
+console.log('\n▸ a suite identity survives a summary that carries no name');
+// The aggregator spreads the parsed summary into the run record. Spread it after
+// the slug and a nameless summary erases the only identifier the suite has —
+// which is exactly what put `suite: null` into a release artifact.
+{
+  const slug = 'developer-platform-e2e';
+  // build() ALWAYS carries a `suite` key; the lowercase summary format has no
+  // name, so it is present and null — which is what overwrote the slug.
+  const parsed = { suite: null, verdict: 'PASS', pass: 20, fail: 0, blocked: 0, simulated: 1 };
+  const record = { ...parsed, suite: slug, reported_as: parsed.suite ?? null };
+  eq('a nameless summary cannot erase the slug', record.suite, slug);
+  eq('the simulated count survives the merge', record.simulated, 1);
+}
+{
+  const slug = 'settlement-economics-e2e';
+  const parsed = { suite: 'SETTLEMENT_ECONOMICS_E2E', verdict: 'PASS', pass: 24, fail: 0 };
+  const record = { ...parsed, suite: slug, reported_as: parsed.suite ?? null };
+  eq('a named summary keeps its label separately', record.reported_as, 'SETTLEMENT_ECONOMICS_E2E');
+  eq('but the slug remains the identity', record.suite, slug);
+}
+
 console.log();
 if (fail === 0) { console.log(`\x1b[0;32m✓ suite summary parsing: ${pass}/${pass + fail}\x1b[0m\n`); process.exit(0); }
 console.log(`\x1b[0;31m✗ suite summary parsing: ${fail} of ${pass + fail} failed\x1b[0m\n`);

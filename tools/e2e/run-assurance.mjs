@@ -49,13 +49,41 @@ const sha = candidateSha();
 const started = new Date().toISOString();
 const runs = [];
 
+/**
+ * The revision actually serving, read from the deployed containers.
+ *
+ * Evidence that names the candidate but not the runtime is a claim about
+ * nothing: it cannot distinguish a suite that verified this revision from one
+ * that verified whatever happened to be deployed. Read, never assumed.
+ */
+function runtimeRevisions() {
+  // The revision is carried by the image TAG (banzami-sandbox/<svc>:<rev>), not
+  // by a container label — the sandbox services carry none. Read the name from
+  // the shell loop rather than from `docker inspect`, which has no .Names.
+  const script =
+    "docker ps --format '{{.Names}}' " +
+    "| grep -E 'bzsandbox-.*-(admin-frontend|pay-frontend|admin-api|developer-api|api-gateway-staging|public-api-staging|core-api-staging)$' " +
+    '| while read -r c; do printf "%s\\t%s\\n" "$c" "$(docker inspect "$c" --format \'{{.Config.Image}}\')"; done';
+  const r = spawnSync('ssh', ['-o', 'ConnectTimeout=25', remote, script], { encoding: 'utf8' });
+  if (r.status !== 0) return { revisions: [], services: [], error: (r.stderr ?? '').trim().slice(0, 200) };
+  const services = (r.stdout ?? '').trim().split('\n').filter(Boolean).map((line) => {
+    const [name, image] = line.split('\t');
+    return { service: name.replace(/^.*-\d+-/, ''), image, revision: (image ?? '').split(':').pop() };
+  });
+  return { revisions: [...new Set(services.map((x) => x.revision))], services };
+}
+
+const runtime = runtimeRevisions();
+
 for (const slug of REMOTE_SUITES.filter(wanted)) {
   process.stdout.write(`  ${slug.padEnd(32)}`);
   execFileSync('scp', ['-q', join(ROOT, `tests/phase0/${slug}.sh`), `${remote}:/tmp/${slug}.sh`]);
   const r = spawnSync('ssh', ['-o', 'ConnectTimeout=25', remote, `bash /tmp/${slug}.sh`],
                       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   const v = suiteVerdict({ exitCode: r.status, output: `${r.stdout}\n${r.stderr}` });
-  runs.push({ suite: slug, where: 'vm', exit_code: r.status, ...v });
+  // The parsed summary is spread FIRST: its own suite name is a label, and a
+  // suite that prints none must not be able to erase the slug that identifies it.
+  runs.push({ ...v, suite: slug, reported_as: v.suite ?? null, where: 'vm', exit_code: r.status });
   console.log(`${v.verdict}${v.pass !== undefined ? ` (${v.pass}/${v.pass + v.fail})` : ''}`);
 }
 
@@ -78,12 +106,13 @@ const { file } = writeAssuranceResult({
   suiteSlug: 'post-deploy',
   suite: 'BANZAMI CANONICAL POST-DEPLOY ASSURANCE',
   candidate_sha: sha,
+  runtime_sha: runtime.revisions.length === 1 ? runtime.revisions[0] : null,
   pass: runs.filter((r) => r.verdict === 'PASS').length,
   fail: failed.length,
   simulated: runs.reduce((n, r) => n + (r.simulated ?? 0), 0),
   blocked: runs.reduce((n, r) => n + (r.blocked ?? 0), 0),
   started_at: started,
-  payload: { suites: runs },
+  payload: { suites: runs, runtime: runtime.services, runtime_revisions: runtime.revisions },
 });
 
 console.log(`\n  evidence: ${file}`);
