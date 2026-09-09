@@ -110,15 +110,46 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 		walStatus *string
 	)
 
+	// The wallet is resolved from the merchant that OWNS it, not only from the
+	// public profile that happens to point at it.
+	//
+	// This read `wallets` through `merchant_profiles.wallet_id` alone. That row is
+	// written by the @handle onboarding flow and by nothing else, so a Business
+	// provisioned through the Developer Platform's own self-service Financial
+	// Setup has no profile — and this endpoint told it that it had no wallet, no
+	// category and no primary account, then raised WALLET_MISSING as a settlement
+	// blocker. All false: Core had created an ACTIVE wallet with a PRIMARY
+	// account, payments were settling into it, and `wallets.merchant_id` said so
+	// the whole time.
+	//
+	// It is not one account's misfortune either — 244 merchants hold a wallet with
+	// no profile row, including every Sandbox owner the Developer Platform
+	// provisions. An integrating application's health view reported itself broken
+	// while working, which is worse than reporting nothing.
+	//
+	// The profile's wallet still wins when it is set, so an onboarded merchant
+	// that deliberately points its public profile at one wallet keeps that
+	// answer. The owner's own ACTIVE wallet is the fallback, oldest first so the
+	// choice is deterministic for an owner holding several.
 	err := s.pool.QueryRow(ctx, `
 		SELECT m.id::text, m.name, COALESCE(m.status,''),
 		       COALESCE(m.business_account_type,'MERCHANT'),
-		       mp.handle, mp.display_name, mp.category, mp.wallet_id::text,
-		       mc.kyb_status, w.currency, w.status
+		       mp.handle, mp.display_name, mp.category,
+		       COALESCE(w.id, ow.id)::text,
+		       mc.kyb_status,
+		       COALESCE(w.currency, ow.currency),
+		       COALESCE(w.status, ow.status)
 		  FROM merchants m
 		  LEFT JOIN merchant_profiles   mp ON mp.merchant_id = m.id
 		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = m.id
 		  LEFT JOIN wallets             w  ON w.id = mp.wallet_id
+		  LEFT JOIN LATERAL (
+		      SELECT id, currency, status
+		        FROM wallets
+		       WHERE merchant_id = m.id AND status = 'ACTIVE'
+		       ORDER BY created_at
+		       LIMIT 1
+		  ) ow ON TRUE
 		 WHERE m.id = $1`, merchantID).
 		Scan(&r.MerchantID, &r.BusinessName, &r.Status, &r.BusinessAccountType,
 			&handle, &display, &category, &walletID, &kybStatus, &walCur, &walStatus)
