@@ -658,8 +658,35 @@ jobs:
     name: Security — regressions, secrets, dependencies
     runs-on: ubuntu-latest
 
+    # The regression suites include DB-backed tests (the proof-reference
+    # collision regression seeds a real table). Without a database this job
+    # reported them as a connection failure — the finding's regression never ran
+    # here, and the job was red for a reason that said nothing about security.
+    # Same Postgres and migrations as the go-gateway job, so they run for real.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     banzami
+          POSTGRES_PASSWORD: banzami_dev
+          POSTGRES_DB:       banzami_dev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U banzami -d banzami_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Apply migrations
+        run: |
+          for f in db/migrations/*.sql; do
+            echo "applying $f"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$f"
+          done
 
       - name: Set up Go
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
