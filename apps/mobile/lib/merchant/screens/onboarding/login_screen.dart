@@ -13,8 +13,9 @@ enum _Step { handle, pin }
 /// Primary Banzami Business login: @business handle + PIN.
 ///
 /// Step 1 collects the handle (with or without '@', normalised to lowercase).
-/// Step 2 collects the PIN and exchanges handle+PIN for a merchant JWT
-/// (BanzamiClient.loginMerchantHandlePin), then builds a unified handle session.
+/// Step 2 collects the PIN and exchanges handle+PIN for a merchant session —
+/// an access token and the refresh token that renews it
+/// (BanzamiClient.loginMerchantHandlePin) — then builds a unified handle session.
 /// The legacy Merchant ID + API Key flow remains available as "credenciais de
 /// integração".
 class MerchantLoginScreen extends StatefulWidget {
@@ -119,8 +120,10 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
         merchantName:  merchant.name,
         merchantEmail: merchant.email,
         walletId:      wallet.id,
-        jwt:           auth.token,
-        jwtExpiresAt:  auth.expiresAt,
+        jwt:              auth.token,
+        jwtExpiresAt:     auth.expiresAt,
+        refreshToken:     auth.refreshToken,
+        refreshExpiresAt: auth.refreshExpiresAt,
         handle:        handle,
         environment:   auth.environment,
         pin:           _pin,

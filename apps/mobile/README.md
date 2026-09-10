@@ -89,20 +89,35 @@ O ícone sandbox (`AppIconSandbox.appiconset`) é um asset permanente em `ios/Ru
 | Dashboard | Live balance, daily/monthly revenue stats, recent payment links, quick charge button |
 | Histórico | Two-tab view: real transactions + payment links with infinite scroll |
 | Receber | Static merchant QR code with share + fixed-amount charge shortcut |
-| Perfil | Merchant ID copy, API session expiry, biometrics toggle, payout request, lock session, remove account |
+| Perfil | Merchant ID copy, biometrics toggle, payout request, sign out, remove account |
 | Payout | Bank withdrawal form — amount, Angolan bank (BNA codes), IBAN, holder name |
 | Cobrança | Create fixed-amount payment links with description and expiry |
 
 ## Session management
 
-The merchant session is stored in `flutter_secure_storage` (encrypted). Two levels of session control exist:
+The merchant session is stored in `flutter_secure_storage` (encrypted). A
+Business (@handle + PIN) sign-in is a **renewable session** (gateway migration
+0120): a ~15-minute access token and a single-use, rotating refresh token
+(≤ 30 days), both kept in secure storage with the session.
 
-| Action | Behaviour |
+| Situation | Behaviour |
 |---|---|
-| **Terminar sessão** (lock) | Locks the session in memory — credentials and PIN hash stay in storage. PIN screen is shown on next open (single entry). |
-| **Remover conta** (clear) | Deletes all stored credentials. Forces full re-onboarding (Merchant ID + API Key + new PIN). |
+| Access token expired / 401 | `BanzamiClient` renews it with the refresh token (`/v1/merchant/auth/refresh`) — one renewal shared by concurrent requests, each request retried once. The PIN is **not** sent. The rotated refresh token is written **before** the new access token is used. |
+| Device lock (PIN / biometrics) | The PIN is checked on the device only. Unlocking renews an expired access token with the refresh token before the home screen is shown. |
+| Renewal refused (401 `SESSION_ENDED`) | The session **ends** once: tokens, identity, wallet and verification flag are cleared (only the @handle, PIN hash and device preferences stay), every pushed screen is closed, and the PIN screen becomes sign-in for `@handle` — handle + PIN against `/v1/merchant/auth/token`, which opens a new session. |
+| Renewal outage (503 / no network) | Nothing ends. Balance and data show the temporary "try again" messages; the next call renews. |
+| Session stored before refresh tokens | Kept while its access token is valid; once it expires it requires sign-in. |
+| **Terminar sessão** | Ends the session on this device (as above) and revokes the refresh token on Banzami (`/v1/merchant/auth/logout`, best effort — local state is cleared regardless). Signing in again asks only for the PIN. |
+| **Remover conta** / **Usar outra conta** | Revokes the refresh token (best effort) and deletes everything stored. |
 
-This distinction avoids the poor UX of asking the merchant to re-enter their API Key every time they "log out". Logout = lock; remove account = full reset.
+Legacy API-key sessions (Merchant ID + API Key) are unchanged: the key is
+re-exchanged for a JWT by the client, **Terminar sessão** locks the device.
+
+Implementation: `lib/merchant/services/merchant_session_service.dart` (state,
+storage, `MerchantRoute`), `lib/merchant/services/merchant_reauth.dart`
+(`buildBusinessClient`, `renewBusinessSession`, `resumeBusinessSession`,
+`reauthenticateBusiness`, `signOutBusiness`). Tests:
+`test/merchant/session_lifecycle_test.dart`.
 
 ## Notifications
 

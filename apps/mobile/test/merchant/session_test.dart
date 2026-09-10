@@ -83,14 +83,29 @@ void main() {
         merchantId: 'm1', merchantName: 'Doa', merchantEmail: 'e', walletId: 'w1',
         jwt: 'jwt.abc', jwtExpiresAt: DateTime(2026, 6, 26), handle: 'doa_sandbox',
         environment: 'SANDBOX', pin: '1234',
+        refreshToken: 'rt.abc', refreshExpiresAt: DateTime.now().add(const Duration(days: 30)),
       );
       final b = MerchantSessionService();
       await b.initialize();
       expect(b.session!.loginMethod, MerchantLoginMethod.handlePin);
       expect(b.session!.jwt, 'jwt.abc');
+      expect(b.session!.refreshToken, 'rt.abc');
+      expect(b.session!.canRenew, isTrue,
+          reason: 'an expired access token with a live refresh token renews');
       expect(b.session!.handle, 'doa_sandbox');
       expect(b.session!.apiKey, isNull);
       expect(b.session!.authIdentity, 'jwt.abc');
+    });
+
+    test('the client key survives an access-token renewal', () {
+      final s = MerchantSession(
+        merchantId: 'm', merchantName: 'n', merchantEmail: 'e', walletId: 'w',
+        loginMethod: MerchantLoginMethod.handlePin, environment: 'SANDBOX',
+        jwt: 'jwt.1', jwtExpiresAt: DateTime(2026), refreshToken: 'r1', handle: 'h',
+      );
+      final renewed = s.copyWith(jwt: 'jwt.2', refreshToken: 'r2');
+      expect(renewed.clientKey, s.clientKey);
+      expect(renewed.refreshToken, 'r2');
     });
 
     test('switching modes clears the previous credential', () async {
@@ -102,6 +117,7 @@ void main() {
       await a.createHandleSession(
         merchantId: 'm1', merchantName: 'D', merchantEmail: 'e', walletId: 'w',
         jwt: 'jwt.z', jwtExpiresAt: DateTime(2026), handle: 'cantina', environment: 'LIVE', pin: '1234',
+        refreshToken: 'rt.z', refreshExpiresAt: DateTime.now().add(const Duration(days: 30)),
       );
       final b = MerchantSessionService();
       await b.initialize();

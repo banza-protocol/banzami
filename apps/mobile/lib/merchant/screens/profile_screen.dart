@@ -6,6 +6,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/app_screen_header.dart';
 import '../../widgets/banzami_premium_dialog.dart';
+import '../services/merchant_reauth.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_status_badge.dart';
 import 'kyb_screen.dart';
@@ -222,20 +223,24 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     }
   }
 
+  // Signing out ends the session on Banzami too (its refresh token is
+  // revoked, best effort) and clears it from this device regardless.
   Future<void> _confirmLogout(MerchantSessionService svc) async {
+    final client  = context.read<BanzamiClient>();
     final confirm = await showBanzamiDialog(
       context:      context,
       icon:         Icons.logout_rounded,
       title:        'Terminar sessão?',
-      description:  'O ecrã vai bloquear.\nIntroduza o PIN para voltar a entrar.',
+      description:  'A sessão termina neste dispositivo.\nIntroduza o PIN para voltar a entrar.',
       cancelLabel:  'Cancelar',
       confirmLabel: 'Sair',
       variant:      BanzamiDialogVariant.standard,
     );
-    if (confirm == true) await svc.logout();
+    if (confirm == true) await signOutBusiness(client: client, session: svc);
   }
 
   Future<void> _confirmClearAccount(MerchantSessionService svc) async {
+    final client  = context.read<BanzamiClient>();
     final confirm = await showBanzamiDialog(
       context:      context,
       icon:         Icons.delete_forever_rounded,
@@ -245,7 +250,9 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
       confirmLabel: 'Remover',
       variant:      BanzamiDialogVariant.danger,
     );
-    if (confirm == true) await svc.clearAccount();
+    if (confirm == true) {
+      await signOutBusiness(client: client, session: svc, removeAccount: true);
+    }
   }
 }
 

@@ -7,7 +7,12 @@ import '../services/merchant_session_service.dart';
 import '../../widgets/banzami_premium_dialog.dart';
 import '../../widgets/pin_pad.dart';
 
-/// Ecrã de desbloqueio — mostrado quando a sessão está bloqueada.
+/// Ecrã de desbloqueio e de nova entrada.
+///
+/// Over a live session it is the device lock: the PIN is checked on the device
+/// and an expired access token is renewed with the refresh token — the PIN is
+/// not sent. Once the session has ENDED it is sign-in for the remembered
+/// @handle: the PIN re-authenticates against Banzami.
 class MerchantPinScreen extends StatefulWidget {
   const MerchantPinScreen({super.key});
 
@@ -35,19 +40,27 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     super.dispose();
   }
 
-  /// Shown under the title when the PIN is not only a lock: the server session
-  /// has ended, or it could not be renewed.
+  /// Shown under the title when something other than a wrong PIN stopped the
+  /// sign-in (no connection, a server lockout).
   String? _notice;
 
   Future<void> _tryBiometrics() async {
     final svc = context.read<MerchantSessionService>();
-    if (svc.session?.biometricsEnabled != true) return;
-    // Biometrics prove the person, not the session. With a dead or dying token
-    // they would unlock onto screens whose every call fails — so only the PIN,
-    // which re-authenticates against Banzami, can reopen an expired session.
-    if (svc.sessionExpired || svc.isTokenExpired()) return;
+    // Biometrics prove the person on this device, so they can lift the device
+    // lock over a LIVE session (its access token renewed with the refresh
+    // token, if needed). They are not a credential Banzami knows: an ended
+    // session needs the PIN to sign in again.
+    if (svc.route != MerchantRoute.locked || svc.sessionExpired) return;
+    final s = svc.session!;
+    if (!s.biometricsEnabled) return;
+    if (s.isHandleLogin && !s.canRenew && svc.isTokenExpired()) return;
     final ok = await svc.authenticateWithBiometrics();
-    if (ok && mounted) svc.unlock();
+    if (!ok || !mounted) return;
+    if (s.isHandleLogin) {
+      final r = await resumeBusinessSession(client: context.read<BanzamiClient>(), session: svc);
+      if (!mounted || r == SessionResume.ended) return; // now on sign-in: PIN
+    }
+    svc.unlock();
   }
 
   Future<void> _onPinComplete() async {
@@ -64,14 +77,31 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
       return;
     }
 
+    final s = svc.session;
     // An API-key session renews its own token; the PIN only unlocks the device.
-    if (svc.session?.isHandleLogin != true) {
+    if (s != null && !s.isHandleLogin) {
       svc.unlock();
       return;
     }
 
-    // A handle session: every unlock re-authenticates, so the token behind the
-    // screens is always one Banzami just issued for the handle's current owner.
+    // A live Business session: the PIN is a device lock and stays on the
+    // device. An expired access token is renewed with the refresh token.
+    if (svc.route == MerchantRoute.locked) {
+      final r = await resumeBusinessSession(client: context.read<BanzamiClient>(), session: svc);
+      if (!mounted) return;
+      if (r != SessionResume.ended) {
+        // Renewed — or Banzami is unreachable, which ends nothing: the screens
+        // say it is temporarily unavailable and renew on the next call.
+        svc.unlock();
+        return;
+      }
+      // The session has ended (the app is now on sign-in): the PIN just
+      // entered signs in again.
+    }
+
+    // Sign-in: the session ended (or predates refresh tokens). The remembered
+    // @handle + this PIN re-authenticate against Banzami and open a new
+    // session, refresh token included.
     try {
       await reauthenticateBusiness(
         client:  context.read<BanzamiClient>(),
@@ -82,19 +112,13 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
       if (!mounted) return;
       switch (e.failure) {
         case ReauthFailure.offline:
-          // Nothing learned about the session. A still-valid token may be used;
-          // an expired one must not be presented as if it were.
-          if (!svc.sessionExpired && !svc.isTokenExpired()) {
-            svc.unlock();
-            return;
-          }
-          _notice = 'Sem ligação ao Banzami. Não foi possível renovar a sessão — tente novamente.';
+          _notice = 'Sem ligação ao Banzami. Não foi possível entrar — tente novamente.';
         case ReauthFailure.locked:
           _notice = 'Conta temporariamente bloqueada. Tente novamente mais tarde.';
         case ReauthFailure.refused:
           // The PIN matches this device but Banzami refused it: it was changed,
-          // or the account was suspended or reassigned. The session here is
-          // over, and nothing it remembered is kept.
+          // or the account was suspended or reassigned. Nothing this device
+          // remembered is kept.
           await svc.clearAccount();
           return;
       }
@@ -103,7 +127,8 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
   }
 
   Future<void> _confirmSwitchAccount() async {
-    final svc = context.read<MerchantSessionService>();
+    final svc    = context.read<MerchantSessionService>();
+    final client = context.read<BanzamiClient>();
     final confirm = await showBanzamiDialog(
       context:      context,
       icon:         Icons.swap_horiz_rounded,
@@ -113,12 +138,19 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
       confirmLabel: 'Remover',
       variant:      BanzamiDialogVariant.warning,
     );
-    if (confirm == true) await svc.clearAccount();
+    if (confirm == true) {
+      await signOutBusiness(client: client, session: svc, removeAccount: true);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final session = context.read<MerchantSessionService>().session;
+    final svc     = context.watch<MerchantSessionService>();
+    final session = svc.session;
+    // Signing in again after the session ended: nothing about the Business is
+    // shown but its public @handle — not a profile that looks signed in.
+    final title = session?.merchantName ??
+        (svc.signInHandle != null ? '@${svc.signInHandle}' : 'Banzami');
 
     return Scaffold(
       backgroundColor: BanzamiColors.white,
@@ -133,7 +165,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                 children: [
                   const SizedBox(height: 24),
                   Text(
-                    session?.merchantName ?? 'Banzami',
+                    title,
                     style: BanzamiTextStyles.headingMd,
                     textAlign: TextAlign.center,
                   ),
@@ -141,7 +173,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                   Text(
                     _error
                         ? 'PIN incorrecto. Tente novamente.'
-                        : _notice ?? (context.watch<MerchantSessionService>().sessionExpired
+                        : _notice ?? (svc.sessionExpired
                             ? 'A sessão terminou. Introduza o PIN para continuar.'
                             : 'Introduza o PIN'),
                     style: BanzamiTextStyles.bodyMd.copyWith(
@@ -158,8 +190,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                     error:     _error,
                   ),
                   const SizedBox(height: 24),
-                  if (session?.biometricsEnabled == true &&
-                      !context.watch<MerchantSessionService>().sessionExpired)
+                  if (session?.biometricsEnabled == true && !svc.sessionExpired)
                     BanzamiGhostButton(label: 'Usar biometria', onPressed: _tryBiometrics),
                   const SizedBox(height: 8),
                   BanzamiGhostButton(

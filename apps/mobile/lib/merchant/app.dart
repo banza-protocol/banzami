@@ -4,11 +4,15 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart' hide Consumer;
 
 import 'config.dart';
+import 'services/merchant_reauth.dart';
 import 'services/merchant_session_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/pin_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
+
+/// The session a cached BanzamiClient was built for (MerchantSession.clientKey).
+final _clientKeys = Expando<String>('business client session');
 
 class BanzamiMerchantApp extends StatelessWidget {
   final Client pinnedClient;
@@ -24,26 +28,23 @@ class BanzamiMerchantApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MerchantSessionService()),
         ProxyProvider<MerchantSessionService, BanzamiClient>(
           update: (_, session, prev) {
-            final s = session.session;
-            final auth = s?.authIdentity ?? '';
-            // Rebuild only when the auth credential changes — not on every
-            // session notify (e.g. a biometric toggle). Works for both an API
-            // key (exchanged for a JWT) and a pre-issued handle-login JWT.
-            if (prev != null && auth == prev.authIdentity) return prev;
-            return BanzamiClient(
-              baseUrl:      AppConfig.gatewayUrl,
-              apiKey:       s?.apiKey ?? '',
-              jwt:          s?.jwt,
-              jwtExpiresAt: s?.jwtExpiresAt,
-              httpClient:   pinnedClient,
-              // Banzami refused the session. It used to LOCK the app, and the
-              // PIN screen then checked the PIN on the device and unlocked the
-              // same dead token — a verified-looking profile over a home screen
-              // that could never load. Now the session is marked expired (once,
-              // however many requests fail together) and the PIN re-authenticates
-              // against Banzami before anything is shown again.
-              onUnauthorized: session.markExpired,
+            final key = session.session?.clientKey ?? '';
+            // Rebuild only when the Business or the way it signed in changes —
+            // not on every session notify (a biometric toggle) and NOT on an
+            // access-token renewal: the client renewed it itself, and a new
+            // client mid-burst would lose the one shared renewal.
+            if (prev != null && _clientKeys[prev] == key) return prev;
+            // The client renews an expired access token with the refresh token
+            // (no PIN), and when Banzami refuses the session for good it ends
+            // it — once, however many requests fail together: tokens and
+            // identity are cleared and sign-in is shown. An outage ends nothing.
+            final client = buildBusinessClient(
+              session:    session,
+              baseUrl:    AppConfig.gatewayUrl,
+              httpClient: pinnedClient,
             );
+            _clientKeys[client] = key;
+            return client;
           },
         ),
       ],
@@ -87,6 +88,9 @@ class _MerchantBootState extends State<_MerchantBoot> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
   }
 
+  MerchantSessionService? _session;
+  MerchantRoute?          _route;
+
   Future<void> _boot() async {
     final session = context.read<MerchantSessionService>();
     // Wait for the longer of: minimum splash duration OR session load.
@@ -94,7 +98,28 @@ class _MerchantBootState extends State<_MerchantBoot> {
       Future<void>.delayed(const Duration(milliseconds: 1200)),
       session.initialize(),
     ]);
-    if (mounted) setState(() => _ready = true);
+    if (!mounted) return;
+    _session = session..addListener(_onSessionChanged);
+    _route   = session.route;
+    setState(() => _ready = true);
+  }
+
+  /// Leaving the signed-in state — the session ended, was signed out, or the
+  /// device locked — also closes every screen pushed over the home (payout,
+  /// KYB, charge…). Those routes sit above this widget in the navigator, so
+  /// swapping the home to the PIN / sign-in screen alone would leave them on
+  /// top, still showing the Business and still calling Banzami.
+  void _onSessionChanged() {
+    final next = _session!.route;
+    final left = _route == MerchantRoute.signedIn && next != MerchantRoute.signedIn;
+    _route = next;
+    if (left && mounted) Navigator.of(context).popUntil((r) => r.isFirst);
+  }
+
+  @override
+  void dispose() {
+    _session?.removeListener(_onSessionChanged);
+    super.dispose();
   }
 
   @override
@@ -105,9 +130,19 @@ class _MerchantBootState extends State<_MerchantBoot> {
     // login / logout / lock / unlock (unchanged behaviour).
     return Consumer<MerchantSessionService>(
       builder: (context, session, _) {
-        if (!session.hasSession) return const MerchantWelcomeScreen();
-        if (session.isLocked)    return const MerchantPinScreen();
-        return const MerchantMainScreen();
+        switch (session.route) {
+          case MerchantRoute.welcome:
+            return const MerchantWelcomeScreen();
+          // One screen for both: the device lock over a live session, and
+          // sign-in (remembered @handle + PIN) once the session has ended. The
+          // same element survives the switch, so a PIN typed to unlock a
+          // session that turns out to have ended goes on to sign in.
+          case MerchantRoute.signIn:
+          case MerchantRoute.locked:
+            return const MerchantPinScreen();
+          case MerchantRoute.signedIn:
+            return const MerchantMainScreen();
+        }
       },
     );
   }
