@@ -1235,6 +1235,18 @@ export function CandidaturaForm() {
                       Referência da candidatura: <span className="font-mono text-[#5a4a4e]">{applicationId.slice(0, 8).toUpperCase()}</span>
                     </p>
                   )}
+                  {applicationId && (
+                    <p className="m-0 mt-2 text-[13px] font-bold">
+                      <Link
+                        data-testid="application-status-link"
+                        href={`/comerciantes/candidatura/estado?ref=${applicationId}`}
+                        className="font-extrabold"
+                        style={{ color: RED }}
+                      >
+                        Acompanhar o estado da candidatura →
+                      </Link>
+                    </p>
+                  )}
 
                   <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] border-[1.5px] border-[#f4e6e6] bg-white p-5 text-left">
                     <div className="flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
