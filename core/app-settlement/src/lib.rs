@@ -47,10 +47,6 @@ pub enum ApplicationSettlementError {
     )]
     MissingFeeAccount { fee: i64 },
 
-    /// ADR-029: an app-defined fee rate exceeds the operator's safety bound.
-    #[error("application_fee_bps {bps} exceeds the maximum allowed {max}")]
-    FeeBpsOutOfBounds { bps: u32, max: u32 },
-
     #[error("insufficient funds in source account: available {available}, required {required}")]
     InsufficientFunds { available: i64, required: i64 },
 

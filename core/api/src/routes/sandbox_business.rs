@@ -10,14 +10,20 @@
 //! no ordinary external Developer Project could complete a settlement.
 //!
 //! The same gap closes the fee-bearing path: ADR-028 requires an application-fee
-//! destination to be KYB-approved AND to be an APPLICATION/PLATFORM account, and
-//! nothing on the public Sandbox lifecycle could ever produce either. KYB was
-//! closed first; the TYPE was not, so all nine self-service Sandbox Businesses
-//! were left as `MERCHANT` — the create-time default — and every one of them
-//! failed its own fee-destination check with FEE_DESTINATION_TYPE_NOT_ALLOWED.
-//! A Developer Project Business is an application routing value on behalf of an
-//! application. That is what APPLICATION means in ADR-028, so it is declared
-//! here rather than left to a default that describes something else.
+//! destination to be KYB-approved, and nothing on the public Sandbox lifecycle
+//! could ever produce that record.
+//!
+//! WHAT THIS DELIBERATELY DOES NOT DO
+//!
+//! It does not classify the Business. ADR-028's taxonomy (MERCHANT, APPLICATION,
+//! PLATFORM, …) decides who may take an application fee, and that is an operator
+//! decision, like the pricing profile that decides whether there is a fee at
+//! all. A version of this route promoted every self-service Business from the
+//! MERCHANT default to APPLICATION, to get round settlement validating a fee
+//! destination even when no fee was due. That was the wrong fix: settlement now
+//! validates the destination only when the operator's pricing resolves a fee,
+//! so an ordinary MERCHANT Project on a zero-rate profile settles as it is, and
+//! an application that is priced gets classified by an operator, audited.
 //!
 //! WHY HERE AND NOT IN THE API LAYER
 //!
@@ -152,25 +158,6 @@ pub async fn business_readiness(
             }
         }
     };
-
-    // The ADR-028 taxonomy. Promoted only FROM the create-time default: an
-    // operator who has deliberately set this account to something else has made
-    // a decision, and a provisioning retry does not get to overrule it. Coming
-    // from 'MERCHANT' means nobody chose — the merchant was created by
-    // /internal/v1/merchants with no type at all.
-    let promoted: Option<(String,)> = sqlx::query_as(
-        "UPDATE merchants
-            SET business_account_type = 'APPLICATION', updated_at = now()
-          WHERE id = $1 AND COALESCE(business_account_type, 'MERCHANT') = 'MERCHANT'
-          RETURNING business_account_type",
-    )
-    .bind(merchant_id)
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
-    if promoted.is_some() {
-        provisioned = true;
-    }
 
     // Sandbox KYB. DO NOTHING, never an upsert: a real decision recorded against
     // this merchant — including a REJECTED or SUSPENDED one — outranks

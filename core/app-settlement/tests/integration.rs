@@ -152,7 +152,6 @@ fn req(
         beneficiary_account_id: beneficiary,
         application_fee_account_id: fee_account,
         gross_amount: kz(gross),
-        application_fee_bps: None,
         business_category: None,
         pricing_profile: profile.map(str::to_string),
         fee_policy_ref: None,
@@ -222,84 +221,91 @@ async fn settles_net_and_application_fee_balanced(pool: PgPool) -> sqlx::Result<
 
 // ─── ADR-029: app-defined fee (bps) bypasses the Pricing Engine ─────────────
 
-#[sqlx::test(migrations = "../../db/migrations")]
-async fn app_defined_fee_bypasses_pricing_engine(pool: PgPool) -> sqlx::Result<()> {
-    let fx = setup(pool).await;
-    // NO pricing rule seeded — proving the fee comes from the app's bps, not rules.
-    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
-    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
-    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
-    fund(&fx, source, 200_000).await;
-
-    let mut r = req(
-        "doa-1",
-        source,
-        beneficiary,
-        Some(app_fee),
-        200_000,
-        Some(PROFILE),
-    );
-    r.application_fee_bps = Some(500); // DOA's 5% — app policy
-
-    let created = fx.engine.create(r).await.unwrap();
-    assert_eq!(created.application_fee.amount_minor(), 10_000, "5% of 200k");
-    assert_eq!(created.net_amount.amount_minor(), 190_000);
-
-    let done = fx.engine.complete(created.id).await.unwrap();
-    assert_eq!(
-        net_credit(&fx.pool, beneficiary).await,
-        190_000,
-        "beneficiary NET 95%"
-    );
-    assert_eq!(net_credit(&fx.pool, app_fee).await, 10_000, "app fee 5%");
-    assert!(posting_balanced(&fx.pool, done.settlement_posting_id.unwrap().as_uuid()).await);
-    assert!(posting_balanced(&fx.pool, done.fee_posting_id.unwrap().as_uuid()).await);
-
-    // snapshot marks the fee as APP_DEFINED, not a pricing-rule resolution.
-    let snap: serde_json::Value =
-        sqlx::query_scalar("SELECT pricing_snapshot_json FROM app_settlements WHERE id = $1")
-            .bind(done.id.as_uuid())
-            .fetch_one(&fx.pool)
-            .await
-            .unwrap();
-    assert_eq!(snap["source"], serde_json::json!("APP_DEFINED"));
-    assert_eq!(snap["application_fee_bps"], serde_json::json!(500));
-    // no pricing rule was pinned
-    let rule_id: Option<uuid::Uuid> =
-        sqlx::query_scalar("SELECT pricing_rule_id FROM app_settlements WHERE id = $1")
-            .bind(done.id.as_uuid())
-            .fetch_one(&fx.pool)
-            .await
-            .unwrap();
-    assert!(rule_id.is_none(), "app-defined fee pins no pricing rule");
-    Ok(())
-}
+// ─── the rate is the operator's, and only the operator's ─────────────────────
+//
+// There used to be a second fee path here — ADR-029 "app-defined" — where a
+// caller-supplied application_fee_bps skipped the Pricing Engine and charged
+// whatever it asked for. The two tests that proved it worked were proving a hole.
+// These prove it is closed, and that a completed settlement's economics are
+// fixed at completion rather than recomputed from whatever pricing says later.
 
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn app_defined_fee_bps_over_bound_is_rejected(pool: PgPool) -> sqlx::Result<()> {
+async fn the_fee_is_the_assigned_profile_rate_and_nothing_else(pool: PgPool) -> sqlx::Result<()> {
     let fx = setup(pool).await;
+    seed_rule(&fx.pool, "assurance-200", 200).await;
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
     fund(&fx, source, 100_000).await;
 
-    let mut r = req(
-        "doa-2",
-        source,
-        beneficiary,
-        Some(app_fee),
-        100_000,
-        Some(PROFILE),
-    );
-    r.application_fee_bps = Some(6000); // 60% > 50% cap
-    let err = fx.engine.create(r).await.unwrap_err();
-    assert!(
-        matches!(
-            err,
-            banzami_app_settlement::ApplicationSettlementError::FeeBpsOutOfBounds { .. }
-        ),
-        "got {err:?}"
-    );
+    // The request type has no field through which a rate could be named — this
+    // is the compile-time half of the property. The runtime half: the fee is
+    // exactly what the profile's SETTLEMENT rule resolves.
+    let created = fx
+        .engine
+        .create(req("rate-1", source, beneficiary, Some(app_fee), 100_000, Some(PROFILE)))
+        .await
+        .unwrap();
+    assert_eq!(created.application_fee.amount_minor(), 2_000, "200 bps of 100 000");
+    assert_eq!(created.net_amount.amount_minor(), 98_000);
+
+    let snap: serde_json::Value =
+        sqlx::query_scalar("SELECT pricing_snapshot_json FROM app_settlements WHERE id = $1")
+            .bind(created.id.as_uuid())
+            .fetch_one(&fx.pool)
+            .await
+            .unwrap();
+    assert_eq!(snap["rate_bps"], serde_json::json!(200));
+    assert_eq!(snap["pricing_profile"], serde_json::json!(PROFILE));
+    assert_eq!(snap["fee_minor"], serde_json::json!(2_000));
+    assert!(snap.get("application_fee_bps").is_none(), "no caller rate is recorded");
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_completed_settlement_keeps_the_economics_it_was_settled_at(
+    pool: PgPool,
+) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "assurance-200", 200).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
+    fund(&fx, source, 100_000).await;
+
+    let created = fx
+        .engine
+        .create(req("immut-1", source, beneficiary, Some(app_fee), 100_000, Some(PROFILE)))
+        .await
+        .unwrap();
+    let done = fx.engine.complete(created.id).await.unwrap();
+
+    // The operator reprices the profile afterwards.
+    sqlx::query("UPDATE pricing_rules SET rate_bps = 900 WHERE rule_key = 'assurance-200'")
+        .execute(&fx.pool)
+        .await
+        .unwrap();
+
+    // What was settled stays what was settled — the settlement carries its own
+    // snapshot rather than a pointer into a table that can change under it.
+    let again = fx.engine.get(done.id).await.unwrap();
+    assert_eq!(again.application_fee.amount_minor(), 2_000);
+    assert_eq!(again.net_amount.amount_minor(), 98_000);
+    assert_eq!(again.gross_amount.amount_minor(), 100_000);
+    assert_eq!(again.pricing_snapshot_json["rate_bps"], serde_json::json!(200));
+    assert_eq!(net_credit(&fx.pool, app_fee).await, 2_000);
+    assert_eq!(net_credit(&fx.pool, beneficiary).await, 98_000);
+
+    // And a NEW settlement prices at the new rate — the snapshot is per
+    // settlement, not a cache.
+    let src2 = account(&fx.pool, AccountType::Liability, "Campaign Wallet 2").await;
+    fund(&fx, src2, 100_000).await;
+    let later = fx
+        .engine
+        .create(req("immut-2", src2, beneficiary, Some(app_fee), 100_000, Some(PROFILE)))
+        .await
+        .unwrap();
+    assert_eq!(later.application_fee.amount_minor(), 9_000);
     Ok(())
 }
 

@@ -776,6 +776,13 @@ async fn main() {
             post(routes::sandbox_business::business_readiness),
         )
         .route(
+            // Whether a financial owner can settle, answered by the code that
+            // settles: the same pricing resolver and the same ADR-028 evaluation.
+            // Read-only; carries no internal identifier in its response.
+            "/internal/v1/settlement-readiness",
+            post(routes::settlement_readiness::settlement_readiness),
+        )
+        .route(
             "/internal/v1/acquiring/test/confirm",
             post(routes::acquiring::test_confirm),
         )

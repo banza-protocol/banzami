@@ -42,11 +42,10 @@ pub struct CreateBody {
     pub application_fee_wallet_id: Option<String>,
     pub gross_amount_minor: i64,
     pub currency: String,
-    /// ADR-029: app-defined fee rate (basis points). When set, the operator
-    /// computes the fee from it and the Pricing Engine / pricing refs are ignored.
-    pub application_fee_bps: Option<u32>,
-    // References only — never a fee/percentage. A client-supplied rate/fee field
-    // is not modelled here and is therefore ignored: the client cannot set a fee.
+    // References only — never a fee, a percentage or a rate. There used to be an
+    // application_fee_bps here that, when present, skipped the Pricing Engine and
+    // charged what the caller asked. The operator's pricing decision is the only
+    // rate now; an unknown field in the body is simply not modelled.
     pub business_category: Option<String>,
     pub pricing_profile: Option<String>,
     pub fee_policy_ref: Option<String>,
@@ -117,62 +116,110 @@ async fn merchant_for_account(pool: &PgPool, account_id: AccountId) -> Option<Uu
     .flatten()
 }
 
-/// ADR-028: enforce that an application-fee destination is a validated Business
-/// Account — it resolves to a merchant, that merchant is KYB-approved, has an
-/// active wallet (it owns the destination account), and is of a type permitted to
-/// take an application fee (APPLICATION/PLATFORM). Fail-closed.
-pub(crate) async fn guard_application_fee_destination(
+/// Every ADR-028 condition on an application-fee destination, evaluated one by
+/// one rather than as a verdict.
+///
+/// This is THE rule. The settlement path enforces it through
+/// `guard_application_fee_destination`, and readiness reports it through
+/// `settlement_readiness` — both call this function. A readiness answer computed
+/// any other way can say READY while settlement refuses with
+/// FEE_DESTINATION_TYPE_NOT_ALLOWED, which is exactly how DOA's integration view
+/// and its settlement came to disagree.
+///
+/// The destination is the ACCOUNT the fee will be credited to. ADR-028 requires
+/// it to belong to a Business Account that is ACTIVE, KYB-approved and of a type
+/// permitted to take an application fee. It does not require a dedicated
+/// APPLICATION-purpose wallet account: the fee lands in whichever of the
+/// destination's accounts is named — in practice its primary available account.
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct FeeDestinationEvaluation {
+    /// The account resolves to a Business Account at all.
+    pub resolved: bool,
+    pub active: bool,
+    pub kyb_approved: bool,
+    /// ACTIVE wallet holding the account. Resolution goes through `wallets` and
+    /// `wallet_accounts`, so a resolved account is one a wallet holds.
+    pub wallet_active: bool,
+    /// APPLICATION or PLATFORM (ADR-028 taxonomy). The type itself never leaves
+    /// the operator; only whether it permits an application fee does.
+    pub type_allowed: bool,
+    /// The first unmet condition, in the order settlement checks them, as the
+    /// exact code settlement would return.
+    pub blocker: Option<&'static str>,
+    #[serde(skip)]
+    pub blocker_message: Option<&'static str>,
+}
+
+pub(crate) async fn evaluate_fee_destination(
     pool: &PgPool,
     fee_account: AccountId,
-) -> Result<(), ApiError> {
-    let merchant_id = merchant_for_account(pool, fee_account)
-        .await
-        .ok_or_else(|| {
-            ApiError::unprocessable(
-                "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-                "application fee destination is not a Banzami Business Account",
-            )
-        })?;
-
-    // The fee destination's merchant must be a validated, permitted Business
-    // Account. One row read of its type + KYB status.
-    let row = sqlx::query_as::<_, (String, String, Option<String>)>(
-        "SELECT m.business_account_type, m.status, c.kyb_status
+) -> Result<FeeDestinationEvaluation, ApiError> {
+    let mut ev = FeeDestinationEvaluation::default();
+    let Some(merchant_id) = merchant_for_account(pool, fee_account).await else {
+        ev.blocker = Some("FEE_DESTINATION_NOT_BUSINESS_ACCOUNT");
+        ev.blocker_message = Some("application fee destination is not a Banzami Business Account");
+        return Ok(ev);
+    };
+    // One row: the owner's type, status, KYB, and whether the wallet holding the
+    // account is ACTIVE.
+    let row = sqlx::query_as::<_, (String, String, Option<String>, bool)>(
+        "SELECT COALESCE(m.business_account_type, 'MERCHANT'), m.status, c.kyb_status,
+                EXISTS (
+                  SELECT 1 FROM wallets w
+                   WHERE w.merchant_id = m.id AND w.status = 'ACTIVE'
+                     AND (w.available_account_id = $2
+                          OR EXISTS (SELECT 1 FROM wallet_accounts wa
+                                      WHERE wa.wallet_id = w.id AND wa.account_id = $2
+                                        AND wa.status = 'ACTIVE')))
            FROM merchants m
            LEFT JOIN merchant_compliance c ON c.merchant_id = m.id
           WHERE m.id = $1",
     )
     .bind(merchant_id)
+    .bind(fee_account.as_uuid())
     .fetch_optional(pool)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| {
-        ApiError::unprocessable(
-            "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
-            "application fee destination is not a Banzami Business Account",
-        )
-    })?;
-    let (account_type, status, kyb_status) = row;
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+    let Some((account_type, status, kyb_status, wallet_active)) = row else {
+        ev.blocker = Some("FEE_DESTINATION_NOT_BUSINESS_ACCOUNT");
+        ev.blocker_message = Some("application fee destination is not a Banzami Business Account");
+        return Ok(ev);
+    };
+    ev.resolved = true;
+    ev.active = status == "ACTIVE";
+    ev.kyb_approved = kyb_status.as_deref() == Some("APPROVED");
+    ev.wallet_active = wallet_active;
+    ev.type_allowed = banzami_merchants::allows_application_fee(&account_type);
 
-    if status != "ACTIVE" {
-        return Err(ApiError::unprocessable(
-            "FEE_DESTINATION_NOT_ACTIVE",
-            "application fee destination business account is not active",
-        ));
+    // Settlement's order. The first failure is the code settlement returns.
+    if !ev.active {
+        ev.blocker = Some("FEE_DESTINATION_NOT_ACTIVE");
+        ev.blocker_message = Some("application fee destination business account is not active");
+    } else if !ev.kyb_approved {
+        ev.blocker = Some("FEE_DESTINATION_KYB_NOT_APPROVED");
+        ev.blocker_message = Some("application fee destination is not KYB-approved");
+    } else if !ev.wallet_active {
+        ev.blocker = Some("FEE_DESTINATION_WALLET_UNAVAILABLE");
+        ev.blocker_message = Some("application fee destination has no active wallet for this account");
+    } else if !ev.type_allowed {
+        ev.blocker = Some("FEE_DESTINATION_TYPE_NOT_ALLOWED");
+        ev.blocker_message =
+            Some("application fee destination must be an APPLICATION or PLATFORM business account");
     }
-    if kyb_status.as_deref() != Some("APPROVED") {
-        return Err(ApiError::unprocessable(
-            "FEE_DESTINATION_KYB_NOT_APPROVED",
-            "application fee destination is not KYB-approved",
-        ));
+    Ok(ev)
+}
+
+/// ADR-028, enforced: an application fee may only be credited to a destination
+/// that passes every condition in `evaluate_fee_destination`. Fail-closed.
+pub(crate) async fn guard_application_fee_destination(
+    pool: &PgPool,
+    fee_account: AccountId,
+) -> Result<(), ApiError> {
+    let ev = evaluate_fee_destination(pool, fee_account).await?;
+    match (ev.blocker, ev.blocker_message) {
+        (Some(code), Some(msg)) => Err(ApiError::unprocessable(code, msg)),
+        _ => Ok(()),
     }
-    if !banzami_merchants::allows_application_fee(&account_type) {
-        return Err(ApiError::unprocessable(
-            "FEE_DESTINATION_TYPE_NOT_ALLOWED",
-            "application fee destination must be an APPLICATION or PLATFORM business account",
-        ));
-    }
-    Ok(())
 }
 
 /// Emit an application_settlement.* webhook (idempotent on the settlement id).
@@ -219,12 +266,13 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
             "FEE_EXCEEDS_GROSS",
             "resolved application fee exceeds gross",
         ),
-        E::MissingFeeAccount { .. } => {
-            ApiError::bad_request("application_fee_account_id is required for this category")
-        }
-        E::FeeBpsOutOfBounds { max, .. } => ApiError::unprocessable(
-            "FEE_BPS_OUT_OF_BOUNDS",
-            format!("application_fee_bps exceeds the maximum allowed ({max})"),
+        // The operator's pricing resolved a fee and nobody named where it goes.
+        // This used to say "application_fee_account_id is required for this
+        // category" — a field the public contract never asks for, and a category
+        // that no longer chooses anything.
+        E::MissingFeeAccount { .. } => ApiError::unprocessable(
+            "FEE_DESTINATION_REQUIRED",
+            "this settlement carries an application fee under your pricing profile — name a fee destination",
         ),
         E::InsufficientFunds { .. } => ApiError::unprocessable(
             "INSUFFICIENT_FUNDS",
@@ -281,7 +329,7 @@ pub async fn create(
         "beneficiary",
     )
     .await?;
-    let application_fee_account_id = match (
+    let named_fee_account = match (
         body.application_fee_account_id,
         body.application_fee_wallet_id,
     ) {
@@ -289,12 +337,34 @@ pub async fn create(
         (a, w) => Some(account_or_wallet(&state.pool, a, w, "application_fee").await?),
     };
 
-    // ADR-028: an application fee may only be paid to a validated Business Account
-    // — KYB-approved, active wallet, and of a permitted type (APPLICATION/PLATFORM).
-    // Fail-closed: a fee to an unvetted destination is rejected, not rerouted.
-    if let Some(fee_acct) = application_fee_account_id {
+    // The operator's pricing decision FIRST, and the fee destination only when
+    // that decision is a fee.
+    //
+    // The destination used to be validated whenever one was named. So a Project
+    // on a zero-rate profile that named its own account was refused with
+    // FEE_DESTINATION_TYPE_NOT_ALLOWED for a fee it was never going to pay, and
+    // the only way through was to classify every ordinary Business as an
+    // APPLICATION — a privilege ADR-028 reserves for operators to grant.
+    //
+    //   fee > 0  → a destination is required, and must pass ADR-028
+    //   fee == 0 → there is no fee to allocate; nothing is validated or recorded
+    let quote = state
+        .app_settlement
+        .resolve_settlement_fee(
+            Money::new(body.gross_amount_minor, currency),
+            body.pricing_profile.as_deref(),
+        )
+        .await
+        .map_err(map_err)?;
+    let application_fee_account_id = if quote.fee_minor > 0 {
+        let fee_acct = named_fee_account.ok_or_else(|| {
+            map_err(ApplicationSettlementError::MissingFeeAccount { fee: quote.fee_minor })
+        })?;
         guard_application_fee_destination(&state.pool, fee_acct).await?;
-    }
+        Some(fee_acct)
+    } else {
+        None
+    };
 
     let settlement = state
         .app_settlement
@@ -306,7 +376,6 @@ pub async fn create(
             beneficiary_account_id,
             application_fee_account_id,
             gross_amount: Money::new(body.gross_amount_minor, currency),
-            application_fee_bps: body.application_fee_bps,
             business_category: body.business_category,
             pricing_profile: body.pricing_profile,
             fee_policy_ref: body.fee_policy_ref,

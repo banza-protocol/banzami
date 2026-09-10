@@ -44,6 +44,9 @@ mod refunds_disputes_tests;
 pub mod restitution;
 pub mod risk;
 pub mod sandbox_business;
+pub mod settlement_readiness;
+#[cfg(test)]
+mod settlement_readiness_tests;
 #[cfg(test)]
 mod handle_namespace_tests;
 #[cfg(test)]

@@ -300,6 +300,14 @@ pub async fn set_business_account_type(
         .and_then(|v| v.as_str())
         .ok_or_else(|| ApiError::bad_request("'business_account_type' is required"))?;
 
+    let before: Option<String> =
+        sqlx::query_scalar("SELECT business_account_type FROM merchants WHERE id = $1")
+            .bind(merchant_id.as_uuid())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+            .flatten();
+
     let merchant = state
         .merchant
         .set_business_account_type(merchant_id, account_type)
@@ -311,6 +319,23 @@ pub async fn set_business_account_type(
             }
             other => ApiError::internal(other.to_string()),
         })?;
+
+    // The system trail, beside the operator's own audit in admin-api. The class
+    // decides whether an account may receive an application fee, so a change to
+    // it is recorded where every other change to what an account may receive is.
+    super::risk::audit(
+        &state.pool,
+        "OPERATOR",
+        "BUSINESS_ACCOUNT_TYPE_CHANGED",
+        &format!("merchant:{}", merchant_id.as_uuid()),
+        serde_json::json!({
+            "from": before,
+            "to": merchant.business_account_type,
+            "source": "operator_classification",
+        }),
+        None,
+    )
+    .await;
 
     Ok(Json(serde_json::to_value(&merchant).unwrap()))
 }

@@ -127,13 +127,16 @@ pub struct ApplicationSettlement {
 
 /// Request to create a settlement.
 ///
-/// The application fee is resolved one of two mutually-exclusive ways:
-/// - **App-defined (ADR-029):** `application_fee_bps` set ⇒ the operator computes
-///   `fee = floor(gross * bps / 10_000)`. The Pricing Engine is NOT consulted. The
-///   rate is the *app's* commercial policy; the operator only validates the bound.
-/// - **Operator-priced (ADR-021):** `application_fee_bps` is `None` ⇒ the fee is
-///   resolved by the Pricing Engine from `business_category`/`pricing_profile`/
-///   `fee_policy_ref` (never a number passed in).
+/// The application fee is the operator's pricing decision and nothing else: it
+/// is resolved by the Pricing Engine from the owner's assigned `pricing_profile`
+/// for the SETTLEMENT operation. There is no field here through which a caller
+/// could name a rate or an amount.
+///
+/// There used to be one. ADR-029's "app-defined" path took an
+/// `application_fee_bps` from the caller and, when present, skipped the Pricing
+/// Engine entirely — so the rate an application paid was whatever it asked for,
+/// up to a 50% bound. It was withdrawn: a caller cannot set the price of the
+/// service it is buying.
 pub struct CreateApplicationSettlementRequest {
     pub idempotency_key: String,
     pub owner_ref: String,
@@ -145,15 +148,8 @@ pub struct CreateApplicationSettlementRequest {
     /// Accumulated net value to settle (already net of the operator fee charged
     /// at payment time). Must be positive.
     pub gross_amount: Money,
-    /// ADR-029: app-defined fee rate in basis points (0..=`MAX_APPLICATION_FEE_BPS`).
-    /// When set, the Pricing Engine is bypassed and the references below are ignored.
-    pub application_fee_bps: Option<u32>,
     pub business_category: Option<String>,
     pub pricing_profile: Option<String>,
     pub fee_policy_ref: Option<String>,
     pub metadata: Option<serde_json::Value>,
 }
-
-/// ADR-029 safety bound on an app-defined fee — an anti-abuse guardrail (a
-/// fat-finger 100000 bps is rejected), NOT operator pricing. 5000 bps = 50%.
-pub const MAX_APPLICATION_FEE_BPS: u32 = 5000;

@@ -21,6 +21,28 @@ use crate::ApplicationSettlementError;
 
 #[allow(async_fn_in_trait)]
 pub trait ApplicationSettlementEngine: Send + Sync {
+    /// The operator's pricing decision for a settlement of `gross` under
+    /// `pricing_profile`, WITHOUT creating anything.
+    ///
+    /// This is the one place the settlement rate is decided. `create` calls it,
+    /// and so does readiness: a readiness answer computed any other way can say
+    /// READY while execution refuses, which is the defect this exists to make
+    /// impossible.
+    async fn resolve_settlement_fee(
+        &self,
+        gross: Money,
+        pricing_profile: Option<&str>,
+    ) -> Result<banzami_pricing::FeeResolution, ApplicationSettlementError>;
+
+    /// The same resolution for any priced operation, read-only. Readiness uses
+    /// it to report the payout rate beside the settlement one.
+    async fn resolve_operation_rate(
+        &self,
+        gross: Money,
+        pricing_profile: Option<&str>,
+        operation: banzami_pricing::PricingOperation,
+    ) -> Result<banzami_pricing::FeeResolution, ApplicationSettlementError>;
+
     /// Create a `CREATED` settlement: resolve the application fee, compute the
     /// net, persist with an immutable pricing snapshot. Idempotent on
     /// `idempotency_key`. No ledger movement yet.
@@ -123,6 +145,50 @@ where
     P: PricingRuleProvider,
     R: ApplicationSettlementRepository,
 {
+    async fn resolve_settlement_fee(
+        &self,
+        gross: Money,
+        pricing_profile: Option<&str>,
+    ) -> Result<banzami_pricing::FeeResolution, ApplicationSettlementError> {
+        self.resolve_operation_rate(gross, pricing_profile, banzami_pricing::PricingOperation::Settlement)
+            .await
+    }
+
+    async fn resolve_operation_rate(
+        &self,
+        gross: Money,
+        pricing_profile: Option<&str>,
+        operation: banzami_pricing::PricingOperation,
+    ) -> Result<banzami_pricing::FeeResolution, ApplicationSettlementError> {
+        // The percentage lives only in pricing_rules; nothing is hard-coded. No
+        // rule => no decision => refused, never priced at zero by accident.
+        let rules = self
+            .pricing
+            .load_rules(&self.environment)
+            .await
+            .map_err(|e| ApplicationSettlementError::Pricing(e.to_string()))?;
+        let ctx = PricingContext {
+            amount_minor: gross.amount_minor(),
+            currency: gross.currency,
+            pricing_profile: pricing_profile.map(PricingProfile::from_code),
+            country: None,
+            // Named explicitly. Before this dimension a settlement and a capture
+            // were the same thing to the resolver, so no rule could price one
+            // without pricing the other.
+            operation: Some(operation),
+            as_of: Utc::now(),
+        };
+        // One operation, one profile, one effective window, exactly one rule.
+        // Three failures stay three failures: nobody said which operation,
+        // nobody configured a rule, or more than one applies.
+        banzami_pricing::resolve_for_operation(&rules, &ctx).map_err(|e| match e {
+            banzami_pricing::PricingFailure::Ambiguous { candidates } => {
+                ApplicationSettlementError::PricingAmbiguous { candidates }
+            }
+            _ => ApplicationSettlementError::PricingNotConfigured,
+        })
+    }
+
     async fn create(
         &self,
         req: CreateApplicationSettlementRequest,
@@ -140,83 +206,24 @@ where
         let currency = req.gross_amount.currency;
 
         // --- Resolve the APPLICATION fee ------------------------------------
-        // ADR-029: two mutually-exclusive paths.
+        // The operator's pricing decision, and nothing else. There used to be a
+        // second path here (ADR-029 "app-defined"): a caller-supplied
+        // application_fee_bps skipped the Pricing Engine entirely and charged
+        // whatever it asked for, up to 50%. A caller cannot set the price of the
+        // service it is buying, so the only rate is the one the profile assigned
+        // to this owner resolves — and it is decided by the same method that
+        // readiness asks, so the two cannot disagree.
         let gross_minor = req.gross_amount.amount_minor();
-        let (fee_minor, snapshot_json, pricing_rule_id, pricing_rule_version, engine_version) =
-            if let Some(bps) = req.application_fee_bps {
-                // APP-DEFINED: the app supplies the rate; the operator validates the
-                // bound and computes the amount. The Pricing Engine is NOT consulted
-                // and pricing references are ignored (the rate is the app's policy).
-                if bps > crate::domain::MAX_APPLICATION_FEE_BPS {
-                    return Err(ApplicationSettlementError::FeeBpsOutOfBounds {
-                        bps,
-                        max: crate::domain::MAX_APPLICATION_FEE_BPS,
-                    });
-                }
-                // floor(gross * bps / 10_000) in i128 to avoid overflow.
-                let fee = ((gross_minor as i128 * bps as i128) / 10_000) as i64;
-                let snapshot = serde_json::json!({
-                    "source": "APP_DEFINED",
-                    "application_fee_bps": bps,
-                    "gross_minor": gross_minor,
-                    "fee_minor": fee,
-                });
-                (fee, snapshot, None, None, 0_i32)
-            } else {
-                // OPERATOR-PRICED: the percentage lives only in pricing_rules;
-                // nothing is hard-coded. No rule => no decision => refused below.
-                let rules = self
-                    .pricing
-                    .load_rules(&self.environment)
-                    .await
-                    .map_err(|e| ApplicationSettlementError::Pricing(e.to_string()))?;
-                let ctx = PricingContext {
-                    amount_minor: gross_minor,
-                    currency,
-                    pricing_profile: req
-                        .pricing_profile
-                        .as_deref()
-                        .map(PricingProfile::from_code),
-                    country: None,
-                    // Named explicitly. This is the dimension the model was
-                    // missing: before it, a settlement and a capture were the
-                    // same thing to the resolver, so no rule could price one
-                    // without pricing the other.
-                    operation: Some(banzami_pricing::PricingOperation::Settlement),
-                    as_of: Utc::now(),
-                };
-                // The deterministic path: one operation, one profile, one
-                // effective window, exactly one rule.
-                //
-                // This used to call `resolve`, which returned a fee of 0 with no
-                // rule id when nothing matched — a number indistinguishable in a
-                // ledger from an operator policy of zero. The refusal was then
-                // reconstructed by the caller from that sentinel. Now the three
-                // outcomes are three outcomes: nobody said which operation,
-                // nobody configured a rule, or more than one applies.
-                let resolution =
-                    banzami_pricing::resolve_for_operation(&rules, &ctx).map_err(|e| match e {
-                        banzami_pricing::PricingFailure::Ambiguous { candidates } => {
-                            ApplicationSettlementError::PricingAmbiguous { candidates }
-                        }
-                        // A settlement always names its operation, so
-                        // OperationNotSpecified would be a bug in this crate
-                        // rather than a configuration state — it is reported as
-                        // "not configured" because from the operator's side
-                        // that is the actionable half.
-                        _ => ApplicationSettlementError::PricingNotConfigured,
-                    })?;
-                let snapshot = serde_json::to_value(&resolution.snapshot).map_err(|e| {
-                    ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))
-                })?;
-                (
-                    resolution.fee_minor,
-                    snapshot,
-                    resolution.snapshot.rule_id,
-                    resolution.snapshot.rule_version,
-                    resolution.snapshot.engine_version as i32,
-                )
-            };
+        let resolution = self
+            .resolve_settlement_fee(req.gross_amount, req.pricing_profile.as_deref())
+            .await?;
+        let snapshot_json = serde_json::to_value(&resolution.snapshot).map_err(|e| {
+            ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))
+        })?;
+        let fee_minor = resolution.fee_minor;
+        let pricing_rule_id = resolution.snapshot.rule_id;
+        let pricing_rule_version = resolution.snapshot.rule_version;
+        let engine_version = resolution.snapshot.engine_version as i32;
 
         if fee_minor > gross_minor {
             return Err(ApplicationSettlementError::FeeExceedsGross {

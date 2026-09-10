@@ -348,17 +348,13 @@ func (c *ProvisionClient) ProvisionSandboxOwner(ctx context.Context, name, email
 		var created struct {
 			ID string `json:"id"`
 		}
-		// The ADR-028 taxonomy is declared, not defaulted. A Developer Project's
-		// Business exists to route value on behalf of an application, which is
-		// what APPLICATION means; the create-time default is MERCHANT, and only
-		// APPLICATION/PLATFORM may be an application-fee destination. Leaving it
-		// to the default made all nine self-service Businesses fail their own
-		// fee-destination check with FEE_DESTINATION_TYPE_NOT_ALLOWED.
-		//
-		// Readiness asserts it again for owners created before this. Both, so a
-		// merchant is never left with the wrong type if readiness does not run.
+		// No business_account_type: the create-time default (MERCHANT) is the
+		// right answer for a self-service Business. Classifying one as an
+		// APPLICATION — permitted to take an application fee — is an operator
+		// decision under ADR-028, made in BANZADMIN and audited, never a side
+		// effect of a developer pressing "configure".
 		if err := c.post(ctx, "/internal/v1/merchants", map[string]any{
-			"name": name, "email": email, "business_account_type": "APPLICATION",
+			"name": name, "email": email,
 		}, &created); err != nil {
 			return nil, err
 		}
