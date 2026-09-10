@@ -58,7 +58,11 @@ function sinkAdmin(path, body) {
   const cmd = body === undefined
     ? `docker exec ${EDGE} curl -s -m 10 '${url}'`
     : `docker exec ${EDGE} curl -s -m 10 -X POST '${url}' -H 'content-type: application/json' -d '${JSON.stringify(body)}'`;
-  const raw = execFileSync('ssh', [HOST, cmd], { encoding: 'utf8', timeout: 40_000 });
+  // --host local: already on the Sandbox host (a harness running there), so
+  // the control plane is one docker exec away rather than an SSH hop.
+  const raw = HOST === 'local'
+    ? execFileSync('sh', ['-c', cmd], { encoding: 'utf8', timeout: 40_000 })
+    : execFileSync('ssh', [HOST, cmd], { encoding: 'utf8', timeout: 40_000 });
   return JSON.parse(raw);
 }
 
