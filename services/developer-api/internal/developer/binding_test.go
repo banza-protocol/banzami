@@ -3,6 +3,7 @@ package developer
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
@@ -76,10 +77,10 @@ func TestBinding_OneActivePerProject(t *testing.T) {
 }
 
 func TestBinding_ConcurrentBindsExactlyOneWins(t *testing.T) {
-	// Two+ concurrent binds on the same project must yield EXACTLY one ACTIVE
-	// binding — no ambiguous authority. The mem store enforces one-active under a
-	// mutex (mirroring the DB partial unique index, which is the production
-	// guarantee: dev_project_sandbox_binding_one_active).
+	// Concurrent binds of DIFFERENT payees on one project must yield EXACTLY one
+	// ACTIVE binding — no ambiguous authority. The mem store enforces one-active
+	// under a mutex (mirroring the DB partial unique index, which is the
+	// production guarantee: dev_project_sandbox_binding_one_active).
 	s, st, ws := boundSvc(t)
 	pid := mkProject(t, s, "u_owner", ws)
 
@@ -88,11 +89,12 @@ func TestBinding_ConcurrentBindsExactlyOneWins(t *testing.T) {
 	var wg sync.WaitGroup
 	for i := 0; i < n; i++ {
 		wg.Add(1)
-		go func() {
+		go func(i int) {
 			defer wg.Done()
-			_, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", "")
+			m := fmt.Sprintf("11111111-1111-1111-1111-%012d", i)
+			_, err := s.BindProjectSandbox(bg, pid, m, wID, waID, "u_owner", "", "")
 			errs <- err
-		}()
+		}(i)
 	}
 	wg.Wait()
 	close(errs)
@@ -113,6 +115,45 @@ func TestBinding_ConcurrentBindsExactlyOneWins(t *testing.T) {
 	// The store holds exactly one ACTIVE binding.
 	if b, _ := st.ActiveBindingForProject(bg, pid); b == nil {
 		t.Fatal("expected exactly one ACTIVE binding after the race")
+	}
+}
+
+func TestBinding_RebindingTheSamePayeeIsTheSameDecision(t *testing.T) {
+	// An approval that bound a Project and lost the answer retries with the
+	// same payee. That is the same decision, not a second authority: every
+	// attempt, concurrent or not, answers with the one binding that exists.
+	s, st, ws := boundSvc(t)
+	pid := mkProject(t, s, "u_owner", ws)
+	const n = 8
+	ids := make(chan string, n)
+	var wg sync.WaitGroup
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			b, err := s.BindProjectSandbox(bg, pid, mID, wID, waID, "u_owner", "", "")
+			if err != nil {
+				t.Errorf("re-binding the same payee: %v", err)
+				return
+			}
+			ids <- b.ID
+		}()
+	}
+	wg.Wait()
+	close(ids)
+	seen := map[string]bool{}
+	for id := range ids {
+		seen[id] = true
+	}
+	if len(seen) != 1 {
+		t.Fatalf("%d distinct bindings for one payee decision", len(seen))
+	}
+	if b, _ := st.ActiveBindingForProject(bg, pid); b == nil || b.MerchantID != mID {
+		t.Fatal("the one binding is not the payee that was bound")
+	}
+	// A DIFFERENT payee is still a conflict.
+	if _, err := s.BindProjectSandbox(bg, pid, "99999999-9999-9999-9999-999999999999", wID, waID, "u_owner", "", ""); err != ErrConflict {
+		t.Fatalf("a different payee: %v", err)
 	}
 }
 
