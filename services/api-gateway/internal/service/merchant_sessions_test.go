@@ -70,6 +70,9 @@ func newSessionFixture(t *testing.T) *sessionFixture {
 func TestBusinessSession_RenewsOnceAndRotates(t *testing.T) {
 	f := newSessionFixture(t)
 	svc := NewPostgresMerchantSessionService(f.pool)
+	// A clock with nanoseconds, as on Linux (CI, the Sandbox): the macOS clock
+	// stops at microseconds and hid a sign-in end that moved on renewal.
+	svc.now = func() time.Time { return time.Now().Add(123 * time.Nanosecond) }
 	first, err := svc.Open(f.ctx, f.merchant, "SANDBOX")
 	if err != nil {
 		t.Fatal(err)

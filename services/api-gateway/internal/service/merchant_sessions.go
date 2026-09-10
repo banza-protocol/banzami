@@ -82,7 +82,10 @@ func (s *PostgresMerchantSessionService) Open(ctx context.Context, merchantID, e
 	if err != nil {
 		return IssuedSession{}, err
 	}
-	expires := s.now().Add(BusinessSessionLifetime)
+	// At the database's precision: timestamptz keeps microseconds, and the end
+	// handed to the app must be the end every renewal reads back. On Linux the
+	// clock has nanoseconds, so an untruncated value "moved" at the first renewal.
+	expires := s.now().Add(BusinessSessionLifetime).Truncate(time.Microsecond)
 	if _, err := s.pool.Exec(ctx,
 		`INSERT INTO merchant_app_sessions (family_id, merchant_id, environment, refresh_token_hash, expires_at)
 		 VALUES ($1, $2, $3, $4, $5)`,
