@@ -108,7 +108,7 @@ pub GET "/v1/webhooks/events?limit=50" - "$KEY"
 chk EVENTS_LISTED "$CODE" 200
 chk EVENTS_NAME_NO_OWNER "$(printf '%s' "$LAST" | grep -c '"merchant_id"')" 0
 EVENTS="$LAST"
-best=""; bestn=0
+best=""; bestn=0; DELIVS=""
 for id in $(printf '%s' "$EVENTS" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const e of (JSON.parse(s).data||[]))console.log(e.id)})'); do
   pub GET "/v1/webhooks/events/$id/deliveries" - "$KEY"
   n=$(jp '(j.data||[]).length')
