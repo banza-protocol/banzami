@@ -8,19 +8,25 @@ import (
 )
 
 func TestFormatAmount(t *testing.T) {
+	// The Banzami money format (docs/architecture/money-engine.md): space
+	// grouping, comma decimals, cêntimos only when present, currency last — the
+	// same text the phone and the verifier print.
 	cases := map[int64]string{
-		2500000:   "Kz 25.000,00",
-		100:       "Kz 1,00",
-		99:        "Kz 0,99",
-		123456789: "Kz 1.234.567,89",
-		0:         "Kz 0,00",
+		200000:    "2 000 Kz",
+		2500000:   "25 000 Kz",
+		5000050:   "50 000,50 Kz",
+		100:       "1 Kz",
+		99:        "0,99 Kz",
+		1:         "0,01 Kz",
+		123456789: "1 234 567,89 Kz",
+		0:         "0 Kz",
 	}
 	for minor, want := range cases {
 		if got := FormatAmount(minor, "AOA"); got != want {
 			t.Errorf("FormatAmount(%d) = %q, want %q", minor, got, want)
 		}
 	}
-	if got := FormatAmount(2500000, "USD"); got != "$ 25.000,00" {
+	if got := FormatAmount(2500000, "USD"); got != "25 000 USD" {
 		t.Errorf("USD format = %q", got)
 	}
 }
@@ -52,7 +58,7 @@ func TestPerspectiveLabels(t *testing.T) {
 		t.Error("admin: wrong doc label")
 	}
 	for name, html := range map[string]string{"consumer": consumer, "merchant": merchant, "admin": admin} {
-		for _, must := range []string{"Kz 25.000,00", "@joaomanuel", "@mercadocentral", "BZM-7F3A-92K1", "Confirmado", "Banzami"} {
+		for _, must := range []string{"25 000 Kz", "@joaomanuel", "@mercadocentral", "BZM-7F3A-92K1", "Confirmado", "Banzami"} {
 			if !strings.Contains(html, must) {
 				t.Errorf("%s: missing %q", name, must)
 			}
@@ -197,5 +203,92 @@ func TestRenderHTML_DescriptionIsVerbatimAndInert(t *testing.T) {
 	escaped := htmltemplate.HTMLEscapeString(desc)
 	if !strings.Contains(html, escaped) {
 		t.Fatalf("the receipt does not print the description verbatim; want %q", escaped)
+	}
+}
+
+// ── Operation-aware receipts ────────────────────────────────────────────────
+
+func paymentReceipt() Receipt {
+	at := time.Date(2026, 9, 10, 19, 13, 27, 0, time.UTC)
+	return Receipt{
+		ProofReference: "BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T",
+		OperationKind:  OperationPayment, Channel: ChannelPaymentLink, FundingSource: FundingBanzamiBalance,
+		Status: "CONFIRMED", AmountMinor: 200000, Currency: "AOA",
+		Payer:             Party{Kind: PartyPerson, DisplayName: "Fidel Monteiro", Handle: "fm65"},
+		Payee:             Party{Kind: PartyBusiness, DisplayName: "Doa", Handle: "doa"},
+		MerchantReference: "DOA-55791091",
+		DisplayContext:    "Vaquinha · Jornada economica fresca",
+		ConfirmedAt:       &at, Environment: "SANDBOX", Network: "BANZA", Operator: "Banzami",
+		TransactionID: "0056ead5-76b4-4831-afa3-6e4061b2095c",
+	}
+}
+
+func TestPaymentReceiptSaysPayment(t *testing.T) {
+	html, err := RenderHTML(ReceiptDataFromReceipt(paymentReceipt(), PerspectiveConsumer))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, must := range []string{
+		"Comprovativo de pagamento", "Pagamento confirmado", "Valor pago", "2 000 Kz",
+		"Fidel Monteiro", "@fm65", ">Doa<", "@doa",
+		"Referência do comprovativo", "BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T",
+		"Pagamento · Link de pagamento", "Saldo Banzami",
+		"Referência do comerciante", "DOA-55791091", "Finalidade", "Vaquinha · Jornada economica fresca",
+		// 19:13 UTC is 20:13 in Luanda, and the document says which clock it is.
+		"10 set 2026, 20:13 (WAT)",
+	} {
+		if !strings.Contains(html, must) {
+			t.Errorf("payment receipt missing %q", must)
+		}
+	}
+	for _, bad := range []string{
+		"Comprovativo de transferência", "liquidado", "liquidação", "Liquidação",
+		"Transferência Banzami · @banza", "Método", "Payment link:", "Sandbox · Doa-Sandbox",
+		"0056ead5", "0056EAD5", // the operation id is not a receipt reference
+		"Kz 2.000,00",
+	} {
+		if strings.Contains(html, bad) {
+			t.Errorf("payment receipt must not contain %q", bad)
+		}
+	}
+}
+
+func TestTransferReceiptStaysTransfer(t *testing.T) {
+	r := paymentReceipt()
+	r.OperationKind, r.Channel = OperationP2PTransfer, ChannelHandle
+	r.Payee = Party{Kind: PartyPerson, DisplayName: "Ana Silva", Handle: "ana"}
+	r.MerchantReference, r.DisplayContext, r.Description = "", "", "jantar"
+	html, err := RenderHTML(ReceiptDataFromReceipt(r, PerspectiveConsumer))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, must := range []string{"Comprovativo de transferência", "Transferência confirmada", "Valor transferido",
+		"Transferência · Endereço @banza", "Descrição", "jantar", "@ana"} {
+		if !strings.Contains(html, must) {
+			t.Errorf("transfer receipt missing %q", must)
+		}
+	}
+	for _, bad := range []string{"Comprovativo de pagamento", "Referência do comerciante", "Finalidade", "liquid"} {
+		if strings.Contains(html, bad) {
+			t.Errorf("transfer receipt must not contain %q", bad)
+		}
+	}
+}
+
+func TestOptionalRowsAreOmittedNotDashed(t *testing.T) {
+	r := paymentReceipt()
+	r.MerchantReference, r.DisplayContext, r.Description = "", "", ""
+	html, _ := RenderHTML(ReceiptDataFromReceipt(r, PerspectiveConsumer))
+	for _, bad := range []string{"Referência do comerciante", "Finalidade", ">Descrição<"} {
+		if strings.Contains(html, bad) {
+			t.Errorf("an absent optional field rendered as %q", bad)
+		}
+	}
+}
+
+func TestBusinessCopyOfAPayment(t *testing.T) {
+	html, _ := RenderHTML(ReceiptDataFromReceipt(paymentReceipt(), PerspectiveMerchant))
+	if !strings.Contains(html, "Comprovativo de pagamento recebido") || !strings.Contains(html, "Valor recebido") {
+		t.Error("the Business's copy must say it received a payment")
 	}
 }

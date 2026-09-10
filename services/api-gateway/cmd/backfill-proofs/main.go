@@ -26,6 +26,17 @@
 //	  <gateway-image> /usr/local/bin/backfill-proofs [-apply]
 //
 // Without -apply it reports what it would do and writes nothing.
+//
+// -correct-semantics completes the display snapshot of proofs issued before
+// migration 0125 (operation kind, channel, funding source) and fixes what the
+// old receipt path got wrong by construction — the empty payee of a
+// payment-link payment, the generated "Payment link: <slug>" description, the
+// method line that mixed channel, namespace and network. It derives every
+// value from the ledger's records through service.ReceiptSemantics — the same
+// derivation new proofs use — and records each change, with the hash and
+// signature the proof carried before, in transaction_proof_corrections. The
+// reference, amount, currency and instants are never touched. A proof whose
+// source cannot be classified is reported, not guessed.
 package main
 
 import (
@@ -94,6 +105,7 @@ type outcome struct{ materialised, skipped, failed int }
 
 func main() {
 	apply := flag.Bool("apply", false, "write the proofs; without it, report only")
+	correct := flag.Bool("correct-semantics", false, "complete/correct the display snapshot of existing proofs instead of materialising missing ones")
 	flag.Parse()
 
 	ctx := context.Background()
@@ -132,6 +144,10 @@ func main() {
 	svc := service.NewProofService(pool, signingKey,
 		os.Getenv("BZM_PROOF_KEY_ID"), os.Getenv("BZM_OPERATOR_ID"),
 		os.Getenv("BZM_NETWORK"), os.Getenv("BZM_PROOF_PUBLIC_BASE"))
+
+	if *correct {
+		os.Exit(correctSemantics(ctx, pool, svc, *apply))
+	}
 
 	total := outcome{}
 	// env.SandboxName, not the string on the row: platform_mode is the authority
@@ -252,6 +268,83 @@ func run(ctx context.Context, pool *pgxpool.Pool, svc *service.ProofService,
 		}
 	}
 	return out
+}
+
+// correctSemantics completes every Sandbox proof that has no operation kind.
+// Returns the process exit code.
+func correctSemantics(ctx context.Context, pool *pgxpool.Pool, svc *service.ProofService, apply bool) int {
+	sem := service.NewReceiptSemantics(pool, svc)
+	rows, err := pool.Query(ctx, `
+		SELECT p.id::text, p.transaction_id, p.environment,
+		       EXISTS (SELECT 1 FROM transfers t WHERE t.id::text = p.transaction_id),
+		       EXISTS (SELECT 1 FROM wallet_payments wp WHERE wp.id::text = p.transaction_id)
+		  FROM transaction_proofs p
+		 WHERE p.operation_kind IS NULL AND p.environment = $1
+		 ORDER BY p.issued_at`, env.SandboxName)
+	if err != nil {
+		fatal("proofs: %v", err)
+	}
+	type item struct {
+		proofID, txn, environment string
+		transfer, walletPayment   bool
+	}
+	var items []item
+	for rows.Next() {
+		var it item
+		if err := rows.Scan(&it.proofID, &it.txn, &it.environment, &it.transfer, &it.walletPayment); err != nil {
+			fatal("proofs: %v", err)
+		}
+		items = append(items, it)
+	}
+	rows.Close()
+
+	var corrected, undeterminable, failed int
+	kinds := map[string]int{}
+	fmt.Printf("proofs without semantics: %d\n", len(items))
+	for _, it := range items {
+		var derived service.ProofInput
+		var derr error
+		switch {
+		case it.transfer && !it.walletPayment:
+			derived, derr = sem.ForTransfer(ctx, it.txn, it.environment)
+		case it.walletPayment && !it.transfer:
+			derived, derr = sem.ForWalletPayment(ctx, it.txn)
+		default:
+			derr = service.ErrReceiptUndeterminable
+		}
+		if derr != nil {
+			// Reported by proof id only: a proof reference is a bearer capability.
+			undeterminable++
+			fmt.Printf("  UNDETERMINABLE proof %s: %v\n", it.proofID, derr)
+			continue
+		}
+		kinds[derived.OperationKind+"/"+derived.Channel]++
+		if !apply {
+			corrected++
+			fmt.Printf("  would complete proof %s → %s/%s payee=@%s\n", it.proofID, derived.OperationKind, derived.Channel, derived.PayeeHandle)
+			continue
+		}
+		p, err := svc.GetByTransaction(ctx, it.txn, it.environment)
+		if err == nil {
+			_, err = svc.CorrectSemantics(ctx, p, derived, service.SemanticsCorrectionBatch)
+		}
+		if err != nil {
+			failed++
+			slog.Error("could not complete proof", "proof_id", it.proofID, "error", err)
+			continue
+		}
+		corrected++
+		fmt.Printf("  completed proof %s → %s/%s payee=@%s\n", it.proofID, derived.OperationKind, derived.Channel, derived.PayeeHandle)
+	}
+	verb := "would complete"
+	if apply {
+		verb = "completed"
+	}
+	fmt.Printf("\n%s %d, undeterminable %d, failed %d, by kind %v\n", verb, corrected, undeterminable, failed, kinds)
+	if failed > 0 {
+		return 1
+	}
+	return 0
 }
 
 func (o *outcome) add(other outcome) {

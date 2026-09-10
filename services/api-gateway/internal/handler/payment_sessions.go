@@ -190,6 +190,16 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// The two metadata keys a receipt renders — the Business's own reference and
+	// the payment's public context — are checked here, where the Business can fix
+	// them, instead of being dropped silently on a receipt. They describe the
+	// payment; who is paid is never read from a caller (receipt_semantics.go).
+	if _, _, err := service.MerchantContextFromMetadata(body.Metadata); err != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_METADATA",
+			"metadata.merchant_reference must be at most 64 letters, digits, spaces or - _ . / # : and metadata.display_context at most 120 printable characters without < > @ or links")
+		return
+	}
+
 	// Payee: from the binding for a developer key; from the (owner-validated) body
 	// for a merchant JWT.
 	walletAccountID := body.WalletAccountID

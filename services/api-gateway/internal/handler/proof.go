@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -9,12 +10,12 @@ import (
 	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	documents "github.com/banzami/banzami/services/common/documents"
 )
 
 // ProofHandler serves the PUBLIC transaction-proof verification (BANZA ADR-023).
@@ -22,12 +23,23 @@ import (
 // ids, emails, phones, ledger internals, signatures or KYC/KYB data. Every lookup
 // is recorded as a verification event (hashed ip/ua only).
 type ProofHandler struct {
-	svc  *service.ProofService
-	salt string // salts the ip/ua hashes so raw values are never stored
+	svc       *service.ProofService
+	semantics receiptIssuer
+	salt      string // salts the ip/ua hashes so raw values are never stored
+}
+
+// receiptIssuer is the operator's one derivation of a receipt
+// (service.ReceiptSemantics).
+type receiptIssuer interface {
+	TransferReceipt(ctx context.Context, transferID, environment string, issue bool) (documents.Receipt, error)
 }
 
 func NewProofHandler(svc *service.ProofService, salt string) *ProofHandler {
-	return &ProofHandler{svc: svc, salt: salt}
+	h := &ProofHandler{svc: svc, salt: salt}
+	if svc != nil {
+		h.semantics = service.NewReceiptSemantics(svc.Pool(), svc)
+	}
+	return h
 }
 
 func (h *ProofHandler) hash(v string) string {
@@ -99,59 +111,80 @@ func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, h.svc.Public(proof))
 }
 
-// POST /internal/v1/proofs/ensure — INTERNAL (admin-api / public-api only, behind
-// InternalAuth). Idempotently ensures the verifiable transaction proof and returns
-// its public reference. The gateway owns proof generation (it holds the signing
-// key + hash salt), so other services ask it to mint the reference rather than
-// duplicating the logic — e.g. public-api when it serves a consumer receipt so the
-// printed QR resolves at banzami.com/r/<ref> (ADR-040).
+// POST /internal/v1/proofs/ensure — INTERNAL (public-api, behind InternalAuth).
+// Idempotently establishes the proof of a TRANSFER and returns its public
+// reference.
+//
+// The body used to carry the whole proof — both parties' names and handles,
+// the description, the method — and the gateway minted whatever it was given.
+// That is how a payment-link payment to @doa was proven with an empty payee: the
+// caller assumed a consumer recipient. Only the transaction id and environment
+// are read now; everything else is derived here, from the ledger's records
+// (service.ReceiptSemantics). Kept for callers that only need the reference;
+// /internal/v1/receipts/transfer returns the whole receipt.
 func (h *ProofHandler) EnsureProof(w http.ResponseWriter, r *http.Request) {
-	if h.svc == nil {
+	if h.svc == nil || h.semantics == nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "proofs unavailable"})
 		return
 	}
 	var in struct {
-		TransactionID    string     `json:"transaction_id"`
-		TransferID       string     `json:"transfer_id"`
-		PaymentIntentID  string     `json:"payment_intent_id"`
-		Environment      string     `json:"environment"`
-		PayerSubjectType string     `json:"payer_subject_type"`
-		PayerSubjectID   string     `json:"payer_subject_id"`
-		PayerDisplayName string     `json:"payer_display_name"`
-		PayerHandle      string     `json:"payer_handle"`
-		PayeeSubjectType string     `json:"payee_subject_type"`
-		PayeeSubjectID   string     `json:"payee_subject_id"`
-		PayeeDisplayName string     `json:"payee_display_name"`
-		PayeeHandle      string     `json:"payee_handle"`
-		AmountMinor      int64      `json:"amount_minor"`
-		Currency         string     `json:"currency"`
-		Status           string     `json:"status"`
-		Description      string     `json:"description"`
-		Method           string     `json:"method"`
-		LedgerReference  string     `json:"ledger_reference"`
-		ConfirmedAt      *time.Time `json:"confirmed_at"`
+		TransactionID string `json:"transaction_id"`
+		Environment   string `json:"environment"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.TransactionID == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "transaction_id is required"})
 		return
 	}
-	proof, err := h.svc.Ensure(r.Context(), service.ProofInput{
-		TransactionID: in.TransactionID, TransferID: in.TransferID, PaymentIntentID: in.PaymentIntentID,
-		Environment:      in.Environment,
-		PayerSubjectType: in.PayerSubjectType, PayerSubjectID: in.PayerSubjectID, PayerDisplayName: in.PayerDisplayName, PayerHandle: in.PayerHandle,
-		PayeeSubjectType: in.PayeeSubjectType, PayeeSubjectID: in.PayeeSubjectID, PayeeDisplayName: in.PayeeDisplayName, PayeeHandle: in.PayeeHandle,
-		AmountMinor: in.AmountMinor, Currency: in.Currency, Status: in.Status, Description: in.Description,
-		Method: in.Method, LedgerReference: in.LedgerReference, ConfirmedAt: in.ConfirmedAt,
-	})
-	if errors.Is(err, service.ErrProofEnvironmentRequired) {
+	rec, ok := h.issue(w, r, in.TransactionID, in.Environment, true)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"proof_reference": rec.ProofReference})
+}
+
+// POST /internal/v1/receipts/transfer — INTERNAL (public-api, admin-api).
+// {transaction_id, environment, issue}. Returns the canonical receipt of a
+// transfer: who paid whom, what the operation was, its proof reference. issue
+// establishes the proof (a party asking for its receipt); without it nothing
+// is written (an operator reading one).
+func (h *ProofHandler) TransferReceipt(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil || h.semantics == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "receipts unavailable"})
+		return
+	}
+	var in struct {
+		TransactionID string `json:"transaction_id"`
+		Environment   string `json:"environment"`
+		Issue         bool   `json:"issue"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.TransactionID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "transaction_id is required"})
+		return
+	}
+	rec, ok := h.issue(w, r, in.TransactionID, in.Environment, in.Issue)
+	if !ok {
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"receipt": rec})
+}
+
+func (h *ProofHandler) issue(w http.ResponseWriter, r *http.Request, id, env string, issue bool) (documents.Receipt, bool) {
+	rec, err := h.semantics.TransferReceipt(r.Context(), id, env, issue)
+	switch {
+	case err == nil:
+		return rec, true
+	case errors.Is(err, service.ErrProofEnvironmentRequired):
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "environment must be SANDBOX or LIVE"})
-		return
+	case errors.Is(err, service.ErrReceiptSourceNotFound):
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "no such transfer in this environment"})
+	case errors.Is(err, service.ErrReceiptUndeterminable):
+		slog.ErrorContext(r.Context(), "receipt.undeterminable", "transfer_id", id)
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{"error": "the transfer's recipient cannot be determined"})
+	default:
+		slog.ErrorContext(r.Context(), "receipt.failed", "transfer_id", id, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not establish the receipt"})
 	}
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not ensure proof"})
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"proof_reference": proof.ProofReference})
+	return documents.Receipt{}, false
 }
 
 // POST /internal/v1/proofs/reverse — INTERNAL (behind InternalAuth). Proactively

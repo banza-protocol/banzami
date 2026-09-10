@@ -23,17 +23,17 @@
   .logo { width:46px; height:46px; border-radius:14px; background:#B5101F; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 8px 18px -6px rgba(181,16,31,.55); }
   .hero { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:34px 0 0; }
   .badge { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:30px; background:#FFF1F0; color:#9A1B22; font-weight:800; font-size:12.5px; margin-bottom:16px; }
-  .amount { font-size:52px; font-weight:900; letter-spacing:-.03em; color:#B5101F; line-height:1; margin-top:4px; }
+  .amount { font-size:52px; font-weight:900; letter-spacing:-.03em; color:#B5101F; line-height:1; margin-top:4px; white-space:nowrap; }
   .verify { flex:none; width:122px; border-radius:18px; border:1.5px solid #f2e7e7; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; padding:11px 10px; }
   /* The canonical QR Engine SVG carries an intrinsic px size; scale it to the box. */
   .verify svg { width:100%; height:100%; display:block; }
   .parties { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:38px 0 0; }
   .party { border:1.5px solid #f2e7e7; border-radius:16px; padding:20px 22px; }
   .details { margin:24px 0 0; border:1.5px solid #f2e7e7; border-radius:16px; overflow:hidden; }
-  .drow { display:flex; align-items:center; justify-content:space-between; padding:15px 22px; border-bottom:1px solid #f4ebeb; }
+  .drow { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:12px 22px; border-bottom:1px solid #f4ebeb; }
   .drow:last-child { border-bottom:0; }
-  .dlabel { font-size:14px; font-weight:700; color:#9a8a8e; }
-  .dvalue { font-size:14px; font-weight:800; color:#221c1e; }
+  .dlabel { flex:none; font-size:14px; font-weight:700; color:#9a8a8e; }
+  .dvalue { font-size:14px; font-weight:800; color:#221c1e; text-align:right; overflow-wrap:anywhere; }
   .note { margin:22px 0 0; display:flex; gap:12px; align-items:flex-start; padding:16px 20px; border-radius:14px; background:#FFF7F6; border:1px solid #F3DBDB; }
   .footer { margin-top:34px; padding-top:22px; border-top:1.5px solid #f2e7e7; }
 </style>
@@ -64,9 +64,9 @@
       <div class="hero">
         <div>
           <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#B5101F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>{{.HeroBadge}}</span>
-          <div style="font-size:13.5px;font-weight:700;color:#9a8a8e">Valor transferido</div>
+          <div style="font-size:13.5px;font-weight:700;color:#9a8a8e">{{.AmountCaption}}</div>
           <div class="amount">{{.AmountText}}</div>
-          <div style="font-size:13.5px;font-weight:600;color:#7a6a6e;margin-top:10px">{{if .AmountWords}}{{.AmountWords}} · {{end}}liquidado em segundos dentro da rede</div>
+          <div style="font-size:13.5px;font-weight:600;color:#7a6a6e;margin-top:10px">{{if .AmountWords}}{{.AmountWords}} · {{end}}{{.HeroLine}}</div>
         </div>
         <div class="verify">
           <a href="{{.VerifyURL}}" style="display:block;width:82px;height:82px">{{.QRSVG}}</a>
@@ -91,10 +91,14 @@
 
       <!-- DETAILS -->
       <div class="details">
-        <div class="drow"><span class="dlabel">Referência da transação</span><span class="dvalue mono"><a href="{{.VerifyURL}}">{{.Reference}}</a></span></div>
+        {{if .Reference}}<div class="drow"><span class="dlabel">Referência do comprovativo</span><span class="dvalue mono"><a href="{{.VerifyURL}}">{{.Reference}}</a></span></div>{{end}}
         <div class="drow"><span class="dlabel">Data e hora</span><span class="dvalue">{{.DateTime}}</span></div>
-        <div class="drow"><span class="dlabel">Método</span><span class="dvalue">{{.Method}}</span></div>
-        <div class="drow"><span class="dlabel">Descrição</span><span class="dvalue">{{.Description}}</span></div>
+        {{if .Operation}}<div class="drow"><span class="dlabel">Operação</span><span class="dvalue">{{.Operation}}</span></div>{{end}}
+        {{if .Funding}}<div class="drow"><span class="dlabel">Fonte</span><span class="dvalue">{{.Funding}}</span></div>{{end}}
+        {{if .Method}}<div class="drow"><span class="dlabel">Método</span><span class="dvalue">{{.Method}}</span></div>{{end}}
+        {{if .MerchantReference}}<div class="drow"><span class="dlabel">Referência do comerciante</span><span class="dvalue mono">{{.MerchantReference}}</span></div>{{end}}
+        {{if .DisplayContext}}<div class="drow"><span class="dlabel">Finalidade</span><span class="dvalue">{{.DisplayContext}}</span></div>{{end}}
+        {{if .Description}}<div class="drow"><span class="dlabel">Descrição</span><span class="dvalue">{{.Description}}</span></div>{{end}}
         <div class="drow"><span class="dlabel">Estado</span><span class="dvalue" style="display:inline-flex;align-items:center;gap:7px;color:#1a7a3e"><span style="width:8px;height:8px;border-radius:50%;background:#22a35a"></span>{{.State}}</span></div>
       </div>
 
@@ -109,7 +113,7 @@
       <!-- FOOTER -->
       <div class="footer">
         {{if .IsSandbox}}<p style="margin:0 0 10px;font-size:11.5px;font-weight:800;color:#B5101F">SANDBOX · Ambiente de testes — sem valor financeiro real.</p>{{end}}
-        <p style="margin:0 0 12px;font-size:11.5px;line-height:1.6;font-weight:600;color:#a8979b">A liquidação descrita é uma transferência de carteira para carteira dentro da rede Banzami, em Kwanza. Este documento serve como comprovativo da transação e dispensa o envio de capturas de ecrã. O Banzami é construído sobre o protocolo aberto BANZA.</p>
+        <p style="margin:0 0 12px;font-size:11.5px;line-height:1.6;font-weight:600;color:#a8979b">{{.FooterLine}} Este documento serve como comprovativo da transação e dispensa o envio de capturas de ecrã. O Banzami é construído sobre o protocolo aberto BANZA.</p>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
           <div style="font-size:12.5px;font-weight:800;color:#221c1e">Banzami</div>
           <div class="mono" style="font-size:12.5px;font-weight:600;color:#9a8a8e"><a href="mailto:contact@banzami.com">contact@banzami.com</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://banzami.com">banzami.com</a></div>

@@ -160,7 +160,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	wltHandler := handler.NewWalletHandler(deps.WalletSvc)
 	payoutHandler := handler.NewPayoutHandler(deps.PayoutSvc, deps.ComplianceSvc)
 	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
-	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ConsumerSvc, deps.MerchantSvc, deps.ProofSvc)
+	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ProofSvc)
 	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
 	// consumerWltHandler is intentionally not constructed — the
 	// /v1/consumer-wallets group is unmounted (RA-058).
@@ -254,6 +254,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		r.Use(middleware.InternalAuth(cfg.InternalAPIKey))
 		// Idempotent proof minting for services that render receipts (public-api).
 		r.Post("/internal/v1/proofs/ensure", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).EnsureProof)
+		r.Post("/internal/v1/receipts/transfer", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).TransferReceipt)
 		// Proactive proof reversal — admin-api on dispute WON_BY_CONSUMER (and any
 		// future core reversal event). Flips the public proof to REVERSED.
 		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)

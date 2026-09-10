@@ -63,9 +63,22 @@ type ReceiptData struct {
 	RecipientName, RecipientHandle string
 	MerchantName, MerchantHandle   string
 
-	PaymentMethod string // e.g. "Pagamento por QR · @banza"
-	Description   string
-	Environment   string // LIVE, SANDBOX
+	// What the operation was, how it started and where the money came from
+	// (receipt_semantics.go). Empty only on a document built outside the
+	// canonical receipt, which then keeps the legacy perspective wording.
+	OperationKind string
+	Channel       string
+	FundingSource string
+
+	// PaymentMethod is the legacy free-text method line. Ignored when
+	// OperationKind is set: the channel and funding rows say it precisely.
+	PaymentMethod string
+	// The Business's own reference and public context for a payment — display
+	// only, validated by the operator, never financial authority.
+	MerchantReference string
+	DisplayContext    string
+	Description       string
+	Environment       string // LIVE, SANDBOX
 
 	VerificationReference string // e.g. banzami.com/r/<ref>
 }
@@ -73,10 +86,14 @@ type ReceiptData struct {
 // receiptView is the flat struct the template consumes.
 type receiptView struct {
 	DocLabel, HeroBadge                    string
+	AmountCaption, HeroLine, FooterLine    string
 	Reference, IssuedDate                  string
 	AmountText, AmountWords                string
 	FromName, FromHandle, ToName, ToHandle string
-	DateTime, Method, Description, State   string
+	DateTime, Description, State           string
+	Operation, Funding                     string // "Pagamento · Link de pagamento", "Saldo Banzami"
+	Method                                 string // legacy documents only
+	MerchantReference, DisplayContext      string
 	VerifyShort                            string
 	VerifyURL                              string        // full https URL the QR encodes
 	QRSVG                                  template.HTML // inline SVG of the QR
@@ -156,7 +173,11 @@ func atHandle(h string) string {
 	return "@" + h
 }
 
-// FormatAmount renders minor units as official receipt text (e.g. "Kz 25.000,00").
+// FormatAmount renders minor units in the Banzami money format used on every
+// surface (docs/architecture/money-engine.md): thousands grouped with a space,
+// comma for decimals, cêntimos only when present, the currency last —
+// 200000 → "2 000 Kz", 5000050 → "50 000,50 Kz". The phone and the verifier
+// print the same amount the same way.
 func FormatAmount(amountMinor int64, currency string) string {
 	cur := strings.ToUpper(strings.TrimSpace(currency))
 	neg := amountMinor < 0
@@ -166,42 +187,68 @@ func FormatAmount(amountMinor int64, currency string) string {
 	whole := amountMinor / 100
 	cents := amountMinor % 100
 
-	// thousands grouping with '.' (pt-PT)
 	ws := strconv.FormatInt(whole, 10)
 	var grouped strings.Builder
 	for i, c := range ws {
 		if i > 0 && (len(ws)-i)%3 == 0 {
-			grouped.WriteByte('.')
+			grouped.WriteByte(' ')
 		}
 		grouped.WriteRune(c)
 	}
-	num := fmt.Sprintf("%s,%02d", grouped.String(), cents)
+	num := grouped.String()
+	if cents != 0 {
+		num = fmt.Sprintf("%s,%02d", num, cents)
+	}
 	if neg {
 		num = "-" + num
 	}
 	switch cur {
 	case "AOA", "":
-		return "Kz " + num
-	case "USD":
-		return "$ " + num
-	case "EUR":
-		return "€ " + num
+		return num + " Kz"
 	default:
-		return cur + " " + num
+		return num + " " + cur
+	}
+}
+
+// operationCopy is every sentence that depends on what the operation was. A
+// payment is never called a settlement ("liquidação" is its own operation) and
+// a transfer is never called a payment.
+type operationCopy struct {
+	docLabel, heroBadge, amountCaption, heroLine, footerLine string
+}
+
+func copyFor(kind string, perspective Perspective) operationCopy {
+	switch {
+	case kind == OperationPayment && perspective == PerspectiveMerchant:
+		return operationCopy{"Comprovativo de pagamento recebido", "Pagamento recebido", "Valor recebido",
+			"Pagamento confirmado na rede Banzami",
+			"O pagamento descrito foi debitado do saldo Banzami do pagador e creditado ao destinatário indicado, dentro da rede Banzami, em Kwanza."}
+	case kind == OperationPayment:
+		return operationCopy{"Comprovativo de pagamento", "Pagamento confirmado", "Valor pago",
+			"Pagamento confirmado na rede Banzami",
+			"O pagamento descrito foi debitado do saldo Banzami do pagador e creditado ao destinatário indicado, dentro da rede Banzami, em Kwanza."}
+	case kind == OperationP2PTransfer:
+		return operationCopy{"Comprovativo de transferência", "Transferência confirmada", "Valor transferido",
+			"Transferência confirmada na rede Banzami",
+			"A transferência descrita é uma transferência de carteira para carteira dentro da rede Banzami, em Kwanza."}
+	case perspective == PerspectiveMerchant:
+		// A document built outside the canonical receipt (no operation kind).
+		return operationCopy{"Comprovativo de pagamento recebido", "Pagamento recebido", "Valor recebido",
+			"Confirmado na rede Banzami",
+			"A operação descrita foi registada dentro da rede Banzami, em Kwanza."}
+	default:
+		return operationCopy{"Comprovativo de transferência", "Transferência confirmada", "Valor transferido",
+			"Confirmado na rede Banzami",
+			"A operação descrita foi registada dentro da rede Banzami, em Kwanza."}
 	}
 }
 
 func toView(d ReceiptData) receiptView {
-	docLabel := "Comprovativo de transferência"
-	heroBadge := "Transferência confirmada"
-	if d.Perspective == PerspectiveMerchant {
-		docLabel = "Comprovativo de pagamento recebido"
-		heroBadge = "Pagamento recebido"
-	}
+	c := copyFor(d.OperationKind, d.Perspective)
 
 	to := d.RecipientName
 	toHandle := d.RecipientHandle
-	if d.Perspective == PerspectiveMerchant || (to == "" && d.MerchantName != "") {
+	if d.OperationKind == "" && (d.Perspective == PerspectiveMerchant || (to == "" && d.MerchantName != "")) {
 		to = d.MerchantName
 		toHandle = d.MerchantHandle
 	}
@@ -214,17 +261,28 @@ func toView(d ReceiptData) receiptView {
 	if issued.IsZero() {
 		issued = when
 	}
-	method := strings.TrimSpace(d.PaymentMethod)
-	if method == "" {
-		method = "Carteira Banzami"
+	// Operation rows. A canonical receipt says the operation, the channel and
+	// the funding source separately; a legacy document keeps its method line.
+	operation, funding, method := "", "", ""
+	if d.OperationKind != "" {
+		operation = OperationLabel(d.OperationKind)
+		if ch := ChannelLabel(d.Channel); ch != "" {
+			operation += " · " + ch
+		}
+		funding = FundingLabel(d.FundingSource)
+	} else {
+		method = strings.TrimSpace(d.PaymentMethod)
+		if method == "" {
+			method = "Carteira Banzami"
+		}
 	}
 	// The description is printed exactly as it was written, stored and proven —
 	// not trimmed. The public proof and the verification page carry it verbatim,
 	// so a renderer that edits it is a document that disagrees with its own
-	// proof. Only a description with no visible content falls back to the dash.
+	// proof. A description with no visible content is left out, not dashed.
 	desc := d.Description
 	if strings.TrimSpace(desc) == "" {
-		desc = "—"
+		desc = ""
 	}
 	// A receipt may only advertise verification when it HAS a proof reference.
 	//
@@ -244,22 +302,29 @@ func toView(d ReceiptData) receiptView {
 	}
 
 	return receiptView{
-		DocLabel:    docLabel,
-		HeroBadge:   heroBadge,
-		Reference:   d.Reference,
-		IssuedDate:  fmtDatePT(issued),
-		AmountText:  FormatAmount(d.AmountMinor, d.Currency),
-		AmountWords: strings.TrimSpace(d.AmountWords),
-		FromName:    d.PayerName,
-		FromHandle:  atHandle(d.PayerHandle),
-		ToName:      to,
-		ToHandle:    atHandle(toHandle),
-		DateTime:    fmtDateTimePT(when),
-		Method:      method,
-		Description: desc,
-		State:       statePT(d.Status),
-		VerifyShort: verify,
-		VerifyURL:   qrURL,
+		DocLabel:          c.docLabel,
+		HeroBadge:         c.heroBadge,
+		AmountCaption:     c.amountCaption,
+		HeroLine:          c.heroLine,
+		FooterLine:        c.footerLine,
+		Operation:         operation,
+		Funding:           funding,
+		MerchantReference: strings.TrimSpace(d.MerchantReference),
+		DisplayContext:    strings.TrimSpace(d.DisplayContext),
+		Reference:         d.Reference,
+		IssuedDate:        fmtDatePT(issued),
+		AmountText:        FormatAmount(d.AmountMinor, d.Currency),
+		AmountWords:       strings.TrimSpace(d.AmountWords),
+		FromName:          d.PayerName,
+		FromHandle:        atHandle(d.PayerHandle),
+		ToName:            to,
+		ToHandle:          atHandle(toHandle),
+		DateTime:          fmtDateTimePT(when),
+		Method:            method,
+		Description:       desc,
+		State:             statePT(d.Status),
+		VerifyShort:       verify,
+		VerifyURL:         qrURL,
 		QRSVG: func() template.HTML {
 			if qrURL == "" {
 				return ""

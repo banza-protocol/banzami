@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	documents "github.com/banzami/banzami/services/common/documents"
 	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
@@ -76,6 +77,10 @@ func NewProofService(pool *pgxpool.Pool, signingKey, keyID, operatorID, network,
 	}
 }
 
+// Pool is the database the proofs live in — for services that derive their
+// input from the same records (ReceiptSemantics).
+func (s *ProofService) Pool() *pgxpool.Pool { return s.pool }
+
 // ProofInput is the operator-side data used to materialize a proof. It comes from
 // a real, confirmed transaction (wallet payment / transfer).
 type ProofInput struct {
@@ -98,6 +103,13 @@ type ProofInput struct {
 	Method           string
 	LedgerReference  string
 	ConfirmedAt      *time.Time
+	// The display snapshot's semantics (receipt_semantics.go): derived by the
+	// operator from the ledger recipient, never taken from a caller.
+	OperationKind     string
+	Channel           string
+	FundingSource     string
+	MerchantReference string
+	DisplayContext    string
 }
 
 type Proof struct {
@@ -116,6 +128,12 @@ type Proof struct {
 	Status            string
 	Description       string
 	Method            string
+	OperationKind     string
+	Channel           string
+	FundingSource     string
+	MerchantReference string
+	DisplayContext    string
+	LedgerReference   string
 	ProofHash         string
 	SignatureKeyID    string
 	SignatureAlg      string
@@ -417,8 +435,9 @@ func (s *ProofService) ensureWith(
 		   payer_subject_type, payer_subject_id, payer_display_name, payer_handle,
 		   payee_subject_type, payee_subject_id, payee_display_name, payee_handle,
 		   amount_minor, currency, status, description, method, ledger_reference,
-		   proof_hash, signature_key_id, signature_algorithm, signature_value, confirmed_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
+		   proof_hash, signature_key_id, signature_algorithm, signature_value, confirmed_at,
+		   operation_kind, channel, funding_source, merchant_reference, display_context)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
 		ON CONFLICT (transaction_id, environment) DO NOTHING`
 
 	for attempt := 1; ; attempt++ {
@@ -432,7 +451,8 @@ func (s *ProofService) ensureWith(
 			nz(in.PayerSubjectType), nz(in.PayerSubjectID), nz(in.PayerDisplayName), nz(in.PayerHandle),
 			nz(in.PayeeSubjectType), nz(in.PayeeSubjectID), nz(in.PayeeDisplayName), nz(in.PayeeHandle),
 			in.AmountMinor, in.Currency, in.Status, nz(in.Description), nz(in.Method), nz(in.LedgerReference),
-			proofHash, s.keyID, alg, sig, in.ConfirmedAt)
+			proofHash, s.keyID, alg, sig, in.ConfirmedAt,
+			nz(in.OperationKind), nz(in.Channel), nz(in.FundingSource), nz(in.MerchantReference), nz(in.DisplayContext))
 		if err == nil {
 			break
 		}
@@ -455,6 +475,8 @@ const proofCols = `id, proof_reference, transaction_id, environment,
 	COALESCE(payer_display_name,''), COALESCE(payer_handle,''), COALESCE(payer_subject_type,''),
 	COALESCE(payee_display_name,''), COALESCE(payee_handle,''), COALESCE(payee_subject_type,''),
 	amount_minor, currency, status, COALESCE(description,''), COALESCE(method,''),
+	COALESCE(operation_kind,''), COALESCE(channel,''), COALESCE(funding_source,''),
+	COALESCE(merchant_reference,''), COALESCE(display_context,''), COALESCE(ledger_reference,''),
 	COALESCE(proof_hash,''), COALESCE(signature_key_id,''), COALESCE(signature_algorithm,''),
 	verification_count, issued_at, confirmed_at, reversed_at`
 
@@ -464,6 +486,7 @@ func scanProof(row pgx.Row) (*Proof, error) {
 		&p.PayerDisplayName, &p.PayerHandle, &p.PayerSubjectType,
 		&p.PayeeDisplayName, &p.PayeeHandle, &p.PayeeSubjectType,
 		&p.AmountMinor, &p.Currency, &p.Status, &p.Description, &p.Method,
+		&p.OperationKind, &p.Channel, &p.FundingSource, &p.MerchantReference, &p.DisplayContext, &p.LedgerReference,
 		&p.ProofHash, &p.SignatureKeyID, &p.SignatureAlg,
 		&p.VerificationCount, &p.IssuedAt, &p.ConfirmedAt, &p.ReversedAt)
 	if err != nil {
@@ -473,6 +496,11 @@ func scanProof(row pgx.Row) (*Proof, error) {
 		return nil, err
 	}
 	return &p, nil
+}
+
+// GetByTransaction reads a transaction's proof (operator tooling).
+func (s *ProofService) GetByTransaction(ctx context.Context, txnID, env string) (*Proof, error) {
+	return s.getByTxn(ctx, txnID, env)
 }
 
 func (s *ProofService) getByTxn(ctx context.Context, txnID, env string) (*Proof, error) {
@@ -539,14 +567,22 @@ func (s *ProofService) RecordVerification(ctx context.Context, proofID, ipHash, 
 // entity (a business); consumers are shown by @handle only.
 func (s *ProofService) Public(p *Proof) map[string]any {
 	out := map[string]any{
-		"exists":           true,
-		"status":           p.Status,
-		"amount":           p.AmountMinor,
-		"currency":         p.Currency,
-		"payer_display":    publicDisplayName(p.PayerSubjectType, p.PayerDisplayName),
-		"payer_handle":     p.PayerHandle,
-		"payee_display":    publicDisplayName(p.PayeeSubjectType, p.PayeeDisplayName),
-		"payee_handle":     p.PayeeHandle,
+		"exists":             true,
+		"status":             p.Status,
+		"amount":             p.AmountMinor,
+		"currency":           p.Currency,
+		"payer_display":      publicDisplayName(p.PayerSubjectType, p.PayerDisplayName),
+		"payer_handle":       p.PayerHandle,
+		"payee_display":      publicDisplayName(p.PayeeSubjectType, p.PayeeDisplayName),
+		"payee_handle":       p.PayeeHandle,
+		"payee_kind":         partyKind(p.PayeeSubjectType),
+		"operation_kind":     nilIfEmpty(p.OperationKind),
+		"channel":            nilIfEmpty(p.Channel),
+		"funding_source":     nilIfEmpty(p.FundingSource),
+		"merchant_reference": nilIfEmpty(p.MerchantReference),
+		"display_context":    nilIfEmpty(p.DisplayContext),
+		// Legacy: the method line older clients print. A canonical proof's method
+		// is its funding source's label; the fields above say it precisely.
 		"method":           p.Method,
 		"description":      p.Description,
 		"issued_at":        p.IssuedAt.UTC().Format(time.RFC3339),
@@ -560,6 +596,63 @@ func (s *ProofService) Public(p *Proof) map[string]any {
 		out["confirmed_at"] = nil
 	}
 	return out
+}
+
+func nilIfEmpty(v string) any {
+	if strings.TrimSpace(v) == "" {
+		return nil
+	}
+	return v
+}
+
+// partyKind maps a stored subject type onto the public vocabulary: a Business
+// or a person. Unknown types are persons — the privacy-preserving side.
+func partyKind(subjectType string) string {
+	switch strings.ToLower(strings.TrimSpace(subjectType)) {
+	case "merchant", "business":
+		return documents.PartyBusiness
+	default:
+		return documents.PartyPerson
+	}
+}
+
+// Receipt is the proof's display snapshot as the canonical receipt every
+// surface renders. private is a PARTY's own view (the payer's phone, the PDF
+// issued to a party, BANZADMIN): it carries a person's full name and the
+// operation id. The public verifier uses Public, which never does.
+func (s *ProofService) Receipt(p *Proof, private bool) documents.Receipt {
+	r := documents.Receipt{
+		ProofReference:    p.ProofReference,
+		VerificationURL:   s.publicBase + p.ProofReference,
+		OperationKind:     p.OperationKind,
+		Channel:           p.Channel,
+		FundingSource:     p.FundingSource,
+		Status:            p.Status,
+		AmountMinor:       p.AmountMinor,
+		Currency:          p.Currency,
+		Payer:             documents.Party{Kind: partyKind(p.PayerSubjectType), Handle: p.PayerHandle},
+		Payee:             documents.Party{Kind: partyKind(p.PayeeSubjectType), Handle: p.PayeeHandle},
+		MerchantReference: p.MerchantReference,
+		DisplayContext:    p.DisplayContext,
+		Description:       p.Description,
+		ConfirmedAt:       p.ConfirmedAt,
+		Environment:       p.Environment,
+		Network:           strings.ToUpper(s.network),
+		Operator:          "Banzami",
+	}
+	if private {
+		r.Payer.DisplayName = p.PayerDisplayName
+		r.Payee.DisplayName = p.PayeeDisplayName
+		r.TransactionID = p.TransactionID
+	} else {
+		if n, ok := publicDisplayName(p.PayerSubjectType, p.PayerDisplayName).(string); ok {
+			r.Payer.DisplayName = n
+		}
+		if n, ok := publicDisplayName(p.PayeeSubjectType, p.PayeeDisplayName).(string); ok {
+			r.Payee.DisplayName = n
+		}
+	}
+	return r
 }
 
 // publicDisplayName applies the ADR-033 §7 name-privacy default: a person's full
