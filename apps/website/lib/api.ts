@@ -174,6 +174,8 @@ export function handleReasonMessage(reason?: string): string {
       return 'Este @negócio está reservado.';
     case 'PENDING':
       return 'Este @negócio já tem uma candidatura em curso.';
+    case 'BUSINESS':
+      return 'Este @negócio pertence a uma Business Account existente.';
     case 'INVALID':
       return 'Use 3 a 30 caracteres: letras minúsculas, números ou _.';
     default:
@@ -206,10 +208,6 @@ export type ApplicationInput = {
   business_name: string;
   category?: string;
   subcategory?: string;
-  /** Canonical business_category derived from the taxonomy (e.g. 'donation'). */
-  business_category?: string;
-  /** Operator pricing category derived from the taxonomy (e.g. 'DONATION'). */
-  pricing_category?: string;
   email: string;
   phone?: string;
   nif?: string;
@@ -226,41 +224,37 @@ export type ApplicationInput = {
   business_activity?: string;
   estimated_volume?: string;
   terms_accepted: boolean;
+  /** The requested @handle is already this applicant's Business Account. */
+  existing_business?: boolean;
 };
 
 export type SubmitResult = {
   ok: boolean;
   status: number;
   applicationId?: string;
-  /** SANDBOX assisted onboarding: true when the application was auto-approved. */
-  sandboxAutoApproved?: boolean;
-  /** SANDBOX only: raw activation token so the tester can activate immediately. */
-  activationToken?: string;
+  code?: string;
   error?: string;
 };
 
-export async function submitApplication(input: ApplicationInput): Promise<SubmitResult> {
+export async function submitApplication(input: ApplicationInput, idempotencyKey?: string): Promise<SubmitResult> {
   // Route to the stack matching the current Platform Mode and tag the request
   // with that environment. The gateway stamps the environment authoritatively
   // (ADR-025); sending the resolved env keeps the client honest too.
   const { base, env } = await onboardingTarget();
   const res = await fetch(`${base}/v1/merchant/applications`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}),
+    },
     body: JSON.stringify({ ...input, environment: env }),
   });
   if (res.ok) {
     const j = await res.json().catch(() => ({}));
-    return {
-      ok: true,
-      status: res.status,
-      applicationId: j.application_id,
-      sandboxAutoApproved: j.sandbox_auto_approved === true,
-      activationToken: typeof j.activation_token === 'string' ? j.activation_token : undefined,
-    };
+    return { ok: true, status: res.status, applicationId: j.application_id };
   }
   const j = await res.json().catch(() => ({}));
-  return { ok: false, status: res.status, error: j.message || j.code };
+  return { ok: false, status: res.status, code: j.code, error: j.message || j.code };
 }
 
 // ---------------------------------------------------------------------------

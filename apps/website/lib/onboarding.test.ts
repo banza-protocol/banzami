@@ -168,3 +168,20 @@ describe('CandidaturaForm — final flow guarantees', () => {
     expect(FORM).not.toMatch(/aprovação automática|aprovado automaticamente/i);
   });
 });
+
+describe('CandidaturaForm — the reviewed lifecycle', () => {
+  it('sends one Idempotency-Key per form session', () => {
+    expect(FORM).toMatch(/submitApplication\(input, idempotencyKey\)/);
+    expect(FORM).toMatch(/const \[idempotencyKey\] = useState/);
+  });
+  it('never sends a classification or a pricing selector', () => {
+    expect(FORM).not.toMatch(/business_account_type|pricing_category|business_category/);
+  });
+  it('offers the existing-Business path for a handle a Business already uses', () => {
+    expect(FORM).toMatch(/status: 'business'/);
+    expect(FORM).toMatch(/existing_business:/);
+  });
+  it('shows the application reference on success', () => {
+    expect(FORM).toMatch(/data-testid="application-reference"/);
+  });
+});

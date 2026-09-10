@@ -15,7 +15,6 @@ import {
 } from '@/lib/api';
 import { PROVINCIAS, municipiosDe, cidadesDe } from '@/lib/angola';
 import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/business-categories';
-import { resolvePricing } from '@/lib/business-taxonomy';
 import {
   sandboxBusinessData,
   makeSandboxDoc,
@@ -408,6 +407,10 @@ type HandleState =
   | { status: 'idle' }
   | { status: 'checking' }
   | { status: 'available' }
+  // An existing Business Account uses the handle. Not available as new — but
+  // its owner can apply to regularise that account (resolved by an operator
+  // linking the application to it; nothing new is created).
+  | { status: 'business' }
   | { status: 'unavailable'; message: string };
 
 // ===========================================================================
@@ -454,15 +457,17 @@ export function CandidaturaForm() {
 
   const [accepted, setAccepted] = useState(false);
   const [handleState, setHandleState] = useState<HandleState>({ status: 'idle' });
+  // The applicant confirms the existing Business Account behind the handle is theirs.
+  const [existingBusiness, setExistingBusiness] = useState(false);
+  // One key per form session: a double click or a retried request returns the
+  // application the first submission created, instead of a second one.
+  const [idempotencyKey] = useState(() =>
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `cand-${Date.now()}-${Math.random()}`);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // KYB document upload (Track 3) — runs after the application is created.
   const [applicationId, setApplicationId] = useState<string | null>(null);
-  // SANDBOX assisted onboarding: the application is auto-approved on submit and
-  // the raw activation token is returned so the tester can activate immediately.
-  const [autoApproved, setAutoApproved] = useState(false);
-  const [activationToken, setActivationToken] = useState<string | null>(null);
   const [storageNotConfigured, setStorageNotConfigured] = useState(false);
   const [docUpload, setDocUpload] = useState<Record<DocKey, { status: UploadStatus; message?: string }>>({
     docCertidao: { status: 'pending' },
@@ -569,10 +574,13 @@ export function CandidaturaForm() {
     const t = setTimeout(async () => {
       try {
         const r = await checkHandle(handleClean);
+        setExistingBusiness(false);
         setHandleState(
           r.available
             ? { status: 'available' }
-            : { status: 'unavailable', message: handleReasonMessage(r.reason) },
+            : r.reason === 'BUSINESS'
+              ? { status: 'business' }
+              : { status: 'unavailable', message: handleReasonMessage(r.reason) },
         );
       } catch {
         setHandleState({ status: 'unavailable', message: 'Não foi possível verificar. Tente novamente.' });
@@ -607,18 +615,11 @@ export function CandidaturaForm() {
     // "Outros" category sends the typed description as the category.
     const finalCategory = category === OUTROS ? (categoryOther.trim() || OUTROS) : category;
 
-    // Automatic classification: the chosen category (the selected taxonomy name,
-    // even for "Outros") determines the canonical business_category + operator
-    // pricing_category. Never picked by hand in BANZADMIN. DOA → donation/DONATION.
-    const pricing = resolvePricing(category);
-
     const input: ApplicationInput = {
       desired_handle: handleClean,
       business_name: name.trim(),
       category: finalCategory || undefined,
       subcategory: subcategory || undefined,
-      business_category: pricing?.businessCategory,
-      pricing_category:  pricing?.pricingCategory,
       email: email.trim(),
       phone: phone.trim() ? `+244 ${phone.trim()}` : undefined,
       nif: nif.trim() || undefined,
@@ -635,15 +636,14 @@ export function CandidaturaForm() {
       business_activity: descricao.trim() || undefined,
       estimated_volume: volume || undefined,
       terms_accepted: accepted,
+      existing_business: handleState.status === 'business' && existingBusiness,
     };
 
-    const r = await submitApplication(input);
+    const r = await submitApplication(input, idempotencyKey);
     setSubmitting(false);
     if (r.ok) {
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       setSubmitted(true);
-      setAutoApproved(!!r.sandboxAutoApproved);
-      setActivationToken(r.activationToken ?? null);
       if (r.applicationId) {
         setApplicationId(r.applicationId);
         void uploadAllDocs(r.applicationId);
@@ -696,8 +696,10 @@ export function CandidaturaForm() {
       ? 'Escolha o seu @negócio.'
       : !isValidHandleFormat(handleClean)
         ? 'Use 3 a 30 caracteres: letras minúsculas, números ou _.'
-        : handleState.status === 'available'
+        : handleState.status === 'available' || (handleState.status === 'business' && existingBusiness)
           ? null
+          : handleState.status === 'business'
+            ? 'Este @negócio pertence a uma Business Account existente. Se é sua, confirme abaixo para a regularizar.'
           : handleState.status === 'checking'
             ? 'A verificar disponibilidade…'
             : handleState.status === 'unavailable'
@@ -888,16 +890,19 @@ export function CandidaturaForm() {
                       />
                       <HandleBadge state={handleState} />
                     </div>
+                    {handleState.status === 'business' && (
+                      <label className="mt-2.5 flex cursor-pointer items-start gap-2.5 rounded-[12px] border-[1.5px] border-[#f1d9a8] bg-[#FFF8EC] p-3 text-[13px] font-bold leading-[1.5] text-[#7a5a1e]">
+                        <input type="checkbox" className="mt-0.5" checked={existingBusiness} onChange={(e) => setExistingBusiness(e.target.checked)} />
+                        <span>
+                          @{handleClean} já é uma Business Account no Banzami. Se é o seu negócio, confirme para regularizar essa
+                          conta com os documentos da empresa. Nada novo é criado: a equipa Banzami verifica e associa a candidatura à
+                          conta existente.
+                        </span>
+                      </label>
+                    )}
                   </Field>
                   <Field label="Categoria do negócio" error={show1 ? errors.category : null}>
                     <Select value={category} onChange={onChangeCategoria} placeholder="Selecione uma categoria" options={CATEGORIES} error={show1 && !!errors.category} />
-                    {category && resolvePricing(category) && (
-                      <p className="mt-1.5 text-[12.5px] font-semibold text-[#9a8a8e]">
-                        Categoria de preço do operador:{' '}
-                        <span className="font-extrabold text-[#B5101F]">{resolvePricing(category)!.pricingCategory}</span>
-                        {' '}· definida automaticamente pela categoria escolhida.
-                      </p>
-                    )}
                   </Field>
                   {category === OUTROS ? (
                     <Field label="Descreva a categoria" error={show1 ? errors.categoryOther : null}>
@@ -1198,41 +1203,25 @@ export function CandidaturaForm() {
                   <div className="mx-auto mb-6 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#FFF1F0]">
                     {Ic.check(RED, 2.4, 42)}
                   </div>
-                  <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">
-                    {autoApproved ? 'Conta de teste criada' : 'Candidatura enviada'}
-                  </h2>
+                  <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">Candidatura enviada</h2>
                   {isSandbox && (
                     <div className="mx-auto mt-4 max-w-[440px] rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13.5px] font-bold text-amber-800">
-                      {autoApproved ? (
-                        <>Aprovada automaticamente em <span className="font-black">SANDBOX</span> — ambiente de teste. Não é uma conta Business real.</>
-                      ) : (
-                        <>Candidatura enviada para <span className="font-black">SANDBOX</span> — ambiente de teste. Não foi criada uma conta Business real.</>
-                      )}
+                      Candidatura enviada para <span className="font-black">SANDBOX</span> — ambiente de teste. Não é uma conta Business real.
                     </div>
                   )}
-                  {autoApproved && activationToken ? (
-                    <>
-                      <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
-                        A sua conta de teste foi aprovada e provisionada. Ativa agora para definir o PIN e começar a testar.
-                      </p>
-                      <a
-                        href={`/comerciantes/activar?token=${encodeURIComponent(activationToken)}`}
-                        className="mt-6 inline-flex items-center justify-center gap-2 rounded-[14px] bg-[#B5101F] px-6 py-3.5 text-[15.5px] font-extrabold text-white no-underline transition-[background,transform] duration-150 hover:-translate-y-px hover:bg-[#9A1B22]"
-                      >
-                        Ativar conta de teste
-                      </a>
-                    </>
-                  ) : (
-                    <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
-                      A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for
-                      aprovado, receberá um link de ativação no email indicado para definir o PIN de
-                      acesso à sua Conta Business.
+                  <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
+                    A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for aprovado, receberá um
+                    link de ativação no email indicado para definir o PIN de acesso à sua Conta Business.
+                  </p>
+                  {applicationId && (
+                    <p data-testid="application-reference" className="m-0 mt-3 text-[13px] font-bold text-[#9a8a8e]">
+                      Referência da candidatura: <span className="font-mono text-[#5a4a4e]">{applicationId.slice(0, 8).toUpperCase()}</span>
                     </p>
                   )}
 
                   <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] border-[1.5px] border-[#f4e6e6] bg-white p-5 text-left">
                     <div className="flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
-                      <span className="text-[#9a8a8e]">@negócio reservado</span>
+                      <span className="text-[#9a8a8e]">{existingBusiness ? '@negócio a regularizar' : '@negócio reservado'}</span>
                       <span className="font-mono font-extrabold text-[#B5101F]">@{handleDisplay}</span>
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
@@ -1449,6 +1438,12 @@ function HandleBadge({ state }: { state: HandleState }) {
       <span className="absolute right-[14px] top-1/2 inline-flex -translate-y-1/2 items-center gap-[5px] text-[13px] font-extrabold text-[#1f9d57]">
         {Ic.circleCheck(GREEN, 16)}
         Disponível
+      </span>
+    );
+  if (state.status === 'business')
+    return (
+      <span className="absolute right-[14px] top-1/2 -translate-y-1/2 text-[12.5px] font-extrabold text-[#7a5a1e]">
+        Conta existente
       </span>
     );
   if (state.status === 'unavailable')
