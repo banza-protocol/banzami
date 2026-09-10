@@ -5,7 +5,7 @@
  *
  *   node tools/e2e/business/project-onboarding-e2e.mjs [--out <dir>]
  *
- * Two synthetic Projects in a fresh synthetic workspace (an OWNER and a
+ * Three synthetic Projects in a fresh synthetic workspace (an OWNER and a
  * DEVELOPER member):
  *
  *   A applies for a NEW Business. The retired one-click owner is refused; a
@@ -18,7 +18,7 @@
  *     session; a wrong code, a DEVELOPER, and Project A (application in
  *     progress) are all refused; the OWNER of B connects it; B reads the
  *     Business's name, @handle and verification; the same code spent again by
- *     another Project is refused; BANZADMIN's Business view lists Project B.
+ *     Project C (nothing in progress) is refused; BANZADMIN's Business view lists Project B.
  *
  * Fixture identities, Projects, the Business and the application are retired
  * at the end, whatever happens. Nothing here moves money.
@@ -67,7 +67,8 @@ async function call(token, path, method = 'GET', body) {
   }
   const r = await fetch(`${API}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined });
   let j = null; try { j = await r.json(); } catch { /* */ }
-  return { status: r.status, body: j };
+  // developer-api refuses with {error: {code, message}}.
+  return { status: r.status, body: j, code: j?.error?.code };
 }
 
 let business = null; // { merchant, handle }
@@ -86,12 +87,13 @@ async function main() {
   const ws = await call(owner, '/workspaces', 'POST', { name: `onb-ws-${stamp}` });
   const pa = await call(owner, `/workspaces/${ws.body?.id}/projects`, 'POST', { name: `onb-a-${stamp}` });
   const pb = await call(owner, `/workspaces/${ws.body?.id}/projects`, 'POST', { name: `onb-b-${stamp}` });
-  const A = pa.body?.id, B = pb.body?.id;
+  const pc = await call(owner, `/workspaces/${ws.body?.id}/projects`, 'POST', { name: `onb-c-${stamp}` });
+  const A = pa.body?.id, B = pb.body?.id, C = pc.body?.id;
   ssh(`${PRE}
     q "insert into developer.dev_workspace_members (workspace_id, user_id, role, accepted_at, status)
        select '${ws.body?.id}', u.id, 'DEVELOPER', now(), 'ACTIVE' from account_identity.identity_users u
         where u.email='${emailOf('dev')}'" >/dev/null`);
-  rec('a fresh workspace with two Projects, an OWNER and a DEVELOPER', A && B, `${String(A).slice(0, 8)} ${String(B).slice(0, 8)}`);
+  rec('a fresh workspace with three Projects, an OWNER and a DEVELOPER', A && B && C, `${String(A).slice(0, 8)} ${String(B).slice(0, 8)} ${String(C).slice(0, 8)}`);
 
   // ── a Project without a Business ───────────────────────────────────────────
   let fs = await call(owner, `/projects/${A}/financial-setup`);
@@ -101,7 +103,7 @@ async function main() {
   const fsDev = await call(dev, `/projects/${A}/financial-setup`);
   rec('a DEVELOPER sees the state but may not act', fsDev.status === 200 && fsDev.body?.onboarding?.can_act === false);
   const oneClick = await call(owner, `/projects/${A}/financial-setup`, 'POST');
-  rec('the retired one-click owner is refused (no self-approved Business)', oneClick.status === 410 && oneClick.body?.code === 'FINANCIAL_SETUP_BY_REVIEW', `${oneClick.status} ${oneClick.body?.code}`);
+  rec('the retired one-click owner is refused (no self-approved Business)', oneClick.status === 410 && oneClick.code === 'FINANCIAL_SETUP_BY_REVIEW', `${oneClick.status} ${oneClick.code}`);
 
   // ── A applies for a NEW Business ───────────────────────────────────────────
   const handleA = `onb_${stamp}`.slice(0, 30);
@@ -126,7 +128,7 @@ async function main() {
     && app?.requested_handle === handleA && (app?.requirements?.currently_due ?? []).some((i) => i.code === 'BUSINESS_REGISTRATION'),
   `${fs.body?.onboarding?.state} due=${(app?.requirements?.currently_due ?? []).map((i) => i.code).join(',')}`);
   const again = await call(owner, `/projects/${A}/financial-onboarding/applications`, 'POST', { ...application, desired_handle: `${handleA}x`.slice(0, 30) });
-  rec('a second application while one is in progress is refused', again.status === 409 && again.body?.code === 'APPLICATION_IN_PROGRESS', `${again.status} ${again.body?.code}`);
+  rec('a second application while one is in progress is refused', again.status === 409 && again.code === 'APPLICATION_IN_PROGRESS', `${again.status} ${again.code}`);
 
   // A Project key reads the same, and nothing more.
   const keyView = ssh(`${PRE}
@@ -160,13 +162,13 @@ async function main() {
   rec('a synthetic existing Business issues consent codes from its own session', /^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(c2.code ?? ''), `${merchant?.slice(0, 8)} ${c2.code ? 'code issued' : c2raw}`);
 
   const oldCode = await call(owner, `/projects/${B}/financial-onboarding/link`, 'POST', { code: c1.code });
-  rec('a code replaced by a newer one is refused', oldCode.status === 422 && oldCode.body?.code === 'LINK_CODE_INVALID', `${oldCode.status} ${oldCode.body?.code}`);
+  rec('a code replaced by a newer one is refused', oldCode.status === 422 && oldCode.code === 'LINK_CODE_INVALID', `${oldCode.status} ${oldCode.code}`);
   const byHandle = await call(owner, `/projects/${B}/financial-onboarding/link`, 'POST', { code: `@${handleB}` });
   rec('typing the Business\'s @handle proves nothing', byHandle.status === 422, `${byHandle.status}`);
   const devLink = await call(dev, `/projects/${B}/financial-onboarding/link`, 'POST', { code: c2.code });
   rec('a DEVELOPER cannot connect a Business', devLink.status === 403, `${devLink.status}`);
   const aLink = await call(owner, `/projects/${A}/financial-onboarding/link`, 'POST', { code: c2.code });
-  rec('a Project with an application in progress cannot also connect one', aLink.status === 409 && aLink.body?.code === 'APPLICATION_IN_PROGRESS', `${aLink.status} ${aLink.body?.code}`);
+  rec('a Project with an application in progress cannot also connect one', aLink.status === 409 && aLink.code === 'APPLICATION_IN_PROGRESS', `${aLink.status} ${aLink.code}`);
   const link = await call(owner, `/projects/${B}/financial-onboarding/link`, 'POST', { code: c2.code.toLowerCase() });
   rec('the OWNER connects the existing Business with its code', link.status === 200 && link.body?.business?.handle === `@${handleB}` && link.body?.business?.verified === true,
     `${link.status} ${JSON.stringify(link.body?.business ?? link.body).slice(0, 120)}`);
@@ -179,8 +181,10 @@ async function main() {
   rec('the binding names the existing Business: nothing was created', bound === merchant, `${bound.slice(0, 8)}`);
   const wallets = ssh(`${PRE} q "select count(*) from wallets where merchant_id='${merchant}'"`).trim();
   rec('still one wallet for the Business', wallets === '1', wallets);
-  const reuse = await call(owner, `/projects/${A}/financial-onboarding/link`, 'POST', { code: c2.code });
-  rec('the spent code is refused to any other Project', reuse.status === 409 || reuse.status === 422, `${reuse.status} ${reuse.body?.code}`);
+  // Project C has nothing in progress: only the code being spent can refuse it.
+  const reuse = await call(owner, `/projects/${C}/financial-onboarding/link`, 'POST', { code: c2.code });
+  const cBound = ssh(`${PRE} q "select count(*) from developer.dev_project_sandbox_binding where project_id='${C}'"`).trim();
+  rec('the spent code is refused to any other Project', reuse.status === 422 && reuse.code === 'LINK_CODE_INVALID' && cBound === '0', `${reuse.status} ${reuse.code} bindings=${cBound}`);
 
   const state = ssh(`${PRE}
     IK=$(docker exec "$GWC" sh -c 'cat /run/secrets/core_internal_key')
