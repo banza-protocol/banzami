@@ -80,18 +80,19 @@ export function Topbar({ user }: { user: AdminUser }) {
   }
 
   return (
-    <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[#f1e3e3] bg-[rgba(255,247,246,0.85)] px-8 py-[18px] backdrop-blur-[12px] backdrop-saturate-150">
-      <div>
+    <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[#f1e3e3] bg-[rgba(255,247,246,0.85)] px-8 py-[18px] backdrop-blur-[12px] backdrop-saturate-150 max-[680px]:flex-wrap max-[680px]:gap-y-3 max-[680px]:px-4">
+      <div className="min-w-0">
         <h1 className="m-0 text-[23px] font-black tracking-[-0.02em]">{meta.title}</h1>
         <p className="m-0 mt-[3px] text-[13.5px] font-semibold text-[#9a8a8e]">{meta.sub}</p>
       </div>
-      <div className="flex items-center gap-[14px]">
+      {/* On a phone the cluster wraps under the title instead of widening the page. */}
+      <div className="flex items-center gap-[14px] max-[680px]:ml-auto max-[680px]:gap-2">
         {platformMode === 'SANDBOX' && (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[12px] font-extrabold text-amber-900">
             🟡 SANDBOX
           </span>
         )}
-        <span className="inline-flex items-center gap-[7px] rounded-[30px] border border-[#f6d3d1] bg-[#FFF1F0] px-[14px] py-2 text-[12.5px] font-extrabold text-[#B5101F]">
+        <span className="inline-flex items-center gap-[7px] rounded-[30px] border border-[#f6d3d1] bg-[#FFF1F0] px-[14px] py-2 text-[12.5px] font-extrabold text-[#B5101F] max-[680px]:hidden">
           <AlertCircle size={14} strokeWidth={1.8} />
           Uso interno
         </span>
