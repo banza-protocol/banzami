@@ -159,6 +159,7 @@ type MerchantApplicationAdminService interface {
 	PublicStatus(ctx context.Context, id string) (ApplicationStatus, error)
 	Resubmit(ctx context.Context, id string) (ApplicationStatus, error)
 	LatestForProject(ctx context.Context, projectID string) (ProjectApplication, error)
+	BusinessStateForMerchant(ctx context.Context, merchantID, preferHandle string, readiness SettlementReadinessService) (*BusinessState, error)
 }
 
 // coreProvisioner is the slice of core-api provisioning calls the approval flow

@@ -84,6 +84,9 @@ func (f *fakeGW) RequestApplicationInformationRaw(_ context.Context, id, _, mess
 	f.infoMessage = message
 	return json.RawMessage(`{"id":"` + id + `","status":"INFORMATION_REQUIRED","email":"loja@example.test"}`), 200, nil
 }
+func (f *fakeGW) BusinessStateRaw(context.Context, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"business":{}}`), 200, nil
+}
 func (f *fakeGW) RejectDocumentRaw(_ context.Context, _, _, _, _ string) (json.RawMessage, int, error) {
 	return json.RawMessage(`{"status":"REJECTED"}`), 200, nil
 }

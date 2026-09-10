@@ -162,6 +162,10 @@ func (c *GatewayClient) LinkCandidatesRaw(ctx context.Context, id, handle string
 	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/link-candidates?handle="+url.QueryEscape(handle), nil)
 }
 
+func (c *GatewayClient) BusinessStateRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/businesses/"+merchantID+"/state", nil)
+}
+
 func (c *GatewayClient) ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/business-state", nil)
 }

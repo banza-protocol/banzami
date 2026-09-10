@@ -66,6 +66,9 @@ func (f *fakeAppAdmin) PublicStatus(_ context.Context, id string) (service.Appli
 	}
 	return service.ApplicationStatus{ApplicationID: id, Status: "SUBMITTED"}, nil
 }
+func (f *fakeAppAdmin) BusinessStateForMerchant(context.Context, string, string, service.SettlementReadinessService) (*service.BusinessState, error) {
+	return nil, service.ErrApplicationNotFound
+}
 func (f *fakeAppAdmin) LatestForProject(_ context.Context, projectID string) (service.ProjectApplication, error) {
 	return service.ProjectApplication{}, service.ErrApplicationNotFound
 }

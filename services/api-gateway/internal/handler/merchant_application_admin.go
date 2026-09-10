@@ -350,3 +350,24 @@ func (h *MerchantApplicationAdminHandler) Resubmit(w http.ResponseWriter, r *htt
 		writeJSON(w, http.StatusOK, st)
 	}
 }
+
+// GET /internal/v1/businesses/{merchantID}/state — one Business's whole state,
+// by the Business: identity, KYB, class, wallet, pricing, login, the Projects
+// that receive into it and the applications that resolved to it, and core's
+// settlement readiness. For BANZADMIN's Business page.
+func (h *MerchantApplicationAdminHandler) BusinessStateForMerchant(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	st, err := h.svc.BusinessStateForMerchant(r.Context(), chi.URLParam(r, "merchantID"), "", h.readiness)
+	if errors.Is(err, service.ErrApplicationNotFound) {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "business not found")
+		return
+	}
+	if err != nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "could not read the business")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"business": st})
+}

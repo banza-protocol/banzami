@@ -253,6 +253,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)
 		// developer-api spends a Business's consent code for a Project.
 		r.Post("/internal/v1/business-link-codes/redeem", businessOnboardingHandler.RedeemLinkCode)
+		r.Get("/internal/v1/businesses/{merchantID}/state", merchantAppAdminHandler.BusinessStateForMerchant)
 		r.Route("/internal/v1/merchant-applications", func(r chi.Router) {
 			r.Get("/", merchantAppAdminHandler.List)
 			r.Get("/{id}", merchantAppAdminHandler.Get)

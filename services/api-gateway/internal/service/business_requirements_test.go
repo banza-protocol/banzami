@@ -150,3 +150,30 @@ func TestPublicStatus_NamesNoPersonalData(t *testing.T) {
 		t.Fatalf("a malformed reference: %v", err)
 	}
 }
+
+// An operator reads a Business's whole state by the Business itself — not
+// only through an application — including the applications that resolved to
+// it.
+func TestBusinessStateForMerchant_ReadsTheBusinessAndHowItCameToBe(t *testing.T) {
+	f := newLifecycle(t)
+	merchant, handle := f.business()
+	appID, _, _ := f.application("")
+	f.exec(`UPDATE merchant_applications SET status='APPROVED', resolution='LINKED_EXISTING', created_merchant_id=$2 WHERE id=$1`, appID, merchant)
+	svc := NewPostgresMerchantApplicationAdminService(f.pool, f.provisioner())
+	st, err := svc.BusinessStateForMerchant(f.ctx, merchant, "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.Handle != handle || st.Name != "Negócio Existente" || st.Status != "ACTIVE" || st.KybStatus != "PENDING" {
+		t.Fatalf("state %+v", st)
+	}
+	if len(st.Applications) != 1 || st.Applications[0].ApplicationID != appID || st.Applications[0].Resolution != "LINKED_EXISTING" {
+		t.Fatalf("applications %+v", st.Applications)
+	}
+	if _, err := svc.BusinessStateForMerchant(f.ctx, "00000000-0000-4000-8000-000000000000", "", nil); !errors.Is(err, ErrApplicationNotFound) {
+		t.Fatalf("an unknown Business: %v", err)
+	}
+	if _, err := svc.BusinessStateForMerchant(f.ctx, "not-an-id", "", nil); !errors.Is(err, ErrApplicationNotFound) {
+		t.Fatalf("a malformed id: %v", err)
+	}
+}

@@ -31,6 +31,7 @@ type GatewayApplications interface {
 	ReissueActivationRaw(ctx context.Context, id string) (json.RawMessage, int, error)
 	LinkCandidatesRaw(ctx context.Context, id, handle string) (json.RawMessage, int, error)
 	ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error)
+	BusinessStateRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error)
 }
 
 // ApplicationMailer is the subset of the email sender the admin handler uses.
@@ -408,6 +409,20 @@ func (h *MerchantApplicationHandler) BusinessState(w http.ResponseWriter, r *htt
 	id := chi.URLParam(r, "id")
 	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
 		return gw.ApplicationBusinessStateRaw(r.Context(), id)
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not read the business")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
+// BusinessByID: one Business's whole state, by the Business — for the
+// Business page, whether or not an application created it.
+func (h *MerchantApplicationHandler) BusinessByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.BusinessStateRaw(r.Context(), id)
 	})
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not read the business")

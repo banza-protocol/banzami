@@ -152,6 +152,27 @@ type BusinessState struct {
 	// Readiness is core's settlement readiness for this Business (the same
 	// engine a Project key reads); nil when core could not answer.
 	Readiness *SettlementReadiness `json:"readiness"`
+	// Projects are the Developer Projects that receive into this Business, and
+	// Applications the Business applications resolved to it — so an operator
+	// sees how the Business came to be and who uses it without leaving the page.
+	Projects     []BusinessProject     `json:"projects,omitempty"`
+	Applications []BusinessApplication `json:"applications,omitempty"`
+}
+
+// BusinessProject is a Developer Project bound to a Business.
+type BusinessProject struct {
+	ProjectID string `json:"project_id"`
+	Name      string `json:"name"`
+	Sealed    bool   `json:"sealed"`
+}
+
+// BusinessApplication is an application resolved to a Business.
+type BusinessApplication struct {
+	ApplicationID string    `json:"application_id"`
+	Status        string    `json:"status"`
+	Resolution    string    `json:"resolution"`
+	Origin        string    `json:"origin"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // BusinessState reads the resolved Business's state. readiness may be nil.
@@ -163,12 +184,21 @@ func (s *PostgresMerchantApplicationAdminService) BusinessState(ctx context.Cont
 	if app.CreatedMerchantID == "" {
 		return nil, nil
 	}
-	st := &BusinessState{MerchantID: app.CreatedMerchantID}
-	err = s.pool.QueryRow(ctx,
+	return s.BusinessStateForMerchant(ctx, app.CreatedMerchantID, app.DesiredHandle, readiness)
+}
+
+// BusinessStateForMerchant is one Business's whole state, by the Business.
+// preferHandle breaks a tie when a Business owns more than one handle.
+func (s *PostgresMerchantApplicationAdminService) BusinessStateForMerchant(ctx context.Context, merchantID, preferHandle string, readiness SettlementReadinessService) (*BusinessState, error) {
+	if _, err := uuid.Parse(merchantID); err != nil {
+		return nil, ErrApplicationNotFound
+	}
+	st := &BusinessState{MerchantID: merchantID}
+	err := s.pool.QueryRow(ctx,
 		`SELECT m.name, m.status, COALESCE(m.business_account_type,'MERCHANT'),
 		        COALESCE(c.kyb_status,'PENDING'),
 		        COALESCE((SELECT handle FROM handle_registry WHERE owner_type='MERCHANT' AND owner_id=m.id
-		                   ORDER BY handle = $2 DESC LIMIT 1), ''),
+		                   ORDER BY handle = $2 DESC, created_at LIMIT 1), ''),
 		        w.status, w.currency,
 		        (SELECT count(*) FROM wallet_accounts wa WHERE wa.merchant_id = m.id)::int,
 		        pp.code,
@@ -180,15 +210,42 @@ func (s *PostgresMerchantApplicationAdminService) BusinessState(ctx context.Cont
 		   LEFT JOIN LATERAL (SELECT status, currency FROM wallets WHERE merchant_id=m.id
 		                       ORDER BY (status='ACTIVE') DESC, created_at LIMIT 1) w ON TRUE
 		   LEFT JOIN pricing_profiles pp ON pp.id = m.pricing_profile_id
-		  WHERE m.id = $1`, app.CreatedMerchantID, app.DesiredHandle).
+		  WHERE m.id = $1`, merchantID, preferHandle).
 		Scan(&st.Name, &st.Status, &st.BusinessAccountType, &st.KybStatus, &st.Handle,
 			&st.WalletStatus, &st.WalletCurrency, &st.WalletAccounts, &st.PricingProfile,
 			&st.LoginActivated, &st.LoginExists, &st.DeveloperProjects)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrApplicationNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
+	if rows, err := s.pool.Query(ctx,
+		`SELECT b.project_id::text, COALESCE(p.name,''), b.artifact_created
+		   FROM developer.dev_project_sandbox_binding b
+		   LEFT JOIN developer.dev_projects p ON p.id = b.project_id
+		  WHERE b.merchant_id = $1 AND b.state = 'ACTIVE' ORDER BY b.created_at`, merchantID); err == nil {
+		for rows.Next() {
+			var p BusinessProject
+			if rows.Scan(&p.ProjectID, &p.Name, &p.Sealed) == nil {
+				st.Projects = append(st.Projects, p)
+			}
+		}
+		rows.Close()
+	}
+	if rows, err := s.pool.Query(ctx,
+		`SELECT id::text, status, COALESCE(resolution,''), origin, created_at
+		   FROM merchant_applications WHERE created_merchant_id = $1 ORDER BY created_at`, merchantID); err == nil {
+		for rows.Next() {
+			var a BusinessApplication
+			if rows.Scan(&a.ApplicationID, &a.Status, &a.Resolution, &a.Origin, &a.CreatedAt) == nil {
+				st.Applications = append(st.Applications, a)
+			}
+		}
+		rows.Close()
+	}
 	if readiness != nil {
-		if r, rerr := readiness.Readiness(ctx, app.CreatedMerchantID, "AOA", nil); rerr == nil {
+		if r, rerr := readiness.Readiness(ctx, merchantID, "AOA", nil); rerr == nil {
 			st.Readiness = r
 		}
 	}
