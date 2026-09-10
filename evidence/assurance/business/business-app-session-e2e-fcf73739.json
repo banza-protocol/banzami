@@ -1,0 +1,120 @@
+{
+  "schema": "banzami-business-app-session-e2e/v1",
+  "gateway": "https://sandbox-api.banzami.com",
+  "ran_at": "2026-09-10T14:28:22.070Z",
+  "steps": [
+    {
+      "step": "two synthetic Businesses; A approved-shaped: a login with no PIN yet, and an activation link",
+      "ok": true,
+      "note": "08c88833 a3deb320"
+    },
+    {
+      "step": "before activation the Business cannot sign in",
+      "ok": true,
+      "note": "401"
+    },
+    {
+      "step": "the activation link validates and names the Business",
+      "ok": true,
+      "note": "200 {\"business_name\":\"Sessao A mtvmgv2e\",\"handle\":\"basamtvmgv2e\",\"reason\":\"VALID\",\"valid\":true}"
+    },
+    {
+      "step": "the owner sets the PIN through it",
+      "ok": true,
+      "note": "200"
+    },
+    {
+      "step": "the link cannot be used again",
+      "ok": true,
+      "note": "410 TOKEN_USED"
+    },
+    {
+      "step": "a wrong PIN and an unknown @ get the same refusal",
+      "ok": true,
+      "note": "401 UNAUTHORIZED / 401 UNAUTHORIZED"
+    },
+    {
+      "step": "the right PIN opens a session: ~15-minute access, ~30-day sign-in",
+      "ok": true,
+      "note": "200  access 15.0 min, sign-in 30.0 d; fields=environment,expires_at,refresh_expires_at,refresh_token,token,token_type"
+    },
+    {
+      "step": "home: the Business's own profile, verified",
+      "ok": true,
+      "note": "200 verified=true"
+    },
+    {
+      "step": "its wallet",
+      "ok": true,
+      "note": "200 649ba981"
+    },
+    {
+      "step": "balance: a real 0 Kz, not an error",
+      "ok": true,
+      "note": "200 available=0 AOA"
+    },
+    {
+      "step": "history: an empty list",
+      "ok": true,
+      "note": "200 0"
+    },
+    {
+      "step": "the refresh token is exchanged for a new pair",
+      "ok": true,
+      "note": "200"
+    },
+    {
+      "step": "the renewed access token works",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "the retired claim route sets nothing, even for a signed-in Business",
+      "ok": true,
+      "note": "410 PIN_SET_BY_ACTIVATION"
+    },
+    {
+      "step": "the old refresh token presented again is refused",
+      "ok": true,
+      "note": "401 SESSION_ENDED"
+    },
+    {
+      "step": "…and the reuse ended the whole sign-in: the new pair is dead too",
+      "ok": true,
+      "note": "401 SESSION_ENDED"
+    },
+    {
+      "step": "sign-out ends the session: its refresh token no longer renews",
+      "ok": true,
+      "note": "logout 204, refresh 401"
+    },
+    {
+      "step": "sign-out with a token that means nothing still answers 204 (nothing to learn)",
+      "ok": true,
+      "note": "204"
+    },
+    {
+      "step": "A's token reads nothing of B: profile, wallet, balance",
+      "ok": true,
+      "note": "404 404 404"
+    },
+    {
+      "step": "a suspended Business cannot renew its session",
+      "ok": true,
+      "note": "401 SESSION_ENDED"
+    },
+    {
+      "step": "the database records why each session ended",
+      "ok": true,
+      "note": "BUSINESS_NOT_ACTIVE:1 REUSE_DETECTED:2 SIGNED_OUT:1"
+    },
+    {
+      "step": "refresh tokens are stored only as hashes",
+      "ok": true,
+      "note": "plaintext rows=0"
+    }
+  ],
+  "pass": 22,
+  "fail": 0,
+  "verdict": "PASS"
+}

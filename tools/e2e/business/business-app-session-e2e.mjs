@@ -177,7 +177,7 @@ async function main() {
   rec('a suspended Business cannot renew its session', s4.status === 200 && suspended.status === 401 && suspended.code === 'SESSION_ENDED',
     `${suspended.status} ${suspended.code}`);
 
-  const reasons = ssh(`${PRE} q "select coalesce(revoked_reason,'LIVE')||':'||count(*) from merchant_app_sessions where merchant_id='${A.merchant}' group by 1 order by 1"`).trim().split('\n');
+  const reasons = ssh(`${PRE} q "select coalesce(revoked_reason,'LIVE')||':'||count(*) from merchant_app_sessions where merchant_id='${A.merchant}' group by revoked_reason order by 1"`).trim().split('\n');
   rec('the database records why each session ended', ['REUSE_DETECTED', 'SIGNED_OUT', 'BUSINESS_NOT_ACTIVE'].every((r) => reasons.some((x) => x.startsWith(r))),
     reasons.join(' '));
   const plaintext = ssh(`${PRE} q "select count(*) from merchant_app_sessions where merchant_id='${A.merchant}' and refresh_token_hash like 'bzs_%'"`).trim();

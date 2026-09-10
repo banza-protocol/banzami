@@ -1,0 +1,145 @@
+{
+  "schema": "banzami-candidatura-e2e/v1",
+  "site": "https://banzami.com",
+  "api": "https://sandbox-api.banzami.com",
+  "ran_at": "2026-09-10T14:12:20.253Z",
+  "desktop": {
+    "application_id": "2697d631-b1bc-4c93-b505-fc7f04e9f02f",
+    "handle": "e2e_desktop_mtvlvxhc"
+  },
+  "mobile": {
+    "application_id": "bbd38c8f-75b3-4ba5-9833-712f4f8fb007",
+    "handle": "e2e_mobile_mtvlvxhc"
+  },
+  "api_application_id": "bbfc0e59-3172-4943-803b-7f298b2233dd",
+  "steps": [
+    {
+      "step": "desktop: required fields are enforced",
+      "ok": true,
+      "note": "16 fields flagged"
+    },
+    {
+      "step": "desktop: a reserved @handle is refused",
+      "ok": true
+    },
+    {
+      "step": "desktop: a handle a Business owns offers regularisation, not reuse",
+      "ok": true
+    },
+    {
+      "step": "desktop: an invalid email is refused",
+      "ok": true
+    },
+    {
+      "step": "desktop: an invalid Angolan phone is refused",
+      "ok": true
+    },
+    {
+      "step": "desktop: an invalid NIF is refused",
+      "ok": true
+    },
+    {
+      "step": "desktop: a file of the wrong type is refused",
+      "ok": true
+    },
+    {
+      "step": "desktop: an oversized file is refused",
+      "ok": true
+    },
+    {
+      "step": "desktop: terms must be accepted",
+      "ok": true
+    },
+    {
+      "step": "desktop: the confirmation is on screen, not a scroll away",
+      "ok": true
+    },
+    {
+      "step": "desktop: a double-clicked submission is ONE application",
+      "ok": true,
+      "note": "1 POST(s), 1 application id(s)",
+      "application_id": "2697d631-b1bc-4c93-b505-fc7f04e9f02f"
+    },
+    {
+      "step": "desktop: the applicant sees a reference",
+      "ok": true,
+      "note": "Referência da candidatura: 2697D631"
+    },
+    {
+      "step": "desktop: with no document storage, the applicant is told the documents were not sent",
+      "ok": true
+    },
+    {
+      "step": "desktop: the required documents arrived and passed the server's checks",
+      "ok": false,
+      "note": "BLOCKED — Sandbox KYB storage not configured (503 STORAGE_NOT_CONFIGURED)"
+    },
+    {
+      "step": "mobile: the confirmation is on screen, not a scroll away",
+      "ok": true
+    },
+    {
+      "step": "mobile: a double-clicked submission is ONE application",
+      "ok": true,
+      "note": "1 POST(s), 1 application id(s)",
+      "application_id": "bbd38c8f-75b3-4ba5-9833-712f4f8fb007"
+    },
+    {
+      "step": "mobile: the applicant sees a reference",
+      "ok": true,
+      "note": "Referência da candidatura: BBD38C8F"
+    },
+    {
+      "step": "mobile: with no document storage, the applicant is told the documents were not sent",
+      "ok": true
+    },
+    {
+      "step": "mobile: the required documents arrived and passed the server's checks",
+      "ok": false,
+      "note": "BLOCKED — Sandbox KYB storage not configured (503 STORAGE_NOT_CONFIGURED)"
+    },
+    {
+      "step": "server: terms are required without the form",
+      "ok": true,
+      "note": "400 VALIDATION_ERROR"
+    },
+    {
+      "step": "server: an invalid handle is refused",
+      "ok": true,
+      "note": "400 INVALID_HANDLE"
+    },
+    {
+      "step": "server: a reserved handle is refused",
+      "ok": true,
+      "note": "409 HANDLE_RESERVED"
+    },
+    {
+      "step": "server: a Business-owned handle cannot be requested as new",
+      "ok": true,
+      "note": "409 HANDLE_OWNED_BY_BUSINESS"
+    },
+    {
+      "step": "server: an existing-Business claim needs a Business to exist",
+      "ok": true,
+      "note": "409 HANDLE_NOT_A_BUSINESS"
+    },
+    {
+      "step": "server: the same Idempotency-Key returns the same application",
+      "ok": true,
+      "note": "201/201"
+    },
+    {
+      "step": "server: an executable is refused before upload",
+      "ok": false,
+      "note": "503 STORAGE_NOT_CONFIGURED"
+    },
+    {
+      "step": "server: document storage accepts an upload request",
+      "ok": false,
+      "note": "503 STORAGE_NOT_CONFIGURED"
+    }
+  ],
+  "pass": 23,
+  "fail": 4,
+  "verdict": "FAIL"
+}
