@@ -163,7 +163,12 @@ async fn readiness(state: &AppState, o: &Owner) -> Readiness {
 
 /// A real settlement create for this owner, naming its own account as the fee
 /// destination — exactly what an application does.
-async fn settle_for(state: &AppState, pool: &PgPool, o: &Owner, profile: Option<&str>) -> Result<serde_json::Value, &'static str> {
+async fn settle_for(
+    state: &AppState,
+    pool: &PgPool,
+    o: &Owner,
+    profile: Option<&str>,
+) -> Result<serde_json::Value, &'static str> {
     let source = ledger_account(pool, "LIABILITY").await;
     let beneficiary = ledger_account(pool, "LIABILITY").await;
     fund(pool, source, 100_000).await;
@@ -179,7 +184,12 @@ async fn settle_for(state: &AppState, pool: &PgPool, o: &Owner, profile: Option<
     if let Some(p) = profile {
         body["pricing_profile"] = serde_json::json!(p);
     }
-    match settle::create(State(state.clone()), Json(serde_json::from_value(body).unwrap())).await {
+    match settle::create(
+        State(state.clone()),
+        Json(serde_json::from_value(body).unwrap()),
+    )
+    .await
+    {
         Ok((_, Json(v))) => Ok(v),
         Err(e) => Err(e.code),
     }
@@ -187,7 +197,12 @@ async fn settle_for(state: &AppState, pool: &PgPool, o: &Owner, profile: Option<
 
 /// The one invariant: readiness READY ⇔ settlement accepted, and a refusal is
 /// the same code in both.
-async fn assert_agree(state: &AppState, pool: &PgPool, o: &Owner, profile: Option<&str>) -> Readiness {
+async fn assert_agree(
+    state: &AppState,
+    pool: &PgPool,
+    o: &Owner,
+    profile: Option<&str>,
+) -> Readiness {
     let r = readiness(state, o).await;
     let s = settle_for(state, pool, o, profile).await;
     assert_eq!(
@@ -213,7 +228,14 @@ async fn assert_agree(state: &AppState, pool: &PgPool, o: &Owner, profile: Optio
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn an_eligible_priced_application_is_ready_and_settles(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let o = owner(&pool, "APPLICATION", "APPROVED", Some("sandbox-reference"), true).await;
+    let o = owner(
+        &pool,
+        "APPLICATION",
+        "APPROVED",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
     let r = assert_agree(&state, &pool, &o, Some("sandbox-reference")).await;
     assert!(r.settlement.ready);
     assert!(r.settlement.blockers.is_empty());
@@ -233,9 +255,19 @@ async fn an_eligible_priced_application_is_ready_and_settles(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn a_priced_merchant_is_blocked_on_type_by_both(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let o = owner(&pool, "MERCHANT", "APPROVED", Some("sandbox-reference"), true).await;
+    let o = owner(
+        &pool,
+        "MERCHANT",
+        "APPROVED",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
     let r = assert_agree(&state, &pool, &o, Some("sandbox-reference")).await;
-    assert_eq!(r.settlement.blockers, vec!["FEE_DESTINATION_TYPE_NOT_ALLOWED"]);
+    assert_eq!(
+        r.settlement.blockers,
+        vec!["FEE_DESTINATION_TYPE_NOT_ALLOWED"]
+    );
     assert!(!r.fee_destination.type_allowed);
     assert!(r.fee_destination.resolved && r.fee_destination.kyb_approved);
 }
@@ -253,9 +285,14 @@ async fn an_ordinary_zero_rate_merchant_is_ready_and_settles_at_zero(pool: PgPoo
     assert!(!r.fee_destination.required);
     // Reported truthfully, but blocking nothing.
     assert!(!r.fee_destination.type_allowed);
-    assert_eq!(r.fee_destination.blocker, Some("FEE_DESTINATION_TYPE_NOT_ALLOWED"));
+    assert_eq!(
+        r.fee_destination.blocker,
+        Some("FEE_DESTINATION_TYPE_NOT_ALLOWED")
+    );
 
-    let s = settle_for(&state, &pool, &o, Some("sandbox-default")).await.unwrap();
+    let s = settle_for(&state, &pool, &o, Some("sandbox-default"))
+        .await
+        .unwrap();
     assert_eq!(s["application_fee"]["amount_minor"], 0);
     assert_eq!(s["net_amount"]["amount_minor"], 100_000);
     assert!(
@@ -267,9 +304,19 @@ async fn an_ordinary_zero_rate_merchant_is_ready_and_settles_at_zero(pool: PgPoo
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn an_unapproved_kyb_blocks_a_fee_bearing_owner_in_both(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let o = owner(&pool, "APPLICATION", "PENDING", Some("sandbox-reference"), true).await;
+    let o = owner(
+        &pool,
+        "APPLICATION",
+        "PENDING",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
     let r = assert_agree(&state, &pool, &o, Some("sandbox-reference")).await;
-    assert_eq!(r.settlement.blockers, vec!["FEE_DESTINATION_KYB_NOT_APPROVED"]);
+    assert_eq!(
+        r.settlement.blockers,
+        vec!["FEE_DESTINATION_KYB_NOT_APPROVED"]
+    );
     assert_eq!(r.kyb.status, "PENDING");
 }
 
@@ -287,7 +334,14 @@ async fn an_unpriced_owner_is_blocked_on_pricing_in_both(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn an_owner_without_a_handle_cannot_name_itself_as_fee_destination(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let o = owner(&pool, "APPLICATION", "APPROVED", Some("sandbox-reference"), false).await;
+    let o = owner(
+        &pool,
+        "APPLICATION",
+        "APPROVED",
+        Some("sandbox-reference"),
+        false,
+    )
+    .await;
     let r = readiness(&state, &o).await;
     assert_eq!(r.settlement.blockers, vec!["FEE_DESTINATION_NOT_FOUND"]);
     assert_eq!(r.financial_identity.handle, None);
@@ -296,8 +350,22 @@ async fn an_owner_without_a_handle_cannot_name_itself_as_fee_destination(pool: P
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn a_stranger_s_destination_is_not_owned_and_its_state_is_not_reported(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let me = owner(&pool, "APPLICATION", "APPROVED", Some("sandbox-reference"), true).await;
-    let stranger = owner(&pool, "APPLICATION", "APPROVED", Some("sandbox-reference"), true).await;
+    let me = owner(
+        &pool,
+        "APPLICATION",
+        "APPROVED",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
+    let stranger = owner(
+        &pool,
+        "APPLICATION",
+        "APPROVED",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
     let Json(r) = settlement_readiness(
         State(state),
         Json(ReadinessBody {
@@ -314,12 +382,26 @@ async fn a_stranger_s_destination_is_not_owned_and_its_state_is_not_reported(poo
     .unwrap();
     assert_eq!(r.settlement.blockers, vec!["FEE_DESTINATION_NOT_OWNED"]);
     assert!(!r.fee_destination.owned_by_project);
+    // The stranger is fully eligible — APPLICATION, KYB approved, active
+    // wallet. None of that may be learned by naming its @banza.
+    assert!(r.fee_destination.resolved);
+    assert!(!r.fee_destination.active);
+    assert!(!r.fee_destination.kyb_approved);
+    assert!(!r.fee_destination.wallet_active);
+    assert!(!r.fee_destination.type_allowed);
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn an_owner_without_a_wallet_is_not_ready(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let o = owner(&pool, "APPLICATION", "APPROVED", Some("sandbox-reference"), true).await;
+    let o = owner(
+        &pool,
+        "APPLICATION",
+        "APPROVED",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
     sqlx::query("UPDATE wallets SET status = 'SUSPENDED' WHERE merchant_id = $1")
         .bind(o.merchant)
         .execute(&pool)
@@ -363,13 +445,23 @@ async fn a_fee_with_no_destination_is_refused_precisely(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn the_readiness_response_carries_no_internal_identifier(pool: PgPool) {
     let state = build_state(pool.clone()).await;
-    let o = owner(&pool, "APPLICATION", "APPROVED", Some("sandbox-reference"), true).await;
+    let o = owner(
+        &pool,
+        "APPLICATION",
+        "APPROVED",
+        Some("sandbox-reference"),
+        true,
+    )
+    .await;
     let raw = serde_json::to_string(&readiness(&state, &o).await).unwrap();
     for leaked in [o.merchant.to_string(), o.own_account.to_string()] {
         assert!(!raw.contains(&leaked), "readiness leaked {leaked}: {raw}");
     }
     let uuid_shape = regex_lite_uuid(&raw);
-    assert!(uuid_shape.is_none(), "readiness carries a UUID: {uuid_shape:?}");
+    assert!(
+        uuid_shape.is_none(),
+        "readiness carries a UUID: {uuid_shape:?}"
+    );
 }
 
 fn regex_lite_uuid(s: &str) -> Option<String> {

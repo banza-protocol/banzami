@@ -272,14 +272,16 @@ func (h *ApplicationSettlementHandler) Get(w http.ResponseWriter, r *http.Reques
 	respond(w, http.StatusOK, st)
 }
 
-// CreateBusiness handles POST /v1/application-settlements (ADR-029).
+// CreateBusiness handles POST /v1/application-settlements (ADR-057).
 //
 // The app closes a campaign: it names the source segregated account, the
-// beneficiary @banza, an optional fee destination @banza, and its OWN fee rate
-// (application_fee_bps). The operator reads the real balance as the gross,
-// resolves the @names to accounts, validates ownership/type/KYB/bounds, executes
-// the split (fee → app, net → beneficiary) and audits it. The app sends no
-// amount, never sees ledger ids, and never sets an operator pricing rule.
+// beneficiary @banza and, optionally, the fee destination @banza — who receives
+// a fee, never how much. The rate is the operator's, from the pricing profile
+// assigned to the business, and a request carrying any pricing field is
+// refused. The operator reads the real balance as the gross, prices it, requires
+// and validates a fee destination only when the fee is above zero, executes the
+// split (fee → app, net → beneficiary) and audits it. The app sends no amount
+// and never sees ledger ids.
 func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *http.Request) {
 	// Dual credential. A developer key settles from an account beneath its own
 	// project binding; a merchant JWT keeps its existing identity. Either way the

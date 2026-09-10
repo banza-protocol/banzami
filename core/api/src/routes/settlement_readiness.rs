@@ -142,7 +142,16 @@ pub async fn settlement_readiness(
     // The owner's facts: identity, KYB, its ACTIVE wallet in this currency, and
     // the pricing profile an operator assigned. The profile predicate is the one
     // the settlement path uses: enabled, and in this deployment's environment.
-    let row = sqlx::query_as::<_, (Option<String>, Option<String>, Option<String>, Option<Uuid>, Option<String>)>(
+    let row = sqlx::query_as::<
+        _,
+        (
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Uuid>,
+            Option<String>,
+        ),
+    >(
         "SELECT hr.handle, c.kyb_status, w.status, w.available_account_id, pp.code
            FROM merchants m
            LEFT JOIN handle_registry hr
@@ -239,6 +248,15 @@ pub async fn settlement_readiness(
     fd.application_account_required = false;
     let dest_blocker: Option<&'static str> = match (fd.handle.is_some(), dest_account) {
         (false, _) | (true, None) => Some("FEE_DESTINATION_NOT_FOUND"),
+        // Settlement checks ownership before anything else about a named
+        // destination, and so does this — BEFORE evaluating it. Another
+        // Business's KYB, wallet and classification are not the caller's to
+        // learn, and a readiness query must not become a way to ask about any
+        // @banza. The handle resolving to an account is all that is said.
+        (true, Some(_)) if !owned => {
+            fd.resolved = true;
+            Some("FEE_DESTINATION_NOT_OWNED")
+        }
         (true, Some(acct)) => {
             let ev: FeeDestinationEvaluation = evaluate_fee_destination(&state.pool, acct).await?;
             fd.resolved = ev.resolved;
@@ -246,13 +264,7 @@ pub async fn settlement_readiness(
             fd.kyb_approved = ev.kyb_approved;
             fd.wallet_active = ev.wallet_active;
             fd.type_allowed = ev.type_allowed;
-            if !owned {
-                // Settlement checks ownership before anything else about a named
-                // destination, and a stranger's compliance state is not reported.
-                Some("FEE_DESTINATION_NOT_OWNED")
-            } else {
-                ev.blocker
-            }
+            ev.blocker
         }
     };
     fd.blocker = dest_blocker;
