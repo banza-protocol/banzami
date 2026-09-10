@@ -33,24 +33,43 @@ const REPO = join(import.meta.dirname, '../..');
  * TABLE, and those were unguarded — including transaction_proofs, whose
  * environment decides whether a public receipt resolves at all.
  */
+/** `public.x` and `x` are the same table; anything else keeps its schema. */
+const qualified = (name) => name.toLowerCase().replace(/^public\./, '');
+
+/** Tables whose environment is CHECK-pinned to a single value (see below). */
+export const pinned = new Set();
+
 function environmentScopedTables() {
   const dir = join(REPO, 'db/migrations');
   const tables = new Set();
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.sql'))) {
     const sql = readFileSync(join(dir, f), 'utf8');
-    for (const m of sql.matchAll(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?(\w+)\s+ADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?environment\b/gi)) {
-      tables.add(m[1].toLowerCase());
+    for (const m of sql.matchAll(/ALTER\s+TABLE\s+(?:IF\s+EXISTS\s+)?((?:\w+\.)?\w+)\s+ADD\s+COLUMN\s+(?:IF\s+NOT\s+EXISTS\s+)?environment\b/gi)) {
+      tables.add(qualified(m[1]));
     }
     // CREATE TABLE x ( … environment … ). The body is taken to the matching
     // close paren so a later table's column cannot be attributed to this one.
-    for (const m of sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)\s*\(/gi)) {
+    // Schema-qualified names too. The first version matched `(\w+)\s*\(`, which
+    // cannot match `developer.dev_project_business_link (` — so every table
+    // outside `public` was invisible here, and one of them kept DEFAULT 'LIVE'
+    // until 0116.
+    for (const m of sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?((?:\w+\.)?\w+)\s*\(/gi)) {
       const open = m.index + m[0].length - 1;
       let depth = 0, end = open;
       for (let i = open; i < sql.length; i++) {
         if (sql[i] === '(') depth++;
         else if (sql[i] === ')') { depth--; if (depth === 0) { end = i; break; } }
       }
-      if (/^\s*environment\s/im.test(sql.slice(open + 1, end))) tables.add(m[1].toLowerCase());
+      const body = sql.slice(open + 1, end);
+      if (!/^\s*environment\s/im.test(body)) continue;
+      // A column CHECK-pinned to ONE value cannot record the wrong universe: the
+      // database refuses anything else, so its default restates the only legal
+      // value rather than choosing one. dev_project_sandbox_binding is the case.
+      if (/environment[^,]*CHECK\s*\(\s*environment\s*=\s*'(SANDBOX|LIVE)'\s*\)/i.test(body)) {
+        pinned.add(qualified(m[1]));
+        continue;
+      }
+      tables.add(qualified(m[1]));
     }
   }
   // platform_settings.environment is a SCOPE, not a universe: it holds 'GLOBAL'
@@ -118,9 +137,16 @@ describe('environment-scoped writers', () => {
       'transaction_proofs', 'wallet_payments', 'app_settlements', 'merchant_applications',
       'kyc_cases', 'kyc_evidence', 'merchant_kyb_documents', 'operator_fees',
       'pricing_rules', 'pricing_profiles', 'fee_policies',
+      // outside `public`, invisible until the regexes learned schema-qualified names
+      'developer.dev_project_business_link',
     ]) {
       assert.ok(tables.has(t), `${t} lost its environment column, or this guard lost sight of it`);
     }
+  });
+
+  it('a single-value pinned column is recognised as pinned, not as unguarded', () => {
+    assert.ok(pinned.has('developer.dev_project_sandbox_binding'), `pinned: ${[...pinned]}`);
+    assert.ok(!tables.has('developer.dev_project_sandbox_binding'));
   });
 
   it('no production INSERT omits the environment column', () => {
