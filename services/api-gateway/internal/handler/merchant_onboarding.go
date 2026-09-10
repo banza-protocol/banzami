@@ -138,6 +138,16 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		IdempotencyKey: r.Header.Get("Idempotency-Key"),
 	})
 	switch {
+	case err == nil:
+		observeApplication(appActionSubmit, appResultOK)
+	case errors.Is(err, service.ErrHandleInvalid), errors.Is(err, service.ErrApplicationIncomplete),
+		errors.Is(err, service.ErrHandleReserved), errors.Is(err, service.ErrMerchantHandleTaken),
+		errors.Is(err, service.ErrHandleOwnedByBusiness), errors.Is(err, service.ErrExistingBusinessNotFound):
+		observeApplication(appActionSubmit, appResultRefused)
+	default:
+		observeApplication(appActionSubmit, appResultFailed)
+	}
+	switch {
 	case errors.Is(err, service.ErrHandleInvalid):
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_HANDLE", "handle must be 3-30 lowercase letters, digits or underscore")
 	case errors.Is(err, service.ErrApplicationIncomplete):

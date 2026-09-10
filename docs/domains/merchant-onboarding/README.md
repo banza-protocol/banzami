@@ -80,6 +80,30 @@ Onboarding is only considered complete for SDK merchants when a successful sandb
 
 ---
 
+## Business application lifecycle (as implemented)
+
+Decision record: [ADR-058](../../adr/ADR-058-business-application-lifecycle.md).
+The phases above describe the product intent; this is what the code does.
+
+| Step | Where | What happens |
+|---|---|---|
+| Apply | `banzami.com/comerciantes/candidatura` → `POST /v1/merchant/applications` | Application `SUBMITTED`; the requested `@handle` held for 30 days (`APPLICATION` owner). One `Idempotency-Key` per form session; replay returns the same id. |
+| Documents | `POST …/documents/upload-url` → PUT to private storage → `…/confirm` | Required: `BUSINESS_REGISTRATION`, `REPRESENTATIVE_ID`. Size ≤ 5 MB; the bytes must be a PDF/JPEG/PNG of the declared type or the object is deleted and the document `REJECTED`. `503 STORAGE_NOT_CONFIGURED` when the stack has no KYB storage. |
+| Review | BANZADMIN → `start-review` | `UNDER_REVIEW`. |
+| Approve | BANZADMIN → `approve` | New Business: merchant (class `MERCHANT`), wallet, API key, KYB approved, default pricing profile, handle from the application's own hold, login + activation link. `resolution=PROVISIONED_NEW`. Idempotent; a partial failure is `PROVISIONING_FAILED` and approving again resumes. |
+| Link | BANZADMIN → `link-existing` (target, typed `@handle`, reason) | Existing Business: documents + KYB attached, nothing created or moved. `resolution=LINKED_EXISTING`. |
+| Reject | BANZADMIN → `reject` | `REJECTED`; the application's own handle hold released. |
+| Activate | Email link → `POST /v1/merchant/activation/complete` | The Business sets its PIN; the Business App signs in with `@handle` + PIN (24 h session). |
+
+A Business-owned `@handle` can never be requested as new (`HANDLE_OWNED_BY_BUSINESS`)
+and a claim to an existing Business needs one to exist (`HANDLE_NOT_A_BUSINESS`).
+A login signs in only as the owner of its handle.
+
+Classification (`APPLICATION` / `PLATFORM`) is never set by an application; it
+is a separate operator action (ADR-057).
+
+---
+
 ## Merchant Profile
 
 Each merchant has a `merchant_profile` record that controls the public-facing presentation on `pay.banzami.com/profiles/{handle}`.
@@ -166,25 +190,27 @@ If the merchant's preferred handle is taken:
 
 ## Observability
 
-Onboarding funnel metrics to track:
+Implemented (Gateway `/metrics`, `services/api-gateway/internal/handler/business_metrics.go`).
+Every label is a closed vocabulary — never an application id, merchant id,
+handle, email, NIF or IP.
 
-| Metric | Description |
-|--------|-------------|
-| `merchant_registrations_total` | Total registrations by day |
-| `kyc_submissions_total` | KYC submissions by tier |
-| `kyc_approval_rate` | Approved / submitted by tier |
-| `kyc_rejection_reasons` | Top rejection reasons by label |
-| `time_to_first_live_payment` | Duration from registration to first successful live transaction |
-| `sdk_integration_completions` | Merchants who completed a sandbox transaction |
+| Metric | Labels | Meaning |
+|--------|--------|---------|
+| `banzami_business_application_events_total` | `action` (submit, start_review, approve, link_existing, reject, reissue_activation), `result` (ok, replayed, refused, failed) | The application funnel and its refusals. `failed` is a 5xx an operator must look at. |
+| `banzami_business_application_documents_total` | `result` (uploaded, content_mismatch, refused, storage_unavailable, failed) | Applicant document uploads. |
+| `banzami_business_auth_total` | `result` (issued, refused, locked, handle_owner_mismatch) | Business App sign-ins. `handle_owner_mismatch` > 0 is a data defect, not a user error. |
+| `banzami_business_tenant_denials_total` | `surface` (wallet) | A Business reaching for another Business's wallet (answered 404). |
 
-Time-to-first-live-payment is the primary onboarding health metric. If this grows, friction has increased somewhere in the funnel.
+Still to build (intent, not implemented): time from application to first
+payment; KYB rejection reasons by class.
 
 ---
 
 ## Security Considerations
 
-- KYC documents are stored encrypted at rest (AES-256).
-- KYC document access is logged and auditable.
+- KYB documents live in a private bucket (Cloudflare R2, encrypted at rest by the provider); the database stores only bucket + a non-guessable key; operators read them through short-lived signed URLs.
+- Documents are checked by their bytes (magic bytes), not by their declared type. **No malware scanning is performed.**
+- KYB document access is logged and auditable.
 - API keys are hashed (SHA-256) at rest; the raw key is shown only once at creation.
 - NIF is stored hashed for duplicate-check purposes; the plaintext is retained only for regulatory reporting under BNA requirements.
 - Webhook secrets are hashed at rest; used only for HMAC signature generation.

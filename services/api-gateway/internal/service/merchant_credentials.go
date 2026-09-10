@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -21,7 +22,11 @@ var (
 	ErrHandleReserved       = errors.New("handle is reserved")
 	ErrMerchantHandleTaken  = errors.New("handle is already taken")
 	ErrMerchantCredsInvalid = errors.New("invalid handle or pin") // non-enumerating
-	ErrMerchantLocked       = errors.New("too many attempts; try again later")
+	// ErrHandleOwnerMismatch is still ErrMerchantCredsInvalid to every caller
+	// that answers the person (same non-enumerating 401); it is distinct only so
+	// the operator's metrics can tell a data defect from a wrong PIN.
+	ErrHandleOwnerMismatch = fmt.Errorf("%w: credential does not belong to the handle's owner", ErrMerchantCredsInvalid)
+	ErrMerchantLocked      = errors.New("too many attempts; try again later")
 )
 
 const (
@@ -167,7 +172,7 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 	// 401 as a wrong PIN; migration 0117 repairs the data.
 	if !ownsHandle {
 		slog.ErrorContext(ctx, "merchant.auth.handle_owner_mismatch", "environment", environment)
-		return "", "", ErrMerchantCredsInvalid
+		return "", "", ErrHandleOwnerMismatch
 	}
 
 	if locked != nil && locked.After(time.Now()) {

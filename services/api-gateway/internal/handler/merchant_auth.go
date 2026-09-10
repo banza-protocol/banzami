@@ -57,6 +57,14 @@ func (h *MerchantAuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 
 	merchantID, env, err := h.creds.VerifyHandlePin(r.Context(), body.Handle, body.Pin)
 	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrMerchantLocked):
+			businessAuthAttempts.WithLabelValues(authResultLocked).Inc()
+		case errors.Is(err, service.ErrHandleOwnerMismatch):
+			businessAuthAttempts.WithLabelValues(authResultOwnerMismatch).Inc()
+		default:
+			businessAuthAttempts.WithLabelValues(authResultRefused).Inc()
+		}
 		if errors.Is(err, service.ErrMerchantLocked) {
 			slog.WarnContext(r.Context(), "merchant.auth.locked", "ip", r.RemoteAddr)
 			apierror.Respond(w, r, http.StatusTooManyRequests, "LOCKED", "too many attempts; try again later")
@@ -77,6 +85,7 @@ func (h *MerchantAuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	businessAuthAttempts.WithLabelValues(authResultIssued).Inc()
 	slog.InfoContext(r.Context(), "merchant.auth.token.issued",
 		"merchant_id", merchantID, "environment", env, "expires_at", expiresAt)
 

@@ -36,6 +36,12 @@ func (h *MerchantApplicationAdminHandler) WithReadiness(r service.SettlementRead
 // respondLifecycleError maps the application-lifecycle refusals to precise
 // codes an operator UI can explain.
 func respondLifecycleError(w http.ResponseWriter, r *http.Request, err error, action string) {
+	result := appResultRefused
+	defer func() {
+		if label, counted := lifecycleActionLabel[action]; counted {
+			observeApplication(label, result)
+		}
+	}()
 	switch {
 	case errors.Is(err, service.ErrApplicationNotFound):
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "application not found")
@@ -60,6 +66,7 @@ func respondLifecycleError(w http.ResponseWriter, r *http.Request, err error, ac
 	case errors.Is(err, service.ErrActivationNotReissuable):
 		apierror.Respond(w, r, http.StatusConflict, "NO_PENDING_ACTIVATION", err.Error())
 	default:
+		result = appResultFailed
 		slog.ErrorContext(r.Context(), "merchant.application."+action+".failed", "error_kind", fmt.Sprintf("%T", err))
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not "+action+" application")
 	}
@@ -125,6 +132,11 @@ func (h *MerchantApplicationAdminHandler) Approve(w http.ResponseWriter, r *http
 	// merchant_id is safe to log; the activation token is NOT.
 	slog.InfoContext(r.Context(), "merchant.application.approved",
 		"application_id", res.ApplicationID, "merchant_id", res.MerchantID, "already_approved", res.AlreadyApproved)
+	if res.AlreadyApproved {
+		observeApplication(appActionApprove, appResultReplayed)
+	} else {
+		observeApplication(appActionApprove, appResultOK)
+	}
 	writeJSON(w, http.StatusOK, res)
 }
 
@@ -146,6 +158,7 @@ func (h *MerchantApplicationAdminHandler) Reject(w http.ResponseWriter, r *http.
 		return
 	}
 	slog.InfoContext(r.Context(), "merchant.application.rejected", "application_id", res.ApplicationID)
+	observeApplication(appActionReject, appResultOK)
 	writeJSON(w, http.StatusOK, res)
 }
 
@@ -165,6 +178,7 @@ func (h *MerchantApplicationAdminHandler) StartReview(w http.ResponseWriter, r *
 		return
 	}
 	slog.InfoContext(r.Context(), "merchant.application.review_started", "application_id", app.ID)
+	observeApplication(appActionStartReview, appResultOK)
 	writeJSON(w, http.StatusOK, app)
 }
 
@@ -197,6 +211,11 @@ func (h *MerchantApplicationAdminHandler) LinkExisting(w http.ResponseWriter, r 
 	}
 	slog.InfoContext(r.Context(), "merchant.application.linked_existing",
 		"application_id", res.ApplicationID, "merchant_id", res.MerchantID, "already_linked", res.AlreadyLinked)
+	if res.AlreadyLinked {
+		observeApplication(appActionLink, appResultReplayed)
+	} else {
+		observeApplication(appActionLink, appResultOK)
+	}
 	writeJSON(w, http.StatusOK, res)
 }
 
@@ -212,6 +231,7 @@ func (h *MerchantApplicationAdminHandler) ReissueActivation(w http.ResponseWrite
 		return
 	}
 	slog.InfoContext(r.Context(), "merchant.application.activation_reissued", "application_id", res.ApplicationID)
+	observeApplication(appActionReissueActivation, appResultOK)
 	writeJSON(w, http.StatusOK, res)
 }
 

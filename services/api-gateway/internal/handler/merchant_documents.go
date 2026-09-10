@@ -32,6 +32,28 @@ func (h *MerchantDocumentHandler) ready(w http.ResponseWriter, r *http.Request) 
 	return true
 }
 
+// observeDocument counts one applicant upload step: a confirmed upload, or the
+// reason one was refused.
+func observeDocument(err error) {
+	result := docResultUploaded
+	switch {
+	case err == nil:
+	case errors.Is(err, service.ErrStorageNotConfigured):
+		result = docResultStorageOff
+	case errors.Is(err, service.ErrContentMismatch):
+		result = docResultContentRefused
+	case errors.Is(err, service.ErrApplicationNotFound), errors.Is(err, service.ErrDocumentNotFound),
+		errors.Is(err, service.ErrObjectMissing), errors.Is(err, service.ErrInvalidDocumentType),
+		errors.Is(err, service.ErrInvalidMimeType), errors.Is(err, service.ErrInvalidExtension),
+		errors.Is(err, service.ErrFileTooLarge), errors.Is(err, service.ErrEmptyFile),
+		errors.Is(err, service.ErrApplicationClosed):
+		result = docResultRefused
+	default:
+		result = docResultFailed
+	}
+	businessApplicationDocuments.WithLabelValues(result).Inc()
+}
+
 func (h *MerchantDocumentHandler) mapErr(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.Is(err, service.ErrStorageNotConfigured):
@@ -83,6 +105,7 @@ func (h *MerchantDocumentHandler) RequestUploadURL(w http.ResponseWriter, r *htt
 	}
 	res, err := h.docs.RequestUpload(r.Context(), appID, body.DocumentType, body.Filename, body.MimeType, body.SizeBytes)
 	if err != nil {
+		observeDocument(err)
 		h.mapErr(w, r, err)
 		return
 	}
@@ -106,6 +129,7 @@ func (h *MerchantDocumentHandler) ConfirmUpload(w http.ResponseWriter, r *http.R
 	appID := chi.URLParam(r, "id")
 	docID := chi.URLParam(r, "document_id")
 	view, err := h.docs.ConfirmUpload(r.Context(), appID, docID)
+	observeDocument(err)
 	if err != nil {
 		h.mapErr(w, r, err)
 		return

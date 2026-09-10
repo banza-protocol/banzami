@@ -110,6 +110,9 @@ func (h *WalletHandler) requireOwnedWallet(w http.ResponseWriter, r *http.Reques
 		return nil, false
 	}
 	if wallet == nil || wallet.MerchantID != principal.MerchantID {
+		if wallet != nil {
+			businessTenantDenials.WithLabelValues(tenantSurfaceWallet).Inc()
+		}
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found")
 		return nil, false
 	}
