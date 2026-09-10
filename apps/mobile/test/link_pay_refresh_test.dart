@@ -115,6 +115,30 @@ void main() {
       );
     });
 
+    testWidgets('B2. a Business with a @handle is shown by name with its @handle under it — not the link reference',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final link = {..._activeLink(), 'merchant_name': 'Doa', 'merchant_handle': 'doa', 'description': 'DOA-203EE717'};
+      await tester.pumpWidget(_wrapPaymentLink(_client(
+          _RouteHttpClient(getBody: link, postBody: {..._usedLink(), 'merchant_name': 'Doa', 'merchant_handle': 'doa'}))));
+      await tester.pumpAndSettle();
+      expect(find.text('Doa'), findsOneWidget);
+      expect(find.text('@doa'), findsOneWidget);
+      expect(find.text('DOA-203EE717'), findsNothing);
+
+      // …and, paid, the comprovativo says it was paid to @doa.
+      tester.widget<BanzamiPrimaryButton>(find.byWidgetPredicate(
+          (w) => w is BanzamiPrimaryButton && w.label.startsWith('Pagar'))).onPressed!();
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(find.text('para @doa'), findsOneWidget);
+      for (var i = 0; i < 80; i++) {
+        await tester.pump(const Duration(milliseconds: 50)); // let the receipt fetch retries settle
+      }
+    });
+
     testWidgets('C. completing the payment and closing the receipt fires onSuccess once',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));

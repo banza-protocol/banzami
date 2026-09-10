@@ -230,7 +230,7 @@ func TestPaymentReceiptSaysPayment(t *testing.T) {
 	}
 	for _, must := range []string{
 		"Comprovativo de pagamento", "Pagamento confirmado", "Valor pago", "2 000 Kz",
-		"Fidel Monteiro", "@fm65", ">Doa<", "@doa",
+		"Fidel Monteiro", "@fm65", ">@doa<",
 		"Referência do comprovativo", "BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T",
 		"Pagamento · Link de pagamento", "Saldo Banzami",
 		"Referência do comerciante", "DOA-55791091", "Finalidade", "Vaquinha · Jornada economica fresca",
@@ -245,6 +245,7 @@ func TestPaymentReceiptSaysPayment(t *testing.T) {
 		"Comprovativo de transferência", "liquidado", "liquidação", "Liquidação",
 		"Transferência Banzami · @banza", "Método", "Payment link:", "Sandbox · Doa-Sandbox",
 		"0056ead5", "0056EAD5", // the operation id is not a receipt reference
+		">Doa<",                // a Business is paid at its @handle
 		"Kz 2.000,00",
 	} {
 		if strings.Contains(html, bad) {

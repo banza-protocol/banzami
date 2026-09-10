@@ -43,7 +43,7 @@ func TestGatewayReceiptSource_TransferAfterWalletPayment(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if d.RecipientName != "Doa" || d.RecipientHandle != "doa" || d.Perspective != documents.PerspectiveAdmin || d.OperationKind != documents.OperationPayment {
+	if d.RecipientName != "@doa" || d.RecipientHandle != "" || d.Perspective != documents.PerspectiveAdmin || d.OperationKind != documents.OperationPayment {
 		t.Fatalf("rendered %+v", d)
 	}
 	if len(gw.calls) != 2 {

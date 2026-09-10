@@ -131,14 +131,13 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
     return BanzamiPaymentRequestScreen(
       client: widget.client,
       recipientHandle: link.merchantHandle ?? link.merchantName ?? link.slug,
-      // The payee as every receipt names it: the Business's public name and
-      // the @handle it owns ("Doa · @doa").
-      recipientDisplayName: link.merchantName == null
-          ? 'Pagamento Banzami'
-          : (link.merchantHandle == null
-              ? link.merchantName!
-              : '${link.merchantName} · @${link.merchantHandle}'),
-      recipientSubtitle: link.description,
+      // The Business's public name, and under it the @handle it is paid at
+      // ("Doa" / "@doa"). The link's description (e.g. a DOA reference) is not
+      // who is paid; it appears on the receipt as the Business's reference.
+      recipientDisplayName: link.merchantName ?? 'Pagamento Banzami',
+      recipientSubtitle: link.merchantHandle != null
+          ? '@${link.merchantHandle}'
+          : link.description,
       amountMinor: link.amountMinor,
       currency: link.currency,
       locked: link.amountMinor != null,

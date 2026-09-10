@@ -105,7 +105,7 @@ func TestMerchantReceipt_RendersTheCanonicalReceipt(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status %d", w.Code)
 	}
-	if got.Perspective != documents.PerspectiveMerchant || got.RecipientHandle != "mercadocentral" ||
+	if got.Perspective != documents.PerspectiveMerchant || got.RecipientName != "@mercadocentral" ||
 		got.OperationKind != documents.OperationPayment || got.Reference != "BZM-AAAA-1111" {
 		t.Fatalf("rendered %+v", got)
 	}

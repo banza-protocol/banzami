@@ -178,11 +178,13 @@ async function crossSurface(label, { transferId, payResponse, payer, token, expe
   const wat = watDate(`${confirmedUtc}Z`);
   const flat = pdf.replace(/\s+/g, ' ');
   const mustPdf = [expect.kind === 'PAYMENT' ? 'COMPROVATIVO DE PAGAMENTO' : 'COMPROVATIVO DE TRANSFERÊNCIA', ref, `@${expect.payeeHandle}`, `@${payer.handle}`, wat.pdf, expect.amountText,
-    ...(expect.kind === 'PAYMENT' ? [expect.payeeName, 'Saldo Banzami'] : [])];
+    ...(expect.kind === 'PAYMENT' ? ['Saldo Banzami'] : [])];
+  // A Business is named at its @handle on the PDF; its name is not printed as the payee.
+  const payeeNameOnPdf = expect.kind === 'PAYMENT' && flat.includes(expect.payeeName);
   const missing = mustPdf.filter((m) => !flat.toUpperCase().includes(String(m).toUpperCase()));
   const forbidden = ['Payment link:', 'Transferência Banzami · @banza', PROJECT_NAME, 'liquidado em segundos', ...(expect.kind === 'PAYMENT' ? ['Comprovativo de transferência'] : [])]
     .filter((b) => flat.includes(b));
-  rec(`${label}: the payer's PDF`, pdfRes.status === 200 && missing.length === 0 && forbidden.length === 0,
+  rec(`${label}: the payer's PDF`, pdfRes.status === 200 && missing.length === 0 && forbidden.length === 0 && !payeeNameOnPdf,
     `missing [${missing.join(', ')}] forbidden [${forbidden.join(', ')}] → ${label}-payer.png`);
 
   const pub = await http(`${GW}/v1/public/proofs/${ref}`);
@@ -199,7 +201,7 @@ async function crossSurface(label, { transferId, payResponse, payer, token, expe
   const html = page.text.replace(/<[^>]+>/g, ' ').replace(/&nbsp;|\s+/g, ' ');
   const mustPage = [expect.kind === 'PAYMENT' ? 'Pagamento verificado' : 'Transferência verificada', ref, `@${expect.payeeHandle}`, wat.page,
     `${expect.kind === 'PAYMENT' ? 'Pagamento' : 'Transferência'} · ${expect.channelLabel}`, 'SANDBOX',
-    ...(expect.kind === 'PAYMENT' ? [`${expect.payeeName} · @${expect.payeeHandle}`] : [])];
+    ...(expect.kind === 'PAYMENT' ? [`Para @${expect.payeeHandle}`] : [])];
   const pageMissing = mustPage.filter((m) => !html.includes(m));
   const pageForbidden = ['Payment link:', PROJECT_NAME, 'Para —', payer.name].filter((b) => html.includes(b));
   rec(`${label}: the public verifier page`, page.status === 200 && pageMissing.length === 0 && pageForbidden.length === 0,
@@ -287,7 +289,7 @@ async function main() {
       docker exec "$GWC" cat /tmp/rcpt-biz.pdf | base64 -w0 > /tmp/rcpt-biz.b64; docker exec "$GWC" rm -f /tmp/rcpt-biz.pdf; echo; cat /tmp/rcpt-biz.b64; rm -f /tmp/rcpt-biz.b64`);
     const [code, b64] = biz.split('\n');
     const text = pdfText(Buffer.from(b64 ?? '', 'base64'), 'session-payment-business.pdf').replace(/\s+/g, ' ');
-    rec('the Business\'s PDF: same reference, "pagamento recebido", same payee', code === '200' && text.includes(s1.ref) && /PAGAMENTO RECEBIDO/i.test(text) && text.includes(BUSINESS_NAME),
+    rec('the Business\'s PDF: same reference, "pagamento recebido", same payee', code === '200' && text.includes(s1.ref) && /PAGAMENTO RECEBIDO/i.test(text) && text.includes(`@${HANDLE}`),
       `${code} → session-payment-business.png`);
     const n = q(`SELECT count(*) FROM transaction_proofs WHERE transaction_id IN ('${paid.body?.transaction_id}','${wp}')`);
     rec('one operation, one proof', n === '1', `${n} proof(s)`);

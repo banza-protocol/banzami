@@ -23,15 +23,12 @@ class ReceiptParty {
 
   bool get isBusiness => kind == 'BUSINESS';
 
-  /// "Doa · @doa" for a Business, "@ana" for a person (a person's full name is
-  /// shown only where the receipt provides it), or the name alone.
+  /// How the payee is named on every surface: its @handle ("@doa") — a
+  /// Business is paid at its public address, a person is their @handle. Only a
+  /// Business with no handle falls back to its name.
   String get label {
-    final at = handle != null ? '@$handle' : null;
-    if (isBusiness) {
-      if (displayName != null && at != null) return '$displayName · $at';
-      return displayName ?? at ?? '—';
-    }
-    return at ?? displayName ?? '—';
+    if (handle != null) return '@$handle';
+    return displayName ?? '—';
   }
 }
 

@@ -12,8 +12,8 @@ A 2,000 Kz payment-link payment from @fm65 to @doa (proof
 
 | Surface | Said | Truth |
 |---------|------|-------|
-| Phone | "para Sandbox · Doa-Sandbox", "Ref 0056EAD5", 21:13 | Doa · @doa, `BZM-BMJN-…-FB0T`, 20:13 WAT |
-| PDF | "Comprovativo de transferência", Para: *(empty)*, "Payment link: d7c27a5585a4" | a payment, to Doa · @doa |
+| Phone | "para Sandbox · Doa-Sandbox", "Ref 0056EAD5", 21:13 | @doa, `BZM-BMJN-…-FB0T`, 20:13 WAT |
+| PDF | "Comprovativo de transferência", Para: *(empty)*, "Payment link: d7c27a5585a4" | a payment, to @doa |
 | Verifier | "Para: —", "Método: Transferência Banzami · @banza", 19:13 | the same |
 
 The ledger had credited @doa's CAMPAIGN Wallet Account. Three causes:
@@ -96,11 +96,20 @@ They are refused at creation (`400 INVALID_METADATA`) rather than dropped on a
 receipt. They are **context, not identity**: a `payee_name` in metadata is
 ignored, and a Project can never name who is paid.
 
+## How a payee is named
+
+Every surface names the payee at its **@handle**: `Para: @doa`. A Business is
+paid at its public address — the one a payer can check, that cannot collide
+with another Business's name or read like a Project. The name the Business
+presents appears only where the payer chooses whom to pay ("Doa", with "@doa"
+under it) and in the proof's snapshot (`payee_display_name`). A Business
+without a handle falls back to its name.
+
 ## Disclosure
 
 A party's own view (phone, PDF issued to a party, BANZADMIN) shows both
-parties' names. The public verifier follows ADR-033 §7: a Business by name and
-@handle, a person by @handle only. No surface shows an internal id; the
+parties' names. The public verifier follows ADR-033 §7 and names the payee at
+its @handle; a person's name is never public. No surface shows an internal id; the
 transaction id is an "ID da operação", never a reference.
 
 ## Time and money

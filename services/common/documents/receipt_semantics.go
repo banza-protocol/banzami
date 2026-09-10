@@ -70,6 +70,18 @@ type Receipt struct {
 	TransactionID string `json:"transaction_id,omitempty"`
 }
 
+// PayeeLabel is how every surface names a payee. A Business is paid at its
+// @handle — "@doa" — the public address the payer can check, not a name that
+// could collide with another Business or read like a Project; a Business with
+// no handle falls back to its public name. A person is their @handle, with
+// their name only where the view is private.
+func PayeeLabel(p Party) string {
+	if h := strings.TrimSpace(p.Handle); h != "" {
+		return "@" + strings.TrimPrefix(h, "@")
+	}
+	return strings.TrimSpace(p.DisplayName)
+}
+
 // OperationLabel is the product word for an operation kind.
 func OperationLabel(kind string) string {
 	switch kind {
@@ -111,6 +123,10 @@ func ReceiptDataFromReceipt(r Receipt, perspective Perspective) ReceiptData {
 	if r.ConfirmedAt != nil {
 		when = *r.ConfirmedAt
 	}
+	payeeName, payeeHandle := r.Payee.DisplayName, r.Payee.Handle
+	if label := PayeeLabel(r.Payee); r.Payee.Kind == PartyBusiness && label != "" {
+		payeeName, payeeHandle = label, ""
+	}
 	verify := ""
 	if strings.TrimSpace(r.ProofReference) != "" {
 		verify = "banzami.com/r/" + r.ProofReference
@@ -128,8 +144,8 @@ func ReceiptDataFromReceipt(r Receipt, perspective Perspective) ReceiptData {
 		IssuedAt:              when,
 		PayerName:             r.Payer.DisplayName,
 		PayerHandle:           r.Payer.Handle,
-		RecipientName:         r.Payee.DisplayName,
-		RecipientHandle:       r.Payee.Handle,
+		RecipientName:         payeeName,
+		RecipientHandle:       payeeHandle,
 		OperationKind:         r.OperationKind,
 		Channel:               r.Channel,
 		FundingSource:         r.FundingSource,

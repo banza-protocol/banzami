@@ -20,7 +20,7 @@ describe('public verifier rows', () => {
   it('a payment names the Business, the operation, the channel and the funding source separately', () => {
     const rows = proofRows(payment, REF);
     expect(row(rows, 'De')).toBe('@fm65');
-    expect(row(rows, 'Para')).toBe('Doa · @doa');
+    expect(row(rows, 'Para')).toBe('@doa');
     expect(row(rows, 'Referência')).toBe(REF);
     expect(row(rows, 'Operação')).toBe('Pagamento · Link de pagamento');
     expect(row(rows, 'Fonte')).toBe('Saldo Banzami');

@@ -65,11 +65,12 @@ Future<void> _pump(WidgetTester tester, {Size size = const Size(390, 844), Recei
 void main() {
   setUpAll(() async => initializeDateFormatting('pt'));
 
-  testWidgets('a link payment reads as a payment to Doa · @doa, never the Project', (tester) async {
+  testWidgets('a link payment reads as a payment to @doa, never the Project', (tester) async {
     await _pump(tester, receipt: _receipt());
     expect(find.text('Pagamento concluído'), findsOneWidget);
-    expect(find.text('para Doa · @doa'), findsOneWidget);
-    expect(find.text('Doa · @doa'), findsOneWidget); // the Para row
+    expect(find.text('para @doa'), findsOneWidget);
+    expect(find.text('@doa'), findsOneWidget); // the Para row
+    expect(find.text('Doa · @doa'), findsNothing);
     expect(find.textContaining('Doa-Sandbox'), findsNothing);
     expect(find.textContaining('Sandbox · Doa'), findsNothing);
   });
@@ -123,7 +124,7 @@ void main() {
       'Pagamento · Link de pagamento',
       'Montante: 2 000 Kz',
       'De: @fm65',
-      'Para: Doa · @doa',
+      'Para: @doa',
       'Referência do comerciante: DOA-55791091',
       'Finalidade: Vaquinha · Jornada economica fresca',
       'Data: 10 de setembro de 2026, 20:13 (WAT)',
@@ -152,7 +153,7 @@ void main() {
       return _receipt();
     });
     expect(calls, 1);
-    expect(find.text('para Doa · @doa'), findsOneWidget);
+    expect(find.text('para @doa'), findsOneWidget);
     expect(find.text('BZM-BMJN-CFAF-…-FB0T'), findsOneWidget);
   });
 
@@ -170,7 +171,7 @@ void main() {
       await _pump(tester, size: size,
           receipt: _receipt(context: 'Vaquinha · Ajude a Maria Fernanda a concluir o tratamento no hospital em Luanda'));
       expect(tester.takeException(), isNull); // no RenderFlex overflow
-      expect(find.text('Doa · @doa'), findsOneWidget);
+      expect(find.text('@doa'), findsOneWidget);
       final shot = Platform.environment['RECEIPT_SHOT_DIR'];
       if (shot != null) {
         await expectLater(find.byType(BanzamiReceiptScreen),

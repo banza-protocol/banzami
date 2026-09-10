@@ -158,8 +158,10 @@ class _BanzamiPaymentRequestScreenState
           // an older backend omitted it.
           transferId: paid.transferId ?? paid.id,
           sender: widget.ownHandle ?? '',
-          recipient:
-              paid.merchantName ?? widget.recipientDisplayName ?? paid.slug,
+          // Until the canonical receipt arrives: the payee at its @handle.
+          recipient: paid.merchantHandle != null
+              ? '@${paid.merchantHandle}'
+              : (paid.merchantName ?? widget.recipientDisplayName ?? paid.slug),
           amountMinor: paid.amountMinor ?? amount,
           currency: paid.currency,
           status: 'COMPLETED',

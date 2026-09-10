@@ -135,7 +135,7 @@ func TestConsumerReceipt_RendersTheCanonicalReceipt(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("status %d", w.Code)
 	}
-	if got.Reference != secureRef || got.RecipientName != "Doa" || got.RecipientHandle != "doa" ||
+	if got.Reference != secureRef || got.RecipientName != "@doa" || got.RecipientHandle != "" ||
 		got.OperationKind != documents.OperationPayment || got.Channel != documents.ChannelPaymentLink {
 		t.Fatalf("rendered %+v", got)
 	}

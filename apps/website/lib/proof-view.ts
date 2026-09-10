@@ -57,6 +57,12 @@ export function partyLabel(display?: string | null, handle?: string | null): str
   return display || h || null;
 }
 
+/** "@doa"; a Business without a handle falls back to its name. */
+export function payeeLabel(display?: string | null, handle?: string | null): string | null {
+  if (handle) return `@${handle}`;
+  return display || null;
+}
+
 export interface ProofRow { label: string; value: string; mono?: boolean }
 
 /** The detail rows, in order. Absent optional fields are left out, never dashed. */
@@ -66,7 +72,8 @@ export function proofRows(p: ProofResult, ref: string): ProofRow[] {
     if (value && value.trim()) rows.push({ label, value, mono });
   };
   push('De', partyLabel(p.payer_display, p.payer_handle) ?? '—');
-  push('Para', partyLabel(p.payee_display, p.payee_handle) ?? '—');
+  // A payee is named at its @handle — a Business is paid at its public address.
+  push('Para', payeeLabel(p.payee_display, p.payee_handle) ?? '—');
   push('Referência', ref, true);
   const op = operationLabel(p.operation_kind);
   if (op) {
