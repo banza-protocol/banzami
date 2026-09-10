@@ -36,8 +36,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/me',
     tone: 'ok',
     desc: {
-      pt: 'Identidade da chave: devolve o ambiente, o projeto, os scopes e o estado da chave autenticada. Não devolve estado financeiro.',
-      en: 'Key identity: returns the environment, project, scopes and status of the authenticated key. Returns no financial state.',
+      pt: 'Identidade da chave: devolve o ambiente, o projeto ({id, name, ref}), os scopes e o estado da chave autenticada. project.id é o id do próprio projeto, o mesmo da Console, e não muda com o nome. Não devolve estado financeiro — ver GET /v1/financial-setup.',
+      en: 'Key identity: returns the environment, the project ({id, name, ref}), the scopes and status of the authenticated key. project.id is the Project\'s own id, as in the Console, and survives a rename. Returns no financial state — see GET /v1/financial-setup.',
     },
     credential: {
       pt: 'Chave developer bz_test_ (scope identity:read)',
@@ -48,13 +48,53 @@ export const ENDPOINTS: EndpointSpec[] = [
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
     response: `{
   "environment": "SANDBOX",
-  "project": "meu-projeto",
+  "project": {
+    "id": "6f1c2d3e-0000-4000-8000-000000000000",
+    "name": "Meu Projeto",
+    "ref": "meu-projeto"
+  },
   "scopes": ["identity:read"],
   "key_status": "ACTIVE"
 }`,
     errors: [
       { code: '401 UNAUTHORIZED', note: { pt: 'chave em falta, inválida, revogada ou bz_live_ (recusada, fail-closed)', en: 'missing, invalid, revoked or bz_live_ key (rejected, fail-closed)' } },
       { code: '403 FORBIDDEN', note: { pt: 'chave sem o scope identity:read', en: 'key without the identity:read scope' } },
+    ],
+  },
+  {
+    id: 'ref-financial-setup',
+    method: 'GET',
+    path: '/v1/financial-setup',
+    tone: 'ok',
+    desc: {
+      pt: 'Prontidão financeira do seu projeto: se pode liquidar e, se não, o que falta. A chave é a autoridade — o pedido não indica projeto, titular nem conta. settlement.ready é verdadeiro exatamente quando os pré-requisitos da liquidação passam; cada bloqueio é a recusa que a liquidação devolveria. Um projeto ainda não configurado responde 200 com financial_setup.state UNCONFIGURED. SDK: getFinancialSetup().',
+      en: 'Your Project\'s financial readiness: whether it can settle and, if not, what is missing. The key is the authority — the request names no Project, owner or account. settlement.ready is true exactly when settlement\'s prerequisites pass; each blocker is the refusal a settlement would return. A Project not yet configured answers 200 with financial_setup.state UNCONFIGURED. SDK: getFinancialSetup().',
+    },
+    credential: {
+      pt: 'Chave developer bz_test_ (scope identity:read)',
+      en: 'Developer key bz_test_ (identity:read scope)',
+    },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    curl: `curl https://sandbox-api.banzami.com/v1/financial-setup \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "environment": "SANDBOX",
+  "project": { "id": "6f1c2d3e-0000-4000-8000-000000000000", "name": "Meu Projeto", "ref": "meu-projeto" },
+  "financial_setup": { "state": "READY", "configured": true, "sealed": false },
+  "financial_identity": { "handle": "@meu-negocio" },
+  "kyb": { "status": "APPROVED" },
+  "wallet": { "status": "ACTIVE", "ready": true, "currency": "AOA" },
+  "pricing": { "profile": "sandbox-default", "settlement_bps": 0, "payout_bps": 75 },
+  "fee_destination": { "handle": "@meu-negocio", "required": false, "resolved": true, "owned_by_project": true,
+    "kyb_approved": true, "wallet_active": true, "type_allowed": false, "application_account_ready": true,
+    "eligible": false, "blocker": "FEE_DESTINATION_TYPE_NOT_ALLOWED" },
+  "settlement": { "ready": true, "blockers": [], "warnings": ["WEBHOOK_ENDPOINT_MISSING"] }
+}`,
+    errors: [
+      { code: '401 UNAUTHORIZED', note: { pt: 'chave em falta, inválida, revogada ou bz_live_ (recusada, fail-closed)', en: 'missing, invalid, revoked or bz_live_ key (rejected, fail-closed)' } },
+      { code: '403 INSUFFICIENT_SCOPE', note: { pt: 'chave sem o scope identity:read', en: 'key without the identity:read scope' } },
+      { code: '409 FINANCIAL_SETUP_CONFLICT', note: { pt: 'a configuração do projeto não corresponde a uma conta; contacte o suporte', en: 'the project\'s setup does not match an account; contact support' } },
+      { code: '503 SERVICE_UNAVAILABLE', note: { pt: 'não foi possível avaliar agora; nunca é reportado como configuração em falta — repita', en: 'could not be evaluated right now; never reported as missing configuration — retry' } },
     ],
   },
   {

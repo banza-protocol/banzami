@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] — 2026-09-10
+
+### Added — `getFinancialSetup()`
+
+`GET /v1/financial-setup`: your Project's own financial readiness, read with the
+Project key and nothing else. It answers "can this Project settle, and if not,
+what is missing?" — `financial_setup` (UNCONFIGURED / READY / SEALED), the
+Project's `@banza`, KYB, wallet, the pricing the operator assigned, the fee
+destination's eligibility, and `settlement.ready` with `blockers` and `warnings`.
+
+Every field is decided with the rules settlement itself enforces:
+`settlement.ready` is true exactly when settlement's prerequisites pass, and each
+blocker is the refusal a settlement would return. A Project not yet configured
+is a state (`FINANCIAL_SETUP_NOT_CONFIGURED`), not an error. Pass
+`{ feeDestination: '@name' }` to evaluate another of your accounts as the fee
+destination. Needs the `identity:read` scope.
+
+### Changed — `me()` names the Project as an object
+
+**Breaking.** `me().project` is `{ id, name, ref }` instead of the slug string,
+and `project_id` is gone. `project.id` is the Project's own id — the one the
+Console shows — and survives a rename; `project.ref` is the slug. The derived
+`proj_…` id added in 0.11.0 matched nothing you could see anywhere else and is
+withdrawn.
+
+To upgrade: read `me().project.ref` where you read `me().project`, and
+`me().project.id` where you read `me().project_id`.
+
+### Removed — `getBusinessMe()` and `BusinessProfile`
+
+**Breaking.** It read `/v1/integration`, the Business's own dashboard state,
+which names wallet and account ids that sit behind your Project and are the
+operator's. A Project key is now refused there (403 `USE_FINANCIAL_SETUP`). Use
+`getFinancialSetup()`.
+
+### Changed — a caller pricing field is refused, not ignored
+
+`POST /v1/application-settlements` now answers 400 `PRICING_FIELD_NOT_ACCEPTED`
+when a request carries `application_fee_bps` or any other pricing selector. The
+SDK has not sent one since 0.11.0; this affects only hand-built requests.
+
 ## [0.11.0] — 2026-09-10
 
 ### Removed — `applicationFeeBps` on `createBusinessApplicationSettlement`

@@ -21,6 +21,7 @@ type Service struct {
 	payee           PayeeValidator
 	refunder        Refunder                 // Core refund boundary; nil until wired (see refunds.go)
 	provisioner     SandboxProvisioner       // Sandbox financial owner provisioning; nil until wired
+	readiness       ReadinessReader          // core settlement readiness; nil until wired
 	sandboxEnv      bool                     // self-service financial setup is sandbox-only
 	walletProv      WalletAccountProvisioner // segregated destination creation; nil until wired
 	paymentReleased bool                     // deploy-vs-release control (RT04C §1)

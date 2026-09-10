@@ -143,6 +143,8 @@ func main() {
 	// the deployment's own environment in the same fail-closed shape as fixtures.
 	if pc := coreclient.NewProvision(cfg.CoreAPIURL); pc != nil {
 		devSvc.SetSandboxProvisioner(developer.NewSandboxProvisioner(pc))
+		// The Console reads the same readiness a Project key reads.
+		devSvc.SetReadinessReader(developer.NewReadinessReader(pc))
 		// The same client opens segregated destinations: a developer should not
 		// need to write code merely to get a Sandbox project into a usable shape.
 		devSvc.SetWalletAccountProvisioner(pc)

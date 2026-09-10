@@ -768,26 +768,44 @@ describe('payment sessions', () => {
   });
 });
 
-describe('getBusinessMe', () => {
-  it('GETs /v1/integration and returns the typed self profile', async () => {
-    mockFetch(200, {
-      environment: 'SANDBOX', id: 'm-1', handle: 'doa', business_name: 'Doa',
-      business_account_type: 'MERCHANT', status: 'ACTIVE', kyb_status: 'APPROVED',
-      verified: true, category: 'Doações e causas', pricing_category: 'DONATION',
-      subcategory: null, wallet_ready: true, settlement_ready: true,
-      pricing: { category: 'DONATION', profile: '', rule_key: 'donation-standard', fee_bps: 50, found: true },
-      wallet: { ready: true, wallet_id: 'w-1', currency: 'AOA', status: 'ACTIVE', primary_account_id: 'pa-1', application_account_id: '' },
-      settlement: { ready: true, enabled: true, blockers: [] },
-      blockers: [],
-    });
+describe('getFinancialSetup', () => {
+  const ready = {
+    environment: 'SANDBOX',
+    project: { id: '84b0e8e6-fbda-417e-a537-19ad8574827a', name: 'Doa-Sandbox', ref: 'doa-sandbox' },
+    financial_setup: { state: 'SEALED', configured: true, sealed: true },
+    financial_identity: { handle: '@doa' },
+    kyb: { status: 'APPROVED' },
+    wallet: { status: 'ACTIVE', ready: true, currency: 'AOA' },
+    pricing: { profile: 'sandbox-reference', settlement_bps: 200, payout_bps: 75 },
+    fee_destination: {
+      handle: '@doa', required: true, resolved: true, owned_by_project: true, kyb_approved: true,
+      wallet_active: true, type_allowed: true, application_account_ready: true, eligible: true, blocker: null,
+    },
+    settlement: { ready: true, blockers: [], warnings: [] },
+  };
+
+  it('GETs /v1/financial-setup with the Project key itself and names no Project', async () => {
+    mockFetch(200, ready);
     const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
-    const me = await c.getBusinessMe();
-    expect(lastFetchCall().url).toContain('/v1/integration');
-    expect(me.handle).toBe('doa');
-    expect(me.kyb_status).toBe('APPROVED');
-    expect(me.settlement_ready).toBe(true);
-    expect(me.pricing_category).toBe('DONATION');
-    expect(me.wallet.primary_account_id).toBe('pa-1');
-    expect(me.settlement.blockers).toEqual([]);
+    const fs = await c.getFinancialSetup();
+    const { url, init } = lastFetchCall();
+    expect(url).toMatch(/\/v1\/financial-setup$/);
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer bz_test_sk_x');
+    expect(fs.project.id).toBe('84b0e8e6-fbda-417e-a537-19ad8574827a');
+    expect(fs.settlement.ready).toBe(true);
+    expect(fs.pricing.settlement_bps).toBe(200);
+    expect(fs.fee_destination.type_allowed).toBe(true);
+  });
+
+  it('passes a named fee destination as a query, and nothing else', async () => {
+    mockFetch(200, ready);
+    const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
+    await c.getFinancialSetup({ feeDestination: '@doa' });
+    expect(lastFetchCall().url).toMatch(/\/v1\/financial-setup\?fee_destination=%40doa$/);
+  });
+
+  it('no longer offers the Business profile, which named internal account ids', () => {
+    const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' }) as unknown as Record<string, unknown>;
+    expect(c['getBusinessMe']).toBeUndefined();
   });
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { developerApi, ApiError, type FinancialSetupState } from '@/lib/developer-api';
+import { developerApi, ApiError, type FinancialSetupState, type ProjectReadiness } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
 import { useToast } from './Toast';
 import { Card } from './ui';
@@ -174,5 +174,102 @@ export function FinancialSetupStatus({ setup }: { setup: FinancialSetupState }) 
       Ambiente financeiro pronto. O destino deste projeto ficou fixado no primeiro pagamento emitido e já
       não pode mudar.
     </p>
+  );
+}
+
+/**
+ * What each blocker means, in the developer's terms. The codes are the
+ * refusals settlement returns; an unknown one is still shown, by its code,
+ * and still blocks.
+ */
+const BLOCKER: Record<string, string> = {
+  FINANCIAL_SETUP_NOT_CONFIGURED: 'O projeto ainda não tem ambiente financeiro.',
+  WALLET_MISSING: 'O projeto não tem uma carteira activa em Kwanza.',
+  PRICING_NOT_CONFIGURED: 'O Banzami ainda não atribuiu um preço a este projeto. Contacte o suporte.',
+  PRICING_CONFIGURATION_ERROR: 'O preço atribuído a este projeto está mal configurado. Contacte o suporte.',
+  FEE_DESTINATION_NOT_FOUND: 'O destino da taxa não tem uma carteira activa em Kwanza.',
+  FEE_DESTINATION_NOT_OWNED: 'O destino da taxa não pertence a este projeto.',
+  FEE_DESTINATION_NOT_BUSINESS_ACCOUNT: 'O destino da taxa não é uma conta Business.',
+  FEE_DESTINATION_NOT_ACTIVE: 'A conta de destino da taxa não está activa.',
+  FEE_DESTINATION_KYB_NOT_APPROVED: 'A verificação (KYB) do destino da taxa não está aprovada.',
+  FEE_DESTINATION_WALLET_UNAVAILABLE: 'A carteira do destino da taxa não está activa.',
+  FEE_DESTINATION_TYPE_NOT_ALLOWED: 'A conta ainda não foi classificada pelo Banzami para receber taxas de aplicação. Contacte o suporte.',
+};
+
+function Row({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '7px 0', borderBottom: '1px solid #F3EDEC', fontSize: 13.5 }}>
+      <span style={{ color: '#8a7a7e', fontWeight: 700 }}>{label}</span>
+      <span style={{ fontWeight: 800, color: ok === false ? '#B5101F' : '#2b1d20' }}>{value}</span>
+    </div>
+  );
+}
+
+const yes = (b: boolean) => (b ? 'Sim' : 'Não');
+
+/**
+ * Whether a configured project can settle, and what stops it.
+ *
+ * The same answer an integration reads with its key (GET /v1/financial-setup):
+ * the Console renders it and decides nothing. It names the project's @banza and
+ * the operator's pricing, and nothing behind the project.
+ */
+export function FinancialReadinessPanel({ setup }: { setup: FinancialSetupState }) {
+  if (setup.state !== 'READY' && setup.state !== 'SEALED') return null;
+  if (setup.readiness_unavailable || !setup.readiness) {
+    return (
+      <Card style={{ padding: 20, marginBottom: 16 }}>
+        <p style={{ margin: 0, fontSize: 13.5, color: '#8a7a7e', fontWeight: 700 }}>
+          Não foi possível ler a prontidão para liquidação agora. Isto não significa que falte configuração — tente mais tarde.
+        </p>
+      </Card>
+    );
+  }
+  const r: ProjectReadiness = setup.readiness;
+  const fd = r.fee_destination;
+  const bps = (v: number | null) => (v === null ? '—' : `${(v / 100).toLocaleString('pt-PT')}%`);
+  return (
+    <Card style={{ padding: 22, marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+        <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 900 }}>Prontidão para liquidação</h2>
+        <span
+          style={{
+            padding: '3px 10px', borderRadius: 30, fontSize: 11.5, fontWeight: 800,
+            background: r.settlement.ready ? '#EEF7EF' : '#FFF1F0',
+            color: r.settlement.ready ? '#1E6B34' : '#B5101F',
+          }}
+        >
+          {r.settlement.ready ? 'Pronto para liquidar' : 'Bloqueado'}
+        </span>
+      </div>
+      <div style={{ marginTop: 12 }}>
+        <Row label="Identidade financeira" value={r.financial_identity.handle ?? '—'} />
+        <Row label="Verificação (KYB)" value={r.kyb.status ?? '—'} ok={r.kyb.status === 'APPROVED'} />
+        <Row label="Carteira" value={`${r.wallet.status ?? '—'} · ${r.wallet.currency}`} ok={r.wallet.ready} />
+        <Row label="Preço atribuído" value={r.pricing.profile ?? 'Não atribuído'} ok={r.pricing.profile !== null} />
+        <Row label="Taxa de liquidação · levantamento" value={`${bps(r.pricing.settlement_bps)} · ${bps(r.pricing.payout_bps)}`} />
+        <Row
+          label="Destino da taxa"
+          value={fd.required ? `${fd.handle ?? '—'} · ${fd.eligible ? 'elegível' : 'não elegível'}` : 'Não necessário (sem taxa)'}
+          ok={fd.required ? fd.eligible : undefined}
+        />
+      </div>
+      {r.settlement.blockers.length > 0 && (
+        <ul role="list" aria-label="Bloqueios" style={{ margin: '14px 0 0', paddingLeft: 18, fontSize: 13.5, color: '#B5101F', fontWeight: 700, lineHeight: 1.6 }}>
+          {r.settlement.blockers.map((b) => (
+            <li key={b}>{BLOCKER[b] ?? b} <code style={{ fontSize: 11.5, color: '#8a7a7e' }}>{b}</code></li>
+          ))}
+        </ul>
+      )}
+      {r.settlement.warnings.includes('WEBHOOK_ENDPOINT_MISSING') && (
+        <p style={{ margin: '12px 0 0', fontSize: 12.5, color: '#8a7a7e', fontWeight: 700 }}>
+          Sem endpoint de webhook: a sua aplicação só saberá que uma liquidação terminou se a consultar.
+        </p>
+      )}
+      <p style={{ margin: '12px 0 0', fontSize: 12, color: '#a89a9e', fontWeight: 700 }}>
+        {fd.required ? '' : `Sem taxa de aplicação no preço atual${fd.type_allowed ? '' : '; a classificação para receber taxas não é necessária'}. `}
+        O preço é atribuído pelo Banzami; a sua aplicação nunca envia uma taxa. A mesma resposta está em GET /v1/financial-setup.
+      </p>
+    </Card>
   );
 }

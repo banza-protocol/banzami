@@ -85,6 +85,35 @@ every request, refreshes it before expiry, and re-exchanges once on a `401`.
 **The raw API key only ever hits the auth-exchange endpoint — never a protected
 endpoint, and it is never logged.** A failed exchange throws `BanzamiAuthError`.
 
+A Console-issued Developer Platform key (`bz_test_sk_…`) is itself the
+credential: it is presented directly as the `Bearer` token and there is nothing
+to exchange.
+
+---
+
+## Your Project: identity and financial readiness
+
+```typescript
+const me = await banzami.me();
+// { environment: 'SANDBOX', project: { id, name, ref }, scopes, key_status }
+// project.id is the Project's own id (as in the Console) and survives a rename.
+
+const setup = await banzami.getFinancialSetup();
+if (!setup.settlement.ready) {
+  // Each blocker is the refusal a settlement would return, e.g.
+  // FINANCIAL_SETUP_NOT_CONFIGURED, PRICING_NOT_CONFIGURED,
+  // FEE_DESTINATION_TYPE_NOT_ALLOWED. Treat an unknown code as blocking.
+  console.log(setup.settlement.blockers);
+}
+```
+
+`getFinancialSetup()` reads with the key alone — nothing in the request names a
+Project or account. The pricing it reports (`pricing.profile`,
+`settlement_bps`, `payout_bps`) is assigned by Banzami; a settlement request
+never carries a rate. `fee_destination.required` says whether that pricing
+charges a fee at all; when it does not, the destination blocks nothing. Needs
+the `identity:read` scope.
+
 ---
 
 ## Consumer flows

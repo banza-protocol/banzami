@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Banzami Sandbox API",
-    "version": "docs-2026-09-05",
+    "version": "docs-2026-09-10",
     "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Only endpoints already verified end to end against the deployed Sandbox are included. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
   },
   "servers": [
@@ -38,7 +38,7 @@
         ],
         "operationId": "getMe",
         "summary": "Key identity (first successful call — no SDK required)",
-        "description": "Returns the authenticated key's environment, project, scopes and status. Requires the identity:read scope. Returns no financial state. bz_live_ keys are rejected fail-closed.",
+        "description": "Returns the authenticated key's environment, the Project it belongs to ({id, name, ref}), its scopes and status. Requires the identity:read scope. Returns no financial state — see GET /v1/financial-setup. bz_live_ keys are rejected fail-closed.",
         "responses": {
           "200": {
             "description": "Resolved key identity",
@@ -49,7 +49,11 @@
                 },
                 "example": {
                   "environment": "SANDBOX",
-                  "project": "my-project",
+                  "project": {
+                    "id": "6f1c2d3e-0000-4000-8000-000000000000",
+                    "name": "My Project",
+                    "ref": "my-project"
+                  },
                   "scopes": [
                     "identity:read"
                   ],
@@ -63,6 +67,136 @@
           },
           "403": {
             "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      }
+    },
+    "/v1/financial-setup": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "getFinancialSetup",
+        "summary": "Your Project's financial readiness",
+        "description": "Whether the Project this key belongs to can settle and, if not, exactly what is missing. The key is the authority: nothing in the request names a Project, owner or account. Every field is decided with the rules settlement itself enforces — settlement.ready is true exactly when settlement's prerequisites pass, and each blocker is the refusal a settlement would return. A Project not yet configured answers 200 with financial_setup.state UNCONFIGURED and the blocker FINANCIAL_SETUP_NOT_CONFIGURED. Requires the identity:read scope. SDK: getFinancialSetup().",
+        "parameters": [
+          {
+            "name": "fee_destination",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "@my-business",
+            "description": "A @banza to evaluate as the fee destination instead of the Project's own."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The Project's readiness",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinancialSetupResponse"
+                },
+                "example": {
+                  "environment": "SANDBOX",
+                  "project": {
+                    "id": "6f1c2d3e-0000-4000-8000-000000000000",
+                    "name": "My Project",
+                    "ref": "my-project"
+                  },
+                  "financial_setup": {
+                    "state": "READY",
+                    "configured": true,
+                    "sealed": false
+                  },
+                  "financial_identity": {
+                    "handle": "@my-business"
+                  },
+                  "kyb": {
+                    "status": "APPROVED"
+                  },
+                  "wallet": {
+                    "status": "ACTIVE",
+                    "ready": true,
+                    "currency": "AOA"
+                  },
+                  "pricing": {
+                    "profile": "sandbox-default",
+                    "settlement_bps": 0,
+                    "payout_bps": 75
+                  },
+                  "fee_destination": {
+                    "handle": "@my-business",
+                    "required": false,
+                    "resolved": true,
+                    "owned_by_project": true,
+                    "kyb_approved": true,
+                    "wallet_active": true,
+                    "type_allowed": false,
+                    "application_account_ready": true,
+                    "eligible": false,
+                    "blocker": "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+                  },
+                  "settlement": {
+                    "ready": true,
+                    "blockers": [],
+                    "warnings": [
+                      "WEBHOOK_ENDPOINT_MISSING"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Missing identity:read scope",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INSUFFICIENT_SCOPE",
+                  "message": "missing required scope: identity:read",
+                  "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The Project's financial setup does not match an account Banzami holds. Not fixable by the caller.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "FINANCIAL_SETUP_CONFLICT",
+                  "message": "this project's financial setup does not match an account; contact support",
+                  "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Readiness could not be evaluated right now. Never reported as missing configuration; retry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "financial readiness is temporarily unavailable",
+                  "request_id": "4f3c1b9a2e7d5086c1af03be7d2915ce"
+                }
+              }
+            }
           }
         }
       }
@@ -955,8 +1089,7 @@
             "description": "Always SANDBOX — there is no Production surface"
           },
           "project": {
-            "type": "string",
-            "description": "Project-safe slug (never internal identifiers)"
+            "$ref": "#/components/schemas/ProjectRef"
           },
           "scopes": {
             "type": "array",
@@ -1451,6 +1584,240 @@
             "format": "date-time"
           }
         }
+      },
+      "ProjectRef": {
+        "type": "object",
+        "description": "The Project an API key belongs to. Nothing behind the Project (workspace, key, financial owner, wallet or account) is ever named.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The Project's own id, as shown in the Developers Console. Stable across renames."
+          },
+          "name": {
+            "type": "string",
+            "description": "The Project's display name"
+          },
+          "ref": {
+            "type": "string",
+            "description": "The Project slug. Human-readable; changes when the Project is renamed."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "ref"
+        ]
+      },
+      "SettlementBlocker": {
+        "type": "string",
+        "description": "Why the Project cannot settle yet. Each is the refusal a settlement would return. The set can grow: treat an unknown value as blocking.",
+        "example": "PRICING_NOT_CONFIGURED",
+        "x-known-values": [
+          "FINANCIAL_SETUP_NOT_CONFIGURED",
+          "WALLET_MISSING",
+          "PRICING_NOT_CONFIGURED",
+          "PRICING_CONFIGURATION_ERROR",
+          "FEE_DESTINATION_NOT_FOUND",
+          "FEE_DESTINATION_NOT_OWNED",
+          "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
+          "FEE_DESTINATION_NOT_ACTIVE",
+          "FEE_DESTINATION_KYB_NOT_APPROVED",
+          "FEE_DESTINATION_WALLET_UNAVAILABLE",
+          "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+        ]
+      },
+      "FinancialSetupResponse": {
+        "type": "object",
+        "description": "A Project's own financial readiness. Every field is decided with the rules settlement enforces: settlement.ready is true exactly when settlement's prerequisites pass. Contains no internal identifier.",
+        "properties": {
+          "environment": {
+            "type": "string",
+            "enum": [
+              "SANDBOX"
+            ]
+          },
+          "project": {
+            "$ref": "#/components/schemas/ProjectRef"
+          },
+          "financial_setup": {
+            "type": "object",
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "UNCONFIGURED",
+                  "READY",
+                  "SEALED"
+                ],
+                "description": "UNCONFIGURED: no financial owner yet (every Project starts here). READY: configured. SEALED: configured and fixed, because a payer-facing artifact was issued against it."
+              },
+              "configured": {
+                "type": "boolean"
+              },
+              "sealed": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "state",
+              "configured",
+              "sealed"
+            ]
+          },
+          "financial_identity": {
+            "type": "object",
+            "properties": {
+              "handle": {
+                "type": "string",
+                "nullable": true,
+                "description": "The Project's @banza, e.g. @doa"
+              }
+            },
+            "required": [
+              "handle"
+            ]
+          },
+          "kyb": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "nullable": true,
+                "description": "e.g. APPROVED, PENDING"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "wallet": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "type": "string",
+                "nullable": true
+              },
+              "ready": {
+                "type": "boolean"
+              },
+              "currency": {
+                "type": "string",
+                "example": "AOA"
+              }
+            },
+            "required": [
+              "status",
+              "ready",
+              "currency"
+            ]
+          },
+          "pricing": {
+            "type": "object",
+            "description": "Assigned by Banzami. A settlement request never carries a rate.",
+            "properties": {
+              "profile": {
+                "type": "string",
+                "nullable": true
+              },
+              "settlement_bps": {
+                "type": "integer",
+                "nullable": true
+              },
+              "payout_bps": {
+                "type": "integer",
+                "nullable": true
+              }
+            },
+            "required": [
+              "profile",
+              "settlement_bps",
+              "payout_bps"
+            ]
+          },
+          "fee_destination": {
+            "type": "object",
+            "description": "Where an application fee would be credited: the Project's own @banza, or the one named with ?fee_destination.",
+            "properties": {
+              "handle": {
+                "type": "string",
+                "nullable": true
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether the assigned pricing charges a fee at all. When false the destination blocks nothing."
+              },
+              "resolved": {
+                "type": "boolean"
+              },
+              "owned_by_project": {
+                "type": "boolean"
+              },
+              "kyb_approved": {
+                "type": "boolean"
+              },
+              "wallet_active": {
+                "type": "boolean"
+              },
+              "type_allowed": {
+                "type": "boolean",
+                "description": "The account is classified by Banzami as one that may receive an application fee."
+              },
+              "application_account_ready": {
+                "type": "boolean",
+                "description": "The fee is credited to the destination's own account (no separate application account exists); true when that account can receive."
+              },
+              "eligible": {
+                "type": "boolean"
+              },
+              "blocker": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SettlementBlocker"
+                  }
+                ],
+                "nullable": true
+              }
+            }
+          },
+          "settlement": {
+            "type": "object",
+            "properties": {
+              "ready": {
+                "type": "boolean"
+              },
+              "blockers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SettlementBlocker"
+                }
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Advisory, never blocking, e.g. WEBHOOK_ENDPOINT_MISSING"
+              }
+            },
+            "required": [
+              "ready",
+              "blockers",
+              "warnings"
+            ]
+          }
+        },
+        "required": [
+          "environment",
+          "project",
+          "financial_setup",
+          "financial_identity",
+          "kyb",
+          "wallet",
+          "pricing",
+          "fee_destination",
+          "settlement"
+        ]
       }
     }
   }

@@ -28,8 +28,8 @@ const CLIENT = join(process.cwd(), 'src/client.ts');
  * inside an `if devKeyClient != nil {` whose close would end the region
  * immediately, and the parser would silently match nothing.
  */
-function dualAuthRange(lines: string[]): [number, number] {
-  const hit = lines.findIndex((l) => /middleware\.DualAuth\(/.test(l));
+function dualAuthRange(lines: string[], marker = /middleware\.DualAuth\(/): [number, number] {
+  const hit = lines.findIndex((l) => marker.test(l));
   if (hit < 0) return [-1, -1];
   let start = hit;
   while (start > 0 && !/r\.Group\(func\(r chi\.Router\)\s*\{/.test(lines[start])) start--;
@@ -85,6 +85,9 @@ function sdkPaths(src: string): { path: string; line: number }[] {
     const m = line.match(/this\.request<[^>]*>\(\s*[`']([^`'$]*(?:\$\{[^}]*\}[^`']*)*)[`']/);
     if (!m) return;
     const raw = m[1]
+      // A trailing interpolation glued to a path segment is a query string
+      // (`/x${query}`), not a parameter — a parameter always follows a slash.
+      .replace(/([^/])\$\{[^}]*\}$/, '$1')
       .replace(/\$\{[^}]*\}/g, '{p}')     // path params
       .replace(/\{p\}[^/]*$/, '{p}')      // a trailing query-string helper
       .split('?')[0]
@@ -141,7 +144,6 @@ describe('SDK ↔ gateway route drift', () => {
       '/refunds',
       '/wallet-account-transfers',
       '/webhooks/endpoints',
-      '/integration',
     ];
     const unreachable = FINANCIAL.filter((p) => !dual.has(p));
     expect(unreachable, 'financial routes a project key cannot reach').toEqual([]);
@@ -158,6 +160,17 @@ describe('SDK ↔ gateway route drift', () => {
       expect(client.includes(legacy), `SDK still calls the withdrawn ${legacy}`).toBe(false);
     }
     expect(client.includes("'/refunds'"), 'SDK does not call the public refund route').toBe(true);
+  });
+
+  it('a Project reads its readiness on the Project-key surface, and not from the Business profile', () => {
+    const lines = readFileSync(SERVER, 'utf8').split('\n');
+    const [start, end] = dualAuthRange(lines, /middleware\.DeveloperKeyAuth\(/);
+    expect(start, 'developer-key group not found — the check would be vacuous').toBeGreaterThan(-1);
+    const group = lines.slice(start, end + 1).join('\n');
+    expect(group).toMatch(/r\.Get\("\/v1\/financial-setup"/);
+    const client = readFileSync(CLIENT, 'utf8');
+    expect(client).toMatch(/this\.request<FinancialSetup>\(`\/financial-setup/);
+    expect(client.includes("'/integration'"), 'SDK still reads the Business profile').toBe(false);
   });
 
   it('the new webhook management routes are among them', () => {

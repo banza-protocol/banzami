@@ -5,7 +5,7 @@ import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay as money } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
-import { FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
+import { FinancialReadinessPanel, FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { WalletAccountForm } from '@/components/developers/portal/WalletAccountForm';
 import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api';
 
@@ -116,9 +116,12 @@ function Balances() {
   // projeto" above three rows, the third being the one holding all the money.
   const own = state.accounts.filter((a) => a.purpose !== 'PRIMARY');
 
+  const readiness = fin.state.k === 'ready' ? <FinancialReadinessPanel setup={fin.state.setup} /> : null;
+
   if (own.length === 0) {
     return (
       <>
+        {readiness}
         <Card style={{ padding: 26, marginBottom: 16 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não criou nenhuma conta.</p>
           <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
@@ -133,6 +136,7 @@ function Balances() {
 
   return (
     <>
+      {readiness}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <p style={{ margin: 0, fontSize: 13, color: '#8a7a7e', fontWeight: 700 }}>
           {state.accounts.length} conta{state.accounts.length === 1 ? '' : 's'} neste projeto

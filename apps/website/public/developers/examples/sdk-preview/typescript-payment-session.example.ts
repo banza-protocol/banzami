@@ -11,7 +11,7 @@ const banzami = BanzamiClient.preview({ apiKey: process.env.BANZAMI_API_KEY /* b
 
 // Expected contract: verify the key first (identity, no financial state).
 const me = await banzami.me();
-// -> { environment: 'SANDBOX', project: 'my-project', scopes: ['identity:read'], key_status: 'ACTIVE' }
+// -> { environment: 'SANDBOX', project: { id: '6f1c2d3e-…', name: 'My Project', ref: 'my-project' }, scopes: ['identity:read'], key_status: 'ACTIVE' }
 
 // Expected contract: create a payment session — the SDK manages the
 // Idempotency-Key (or accepts an explicit caller-provided one).

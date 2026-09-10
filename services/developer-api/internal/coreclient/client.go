@@ -424,6 +424,55 @@ func (c *ProvisionClient) ProvisionSandboxReadiness(ctx context.Context, merchan
 	return out.Handle, out.KybStatus, nil
 }
 
+// SettlementReadiness is core's answer to "can this owner settle?", computed by
+// the code that settles (POST /internal/v1/settlement-readiness).
+type SettlementReadiness struct {
+	FinancialIdentity struct {
+		Handle *string `json:"handle"`
+	} `json:"financial_identity"`
+	Kyb struct {
+		Status string `json:"status"`
+	} `json:"kyb"`
+	Wallet struct {
+		Status   *string `json:"status"`
+		Currency string  `json:"currency"`
+		Ready    bool    `json:"ready"`
+	} `json:"wallet"`
+	Pricing struct {
+		Profile       *string `json:"profile"`
+		SettlementBps *uint32 `json:"settlement_bps"`
+		PayoutBps     *uint32 `json:"payout_bps"`
+	} `json:"pricing"`
+	FeeDestination struct {
+		Handle         *string `json:"handle"`
+		Required       bool    `json:"required"`
+		Resolved       bool    `json:"resolved"`
+		OwnedByProject bool    `json:"owned_by_project"`
+		KybApproved    bool    `json:"kyb_approved"`
+		WalletActive   bool    `json:"wallet_active"`
+		TypeAllowed    bool    `json:"type_allowed"`
+		Eligible       bool    `json:"eligible"`
+		Blocker        *string `json:"blocker"`
+	} `json:"fee_destination"`
+	Settlement struct {
+		Ready    bool     `json:"ready"`
+		Blockers []string `json:"blockers"`
+		Warnings []string `json:"warnings"`
+	} `json:"settlement"`
+}
+
+// SettlementReadiness reads core's readiness for an owner, in Kwanza.
+func (c *ProvisionClient) SettlementReadiness(ctx context.Context, merchantID string) (*SettlementReadiness, error) {
+	var out SettlementReadiness
+	if err := c.post(ctx, "/internal/v1/settlement-readiness", map[string]any{
+		"merchant_id": merchantID,
+		"currency":    "AOA",
+	}, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 // DeriveSandboxHandle turns a project id into a valid @banza handle.
 //
 // Deterministic, so a retry asks for the same one; prefixed with a letter

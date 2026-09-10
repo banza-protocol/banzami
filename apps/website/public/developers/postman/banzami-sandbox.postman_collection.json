@@ -23,6 +23,13 @@
             "method": "GET",
             "url": { "raw": "{{baseUrl}}/v1/me", "host": ["{{baseUrl}}"], "path": ["v1", "me"] }
           }
+        },
+        {
+          "name": "GET /v1/financial-setup — your Project's financial readiness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/v1/financial-setup", "host": ["{{baseUrl}}"], "path": ["v1", "financial-setup"] }
+          }
         }
       ]
     },

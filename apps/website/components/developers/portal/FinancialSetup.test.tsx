@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
-import { FinancialSetupCard } from './FinancialSetup';
+import { FinancialReadinessPanel, FinancialSetupCard } from './FinancialSetup';
 import { ToastProvider } from './Toast';
 import type { FinancialSetupState } from '@/lib/developer-api';
 
@@ -90,5 +90,57 @@ describe('FinancialSetupCard', () => {
   it('tells the developer that repeating it is safe', () => {
     open();
     expect(document.body.textContent).toMatch(/não cria dois ambientes/);
+  });
+});
+
+describe('FinancialReadinessPanel', () => {
+  const readiness = {
+    financial_identity: { handle: '@doa' },
+    kyb: { status: 'APPROVED' },
+    wallet: { status: 'ACTIVE', ready: true, currency: 'AOA' },
+    pricing: { profile: 'sandbox-reference', settlement_bps: 200, payout_bps: 75 },
+    fee_destination: {
+      handle: '@doa', required: true, resolved: true, owned_by_project: true, kyb_approved: true,
+      wallet_active: true, type_allowed: true, application_account_ready: true, eligible: true, blocker: null,
+    },
+    settlement: { ready: true, blockers: [] as string[], warnings: [] as string[] },
+  };
+  const ready: FinancialSetupState = { ...unconfigured, state: 'SEALED', sealed: true, readiness };
+
+  it('shows the same readiness an integration reads with its key', () => {
+    render(<FinancialReadinessPanel setup={ready} />);
+    const body = document.body.textContent ?? '';
+    expect(body).toContain('Pronto para liquidar');
+    expect(body).toContain('@doa');
+    expect(body).toContain('sandbox-reference');
+    expect(body).toMatch(/2%.*0,75%/);
+  });
+
+  it('names each blocker, and still shows a code it does not know', () => {
+    const blocked = {
+      ...ready,
+      readiness: { ...readiness, settlement: { ready: false, blockers: ['FEE_DESTINATION_TYPE_NOT_ALLOWED', 'SOMETHING_NEW'], warnings: [] } },
+    };
+    render(<FinancialReadinessPanel setup={blocked} />);
+    const body = document.body.textContent ?? '';
+    expect(body).toContain('Bloqueado');
+    expect(body).toMatch(/classificada pelo Banzami/);
+    expect(body).toContain('SOMETHING_NEW');
+  });
+
+  it('an unreadable readiness is not reported as missing configuration', () => {
+    render(<FinancialReadinessPanel setup={{ ...ready, readiness: null, readiness_unavailable: true }} />);
+    const body = document.body.textContent ?? '';
+    expect(body).toMatch(/Não foi possível ler/);
+    expect(body).not.toContain('Bloqueado');
+  });
+
+  it('renders nothing for an unconfigured project, and names nothing behind the project', () => {
+    const { container } = render(<FinancialReadinessPanel setup={unconfigured} />);
+    expect(container.textContent).toBe('');
+    cleanup();
+    render(<FinancialReadinessPanel setup={ready} />);
+    const body = (document.body.textContent ?? '').toLowerCase();
+    for (const leak of ['merchant', 'binding', 'wallet_id', 'account_id']) expect(body).not.toContain(leak);
   });
 });

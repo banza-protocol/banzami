@@ -10,7 +10,7 @@ banzami = BanzamiClient.preview(api_key=os.environ["BANZAMI_API_KEY"])  # bz_tes
 
 # Expected contract: verify the key first (identity, no financial state).
 me = banzami.me()
-# -> {"environment": "SANDBOX", "project": "my-project", "scopes": ["identity:read"], "key_status": "ACTIVE"}
+# -> {"environment": "SANDBOX", "project": {"id": "6f1c2d3e-…", "name": "My Project", "ref": "my-project"}, "scopes": ["identity:read"], "key_status": "ACTIVE"}
 
 # Expected contract: create a payment session — the SDK manages the
 # Idempotency-Key (or accepts an explicit caller-provided one).

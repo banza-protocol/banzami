@@ -182,82 +182,100 @@ export interface Merchant {
   created_at: string;
 }
 
-/**
- * The authenticated Business account's own consolidated profile, returned by
- * `getBusinessMe()` (GET /v1/integration). Non-secret fields only — safe to
- * render in an "Integration Health" surface. `settlement_ready` is derived by
- * the operator (ACTIVE + KYB APPROVED + a wallet exists).
- */
-export interface BusinessProfile {
-  environment:           'LIVE' | 'SANDBOX';
-  id:                    string;
-  handle:                string;
-  business_name:         string;
-  business_account_type: string;
-  status:                string;
-  kyb_status:            string;
-  verified:              boolean;
-  category:              string | null;
-  wallet_ready:          boolean;
-  settlement_ready:      boolean;
-  /** Derived pricing category (e.g. DONATION); null when unmapped. */
-  pricing_category:      string | null;
-  /** Not modelled in the operator yet — always null for now. */
-  subcategory:           string | null;
-  pricing:               BusinessPricing;
-  wallet:                BusinessWallet;
-  settlement:            BusinessSettlement;
-  /** Machine-readable settlement blockers (empty when settlement-ready). */
-  blockers:              BusinessBlocker[];
-  /**
-   * Advisory warnings that DO NOT block settlement, but flag a degraded
-   * integration the app should fix (e.g. no active webhook endpoint ⇒ the app
-   * relies on polling and may miss confirmations). Empty when nothing to advise.
-   */
-  warnings:              BusinessWarning[];
+/** The Project an API key belongs to. */
+export interface ProjectRef {
+  /** The Project's own id, as shown in the Console. Stable across renames. */
+  id:   string;
+  name: string;
+  /** The slug. Human-readable, and it changes when the Project is renamed. */
+  ref:  string;
 }
 
-/** Settlement-readiness blocker reason codes returned by the operator. */
-export type BusinessBlocker =
-  | 'BUSINESS_NOT_ACTIVE'
-  | 'KYB_NOT_APPROVED'
+/** GET /v1/me — who the configured key is. */
+export interface DeveloperIdentity {
+  environment: string;
+  project:     ProjectRef;
+  scopes:      string[];
+  key_status:  string;
+}
+
+/**
+ * UNCONFIGURED — the Project has no financial owner yet (every Project starts here).
+ * READY        — configured; the destination can still be changed in the Console.
+ * SEALED       — configured, and fixed: a payer-facing artifact was issued against it.
+ */
+export type FinancialSetupState = 'UNCONFIGURED' | 'READY' | 'SEALED';
+
+/**
+ * Why a Project cannot settle yet. Each is the refusal settlement itself would
+ * return. The set can grow; treat an unknown code as blocking.
+ */
+export type SettlementBlocker =
+  | 'FINANCIAL_SETUP_NOT_CONFIGURED'
   | 'WALLET_MISSING'
-  | 'WALLET_ACCOUNT_MISSING'
-  | 'PRICING_MISSING'
-  | string;
+  | 'PRICING_NOT_CONFIGURED'
+  | 'PRICING_CONFIGURATION_ERROR'
+  | 'FEE_DESTINATION_NOT_FOUND'
+  | 'FEE_DESTINATION_NOT_OWNED'
+  | 'FEE_DESTINATION_NOT_BUSINESS_ACCOUNT'
+  | 'FEE_DESTINATION_NOT_ACTIVE'
+  | 'FEE_DESTINATION_KYB_NOT_APPROVED'
+  | 'FEE_DESTINATION_WALLET_UNAVAILABLE'
+  | 'FEE_DESTINATION_TYPE_NOT_ALLOWED'
+  | (string & {});
 
-/**
- * Advisory warning reason codes (never block settlement). WEBHOOK_ENDPOINT_MISSING:
- * no active webhook endpoint is registered, so payment confirmations depend on
- * client-side polling and may be missed — register a webhook (reconciliation is
- * the backstop, not a substitute).
- */
-export type BusinessWarning =
-  | 'WEBHOOK_ENDPOINT_MISSING'
-  | string;
+/** Advisory; never blocks. WEBHOOK_ENDPOINT_MISSING: completion is learned only by polling. */
+export type SettlementWarning = 'WEBHOOK_ENDPOINT_MISSING' | (string & {});
 
-export interface BusinessPricing {
-  category: string | null;
-  profile:  string;
-  rule_key: string;
-  /** Operator's own fee for this category, in basis points (informational). */
-  fee_bps:  number;
-  found:    boolean;
-}
-
-export interface BusinessWallet {
-  ready:                  boolean;
-  wallet_id:              string;
-  currency:               string;
-  status:                 string;
-  primary_account_id:     string;
-  application_account_id: string;
-}
-
-export interface BusinessSettlement {
-  ready:    boolean;
-  enabled:  boolean;
-  blockers: BusinessBlocker[];
+/** GET /v1/financial-setup — a Project's own financial readiness. */
+export interface FinancialSetup {
+  environment: string;
+  project:     ProjectRef;
+  financial_setup: {
+    state:      FinancialSetupState;
+    configured: boolean;
+    sealed:     boolean;
+  };
+  financial_identity: {
+    /** The Project's @banza, e.g. "@doa". Null until configured. */
+    handle: string | null;
+  };
+  kyb: {
+    /** e.g. APPROVED, PENDING. Null until configured. */
+    status: string | null;
+  };
+  wallet: {
+    status:   string | null;
+    ready:    boolean;
+    currency: string;
+  };
+  /** Assigned by the operator. The caller never chooses a rate. */
+  pricing: {
+    profile:        string | null;
+    settlement_bps: number | null;
+    payout_bps:     number | null;
+  };
+  fee_destination: {
+    handle:           string | null;
+    /** Whether the operator's pricing charges a fee at all. When false the
+     *  destination is reported but blocks nothing. */
+    required:         boolean;
+    resolved:         boolean;
+    owned_by_project: boolean;
+    kyb_approved:     boolean;
+    wallet_active:    boolean;
+    type_allowed:     boolean;
+    /** The fee is credited to the destination's own account; no separate
+     *  application account exists. True when that account can receive. */
+    application_account_ready: boolean;
+    eligible:         boolean;
+    blocker:          SettlementBlocker | null;
+  };
+  settlement: {
+    ready:    boolean;
+    blockers: SettlementBlocker[];
+    warnings: SettlementWarning[];
+  };
 }
 
 export interface ApiKey {

@@ -24,6 +24,8 @@ const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/
 // the website deploy that ships this artifact.
 const ALLOWED_PATHS = [
   '/v1/me',
+  // A Project's own financial readiness, read with the Project key alone.
+  '/v1/financial-setup',
   '/v1/payment-sessions',
   '/v1/payment-sessions/{id}',
   '/v1/payment-sessions/{id}/link',

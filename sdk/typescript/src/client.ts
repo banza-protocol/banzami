@@ -12,7 +12,8 @@ import type {
   QrResponse,
   ParsedQr,
   Merchant,
-  BusinessProfile,
+  DeveloperIdentity,
+  FinancialSetup,
   ApiKey,
   NewApiKey,
   PaymentLink,
@@ -232,21 +233,16 @@ export class BanzamiClient {
 
   /**
    * Resolve the identity of the configured Sandbox API key: its environment,
-   * project and scopes. This authenticates directly with the raw Console-issued
-   * key (GET /v1/me), not the merchant JWT-exchange path, and is the canonical
-   * way to verify an integration is wired correctly.
+   * the Project it belongs to, its scopes and status. This authenticates
+   * directly with the raw Console-issued key (GET /v1/me), not the merchant
+   * JWT-exchange path, and is the canonical way to verify an integration is
+   * wired correctly.
    *
-   * `project` is the slug — human-readable, and it changes when the project is
-   * renamed. `projectId` does not: file your own records under that one.
+   * `project.id` is the Project's own id — the one the Console shows and
+   * addresses it by. It survives a rename; file your own records under it.
+   * `project.ref` is the slug, which does not.
    */
-  async me(): Promise<{
-    environment: string;
-    project: string;
-    /** Stable, opaque public id (`proj_…`). Survives a rename. */
-    project_id: string;
-    scopes: string[];
-    key_status: string;
-  }> {
+  async me(): Promise<DeveloperIdentity> {
     const res = await fetch(`${this.base}/v1/me`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${this.apiKey}`, Accept: 'application/json' },
@@ -261,10 +257,26 @@ export class BanzamiClient {
       } catch { /* non-JSON error body — keep neutral defaults */ }
       throw new BanzamiApiError(res.status, code, message);
     }
-    return res.json() as Promise<{
-      environment: string; project: string; project_id: string;
-      scopes: string[]; key_status: string;
-    }>;
+    return res.json() as Promise<DeveloperIdentity>;
+  }
+
+  /**
+   * The Project's own financial readiness (GET /v1/financial-setup): whether it
+   * is set up to settle and, if not, exactly what is missing.
+   *
+   * The key is the authority — nothing names a Project, owner or account. Every
+   * field is decided by the operator with the same rules settlement enforces:
+   * `settlement.ready` is true exactly when settlement's prerequisites pass,
+   * and each entry of `settlement.blockers` is the refusal a settlement would
+   * return. A Project that has not been configured is a state
+   * (`financial_setup.state === 'UNCONFIGURED'`), not an error.
+   *
+   * @param options.feeDestination A @banza to evaluate as the fee destination
+   *   instead of the Project's own financial identity.
+   */
+  getFinancialSetup(options: { feeDestination?: string } = {}): Promise<FinancialSetup> {
+    const query = this.qs({ fee_destination: options.feeDestination });
+    return this.request<FinancialSetup>(`/financial-setup${query}`);
   }
 
   // ---------------------------------------------------------------------------
@@ -889,17 +901,6 @@ export class BanzamiClient {
 
   getMerchant(id: string): Promise<Merchant> {
     return this.request<Merchant>(`/merchants/${id}`);
-  }
-
-  /**
-   * Resolve the authenticated Business account's own consolidated profile —
-   * handle, account type, category, wallet + KYB readiness — so an integrating
-   * application can render an accurate "Integration Health" view instead of
-   * inferring from local env vars. Self-scoped to the key's business; returns
-   * only non-secret fields.
-   */
-  getBusinessMe(): Promise<BusinessProfile> {
-    return this.request<BusinessProfile>('/integration');
   }
 
   listApiKeys(merchantId: string): Promise<ApiKey[]> {

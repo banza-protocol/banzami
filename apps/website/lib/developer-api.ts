@@ -216,6 +216,34 @@ export type FinancialSetupState = {
   role: string;
   /** The destination is fixed: a payer-facing artifact has been issued (ADR-055). */
   sealed: boolean;
+  /**
+   * Whether the project can SETTLE, and what blocks it — the same contract a
+   * Project key reads at GET /v1/financial-setup, from the same engine. Null
+   * while unconfigured, or when it could not be read (readiness_unavailable).
+   */
+  readiness?: ProjectReadiness | null;
+  readiness_unavailable?: boolean;
+};
+
+/** The public readiness projection (GET /v1/financial-setup, minus project/env). */
+export type ProjectReadiness = {
+  financial_identity: { handle: string | null };
+  kyb: { status: string | null };
+  wallet: { status: string | null; ready: boolean; currency: string };
+  pricing: { profile: string | null; settlement_bps: number | null; payout_bps: number | null };
+  fee_destination: {
+    handle: string | null;
+    required: boolean;
+    resolved: boolean;
+    owned_by_project: boolean;
+    kyb_approved: boolean;
+    wallet_active: boolean;
+    type_allowed: boolean;
+    application_account_ready: boolean;
+    eligible: boolean;
+    blocker: string | null;
+  };
+  settlement: { ready: boolean; blockers: string[]; warnings: string[] };
 };
 
 export type ApiKey = {

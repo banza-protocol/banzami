@@ -63,6 +63,60 @@ type FinancialSetup struct {
 	// Sealed mirrors the binding's artifact state, so the Console can show that
 	// the destination is locked without explaining what a binding is.
 	Sealed bool `json:"sealed"`
+	// Readiness is whether the project can SETTLE, and what blocks it — the same
+	// contract a Project key reads at GET /v1/financial-setup, from the same
+	// engine. Nil while the project is unconfigured, or when it could not be
+	// read (ReadinessUnavailable), which is never reported as a blocker.
+	Readiness            *ProjectReadiness `json:"readiness"`
+	ReadinessUnavailable bool              `json:"readiness_unavailable"`
+}
+
+// ReadinessReader asks core whether a financial owner can settle. Core evaluates
+// every prerequisite with the function settlement itself calls; this service
+// only renders the answer.
+type ReadinessReader interface {
+	SettlementReadiness(ctx context.Context, merchantID string) (*ProjectReadiness, error)
+}
+
+// SetReadinessReader wires core's settlement readiness engine.
+func (s *Service) SetReadinessReader(r ReadinessReader) { s.readiness = r }
+
+// ProjectReadiness is the public readiness projection, field for field the one
+// the gateway serves a Project key. No internal identifier appears in it.
+type ProjectReadiness struct {
+	FinancialIdentity struct {
+		Handle *string `json:"handle"`
+	} `json:"financial_identity"`
+	Kyb struct {
+		Status *string `json:"status"`
+	} `json:"kyb"`
+	Wallet struct {
+		Status   *string `json:"status"`
+		Ready    bool    `json:"ready"`
+		Currency string  `json:"currency"`
+	} `json:"wallet"`
+	Pricing struct {
+		Profile       *string `json:"profile"`
+		SettlementBps *uint32 `json:"settlement_bps"`
+		PayoutBps     *uint32 `json:"payout_bps"`
+	} `json:"pricing"`
+	FeeDestination struct {
+		Handle                  *string `json:"handle"`
+		Required                bool    `json:"required"`
+		Resolved                bool    `json:"resolved"`
+		OwnedByProject          bool    `json:"owned_by_project"`
+		KybApproved             bool    `json:"kyb_approved"`
+		WalletActive            bool    `json:"wallet_active"`
+		TypeAllowed             bool    `json:"type_allowed"`
+		ApplicationAccountReady bool    `json:"application_account_ready"`
+		Eligible                bool    `json:"eligible"`
+		Blocker                 *string `json:"blocker"`
+	} `json:"fee_destination"`
+	Settlement struct {
+		Ready    bool     `json:"ready"`
+		Blockers []string `json:"blockers"`
+		Warnings []string `json:"warnings"`
+	} `json:"settlement"`
 }
 
 // canConfigureFinancialSandbox reports whether a role may give a project its
@@ -154,6 +208,18 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 		out.State = FinancialReady
 		if b.ArtifactCreated {
 			out.State = FinancialSealed
+		}
+		if s.readiness != nil {
+			r, rerr := s.readiness.SettlementReadiness(ctx, b.MerchantID)
+			if rerr != nil {
+				// The setup is still READY: readiness is a second question, and a
+				// read that failed is not an answer to it.
+				slog.WarnContext(ctx, "developer.financial_setup.readiness_unavailable",
+					"project", projectID, "err", rerr.Error())
+				out.ReadinessUnavailable = true
+			} else {
+				out.Readiness = r
+			}
 		}
 	}
 	return out, nil

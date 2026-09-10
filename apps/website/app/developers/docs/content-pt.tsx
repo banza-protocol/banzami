@@ -133,7 +133,11 @@ curl https://sandbox-api.banzami.com/v1/me \\
 # Resposta (200)
 {
   "environment": "SANDBOX",
-  "project": "meu-projeto",
+  "project": {
+    "id": "6f1c2d3e-0000-4000-8000-000000000000",
+    "name": "Meu Projeto",
+    "ref": "meu-projeto"
+  },
   "scopes": ["identity:read"],
   "key_status": "ACTIVE"
 }`;

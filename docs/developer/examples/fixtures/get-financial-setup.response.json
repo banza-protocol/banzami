@@ -1,0 +1,48 @@
+{
+  "environment": "SANDBOX",
+  "project": {
+    "id": "6f1c2d3e-0000-4000-8000-000000000000",
+    "name": "My Project",
+    "ref": "my-project"
+  },
+  "financial_setup": {
+    "state": "READY",
+    "configured": true,
+    "sealed": false
+  },
+  "financial_identity": {
+    "handle": "@my-business"
+  },
+  "kyb": {
+    "status": "APPROVED"
+  },
+  "wallet": {
+    "status": "ACTIVE",
+    "ready": true,
+    "currency": "AOA"
+  },
+  "pricing": {
+    "profile": "sandbox-default",
+    "settlement_bps": 0,
+    "payout_bps": 75
+  },
+  "fee_destination": {
+    "handle": "@my-business",
+    "required": false,
+    "resolved": true,
+    "owned_by_project": true,
+    "kyb_approved": true,
+    "wallet_active": true,
+    "type_allowed": false,
+    "application_account_ready": true,
+    "eligible": false,
+    "blocker": "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+  },
+  "settlement": {
+    "ready": true,
+    "blockers": [],
+    "warnings": [
+      "WEBHOOK_ENDPOINT_MISSING"
+    ]
+  }
+}
