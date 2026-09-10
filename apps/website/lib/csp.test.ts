@@ -48,6 +48,11 @@ describe('content security policy', () => {
     }
   });
 
+  it('permits the signed document upload to KYB storage', () => {
+    // The Business application forms (public and Console) PUT documents to R2.
+    expect(connectOrigins({})).toContain('https://*.r2.cloudflarestorage.com');
+  });
+
   it('permits an overridden API origin too', () => {
     const origins = connectOrigins({
       NEXT_PUBLIC_DEVELOPER_API_URL: 'https://developer-api.sandbox.example/v1/',

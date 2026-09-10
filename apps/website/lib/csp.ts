@@ -37,12 +37,20 @@ function originOf(raw: string | undefined): string {
  * the browser somewhere else — a preview, or a different Sandbox — because an
  * override that is not in the policy is an app that cannot reach its own API.
  */
+/** R2's S3 API hosts: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`. */
+export const KYB_UPLOAD_ORIGIN = 'https://*.r2.cloudflarestorage.com';
+
 export function connectOrigins(env: EnvLike = process.env): string[] {
   return [
     "'self'",
     'https://api.banzami.com', // lib/api.ts default
     'https://sandbox-api.banzami.com', // the Sandbox rail
     'https://developer-api.banzami.com', // lib/developer-api.ts default — the Console's own API
+    // Business documents are PUT straight to KYB storage with the short-lived
+    // signed URL the Gateway issues (docs/ops/KYB_R2_SETUP.md). The account id
+    // in that host is configuration the browser never sees, so the policy names
+    // R2's S3 host family, not one account.
+    KYB_UPLOAD_ORIGIN,
     originOf(env.NEXT_PUBLIC_BANZAMI_API_URL),
     originOf(env.NEXT_PUBLIC_DEVELOPER_API_URL),
   ].filter(Boolean);

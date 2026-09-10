@@ -164,8 +164,11 @@ function Balances() {
                       // holds money and hiding it would be worse — a developer
                       // would see every account at 0 Kz after a payment landed —
                       // but they did not open it, and the name does not say so.
+                      // It is the Business's own main account, opened with its
+                      // wallet — for a Business the Project connected, it
+                      // predates the Project.
                       <span style={{ display: 'block', marginTop: 2, fontSize: 11, fontWeight: 700, color: '#a89a9e' }}>
-                        aberta com o ambiente financeiro
+                        conta principal do negócio
                       </span>
                     ) : null}
                   </td>

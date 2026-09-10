@@ -70,7 +70,10 @@ Guardar (em gestor de segredos / env do servidor — **nunca** no repositório):
 
 ## E. CORS por bucket
 
-Aplicar a cada bucket (o PUT direto do browser para o R2 precisa de CORS):
+Aplicar a cada bucket (o PUT direto do browser para o R2 precisa de CORS; a
+Consola de Developers também envia documentos, pela Configuração financeira de um
+Projeto). Do lado do site, `apps/website/lib/csp.ts` já permite
+`https://*.r2.cloudflarestorage.com` em `connect-src`:
 
 ```json
 [
@@ -78,6 +81,7 @@ Aplicar a cada bucket (o PUT direto do browser para o R2 precisa de CORS):
     "AllowedOrigins": [
       "https://banzami.com",
       "https://www.banzami.com",
+      "https://developers.banzami.com",
       "http://localhost:3005"
     ],
     "AllowedMethods": ["PUT", "GET", "HEAD"],
