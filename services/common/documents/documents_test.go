@@ -1,6 +1,7 @@
 package documents
 
 import (
+	htmltemplate "html/template"
 	"strings"
 	"testing"
 	"time"
@@ -161,9 +162,9 @@ func TestInteractiveLinks(t *testing.T) {
 	}
 	// Verification link → /r/<ref>, and the identity/contact links.
 	for _, must := range []string{
-		"/r/BZM-7F3A-92K1",                     // verification (reference only)
-		`href="https://banzami.com"`,           // logo + website → home
-		`href="mailto:contact@banzami.com"`,    // email
+		"/r/BZM-7F3A-92K1",                  // verification (reference only)
+		`href="https://banzami.com"`,        // logo + website → home
+		`href="mailto:contact@banzami.com"`, // email
 	} {
 		if !strings.Contains(html, must) {
 			t.Errorf("missing interactive link %q", must)
@@ -174,5 +175,27 @@ func TestInteractiveLinks(t *testing.T) {
 		if strings.Contains(html, forbidden) {
 			t.Errorf("document URL leaks financial data: %q", forbidden)
 		}
+	}
+}
+
+// The receipt prints the description it was given, character for character —
+// the same string the proof and the verification page carry — and html/template
+// keeps markup in it inert.
+func TestRenderHTML_DescriptionIsVerbatimAndInert(t *testing.T) {
+	desc := "  Ação — <script>alert(1)</script> 🙏 "
+	html, err := RenderHTML(ReceiptData{
+		Reference: "BZM-TEST-0001", AmountMinor: 100000, Currency: "AOA",
+		PayerName: "A", RecipientName: "B", Status: "COMPLETED", Description: desc,
+		PaymentMethod: "Carteira Banzami", Environment: "SANDBOX",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(html, "<script>alert(1)</script>") {
+		t.Fatal("markup in a description was rendered live")
+	}
+	escaped := htmltemplate.HTMLEscapeString(desc)
+	if !strings.Contains(html, escaped) {
+		t.Fatalf("the receipt does not print the description verbatim; want %q", escaped)
 	}
 }

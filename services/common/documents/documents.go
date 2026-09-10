@@ -218,8 +218,12 @@ func toView(d ReceiptData) receiptView {
 	if method == "" {
 		method = "Carteira Banzami"
 	}
-	desc := strings.TrimSpace(d.Description)
-	if desc == "" {
+	// The description is printed exactly as it was written, stored and proven —
+	// not trimmed. The public proof and the verification page carry it verbatim,
+	// so a renderer that edits it is a document that disagrees with its own
+	// proof. Only a description with no visible content falls back to the dash.
+	desc := d.Description
+	if strings.TrimSpace(desc) == "" {
 		desc = "—"
 	}
 	// A receipt may only advertise verification when it HAS a proof reference.

@@ -92,6 +92,13 @@ pub async fn create(
         }
     }
 
+    // The note becomes the description of the transfer that pays this link, and
+    // from there the line on the receipt, the proof and the public verification
+    // page. It is written here and never again, so it is held to the receipt's
+    // rule here — the same function the P2P engine calls, so there is one rule.
+    banzami_transfers::description::validate_description(body.note.as_deref())
+        .map_err(|e| ApiError::unprocessable("INVALID_DESCRIPTION", e.to_string()))?;
+
     let status: Option<String> =
         sqlx::query_scalar!("SELECT status FROM consumers WHERE id = $1", receiver_id,)
             .fetch_optional(&state.pool)

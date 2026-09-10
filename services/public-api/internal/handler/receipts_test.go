@@ -155,3 +155,18 @@ func TestBuildConsumerReceipt(t *testing.T) {
 		}
 	}
 }
+
+// The PDF and the proof are built from the same stored description, and neither
+// edits it: what the payer wrote is what the receipt prints and what the public
+// proof — and so the verification page — carries.
+func TestReceiptAndProofCarryTheStoredDescriptionVerbatim(t *testing.T) {
+	p := sampleParties()
+	tx := sampleTransfer()
+	stored := "  Ação — <b>obrigado</b> 🙏 "
+	tx.Description = &stored
+	pdf := buildConsumerReceipt(tx, p["s1"], p["r1"], "BZM-1111-2222", "SANDBOX")
+	proof := proofInputFromTransfer(tx, p["s1"], p["r1"], "SANDBOX")
+	if pdf.Description != stored || proof.Description != stored {
+		t.Fatalf("stored %q, receipt %q, proof %q", stored, pdf.Description, proof.Description)
+	}
+}

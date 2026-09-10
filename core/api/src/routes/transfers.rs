@@ -97,6 +97,11 @@ pub async fn send(
             TransferError::WalletNotActive(_) => {
                 ApiError::unprocessable("WALLET_NOT_ACTIVE", "wallet is not active")
             }
+            // The payer's own input, refused by the domain: a 4xx that says why,
+            // never a 500 that reads as an outage.
+            TransferError::InvalidDescription(e) => {
+                ApiError::unprocessable("INVALID_DESCRIPTION", e.to_string())
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -261,6 +266,9 @@ pub async fn send_p2p(
             ),
             TransferError::WalletNotFound { .. } | TransferError::WalletNotActive(_) => {
                 ApiError::unprocessable("SENDER_WALLET_NOT_ACTIVE", "sender wallet is not active")
+            }
+            TransferError::InvalidDescription(e) => {
+                ApiError::unprocessable("INVALID_DESCRIPTION", e.to_string())
             }
             other => ApiError::internal(other.to_string()),
         })?;
