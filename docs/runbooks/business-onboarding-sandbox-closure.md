@@ -2,7 +2,7 @@
 
 Version: 1.0
 Scope: the deployed Sandbox. Financial LIVE remains NOT READY / FAIL-CLOSED.
-Decision record: [ADR-058](../adr/ADR-058-business-application-lifecycle.md), [ADR-057](../adr/ADR-057-project-financial-readiness.md).
+Decision record: [ADR-059](../adr/ADR-059-one-business-identity-one-kyb-authority.md), [ADR-058](../adr/ADR-058-business-application-lifecycle.md), [ADR-057](../adr/ADR-057-project-financial-readiness.md).
 
 Everything below is a step only the owner can take — a provider account, an
 operator login with MFA, an institution's legal documents, a registry publish.
@@ -14,7 +14,9 @@ or password into a chat, a log or a commit.
 The Sandbox Gateway has never had document storage: every upload answers
 `503 STORAGE_NOT_CONFIGURED`, so no application can carry the documents an
 approval requires. Follow [KYB_R2_SETUP.md](../ops/KYB_R2_SETUP.md) §C–E for the
-bucket `banzami-kyb-sandbox` (private, CORS for `https://banzami.com`), then
+bucket `banzami-kyb-sandbox` (private, CORS for `https://banzami.com` and
+`https://developers.banzami.com` — the Console's Configuração financeira uploads
+too), then
 §F.1: write the three files into the stack's secret directory on
 `217.160.9.248`:
 
@@ -42,20 +44,20 @@ Next (engineering): verify `npm view @banzami/sdk@0.12.0`, bump DOA's three
 
 ## 3. BANZADMIN (admin.banzami.com, operator login with MFA)
 
-**a. A fresh Business, end to end.** Applications → the synthetic application
-submitted after step 1 → *Iniciar análise* → check the two documents →
-*Aprovar (nova conta)*. In the Sandbox the activation link is shown; open it,
-set a PIN. Next (engineering): Business API journey — login, 0 Kz, receive,
-history, refresh, expiry.
+**a. A fresh Business, end to end, from each surface.** Candidaturas → a
+synthetic application submitted after step 1 (one from the public form, origin
+*Candidatura pública*; one from a Console Project, origin *Projeto de
+developer*) → *Iniciar análise* → check the two documents → *Aprovar (nova
+conta)*. In the Sandbox the activation link is shown; open it, set a PIN. The
+Project's application also binds the Project — its Configuração financeira then
+shows the Business. Next (engineering): re-run the Business App session and
+Console E2Es against the approved Businesses.
 
-**b. @doa, regularised.** The existing application `0d6b88a7` was auto-approved
-on 2026-09-07 with no documents against the account since retired; it cannot
-carry documents any more. Submit a new application at
-`banzami.com/comerciantes/candidatura` with `@doa`, tick *"já é uma Business
-Account"*, and attach DOA's real Registo Comercial and the representative's
-BI/Passaporte. Then in BANZADMIN: that application → *Associar a conta
-existente* → the candidate **@doa · Sandbox · Doa-Sandbox · 255afb6c…** → type
-`@doa` → reason. Nothing is created and no handle moves.
+**b. @doa — nothing to do.** Under ADR-059 an existing Business keeps its KYB
+decision; no Business resubmits, @doa included. The Doa-Sandbox Project is
+already bound (sealed, ADR-055) to **@doa · 255afb6c…**, whose KYB is APPROVED
+and whose badge now agrees with it; the Console's Configuração financeira shows
+that Business. The old auto-approved application `0d6b88a7` stays as history.
 
 **c. Classification (ADR-028).** Preços → *Classificar uma Business Account* →
 search `@doa` → pick **@doa · Sandbox · Doa-Sandbox · …255afb6c** (not the
@@ -65,8 +67,10 @@ receives operator-governed application settlement fees. Classification
 required by the canonical application settlement policy."* Next (engineering):
 `PROJECT_ID=84b0e8e6-fbda-417e-a537-19ad8574827a EXPECT_READY=true EXPECT_BLOCKERS= bash tests/phase0/project-readiness-probe.sh`.
 
-**d. Fixture applications.** Reject the synthetic E2E applications (handles
-`e2e_desktop_*`, `e2e_mobile_*`, `api_*`) so their handle holds are released.
+**d. Fixture applications.** Reject the synthetic E2E applications from the
+public-form harness (handles `e2e_desktop_*`, `e2e_mobile_*`, `api_*`) so their
+handle holds are released. (The Project and Console harnesses reject their own
+applications when they finish.)
 
 **e. (Recommended)** Suspend the retired account **"Doa" (a779d287…)** — it owns
 no handle, no login and no ledger entries, and its name invites mistakes.
