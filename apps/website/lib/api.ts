@@ -60,6 +60,8 @@ export interface PlatformModeInfo {
 export interface ProofResult {
   exists: boolean;
   status: string;
+  /** Set only when the verifier could not reach a conclusion. Never shown raw. */
+  unavailable_reason?: string;
   amount?: number;
   currency?: string;
   payer_display?: string;
@@ -79,7 +81,26 @@ export interface ProofResult {
 // Public transaction-proof verification (BANZA ADR-023). The receipt is not the
 // proof — this confirms the real ledger record. A not-found / error response is a
 // safe "invalid" outcome, never an exception that leaks internals.
+/**
+ * Three outcomes, not two.
+ *
+ * "This receipt may be forged" is an accusation, and it must only ever follow a
+ * DEFINITIVE answer from the verifier. An outage, a timeout, a 5xx or a body we
+ * cannot parse all mean we do not know — and telling a holder of a genuine
+ * receipt that it might be fake because our own backend is unwell is the worst
+ * failure this page has.
+ *
+ * The API already distinguishes 200 / 404 / 503 / 500. This function had been
+ * collapsing everything unparseable into NOT_FOUND, which is how an operational
+ * failure became a forgery claim.
+ */
 export async function getProof(ref: string): Promise<ProofResult> {
+  const unavailable = (why: string): ProofResult => ({
+    exists: false,
+    status: 'UNAVAILABLE',
+    message: 'Não foi possível verificar este comprovativo neste momento.',
+    unavailable_reason: why,
+  });
   try {
     // The stack that matches Platform Mode, not API_BASE. Pinned to API_BASE
     // this asked the LIVE rail, which is fail-closed and answers 503 with an
@@ -88,11 +109,24 @@ export async function getProof(ref: string): Promise<ProofResult> {
     // feature that calls a real record a forgery is worse than one that errors.
     const { base } = await platformTarget();
     const res = await fetch(`${base}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
+
+    // 5xx and 503 are OUR failure, never the receipt's.
+    if (res.status >= 500) return unavailable(`upstream_${res.status}`);
+
     const j = (await res.json().catch(() => null)) as ProofResult | null;
-    if (j && typeof j.exists === 'boolean') return j;
-    return { exists: false, status: 'NOT_FOUND', message: 'Este comprovativo não existe ou pode ter sido falsificado.' };
+
+    // A body we cannot read is an unknown, not a verdict.
+    if (!j || typeof j.exists !== 'boolean') return unavailable('unparseable_response');
+
+    // A definitive 404 is the one case that may say "invalid".
+    if (res.status === 404) {
+      return { ...j, exists: false, status: j.status || 'NOT_FOUND' };
+    }
+    if (res.status !== 200) return unavailable(`unexpected_status_${res.status}`);
+    return j;
   } catch {
-    return { exists: false, status: 'ERROR', message: 'Não foi possível verificar este comprovativo agora.' };
+    // Network failure, DNS, TLS, timeout — all unknowns.
+    return unavailable('network_error');
   }
 }
 

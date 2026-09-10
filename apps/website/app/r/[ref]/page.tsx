@@ -46,8 +46,22 @@ function opLabel(o?: string | null): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';
 }
 
-// Maps the proof status to the public verdict (green/yellow/red).
+// Maps the proof status to the public verdict.
+//
+// Three outcomes, not two. Red is an ACCUSATION — it tells the reader the
+// document in their hand may be forged — and it may only follow a definitive
+// answer from the verifier. When our own backend is unreachable, slow, or
+// answering with something we cannot parse, we do not know, and saying "inválido"
+// there libels a genuine receipt because of our outage. Amber says the true
+// thing: not verified, and not verifiable right now.
 function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; title: string; sub: string } {
+  if (p.status === 'UNAVAILABLE' || p.status === 'ERROR') {
+    return {
+      tone: 'yellow',
+      title: 'Verificação indisponível',
+      sub: 'Não foi possível verificar este comprovativo neste momento. Por segurança, não o considere validado até a verificação estar disponível.',
+    };
+  }
   if (!p.exists) return { tone: 'red', title: 'Comprovativo inválido', sub: p.message || 'Este comprovativo não existe ou pode ter sido falsificado.' };
   switch (p.status) {
     case 'CONFIRMED': return { tone: 'green', title: 'Pagamento verificado', sub: 'Esta transação existe no sistema oficial do Banzami.' };

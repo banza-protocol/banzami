@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconChevronLeft, IconEnvelopeOpen } from '@/components/developers/portal/icons';
 import { developerApi, ApiError } from '@/lib/developer-api';
+import { createSubmitCoordinator } from '@/lib/otp-submit-coordinator';
 
 // OTP verification — six single-digit inputs with auto-focus,
 // backspace-to-previous, paste-distribute, and AUTO-SUBMIT on the sixth digit.
@@ -67,7 +68,7 @@ function VerifyInner() {
     // design; the in-flight ref is what makes that a single request.
     if (e.key === 'Enter') {
       e.preventDefault();
-      void verify(digits.join(''));
+      verify(digits.join(''));
     }
   };
 
@@ -84,16 +85,15 @@ function VerifyInner() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  // Refs, not state: two triggers in the same tick (sixth digit + Enter, or a
-  // paste that also completes the code) would both read a stale `false` from
-  // batched state and fire twice.
-  const inFlight = useRef(false);
-  const lastSubmitted = useRef('');
+  // The exactly-once guard lives in a plain closure (lib/otp-submit-coordinator),
+  // not in state and not inline here, because that is the only shape in which the
+  // same-tick race can be proven: under fireEvent React flushes between events, so
+  // a state guard and a ref guard test identically and the mutation catches
+  // nothing. Kept in a ref so the coordinator survives re-renders.
+  const coordinator = useRef(createSubmitCoordinator(OTP_LEN));
 
-  const verify = useCallback(async (code: string) => {
-    if (code.length !== OTP_LEN || inFlight.current) return;
-    inFlight.current = true;
-    lastSubmitted.current = code;
+  // runVerify performs one attempt; the coordinator decides whether it may start.
+  const runVerify = useCallback(async (code: string) => {
     setError('');
     setBusy(true);
     try {
@@ -111,7 +111,6 @@ function VerifyInner() {
             : 'Não foi possível verificar. Tente novamente.',
       );
       setBusy(false);
-      inFlight.current = false;
       // Leave the digits in place — a network blip is not a reason to make the
       // user retype a code that may still be valid — but put the caret back so
       // correcting it takes no mouse.
@@ -119,19 +118,21 @@ function VerifyInner() {
     }
   }, [email, router]);
 
+  const verify = useCallback((code: string) => {
+    coordinator.current.submit(code, runVerify);
+  }, [runVerify]);
+
   // The sixth digit submits. Completion can arrive from a keystroke, a paste, or
   // a browser one-time-code autofill, and this effect is the single place that
   // notices. `lastSubmitted` stops a re-render from submitting the same code
   // twice, and clearing it the moment the code is incomplete re-arms submission
   // so that fixing a digit — or retyping the same code after a failure — works.
   useEffect(() => {
-    const code = digits.join('');
     if (!filled) {
-      lastSubmitted.current = '';
+      coordinator.current.invalidate();
       return;
     }
-    if (inFlight.current || lastSubmitted.current === code) return;
-    void verify(code);
+    verify(digits.join(''));
   }, [digits, filled, verify]);
 
   const resendOtp = async () => {
@@ -243,7 +244,7 @@ function VerifyInner() {
       ) : null}
 
       <button
-        onClick={() => void verify(digits.join(''))}
+        onClick={() => verify(digits.join(''))}
         disabled={!filled || busy}
         className="bz-cta"
         style={{
