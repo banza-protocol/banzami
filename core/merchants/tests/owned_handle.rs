@@ -45,7 +45,10 @@ async fn a_merchant_carries_the_handle_it_owns_and_no_other(pool: PgPool) {
     let got = repo.get(MerchantId::from_uuid(owner)).await.unwrap();
     assert_eq!(got.handle.as_deref(), Some("doa"));
     let got = repo.get(MerchantId::from_uuid(retired)).await.unwrap();
-    assert_eq!(got.handle, None, "a merchant that owns no handle shows none");
+    assert_eq!(
+        got.handle, None,
+        "a merchant that owns no handle shows none"
+    );
 
     let listed = repo.list(Some("doa")).await.unwrap();
     let by_id = |id: Uuid| listed.iter().find(|m| m.id.as_uuid() == id).unwrap();
@@ -55,5 +58,8 @@ async fn a_merchant_carries_the_handle_it_owns_and_no_other(pool: PgPool) {
     // Serialised for the admin console: present when owned, absent otherwise.
     let json = serde_json::to_value(by_id(owner)).unwrap();
     assert_eq!(json["handle"], "doa");
-    assert!(serde_json::to_value(by_id(retired)).unwrap().get("handle").is_none());
+    assert!(serde_json::to_value(by_id(retired))
+        .unwrap()
+        .get("handle")
+        .is_none());
 }
