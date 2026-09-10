@@ -268,7 +268,8 @@ func scanApplication(row pgx.Row) (MerchantApplication, error) {
 func (s *PostgresMerchantApplicationAdminService) List(ctx context.Context, status, environment string) ([]MerchantApplication, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT `+appCols+` FROM merchant_applications
-		  WHERE ($1 = '' OR status = $1) AND ($2 = '' OR environment = $2)
+		  WHERE ($1 = '' OR status = $1 OR ($1 = '`+AttentionFilter+`' AND `+AttentionApplicationsSQL+`))
+		    AND ($2 = '' OR environment = $2)
 		  ORDER BY created_at DESC LIMIT 200`, status, environment)
 	if err != nil {
 		return nil, err

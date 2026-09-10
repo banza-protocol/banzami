@@ -85,7 +85,7 @@ func main() {
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
 	var merchantKybSvc *service.PostgresMerchantKybService
-	var notificationsSvc *service.NotificationsService
+	var attentionSvc *service.AttentionService
 	var platformSvc *service.PlatformReadService
 	var proofSvc *service.ProofService
 	var businessSelfSvc *service.BusinessSelfService
@@ -195,7 +195,7 @@ func main() {
 		}
 		merchantDocumentSvc = service.NewPostgresMerchantDocumentService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		merchantKybSvc = service.NewPostgresMerchantKybService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
-		notificationsSvc = service.NewNotificationsService(dbPool)
+		attentionSvc = service.NewAttentionService(dbPool, env.Parse(cfg.Environment).String())
 		platformSvc = service.NewPlatformReadService(dbPool)
 		businessSelfSvc = service.NewBusinessSelfService(dbPool)
 		// Transaction-proof signatures are HMAC-keyed by BZM_PROOF_SIGNING_KEY.
@@ -260,7 +260,7 @@ func main() {
 		MerchantAppAdminSvc:      merchantAppAdminSvc,
 		MerchantDocumentSvc:      merchantDocumentSvc,
 		MerchantKybSvc:           merchantKybSvc,
-		NotificationsSvc:         notificationsSvc,
+		AttentionSvc:             attentionSvc,
 		PlatformSvc:              platformSvc,
 		ProofSvc:                 proofSvc,
 		BusinessSelfSvc:          businessSelfSvc,

@@ -68,7 +68,7 @@ type Dependencies struct {
 	ComplianceSvc            service.ComplianceService
 	WalletPaymentSvc         service.WalletPaymentReader
 	WalletPaymentLister      service.WalletPaymentLister
-	NotificationsSvc         *service.NotificationsService
+	AttentionSvc             *service.AttentionService
 	PlatformSvc              *service.PlatformReadService
 	ProofSvc                 *service.ProofService
 	BusinessSelfSvc          *service.BusinessSelfService
@@ -151,7 +151,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
 	businessMeHandler := handler.NewBusinessMeHandler(deps.BusinessSelfSvc)
-	notificationsHandler := handler.NewNotificationsHandler(deps.NotificationsSvc)
+	attentionHandler := handler.NewAttentionHandler(deps.AttentionSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc, deps.BusinessSelfSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -297,7 +297,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Get("/merchants/{id}/timeline", merchantKybHandler.AdminTimeline)
 		})
 		// Operator review-queue summary (sidebar badges).
-		r.Get("/internal/v1/notifications/summary", notificationsHandler.Summary)
+		r.Get("/internal/v1/attention-summary", attentionHandler.Summary)
 	})
 
 	// ADR-046 external developer-key surface (RT02.1 fail-closed activation).
