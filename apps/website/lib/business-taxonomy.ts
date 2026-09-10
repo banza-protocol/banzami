@@ -8,8 +8,10 @@
 // Nobody picks a pricing rule per merchant by hand. See
 // docs/architecture/business-taxonomy.md and docs/architecture/pricing-mapping.md.
 //
-// IMPORTANT: pricingCategory is the OPERATOR (Banzami) fee category. It is NOT
-// the DOA application fee — that is a separate application_fee_bps owned by DOA.
+// IMPORTANT: no rate follows from a category any more. The rate an owner pays is
+// the SETTLEMENT/PAYOUT rule of the pricing profile the operator assigned to it
+// (ADR-057), and no caller — DOA included — sends a rate of its own. The
+// category is descriptive: what kind of business this is, not what it costs.
 
 /// Operator pricing categories. The Pricing Engine resolves a rule by matching a
 /// transaction's business_category against a rule's business_category. These are
