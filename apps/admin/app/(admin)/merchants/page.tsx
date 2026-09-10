@@ -9,6 +9,8 @@ import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { formatDate, initials, withAt } from '@/lib/format';
+import { AttentionChip } from '@/components/ui/attention-chip';
+import { useAttentionView } from '@/components/layout/attention-provider';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -37,6 +39,10 @@ export default function MerchantsPage() {
   const [search, setSearch] = useState('');
   const [applied, setApplied] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  // "Requer atenção": the server's own definition (status=ATTENTION), the set
+  // the sidebar badge counts.
+  const [attention, setAttention] = useAttentionView();
+  const effectiveStatus = attention ? 'ATTENTION' : statusFilter;
 
   const load = useCallback(async (status: string) => {
     const api = getApi();
@@ -54,8 +60,8 @@ export default function MerchantsPage() {
   }, []);
 
   useEffect(() => {
-    void load(statusFilter);
-  }, [load, statusFilter]);
+    void load(effectiveStatus);
+  }, [load, effectiveStatus]);
 
   const term = applied.trim().toLowerCase();
   const view = term
@@ -71,6 +77,7 @@ export default function MerchantsPage() {
     setSearch('');
     setApplied('');
     setStatusFilter('');
+    setAttention(false);
   }
 
   return (
@@ -106,12 +113,13 @@ export default function MerchantsPage() {
       </div>
 
       <div className="mb-[18px] flex flex-wrap gap-2">
+        <AttentionChip attentionKey="business_applications" active={attention} onToggle={setAttention} />
         {CHIPS.map((c) => {
-          const active = statusFilter === c.value;
+          const active = !attention && statusFilter === c.value;
           return (
             <button
               key={c.label}
-              onClick={() => setStatusFilter(c.value)}
+              onClick={() => { setAttention(false); setStatusFilter(c.value); }}
               className={`rounded-[30px] border-[1.5px] px-4 py-2 text-[13px] font-extrabold transition ${
                 active ? 'border-[#1a1416] bg-[#1a1416] text-white' : 'border-[#f1e3e3] bg-white text-[#5a4a4e]'
               }`}

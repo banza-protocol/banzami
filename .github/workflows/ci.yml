@@ -267,6 +267,36 @@ jobs:
         working-directory: services/sandbox-operator
         run: go test -race -count=1 ./...
 
+  # ─── BANZADMIN frontend ─────────────────────────────────────────────────────
+  admin-frontend:
+    name: BANZADMIN frontend — typecheck, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/admin/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/admin
+        run: npm ci
+
+      - name: Type-check
+        working-directory: apps/admin
+        run: npm run typecheck
+
+      # Operator attention badges: formatting, nav mapping, provider refresh /
+      # failure / environment behaviour, accessibility (lib/attention.ts,
+      # components/layout/*.test.*).
+      - name: Run tests
+        working-directory: apps/admin
+        run: npm test
+
   # ─── TypeScript SDK ─────────────────────────────────────────────────────────
   typescript:
     name: TypeScript SDK — typecheck, test
@@ -741,7 +771,7 @@ jobs:
     # where a deployment key belongs. The job is opt-in (ENABLE_CI_DEPLOY) and
     # currently disabled.
     runs-on: ubuntu-latest
-    needs: [rust, go-gateway, go-admin, go-public, go-sandbox-operator, typescript, migrations, security]
+    needs: [rust, go-gateway, go-admin, go-public, go-sandbox-operator, typescript, admin-frontend, migrations, security]
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.ENABLE_CI_DEPLOY == 'true' }}
     environment: production
 

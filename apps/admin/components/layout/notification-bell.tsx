@@ -1,11 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, X, CheckCheck } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type AdminNotification } from '@/lib/admin-api';
 import { timeAgo } from '@/lib/format';
+import { badgeText } from '@/lib/attention';
+import { useAttention } from '@/components/layout/attention-provider';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -22,42 +24,30 @@ const SEV_DOT: Record<string, string> = {
   info: 'bg-blue-500', success: 'bg-green-500', warning: 'bg-amber-500', error: 'bg-[#B5101F]',
 };
 
-// The bell polls the summary for an unread count (cheap) and lazy-loads the full
-// list when opened. It never refreshes manually — a 60s interval keeps it live.
+// The bell's unread count comes from the console's one attention summary
+// (AttentionProvider) — no request of its own. The list loads when opened; a
+// read or dismiss is a mutation, so the summary (and this count) refreshes.
 export function NotificationBell() {
   const router = useRouter();
+  const { summary, environment } = useAttention();
   const [open, setOpen] = useState(false);
-  const [unread, setUnread] = useState(0);
   const [items, setItems] = useState<AdminNotification[] | null>(null);
   const [loadErr, setLoadErr] = useState(false);
-
-  const pollUnread = useCallback(async () => {
-    const api = getApi();
-    if (!api) return;
-    try {
-      const s = await api.getNotificationSummary();
-      setUnread(s.unread_notifications ?? 0);
-    } catch { /* leave as-is */ }
-  }, []);
-
-  useEffect(() => {
-    void pollUnread();
-    const t = setInterval(() => void pollUnread(), 60_000);
-    return () => clearInterval(t);
-  }, [pollUnread]);
+  const unread = summary?.unread_notifications ?? 0;
+  const unreadText = badgeText(unread);
 
   const loadList = useCallback(async () => {
     const api = getApi();
     if (!api) return;
     setItems(null); setLoadErr(false);
     try {
-      const r = await api.listNotifications({ limit: 20 });
+      const r = await api.listNotifications({ limit: 20, environment });
       setItems(r.notifications ?? []);
     } catch {
       setLoadErr(true);
       setItems([]);
     }
-  }, []);
+  }, [environment]);
 
   function toggle() {
     const next = !open;
@@ -68,26 +58,23 @@ export function NotificationBell() {
   async function markRead(n: AdminNotification) {
     if (n.status === 'UNREAD') {
       const api = getApi();
-      if (api) { try { await api.markNotificationRead(n.id); } catch { /* ignore */ } }
+      if (api) { try { await api.markNotificationRead(n.id, environment); } catch { /* ignore */ } }
       setItems((cur) => cur?.map((x) => x.id === n.id ? { ...x, status: 'READ' } : x) ?? cur);
-      setUnread((u) => Math.max(0, u - 1));
     }
   }
 
   async function dismiss(n: AdminNotification, e: React.MouseEvent) {
     e.stopPropagation();
     const api = getApi();
-    if (api) { try { await api.dismissNotification(n.id); } catch { /* ignore */ } }
+    if (api) { try { await api.dismissNotification(n.id, environment); } catch { /* ignore */ } }
     setItems((cur) => cur?.filter((x) => x.id !== n.id) ?? cur);
-    if (n.status === 'UNREAD') setUnread((u) => Math.max(0, u - 1));
   }
 
   async function markAllRead() {
     const api = getApi();
     const unreadItems = (items ?? []).filter((x) => x.status === 'UNREAD');
     setItems((cur) => cur?.map((x) => ({ ...x, status: 'READ' as const })) ?? cur);
-    setUnread(0);
-    if (api) await Promise.all(unreadItems.map((x) => api.markNotificationRead(x.id).catch(() => {})));
+    if (api) await Promise.all(unreadItems.map((x) => api.markNotificationRead(x.id, environment).catch(() => {})));
   }
 
   function openItem(n: AdminNotification) {
@@ -99,13 +86,13 @@ export function NotificationBell() {
     <div className="relative">
       <button
         onClick={toggle}
-        aria-label="Notificações"
+        aria-label={unreadText ? `Notificações, ${unread === 1 ? '1 não lida' : `${unread} não lidas`}` : 'Notificações'}
         className="relative flex h-[38px] w-[38px] items-center justify-center rounded-[12px] transition-colors hover:bg-[#FFF1F0]"
       >
         <Bell size={20} strokeWidth={1.8} color={open ? '#B5101F' : '#5a4a4e'} />
-        {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#B5101F] px-1 text-[10px] font-extrabold text-white">
-            {unread > 99 ? '99+' : unread}
+        {unreadText && (
+          <span aria-hidden="true" className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-banzami px-1 text-[10px] font-extrabold text-white">
+            {unreadText}
           </span>
         )}
       </button>

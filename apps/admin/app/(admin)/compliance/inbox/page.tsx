@@ -10,6 +10,8 @@ import { CaseDrawer, CASE_TYPE_LABEL, STATUS_LABEL, PRIORITY_LABEL, RISK_LABEL }
 import { timeAgo, slaBucket } from '@/lib/format';
 import { useAdminEnv } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
+import { AttentionChip } from '@/components/ui/attention-chip';
+import { useAttentionView } from '@/components/layout/attention-provider';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -25,7 +27,8 @@ const TYPE_CHIPS = [
   { label: 'KYC', value: 'KYC_CONSUMER' },
   { label: 'Liquidações', value: 'SETTLEMENT_FAILURE' },
 ];
-const STATUS_OPTS = ['', 'UNASSIGNED', 'ASSIGNED', 'ESCALATED', 'RESOLVED'];
+// OPEN = every unresolved case: the "Requer atenção" view, what the sidebar badge counts.
+const STATUS_OPTS = ['', 'OPEN', 'UNASSIGNED', 'ASSIGNED', 'ESCALATED', 'RESOLVED'];
 const PRIORITY_OPTS = ['', 'CRITICAL', 'HIGH', 'NORMAL', 'LOW'];
 
 export default function ComplianceInboxPage() {
@@ -35,7 +38,9 @@ export default function ComplianceInboxPage() {
   const [error, setError] = useState('');
   const { env, setEnv, liveAvailable } = useAdminEnv();
   const [caseType, setCaseType] = useState('');
-  const [status, setStatus] = useState('');
+  const [attention, setAttention] = useAttentionView();
+  const [status, setStatus] = useState(attention ? 'OPEN' : '');
+  useEffect(() => { if (attention) { setStatus('OPEN'); setPage(1); } }, [attention]);
   const [priority, setPriority] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -85,6 +90,14 @@ export default function ComplianceInboxPage() {
       <p className="mb-4 text-[14px] text-[#9a8a8e]">Todos os casos de compliance num só lugar — candidaturas, KYB, KYC e liquidações. Trabalhe por caso, não por módulo.</p>
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <AttentionChip
+          attentionKey="inbox"
+          active={status === 'OPEN'}
+          onToggle={(on) => { setStatus(on ? 'OPEN' : ''); setAttention(on); setPage(1); }}
+          className="rounded-full px-4 py-2 text-sm font-bold"
+          activeClass="bg-[#1a1a1a] text-white"
+          idleClass="border border-[#eaddde] text-[#5a4a4e]"
+        />
         {TYPE_CHIPS.map((c) => (
           <button key={c.value || 'all'} onClick={() => { setCaseType(c.value); setPage(1); }} className={`rounded-full px-4 py-2 text-sm font-bold ${caseType === c.value ? 'bg-[#1a1a1a] text-white' : 'border border-[#eaddde] text-[#5a4a4e]'}`}>{c.label}</button>
         ))}
@@ -92,8 +105,8 @@ export default function ComplianceInboxPage() {
       </div>
       <div className="mb-[18px] flex flex-wrap items-center gap-3">
         <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#5a4a4e]">Estado
-          <select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="rounded-lg border border-[#eaddde] px-2 py-1 text-[13px] font-semibold">
-            {STATUS_OPTS.map((s) => <option key={s} value={s}>{s === '' ? 'Todos' : (STATUS_LABEL[s]?.label ?? s)}</option>)}
+          <select value={status} onChange={(e) => { setStatus(e.target.value); setAttention(e.target.value === 'OPEN'); setPage(1); }} className="rounded-lg border border-[#eaddde] px-2 py-1 text-[13px] font-semibold">
+            {STATUS_OPTS.map((s) => <option key={s} value={s}>{s === '' ? 'Todos' : s === 'OPEN' ? 'Em aberto' : (STATUS_LABEL[s]?.label ?? s)}</option>)}
           </select>
         </label>
         <label className="flex items-center gap-1.5 text-[13px] font-bold text-[#5a4a4e]">Prioridade

@@ -10,6 +10,8 @@ import { KYC_STATUS, KYC_DOC_LABEL } from '@/components/consumer-kyc/labels';
 import { formatDate } from '@/lib/format';
 import { useAdminEnv, type Env } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
+import { AttentionChip } from '@/components/ui/attention-chip';
+import { useAttentionCategory } from '@/components/layout/attention-provider';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -17,8 +19,8 @@ function getApi(): AdminApi | null {
 }
 
 
+// "Requer atenção" (first chip) is the state the server counts for the badge.
 const CHIPS: { label: string; value: string }[] = [
-  { label: 'Em análise', value: 'UNDER_REVIEW' },
   { label: 'Aguarda documentos', value: 'WAITING_DOCUMENTS' },
   { label: 'Aprovado', value: 'APPROVED' },
   { label: 'Rejeitado', value: 'REJECTED' },
@@ -28,6 +30,8 @@ const CHIPS: { label: string; value: string }[] = [
 export default function ConsumerKycPage() {
   const [cases, setCases] = useState<KycCaseSummary[] | null>(null);
   const [error, setError] = useState('');
+  const { states: attentionStates } = useAttentionCategory('kyc_documents');
+  const attentionStatus = attentionStates?.length === 1 ? attentionStates[0] : 'UNDER_REVIEW';
   const [status, setStatus] = useState('UNDER_REVIEW');
   const { env, setEnv, liveAvailable } = useAdminEnv();
   const [search, setSearch] = useState('');
@@ -80,6 +84,14 @@ export default function ConsumerKycPage() {
       </p>
 
       <div className="mb-[18px] flex flex-wrap items-center gap-2">
+        <AttentionChip
+          attentionKey="kyc_documents"
+          active={status === attentionStatus}
+          onToggle={() => setStatus(attentionStatus)}
+          className="rounded-full px-4 py-2 text-sm font-bold"
+          activeClass="bg-[#1a1a1a] text-white"
+          idleClass="border border-[#eaddde] text-[#5a4a4e]"
+        />
         {CHIPS.map((c) => (
           <button
             key={c.value || 'all'}

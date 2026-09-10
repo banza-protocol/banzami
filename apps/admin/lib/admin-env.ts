@@ -28,10 +28,19 @@ function readSaved(): Env | null {
   }
 }
 
+/** Fired when the operator switches environment, so views outside the page
+ *  that switched (the sidebar badges) follow. detail = the new Env. */
+export const ENV_CHANGE_EVENT = 'banzadmin:env';
+
 function persist(env: Env) {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(STORAGE_KEY, env);
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.dispatchEvent(new CustomEvent<Env>(ENV_CHANGE_EVENT, { detail: env }));
   } catch {
     /* ignore */
   }

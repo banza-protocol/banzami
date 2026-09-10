@@ -9,6 +9,7 @@ import { Topbar } from '@/components/layout/topbar';
 import { ToastProvider } from '@/components/ui/toast';
 import { DialogProvider } from '@/components/ui/dialog';
 import { BanzamiLogo } from '@/components/ui/brand';
+import { AttentionProvider } from '@/components/layout/attention-provider';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -48,13 +49,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <ToastProvider>
       <DialogProvider>
-        <div className="flex min-h-screen bg-[#FFF7F6]">
-          <Sidebar />
-          <div className="flex min-w-0 flex-1 flex-col">
-            <Topbar user={user} />
-            <main className="flex-1 px-8 pb-16 pt-7 max-[680px]:px-4">{children}</main>
+        <AttentionProvider>
+          <div className="flex min-h-screen bg-[#FFF7F6]">
+            <Sidebar />
+            <div className="flex min-w-0 flex-1 flex-col">
+              <Topbar user={user} />
+              <main className="flex-1 px-8 pb-16 pt-7 max-[680px]:px-4">{children}</main>
+            </div>
           </div>
-        </div>
+        </AttentionProvider>
       </DialogProvider>
     </ToastProvider>
   );

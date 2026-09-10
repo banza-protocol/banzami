@@ -13,6 +13,7 @@ Where everything lives. This is the only meta-document — start here.
 | **Per-domain docs** | [docs/domains/](domains/) |
 | **API reference** | [docs/api/](api/) |
 | **Document Engine & official receipt PDFs** | [docs/document-engine.md](document-engine.md) |
+| **BANZADMIN sidebar badges (operator attention)** | [docs/admin/OPERATOR_ATTENTION.md](admin/OPERATOR_ATTENTION.md) |
 | **Email Design System (Resend)** | [docs/admin/BANZADMIN_RUNBOOK.md](admin/BANZADMIN_RUNBOOK.md) (§Email) |
 | **KYB document upload (Cloudflare R2)** | [docs/ops/KYB_R2_SETUP.md](ops/KYB_R2_SETUP.md) |
 | **SDKs & integration guides** | [docs/integrations/](integrations/) · [docs/developer/](developer/) |

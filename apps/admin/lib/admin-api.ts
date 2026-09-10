@@ -1,3 +1,5 @@
+import type { AttentionSummary } from '@/lib/attention';
+
 export class AdminApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
     super(message);
@@ -503,6 +505,14 @@ export async function adminCompleteReset(token: string, newPassword: string): Pr
   }
 }
 
+/** Fired after every successful mutation (see req). AttentionProvider listens. */
+export const ATTENTION_MUTATION_EVENT = 'banzadmin:mutated';
+
+function notifyAttentionMutation() {
+  if (typeof window === 'undefined') return;
+  try { window.dispatchEvent(new Event(ATTENTION_MUTATION_EVENT)); } catch { /* ignore */ }
+}
+
 export class AdminApi {
   private readonly base: string;
   private readonly token: string;
@@ -573,6 +583,10 @@ export class AdminApi {
       } catch { /* ignore */ }
       throw new AdminApiError(res.status, code, message);
     }
+    // A successful change may have changed what waits for an operator: the
+    // attention badges refresh now instead of at the next poll.
+    const method = (init?.method ?? 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') notifyAttentionMutation();
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
   }
@@ -1114,10 +1128,10 @@ export class AdminApi {
     });
   }
 
-  // Operator review-queue summary for the sidebar badges + bell unread count.
-  getNotificationSummary(environment?: string): Promise<NotificationSummary> {
-    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
-    return this.req(`/admin/v1/notifications/summary${q}`);
+  // What waits for an operator, per sidebar category (RBAC-filtered by the
+  // server) + the bell's unread count. One request feeds every badge.
+  getAttentionSummary(environment: 'LIVE' | 'SANDBOX'): Promise<AttentionSummary> {
+    return this.req(`/admin/v1/attention-summary?environment=${environment}`);
   }
   // ── Transaction proofs — read-only (ADR-040) ───────────────────────────────
   listProofs(q?: string, environment?: string): Promise<{ proofs: AdminProof[] }> {
@@ -1501,15 +1515,6 @@ export interface KycTimelineEvent {
   created_at: string;
 }
 
-export interface NotificationSummary {
-  pending_kyb_documents:        number;
-  pending_kyc_documents:        number;
-  pending_business_applications: number;
-  failed_app_settlements:       number;
-  open_disputes:                number;
-  pending_reconciliations:      number;
-  unread_notifications?:        number;
-}
 
 // Read-only transaction proof (ADR-040).
 export interface AdminProof {

@@ -8,6 +8,9 @@ import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/t
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { formatKz } from '@/lib/format';
+import { AttentionFilterBar } from '@/components/ui/attention-chip';
+import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
+import { filterByStates } from '@/lib/attention';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -23,6 +26,8 @@ export default function DisputesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [attention, setAttention] = useAttentionView();
+  const { states } = useAttentionCategory('disputes');
 
   const load = useCallback(async () => {
     const api = getApi();
@@ -74,11 +79,16 @@ export default function DisputesPage() {
     }
   }
 
-  if (loading) return <Card><div className="adm-skel m-6 h-[200px] rounded-[14px]" /></Card>;
-  if (error) return <Card><ErrorState message={error} /></Card>;
-  if (rows.length === 0) return <Card><EmptyMsg title="Ainda não há disputas." /></Card>;
+  const view = attention ? filterByStates(rows, states, (r) => r.status) : rows;
+  const bar = <AttentionFilterBar attentionKey="disputes" active={attention} onChange={setAttention} />;
+
+  if (loading) return <>{bar}<Card><div className="adm-skel m-6 h-[200px] rounded-[14px]" /></Card></>;
+  if (error) return <>{bar}<Card><ErrorState message={error} /></Card></>;
+  if (view.length === 0) return <>{bar}<Card><EmptyMsg title={attention ? 'Nenhuma disputa requer atenção.' : 'Ainda não há disputas.'} /></Card></>;
 
   return (
+    <>
+    {bar}
     <TableWrap>
       <thead>
         <tr className="bg-[#FFF7F6]">
@@ -91,7 +101,7 @@ export default function DisputesPage() {
         </tr>
       </thead>
       <tbody>
-        {rows.map((d) => {
+        {view.map((d) => {
           const resolved = RESOLVED.includes(d.status.toUpperCase());
           return (
             <tr key={d.id} className="adm-row transition-colors">
@@ -124,5 +134,6 @@ export default function DisputesPage() {
         })}
       </tbody>
     </TableWrap>
+    </>
   );
 }

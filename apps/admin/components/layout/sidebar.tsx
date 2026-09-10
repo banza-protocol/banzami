@@ -1,77 +1,34 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, ScanFace, Inbox, ToggleLeft, ShieldCheck, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText, type LucideIcon, Store } from 'lucide-react';
-import { destroySession, getSession } from '@/lib/session';
-import { AdminApi, type NotificationSummary } from '@/lib/admin-api';
+import { LogOut } from 'lucide-react';
+import { destroySession } from '@/lib/session';
 import { BanzamiLogo } from '@/components/ui/brand';
+import { attentionHref, attentionLabel, attentionPhrase, badgeText, countFor } from '@/lib/attention';
+import { useAttention } from '@/components/layout/attention-provider';
+import { NAV, isSection, type NavItem } from '@/components/layout/nav-config';
 
-// Maps a nav href to the summary count that should badge it.
-function badgeCount(href: string, s: NotificationSummary | null): number {
-  if (!s) return 0;
-  switch (href) {
-    case '/merchant-kyb':            return s.pending_kyb_documents;
-    case '/consumer-kyc':            return s.pending_kyc_documents;
-    case '/merchants':               return s.pending_business_applications;
-    case '/disputes':                return s.open_disputes;
-    case '/reconciliation':          return s.pending_reconciliations;
-    case '/application-settlements': return s.failed_app_settlements;
-    default:                         return 0;
-  }
-}
-
-function Badge({ n }: { n: number }) {
-  if (n <= 0) return null;
-  return (
-    <span className="ml-auto flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#B5101F] px-[6px] text-[11px] font-extrabold text-white max-[860px]:hidden">
-      {n > 99 ? '99+' : n}
+/**
+ * Attention badge. Red (brand token), hidden at 0, "99+" past 99. Two
+ * placements from one element set: a pill at the end of the row when the
+ * sidebar is expanded, and a small pill over the icon when it collapses to the
+ * icon rail (≤860px — also the phone layout). The count is decorative for
+ * assistive technology: the link's accessible name already says it in words.
+ */
+export function AttentionBadge({ n, placement }: { n: number | null; placement: 'row' | 'icon' }) {
+  const text = badgeText(n);
+  if (text === null) return null;
+  const common = 'flex items-center justify-center rounded-full bg-banzami font-extrabold text-white tabular-nums';
+  return placement === 'row' ? (
+    <span data-attention-badge="row" aria-hidden="true" className={`${common} ml-auto h-[20px] min-w-[20px] px-[6px] text-[11px] max-[860px]:hidden`}>
+      {text}
+    </span>
+  ) : (
+    <span data-attention-badge="icon" aria-hidden="true" className={`${common} absolute -right-[9px] -top-[8px] hidden h-[16px] min-w-[16px] px-[4px] text-[9.5px] ring-2 ring-white max-[860px]:flex`}>
+      {text}
     </span>
   );
-}
-
-type NavItem = { href: string; label: string; Icon: LucideIcon; exact?: boolean };
-type NavSection = { section: string; items: NavItem[] };
-type NavEntry = NavItem | NavSection;
-
-const NAV: NavEntry[] = [
-  { href: '/', label: 'Visão geral', Icon: LayoutGrid, exact: true },
-  {
-    section: 'Compliance',
-    items: [
-      { href: '/compliance/inbox', label: 'Inbox', Icon: Inbox },
-    ],
-  },
-  { href: '/merchants', label: 'Candidaturas', Icon: Building2 },
-  { href: '/businesses', label: 'Negócios', Icon: Store },
-  { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck },
-  { href: '/consumer-kyc', label: 'Documentos KYC', Icon: ScanFace },
-  { href: '/consumers', label: 'Consumidores', Icon: Users },
-  { href: '/settlements', label: 'Liquidações', Icon: Layers },
-  { href: '/payments', label: 'Pagamentos', Icon: CreditCard },
-  { href: '/proofs', label: 'Comprovativos', Icon: ShieldCheck },
-  { href: '/wallet-payments', label: 'Pagamentos recebidos', Icon: ReceiptText },
-  { href: '/reconciliation', label: 'Reconciliação', Icon: RefreshCw },
-  { href: '/disputes', label: 'Disputas', Icon: Scale },
-  { href: '/risk', label: 'Risco & Audit', Icon: Shield },
-  { href: '/operators', label: 'Operadores', Icon: UserCog },
-  { href: '/platform-mode', label: 'Modo da plataforma', Icon: ToggleLeft },
-  {
-    section: 'Finanças',
-    items: [
-      { href: '/finance', label: 'Visão geral', Icon: PieChart },
-      { href: '/pricing-rules', label: 'Regras de preço', Icon: Tags },
-      { href: '/pricing-profiles', label: 'Perfis de preço', Icon: SlidersHorizontal },
-      { href: '/fee-policies', label: 'Políticas de fee', Icon: ScrollText },
-      { href: '/operator-fees', label: 'Taxas do operador', Icon: Coins },
-      { href: '/application-settlements', label: 'Liquidações de apps', Icon: HandCoins },
-    ],
-  },
-];
-
-function isSection(e: NavEntry): e is NavSection {
-  return (e as NavSection).section !== undefined;
 }
 
 function isActive(pathname: string, href: string, exact?: boolean): boolean {
@@ -79,26 +36,34 @@ function isActive(pathname: string, href: string, exact?: boolean): boolean {
   return pathname === href || pathname.startsWith(href + '/');
 }
 
+function NavLink({ item, pathname, count }: { item: NavItem; pathname: string; count: number | null }) {
+  const { href, label, Icon, exact } = item;
+  const active = isActive(pathname, href, exact);
+  const shown = badgeText(count) !== null;
+  return (
+    <Link
+      href={attentionHref(href, count)}
+      aria-current={active ? 'page' : undefined}
+      aria-label={attentionLabel(label, count)}
+      title={shown ? attentionPhrase(Math.floor(count as number)) : undefined}
+      className={`flex items-center gap-3 rounded-[13px] px-[13px] py-[11px] text-[14.5px] font-extrabold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-banzami max-[860px]:justify-center ${
+        active ? 'bg-[#FFF1F0] text-banzami' : 'text-[#5a4a4e] hover:bg-[#FFF7F6]'
+      }`}
+    >
+      <span className="relative flex flex-none">
+        <Icon size={20} className="flex-none" color={active ? '#B5101F' : '#9a8a8e'} strokeWidth={1.8} aria-hidden="true" />
+        <AttentionBadge n={count} placement="icon" />
+      </span>
+      <span className="max-[860px]:hidden">{label}</span>
+      <AttentionBadge n={count} placement="row" />
+    </Link>
+  );
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [summary, setSummary] = useState<NotificationSummary | null>(null);
-
-  // Poll the operator review-queue summary (live) so the sidebar shows real
-  // pending counts. Best-effort: failures leave the badges hidden.
-  const refresh = useCallback(async () => {
-    const s = getSession();
-    if (!s) return;
-    try {
-      setSummary(await new AdminApi(s.token).getNotificationSummary());
-    } catch { /* leave badges as-is */ }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-    const t = setInterval(() => void refresh(), 60_000);
-    return () => clearInterval(t);
-  }, [refresh]);
+  const { summary } = useAttention();
 
   function logout() {
     destroySession();
@@ -108,7 +73,7 @@ export function Sidebar() {
   return (
     <aside className="adm-side sticky top-0 flex h-screen w-[248px] flex-none flex-col border-r border-[#f1e3e3] bg-white max-[860px]:w-[74px]">
       <div className="flex items-center gap-[11px] border-b border-[#f6eded] px-5 pb-[18px] pt-[22px]">
-        <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-[#B5101F] shadow-[0_6px_14px_-4px_rgba(181,16,31,0.5)]">
+        <span className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-banzami shadow-[0_6px_14px_-4px_rgba(181,16,31,0.5)]">
           <BanzamiLogo />
         </span>
         <span className="flex items-baseline gap-[7px] max-[860px]:hidden">
@@ -116,7 +81,7 @@ export function Sidebar() {
         </span>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto p-3">
+      <nav aria-label="Navegação principal" className="flex flex-1 flex-col gap-[3px] overflow-y-auto p-3">
         {NAV.map((entry) => {
           if (isSection(entry)) {
             return (
@@ -124,49 +89,20 @@ export function Sidebar() {
                 <span className="px-[13px] pb-[2px] text-[11px] font-extrabold uppercase tracking-[0.06em] text-[#bba6aa] max-[860px]:hidden">
                   {entry.section}
                 </span>
-                {entry.items.map(({ href, label, Icon, exact }) => {
-                  const active = isActive(pathname, href, exact);
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      aria-current={active ? 'page' : undefined}
-                      className={`flex items-center gap-3 rounded-[13px] px-[13px] py-[11px] text-[14.5px] font-extrabold transition-colors max-[860px]:justify-center ${
-                        active ? 'bg-[#FFF1F0] text-[#B5101F]' : 'text-[#5a4a4e] hover:bg-[#FFF7F6]'
-                      }`}
-                    >
-                      <Icon size={20} className="flex-none" color={active ? '#B5101F' : '#9a8a8e'} strokeWidth={1.8} />
-                      <span className="max-[860px]:hidden">{label}</span>
-                      <Badge n={badgeCount(href, summary)} />
-                    </Link>
-                  );
-                })}
+                {entry.items.map((item) => (
+                  <NavLink key={item.href} item={item} pathname={pathname} count={countFor(summary, item.attentionKey)} />
+                ))}
               </div>
             );
           }
-          const { href, label, Icon, exact } = entry;
-          const active = isActive(pathname, href, exact);
-          return (
-            <Link
-              key={href}
-              href={href}
-              aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-3 rounded-[13px] px-[13px] py-[11px] text-[14.5px] font-extrabold transition-colors max-[860px]:justify-center ${
-                active ? 'bg-[#FFF1F0] text-[#B5101F]' : 'text-[#5a4a4e] hover:bg-[#FFF7F6]'
-              }`}
-            >
-              <Icon size={20} className="flex-none" color={active ? '#B5101F' : '#9a8a8e'} strokeWidth={1.8} />
-              <span className="max-[860px]:hidden">{label}</span>
-              <Badge n={badgeCount(href, summary)} />
-            </Link>
-          );
+          return <NavLink key={entry.href} item={entry} pathname={pathname} count={countFor(summary, entry.attentionKey)} />;
         })}
       </nav>
 
       <div className="border-t border-[#f6eded] p-3">
         <button
           onClick={logout}
-          className="flex w-full items-center gap-3 rounded-[13px] px-[13px] py-[11px] text-[14.5px] font-bold text-[#9a8a8e] transition-colors hover:bg-[#FFF1F0] hover:text-[#B5101F] max-[860px]:justify-center"
+          className="flex w-full items-center gap-3 rounded-[13px] px-[13px] py-[11px] text-[14.5px] font-bold text-[#9a8a8e] transition-colors hover:bg-[#FFF1F0] hover:text-banzami max-[860px]:justify-center"
         >
           <LogOut size={20} className="flex-none" strokeWidth={1.8} />
           <span className="max-[860px]:hidden">Sair</span>

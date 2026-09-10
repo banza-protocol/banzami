@@ -81,7 +81,8 @@ var attentionCategories = []attentionCategory{
 		                                 WHERE i.run_id = r.id AND i.status <> 'MATCHED') END
 		                   FROM acquiring_reconciliation_runs r
 		                  WHERE r.status <> 'RUNNING' ORDER BY r.started_at DESC LIMIT 1), 0))`},
-	// Disputes waiting for the operator. EVIDENCE_REQUIRED waits for a party.
+	// Disputes still open (OPEN, or UNDER_REVIEW once evidence arrived) wait for
+	// the operator to resolve them; WON_BY_CONSUMER / WON_BY_MERCHANT / CLOSED are history.
 	{key: "disputes", table: "disputes", states: []string{"OPEN", "UNDER_REVIEW"},
 		expr: `(SELECT count(*) FROM disputes WHERE status IN ('OPEN','UNDER_REVIEW'))`},
 	{key: "risk_flags", table: "risk_flags",

@@ -9,6 +9,7 @@ import { MerchantKybDrawer } from '@/components/merchant-kyb/review-drawer';
 import { formatDate } from '@/lib/format';
 import { useAdminEnv, type Env } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
+import { AttentionChip } from '@/components/ui/attention-chip';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -82,15 +83,22 @@ export default function MerchantKybPage() {
       </p>
 
       <div className="mb-[18px] flex flex-wrap items-center gap-2">
-        {[{ label: 'Pendentes de revisão', value: true }, { label: 'Todos', value: false }].map((c) => (
-          <button
-            key={String(c.value)}
-            onClick={() => setOnlyPending(c.value)}
-            className={`rounded-full px-4 py-2 text-sm font-bold ${onlyPending === c.value ? 'bg-[#1a1a1a] text-white' : 'border border-[#eaddde] text-[#5a4a4e]'}`}
-          >
-            {c.label}
-          </button>
-        ))}
+        {/* Requer atenção = Businesses with a document pending review — the set the sidebar badge counts. */}
+        <AttentionChip
+          attentionKey="kyb_documents"
+          active={onlyPending}
+          onToggle={() => setOnlyPending(true)}
+          className="rounded-full px-4 py-2 text-sm font-bold"
+          activeClass="bg-[#1a1a1a] text-white"
+          idleClass="border border-[#eaddde] text-[#5a4a4e]"
+        />
+        <button
+          onClick={() => setOnlyPending(false)}
+          aria-pressed={!onlyPending}
+          className={`rounded-full px-4 py-2 text-sm font-bold ${!onlyPending ? 'bg-[#1a1a1a] text-white' : 'border border-[#eaddde] text-[#5a4a4e]'}`}
+        >
+          Todos
+        </button>
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}

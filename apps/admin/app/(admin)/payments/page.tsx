@@ -8,6 +8,9 @@ import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/t
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { formatKz, formatDate } from '@/lib/format';
+import { AttentionFilterBar } from '@/components/ui/attention-chip';
+import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
+import { filterByStates } from '@/lib/attention';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -26,6 +29,8 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [attention, setAttention] = useAttentionView();
+  const { states } = useAttentionCategory('payouts');
 
   const load = useCallback(async () => {
     const api = getApi();
@@ -90,11 +95,16 @@ export default function PaymentsPage() {
     }
   }
 
-  if (loading) return <Card><div className="adm-skel m-6 h-[200px] rounded-[14px]" /></Card>;
-  if (error) return <Card><ErrorState message={error} /></Card>;
-  if (rows.length === 0) return <Card><EmptyMsg title="Ainda não há pagamentos." /></Card>;
+  const view = attention ? filterByStates(rows, states, (r) => r.status) : rows;
+  const bar = <AttentionFilterBar attentionKey="payouts" active={attention} onChange={setAttention} />;
+
+  if (loading) return <>{bar}<Card><div className="adm-skel m-6 h-[200px] rounded-[14px]" /></Card></>;
+  if (error) return <>{bar}<Card><ErrorState message={error} /></Card></>;
+  if (view.length === 0) return <>{bar}<Card><EmptyMsg title={attention ? 'Nenhum pagamento requer atenção.' : 'Ainda não há pagamentos.'} /></Card></>;
 
   return (
+    <>
+    {bar}
     <TableWrap>
       <thead>
         <tr className="bg-[#FFF7F6]">
@@ -107,7 +117,7 @@ export default function PaymentsPage() {
         </tr>
       </thead>
       <tbody>
-        {rows.map((p) => {
+        {view.map((p) => {
           const actionable = !TERMINAL.includes(p.status);
           return (
             <tr key={p.id} className="adm-row transition-colors">
@@ -143,5 +153,6 @@ export default function PaymentsPage() {
         })}
       </tbody>
     </TableWrap>
+    </>
   );
 }

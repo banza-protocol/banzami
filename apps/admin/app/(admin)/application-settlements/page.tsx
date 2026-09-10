@@ -9,6 +9,9 @@ import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/com
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { formatKz, formatDate } from '@/lib/format';
+import { AttentionFilterBar } from '@/components/ui/attention-chip';
+import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
+import { filterByStates } from '@/lib/attention';
 
 const CATEGORIES = ['DONATION', 'CROWDFUNDING', 'MARKETPLACE', 'ECOMMERCE', 'DELIVERY', 'FOOD_DELIVERY', 'RIDE_HAILING', 'SUBSCRIPTION', 'TICKETING', 'DIGITAL_GOODS', 'PHYSICAL_GOODS', 'P2P', 'BILL_PAYMENT', 'NGO', 'GOVERNMENT'];
 const STATUSES = ['CREATED', 'PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'];
@@ -36,6 +39,9 @@ export default function ApplicationSettlementsPage() {
   const [selected, setSelected] = useState<ApplicationSettlement | null>(null);
   const [snapOpen, setSnapOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [attention, setAttention] = useAttentionView();
+  const { states } = useAttentionCategory('application_settlements');
+  const view = attention ? filterByStates(rows, states, (r) => r.status) : rows;
 
   const load = useCallback(async (f: AppSettlementFilters) => {
     const api = getApi();
@@ -123,6 +129,7 @@ export default function ApplicationSettlementsPage() {
         </p>
       </header>
 
+      <AttentionFilterBar attentionKey="application_settlements" active={attention} onChange={setAttention} />
       <div className="flex flex-wrap items-center gap-2">
         <input className={selClass} placeholder="owner_ref" value={filters.owner_ref ?? ''} onChange={(e) => set('owner_ref', e.target.value)} />
         <select className={selClass} value={filters.status ?? ''} onChange={(e) => set('status', e.target.value)}>
@@ -146,13 +153,13 @@ export default function ApplicationSettlementsPage() {
 
       <div className={`grid gap-5 ${selected ? 'grid-cols-1 xl:grid-cols-[1fr_minmax(380px,440px)]' : 'grid-cols-1'}`}>
         <Card>
-          <CardHeader title={`Liquidações${rows.length ? ` · ${rows.length}` : ''}`} />
+          <CardHeader title={`Liquidações${view.length ? ` · ${view.length}` : ''}`} />
           {loading ? (
             <div className="adm-skel m-6 h-[220px] rounded-[14px]" />
           ) : error ? (
             <ErrorState message={error} />
-          ) : rows.length === 0 ? (
-            <EmptyMsg title="Sem liquidações" hint="Nenhuma liquidação de aplicação para este filtro." />
+          ) : view.length === 0 ? (
+            <EmptyMsg title={attention ? 'Nenhuma liquidação requer atenção' : 'Sem liquidações'} hint="Nenhuma liquidação de aplicação para este filtro." />
           ) : (
             <TableWrap>
               <table className="w-full border-collapse">
@@ -168,7 +175,7 @@ export default function ApplicationSettlementsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
+                  {view.map((r) => (
                     <tr key={r.id} onClick={() => { setSelected(r); setSnapOpen(false); }} className="adm-row cursor-pointer transition-colors hover:bg-[#FFF7F6]">
                       <Td>{formatDate(r.created_at)}</Td>
                       <Td className="font-extrabold">{r.owner_ref}</Td>

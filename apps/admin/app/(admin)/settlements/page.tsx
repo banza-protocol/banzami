@@ -8,6 +8,9 @@ import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { formatKz, formatDate } from '@/lib/format';
+import { AttentionFilterBar } from '@/components/ui/attention-chip';
+import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
+import { filterByStates } from '@/lib/attention';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -20,6 +23,8 @@ export default function SettlementsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [attention, setAttention] = useAttentionView();
+  const { states } = useAttentionCategory('settlements');
 
   const load = useCallback(async () => {
     const api = getApi();
@@ -61,6 +66,8 @@ export default function SettlementsPage() {
     }
   }
 
+  const view = attention ? filterByStates(rows, states, (r) => r.status) : rows;
+
   return (
     <>
       <div className="mb-4 flex items-center gap-[9px] rounded-[14px] border border-[#f6d3d1] bg-[#FFF1F0] px-[18px] py-[14px] text-[13.5px] font-bold text-[#9A1B22]">
@@ -68,12 +75,14 @@ export default function SettlementsPage() {
         Ciclo de vida: <span className="font-mono">Pendente → Submetido → Liquidado</span>. Usa <strong>Avançar</strong> para progredir o estado.
       </div>
 
+      <AttentionFilterBar attentionKey="settlements" active={attention} onChange={setAttention} />
+
       {loading ? (
         <Card><div className="adm-skel m-6 h-[200px] rounded-[14px]" /></Card>
       ) : error ? (
         <Card><ErrorState message={error} /></Card>
-      ) : rows.length === 0 ? (
-        <Card><EmptyMsg title="Ainda não há liquidações." /></Card>
+      ) : view.length === 0 ? (
+        <Card><EmptyMsg title={attention ? 'Nenhuma liquidação requer atenção.' : 'Ainda não há liquidações.'} /></Card>
       ) : (
         <TableWrap>
           <thead>
@@ -87,7 +96,7 @@ export default function SettlementsPage() {
             </tr>
           </thead>
           <tbody>
-            {rows.map((s) => {
+            {view.map((s) => {
               const canAdvance = s.status === 'PENDING' || s.status === 'SUBMITTED';
               return (
                 <tr key={s.id} className="adm-row transition-colors">
