@@ -300,7 +300,8 @@ export type PaymentLinkStatus = 'ACTIVE' | 'USED' | 'CANCELLED' | 'EXPIRED';
 export interface PaymentLink {
   id:           string;
   slug:         string;
-  merchant_id:  string;
+  /** Present for a merchant session only; a Project key never receives the owner behind its Project (ADR-057). */
+  merchant_id?:  string;
   wallet_id:    string;
   amount_minor?: number;
   currency:     string;
@@ -363,7 +364,8 @@ export interface Refund {
   id:              string;
   source_type:     RefundSourceType;
   source_id:       string;
-  merchant_id:     string;
+  /** Present for a merchant session only; a Project key never receives the owner behind its Project (ADR-057). */
+  merchant_id?:     string;
   /** Present only for WALLET_PAYMENT refunds (the payer). */
   consumer_id?:    string | null;
   amount_minor:    number;

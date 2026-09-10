@@ -42,6 +42,14 @@ which names wallet and account ids that sit behind your Project and are the
 operator's. A Project key is now refused there (403 `USE_FINANCIAL_SETUP`). Use
 `getFinancialSetup()`.
 
+### Changed — a Project key never receives the owner's id
+
+Responses served to a Project key no longer carry `merchant_id` — on payment
+sessions, payment links, refunds, and webhook endpoints and events. It named
+the Business Account the operator bound your Project to, which is not the
+integration's to know. `PaymentLink.merchant_id` and `Refund.merchant_id` are
+now optional; they remain present for a merchant session.
+
 ### Changed — a caller pricing field is refused, not ignored
 
 `POST /v1/application-settlements` now answers 400 `PRICING_FIELD_NOT_ACCEPTED`

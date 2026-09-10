@@ -20,12 +20,15 @@ package server
 
 import (
 	"net/http"
+	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 )
 
 func TestPublicDeveloperSurface_HasNoLegacyBusinessNamespace(t *testing.T) {
@@ -117,5 +120,41 @@ func TestPublicDeveloperSurface_NoResourceIsMountedTwice(t *testing.T) {
 		if !routes[pair[0]] {
 			t.Errorf("%s is missing — unifying the mounts must not remove the resource", pair[0])
 		}
+	}
+}
+
+// Every route a Project key reaches through the dual-credential group carries
+// the owner-identifier redaction (ADR-057). Asserted on the mounted chain, so
+// a route group added without it — or the Use line removed — fails here.
+func TestPublicDeveloperSurface_ProjectKeyRoutesRedactTheOwner(t *testing.T) {
+	r := newRouter(&config.Config{
+		Port: 8080, Environment: "SANDBOX",
+		JWTSecret:               "0123456789abcdef0123456789abcdef",
+		DeveloperKeyAuthEnabled: true,
+		DeveloperInternalKey:    "internal-test-credential",
+		DeveloperAPIURL:         "http://developer-api",
+	}, Dependencies{})
+	want := runtime.FuncForPC(reflect.ValueOf(middleware.RedactOwnerIdentifiers).Pointer()).Name()
+	checked := 0
+	_ = chi.Walk(r, func(method, route string, _ http.Handler, mws ...func(http.Handler) http.Handler) error {
+		for _, p := range []string{"/v1/payment-sessions", "/v1/refunds", "/v1/webhooks", "/v1/wallet-accounts", "/v1/application-settlements"} {
+			if !strings.HasPrefix(route, p) {
+				continue
+			}
+			checked++
+			found := false
+			for _, mw := range mws {
+				if runtime.FuncForPC(reflect.ValueOf(mw).Pointer()).Name() == want {
+					found = true
+				}
+			}
+			if !found {
+				t.Errorf("%s %s is reachable with a Project key without owner redaction", method, route)
+			}
+		}
+		return nil
+	})
+	if checked < 10 {
+		t.Fatalf("checked %d routes — the walk found too few to mean anything", checked)
 	}
 }

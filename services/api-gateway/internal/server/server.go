@@ -573,6 +573,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Use(middleware.RateLimitPerIP(deps.Redis, 120, "pay"))
 			if devKeyClient != nil {
 				r.Use(middleware.DualAuth(cfg, devKeyClient))
+				// A Project key never learns which Business Account the
+				// operator bound its Project to (ADR-057). After auth, so the
+				// principal is known; before idempotency, so a replayed
+				// response is redacted too.
+				r.Use(middleware.RedactOwnerIdentifiers)
 			} else {
 				r.Use(middleware.Auth(cfg))
 			}
