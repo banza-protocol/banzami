@@ -14,6 +14,7 @@ import '../models/qr_code.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
 import 'banzami_environment.dart';
+import 'merchant_session_tokens.dart';
 
 /// HTTP client for the Banzami Go api-gateway.
 ///
@@ -57,6 +58,17 @@ typedef OnResponseHook = void Function(
 typedef OnErrorHook = void Function(
     String method, String path, Object error, int attempts);
 
+/// Renews a JWT (handle-login) session. Provided by the app, which owns the
+/// refresh token and its storage (see [BanzamiClient.refreshMerchantSession]).
+///
+/// * returns a [RenewedSession] — the client installs it and carries on;
+/// * returns `null` — the session has ENDED (Banzami refused the renewal): the
+///   client calls `onUnauthorized` once and every waiting request fails 401;
+/// * throws — the renewal could not be attempted (outage, no network): the
+///   waiting requests fail with that error and `onUnauthorized` is NOT called.
+///   An outage is not a sign-out.
+typedef SessionRefresher = Future<RenewedSession?> Function();
+
 class BanzamiClient {
   final String apiKey;
   final BanzamiEnvironment environment;
@@ -70,14 +82,39 @@ class BanzamiClient {
   final OnResponseHook? onResponse;
   final OnErrorHook? onError;
 
-  /// Called whenever a request fails with 401 (session token invalid or expired
-  /// and the client cannot self-refresh). The app should sign the user out and
-  /// route them to login. Invoked before the [BanzamiApiException] is thrown, so
-  /// callers still receive the error too.
+  /// Called when the session is over: a request fails with 401 and the client
+  /// cannot renew (no [refreshSession], the renewal was refused, or the renewed
+  /// token was refused too). The app should sign the user out and route them to
+  /// sign-in. Invoked before the [BanzamiApiException] is thrown, so callers
+  /// still receive the error too.
+  ///
+  /// For a JWT (handle-login) client it fires ONCE per ended session, however
+  /// many requests fail together; afterwards the client refuses to send until a
+  /// new token is installed ([setJwt]). It is never called for an outage.
   final void Function()? onUnauthorized;
+
+  /// Renews a JWT (handle-login) session — see [SessionRefresher]. Called when
+  /// the access token is expired or about to be (before sending), or when a
+  /// request returns 401. Concurrent requests share ONE renewal; after it the
+  /// failed request is retried once with the new token.
+  final SessionRefresher? refreshSession;
 
   String? _jwt;
   DateTime? _jwtExpiry;
+
+  /// The renewal in flight, shared by every request that needs it.
+  Future<void>? _renewal;
+
+  /// The server ended this JWT session. Nothing more is sent (and
+  /// [onUnauthorized] is not repeated) until [setJwt] installs a new token.
+  bool _sessionEnded = false;
+
+  /// A handle-login access token is renewed this long before it expires, so a
+  /// request never leaves with a token that dies in transit.
+  static const _sessionRenewalMargin = Duration(seconds: 60);
+
+  /// An API-key JWT (24 h) is re-exchanged this long before it expires.
+  static const _apiKeyRenewalMargin = Duration(minutes: 5);
 
   /// When the current session token expires. Null until the first API call.
   DateTime? get sessionExpiresAt => _jwtExpiry;
@@ -92,8 +129,8 @@ class BanzamiClient {
   /// Construct with an API key (legacy: exchanged for a JWT on demand) and/or a
   /// pre-issued [jwt] (e.g. from @handle + PIN login). When a fresh JWT is
   /// present it is used directly; otherwise the API key is exchanged. A
-  /// JWT-only client cannot self-refresh — on expiry it surfaces a 401 so the
-  /// app re-authenticates.
+  /// JWT-only client renews through [refreshSession]; without one it cannot
+  /// renew — on expiry it surfaces a 401 so the app re-authenticates.
   BanzamiClient({
     this.apiKey = '',
     this.environment = BanzamiEnvironment.production,
@@ -105,6 +142,7 @@ class BanzamiClient {
     this.onResponse,
     this.onError,
     this.onUnauthorized,
+    this.refreshSession,
     String? jwt,
     DateTime? jwtExpiresAt,
   })  : baseUrl = (baseUrl ?? environment.defaultBaseUrl)
@@ -115,17 +153,32 @@ class BanzamiClient {
         _jwtExpiry = jwtExpiresAt;
 
   /// Install a pre-issued merchant JWT (handle + PIN login). When set and fresh
-  /// it is used directly, without exchanging an API key.
+  /// it is used directly, without exchanging an API key. Installing a token
+  /// re-opens a client whose session had ended.
   void setJwt(String token, {DateTime? expiresAt}) {
     _jwt = token;
     _jwtExpiry = expiresAt;
+    _sessionEnded = false;
   }
 
+  /// Makes sure this JWT (handle-login) client holds a usable access token,
+  /// renewing it through [refreshSession] when it is expired or about to be.
+  /// Sends nothing when the token is fresh.
+  ///
+  /// Throws a 401 [BanzamiApiException] when the session has ended (after
+  /// [onUnauthorized]), or the renewal's own error during an outage. Used by an
+  /// app to resume a session when the device is unlocked, before any screen
+  /// that needs it is shown.
+  Future<void> ensureSession() => _ensureJwt();
+
   /// Log a merchant in by @handle + PIN (unauthenticated endpoint). Returns the
-  /// issued JWT, its expiry and the environment. Does NOT mutate this client —
-  /// the caller decides how to build the session.
-  Future<({String token, DateTime expiresAt, String environment})>
-      loginMerchantHandlePin({
+  /// issued access token, its expiry, the environment and — from a gateway with
+  /// renewable sessions — the refresh token and its expiry. Does NOT mutate
+  /// this client — the caller decides how to build (and store) the session.
+  ///
+  /// Throws [BanzamiApiException] (401 invalid handle/PIN, 429 `LOCKED`) or
+  /// [BanzamiNetworkException].
+  Future<MerchantAuthTokens> loginMerchantHandlePin({
     required String handle,
     required String pin,
   }) async {
@@ -141,16 +194,90 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400)
+    if (resp.statusCode >= 400) {
       throw BanzamiApiException.fromJson(resp.statusCode, body);
-    final exp = body['expires_at'] as String?;
-    return (
-      token: body['token'] as String,
-      expiresAt: exp != null
-          ? DateTime.parse(exp)
-          : DateTime.now().add(const Duration(hours: 24)),
-      environment: (body['environment'] as String?) ?? 'LIVE',
-    );
+    }
+    return MerchantAuthTokens.fromJson(body);
+  }
+
+  /// Renews a Business App session with its refresh token (unauthenticated
+  /// endpoint `POST /v1/merchant/auth/refresh`). Does NOT mutate this client.
+  ///
+  /// * Returns the new tokens. The presented [refreshToken] is now SPENT: the
+  ///   caller must persist the returned refresh token before using the access
+  ///   token — presenting the old one again ends the whole sign-in.
+  /// * Returns `null` when the session has ended — any permanent refusal
+  ///   (401 `SESSION_ENDED`: expired, revoked, reused, Business suspended,
+  ///   handle gone; or a request the server cannot accept at all).
+  /// * Throws [BanzamiApiException] for a temporary failure (5xx, 429, 408) and
+  ///   [BanzamiNetworkException] when Banzami could not be reached or answered
+  ///   something that is not a session. Neither says the session ended.
+  Future<MerchantAuthTokens?> refreshMerchantSession(
+      String refreshToken) async {
+    if (refreshToken.isEmpty) return null; // no session to renew
+    late http.Response resp;
+    try {
+      resp = await _http.post(
+        Uri.parse('$baseUrl/v1/merchant/auth/refresh'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      );
+    } catch (e) {
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
+      throw BanzamiNetworkException(e.toString());
+    }
+    final status = resp.statusCode;
+    if (status >= 200 && status < 300) {
+      try {
+        return MerchantAuthTokens.fromJson(
+            jsonDecode(resp.body) as Map<String, dynamic>);
+      } catch (_) {
+        // A 2xx that is not a session (a proxy page): nothing is known about
+        // the session, so it is not ended — the caller may try again.
+        throw const BanzamiNetworkException('malformed session renewal answer');
+      }
+    }
+    if (_isTemporary(status)) {
+      throw BanzamiApiException.fromJson(status, _errorBody(resp));
+    }
+    // Every other refusal is permanent: this refresh token will never be
+    // accepted, so the session is over.
+    return null;
+  }
+
+  /// Ends a Business App sign-in (`POST /v1/merchant/auth/logout`), revoking
+  /// its refresh token server-side. Banzami answers 204 whether or not the
+  /// session was still open. Throws [BanzamiApiException] (e.g. 503) or
+  /// [BanzamiNetworkException] when the revocation could not be confirmed — an
+  /// app signing out clears its own state regardless.
+  Future<void> logoutMerchantSession(String refreshToken) async {
+    late http.Response resp;
+    try {
+      resp = await _http.post(
+        Uri.parse('$baseUrl/v1/merchant/auth/logout'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh_token': refreshToken}),
+      );
+    } catch (e) {
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
+      throw BanzamiNetworkException(e.toString());
+    }
+    if (resp.statusCode >= 200 && resp.statusCode < 300) return;
+    throw BanzamiApiException.fromJson(resp.statusCode, _errorBody(resp));
+  }
+
+  static bool _isTemporary(int status) =>
+      status >= 500 || status == 429 || status == 408;
+
+  /// The JSON error body, or an empty map when the body is not JSON (a proxy
+  /// error page) — the status code still carries the meaning.
+  static Map<String, dynamic> _errorBody(http.Response resp) {
+    try {
+      final v = jsonDecode(resp.body);
+      return v is Map<String, dynamic> ? v : const {};
+    } catch (_) {
+      return const {};
+    }
   }
 
   /// Non-secret lookup of a business @handle (unauthenticated) — used so the app
@@ -705,10 +832,10 @@ class BanzamiClient {
     onRequest?.call('GET', path, 0);
     late http.Response resp;
     try {
-      resp =
-          await _http.get(Uri.parse('$baseUrl$path'), headers: await _headers);
+      resp = await _authorized(
+          (headers) => _http.get(Uri.parse('$baseUrl$path'), headers: headers));
     } catch (e) {
-      if (e is BanzamiApiException) rethrow;
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     if (resp.statusCode != 200) {
@@ -783,24 +910,39 @@ class BanzamiClient {
   // HTTP helpers
   // ---------------------------------------------------------------------------
 
-  // Exchanges the raw API key for a short-lived JWT (TTL: 24 h).
-  // Cached until 5 minutes before expiry, then transparently renewed.
+  // Makes sure a usable token is installed before a request is sent.
+  //
+  // API-key client: exchanges the key for a short-lived JWT (TTL: 24 h),
+  // cached until 5 minutes before expiry, then transparently re-exchanged.
+  //
+  // JWT (handle-login) client: renews through [refreshSession] shortly before
+  // the token expires. A client whose session ended sends nothing at all.
   Future<void> _ensureJwt() async {
-    const buffer = Duration(minutes: 5);
-    if (_jwt != null &&
-        _jwtExpiry != null &&
-        DateTime.now().isBefore(_jwtExpiry!.subtract(buffer))) {
+    if (apiKey.isNotEmpty) {
+      if (_isFresh(_apiKeyRenewalMargin)) return;
+      await _exchangeApiKey();
       return;
     }
-    if (apiKey.isEmpty) {
-      // JWT-only client (handle login) with a missing/expired token — it cannot
-      // self-refresh, so surface a 401 and let the app re-authenticate (PIN).
-      onUnauthorized?.call();
+    if (_sessionEnded) throw _sessionEndedError();
+    if (_isFresh(_sessionRenewalMargin)) return;
+    if (refreshSession == null) {
+      // Nothing can renew this token — surface a 401 and let the app
+      // re-authenticate (handle + PIN).
+      _endSession();
       throw BanzamiApiException.fromJson(401, const {
         'code': 'TOKEN_EXPIRED',
         'message': 'session expired, please sign in again',
       });
     }
+    await _renew();
+  }
+
+  bool _isFresh(Duration margin) =>
+      _jwt != null &&
+      _jwtExpiry != null &&
+      DateTime.now().isBefore(_jwtExpiry!.subtract(margin));
+
+  Future<void> _exchangeApiKey() async {
     late http.Response resp;
     try {
       resp = await _http.post(
@@ -813,8 +955,9 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400)
+    if (resp.statusCode >= 400) {
       throw BanzamiApiException.fromJson(resp.statusCode, body);
+    }
     _jwt = body['token'] as String;
     final expiresAtStr = body['expires_at'] as String?;
     _jwtExpiry = expiresAtStr != null
@@ -822,83 +965,126 @@ class BanzamiClient {
         : DateTime.now().add(const Duration(hours: 24));
   }
 
-  Future<Map<String, String>> get _headers async {
+  /// Single-flight renewal: every request that needs a new token awaits the
+  /// SAME renewal — one refresh request however many calls fail together, so a
+  /// burst never becomes a refresh storm (and a single-use refresh token is
+  /// never presented twice).
+  Future<void> _renew() =>
+      _renewal ??= _performRenewal().whenComplete(() => _renewal = null);
+
+  Future<void> _performRenewal() async {
+    final RenewedSession? renewed;
+    try {
+      renewed = await refreshSession!();
+    } on BanzamiApiException catch (e) {
+      if (e.statusCode == 401) {
+        _endSession();
+        throw _sessionEndedError();
+      }
+      rethrow; // a temporary failure: the session is not known to have ended
+    } on BanzamiNetworkException {
+      rethrow;
+    } on Exception catch (e) {
+      throw BanzamiNetworkException('session renewal failed: $e');
+    }
+    if (renewed == null) {
+      _endSession();
+      throw _sessionEndedError();
+    }
+    _jwt = renewed.token;
+    _jwtExpiry = renewed.expiresAt;
+    _sessionEnded = false;
+  }
+
+  /// The JWT session is over: report it once, then refuse to send.
+  void _endSession() {
+    if (_sessionEnded) return;
+    _sessionEnded = true;
+    onUnauthorized?.call();
+  }
+
+  static BanzamiApiException _sessionEndedError() =>
+      BanzamiApiException.fromJson(401, const {
+        'code': 'SESSION_ENDED',
+        'message': 'the session has ended; sign in again',
+      });
+
+  Map<String, String> _authHeaders() => {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Banzami/1.0 (mobile)',
+        'Authorization': 'Bearer $_jwt',
+      };
+
+  /// Sends one authenticated request.
+  ///
+  /// On a 401 a renewable JWT session is renewed (the shared renewal) and the
+  /// request is retried ONCE with the new token; if the retry is refused too
+  /// the session has ended. A request that carried a token another request has
+  /// already renewed past is retried without renewing again. Never loops.
+  Future<http.Response> _authorized(
+      Future<http.Response> Function(Map<String, String> headers) send) async {
     await _ensureJwt();
-    return {
-      'Content-Type': 'application/json',
-      'User-Agent': 'Banzami/1.0 (mobile)',
-      'Authorization': 'Bearer $_jwt',
-    };
+    final sentWith = _jwt;
+    final resp = await send(_authHeaders());
+    if (resp.statusCode != 401) return resp;
+
+    if (apiKey.isNotEmpty) {
+      onUnauthorized?.call(); // API-key client: unchanged behaviour
+      return resp;
+    }
+    if (_sessionEnded) return resp; // already reported
+    if (refreshSession == null) {
+      _endSession();
+      return resp;
+    }
+    if (_jwt == sentWith) await _renew();
+    final retried = await send(_authHeaders());
+    if (retried.statusCode == 401) _endSession();
+    return retried;
   }
 
-  Future<Map<String, dynamic>> _get(String path) async {
-    onRequest?.call('GET', path, 0);
+  Future<Map<String, dynamic>> _send(
+    String method,
+    String path,
+    Future<http.Response> Function(Map<String, String> headers) send,
+  ) async {
+    onRequest?.call(method, path, 0);
     final t0 = DateTime.now().millisecondsSinceEpoch;
     late http.Response resp;
     try {
-      resp = await _http.get(
-        Uri.parse('$baseUrl$path'),
-        headers: await _headers,
-      );
+      resp = await _authorized(send);
     } catch (e) {
-      onError?.call('GET', path, e, 1);
-      if (e is BanzamiApiException) rethrow;
+      onError?.call(method, path, e, 1);
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);
-    onResponse?.call('GET', path, resp.statusCode,
+    onResponse?.call(method, path, resp.statusCode,
         DateTime.now().millisecondsSinceEpoch - t0);
     return result;
   }
 
-  Future<Map<String, dynamic>> _delete(String path) async {
-    onRequest?.call('DELETE', path, 0);
-    final t0 = DateTime.now().millisecondsSinceEpoch;
-    late http.Response resp;
-    try {
-      resp = await _http.delete(
-        Uri.parse('$baseUrl$path'),
-        headers: await _headers,
-      );
-    } catch (e) {
-      onError?.call('DELETE', path, e, 1);
-      if (e is BanzamiApiException) rethrow;
-      throw BanzamiNetworkException(e.toString());
-    }
-    final result = _decode(resp);
-    onResponse?.call('DELETE', path, resp.statusCode,
-        DateTime.now().millisecondsSinceEpoch - t0);
-    return result;
-  }
+  Future<Map<String, dynamic>> _get(String path) => _send('GET', path,
+      (headers) => _http.get(Uri.parse('$baseUrl$path'), headers: headers));
+
+  Future<Map<String, dynamic>> _delete(String path) => _send('DELETE', path,
+      (headers) => _http.delete(Uri.parse('$baseUrl$path'), headers: headers));
 
   Future<Map<String, dynamic>> _post(
     String path,
     Map<String, dynamic>? body, {
     String? idempotencyKey,
-  }) async {
-    onRequest?.call('POST', path, 0);
-    final t0 = DateTime.now().millisecondsSinceEpoch;
-    late http.Response resp;
-    try {
-      final headers = await _headers;
-      if (idempotencyKey != null) {
-        headers['Idempotency-Key'] = idempotencyKey;
-      }
-      resp = await _http.post(
-        Uri.parse('$baseUrl$path'),
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      );
-    } catch (e) {
-      onError?.call('POST', path, e, 1);
-      if (e is BanzamiApiException) rethrow;
-      throw BanzamiNetworkException(e.toString());
-    }
-    final result = _decode(resp);
-    onResponse?.call('POST', path, resp.statusCode,
-        DateTime.now().millisecondsSinceEpoch - t0);
-    return result;
-  }
+  }) =>
+      _send('POST', path, (headers) {
+        if (idempotencyKey != null) {
+          headers['Idempotency-Key'] = idempotencyKey;
+        }
+        return _http.post(
+          Uri.parse('$baseUrl$path'),
+          headers: headers,
+          body: body != null ? jsonEncode(body) : null,
+        );
+      });
 
   Future<Map<String, dynamic>> _postWithRetry(
     String path,
@@ -943,10 +1129,13 @@ class BanzamiClient {
     return error is Exception;
   }
 
+  // 401 handling (renewal, onUnauthorized) happens in [_authorized]; here an
+  // error is only typed. A non-JSON error body (a proxy page) still becomes a
+  // BanzamiApiException carrying its status, never a FormatException.
   Map<String, dynamic> _decode(http.Response resp) {
-    final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 200 && resp.statusCode < 300) return body;
-    if (resp.statusCode == 401) onUnauthorized?.call();
-    throw BanzamiApiException.fromJson(resp.statusCode, body);
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      return jsonDecode(resp.body) as Map<String, dynamic>;
+    }
+    throw BanzamiApiException.fromJson(resp.statusCode, _errorBody(resp));
   }
 }

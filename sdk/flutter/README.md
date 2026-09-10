@@ -73,7 +73,44 @@ final link = await client.createPaymentLink(
 print(link.slug); // share this slug with the customer
 ```
 
-The client transparently exchanges your API key for a short-lived JWT on the first call and silently renews it 5 minutes before expiry. No session management is required from calling code.
+With an API key, the client transparently exchanges it for a short-lived JWT on the first call and silently renews it 5 minutes before expiry.
+
+### Business App sessions (@handle + PIN)
+
+A handle sign-in opens a **renewable session**: a short access token (~15 min)
+and a single-use, rotating refresh token (≤ 30 days). The app owns the refresh
+token and its secure storage; the client renews through the `refreshSession`
+hook:
+
+```dart
+final tokens = await client.loginMerchantHandlePin(handle: 'loja', pin: pin);
+// persist tokens.refreshToken + tokens.refreshExpiresAt securely
+
+late final BanzamiClient client;
+client = BanzamiClient(
+  baseUrl:        'https://sandbox-api.banzami.com',
+  jwt:            tokens.token,
+  jwtExpiresAt:   tokens.expiresAt,
+  onUnauthorized: signOut,            // the session is over → sign-in
+  refreshSession: () async {
+    final t = await client.refreshMerchantSession(storedRefreshToken);
+    if (t == null) return null;       // SESSION_ENDED → onUnauthorized, once
+    await persist(t);                 // the NEW refresh token, before use
+    return t;
+  },
+);
+```
+
+- The client renews ~60 s before the access token expires, and on a 401.
+- Concurrent requests share **one** renewal (a refresh token is single-use:
+  presenting a spent one again ends the whole sign-in), then each failed
+  request is retried **once**. A second 401 ends the session.
+- `refreshSession` returning `null` ends the session: `onUnauthorized` fires
+  once for the burst and the client sends nothing more until `setJwt`.
+- `refreshSession` throwing (503, no network) surfaces that error to the
+  callers **without** `onUnauthorized` — an outage is not a sign-out.
+- `logoutMerchantSession(refreshToken)` revokes the sign-in server-side.
+- `ensureSession()` renews now if needed (e.g. when the device is unlocked).
 
 ---
 

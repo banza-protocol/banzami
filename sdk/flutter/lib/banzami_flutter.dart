@@ -41,6 +41,7 @@ library banzami_flutter;
 
 // Client
 export 'client/banzami_client.dart';
+export 'client/merchant_session_tokens.dart';
 export 'client/banzami_environment.dart';
 export 'client/consumer_public_client.dart';
 export 'client/pinned_http_client.dart';

@@ -58,7 +58,7 @@ Future<void> reauthenticateBusiness({
   final handle = session.session?.handle;
   if (handle == null) throw const ReauthException(ReauthFailure.refused);
 
-  final ({String token, DateTime expiresAt, String environment}) auth;
+  final MerchantAuthTokens auth;
   try {
     auth = await client.loginMerchantHandlePin(handle: handle, pin: pin);
   } on BanzamiApiException catch (e) {

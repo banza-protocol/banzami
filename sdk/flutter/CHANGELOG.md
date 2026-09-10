@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Renewable Business App sessions: `BanzamiClient(refreshSession: …)` renews a
+  handle-login access token before it expires and on a 401 — one shared
+  renewal for concurrent requests, one retry per failed request, never a loop.
+  A refused renewal calls `onUnauthorized` once; an outage does not.
+- `refreshMerchantSession(refreshToken)` → `MerchantAuthTokens?` (null when
+  the session has ended), `logoutMerchantSession(refreshToken)`,
+  `ensureSession()`.
+- `RenewedSession`, `MerchantAuthTokens` (access token, expiry, environment,
+  rotating refresh token and its expiry).
+
+### Changed
+- `loginMerchantHandlePin` returns `MerchantAuthTokens` (was a record); the
+  `token`, `expiresAt` and `environment` fields are unchanged, and it now also
+  carries `refreshToken` / `refreshExpiresAt`.
+- A non-JSON error body now surfaces as `BanzamiApiException` with its status,
+  not a `FormatException`.
+
 ## [0.1.0] — 2026-05-15
 
 ### Added

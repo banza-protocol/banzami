@@ -33,6 +33,31 @@ void main() {
       expect(body['pin'], '1234');
       expect(r.token, 'jwt.abc');
       expect(r.environment, 'SANDBOX');
+      expect(r.refreshToken, isNull,
+          reason: 'a gateway without renewable sessions still signs in');
+    });
+
+    test('loginMerchantHandlePin returns the refresh token and its expiry',
+        () async {
+      final c = BanzamiClient(
+        baseUrl: 'https://x',
+        httpClient: MockClient((_) async => http.Response(
+              jsonEncode({
+                'token': 'jwt.abc',
+                'expires_at': '2026-09-10T10:15:00Z',
+                'token_type': 'Bearer',
+                'environment': 'SANDBOX',
+                'refresh_token': 'rt.1',
+                'refresh_expires_at': '2026-10-10T10:00:00Z',
+              }),
+              200,
+            )),
+      );
+      final r = await c.loginMerchantHandlePin(handle: 'loja', pin: '1234');
+      expect(r.token, 'jwt.abc');
+      expect(r.expiresAt, DateTime.utc(2026, 9, 10, 10, 15));
+      expect(r.refreshToken, 'rt.1');
+      expect(r.refreshExpiresAt, DateTime.utc(2026, 10, 10, 10));
     });
 
     test('a fresh JWT is used directly — no API-key exchange', () async {
