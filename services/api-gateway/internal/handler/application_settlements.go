@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -306,18 +308,23 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		SourceAccountID         string `json:"source_account_id"` // the campaign wallet_account id
 		BeneficiaryBanzaName    string `json:"beneficiary_banza_name"`
 		FeeDestinationBanzaName string `json:"fee_destination_banza_name"`
-		// Accepted and validated, never used to price. It is out of the public
-		// contract; it is still parsed so that an integration built against the
-		// old one keeps working instead of receiving a 400 for a field it was
-		// previously told to send.
-		ApplicationFeeBps int    `json:"application_fee_bps"`
-		Reason            string `json:"reason"`
-		ReferenceType     string `json:"reference_type"`
-		ReferenceID       string `json:"reference_id"`
-		IdempotencyKey    string `json:"idempotency_key"`
+		Reason                  string `json:"reason"`
+		ReferenceType           string `json:"reference_type"`
+		ReferenceID             string `json:"reference_id"`
+		IdempotencyKey          string `json:"idempotency_key"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+	raw, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 64<<10))
+	if err != nil || json.Unmarshal(raw, &body) != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+		return
+	}
+	// The caller names the settlement; Banzami names the price. A request that
+	// tries to choose the rate, the profile or the tariff is refused out loud
+	// rather than quietly ignored: an integration that believes it set a price
+	// and did not is worse off than one that was told.
+	if field := callerPricingField(raw); field != "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "PRICING_FIELD_NOT_ACCEPTED",
+			field+" is not part of the settlement request: the fee is set by the pricing profile Banzami assigned to your business")
 		return
 	}
 	switch {
@@ -329,9 +336,6 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		return
 	case body.BeneficiaryBanzaName == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "beneficiary_banza_name is required")
-		return
-	case body.ApplicationFeeBps < 0:
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FEE", "application_fee_bps must not be negative")
 		return
 	}
 
@@ -363,39 +367,29 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 
 	// Beneficiary @banza → its account.
 	ben, berr := h.parties.Resolve(r.Context(), body.BeneficiaryBanzaName, currency)
+	// A resolver that could not answer is an outage, not an unknown @banza.
+	if berr != nil && !errors.Is(berr, service.ErrNotFound) {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "the beneficiary could not be resolved right now")
+		return
+	}
 	if berr != nil || ben == nil || ben.AvailableAccountID == "" {
 		apierror.Respond(w, r, http.StatusUnprocessableEntity, "BENEFICIARY_NOT_FOUND", "beneficiary_banza_name has no active wallet in this currency")
 		return
 	}
 
-	// Fee destination @banza → its account (only when a fee is charged). It must
-	// be the caller's OWN business account; core further enforces APPLICATION/PLATFORM
-	// type + KYB (ADR-028).
-	//
-	// Resolved whenever the caller NAMES a destination — not only when the caller
-	// also sends application_fee_bps. The rate comes from the merchant's assigned
-	// pricing profile and a caller-supplied bps is explicitly ignored (see below),
-	// so gating the DESTINATION on that same ignored field meant an integrator who
-	// followed the documented model named @doa, sent no bps, and had the fee
-	// account silently dropped. Core then refused the settlement it was asked to
-	// make — "application_fee_account_id is required for this category" — for a
-	// field the public contract never told the caller to send.
+	// Fee destination @banza → its account. Named by the caller, because WHO
+	// receives an application fee is the application's to say; HOW MUCH it is,
+	// is not. Whether one is needed at all is core's decision: it prices the
+	// settlement first, and requires and validates a destination only when the
+	// operator's pricing resolves a fee.
 	feeAccountID := ""
-	if body.FeeDestinationBanzaName != "" || body.ApplicationFeeBps > 0 {
-		if body.FeeDestinationBanzaName == "" {
-			apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "fee_destination_banza_name is required when application_fee_bps > 0")
+	if body.FeeDestinationBanzaName != "" {
+		fd := h.resolveFeeDestination(r.Context(), body.FeeDestinationBanzaName, currency, callerMerchantID)
+		if fd.Code != "" {
+			apierror.Respond(w, r, fd.Status, fd.Code, fd.Message)
 			return
 		}
-		fd, ferr := h.parties.Resolve(r.Context(), body.FeeDestinationBanzaName, currency)
-		if ferr != nil || fd == nil || fd.AvailableAccountID == "" {
-			apierror.Respond(w, r, http.StatusUnprocessableEntity, "FEE_DESTINATION_NOT_FOUND", "fee_destination_banza_name has no active wallet in this currency")
-			return
-		}
-		if fd.OwnerType != "MERCHANT" || fd.OwnerID != callerMerchantID {
-			apierror.Respond(w, r, http.StatusForbidden, "FEE_DESTINATION_NOT_OWNED", "fee destination must be your own business account")
-			return
-		}
-		feeAccountID = fd.AvailableAccountID
+		feeAccountID = fd.AccountID
 	}
 
 	ownerRef := body.ReferenceID
@@ -403,18 +397,8 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		ownerRef = body.Reason
 	}
 
-	// The operator's rate is chosen by the merchant's own category, never by the
-	// request. A caller that sends one is ignored rather than refused: refusing
-	// would break every existing integration to prevent something the caller can
-	// no longer do anyway.
-	//
-	// "Ignored" now means it. Until this commit the comment said the field was
-	// ignored while the handler forwarded it, and core treats a non-zero
-	// application_fee_bps as the APP-DEFINED path: the Pricing Engine is not
-	// consulted at all. So every caller still sending the field — which is every
-	// existing integration, because the old contract asked for it — was setting
-	// its own rate, up to the 50% domain maximum, and the pricing profile
-	// resolved two lines above was dead code for exactly those requests.
+	// The operator's rate is chosen by the profile an operator assigned to this
+	// business, never by the request.
 	pricingProfile, perr := h.resolvePricingProfile(r.Context(), callerMerchantID)
 	if perr != nil {
 		respondPricing(w, r, perr)
@@ -429,11 +413,8 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		SourceAccountID:         coreSource,
 		BeneficiaryAccountID:    ben.AvailableAccountID,
 		ApplicationFeeAccountID: feeAccountID,
-		// Deliberately not body.ApplicationFeeBps. Leaving it zero is what selects
-		// the operator-priced path in core; forwarding the caller's number is what
-		// selected the caller's.
-		GrossAmountMinor: acc.AvailableBalanceMinor,
-		Currency:         currency,
+		GrossAmountMinor:        acc.AvailableBalanceMinor,
+		Currency:                currency,
 		// This path never named anything, so every settlement through it resolved
 		// no rule — which is to say, cost nothing. It now carries the merchant's
 		// assigned policy, so the operator's rate applies to the owner it was
@@ -470,4 +451,67 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	}
 	slog.InfoContext(r.Context(), "business_settlement.executed", "settlement_id", st.ID, "owner_ref", st.OwnerRef, "status", st.Status)
 	respond(w, http.StatusCreated, st)
+}
+
+// FeeDestinationResolution is a named @banza checked the way settlement checks
+// it: it must resolve to an account in the settlement currency and belong to
+// the caller. Everything ADR-028 then asks of it — active, KYB-approved, an
+// active wallet, a permitted type — is core's, evaluated by the one function
+// that settlement and readiness both call.
+type FeeDestinationResolution struct {
+	Handle    string
+	AccountID string // empty when it does not resolve
+	Owned     bool
+	// Code/Status/Message are set when settlement would refuse at this step.
+	Code    string
+	Status  int
+	Message string
+}
+
+// resolveFeeDestination is shared by settlement and readiness, so the two
+// cannot disagree about whether a named destination is usable.
+func (h *ApplicationSettlementHandler) resolveFeeDestination(ctx context.Context, name, currency, callerMerchantID string) FeeDestinationResolution {
+	out := FeeDestinationResolution{Handle: strings.ToLower(strings.TrimPrefix(strings.TrimSpace(name), "@"))}
+	fd, err := h.parties.Resolve(ctx, name, currency)
+	if err != nil && !errors.Is(err, service.ErrNotFound) {
+		out.Code, out.Status = "SERVICE_UNAVAILABLE", http.StatusServiceUnavailable
+		out.Message = "the fee destination could not be resolved right now"
+		return out
+	}
+	if err != nil || fd == nil || fd.AvailableAccountID == "" {
+		out.Code, out.Status = "FEE_DESTINATION_NOT_FOUND", http.StatusUnprocessableEntity
+		out.Message = "fee_destination_banza_name has no active wallet in this currency"
+		return out
+	}
+	out.AccountID = fd.AvailableAccountID
+	out.Owned = fd.OwnerType == "MERCHANT" && fd.OwnerID == callerMerchantID
+	if !out.Owned {
+		out.Code, out.Status = "FEE_DESTINATION_NOT_OWNED", http.StatusForbidden
+		out.Message = "fee destination must be your own business account"
+	}
+	return out
+}
+
+// callerPricingFields are the names through which a caller has, at one time or
+// another, tried to choose what a settlement costs. application_fee_bps was a
+// real field of the public contract until it was withdrawn; the others are the
+// selectors the pricing model once matched on, or an amount outright.
+var callerPricingFields = []string{
+	"application_fee_bps", "applicationFeeBps", "fee_bps", "rate_bps",
+	"pricing_profile", "business_category", "fee_policy_ref",
+	"application_fee_minor", "fee_minor",
+}
+
+// callerPricingField returns the first pricing field present in a request body.
+func callerPricingField(raw []byte) string {
+	var keys map[string]json.RawMessage
+	if json.Unmarshal(raw, &keys) != nil {
+		return ""
+	}
+	for _, f := range callerPricingFields {
+		if _, present := keys[f]; present {
+			return f
+		}
+	}
+	return ""
 }

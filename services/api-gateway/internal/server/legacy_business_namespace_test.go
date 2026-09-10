@@ -19,8 +19,13 @@ package server
 // an alias would only preserve a vocabulary we are removing.
 
 import (
+	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/go-chi/chi/v5"
+
+	"github.com/banzami/banzami/services/api-gateway/internal/config"
 )
 
 func TestPublicDeveloperSurface_HasNoLegacyBusinessNamespace(t *testing.T) {
@@ -68,7 +73,33 @@ func TestPublicDeveloperSurface_IntegrationStateReplacedBusinessMe(t *testing.T)
 		t.Error("the retired business/me route is still mounted")
 	}
 	if !routes["GET /v1/integration"] {
-		t.Error("GET /v1/integration is not mounted — the integration's resolved state has no public route")
+		t.Error("GET /v1/integration is not mounted — the Business's own dashboard state has no route")
+	}
+}
+
+// A Project reads its readiness from one Project-scoped resource, mounted on the
+// developer-key surface beside /v1/me — never on the merchant surface, and never
+// under a Project id the caller supplies.
+func TestPublicDeveloperSurface_ProjectReadinessIsProjectScoped(t *testing.T) {
+	r := newRouter(&config.Config{
+		Port: 8080, Environment: "SANDBOX",
+		JWTSecret:               "0123456789abcdef0123456789abcdef",
+		DeveloperKeyAuthEnabled: true,
+		DeveloperInternalKey:    "internal-test-credential",
+		DeveloperAPIURL:         "http://developer-api",
+	}, Dependencies{})
+	routes := map[string]bool{}
+	_ = chi.Walk(r, func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+		routes[method+" "+route] = true
+		return nil
+	})
+	if !routes["GET /v1/financial-setup"] {
+		t.Fatal("GET /v1/financial-setup is not mounted on the developer-key surface")
+	}
+	for route := range routes {
+		if strings.Contains(route, "financial-setup") && route != "GET /v1/financial-setup" {
+			t.Errorf("unexpected readiness route %s — one resource, Project key as authority", route)
+		}
 	}
 }
 

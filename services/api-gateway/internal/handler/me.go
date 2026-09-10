@@ -30,18 +30,27 @@ func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "insufficient scope")
 		return
 	}
-	// Public contract (RT02.1): the MINIMUM integration identity only — API
-	// environment, project-safe identifier, allowed scopes, key status. It never
-	// exposes internal Core/database identifiers (workspace_id, project UUID, key
-	// UUID), workspace members, service topology, PII, or raw key material.
+	// Public contract: the key's environment, scopes and status, and the Project
+	// it belongs to.
+	//
+	// `project` used to be a single string — the slug — and then briefly a
+	// derived `project_id` beside it. Neither let an integration check which
+	// Project its key belongs to: the slug is what a developer typed and can
+	// retype, and the derived id matched nothing a developer could see anywhere
+	// else. The Project's own id is what the Console addresses it by, is stable
+	// across renames, and is the developer's to know. So it is the id.
+	//
+	// What stays out is everything BEHIND the Project: the workspace id, the key
+	// id, and the financial owner, wallet and account the Project's binding
+	// resolves to. Those are the operator's, and the readiness resource reports
+	// their state without naming them.
 	writeJSON(w, http.StatusOK, map[string]any{
 		"environment": p.Environment,
-		"project":     p.ProjectSlug,
-		// The slug is what a developer typed and can retype. project_id does not
-		// move when they rename the project, so an integration has something
-		// stable to file its own records under. Derived, not the internal UUID —
-		// see PublicProjectID.
-		"project_id": PublicProjectID(p.ProjectID),
+		"project": map[string]any{
+			"id":   p.ProjectID,
+			"name": p.ProjectName,
+			"ref":  p.ProjectSlug,
+		},
 		"scopes":     p.Scopes,
 		"key_status": p.KeyStatus,
 	})

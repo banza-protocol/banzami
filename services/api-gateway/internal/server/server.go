@@ -69,7 +69,9 @@ type Dependencies struct {
 	PlatformSvc              *service.PlatformReadService
 	ProofSvc                 *service.ProofService
 	BusinessSelfSvc          *service.BusinessSelfService
-	ProofHashSalt            string
+	// Core's settlement readiness engine, behind GET /v1/financial-setup.
+	SettlementReadinessSvc service.SettlementReadinessService
+	ProofHashSalt          string
 	// RequestLogSink persists one row per authenticated Developer API request.
 	// Nil disables the log (no DATABASE_URL) — the middleware then adds nothing
 	// to the chain rather than recording into a void.
@@ -269,6 +271,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	if active, reason := cfg.DeveloperKeyAuthActive(); active {
 		devKeyClient = service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey)
 		meHandler := handler.NewMeHandler()
+		financialSetupHandler := handler.NewFinancialSetupHandler(deps.SettlementReadinessSvc, deps.PartyResolverSvc)
 		r.Group(func(r chi.Router) {
 			// Per-IP limit BEFORE introspection — caps how many keys an
 			// unauthenticated caller can bounce off the Developer API, protecting
@@ -278,8 +281,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Use(middleware.DeveloperKeyAuth(devKeyClient))
 			r.Use(middleware.DeveloperKeyRateLimit(deps.Redis))
 			r.Get("/v1/me", meHandler.Me)
+			// The Project's own financial readiness. Project key only: a merchant
+			// session has its own dashboard, and no request names a Project.
+			r.Get("/v1/financial-setup", financialSetupHandler.FinancialSetup)
 		})
-		slog.Info("developer-key auth active", "surface", "GET /v1/me")
+		slog.Info("developer-key auth active", "surface", "GET /v1/me, GET /v1/financial-setup")
 	} else {
 		slog.Info("developer-key auth disabled", "reason", reason)
 	}

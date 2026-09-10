@@ -6,7 +6,27 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
+
+// This resource names the Business's own wallet and account ids, which is right
+// for its dashboard session and wrong for a Project key: behind a Project the
+// owner is the operator's. A key is sent to the Project-scoped resource.
+func TestIntegration_AProjectKeyIsSentToFinancialSetup(t *testing.T) {
+	h := NewBusinessMeHandler(&service.BusinessSelfService{})
+	req := httptest.NewRequest(http.MethodGet, "/v1/integration", nil)
+	req = req.WithContext(middleware.ContextWithDeveloperPrincipal(req.Context(), devPrincipal("doa-sandbox")))
+	w := httptest.NewRecorder()
+	h.Me(w, req)
+	if w.Code != http.StatusForbidden || !strings.Contains(w.Body.String(), "USE_FINANCIAL_SETUP") {
+		t.Fatalf("want 403 USE_FINANCIAL_SETUP, got %d %s", w.Code, w.Body.String())
+	}
+	if strings.Contains(w.Body.String(), "merchant-internal-uuid") {
+		t.Fatal("the refusal leaked the binding's owner")
+	}
+}
 
 func TestBusinessMe_Unavailable503WhenUnconfigured(t *testing.T) {
 	h := NewBusinessMeHandler(nil)

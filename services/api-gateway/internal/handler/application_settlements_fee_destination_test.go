@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -140,48 +139,68 @@ func TestApplicationSettlement_CoreServerErrorStaysBadGateway(t *testing.T) {
 
 // The rate belongs to the operator, not to the caller.
 //
-// core treats a non-zero application_fee_bps as the APP-DEFINED path and does
-// not consult the Pricing Engine at all. The handler forwarded the caller's
-// number while its own comment claimed the field was ignored, so every existing
-// integration — all of which still send it, because the old contract asked them
-// to — was choosing its own rate up to the 50% domain maximum, and the pricing
-// profile the handler resolves was dead code for exactly those requests.
-func TestApplicationSettlement_CallerSuppliedRateNeverReachesPricing(t *testing.T) {
-	for _, bps := range []int{500, 4999, 1} {
+// core treated a non-zero application_fee_bps as ADR-029's app-defined path and
+// did not consult pricing at all, so a caller could set its own rate. The field
+// is gone from the contract, and a request that still carries it — or any other
+// way of choosing a tariff — is refused out loud. Silently ignoring it would
+// leave an integration believing it set a price it did not.
+func TestApplicationSettlement_CallerPricingFieldsAreRefused(t *testing.T) {
+	for _, field := range []string{
+		`"application_fee_bps":500`, `"applicationFeeBps":500`, `"fee_bps":1`, `"rate_bps":0`,
+		`"pricing_profile":"sandbox-default"`, `"business_category":"DONATION"`,
+		`"fee_policy_ref":"cheap"`, `"application_fee_minor":1`, `"fee_minor":0`,
+	} {
 		fs := &fakeSettlements{}
 		h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"},
 			&fakeWalletAccounts{balance: 100000}, &fakeParties{}, pricedFake())
-		body := `{"idempotency_key":"idem-bps","source_account_id":"acct-campaign",
+		body := `{"idempotency_key":"idem-p","source_account_id":"acct-campaign",
 		          "beneficiary_banza_name":"maria","fee_destination_banza_name":"doa",
-		          "application_fee_bps":` + strconv.Itoa(bps) + `,"reference_id":"ref-bps"}`
+		          ` + field + `,"reference_id":"ref-p"}`
 		rec := postBusiness(h, "doa-merchant", body)
-		if rec.Code != http.StatusCreated {
-			t.Fatalf("bps=%d: want 201, got %d (%s)", bps, rec.Code, rec.Body.String())
+		if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "PRICING_FIELD_NOT_ACCEPTED") {
+			t.Fatalf("%s: want 400 PRICING_FIELD_NOT_ACCEPTED, got %d (%s)", field, rec.Code, rec.Body.String())
 		}
-		if fs.lastInput.ApplicationFeeBps != 0 {
-			t.Fatalf("bps=%d reached core as %d — the caller set the operator's rate",
-				bps, fs.lastInput.ApplicationFeeBps)
-		}
-		// The operator's own policy must still be the thing that prices it.
-		if fs.lastInput.PricingProfile == "" {
-			t.Fatalf("bps=%d: the merchant's pricing profile was not applied", bps)
+		if fs.created != 0 {
+			t.Fatalf("%s: a request that tried to choose its price reached core", field)
 		}
 	}
 }
 
-// Sending the retired field must not become an error. An integration written
-// against the old contract keeps working; it simply no longer decides the price.
-func TestApplicationSettlement_RetiredRateFieldIsAcceptedNotRefused(t *testing.T) {
+// Without any pricing field the same request settles, priced by the operator.
+func TestApplicationSettlement_ARequestWithoutPricingSettlesAtTheProfileRate(t *testing.T) {
 	fs := &fakeSettlements{}
 	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"},
 		&fakeWalletAccounts{balance: 100000}, &fakeParties{}, pricedFake())
-	body := `{"idempotency_key":"idem-legacy","source_account_id":"acct-campaign",
-	          "beneficiary_banza_name":"maria","fee_destination_banza_name":"doa",
-	          "application_fee_bps":500,"reference_id":"ref-legacy"}`
+	body := `{"idempotency_key":"idem-ok","source_account_id":"acct-campaign",
+	          "beneficiary_banza_name":"maria","fee_destination_banza_name":"doa","reference_id":"ref-ok"}`
 	if rec := postBusiness(h, "doa-merchant", body); rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
 	}
+	if fs.lastInput.PricingProfile == "" {
+		t.Fatal("the merchant's assigned pricing profile must be what prices this")
+	}
 	if fs.lastInput.ApplicationFeeAccountID != "acct-doa" {
 		t.Fatal("the named fee destination must still be resolved")
+	}
+}
+
+// A resolver that cannot answer is an outage. Reporting it as an unknown @banza
+// sends an integrator to check a handle that is fine, and settles nothing.
+func TestApplicationSettlement_AResolverOutageIsNotAnUnknownHandle(t *testing.T) {
+	down := &fakeParties{err: &service.TransportError{Err: errors.New("connection refused")}}
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"},
+		&fakeWalletAccounts{balance: 100000}, down, pricedFake())
+	body := `{"idempotency_key":"idem-o","source_account_id":"acct-campaign",
+	          "beneficiary_banza_name":"maria","fee_destination_banza_name":"doa","reference_id":"ref-o"}`
+	rec := postBusiness(h, "doa-merchant", body)
+	if rec.Code != http.StatusServiceUnavailable || strings.Contains(rec.Body.String(), "NOT_FOUND") {
+		t.Fatalf("want 503 without NOT_FOUND, got %d %s", rec.Code, rec.Body.String())
+	}
+
+	missing := &fakeParties{err: service.ErrNotFound}
+	h = NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"},
+		&fakeWalletAccounts{balance: 100000}, missing, pricedFake())
+	if rec := postBusiness(h, "doa-merchant", body); rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("an unknown @banza stays 422, got %d %s", rec.Code, rec.Body.String())
 	}
 }

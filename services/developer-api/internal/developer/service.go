@@ -1062,13 +1062,21 @@ func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action
 // exposed on the public /v1/me contract; ProjectSlug is the project-safe public
 // identifier.
 type KeyIntrospection struct {
-	KeyID       string   `json:"key_id"`
-	Environment string   `json:"environment"`
-	WorkspaceID string   `json:"workspace_id"`
-	ProjectID   string   `json:"project_id"`
-	ProjectSlug string   `json:"project_slug"`
+	KeyID       string `json:"key_id"`
+	Environment string `json:"environment"`
+	WorkspaceID string `json:"workspace_id"`
+	ProjectID   string `json:"project_id"`
+	ProjectSlug string `json:"project_slug"`
+	// ProjectName is the display name — what the Console shows. With the id and
+	// the slug it is the public Project identity /v1/me reports.
+	ProjectName string   `json:"project_name"`
 	KeyStatus   string   `json:"key_status"`
 	Scopes      []string `json:"scopes"`
+
+	// Sealed mirrors the binding's ADR-055 seal: a payer-facing artifact has been
+	// issued against the destination, so it can no longer change. Reported so a
+	// Project key can see the state of its own Financial Setup.
+	Sealed bool `json:"sealed"`
 
 	// Binding (ADR-047) — the operator-provisioned SANDBOX payee for this key's
 	// Project, or nil when the Project is not yet bound. These are OPAQUE core
@@ -1100,6 +1108,7 @@ func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrosp
 		WorkspaceID: proj.WorkspaceID,
 		ProjectID:   auth.ProjectID,
 		ProjectSlug: proj.Slug,
+		ProjectName: proj.Name,
 		KeyStatus:   "active", // AuthorizeKey already required status == ACTIVE
 		Scopes:      auth.Scopes,
 	}
@@ -1112,6 +1121,7 @@ func (s *Service) IntrospectKey(ctx context.Context, rawKey string) (*KeyIntrosp
 		out.MerchantID = b.MerchantID
 		out.WalletID = b.WalletID
 		out.WalletAccountID = b.WalletAccountID
+		out.Sealed = b.ArtifactCreated
 	}
 	return out, nil
 }

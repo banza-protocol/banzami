@@ -169,19 +169,15 @@ func TestApplicationSettlement_FromForeignCampaignAccount(t *testing.T) {
 // ADR-029 — business settlement (/v1/application-settlements)
 // ---------------------------------------------------------------------------
 
-// Still carries application_fee_bps, because every deployed integration does and
-// the handler must keep accepting it. It no longer decides anything.
-const doaBody = `{"idempotency_key":"doa-c1","source_account_id":"wa-camp","beneficiary_banza_name":"@maria","fee_destination_banza_name":"@doa","application_fee_bps":500,"reason":"CAMPAIGN_CLOSE","reference_type":"DOA_CAMPAIGN","reference_id":"campaign_123"}`
+// Names the settlement and where a fee would go — never what the fee is.
+const doaBody = `{"idempotency_key":"doa-c1","source_account_id":"wa-camp","beneficiary_banza_name":"@maria","fee_destination_banza_name":"@doa","reason":"CAMPAIGN_CLOSE","reference_type":"DOA_CAMPAIGN","reference_id":"campaign_123"}`
 
 // Happy path on an owned CAMPAIGN account → create + complete, with the resolved
 // beneficiary/fee accounts, the real balance as the gross, and the merchant's
 // own pricing profile.
 //
-// This test used to assert the opposite of its last check: that a caller's 500
-// bps "must reach core". It did reach core, and core treats a non-zero
-// application_fee_bps as the APP-DEFINED path — the Pricing Engine is not
-// consulted at all. So the assertion was pinning a hole: the caller was setting
-// the price of the service it was buying, up to the 50% domain maximum.
+// The request carries no rate: the fee is whatever the operator's pricing
+// profile for this business resolves, decided by core.
 func TestBusinessSettlement_OperatorPricedFee(t *testing.T) {
 	fs := &fakeSettlements{}
 	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, pricedFake())
@@ -191,9 +187,6 @@ func TestBusinessSettlement_OperatorPricedFee(t *testing.T) {
 	}
 	if fs.created != 1 || fs.completed != 1 {
 		t.Fatalf("want create+complete, got created=%d completed=%d", fs.created, fs.completed)
-	}
-	if fs.lastInput.ApplicationFeeBps != 0 {
-		t.Fatalf("the caller's rate must not reach core, got %d", fs.lastInput.ApplicationFeeBps)
 	}
 	if fs.lastInput.PricingProfile == "" {
 		t.Fatal("the operator's assigned pricing profile must be what prices this")
@@ -215,13 +208,20 @@ func TestBusinessSettlement_RejectsPrimarySource(t *testing.T) {
 	}
 }
 
-// A fee > 0 with no fee destination is a bad request.
-func TestBusinessSettlement_FeeWithoutDestination(t *testing.T) {
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, pricedFake())
+// Whether a fee applies — and so whether a destination is required — is the
+// operator's pricing decision, made in core after it prices the settlement. The
+// handler forwards a request that names none, and core's refusal
+// (FEE_DESTINATION_REQUIRED) is passed through as the 4xx it is.
+func TestBusinessSettlement_NoDestinationIsCoresDecision(t *testing.T) {
+	fs := &fakeSettlements{}
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, pricedFake())
 	rec := postBusiness(h, "doa-merchant",
-		`{"idempotency_key":"k","source_account_id":"wa","beneficiary_banza_name":"@maria","application_fee_bps":500}`)
-	if rec.Code != http.StatusBadRequest {
-		t.Fatalf("fee without destination must be 400, got %d", rec.Code)
+		`{"idempotency_key":"k","source_account_id":"wa","beneficiary_banza_name":"@maria"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("a zero-fee settlement needs no destination: got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if fs.lastInput.ApplicationFeeAccountID != "" {
+		t.Fatalf("nothing was named, nothing may be resolved: %q", fs.lastInput.ApplicationFeeAccountID)
 	}
 }
 

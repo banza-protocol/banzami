@@ -30,28 +30,18 @@ func NewBusinessMeHandler(svc *service.BusinessSelfService) *BusinessMeHandler {
 
 // resolveSelfAuthority answers "which Business account is asking about itself?".
 //
-// This route exists for an integrating application's Integration Health view —
-// DOA is the named example in the comment above — and for most of its life a
-// Developer Platform key could not reach it: it read only the merchant JWT, so
-// the application it was built for got 401. The account is still never taken
-// from the request; a project key's comes from its binding, a merchant JWT
-// names itself.
+// Only a merchant session. This resource names the account's wallet and account
+// ids — the Business's own, and fine for its own dashboard session — which a
+// Project key must never learn: behind a Project the financial owner is the
+// operator's. A Project asks the Project-scoped readiness resource,
+// GET /v1/financial-setup, which reports the same state without naming any of
+// it. A key that reaches here is told where to go rather than answered
+// partially.
 func (h *BusinessMeHandler) resolveSelfAuthority(w http.ResponseWriter, r *http.Request) (string, string, bool) {
-	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
-		if !dp.HasScope("identity:read") {
-			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE",
-				"missing required scope: identity:read")
-			return "", "", false
-		}
-		// Without a binding there is no Business account to describe. Answered as
-		// a provisioning state rather than a 404, which would suggest the account
-		// is missing rather than unlinked.
-		if !dp.Bound || dp.MerchantID == "" {
-			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE",
-				"this project is not provisioned to hold funds")
-			return "", "", false
-		}
-		return dp.MerchantID, dp.Environment, true
+	if _, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		apierror.Respond(w, r, http.StatusForbidden, "USE_FINANCIAL_SETUP",
+			"a Project key reads its readiness from GET /v1/financial-setup")
+		return "", "", false
 	}
 	principal, ok := middleware.GetPrincipal(r.Context())
 	if !ok || principal.MerchantID == "" {
@@ -179,20 +169,6 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		body["fee_destination"] = res.FeeDestination
 	}
 
-	// Which Project this readiness describes.
-	//
-	// The resource answers "can my integration settle, and what is missing" and
-	// said nothing about what "my" referred to. A caller holding one key knows
-	// implicitly; a caller holding several, or storing the answer beside its own
-	// records, had nothing stable to file it under. Present only for a project
-	// credential: a merchant JWT is not a Project and inventing an id for it
-	// would make one up.
-	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
-		body["project"] = map[string]any{
-			"id":   PublicProjectID(dp.ProjectID),
-			"slug": dp.ProjectSlug,
-		}
-	}
 	writeJSON(w, http.StatusOK, body)
 }
 

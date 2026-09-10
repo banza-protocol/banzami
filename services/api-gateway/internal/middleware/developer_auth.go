@@ -31,8 +31,11 @@ type DeveloperPrincipal struct {
 	WorkspaceID string
 	ProjectID   string
 	ProjectSlug string
+	ProjectName string
 	KeyStatus   string
 	Scopes      []string
+	// Sealed: the binding's destination is locked (ADR-055).
+	Sealed bool
 
 	// Binding (ADR-047) — the Project's resolved SANDBOX payee, INTERNAL only.
 	// Bound=false ⇒ no payment authority even if the key holds payment scopes.
@@ -117,8 +120,9 @@ func resolveDeveloperPrincipal(w http.ResponseWriter, r *http.Request, client de
 	p := &DeveloperPrincipal{
 		KeyID: kc.KeyID, Environment: kc.Environment,
 		WorkspaceID: kc.WorkspaceID, ProjectID: kc.ProjectID,
-		ProjectSlug: kc.ProjectSlug, KeyStatus: kc.KeyStatus, Scopes: kc.Scopes,
-		Bound: kc.Bound, MerchantID: kc.MerchantID,
+		ProjectSlug: kc.ProjectSlug, ProjectName: kc.ProjectName,
+		KeyStatus: kc.KeyStatus, Scopes: kc.Scopes,
+		Bound: kc.Bound, Sealed: kc.Sealed, MerchantID: kc.MerchantID,
 		WalletID: kc.WalletID, WalletAccountID: kc.WalletAccountID,
 	}
 	// Attribute the request log HERE, at the one point a developer key is ever

@@ -22,7 +22,9 @@ type DeveloperKeyContext struct {
 	WorkspaceID string   `json:"workspace_id"` // internal: tenant enforcement only, never exposed
 	ProjectID   string   `json:"project_id"`   // internal: tenant enforcement only, never exposed
 	ProjectSlug string   `json:"project_slug"` // project-safe public identifier
+	ProjectName string   `json:"project_name"` // display name
 	KeyStatus   string   `json:"key_status"`
+	Sealed      bool     `json:"sealed"` // ADR-055: the binding's destination is locked
 	Scopes      []string `json:"scopes"`
 
 	// Binding (ADR-047) — the Project's resolved SANDBOX payee. Bound=false means

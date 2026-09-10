@@ -15,16 +15,28 @@ type ApplicationSettlement struct {
 	// settlement — the authorisation binding used to scope reads (SEC-002).
 	// It is gateway-internal: `json:"-"` keeps it out of the app-facing payload,
 	// which stays amounts + status only.
-	ApplicationID       string     `json:"-"`
-	Status              string     `json:"status"`
-	GrossAmountMinor    int64      `json:"gross_amount_minor"`
-	ApplicationFeeMinor int64      `json:"application_fee_minor"`
-	NetAmountMinor      int64      `json:"net_amount_minor"`
-	Currency            string     `json:"currency"`
-	Environment         string     `json:"environment"`
-	CreatedAt           time.Time  `json:"created_at"`
-	CompletedAt         *time.Time `json:"completed_at"`
-	FailureReason       *string    `json:"failure_reason"`
+	ApplicationID       string `json:"-"`
+	Status              string `json:"status"`
+	GrossAmountMinor    int64  `json:"gross_amount_minor"`
+	ApplicationFeeMinor int64  `json:"application_fee_minor"`
+	NetAmountMinor      int64  `json:"net_amount_minor"`
+	Currency            string `json:"currency"`
+	Environment         string `json:"environment"`
+	// Pricing is the operator's decision as it was applied to THIS settlement,
+	// read from the snapshot core stores with it. It is not re-derived from the
+	// pricing tables on read, so repricing a profile later cannot change what a
+	// completed settlement says it cost.
+	Pricing       *SettlementPricing `json:"pricing"`
+	CreatedAt     time.Time          `json:"created_at"`
+	CompletedAt   *time.Time         `json:"completed_at"`
+	FailureReason *string            `json:"failure_reason"`
+}
+
+// SettlementPricing is the applied pricing truth of one settlement.
+type SettlementPricing struct {
+	Profile    string `json:"profile"`
+	AppliedBps uint32 `json:"applied_bps"`
+	FlatMinor  int64  `json:"flat_minor"`
 }
 
 // CreateApplicationSettlementInput is what the gateway sends to core. The gateway
@@ -50,11 +62,10 @@ type CreateApplicationSettlementInput struct {
 	BeneficiaryAccountID    string
 	ApplicationFeeAccountID string
 	ApplicationFeeWalletID  string
-	// ApplicationFeeBps is the app-defined fee rate (ADR-029). When > 0 the
-	// operator computes the fee from it and ignores any pricing reference.
-	ApplicationFeeBps int
-	GrossAmountMinor  int64
-	Currency          string
+	// There is no rate field. One used to exist (ADR-029 "app-defined"), and a
+	// non-zero value made core skip pricing and charge what the caller asked.
+	GrossAmountMinor int64
+	Currency         string
 	// The merchant's assigned operator policy, resolved server-side. As on
 	// transactions, fee_policy_ref and business_category are gone rather than
 	// merely unused: a field that still exists is a field something can start
@@ -82,15 +93,29 @@ type coreSettlementResp struct {
 	CreatedAt      time.Time     `json:"created_at"`
 	CompletedAt    *time.Time    `json:"completed_at"`
 	FailureReason  *string       `json:"failure_reason"`
+	// The snapshot core wrote when it priced the settlement.
+	PricingSnapshot *struct {
+		PricingProfile *string `json:"pricing_profile"`
+		RateBps        uint32  `json:"rate_bps"`
+		FlatMinor      int64   `json:"flat_minor"`
+	} `json:"pricing_snapshot_json"`
 }
 
 func (r *coreSettlementResp) toSafe() *ApplicationSettlement {
-	return &ApplicationSettlement{
+	out := &ApplicationSettlement{
 		ID: r.ID, OwnerRef: r.OwnerRef, ApplicationID: r.ApplicationID, Status: r.Status,
 		GrossAmountMinor: r.GrossAmount.AmountMinor, ApplicationFeeMinor: r.ApplicationFee.AmountMinor,
 		NetAmountMinor: r.NetAmount.AmountMinor, Currency: r.Currency, Environment: r.Environment,
 		CreatedAt: r.CreatedAt, CompletedAt: r.CompletedAt, FailureReason: r.FailureReason,
 	}
+	if ps := r.PricingSnapshot; ps != nil {
+		p := &SettlementPricing{AppliedBps: ps.RateBps, FlatMinor: ps.FlatMinor}
+		if ps.PricingProfile != nil {
+			p.Profile = *ps.PricingProfile
+		}
+		out.Pricing = p
+	}
+	return out
 }
 
 type CoreApiApplicationSettlementService struct{ client *CoreApiClient }
@@ -128,10 +153,6 @@ func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in Cre
 		body["application_fee_account_id"] = in.ApplicationFeeAccountID
 	} else if in.ApplicationFeeWalletID != "" {
 		body["application_fee_wallet_id"] = in.ApplicationFeeWalletID
-	}
-	// ADR-029: app-defined fee rate. When set, core ignores pricing references.
-	if in.ApplicationFeeBps > 0 {
-		body["application_fee_bps"] = in.ApplicationFeeBps
 	}
 	if in.PricingProfile != "" {
 		body["pricing_profile"] = in.PricingProfile

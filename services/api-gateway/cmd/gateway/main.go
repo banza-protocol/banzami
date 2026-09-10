@@ -245,6 +245,7 @@ func main() {
 		PlatformSvc:              platformSvc,
 		ProofSvc:                 proofSvc,
 		BusinessSelfSvc:          businessSelfSvc,
+		SettlementReadinessSvc:   service.NewCoreApiSettlementReadinessService(coreClient),
 		RequestLogSink:           reqLogSink(reqLogRecorder),
 		BindingSeal:              bindingSeal,
 		ProofHashSalt:            proofHashSalt(),
