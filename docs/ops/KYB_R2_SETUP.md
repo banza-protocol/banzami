@@ -114,6 +114,28 @@ KYB_STORAGE_BUCKET=banzami-kyb-sandbox
 Quando `KYB_STORAGE_*` está ausente, o gateway corre em modo
 `STORAGE_NOT_CONFIGURED` (estado atual) — sem upload, sem fake.
 
+### F.1 Sandbox implantado (stack `bzsandbox-…`)
+
+No Sandbox a configuração não-secreta (`KYB_STORAGE_PROVIDER=r2`,
+`KYB_STORAGE_BUCKET=banzami-kyb-sandbox`, `KYB_STORAGE_REGION=auto`) já é
+aplicada pelo próprio deploy (`release_config_env` em
+`infra/blueprint/sandbox-ops/scripts/sandbox-deploy.sh`). Faltam apenas três
+ficheiros no diretório de segredos do stack — o mesmo que já contém `db_url` e
+`jwt_secret`
+(`/opt/banzami-blueprint/tmp/banzami-blueprint-sandbox/root-<stack>/evidence/`):
+
+| Ficheiro | Conteúdo |
+|---|---|
+| `kyb_storage_endpoint` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` |
+| `kyb_storage_access_key_id` | Access Key ID do token R2 (secção D) |
+| `kyb_storage_secret_access_key` | Secret Access Key do token R2 |
+
+Um valor por ficheiro, sem newline final, escrito por quem detém a conta
+Cloudflare (nunca colado num chat, log ou commit). Depois:
+`./deploy.sh api-gateway-staging`. O deploy monta-os **só** no Gateway e
+exporta-os dentro do processo (nunca como `-e`); o arranque regista
+`[Track 3] KYB document storage configured`.
+
 ---
 
 ## G. Deploy (depois do env)

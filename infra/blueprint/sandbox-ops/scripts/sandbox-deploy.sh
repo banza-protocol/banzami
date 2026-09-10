@@ -387,6 +387,13 @@ release_config_env() {
       # payment link the API hands an integration points at the gateway's own
       # JSON route instead of a page a person can pay on.
       echo "PAY_BASE_URL=https://pay.banzami.com"
+      # KYB document storage (docs/ops/KYB_R2_SETUP.md): the Sandbox's private
+      # bucket. Not enough on its own — the endpoint and the access key arrive
+      # as secret files (see kyb_storage_* below). Until they exist the Gateway
+      # answers 503 STORAGE_NOT_CONFIGURED and never pretends an upload landed.
+      echo "KYB_STORAGE_PROVIDER=r2"
+      echo "KYB_STORAGE_BUCKET=banzami-kyb-sandbox"
+      echo "KYB_STORAGE_REGION=auto"
       ;;
     public-api-staging)
       # Where public-api asks the Gateway to mint a transaction proof.
@@ -601,6 +608,17 @@ cmd_deploy_one() {
     printf '%s\n' "${run[@]}" | grep -q '/run/secrets/bzm_proof_signing_key' \
       || run+=(-v "$sd/bzm_proof_signing_key:/run/secrets/bzm_proof_signing_key:ro")
   fi
+  # KYB document storage credentials. Nothing here mints them: they are an R2
+  # access key scoped to the KYB buckets, created in the operator's Cloudflare
+  # account (docs/ops/KYB_R2_SETUP.md) and placed in the secret dir by whoever
+  # holds that account. Mounted into the Gateway only — the one service that
+  # signs upload and review URLs — and only once they exist.
+  if [ "$name" = api-gateway-staging ] && [ -n "$sd" ] && [ -d "$sd" ]; then
+    local ks; for ks in kyb_storage_endpoint kyb_storage_access_key_id kyb_storage_secret_access_key; do
+      [ -s "$sd/$ks" ] || continue
+      printf '%s\n' "${run[@]}" | grep -q "/run/secrets/$ks" || run+=(-v "$sd/$ks:/run/secrets/$ks:ro")
+    done
+  fi
   # Clone the previous container's env EXCEPT anything the new image is the
   # authority on. BANZAMI_BUILD_COMMIT is baked into each image by the build
   # (ARG -> ENV); re-applying the previous container's value as an explicit -e
@@ -650,7 +668,7 @@ cmd_deploy_one() {
   # One value on both sides, named for what it authorises at each end: the
   # Gateway reads INTERNAL_API_KEY to decide whether to accept an internal call,
   # admin-api reads STAGING_INTERNAL_API_KEY to decide what to send.
-  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
+  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY kyb_storage_endpoint:KYB_STORAGE_ENDPOINT kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
   docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
   "${run[@]}" --entrypoint sh "$tag" -c "$ep" >/dev/null 2>&1 || { echo "  $name docker run FAIL"; return 1; }
   local i; for i in "${nets[@]:1}"; do docker network connect "$i" "$cname" >/dev/null 2>&1 || true; done
