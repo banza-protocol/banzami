@@ -160,8 +160,15 @@ async function journey(browser, { name, viewport, validations }) {
     docs = (await r.json().catch(() => ({}))).data ?? [];
   }
   const uploaded = docs.filter((d) => d.status === 'UPLOADED').map((d) => d.document_type).sort();
+  const storageOff = await page.getByText('O envio de documentos ainda não está disponível').count() > 0;
+  if (storageOff) {
+    // The Gateway has no KYB storage: the applicant must be told the documents
+    // were NOT sent — never shown a success for an upload that did not happen.
+    rec(`${name}: with no document storage, the applicant is told the documents were not sent`, uploaded.length === 0);
+  }
   rec(`${name}: the required documents arrived and passed the server's checks`,
-    uploaded.includes('BUSINESS_REGISTRATION') && uploaded.includes('REPRESENTATIVE_ID'), { note: uploaded.join(', ') });
+    uploaded.includes('BUSINESS_REGISTRATION') && uploaded.includes('REPRESENTATIVE_ID'),
+    { note: storageOff ? 'BLOCKED — Sandbox KYB storage not configured (503 STORAGE_NOT_CONFIGURED)' : uploaded.join(', ') });
   await context.close();
   return { application_id: ids[0], handle };
 }
