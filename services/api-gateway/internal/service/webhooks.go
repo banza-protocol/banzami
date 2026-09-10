@@ -95,16 +95,34 @@ var SupportedWebhookEvents = map[string]bool{
 // log-volume amplification. Comfortably above any real endpoint.
 const MaxWebhookURLLength = 2048
 
+// WebhookDelivery is one event's delivery to one endpoint. There is exactly one
+// per event per endpoint; retries are its Attempts, not further deliveries.
 type WebhookDelivery struct {
-	ID            string     `json:"id"`
-	EventID       string     `json:"event_id"`
-	EndpointID    string     `json:"endpoint_id"`
+	ID         string `json:"id"`
+	EventID    string `json:"event_id"`
+	EndpointID string `json:"endpoint_id"`
+	// AttemptNumber is how many attempts have been made so far.
 	AttemptNumber int        `json:"attempt_number"`
-	Status        string     `json:"status"` // "pending" | "success" | "failed"
+	Status        string     `json:"status"` // "PENDING" | "SUCCESS" | "FAILED"
 	StatusCode    int        `json:"status_code,omitempty"`
 	ResponseBody  string     `json:"response_body,omitempty"`
 	DeliveredAt   *time.Time `json:"delivered_at,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
+	// Attempts is every attempt, oldest first, as it happened (migration 0119).
+	// Attempts made before that history existed are counted in AttemptNumber
+	// but not listed.
+	Attempts []WebhookDeliveryAttempt `json:"attempts"`
+}
+
+// WebhookDeliveryAttempt is one attempt to deliver: what the receiver answered
+// (or why nothing did) and when.
+type WebhookDeliveryAttempt struct {
+	AttemptNumber int       `json:"attempt_number"`
+	Outcome       string    `json:"outcome"`     // "SUCCESS" | "FAILED"
+	StatusCode    *int      `json:"status_code"` // null when no HTTP response arrived
+	ErrorClass    *string   `json:"error_class"` // http_status | timeout | connection | tls | dns | other
+	DurationMs    *int      `json:"duration_ms,omitempty"`
+	AttemptedAt   time.Time `json:"attempted_at"`
 }
 
 // RegisterEndpointRequest carries validated inputs for endpoint registration.

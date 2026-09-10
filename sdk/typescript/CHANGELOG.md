@@ -24,6 +24,15 @@ is a state (`FINANCIAL_SETUP_NOT_CONFIGURED`), not an error. Pass
 `{ feeDestination: '@name' }` to evaluate another of your accounts as the fee
 destination. Needs the `identity:read` scope.
 
+### Changed — a webhook delivery lists every attempt
+
+`listWebhookDeliveries()` records now carry `attempts`: each attempt's number,
+outcome, your endpoint's HTTP status (or why no response arrived) and when it
+happened. Before, a delivery your endpoint refused twice and accepted on the
+third try read only as "SUCCESS, 3 attempts". `WebhookDeliveryRecord` now
+declares the fields the API actually returns — `attempt_number` and
+`status_code` — instead of `attempt` and `response_status`, which it never sent.
+
 ### Changed — `me()` names the Project as an object
 
 **Breaking.** `me().project` is `{ id, name, ref }` instead of the slug string,

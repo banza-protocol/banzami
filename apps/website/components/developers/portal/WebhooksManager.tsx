@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import {
   developerApi,
   type WebhookEndpoint,
   type WebhookEvent,
   type WebhookDelivery,
+  type WebhookDeliveryAttempt,
   type NewWebhookEndpoint,
 } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
@@ -38,6 +39,22 @@ function deliveryTone(status: string, code?: number | null): { kind: PillKind; l
   // PENDING covers "scheduled" and "retrying"; the attempt count beside it tells
   // the reader which, so the pill does not have to guess.
   return { kind: 'neutral', label: code ? `Pendente · ${code}` : 'Pendente' };
+}
+
+const ERROR_CLASS_LABEL: Record<string, string> = {
+  http_status: 'resposta HTTP',
+  timeout: 'sem resposta a tempo',
+  connection: 'ligação recusada',
+  tls: 'erro TLS',
+  dns: 'domínio não resolvido',
+  other: 'falha de rede',
+};
+
+/** What one attempt amounted to, in the receiver's own terms: its HTTP status,
+ *  or why there was none. */
+function attemptLabel(a: WebhookDeliveryAttempt): string {
+  if (a.status_code != null) return `HTTP ${a.status_code}`;
+  return ERROR_CLASS_LABEL[a.error_class ?? 'other'] ?? 'falha de rede';
 }
 
 function when(iso: string): string {
@@ -273,14 +290,36 @@ export function WebhooksManager() {
                               <tbody>
                                 {ds.map((d) => {
                                   const tone = deliveryTone(d.status, d.status_code);
+                                  const attempts = d.attempts ?? [];
                                   return (
-                                    <tr key={d.id}>
-                                      <td style={{ padding: '6px 0' }}><Pill kind={tone.kind}>{tone.label}</Pill></td>
-                                      <td style={{ padding: '6px 0', fontWeight: 800 }}>{d.attempt_count}</td>
-                                      <td style={{ padding: '6px 0', color: '#a89a9e', fontWeight: 700 }}>
-                                        {d.delivered_at ? when(d.delivered_at) : '—'}
-                                      </td>
-                                    </tr>
+                                    <Fragment key={d.id}>
+                                      <tr>
+                                        <td style={{ padding: '6px 0' }}><Pill kind={tone.kind}>{tone.label}</Pill></td>
+                                        <td style={{ padding: '6px 0', fontWeight: 800 }}>{d.attempt_count}</td>
+                                        <td style={{ padding: '6px 0', color: '#a89a9e', fontWeight: 700 }}>
+                                          {d.delivered_at ? when(d.delivered_at) : '—'}
+                                        </td>
+                                      </tr>
+                                      {attempts.length > 0 && (
+                                        <tr>
+                                          <td colSpan={3} style={{ padding: '2px 0 8px 0' }}>
+                                            <ol data-testid="webhook-attempts" style={{ margin: 0, paddingLeft: 18, color: '#6a5a5e', fontSize: 12 }}>
+                                              {attempts.map((a) => (
+                                                <li key={a.attempt_number} style={{ padding: '2px 0' }}>
+                                                  <span style={{ fontWeight: 800, color: a.outcome === 'SUCCESS' ? '#1f9d57' : '#B5101F' }}>
+                                                    {a.outcome === 'SUCCESS' ? 'Entregue' : 'Falhou'}
+                                                  </span>
+                                                  {' · '}
+                                                  {attemptLabel(a)}
+                                                  {' · '}
+                                                  <span style={{ fontFamily: mono }}>{when(a.attempted_at)}</span>
+                                                </li>
+                                              ))}
+                                            </ol>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </Fragment>
                                   );
                                 })}
                               </tbody>

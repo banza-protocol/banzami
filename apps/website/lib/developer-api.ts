@@ -281,6 +281,18 @@ export interface WebhookEvent {
   created_at: string;
 }
 
+/** One attempt to deliver a webhook, as it happened (migration 0119). */
+export interface WebhookDeliveryAttempt {
+  attempt_number: number;
+  outcome: 'SUCCESS' | 'FAILED';
+  /** null when no HTTP response arrived at all */
+  status_code: number | null;
+  /** why a failed attempt failed: http_status | timeout | connection | tls | dns | other */
+  error_class: string | null;
+  duration_ms?: number;
+  attempted_at: string;
+}
+
 export interface WebhookDelivery {
   id: string;
   event_id: string;
@@ -290,6 +302,9 @@ export interface WebhookDelivery {
   attempt_count: number;
   delivered_at?: string | null;
   created_at: string;
+  /** Every attempt, oldest first. Attempts made before the history existed are
+   *  counted in attempt_count but not listed. */
+  attempts?: WebhookDeliveryAttempt[];
 }
 
 /** One Developer API request as the operator recorded it (migration 0104).

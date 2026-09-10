@@ -711,14 +711,36 @@ export interface CreateWebhookEndpointParams {
   events: string[];
 }
 
+/** One attempt to deliver a webhook, as it happened. */
+export interface WebhookDeliveryAttempt {
+  attempt_number: number;
+  outcome: 'SUCCESS' | 'FAILED';
+  /** Your endpoint's HTTP status; `null` when no response arrived at all. */
+  status_code: number | null;
+  /** Why a failed attempt failed: `http_status`, `timeout`, `connection`,
+   *  `tls`, `dns` or `other`. `null` on success. */
+  error_class: string | null;
+  duration_ms?: number;
+  attempted_at: string;
+}
+
+/** One event's delivery to one endpoint. There is exactly one per event per
+ *  endpoint; retries are its `attempts`, not further deliveries. */
 export interface WebhookDeliveryRecord {
   id: string;
   event_id: string;
   endpoint_id: string;
+  /** `PENDING`, `SUCCESS` or `FAILED`. */
   status: string;
-  attempt?: number;
-  response_status?: number | null;
+  /** Attempts made so far. */
+  attempt_number: number;
+  /** The last attempt's HTTP status, when there was one. */
+  status_code?: number;
+  delivered_at?: string;
   created_at: string;
+  /** Every attempt, oldest first. Attempts made before this history existed
+   *  are counted in `attempt_number` but not listed. */
+  attempts: WebhookDeliveryAttempt[];
   [k: string]: unknown;
 }
 

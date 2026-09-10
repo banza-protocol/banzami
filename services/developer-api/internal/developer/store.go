@@ -508,6 +508,20 @@ type WebhookDeliveryView struct {
 	AttemptCount int        `json:"attempt_count"`
 	DeliveredAt  *time.Time `json:"delivered_at,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
+	// Attempts is every attempt, oldest first (migration 0119). Attempts made
+	// before that history existed are counted in AttemptCount, not listed.
+	Attempts []WebhookAttemptView `json:"attempts"`
+}
+
+// WebhookAttemptView is one delivery attempt: what the receiver answered, or
+// why nothing did, and when. No payload, signature, headers or raw error.
+type WebhookAttemptView struct {
+	AttemptNumber int       `json:"attempt_number"`
+	Outcome       string    `json:"outcome"`
+	StatusCode    *int      `json:"status_code"`
+	ErrorClass    *string   `json:"error_class"`
+	DurationMs    *int      `json:"duration_ms,omitempty"`
+	AttemptedAt   time.Time `json:"attempted_at"`
 }
 
 type Project struct {

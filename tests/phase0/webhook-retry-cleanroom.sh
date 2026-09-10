@@ -109,21 +109,27 @@ chk EVENTS_LISTED "$CODE" 200
 chk EVENTS_NAME_NO_OWNER "$(printf '%s' "$LAST" | grep -c '"merchant_id"')" 0
 EVENTS="$LAST"
 best=""; bestn=0; DELIVS=""
+# One delivery per event per endpoint; its retries are that delivery's
+# attempts (migration 0119). The retried event is the one with most attempts.
 for id in $(printf '%s' "$EVENTS" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const e of (JSON.parse(s).data||[]))console.log(e.id)})'); do
   pub GET "/v1/webhooks/events/$id/deliveries" - "$KEY"
-  n=$(jp '(j.data||[]).length')
+  n=$(jp '(j.data||[]).reduce((m,d)=>Math.max(m,(d.attempts||[]).length),0)')
   if [ "${n:-0}" -gt "$bestn" ]; then bestn=$n; best=$id; DELIVS="$LAST"; fi
 done
 LAST="$DELIVS"
+A='((j.data||[]).find(d=>(d.attempts||[]).length)||{attempts:[]})'
 chk RETRIED_EVENT_HAS_AT_LEAST_THREE_ATTEMPTS "$([ "$bestn" -ge 3 ] && echo yes)" yes
+chk ONE_DELIVERY_FOR_THE_RETRIED_EVENT "$(jp '(j.data||[]).length')" 1
 chk ONE_EVENT_ID_ACROSS_ATTEMPTS "$(jp 'new Set((j.data||[]).map(d=>d.event_id)).size')" 1
 chk ONE_ENDPOINT_ACROSS_ATTEMPTS "$(jp '[...new Set((j.data||[]).map(d=>d.endpoint_id))].join()')" "$EP"
-chk ATTEMPT_NUMBERS_ASCEND "$(jp 'const a=(j.data||[]).map(d=>d.attempt_number).sort((x,y)=>x-y); String(a.every((v,i)=>v===i+1))')" true
-chk REFUSED_ATTEMPTS_RECORD_THE_HTTP_RESULT "$(jp '(j.data||[]).slice().sort((x,y)=>x.attempt_number-y.attempt_number).slice(0,2).map(d=>d.status+":"+d.status_code).join(",")')" "failed:500,failed:500"
-chk FINAL_ATTEMPT_DELIVERED "$(jp 'const d=(j.data||[]).slice().sort((x,y)=>y.attempt_number-x.attempt_number)[0]; d.status+":"+d.status_code+":"+Boolean(d.delivered_at)')" "success:200:true"
-chk EVERY_ATTEMPT_TIMESTAMPED "$(jp 'String((j.data||[]).every(d=>d.created_at))')" true
+chk ATTEMPT_NUMBERS_ASCEND "$(jp "const a=$A.attempts.map(x=>x.attempt_number); String(a.every((v,i)=>v===i+1))")" true
+chk DELIVERY_COUNTS_EVERY_ATTEMPT "$(jp "String($A.attempt_number===$A.attempts.length)")" true
+chk REFUSED_ATTEMPTS_RECORD_THE_HTTP_RESULT "$(jp "$A.attempts.slice(0,2).map(x=>x.outcome+':'+x.status_code+':'+x.error_class).join(',')")" "FAILED:500:http_status,FAILED:500:http_status"
+chk FINAL_ATTEMPT_DELIVERED "$(jp "const d=$A, x=d.attempts[d.attempts.length-1]||{}; x.outcome+':'+x.status_code+':'+d.status+':'+Boolean(d.delivered_at)")" "SUCCESS:200:SUCCESS:true"
+chk EVERY_ATTEMPT_TIMESTAMPED "$(jp "String($A.attempts.length>0 && $A.attempts.every(x=>x.attempted_at))")" true
+chk ATTEMPTS_CARRY_NO_PAYLOAD_OR_SECRET "$(jp "String($A.attempts.every(x=>Object.keys(x).every(k=>['attempt_number','outcome','status_code','error_class','duration_ms','attempted_at'].includes(k))))")" true
 echo "  event=$best attempts=$bestn"
-echo "  $(jp '(j.data||[]).slice().sort((x,y)=>x.attempt_number-y.attempt_number).map(d=>`#${d.attempt_number} ${d.status} ${d.status_code||"-"} ${d.created_at}`).join(" | ")')"
+echo "  $(jp "$A.attempts.map(x=>'#'+x.attempt_number+' '+x.outcome+' '+(x.status_code??x.error_class)+' '+x.attempted_at).join(' | ')")"
 
 echo
 echo "WEBHOOK_RETRY_CLEANROOM: PASS=$PASS FAIL=$FAIL  report=$REPORT"

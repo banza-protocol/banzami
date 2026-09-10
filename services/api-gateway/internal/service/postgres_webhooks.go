@@ -3,10 +3,13 @@ package service
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 
@@ -392,9 +395,43 @@ func (s *PostgresWebhookService) ListDeliveries(
 		); err != nil {
 			return nil, fmt.Errorf("scan webhook delivery: %w", err)
 		}
+		d.Attempts = []WebhookDeliveryAttempt{}
 		out = append(out, &d)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	if len(out) == 0 {
+		return out, nil
+	}
+	byID := make(map[string]*WebhookDelivery, len(out))
+	ids := make([]string, 0, len(out))
+	for _, d := range out {
+		byID[d.ID] = d
+		ids = append(ids, d.ID)
+	}
+	arows, err := s.pool.Query(ctx,
+		`SELECT delivery_id, attempt_number, outcome, status_code, error_class, duration_ms, attempted_at
+		   FROM webhook_delivery_attempts
+		  WHERE delivery_id = ANY($1::uuid[])
+		  ORDER BY delivery_id, attempt_number`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("list webhook delivery attempts: %w", err)
+	}
+	defer arows.Close()
+	for arows.Next() {
+		var deliveryID string
+		var a WebhookDeliveryAttempt
+		if err := arows.Scan(&deliveryID, &a.AttemptNumber, &a.Outcome, &a.StatusCode, &a.ErrorClass,
+			&a.DurationMs, &a.AttemptedAt); err != nil {
+			return nil, fmt.Errorf("scan webhook delivery attempt: %w", err)
+		}
+		if d := byID[deliveryID]; d != nil {
+			d.Attempts = append(d.Attempts, a)
+		}
+	}
+	return out, arows.Err()
 }
 
 // ---------------------------------------------------------------------------
@@ -625,74 +662,140 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 		secret = d.secret
 	}
 	statusCode, respBody, deliveryErr := s.httpPost(d.url, secret, now, d.payload)
+	durationMs := int(time.Since(now).Milliseconds())
 
-	if deliveryErr == nil && statusCode < 400 {
-		// Success — mark terminal.
-		_, err := s.pool.Exec(ctx,
-			`UPDATE webhook_deliveries
-			 SET status       = 'SUCCESS',
-			     attempt_count = $2,
-			     status_code  = $3,
-			     response_body = $4,
-			     delivered_at = $5
-			 WHERE id = $1`,
-			d.id, attempt, statusCode, respBody, now,
-		)
-		if err != nil {
-			slog.Error("webhook worker: success update failed", "delivery_id", d.id, "error", err)
+	outcome := classifyAttempt(statusCode, deliveryErr)
+
+	// The attempt is appended in the same transaction that advances the
+	// delivery, so the history cannot claim an attempt the delivery does not
+	// count. The reverse is allowed on purpose: if the attempt row cannot be
+	// written (the table not there yet mid-rollout), the delivery still
+	// advances. Holding it back would leave it PENDING and due, and the next
+	// tick would send the same webhook again — a storm at the receiver to save
+	// a history row.
+	var update string
+	var args []any
+	var logf func()
+	switch {
+	case outcome.succeeded:
+		update = `UPDATE webhook_deliveries
+		             SET status = 'SUCCESS', attempt_count = $2, status_code = $3,
+		                 response_body = $4, delivered_at = $5
+		           WHERE id = $1`
+		args = []any{d.id, attempt, statusCode, respBody, now}
+		logf = func() { slog.Info("webhook delivered", "delivery_id", d.id, "url", d.url, "attempt", attempt) }
+	case attempt >= d.maxAttempts:
+		update = `UPDATE webhook_deliveries
+		             SET status = 'FAILED', attempt_count = $2, status_code = $3,
+		                 response_body = $4, last_error = $5
+		           WHERE id = $1`
+		args = []any{d.id, attempt, statusCode, respBody, errText(deliveryErr)}
+		logf = func() {
+			slog.Warn("webhook permanently failed", "delivery_id", d.id, "url", d.url, "attempts", attempt)
 		}
-		slog.Info("webhook delivered", "delivery_id", d.id, "url", d.url, "attempt", attempt)
+	default:
+		// Schedule next retry with exponential backoff.
+		backoffIdx := attempt - 1
+		if backoffIdx >= len(backoffSchedule) {
+			backoffIdx = len(backoffSchedule) - 1
+		}
+		nextAt := now.Add(backoffSchedule[backoffIdx])
+		update = `UPDATE webhook_deliveries
+		             SET attempt_count = $2, status_code = $3, response_body = $4,
+		                 last_error = $5, scheduled_at = $6
+		           WHERE id = $1`
+		args = []any{d.id, attempt, statusCode, respBody, errText(deliveryErr), nextAt}
+		logf = func() {
+			slog.Warn("webhook delivery failed, will retry",
+				"delivery_id", d.id, "url", d.url, "attempt", attempt, "next_at", nextAt)
+		}
+	}
+	if err := s.recordAttempt(ctx, d.id, attempt, outcome, statusCode, durationMs, now, update, args); err != nil {
+		slog.Error("webhook worker: recording the attempt failed", "delivery_id", d.id, "attempt", attempt, "error", err)
 		return
 	}
+	logf()
+}
 
-	// Failure — schedule retry or mark permanently failed.
-	errMsg := ""
-	if deliveryErr != nil {
-		errMsg = deliveryErr.Error()
+// attemptOutcome is what one attempt amounted to, in the closed vocabulary of
+// webhook_delivery_attempts (migration 0119).
+type attemptOutcome struct {
+	succeeded  bool
+	errorClass string // "" on success
+}
+
+// classifyAttempt names why an attempt failed without keeping the raw error
+// text, which can quote resolved addresses.
+func classifyAttempt(statusCode int, err error) attemptOutcome {
+	if err == nil && statusCode > 0 && statusCode < 400 {
+		return attemptOutcome{succeeded: true}
 	}
-
-	if attempt >= d.maxAttempts {
-		_, err := s.pool.Exec(ctx,
-			`UPDATE webhook_deliveries
-			 SET status        = 'FAILED',
-			     attempt_count = $2,
-			     status_code   = $3,
-			     response_body = $4,
-			     last_error    = $5
-			 WHERE id = $1`,
-			d.id, attempt, statusCode, respBody, errMsg,
-		)
-		if err != nil {
-			slog.Error("webhook worker: fail update failed", "delivery_id", d.id, "error", err)
-		}
-		slog.Warn("webhook permanently failed", "delivery_id", d.id, "url", d.url, "attempts", attempt)
-		return
+	if err == nil {
+		return attemptOutcome{errorClass: "http_status"}
 	}
-
-	// Schedule next retry with exponential backoff.
-	backoffIdx := attempt - 1
-	if backoffIdx >= len(backoffSchedule) {
-		backoffIdx = len(backoffSchedule) - 1
+	var netErr net.Error
+	var dnsErr *net.DNSError
+	var tlsErr *tls.CertificateVerificationError
+	var recordErr tls.RecordHeaderError
+	switch {
+	case errors.As(err, &dnsErr):
+		return attemptOutcome{errorClass: "dns"}
+	case errors.As(err, &tlsErr), errors.As(err, &recordErr):
+		return attemptOutcome{errorClass: "tls"}
+	case errors.As(err, &netErr) && netErr.Timeout():
+		return attemptOutcome{errorClass: "timeout"}
+	case errors.As(err, new(*net.OpError)):
+		return attemptOutcome{errorClass: "connection"}
+	default:
+		return attemptOutcome{errorClass: "other"}
 	}
-	nextAt := now.Add(backoffSchedule[backoffIdx])
+}
 
-	_, err = s.pool.Exec(ctx,
-		`UPDATE webhook_deliveries
-		 SET attempt_count = $2,
-		     status_code   = $3,
-		     response_body = $4,
-		     last_error    = $5,
-		     scheduled_at  = $6
-		 WHERE id = $1`,
-		d.id, attempt, statusCode, respBody, errMsg, nextAt,
-	)
+func errText(err error) string {
+	if err == nil {
+		return ""
+	}
+	return err.Error()
+}
+
+// recordAttempt applies the delivery's new state and appends the attempt, in
+// one transaction.
+func (s *PostgresWebhookService) recordAttempt(
+	ctx context.Context, deliveryID string, attempt int, o attemptOutcome,
+	statusCode, durationMs int, attemptedAt time.Time, update string, args []any,
+) error {
+	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		slog.Error("webhook worker: retry schedule failed", "delivery_id", d.id, "error", err)
+		return err
 	}
-	slog.Warn("webhook delivery failed, will retry",
-		"delivery_id", d.id, "url", d.url,
-		"attempt", attempt, "next_at", nextAt,
-	)
+	defer tx.Rollback(ctx)
+	if _, err := tx.Exec(ctx, update, args...); err != nil {
+		return fmt.Errorf("update delivery: %w", err)
+	}
+	outcome, class := "SUCCESS", any(nil)
+	if !o.succeeded {
+		outcome, class = "FAILED", o.errorClass
+	}
+	code := any(nil)
+	if statusCode > 0 {
+		code = statusCode
+	}
+	sp, err := tx.Begin(ctx) // savepoint: the history row may fail alone
+	if err != nil {
+		return err
+	}
+	if _, err := sp.Exec(ctx,
+		`INSERT INTO webhook_delivery_attempts
+		        (delivery_id, attempt_number, outcome, status_code, error_class, duration_ms, attempted_at)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		deliveryID, attempt, outcome, code, class, durationMs, attemptedAt); err != nil {
+		_ = sp.Rollback(ctx)
+		slog.Error("webhook worker: attempt history not written; the delivery still advances",
+			"delivery_id", deliveryID, "attempt", attempt, "error", err)
+	} else if err := sp.Commit(ctx); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *PostgresWebhookService) httpPost(

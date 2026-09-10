@@ -988,9 +988,46 @@ func (s *pgStore) WebhookDeliveriesForEvent(ctx context.Context, merchantID, eve
 			&v.AttemptCount, &v.DeliveredAt, &v.CreatedAt); err != nil {
 			return nil, err
 		}
+		v.Attempts = []WebhookAttemptView{}
 		out = append(out, v)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	rows.Close()
+	if len(out) == 0 {
+		return out, nil
+	}
+	idx := make(map[string]int, len(out))
+	ids := make([]string, 0, len(out))
+	for i, v := range out {
+		idx[v.ID] = i
+		ids = append(ids, v.ID)
+	}
+	// Scoped by the delivery ids just read, which were themselves scoped to
+	// this merchant's event — the history of another tenant's delivery cannot
+	// be reached from here.
+	arows, err := s.pool.Query(ctx,
+		`SELECT delivery_id, attempt_number, outcome, status_code, error_class, duration_ms, attempted_at
+		   FROM webhook_delivery_attempts
+		  WHERE delivery_id = ANY($1::uuid[])
+		  ORDER BY delivery_id, attempt_number`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer arows.Close()
+	for arows.Next() {
+		var deliveryID string
+		var a WebhookAttemptView
+		if err := arows.Scan(&deliveryID, &a.AttemptNumber, &a.Outcome, &a.StatusCode, &a.ErrorClass,
+			&a.DurationMs, &a.AttemptedAt); err != nil {
+			return nil, err
+		}
+		if i, ok := idx[deliveryID]; ok {
+			out[i].Attempts = append(out[i].Attempts, a)
+		}
+	}
+	return out, arows.Err()
 }
 
 // APIRequestLogs reads one project's Developer API request log (migration 0104).

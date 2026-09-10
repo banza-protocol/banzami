@@ -57,6 +57,7 @@ export type {
   WalletAccountTransfer,
   CreateTransferParams,
   WebhookDeliveryRecord,
+  WebhookDeliveryAttempt,
   WebhookEndpointHealth,
   WebhookEvent,
   WebhookEventType,
