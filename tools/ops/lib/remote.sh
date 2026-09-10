@@ -33,8 +33,24 @@
 # Is this the canonical Sandbox host? The marker is the deployed project's own
 # core-api container: it exists only where the operator actually runs, needs no
 # secret to observe, and cannot be true of a developer's laptop.
+#
+# The question is bounded. A laptop whose Docker Desktop is stopped half-way
+# answers `docker ps` by never answering (and ignores SIGALRM), and an unbounded
+# check hung every caller instead of sending it to the VM. So: the Sandbox host
+# is Linux, and a Linux host that does not answer in 10 seconds is "not here".
 remote_is_sandbox_host() {
-  docker ps --format '{{.Names}}' 2>/dev/null | grep -q 'bzsandbox-.*-core-api-staging'
+  [ "$(uname -s)" = Linux ] || return 1
+  local out rc
+  out=$(mktemp)
+  docker ps --format '{{.Names}}' >"$out" 2>/dev/null &
+  local pid=$!
+  ( sleep 10; kill -9 "$pid" 2>/dev/null ) >/dev/null 2>&1 &
+  local watchdog=$!
+  wait "$pid" 2>/dev/null
+  kill "$watchdog" 2>/dev/null
+  grep -q 'bzsandbox-.*-core-api-staging' "$out"; rc=$?
+  rm -f "$out"
+  return $rc
 }
 
 # The canonical remote contract:
