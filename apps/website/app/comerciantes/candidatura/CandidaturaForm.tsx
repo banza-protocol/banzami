@@ -602,8 +602,18 @@ export function CandidaturaForm() {
     }));
   }
 
+  // Bring the form panel — not the top of the page — into view. On a phone the
+  // introduction column sits above the form, so scrolling to the top left the
+  // next step, and the "Candidatura enviada" confirmation, a long scroll away.
+  function showPanel() {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById('candidatura-panel');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function go(next: number) {
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+    showPanel();
     setStep(Math.max(1, Math.min(3, next)));
   }
 
@@ -647,7 +657,7 @@ export function CandidaturaForm() {
     const r = await submitApplication(input, idempotencyKey).catch((): SubmitResult => ({ ok: false, status: 0 }));
     setSubmitting(false);
     if (r.ok) {
-      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+      showPanel();
       setSubmitted(true);
       if (r.applicationId) {
         setApplicationId(r.applicationId);
@@ -862,7 +872,7 @@ export function CandidaturaForm() {
         </aside>
 
         {/* RIGHT PANEL */}
-        <main className="overflow-hidden rounded-[26px] bg-white shadow-[0_30px_80px_-50px_rgba(181,16,31,0.4)]">
+        <main id="candidatura-panel" className="scroll-mt-4 overflow-hidden rounded-[26px] bg-white shadow-[0_30px_80px_-50px_rgba(181,16,31,0.4)]">
           <div className="px-[38px] pb-[14px] pt-[34px]">
             <Stepper step={step} />
           </div>

@@ -145,6 +145,12 @@ async function journey(browser, { name, viewport, validations }) {
     return { handle };
   }
   const reference = (await page.getByTestId('application-reference').textContent().catch(() => '')) ?? '';
+  await page.waitForTimeout(1200); // the smooth scroll to the panel
+  const onScreen = await page.getByRole('heading', { name: 'Candidatura enviada' }).evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    return r.top >= 0 && r.bottom <= window.innerHeight;
+  });
+  rec(`${name}: the confirmation is on screen, not a scroll away`, onScreen);
   // Uploads run after the application exists; give them their moment.
   await page.waitForTimeout(6000);
   await shot(page, `${name}-06-submitted`);
