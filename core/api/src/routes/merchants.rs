@@ -256,34 +256,23 @@ pub async fn revoke_api_key(
     Ok(Json(serde_json::to_value(&key).unwrap()))
 }
 
-/// PATCH /internal/v1/merchants/:id/verified
+/// PATCH /internal/v1/merchants/:id/verified — retired.
 ///
-/// Sets or clears the merchant verification flag.
-/// Body: `{"verified": true | false}`
+/// "Verified" used to be a flag anyone with this route could set, beside the
+/// KYB decision every gate actually reads (`merchant_compliance.kyb_status`).
+/// The two disagreed. Migration 0122 made `merchants.verified` a projection the
+/// database keeps from the KYB decision, so a write here would be silently
+/// overruled; answering 409 says so instead. Verification changes through a
+/// KYB decision: an application approved or linked in BANZADMIN, a completed
+/// document review, or an operator's compliance action.
 pub async fn set_verified(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(body): Json<serde_json::Value>,
+    Path(_id): Path<String>,
+    Json(_body): Json<serde_json::Value>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
-
-    let verified = body
-        .get("verified")
-        .and_then(|v| v.as_bool())
-        .ok_or_else(|| ApiError::bad_request("'verified' must be a boolean"))?;
-
-    let merchant = state
-        .merchant
-        .set_verified(merchant_id, verified)
-        .await
-        .map_err(|e| match e {
-            MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
-            other => ApiError::internal(other.to_string()),
-        })?;
-
-    Ok(Json(serde_json::to_value(&merchant).unwrap()))
+    Err(ApiError::conflict(
+        "VERIFICATION_IS_THE_KYB_DECISION",
+        "verified follows the KYB decision; decide KYB instead",
+    ))
 }
 
 /// ADR-028: re-tag a Business Account's operator type (e.g. mark @doa APPLICATION).

@@ -28,7 +28,7 @@ const ZERO = [
   'PROOFS_OF_MISSING_TRANSFERS', 'PROOF_AMOUNT_DIFFERS_FROM_TRANSFER', 'PROOF_DESCRIPTION_DIFFERS_FROM_TRANSFER',
   'PROOF_REFERENCES_DUPLICATED', 'LIVE_DEFAULTED_ENVIRONMENT_COLUMNS', 'BUSINESS_LOGIN_NOT_OWNING_ITS_HANDLE',
   'APPROVED_APPLICATIONS_WITHOUT_RESOLUTION', 'APPLICATION_HOLDS_OF_CLOSED_APPLICATIONS',
-  'HANDLES_WITH_MORE_THAN_ONE_OWNER', 'WEBHOOK_EVENTS_DELIVERED_TWICE_TO_ONE_ENDPOINT',
+  'HANDLES_WITH_MORE_THAN_ONE_OWNER', 'VERIFIED_FLAG_DISAGREES_WITH_KYB', 'WEBHOOK_EVENTS_DELIVERED_TWICE_TO_ONE_ENDPOINT',
   'WEBHOOK_ATTEMPTS_BEYOND_DELIVERY_COUNT',
 ];
 
@@ -66,6 +66,16 @@ describe('financial assurance counters', () => {
     const c = counts();
     assert.equal(c.PROOFS_UNSIGNED, 1);
     assert.equal(c.PROOFS_OF_MISSING_TRANSFERS, 1);
+  });
+
+  it('a verification badge that disagrees with the KYB decision is caught', () => {
+    // Only reachable around the 0122 triggers — which is exactly what a counter
+    // for it has to prove it would see.
+    psql(`ALTER TABLE merchants DISABLE TRIGGER merchants_verified_projection;
+          INSERT INTO merchants (id,name,email,status,business_account_type,created_at,updated_at,verified)
+          VALUES ('e0000000-0000-4000-8000-000000000001','V','v@x.test','ACTIVE','MERCHANT',now(),now(),true);
+          ALTER TABLE merchants ENABLE TRIGGER merchants_verified_projection`);
+    assert.equal(counts().VERIFIED_FLAG_DISAGREES_WITH_KYB, 1);
   });
 
   it('a login that does not own its handle is caught', () => {

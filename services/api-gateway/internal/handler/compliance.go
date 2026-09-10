@@ -39,26 +39,17 @@ func (h *ComplianceHandler) VerifyCustomer(w http.ResponseWriter, r *http.Reques
 	writeRaw(w, http.StatusOK, data)
 }
 
-// VerifyMerchant runs a merchant KYB verification for the authenticated merchant.
-// POST /v1/compliance/merchants/verify
-// Body: {legal_name, tax_id, representative_name}
+// VerifyMerchant — POST /v1/compliance/merchants/verify — is refused.
+//
+// It ran the configured KYB provider for the calling Business and wrote its
+// answer as the Business's KYB decision. In the Sandbox that provider is the
+// simulated one, which approves any name with a six-character NIF: a Business
+// could verify itself. KYB is decided by review — an application approved or
+// linked in BANZADMIN, or a completed document review — and nothing a Business
+// sends can make that decision.
 func (h *ComplianceHandler) VerifyMerchant(w http.ResponseWriter, r *http.Request) {
-	principal, ok := middleware.GetPrincipal(r.Context())
-	if !ok || principal.MerchantID == "" {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant authentication required")
-		return
-	}
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "could not read request body")
-		return
-	}
-	data, err := h.svc.VerifyMerchant(r.Context(), principal.MerchantID, body)
-	if err != nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "VERIFICATION_FAILED", "identity verification failed")
-		return
-	}
-	writeRaw(w, http.StatusOK, data)
+	apierror.Respond(w, r, http.StatusForbidden, "KYB_DECIDED_BY_REVIEW",
+		"a Business's verification is decided by Banzami's review of its application and documents")
 }
 
 // KycStatus returns the authenticated consumer's Progressive-KYC status.

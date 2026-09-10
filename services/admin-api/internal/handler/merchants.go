@@ -42,24 +42,6 @@ func (h *MerchantHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// SetVerified handles PATCH /admin/v1/merchants/{id}/verified.
-func (h *MerchantHandler) SetVerified(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	var body struct {
-		Verified bool `json:"verified"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
-		return
-	}
-	result, err := h.core.SetMerchantVerified(r.Context(), id, body.Verified)
-	if err != nil {
-		handleCoreErr(w, err)
-		return
-	}
-	writeJSON(w, http.StatusOK, result)
-}
-
 // SetBusinessAccountType handles PATCH /admin/v1/merchants/{id}/business-account-type.
 //
 // ADR-028: classify a Business Account. The class decides whether it may take an

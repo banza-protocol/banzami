@@ -70,6 +70,11 @@ SELECT 'LIVE_DEFAULTED_ENVIRONMENT_COLUMNS', count(*)
   FROM information_schema.columns WHERE column_name = 'environment' AND column_default ILIKE '%LIVE%';
 
 -- ── Business identity ───────────────────────────────────────────────────────
+-- "Verified" is the KYB decision (0122): the badge and the decision never disagree.
+SELECT 'VERIFIED_FLAG_DISAGREES_WITH_KYB', count(*)
+  FROM merchants m
+ WHERE m.verified IS DISTINCT FROM EXISTS (SELECT 1 FROM merchant_compliance c
+                                            WHERE c.merchant_id = m.id AND c.kyb_status = 'APPROVED');
 SELECT 'BUSINESS_LOGIN_NOT_OWNING_ITS_HANDLE', count(*)
   FROM merchant_app_credentials c JOIN handle_registry hr ON hr.handle = c.handle
  WHERE hr.owner_type <> 'MERCHANT' OR hr.owner_id IS DISTINCT FROM c.merchant_id;

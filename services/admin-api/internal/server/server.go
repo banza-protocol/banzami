@@ -172,7 +172,9 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/merchants", merchantH.List)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/merchants/{id}", merchantH.Get)
 		r.With(cap(auth.CapMerchantManage)).Delete("/admin/v1/merchants/{id}", merchantH.Delete)
-		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/verified", merchantH.SetVerified)
+		// PATCH /admin/v1/merchants/{id}/verified is retired: "verified" is the
+		// KYB decision (migration 0122), made through application review, KYB
+		// document review or the compliance actions below — not a toggle.
 		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/business-account-type", merchantH.SetBusinessAccountType)
 		// What a customer is charged. Guarded by the pricing capability rather
 		// than merchant management: this is a commercial decision, and the people

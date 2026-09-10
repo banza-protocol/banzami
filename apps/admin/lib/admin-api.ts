@@ -623,9 +623,6 @@ export class AdminApi {
     });
   }
   deleteMerchant(id: string): Promise<void>   { return this.req(`/admin/v1/merchants/${id}`, { method: 'DELETE' }); }
-  setMerchantVerified(id: string, verified: boolean): Promise<Merchant> {
-    return this.req(`/admin/v1/merchants/${id}/verified`, { method: 'PATCH', body: JSON.stringify({ verified }) });
-  }
 
   createMerchant(name: string, email: string, currency = 'AOA', sandbox = false): Promise<{
     merchant: Merchant;
