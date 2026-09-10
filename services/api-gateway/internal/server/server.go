@@ -227,7 +227,12 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.RateLimitPerIP(deps.Redis, 30, "onboarding"))
 		r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
-		r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
+		// Each submission reserves an @handle for as long as its application is
+		// open. Thirty a day per address covers a person applying (and
+		// retrying, and every refusal counts) and is useless for someone
+		// collecting names.
+		r.With(middleware.RateLimitPerIPWindow(deps.Redis, 30, 24*time.Hour, "application-submit")).
+			Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
 		r.Post("/v1/merchant/activation/validate", merchantOnboardingHandler.ValidateActivation)
 		r.Post("/v1/merchant/activation/complete", merchantOnboardingHandler.CompleteActivation)
 		// KYB documents (Track 3) — public applicant flow. The application id is

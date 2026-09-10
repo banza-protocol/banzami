@@ -154,7 +154,11 @@ func main() {
 		merchantCredSvc = credSvc
 		merchantSessionSvc = service.NewPostgresMerchantSessionService(dbPool)
 		businessLinkCodeSvc = service.NewPostgresBusinessLinkCodeService(dbPool)
-		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
+		appSvc := service.NewPostgresMerchantApplicationService(dbPool)
+		// Keeps @handle holds honest: alive while Banzami owes a decision,
+		// released when the application closes (handle hold lifecycle).
+		appSvc.StartHoldSweeper(ctx, time.Hour)
+		merchantAppSvc = appSvc
 		appAdmin := service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		// Approving a Developer Project's application binds that Project to the
 		// Business it provisions, through developer-api (the binding's owner).

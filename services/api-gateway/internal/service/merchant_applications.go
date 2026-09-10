@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -305,4 +307,98 @@ func (s *PostgresMerchantApplicationService) insertApplication(ctx context.Conte
 		return ErrProjectHasOpenApplication
 	}
 	return err
+}
+
+// Handle hold lifecycle.
+//
+// An application's @handle is RESERVED (an APPLICATION row in handle_registry)
+// while the application is open, becomes ACTIVE (the Business's) on approval,
+// and is RELEASED when the application closes. Two things went wrong without a
+// keeper: a hold that outlived its 30 days while an operator had not decided
+// yet could be taken over by the next applicant (Submit treats a lapsed hold as
+// available), and a hold whose application had closed some other way stayed
+// forever, blocking the name for consumers and Businesses alike.
+//
+// SweepHandleHolds is that keeper, run periodically:
+//   - a hold whose application is closed (approved, rejected, cancelled) or
+//     gone is released;
+//   - an application left waiting on the applicant — INFORMATION_REQUIRED for
+//     longer than informationRequestTTL without a resubmission — is cancelled,
+//     and its hold released;
+//   - a hold whose application is still with Banzami (submitted, in review,
+//     provisioning) is kept alive: the operator owes a decision, and the
+//     applicant must not lose the name while waiting for it.
+
+const informationRequestTTL = 30 * 24 * time.Hour
+
+// HoldSweep is what one pass did.
+type HoldSweep struct {
+	Released  int64
+	Cancelled int64
+	Extended  int64
+}
+
+func (s *PostgresMerchantApplicationService) SweepHandleHolds(ctx context.Context) (HoldSweep, error) {
+	var out HoldSweep
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return out, err
+	}
+	defer tx.Rollback(ctx)
+
+	tag, err := tx.Exec(ctx,
+		`UPDATE merchant_applications
+		    SET status = 'CANCELLED', updated_at = now(),
+		        admin_notes = concat_ws(E'\n', NULLIF(admin_notes, ''),
+		                      'Cancelada automaticamente: sem resposta ao pedido de informação em 30 dias.')
+		  WHERE status = 'INFORMATION_REQUIRED' AND information_requested_at < now() - $1::interval`,
+		fmt.Sprintf("%d seconds", int(informationRequestTTL.Seconds())))
+	if err != nil {
+		return out, err
+	}
+	out.Cancelled = tag.RowsAffected()
+
+	tag, err = tx.Exec(ctx,
+		`DELETE FROM handle_registry hr
+		  WHERE hr.owner_type = 'APPLICATION'
+		    AND NOT EXISTS (SELECT 1 FROM merchant_applications a
+		                     WHERE a.id = hr.owner_id
+		                       AND a.status IN ('DRAFT','SUBMITTED','UNDER_REVIEW','INFORMATION_REQUIRED','PROVISIONING_FAILED'))`)
+	if err != nil {
+		return out, err
+	}
+	out.Released = tag.RowsAffected()
+
+	tag, err = tx.Exec(ctx,
+		`UPDATE handle_registry hr SET reserved_until = now() + interval '7 days'
+		  WHERE hr.owner_type = 'APPLICATION'
+		    AND (hr.reserved_until IS NULL OR hr.reserved_until < now() + interval '1 day')
+		    AND EXISTS (SELECT 1 FROM merchant_applications a
+		                 WHERE a.id = hr.owner_id
+		                   AND a.status IN ('SUBMITTED','UNDER_REVIEW','PROVISIONING_FAILED'))`)
+	if err != nil {
+		return out, err
+	}
+	out.Extended = tag.RowsAffected()
+	return out, tx.Commit(ctx)
+}
+
+// StartHoldSweeper runs SweepHandleHolds every interval until ctx ends.
+func (s *PostgresMerchantApplicationService) StartHoldSweeper(ctx context.Context, interval time.Duration) {
+	go func() {
+		t := time.NewTicker(interval)
+		defer t.Stop()
+		for {
+			if res, err := s.SweepHandleHolds(ctx); err != nil {
+				slog.Error("handle hold sweep failed", "error", err)
+			} else if res.Released+res.Cancelled+res.Extended > 0 {
+				slog.Info("handle hold sweep", "released", res.Released, "cancelled", res.Cancelled, "extended", res.Extended)
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+			}
+		}
+	}()
 }

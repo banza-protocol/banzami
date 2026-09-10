@@ -38,6 +38,14 @@ const CredentialPerMinute = 15
 // limit. Fails open on Redis error; passes through when Redis is unavailable
 // (the public-api uses an in-memory per-instance limiter for the same surface).
 func RateLimitPerIP(rdb *redis.Client, perMinute int, prefix string) func(http.Handler) http.Handler {
+	return RateLimitPerIPWindow(rdb, perMinute, time.Minute, prefix)
+}
+
+// RateLimitPerIPWindow is RateLimitPerIP over any window — for actions whose
+// cost is not a burst but a total, like reserving @handles: a per-minute limit
+// still lets one address hold tens of thousands of names a day.
+func RateLimitPerIPWindow(rdb *redis.Client, limit int, window time.Duration, prefix string) func(http.Handler) http.Handler {
+	retryAfter := fmt.Sprintf("%d", int(window.Seconds()))
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if rdb == nil {
@@ -45,7 +53,7 @@ func RateLimitPerIP(rdb *redis.Client, perMinute int, prefix string) func(http.H
 				return
 			}
 			key := fmt.Sprintf("rl:%s:ip:%s", prefix, r.RemoteAddr)
-			allowed, err := slidingWindowAllow(r.Context(), rdb, key, perMinute, time.Minute)
+			allowed, err := slidingWindowAllow(r.Context(), rdb, key, limit, window)
 			if err != nil {
 				slog.WarnContext(r.Context(), "credential rate limit check failed — failing open",
 					"error", err, "key", key)
@@ -53,7 +61,7 @@ func RateLimitPerIP(rdb *redis.Client, perMinute int, prefix string) func(http.H
 				return
 			}
 			if !allowed {
-				w.Header().Set("Retry-After", "60")
+				w.Header().Set("Retry-After", retryAfter)
 				apierror.Respond(w, r, http.StatusTooManyRequests, "RATE_LIMITED",
 					"too many requests — please slow down")
 				return
