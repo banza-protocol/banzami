@@ -52,3 +52,38 @@ export function Pill({
     </span>
   );
 }
+
+// Form building blocks for the Console's longer forms (Configuração financeira).
+// Plain style objects, like the rest of the portal: no CSS framework in play.
+
+export const CTA_GRADIENT = 'linear-gradient(160deg,#B5101F,#7C1016)';
+
+export const FIELD_LABEL: CSSProperties = {
+  display: 'block', fontSize: 12.5, fontWeight: 800, color: '#6a5a5e', marginBottom: 6,
+};
+
+export const FIELD_INPUT: CSSProperties = {
+  width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1.5px solid #EBDBD9', borderRadius: 10,
+  fontSize: 14, fontWeight: 600, color: '#2a2024', background: '#fff', fontFamily: 'inherit',
+};
+
+export const FIELD_ERROR: CSSProperties = {
+  margin: '6px 0 0', fontSize: 12.5, color: '#B5101F', fontWeight: 700,
+};
+
+export const FIELD_HINT: CSSProperties = {
+  margin: '6px 0 0', fontSize: 12, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.5,
+};
+
+export function primaryButton(busy = false): CSSProperties {
+  return {
+    padding: '11px 20px', border: 'none', borderRadius: 11,
+    background: busy ? '#E7D9D7' : CTA_GRADIENT, color: busy ? '#a89a9e' : '#fff',
+    fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer',
+  };
+}
+
+export const SECONDARY_BUTTON: CSSProperties = {
+  padding: '10px 16px', border: '1.5px solid #EBDBD9', borderRadius: 11, background: '#fff',
+  fontSize: 13.5, fontWeight: 800, color: '#B5101F', cursor: 'pointer',
+};

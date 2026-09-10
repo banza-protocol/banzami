@@ -349,6 +349,80 @@ export async function uploadKybDocument(
   return { ok: true, documentId: document_id };
 }
 
+/** One document attached to an application, as the applicant may see it. */
+export type ApplicationDocument = {
+  document_id: string;
+  document_type: KybDocumentType | string;
+  original_filename: string;
+  /** PENDING_UPLOAD · UPLOADED · ACCEPTED · REJECTED */
+  status: string;
+  size_bytes: number;
+  uploaded_at: string | null;
+  rejection_reason: string | null;
+};
+
+/** The documents attached to an application, by its reference. Null when the
+ *  list could not be read — which is not the same as "none attached". */
+export async function listApplicationDocuments(applicationId: string): Promise<ApplicationDocument[] | null> {
+  try {
+    const { base } = await platformTarget();
+    const res = await fetch(
+      `${base}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents`,
+      { cache: 'no-store' },
+    );
+    if (!res.ok) return null;
+    const j = (await res.json().catch(() => null)) as { data?: ApplicationDocument[] } | null;
+    return Array.isArray(j?.data) ? j!.data : null;
+  } catch {
+    return null;
+  }
+}
+
+/** One item of the Business requirements policy — the list every onboarding
+ *  surface renders. The Gateway is the authority; a form only mirrors it. */
+export type RequirementPolicyItem = {
+  code: string;
+  kind: 'field' | 'document';
+  label: string;
+  capability: string;
+};
+
+export type RequirementPolicy = { policy_version: string; items: RequirementPolicyItem[] };
+
+/** GET /v1/merchant/application-requirements. Null when it cannot be read. */
+export async function getApplicationRequirements(): Promise<RequirementPolicy | null> {
+  try {
+    const { base } = await platformTarget();
+    const res = await fetch(`${base}/v1/merchant/application-requirements`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const j = (await res.json().catch(() => null)) as RequirementPolicy | null;
+    return j && Array.isArray(j.items) ? j : null;
+  } catch {
+    return null;
+  }
+}
+
+export type ResubmitResult =
+  | { ok: true }
+  | { ok: false; status: number; code?: string; message?: string };
+
+/** The applicant answered the reviewer's request: back to review.
+ *  422 REQUIREMENTS_NOT_MET, 409 NOT_WAITING_FOR_INFORMATION. */
+export async function resubmitApplication(applicationId: string): Promise<ResubmitResult> {
+  try {
+    const { base } = await platformTarget();
+    const res = await fetch(
+      `${base}/v1/merchant/applications/${encodeURIComponent(applicationId)}/resubmit`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+    );
+    if (res.ok) return { ok: true };
+    const j = await res.json().catch(() => ({}));
+    return { ok: false, status: res.status, code: j.error?.code ?? j.code, message: j.error?.message ?? j.message };
+  } catch {
+    return { ok: false, status: 0, code: 'NETWORK' };
+  }
+}
+
 export type ActivationStatus = {
   valid: boolean;
   reason: string; // VALID | INVALID | EXPIRED | USED

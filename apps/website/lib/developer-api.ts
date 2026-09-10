@@ -223,6 +223,99 @@ export type FinancialSetupState = {
    */
   readiness?: ProjectReadiness | null;
   readiness_unavailable?: boolean;
+  /**
+   * How this Project gets (or got) a Business to receive into: its application
+   * for a new Business, or the existing Business it is connected to. Absent only
+   * from a server that predates financial onboarding.
+   */
+  onboarding?: FinancialOnboarding | null;
+};
+
+/**
+ * The Project's onboarding, one level above the tables (developer-api
+ * financial_onboarding.go). About the Project, never about merchant rows.
+ */
+export type OnboardingState =
+  | 'NOT_CONFIGURED'
+  | 'IN_REVIEW'
+  | 'INFORMATION_REQUIRED'
+  | 'APPROVED_PROVISIONING'
+  | 'REJECTED'
+  | 'READY'
+  | 'BLOCKED';
+
+/** One issue from the Gateway's Business requirements policy. */
+export type OnboardingRequirement = {
+  code: string;
+  kind: 'field' | 'document';
+  label: string;
+  /** MISSING · UPLOADED · ACCEPTED · REJECTED[: why] · the reviewer's words. */
+  reason: string;
+};
+
+/** The Business a Project receives into: public identity only, no internal id. */
+export type OnboardingBusiness = {
+  name: string;
+  /** "@handle", already prefixed. */
+  handle: string;
+  kyb_status: string;
+  verified: boolean;
+};
+
+/** The Project's latest application for a new Business, as the Gateway reports it. */
+export type OnboardingApplication = {
+  application_id: string;
+  status: string;
+  origin: string;
+  requested_handle: string;
+  information_request?: string;
+  business_name: string;
+  project_binding?: 'BOUND' | 'PENDING' | string;
+  created_at: string;
+  requirements: {
+    policy_version: string;
+    currently_due: OnboardingRequirement[];
+    pending_verification: OnboardingRequirement[];
+    errors: OnboardingRequirement[];
+    accepted: OnboardingRequirement[];
+  };
+};
+
+export type FinancialOnboarding = {
+  state: OnboardingState;
+  /** This member may start an application or connect a Business. Advice; the server re-authorises. */
+  can_act: boolean;
+  business?: OnboardingBusiness | null;
+  application?: OnboardingApplication | null;
+  /** Settlement readiness's own codes, for the Console to explain. */
+  blockers: string[];
+};
+
+/**
+ * A Project's application for a NEW Business — the same fields the public
+ * Business application collects. The Project and the submitting member are
+ * taken from the session by the server; there is no field for either here.
+ */
+export type FinancialApplicationInput = {
+  desired_handle: string;
+  business_name: string;
+  category: string;
+  subcategory?: string;
+  email: string;
+  phone: string;
+  nif: string;
+  province: string;
+  municipality: string;
+  city?: string;
+  address: string;
+  address_reference?: string;
+  legal_representative: string;
+  representative_role: string;
+  representative_email?: string;
+  representative_phone?: string;
+  business_activity: string;
+  estimated_volume?: string;
+  terms_accepted: true;
 };
 
 /** The public readiness projection (GET /v1/financial-setup, minus project/env). */
@@ -407,15 +500,36 @@ export const developerApi = {
       `/projects/${projectID}/transactions${qs ? `?${qs}` : ''}`);
   },
 
-  // ── Sandbox financial setup ────────────────────────────────────────────────
-  // The step that used to be an operator's. A project has no financial
-  // environment until someone asks for one, and this is how a developer asks.
-  // The POST carries no body: there is no merchant, wallet or owner to name,
-  // because naming one is what this exists to make unnecessary.
+  // ── Financial setup ────────────────────────────────────────────────────────
+  // Where the project stands: whether it receives into a Business, and how it
+  // is getting one. A Project gets a Business in exactly two ways, both below.
   financialSetup: (projectID: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`),
   configureFinancialSetup: (projectID: string, csrf: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', csrf }),
+
+  // A. Apply for a NEW Business — the same application the public form sends,
+  // reviewed by an operator in BANZADMIN. One idempotency key per form session:
+  // a double click or a retried request returns the application the first
+  // submission created instead of a second one.
+  submitFinancialApplication: (
+    projectID: string,
+    body: FinancialApplicationInput,
+    idempotencyKey: string,
+    csrf: string,
+  ) =>
+    req<{ application_id: string; status: string }>(
+      `/projects/${projectID}/financial-onboarding/applications`,
+      { method: 'POST', body: { ...body, idempotency_key: idempotencyKey }, csrf },
+    ),
+
+  // B. Connect an EXISTING Business, with the single-use consent code it issued
+  // from its own app. Nothing is re-verified or re-created.
+  linkExistingBusiness: (projectID: string, code: string, csrf: string) =>
+    req<{ business: OnboardingBusiness }>(
+      `/projects/${projectID}/financial-onboarding/link`,
+      { method: 'POST', body: { code }, csrf },
+    ),
 
   // The purposes the server offers, from the server. A local copy of this list
   // drifted the moment it existed: it offered one value Core rejects and withheld
