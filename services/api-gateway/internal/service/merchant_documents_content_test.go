@@ -39,8 +39,8 @@ func docFixture(t *testing.T, status string) (*PostgresMerchantDocumentService, 
 	store := kybstorage.NewFakeStorage("test-bucket")
 	svc := NewPostgresMerchantDocumentService(pool, store, 1024)
 	appID := uuid.NewString()
-	if _, err := pool.Exec(ctx, `INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email)
-	    VALUES ($1,$2,'SANDBOX',$3,'Doc Co','doc@example.test')`, appID, status, "dc"+hex10()); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO merchant_applications (origin, id, status, environment, desired_handle, business_name, email)
+	    VALUES ('STANDALONE_BUSINESS',$1,$2,'SANDBOX',$3,'Doc Co','doc@example.test')`, appID, status, "dc"+hex10()); err != nil {
 		t.Fatal(err)
 	}
 	return svc, store, appID, func() {

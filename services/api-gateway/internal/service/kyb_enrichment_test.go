@@ -293,9 +293,9 @@ func TestKybContext_Timeline_Notes(t *testing.T) {
 		t.Fatalf("seed merchant: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_applications (id, status, resolution, environment, desired_handle, business_name, email,
+		`INSERT INTO merchant_applications (origin, id, status, resolution, environment, desired_handle, business_name, email,
 		   created_merchant_id, legal_representative, phone, nif, country, city, address, business_activity)
-		 VALUES ($1,'APPROVED','PROVISIONED_NEW','SANDBOX',$2,'Loja Teste Lda',$3,$4,'Ana Silva','+244900','NIF123','AO','Luanda','Rua 1','Retalho')`,
+		 VALUES ('STANDALONE_BUSINESS',$1,'APPROVED','PROVISIONED_NEW','SANDBOX',$2,'Loja Teste Lda',$3,$4,'Ana Silva','+244900','NIF123','AO','Luanda','Rua 1','Retalho')`,
 		uuid.NewString(), "loja"+m[:6], m+"@test", m); err != nil {
 		t.Fatalf("seed application: %v", err)
 	}

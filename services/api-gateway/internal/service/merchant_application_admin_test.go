@@ -134,8 +134,8 @@ func TestApprove_ResumesExistingMerchant(t *testing.T) {
 		t.Fatalf("seed handle: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email, created_merchant_id)
-		 VALUES ($1,'SUBMITTED','SANDBOX',$2,'Resume Co',$3,$4)`,
+		`INSERT INTO merchant_applications (origin, id, status, environment, desired_handle, business_name, email, created_merchant_id)
+		 VALUES ('STANDALONE_BUSINESS',$1,'SUBMITTED','SANDBOX',$2,'Resume Co',$3,$4)`,
 		appID, handle, email, merchantID); err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
@@ -184,8 +184,8 @@ func TestApprove_FreshCreatesAndRecordsMerchant(t *testing.T) {
 		t.Fatalf("seed handle: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email)
-		 VALUES ($1,'SUBMITTED','SANDBOX',$2,'Fresh Co',$3)`,
+		`INSERT INTO merchant_applications (origin, id, status, environment, desired_handle, business_name, email)
+		 VALUES ('STANDALONE_BUSINESS',$1,'SUBMITTED','SANDBOX',$2,'Fresh Co',$3)`,
 		appID, handle, email); err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
@@ -244,8 +244,8 @@ func TestApprove_FailsThenResumesWithoutDuplication(t *testing.T) {
 		t.Fatalf("seed handle: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email)
-		 VALUES ($1,'SUBMITTED','SANDBOX',$2,'Saga Co',$3)`, appID, handle, email); err != nil {
+		`INSERT INTO merchant_applications (origin, id, status, environment, desired_handle, business_name, email)
+		 VALUES ('STANDALONE_BUSINESS',$1,'SUBMITTED','SANDBOX',$2,'Saga Co',$3)`, appID, handle, email); err != nil {
 		t.Fatalf("seed application: %v", err)
 	}
 

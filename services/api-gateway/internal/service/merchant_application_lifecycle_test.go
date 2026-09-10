@@ -52,8 +52,8 @@ func (f *lifecycleFixture) application(accountType string) (appID, handle, email
 	appID, handle = uuid.NewString(), "lc"+hex10()
 	email = handle + "@example.test"
 	f.exec(`INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_until) VALUES ($1,'APPLICATION',$2, now()+interval '1 day')`, handle, appID)
-	f.exec(`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email, business_account_type, terms_accepted_at)
-	        VALUES ($1,'SUBMITTED','SANDBOX',$2,'Loja Ciclo',$3,NULLIF($4,''),now())`, appID, handle, email, accountType)
+	f.exec(`INSERT INTO merchant_applications (origin, id, status, environment, desired_handle, business_name, email, business_account_type, terms_accepted_at)
+	        VALUES ('STANDALONE_BUSINESS',$1,'SUBMITTED','SANDBOX',$2,'Loja Ciclo',$3,NULLIF($4,''),now())`, appID, handle, email, accountType)
 	f.clean = append(f.clean, func() {
 		ctx := context.Background()
 		var m string
@@ -233,8 +233,8 @@ func TestLinkExisting_AttachesTheApplicationAndCreatesNothing(t *testing.T) {
 	f := newLifecycle(t)
 	merchantID, handle := f.business()
 	appID := uuid.NewString()
-	f.exec(`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email, claims_existing_business, terms_accepted_at)
-	        VALUES ($1,'SUBMITTED','SANDBOX',$2,'Negócio Existente',$3,true,now())`, appID, handle, handle+"@example.test")
+	f.exec(`INSERT INTO merchant_applications (origin, id, status, environment, desired_handle, business_name, email, claims_existing_business, terms_accepted_at)
+	        VALUES ('STANDALONE_BUSINESS',$1,'SUBMITTED','SANDBOX',$2,'Negócio Existente',$3,true,now())`, appID, handle, handle+"@example.test")
 	f.clean = append(f.clean, func() {
 		_, _ = f.pool.Exec(context.Background(), `DELETE FROM merchant_application_documents WHERE application_id=$1`, appID)
 		_, _ = f.pool.Exec(context.Background(), `DELETE FROM merchant_applications WHERE id=$1`, appID)
