@@ -337,7 +337,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Use(middleware.Auth(cfg))
 			r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))
 			r.Use(middleware.Idempotency(deps.Redis))
-			// Claim/update the merchant @handle + PIN (already authenticated).
+			// Retired: 410 — a Business's PIN is set only by its activation link.
 			r.Post("/merchant/auth/claim", merchantAuthHandler.Claim)
 			// A signed-in Business consents to a Developer Project connecting
 			// to it: a short-lived single-use code, shown only here.

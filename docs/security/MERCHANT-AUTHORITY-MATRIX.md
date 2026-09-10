@@ -76,7 +76,7 @@ No credentials, tokens or secrets appear here.
 | `/v1/merchant/kyb/*`, `/v1/compliance/*` | ALL | — | subject is the principal | SAFE (derived) |
 | `/v1/disputes` | POST | `consumer_id` | see note 2 | **See note 2** |
 | `/v1/sandbox/*` | ALL | `wallet_id` | environment-gated; funding is per-principal and rate-limited | SAFE |
-| `/v1/merchant/auth/claim` | POST | — | already-authenticated principal | SAFE (derived) |
+| `/v1/merchant/auth/claim` | POST | — | retired: 410 PIN_SET_BY_ACTIVATION (a PIN is set only by activation, ADR-059) | N/A |
 | `/v1/splits*` | ALL | — | 410 at the edge, never proxied | N/A |
 
 ---

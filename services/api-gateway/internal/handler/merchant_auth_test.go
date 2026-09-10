@@ -22,17 +22,11 @@ const testSecret = "test-jwt-secret"
 type fakeCreds struct {
 	mid, env  string
 	verifyErr error
-	claimErr  error
-	claimed   bool
 	lookup    service.MerchantLookup
 }
 
 func (f *fakeCreds) VerifyHandlePin(_ context.Context, _, _ string) (string, string, error) {
 	return f.mid, f.env, f.verifyErr
-}
-func (f *fakeCreds) Claim(_ context.Context, _, _, _, _ string) error {
-	f.claimed = true
-	return f.claimErr
 }
 func (f *fakeCreds) LookupHandle(_ context.Context, _ string) (service.MerchantLookup, error) {
 	return f.lookup, nil
@@ -242,50 +236,28 @@ func merchantToken(t *testing.T, cfg *config.Config) string {
 	return tok
 }
 
-func TestMerchantAuthClaim(t *testing.T) {
+// The claim route is retired: it answers 410 to anyone, token or not, and
+// sets nothing — a Business's PIN is set only through activation.
+func TestMerchantAuthClaimRetired(t *testing.T) {
 	cfg := &config.Config{JWTSecret: testSecret}
-
-	do := func(creds service.MerchantCredentialService, withToken bool, body string) *httptest.ResponseRecorder {
-		req := httptest.NewRequest(http.MethodPost, "/v1/merchant/auth/claim", strings.NewReader(body))
+	for _, withToken := range []bool{true, false} {
+		req := httptest.NewRequest(http.MethodPost, "/v1/merchant/auth/claim", strings.NewReader(`{"handle":"doa_sandbox","pin":"1234"}`))
 		if withToken {
 			req.Header.Set("Authorization", "Bearer "+merchantToken(t, cfg))
 		}
 		rec := httptest.NewRecorder()
-		claimRouter(cfg, creds).ServeHTTP(rec, req)
-		return rec
+		claimRouter(cfg, &fakeCreds{}).ServeHTTP(rec, req)
+		want := http.StatusGone
+		if !withToken {
+			want = http.StatusUnauthorized // the route still sits behind merchant auth
+		}
+		if rec.Code != want {
+			t.Fatalf("token=%v: status = %d, want %d", withToken, rec.Code, want)
+		}
+		if withToken && !strings.Contains(rec.Body.String(), "PIN_SET_BY_ACTIVATION") {
+			t.Fatalf("body = %s", rec.Body.String())
+		}
 	}
-
-	t.Run("authenticated claim succeeds", func(t *testing.T) {
-		fc := &fakeCreds{}
-		rec := do(fc, true, `{"handle":"doa_sandbox","pin":"1234"}`)
-		if rec.Code != http.StatusOK {
-			t.Fatalf("status = %d, want 200", rec.Code)
-		}
-		if !fc.claimed {
-			t.Error("Claim was not called")
-		}
-	})
-
-	t.Run("no token → 401", func(t *testing.T) {
-		rec := do(&fakeCreds{}, false, `{"handle":"doa_sandbox","pin":"1234"}`)
-		if rec.Code != http.StatusUnauthorized {
-			t.Fatalf("status = %d, want 401", rec.Code)
-		}
-	})
-
-	t.Run("reserved handle → 409", func(t *testing.T) {
-		rec := do(&fakeCreds{claimErr: service.ErrHandleReserved}, true, `{"handle":"admin","pin":"1234"}`)
-		if rec.Code != http.StatusConflict {
-			t.Fatalf("status = %d, want 409", rec.Code)
-		}
-	})
-
-	t.Run("invalid handle → 400", func(t *testing.T) {
-		rec := do(&fakeCreds{claimErr: service.ErrHandleInvalid}, true, `{"handle":"x","pin":"1234"}`)
-		if rec.Code != http.StatusBadRequest {
-			t.Fatalf("status = %d, want 400", rec.Code)
-		}
-	})
 }
 
 func TestMerchantAuthRefreshAndLogout(t *testing.T) {

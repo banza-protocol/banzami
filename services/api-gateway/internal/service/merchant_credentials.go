@@ -74,12 +74,11 @@ type MerchantLookup struct {
 	OtherEnvironment string
 }
 
-// MerchantCredentialService authenticates a merchant by @handle + PIN, lets an
-// already-authenticated merchant claim/update its handle + PIN, and exposes a
-// non-secret handle lookup for the login UX.
+// MerchantCredentialService authenticates a merchant by @handle + PIN and
+// exposes a non-secret handle lookup for the login UX. The PIN itself is set
+// only by activation (activation.go).
 type MerchantCredentialService interface {
 	VerifyHandlePin(ctx context.Context, handle, pin string) (merchantID, environment string, err error)
-	Claim(ctx context.Context, merchantID, environment, handle, pin string) error
 	LookupHandle(ctx context.Context, handle string) (MerchantLookup, error)
 }
 
@@ -198,70 +197,6 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		    SET failed_attempts = 0, locked_until = NULL, updated_at = now()
 		  WHERE handle = $1`, handle)
 	return merchantID, environment, nil
-}
-
-// Claim sets/updates the @handle + PIN for an already-authenticated merchant.
-// It reserves the handle in the global registry (rejecting reserved or
-// consumer/other-merchant handles) and upserts the credential.
-func (s *PostgresMerchantCredentialService) Claim(ctx context.Context, merchantID, environment, handle, pin string) error {
-	handle = NormaliseHandle(handle)
-	if err := ValidateHandle(handle); err != nil {
-		return err
-	}
-	if err := ValidatePin(pin); err != nil {
-		return err
-	}
-	hash, err := bcrypt.GenerateFromPassword([]byte(pin), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	// Reserve the handle globally (or confirm this merchant already owns it).
-	var (
-		ownerType string
-		ownerID   *string
-		reserved  *string
-	)
-	scanErr := tx.QueryRow(ctx,
-		`SELECT owner_type, owner_id::text, reserved_reason
-		   FROM handle_registry WHERE handle = $1`, handle).
-		Scan(&ownerType, &ownerID, &reserved)
-	switch {
-	case errors.Is(scanErr, pgx.ErrNoRows):
-		if _, err := tx.Exec(ctx,
-			`INSERT INTO handle_registry (handle, owner_type, owner_id)
-			 VALUES ($1, 'MERCHANT', $2)`, handle, merchantID); err != nil {
-			return err
-		}
-	case scanErr != nil:
-		return scanErr
-	default:
-		if ownerType == "SYSTEM" || reserved != nil {
-			return ErrHandleReserved
-		}
-		if ownerType != "MERCHANT" || ownerID == nil || *ownerID != merchantID {
-			return ErrMerchantHandleTaken
-		}
-		// Already owned by this merchant — re-claim is allowed.
-	}
-
-	if _, err := tx.Exec(ctx,
-		`INSERT INTO merchant_app_credentials (merchant_id, environment, handle, pin_hash)
-		 VALUES ($1, $2, $3, $4)
-		 ON CONFLICT (merchant_id, environment)
-		 DO UPDATE SET handle = EXCLUDED.handle, pin_hash = EXCLUDED.pin_hash,
-		               failed_attempts = 0, locked_until = NULL, updated_at = now()`,
-		merchantID, environment, handle, string(hash)); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
 }
 
 // LookupHandle reports whether a login handle exists and may sign in. It returns
