@@ -1,0 +1,116 @@
+{
+  "schema": "banzami-project-onboarding-e2e/v1",
+  "api": "https://developer-api.banzami.com",
+  "gateway": "https://sandbox-api.banzami.com",
+  "ran_at": "2026-09-10T14:57:16.244Z",
+  "steps": [
+    {
+      "step": "a fresh workspace with three Projects, an OWNER and a DEVELOPER",
+      "ok": true,
+      "note": "015828c3 621984a0 46afc69c"
+    },
+    {
+      "step": "a new Project is NOT_CONFIGURED, and its OWNER may act",
+      "ok": true,
+      "note": "UNCONFIGURED/NOT_CONFIGURED"
+    },
+    {
+      "step": "a DEVELOPER sees the state but may not act",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "the retired one-click owner is refused (no self-approved Business)",
+      "ok": true,
+      "note": "410 FINANCIAL_SETUP_BY_REVIEW"
+    },
+    {
+      "step": "a DEVELOPER cannot apply for the Project",
+      "ok": true,
+      "note": "403"
+    },
+    {
+      "step": "the OWNER applies: SUBMITTED",
+      "ok": true,
+      "note": "201 b01faabf"
+    },
+    {
+      "step": "it is the ONE Business application, origin DEVELOPER_PROJECT, for THIS Project",
+      "ok": true,
+      "note": "DEVELOPER_PROJECT|015828c3-26c0-4dda-b967-d63b87f6a2c7|SUBMITTED"
+    },
+    {
+      "step": "the Project reads IN_REVIEW with what is still due",
+      "ok": true,
+      "note": "IN_REVIEW due=BUSINESS_REGISTRATION,REPRESENTATIVE_ID"
+    },
+    {
+      "step": "a second application while one is in progress is refused",
+      "ok": true,
+      "note": "409 APPLICATION_IN_PROGRESS"
+    },
+    {
+      "step": "the Project key reads onboarding IN_REVIEW and the requested @, not the application",
+      "ok": true,
+      "note": "{\"application_status\":\"SUBMITTED\",\"requested_handle\":\"@onb_mtvni09w\",\"state\":\"IN_REVIEW\"}"
+    },
+    {
+      "step": "a synthetic existing Business issues consent codes from its own session",
+      "ok": true,
+      "note": "41c9085e code issued"
+    },
+    {
+      "step": "a code replaced by a newer one is refused",
+      "ok": true,
+      "note": "422 LINK_CODE_INVALID"
+    },
+    {
+      "step": "typing the Business's @handle proves nothing",
+      "ok": true,
+      "note": "422"
+    },
+    {
+      "step": "a DEVELOPER cannot connect a Business",
+      "ok": true,
+      "note": "403"
+    },
+    {
+      "step": "a Project with an application in progress cannot also connect one",
+      "ok": true,
+      "note": "409 APPLICATION_IN_PROGRESS"
+    },
+    {
+      "step": "the OWNER connects the existing Business with its code",
+      "ok": true,
+      "note": "200 {\"name\":\"Negocio Existente mtvni09w\",\"handle\":\"@onbbmtvni09w\",\"kyb_status\":\"APPROVED\",\"verified\":true}"
+    },
+    {
+      "step": "Project B now receives into that Business — its name, @handle, verified",
+      "ok": true,
+      "note": "READY/BLOCKED Negocio Existente mtvni09w"
+    },
+    {
+      "step": "the binding names the existing Business: nothing was created",
+      "ok": true,
+      "note": "41c9085e"
+    },
+    {
+      "step": "still one wallet for the Business",
+      "ok": true,
+      "note": "1"
+    },
+    {
+      "step": "the spent code is refused to any other Project",
+      "ok": true,
+      "note": "422 LINK_CODE_INVALID bindings=0"
+    },
+    {
+      "step": "BANZADMIN's Business view lists Project B",
+      "ok": true,
+      "note": "1 project(s)"
+    }
+  ],
+  "pass": 21,
+  "fail": 0,
+  "verdict": "PASS"
+}
