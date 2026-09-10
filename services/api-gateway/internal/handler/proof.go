@@ -38,10 +38,9 @@ func (h *ProofHandler) hash(v string) string {
 	return hex.EncodeToString(sum[:])[:32]
 }
 
+// clientIP is the address chi's RealIP resolved from the edge's headers — the
+// same one the rate limiter uses — not the caller's own X-Forwarded-For.
 func clientIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		return strings.TrimSpace(strings.Split(xff, ",")[0])
-	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

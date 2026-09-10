@@ -36,6 +36,59 @@
 resolver 127.0.0.11 ipv6=off valid=10s;
 resolver_timeout 5s;
 
+# ─── who the client is ──────────────────────────────────────────────────────
+# Every per-IP limit behind this proxy (credential sign-in, application
+# submissions, legacy proof lookups) keys on the client address the services
+# receive. They received whatever the caller chose: this proxy appended to the
+# caller's X-Forwarded-For and left True-Client-IP untouched, and the gateway's
+# RealIP middleware believes True-Client-IP, then X-Real-IP, then the FIRST
+# X-Forwarded-For entry. Rotating a header defeated every per-IP limit.
+#
+# Now the address is decided here, once. $remote_addr becomes Cloudflare's
+# CF-Connecting-IP — but only when the connection really comes from Cloudflare
+# (its published ranges, https://www.cloudflare.com/ips-v4 and /ips-v6, fetched
+# 2026-09-10); a direct connection keeps its own address, so a forged
+# CF-Connecting-IP from outside Cloudflare counts for nothing. Every server then
+# forwards that one address in all three headers, replacing what the caller sent.
+real_ip_header CF-Connecting-IP;
+real_ip_recursive off;
+set_real_ip_from 173.245.48.0/20;
+set_real_ip_from 103.21.244.0/22;
+set_real_ip_from 103.22.200.0/22;
+set_real_ip_from 103.31.4.0/22;
+set_real_ip_from 141.101.64.0/18;
+set_real_ip_from 108.162.192.0/18;
+set_real_ip_from 190.93.240.0/20;
+set_real_ip_from 188.114.96.0/20;
+set_real_ip_from 197.234.240.0/22;
+set_real_ip_from 198.41.128.0/17;
+set_real_ip_from 162.158.0.0/15;
+set_real_ip_from 104.16.0.0/13;
+set_real_ip_from 104.24.0.0/14;
+set_real_ip_from 172.64.0.0/13;
+set_real_ip_from 131.0.72.0/22;
+set_real_ip_from 2400:cb00::/32;
+set_real_ip_from 2606:4700::/32;
+set_real_ip_from 2803:f800::/32;
+set_real_ip_from 2405:b500::/32;
+set_real_ip_from 2405:8100::/32;
+set_real_ip_from 2a06:98c0::/29;
+set_real_ip_from 2c0f:f248::/32;
+
+# ─── access log without proof references ─────────────────────────────────────
+# A proof reference is a bearer capability: whoever holds it reads the payment.
+# nginx's default format logged the request line whole — and the Referer, which
+# carries the verification page's URL — so every lookup of /v1/public/proofs/<ref>
+# or /r/<ref> wrote the full reference to the access log. This format keeps the
+# reference's first group only and drops the Referer. Used by the servers that
+# carry references.
+map $request $bz_request_redacted {
+    "~^(?<bz_head>\S+ /(?:v1/public/proofs|r)/BZM-[0-9A-Za-z]{4})\S*(?<bz_tail> \S+)$" "${bz_head}...${bz_tail}";
+    default $request;
+}
+log_format bz_redacted '$remote_addr [$time_local] "$bz_request_redacted" $status $body_bytes_sent "$http_user_agent"';
+
+
 # ─── admin.banzami.com — BANZADMIN, the Sandbox operator control plane ───────
 #
 # Stage D (2026-09-08). It belongs on this edge, not the website one: the
@@ -71,8 +124,9 @@ server {
         proxy_pass http://$sb_admin_api;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $http_cf_connecting_ip;
-        proxy_set_header   X-Forwarded-For   $http_cf_connecting_ip;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   True-Client-IP    $remote_addr;
+        proxy_set_header   X-Forwarded-For   $remote_addr;
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_read_timeout 60s;
     }
@@ -82,8 +136,9 @@ server {
         proxy_pass http://$sb_admin_app;
         proxy_http_version 1.1;
         proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $http_cf_connecting_ip;
-        proxy_set_header   X-Forwarded-For   $http_cf_connecting_ip;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   True-Client-IP    $remote_addr;
+        proxy_set_header   X-Forwarded-For   $remote_addr;
         proxy_set_header   X-Forwarded-Proto $scheme;
     }
 }
@@ -93,6 +148,7 @@ server {
     listen 443 ssl;
     http2 on;
     server_name sandbox-api.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -103,7 +159,8 @@ server {
     proxy_http_version 1.1;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header True-Client-IP    $remote_addr;
+    proxy_set_header X-Forwarded-For   $remote_addr;
     proxy_set_header X-Forwarded-Proto https;
     proxy_connect_timeout 5s;
     proxy_read_timeout    30s;
@@ -151,7 +208,8 @@ server {
     proxy_http_version 1.1;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header True-Client-IP    $remote_addr;
+    proxy_set_header X-Forwarded-For   $remote_addr;
     proxy_set_header X-Forwarded-Proto https;
     proxy_connect_timeout 5s;
     proxy_read_timeout    30s;
@@ -206,7 +264,8 @@ server {
     proxy_http_version 1.1;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header True-Client-IP    $remote_addr;
+    proxy_set_header X-Forwarded-For   $remote_addr;
     proxy_set_header X-Forwarded-Proto https;
     proxy_connect_timeout 5s;
     proxy_read_timeout    70s;
@@ -256,7 +315,8 @@ server {
     proxy_http_version 1.1;
     proxy_set_header Host              $host;
     proxy_set_header X-Real-IP         $remote_addr;
-    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header True-Client-IP    $remote_addr;
+    proxy_set_header X-Forwarded-For   $remote_addr;
     proxy_set_header X-Forwarded-Proto https;
     proxy_connect_timeout 5s;
     proxy_read_timeout    30s;

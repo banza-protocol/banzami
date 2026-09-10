@@ -98,9 +98,12 @@ func ProofVerifyRateLimit(rdb *redis.Client, isLegacy func(ref string) bool) fun
 // The reference is deliberately NOT part of the key. Keying on it would give an
 // attacker a fresh allowance for every guess, which is the opposite of a limit.
 func trustedClientIP(r *http.Request) string {
-	if xff := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); xff != "" {
-		return strings.TrimSpace(strings.Split(xff, ",")[0])
-	}
+	// The address chi's RealIP already resolved from the headers the edge SETS
+	// (sandbox-edge.conf.template: Cloudflare's CF-Connecting-IP, trusted only
+	// from Cloudflare's ranges, forwarded as X-Real-IP / True-Client-IP /
+	// X-Forwarded-For — replacing, never appending to, what the caller sent).
+	// Reading the first X-Forwarded-For entry here instead took the caller's own
+	// word for it: rotating that header gave a fresh per-IP allowance per guess.
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr

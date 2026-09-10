@@ -62,7 +62,8 @@ func call(t *testing.T, rdb *redis.Client, ref, ip string) *httptest.ResponseRec
 	router.Method(http.MethodGet, "/v1/public/proofs/{ref}", h)
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/public/proofs/"+ref, nil)
-	req.Header.Set("X-Forwarded-For", ip)
+	// What chi's RealIP leaves after reading the edge's headers.
+	req.RemoteAddr = ip + ":40000"
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 	_ = reached
@@ -165,5 +166,34 @@ func TestLegacyProof_FailsOpenOnRedisError(t *testing.T) {
 	defer dead.Close()
 	if rec := call(t, dead, legacyRef, "203.0.113.5"); rec.Code == http.StatusTooManyRequests {
 		t.Fatal("a broken Redis must fail open, not block verification")
+	}
+}
+
+// A caller cannot buy a fresh allowance by naming itself: a rotating
+// X-Forwarded-For from one connection is still one client.
+func TestLegacyProof_SpoofedForwardedForEarnsNothing(t *testing.T) {
+	rdb := redisForTest(t)
+	ip := "203.0.113.77"
+	clearBuckets(t, rdb, ip)
+	spoofed := func(n int) *httptest.ResponseRecorder {
+		h := ProofVerifyRateLimit(rdb, isLegacyShape)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}))
+		router := chi.NewRouter()
+		router.Method(http.MethodGet, "/v1/public/proofs/{ref}", h)
+		req := httptest.NewRequest(http.MethodGet, "/v1/public/proofs/"+legacyRef, nil)
+		req.RemoteAddr = ip + ":40000"
+		req.Header.Set("X-Forwarded-For", fmt.Sprintf("198.51.100.%d", n))
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec
+	}
+	for i := 1; i <= LegacyProofPerIPPerMinute; i++ {
+		if rec := spoofed(i); rec.Code == http.StatusTooManyRequests {
+			t.Fatalf("request %d limited too early", i)
+		}
+	}
+	if rec := spoofed(99); rec.Code != http.StatusTooManyRequests {
+		t.Fatalf("a spoofed X-Forwarded-For bought request %d: status %d", LegacyProofPerIPPerMinute+1, rec.Code)
 	}
 }
