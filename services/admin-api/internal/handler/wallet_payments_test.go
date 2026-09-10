@@ -44,7 +44,8 @@ func TestAdminWalletPaymentsList_Mapped(t *testing.T) {
 		t.Fatalf("items=%d next=%q", len(resp.Items), resp.NextCursor)
 	}
 	it := resp.Items[0]
-	if it.Reference != "BZM-AAAA-1111" || it.MerchantName != "Mercado Central, Lda." || !it.ReceiptAvailable {
+	// No BZM-shaped "reference" here either — see the gateway list test.
+	if it.MerchantName != "Mercado Central, Lda." || !it.ReceiptAvailable {
 		t.Errorf("mapping wrong: %+v", it)
 	}
 }

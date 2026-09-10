@@ -53,9 +53,11 @@ func TestWalletPaymentsList_ScopedAndMapped(t *testing.T) {
 		t.Fatalf("items=%d next=%q", len(resp.Items), resp.NextCursor)
 	}
 	it := resp.Items[0]
-	if it.Reference != "BZM-AAAA-1111" {
-		t.Errorf("reference = %q", it.Reference)
-	}
+	// The list no longer carries a BZM-shaped "reference". That value was derived
+	// from the payment id and was never a proof: for a payment made after the
+	// proof-before-receipt change the real proof is SECURE_V1, so the two diverged
+	// and a merchant pasting the list value into the public verifier got NOT_FOUND.
+	// A BZM- value must mean a resolvable proof or not exist at all.
 	if !it.ReceiptAvailable {
 		t.Error("COMPLETED should have receipt_available true")
 	}

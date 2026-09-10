@@ -31,12 +31,30 @@ func NewPostgresReceiptSource(pool *pgxpool.Pool) *PostgresReceiptSource {
 	return &PostgresReceiptSource{pool: pool}
 }
 
-func receiptReference(id string) string {
-	hex := strings.ToUpper(strings.ReplaceAll(id, "-", ""))
-	if len(hex) < 8 {
-		return "BZM-" + hex
+// existingProofReference returns the public proof reference for a transaction, or
+// "" when none exists.
+//
+// It does NOT derive one. This used to compute BZM-XXXX-XXXX from the object id
+// and print it as a verification URL, which meant an operator-issued receipt
+// advertised a page that had never been backed by a proof and answered "does not
+// exist or may have been forged". Nor does it MINT one: proofs are established
+// when the payer or merchant issues a receipt, and an operator viewing a document
+// is not that event — creating public proof capability as a side effect of an
+// internal read would be worse than the missing line.
+//
+// With no proof, the receipt simply renders no verification block.
+func (s *PostgresReceiptSource) existingProofReference(ctx context.Context, txnID, environment string) string {
+	env := strings.TrimSpace(environment)
+	if env == "" {
+		env = "LIVE"
 	}
-	return "BZM-" + hex[0:4] + "-" + hex[4:8]
+	var ref string
+	if err := s.pool.QueryRow(ctx,
+		`SELECT proof_reference FROM transaction_proofs WHERE transaction_id=$1 AND environment=$2`,
+		txnID, env).Scan(&ref); err != nil {
+		return ""
+	}
+	return ref
 }
 
 // LoadReceipt resolves a merchant payment first (wallet_payments), then a P2P
@@ -47,7 +65,7 @@ func (s *PostgresReceiptSource) LoadReceipt(ctx context.Context, id string) (doc
 	} else if ok {
 		payerName, payerHandle := s.consumer(ctx, wp.consumerID)
 		merchantName := s.merchant(ctx, wp.merchantID)
-		ref := receiptReference(wp.id)
+		ref := s.existingProofReference(ctx, wp.id, wp.environment)
 		return documents.ReceiptData{
 			ReceiptID: wp.id, TransactionID: wp.id, Reference: ref,
 			Perspective: documents.PerspectiveMerchant,
@@ -55,7 +73,7 @@ func (s *PostgresReceiptSource) LoadReceipt(ctx context.Context, id string) (doc
 			CreatedAt: wp.createdAt, CompletedAt: wp.createdAt, IssuedAt: wp.createdAt,
 			PayerName: payerName, PayerHandle: payerHandle, MerchantName: merchantName,
 			PaymentMethod: "Pagamento por QR · @banza", Environment: wp.environment,
-			VerificationReference: "banzami.com/r/" + ref,
+			VerificationReference: verificationRefOrEmpty(ref),
 		}, nil
 	}
 
@@ -64,7 +82,7 @@ func (s *PostgresReceiptSource) LoadReceipt(ctx context.Context, id string) (doc
 	} else if ok {
 		sName, sHandle := s.consumer(ctx, tf.senderID)
 		rName, rHandle := s.consumer(ctx, tf.recipientID)
-		ref := receiptReference(tf.id)
+		ref := s.existingProofReference(ctx, tf.id, tf.environment)
 		return documents.ReceiptData{
 			ReceiptID: tf.id, TransactionID: tf.id, Reference: ref,
 			Perspective: documents.PerspectiveConsumer,
@@ -72,7 +90,7 @@ func (s *PostgresReceiptSource) LoadReceipt(ctx context.Context, id string) (doc
 			CreatedAt: tf.createdAt, CompletedAt: tf.updatedAt, IssuedAt: tf.updatedAt,
 			PayerName: sName, PayerHandle: sHandle, RecipientName: rName, RecipientHandle: rHandle,
 			PaymentMethod: "Transferência Banzami · @banza", Description: tf.description,
-			VerificationReference: "banzami.com/r/" + ref,
+			VerificationReference: verificationRefOrEmpty(ref),
 		}, nil
 	}
 
@@ -101,16 +119,17 @@ func (s *PostgresReceiptSource) walletPayment(ctx context.Context, id string) (w
 
 type transferRow struct {
 	id, senderID, recipientID, currency, status, description string
+	environment                                              string
 	amountMinor                                              int64
 	createdAt, updatedAt                                     time.Time
 }
 
 func (s *PostgresReceiptSource) transfer(ctx context.Context, id string) (transferRow, bool, error) {
 	const q = `SELECT id::text, sender_id::text, recipient_id::text, amount_minor, currency, status,
-		COALESCE(description,''), created_at, updated_at
+		COALESCE(description,''), COALESCE(environment,'LIVE'), created_at, updated_at
 		FROM transfers WHERE id::text = $1 LIMIT 1`
 	var t transferRow
-	err := s.pool.QueryRow(ctx, q, id).Scan(&t.id, &t.senderID, &t.recipientID, &t.amountMinor, &t.currency, &t.status, &t.description, &t.createdAt, &t.updatedAt)
+	err := s.pool.QueryRow(ctx, q, id).Scan(&t.id, &t.senderID, &t.recipientID, &t.amountMinor, &t.currency, &t.status, &t.description, &t.environment, &t.createdAt, &t.updatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return transferRow{}, false, nil
 	}
@@ -140,4 +159,13 @@ func (s *PostgresReceiptSource) merchant(ctx context.Context, id string) string 
 		return ""
 	}
 	return name
+}
+
+// verificationRefOrEmpty keeps an absent proof absent rather than turning it into
+// a URL with nothing after the slash.
+func verificationRefOrEmpty(ref string) string {
+	if strings.TrimSpace(ref) == "" {
+		return ""
+	}
+	return "banzami.com/r/" + ref
 }

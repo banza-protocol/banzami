@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/admin-api/internal/service"
@@ -24,17 +23,8 @@ func NewWalletPaymentsHandler(l AdminWalletPaymentLister) *WalletPaymentsHandler
 	return &WalletPaymentsHandler{lister: l}
 }
 
-func adminWalletReference(id string) string {
-	hex := strings.ToUpper(strings.ReplaceAll(id, "-", ""))
-	if len(hex) < 8 {
-		return "BZM-" + hex
-	}
-	return "BZM-" + hex[0:4] + "-" + hex[4:8]
-}
-
 type adminWalletPaymentDTO struct {
 	ID               string `json:"id"`
-	Reference        string `json:"reference"`
 	MerchantID       string `json:"merchant_id"`
 	MerchantName     string `json:"merchant_name"`
 	PayerName        string `json:"payer_name"`
@@ -96,7 +86,6 @@ func (h *WalletPaymentsHandler) List(w http.ResponseWriter, r *http.Request) {
 	for _, it := range items {
 		out.Items = append(out.Items, adminWalletPaymentDTO{
 			ID:               it.ID,
-			Reference:        adminWalletReference(it.ID),
 			MerchantID:       it.MerchantID,
 			MerchantName:     it.MerchantName,
 			PayerName:        it.PayerName,

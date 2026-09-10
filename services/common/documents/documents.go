@@ -222,11 +222,22 @@ func toView(d ReceiptData) receiptView {
 	if desc == "" {
 		desc = "—"
 	}
-	verify := strings.TrimSpace(d.VerificationReference)
-	if verify == "" && d.Reference != "" {
-		verify = "banzami.com/r/" + d.Reference
+	// A receipt may only advertise verification when it HAS a proof reference.
+	//
+	// Without this the QR encoded https://banzami.com/r/ with nothing after it and
+	// the document promised a verification that could never resolve. A receipt that
+	// claims verifiability it does not have is the defect this whole contract
+	// exists to remove — an absent reference must render no QR and no verify line
+	// rather than a broken one.
+	verify := ""
+	qrURL := ""
+	if ref := strings.TrimSpace(d.Reference); ref != "" {
+		verify = strings.TrimSpace(d.VerificationReference)
+		if verify == "" {
+			verify = "banzami.com/r/" + ref
+		}
+		qrURL = verificationURL(ref)
 	}
-	qrURL := verificationURL(d.Reference)
 
 	return receiptView{
 		DocLabel:    docLabel,
@@ -245,8 +256,13 @@ func toView(d ReceiptData) receiptView {
 		State:       statePT(d.Status),
 		VerifyShort: verify,
 		VerifyURL:   qrURL,
-		QRSVG:       qrSVG(qrURL, d.Perspective),
-		IsSandbox:   strings.EqualFold(strings.TrimSpace(d.Environment), "SANDBOX"),
+		QRSVG: func() template.HTML {
+			if qrURL == "" {
+				return ""
+			}
+			return qrSVG(qrURL, d.Perspective)
+		}(),
+		IsSandbox: strings.EqualFold(strings.TrimSpace(d.Environment), "SANDBOX"),
 	}
 }
 
