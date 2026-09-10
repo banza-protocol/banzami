@@ -117,6 +117,15 @@ No dedicated application-purpose wallet account is required: the fee is
 credited to the destination's own account. Readiness says so explicitly
 (`application_account_ready` = the account can receive).
 
+**What `application_fee_account_id` is.** The ledger account the fee is
+credited to: the *available* account of the destination Business's ACTIVE wallet
+in the settlement currency. The caller never supplies it; the gateway resolves it
+from `fee_destination_banza_name` (and refuses a @banza the caller does not own)
+and passes it to core. Nobody creates it for the purpose — it is created with the
+Business's wallet, by wallet provisioning (for a Developer Project, by Console
+Financial Setup). There is no application-purpose wallet account, and ADR-028
+does not require one.
+
 **Classification is an operator decision.** The default is `MERCHANT`. It
 changes only through the operator path — `PATCH
 /admin/v1/merchants/{id}/business-account-type` behind BANZADMIN, with a reason,
