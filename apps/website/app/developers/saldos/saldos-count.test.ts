@@ -36,6 +36,6 @@ describe('Console balances', () => {
   });
 
   it('says which account the developer did not open', () => {
-    expect(CODE).toMatch(/aberta com o ambiente financeiro/);
+    expect(CODE).toMatch(/conta principal do negócio/);
   });
 });
