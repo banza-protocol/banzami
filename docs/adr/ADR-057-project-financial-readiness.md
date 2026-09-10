@@ -149,6 +149,10 @@ rules, the same routes, the same readiness.
 - A Project on a priced profile whose account is not classified reads
   `FEE_DESTINATION_TYPE_NOT_ALLOWED` in readiness — the refusal settlement would
   return — until an operator classifies it.
+- A Project key never receives `merchant_id` on any resource (payment
+  sessions, payment links, refunds, webhook endpoints and events): one
+  middleware on the dual-credential group removes owner identifiers from JSON
+  responses to a Project-key principal, asserted on every mounted route.
 - SDK 0.12.0: `getFinancialSetup()`, `me().project` is an object,
   `getBusinessMe()` removed. Breaking for readers of `me().project` as a string.
 - The readiness contract is duplicated as a projection in the gateway and
