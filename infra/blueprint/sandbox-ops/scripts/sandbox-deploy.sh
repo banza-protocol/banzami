@@ -395,6 +395,16 @@ release_config_env() {
       echo "KYB_STORAGE_BUCKET=banzami-kyb-sandbox"
       echo "KYB_STORAGE_REGION=auto"
       ;;
+    developer-api)
+      # Where the Developers Console's financial onboarding reaches the Business
+      # application domain (applications, Business consent codes). The internal
+      # credential is INTERNAL_API_KEY from /run/secrets/core_internal_key.
+      # Resolved from the running Gateway, like public-api's below.
+      local dgw
+      dgw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
+      [ -n "$dgw" ] || dgw="${BZSB_PROJECT:-}-api-gateway-staging"
+      echo "GATEWAY_INTERNAL_URL=http://${dgw}:8080"
+      ;;
     public-api-staging)
       # Where public-api asks the Gateway to mint a transaction proof.
       #
