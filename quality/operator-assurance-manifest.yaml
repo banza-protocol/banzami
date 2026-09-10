@@ -520,6 +520,48 @@ capabilities:
     # and keys, and reads as empty when the project is empty. The illustrative
     # list is empty, and that emptiness is the assertion.
 
+  - id: CAP-READINESS-001
+    name: Project financial readiness (GET /v1/financial-setup)
+    owner: developer-platform
+    public_status: public-sandbox
+    environments:
+      sandbox: true
+      live: false
+    authority: internal
+    authority_ref: operator policy (ADR-057; ADR-028 fee-destination rule)
+    implementation:
+      - core/api (POST /internal/v1/settlement-readiness — same pricing resolver and ADR-028 evaluation settlement uses)
+      - services/api-gateway (GET /v1/financial-setup, Project key only; /v1/me project {id,name,ref})
+      - services/developer-api (Console financial setup carries the same readiness)
+      - sdk/typescript (getFinancialSetup, 0.12.0)
+    api_surface:
+      - GET /v1/financial-setup (scope identity:read, Project key is the only authority)
+      - GET /v1/me (project {id, name, ref})
+    threat_category: identity-auth
+    tests:
+      unit:
+        - core/api/src/routes/settlement_readiness_tests.rs (readiness and settlement create agree on every case)
+        - services/api-gateway/internal/handler/financial_setup_test.go
+        - services/developer-api/internal/developer/financial_setup_settlement_readiness_test.go
+        - tests/ops/project-readiness-contract-guard.test.mjs (legacy routes, caller pricing fields, SDK profile readers, application special cases = 0)
+      integration: []
+      e2e_sandbox:
+        - tests/phase0/project-readiness-e2e.sh (CASE A sandbox-default, CASE B sandbox-reference; 49/49 deployed)
+        - tests/phase0/project-readiness-probe.sh (an existing Project, identity:read key)
+      negative_security:
+        - invalid key 401, missing scope 403, Project key refused on /v1/integration, request cannot name another owner, caller pricing field 400, a stranger's fee-destination state not reported, no internal identifiers in any response
+    deployment_gate: sandbox-e2e-required
+    cleanup_disposition: active-required
+    evidence:
+      - evidence/assurance/developer-platform/project-readiness-2026-09-10.json
+      - docs/adr/ADR-057-project-financial-readiness.md
+    surface: public
+    disposition: released
+    status: verified
+    # Readiness is computed by the code that settles, so settlement.ready is true
+    # exactly when settlement's deterministic prerequisites pass. Financial LIVE
+    # remains NOT READY / FAIL-CLOSED; this capability is Sandbox-only.
+
   - id: CAP-DEV-002
     name: API key lifecycle (sandbox keys, one-time secret reveal)
     owner: developer-platform

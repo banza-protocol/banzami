@@ -15,8 +15,8 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | blocked | 5 |
 | in-audit | 1 |
-| verified | 17 |
-| **total** | **23** |
+| verified | 18 |
+| **total** | **24** |
 
 ## Capabilities
 
@@ -34,6 +34,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-WEBHOOK-001 | Signed webhooks (banza-signature) | operator-events | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PROOF-001 | Receipts, proofs and verification pages (/r/{ref}) | operator-proofs | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-001 | Developer Console (login, OTP, workspaces, projects) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-READINESS-001 | Project financial readiness (GET /v1/financial-setup) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-002 | API key lifecycle (sandbox keys, one-time secret reveal) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DEV-003 | Console API request logs (project-scoped, request_id correlation) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-DOCS-001 | Developer documentation site | developer-platform | public | **released** | ✅ | 🔒 no | static-only | verified |
@@ -52,9 +53,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 |---|---|
 | internal_only | 1 |
 | quarantined | 5 |
-| released | 17 |
+| released | 18 |
 
-Public surfaces released: **16/16**. Full external launch requires 16/16.
+Public surfaces released: **17/17**. Full external launch requires 17/17.
 
 ## Detail
 
@@ -245,6 +246,22 @@ Public surfaces released: **16/16**. Full external launch requires 16/16.
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [services/developer-api/internal/accountidentity (flow, crypto, email)] · integration [services/developer-api workspace/project authz tests] · e2e_sandbox [tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*), tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.overview-* — the Overview moves with real traffic and renders none of the old constants)] · negative/security [unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage, zero-mock: no Console page renders illustrative data (apps/website/app/developers/illustrative-data.test.ts, ILLUSTRATIVE list empty)]
 - **Evidence:** evidence/assurance/dev-foundation/e2e-1783197561.json, evidence/assurance/dev-foundation/api-logs-correlation-1788633497.json
+- **Cleanup disposition:** active-required
+- **External surface:** public · **Disposition:** **released**
+- **Launch scope:** sandbox
+- **Status:** **verified**
+
+### CAP-READINESS-001 — Project financial readiness (GET /v1/financial-setup)
+
+- **Owner:** developer-platform
+- **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
+- **Authority:** internal — operator policy (ADR-057; ADR-028 fee-destination rule)
+- **Threat category:** identity-auth
+- **Implementation:** core/api (POST /internal/v1/settlement-readiness — same pricing resolver and ADR-028 evaluation settlement uses), services/api-gateway (GET /v1/financial-setup, Project key only; /v1/me project {id,name,ref}), services/developer-api (Console financial setup carries the same readiness), sdk/typescript (getFinancialSetup, 0.12.0)
+- **API/UI surface:** GET /v1/financial-setup (scope identity:read, Project key is the only authority), GET /v1/me (project {id, name, ref})
+- **Deployment gate:** sandbox-e2e-required
+- **Tests:** unit [core/api/src/routes/settlement_readiness_tests.rs (readiness and settlement create agree on every case), services/api-gateway/internal/handler/financial_setup_test.go, services/developer-api/internal/developer/financial_setup_settlement_readiness_test.go, tests/ops/project-readiness-contract-guard.test.mjs (legacy routes, caller pricing fields, SDK profile readers, application special cases = 0)] · integration [] · e2e_sandbox [tests/phase0/project-readiness-e2e.sh (CASE A sandbox-default, CASE B sandbox-reference; 49/49 deployed), tests/phase0/project-readiness-probe.sh (an existing Project, identity:read key)] · negative/security [invalid key 401, missing scope 403, Project key refused on /v1/integration, request cannot name another owner, caller pricing field 400, a stranger's fee-destination state not reported, no internal identifiers in any response]
+- **Evidence:** evidence/assurance/developer-platform/project-readiness-2026-09-10.json, docs/adr/ADR-057-project-financial-readiness.md
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox

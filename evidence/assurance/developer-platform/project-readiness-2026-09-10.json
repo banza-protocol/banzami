@@ -1,0 +1,390 @@
+{
+  "schema": "banzami-assurance-evidence/v1",
+  "capability": "CAP-READINESS-001",
+  "adr": "docs/adr/ADR-057-project-financial-readiness.md",
+  "environment": "SANDBOX",
+  "runtime_sha": "ef45667b0ae0",
+  "ran_at": "2026-09-10T08:15:45Z",
+  "transport": "Project keys over public HTTPS (https://sandbox-api.banzami.com); fixtures created through internal routes and retired on exit",
+  "generic_cleanroom": {
+    "harness": "tests/phase0/project-readiness-e2e.sh",
+    "pass": 49,
+    "fail": 0,
+    "checks": [
+      {
+        "check": "LEDGER_SOUND_BEFORE",
+        "result": "PASS",
+        "observed": "0"
+      },
+      {
+        "check": "PARTIES_READY",
+        "result": "PASS",
+        "observed": "yes"
+      },
+      {
+        "check": "A_KEY_ISSUED",
+        "result": "PASS",
+        "observed": "yes"
+      },
+      {
+        "check": "A_ME_200",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "A_ME_PROJECT_ID_IS_THE_PROJECT",
+        "result": "PASS",
+        "observed": "b885890a-e0cf-4e3d-9239-433b995d14df"
+      },
+      {
+        "check": "A_ME_PROJECT_REF",
+        "result": "PASS",
+        "observed": "readiness-a-75223961"
+      },
+      {
+        "check": "A_UNCONFIGURED_IS_200",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "A_UNCONFIGURED_STATE",
+        "result": "PASS",
+        "observed": "UNCONFIGURED"
+      },
+      {
+        "check": "A_UNCONFIGURED_BLOCKER",
+        "result": "PASS",
+        "observed": "FINANCIAL_SETUP_NOT_CONFIGURED"
+      },
+      {
+        "check": "A_UNCONFIGURED_NOT_READY",
+        "result": "PASS",
+        "observed": "false"
+      },
+      {
+        "check": "A_READY_200",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "A_PROJECT_ID",
+        "result": "PASS",
+        "observed": "b885890a-e0cf-4e3d-9239-433b995d14df"
+      },
+      {
+        "check": "A_STATE",
+        "result": "PASS",
+        "observed": "READY"
+      },
+      {
+        "check": "A_HANDLE",
+        "result": "PASS",
+        "observed": "@pr20eeea4655c"
+      },
+      {
+        "check": "A_KYB",
+        "result": "PASS",
+        "observed": "APPROVED"
+      },
+      {
+        "check": "A_WALLET",
+        "result": "PASS",
+        "observed": "ACTIVE/true/AOA"
+      },
+      {
+        "check": "A_PRICING",
+        "result": "PASS",
+        "observed": "sandbox-default/0/75"
+      },
+      {
+        "check": "A_NO_FEE_NO_DESTINATION_NEEDED",
+        "result": "PASS",
+        "observed": "false"
+      },
+      {
+        "check": "A_NOT_CLASSIFIED",
+        "result": "PASS",
+        "observed": "false"
+      },
+      {
+        "check": "A_SETTLEMENT_READY",
+        "result": "PASS",
+        "observed": "true"
+      },
+      {
+        "check": "A_NO_BLOCKERS",
+        "result": "PASS",
+        "observed": "0"
+      },
+      {
+        "check": "A_NAMES_NOTHING_BEHIND_THE_PROJECT",
+        "result": "PASS",
+        "observed": "none"
+      },
+      {
+        "check": "A_SETTLES_AS_READINESS_SAID",
+        "result": "PASS",
+        "observed": "agree"
+      },
+      {
+        "check": "A_FEE_ZERO",
+        "result": "PASS",
+        "observed": "0"
+      },
+      {
+        "check": "A_NET_IS_GROSS",
+        "result": "PASS",
+        "observed": "100000"
+      },
+      {
+        "check": "A_SNAPSHOT",
+        "result": "PASS",
+        "observed": "sandbox-default/0"
+      },
+      {
+        "check": "CALLER_PRICING_REFUSED",
+        "result": "PASS",
+        "observed": "400/PRICING_FIELD_NOT_ACCEPTED"
+      },
+      {
+        "check": "B_PRICING",
+        "result": "PASS",
+        "observed": "sandbox-reference/200/75"
+      },
+      {
+        "check": "B_FEE_NEEDS_A_DESTINATION",
+        "result": "PASS",
+        "observed": "true"
+      },
+      {
+        "check": "B_UNCLASSIFIED_BLOCKED",
+        "result": "PASS",
+        "observed": "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+      },
+      {
+        "check": "B_UNCLASSIFIED_NOT_READY",
+        "result": "PASS",
+        "observed": "false"
+      },
+      {
+        "check": "B_SETTLEMENT_REFUSES_WITH_THE_SAME_CODE",
+        "result": "PASS",
+        "observed": "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+      },
+      {
+        "check": "B_NOTHING_MOVED",
+        "result": "PASS",
+        "observed": "refused"
+      },
+      {
+        "check": "B_CLASSIFIED_BY_OPERATOR",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "B_CLASSIFICATION_AUDITED",
+        "result": "PASS",
+        "observed": "1"
+      },
+      {
+        "check": "B_READY",
+        "result": "PASS",
+        "observed": "true"
+      },
+      {
+        "check": "B_NO_BLOCKERS",
+        "result": "PASS",
+        "observed": "0"
+      },
+      {
+        "check": "B_FEE_DESTINATION",
+        "result": "PASS",
+        "observed": "true,true,true,true,true,true"
+      },
+      {
+        "check": "B_NAMES_NOTHING_BEHIND_THE_PROJECT",
+        "result": "PASS",
+        "observed": "none"
+      },
+      {
+        "check": "B_SETTLES_AS_READINESS_SAID",
+        "result": "PASS",
+        "observed": "201"
+      },
+      {
+        "check": "B_FEE",
+        "result": "PASS",
+        "observed": "2000"
+      },
+      {
+        "check": "B_NET",
+        "result": "PASS",
+        "observed": "98000"
+      },
+      {
+        "check": "B_SNAPSHOT",
+        "result": "PASS",
+        "observed": "sandbox-reference/200"
+      },
+      {
+        "check": "B_SNAPSHOT_STORED",
+        "result": "PASS",
+        "observed": "sandbox-reference/200/100000/2000/98000"
+      },
+      {
+        "check": "INVALID_KEY_401",
+        "result": "PASS",
+        "observed": "401"
+      },
+      {
+        "check": "NO_SCOPE_403",
+        "result": "PASS",
+        "observed": "403/INSUFFICIENT_SCOPE"
+      },
+      {
+        "check": "PROJECT_KEY_SENT_FROM_BUSINESS_PROFILE",
+        "result": "PASS",
+        "observed": "403/USE_FINANCIAL_SETUP"
+      },
+      {
+        "check": "REQUEST_CANNOT_NAME_ANOTHER_OWNER",
+        "result": "PASS",
+        "observed": "@pr20eeea4655c"
+      },
+      {
+        "check": "LEDGER_SOUND_AFTER",
+        "result": "PASS",
+        "observed": "0"
+      }
+    ]
+  },
+  "doa_sandbox_probe": {
+    "harness": "tests/phase0/project-readiness-probe.sh",
+    "key": "identity:read only, issued on the Project via the audited fixture path, revoked on exit",
+    "pass": 13,
+    "fail": 0,
+    "checks": [
+      {
+        "check": "KEY_ISSUED_IDENTITY_READ_ONLY",
+        "result": "PASS",
+        "observed": "yes"
+      },
+      {
+        "check": "ME_200",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "ME_PROJECT_ID",
+        "result": "PASS",
+        "observed": "84b0e8e6-fbda-417e-a537-19ad8574827a"
+      },
+      {
+        "check": "FS_200",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "FS_PROJECT_ID",
+        "result": "PASS",
+        "observed": "84b0e8e6-fbda-417e-a537-19ad8574827a"
+      },
+      {
+        "check": "HANDLE",
+        "result": "PASS",
+        "observed": "@doa"
+      },
+      {
+        "check": "KYB",
+        "result": "PASS",
+        "observed": "APPROVED"
+      },
+      {
+        "check": "WALLET",
+        "result": "PASS",
+        "observed": "ACTIVE/AOA"
+      },
+      {
+        "check": "PRICING_PROFILE",
+        "result": "PASS",
+        "observed": "sandbox-reference"
+      },
+      {
+        "check": "SETTLEMENT_BPS",
+        "result": "PASS",
+        "observed": "200"
+      },
+      {
+        "check": "PAYOUT_BPS",
+        "result": "PASS",
+        "observed": "75"
+      },
+      {
+        "check": "READY_IFF_NO_BLOCKERS",
+        "result": "PASS",
+        "observed": "true"
+      },
+      {
+        "check": "NAMES_NOTHING_BEHIND_THE_PROJECT",
+        "result": "PASS",
+        "observed": "none"
+      }
+    ],
+    "response": {
+      "environment": "SANDBOX",
+      "fee_destination": {
+        "application_account_ready": true,
+        "blocker": "FEE_DESTINATION_TYPE_NOT_ALLOWED",
+        "eligible": false,
+        "handle": "@doa",
+        "kyb_approved": true,
+        "owned_by_project": true,
+        "required": true,
+        "resolved": true,
+        "type_allowed": false,
+        "wallet_active": true
+      },
+      "financial_identity": {
+        "handle": "@doa"
+      },
+      "financial_setup": {
+        "configured": true,
+        "sealed": true,
+        "state": "SEALED"
+      },
+      "kyb": {
+        "status": "APPROVED"
+      },
+      "pricing": {
+        "payout_bps": 75,
+        "profile": "sandbox-reference",
+        "settlement_bps": 200
+      },
+      "project": {
+        "id": "84b0e8e6-fbda-417e-a537-19ad8574827a",
+        "name": "Doa-Sandbox",
+        "ref": "doa-sandbox-xpZKAZ"
+      },
+      "settlement": {
+        "blockers": [
+          "FEE_DESTINATION_TYPE_NOT_ALLOWED"
+        ],
+        "ready": false,
+        "warnings": []
+      },
+      "wallet": {
+        "currency": "AOA",
+        "ready": true,
+        "status": "ACTIVE"
+      }
+    },
+    "note": "Truthful state after migration 0115 withdrew the automated APPLICATION promotion: every fact passes except type_allowed, which awaits an operator classification in BANZADMIN."
+  },
+  "migration": {
+    "version": 115,
+    "reverted_automated_promotions": 38,
+    "audit_rows": 38
+  },
+  "doa_settlement_executed": false,
+  "secrets_in_file": false
+}
