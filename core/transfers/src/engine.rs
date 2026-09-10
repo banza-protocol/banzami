@@ -62,6 +62,10 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         if req.sender_id == req.recipient_id {
             return Err(TransferError::SelfTransfer);
         }
+        // The description is published on the receipt and through the public proof,
+        // so it is constrained here — at the write boundary that owns the record —
+        // rather than in whichever renderer happens to display it.
+        crate::description::validate_description(req.description.as_deref())?;
 
         // Idempotency: return existing transfer for the same key.
         if let Some(existing) = self

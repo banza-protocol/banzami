@@ -1,3 +1,4 @@
+pub mod description;
 pub mod engine;
 pub mod repository;
 pub mod transfer;
@@ -20,6 +21,9 @@ pub enum TransferError {
 
     #[error("amount_minor must be positive")]
     InvalidAmount,
+
+    #[error("invalid description: {0}")]
+    InvalidDescription(#[from] crate::description::DescriptionError),
 
     #[error("insufficient funds: available {available}, requested {requested}")]
     InsufficientFunds { available: Money, requested: Money },
