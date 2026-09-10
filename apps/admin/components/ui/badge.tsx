@@ -22,7 +22,7 @@ const VARIANT: Record<string, Variant> = {
   PENDING: 'warning', UNDER_REVIEW: 'warning', PROCESSING: 'warning', PENDING_UPLOAD: 'warning',
   PENDENTE: 'warning', 'EM ANÁLISE': 'warning', 'EM ANALISE': 'warning',
   // danger
-  REJECTED: 'danger', FAILED: 'danger', RETURNED: 'danger', OPEN: 'danger', BLOCKED: 'danger',
+  REJECTED: 'danger', FAILED: 'danger', PROVISIONING_FAILED: 'danger', RETURNED: 'danger', OPEN: 'danger', BLOCKED: 'danger',
   CANCELLED: 'danger', REJEITADO: 'danger', REJEITADA: 'danger', FALHADO: 'danger',
   DEVOLVIDO: 'danger', ABERTA: 'danger', BLOQUEADO: 'danger',
   // maroon (AML)
@@ -57,6 +57,7 @@ export function statusLabelPt(code: string | null | undefined): string {
     APPROVED: 'Aprovado',
     REJECTED: 'Rejeitado',
     CANCELLED: 'Cancelado',
+    PROVISIONING_FAILED: 'Falha no aprovisionamento',
     DRAFT: 'Rascunho',
     ACTIVE: 'Ativo',
     SUSPENDED: 'Suspenso',

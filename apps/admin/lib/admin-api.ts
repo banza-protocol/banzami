@@ -561,9 +561,13 @@ export class AdminApi {
       }
       let code = 'UNKNOWN', message = res.statusText;
       try {
-        const b = await res.json() as { error?: { code?: string; message?: string } };
-        code    = b.error?.code    ?? code;
-        message = b.error?.message ?? message;
+        // Both envelopes: admin-api's own {error:{code,message}}, and the flat
+        // {code,message} a forwarded gateway refusal carries — which is the one
+        // that says WHY (DOCUMENTS_REQUIRED, LINK_REQUIRED, …).
+        const b = await res.json() as { code?: string; message?: string; error?: string | { code?: string; message?: string } };
+        const nested = typeof b.error === 'object' ? b.error : undefined;
+        code    = nested?.code    ?? b.code    ?? code;
+        message = nested?.message ?? b.message ?? (typeof b.error === 'string' ? b.error : message);
       } catch { /* ignore */ }
       throw new AdminApiError(res.status, code, message);
     }
@@ -985,8 +989,28 @@ export class AdminApi {
     return this.req(`/admin/v1/merchant-applications/${id}`);
   }
   // Attribution (reviewed_by) is set server-side from the operator JWT.
-  approveApplication(id: string): Promise<{ status: string; handle: string; email_sent_to: string }> {
+  approveApplication(id: string): Promise<ApprovalOutcome> {
     return this.req(`/admin/v1/merchant-applications/${id}/approve`, { method: 'POST' });
+  }
+  startApplicationReview(id: string): Promise<MerchantApplication> {
+    return this.req(`/admin/v1/merchant-applications/${id}/start-review`, { method: 'POST' });
+  }
+  /** Attach the application to an existing Business Account — nothing is created. */
+  linkApplicationToExisting(id: string, merchantId: string, confirmationHandle: string, reason: string): Promise<{ merchant_id: string; handle: string; already_linked?: boolean }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/link-existing`, {
+      method: 'POST',
+      body: JSON.stringify({ merchant_id: merchantId, confirmation_handle: confirmationHandle, reason }),
+    });
+  }
+  reissueActivation(id: string): Promise<{ email_sent_to: string; activation_url?: string }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/reissue-activation`, { method: 'POST' });
+  }
+  applicationLinkCandidates(id: string, handle?: string): Promise<{ candidates: LinkCandidate[] }> {
+    const qs = handle ? `?handle=${encodeURIComponent(handle)}` : '';
+    return this.req(`/admin/v1/merchant-applications/${id}/link-candidates${qs}`);
+  }
+  applicationBusinessState(id: string): Promise<{ business: ApplicationBusinessState | null }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/business-state`);
   }
   rejectApplication(id: string, adminNotes: string, merchantMessage: string): Promise<{ status: string; email_sent_to: string }> {
     return this.req(`/admin/v1/merchant-applications/${id}/reject`, {
@@ -1225,7 +1249,7 @@ export interface Operator {
 
 export interface MerchantApplication {
   id:                   string;
-  status:               'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  status:               'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'PROVISIONING_FAILED';
   environment:          'LIVE' | 'SANDBOX';
   desired_handle:       string;
   business_name:        string;
@@ -1252,6 +1276,53 @@ export interface MerchantApplication {
   created_merchant_id:  string;
   created_at:           string;
   reviewed_at:          string | null;
+  /** The applicant says the requested @handle is already their Business's. */
+  claims_existing_business?: boolean;
+  /** How an APPROVED application was resolved. */
+  resolution?:          '' | 'PROVISIONED_NEW' | 'LINKED_EXISTING';
+  provisioning_error?:  string;
+  provisioning_attempts?: number;
+}
+
+export interface ApprovalOutcome {
+  status: string;
+  merchant_id: string;
+  handle: string;
+  email_sent_to?: string;
+  already_approved?: boolean;
+  /** Sandbox only: the activation link, shown to the operator once. */
+  activation_url?: string;
+}
+
+export interface LinkCandidate {
+  merchant_id: string;
+  name: string;
+  handle: string;
+  status: string;
+  kyb_status: string;
+  business_account_type: string;
+  owns_requested_handle: boolean;
+}
+
+export interface ApplicationBusinessState {
+  merchant_id: string;
+  name: string;
+  status: string;
+  business_account_type: string;
+  kyb_status: string;
+  handle: string;
+  wallet_status: string | null;
+  wallet_currency: string | null;
+  wallet_accounts: number;
+  pricing_profile: string | null;
+  login_activated: boolean;
+  login_exists: boolean;
+  developer_projects: number;
+  readiness: {
+    pricing: { profile: string | null; settlement_bps: number | null; payout_bps: number | null };
+    fee_destination: { required: boolean; type_allowed: boolean; eligible: boolean; blocker: string | null };
+    settlement: { ready: boolean; blockers: string[]; warnings: string[] };
+  } | null;
 }
 
 export interface KybDocument {

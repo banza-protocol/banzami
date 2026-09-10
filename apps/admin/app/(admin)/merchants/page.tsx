@@ -22,6 +22,7 @@ const CHIPS: { label: string; value: string }[] = [
   { label: 'Pendente', value: 'SUBMITTED' },
   { label: 'Em análise', value: 'UNDER_REVIEW' },
   { label: 'Aprovado', value: 'APPROVED' },
+  { label: 'Falha no aprovisionamento', value: 'PROVISIONING_FAILED' },
   { label: 'Rejeitado', value: 'REJECTED' },
   { label: 'Cancelado', value: 'CANCELLED' },
 ];

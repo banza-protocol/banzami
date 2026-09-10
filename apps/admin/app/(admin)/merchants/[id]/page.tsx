@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, Flag } from 'lucide-react';
+import { Flag } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type MerchantApplication } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
@@ -10,7 +10,8 @@ import { Card, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { KybDocumentsSection } from '@/components/applications/KybDocumentsSection';
-import { formatDate, initials, withAt, accountTypeLabel } from '@/lib/format';
+import { ApplicationActions, BusinessStatePanel } from '@/components/applications/ApplicationLifecycle';
+import { formatDate, initials, withAt } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -50,50 +51,7 @@ export default function MerchantDetailPage() {
     void load();
   }, [load]);
 
-  const open = m && (m.status === 'SUBMITTED' || m.status === 'UNDER_REVIEW');
   const approvedMerchant = m?.created_merchant_id;
-
-  async function approve() {
-    if (!api || !m) return;
-    const okGo = await dialog.confirm({
-      title: 'Aprovar candidatura',
-      message: `Aprovar ${m.business_name}? Isto cria a conta de comerciante e a wallet, e envia o email de ativação. A ação fica registada no log de auditoria.`,
-      confirmLabel: 'Aprovar',
-    });
-    if (!okGo) return;
-    setBusy('approve');
-    try {
-      await api.approveApplication(m.id);
-      toast('success', 'Candidatura aprovada. Email de ativação enviado.');
-      await load();
-    } catch {
-      toast('danger', 'Não foi possível aprovar a candidatura.');
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function reject() {
-    if (!api || !m) return;
-    const message = await dialog.prompt({
-      title: 'Rejeitar candidatura',
-      label: 'Motivo a comunicar ao comerciante (será enviado por email)',
-      multiline: true,
-      confirmLabel: 'Rejeitar',
-      required: true,
-    });
-    if (!message || !message.trim()) return;
-    setBusy('reject');
-    try {
-      await api.rejectApplication(m.id, '', message.trim());
-      toast('success', 'Candidatura rejeitada. Email enviado ao comerciante.');
-      await load();
-    } catch {
-      toast('danger', 'Não foi possível rejeitar a candidatura.');
-    } finally {
-      setBusy(null);
-    }
-  }
 
   async function flagAml() {
     if (!api || !approvedMerchant) return;
@@ -159,21 +117,9 @@ export default function MerchantDetailPage() {
           </div>
         </div>
 
-        <div className="mt-[22px] flex flex-wrap gap-[10px]">
-          <button
-            onClick={approve}
-            disabled={!open || busy !== null}
-            className="inline-flex items-center gap-2 rounded-[12px] bg-[#1f9d57] px-5 py-3 text-[14px] font-extrabold text-white transition hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Check size={16} strokeWidth={2.4} /> Aprovar KYC
-          </button>
-          <button
-            onClick={reject}
-            disabled={!open || busy !== null}
-            className="inline-flex items-center gap-2 rounded-[12px] border-[1.5px] border-[#f1c4c4] bg-white px-5 py-3 text-[14px] font-extrabold text-[#B5101F] transition hover:bg-[#FFF1F0] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Rejeitar
-          </button>
+        {api && <ApplicationActions api={api} app={m} onChanged={load} />}
+
+        <div className="mt-[10px] flex flex-wrap gap-[10px]">
           <button
             onClick={flagAml}
             disabled={!approvedMerchant || busy !== null}
@@ -208,6 +154,8 @@ export default function MerchantDetailPage() {
         ))}
       </div>
 
+      {tab === 'dados' && api && <BusinessStatePanel api={api} app={m} />}
+
       {tab === 'dados' && (
         <div className="grid grid-cols-2 gap-4 max-[1040px]:grid-cols-1">
           <DataCard
@@ -216,7 +164,6 @@ export default function MerchantDetailPage() {
               ['Nome legal', m.business_name],
               ['@negócio', withAt(m.desired_handle), true],
               ['NIF', m.nif || '—', true],
-              ['Tipo de conta', accountTypeLabel(m.business_account_type)],
               ['Categoria', m.category || '—'],
               ['Subcategoria', m.subcategory || '—'],
               ['Atividade', m.business_activity || '—'],
