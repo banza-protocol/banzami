@@ -1,6 +1,6 @@
 # ADR-029 — Application-defined settlement fees
 
-**Status:** Accepted · **Date:** 2026-06-30 · **Scope:** Operator-only · **Builds on:** ADR-021, ADR-027, ADR-028
+**Status:** Superseded by [ADR-057](ADR-057-project-financial-readiness.md) (2026-09-10) — the caller no longer sends a rate; the operator's pricing profile decides · **Date:** 2026-06-30 · **Scope:** Operator-only · **Builds on:** ADR-021, ADR-027, ADR-028
 
 > Version: 1.0
 

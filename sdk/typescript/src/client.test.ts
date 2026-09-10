@@ -771,14 +771,14 @@ describe('payment sessions', () => {
 describe('getFinancialSetup', () => {
   const ready = {
     environment: 'SANDBOX',
-    project: { id: '84b0e8e6-fbda-417e-a537-19ad8574827a', name: 'Doa-Sandbox', ref: 'doa-sandbox' },
+    project: { id: '0b6f2c9e-1a2b-4c3d-8e4f-5a6b7c8d9e0f', name: 'Donations Sandbox', ref: 'donations-sandbox' },
     financial_setup: { state: 'SEALED', configured: true, sealed: true },
-    financial_identity: { handle: '@doa' },
+    financial_identity: { handle: '@donations' },
     kyb: { status: 'APPROVED' },
     wallet: { status: 'ACTIVE', ready: true, currency: 'AOA' },
     pricing: { profile: 'sandbox-reference', settlement_bps: 200, payout_bps: 75 },
     fee_destination: {
-      handle: '@doa', required: true, resolved: true, owned_by_project: true, kyb_approved: true,
+      handle: '@donations', required: true, resolved: true, owned_by_project: true, kyb_approved: true,
       wallet_active: true, type_allowed: true, application_account_ready: true, eligible: true, blocker: null,
     },
     settlement: { ready: true, blockers: [], warnings: [] },
@@ -791,7 +791,7 @@ describe('getFinancialSetup', () => {
     const { url, init } = lastFetchCall();
     expect(url).toMatch(/\/v1\/financial-setup$/);
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer bz_test_sk_x');
-    expect(fs.project.id).toBe('84b0e8e6-fbda-417e-a537-19ad8574827a');
+    expect(fs.project.id).toBe('0b6f2c9e-1a2b-4c3d-8e4f-5a6b7c8d9e0f');
     expect(fs.settlement.ready).toBe(true);
     expect(fs.pricing.settlement_bps).toBe(200);
     expect(fs.fee_destination.type_allowed).toBe(true);
@@ -800,8 +800,8 @@ describe('getFinancialSetup', () => {
   it('passes a named fee destination as a query, and nothing else', async () => {
     mockFetch(200, ready);
     const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
-    await c.getFinancialSetup({ feeDestination: '@doa' });
-    expect(lastFetchCall().url).toMatch(/\/v1\/financial-setup\?fee_destination=%40doa$/);
+    await c.getFinancialSetup({ feeDestination: '@donations' });
+    expect(lastFetchCall().url).toMatch(/\/v1\/financial-setup\?fee_destination=%40donations$/);
   });
 
   it('no longer offers the Business profile, which named internal account ids', () => {

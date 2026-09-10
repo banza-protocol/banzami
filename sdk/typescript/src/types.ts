@@ -237,7 +237,7 @@ export interface FinancialSetup {
     sealed:     boolean;
   };
   financial_identity: {
-    /** The Project's @banza, e.g. "@doa". Null until configured. */
+    /** The Project's @banza, e.g. "@my-business". Null until configured. */
     handle: string | null;
   };
   kyb: {

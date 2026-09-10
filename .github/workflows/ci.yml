@@ -341,6 +341,12 @@ jobs:
       - name: Sandbox secret-preservation gate
         run: bash tests/ops/sandbox-secret-preservation.test.sh
 
+      # ADR-057: the public Project contract held by counting — no /business
+      # route, no caller pricing field, no SDK reader of the Business profile,
+      # no branch on one application's identity, no self-service classification.
+      - name: Project readiness contract guard
+        run: node --test tests/ops/project-readiness-contract-guard.test.mjs
+
       # Where this operator is allowed to charge money.
       #
       # Exactly three operations resolve an operator fee, and each was audited
