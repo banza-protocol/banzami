@@ -191,16 +191,29 @@ class PushNotificationService {
         merchantTopic(merchantId, sandbox: true),
       ];
 
-  /// Subscribes to a merchant topic with sandbox isolation.
+  /// Subscribes to the topic of the environment the Business signed in to.
+  ///
+  /// [environment] is the session's ('SANDBOX' | 'LIVE'), from the gateway's
+  /// token — not the build's setting. One build can sign in to either stack
+  /// (ADR-025), and the gateway publishes to the topic of the environment the
+  /// payment happened in; a build-time guess subscribed a Sandbox Business to
+  /// the Live topic whenever the build had no ENVIRONMENT set.
   ///
   /// [stillWanted] is checked right before subscribing — after the wait for
   /// the APNs token, which can take up to 30 s. A session that ended meanwhile
   /// has already unsubscribed this device; subscribing afterwards would undo
   /// that, so it is skipped.
-  static Future<void> subscribeMerchant(String merchantId, {bool Function()? stillWanted}) async {
-    final topic = merchantTopic(merchantId, sandbox: AppConfig.isSandbox);
+  static Future<void> subscribeMerchant(String merchantId,
+      {required String environment, bool Function()? stillWanted}) async {
+    final topic = merchantTopicForSession(merchantId, environment);
     await _subscribeTopic(topic, stillWanted: stillWanted);
   }
+
+  /// The topic for a Business session's environment. Anything but 'LIVE'
+  /// is the Sandbox topic: a malformed environment must never land a
+  /// Sandbox device on a Live topic.
+  static String merchantTopicForSession(String merchantId, String environment) =>
+      merchantTopic(merchantId, sandbox: environment.toUpperCase() != 'LIVE');
 
   /// Generic topic subscription — still exposed for backward compatibility.
   static Future<void> subscribeToTopic(String topic) => _subscribeTopic(topic);

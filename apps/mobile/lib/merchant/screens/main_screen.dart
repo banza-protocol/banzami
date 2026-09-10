@@ -37,6 +37,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     final client     = context.read<BanzamiClient>();
     final svc        = context.read<MerchantSessionService>();
     final merchantId = svc.session!.merchantId;
+    final environment = svc.session!.environment;
     // The payment topic is wanted only while this Business is still the
     // signed-in one: the permission prompt and the APNs wait can outlast a
     // session, and ending it has already taken the device off the topic.
@@ -55,7 +56,8 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     final granted = await PushNotificationService.requestPermission();
     if (!granted || !stillThisBusiness()) return;
 
-    await PushNotificationService.subscribeMerchant(merchantId, stillWanted: stillThisBusiness);
+    await PushNotificationService.subscribeMerchant(merchantId,
+        environment: environment, stillWanted: stillThisBusiness);
     await PushNotificationService.getToken();
   }
 
