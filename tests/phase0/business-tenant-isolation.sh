@@ -89,6 +89,14 @@ pub GET "/v1/payment-links/$L_A" "$T_A";   chk OWN_LINK "$CODE" 200
 pub GET "/v1/wallets/$W_A" "$T_A"
 chk DETECTOR_SEES_WHAT_IS_THERE "$(printf '%s' "$LAST" | grep -qF "$W_A" && printf '%s' "$LAST" | grep -qF "$M_A" && echo yes)" yes
 
+echo "### A's session, ended"
+# What the Business App meets when a token outlives its session: a refusal it
+# can recognise (401), never data. The app then asks for the PIN once.
+EXPIRED=$(SECRET="$JWTSEC" V="$M_A" node -e 'const c=require("crypto");const b=o=>Buffer.from(typeof o==="string"?o:JSON.stringify(o)).toString("base64url");const n=Math.floor(Date.now()/1000);const cl={merchant_id:process.env.V,scopes:["*"],environment:"SANDBOX",iat:n-90000,exp:n-3600};const h=b({alg:"HS256",typ:"JWT"}),p=b(cl);process.stdout.write(h+"."+p+"."+c.createHmac("sha256",process.env.SECRET).update(h+"."+p).digest("base64url"));')
+pub GET "/v1/wallets/$W_A/balance" "$EXPIRED"
+chk EXPIRED_SESSION_IS_401 "$CODE" 401
+chk EXPIRED_SESSION_RETURNS_NO_BALANCE "$(printf '%s' "$LAST" | grep -c '"available')" 0
+
 echo "### A, pointed at B"
 before=$(denial_count); before=${before:-0}
 probe MERCHANT_RECORD        "/v1/merchants/$M_B"                          any
