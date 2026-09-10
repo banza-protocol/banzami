@@ -61,27 +61,66 @@ func (h *MerchantHandler) SetVerified(w http.ResponseWriter, r *http.Request) {
 }
 
 // SetBusinessAccountType handles PATCH /admin/v1/merchants/{id}/business-account-type.
-// ADR-028: re-tag a Business Account's operator type (e.g. mark @doa APPLICATION).
+//
+// ADR-028: classify a Business Account. The class decides whether it may take an
+// application fee — only APPLICATION and PLATFORM may — so it is a commercial
+// decision of the same weight as the pricing profile, and gets the same shape:
+// the type is typed back to confirm, a reason is required, and the before/after
+// lands in the audit trail. It used to be a bare setter with none of the three,
+// and nothing in the console reached it, so the one way an operator could make
+// an application eligible for its fee was an unaudited internal call.
+//
+// Generic by construction: the account is named by id, never by handle or
+// tenant, and the same rule applies to every Business. A developer cannot reach
+// this — it is an operator route behind CapMerchantManage.
 func (h *MerchantHandler) SetBusinessAccountType(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body struct {
 		BusinessAccountType string `json:"business_account_type"`
+		ConfirmationText    string `json:"confirmation_text"`
+		Reason              string `json:"reason"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
 		return
 	}
-	if body.BusinessAccountType == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error": map[string]any{"code": "MISSING_FIELD", "message": "business_account_type is required"},
-		})
+	accountType := strings.ToUpper(strings.TrimSpace(body.BusinessAccountType))
+	if accountType == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "business_account_type is required")
 		return
 	}
-	result, err := h.core.SetMerchantBusinessAccountType(r.Context(), id, body.BusinessAccountType)
+	if strings.TrimSpace(body.Reason) == "" {
+		writeError(w, http.StatusBadRequest, "REASON_REQUIRED",
+			"a reason is required to change what a Business Account is permitted to receive")
+		return
+	}
+	if strings.ToUpper(strings.TrimSpace(body.ConfirmationText)) != accountType {
+		writeError(w, http.StatusBadRequest, "CONFIRMATION_MISMATCH",
+			"confirmation text must be the account type — nothing was changed")
+		return
+	}
+
+	// Read the current class first, so the audit row says what it changed FROM.
+	var before any
+	if cur, err := h.core.GetMerchant(r.Context(), id); err == nil {
+		before = cur["business_account_type"]
+	}
+
+	// Core validates the type against the ADR-028 taxonomy and refuses anything
+	// else; this layer does not keep a second list that could disagree with it.
+	result, err := h.core.SetMerchantBusinessAccountType(r.Context(), id, accountType)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
 	}
+
+	auditAnnotate(r, func(a *auth.AuditAnnotation) {
+		a.Action = "MERCHANT_BUSINESS_ACCOUNT_TYPE_CHANGED"
+		a.EntityType = "merchant"
+		a.EntityID = id
+		a.Before = map[string]any{"business_account_type": before}
+		a.After = map[string]any{"business_account_type": accountType, "reason": body.Reason}
+	})
 	writeJSON(w, http.StatusOK, result)
 }
 

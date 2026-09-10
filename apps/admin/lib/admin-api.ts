@@ -263,6 +263,8 @@ export interface Merchant {
   status:     string;
   verified:   boolean;
   created_at: string;
+  /** ADR-028 class. Only APPLICATION and PLATFORM may take an application fee. */
+  business_account_type?: string;
 }
 
 export interface Wallet {
@@ -592,6 +594,26 @@ export class AdminApi {
     return this.req(`/admin/v1/merchants/${id}/pricing-profile`, {
       method: 'PUT',
       body: JSON.stringify({ profile_code: profileCode, confirmation_text: profileCode, reason }),
+    });
+  }
+  /**
+   * Classify a Business Account under ADR-028. Only APPLICATION and PLATFORM may
+   * take an application fee, so this decides whether fees can reach an account
+   * at all — the same weight as its pricing profile, and the same guards: the
+   * type typed back, a reason, and before/after in the audit trail.
+   */
+  setMerchantBusinessAccountType(
+    id: string,
+    businessAccountType: string,
+    reason: string,
+  ): Promise<Merchant> {
+    return this.req(`/admin/v1/merchants/${id}/business-account-type`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        business_account_type: businessAccountType,
+        confirmation_text: businessAccountType,
+        reason,
+      }),
     });
   }
   deleteMerchant(id: string): Promise<void>   { return this.req(`/admin/v1/merchants/${id}`, { method: 'DELETE' }); }

@@ -2,6 +2,7 @@
 
 import { CatalogManager } from '@/components/finance/catalog-manager';
 import { AssignPricingProfile } from '@/components/finance/assign-pricing-profile';
+import { ClassifyBusinessAccount } from '@/components/finance/classify-business-account';
 
 export default function PricingProfilesPage() {
   return (
@@ -13,6 +14,8 @@ export default function PricingProfilesPage() {
         codePlaceholder="ex.: sandbox-reference"
       />
       <AssignPricingProfile />
+      {/* The other half of pricing an application: whether it may receive the fee its profile charges. */}
+      <ClassifyBusinessAccount />
     </>
   );
 }
