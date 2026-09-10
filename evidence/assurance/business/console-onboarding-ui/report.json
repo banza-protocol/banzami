@@ -1,0 +1,85 @@
+{
+  "schema": "banzami-console-onboarding-ui-e2e/v1",
+  "origin": "https://developers.banzami.com",
+  "ran_at": "2026-09-10T14:10:50.085Z",
+  "steps": [
+    {
+      "step": "a fresh workspace with two Projects, an OWNER and a DEVELOPER",
+      "ok": true,
+      "note": "94179d29 046784d3"
+    },
+    {
+      "step": "Configuração financeira opens NOT_CONFIGURED for a new Project",
+      "ok": true,
+      "note": "NOT_CONFIGURED"
+    },
+    {
+      "step": "nothing on the page sends the developer to the public candidature",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "\"Iniciar verificação\" offers the two ways: a new Business, or an existing one",
+      "ok": true,
+      "note": "2 card(s)"
+    },
+    {
+      "step": "the form checks the @ is available as it is typed",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "the review repeats what will be sent",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "after sending, the page says IN_REVIEW with the @ requested",
+      "ok": true,
+      "note": "IN_REVIEW"
+    },
+    {
+      "step": "the documents are reported as they are — never \"enviado\" when storage is absent",
+      "ok": true,
+      "note": "storage not configured: said so"
+    },
+    {
+      "step": "the ONE Business application: origin DEVELOPER_PROJECT, for Project A, SUBMITTED",
+      "ok": true,
+      "note": "DEVELOPER_PROJECT 94179d29 SUBMITTED"
+    },
+    {
+      "step": "a reload still says IN_REVIEW, with the reference",
+      "ok": true,
+      "note": "B3BD51C3"
+    },
+    {
+      "step": "the DEVELOPER sees IN_REVIEW with nothing to press or upload",
+      "ok": true,
+      "note": "buttons=0 uploads=0"
+    },
+    {
+      "step": "a synthetic existing Business issued a consent code from its own session",
+      "ok": true,
+      "note": "a411df2a"
+    },
+    {
+      "step": "connecting names the Business that consented",
+      "ok": true,
+      "note": ""
+    },
+    {
+      "step": "after a reload the Project shows the Business card — name · @handle · Verificado",
+      "ok": true,
+      "note": "BLOCKED"
+    },
+    {
+      "step": "the binding names the existing Business: nothing was created",
+      "ok": true,
+      "note": "a411df2a"
+    }
+  ],
+  "pass": 15,
+  "fail": 0,
+  "verdict": "PASS"
+}

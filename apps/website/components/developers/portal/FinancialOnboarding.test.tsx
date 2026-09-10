@@ -268,7 +268,7 @@ describe('Configuração financeira — a Project that receives', () => {
     expect(heading()).toBe('Configuração financeira — Bloqueado');
     const list = screen.getByTestId('onboarding-blockers');
     expect(list.textContent).toContain('Receber taxas de aplicação requer aprovação do operador Banzami (classificação da conta).');
-    expect(list.textContent).toContain('O Banzami ainda não atribuiu um preço a este projeto.');
+    expect(list.textContent).toContain('O Banzami ainda não atribuiu um preço ao negócio deste projeto.');
     expect(screen.getAllByRole('list', { name: 'Bloqueios' })).toHaveLength(1);
   });
 

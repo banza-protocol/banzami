@@ -102,7 +102,7 @@ export function applicationReference(applicationId: string): string {
 export const BLOCKER_TEXT: Record<string, string> = {
   FINANCIAL_SETUP_NOT_CONFIGURED: 'Este projeto ainda não está ligado a um negócio verificado.',
   WALLET_MISSING: 'O negócio não tem uma carteira activa em Kwanza.',
-  PRICING_NOT_CONFIGURED: 'O Banzami ainda não atribuiu um preço a este projeto. Contacte o suporte.',
+  PRICING_NOT_CONFIGURED: 'O Banzami ainda não atribuiu um preço ao negócio deste projeto. Contacte o suporte.',
   PRICING_CONFIGURATION_ERROR: 'O preço atribuído a este projeto está mal configurado. Contacte o suporte.',
   FEE_DESTINATION_NOT_FOUND: 'O destino das taxas de aplicação não foi encontrado: não tem @banza ou conta associada.',
   FEE_DESTINATION_NOT_OWNED: 'O destino das taxas de aplicação não pertence a este projeto.',
