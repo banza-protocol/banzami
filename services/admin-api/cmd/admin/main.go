@@ -192,6 +192,16 @@ func main() {
 			// gateway stacks read an identical global mode (ADR-025).
 			platform.WithModePropagation(stagingPool)
 			slog.Info("sandbox KYC review enabled (staging database); platform-mode propagation on")
+		} else if cfg.Environment == "SANDBOX" {
+			// A Sandbox deployment: the primary database IS the Sandbox. The console
+			// asks for environment=SANDBOX (its default), and those services were
+			// nil here, so KYC review, the compliance Inbox, proofs and the operator
+			// notifications all answered 503 on the only environment this stack has.
+			kycReviewStaging = kycReview
+			notifSandbox = notif
+			complianceSandbox = compliance
+			proofAdminSandbox = proofAdmin
+			slog.Info("Sandbox deployment — SANDBOX console reads use the primary database")
 		} else {
 			slog.Warn("STAGING_DATABASE_URL not set — sandbox KYC review disabled (503 on SANDBOX)")
 		}
