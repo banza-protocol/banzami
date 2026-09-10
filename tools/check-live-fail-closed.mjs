@@ -38,10 +38,17 @@ function assertContains(relPath, needles, label) {
   else pass(label);
 }
 
-// 1. Core defaults to LIVE when ENV unset (safe default) + a test asserts it.
+// 1. Core defaults to LIVE when ENV is unset or unrecognised (safe default), and a
+//    test asserts it. The definition lives in the shared types crate — core's
+//    CoreEnvironment is an alias of it (f3b5077b removed a second, independent
+//    copy) — so both halves are checked: the default arm itself, and that core
+//    still uses that one definition rather than a new one of its own.
+assertContains('core/types/src/environment.rs',
+  ['Ok(v) if v.eq_ignore_ascii_case("SANDBOX") => Environment::Sandbox,', '_ => Environment::Live,'],
+  'core environment fail-closes to LIVE (canonical definition)');
 assertContains('core/api/src/state.rs',
-  ['CoreEnvironment::Live, // safe default', 'is_live()'],
-  'core environment fail-closes to LIVE (test-backed)');
+  ['pub type CoreEnvironment = banzami_types::Environment;', 'fn missing_env_defaults_to_live()', 'fn unknown_env_defaults_to_live()'],
+  'core uses the canonical environment and tests its LIVE default');
 
 // 2. Sandbox handlers hard-enforce SANDBOX.
 assertContains('services/api-gateway/internal/handler/sandbox.go',
