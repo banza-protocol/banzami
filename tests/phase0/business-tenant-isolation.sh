@@ -82,6 +82,9 @@ probe(){ # <name> <path> <expected-status-or-any>
 
 echo "### control: A reads its own"
 pub GET "/v1/wallets/$W_A/balance" "$T_A"; chk OWN_BALANCE "$CODE" 200
+# A new Business holds nothing yet: that is a balance of 0 Kz — an answer the
+# app shows as money — not a failure to load one.
+chk NEW_BUSINESS_BALANCE_IS_ZERO_KZ "$(jp j.available_minor):$(jp j.total_minor):$(jp j.currency)" "0:0:AOA"
 pub GET "/v1/merchants/$M_A" "$T_A";       chk OWN_MERCHANT "$CODE" 200
 pub GET "/v1/payment-links/$L_A" "$T_A";   chk OWN_LINK "$CODE" 200
 # The detector itself: A's own wallet read must be recognised as carrying A's
