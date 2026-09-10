@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   403 `KYB_DECIDED_BY_REVIEW`. Read the decision with `getMerchantKybStatus`
   and submit documents with `requestMerchantKybDocumentUploadUrl` /
   `completeMerchantKybDocumentUpload`.
+- `createPaymentRequest`, `listPaymentRequests`, `getPaymentRequest`,
+  `cancelPaymentRequest` and the `PaymentRequest` / `PaymentRequestPage` /
+  `PaymentRequestStatus` models. They called `/v1/payment-requests`, which the
+  gateway does not mount (RA-057 — a payment request has no merchant party),
+  so every call answered 404. A Business asks for a fixed amount with a payment
+  link or a dynamic QR. (The consumer `BanzamiPaymentRequestScreen`, which opens
+  a consumer pay link, is unaffected.)
 
 ## [0.1.0] — 2026-05-15
 

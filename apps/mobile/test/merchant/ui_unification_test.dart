@@ -45,7 +45,6 @@ void main() {
       'payout_screen.dart',
       'qr_screen.dart',
       'kyb_screen.dart',
-      'payment_requests_screen.dart',
       'pin_create_screen.dart',
     ];
     for (final f in files) {
@@ -60,7 +59,6 @@ void main() {
       'charge_screen.dart',
       'payout_screen.dart',
       'profile_screen.dart',
-      'payment_requests_screen.dart',
       'kyb_screen.dart',
     ];
     for (final f in radiusFiles) {

@@ -65,7 +65,6 @@ export 'models/merchant_wallet_payment.dart';
 export 'models/wallet_balance.dart';
 export 'models/transfer.dart';
 export 'models/payment_link.dart';
-export 'models/payment_request.dart';
 export 'models/collection.dart';
 export 'models/qr_code.dart';
 

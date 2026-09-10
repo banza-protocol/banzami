@@ -10,7 +10,6 @@ import '../widgets/merchant_volume_chart.dart';
 import 'campaign_accounts_screen.dart';
 import 'charge_screen.dart';
 import 'kyb_screen.dart';
-import 'payment_requests_screen.dart';
 import 'payout_screen.dart';
 
 /// Banzami Business dashboard — a merchant-oriented panel (KPIs, 7-day volume,
@@ -225,11 +224,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       isLast: e.key == _recent.length - 1,
                     )),
 
-              const SizedBox(height: BanzamiSpacing.sm),
-              BanzamiGhostButton(
-                label:     'Pedidos de pagamento',
-                onPressed: () => _open(const PaymentRequestsScreen()),
-              ),
+              // No "Pedidos de pagamento" entry: /v1/payment-requests is not
+              // mounted on the gateway (RA-057 — a payment request has no
+              // merchant party), so that screen could only ever fail.
 
               const SizedBox(height: BanzamiSpacing.page),
             ]),
