@@ -89,9 +89,38 @@ O ícone sandbox (`AppIconSandbox.appiconset`) é um asset permanente em `ios/Ru
 | Dashboard | Live balance, daily/monthly revenue stats, recent payment links, quick charge button |
 | Histórico | Two-tab view: real transactions + payment links with infinite scroll |
 | Receber | Static merchant QR code with share + fixed-amount charge shortcut |
-| Perfil | @banza address, "Empresa verificada" (only when Banzami approved the KYB), biometrics toggle, payout request, sign out, remove account |
+| Perfil | @banza address, "Empresa verificada" (only when Banzami approved the KYB), biometrics toggle, payout request, "Programadores" → Ligar a um projeto de developer, sign out, remove account |
+| Ligar a um projeto | The Business's consent code for a Developer Project (see below) |
 | Payout | Bank withdrawal form — amount, Angolan bank (BNA codes), IBAN, holder name |
 | Cobrança | Create fixed-amount payment links with description and expiry |
+
+### Ligar a um projeto de developer
+
+A developer whose Developer Project should receive payments for an existing
+Business cannot claim it by @handle, id or email — the Business consents from
+its own signed-in session. **Perfil → Programadores → Ligar a um projeto de
+developer** (`lib/merchant/screens/project_link_screen.dart`):
+
+- **Gerar código** calls `BanzamiClient.createProjectLinkCode()` →
+  `POST /v1/merchant/project-link-codes` (merchant session). Nothing is issued
+  just by opening the screen: a new code retires the previous one on Banzami,
+  so an accidental visit must not kill a code already given to a developer.
+- The code (`ABCD-EFGH-JKMN`) is shown large, copied with a tap / **Copiar**,
+  or shared (**Partilhar**). A live countdown ("Expira em 09:59") runs to its
+  expiry — never longer than the 10-minute TTL, whatever the device clock
+  says — and then reads **Código expirado** with the code removed.
+- **Gerar novo código** issues a new one; the old one disappears at once.
+- 503 / no network → a temporary error message and **no code** (never a
+  placeholder); a code on screen is dropped when a new request fails, since
+  it may already be retired. 401 → the session handling (sign-in) takes over.
+- The code belongs to the session: if the session ends, locks or changes
+  Business, it is no longer shown (and the screen is closed with every other
+  pushed route).
+- On the Sandbox stack the code only connects Sandbox projects.
+
+The developer enters the code in the Developers Console; developer-api redeems
+it (`/internal/v1/business-link-codes/redeem`) and binds the Project.
+Tests: `test/merchant/project_link_screen_test.dart`.
 
 ## Session management
 

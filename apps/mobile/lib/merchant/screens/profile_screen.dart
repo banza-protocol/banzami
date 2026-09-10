@@ -11,6 +11,7 @@ import '../services/merchant_session_service.dart';
 import '../widgets/merchant_status_badge.dart';
 import 'kyb_screen.dart';
 import 'payout_screen.dart';
+import 'project_link_screen.dart';
 
 class MerchantProfileScreen extends StatefulWidget {
   const MerchantProfileScreen({super.key});
@@ -153,7 +154,25 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
               ),
             ),
 
-            const SizedBox(height: BanzamiSpacing.sm),
+            // Programadores — a Developer Project connects to this Business
+            // only with a consent code issued here.
+            const SizedBox(height: BanzamiSpacing.lg),
+            Padding(
+              padding: const EdgeInsets.only(left: BanzamiSpacing.xs, bottom: BanzamiSpacing.sm),
+              child: Text('Programadores',
+                  style: BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray400)),
+            ),
+            _ActionTile(
+              icon:     Icons.integration_instructions_outlined,
+              label:    'Ligar a um projeto de developer',
+              sublabel: 'Gerar um código de autorização para um programador',
+              color:    BanzamiColors.primary,
+              onTap:    () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ProjectLinkScreen()),
+              ),
+            ),
+
+            const SizedBox(height: BanzamiSpacing.lg),
 
             // Advanced: internal Merchant UUID for support (collapsed).
             _TechnicalIdsCard(merchantId: session.merchantId, onCopy: _copyUuid),
