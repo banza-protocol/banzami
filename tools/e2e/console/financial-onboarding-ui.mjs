@@ -56,7 +56,12 @@ const PRE = `
 
 const stamp = Date.now().toString(36);
 const emailOf = (r) => `onbui-${r}-${stamp}@banzami-e2e.test`;
-registerCleanup({ emailPattern: `onbui-%-${stamp}@banzami-e2e.test`, namePattern: `onbui-%${stamp}` });
+// --keep-for-review leaves Project A, its owner and its application in place for
+// an operator to review and approve in BANZADMIN; the follow-up check
+// (--verify-approved <state.json>) then proves the provisioning. Everything
+// else is retired as usual.
+const KEEP = process.argv.includes('--keep-for-review');
+if (!KEEP) registerCleanup({ emailPattern: `onbui-%-${stamp}@banzami-e2e.test`, namePattern: `onbui-%${stamp}` });
 
 const session = (email) =>
   execFileSync('bash', [join(HERE, 'mint-console-session.sh'), email, '60'], { encoding: 'utf8' }).trim().split('\n').pop();
@@ -180,9 +185,19 @@ async function main() {
     storageOff ? !/: enviado\b/.test(after) : true, storageOff ? 'storage not configured: said so' : 'storage configured');
   await shot(page, '04-in-review');
 
+  if (!storageOff) {
+    let docs = '';
+    for (let i = 0; i < 30; i++) {
+      docs = ssh(`${PRE} q "select string_agg(d.document_type, ',' order by d.document_type) from merchant_application_documents d join merchant_applications a on a.id=d.application_id where a.desired_handle='${handleA}' and d.status='UPLOADED' and d.deleted_at is null"`).trim();
+      if (docs.includes('BUSINESS_REGISTRATION') && docs.includes('REPRESENTATIVE_ID')) break;
+      await page.waitForTimeout(1000);
+    }
+    rec('the documents the Console sent reached KYB storage and passed the server\'s checks', docs.includes('BUSINESS_REGISTRATION') && docs.includes('REPRESENTATIVE_ID'), docs);
+  }
   const stored = ssh(`${PRE} q "select id::text||'|'||origin||'|'||project_id::text||'|'||status from merchant_applications where desired_handle='${handleA}'"`).trim();
   const [id, origin, project, status] = stored.split('|');
   appA = id || null;
+  if (KEEP) writeFileSync(join(OUT, 'state.json'), JSON.stringify({ stamp, workspace: ws, projectA: A, projectB: B, owner: emailOf('owner'), developer: emailOf('dev'), application: id, handle: handleA }, null, 2) + '\n');
   rec('the ONE Business application: origin DEVELOPER_PROJECT, for Project A, SUBMITTED',
     origin === 'DEVELOPER_PROJECT' && project === A && status === 'SUBMITTED', `${origin} ${String(project).slice(0, 8)} ${status}`);
   const ref = String(id).slice(0, 8).toUpperCase();
@@ -242,7 +257,7 @@ function cleanup() {
   try {
     ssh(`${PRE}
       IK=$(docker exec "$GWC" sh -c 'cat /run/secrets/core_internal_key')
-      ${appA ? `docker exec "$GWC" curl -s -o /dev/null -X POST http://localhost:8080/internal/v1/merchant-applications/${appA}/reject -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reviewed_by":"e2e-fixture-cleanup","admin_notes":"synthetic E2E application","merchant_message":"synthetic"}'` : ''}
+      ${appA && !KEEP ? `docker exec "$GWC" curl -s -o /dev/null -X POST http://localhost:8080/internal/v1/merchant-applications/${appA}/reject -H "X-Internal-Key: $IK" -H 'Content-Type: application/json' -d '{"reviewed_by":"e2e-fixture-cleanup","admin_notes":"synthetic E2E application","merchant_message":"synthetic"}'` : ''}
       ${business?.merchant ? `JWTSEC=$(docker exec "$GWC" sh -c 'cat /run/secrets/jwt_secret')
       T=$(mint "${business.merchant}")
       docker exec "$GWC" curl -s -o /dev/null -X POST http://localhost:8080/v1/merchants/${business.merchant}/suspend -H "Authorization: Bearer $T"` : ''}
