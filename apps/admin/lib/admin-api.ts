@@ -1008,6 +1008,17 @@ export class AdminApi {
     const qs = handle ? `?handle=${encodeURIComponent(handle)}` : '';
     return this.req(`/admin/v1/merchant-applications/${id}/link-candidates${qs}`);
   }
+  /** Ask the applicant for information: the review waits, the application stays open. */
+  requestApplicationInformation(id: string, message: string): Promise<MerchantApplication> {
+    return this.req(`/admin/v1/merchant-applications/${id}/request-information`, {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    });
+  }
+  /** One Business's whole state, by the Business. */
+  businessState(merchantId: string): Promise<{ business: ApplicationBusinessState }> {
+    return this.req(`/admin/v1/businesses/${merchantId}`);
+  }
   applicationBusinessState(id: string): Promise<{ business: ApplicationBusinessState | null }> {
     return this.req(`/admin/v1/merchant-applications/${id}/business-state`);
   }
@@ -1248,7 +1259,7 @@ export interface Operator {
 
 export interface MerchantApplication {
   id:                   string;
-  status:               'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'PROVISIONING_FAILED';
+  status:               'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'INFORMATION_REQUIRED' | 'APPROVED' | 'REJECTED' | 'CANCELLED' | 'PROVISIONING_FAILED';
   environment:          'LIVE' | 'SANDBOX';
   desired_handle:       string;
   business_name:        string;
@@ -1281,6 +1292,23 @@ export interface MerchantApplication {
   resolution?:          '' | 'PROVISIONED_NEW' | 'LINKED_EXISTING';
   provisioning_error?:  string;
   provisioning_attempts?: number;
+  /** Where the application was started (migration 0121). */
+  origin?:              'STANDALONE_BUSINESS' | 'DEVELOPER_PROJECT';
+  project_id?:          string;
+  /** What the reviewer asked for, while INFORMATION_REQUIRED. */
+  information_request?: string;
+  provisioning_project_bound?: boolean;
+  /** The application against the requirements policy (the Gateway's answer). */
+  requirements?:        ApplicationRequirements;
+}
+
+export interface RequirementIssue { code: string; kind: 'field' | 'document'; label: string; reason: string }
+export interface ApplicationRequirements {
+  policy_version: string;
+  currently_due: RequirementIssue[];
+  pending_verification: RequirementIssue[];
+  errors: RequirementIssue[];
+  accepted: RequirementIssue[];
 }
 
 export interface ApprovalOutcome {
@@ -1317,6 +1345,8 @@ export interface ApplicationBusinessState {
   login_activated: boolean;
   login_exists: boolean;
   developer_projects: number;
+  projects?: { project_id: string; name: string; sealed: boolean }[];
+  applications?: { application_id: string; status: string; resolution: string; origin: string; created_at: string }[];
   readiness: {
     pricing: { profile: string | null; settlement_bps: number | null; payout_bps: number | null };
     fee_destination: { required: boolean; type_allowed: boolean; eligible: boolean; blocker: string | null };

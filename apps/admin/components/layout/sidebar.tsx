@@ -3,10 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, ScanFace, Inbox, ToggleLeft, ShieldCheck, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
-  type LucideIcon,
-} from 'lucide-react';
+import { LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, ScanFace, Inbox, ToggleLeft, ShieldCheck, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText, type LucideIcon, Store } from 'lucide-react';
 import { destroySession, getSession } from '@/lib/session';
 import { AdminApi, type NotificationSummary } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
@@ -46,7 +43,8 @@ const NAV: NavEntry[] = [
       { href: '/compliance/inbox', label: 'Inbox', Icon: Inbox },
     ],
   },
-  { href: '/merchants', label: 'Comerciantes', Icon: Building2 },
+  { href: '/merchants', label: 'Candidaturas', Icon: Building2 },
+  { href: '/businesses', label: 'Negócios', Icon: Store },
   { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck },
   { href: '/consumer-kyc', label: 'Documentos KYC', Icon: ScanFace },
   { href: '/consumers', label: 'Consumidores', Icon: Users },

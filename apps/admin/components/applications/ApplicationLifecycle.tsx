@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Link2, Mail, Search } from 'lucide-react';
+import { Check, HelpCircle, Link2, Mail, Search } from 'lucide-react';
 import {
   AdminApi,
   AdminApiError,
@@ -33,6 +33,8 @@ import { accountTypeLabel, withAt } from '@/lib/format';
 
 const REFUSALS: Record<string, string> = {
   DOCUMENTS_REQUIRED: 'Faltam documentos obrigatórios (Registo Comercial e documento do representante).',
+  REQUIREMENTS_NOT_MET: 'A candidatura ainda não cumpre os requisitos (há dados ou documentos em falta ou recusados). Veja «Requisitos».',
+  MESSAGE_REQUIRED: 'Diga o que falta — o requerente recebe este pedido por email.',
   HANDLE_OWNED_BY_BUSINESS: 'O @handle pedido já pertence a uma Business Account. Associe a candidatura a essa conta.',
   LINK_REQUIRED: 'O requerente declarou que a Business já existe: associe-a à conta existente em vez de criar outra.',
   HANDLE_TAKEN: 'O @handle pedido já não está reservado para esta candidatura.',
@@ -124,6 +126,21 @@ export function ApplicationActions({
     }, 'Não foi possível rejeitar a candidatura.');
   };
 
+  const requestInformation = async () => {
+    const message = await dialog.prompt({
+      title: 'Pedir informação ao requerente',
+      label: 'O que falta ou tem de ser corrigido (enviado por email; a candidatura fica em espera, não é rejeitada)',
+      multiline: true,
+      confirmLabel: 'Pedir informação',
+      required: true,
+    });
+    if (!message?.trim()) return;
+    await run('info', async () => {
+      await api.requestApplicationInformation(app.id, message.trim());
+      toast('success', 'Pedido enviado ao requerente. A candidatura aguarda resposta.');
+    }, 'Não foi possível pedir informação.');
+  };
+
   const reissue = () =>
     run('reissue', async () => {
       const r = await api.reissueActivation(app.id);
@@ -139,6 +156,11 @@ export function ApplicationActions({
         <div className="mt-4 rounded-[14px] border border-[#f1d9a8] bg-[#FFF8EC] p-4 text-[13.5px] font-bold text-[#7a5a1e]">
           O requerente declarou que {withAt(app.desired_handle)} já é a sua Business Account. Esta candidatura só pode ser
           associada a essa conta — não cria outra.
+        </div>
+      )}
+      {app.status === 'INFORMATION_REQUIRED' && app.information_request && (
+        <div data-testid="information-request" className="mt-4 rounded-[14px] border border-[#f1d9a8] bg-[#FFF8EC] p-4 text-[13.5px] font-bold text-[#7a5a1e]">
+          À espera do requerente — pedido: «{app.information_request}». Volta para análise quando o requerente reenviar.
         </div>
       )}
       {app.status === 'PROVISIONING_FAILED' && app.provisioning_error && (
@@ -161,7 +183,12 @@ export function ApplicationActions({
           className={`${btn} border-[1.5px] border-[#B5101F] bg-white text-[#B5101F]`}>
           <Link2 size={16} /> Associar a conta existente
         </button>
-        <button onClick={reject} disabled={!open || busy !== null} className={`${btn} border-[1.5px] border-[#f1c4c4] bg-white text-[#B5101F]`}>
+        {['SUBMITTED', 'UNDER_REVIEW', 'INFORMATION_REQUIRED'].includes(app.status) && (
+          <button onClick={requestInformation} disabled={busy !== null} className={`${btn} border-[1.5px] border-[#f1d9a8] bg-white text-[#7a5a1e]`}>
+            <HelpCircle size={16} /> Pedir informação
+          </button>
+        )}
+        <button onClick={reject} disabled={!(open || app.status === 'INFORMATION_REQUIRED') || busy !== null} className={`${btn} border-[1.5px] border-[#f1c4c4] bg-white text-[#B5101F]`}>
           Rejeitar
         </button>
         {app.status === 'APPROVED' && app.resolution === 'PROVISIONED_NEW' && (
@@ -297,9 +324,87 @@ export function BusinessStatePanel({ api, app }: { api: AdminApi; app: MerchantA
   }, [api, app.id, app.created_merchant_id, app.status]);
 
   if (state === undefined || state === null) return null;
+  return (
+    <div className="mb-4 rounded-[18px] border border-[#f1e3e3] bg-white p-6">
+      <div className="mb-4 flex items-baseline justify-between gap-3">
+        <h3 className="m-0 text-[15px] font-black">Estado da Business</h3>
+        <a href={`/businesses/${state.merchant_id}`} className="text-[13px] font-extrabold text-[#B5101F]">Abrir a Business →</a>
+      </div>
+      <div className="mb-3 flex justify-between gap-4 text-[14px]">
+        <span className="font-bold text-[#9a8a8e]">Resolução</span>
+        <span className="font-extrabold">{app.resolution === 'LINKED_EXISTING' ? 'Associada a conta existente' : 'Nova conta aprovisionada'}</span>
+      </div>
+      <BusinessStateRows state={state} />
+    </div>
+  );
+}
+
+/** Where an application came from — context for the reviewer, not a different
+ *  review. A Developer Project's application binds that Project on approval. */
+export function ApplicationOrigin({ app }: { app: MerchantApplication }) {
+  const fromProject = app.origin === 'DEVELOPER_PROJECT';
+  return (
+    <div data-testid="application-origin" className="mt-3 flex flex-wrap items-center gap-2 text-[12.5px] font-extrabold">
+      <span className={`rounded-full px-3 py-1 ${fromProject ? 'bg-[#EEF4FF] text-[#2f4fa3]' : 'bg-[#F4EFEF] text-[#6a5a5e]'}`}>
+        {fromProject ? 'Origem: Projeto de developer' : 'Origem: formulário público'}
+      </span>
+      {fromProject && app.project_id && (
+        <span className="font-mono text-[#7a6a6e]">projeto {app.project_id.slice(0, 8)}…</span>
+      )}
+      {fromProject && app.status === 'APPROVED' && (
+        <span className={app.provisioning_project_bound ? 'text-[#1f9d57]' : 'text-[#B5101F]'}>
+          {app.provisioning_project_bound ? 'Projeto ligado à conta' : 'Ligação ao projeto pendente — aprovar de novo tenta outra vez'}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const REQ_REASON: Record<string, string> = { MISSING: 'em falta', UPLOADED: 'por verificar', ACCEPTED: 'aceite' };
+
+/** The application against the requirements policy — the same answer the
+ *  applicant and the approval read. Approval is refused while anything is
+ *  missing or refused. */
+export function RequirementsPanel({ app }: { app: MerchantApplication }) {
+  const r = app.requirements;
+  if (!r) return null;
+  const group = (title: string, items: { code: string; label: string; reason: string }[], tone: string) =>
+    items.length === 0 ? null : (
+      <div className="mb-3">
+        <div className={`mb-1 text-[12px] font-extrabold uppercase tracking-wide ${tone}`}>{title}</div>
+        <ul className="m-0 list-none p-0">
+          {items.map((i) => (
+            <li key={i.code} className="flex justify-between gap-4 py-1 text-[13.5px]">
+              <span className="font-bold text-[#2a2024]">{i.label}</span>
+              <span className="text-right font-semibold text-[#7a6a6e]">{REQ_REASON[i.reason] ?? i.reason}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  const complete = r.currently_due.length === 0 && r.errors.length === 0;
+  return (
+    <div data-testid="requirements-panel" className="mb-4 rounded-[18px] border border-[#f1e3e3] bg-white p-6">
+      <div className="mb-3 flex items-baseline justify-between">
+        <h3 className="m-0 text-[15px] font-black">Requisitos</h3>
+        <span className={`text-[12.5px] font-extrabold ${complete ? 'text-[#1f9d57]' : 'text-[#B5101F]'}`}>
+          {complete ? 'Completa — pode ser decidida' : 'Incompleta — não pode ser aprovada'}
+        </span>
+      </div>
+      {group('Em falta', r.currently_due, 'text-[#B5101F]')}
+      {group('Recusado / pedido', r.errors, 'text-[#B5101F]')}
+      {group('Por verificar', r.pending_verification, 'text-[#7a5a1e]')}
+      {group('Aceite', r.accepted, 'text-[#1f9d57]')}
+      <div className="mt-2 text-[11.5px] font-semibold text-[#a89a9e]">Política {r.policy_version}</div>
+    </div>
+  );
+}
+
+/** One Business's whole state — the table the Business page and the
+ *  application page both render. */
+export function BusinessStateRows({ state }: { state: ApplicationBusinessState }) {
   const r = state.readiness;
   const rows: [string, string, boolean?][] = [
-    ['Resolução', app.resolution === 'LINKED_EXISTING' ? 'Associada a conta existente' : 'Nova conta aprovisionada'],
     ['Business Account', `${state.name} · ${state.status}`],
     ['@handle', withAt(state.handle), true],
     ['Classe (ADR-028)', accountTypeLabel(state.business_account_type)],
@@ -311,22 +416,18 @@ export function BusinessStatePanel({ api, app }: { api: AdminApi; app: MerchantA
     ['Projetos de developer', String(state.developer_projects)],
   ];
   if (r) {
-    rows.push(['Taxa de liquidação · levantamento',
-      `${r.pricing.settlement_bps ?? '—'} bps · ${r.pricing.payout_bps ?? '—'} bps`]);
+    rows.push(['Taxa de liquidação · levantamento', `${r.pricing.settlement_bps ?? '—'} bps · ${r.pricing.payout_bps ?? '—'} bps`]);
     rows.push(['Destino de taxa', r.fee_destination.required ? (r.fee_destination.eligible ? 'Elegível' : `Bloqueado (${r.fee_destination.blocker})`) : 'Não necessário (sem taxa)']);
     rows.push(['Liquidação', r.settlement.ready ? 'Pronta' : `Bloqueada: ${r.settlement.blockers.join(', ')}`]);
   }
   return (
-    <div className="mb-4 rounded-[18px] border border-[#f1e3e3] bg-white p-6">
-      <h3 className="m-0 mb-4 text-[15px] font-black">Estado da Business</h3>
-      <div className="grid grid-cols-2 gap-x-8 gap-y-3 max-[1040px]:grid-cols-1">
-        {rows.map(([label, value, mono]) => (
-          <div key={label} className="flex justify-between gap-4 text-[14px]">
-            <span className="font-bold text-[#9a8a8e]">{label}</span>
-            <span className={`text-right font-extrabold ${mono ? 'font-mono text-[#B5101F]' : 'text-[#2a2024]'}`}>{value}</span>
-          </div>
-        ))}
-      </div>
+    <div className="grid grid-cols-2 gap-x-8 gap-y-3 max-[1040px]:grid-cols-1">
+      {rows.map(([label, value, mono]) => (
+        <div key={label} className="flex justify-between gap-4 text-[14px]">
+          <span className="font-bold text-[#9a8a8e]">{label}</span>
+          <span className={`text-right font-extrabold ${mono ? 'font-mono text-[#B5101F]' : 'text-[#2a2024]'}`}>{value}</span>
+        </div>
+      ))}
     </div>
   );
 }

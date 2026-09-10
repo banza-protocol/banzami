@@ -19,7 +19,7 @@ const VARIANT: Record<string, Variant> = {
   RESOLVED: 'success', CONCILIADO: 'success', COMPLETED: 'success', ACCEPTED: 'success',
   ATIVO: 'success', LIQUIDADO: 'success', CONFIRMADO: 'success', RESOLVIDA: 'success',
   // warning
-  PENDING: 'warning', UNDER_REVIEW: 'warning', PROCESSING: 'warning', PENDING_UPLOAD: 'warning',
+  PENDING: 'warning', UNDER_REVIEW: 'warning', INFORMATION_REQUIRED: 'warning', 'INFORMAÇÃO PEDIDA': 'warning', PROCESSING: 'warning', PENDING_UPLOAD: 'warning',
   PENDENTE: 'warning', 'EM ANÁLISE': 'warning', 'EM ANALISE': 'warning',
   // danger
   REJECTED: 'danger', FAILED: 'danger', PROVISIONING_FAILED: 'danger', RETURNED: 'danger', OPEN: 'danger', BLOCKED: 'danger',
@@ -54,6 +54,7 @@ export function statusLabelPt(code: string | null | undefined): string {
   const map: Record<string, string> = {
     SUBMITTED: 'Pendente',
     UNDER_REVIEW: 'Em análise',
+    INFORMATION_REQUIRED: 'Informação pedida',
     APPROVED: 'Aprovado',
     REJECTED: 'Rejeitado',
     CANCELLED: 'Cancelado',

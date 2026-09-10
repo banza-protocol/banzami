@@ -10,7 +10,7 @@ import { Card, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { KybDocumentsSection } from '@/components/applications/KybDocumentsSection';
-import { ApplicationActions, BusinessStatePanel } from '@/components/applications/ApplicationLifecycle';
+import { ApplicationActions, ApplicationOrigin, BusinessStatePanel, RequirementsPanel } from '@/components/applications/ApplicationLifecycle';
 import { formatDate, initials, withAt } from '@/lib/format';
 
 function getApi(): AdminApi | null {
@@ -117,6 +117,7 @@ export default function MerchantDetailPage() {
           </div>
         </div>
 
+        <ApplicationOrigin app={m} />
         {api && <ApplicationActions api={api} app={m} onChanged={load} />}
 
         <div className="mt-[10px] flex flex-wrap gap-[10px]">
@@ -154,6 +155,7 @@ export default function MerchantDetailPage() {
         ))}
       </div>
 
+      {tab === 'dados' && <RequirementsPanel app={m} />}
       {tab === 'dados' && api && <BusinessStatePanel api={api} app={m} />}
 
       {tab === 'dados' && (
