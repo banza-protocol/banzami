@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getProof, type ProofResult, API_ENV } from '@/lib/api';
 import { BrandMark } from '@/components/site/BrandMark';
 import { MoneyAmount } from '@/components/MoneyAmount';
+import { confirmedTitle, proofRows } from '@/lib/proof-view';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,12 +12,6 @@ export const metadata: Metadata = {
   description: 'Confirme a autenticidade de um comprovativo Banzami no sistema oficial.',
   robots: { index: false },
 };
-
-function fmtDate(s?: string | null): string {
-  if (!s) return '—';
-  const d = new Date(s);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-PT', { dateStyle: 'medium', timeStyle: 'short' });
-}
 
 // Query timestamp (Africa/Luanda, UTC+1). Rendered server-side per request so the
 // reader knows the verification is live, not cached from a document (ADR-033 §9).
@@ -64,9 +59,9 @@ function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; title: str
   }
   if (!p.exists) return { tone: 'red', title: 'Comprovativo inválido', sub: p.message || 'Este comprovativo não existe ou pode ter sido falsificado.' };
   switch (p.status) {
-    case 'CONFIRMED': return { tone: 'green', title: 'Pagamento verificado', sub: 'Esta transação existe no sistema oficial do Banzami.' };
-    case 'PENDING': return { tone: 'yellow', title: 'Pagamento pendente', sub: 'A transação existe mas ainda não foi confirmada.' };
-    case 'REVERSED': return { tone: 'red', title: 'Pagamento revertido', sub: 'Esta transação foi revertida — não representa um pagamento válido.' };
+    case 'CONFIRMED': return { tone: 'green', title: confirmedTitle(p.operation_kind), sub: 'Esta transação existe no sistema oficial do Banzami.' };
+    case 'PENDING': return { tone: 'yellow', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência pendente' : 'Pagamento pendente', sub: 'A transação existe mas ainda não foi confirmada.' };
+    case 'REVERSED': return { tone: 'red', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência revertida' : 'Pagamento revertido', sub: 'Esta transação foi revertida — não representa um pagamento válido.' };
     default: return { tone: 'red', title: 'Comprovativo inválido', sub: `Estado: ${p.status}. Não representa um pagamento confirmado.` };
   }
 }
@@ -123,12 +118,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
                   <MoneyAmount amountMinor={p.amount ?? null} currency={p.currency} size="xl" />
                 </div>
               </div>
-              <Row label="De" value={p.payer_display ? `${p.payer_display}${p.payer_handle ? ` · @${p.payer_handle}` : ''}` : (p.payer_handle ? `@${p.payer_handle}` : '—')} />
-              <Row label="Para" value={p.payee_display ? `${p.payee_display}${p.payee_handle ? ` · @${p.payee_handle}` : ''}` : (p.payee_handle ? `@${p.payee_handle}` : '—')} />
-              <Row label="Referência" value={ref.toUpperCase()} mono />
-              <Row label="Método" value={p.method} />
-              {p.description && <Row label="Descrição" value={p.description} />}
-              <Row label="Confirmado em" value={fmtDate(p.confirmed_at)} />
+              {proofRows(p, ref.toUpperCase()).map((r) => <Row key={r.label} label={r.label} value={r.value} mono={r.mono} />)}
               <Row label="Estado" value={statusPT(p.status)} />
               <Row label="Rede" value={netLabel(p.network)} />
               <Row label="Operador" value={opLabel(p.operator)} />

@@ -68,6 +68,18 @@ export interface ProofResult {
   payer_handle?: string;
   payee_display?: string;
   payee_handle?: string;
+  payee_kind?: 'PERSON' | 'BUSINESS';
+  /** PAYMENT | P2P_TRANSFER — what the operation was (absent on a legacy proof). */
+  operation_kind?: string | null;
+  /** PAYMENT_LINK | QR | HANDLE — how it was started. */
+  channel?: string | null;
+  /** BANZAMI_BALANCE — where the money came from. */
+  funding_source?: string | null;
+  /** The Business's own reference for the payment. Display context only. */
+  merchant_reference?: string | null;
+  /** What the payment was for, in the Business's public words. Display context only. */
+  display_context?: string | null;
+  /** Legacy method line; ignored when operation_kind is present. */
   method?: string;
   description?: string;
   confirmed_at?: string | null;
