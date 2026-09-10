@@ -21,26 +21,47 @@ void main() {
         '403 KYB_DECIDED_BY_REVIEW: a Business cannot verify itself',
   };
 
+  // Not mounted on the GATEWAY's merchant surface. The consumer surface
+  // (public-api, ConsumerPublicClient) serves its own /v1/qr/pay, derived from
+  // the consumer's token — so these are checked in the gateway client only.
+  const withdrawnFromGateway = {
+    '/v1/consumer-wallets':
+        'not mounted (RA-058): a merchant has no authority over a consumer wallet',
+    '/v1/qr/pay':
+        'not mounted (RA-053): a merchant JWT cannot debit a consumer',
+  };
+
   final sources = Directory('lib')
       .listSync(recursive: true)
       .whereType<File>()
       .where((f) => f.path.endsWith('.dart'))
       .toList();
+  final gatewayClient = [File('lib/client/banzami_client.dart')];
+
+  List<String> offenders(List<File> files, String route) {
+    final quoted = RegExp('[\'"]${RegExp.escape(route)}');
+    final found = <String>[];
+    for (final f in files) {
+      final lines = f.readAsStringSync().split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        if (lines[i].trimLeft().startsWith('//')) continue;
+        if (quoted.hasMatch(lines[i])) {
+          found.add('${f.path}:${i + 1} → ${lines[i].trim()}');
+        }
+      }
+    }
+    return found;
+  }
 
   for (final entry in withdrawn.entries) {
     test('no client call to ${entry.key} — ${entry.value}', () {
-      final quoted = RegExp('[\'"]${RegExp.escape(entry.key)}');
-      final offenders = <String>[];
-      for (final f in sources) {
-        final lines = f.readAsStringSync().split('\n');
-        for (var i = 0; i < lines.length; i++) {
-          if (lines[i].trimLeft().startsWith('//')) continue;
-          if (quoted.hasMatch(lines[i])) {
-            offenders.add('${f.path}:${i + 1} → ${lines[i].trim()}');
-          }
-        }
-      }
-      expect(offenders, isEmpty);
+      expect(offenders(sources, entry.key), isEmpty);
+    });
+  }
+  for (final entry in withdrawnFromGateway.entries) {
+    test('BanzamiClient does not call ${entry.key} — ${entry.value}', () {
+      expect(gatewayClient.single.existsSync(), isTrue);
+      expect(offenders(gatewayClient, entry.key), isEmpty);
     });
   }
 }

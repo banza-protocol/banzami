@@ -11,7 +11,6 @@ import '../models/payment_link.dart';
 import '../models/project_link_code.dart';
 import '../models/collection.dart';
 import '../models/qr_code.dart';
-import '../models/wallet_balance.dart';
 import 'api_exception.dart';
 import 'banzami_environment.dart';
 import 'merchant_session_tokens.dart';
@@ -343,32 +342,14 @@ class BanzamiClient {
     return Consumer.fromJson(json);
   }
 
-  // ---------------------------------------------------------------------------
-  // Consumer Wallets
-  // ---------------------------------------------------------------------------
-
-  Future<Map<String, dynamic>> getOrCreateWallet({
-    required String consumerId,
-    String currency = 'AOA',
-  }) async {
-    return _postWithRetry('/v1/consumer-wallets', {
-      'consumer_id': consumerId,
-      'currency': currency,
-    });
-  }
-
-  Future<WalletBalance> getBalance(String walletId) async {
-    final json = await _get('/v1/consumer-wallets/$walletId/balance');
-    return WalletBalance.fromJson(json);
-  }
-
-  Future<Map<String, dynamic>> getWalletForConsumer({
-    required String consumerId,
-    String currency = 'AOA',
-  }) async {
-    return _get(
-        '/v1/consumer-wallets?consumer_id=$consumerId&currency=$currency');
-  }
+  // Consumer wallets — REMOVED.
+  //
+  // getOrCreateWallet / getBalance / getWalletForConsumer called
+  // /v1/consumer-wallets on the gateway, which is not mounted (RA-058): a
+  // merchant credential has no relation to a consumer's wallet, and the routes
+  // took the consumer straight from client input. Every call answered 404.
+  // A consumer reads its own wallet through ConsumerPublicClient (public-api,
+  // derived from the consumer's token).
 
   // ---------------------------------------------------------------------------
   // Transfers
@@ -438,31 +419,10 @@ class BanzamiClient {
     return QrCode.fromJson(json);
   }
 
-  /// Scan-to-pay: settle a scanned structured QR (static or dynamic).
-  ///
-  /// [payer] is the payer's @banza handle. [amountMinor] is required for a
-  /// static QR (the payer enters it) and ignored for a dynamic QR (the amount
-  /// is fixed and verified server-side). Throws [BanzamiApiException] carrying
-  /// the outcome code on refusal (`KYC_REQUIRED`, `INSUFFICIENT_FUNDS`,
-  /// `QR_ALREADY_USED`, `QR_EXPIRED`, `QR_INVALID_SIGNATURE`, ...).
-  Future<Map<String, dynamic>> payQr({
-    required String payer,
-    required String payload,
-    int? amountMinor,
-    String? note,
-    String? idempotencyKey,
-  }) async {
-    return _postWithRetry(
-        '/v1/qr/pay',
-        {
-          'idempotency_key': idempotencyKey ?? _uuid.v4(),
-          'payer': payer,
-          'payload': payload,
-          if (amountMinor != null) 'amount_minor': amountMinor,
-          if (note != null) 'note': note,
-        },
-        idempotencyKey: idempotencyKey);
-  }
+  // payQr — REMOVED. The gateway does not mount POST /v1/qr/pay (RA-053): a
+  // merchant credential is not authority to debit a consumer's wallet, and the
+  // route took the payer as free text. The payer pays a scanned QR with
+  // ConsumerPublicClient.payStructuredQr, as the authenticated consumer.
 
   // ---------------------------------------------------------------------------
   // Merchants

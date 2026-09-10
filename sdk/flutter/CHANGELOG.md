@@ -43,6 +43,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   so every call answered 404. A Business asks for a fixed amount with a payment
   link or a dynamic QR. (The consumer `BanzamiPaymentRequestScreen`, which opens
   a consumer pay link, is unaffected.)
+- `BanzamiClient.getOrCreateWallet`, `getBalance(walletId)` and
+  `getWalletForConsumer`, which called `/v1/consumer-wallets` on the gateway
+  (not mounted, RA-058 — a merchant credential has no authority over a
+  consumer's wallet), and `BanzamiClient.payQr`, which called the gateway's
+  `POST /v1/qr/pay` (not mounted, RA-053 — a merchant JWT cannot debit a
+  consumer). Every call answered 404 and nothing called them. A consumer reads
+  its wallet and pays a QR through `ConsumerPublicClient` (`getBalance`,
+  `payStructuredQr`), as the authenticated consumer.
 
 ## [0.1.0] — 2026-05-15
 
