@@ -148,11 +148,13 @@ func (s *PostgresMerchantDocumentService) validateUpload(docType, filename, mime
 }
 
 func (s *PostgresMerchantDocumentService) RequestUpload(ctx context.Context, appID, docType, filename, mime string, size int64) (RequestUploadResult, error) {
-	if s.storage == nil {
-		return RequestUploadResult{}, ErrStorageNotConfigured
-	}
+	// A file that could never be accepted is refused for what it is, whether or
+	// not storage is configured: "not an executable" is not an outage.
 	if err := s.validateUpload(docType, filename, mime, size); err != nil {
 		return RequestUploadResult{}, err
+	}
+	if s.storage == nil {
+		return RequestUploadResult{}, ErrStorageNotConfigured
 	}
 
 	var environment, appStatus string

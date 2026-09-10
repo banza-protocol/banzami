@@ -31,6 +31,18 @@ func TestStorageNotConfigured(t *testing.T) {
 	}
 }
 
+// A file that could never be accepted is refused for what it is even where
+// storage is absent: the applicant is told "not this file", not "try later".
+func TestRequestUploadRefusesTheFileBeforeAskingStorage(t *testing.T) {
+	s := newSvcNoStorage()
+	if _, err := s.RequestUpload(context.Background(), "app", "BUSINESS_REGISTRATION", "x.exe", "application/x-msdownload", 10); err != ErrInvalidMimeType {
+		t.Fatalf("executable without storage: want ErrInvalidMimeType, got %v", err)
+	}
+	if _, err := s.RequestUpload(context.Background(), "app", "BUSINESS_REGISTRATION", "big.pdf", "application/pdf", 6*1024*1024); err != ErrFileTooLarge {
+		t.Fatalf("oversized without storage: want ErrFileTooLarge, got %v", err)
+	}
+}
+
 func TestValidateUpload(t *testing.T) {
 	s := NewPostgresMerchantDocumentService(nil, nil, 1000)
 	cases := []struct {
