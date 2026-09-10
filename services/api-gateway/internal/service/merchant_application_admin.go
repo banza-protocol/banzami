@@ -24,7 +24,10 @@ var (
 	ErrAutoApproveNotSandbox = errors.New("auto-approval is only available for sandbox applications")
 	// ErrRequiredDocumentsMissing: the application cannot be approved without the
 	// documents the review is made on (company registration, representative ID).
-	ErrRequiredDocumentsMissing = errors.New("required documents have not been uploaded")
+	// ErrRequiredDocumentsMissing: the application does not meet the
+	// requirements policy (business_requirements.go) — something is missing
+	// or was refused. The message names the requirement codes.
+	ErrRequiredDocumentsMissing = errors.New("the application does not meet its requirements yet")
 	// ErrHandleOwnedByBusiness: the requested @handle already belongs to a
 	// Business Account. Approving would create a second owner; the application
 	// can only be LINKED to the existing one.
@@ -75,15 +78,24 @@ type MerchantApplication struct {
 	CreatedMerchantID   string `json:"created_merchant_id"`
 	// Provisioning recovery state (0079) — each Phase-A resource is recorded so a
 	// retry resumes the step instead of duplicating it.
-	ProvisioningWalletID       string     `json:"provisioning_wallet_id"`
-	ProvisioningApiKeyPrefix   string     `json:"provisioning_api_key_prefix"`
-	ProvisioningComplianceDone bool       `json:"provisioning_compliance_done"`
-	ProvisioningError          string     `json:"provisioning_error"` // failure reason, for operator visibility
-	ProvisioningAttempts       int        `json:"provisioning_attempts"`
-	ClaimsExistingBusiness     bool       `json:"claims_existing_business"`
-	Resolution                 string     `json:"resolution"` // PROVISIONED_NEW | LINKED_EXISTING, when APPROVED
-	CreatedAt                  time.Time  `json:"created_at"`
-	ReviewedAt                 *time.Time `json:"reviewed_at"`
+	ProvisioningWalletID       string `json:"provisioning_wallet_id"`
+	ProvisioningApiKeyPrefix   string `json:"provisioning_api_key_prefix"`
+	ProvisioningComplianceDone bool   `json:"provisioning_compliance_done"`
+	ProvisioningError          string `json:"provisioning_error"` // failure reason, for operator visibility
+	ProvisioningAttempts       int    `json:"provisioning_attempts"`
+	ClaimsExistingBusiness     bool   `json:"claims_existing_business"`
+	Resolution                 string `json:"resolution"` // PROVISIONED_NEW | LINKED_EXISTING, when APPROVED
+	// Origin is where the application was started (0121): STANDALONE_BUSINESS
+	// or DEVELOPER_PROJECT. Context only — it changes nothing about the review.
+	Origin string `json:"origin"`
+	// ProjectID is the Developer Project that asked, for DEVELOPER_PROJECT.
+	ProjectID string `json:"project_id,omitempty"`
+	// InformationRequest is what the reviewer asked for, while
+	// INFORMATION_REQUIRED.
+	InformationRequest       string     `json:"information_request,omitempty"`
+	ProvisioningProjectBound bool       `json:"provisioning_project_bound"`
+	CreatedAt                time.Time  `json:"created_at"`
+	ReviewedAt               *time.Time `json:"reviewed_at"`
 }
 
 type ApprovalResult struct {
@@ -130,6 +142,9 @@ type MerchantApplicationAdminService interface {
 	ReissueActivation(ctx context.Context, id string, ttl time.Duration) (ActivationReissue, error)
 	LinkCandidates(ctx context.Context, id, lookupHandle string) ([]LinkCandidate, error)
 	BusinessState(ctx context.Context, id string, readiness SettlementReadinessService) (*BusinessState, error)
+	RequestInformation(ctx context.Context, id, reviewedBy, message string) (MerchantApplication, error)
+	PublicStatus(ctx context.Context, id string) (ApplicationStatus, error)
+	Resubmit(ctx context.Context, id string) (ApplicationStatus, error)
 }
 
 // coreProvisioner is the slice of core-api provisioning calls the approval flow
@@ -176,6 +191,7 @@ const appCols = `id::text, status, environment, desired_handle, business_name,
 	COALESCE(provisioning_wallet_id::text,''), COALESCE(provisioning_api_key_prefix,''), provisioning_compliance_done,
 	COALESCE(provisioning_error,''), provisioning_attempts,
 	claims_existing_business, COALESCE(resolution,''),
+	origin, COALESCE(project_id::text,''), COALESCE(information_request,''), provisioning_project_bound,
 	created_at, reviewed_at`
 
 func scanApplication(row pgx.Row) (MerchantApplication, error) {
@@ -189,6 +205,7 @@ func scanApplication(row pgx.Row) (MerchantApplication, error) {
 		&a.ProvisioningWalletID, &a.ProvisioningApiKeyPrefix, &a.ProvisioningComplianceDone,
 		&a.ProvisioningError, &a.ProvisioningAttempts,
 		&a.ClaimsExistingBusiness, &a.Resolution,
+		&a.Origin, &a.ProjectID, &a.InformationRequest, &a.ProvisioningProjectBound,
 		&a.CreatedAt, &a.ReviewedAt)
 	return a, err
 }
@@ -349,12 +366,10 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 	if app.ClaimsExistingBusiness {
 		return ApprovalResult{}, ErrClaimsExistingBusiness
 	}
-	missing, err := s.missingDocuments(ctx, id)
-	if err != nil {
+	if req, err := requirementsFor(ctx, s.pool, app); err != nil {
 		return ApprovalResult{}, err
-	}
-	if len(missing) > 0 {
-		return ApprovalResult{}, fmt.Errorf("%w: %s", ErrRequiredDocumentsMissing, strings.Join(missing, ", "))
+	} else if !req.Complete() {
+		return ApprovalResult{}, requirementsError(req)
 	}
 	// The requested handle must still be this application's to convert. If a
 	// Business Account owns it, this is an existing Business: link, do not
@@ -612,12 +627,10 @@ func (s *PostgresMerchantApplicationAdminService) LinkExisting(ctx context.Conte
 		return LinkResult{}, ErrApplicationNotOpen
 	}
 
-	missing, err := s.missingDocuments(ctx, id)
-	if err != nil {
+	if req, err := requirementsFor(ctx, s.pool, app); err != nil {
 		return LinkResult{}, err
-	}
-	if len(missing) > 0 {
-		return LinkResult{}, fmt.Errorf("%w: %s", ErrRequiredDocumentsMissing, strings.Join(missing, ", "))
+	} else if !req.Complete() {
+		return LinkResult{}, requirementsError(req)
 	}
 
 	// The reviewed application is the KYB decision for the existing Business.

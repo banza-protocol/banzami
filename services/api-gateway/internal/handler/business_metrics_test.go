@@ -82,7 +82,7 @@ func TestBusinessMetrics_DocumentOutcomes(t *testing.T) {
 func TestBusinessMetrics_LabelsAreAClosedVocabulary(t *testing.T) {
 	closed := map[string]bool{}
 	for _, v := range []string{
-		appActionSubmit, appActionStartReview, appActionApprove, appActionLink, appActionReject, appActionReissueActivation,
+		appActionSubmit, appActionStartReview, appActionApprove, appActionLink, appActionReject, appActionReissueActivation, appActionRequestInformation, appActionResubmit,
 		appResultOK, appResultReplayed, appResultRefused, appResultFailed,
 		authResultIssued, authResultRefused, authResultLocked, authResultOwnerMismatch,
 		authResultRefreshed, authResultRefreshRefused, authResultRefreshReused,

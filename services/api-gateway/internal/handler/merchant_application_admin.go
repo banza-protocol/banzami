@@ -48,7 +48,9 @@ func respondLifecycleError(w http.ResponseWriter, r *http.Request, err error, ac
 	case errors.Is(err, service.ErrApplicationNotOpen):
 		apierror.Respond(w, r, http.StatusConflict, "NOT_OPEN", "application is not open for this action")
 	case errors.Is(err, service.ErrRequiredDocumentsMissing):
-		apierror.Respond(w, r, http.StatusUnprocessableEntity, "DOCUMENTS_REQUIRED", err.Error())
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "REQUIREMENTS_NOT_MET", err.Error())
+	case errors.Is(err, service.ErrInformationRequestRequired):
+		apierror.Respond(w, r, http.StatusBadRequest, "MESSAGE_REQUIRED", err.Error())
 	case errors.Is(err, service.ErrHandleOwnedByBusiness):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_OWNED_BY_BUSINESS", err.Error())
 	case errors.Is(err, service.ErrClaimsExistingBusiness):
@@ -261,4 +263,80 @@ func (h *MerchantApplicationAdminHandler) BusinessState(w http.ResponseWriter, r
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"business": st})
+}
+
+// POST /internal/v1/merchant-applications/{id}/request-information
+// {message, reviewed_by} — the review waits for the applicant.
+func (h *MerchantApplicationAdminHandler) RequestInformation(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	var body struct {
+		Message    string `json:"message"`
+		ReviewedBy string `json:"reviewed_by"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	app, err := h.svc.RequestInformation(r.Context(), chi.URLParam(r, "id"), body.ReviewedBy, body.Message)
+	if err != nil {
+		respondLifecycleError(w, r, err, "request information for")
+		return
+	}
+	slog.InfoContext(r.Context(), "merchant.application.information_requested", "application_id", app.ID)
+	observeApplication(appActionRequestInformation, appResultOK)
+	writeJSON(w, http.StatusOK, app)
+}
+
+// ── public: the applicant, by application reference ─────────────────────────
+
+// GET /v1/merchant/application-requirements — the policy every surface
+// renders: which fields and documents a Business application needs.
+func (h *MerchantApplicationAdminHandler) RequirementsPolicy(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]any{
+		"policy_version": service.RequirementPolicyVersion,
+		"items":          service.BusinessApplicationPolicy,
+	})
+}
+
+// GET /v1/merchant/applications/{id} — where the application stands and what
+// it still needs. The reference is the capability; the answer carries no
+// personal data.
+func (h *MerchantApplicationAdminHandler) PublicStatus(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	st, err := h.svc.PublicStatus(r.Context(), chi.URLParam(r, "id"))
+	if errors.Is(err, service.ErrApplicationNotFound) {
+		apierror.Respond(w, r, http.StatusNotFound, "APPLICATION_NOT_FOUND", "application not found")
+		return
+	}
+	if err != nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "could not read the application")
+		return
+	}
+	writeJSON(w, http.StatusOK, st)
+}
+
+// POST /v1/merchant/applications/{id}/resubmit — the applicant answered the
+// reviewer; back to review.
+func (h *MerchantApplicationAdminHandler) Resubmit(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	st, err := h.svc.Resubmit(r.Context(), chi.URLParam(r, "id"))
+	switch {
+	case errors.Is(err, service.ErrApplicationNotFound):
+		apierror.Respond(w, r, http.StatusNotFound, "APPLICATION_NOT_FOUND", "application not found")
+	case errors.Is(err, service.ErrNothingToResubmit):
+		apierror.Respond(w, r, http.StatusConflict, "NOT_WAITING_FOR_INFORMATION", err.Error())
+	case errors.Is(err, service.ErrRequiredDocumentsMissing):
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "REQUIREMENTS_NOT_MET", err.Error())
+	case err != nil:
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "could not resubmit the application")
+	default:
+		observeApplication(appActionResubmit, appResultOK)
+		writeJSON(w, http.StatusOK, st)
+	}
 }

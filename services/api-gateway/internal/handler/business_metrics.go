@@ -40,12 +40,14 @@ var (
 
 // Closed label vocabularies.
 const (
-	appActionSubmit            = "submit"
-	appActionStartReview       = "start_review"
-	appActionApprove           = "approve"
-	appActionLink              = "link_existing"
-	appActionReject            = "reject"
-	appActionReissueActivation = "reissue_activation"
+	appActionSubmit             = "submit"
+	appActionStartReview        = "start_review"
+	appActionApprove            = "approve"
+	appActionLink               = "link_existing"
+	appActionReject             = "reject"
+	appActionReissueActivation  = "reissue_activation"
+	appActionRequestInformation = "request_information"
+	appActionResubmit           = "resubmit"
 
 	appResultOK       = "ok"
 	appResultReplayed = "replayed" // an approval/link pressed again: nothing new happened
@@ -72,11 +74,12 @@ const (
 // lifecycleActionLabel maps the human action phrase used in error messages to
 // its metric label. Read-only actions are not counted.
 var lifecycleActionLabel = map[string]string{
-	"approve":                appActionApprove,
-	"reject":                 appActionReject,
-	"start review of":        appActionStartReview,
-	"link":                   appActionLink,
-	"reissue activation for": appActionReissueActivation,
+	"approve":                 appActionApprove,
+	"reject":                  appActionReject,
+	"start review of":         appActionStartReview,
+	"link":                    appActionLink,
+	"reissue activation for":  appActionReissueActivation,
+	"request information for": appActionRequestInformation,
 }
 
 func observeApplication(action, result string) {

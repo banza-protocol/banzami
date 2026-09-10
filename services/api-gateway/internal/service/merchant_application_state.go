@@ -7,6 +7,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -191,4 +193,127 @@ func (s *PostgresMerchantApplicationAdminService) BusinessState(ctx context.Cont
 		}
 	}
 	return st, nil
+}
+
+var (
+	// ErrInformationRequestRequired: asking for information needs a message
+	// the applicant can act on.
+	ErrInformationRequestRequired = errors.New("say what information is needed")
+	// ErrNothingToResubmit: only an application the reviewer asked about can be
+	// resubmitted, and only once what is due has been provided.
+	ErrNothingToResubmit = errors.New("this application is not waiting for information")
+)
+
+// RequestInformation puts a review on hold until the applicant provides what
+// the reviewer needs. It is not a rejection: the application keeps its handle
+// hold and its documents, and returns to review when resubmitted.
+func (s *PostgresMerchantApplicationAdminService) RequestInformation(ctx context.Context, id, reviewedBy, message string) (MerchantApplication, error) {
+	message = strings.TrimSpace(message)
+	if message == "" {
+		return MerchantApplication{}, ErrInformationRequestRequired
+	}
+	release, err := s.lockApplication(ctx, id)
+	if err != nil {
+		return MerchantApplication{}, err
+	}
+	defer release()
+	app, err := s.Get(ctx, id)
+	if err != nil {
+		return MerchantApplication{}, err
+	}
+	if app.Status != "SUBMITTED" && app.Status != "UNDER_REVIEW" && app.Status != "INFORMATION_REQUIRED" {
+		return MerchantApplication{}, ErrApplicationNotOpen
+	}
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE merchant_applications
+		    SET status = 'INFORMATION_REQUIRED', information_request = $2, information_requested_at = now(),
+		        reviewed_by = $3, updated_at = now()
+		  WHERE id = $1`, id, message, reviewedBy); err != nil {
+		return MerchantApplication{}, err
+	}
+	return s.Get(ctx, id)
+}
+
+// ApplicationStatus is what the applicant — whoever holds the application's
+// reference — may see: where it stands and what it still needs. No email, NIF,
+// representative or reviewer note: the reference is a capability to act on
+// the application, not to read its contents back.
+type ApplicationStatus struct {
+	ApplicationID      string       `json:"application_id"`
+	Status             string       `json:"status"`
+	Origin             string       `json:"origin"`
+	RequestedHandle    string       `json:"requested_handle"`
+	InformationRequest string       `json:"information_request,omitempty"`
+	Requirements       Requirements `json:"requirements"`
+	CreatedAt          time.Time    `json:"created_at"`
+}
+
+// PublicStatus reads an application's status and requirements by reference.
+func (s *PostgresMerchantApplicationAdminService) PublicStatus(ctx context.Context, id string) (ApplicationStatus, error) {
+	if _, err := uuid.Parse(id); err != nil {
+		return ApplicationStatus{}, ErrApplicationNotFound
+	}
+	app, err := s.Get(ctx, id)
+	if err != nil {
+		return ApplicationStatus{}, err
+	}
+	req, err := requirementsFor(ctx, s.pool, app)
+	if err != nil {
+		return ApplicationStatus{}, err
+	}
+	st := ApplicationStatus{
+		ApplicationID: app.ID, Status: app.Status, Origin: app.Origin,
+		RequestedHandle: app.DesiredHandle, Requirements: req, CreatedAt: app.CreatedAt,
+	}
+	if app.Status == "INFORMATION_REQUIRED" {
+		st.InformationRequest = app.InformationRequest
+	}
+	return st, nil
+}
+
+// Resubmit returns an application the reviewer asked about to review, once
+// nothing the policy requires is missing. What the reviewer asked for is kept
+// in the record; the applicant's answer is whatever they changed or attached.
+func (s *PostgresMerchantApplicationAdminService) Resubmit(ctx context.Context, id string) (ApplicationStatus, error) {
+	if _, err := uuid.Parse(id); err != nil {
+		return ApplicationStatus{}, ErrApplicationNotFound
+	}
+	release, err := s.lockApplication(ctx, id)
+	if err != nil {
+		return ApplicationStatus{}, err
+	}
+	defer release()
+	app, err := s.Get(ctx, id)
+	if err != nil {
+		return ApplicationStatus{}, err
+	}
+	if app.Status != "INFORMATION_REQUIRED" {
+		return ApplicationStatus{}, ErrNothingToResubmit
+	}
+	app.Status = "SUBMITTED" // evaluate as it would stand once resubmitted
+	req, err := requirementsFor(ctx, s.pool, app)
+	if err != nil {
+		return ApplicationStatus{}, err
+	}
+	if !req.Complete() {
+		return ApplicationStatus{}, requirementsError(req)
+	}
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE merchant_applications SET status = 'SUBMITTED', updated_at = now()
+		  WHERE id = $1 AND status = 'INFORMATION_REQUIRED'`, id); err != nil {
+		return ApplicationStatus{}, err
+	}
+	return s.PublicStatus(ctx, id)
+}
+
+// requirementsError names what stands between an application and a decision.
+func requirementsError(r Requirements) error {
+	var codes []string
+	for _, i := range r.CurrentlyDue {
+		codes = append(codes, i.Code)
+	}
+	for _, i := range r.Errors {
+		codes = append(codes, i.Code)
+	}
+	return fmt.Errorf("%w: %s", ErrRequiredDocumentsMissing, strings.Join(codes, ", "))
 }

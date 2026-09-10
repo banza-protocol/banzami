@@ -406,7 +406,9 @@ func (s *PostgresMerchantDocumentService) Reject(ctx context.Context, appID, doc
 // documentsOpen: an application takes documents while it is being reviewed.
 func documentsOpen(status string) bool {
 	switch status {
-	case "SUBMITTED", "UNDER_REVIEW", "PROVISIONING_FAILED":
+	// INFORMATION_REQUIRED: the reviewer asked for a document; the applicant
+	// attaches it before resubmitting.
+	case "SUBMITTED", "UNDER_REVIEW", "INFORMATION_REQUIRED", "PROVISIONING_FAILED":
 		return true
 	}
 	return false

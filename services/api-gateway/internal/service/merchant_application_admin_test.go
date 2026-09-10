@@ -51,9 +51,22 @@ func (f *fakeProvisioner) AssignPricingProfile(ctx context.Context, merchantID, 
 	return nil
 }
 
-// seedRequiredDocs gives an application the documents a review is made on.
+// seedRequiredDocs makes an application complete against the requirements
+// policy: every required field and the documents a review is made on.
 func seedRequiredDocs(ctx context.Context, t *testing.T, pool *pgxpool.Pool, appID string) {
 	t.Helper()
+	if _, err := pool.Exec(ctx,
+		`UPDATE merchant_applications
+		    SET category = COALESCE(category, 'Retalho'), phone = COALESCE(phone, '+244 923456789'),
+		        nif = COALESCE(nif, '5001234567'), province = COALESCE(province, 'Luanda'),
+		        municipality = COALESCE(municipality, 'Talatona'), address = COALESCE(address, 'Rua 1'),
+		        legal_representative = COALESCE(legal_representative, 'João da Silva'),
+		        representative_role = COALESCE(representative_role, 'Proprietário'),
+		        business_activity = COALESCE(business_activity, 'Loja'),
+		        terms_accepted_at = COALESCE(terms_accepted_at, now())
+		  WHERE id = $1`, appID); err != nil {
+		t.Fatalf("complete application: %v", err)
+	}
 	for _, typ := range requiredApplicationDocuments {
 		if _, err := pool.Exec(ctx,
 			`INSERT INTO merchant_application_documents

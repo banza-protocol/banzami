@@ -233,6 +233,12 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		r.Post("/v1/merchant/applications/{id}/documents/upload-url", merchantDocumentHandler.RequestUploadURL)
 		r.Post("/v1/merchant/applications/{id}/documents/{document_id}/confirm", merchantDocumentHandler.ConfirmUpload)
 		r.Get("/v1/merchant/applications/{id}/documents", merchantDocumentHandler.ListDocuments)
+		// The applicant's view of their own application, by reference: status,
+		// what it still needs, and resubmission after a request for
+		// information. The policy itself is public.
+		r.Get("/v1/merchant/application-requirements", merchantAppAdminHandler.RequirementsPolicy)
+		r.Get("/v1/merchant/applications/{id}", merchantAppAdminHandler.PublicStatus)
+		r.Post("/v1/merchant/applications/{id}/resubmit", merchantAppAdminHandler.Resubmit)
 	})
 
 	// Internal service-to-service endpoints — admin-api / public-api only (shared secret).
@@ -249,6 +255,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Post("/{id}/approve", merchantAppAdminHandler.Approve)
 			r.Post("/{id}/reject", merchantAppAdminHandler.Reject)
 			r.Post("/{id}/start-review", merchantAppAdminHandler.StartReview)
+			r.Post("/{id}/request-information", merchantAppAdminHandler.RequestInformation)
 			r.Post("/{id}/link-existing", merchantAppAdminHandler.LinkExisting)
 			r.Post("/{id}/reissue-activation", merchantAppAdminHandler.ReissueActivation)
 			r.Get("/{id}/link-candidates", merchantAppAdminHandler.LinkCandidates)

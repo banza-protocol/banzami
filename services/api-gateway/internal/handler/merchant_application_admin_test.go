@@ -54,6 +54,21 @@ func (f *fakeAppAdmin) LinkCandidates(_ context.Context, _, _ string) ([]service
 func (f *fakeAppAdmin) BusinessState(_ context.Context, _ string, _ service.SettlementReadinessService) (*service.BusinessState, error) {
 	return nil, nil
 }
+func (f *fakeAppAdmin) RequestInformation(_ context.Context, id, _, msg string) (service.MerchantApplication, error) {
+	if msg == "" {
+		return service.MerchantApplication{}, service.ErrInformationRequestRequired
+	}
+	return service.MerchantApplication{ID: id, Status: "INFORMATION_REQUIRED", InformationRequest: msg}, nil
+}
+func (f *fakeAppAdmin) PublicStatus(_ context.Context, id string) (service.ApplicationStatus, error) {
+	if id == "missing" {
+		return service.ApplicationStatus{}, service.ErrApplicationNotFound
+	}
+	return service.ApplicationStatus{ApplicationID: id, Status: "SUBMITTED"}, nil
+}
+func (f *fakeAppAdmin) Resubmit(_ context.Context, id string) (service.ApplicationStatus, error) {
+	return service.ApplicationStatus{}, service.ErrNothingToResubmit
+}
 func (f *fakeAppAdmin) Reject(_ context.Context, _, _, _, _ string) (service.RejectionResult, error) {
 	return f.rejection, f.rejectErr
 }
@@ -154,5 +169,36 @@ func TestApplicationAdminReject(t *testing.T) {
 	rec2 := appAdminRoute(h2, http.MethodPost, "/internal/v1/merchant-applications/app-1/reject", h2.Reject, `{}`)
 	if rec2.Code != http.StatusConflict {
 		t.Fatalf("status=%d want 409", rec2.Code)
+	}
+}
+
+func TestApplicationPublicViewAndInformationRequest(t *testing.T) {
+	h := NewMerchantApplicationAdminHandler(&fakeAppAdmin{}, nil)
+	route := func(method, pattern, path, body string, fn http.HandlerFunc) *httptest.ResponseRecorder {
+		r := chi.NewRouter()
+		r.MethodFunc(method, pattern, fn)
+		rec := httptest.NewRecorder()
+		r.ServeHTTP(rec, httptest.NewRequest(method, path, strings.NewReader(body)))
+		return rec
+	}
+	if rec := route("GET", "/a/{id}", "/a/missing", "", h.PublicStatus); rec.Code != 404 {
+		t.Fatalf("unknown reference: %d", rec.Code)
+	}
+	if rec := route("GET", "/a/{id}", "/a/abc", "", h.PublicStatus); rec.Code != 200 {
+		t.Fatalf("status: %d", rec.Code)
+	}
+	if rec := route("POST", "/a/{id}/resubmit", "/a/abc/resubmit", "", h.Resubmit); rec.Code != 409 {
+		t.Fatalf("resubmit of an application nobody asked about: %d", rec.Code)
+	}
+	if rec := route("POST", "/a/{id}/ri", "/a/abc/ri", `{"message":""}`, h.RequestInformation); rec.Code != 400 {
+		t.Fatalf("an empty information request: %d", rec.Code)
+	}
+	if rec := route("POST", "/a/{id}/ri", "/a/abc/ri", `{"message":"Envie o NIF.","reviewed_by":"op"}`, h.RequestInformation); rec.Code != 200 {
+		t.Fatalf("information request: %d", rec.Code)
+	}
+	rec := httptest.NewRecorder()
+	h.RequirementsPolicy(rec, httptest.NewRequest("GET", "/", nil))
+	if rec.Code != 200 || !strings.Contains(rec.Body.String(), "BUSINESS_REGISTRATION") {
+		t.Fatalf("policy: %d %s", rec.Code, rec.Body.String())
 	}
 }
