@@ -34,8 +34,13 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   }
 
   Future<void> _startNotifications() async {
-    final client  = context.read<BanzamiClient>();
-    final session = context.read<MerchantSessionService>().session!;
+    final client     = context.read<BanzamiClient>();
+    final svc        = context.read<MerchantSessionService>();
+    final merchantId = svc.session!.merchantId;
+    // The payment topic is wanted only while this Business is still the
+    // signed-in one: the permission prompt and the APNs wait can outlast a
+    // session, and ending it has already taken the device off the topic.
+    bool stillThisBusiness() => svc.session?.merchantId == merchantId;
     _notifSvc = PaymentNotificationService(client)..startPolling();
 
     // Foreground payment push: play the configurable confirmation sound.
@@ -48,9 +53,9 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     };
 
     final granted = await PushNotificationService.requestPermission();
-    if (!granted) return;
+    if (!granted || !stillThisBusiness()) return;
 
-    await PushNotificationService.subscribeMerchant(session.merchantId);
+    await PushNotificationService.subscribeMerchant(merchantId, stillWanted: stillThisBusiness);
     await PushNotificationService.getToken();
   }
 

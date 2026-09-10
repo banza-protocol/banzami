@@ -11,6 +11,7 @@
 // looks signed in while protected financial APIs are permanently unauthorized
 // — and an outage is never mistaken for a sign-out.
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -23,8 +24,10 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import 'package:banzami_mobile/merchant/screens/dashboard_screen.dart';
 import 'package:banzami_mobile/merchant/screens/pin_screen.dart';
+import 'package:banzami_mobile/merchant/services/merchant_push_registration.dart';
 import 'package:banzami_mobile/merchant/services/merchant_reauth.dart';
 import 'package:banzami_mobile/merchant/services/merchant_session_service.dart';
+import 'package:banzami_mobile/services/push_notification_service.dart';
 
 String _jwt(String merchantId, [String sig = 'sig']) {
   String seg(Object o) => base64Url.encode(utf8.encode(jsonEncode(o))).replaceAll('=', '');
@@ -130,6 +133,34 @@ class _Banzami {
   });
 }
 
+/// The device's FCM topic registration, as the session service sees it.
+class _Push implements MerchantPushRegistration {
+  final Map<String, String> store;
+  _Push(this.store);
+
+  final List<String> unsubscribed = [];
+
+  /// The Business the device's storage still named when each unsubscription
+  /// STARTED — proof it ran before the identity was cleared.
+  final List<String?> storedIdentityAtCall = [];
+
+  /// The Business the session service itself was still signed in as, for
+  /// calls made once [svc] is known.
+  final List<String?> sessionIdentityAtCall = [];
+  MerchantSessionService? svc;
+
+  /// FCM unreachable: the call never completes.
+  bool hang = false;
+
+  @override
+  Future<void> unsubscribe(String topic) {
+    unsubscribed.add(topic);
+    storedIdentityAtCall.add(store['merchant_id']);
+    if (svc != null) sessionIdentityAtCall.add(svc!.session?.merchantId);
+    return hang ? Completer<void>().future : Future<void>.value();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final store = <String, String>{};
@@ -161,8 +192,9 @@ void main() {
   /// A device that signed in as merchant m-old with wallet w-old, PIN 123456,
   /// holding access token t1 that expires at [expiry] and — unless it predates
   /// renewable sessions — refresh token R1, restored as a cold start does.
-  Future<MerchantSessionService> device(DateTime expiry, {bool withRefresh = true}) async {
-    final svc = MerchantSessionService();
+  Future<MerchantSessionService> device(DateTime expiry,
+      {bool withRefresh = true, MerchantPushRegistration? push}) async {
+    final svc = MerchantSessionService(push: push);
     await svc.createHandleSession(
       merchantId: 'm-old', merchantName: 'Loja', merchantEmail: 'e@x', walletId: 'w-old',
       jwt: _t1, jwtExpiresAt: expiry, handle: 'loja', environment: 'SANDBOX',
@@ -170,7 +202,7 @@ void main() {
       refreshToken: withRefresh ? 'R1' : null,
       refreshExpiresAt: withRefresh ? DateTime.now().add(const Duration(days: 20)) : null,
     );
-    final restored = MerchantSessionService();
+    final restored = MerchantSessionService(push: push);
     await restored.initialize();
     events.clear();
     return restored;
@@ -380,6 +412,100 @@ void main() {
       expect(b.logoutPresented, ['R1']);
       expect(svc.route, MerchantRoute.welcome);
       expect(store, isEmpty);
+    });
+  });
+
+  // A signed-out device must not keep receiving the Business's payment
+  // notifications: every way a session ends takes the device off the
+  // Business's FCM topics — started while the identity is still known.
+  group('payment notifications follow the session', () {
+    const topics = ['merchant_m-old', 'sandbox_merchant_m-old'];
+
+    test('the topics are the ones the gateway publishes to', () {
+      expect(PushNotificationService.merchantTopics('m-old'), topics);
+      expect(PushNotificationService.merchantTopic('m-old', sandbox: true), 'sandbox_merchant_m-old');
+      expect(PushNotificationService.merchantTopic('m-old', sandbox: false), 'merchant_m-old');
+    });
+
+    test('a refused renewal unsubscribes before the identity is cleared', () async {
+      final push = _Push(store);
+      final svc = await device(expired, push: push);
+      push.svc = svc;
+      svc.unlock();
+      expect(push.unsubscribed, isEmpty, reason: 'a live session keeps its notifications');
+      await clientFor(svc, _Banzami(refreshStatus: 401))
+          .getMerchantBalance('w-old')
+          .catchError((Object _) => _zero);
+      await svc.settled;
+      expect(push.unsubscribed, topics);
+      expect(push.storedIdentityAtCall, ['m-old', 'm-old'],
+          reason: 'started while the device still knew the Business');
+      expect(push.sessionIdentityAtCall, ['m-old', 'm-old'],
+          reason: 'started before the session let go of the Business');
+      expectSignedOut(svc);
+    });
+
+    test('"Terminar sessão" unsubscribes', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      push.svc = svc;
+      svc.unlock();
+      await signOutBusiness(client: clientFor(svc, _Banzami()), session: svc);
+      expect(push.unsubscribed, topics);
+      expect(push.storedIdentityAtCall, ['m-old', 'm-old']);
+      expect(push.sessionIdentityAtCall, ['m-old', 'm-old']);
+      expectSignedOut(svc);
+    });
+
+    test('"Remover conta" / "Usar outra conta" unsubscribes', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      push.svc = svc;
+      await signOutBusiness(client: clientFor(svc, _Banzami()), session: svc, removeAccount: true);
+      expect(push.unsubscribed, topics);
+      expect(push.storedIdentityAtCall, ['m-old', 'm-old']);
+      expect(push.sessionIdentityAtCall, ['m-old', 'm-old']);
+      expect(store, isEmpty);
+    });
+
+    test('an unreachable FCM does not keep the device signed in', () async {
+      final push = _Push(store)..hang = true;
+      final svc = await device(fresh, push: push);
+      svc.unlock();
+      await signOutBusiness(client: clientFor(svc, _Banzami()), session: svc);
+      expect(push.unsubscribed, topics);
+      expectSignedOut(svc);
+    });
+
+    test('a session found dead at start-up unsubscribes too', () async {
+      final push = _Push(store);
+      final svc = await device(DateTime.now().subtract(const Duration(days: 40)),
+          withRefresh: false, push: push);
+      expect(push.unsubscribed, topics);
+      expectSignedOut(svc);
+    });
+
+    test('locking the device is not an ending: nothing is unsubscribed', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      svc..unlock()..lock();
+      expect(push.unsubscribed, isEmpty);
+    });
+
+    test('a sign-in that replaces the Business unsubscribes the one it replaced', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      await svc.applyReauthentication(
+        jwt: _jwt('m-new'), jwtExpiresAt: fresh, merchantId: 'm-new', merchantName: 'Outra',
+        merchantEmail: 'o@x', walletId: 'w-new', verified: false,
+      );
+      expect(push.unsubscribed, topics, reason: 'm-old is no longer signed in here');
+      push.unsubscribed.clear();
+      await svc.applyReauthentication(
+        jwt: _jwt('m-new', 'again'), jwtExpiresAt: fresh, merchantId: 'm-new', merchantName: 'Outra',
+        merchantEmail: 'o@x', walletId: 'w-new', verified: false,
+      );
+      expect(push.unsubscribed, isEmpty, reason: 'the same Business signing in again keeps its topic');
     });
   });
 

@@ -109,6 +109,7 @@ Business (@handle + PIN) sign-in is a **renewable session** (gateway migration
 | Session stored before refresh tokens | Kept while its access token is valid; once it expires it requires sign-in. |
 | **Terminar sessão** | Ends the session on this device (as above) and revokes the refresh token on Banzami (`/v1/merchant/auth/logout`, best effort — local state is cleared regardless). Signing in again asks only for the PIN. |
 | **Remover conta** / **Usar outra conta** | Revokes the refresh token (best effort) and deletes everything stored. |
+| Any of the endings above | The device is unsubscribed from the Business's payment push topics first (see [Notifications](#notifications)). |
 
 Legacy API-key sessions (Merchant ID + API Key) are unchanged: the key is
 re-exchanged for a JWT by the client, **Terminar sessão** locks the device.
@@ -121,9 +122,31 @@ storage, `MerchantRoute`), `lib/merchant/services/merchant_reauth.dart`
 
 ## Notifications
 
-Payment alerts are delivered via local notifications backed by a 30-second polling loop (`PaymentNotificationService`). Polling starts when the session is active and pauses automatically when the app goes to background or the session locks.
+The Business App receives payment pushes through an **FCM topic** per
+Business, named as the gateway publishes them (`notify/fcm.go`
+`topicForMerchant`): `sandbox_merchant_<merchant_id>` on the Sandbox stack,
+`merchant_<merchant_id>` on Live. The main screen subscribes after the
+notification permission is granted. No device token is registered with
+Banzami — the topic is the only registration. In the foreground a 30-second
+polling loop (`PaymentNotificationService`) is the fallback; it stops when the
+main screen is left (lock, sign-out, background).
 
-No FCM/APNs token registration is required — notifications are local only.
+**A signed-out device stops receiving the Business's notifications.** Every
+way a Business session ends — renewal refused, **Terminar sessão**, **Remover
+conta** / **Usar outra conta**, a dead session found at start-up, or a sign-in
+that replaces the Business with another — unsubscribes the device from both
+topics of that Business (`MerchantSessionService._unregisterPush`). It starts
+before the identity that names the topics is cleared and is best effort: it is
+never awaited (an unreachable FCM cannot keep the device signed in; the
+platform SDKs retry a topic operation they could not send). Locking the device
+is not an ending and keeps the subscription. A subscription still waiting for
+the APNs token when the session ends is skipped (`subscribeMerchant`'s
+`stillWanted`), so it cannot re-subscribe a signed-out device.
+
+The FCM calls go through `MerchantPushRegistration`
+(`lib/merchant/services/merchant_push_registration.dart`), which tests replace
+with a fake (`test/merchant/session_lifecycle_test.dart`, "payment
+notifications follow the session").
 
 ### Android setup
 

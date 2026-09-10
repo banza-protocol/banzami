@@ -176,12 +176,30 @@ class PushNotificationService {
     await _subscribeTopic(topic);
   }
 
+  /// The FCM topic a Business's payment notifications are published to, as
+  /// the gateway names it (services/api-gateway notify/fcm.go
+  /// topicForMerchant): `sandbox_merchant_<id>` on the Sandbox stack,
+  /// `merchant_<id>` on Live.
+  static String merchantTopic(String merchantId, {required bool sandbox}) =>
+      sandbox ? 'sandbox_merchant_$merchantId' : 'merchant_$merchantId';
+
+  /// Every topic a Business's notifications could reach this device on —
+  /// both environments, so ending a session leaves neither behind whatever
+  /// environment the build subscribed with.
+  static List<String> merchantTopics(String merchantId) => [
+        merchantTopic(merchantId, sandbox: false),
+        merchantTopic(merchantId, sandbox: true),
+      ];
+
   /// Subscribes to a merchant topic with sandbox isolation.
-  static Future<void> subscribeMerchant(String merchantId) async {
-    final topic = AppConfig.isSandbox
-        ? 'sandbox_merchant_$merchantId'
-        : 'merchant_$merchantId';
-    await _subscribeTopic(topic);
+  ///
+  /// [stillWanted] is checked right before subscribing — after the wait for
+  /// the APNs token, which can take up to 30 s. A session that ended meanwhile
+  /// has already unsubscribed this device; subscribing afterwards would undo
+  /// that, so it is skipped.
+  static Future<void> subscribeMerchant(String merchantId, {bool Function()? stillWanted}) async {
+    final topic = merchantTopic(merchantId, sandbox: AppConfig.isSandbox);
+    await _subscribeTopic(topic, stillWanted: stillWanted);
   }
 
   /// Generic topic subscription — still exposed for backward compatibility.
@@ -190,11 +208,15 @@ class PushNotificationService {
   static Future<void> unsubscribeFromTopic(String topic) =>
       _messaging.unsubscribeFromTopic(topic);
 
-  static Future<void> _subscribeTopic(String topic) async {
+  static Future<void> _subscribeTopic(String topic, {bool Function()? stillWanted}) async {
     final apns = await _getApnsToken();
     if (apns == null) {
       debugPrint('[FCM] APNs unavailable — skipping subscribeToTopic($topic)');
       _fcmDiagSnapshot['subscribe_success'] = 'false (APNs unavailable)';
+      return;
+    }
+    if (stillWanted != null && !stillWanted()) {
+      debugPrint('[FCM] session ended before subscribing — skipping subscribeToTopic');
       return;
     }
     try {

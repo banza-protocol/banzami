@@ -7,6 +7,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../services/push_notification_service.dart';
+import 'merchant_push_registration.dart';
+
 // ---------------------------------------------------------------------------
 // Session model
 // ---------------------------------------------------------------------------
@@ -134,6 +137,13 @@ class MerchantSession {
 // ---------------------------------------------------------------------------
 
 class MerchantSessionService extends ChangeNotifier {
+  /// [push] takes the device off a Business's payment notifications when its
+  /// session ends; Firebase unless a test passes its own.
+  MerchantSessionService({MerchantPushRegistration? push})
+      : _push = push ?? const FirebaseMerchantPushRegistration();
+
+  final MerchantPushRegistration _push;
+
   static const _store = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
@@ -302,11 +312,14 @@ class MerchantSessionService extends ChangeNotifier {
       // access token is dead opens on SIGN-IN, never on a home screen whose
       // every financial call would fail while the profile, read from this
       // device, looked signed in.
+      _unregisterPush(s.merchantId);
       _enterSignIn(s.handle);
       await _wipeEndedSessionSafely();
     } else if (s == null && loginMethod == MerchantLoginMethod.handlePin &&
         handle != null && pinHash != null) {
-      // A Business session that ended earlier (or whose wipe was interrupted).
+      // A Business session that ended earlier (or whose wipe was interrupted:
+      // then the Business it named is still stored, and is unsubscribed again).
+      _unregisterPush(merchantId);
       _enterSignIn(handle);
       await _wipeEndedSessionSafely();
     }
@@ -328,6 +341,31 @@ class MerchantSessionService extends ChangeNotifier {
     _signInHandle = handle;
     _expired      = true;
     _locked       = true;
+  }
+
+  /// Takes this device off the payment notifications of [merchantId] — every
+  /// topic Banzami could publish them to — when that Business's session ends
+  /// here (refused, signed out, removed) or another Business replaces it.
+  ///
+  /// Called BEFORE the identity that names the topics is cleared, and never
+  /// awaited: best effort. An unreachable FCM cannot keep the device signed
+  /// in, and the platform SDKs retry a topic operation that could not be sent.
+  /// A signed-out device must not keep announcing the Business's payments.
+  void _unregisterPush(String? merchantId) {
+    if (merchantId == null || merchantId.isEmpty) return;
+    for (final topic in PushNotificationService.merchantTopics(merchantId)) {
+      // Future.sync: the call starts now, while the session is still here.
+      unawaited(Future.sync(() => _push.unsubscribe(topic)).catchError((Object e) {
+        debugPrint('[session] could not unsubscribe from a Business topic: ${e.runtimeType}');
+      }));
+    }
+  }
+
+  /// A sign-in for [merchantId] replaces a live session of ANOTHER Business:
+  /// that one's notifications stop here.
+  void _retireOtherBusiness(String merchantId) {
+    final prev = _session;
+    if (prev != null && prev.merchantId != merchantId) _unregisterPush(prev.merchantId);
   }
 
   Future<void> _wipeEndedSessionSafely() async {
@@ -359,6 +397,7 @@ class MerchantSessionService extends ChangeNotifier {
     bool verified = false,
   }) async {
     final env = apiKey.startsWith('bz_test') ? 'SANDBOX' : 'LIVE';
+    _retireOtherBusiness(merchantId);
     await _serial(() async {
       await _persistIdentity(merchantId, merchantName, merchantEmail, walletId, env, verified, pin);
       await _store.write(key: _kLoginMethod, value: 'api_key');
@@ -403,6 +442,7 @@ class MerchantSessionService extends ChangeNotifier {
     DateTime? refreshExpiresAt,
     bool verified = false,
   }) async {
+    _retireOtherBusiness(merchantId);
     await _serial(() async {
       await _persistIdentity(merchantId, merchantName, merchantEmail, walletId, environment, verified, pin);
       await _store.write(key: _kLoginMethod, value: 'handle_pin');
@@ -544,11 +584,14 @@ class MerchantSessionService extends ChangeNotifier {
   /// refused too). Idempotent: however many requests fail together, the app
   /// transitions once — no retry loop, no refresh storm.
   ///
-  /// A Business (handle) session ENDS here: the tokens and everything the
-  /// device remembered about the Business (identity, wallet, verification)
-  /// are cleared at once, and the app shows sign-in for the @handle — never a
-  /// profile that looks signed in over calls that can only fail. Balance and
-  /// history live in the main screens, which are left and disposed.
+  /// A Business (handle) session ENDS here: the device is taken off the
+  /// Business's payment notifications (first, while its id is still known),
+  /// the tokens and everything the device remembered about the Business
+  /// (identity, wallet, verification) are cleared at once, and the app shows
+  /// sign-in for the @handle — never a profile that looks signed in over calls
+  /// that can only fail. Balance and history live in the main screens, which
+  /// are left and disposed. (An API-key session is only locked: it has not
+  /// ended, so it keeps its notifications.)
   void markExpired() {
     final s = _session;
     if (s == null) return; // nothing signed in, or already ended
@@ -560,6 +603,7 @@ class MerchantSessionService extends ChangeNotifier {
       notifyListeners();
       return;
     }
+    _unregisterPush(s.merchantId);
     _enterSignIn(s.handle);
     notifyListeners();
     unawaited(_serial(_wipeSessionState).catchError((Object e) {
@@ -570,7 +614,8 @@ class MerchantSessionService extends ChangeNotifier {
   }
 
   /// Signs out of this device ("Terminar sessão"). For a Business session the
-  /// session ends exactly as [markExpired] does, and the refresh token it
+  /// session ends exactly as [markExpired] does (payment notifications
+  /// included), and the refresh token it
   /// held is returned so the caller can revoke it server-side. An API-key
   /// session has no server session: it is locked, as before.
   Future<String?> endSession() async {
@@ -607,6 +652,9 @@ class MerchantSessionService extends ChangeNotifier {
     final prev   = _session;
     final handle = prev?.handle ?? _signInHandle;
     if (handle == null) return;
+    // The handle may now name another Business: the one this device followed
+    // is then no longer signed in here.
+    _retireOtherBusiness(merchantId);
     late final String env;
     late final bool bio;
     await _serial(() async {
@@ -679,7 +727,9 @@ class MerchantSessionService extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   /// Fully wipes all stored data. Use only for "switch account" / "remove account".
+  /// The device is taken off the Business's payment notifications first.
   Future<void> clearAccount() async {
+    _unregisterPush(_session?.merchantId);
     _session      = null;
     _signInHandle = null;
     _locked       = true;
