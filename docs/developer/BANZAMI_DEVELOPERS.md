@@ -66,6 +66,12 @@ Sandbox E2E a project is available under the workspace (F0-DP-003) and is the un
 payment link, payment intent and API key are associated with. Project creation is recorded
 in the audit trail (F0-DP-016).
 
+A project can take keys and integrate without anything else. To **receive** money it needs
+a verified Business, which it gets on the Console page *Configuração financeira*: either by
+applying for a new Business (the same application and operator review as any Banzami
+Business) or by connecting an existing one with the single-use code that Business issues
+from its app. See [merchant onboarding](../domains/merchant-onboarding/README.md#onboarding-surface-a-developer-project-developers-console).
+
 ## 5. API keys and scopes
 
 API keys authenticate server-side requests. Each key carries **scopes** that bound what it

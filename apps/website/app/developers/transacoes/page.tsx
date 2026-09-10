@@ -5,7 +5,7 @@ import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
-import { FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
+import { FinancialSetupPointer, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/developer-api';
 import { RefundDialog } from '@/components/developers/portal/RefundDialog';
 
@@ -76,9 +76,9 @@ function kindOf(status: string): 'success' | 'pending' | 'error' | 'neutral' {
 type State =
   | { k: 'loading' }
   | { k: 'error'; message: string }
-  // Not an error — the project has no financial environment yet. Rendered as the
-  // setup card, because "nenhuma operação" would say the question was asked and
-  // answered, and it was not.
+  // Not an error — the project does not receive into a Business yet. Rendered as
+  // a pointer to the Configuração financeira page, because "nenhuma operação"
+  // would say the question was asked and answered, and it was not.
   | { k: 'setup' }
   | { k: 'ready'; rows: DeveloperTransaction[]; next: string };
 
@@ -163,10 +163,7 @@ function Transactions() {
 
       {state.k === 'setup' && (
         fin.state.k === 'ready'
-          ? <FinancialSetupCard
-              setup={fin.state.setup}
-              onConfigured={() => { void fin.reload(); setState({ k: 'loading' }); void load(); }}
-            />
+          ? <FinancialSetupPointer setup={fin.state.setup} />
           : <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o estado do projeto…</p>
       )}
 

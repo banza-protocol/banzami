@@ -1,95 +1,56 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
-import { FinancialReadinessPanel, FinancialSetupCard } from './FinancialSetup';
-import { ToastProvider } from './Toast';
+import { describe, it, expect, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { FinancialReadinessPanel, FinancialSetupPointer } from './FinancialSetup';
 import type { FinancialSetupState } from '@/lib/developer-api';
-
-vi.mock('./DeveloperData', () => ({
-  useDeveloperData: () => ({ activeProject: { id: 'prj_1' }, csrf: 'csrf-token' }),
-}));
-
-const configure = vi.fn();
-vi.mock('@/lib/developer-api', async (orig) => {
-  const real = await orig<typeof import('@/lib/developer-api')>();
-  return { ...real, developerApi: { configureFinancialSetup: (...a: unknown[]) => configure(...a) } };
-});
 
 const unconfigured: FinancialSetupState = {
   state: 'UNCONFIGURED', environment: 'SANDBOX', can_configure: true, role: 'OWNER', sealed: false,
+  onboarding: { state: 'NOT_CONFIGURED', can_act: true, blockers: [] },
 };
 
-function open(setup: Partial<FinancialSetupState> = {}, onConfigured = vi.fn()) {
-  return render(
-    <ToastProvider>
-      <FinancialSetupCard setup={{ ...unconfigured, ...setup }} onConfigured={onConfigured} />
-    </ToastProvider>,
-  );
-}
-
-beforeEach(() => { configure.mockReset(); configure.mockResolvedValue({ ...unconfigured, state: 'READY' }); });
 afterEach(cleanup);
 
-describe('FinancialSetupCard', () => {
-  it('names the state and offers the action to someone who may take it', () => {
-    open();
+// What Saldos and Transações show for a Project that does not receive into a
+// Business yet. It used to be a one-click button that created a synthetic,
+// self-approved Business; that is retired (the server answers it 410
+// FINANCIAL_SETUP_BY_REVIEW) and this is now a pointer to the page where a
+// Project applies for a Business or connects one.
+describe('FinancialSetupPointer', () => {
+  it('names the state and points to Configuração financeira, inside the Console', () => {
+    render(<FinancialSetupPointer setup={unconfigured} />);
     expect(screen.getByText('Não configurado')).not.toBeNull();
-    expect((screen.getByRole('button', { name: /Configurar ambiente financeiro/ }) as HTMLButtonElement).disabled).toBe(false);
+    const link = screen.getByRole('link', { name: 'Abrir configuração financeira' });
+    expect(link.getAttribute('href')).toBe('/financeiro');
+    expect(document.body.textContent).toMatch(/o Banzami tem de verificar a entidade legal responsável por este projeto/);
   });
 
-  // The one thing this card must never do is look like Go Live.
-  it('says the money is fictional and that this does not enable real payments', () => {
-    open();
-    const body = document.body.textContent ?? '';
-    expect(body).toMatch(/fictício/);
-    expect(body).toMatch(/não.*activa pagamentos reais/i);
+  it('offers no one-click setup any more', () => {
+    render(<FinancialSetupPointer setup={unconfigured} />);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(document.body.textContent).not.toMatch(/Configurar ambiente financeiro/);
+  });
+
+  it('shows where an application stands, not "not configured", while it is in review', () => {
+    render(<FinancialSetupPointer setup={{ ...unconfigured, onboarding: { state: 'IN_REVIEW', can_act: false, blockers: [] } }} />);
+    expect(screen.getByText('Em análise')).not.toBeNull();
   });
 
   // The developer never sees, chooses or supplies an internal identifier.
   it('exposes no merchant, wallet or binding vocabulary', () => {
-    open();
+    render(<FinancialSetupPointer setup={unconfigured} />);
     const body = (document.body.textContent ?? '').toLowerCase();
     for (const leak of ['merchant', 'binding', 'wallet_id', 'uuid']) {
       expect(body, `the card mentions "${leak}"`).not.toContain(leak);
     }
   });
 
-  it('configures through the server, with the project and the CSRF token', async () => {
-    const onConfigured = vi.fn();
-    open({}, onConfigured);
-    fireEvent.click(screen.getByRole('button', { name: /Configurar ambiente financeiro/ }));
-    await waitFor(() => expect(configure).toHaveBeenCalledWith('prj_1', 'csrf-token'));
-    await waitFor(() => expect(onConfigured).toHaveBeenCalledTimes(1));
-  });
-
-  // A role that may not configure is told why, and is not shown a control that
-  // would refuse. The server enforces it regardless; this is only what is shown.
-  it('explains rather than offering, when the role may not configure', () => {
-    open({ can_configure: false, role: 'DEVELOPER' });
-    expect(screen.queryByRole('button', { name: /Configurar/ })).toBeNull();
-    expect(document.body.textContent).toMatch(/DEVELOPER/);
-    expect(document.body.textContent).toMatch(/Owner ou\s+Admin/);
-  });
-
   // "You may not" and "nobody can here" lead different places.
-  it('says a deployment that cannot provision cannot, rather than blaming the role', () => {
-    open({ state: 'UNAVAILABLE', can_configure: false });
+  it('says a deployment that cannot onboard cannot, and offers no way in', () => {
+    render(<FinancialSetupPointer setup={{ ...unconfigured, state: 'UNAVAILABLE', can_configure: false }} />);
     expect(screen.getByText('Indisponível')).not.toBeNull();
     expect(document.body.textContent).toMatch(/Nada do que faça aqui pode alterar isso/);
-    expect(screen.queryByRole('button', { name: /Configurar/ })).toBeNull();
-  });
-
-  it('surfaces a refusal in words that say what happened', async () => {
-    const { ApiError } = await import('@/lib/developer-api');
-    configure.mockRejectedValue(new ApiError('SANDBOX_ONLY', 403, 'sandbox only'));
-    open();
-    fireEvent.click(screen.getByRole('button', { name: /Configurar ambiente financeiro/ }));
-    await waitFor(() => expect(screen.getByRole('alert').textContent).toMatch(/apenas no Sandbox/));
-  });
-
-  it('tells the developer that repeating it is safe', () => {
-    open();
-    expect(document.body.textContent).toMatch(/não cria dois ambientes/);
+    expect(screen.queryByRole('link')).toBeNull();
   });
 });
 
@@ -124,7 +85,11 @@ describe('FinancialReadinessPanel', () => {
     render(<FinancialReadinessPanel setup={blocked} />);
     const body = document.body.textContent ?? '';
     expect(body).toContain('Bloqueado');
-    expect(body).toMatch(/classificada pelo Banzami/);
+    expect(body).toContain('Receber taxas de aplicação requer aprovação do operador Banzami (classificação da conta).');
+    // Classification is the operator's decision about the account, not a
+    // verification the Business failed: the sentence must not read as KYB.
+    const item = screen.getByRole('list', { name: 'Bloqueios' }).querySelector('li')?.textContent ?? '';
+    expect(item).not.toMatch(/KYB|verifica/i);
     expect(body).toContain('SOMETHING_NEW');
   });
 

@@ -112,6 +112,26 @@ A login signs in only as the owner of its handle.
 Classification (`APPLICATION` / `PLATFORM`) is never set by an application; it
 is a separate operator action (ADR-057).
 
+### Onboarding surface: a Developer Project (Developers Console)
+
+One Business identity, several onboarding surfaces, one KYB authority. A
+Developer Project gets a Business to receive into on the Console page
+**Configuração financeira** (`developers.banzami.com/financeiro`), in exactly two
+ways — it is never sent to the public form:
+
+| Path | Console → | What happens |
+|---|---|---|
+| New Business | `POST /projects/{id}/financial-onboarding/applications` (developer-api; OWNER/ADMIN, CSRF) | The same application as above, same fields, same policy (`GET /v1/merchant/application-requirements`), with the Project and the submitting member taken from the session. Documents then go to the public document endpoints by application reference, exactly as the public form sends them. Reviewed in BANZADMIN; approval provisions the Business and binds the Project. `INFORMATION_REQUIRED` is answered from the Console (replacement upload, then `POST /v1/merchant/applications/{id}/resubmit`). |
+| Existing Business | `POST /projects/{id}/financial-onboarding/link` `{code}` | The Business issues a single-use code from the Business App (Perfil → «Ligar a um projeto», `ABCD-EFGH-JKMN`, 10 minutes). Redeeming it is the consent: the Project is bound to that Business; nothing is re-verified or re-created. |
+
+The Console renders the onboarding state developer-api reports
+(`NOT_CONFIGURED`, `IN_REVIEW`, `INFORMATION_REQUIRED`, `APPROVED_PROVISIONING`,
+`REJECTED`, `READY`, `BLOCKED`) and decides nothing; only OWNER and ADMIN are
+offered actions. The one-click Sandbox setup (`POST /projects/{id}/financial-setup`)
+that created a synthetic, self-approved Business is retired — the server answers
+`410 FINANCIAL_SETUP_BY_REVIEW` and no Console code calls it (guarded by
+`apps/website/app/developers/financial-onboarding-guard.test.ts`).
+
 ---
 
 ## Merchant Profile

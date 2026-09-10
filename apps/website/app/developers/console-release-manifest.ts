@@ -28,6 +28,7 @@ export const CONSOLE_SURFACES: ConsoleSurface[] = [
   { key: 'overview', route: '/', state: 'RELEASED' },
   { key: 'balances', route: '/saldos', state: 'RELEASED' },
   { key: 'transactions', route: '/transacoes', state: 'RELEASED' },
+  { key: 'financial_setup', route: '/financeiro', state: 'RELEASED' },
   { key: 'api_keys', route: '/api-keys', state: 'RELEASED' },
   { key: 'webhooks', route: '/webhooks', state: 'RELEASED' },
   { key: 'logs_events', route: '/logs', state: 'RELEASED' },

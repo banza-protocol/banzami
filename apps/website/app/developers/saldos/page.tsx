@@ -5,7 +5,7 @@ import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { formatMoneyDisplay as money } from '@/lib/money';
 import { Card, Pill } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
-import { FinancialReadinessPanel, FinancialSetupCard, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
+import { FinancialReadinessPanel, FinancialSetupPointer, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { WalletAccountForm } from '@/components/developers/portal/WalletAccountForm';
 import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api';
 
@@ -30,9 +30,10 @@ const mono = "'JetBrains Mono', ui-monospace, monospace";
 type State =
   | { k: 'loading' }
   | { k: 'error'; message: string }
-  // Not an error. The project has no financial environment yet, which is a
-  // state with a name and an action — rendered as the setup card, because an
-  // empty account list would answer a question that has not been asked.
+  // Not an error. The project does not receive into a Business yet, which is a
+  // state with a name and a way forward — rendered as a pointer to the
+  // Configuração financeira page, because an empty account list would answer a
+  // question that has not been asked.
   | { k: 'setup' }
   | { k: 'ready'; accounts: WalletAccount[]; total: number; next: string };
 
@@ -59,7 +60,7 @@ function Balances() {
         k: 'error',
         message:
           // PROJECT_FINANCIAL_SETUP_REQUIRED is not an error the developer has to
-          // read: it is a state with an action, and the setup card below renders
+          // read: it is a state with a way forward, and the pointer below renders
           // it instead. This message only covers the cases that are not that.
           code === 'NOT_FOUND'
             ? 'Não tem acesso a este projeto.'
@@ -75,18 +76,13 @@ function Balances() {
   if (!activeProject) return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>Nenhum projeto selecionado.</p>;
   if (state.k === 'loading') return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar os saldos…</p>;
 
-  // The project has no financial environment. Show the step that creates one,
-  // not an empty list and not an error.
+  // The project does not receive into a Business yet. Show where it stands and
+  // the way to the Configuração financeira page — not an empty list, not an error.
   if (state.k === 'setup') {
     if (fin.state.k !== 'ready') {
       return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o estado do projeto…</p>;
     }
-    return (
-      <FinancialSetupCard
-        setup={fin.state.setup}
-        onConfigured={() => { void fin.reload(); setState({ k: 'loading' }); void load(); }}
-      />
-    );
+    return <FinancialSetupPointer setup={fin.state.setup} />;
   }
 
   if (state.k === 'error') {

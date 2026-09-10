@@ -21,12 +21,13 @@ import {
   IconHelp,
   IconKey,
   IconList,
+  IconShield,
   IconSwap,
   IconWallet,
   IconWebhook,
 } from './icons';
 
-// Shared authenticated shell for every portal page — sidebar (11 items) +
+// Shared authenticated shell for every portal page — sidebar +
 // top bar + optional sandbox banner. Faithful port of the dossier portal shell.
 // `active` highlights the current sidebar item; `showBanner` is false for
 // Go Live and Docs (per the dossier).
@@ -35,6 +36,7 @@ type PortalKey =
   | 'dashboard'
   | 'saldos'
   | 'transacoes'
+  | 'financeiro'
   | 'apikeys'
   | 'webhooks'
   | 'logs'
@@ -47,6 +49,7 @@ const NAV: { key: PortalKey; label: string; href: string; icon: (p: { size?: num
   { key: 'dashboard', label: 'Visão geral', href: '/', icon: IconGrid },
   { key: 'saldos', label: 'Saldos', href: '/saldos', icon: IconWallet },
   { key: 'transacoes', label: 'Transações', href: '/transacoes', icon: IconSwap },
+  { key: 'financeiro', label: 'Configuração financeira', href: '/financeiro', icon: IconShield },
   { key: 'apikeys', label: 'API Keys', href: '/api-keys', icon: IconKey },
   { key: 'webhooks', label: 'Webhooks', href: '/webhooks', icon: IconWebhook },
   { key: 'logs', label: 'Logs / Eventos', href: '/logs', icon: IconList },

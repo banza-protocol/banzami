@@ -82,7 +82,7 @@ export function WalletAccountForm({ onCreated }: { onCreated: () => void }) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
       setError(
         code === 'PROJECT_FINANCIAL_SETUP_REQUIRED'
-          ? 'Configure primeiro o ambiente financeiro deste projeto.'
+          ? 'Conclua primeiro a configuração financeira deste projeto.'
           : code === 'UNSUPPORTED_PURPOSE'
             ? 'Essa finalidade não está disponível.'
             : code === 'FORBIDDEN'

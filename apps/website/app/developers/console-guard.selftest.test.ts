@@ -34,6 +34,8 @@ const CONSOLE_FILES = [
   'app/developers/go-live/page.tsx',
   'app/developers/saldos/page.tsx',
   'app/developers/transacoes/page.tsx',
+  'app/developers/financeiro/page.tsx',
+  'components/developers/portal/FinancialOnboarding.tsx',
   'app/developers/suporte/page.tsx',
   'components/developers/portal/PortalShell.tsx',
 ].filter((p) => existsSync(join(ROOT, p)));

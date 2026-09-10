@@ -1,26 +1,24 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { developerApi, ApiError, type FinancialSetupState, type ProjectReadiness } from '@/lib/developer-api';
-import { useDeveloperData } from './DeveloperData';
-import { useToast } from './Toast';
+import { ONBOARDING_LABEL, blockerText, onboardingViewOf } from '@/lib/financial-onboarding';
 import { Card } from './ui';
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
 /**
- * Sandbox financial setup — the step that used to be invisible.
+ * Financial setup — whether a project receives into a Business, as the pages
+ * that depend on it see it.
  *
- * A project created here has no financial environment until someone asks for
- * one. Until this existed, that someone was an operator, through an internal
- * route: the developer could not perform it, could not request it, and could not
- * see it pending. Balances and Transactions simply said not-found, and the only
- * way to learn why was to ask a human.
- *
- * So this card is the missing half of that fix. It names the state, says what
- * the state means, and offers the action — and it says nothing about merchants,
- * wallets or bindings, because those are how it works rather than what a
- * developer needs to know.
+ * A project created here has no Business to receive into. Getting one is the
+ * Configuração financeira page (FinancialOnboarding.tsx): apply for a new
+ * Business through the operator's review, or connect one that already exists
+ * with its consent. This module is what the other pages need from that — the
+ * state, a pointer to that page, and the settlement readiness of a project that
+ * already receives — and it says nothing about merchants, wallets or bindings,
+ * because those are how it works rather than what a developer needs to know.
  */
 
 type Load =
@@ -41,7 +39,7 @@ export function useFinancialSetup(projectID: string | undefined) {
         k: 'error',
         message: code === 'NOT_FOUND'
           ? 'Não tem acesso a este projeto.'
-          : 'Não foi possível ler o estado do ambiente financeiro.',
+          : 'Não foi possível ler a configuração financeira deste projeto.',
       });
     }
   }, [projectID]);
@@ -50,62 +48,24 @@ export function useFinancialSetup(projectID: string | undefined) {
   return { state, reload: load };
 }
 
-const LABEL: Record<string, string> = {
-  UNCONFIGURED: 'Não configurado',
-  READY: 'Pronto',
-  SEALED: 'Pronto · destino fixado',
-  UNAVAILABLE: 'Indisponível',
-};
-
 /**
- * The card a developer sees on a project with no financial environment yet.
+ * What the pages that cannot work without a Business show instead of their
+ * content: where the project stands, and the way to the page that changes it.
  *
- * Rendered by the pages that cannot work without one, in place of their own
- * content — showing an empty balance list or "0 Kz" would be answering a
- * question that has not been asked yet.
+ * This used to be a button that created a synthetic Business and marked it
+ * verified with nobody reviewing anything. That is retired — the server answers
+ * it 410 FINANCIAL_SETUP_BY_REVIEW — and a Project now applies for a Business or
+ * connects one it already has, on the Configuração financeira page. Showing an
+ * empty balance list or "0 Kz" here would be answering a question that has not
+ * been asked yet.
  */
-export function FinancialSetupCard({
-  setup,
-  onConfigured,
-}: {
-  setup: FinancialSetupState;
-  onConfigured: () => void;
-}) {
-  const { activeProject, csrf } = useDeveloperData();
-  const { flash } = useToast();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
-
-  const unavailable = setup.state === 'UNAVAILABLE';
-
-  async function configure() {
-    if (!activeProject || busy) return;
-    setBusy(true);
-    setError('');
-    try {
-      await developerApi.configureFinancialSetup(activeProject.id, csrf);
-      flash('Ambiente financeiro do Sandbox configurado');
-      onConfigured();
-    } catch (e) {
-      const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
-      setError(
-        code === 'SANDBOX_ONLY'
-          ? 'Esta operação existe apenas no Sandbox.'
-          : code === 'SETUP_UNAVAILABLE'
-            ? 'A configuração automática não está disponível nesta instalação.'
-            : code === 'FORBIDDEN'
-              ? 'O seu papel neste workspace não permite configurar o ambiente financeiro.'
-              : 'Não foi possível configurar agora. Tente novamente.',
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
+export function FinancialSetupPointer({ setup }: { setup: FinancialSetupState }) {
+  const view = onboardingViewOf(setup);
+  const unavailable = view === 'UNAVAILABLE';
   return (
     <Card style={{ padding: 26, maxWidth: 620 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Ambiente financeiro do Sandbox</h2>
+        <h2 style={{ margin: 0, fontSize: 17, fontWeight: 900 }}>Configuração financeira</h2>
         <span
           style={{
             padding: '3px 10px', borderRadius: 30, fontSize: 11.5, fontWeight: 800,
@@ -113,54 +73,29 @@ export function FinancialSetupCard({
             color: unavailable ? '#6a5a5e' : '#B5101F',
           }}
         >
-          {LABEL[setup.state] ?? setup.state}
+          {ONBOARDING_LABEL[view]}
         </span>
       </div>
 
       <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.6, color: '#6a5a5e', fontWeight: 600 }}>
         {unavailable
-          ? 'Esta instalação não configura ambientes financeiros de Sandbox. Nada do que faça aqui pode alterar isso.'
-          : 'Este projeto ainda não tem ambiente financeiro. Configure-o para abrir contas, receber pagamentos de teste e usar saldos, transações, webhooks e reembolsos.'}
+          ? 'Esta instalação não consegue ligar projetos a um negócio. Nada do que faça aqui pode alterar isso.'
+          : 'Este projeto ainda não recebe pagamentos. Para receber pagamentos, liquidações ou taxas de aplicação, o Banzami tem de verificar a entidade legal responsável por este projeto.'}
+      </p>
+      <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.6, color: '#8a7a7e', fontWeight: 600 }}>
+        Chaves de API e integração funcionam sem isto.
       </p>
 
       {!unavailable && (
-        <p style={{ margin: '10px 0 0', fontSize: 13, lineHeight: 1.6, color: '#8a7a7e', fontWeight: 600 }}>
-          O dinheiro do Sandbox é fictício. Isto <strong>não</strong> activa pagamentos reais — o acesso a
-          dinheiro real é um processo separado e continua indisponível.
-        </p>
-      )}
-
-      {error && (
-        <p role="alert" style={{ margin: '14px 0 0', fontSize: 13.5, color: '#B5101F', fontWeight: 700, lineHeight: 1.5 }}>
-          {error}
-        </p>
-      )}
-
-      {!unavailable && (
-        setup.can_configure ? (
-          <button
-            onClick={() => void configure()}
-            disabled={busy}
-            aria-describedby="fin-setup-note"
-            style={{
-              marginTop: 18, padding: '11px 20px', border: 'none', borderRadius: 11,
-              background: busy ? '#E7D9D7' : ctaGradient, color: busy ? '#a89a9e' : '#fff',
-              fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer',
-            }}
-          >
-            {busy ? 'A configurar…' : 'Configurar ambiente financeiro'}
-          </button>
-        ) : (
-          <p id="fin-setup-note" style={{ margin: '16px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 700 }}>
-            O seu papel neste workspace ({setup.role}) não permite esta configuração. Peça a um Owner ou
-            Admin do workspace.
-          </p>
-        )
-      )}
-      {!unavailable && setup.can_configure && (
-        <p id="fin-setup-note" style={{ margin: '10px 0 0', fontSize: 12, color: '#a89a9e', fontWeight: 700 }}>
-          Demora alguns segundos. Pode repetir sem risco — configurar duas vezes não cria dois ambientes.
-        </p>
+        <Link
+          href="/financeiro"
+          style={{
+            display: 'inline-block', marginTop: 18, padding: '11px 20px', borderRadius: 11,
+            background: ctaGradient, color: '#fff', fontSize: 14, fontWeight: 800, textDecoration: 'none',
+          }}
+        >
+          Abrir configuração financeira
+        </Link>
       )}
     </Card>
   );
@@ -171,30 +106,11 @@ export function FinancialSetupStatus({ setup }: { setup: FinancialSetupState }) 
   if (setup.state !== 'SEALED') return null;
   return (
     <p style={{ margin: '0 0 16px', fontSize: 12.5, color: '#8a7a7e', fontWeight: 700 }}>
-      Ambiente financeiro pronto. O destino deste projeto ficou fixado no primeiro pagamento emitido e já
+      Destino fixado. O negócio em que este projeto recebe ficou fixado no primeiro pagamento emitido e já
       não pode mudar.
     </p>
   );
 }
-
-/**
- * What each blocker means, in the developer's terms. The codes are the
- * refusals settlement returns; an unknown one is still shown, by its code,
- * and still blocks.
- */
-const BLOCKER: Record<string, string> = {
-  FINANCIAL_SETUP_NOT_CONFIGURED: 'O projeto ainda não tem ambiente financeiro.',
-  WALLET_MISSING: 'O projeto não tem uma carteira activa em Kwanza.',
-  PRICING_NOT_CONFIGURED: 'O Banzami ainda não atribuiu um preço a este projeto. Contacte o suporte.',
-  PRICING_CONFIGURATION_ERROR: 'O preço atribuído a este projeto está mal configurado. Contacte o suporte.',
-  FEE_DESTINATION_NOT_FOUND: 'O destino da taxa não tem uma carteira activa em Kwanza.',
-  FEE_DESTINATION_NOT_OWNED: 'O destino da taxa não pertence a este projeto.',
-  FEE_DESTINATION_NOT_BUSINESS_ACCOUNT: 'O destino da taxa não é uma conta Business.',
-  FEE_DESTINATION_NOT_ACTIVE: 'A conta de destino da taxa não está activa.',
-  FEE_DESTINATION_KYB_NOT_APPROVED: 'A verificação (KYB) do destino da taxa não está aprovada.',
-  FEE_DESTINATION_WALLET_UNAVAILABLE: 'A carteira do destino da taxa não está activa.',
-  FEE_DESTINATION_TYPE_NOT_ALLOWED: 'A conta ainda não foi classificada pelo Banzami para receber taxas de aplicação. Contacte o suporte.',
-};
 
 function Row({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
   return (
@@ -214,7 +130,15 @@ const yes = (b: boolean) => (b ? 'Sim' : 'Não');
  * the Console renders it and decides nothing. It names the project's @banza and
  * the operator's pricing, and nothing behind the project.
  */
-export function FinancialReadinessPanel({ setup }: { setup: FinancialSetupState }) {
+export function FinancialReadinessPanel({
+  setup,
+  showBlockers = true,
+}: {
+  setup: FinancialSetupState;
+  /** False where the page already lists the blockers on its own (Configuração
+   *  financeira), so the same codes are not read out twice. */
+  showBlockers?: boolean;
+}) {
   if (setup.state !== 'READY' && setup.state !== 'SEALED') return null;
   if (setup.readiness_unavailable || !setup.readiness) {
     return (
@@ -254,10 +178,10 @@ export function FinancialReadinessPanel({ setup }: { setup: FinancialSetupState 
           ok={fd.required ? fd.eligible : undefined}
         />
       </div>
-      {r.settlement.blockers.length > 0 && (
+      {showBlockers && r.settlement.blockers.length > 0 && (
         <ul role="list" aria-label="Bloqueios" style={{ margin: '14px 0 0', paddingLeft: 18, fontSize: 13.5, color: '#B5101F', fontWeight: 700, lineHeight: 1.6 }}>
           {r.settlement.blockers.map((b) => (
-            <li key={b}>{BLOCKER[b] ?? b} <code style={{ fontSize: 11.5, color: '#8a7a7e' }}>{b}</code></li>
+            <li key={b}>{blockerText(b)} <code style={{ fontSize: 11.5, color: '#8a7a7e' }}>{b}</code></li>
           ))}
         </ul>
       )}

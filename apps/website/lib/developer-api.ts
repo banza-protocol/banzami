@@ -502,11 +502,15 @@ export const developerApi = {
 
   // ── Financial setup ────────────────────────────────────────────────────────
   // Where the project stands: whether it receives into a Business, and how it
-  // is getting one. A Project gets a Business in exactly two ways, both below.
+  // is getting one.
+  //
+  // There is deliberately no client for POST /financial-setup. That was the
+  // one-click setup, which created a synthetic Business and wrote its KYB as
+  // approved with nobody reviewing anything; the server now answers it 410
+  // FINANCIAL_SETUP_BY_REVIEW. A Project gets a Business in exactly two ways,
+  // both below.
   financialSetup: (projectID: string) =>
     req<FinancialSetupState>(`/projects/${projectID}/financial-setup`),
-  configureFinancialSetup: (projectID: string, csrf: string) =>
-    req<FinancialSetupState>(`/projects/${projectID}/financial-setup`, { method: 'POST', csrf }),
 
   // A. Apply for a NEW Business — the same application the public form sends,
   // reviewed by an operator in BANZADMIN. One idempotency key per form session:
