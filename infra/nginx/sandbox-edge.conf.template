@@ -109,6 +109,16 @@ server {
     ssl_prefer_server_ciphers on;
     client_max_body_size 8m;
 
+    # Prometheus metrics are for the scraper on the Docker network, never the
+    # perimeter: admin-api's /metrics carries the operator attention counts
+    # (how many applications, payouts, disputes wait), which BANZADMIN shows only
+    # to an authenticated operator, per role. 404, not 403.
+    location = /api/metrics {
+        access_log off;
+        default_type application/json;
+        return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
+    }
+
     # The console calls its API on the same origin it was served from, so there
     # is no CORS preflight and no second hostname to keep in step.
     location /api/ {
@@ -177,6 +187,19 @@ server {
         return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
     }
     location /consumer/internal/ {
+        access_log off;
+        default_type application/json;
+        return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
+    }
+    # Prometheus metrics: the same rule — the scraper reads them on the Docker
+    # network; the gateway's carry business counters (applications, sign-ins,
+    # link codes) that are nobody else's to read.
+    location = /metrics {
+        access_log off;
+        default_type application/json;
+        return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';
+    }
+    location = /consumer/metrics {
         access_log off;
         default_type application/json;
         return 404 '{"error":{"code":"NOT_FOUND","message":"not found"}}';

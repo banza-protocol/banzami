@@ -377,6 +377,12 @@ jobs:
       - name: Project readiness contract guard
         run: node --test tests/ops/project-readiness-contract-guard.test.mjs
 
+      # Internal routes and Prometheus metrics stay off the Sandbox perimeter:
+      # the edge answers them 404 itself (admin-api metrics carry the operator
+      # attention counts).
+      - name: Sandbox edge perimeter guard
+        run: node --test tests/ops/sandbox-edge-perimeter.test.mjs
+
       # Where this operator is allowed to charge money.
       #
       # Exactly three operations resolve an operator fee, and each was audited

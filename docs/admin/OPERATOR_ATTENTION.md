@@ -110,7 +110,11 @@ sync drops only the Inbox badge.
 
 ## Observability
 
-admin-api `/metrics` (low cardinality — no operator, no ids):
+admin-api `/metrics` (low cardinality — no operator, no ids). Read by the scraper on the
+Docker network only: the Sandbox edge answers `admin.banzami.com/api/metrics` (and the
+gateway's `/metrics`) 404, because these counts are for authenticated operators
+(`tests/ops/sandbox-edge-perimeter.test.mjs`).
+
 
 - `banzadmin_attention_requests_total{outcome,cache}` — outcome
   `ok|unavailable|upstream_error|environment_mismatch`, cache `hit|miss`
