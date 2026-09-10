@@ -62,7 +62,11 @@ void main() {
       }
       if (req.url.path == '/v1/merchant/auth/token') {
         return http.Response(jsonEncode({
-          'token': jwt, 'expires_at': '2026-06-26T00:00:00Z', 'environment': 'SANDBOX',
+          // Relative to now: a fixed date became the past, and the client
+          // (correctly) refused to present a token that had already expired.
+          'token': jwt,
+          'expires_at': DateTime.now().add(const Duration(hours: 24)).toUtc().toIso8601String(),
+          'environment': 'SANDBOX',
         }), 200);
       }
       if (req.url.path.startsWith('/v1/merchants/')) {

@@ -36,11 +36,13 @@ class BanzamiMerchantApp extends StatelessWidget {
               jwt:          s?.jwt,
               jwtExpiresAt: s?.jwtExpiresAt,
               httpClient:   pinnedClient,
-              // Session token invalid/expired (handle-login JWT can't refresh) →
-              // sign out so the app routes back to login instead of dead-ending.
-              onUnauthorized: () {
-                if (session.session != null) session.logout();
-              },
+              // Banzami refused the session. It used to LOCK the app, and the
+              // PIN screen then checked the PIN on the device and unlocked the
+              // same dead token — a verified-looking profile over a home screen
+              // that could never load. Now the session is marked expired (once,
+              // however many requests fail together) and the PIN re-authenticates
+              // against Banzami before anything is shown again.
+              onUnauthorized: session.markExpired,
             );
           },
         ),

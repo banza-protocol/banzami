@@ -114,9 +114,26 @@ class MerchantSessionService extends ChangeNotifier {
   MerchantSession? _session;
   bool             _locked      = true;
   bool             _initialized = false;
+  bool             _expired     = false;
 
   MerchantSession? get session     => _session;
   bool             get isLocked    => _locked;
+
+  /// The server no longer accepts this device's session (its token expired or
+  /// was refused). Distinct from a plain lock: the PIN is not merely checked on
+  /// the device, it re-authenticates against Banzami, and biometrics cannot
+  /// stand in for it. Cleared by [applyReauthentication].
+  bool             get sessionExpired => _expired;
+
+  /// A handle-login token that has expired, or will within [margin]. An API-key
+  /// session renews its own token and never reports expired here.
+  bool isTokenExpired({Duration margin = const Duration(minutes: 2)}) {
+    final s = _session;
+    if (s == null || !s.isHandleLogin) return false;
+    final exp = s.jwtExpiresAt;
+    if (s.jwt == null || exp == null) return true;
+    return !DateTime.now().add(margin).isBefore(exp);
+  }
   bool             get hasSession  => _session != null;
   bool             get initialized => _initialized;
 
@@ -168,6 +185,11 @@ class MerchantSessionService extends ChangeNotifier {
         verified:          verified   == 'true',
       );
     }
+    // A restored session whose token is already dead opens on the PIN screen as
+    // EXPIRED — never on a home screen whose every financial call would fail
+    // while the profile, read from this device, looked signed in.
+    if (_session != null && isTokenExpired()) _expired = true;
+
     // Keep the animated welcome (splash) up for at least the animation duration
     // (1200ms), matching the consumer app, so it plays fully and never flashes.
     final elapsed = DateTime.now().difference(started);
@@ -293,6 +315,59 @@ class MerchantSessionService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Called when Banzami refuses the session (401). Idempotent: however many
+  /// requests fail together, the app transitions once — no retry loop, no
+  /// refresh storm. Stale financial state is not kept on screen: the app
+  /// leaves the main screens for the PIN screen.
+  void markExpired() {
+    if (_session == null || (_expired && _locked)) return;
+    _expired = true;
+    _locked  = true;
+    notifyListeners();
+  }
+
+  /// A fresh server session from handle + PIN. The identity is re-read from
+  /// the server with it: if the handle now belongs to a different Business
+  /// Account than the one this device remembered (a handle moved, a
+  /// credential reassigned), the stored merchant and wallet are replaced —
+  /// never kept and silently mixed with the new token.
+  Future<void> applyReauthentication({
+    required String jwt,
+    required DateTime jwtExpiresAt,
+    required String merchantId,
+    required String merchantName,
+    required String merchantEmail,
+    required String walletId,
+    required bool   verified,
+  }) async {
+    final s = _session;
+    if (s == null) return;
+    await _store.write(key: _kJwt,          value: jwt);
+    await _store.write(key: _kJwtExpiry,    value: jwtExpiresAt.toIso8601String());
+    await _store.write(key: _kMerchantId,   value: merchantId);
+    await _store.write(key: _kMerchantName, value: merchantName);
+    await _store.write(key: _kMerchantEmail,value: merchantEmail);
+    await _store.write(key: _kWalletId,     value: walletId);
+    await _store.write(key: _kVerified,     value: verified ? 'true' : 'false');
+    _session = MerchantSession(
+      merchantId:        merchantId,
+      merchantName:      merchantName,
+      merchantEmail:     merchantEmail,
+      walletId:          walletId,
+      loginMethod:       s.loginMethod,
+      environment:       s.environment,
+      apiKey:            s.apiKey,
+      jwt:               jwt,
+      jwtExpiresAt:      jwtExpiresAt,
+      handle:            s.handle,
+      biometricsEnabled: s.biometricsEnabled,
+      verified:          verified,
+    );
+    _expired = false;
+    _locked  = false;
+    notifyListeners();
+  }
+
   Future<bool> canUseBiometrics() async {
     try {
       return await _bio.canCheckBiometrics && await _bio.isDeviceSupported();
@@ -340,6 +415,7 @@ class MerchantSessionService extends ChangeNotifier {
     await _store.deleteAll();
     _session = null;
     _locked  = true;
+    _expired = false;
     notifyListeners();
   }
 

@@ -67,20 +67,6 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
 
             const SizedBox(height: BanzamiSpacing.sm),
 
-            // Sessão API
-            Builder(builder: (ctx) {
-              final expiry = ctx.watch<BanzamiClient>().sessionExpiresAt;
-              return _InfoCard(
-                icon:  Icons.access_time_rounded,
-                title: 'Sessão API',
-                value: expiry == null
-                    ? 'Renovada automaticamente a cada 24 h'
-                    : _fmtExpiry(expiry),
-              );
-            }),
-
-            const SizedBox(height: BanzamiSpacing.sm),
-
             FutureBuilder<bool>(
               future: _canUseBio,
               builder: (_, snap) {
@@ -204,11 +190,6 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     );
   }
 
-  static String _fmtExpiry(DateTime dt) {
-    final local = dt.toLocal();
-    String pad(int n) => n.toString().padLeft(2, '0');
-    return 'Expira em ${local.day}/${pad(local.month)}/${local.year} às ${pad(local.hour)}:${pad(local.minute)}';
-  }
 
   Future<void> _copyHandle() async {
     final address = context.read<MerchantSessionService>().session!.banzaAddress;
@@ -342,8 +323,11 @@ class _MerchantProfileHeader extends StatelessWidget {
                 color: BanzamiColors.white.withValues(alpha: 0.35),
               ),
               const SizedBox(width: 6),
+              // What "verified" means here, precisely: Banzami approved this
+              // business's KYB. Not the account class (merchant, application,
+              // platform), not settlement readiness, not the session.
               Text(
-                'Conta de comerciante verificada',
+                'Negócio verificado · KYB aprovado',
                 style: BanzamiTextStyles.bodySm.copyWith(
                   color: BanzamiColors.white.withValues(alpha: 0.35),
                 ),
@@ -608,52 +592,6 @@ class _TechnicalIdsCardState extends State<_TechnicalIdsCard> {
   }
 }
 
-// =============================================================================
-// 3. Generic info card (Sessão API)
-// =============================================================================
-
-class _InfoCard extends StatelessWidget {
-  final IconData icon;
-  final String   title;
-  final String   value;
-
-  const _InfoCard({
-    required this.icon,
-    required this.title,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BanzamiRadius.xlAll,
-        boxShadow:    BanzamiShadows.card,
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.lg,
-        vertical:   BanzamiSpacing.md,
-      ),
-      child: Row(children: [
-        _IconBox(icon: icon),
-        const SizedBox(width: BanzamiSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title,
-                  style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
-              Text(value,
-                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
-}
 
 // =============================================================================
 // 4. Security section (biometrics)

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
@@ -7,6 +5,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../../branding_assets.dart';
 import '../../../widgets/pin_pad.dart';
 import '../../services/merchant_session_service.dart';
+import '../../services/merchant_reauth.dart';
 import 'setup_screen.dart';
 
 enum _Step { handle, pin }
@@ -108,7 +107,7 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
 
     try {
       final auth = await client.loginMerchantHandlePin(handle: handle, pin: _pin);
-      final merchantId = _claimFromJwt(auth.token, 'merchant_id');
+      final merchantId = claimFromJwt(auth.token, 'merchant_id');
       if (merchantId == null) throw const FormatException('missing merchant_id');
 
       client.setJwt(auth.token, expiresAt: auth.expiresAt);
@@ -150,23 +149,6 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
     }
   }
 
-  /// Reads a string claim from a JWT payload without verifying the signature
-  /// (the token comes from our own backend; this is only to extract merchant_id).
-  static String? _claimFromJwt(String jwt, String key) {
-    final parts = jwt.split('.');
-    if (parts.length != 3) return null;
-    try {
-      var p = parts[1].replaceAll('-', '+').replaceAll('_', '/');
-      while (p.length % 4 != 0) {
-        p += '=';
-      }
-      final map = jsonDecode(utf8.decode(base64.decode(p))) as Map<String, dynamic>;
-      final v = map[key];
-      return v is String ? v : null;
-    } catch (_) {
-      return null;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {

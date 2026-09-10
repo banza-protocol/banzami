@@ -30,6 +30,9 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   MerchantBalance? _balance;
+  /// Why the balance is not shown, when it is not. Distinct from a zero
+  /// balance, which is shown as 0 Kz.
+  String? _balanceError;
   MerchantDashboardStats? _stats;
   List<MerchantTransaction> _recent = const [];
   bool _loading = false;
@@ -55,8 +58,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final balanceFuture = client
         .getMerchantBalance(session.walletId)
-        .then((b) { if (mounted) setState(() => _balance = b); })
-        .catchError((_) { err = 'Não foi possível carregar o saldo.'; });
+        .then((b) { if (mounted) setState(() { _balance = b; _balanceError = null; }); })
+        .catchError((Object e) {
+          final m = balanceFailureMessage(e);
+          if (m == null) return; // the session ended; the app has left this screen
+          err = m;
+          if (mounted) setState(() => _balanceError = m);
+        });
 
     final statsFuture = _loadStats(client)
         .then((r) {
@@ -159,6 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _DashboardHeader(
             session: session,
             balance: _balance,
+            balanceError: _balanceError,
             isSandbox: isSandbox,
             onRefresh: _load,
           ),
@@ -244,12 +253,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 class _DashboardHeader extends StatelessWidget {
   final MerchantSession session;
   final MerchantBalance? balance;
+  final String? balanceError;
   final bool isSandbox;
   final VoidCallback onRefresh;
 
   const _DashboardHeader({
     required this.session,
     required this.balance,
+    this.balanceError,
     required this.isSandbox,
     required this.onRefresh,
   });
@@ -337,6 +348,15 @@ class _DashboardHeader extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
+          if (balance == null && balanceError != null) ...[
+            const SizedBox(height: BanzamiSpacing.xs),
+            Text(
+              balanceError!,
+              style: BanzamiTextStyles.bodySm.copyWith(
+                color: BanzamiColors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
           if (balance != null && balance!.reservedMinor > 0) ...[
             const SizedBox(height: BanzamiSpacing.xs),
             Text(
@@ -661,4 +681,21 @@ class _EmptyHint extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// What to tell a Business user when its balance could not be read. Each cause
+/// reads differently — a zero balance is not a failure at all (it shows 0 Kz).
+/// Returns null for an ended session: the app routes to the PIN screen, and a
+/// message here would be read against screens that are already gone.
+String? balanceFailureMessage(Object e) {
+  if (e is BanzamiApiException) {
+    if (e.statusCode == 401) return null;
+    if (e.statusCode == 403 || e.statusCode == 404) {
+      return 'A carteira desta conta Business ainda não está disponível.';
+    }
+    return 'O Banzami não conseguiu calcular o saldo agora. Tente novamente.';
+  }
+  if (e is BanzamiNetworkException) return 'Sem ligação ao Banzami. Tente novamente.';
+  return 'Não foi possível carregar o saldo.';
 }

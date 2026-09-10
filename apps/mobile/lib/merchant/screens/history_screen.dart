@@ -680,11 +680,10 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
                 ),
               ),
               if (p.receiptAvailable)
-                TextButton.icon(
+                BanzamiGhostButton(
+                  label:     'Comprovativo',
+                  color:     BanzamiColors.primary,
                   onPressed: _busyReceipt ? null : () => _shareReceipt(p),
-                  icon: const Icon(Icons.download_rounded, size: 18),
-                  label: const Text('Comprovativo'),
-                  style: TextButton.styleFrom(foregroundColor: BanzamiColors.primary),
                 ),
             ]),
           );
