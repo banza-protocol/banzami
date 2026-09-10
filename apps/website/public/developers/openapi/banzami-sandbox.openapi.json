@@ -1805,6 +1805,34 @@
               "blockers",
               "warnings"
             ]
+          },
+          "onboarding": {
+            "type": "object",
+            "description": "Where the Project stands in getting a Business to receive into. A Project applies for a new Business (reviewed by Banzami) or connects an existing one with that Business's consent, in the Developers Console. While the Project has no Business, the application's status and the requested @banza are included — never the application's contents.",
+            "required": [
+              "state"
+            ],
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "NOT_CONFIGURED",
+                  "IN_REVIEW",
+                  "INFORMATION_REQUIRED",
+                  "APPROVED_PROVISIONING",
+                  "REJECTED",
+                  "READY",
+                  "BLOCKED"
+                ]
+              },
+              "application_status": {
+                "type": "string"
+              },
+              "requested_handle": {
+                "type": "string",
+                "example": "@my-business"
+              }
+            }
           }
         },
         "required": [

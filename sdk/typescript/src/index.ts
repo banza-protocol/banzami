@@ -43,6 +43,7 @@ export type {
   DeveloperIdentity,
   FinancialSetup,
   FinancialSetupState,
+  FinancialOnboardingState,
   SettlementBlocker,
   SettlementWarning,
   MerchantStatus,

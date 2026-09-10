@@ -228,9 +228,28 @@ export type SettlementBlocker =
 export type SettlementWarning = 'WEBHOOK_ENDPOINT_MISSING' | (string & {});
 
 /** GET /v1/financial-setup — a Project's own financial readiness. */
+/** Where a Project stands in getting a Business to receive into. A Project
+ *  applies for a new Business (reviewed by Banzami) or connects an existing
+ *  one with that Business's consent — in the Developers Console. */
+export type FinancialOnboardingState =
+  | 'NOT_CONFIGURED'
+  | 'IN_REVIEW'
+  | 'INFORMATION_REQUIRED'
+  | 'APPROVED_PROVISIONING'
+  | 'REJECTED'
+  | 'READY'
+  | 'BLOCKED';
+
 export interface FinancialSetup {
   environment: string;
   project:     ProjectRef;
+  /** The Project's onboarding. While it has no Business: its application's
+   *  status and the requested @banza (never the application's contents). */
+  onboarding?: {
+    state:               FinancialOnboardingState;
+    application_status?: string;
+    requested_handle?:   string;
+  };
   financial_setup: {
     state:      FinancialSetupState;
     configured: boolean;

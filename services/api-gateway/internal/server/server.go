@@ -303,7 +303,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	if active, reason := cfg.DeveloperKeyAuthActive(); active {
 		devKeyClient = service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey)
 		meHandler := handler.NewMeHandler()
-		financialSetupHandler := handler.NewFinancialSetupHandler(deps.SettlementReadinessSvc, deps.PartyResolverSvc)
+		financialSetupHandler := handler.NewFinancialSetupHandler(deps.SettlementReadinessSvc, deps.PartyResolverSvc).
+			WithApplications(deps.MerchantAppAdminSvc)
 		r.Group(func(r chi.Router) {
 			// Per-IP limit BEFORE introspection — caps how many keys an
 			// unauthenticated caller can bounce off the Developer API, protecting

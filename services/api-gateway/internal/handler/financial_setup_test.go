@@ -261,3 +261,53 @@ func TestFinancialSetup_ANamedFeeDestinationIsResolvedAndPassedToCore(t *testing
 		t.Fatalf("resolver outage: want 503, got %d", rec.Code)
 	}
 }
+
+type projectApps struct {
+	app service.ProjectApplication
+	err error
+}
+
+func (p projectApps) LatestForProject(context.Context, string) (service.ProjectApplication, error) {
+	return p.app, p.err
+}
+
+// A Project without a Business says where its application stands: "in review"
+// is not "not configured". Only the status and the requested @ — never the
+// application's contents.
+func TestFinancialSetup_AnUnboundProjectReadsItsOnboarding(t *testing.T) {
+	p := devPrincipal("fresh")
+	p.Bound, p.MerchantID, p.WalletID = false, "", ""
+	for status, want := range map[string]string{
+		"UNDER_REVIEW": "IN_REVIEW", "INFORMATION_REQUIRED": "INFORMATION_REQUIRED",
+		"APPROVED": "APPROVED_PROVISIONING", "REJECTED": "REJECTED",
+	} {
+		app := service.ProjectApplication{BusinessName: "Loja Secreta Lda"}
+		app.Status, app.RequestedHandle, app.InformationRequest = status, "loja", "o NIF"
+		h := NewFinancialSetupHandler(&fakeReadiness{res: readyCore()}, nil).WithApplications(projectApps{app: app})
+		rec := getFinancialSetup(h, p, "")
+		out := decodeSetup(t, rec)
+		ob := out["onboarding"].(map[string]any)
+		if ob["state"] != want || ob["requested_handle"] != "@loja" {
+			t.Fatalf("%s → %#v", status, ob)
+		}
+		if strings.Contains(rec.Body.String(), "Loja Secreta") || strings.Contains(rec.Body.String(), "o NIF") {
+			t.Fatal("the application's contents reached the Project key")
+		}
+	}
+	h := NewFinancialSetupHandler(&fakeReadiness{res: readyCore()}, nil).WithApplications(projectApps{err: service.ErrApplicationNotFound})
+	if ob := decodeSetup(t, getFinancialSetup(h, p, ""))["onboarding"].(map[string]any); ob["state"] != "NOT_CONFIGURED" {
+		t.Fatalf("never applied: %#v", ob)
+	}
+}
+
+func TestFinancialSetup_ABoundProjectsOnboardingIsReadyOrBlocked(t *testing.T) {
+	core := &fakeReadiness{res: readyCore()}
+	out := decodeSetup(t, getFinancialSetup(NewFinancialSetupHandler(core, nil), devPrincipal("bound"), ""))
+	want := "READY"
+	if !core.res.Settlement.Ready {
+		want = "BLOCKED"
+	}
+	if ob := out["onboarding"].(map[string]any); ob["state"] != want {
+		t.Fatalf("%#v", ob)
+	}
+}

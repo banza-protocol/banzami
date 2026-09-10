@@ -15,6 +15,7 @@ package handler
 // own id is not among them — it is the developer's, shown in their Console.
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -30,6 +31,48 @@ const readinessCurrency = "AOA"
 type FinancialSetupHandler struct {
 	readiness service.SettlementReadinessService
 	parties   service.PartyResolver
+	apps      projectApplications
+}
+
+// projectApplications reads a Project's Business application (onboarding).
+type projectApplications interface {
+	LatestForProject(ctx context.Context, projectID string) (service.ProjectApplication, error)
+}
+
+// WithApplications lets an unbound Project read where its Business application
+// stands: "in review" is a different answer from "not configured".
+func (h *FinancialSetupHandler) WithApplications(a projectApplications) *FinancialSetupHandler {
+	h.apps = a
+	return h
+}
+
+// onboardingFor is the Project's onboarding state while it has no Business,
+// in the public vocabulary. Only the status and the requested @handle: the
+// application's contents are the applicant's, not the key's.
+func (h *FinancialSetupHandler) onboardingFor(ctx context.Context, projectID string) map[string]any {
+	out := map[string]any{"state": "NOT_CONFIGURED"}
+	if h.apps == nil || projectID == "" {
+		return out
+	}
+	app, err := h.apps.LatestForProject(ctx, projectID)
+	if err != nil {
+		return out
+	}
+	state := "NOT_CONFIGURED"
+	switch app.Status {
+	case "SUBMITTED", "UNDER_REVIEW", "DRAFT":
+		state = "IN_REVIEW"
+	case "INFORMATION_REQUIRED":
+		state = "INFORMATION_REQUIRED"
+	case "APPROVED", "PROVISIONING_FAILED":
+		state = "APPROVED_PROVISIONING"
+	case "REJECTED", "CANCELLED":
+		state = "REJECTED"
+	}
+	out["state"] = state
+	out["application_status"] = app.Status
+	out["requested_handle"] = "@" + app.RequestedHandle
+	return out
 }
 
 func NewFinancialSetupHandler(readiness service.SettlementReadinessService, parties service.PartyResolver) *FinancialSetupHandler {
@@ -68,6 +111,7 @@ func (h *FinancialSetupHandler) FinancialSetup(w http.ResponseWriter, r *http.Re
 		for k, v := range unconfiguredReadiness() {
 			body[k] = v
 		}
+		body["onboarding"] = h.onboardingFor(r.Context(), p.ProjectID)
 		writeJSON(w, http.StatusOK, body)
 		return
 	}
@@ -113,6 +157,13 @@ func (h *FinancialSetupHandler) FinancialSetup(w http.ResponseWriter, r *http.Re
 	for k, v := range projectReadiness(res) {
 		body[k] = v
 	}
+	// A bound Project's onboarding is done: READY when it can settle, BLOCKED
+	// with settlement's own blockers when it cannot.
+	onboarding := "READY"
+	if !res.Settlement.Ready {
+		onboarding = "BLOCKED"
+	}
+	body["onboarding"] = map[string]any{"state": onboarding}
 	writeJSON(w, http.StatusOK, body)
 }
 

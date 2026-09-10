@@ -33,6 +33,15 @@ third try read only as "SUCCESS, 3 attempts". `WebhookDeliveryRecord` now
 declares the fields the API actually returns — `attempt_number` and
 `status_code` — instead of `attempt` and `response_status`, which it never sent.
 
+### Added — `getFinancialSetup().onboarding`
+
+Where the Project stands in getting a Business to receive into:
+`NOT_CONFIGURED`, `IN_REVIEW`, `INFORMATION_REQUIRED`, `APPROVED_PROVISIONING`,
+`REJECTED`, `READY` or `BLOCKED`. While the Project has no Business it also
+carries the application's status and the requested @banza — never the
+application's contents. A Project applies for a Business, or connects an
+existing one with that Business's consent, in the Developers Console.
+
 ### Changed — `me()` names the Project as an object
 
 **Breaking.** `me().project` is `{ id, name, ref }` instead of the slug string,
