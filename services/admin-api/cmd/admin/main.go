@@ -44,6 +44,17 @@ func main() {
 
 	core := service.NewCoreAdminClient(cfg.CoreAPIURL)
 	gw := service.NewGatewayClient(cfg.GatewayInternalURL, cfg.InternalAPIKey)
+	// The primary gateway is the one of the environment this console runs in.
+	// On a Sandbox deployment that is the stack's own gateway: the LIVE default
+	// (http://api-gateway:8080) does not exist there, and every per-id call —
+	// opening an application, approving it, reading its documents — failed on
+	// the connection before it could fall back, answering nothing at all.
+	if cfg.Environment == "SANDBOX" && cfg.GatewayStagingInternalURL != "" {
+		if _, explicit := os.LookupEnv("GATEWAY_INTERNAL_URL"); !explicit {
+			gw = service.NewGatewayClient(cfg.GatewayStagingInternalURL, cfg.StagingInternalAPIKey)
+			slog.Info("gateway: Sandbox deployment — primary gateway is the stack's own", "url", cfg.GatewayStagingInternalURL)
+		}
+	}
 	mailer := email.NewSender(email.Config{
 		Provider:       cfg.EmailProvider,
 		DryRun:         cfg.EmailDryRun,

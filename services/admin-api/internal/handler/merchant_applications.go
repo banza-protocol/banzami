@@ -95,8 +95,13 @@ func (h *MerchantApplicationHandler) gatewayForRequest(ctx context.Context, envi
 // application lives, without the admin UI having to pass the environment.
 func (h *MerchantApplicationHandler) rawAcrossStacks(call func(GatewayApplications) (json.RawMessage, int, error)) (json.RawMessage, int, error) {
 	raw, code, err := call(h.gw)
-	if code == http.StatusNotFound && h.gwStaging != nil {
+	// Not on the live stack — or the live stack could not be reached at all
+	// (a Sandbox-only deployment has none) — then the Sandbox stack answers.
+	if (code == http.StatusNotFound || (err != nil && code == 0)) && h.gwStaging != nil {
 		return call(h.gwStaging)
+	}
+	if err != nil && code == 0 {
+		code = http.StatusBadGateway
 	}
 	return raw, code, err
 }
@@ -114,9 +119,19 @@ func (h *MerchantApplicationHandler) platformEnv(ctx context.Context) string {
 	return "SANDBOX"
 }
 
+// validStatus keeps an upstream failure that produced no HTTP status (a refused
+// connection is code 0) from reaching WriteHeader, which panics on it and left
+// the operator's page with no answer at all.
+func validStatus(code int) int {
+	if code < 100 || code > 599 {
+		return http.StatusBadGateway
+	}
+	return code
+}
+
 func writeRaw(w http.ResponseWriter, code int, raw json.RawMessage) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(validStatus(code))
 	if len(raw) == 0 {
 		_, _ = w.Write([]byte("{}"))
 		return
@@ -126,7 +141,7 @@ func writeRaw(w http.ResponseWriter, code int, raw json.RawMessage) {
 
 func writeErr(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
+	w.WriteHeader(validStatus(code))
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
