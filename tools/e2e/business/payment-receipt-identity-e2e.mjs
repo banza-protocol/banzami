@@ -3,7 +3,13 @@
  * Who was paid, on every receipt surface — a generic Business, end to end, on
  * the deployed Sandbox.
  *
- *   node tools/e2e/business/payment-receipt-identity-e2e.mjs [--out <dir>]
+ *   node tools/e2e/business/payment-receipt-identity-e2e.mjs [--payer <handle>] [--out <dir>]
+ *
+ * --payer reuses a synthetic payer an earlier run of this harness created
+ * (handle rca…, PIN known to the harness) instead of registering and funding a
+ * new one — for when the Sandbox pilot cap on aggregate test funds
+ * (PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED) refuses new test credit. The cap is a
+ * platform control and is never raised or bypassed here.
  *
  * A synthetic Business ("Loja Genérica <run>", @grc<run>) and a Developer
  * Project with a DIFFERENT name ("Projeto Integração <run>") connected to it by
@@ -37,6 +43,7 @@ const ORIGIN = 'https://developers.banzami.com';
 const REMOTE = process.env.BANZAMI_REMOTE ?? 'root@217.160.9.248';
 const HERE = new URL('.', import.meta.url).pathname;
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
+const REUSE_PAYER = arg('--payer', '');
 const OUT = arg('--out', join(process.cwd(), `evidence/assurance/business/payment-receipt-identity-${Date.now()}`));
 mkdirSync(OUT, { recursive: true });
 
@@ -104,6 +111,16 @@ function watDate(iso) {
   const mon = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][d.getUTCMonth()];
   const hm = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   return { pdf: `${d.getUTCDate()} ${mon} ${d.getUTCFullYear()}, ${hm} (WAT)`, page: `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()}, ${hm} (WAT)` };
+}
+
+async function existingPayer(handle) {
+  if (!/^rca[a-z0-9]+$/.test(handle)) throw new Error('--payer must be a synthetic payer this harness created (rca…)');
+  const out = ssh(`${PRE}
+    R=$(docker exec "$PUB" curl -s -X POST http://localhost:8083/v1/auth/token -H 'Content-Type: application/json' -d '{"handle":"${handle}","pin":"1357"}')
+    printf '%s' "$(printf '%s' "$R" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{process.stdout.write(JSON.parse(s).token||"")}catch{}})')"
+    printf '|'; q "select id::text||'|'||coalesce(display_name,'') from consumers where handle='${handle}'"`).trim();
+  const [token, id, name] = out.split('|');
+  return { id, token, handle, name };
 }
 
 async function consumer(tag, fund) {
@@ -244,7 +261,7 @@ async function main() {
   rec('and a plain payment link with no description', Boolean(linkBody.slug), linkJson.slice(0, 120));
 
   // ── consumers ──────────────────────────────────────────────────────────────
-  const payer = await consumer('a', 1000000);
+  const payer = REUSE_PAYER ? await existingPayer(REUSE_PAYER) : await consumer('a', 1000000);
   const friend = await consumer('b', 0);
   rec('a funded synthetic payer and a second consumer', payer.id && payer.token && friend.id, `@${payer.handle} @${friend.handle}`);
 

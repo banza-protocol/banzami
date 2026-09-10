@@ -108,6 +108,36 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
+  testWidgets('"Copiar detalhes" copies the canonical receipt and nothing internal', (tester) async {
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') copied = (call.arguments as Map)['text'] as String?;
+      return null;
+    });
+    await _pump(tester, receipt: _receipt());
+    await tester.ensureVisible(find.text('Copiar detalhes'));
+    await tester.tap(find.text('Copiar detalhes'));
+    await tester.pump();
+    expect(copied, isNotNull);
+    for (final line in [
+      'Pagamento · Link de pagamento',
+      'Montante: 2 000 Kz',
+      'De: @fm65',
+      'Para: Doa · @doa',
+      'Referência do comerciante: DOA-55791091',
+      'Finalidade: Vaquinha · Jornada economica fresca',
+      'Data: 10 de setembro de 2026, 20:13 (WAT)',
+      'Comprovativo: $_ref',
+      'Verificar: https://banzami.com/r/$_ref',
+    ]) {
+      expect(copied, contains(line));
+    }
+    for (final leak in ['0056', 'Doa-Sandbox', 'Payment link', '@banza', 'Método']) {
+      expect(copied, isNot(contains(leak)));
+    }
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets('the time is the official clock, labelled (19:13 UTC = 20:13 WAT)', (tester) async {
     await _pump(tester, receipt: _receipt());
     expect(find.text('10 de setembro de 2026, 20:13 (WAT)'), findsOneWidget);
