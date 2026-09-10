@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -37,6 +38,30 @@ func (f *fakeCreds) LookupHandle(_ context.Context, _ string) (service.MerchantL
 	return f.lookup, nil
 }
 
+// fakeSessions is an in-memory Business App session store: enough to prove the
+// handler issues, renews and ends sessions; rotation and reuse are proven
+// against Postgres in the service tests.
+type fakeSessions struct {
+	opened   int
+	renewErr error
+	ended    []string
+}
+
+func (f *fakeSessions) Open(_ context.Context, mid, env string) (service.IssuedSession, error) {
+	f.opened++
+	return service.IssuedSession{MerchantID: mid, Environment: env, RefreshToken: "bzs_fake", RefreshExpiresAt: time.Now().Add(time.Hour)}, nil
+}
+func (f *fakeSessions) Renew(_ context.Context, tok string) (service.IssuedSession, error) {
+	if f.renewErr != nil {
+		return service.IssuedSession{}, f.renewErr
+	}
+	return service.IssuedSession{MerchantID: "m-123", Environment: "SANDBOX", RefreshToken: tok + "-next", RefreshExpiresAt: time.Now().Add(time.Hour)}, nil
+}
+func (f *fakeSessions) End(_ context.Context, tok string) error {
+	f.ended = append(f.ended, tok)
+	return nil
+}
+
 func postJSON(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(body))
 	rec := httptest.NewRecorder()
@@ -47,8 +72,9 @@ func postJSON(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
 func TestMerchantAuthToken(t *testing.T) {
 	cfg := &config.Config{JWTSecret: testSecret}
 
-	t.Run("success issues a merchant JWT", func(t *testing.T) {
-		h := NewMerchantAuthHandler(cfg, &fakeCreds{mid: "m-123", env: "SANDBOX"})
+	t.Run("success opens a session: a short access token and a refresh token", func(t *testing.T) {
+		sessions := &fakeSessions{}
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{mid: "m-123", env: "SANDBOX"}).WithSessions(sessions)
 		rec := postJSON(h.Token, `{"handle":"doa_sandbox","pin":"1234"}`)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", rec.Code)
@@ -57,6 +83,13 @@ func TestMerchantAuthToken(t *testing.T) {
 		_ = json.Unmarshal(rec.Body.Bytes(), &out)
 		if out["token"] == nil || out["token"] == "" {
 			t.Error("expected a token in the response")
+		}
+		if out["refresh_token"] != "bzs_fake" || sessions.opened != 1 {
+			t.Errorf("refresh_token = %v, sessions opened = %d", out["refresh_token"], sessions.opened)
+		}
+		exp, _ := time.Parse(time.RFC3339, out["expires_at"].(string))
+		if d := time.Until(exp); d > 16*time.Minute || d < 14*time.Minute {
+			t.Errorf("access token lives %v, want 15 minutes", d)
 		}
 		if out["environment"] != "SANDBOX" {
 			t.Errorf("environment = %v, want SANDBOX", out["environment"])
@@ -84,6 +117,14 @@ func TestMerchantAuthToken(t *testing.T) {
 		rec := postJSON(h.Token, `{"handle":"doa_sandbox"}`)
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("no session store → 503, never an unrenewable token", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{mid: "m-123", env: "SANDBOX"})
+		rec := postJSON(h.Token, `{"handle":"doa_sandbox","pin":"1234"}`)
+		if rec.Code != http.StatusServiceUnavailable || strings.Contains(rec.Body.String(), "token\":") {
+			t.Fatalf("status = %d body %s", rec.Code, rec.Body.String())
 		}
 	})
 
@@ -243,6 +284,51 @@ func TestMerchantAuthClaim(t *testing.T) {
 		rec := do(&fakeCreds{claimErr: service.ErrHandleInvalid}, true, `{"handle":"x","pin":"1234"}`)
 		if rec.Code != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400", rec.Code)
+		}
+	})
+}
+
+func TestMerchantAuthRefreshAndLogout(t *testing.T) {
+	cfg := &config.Config{JWTSecret: testSecret}
+
+	t.Run("renewal returns a new access token and the rotated refresh token", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{}).WithSessions(&fakeSessions{})
+		rec := postJSON(h.Refresh, `{"refresh_token":"bzs_a"}`)
+		var out map[string]any
+		_ = json.Unmarshal(rec.Body.Bytes(), &out)
+		if rec.Code != 200 || out["refresh_token"] != "bzs_a-next" || out["token"] == "" {
+			t.Fatalf("%d %v", rec.Code, out)
+		}
+	})
+	for name, err := range map[string]error{"ended": service.ErrSessionInvalid, "reused": service.ErrSessionReused} {
+		t.Run("a "+name+" session is one 401 SESSION_ENDED", func(t *testing.T) {
+			h := NewMerchantAuthHandler(cfg, &fakeCreds{}).WithSessions(&fakeSessions{renewErr: err})
+			rec := postJSON(h.Refresh, `{"refresh_token":"bzs_a"}`)
+			if rec.Code != 401 || !strings.Contains(rec.Body.String(), "SESSION_ENDED") {
+				t.Fatalf("%d %s", rec.Code, rec.Body.String())
+			}
+		})
+	}
+	t.Run("a store outage is not a signed-out session", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{}).WithSessions(&fakeSessions{renewErr: errors.New("db down")})
+		if rec := postJSON(h.Refresh, `{"refresh_token":"bzs_a"}`); rec.Code != 503 {
+			t.Fatalf("%d — an outage must not send the app to sign-in", rec.Code)
+		}
+	})
+	t.Run("a missing token is a 400", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{}).WithSessions(&fakeSessions{})
+		if rec := postJSON(h.Refresh, `{}`); rec.Code != 400 {
+			t.Fatalf("%d", rec.Code)
+		}
+	})
+	t.Run("sign-out ends the session and is always 204", func(t *testing.T) {
+		s := &fakeSessions{}
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{}).WithSessions(s)
+		if rec := postJSON(h.Logout, `{"refresh_token":"bzs_a"}`); rec.Code != 204 || len(s.ended) != 1 {
+			t.Fatalf("%d ended=%v", rec.Code, s.ended)
+		}
+		if rec := postJSON(h.Logout, `{}`); rec.Code != 204 {
+			t.Fatalf("%d", rec.Code)
 		}
 	})
 }

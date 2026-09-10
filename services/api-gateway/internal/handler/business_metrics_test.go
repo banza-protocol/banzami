@@ -29,7 +29,7 @@ func TestBusinessMetrics_SignInResultsAreCountedApart(t *testing.T) {
 	}
 	for _, c := range cases {
 		before := testutil.ToFloat64(businessAuthAttempts.WithLabelValues(c.result))
-		h := NewMerchantAuthHandler(cfg, &fakeCreds{mid: "m-1", env: "SANDBOX", verifyErr: c.err})
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{mid: "m-1", env: "SANDBOX", verifyErr: c.err}).WithSessions(&fakeSessions{})
 		postJSON(h.Token, `{"handle":"loja","pin":"123456"}`)
 		if got := testutil.ToFloat64(businessAuthAttempts.WithLabelValues(c.result)) - before; got != 1 {
 			t.Errorf("%s: counted %v, want 1", c.result, got)
@@ -85,6 +85,7 @@ func TestBusinessMetrics_LabelsAreAClosedVocabulary(t *testing.T) {
 		appActionSubmit, appActionStartReview, appActionApprove, appActionLink, appActionReject, appActionReissueActivation,
 		appResultOK, appResultReplayed, appResultRefused, appResultFailed,
 		authResultIssued, authResultRefused, authResultLocked, authResultOwnerMismatch,
+		authResultRefreshed, authResultRefreshRefused, authResultRefreshReused,
 		tenantSurfaceWallet,
 		docResultUploaded, docResultContentRefused, docResultRefused, docResultStorageOff, docResultFailed,
 	} {

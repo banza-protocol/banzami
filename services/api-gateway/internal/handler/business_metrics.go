@@ -52,10 +52,13 @@ const (
 	appResultRefused  = "refused"  // the request was answered with a reasoned 4xx
 	appResultFailed   = "failed"   // 5xx — something the operator must look at
 
-	authResultIssued        = "issued"
-	authResultRefused       = "refused"
-	authResultLocked        = "locked"
-	authResultOwnerMismatch = "handle_owner_mismatch"
+	authResultIssued         = "issued"
+	authResultRefused        = "refused"
+	authResultLocked         = "locked"
+	authResultOwnerMismatch  = "handle_owner_mismatch"
+	authResultRefreshed      = "refreshed"
+	authResultRefreshRefused = "refresh_refused"
+	authResultRefreshReused  = "refresh_reused"
 
 	tenantSurfaceWallet = "wallet"
 

@@ -78,6 +78,7 @@ func main() {
 	var webhookSvc service.WebhookService
 	var teamSvc service.TeamService
 	var merchantCredSvc service.MerchantCredentialService
+	var merchantSessionSvc service.MerchantSessionService
 	var merchantAppSvc service.MerchantApplicationService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
@@ -150,6 +151,7 @@ func main() {
 			}
 		}
 		merchantCredSvc = credSvc
+		merchantSessionSvc = service.NewPostgresMerchantSessionService(dbPool)
 		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
 		merchantAppAdminSvc = service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		activationSvc = service.NewPostgresActivationService(dbPool)
@@ -237,6 +239,7 @@ func main() {
 		FCMSvc:                   fcmSvc,
 		TeamSvc:                  teamSvc,
 		MerchantCredSvc:          merchantCredSvc,
+		MerchantSessionSvc:       merchantSessionSvc,
 		MerchantAppSvc:           merchantAppSvc,
 		MerchantAppAdminSvc:      merchantAppAdminSvc,
 		MerchantDocumentSvc:      merchantDocumentSvc,

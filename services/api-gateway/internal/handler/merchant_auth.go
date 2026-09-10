@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -13,28 +14,55 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-// merchantSessionTTL is the lifetime of a @handle + PIN merchant JWT.
+// merchantAccessTTL is the lifetime of a Business App access token.
 //
-// It was 30 days, on the reasoning that a handle-login client "cannot
-// self-refresh". It can, the same way the consumer app does: unlocking with the
-// PIN re-authenticates against this endpoint and replaces the token. A bearer
-// token that outlives that by a month is a month in which a stolen one works and
-// a suspension only blocks the NEXT login. 24 hours matches the consumer
-// session: an unlock refreshes it, and a device left idle past it asks for the
-// PIN rather than presenting a dead session. The API-key token TTL (auth.go
-// tokenTTL) is unchanged.
-const merchantSessionTTL = 24 * time.Hour
+// A sign-in opens a SESSION (migration 0120): the access token lives minutes
+// and the app renews it with a rotating refresh token the server can revoke.
+// It used to be one 24-hour bearer token with no renewal, so an expired token
+// could only be replaced by asking for the PIN — and a device that missed that
+// moment looked signed in while every financial call answered 401. A short
+// access token also bounds what a stolen one is worth; suspension and handle
+// changes take effect at the next renewal.
+const merchantAccessTTL = 15 * time.Minute
 
 // MerchantAuthHandler implements @handle + PIN login for the Banzami Business
 // app. It issues the SAME merchant JWT as the API-key flow, so all existing
 // merchant routes work unchanged. The API-key login is untouched.
 type MerchantAuthHandler struct {
-	cfg   *config.Config
-	creds service.MerchantCredentialService
+	cfg      *config.Config
+	creds    service.MerchantCredentialService
+	sessions service.MerchantSessionService
 }
 
 func NewMerchantAuthHandler(cfg *config.Config, creds service.MerchantCredentialService) *MerchantAuthHandler {
 	return &MerchantAuthHandler{cfg: cfg, creds: creds}
+}
+
+// WithSessions enables renewable sessions. Without it a sign-in is refused:
+// a Business App access token that cannot be renewed is the defect 0120 fixed.
+func (h *MerchantAuthHandler) WithSessions(s service.MerchantSessionService) *MerchantAuthHandler {
+	h.sessions = s
+	return h
+}
+
+// issue mints an access token for an open session and writes the sign-in or
+// renewal response.
+func (h *MerchantAuthHandler) issue(w http.ResponseWriter, r *http.Request, sess service.IssuedSession, status int) {
+	token, expiresAt, err := middleware.NewMerchantToken(
+		h.cfg.JWTSecret, sess.MerchantID, []string{"*"}, sess.Environment, merchantAccessTTL,
+	)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to issue token")
+		return
+	}
+	writeJSON(w, status, map[string]any{
+		"token":              token,
+		"expires_at":         expiresAt,
+		"token_type":         "Bearer",
+		"environment":        sess.Environment,
+		"refresh_token":      sess.RefreshToken,
+		"refresh_expires_at": sess.RefreshExpiresAt.UTC().Format(time.RFC3339),
+	})
 }
 
 // POST /v1/merchant/auth/token   {handle, pin}
@@ -77,24 +105,74 @@ func (h *MerchantAuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, expiresAt, err := middleware.NewMerchantToken(
-		h.cfg.JWTSecret, merchantID, []string{"*"}, env, merchantSessionTTL,
-	)
-	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to issue token")
+	if h.sessions == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "handle login is not available")
 		return
 	}
-
+	sess, err := h.sessions.Open(r.Context(), merchantID, env)
+	if err != nil {
+		slog.ErrorContext(r.Context(), "merchant.auth.session_open_failed", "error_kind", fmt.Sprintf("%T", err))
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to open session")
+		return
+	}
 	businessAuthAttempts.WithLabelValues(authResultIssued).Inc()
-	slog.InfoContext(r.Context(), "merchant.auth.token.issued",
-		"merchant_id", merchantID, "environment", env, "expires_at", expiresAt)
+	slog.InfoContext(r.Context(), "merchant.auth.token.issued", "merchant_id", merchantID, "environment", env)
+	h.issue(w, r, sess, http.StatusOK)
+}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"token":       token,
-		"expires_at":  expiresAt,
-		"token_type":  "Bearer",
-		"environment": env,
-	})
+// POST /v1/merchant/auth/refresh   {refresh_token}
+// Renews a Business App session: a new access token and a new refresh token;
+// the presented one is spent. Any refusal — unknown, expired, revoked,
+// reused, Business suspended, handle gone — is the same 401, and the app
+// returns to sign-in.
+func (h *MerchantAuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	if h.sessions == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "handle login is not available")
+		return
+	}
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.RefreshToken == "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "refresh_token is required")
+		return
+	}
+	sess, err := h.sessions.Renew(r.Context(), body.RefreshToken)
+	switch {
+	case errors.Is(err, service.ErrSessionReused):
+		businessAuthAttempts.WithLabelValues(authResultRefreshReused).Inc()
+		slog.WarnContext(r.Context(), "merchant.auth.refresh_reused")
+		apierror.Respond(w, r, http.StatusUnauthorized, "SESSION_ENDED", "the session has ended; sign in again")
+		return
+	case errors.Is(err, service.ErrSessionInvalid):
+		businessAuthAttempts.WithLabelValues(authResultRefreshRefused).Inc()
+		apierror.Respond(w, r, http.StatusUnauthorized, "SESSION_ENDED", "the session has ended; sign in again")
+		return
+	case err != nil:
+		slog.ErrorContext(r.Context(), "merchant.auth.refresh_failed", "error_kind", fmt.Sprintf("%T", err))
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "could not renew the session; try again")
+		return
+	}
+	businessAuthAttempts.WithLabelValues(authResultRefreshed).Inc()
+	h.issue(w, r, sess, http.StatusOK)
+}
+
+// POST /v1/merchant/auth/logout   {refresh_token}
+// Ends the sign-in the token belongs to. Always 204: signing out of a session
+// that already ended is still signed out, and the answer reveals nothing.
+func (h *MerchantAuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if h.sessions != nil {
+		if err := h.sessions.End(r.Context(), body.RefreshToken); err != nil {
+			slog.ErrorContext(r.Context(), "merchant.auth.logout_failed", "error_kind", fmt.Sprintf("%T", err))
+			apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "could not end the session; try again")
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // POST /v1/merchant/auth/lookup   {handle}

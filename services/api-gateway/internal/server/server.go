@@ -57,6 +57,7 @@ type Dependencies struct {
 	FCMSvc                   *notify.FCMService
 	TeamSvc                  service.TeamService
 	MerchantCredSvc          service.MerchantCredentialService
+	MerchantSessionSvc       service.MerchantSessionService
 	MerchantAppSvc           service.MerchantApplicationService
 	MerchantAppAdminSvc      service.MerchantApplicationAdminService
 	MerchantDocumentSvc      service.MerchantDocumentService
@@ -137,7 +138,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// Handlers
 	// ---------------------------------------------------------------------------
 	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
-	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc)
+	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc).WithSessions(deps.MerchantSessionSvc)
 	// Platform Mode is the single source of truth for the onboarding environment
 	// (ADR-025): this gate refuses application submission/approval when the gateway
 	// stack's environment (cfg.Environment) disagrees with the current mode.
@@ -198,6 +199,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// Non-secret handle lookup — the app prompts for a PIN only when the account
 	// exists and can sign in.
 	r.With(credLimit).Post("/v1/merchant/auth/lookup", merchantAuthHandler.Lookup)
+	// Business App session renewal and sign-out (migration 0120). The refresh
+	// token is the credential; renewal is rate-limited like a sign-in.
+	r.With(credLimit).Post("/v1/merchant/auth/refresh", merchantAuthHandler.Refresh)
+	r.With(credLimit).Post("/v1/merchant/auth/logout", merchantAuthHandler.Logout)
 	// Public platform mode — read-only, no auth. Lets the website show a SANDBOX
 	// banner without a rebuild. Never leaks internal config.
 	r.Get("/v1/platform-mode", handler.NewPlatformHandler(deps.PlatformSvc).Mode)
