@@ -12,6 +12,7 @@ Where everything lives. This is the only meta-document — start here.
 | **Architecture decisions (ADRs)** | [docs/adr/](adr/) |
 | **Per-domain docs** | [docs/domains/](domains/) |
 | **API reference** | [docs/api/](api/) |
+| **Receipt semantics (who was paid, operation, proof snapshot)** | [docs/api/receipt-semantics.md](api/receipt-semantics.md) |
 | **Document Engine & official receipt PDFs** | [docs/document-engine.md](document-engine.md) |
 | **BANZADMIN sidebar badges (operator attention)** | [docs/admin/OPERATOR_ATTENTION.md](admin/OPERATOR_ATTENTION.md) |
 | **Email Design System (Resend)** | [docs/admin/BANZADMIN_RUNBOOK.md](admin/BANZADMIN_RUNBOOK.md) (§Email) |
