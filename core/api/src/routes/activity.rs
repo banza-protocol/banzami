@@ -91,8 +91,12 @@ WITH activity AS (
     -- recipient_id holds EITHER a consumer id (true P2P) OR a merchant wallet
     -- id (payment-link / merchant payments — e.g. donations to a merchant such
     -- as Doa). Classify by which one the recipient_id resolves to, so a merchant
-    -- payment is never mislabelled as P2P. The merchant name is surfaced as the
-    -- counterparty so clients can render "Pagamento <Merchant>".
+    -- payment is never mislabelled as P2P. A Business counterparty is its PUBLIC
+    -- identity (business_public_identities, migration 0125): the @handle it owns
+    -- and the name it presents — never its account name, which for a Business
+    -- made by the retired Console setup was "Sandbox · <Project>". The note of a
+    -- link payment is what the Business wrote on the link; the transfer's own
+    -- description there was generated ("Payment link: <slug>").
     SELECT
         t.id::text               AS activity_id,
         (CASE WHEN w_r.id IS NOT NULL
@@ -104,15 +108,16 @@ WITH activity AS (
         'COMPLETED'::text        AS status,
         t.created_at,
         t.created_at             AS completed_at,
-        c_r.handle               AS counterparty_handle,
-        COALESCE(c_r.display_name, m_r.name) AS counterparty_display_name,
-        t.description            AS note,
+        COALESCE(c_r.handle, b_r.handle) AS counterparty_handle,
+        COALESCE(c_r.display_name, b_r.display_name) AS counterparty_display_name,
+        (CASE WHEN pl.id IS NOT NULL THEN pl.description ELSE t.description END)::text AS note,
         t.id::text               AS transfer_id,
         NULL::text               AS funding_id
     FROM transfers t
     LEFT JOIN consumers c_r ON c_r.id = t.recipient_id
     LEFT JOIN wallets   w_r ON w_r.id = t.recipient_id
-    LEFT JOIN merchants m_r ON m_r.id = w_r.merchant_id
+    LEFT JOIN business_public_identities b_r ON b_r.merchant_id = w_r.merchant_id
+    LEFT JOIN payment_links pl ON t.idempotency_key = 'pl-pay-' || pl.id::text AND pl.wallet_id = t.recipient_id
     WHERE t.sender_id = $1 AND t.status = 'COMPLETED'
 
     UNION ALL
