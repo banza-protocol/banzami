@@ -932,13 +932,16 @@ class BanzamiSandboxBadge extends StatelessWidget {
             Icon(icon, size: 14, color: BanzamiColors.sandboxText),
             const SizedBox(width: BanzamiSpacing.xs + 2),
           ],
-          Text(
-            label,
-            style: BanzamiTextStyles.label.copyWith(
-              color: BanzamiColors.sandboxText,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: BanzamiTextStyles.label.copyWith(
+                color: BanzamiColors.sandboxText,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
             ),
           ),
         ],

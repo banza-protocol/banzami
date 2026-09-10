@@ -1,8 +1,14 @@
+import 'receipt.dart';
+
 class PaymentLink {
   final String id;
   final String slug;
   final String merchantId;
+
+  /// The payee's PUBLIC identity — the name the Business presents and the
+  /// @handle it owns — never its account name or a Project's name.
   final String? merchantName;
+  final String? merchantHandle;
   final String walletId;
   final int? amountMinor;
   final String currency;
@@ -18,11 +24,16 @@ class PaymentLink {
   /// receipt MUST be fetched by this when available.
   final String? transferId;
 
+  /// The canonical receipt, present on the pay response once its proof was
+  /// established. Absent ⇒ fetch it with `ConsumerPublicClient.fetchReceipt`.
+  final Receipt? receipt;
+
   const PaymentLink({
     required this.id,
     required this.slug,
     required this.merchantId,
     this.merchantName,
+    this.merchantHandle,
     required this.walletId,
     this.amountMinor,
     required this.currency,
@@ -33,6 +44,7 @@ class PaymentLink {
     required this.createdAt,
     required this.updatedAt,
     this.transferId,
+    this.receipt,
   });
 
   factory PaymentLink.fromJson(Map<String, dynamic> json) => PaymentLink(
@@ -40,12 +52,16 @@ class PaymentLink {
         slug: json['slug'] as String,
         merchantId: json['merchant_id'] as String,
         merchantName: json['merchant_name'] as String?,
+        merchantHandle: json['merchant_handle'] as String?,
         walletId: json['wallet_id'] as String,
         amountMinor: json['amount_minor'] as int?,
         currency: json['currency'] as String,
         description: json['description'] as String?,
         status: PaymentLinkStatus.fromString(json['status'] as String),
         transferId: json['transaction_id'] as String?,
+        receipt: json['receipt'] is Map<String, dynamic>
+            ? Receipt.fromJson(json['receipt'] as Map<String, dynamic>)
+            : null,
         expiresAt: json['expires_at'] != null
             ? DateTime.parse(json['expires_at'] as String)
             : null,

@@ -115,6 +115,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
           logoAssetPath: widget.logoAssetPath,
           fetchReceiptPdf: () =>
               widget.client.fetchReceiptPdf(transfer.transferId),
+          fetchReceipt: () => widget.client.fetchReceipt(transfer.transferId),
         ),
       ));
     } on BanzamiApiException catch (e) {

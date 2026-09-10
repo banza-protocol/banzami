@@ -9,6 +9,7 @@ import '../models/consumer_pay_link.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/kyc.dart';
 import '../models/payment_link.dart';
+import '../models/receipt.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
@@ -528,6 +529,17 @@ class ConsumerPublicClient {
         path: '/v1/debug/push-test',
         body: fcmToken != null ? {'fcm_token': fcmToken} : null,
       );
+
+  /// The canonical receipt of [transactionId] — what the comprovativo screen,
+  /// "Partilhar" and "Copiar detalhes" show. Establishes the operation's proof
+  /// server-side if it does not exist yet.
+  Future<Receipt> fetchReceipt(String transactionId) async {
+    final json = await _call(
+      method: 'GET',
+      path: '/v1/consumer/transactions/$transactionId/receipt',
+    );
+    return Receipt.fromJson(json);
+  }
 
   /// Fetches the official transfer receipt PDF for [transactionId], generated
   /// server-side by the Banzami Document Engine. Returns the raw PDF bytes.

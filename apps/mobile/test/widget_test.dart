@@ -254,8 +254,14 @@ void main() {
 
     testWidgets('all required detail row labels are present', (tester) async {
       await pumpReceipt(tester);
-      for (final label in ['De', 'Para', 'Nota', 'Data', 'Ref', 'Método']) {
+      // Before (or without) the canonical receipt: the parties, the note as a
+      // description, the official time, the funding source and the proof
+      // reference row — never "Ref" with a transaction id, never "Método".
+      for (final label in ['De', 'Para', 'Descrição', 'Data', 'Fonte', 'Referência']) {
         expect(find.text(label), findsOneWidget, reason: 'Missing row: $label');
+      }
+      for (final gone in ['Ref', 'Método', 'Nota']) {
+        expect(find.text(gone), findsNothing, reason: 'Stale row: $gone');
       }
     });
 
@@ -264,12 +270,13 @@ void main() {
       expect(find.text('jantar'), findsOneWidget);
     });
 
-    testWidgets('shows abbreviated 8-char ref uppercased in Ref row',
+    testWidgets('never presents the transaction id as the receipt reference',
         (tester) async {
       await pumpReceipt(tester);
-      // find.text() requires exact match — finds only the _DetailRow value,
-      // not the footer line which contains the ref as a substring.
-      expect(find.text('ABC12345'), findsOneWidget);
+      // The 8-char transaction-id prefix used to be shown as "Ref" and in the
+      // footer; the only reference a comprovativo shows is the proof's.
+      expect(find.textContaining('ABC12345'), findsNothing);
+      expect(find.textContaining('abc12345'), findsNothing);
     });
 
     testWidgets('does not expose full UUID or trace id', (tester) async {

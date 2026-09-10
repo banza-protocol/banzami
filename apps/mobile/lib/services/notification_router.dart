@@ -151,6 +151,7 @@ class BanzamiNotificationRouter {
         isSandbox:       AppConfig.isSandbox,
         logoAssetPath:   BrandingAssets.icon,
         fetchReceiptPdf: () => client.fetchReceiptPdf(transferId),
+        fetchReceipt:    () => client.fetchReceipt(transferId),
       ),
     ));
   }

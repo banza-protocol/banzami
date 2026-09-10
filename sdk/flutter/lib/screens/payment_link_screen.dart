@@ -130,8 +130,14 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
     // @handle); the link reference is the subtitle and the receipt note.
     return BanzamiPaymentRequestScreen(
       client: widget.client,
-      recipientHandle: link.merchantName ?? link.slug,
-      recipientDisplayName: link.merchantName ?? 'Pagamento Banzami',
+      recipientHandle: link.merchantHandle ?? link.merchantName ?? link.slug,
+      // The payee as every receipt names it: the Business's public name and
+      // the @handle it owns ("Doa · @doa").
+      recipientDisplayName: link.merchantName == null
+          ? 'Pagamento Banzami'
+          : (link.merchantHandle == null
+              ? link.merchantName!
+              : '${link.merchantName} · @${link.merchantHandle}'),
       recipientSubtitle: link.description,
       amountMinor: link.amountMinor,
       currency: link.currency,

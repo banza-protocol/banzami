@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
+import '../models/receipt.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
@@ -136,6 +137,7 @@ class _BanzamiPaymentRequestScreenState
 
     try {
       Transfer transfer;
+      Receipt? receipt;
 
       if (widget.paymentLinkSlug != null) {
         // Pay via the payment-link API (Doa / merchant link). Build a Transfer
@@ -146,6 +148,10 @@ class _BanzamiPaymentRequestScreenState
           amountMinor: amount,
           idempotencyKey: _idem,
         );
+        // The pay response carries the canonical receipt once its proof is
+        // established — the payee, the reference and the time the PDF and the
+        // verifier show. Otherwise the receipt screen fetches it.
+        receipt = paid.receipt;
         transfer = Transfer(
           // The receipt keys on the transaction id, not the link id. The pay
           // response carries transaction_id; fall back to the link id only if
@@ -195,6 +201,8 @@ class _BanzamiPaymentRequestScreenState
           recipientIsHandle: widget.recipientIsHandle,
           fetchReceiptPdf: () =>
               widget.client.fetchReceiptPdf(transfer.transferId),
+          receipt: receipt,
+          fetchReceipt: () => widget.client.fetchReceipt(transfer.transferId),
         ),
       ));
     } on BanzamiApiException catch (e) {

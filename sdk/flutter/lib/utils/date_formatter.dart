@@ -15,6 +15,18 @@ class BanzamiDateFormatter {
     return DateFormat("d 'de' MMMM 'de' y, HH:mm", 'pt').format(local);
   }
 
+  /// "10 de setembro de 2026, 20:13 (WAT)" — the OFFICIAL receipt clock.
+  ///
+  /// A comprovativo, its PDF and the public verifier describe one instant, and a
+  /// reader compares them; each printed a different clock without saying which
+  /// (21:13 on a phone in Lisbon, 20:13 WAT on the PDF, 19:13 on the page). The
+  /// official surfaces all say Luanda time and label it. Africa/Luanda is UTC+1
+  /// all year (no DST), so this is exact — it is not a device-zone guess.
+  static String formatOfficialReceipt(DateTime dt) {
+    final wat = dt.toUtc().add(const Duration(hours: 1));
+    return '${DateFormat("d 'de' MMMM 'de' y", 'pt').format(wat)}, ${_hm(wat)} (WAT)';
+  }
+
   /// Alias for receipt date — satisfies the formatFullDateTime contract.
   static String formatFullDateTime(DateTime dt) => formatReceiptDate(dt);
 

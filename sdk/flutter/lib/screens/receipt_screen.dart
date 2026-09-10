@@ -7,7 +7,9 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../models/receipt.dart';
 import '../models/transfer.dart';
+import '../utils/date_formatter.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/banzami_toast.dart';
 import '../utils/money_format.dart';
@@ -61,6 +63,15 @@ class BanzamiReceiptScreen extends StatefulWidget {
   /// NOT build PDFs locally. When null, sharing falls back to plain text.
   final Future<List<int>> Function()? fetchReceiptPdf;
 
+  /// The canonical receipt, when the caller already has it (a link payment's
+  /// pay response carries it).
+  final Receipt? receipt;
+
+  /// Fetches the canonical receipt (e.g. `() => client.fetchReceipt(id)`).
+  /// Every party, label, time and the proof reference on this screen come from
+  /// it — the same receipt the PDF and the public verifier show.
+  final Future<Receipt> Function()? fetchReceipt;
+
   const BanzamiReceiptScreen({
     super.key,
     required this.transfer,
@@ -70,6 +81,8 @@ class BanzamiReceiptScreen extends StatefulWidget {
     this.logoAssetPath,
     this.recipientIsHandle = true,
     this.fetchReceiptPdf,
+    this.receipt,
+    this.fetchReceipt,
   });
 
   @override
@@ -82,9 +95,16 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   late final Animation<double> _markScale;
   late final Animation<double> _fade;
 
-  // Live clock — refreshes the footer timestamp every second.
+  // Live clock — refreshes every second so the screen is visibly live (not a
+  // screenshot). Labelled as such: it is NOT when the payment happened.
   late DateTime _liveTime;
   Timer? _liveTimer;
+
+  // The canonical receipt (see [BanzamiReceiptScreen.fetchReceipt]).
+  Receipt? _receipt;
+  bool _receiptFailed = false;
+  bool _receiptLoading = false;
+  Timer? _receiptRetry;
 
   // Screen-capture protection state.
   bool _isCaptured = false;
@@ -114,6 +134,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     );
     _ctrl.forward();
     HapticFeedback.mediumImpact();
+
+    _receipt = (widget.receipt?.isComplete ?? false) ? widget.receipt : null;
+    if (_receipt == null) _loadReceipt();
 
     _liveTime = DateTime.now();
     _liveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -151,6 +174,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _liveTimer?.cancel();
+    _receiptRetry?.cancel();
     _captureSub?.cancel();
     _screenshotSub?.cancel();
     BanzamiScreenSecurity.setSecure(false);
@@ -158,32 +182,89 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     super.dispose();
   }
 
+  Future<void> _loadReceipt({int attempt = 1}) async {
+    final fetch = widget.fetchReceipt;
+    if (fetch == null) return;
+    setState(() {
+      _receiptLoading = true;
+      _receiptFailed = false;
+    });
+    try {
+      final r = await fetch();
+      if (!mounted) return;
+      if (!r.isComplete) throw StateError('incomplete receipt');
+      setState(() {
+        _receipt = r;
+        _receiptLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      if (attempt < 3) {
+        _receiptRetry?.cancel();
+        _receiptRetry = Timer(Duration(milliseconds: 900 * attempt), () {
+          if (mounted) _loadReceipt(attempt: attempt + 1);
+        });
+        return;
+      }
+      setState(() {
+        _receiptLoading = false;
+        _receiptFailed = true;
+      });
+    }
+  }
+
   // ── Computed fields ────────────────────────────────────────────────────────
+  //
+  // With the canonical receipt, everything below comes from it. Until it
+  // arrives the screen shows what the app already knows — and NEVER a
+  // transaction-id prefix as if it were the receipt reference: the only
+  // reference a comprovativo shows is the proof's (BZM-…).
 
-  String get _ref {
-    final id = widget.transfer.transferId;
-    return (id.length >= 8 ? id.substring(0, 8) : id).toUpperCase();
+  /// The full canonical proof reference, or null while unknown.
+  String? get _proofRef => _receipt?.proofReference;
+
+  bool get _isPayment => _receipt?.isPayment ?? !widget.recipientIsHandle;
+
+  String get _amount => _receipt != null
+      ? formatMinor(_receipt!.amountMinor, _receipt!.currency)
+      : formatMinor(widget.transfer.amountMinor, widget.transfer.currency);
+
+  DateTime get _when =>
+      _receipt?.confirmedAt ??
+      widget.transfer.completedAt ??
+      widget.transfer.createdAt;
+
+  /// The official receipt clock — Luanda time, labelled (WAT) — the same the
+  /// PDF and the public verifier print.
+  String get _dateLong => BanzamiDateFormatter.formatOfficialReceipt(_when);
+
+  String get _from {
+    final h =
+        _receipt?.payer.handle ?? widget.ownHandle ?? widget.transfer.sender;
+    return h.startsWith('@') ? h : '@$h';
   }
 
-  String get _amount =>
-      formatMinor(widget.transfer.amountMinor, widget.transfer.currency);
-
-  String get _dateLong {
-    final ts = widget.transfer.completedAt ?? widget.transfer.createdAt;
-    return DateFormat("d 'de' MMMM 'de' y, HH:mm", 'pt').format(ts.toLocal());
+  /// Recipient as shown to the user: the receipt's payee ("Doa · @doa" for a
+  /// Business, "@ana" for a person). Before the receipt arrives, what the flow
+  /// already knew.
+  String get _recipientLabel {
+    if (_receipt != null) return _receipt!.payee.label;
+    return '${widget.recipientIsHandle ? '@' : ''}${widget.transfer.recipient}';
   }
 
-  String get _dateShort {
-    final ts = widget.transfer.completedAt ?? widget.transfer.createdAt;
-    return DateFormat('dd/MM/y HH:mm', 'pt').format(ts.toLocal());
+  String get _refStatus => _proofRef != null
+      ? _receipt!.shortReference!
+      : (_receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…');
+
+  Future<void> _copyReference() async {
+    final ref = _proofRef;
+    if (ref == null) {
+      if (_receiptFailed) _loadReceipt();
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: ref));
+    if (mounted) BanzamiToast.showSuccess(context, 'Referência copiada.');
   }
-
-  String get _from => widget.ownHandle ?? widget.transfer.sender;
-
-  /// Recipient as shown to the user — "@handle" for P2P, plain name for a
-  /// merchant / payment-link payee.
-  String get _recipientLabel =>
-      '${widget.recipientIsHandle ? '@' : ''}${widget.transfer.recipient}';
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -213,11 +294,16 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     try {
       final bytes = await widget.fetchReceiptPdf!();
       final dir = await getTemporaryDirectory();
-      file = File('${dir.path}/Banzami-Comprovativo-$_ref.pdf');
+      final ref = _proofRef;
+      file = File(ref == null
+          ? '${dir.path}/Banzami-Comprovativo.pdf'
+          : '${dir.path}/Banzami-Comprovativo-$ref.pdf');
       await file.writeAsBytes(bytes, flush: true);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
-        subject: 'Comprovativo Banzami · Ref $_ref',
+        subject: ref == null
+            ? 'Comprovativo Banzami'
+            : 'Comprovativo Banzami · $ref',
         sharePositionOrigin: origin,
       );
     } catch (_) {
@@ -235,19 +321,33 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     }
   }
 
-  // Secondary action — copies the transaction details + verification link as
-  // plain text. Not the primary share (that is the official PDF).
+  // Secondary action — copies the receipt's details + its verification link as
+  // plain text. Not the primary share (that is the official PDF). Only from the
+  // canonical receipt: without its proof reference there is nothing to verify.
   Future<void> _copyDetails() async {
-    await Clipboard.setData(ClipboardData(
-      text: 'Comprovativo Banzami\n'
-          'Ref: $_ref\n'
-          'Montante: $_amount\n'
-          'De: @$_from\n'
-          'Para: @${widget.transfer.recipient}\n'
-          'Data: $_dateShort\n'
-          'Método: Saldo Banzami\n'
-          'Verificar: https://banzami.com/r/$_ref',
-    ));
+    final r = _receipt;
+    if (r == null || r.proofReference == null) {
+      BanzamiToast.showError(
+          context, 'O comprovativo ainda não está disponível.');
+      if (_receiptFailed) _loadReceipt();
+      return;
+    }
+    final lines = <String>[
+      'Comprovativo Banzami',
+      r.operationLine,
+      'Montante: $_amount',
+      'De: $_from',
+      'Para: ${r.payee.label}',
+      if (r.merchantReference != null)
+        'Referência do comerciante: ${r.merchantReference}',
+      if (r.displayContext != null) 'Finalidade: ${r.displayContext}',
+      if (r.description != null) 'Descrição: ${r.description}',
+      'Data: $_dateLong',
+      if (r.fundingLabel != null) 'Fonte: ${r.fundingLabel}',
+      'Comprovativo: ${r.proofReference}',
+      'Verificar: ${r.verificationUrl ?? 'https://banzami.com/r/${r.proofReference}'}',
+    ];
+    await Clipboard.setData(ClipboardData(text: lines.join('\n')));
     if (mounted) BanzamiToast.showSuccess(context, 'Detalhes copiados.');
   }
 
@@ -356,8 +456,13 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   @override
   Widget build(BuildContext context) {
     final t = widget.transfer;
-    final note = (t.note?.isNotEmpty == true) ? t.note! : 'Sem descrição';
-    final timeStr = DateFormat('HH:mm:ss').format(_liveTime);
+    final r = _receipt;
+    // Before the receipt arrives, the flow's own note; with it, only what the
+    // receipt says (a Business's reference and context are separate rows).
+    final note = r != null
+        ? r.description
+        : (t.note?.isNotEmpty == true ? t.note : null);
+    final liveStr = DateFormat('HH:mm:ss').format(_liveTime);
 
     return Scaffold(
       // Deliberate exception to the official Banzami palette, for the immersive
@@ -406,10 +511,13 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           onPressed: _done,
                         ),
                         const Spacer(),
-                        Text(
-                          'Comprovativo',
-                          style: BanzamiTextStyles.headingSm.copyWith(
-                            color: Colors.white.withValues(alpha: 0.75),
+                        Flexible(
+                          child: Text(
+                            'Comprovativo',
+                            overflow: TextOverflow.ellipsis,
+                            style: BanzamiTextStyles.headingSm.copyWith(
+                              color: Colors.white.withValues(alpha: 0.75),
+                            ),
                           ),
                         ),
                         const Spacer(),
@@ -441,12 +549,12 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           const SizedBox(height: 4),
 
                           Text(
-                            // P2P keeps the established "Enviado com sucesso";
-                            // a merchant / payment-link payment reads "Pagamento
-                            // concluído" — consistent with the PDF title rule.
-                            widget.recipientIsHandle
-                                ? 'Enviado com sucesso'
-                                : 'Pagamento concluído',
+                            // A payment reads "Pagamento concluído", a P2P
+                            // transfer "Enviado com sucesso" — by what the
+                            // operation WAS (the receipt's operation kind).
+                            _isPayment
+                                ? 'Pagamento concluído'
+                                : 'Enviado com sucesso',
                             style: BanzamiTextStyles.headingSm.copyWith(
                               color: Colors.white.withValues(alpha: 0.80),
                             ),
@@ -495,14 +603,36 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               ),
                             ),
                             child: Column(children: [
-                              _DetailRow(label: 'De', value: '@$_from'),
+                              _DetailRow(label: 'De', value: _from),
                               _DetailRow(label: 'Para', value: _recipientLabel),
-                              _DetailRow(label: 'Nota', value: note),
+                              if (r?.merchantReference != null)
+                                _DetailRow(
+                                    label: 'Referência do comerciante',
+                                    value: r!.merchantReference!),
+                              if (r?.displayContext != null)
+                                _DetailRow(
+                                    label: 'Finalidade',
+                                    value: r!.displayContext!),
+                              if (note != null)
+                                _DetailRow(label: 'Descrição', value: note),
                               _DetailRow(label: 'Data', value: _dateLong),
-                              _DetailRow(label: 'Ref', value: _ref),
-                              const _DetailRow(
-                                label: 'Método',
-                                value: 'Saldo Banzami',
+                              if (r != null)
+                                _DetailRow(
+                                    label: 'Operação', value: r.operationLine),
+                              _DetailRow(
+                                label: 'Fonte',
+                                value: r?.fundingLabel ?? 'Saldo Banzami',
+                              ),
+                              _DetailRow(
+                                label: 'Referência',
+                                value: _refStatus,
+                                mono: _proofRef != null,
+                                trailing: _proofRef != null
+                                    ? Icons.copy_rounded
+                                    : (_receiptLoading
+                                        ? null
+                                        : Icons.refresh_rounded),
+                                onTap: _copyReference,
                                 isLast: true,
                               ),
                             ]),
@@ -620,7 +750,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               const SizedBox(width: 5),
                               Flexible(
                                 child: Text(
-                                  'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
+                                  _proofRef != null
+                                      ? 'Comprovativo Banzami  •  ${_receipt!.shortReference}'
+                                      : 'Comprovativo Banzami',
                                   style: BanzamiTextStyles.bodySm.copyWith(
                                     color: Colors.white.withValues(alpha: 0.55),
                                     fontSize: 11.5,
@@ -629,6 +761,17 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 2),
+                          // The live clock proves the screen is live; it is not
+                          // when the payment happened (that is "Data" above).
+                          Text(
+                            'Ecrã em direto  •  $liveStr',
+                            style: BanzamiTextStyles.bodySm.copyWith(
+                              color: Colors.white.withValues(alpha: 0.45),
+                              fontSize: 11,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -673,43 +816,74 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final bool isLast;
+  final bool mono;
+  final IconData? trailing;
+  final VoidCallback? onTap;
 
   const _DetailRow({
     required this.label,
     required this.value,
     this.isLast = false,
+    this.mono = false,
+    this.trailing,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 7),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
+    final valueStyle = BanzamiTextStyles.bodyMd.copyWith(
+      color: Colors.white,
+      fontWeight: FontWeight.w600,
+      fontFamily: mono ? 'JetBrainsMono' : null,
+      letterSpacing: mono ? 0.2 : null,
+    );
+    final row = Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Label and value share the row: a long label ("Referência do
+          // comerciante") wraps instead of pushing the value off-screen.
+          Flexible(
+            flex: 2,
+            child: Text(
               label,
               style: BanzamiTextStyles.bodySm.copyWith(
                 color: Colors.white.withValues(alpha: 0.55),
               ),
             ),
-            const SizedBox(width: BanzamiSpacing.md),
-            Flexible(
-              child: Text(
-                value,
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.end,
-              ),
+          ),
+          const SizedBox(width: BanzamiSpacing.md),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: valueStyle,
+              textAlign: TextAlign.right,
+              softWrap: true,
             ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 6),
+            Icon(trailing,
+                size: 15, color: Colors.white.withValues(alpha: 0.7)),
           ],
-        ),
+        ],
       ),
+    );
+    return Column(children: [
+      onTap == null
+          ? row
+          : Semantics(
+              button: true,
+              label: '$label: $value',
+              child: InkWell(onTap: onTap, child: row),
+            ),
       if (!isLast)
-        Divider(height: 1, color: Colors.white.withValues(alpha: 0.12)),
+        Divider(
+            height: 1,
+            thickness: 1,
+            color: Colors.white.withValues(alpha: 0.12)),
     ]);
   }
 }
