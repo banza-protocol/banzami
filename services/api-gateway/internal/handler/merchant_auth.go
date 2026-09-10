@@ -13,13 +13,17 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-// merchantSessionTTL is the lifetime of a @handle + PIN merchant JWT. Unlike the
-// API-key flow — where the SDK transparently exchanges the key for a fresh token
-// — a handle-login client holds only the JWT and cannot self-refresh. A longer
-// window avoids a daily forced re-login on the Business app; when it does expire
-// the app signs out cleanly (onUnauthorized → login). The API-key token TTL
-// (auth.go tokenTTL) is unchanged.
-const merchantSessionTTL = 30 * 24 * time.Hour
+// merchantSessionTTL is the lifetime of a @handle + PIN merchant JWT.
+//
+// It was 30 days, on the reasoning that a handle-login client "cannot
+// self-refresh". It can, the same way the consumer app does: unlocking with the
+// PIN re-authenticates against this endpoint and replaces the token. A bearer
+// token that outlives that by a month is a month in which a stolen one works and
+// a suspension only blocks the NEXT login. 24 hours matches the consumer
+// session: an unlock refreshes it, and a device left idle past it asks for the
+// PIN rather than presenting a dead session. The API-key token TTL (auth.go
+// tokenTTL) is unchanged.
+const merchantSessionTTL = 24 * time.Hour
 
 // MerchantAuthHandler implements @handle + PIN login for the Banzami Business
 // app. It issues the SAME merchant JWT as the API-key flow, so all existing

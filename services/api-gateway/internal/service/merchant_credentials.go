@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -116,17 +117,21 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		activatedAt    *time.Time
 		locked         *time.Time
 		merchantStatus string
+		ownsHandle     bool
 	)
 	// The merchant's status is joined in, not looked up afterwards, because it
 	// is part of whether this credential may sign in at all — not a detail to
 	// check once the token has already been issued.
 	err := s.pool.QueryRow(ctx,
 		`SELECT c.merchant_id::text, c.environment, c.pin_hash, c.activated_at, c.locked_until,
-		        COALESCE(m.status, '')
+		        COALESCE(m.status, ''),
+		        EXISTS (SELECT 1 FROM handle_registry hr
+		                 WHERE hr.handle = c.handle AND hr.owner_type = 'MERCHANT'
+		                   AND hr.owner_id = c.merchant_id)
 		   FROM merchant_app_credentials c
 		   LEFT JOIN merchants m ON m.id = c.merchant_id
 		  WHERE c.handle = $1`, handle).
-		Scan(&merchantID, &environment, &pinHash, &activatedAt, &locked, &merchantStatus)
+		Scan(&merchantID, &environment, &pinHash, &activatedAt, &locked, &merchantStatus, &ownsHandle)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", "", ErrMerchantCredsInvalid
@@ -148,6 +153,20 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 	// harness creates — and a retirement that leaves a working login is not a
 	// retirement. Same non-enumerating 401 as a wrong PIN.
 	if merchantStatus != "" && merchantStatus != "ACTIVE" {
+		return "", "", ErrMerchantCredsInvalid
+	}
+
+	// The credential signs in as the owner of its handle, or not at all.
+	//
+	// The handle is what the person typed and what the app shows; the registry
+	// says who owns it. A credential still pointing at a previous owner (a
+	// handle that moved without its login) would issue a session for a
+	// different Business Account than the one the handle, its Developer Project
+	// and its funds belong to — the app would show @handle and read someone
+	// else's wallet. Refused, loudly in the log, with the same non-enumerating
+	// 401 as a wrong PIN; migration 0117 repairs the data.
+	if !ownsHandle {
+		slog.ErrorContext(ctx, "merchant.auth.handle_owner_mismatch", "environment", environment)
 		return "", "", ErrMerchantCredsInvalid
 	}
 
