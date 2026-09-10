@@ -70,12 +70,5 @@ DOA source docs: `~/doa/docs/integration/banzami-integration.md` (+ `deployment.
 `banzami-integration-lifecycle-v1` · reuse `banzami-doa-example-v1`,
 `banzami-wallet-accounts-v1`, `banzami-money-flow-v1`, `banzami-ecosystem-architecture-v1`.
 
-> **Diagramas desactualizados (anteriores ao ADR-057):** `banzami-business-resolution-v1`
-> e `banzami-integration-lifecycle-v1` ainda mostram `GET /v1/integration` como
-> superfície de prontidão; `banzami-application-fee-v1`,
-> `banzami-application-integration-v1`, `banzami-settlement-flow-v1` e
-> `banzami-doa-example-v1` ainda mostram uma taxa escolhida pela aplicação. Até
-> serem redesenhados, o texto é a referência.
-
 > Rule for the portal: **never PNG, never Mermaid** — SVG only, in the Banzami
 > visual language, so the public docs match the README and stay consistent.
