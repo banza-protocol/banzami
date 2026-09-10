@@ -82,7 +82,7 @@ export const SANDBOX_DOC_FILENAMES = {
  *  Pure (returns the bytes as a string) so it is testable without a DOM. The
  *  content is a valid single-page PDF stating it is a Banzami SANDBOX document. */
 export function sandboxPdfContent(title: string): string {
-  const text = `(${title}) Tj 0 -28 Td (Documento SANDBOX - Banzami) Tj 0 -28 Td (Gerado para testes. Sem valor legal.) Tj`;
+  const text = `(SANDBOX TEST DOCUMENT - NOT A LEGAL DOCUMENT) Tj 0 -36 Td (${title}) Tj 0 -28 Td (Documento SANDBOX - Banzami) Tj 0 -28 Td (Gerado para testes. Sem valor legal.) Tj`;
   const stream = `BT /F1 18 Tf 56 760 Td ${text} ET`;
   return [
     '%PDF-1.4',
