@@ -25,7 +25,7 @@ func setupWebhookProject(t *testing.T) (*Service, string, string) {
 	// owner. Everything below needs that owner, because an endpoint belongs to
 	// it and a project without one has nothing to attach events to.
 	svc, _, pid := setupSvc(t)
-	if _, err := svc.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+	if _, err := configureForTest(svc, "u_owner", pid); err != nil {
 		t.Fatalf("financial setup: %v", err)
 	}
 	return svc, "u_owner", pid
@@ -159,7 +159,7 @@ func TestWebhookEndpoint_KnowingAnIdIsNotAuthorityOverIt(t *testing.T) {
 		if err != nil {
 			t.Fatalf("project: %v", err)
 		}
-		if _, err := svc.ConfigureProjectFinancialSandbox(bg, user, p.ID, "", ""); err != nil {
+		if _, err := configureForTest(svc, user, p.ID); err != nil {
 			t.Fatalf("financial setup: %v", err)
 		}
 		return p.ID

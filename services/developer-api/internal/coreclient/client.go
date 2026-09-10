@@ -641,3 +641,28 @@ func (c *ProvisionClient) AssignPricingProfile(ctx context.Context, merchantID, 
 	}
 	return nil
 }
+
+// MerchantName returns a Business's display name — for the Console to say which
+// Business a Project receives into. Only the name: the developer is shown the
+// Business's public identity, never its internal record.
+func (c *ProvisionClient) MerchantName(ctx context.Context, merchantID string) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/internal/v1/merchants/"+url.PathEscape(merchantID), nil)
+	if err != nil {
+		return "", ErrUnavailable
+	}
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return "", ErrUnavailable
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", ErrUnavailable
+	}
+	var m struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<16)).Decode(&m); err != nil {
+		return "", ErrUnavailable
+	}
+	return m.Name, nil
+}

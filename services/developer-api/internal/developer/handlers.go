@@ -11,6 +11,7 @@ import (
 
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
+	"github.com/banzami/banzami/services/developer-api/internal/gatewayclient"
 	"github.com/banzami/banzami/services/developer-api/internal/httpx"
 )
 
@@ -266,6 +267,8 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Delete("/keys/{keyID}", h.revokeKey)
 		r.Post("/projects/{projID}/payments/{payID}/refund", h.refundPayment)
 		r.Post("/projects/{projID}/financial-setup", h.configureFinancialSetup)
+		r.Post("/projects/{projID}/financial-onboarding/applications", h.submitFinancialApplication)
+		r.Post("/projects/{projID}/financial-onboarding/link", h.linkExistingBusiness)
 		r.Post("/projects/{projID}/wallet-accounts", h.createWalletAccount)
 		r.Post("/projects/{projID}/webhooks/endpoints", h.createWebhookEndpoint)
 		r.Post("/projects/{projID}/webhooks/endpoints/{epID}/rotate-secret", h.rotateWebhookSecret)
@@ -447,11 +450,83 @@ func (h *Handlers) configureFinancialSetup(w http.ResponseWriter, r *http.Reques
 			httpx.Error(w, http.StatusServiceUnavailable, "SETUP_UNAVAILABLE",
 				"sandbox financial setup is not available on this deployment")
 			return
+		case errors.Is(err, ErrOneClickSetupRetired):
+			httpx.Error(w, http.StatusGone, "FINANCIAL_SETUP_BY_REVIEW", err.Error())
+			return
 		}
 		mapErr(w, err)
 		return
 	}
 	httpx.JSON(w, http.StatusOK, st)
+}
+
+// onboardingErr answers a financial onboarding refusal. A reasoned refusal
+// from the Business application domain (a handle taken, a code that is not
+// valid, an application already in progress) reaches the developer with its
+// own code; everything else is mapped as usual.
+func onboardingErr(w http.ResponseWriter, err error) {
+	var refusal *gatewayclient.Refusal
+	switch {
+	case errors.As(err, &refusal):
+		httpx.Error(w, refusal.Status, refusal.Code, refusal.Message)
+	case errors.Is(err, ErrProjectAlreadyReceiving):
+		httpx.Error(w, http.StatusConflict, "PROJECT_ALREADY_RECEIVING", err.Error())
+	case errors.Is(err, ErrOnboardingUnavailable), errors.Is(err, gatewayclient.ErrUnavailable):
+		httpx.Error(w, http.StatusServiceUnavailable, "ONBOARDING_UNAVAILABLE", "financial onboarding is unavailable; try again")
+	case errors.Is(err, ErrConflict):
+		httpx.Error(w, http.StatusConflict, "PROJECT_ALREADY_RECEIVING", "this Project already receives into another Business")
+	default:
+		mapErr(w, err)
+	}
+}
+
+// POST /projects/{projID}/financial-onboarding/applications
+// A Project applies for a NEW Business: the Business's details, in the same
+// shape the public form sends. The Project and the member come from the
+// session, never from the body.
+func (h *Handlers) submitFinancialApplication(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in gatewayclient.ApplicationInput
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10)).Decode(&in); err != nil {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "invalid request")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	id, err := h.svc.SubmitFinancialApplication(r.Context(), u.ID, chi.URLParam(r, "projID"), in, ip, reqID)
+	if err != nil {
+		onboardingErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusCreated, map[string]any{"application_id": id, "status": "SUBMITTED"})
+}
+
+// POST /projects/{projID}/financial-onboarding/link   {code}
+// A Project connects a Business that already exists, with the consent code the
+// Business issued from its own app.
+func (h *Handlers) linkExistingBusiness(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	var in struct {
+		Code string `json:"code"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 1024)).Decode(&in); err != nil || in.Code == "" {
+		httpx.Error(w, http.StatusBadRequest, "VALIDATION", "the Business's code is required")
+		return
+	}
+	ip, reqID := reqMeta(r)
+	b, err := h.svc.LinkExistingBusiness(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Code, ip, reqID)
+	if err != nil {
+		onboardingErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"business": b})
 }
 
 // GET /projects/{projID}/refund-capability

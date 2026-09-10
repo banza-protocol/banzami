@@ -45,7 +45,7 @@ func (f *fakeWalletProv) count() int { f.mu.Lock(); defer f.mu.Unlock(); return 
 func walletSvc(t *testing.T) (*Service, *fakeWalletProv, string) {
 	t.Helper()
 	s, _, pid := setupSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+	if _, err := configureForTest(s, "u_owner", pid); err != nil {
 		t.Fatal(err)
 	}
 	f := &fakeWalletProv{}

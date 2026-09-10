@@ -20,7 +20,7 @@ import (
 
 func TestRetireProject_RevokesKeysAndDisablesAnUnsealedBinding(t *testing.T) {
 	s, _, pid := setupSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+	if _, err := configureForTest(s, "u_owner", pid); err != nil {
 		t.Fatalf("configure: %v", err)
 	}
 	if _, _, err := s.CreateAPIKey(bg, "u_owner", pid, KindSecret, "k", []string{"identity:read"}, "", ""); err != nil {
@@ -49,7 +49,7 @@ func TestRetireProject_RevokesKeysAndDisablesAnUnsealedBinding(t *testing.T) {
 // A sealed binding is the immutable record of an artifact that was issued.
 func TestRetireProject_LeavesASealedBindingAlone(t *testing.T) {
 	s, _, pid := setupSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+	if _, err := configureForTest(s, "u_owner", pid); err != nil {
 		t.Fatalf("configure: %v", err)
 	}
 	b, _ := s.store.ActiveBindingForProject(bg, pid)
@@ -124,7 +124,7 @@ func TestRetireProject_RequiresAReason(t *testing.T) {
 // move it.
 func TestRetireProject_RepairsAnAlreadyArchivedProject(t *testing.T) {
 	s, _, pid := setupSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", pid, "", ""); err != nil {
+	if _, err := configureForTest(s, "u_owner", pid); err != nil {
 		t.Fatalf("configure: %v", err)
 	}
 

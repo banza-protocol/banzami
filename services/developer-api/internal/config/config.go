@@ -62,6 +62,11 @@ type Config struct {
 	// Empty → the Console reports refunds as unavailable, which is true, instead
 	// of offering a button that fails when pressed.
 	CoreRefundKey string
+	// GatewayInternalURL + GatewayInternalKey reach the Gateway's Business
+	// onboarding domain (applications, Business consent codes). The key is the
+	// Gateway's internal credential (INTERNAL_API_KEY on both sides).
+	GatewayInternalURL string
+	GatewayInternalKey string
 
 	// PaymentCapabilityReleased is the deploy-vs-release control (ADR-047 / RT04C
 	// §1). Deploying the payment code does NOT make payment scopes publicly
@@ -152,6 +157,12 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_REFUND_KEY"); v != "" {
 		cfg.CoreRefundKey = v
+	}
+	if v := os.Getenv("GATEWAY_INTERNAL_URL"); v != "" {
+		cfg.GatewayInternalURL = v
+	}
+	if v := os.Getenv("INTERNAL_API_KEY"); v != "" {
+		cfg.GatewayInternalKey = v
 	}
 	// Deploy-vs-release: only honoured in a sandbox environment; can NEVER
 	// activate in production/Live (fail-closed).

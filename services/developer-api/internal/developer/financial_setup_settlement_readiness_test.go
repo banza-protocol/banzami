@@ -28,7 +28,7 @@ func (f *fakeReadinessReader) SettlementReadiness(_ context.Context, merchantID 
 
 func TestFinancialSetup_AConfiguredProjectShowsItsSettlementReadiness(t *testing.T) {
 	s, _, proj := setupSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", proj, "", ""); err != nil {
+	if _, err := configureForTest(s, "u_owner", proj); err != nil {
 		t.Fatalf("configure: %v", err)
 	}
 	want := &ProjectReadiness{}
@@ -49,7 +49,7 @@ func TestFinancialSetup_AConfiguredProjectShowsItsSettlementReadiness(t *testing
 }
 
 func TestFinancialSetup_AnUnconfiguredProjectAsksCoreNothing(t *testing.T) {
-	s, _, proj := setupSvc(t)
+	s, _, _, proj := onboardingSvc(t)
 	rr := &fakeReadinessReader{out: &ProjectReadiness{}}
 	s.SetReadinessReader(rr)
 	got, err := s.ProjectFinancialSetup(bg, "u_owner", proj)
@@ -63,7 +63,7 @@ func TestFinancialSetup_AnUnconfiguredProjectAsksCoreNothing(t *testing.T) {
 
 func TestFinancialSetup_AFailedReadinessReadIsNotABlockerAndNotADowngrade(t *testing.T) {
 	s, _, proj := setupSvc(t)
-	if _, err := s.ConfigureProjectFinancialSandbox(bg, "u_owner", proj, "", ""); err != nil {
+	if _, err := configureForTest(s, "u_owner", proj); err != nil {
 		t.Fatalf("configure: %v", err)
 	}
 	s.SetReadinessReader(&fakeReadinessReader{err: errors.New("core unavailable")})

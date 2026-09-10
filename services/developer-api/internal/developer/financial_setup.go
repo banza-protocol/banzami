@@ -3,7 +3,6 @@ package developer
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 )
 
@@ -69,6 +68,9 @@ type FinancialSetup struct {
 	// read (ReadinessUnavailable), which is never reported as a blocker.
 	Readiness            *ProjectReadiness `json:"readiness"`
 	ReadinessUnavailable bool              `json:"readiness_unavailable"`
+	// Onboarding is how this Project gets (or got) a Business to receive into:
+	// its application, the Business it is connected to, and what blocks it.
+	Onboarding *FinancialOnboarding `json:"onboarding"`
 }
 
 // ReadinessReader asks core whether a financial owner can settle. Core evaluates
@@ -191,19 +193,15 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 	out := FinancialSetup{
 		Environment:  s.environmentName(),
 		Role:         role,
-		CanConfigure: canConfigureFinancialSandbox(role) && s.sandboxEnv,
+		CanConfigure: canConfigureFinancialSandbox(role) && s.onboarding != nil,
 		State:        FinancialUnconfigured,
-	}
-	if s.provisioner == nil || !s.sandboxEnv {
-		out.State = FinancialUnavailable
-		out.CanConfigure = false
-		return out, nil
 	}
 	b, err := s.store.ActiveBindingForProject(ctx, p.ID)
 	if err != nil {
 		return FinancialSetup{}, ErrUnavailable
 	}
 	if b != nil && b.MerchantID != "" {
+		out.CanConfigure = false
 		out.Sealed = b.ArtifactCreated
 		out.State = FinancialReady
 		if b.ArtifactCreated {
@@ -221,6 +219,13 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 				out.Readiness = r
 			}
 		}
+	} else if s.onboarding == nil {
+		out.State = FinancialUnavailable
+	}
+	out.Onboarding = s.onboardingView(ctx, p.ID, role, b, out.Readiness)
+	if out.Onboarding.State != OnboardingNotConfigured && out.Onboarding.State != OnboardingRejected &&
+		out.Onboarding.State != OnboardingInformationRequired {
+		out.CanConfigure = false
 	}
 	return out, nil
 }
@@ -243,140 +248,19 @@ func (s *Service) ConfigureProjectFinancialSandbox(ctx context.Context, actor, p
 	if !canConfigureFinancialSandbox(role) {
 		return FinancialSetup{}, ErrForbidden
 	}
-	// Read from the deployment, never from the request. A self-service path into
-	// a real-money owner is precisely what must not exist, so there is no
-	// parameter here that could relax it and no project field that could be set
-	// to make it true.
-	if !s.sandboxEnv {
-		return FinancialSetup{}, ErrWrongEnvironment
-	}
-	if s.provisioner == nil {
-		return FinancialSetup{}, ErrSetupUnavailable
-	}
-
-	// Already done. Returned rather than refused: a developer who double-clicks,
-	// or a page that retries, is asking for the project to be ready — and it is.
-	//
-	// Readiness is still ensured on this path, and that is how projects
-	// provisioned before it existed converge. Five Sandbox owners had been
-	// created without a @banza handle and so could never settle; rather than a
-	// migration or an operator sweep, the same public, idempotent operation a
-	// developer already calls completes them. A backfill that is a separate path
-	// is a second onboarding nobody maintains — this one cannot drift from the
-	// lifecycle because it IS the lifecycle.
+	// A Project that already receives keeps receiving: this answers with its
+	// state, as it always did for a double click.
 	if b, err := s.store.ActiveBindingForProject(ctx, p.ID); err == nil && b != nil && b.MerchantID != "" {
-		if _, _, rerr := s.provisioner.ProvisionSandboxReadiness(ctx, b.MerchantID, projectID); rerr != nil {
-			// Not fatal: the project IS bound and can already take payments. A
-			// readiness that could not be completed is reported and retried on the
-			// next call rather than turning a working project into an error.
-			slog.WarnContext(ctx, "developer.financial_setup.readiness_backfill_failed",
-				"project", projectID, "merchant", b.MerchantID, "err", rerr.Error())
-		}
 		return s.ProjectFinancialSetup(ctx, actor, projectID)
 	}
-
-	// The owner is named after the project. The developer never chooses this: a
-	// caller-chosen merchant name is a caller-chosen identity, and these appear in
-	// the operator's own records.
-	name := fmt.Sprintf("Sandbox · %s", p.Name)
-	email := fmt.Sprintf("sandbox+%s@projects.banzami.test", p.ID)
-
-	owner, perr := s.provisioner.ProvisionSandboxOwner(ctx, name, email)
-	if perr == nil && owner != nil && owner.MerchantID != "" {
-		// An owner may have been ADOPTED rather than created — resumed from a
-		// provisioning run that failed part-way. The derived address is what made
-		// finding it possible; it is not on its own what makes it ours.
-		//
-		// So before binding to it, the one invariant that would matter if the
-		// derivation were ever wrong: nobody else is already bound to it. A
-		// merchant another project holds is not a leftover, and adopting it would
-		// hand this project someone else's money.
-		if err := s.assertOwnerUnclaimed(ctx, owner.MerchantID, projectID); err != nil {
-			s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_refused",
-				"PROJECT:"+projectID, ip, reqID, map[string]any{
-					"reason": "candidate owner is bound to another project", "merchant_id": owner.MerchantID,
-				})
-			slog.ErrorContext(ctx, "developer.financial_setup.owner_claimed",
-				"project", projectID, "merchant", owner.MerchantID)
-			return FinancialSetup{}, ErrUnavailable
-		}
-	}
-	if perr != nil || owner == nil || owner.WalletAccountID == "" {
-		// A partially provisioned owner is reported, not retried blindly: the
-		// merchant may exist without a wallet, and provisioning a second merchant
-		// on the next attempt is how a project ends up with two.
-		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
-			"PROJECT:"+projectID, ip, reqID, map[string]any{
-				"stage": provisionStage(owner),
-			})
-		slog.ErrorContext(ctx, "developer.financial_setup.provision_failed",
-			"project", projectID, "stage", provisionStage(owner))
-		return FinancialSetup{}, ErrUnavailable
-	}
-
-	// Pricing before binding, and before READY. A project that can take a payment
-	// must already have a policy that prices it: the alternative is an owner that
-	// settles unpriced for however long it takes someone to notice, which is
-	// precisely the defect this whole change exists to close.
-	//
-	// A failure here leaves the project UNCONFIGURED with no binding, so the
-	// retry path resumes it like any other partial provisioning.
-	if perr := s.provisioner.AssignPricingProfile(ctx, owner.MerchantID, SandboxDefaultPricingProfile); perr != nil {
-		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
-			"PROJECT:"+projectID, ip, reqID, map[string]any{
-				"stage": "pricing", "merchant_id": owner.MerchantID,
-			})
-		slog.ErrorContext(ctx, "developer.financial_setup.pricing_failed",
-			"project", projectID, "merchant", owner.MerchantID, "err", perr.Error())
-		return FinancialSetup{}, ErrUnavailable
-	}
-
-	// Readiness before binding, for the same reason pricing is: a project that
-	// reaches READY should be able to complete the lifecycle it is told it can.
-	//
-	// Without this the Business could receive money and never move it. Settlement
-	// names its parties by @banza, and a Business with no handle cannot be named
-	// as a beneficiary or as its own fee destination — so POST
-	// /v1/application-settlements was unreachable for every ordinary
-	// Developer Project. Zero of the five Sandbox owners this platform had
-	// provisioned had a handle.
-	//
-	// Idempotent and resumable in Core: a retry keeps the handle it already
-	// registered, and never overwrites a compliance decision an operator made.
-	handle, kyb, rerr := s.provisioner.ProvisionSandboxReadiness(ctx, owner.MerchantID, projectID)
-	if rerr != nil {
-		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
-			"PROJECT:"+projectID, ip, reqID, map[string]any{
-				"stage": "business_readiness", "merchant_id": owner.MerchantID,
-			})
-		slog.ErrorContext(ctx, "developer.financial_setup.readiness_failed",
-			"project", projectID, "merchant", owner.MerchantID, "err", rerr.Error())
-		return FinancialSetup{}, ErrUnavailable
-	}
-
-	_, berr := s.BindProjectSandbox(ctx, projectID, owner.MerchantID, owner.WalletID, owner.WalletAccountID, actor, ip, reqID)
-	if berr != nil {
-		// A conflict here means another caller won the race and bound first. The
-		// owner this attempt created is left unbound and unreachable — recorded so
-		// it can be reconciled, never silently forgotten.
-		if errors.Is(berr, ErrConflict) {
-			s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_raced",
-				"PROJECT:"+projectID, ip, reqID, map[string]any{"orphan_merchant_id": owner.MerchantID})
-			return s.ProjectFinancialSetup(ctx, actor, projectID)
-		}
-		s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_failed",
-			"PROJECT:"+projectID, ip, reqID, map[string]any{"stage": "binding", "orphan_merchant_id": owner.MerchantID})
-		return FinancialSetup{}, ErrUnavailable
-	}
-
-	s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.financial_setup_completed",
-		"PROJECT:"+projectID, ip, reqID, map[string]any{
-			"environment": s.environmentName(),
-			"merchant_id": owner.MerchantID,
-			"handle":      handle,
-			"kyb_status":  kyb,
-		})
-	return s.ProjectFinancialSetup(ctx, actor, projectID)
+	// Anything else is retired. The one-click setup created a synthetic
+	// Business and wrote its KYB as approved with nobody reviewing anything —
+	// a second KYB authority, reachable by any Project owner. A Project now
+	// applies through the Business review, or connects an existing Business
+	// with its consent (financial_onboarding.go).
+	s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.one_click_setup_refused",
+		"PROJECT:"+projectID, ip, reqID, map[string]any{"reason": "retired"})
+	return FinancialSetup{}, ErrOneClickSetupRetired
 }
 
 // assertOwnerUnclaimed refuses an owner that another project already holds.

@@ -26,6 +26,7 @@ import (
 	"github.com/banzami/banzami/services/developer-api/internal/config"
 	"github.com/banzami/banzami/services/developer-api/internal/coreclient"
 	"github.com/banzami/banzami/services/developer-api/internal/developer"
+	"github.com/banzami/banzami/services/developer-api/internal/gatewayclient"
 	"github.com/banzami/banzami/services/developer-api/internal/server"
 )
 
@@ -141,10 +142,20 @@ func main() {
 	// no financial owner and no way to get one that the developer could perform
 	// or even see; this is what makes that step theirs. Sandbox-only, gated on
 	// the deployment's own environment in the same fail-closed shape as fixtures.
+	// Financial onboarding: a Project applies for a Business through the same
+	// review as the public form, or connects an existing Business with its
+	// consent — both in the Gateway's Business application domain.
+	if gc := gatewayclient.New(cfg.GatewayInternalURL, cfg.GatewayInternalKey); gc != nil {
+		devSvc.SetBusinessOnboarding(gc)
+	} else {
+		slog.Warn("GATEWAY_INTERNAL_URL / INTERNAL_API_KEY not set — Project financial onboarding is unavailable")
+	}
 	if pc := coreclient.NewProvision(cfg.CoreAPIURL); pc != nil {
 		devSvc.SetSandboxProvisioner(developer.NewSandboxProvisioner(pc))
 		// The Console reads the same readiness a Project key reads.
 		devSvc.SetReadinessReader(developer.NewReadinessReader(pc))
+		// The Business a bound Project receives into, by name.
+		devSvc.SetBusinessNamer(pc)
 		// The same client opens segregated destinations: a developer should not
 		// need to write code merely to get a Sandbox project into a usable shape.
 		devSvc.SetWalletAccountProvisioner(pc)

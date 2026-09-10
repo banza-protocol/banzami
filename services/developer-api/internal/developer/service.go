@@ -29,6 +29,10 @@ type Service struct {
 	// webhookCipher encrypts webhook signing secrets at rest. Nil stores them in
 	// the clear, which only sandbox permits.
 	webhookCipher *webhookprov.SecretCipher
+	// onboarding is the Gateway's Business application domain; namer reads a
+	// bound Business's display name (financial_onboarding.go).
+	onboarding BusinessOnboarding
+	namer      BusinessNamer
 }
 
 // PayeeValidator validates a merchant→wallet→wallet_account payee against the
