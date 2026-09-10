@@ -360,7 +360,7 @@ describe('retry logic', () => {
   it('uses same idempotency key on all retry attempts', async () => {
     const capturedKeys: string[] = [];
     let callCount = 0;
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       callCount++;
       const key = (init?.headers as Record<string, string>)?.['Idempotency-Key'];
       if (key) capturedKeys.push(key);
@@ -384,7 +384,7 @@ describe('retry logic', () => {
   });
 
   it('GET requests have no Idempotency-Key header', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
       const key = (init?.headers as Record<string, string>)?.['Idempotency-Key'];
       expect(key).toBeUndefined();
       return { ok: true, status: 200, json: async () => ({ wallet_id: 'wal_1', available_minor: 1000, reserved_minor: 0, total_minor: 1000, currency: 'AOA' }) };

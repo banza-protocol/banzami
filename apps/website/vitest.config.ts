@@ -9,5 +9,7 @@ export default defineConfig({
     alias: { '@': resolve(__dirname, '.') },
   },
   // Automatic JSX runtime (matches Next) so component tests need no React import.
-  esbuild: { jsx: 'automatic' },
+  // Vitest 4 transforms with oxc; tsconfig says `jsx: preserve` for Next, which
+  // oxc would otherwise follow and leave JSX unparsed.
+  oxc: { jsx: { runtime: 'automatic' } },
 });
