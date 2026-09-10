@@ -288,13 +288,23 @@ func (s *ReceiptSemantics) TransferReceipt(ctx context.Context, transferID, envi
 	return s.receipt(ctx, in, issue)
 }
 
-// WalletPaymentReceipt is TransferReceipt for a wallet payment.
+// WalletPaymentReceipt is the receipt of the operation a wallet payment
+// records. A wallet payment is the Business's side of a transfer (its
+// transfer_id is never null), and one operation has ONE proof: the Business's
+// PDF used to mint a second proof keyed on the wallet payment, so the payer and
+// the Business held different references for the same 2 000 Kz. The receipt is
+// now the transfer's — the same reference on every surface.
 func (s *ReceiptSemantics) WalletPaymentReceipt(ctx context.Context, id string, issue bool) (documents.Receipt, error) {
-	in, err := s.ForWalletPayment(ctx, id)
+	var transferID, env string
+	err := s.pool.QueryRow(ctx,
+		`SELECT transfer_id::text, environment FROM wallet_payments WHERE id::text = $1`, id).Scan(&transferID, &env)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return documents.Receipt{}, ErrReceiptSourceNotFound
+	}
 	if err != nil {
 		return documents.Receipt{}, err
 	}
-	return s.receipt(ctx, in, issue)
+	return s.TransferReceipt(ctx, transferID, env, issue)
 }
 
 func (s *ReceiptSemantics) receipt(ctx context.Context, in ProofInput, issue bool) (documents.Receipt, error) {

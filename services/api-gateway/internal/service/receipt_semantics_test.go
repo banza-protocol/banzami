@@ -353,3 +353,36 @@ func TestMerchantContextValidation(t *testing.T) {
 		t.Fatalf("other metadata keys are opaque and must pass: %v", err)
 	}
 }
+
+// One operation, one proof: the Business's receipt of a wallet payment is the
+// receipt of the transfer it records, with the payer's reference.
+func TestReceipt_TheBusinessAndThePayerHoldOneReference(t *testing.T) {
+	f := newSemFixture(t)
+	suffix := strings.ReplaceAll(uuid.NewString()[:8], "-", "")
+	payer := f.consumer("one"+suffix, "")
+	merchant, wallet := f.business("Uma Ref "+suffix, "onb"+suffix, "")
+	link := f.link(merchant, wallet, "", "")
+	txn := f.transfer(payer, wallet, "pl-pay-"+link, "")
+	wp := uuid.NewString()
+	f.exec(`INSERT INTO wallet_payments (id, transfer_id, merchant_id, consumer_id, amount_minor, currency, status, trace_id, environment, payment_link_id)
+	        VALUES ($1,$2,$3,$4,200000,'AOA','COMPLETED',$5,'SANDBOX',$6)`, wp, txn, merchant, payer, "trace-"+suffix, link)
+	f.cleanup(`DELETE FROM wallet_payments WHERE id=$1`, wp)
+
+	sem := semantics(f)
+	payerView, err := sem.TransferReceipt(f.ctx, txn, "SANDBOX", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	businessView, err := sem.WalletPaymentReceipt(f.ctx, wp, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if businessView.ProofReference != payerView.ProofReference {
+		t.Fatalf("two references for one operation: payer %s, Business %s", payerView.ProofReference, businessView.ProofReference)
+	}
+	var n int
+	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM transaction_proofs WHERE transaction_id IN ($1,$2)`, txn, wp).Scan(&n)
+	if n != 1 {
+		t.Fatalf("%d proofs for one operation", n)
+	}
+}
