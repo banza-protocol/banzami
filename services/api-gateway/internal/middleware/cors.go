@@ -8,7 +8,7 @@ func CORS(next http.Handler) http.Handler {
 		if isAllowedOrigin(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Idempotency-Key")
+			w.Header().Set("Access-Control-Allow-Headers", allowedRequestHeaders)
 			w.Header().Set("Access-Control-Max-Age", "86400")
 		}
 		if r.Method == http.MethodOptions {
@@ -18,6 +18,13 @@ func CORS(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// allowedRequestHeaders are the request headers a Banzami browser surface may
+// send. Idempotency-Key is the one the Gateway actually reads (see
+// idempotency.go); the public Business application sends it so a double click
+// or a retried request returns the same application. It was missing here, so
+// the browser's preflight refused every submission of the form.
+const allowedRequestHeaders = "Authorization, Content-Type, Idempotency-Key, X-Idempotency-Key"
 
 var allowedOrigins = map[string]bool{
 	// Local development

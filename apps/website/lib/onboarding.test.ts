@@ -184,4 +184,8 @@ describe('CandidaturaForm — the reviewed lifecycle', () => {
   it('shows the application reference on success', () => {
     expect(FORM).toMatch(/data-testid="application-reference"/);
   });
+  it('a request the browser never completes ends the submission instead of hanging', () => {
+    expect(FORM).toMatch(/submitApplication\(input, idempotencyKey\)\.catch\(/);
+    expect(FORM).toMatch(/r\.status === 0/);
+  });
 });

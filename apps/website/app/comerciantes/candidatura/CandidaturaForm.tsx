@@ -12,6 +12,7 @@ import {
   getPlatformMode,
   type ApplicationInput,
   type KybDocumentType,
+  type SubmitResult,
 } from '@/lib/api';
 import { PROVINCIAS, municipiosDe, cidadesDe } from '@/lib/angola';
 import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/business-categories';
@@ -639,7 +640,11 @@ export function CandidaturaForm() {
       existing_business: handleState.status === 'business' && existingBusiness,
     };
 
-    const r = await submitApplication(input, idempotencyKey);
+    // A request the browser never completes (offline, a refused preflight)
+    // rejects instead of returning a status. Without this the button stayed on
+    // "A enviar…" forever. The idempotency key is kept, so trying again cannot
+    // create a second application.
+    const r = await submitApplication(input, idempotencyKey).catch((): SubmitResult => ({ ok: false, status: 0 }));
     setSubmitting(false);
     if (r.ok) {
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -651,6 +656,8 @@ export function CandidaturaForm() {
     } else if (r.status === 409) {
       setHandleState({ status: 'unavailable', message: 'Este @negócio já não está disponível.' });
       setSubmitError('O @negócio escolhido já não está disponível. Volte ao passo 1 e escolha outro.');
+    } else if (r.status === 0) {
+      setSubmitError('Sem ligação ao Banzami. A candidatura não foi enviada — tente novamente.');
     } else {
       setSubmitError('Não foi possível enviar a candidatura. Verifique os dados e tente novamente.');
     }

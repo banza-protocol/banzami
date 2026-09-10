@@ -1,6 +1,11 @@
 package middleware
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
 
 // Every browser origin Banzami serves must be able to call the Gateway.
 //
@@ -33,6 +38,31 @@ func TestCORS_RefusesEverythingElse(t *testing.T) {
 	} {
 		if isAllowedOrigin(origin) {
 			t.Errorf("origin %q was allowed and must not be", origin)
+		}
+	}
+}
+
+// A browser sends a preflight naming the headers it is about to use, and drops
+// the request when any of them is not allowed — the page sees only a network
+// error. The public Business application sends Idempotency-Key; the preflight
+// must allow it, or no application can be submitted from banzami.com at all.
+func TestCORS_PreflightAllowsTheHeadersBrowserSurfacesSend(t *testing.T) {
+	h := CORS(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {}))
+	req := httptest.NewRequest(http.MethodOptions, "/v1/merchant/applications", nil)
+	req.Header.Set("Origin", "https://banzami.com")
+	req.Header.Set("Access-Control-Request-Method", http.MethodPost)
+	req.Header.Set("Access-Control-Request-Headers", "content-type,idempotency-key")
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	allowed := map[string]bool{}
+	for _, v := range strings.Split(rec.Header().Get("Access-Control-Allow-Headers"), ",") {
+		allowed[strings.ToLower(strings.TrimSpace(v))] = true
+	}
+	for _, want := range []string{"content-type", "idempotency-key", "authorization"} {
+		if !allowed[want] {
+			t.Errorf("preflight does not allow %q — the browser will drop the request (allowed: %q)",
+				want, rec.Header().Get("Access-Control-Allow-Headers"))
 		}
 	}
 }
