@@ -243,10 +243,21 @@ async fn the_fee_is_the_assigned_profile_rate_and_nothing_else(pool: PgPool) -> 
     // exactly what the profile's SETTLEMENT rule resolves.
     let created = fx
         .engine
-        .create(req("rate-1", source, beneficiary, Some(app_fee), 100_000, Some(PROFILE)))
+        .create(req(
+            "rate-1",
+            source,
+            beneficiary,
+            Some(app_fee),
+            100_000,
+            Some(PROFILE),
+        ))
         .await
         .unwrap();
-    assert_eq!(created.application_fee.amount_minor(), 2_000, "200 bps of 100 000");
+    assert_eq!(
+        created.application_fee.amount_minor(),
+        2_000,
+        "200 bps of 100 000"
+    );
     assert_eq!(created.net_amount.amount_minor(), 98_000);
 
     let snap: serde_json::Value =
@@ -258,7 +269,10 @@ async fn the_fee_is_the_assigned_profile_rate_and_nothing_else(pool: PgPool) -> 
     assert_eq!(snap["rate_bps"], serde_json::json!(200));
     assert_eq!(snap["pricing_profile"], serde_json::json!(PROFILE));
     assert_eq!(snap["fee_minor"], serde_json::json!(2_000));
-    assert!(snap.get("application_fee_bps").is_none(), "no caller rate is recorded");
+    assert!(
+        snap.get("application_fee_bps").is_none(),
+        "no caller rate is recorded"
+    );
     Ok(())
 }
 
@@ -275,7 +289,14 @@ async fn a_completed_settlement_keeps_the_economics_it_was_settled_at(
 
     let created = fx
         .engine
-        .create(req("immut-1", source, beneficiary, Some(app_fee), 100_000, Some(PROFILE)))
+        .create(req(
+            "immut-1",
+            source,
+            beneficiary,
+            Some(app_fee),
+            100_000,
+            Some(PROFILE),
+        ))
         .await
         .unwrap();
     let done = fx.engine.complete(created.id).await.unwrap();
@@ -292,7 +313,10 @@ async fn a_completed_settlement_keeps_the_economics_it_was_settled_at(
     assert_eq!(again.application_fee.amount_minor(), 2_000);
     assert_eq!(again.net_amount.amount_minor(), 98_000);
     assert_eq!(again.gross_amount.amount_minor(), 100_000);
-    assert_eq!(again.pricing_snapshot_json["rate_bps"], serde_json::json!(200));
+    assert_eq!(
+        again.pricing_snapshot_json["rate_bps"],
+        serde_json::json!(200)
+    );
     assert_eq!(net_credit(&fx.pool, app_fee).await, 2_000);
     assert_eq!(net_credit(&fx.pool, beneficiary).await, 98_000);
 
@@ -302,7 +326,14 @@ async fn a_completed_settlement_keeps_the_economics_it_was_settled_at(
     fund(&fx, src2, 100_000).await;
     let later = fx
         .engine
-        .create(req("immut-2", src2, beneficiary, Some(app_fee), 100_000, Some(PROFILE)))
+        .create(req(
+            "immut-2",
+            src2,
+            beneficiary,
+            Some(app_fee),
+            100_000,
+            Some(PROFILE),
+        ))
         .await
         .unwrap();
     assert_eq!(later.application_fee.amount_minor(), 9_000);

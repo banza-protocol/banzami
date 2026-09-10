@@ -57,7 +57,7 @@ async fn merchant(pool: &PgPool, status: &str) -> Uuid {
 
 /// A handle derived from a project id the way the caller derives one.
 fn derived(seed: Uuid) -> String {
-    format!("p{}", seed.to_string().replace('-', "")[..12].to_string())
+    format!("p{}", &seed.to_string().replace('-', "")[..12])
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -68,7 +68,10 @@ async fn readiness_gives_a_business_a_handle_and_sandbox_kyb(pool: PgPool) {
 
     let (_, Json(res)) = business_readiness(
         State(state),
-        Json(ReadinessBody { merchant_id: m.to_string(), handle: h.clone() }),
+        Json(ReadinessBody {
+            merchant_id: m.to_string(),
+            handle: h.clone(),
+        }),
     )
     .await
     .expect("readiness should succeed in sandbox");
@@ -98,25 +101,33 @@ async fn readiness_is_refused_in_live(pool: PgPool) {
 
     let err = business_readiness(
         State(state),
-        Json(ReadinessBody { merchant_id: m.to_string(), handle: derived(m) }),
+        Json(ReadinessBody {
+            merchant_id: m.to_string(),
+            handle: derived(m),
+        }),
     )
     .await
     .err()
     .expect("LIVE must refuse");
     let _ = err;
 
-    let handles: i64 = sqlx::query_scalar("SELECT count(*) FROM handle_registry WHERE owner_id = $1")
-        .bind(m)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    let kyb: i64 = sqlx::query_scalar("SELECT count(*) FROM merchant_compliance WHERE merchant_id = $1")
-        .bind(m)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    let handles: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM handle_registry WHERE owner_id = $1")
+            .bind(m)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let kyb: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM merchant_compliance WHERE merchant_id = $1")
+            .bind(m)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(handles, 0, "LIVE registered a handle");
-    assert_eq!(kyb, 0, "LIVE wrote a compliance record — KYB was approved outside Sandbox");
+    assert_eq!(
+        kyb, 0,
+        "LIVE wrote a compliance record — KYB was approved outside Sandbox"
+    );
 }
 
 /// Resumable: Financial Setup retries, and a retry must not move identity.
@@ -128,7 +139,10 @@ async fn readiness_is_idempotent(pool: PgPool) {
 
     let first = business_readiness(
         State(state.clone()),
-        Json(ReadinessBody { merchant_id: m.to_string(), handle: h.clone() }),
+        Json(ReadinessBody {
+            merchant_id: m.to_string(),
+            handle: h.clone(),
+        }),
     )
     .await
     .unwrap()
@@ -136,13 +150,19 @@ async fn readiness_is_idempotent(pool: PgPool) {
     for _ in 0..3 {
         let again = business_readiness(
             State(state.clone()),
-            Json(ReadinessBody { merchant_id: m.to_string(), handle: h.clone() }),
+            Json(ReadinessBody {
+                merchant_id: m.to_string(),
+                handle: h.clone(),
+            }),
         )
         .await
         .unwrap()
         .1;
         assert_eq!(again.handle, first.handle, "a retry changed the handle");
-        assert!(!again.provisioned, "a retry claimed to have provisioned again");
+        assert!(
+            !again.provisioned,
+            "a retry claimed to have provisioned again"
+        );
     }
     let n: i64 = sqlx::query_scalar("SELECT count(*) FROM handle_registry WHERE owner_id = $1")
         .bind(m)
@@ -169,7 +189,10 @@ async fn readiness_never_overwrites_an_existing_compliance_decision(pool: PgPool
     let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
     let res = business_readiness(
         State(state),
-        Json(ReadinessBody { merchant_id: m.to_string(), handle: derived(m) }),
+        Json(ReadinessBody {
+            merchant_id: m.to_string(),
+            handle: derived(m),
+        }),
     )
     .await
     .unwrap()
@@ -194,20 +217,28 @@ async fn readiness_never_steals_a_registered_handle(pool: PgPool) {
     let incumbent = merchant(&pool, "ACTIVE").await;
     let newcomer = merchant(&pool, "ACTIVE").await;
     let h = derived(incumbent);
-    sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)")
-        .bind(&h)
-        .bind(incumbent)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'MERCHANT',$2)",
+    )
+    .bind(&h)
+    .bind(incumbent)
+    .execute(&pool)
+    .await
+    .unwrap();
 
     let state = state_for(pool.clone(), CoreEnvironment::Sandbox).await;
     let out = business_readiness(
         State(state),
-        Json(ReadinessBody { merchant_id: newcomer.to_string(), handle: h.clone() }),
+        Json(ReadinessBody {
+            merchant_id: newcomer.to_string(),
+            handle: h.clone(),
+        }),
     )
     .await;
-    assert!(out.is_err(), "a handle registered to another owner was reassigned");
+    assert!(
+        out.is_err(),
+        "a handle registered to another owner was reassigned"
+    );
 
     let owner: Option<Uuid> =
         sqlx::query_scalar("SELECT owner_id FROM handle_registry WHERE handle = $1")
@@ -226,7 +257,10 @@ async fn readiness_refuses_an_unknown_or_inactive_merchant(pool: PgPool) {
     assert!(
         business_readiness(
             State(state.clone()),
-            Json(ReadinessBody { merchant_id: ghost.to_string(), handle: derived(ghost) })
+            Json(ReadinessBody {
+                merchant_id: ghost.to_string(),
+                handle: derived(ghost)
+            })
         )
         .await
         .is_err(),
@@ -237,7 +271,10 @@ async fn readiness_refuses_an_unknown_or_inactive_merchant(pool: PgPool) {
     assert!(
         business_readiness(
             State(state),
-            Json(ReadinessBody { merchant_id: suspended.to_string(), handle: derived(suspended) })
+            Json(ReadinessBody {
+                merchant_id: suspended.to_string(),
+                handle: derived(suspended)
+            })
         )
         .await
         .is_err(),

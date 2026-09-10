@@ -97,7 +97,10 @@ pub struct PostgresPaymentLinkRepository {
 
 impl PostgresPaymentLinkRepository {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool, environment: banzami_types::Environment::from_env() }
+        Self {
+            pool,
+            environment: banzami_types::Environment::from_env(),
+        }
     }
 
     /// Construct with an explicit environment (tests).

@@ -48,13 +48,16 @@ async fn onboard(pool: &PgPool, handle: &str, phone: &str) -> Result<(), String>
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn onboarding_puts_the_handle_in_the_registry(pool: PgPool) {
-    onboard(&pool, "newcomer", "+244900000101").await.expect("onboarding");
+    onboard(&pool, "newcomer", "+244900000101")
+        .await
+        .expect("onboarding");
 
-    let row: Option<(String, Option<Uuid>)> =
-        sqlx::query_as("SELECT owner_type, owner_id FROM handle_registry WHERE handle = 'newcomer'")
-            .fetch_optional(&pool)
-            .await
-            .unwrap();
+    let row: Option<(String, Option<Uuid>)> = sqlx::query_as(
+        "SELECT owner_type, owner_id FROM handle_registry WHERE handle = 'newcomer'",
+    )
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
     let (owner_type, owner_id) = row.expect(
         "the handle is not in handle_registry — parties/resolve reads that table and \
          nothing else, so this consumer cannot be named as a payment beneficiary",
@@ -65,18 +68,24 @@ async fn onboarding_puts_the_handle_in_the_registry(pool: PgPool) {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(owner_id, Some(consumer), "the registry points at a different owner");
+    assert_eq!(
+        owner_id,
+        Some(consumer),
+        "the registry points at a different owner"
+    );
 }
 
 /// One transaction: a handle must never exist in one store and not the other.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn a_handle_already_registered_to_another_party_is_refused_whole(pool: PgPool) {
     let merchant = Uuid::new_v4();
-    sqlx::query("INSERT INTO merchants (id, name, email, status) VALUES ($1,'M','m@t.test','ACTIVE')")
-        .bind(merchant)
-        .execute(&pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO merchants (id, name, email, status) VALUES ($1,'M','m@t.test','ACTIVE')",
+    )
+    .bind(merchant)
+    .execute(&pool)
+    .await
+    .unwrap();
     sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('contested','MERCHANT',$1)")
         .bind(merchant)
         .execute(&pool)
@@ -90,11 +99,15 @@ async fn a_handle_already_registered_to_another_party_is_refused_whole(pool: PgP
 
     // And left nothing behind: no half-created identity holding a name it does
     // not own in the namespace.
-    let consumers: i64 = sqlx::query_scalar("SELECT count(*) FROM consumers WHERE handle = 'contested'")
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    assert_eq!(consumers, 0, "a consumer row survived a refused handle claim");
+    let consumers: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM consumers WHERE handle = 'contested'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        consumers, 0,
+        "a consumer row survived a refused handle claim"
+    );
     let owner: Option<Uuid> =
         sqlx::query_scalar("SELECT owner_id FROM handle_registry WHERE handle = 'contested'")
             .fetch_one(&pool)

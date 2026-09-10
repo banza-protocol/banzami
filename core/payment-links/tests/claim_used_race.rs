@@ -113,8 +113,10 @@ async fn six_concurrent_confirmations_produce_one_claim(pool: PgPool) {
     for r in results.iter().filter(|x| x.is_err()) {
         match r.as_ref().unwrap_err() {
             PaymentLinkError::NotActive(_) => {}
-            other => panic!("a losing caller got {other:?}, not NotActive — the reason a claim \
-                             failed is what tells the caller whether to emit an event"),
+            other => panic!(
+                "a losing caller got {other:?}, not NotActive — the reason a claim \
+                             failed is what tells the caller whether to emit an event"
+            ),
         }
     }
 }
@@ -126,7 +128,10 @@ async fn a_second_confirmation_does_not_claim_again(pool: PgPool) {
     let id: PaymentLinkId = raw.to_string().parse().unwrap();
     let e = engine(pool.clone());
 
-    assert!(e.mark_used(id).await.is_ok(), "the first claim must succeed");
+    assert!(
+        e.mark_used(id).await.is_ok(),
+        "the first claim must succeed"
+    );
     for _ in 0..3 {
         assert!(
             matches!(e.mark_used(id).await, Err(PaymentLinkError::NotActive(_))),
@@ -151,7 +156,10 @@ async fn the_winner_receives_the_updated_link(pool: PgPool) {
     let id: PaymentLinkId = raw.to_string().parse().unwrap();
     let link = engine(pool.clone()).mark_used(id).await.unwrap();
     assert!(matches!(link.status, PaymentLinkStatus::Used));
-    assert!(link.paid_at.is_some(), "the returned link must carry paid_at");
+    assert!(
+        link.paid_at.is_some(),
+        "the returned link must carry paid_at"
+    );
 }
 
 /// An expired link is not claimable, and says so as Expired rather than NotActive.
@@ -165,7 +173,10 @@ async fn an_expired_link_cannot_be_claimed(pool: PgPool) {
         .unwrap();
     let id: PaymentLinkId = raw.to_string().parse().unwrap();
     assert!(
-        matches!(engine(pool.clone()).mark_used(id).await, Err(PaymentLinkError::Expired(_))),
+        matches!(
+            engine(pool.clone()).mark_used(id).await,
+            Err(PaymentLinkError::Expired(_))
+        ),
         "an expired link was claimable, or reported the wrong reason"
     );
     let status: String = sqlx::query_scalar("SELECT status FROM payment_links WHERE id = $1")

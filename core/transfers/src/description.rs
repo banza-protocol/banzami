@@ -123,15 +123,18 @@ mod tests {
     fn ordinary_text_is_accepted() {
         for s in [
             "Consultoria",
-            "Pagamento à Ação, coração — çedilha",   // Portuguese accents
+            "Pagamento à Ação, coração — çedilha", // Portuguese accents
             "Almoço 50% + gorjeta",
-            "Pagamento <urgente>",                    // angle brackets are just text
-            "<script>alert(1)</script>",              // inert here; rendering is the renderer's job
-            "دفع",                                    // ordinary Arabic letters
-            "תשלום",                                  // ordinary Hebrew letters
-            "Obrigado 🙏 pelo café ☕",                // emoji
+            "Pagamento <urgente>",       // angle brackets are just text
+            "<script>alert(1)</script>", // inert here; rendering is the renderer's job
+            "دفع",                       // ordinary Arabic letters
+            "תשלום",                     // ordinary Hebrew letters
+            "Obrigado 🙏 pelo café ☕",  // emoji
         ] {
-            assert!(validate_description(Some(s)).is_ok(), "should accept: {s:?}");
+            assert!(
+                validate_description(Some(s)).is_ok(),
+                "should accept: {s:?}"
+            );
         }
     }
 
@@ -139,7 +142,10 @@ mod tests {
     fn length_is_counted_in_scalars_not_bytes() {
         // 140 accented characters are 140 characters, though far more bytes.
         let at_limit: String = "ç".repeat(MAX_DESCRIPTION_SCALARS);
-        assert!(at_limit.len() > MAX_DESCRIPTION_SCALARS, "precondition: multi-byte");
+        assert!(
+            at_limit.len() > MAX_DESCRIPTION_SCALARS,
+            "precondition: multi-byte"
+        );
         assert!(validate_description(Some(&at_limit)).is_ok());
 
         // And 140 emoji are 140, not 560.
@@ -173,7 +179,10 @@ mod tests {
             ("paragraph separator", "a\u{2029}b"),
         ] {
             assert!(
-                matches!(validate_description(Some(s)), Err(DescriptionError::ForbiddenCharacter { .. })),
+                matches!(
+                    validate_description(Some(s)),
+                    Err(DescriptionError::ForbiddenCharacter { .. })
+                ),
                 "should refuse {name}"
             );
         }
@@ -184,11 +193,21 @@ mod tests {
         // These reorder what follows, which is how a stored description can render
         // as something other than itself on a financial document.
         for s in [
-            "a\u{202A}b", "a\u{202B}b", "a\u{202C}b", "a\u{202D}b", "a\u{202E}b",
-            "a\u{2066}b", "a\u{2067}b", "a\u{2068}b", "a\u{2069}b",
+            "a\u{202A}b",
+            "a\u{202B}b",
+            "a\u{202C}b",
+            "a\u{202D}b",
+            "a\u{202E}b",
+            "a\u{2066}b",
+            "a\u{2067}b",
+            "a\u{2068}b",
+            "a\u{2069}b",
         ] {
             assert!(
-                matches!(validate_description(Some(s)), Err(DescriptionError::ForbiddenCharacter { .. })),
+                matches!(
+                    validate_description(Some(s)),
+                    Err(DescriptionError::ForbiddenCharacter { .. })
+                ),
                 "should refuse override in {s:?}"
             );
         }

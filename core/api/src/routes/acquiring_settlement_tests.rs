@@ -105,7 +105,11 @@ async fn seed(pool: &PgPool) -> Fixture {
     .await
     .unwrap();
 
-    Fixture { wallet, default_account: avail, link }
+    Fixture {
+        wallet,
+        default_account: avail,
+        link,
+    }
 }
 
 /// A segregated CAMPAIGN account on the same wallet, and the link routed to it.
@@ -139,7 +143,7 @@ async fn route_link_to_campaign(pool: &PgPool, f: &Fixture) -> (Uuid, Uuid) {
 /// can resolve its owner the way the real callback path does.
 async fn confirmed_payment(pool: &PgPool, link: Uuid, amount_minor: i64) -> AcquiringPayment {
     let id = Uuid::new_v4();
-    let ext = format!("{}", &id.to_string()[..9]);
+    let ext = id.to_string()[..9].to_string();
     sqlx::query(
         "INSERT INTO acquiring_payments
             (id, payment_link_id, provider, external_ref, status, amount_minor, currency,
@@ -161,7 +165,10 @@ async fn confirmed_payment(pool: &PgPool, link: Uuid, amount_minor: i64) -> Acqu
         provider: "EMIS_MULTICAIXA_SIMULATED".into(),
         external_ref: ext,
         status: AcquiringPaymentStatus::Confirmed,
-        amount: Money::new(amount_minor, banzami_types::Currency::from_code("AOA").unwrap()),
+        amount: Money::new(
+            amount_minor,
+            banzami_types::Currency::from_code("AOA").unwrap(),
+        ),
         instructions: PaymentInstructions {
             method: "MULTICAIXA_EXPRESS".into(),
             entity: "00000".into(),
@@ -245,7 +252,10 @@ async fn the_credit_is_gross_with_no_incoming_fee(pool: PgPool) {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(legs, 2, "expected exactly one two-legged posting, no fee legs");
+    assert_eq!(
+        legs, 2,
+        "expected exactly one two-legged posting, no fee legs"
+    );
 }
 
 /// Defect 2. The link names a CAMPAIGN account; that is where the money belongs.
@@ -363,8 +373,7 @@ async fn parallel_confirmations_produce_one_credit(pool: PgPool) {
         settle_confirmed_payment(&state, &payment),
     );
     for r in [
-        results.0, results.1, results.2, results.3,
-        results.4, results.5, results.6, results.7,
+        results.0, results.1, results.2, results.3, results.4, results.5, results.6, results.7,
     ] {
         r.expect("a concurrent settlement returned an error instead of losing quietly");
     }

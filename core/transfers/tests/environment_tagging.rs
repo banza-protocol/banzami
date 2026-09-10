@@ -123,7 +123,9 @@ async fn recorded_environment(
     let transfer = engine_in(pool.clone(), environment)
         .send(SendTransferRequest {
             idempotency_key: format!("env-{suffix}"),
-            sender_id: banzami_types::ConsumerId::from_uuid(consumer_id(pool, &sender_handle).await),
+            sender_id: banzami_types::ConsumerId::from_uuid(
+                consumer_id(pool, &sender_handle).await,
+            ),
             recipient_id: banzami_types::ConsumerId::from_uuid(
                 consumer_id(pool, &recipient_handle).await,
             ),

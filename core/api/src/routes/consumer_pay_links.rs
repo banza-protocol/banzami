@@ -463,7 +463,7 @@ pub async fn pay(
     .bind(amount)
     .bind(&link.currency)
     .bind(actual_posting)
-    .bind(&link.note)  // Option<String> — NULL when no note
+    .bind(&link.note) // Option<String> — NULL when no note
     // From the process, never the payer and never the column default. The default
     // is 'LIVE', so omitting it here recorded Sandbox pay-link settlements as real
     // money — invisible to the Sandbox proof lookup that should have found them.

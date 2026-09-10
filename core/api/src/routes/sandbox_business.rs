@@ -96,12 +96,11 @@ pub async fn business_readiness(
 
     // The merchant must already exist. This completes a Business; it never
     // conjures one, so a wrong id is a not-found rather than a new account.
-    let exists: Option<(String,)> =
-        sqlx::query_as("SELECT status FROM merchants WHERE id = $1")
-            .bind(merchant_id)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
+    let exists: Option<(String,)> = sqlx::query_as("SELECT status FROM merchants WHERE id = $1")
+        .bind(merchant_id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
     let Some((status,)) = exists else {
         return Err(ApiError::not_found("merchant not found"));
     };
@@ -120,12 +119,13 @@ pub async fn business_readiness(
 
     // A handle this merchant already holds wins over the derived one: an owner's
     // identity is not reassigned by a retry.
-    let existing: Option<(String,)> =
-        sqlx::query_as("SELECT handle FROM handle_registry WHERE owner_id = $1 AND owner_type = 'MERCHANT'")
-            .bind(merchant_id)
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
+    let existing: Option<(String,)> = sqlx::query_as(
+        "SELECT handle FROM handle_registry WHERE owner_id = $1 AND owner_type = 'MERCHANT'",
+    )
+    .bind(merchant_id)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
     let handle = match existing {
         Some((h,)) => h,

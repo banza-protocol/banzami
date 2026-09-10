@@ -150,8 +150,12 @@ where
         gross: Money,
         pricing_profile: Option<&str>,
     ) -> Result<banzami_pricing::FeeResolution, ApplicationSettlementError> {
-        self.resolve_operation_rate(gross, pricing_profile, banzami_pricing::PricingOperation::Settlement)
-            .await
+        self.resolve_operation_rate(
+            gross,
+            pricing_profile,
+            banzami_pricing::PricingOperation::Settlement,
+        )
+        .await
     }
 
     async fn resolve_operation_rate(
@@ -217,9 +221,8 @@ where
         let resolution = self
             .resolve_settlement_fee(req.gross_amount, req.pricing_profile.as_deref())
             .await?;
-        let snapshot_json = serde_json::to_value(&resolution.snapshot).map_err(|e| {
-            ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))
-        })?;
+        let snapshot_json = serde_json::to_value(&resolution.snapshot)
+            .map_err(|e| ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}")))?;
         let fee_minor = resolution.fee_minor;
         let pricing_rule_id = resolution.snapshot.rule_id;
         let pricing_rule_version = resolution.snapshot.rule_version;

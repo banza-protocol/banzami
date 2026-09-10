@@ -20,6 +20,8 @@ pub mod finance_catalogs;
 pub mod finance_dashboard;
 #[cfg(test)]
 mod finance_dashboard_tests;
+#[cfg(test)]
+mod handle_namespace_tests;
 pub mod kyc_data;
 pub mod merchant_profiles;
 pub mod merchants;
@@ -44,15 +46,13 @@ mod refunds_disputes_tests;
 pub mod restitution;
 pub mod risk;
 pub mod sandbox_business;
-pub mod settlement_readiness;
-#[cfg(test)]
-mod settlement_readiness_tests;
-#[cfg(test)]
-mod handle_namespace_tests;
 #[cfg(test)]
 mod sandbox_business_tests;
 #[cfg(test)]
 mod sandbox_credit_tests;
+pub mod settlement_readiness;
+#[cfg(test)]
+mod settlement_readiness_tests;
 pub mod settlements;
 pub mod splits;
 pub mod transactions;

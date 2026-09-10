@@ -42,12 +42,14 @@ async fn onboarded_consumer(pool: &PgPool, handle: &str) -> (Uuid, Uuid) {
     .execute(pool)
     .await
     .unwrap();
-    sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)")
-        .bind(handle)
-        .bind(id)
-        .execute(pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ($1,'CONSUMER',$2)",
+    )
+    .bind(handle)
+    .bind(id)
+    .execute(pool)
+    .await
+    .unwrap();
     let avail = ledger_account(pool).await;
     sqlx::query(
         "INSERT INTO consumer_wallets
@@ -132,7 +134,9 @@ async fn no_consumer_handle_may_live_outside_the_registry(pool: PgPool) {
          invariant below would prove nothing"
     );
     assert!(
-        resolve_beneficiary(&pool, "strayuser", "AOA").await.is_none(),
+        resolve_beneficiary(&pool, "strayuser", "AOA")
+            .await
+            .is_none(),
         "a handle outside the registry resolved anyway — then the registry is not \
          the namespace and something else is routing payments"
     );
@@ -144,15 +148,19 @@ async fn no_consumer_handle_may_live_outside_the_registry(pool: PgPool) {
 async fn a_consumer_handle_cannot_be_claimed_by_another_party(pool: PgPool) {
     onboarded_consumer(&pool, "taken").await;
     let merchant = Uuid::new_v4();
-    sqlx::query("INSERT INTO merchants (id, name, email, status) VALUES ($1,'M','m@t.test','ACTIVE')")
-        .bind(merchant)
-        .execute(&pool)
-        .await
-        .unwrap();
-    let stolen = sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('taken','MERCHANT',$1)")
-        .bind(merchant)
-        .execute(&pool)
-        .await;
+    sqlx::query(
+        "INSERT INTO merchants (id, name, email, status) VALUES ($1,'M','m@t.test','ACTIVE')",
+    )
+    .bind(merchant)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let stolen = sqlx::query(
+        "INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('taken','MERCHANT',$1)",
+    )
+    .bind(merchant)
+    .execute(&pool)
+    .await;
     assert!(
         stolen.is_err(),
         "a merchant registered a handle a consumer already answers to — one @banza, two parties"
@@ -163,7 +171,9 @@ async fn a_consumer_handle_cannot_be_claimed_by_another_party(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn an_unknown_handle_does_not_resolve(pool: PgPool) {
-    assert!(resolve_beneficiary(&pool, "nobodyhere", "AOA").await.is_none());
+    assert!(resolve_beneficiary(&pool, "nobodyhere", "AOA")
+        .await
+        .is_none());
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -183,7 +193,9 @@ async fn a_registered_consumer_with_no_wallet_does_not_resolve(pool: PgPool) {
         .await
         .unwrap();
     assert!(
-        resolve_beneficiary(&pool, "walletless", "AOA").await.is_none(),
+        resolve_beneficiary(&pool, "walletless", "AOA")
+            .await
+            .is_none(),
         "a consumer with no wallet resolved to an account"
     );
 }
@@ -207,7 +219,9 @@ async fn an_inactive_wallet_does_not_resolve(pool: PgPool) {
         .await
         .unwrap();
     assert!(
-        resolve_beneficiary(&pool, "frozenuser", "AOA").await.is_none(),
+        resolve_beneficiary(&pool, "frozenuser", "AOA")
+            .await
+            .is_none(),
         "a locked wallet was offered as a beneficiary"
     );
 }

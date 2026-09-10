@@ -200,7 +200,8 @@ pub(crate) async fn evaluate_fee_destination(
         ev.blocker_message = Some("application fee destination is not KYB-approved");
     } else if !ev.wallet_active {
         ev.blocker = Some("FEE_DESTINATION_WALLET_UNAVAILABLE");
-        ev.blocker_message = Some("application fee destination has no active wallet for this account");
+        ev.blocker_message =
+            Some("application fee destination has no active wallet for this account");
     } else if !ev.type_allowed {
         ev.blocker = Some("FEE_DESTINATION_TYPE_NOT_ALLOWED");
         ev.blocker_message =
@@ -358,7 +359,9 @@ pub async fn create(
         .map_err(map_err)?;
     let application_fee_account_id = if quote.fee_minor > 0 {
         let fee_acct = named_fee_account.ok_or_else(|| {
-            map_err(ApplicationSettlementError::MissingFeeAccount { fee: quote.fee_minor })
+            map_err(ApplicationSettlementError::MissingFeeAccount {
+                fee: quote.fee_minor,
+            })
         })?;
         guard_application_fee_destination(&state.pool, fee_acct).await?;
         Some(fee_acct)

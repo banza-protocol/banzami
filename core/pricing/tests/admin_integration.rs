@@ -72,8 +72,8 @@ async fn mark_used(pool: &PgPool, rule_id: PricingRuleId, key: &str) {
         "INSERT INTO app_settlements
            (id, owner_ref, source_account_id, beneficiary_account_id, gross_amount_minor,
             application_fee_minor, net_amount_minor, currency, pricing_rule_id, engine_version,
-            pricing_snapshot_json, idempotency_key)
-         VALUES ($1,'c1',$2,$3,1000,0,1000,'AOA',$4,1,'{}'::jsonb,$5)",
+            pricing_snapshot_json, idempotency_key, environment)
+         VALUES ($1,'c1',$2,$3,1000,0,1000,'AOA',$4,1,'{}'::jsonb,$5,'SANDBOX')",
     )
     .bind(Uuid::new_v4())
     .bind(Uuid::new_v4())

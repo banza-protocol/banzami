@@ -202,6 +202,16 @@ pub async fn emis_callback(
 ///
 /// Best-effort by intent: the money has already reached the provider, so a
 /// failure here must never un-confirm the payment.
+/// (wallet, merchant, named account, its ledger account, the wallet's default
+/// ledger account) — the destination of a confirmed acquiring payment.
+type SettlementDestinationRow = (
+    uuid::Uuid,
+    uuid::Uuid,
+    Option<uuid::Uuid>,
+    Option<uuid::Uuid>,
+    Option<uuid::Uuid>,
+);
+
 pub async fn settle_confirmed_payment(
     state: &AppState,
     payment: &AcquiringPayment,
@@ -215,9 +225,8 @@ pub async fn settle_confirmed_payment(
     // postable account. The LEFT JOIN carries ADR-042's own conditions, so a
     // named account that fails any of them comes back NULL and is refused below
     // rather than silently becoming the wallet default.
-    let row: Option<(uuid::Uuid, uuid::Uuid, Option<uuid::Uuid>, Option<uuid::Uuid>, Option<uuid::Uuid>)> =
-        sqlx::query_as(
-            "SELECT pl.wallet_id,
+    let row: Option<SettlementDestinationRow> = sqlx::query_as(
+        "SELECT pl.wallet_id,
                     w.merchant_id,
                     pl.wallet_account_id        AS named_account,
                     wa.account_id               AS named_ledger_account,
@@ -232,11 +241,11 @@ pub async fn settle_confirmed_payment(
                      AND wa.currency  = ap.currency
               WHERE ap.id = $1
                 AND w.status = 'ACTIVE'",
-        )
-        .bind(payment.id.as_uuid())
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    )
+    .bind(payment.id.as_uuid())
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
     let Some((wallet_id_raw, merchant_id_raw, named_account, named_ledger, default_ledger)) = row
     else {
