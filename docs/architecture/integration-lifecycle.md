@@ -7,8 +7,6 @@
 
 ![Integration lifecycle](../diagrams/banzami-integration-lifecycle-v1.svg)
 
-> The diagram predates ADR-057 and still shows the app polling
-> `GET /v1/integration`; the text below is authoritative.
 
 ```
 Create Project + Financial Setup → KYB → Wallet(+accounts) → Pricing profile

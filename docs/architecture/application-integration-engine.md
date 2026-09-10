@@ -115,8 +115,6 @@ account. Scope `identity:read`. SDK: `getFinancialSetup()` (`@banzami/sdk`
 
 ![Business Resolution Engine](../diagrams/banzami-business-resolution-v1.svg)
 
-> The diagram above predates ADR-057 and still shows `GET /v1/integration`; the
-> text is authoritative.
 
 ```
 Project key
@@ -207,8 +205,6 @@ halves of deciding it belong to different parties:
 
 ![Application fee vs operator fee](../diagrams/banzami-application-fee-v1.svg)
 
-> The diagram above predates ADR-057 and still shows a rate chosen by the app;
-> the text is authoritative.
 
 ```
 100 000 Kz (gross)
@@ -381,9 +377,3 @@ Reuse: `banzami-ecosystem-architecture-v1.svg`, `banzami-money-flow-v1.svg`,
 `banzami-wallet-accounts-v1.svg`, `banzami-doa-example-v1.svg`.
 All SVG, `SVG-BZ-*` numbered, same visual language as the README.
 
-> **Stale diagrams (pre-ADR-057):** `banzami-business-resolution-v1.svg` and
-> `banzami-integration-lifecycle-v1.svg` still show `GET /v1/integration` as the
-> integration readiness surface; `banzami-application-fee-v1.svg`,
-> `banzami-application-integration-v1.svg`, `banzami-settlement-flow-v1.svg` and
-> `banzami-doa-example-v1.svg` still show an app-chosen fee rate (and category
-> pricing). The text of this document is authoritative until they are redrawn.

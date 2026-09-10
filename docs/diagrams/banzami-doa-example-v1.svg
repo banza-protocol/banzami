@@ -33,7 +33,7 @@
   <!-- 4 Settlement -->
   <rect x="250" y="280" width="400" height="48" rx="10" fill="url(#hg)"/>
   <text x="450" y="301" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">Settlement</text>
-  <text x="450" y="318" text-anchor="middle" font-size="9.5" fill="#FBD2D0">DOA requests "execute this settlement" · application_fee_bps = 200</text>
+  <text x="450" y="318" text-anchor="middle" font-size="9.5" fill="#FBD2D0">DOA requests "execute this settlement" · no rate sent (ADR-057)</text>
 
   <!-- split -->
   <line x1="450" y1="328" x2="450" y2="348" stroke="#9CA3AF" stroke-width="1.5"/>
@@ -44,7 +44,7 @@
   <!-- 5a fee -->
   <rect x="150" y="370" width="260" height="64" rx="10" fill="#FBD2D0" stroke="#E8434B" stroke-width="1.5"/>
   <text x="280" y="397" text-anchor="middle" font-size="14" font-weight="800" fill="#9A1B22">2%  →  @doa</text>
-  <text x="280" y="416" text-anchor="middle" font-size="9.5" fill="#9A1B22">the application fee — DOA's policy</text>
+  <text x="280" y="416" text-anchor="middle" font-size="9.5" fill="#9A1B22">at the operator-assigned 200 bps</text>
 
   <!-- 5b net -->
   <rect x="490" y="370" width="260" height="64" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>

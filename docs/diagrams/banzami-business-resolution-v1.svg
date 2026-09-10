@@ -10,7 +10,7 @@
   <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
   <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
   <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-018 · BUSINESS RESOLUTION ENGINE</text>
-  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">GET /v1/integration · resolve everything at once</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">GET /v1/financial-setup · resolve everything at once</text>
   <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">API Key → Resolution</text>
 
   <!-- steps -->
@@ -27,7 +27,7 @@
   <line x1="450" y1="258" x2="450" y2="280" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
 
   <rect x="330" y="282" width="240" height="40" rx="10" fill="url(#op)"/>
-  <text x="450" y="307" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">Resolve Pricing · category → rule</text>
+  <text x="450" y="307" text-anchor="middle" font-size="12" font-weight="700" fill="#FFFFFF">Resolve Pricing · assigned profile → rule</text>
   <line x1="450" y1="322" x2="450" y2="344" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
 
   <rect x="330" y="346" width="240" height="40" rx="10" fill="url(#op)"/>

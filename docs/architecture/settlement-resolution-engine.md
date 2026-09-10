@@ -10,8 +10,6 @@ ADR-029), [ADR-028](../adr/ADR-028-application-business-account-requirement.md),
 
 ![Settlement flow](../diagrams/banzami-settlement-flow-v1.svg)
 
-> The diagram predates ADR-057 and still shows the app supplying a fee in bps;
-> the text below is authoritative.
 
 ```
 Application → Operator → Ledger → Settlement → Bank/rails → Beneficiário

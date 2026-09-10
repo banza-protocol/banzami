@@ -19,7 +19,7 @@
     <rect x="302" y="120" width="118" height="64" rx="12" fill="url(#hg)"/>
     <text x="361" y="148">Wallet</text><text x="361" y="164">+ accounts</text>
     <rect x="440" y="120" width="118" height="64" rx="12" fill="url(#hg)"/>
-    <text x="499" y="148">Pricing</text><text x="499" y="164">(category)</text>
+    <text x="499" y="148">Pricing</text><text x="499" y="164">(profile)</text>
     <rect x="578" y="120" width="118" height="64" rx="12" fill="#374151"/>
     <text x="637" y="148">Receber</text><text x="637" y="164">pagamentos</text>
     <rect x="716" y="120" width="158" height="64" rx="12" fill="#065F46"/>
@@ -35,8 +35,8 @@
   </g>
 
   <text x="223" y="205" text-anchor="middle" font-size="8.5" fill="#6B7280">operator approves</text>
-  <text x="499" y="205" text-anchor="middle" font-size="8.5" fill="#6B7280">category → fee</text>
+  <text x="499" y="205" text-anchor="middle" font-size="8.5" fill="#6B7280">profile → fee</text>
 
-  <text x="450" y="250" text-anchor="middle" font-size="10" fill="#374151">Every step is gated by Business Resolution: the app polls GET /v1/integration and renders the blockers until the business is ready.</text>
+  <text x="450" y="250" text-anchor="middle" font-size="10" fill="#374151">Every step is gated by readiness: the app reads GET /v1/financial-setup and renders the blockers until the Project is ready.</text>
   <text x="450" y="270" text-anchor="middle" font-size="9.5" fill="#6B7280">The app owns none of these steps' money logic — it triggers them via the SDK and reflects the operator's state.</text>
 </svg>

@@ -16,7 +16,7 @@
   <g font-size="11" font-weight="700" fill="#FFFFFF">
     <rect x="30" y="150" width="120" height="70" rx="12" fill="#374151"/>
     <text x="90" y="182" text-anchor="middle">Application</text>
-    <text x="90" y="200" text-anchor="middle" font-size="8.5" font-weight="400" fill="#D1D5DB">pede fecho + app fee</text>
+    <text x="90" y="200" text-anchor="middle" font-size="8.5" font-weight="400" fill="#D1D5DB">pede fecho · sem taxa</text>
 
     <rect x="192" y="150" width="120" height="70" rx="12" fill="url(#hg)"/>
     <text x="252" y="182" text-anchor="middle">Operator</text>
@@ -48,6 +48,6 @@
   </g>
 
   <text x="450" y="260" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9A1B22">Campaign / sub-account funds are held (segregated) until close, then settle to the beneficiary.</text>
-  <text x="450" y="284" text-anchor="middle" font-size="9.5" fill="#6B7280">The application supplies the reference + application fee (bps). The operator owns the money, the fee math, the ledger and the payout.</text>
+  <text x="450" y="284" text-anchor="middle" font-size="9.5" fill="#6B7280">The application supplies the reference and who receives a fee. The operator owns the rate, the money, the fee math, the ledger and the payout.</text>
   <text x="450" y="304" text-anchor="middle" font-size="9.5" fill="#6B7280">Terminal states are driven by the operator via application_settlement.* webhooks (completed / failed / cancelled).</text>
 </svg>

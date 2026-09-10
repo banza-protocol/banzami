@@ -31,7 +31,7 @@
   <!-- Application fee -->
   <rect x="466" y="150" width="180" height="80" rx="12" fill="#9A1B22"/>
   <text x="556" y="181" text-anchor="middle" font-size="11.5" font-weight="800" fill="#FFFFFF">Application Fee</text>
-  <text x="556" y="200" text-anchor="middle" font-size="9.5" fill="#FBD2D0">definida pela app (bps)</text>
+  <text x="556" y="200" text-anchor="middle" font-size="9.5" fill="#FBD2D0">taxa do perfil do operador</text>
   <text x="556" y="217" text-anchor="middle" font-size="9.5" fill="#FBD2D0">executada pelo operador</text>
 
   <line x1="646" y1="190" x2="692" y2="190" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
@@ -48,8 +48,8 @@
   <text x="328" y="303" text-anchor="middle" font-size="9.5" fill="#6B7280">a aplicação nunca o calcula</text>
 
   <text x="556" y="270" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9A1B22">APPLICATION FEE</text>
-  <text x="556" y="288" text-anchor="middle" font-size="9.5" fill="#6B7280">pertence à aplicação · a app escolhe os bps</text>
+  <text x="556" y="288" text-anchor="middle" font-size="9.5" fill="#6B7280">credita a conta da aplicação · a app não escolhe a taxa</text>
   <text x="556" y="303" text-anchor="middle" font-size="9.5" fill="#6B7280">o operador valida e executa a divisão</text>
 
-  <text x="450" y="342" text-anchor="middle" font-size="10" fill="#374151">Regra: a aplicação define APENAS a application fee. Tudo o resto — operator fee, divisão, movimento — é do operador.</text>
+  <text x="450" y="342" text-anchor="middle" font-size="10" fill="#374151">Regra (ADR-057): a aplicação indica apenas QUEM recebe a taxa; a taxa, a divisão e o movimento são do operador.</text>
 </svg>

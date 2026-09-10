@@ -17,7 +17,7 @@
   <text x="450" y="92" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9CA3AF" letter-spacing="1">THE APPLICATION (e.g. DOA)</text>
   <rect x="300" y="100" width="300" height="52" rx="12" fill="#374151"/>
   <text x="450" y="123" text-anchor="middle" font-size="14" font-weight="800" fill="#FFFFFF">Application</text>
-  <text x="450" y="141" text-anchor="middle" font-size="9.5" fill="#D1D5DB">UX · campanhas · catálogo · application fee</text>
+  <text x="450" y="141" text-anchor="middle" font-size="9.5" fill="#D1D5DB">UX · campanhas · catálogo · destino da taxa</text>
 
   <line x1="450" y1="152" x2="450" y2="184" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
   <text x="464" y="172" font-size="9.5" fill="#6B7280">official SDK only (never raw HTTP)</text>
@@ -45,11 +45,11 @@
 
   <rect x="362" y="354" width="176" height="46" rx="10" fill="url(#op)"/>
   <text x="450" y="374" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Pricing Engine</text>
-  <text x="450" y="390" text-anchor="middle" font-size="9" fill="#FBD2D0">category → fee</text>
+  <text x="450" y="390" text-anchor="middle" font-size="9" fill="#FBD2D0">profile → fee</text>
 
   <rect x="574" y="354" width="176" height="46" rx="10" fill="url(#op)"/>
   <text x="662" y="374" text-anchor="middle" font-size="11.5" font-weight="700" fill="#FFFFFF">Settlement Engine</text>
-  <text x="662" y="390" text-anchor="middle" font-size="9" fill="#FBD2D0">operator + app fee</text>
+  <text x="662" y="390" text-anchor="middle" font-size="9" fill="#FBD2D0">taxas do operador</text>
 
   <line x1="450" y1="400" x2="450" y2="424" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
 
