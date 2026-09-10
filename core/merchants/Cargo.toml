@@ -17,3 +17,7 @@ tracing       = { workspace = true }
 sqlx          = { workspace = true }
 tokio         = { workspace = true }
 sha2          = { workspace = true }
+
+[dev-dependencies]
+tokio      = { workspace = true, features = ["macros", "rt-multi-thread"] }
+serde_json = { workspace = true }

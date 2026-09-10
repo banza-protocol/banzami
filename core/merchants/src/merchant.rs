@@ -65,6 +65,11 @@ pub struct Merchant {
     /// ADR-028 operator taxonomy: MERCHANT (default) | APPLICATION | PLATFORM |
     /// NGO | MARKETPLACE | DELIVERY | OTHER. Operator-only, not a protocol field.
     pub business_account_type: String,
+    /// The @handle this Business owns in `handle_registry`, when it has one —
+    /// the public identity an operator recognises it by. Read-only here: a
+    /// handle is assigned by the application lifecycle, never through this type.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub handle: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

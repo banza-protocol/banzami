@@ -5,6 +5,7 @@ import { getSession } from '@/lib/session';
 import { AdminApi, AdminApiError, type CatalogEntry, type Merchant } from '@/lib/admin-api';
 import { Card, CardHeader } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { BusinessAccountPicker } from './business-account-picker';
 
 /**
  * Put a Business Account on a pricing profile.
@@ -88,17 +89,7 @@ export function AssignPricingProfile() {
         </p>
 
         <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-          <div>
-            <span className={label}>Business Account</span>
-            <select className={input} value={merchantId} onChange={(e) => setMerchantId(e.target.value)}>
-              <option value="">Selecione…</option>
-              {merchants.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} · {m.id.slice(0, 8)}…
-                </option>
-              ))}
-            </select>
-          </div>
+          <BusinessAccountPicker merchants={merchants} value={merchantId} onChange={setMerchantId} />
           <div>
             <span className={label}>Perfil</span>
             <select

@@ -265,6 +265,8 @@ export interface Merchant {
   created_at: string;
   /** ADR-028 class. Only APPLICATION and PLATFORM may take an application fee. */
   business_account_type?: string;
+  /** The @handle this Business owns (without "@"), when it owns one. */
+  handle?: string | null;
 }
 
 export interface Wallet {

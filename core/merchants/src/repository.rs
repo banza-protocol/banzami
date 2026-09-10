@@ -67,6 +67,7 @@ struct MerchantRow {
     business_account_type: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
+    handle: Option<String>,
 }
 
 #[derive(sqlx::FromRow)]
@@ -106,8 +107,14 @@ impl PostgresApiKeyRepository {
     }
 }
 
+// The handle is the one this merchant OWNS in the registry — not a profile's
+// copy of it, which can lag behind a consolidation.
 const MERCHANT_SELECT: &str =
-    "SELECT id, name, email, status, verified, business_account_type, created_at, updated_at FROM merchants";
+    "SELECT id, name, email, status, verified, business_account_type, created_at, updated_at,
+            (SELECT hr.handle FROM handle_registry hr
+              WHERE hr.owner_type = 'MERCHANT' AND hr.owner_id = merchants.id
+              ORDER BY hr.created_at, hr.handle LIMIT 1) AS handle
+       FROM merchants";
 
 const API_KEY_SELECT: &str =
     "SELECT id, merchant_id, name, key_prefix, key_hash, environment, created_at, last_used_at, revoked_at
@@ -383,6 +390,7 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
         status,
         verified: row.verified,
         business_account_type: row.business_account_type,
+        handle: row.handle,
         created_at: row.created_at,
         updated_at: row.updated_at,
     })

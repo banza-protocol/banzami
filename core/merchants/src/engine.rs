@@ -84,6 +84,7 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
                 .business_account_type
                 .clone()
                 .unwrap_or_else(|| "MERCHANT".into()),
+            handle: None,
             created_at: now,
             updated_at: now,
         };

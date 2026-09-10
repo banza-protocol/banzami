@@ -6,6 +6,7 @@ import { AdminApi, AdminApiError, type Merchant } from '@/lib/admin-api';
 import { accountTypeLabel } from '@/lib/format';
 import { Card, CardHeader } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { BusinessAccountPicker } from './business-account-picker';
 
 /**
  * Classify a Business Account under ADR-028.
@@ -88,17 +89,7 @@ export function ClassifyBusinessAccount() {
         </p>
 
         <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-          <div>
-            <span className={label}>Business Account</span>
-            <select className={input} value={merchantId} onChange={(e) => setMerchantId(e.target.value)}>
-              <option value="">Selecione…</option>
-              {merchants.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name} · {accountTypeLabel(m.business_account_type)} · {m.id.slice(0, 8)}…
-                </option>
-              ))}
-            </select>
-          </div>
+          <BusinessAccountPicker merchants={merchants} value={merchantId} onChange={setMerchantId} showClass />
           <div>
             <span className={label}>Classe</span>
             <select
