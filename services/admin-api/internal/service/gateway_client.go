@@ -228,6 +228,11 @@ func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, r
 
 // ── Merchant KYB documents (post-approval) — admin review ───────────────────
 
+// receiptRaw posts to one of the gateway's internal receipt endpoints.
+func (c *GatewayClient) receiptRaw(ctx context.Context, path string, body any) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, path, body)
+}
+
 // AttentionSummaryRaw returns what waits for an operator, per category, in the
 // gateway's own environment (api-gateway service/attention.go). Counts only.
 func (c *GatewayClient) AttentionSummaryRaw(ctx context.Context) (json.RawMessage, int, error) {

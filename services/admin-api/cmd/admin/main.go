@@ -100,7 +100,6 @@ func main() {
 		defer pool.Close()
 		users = service.NewAdminUserService(pool)
 		audit = service.NewAuditService(pool)
-		receiptSrc = service.NewPostgresReceiptSource(pool)
 		walletLister = service.NewPostgresWalletPaymentService(pool)
 
 		// Consumer KYC review. Storage (read URLs) is optional — without it the
@@ -213,6 +212,12 @@ func main() {
 		}
 	} else {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
+	}
+
+	// Receipts come from the gateway's canonical derivation — the same receipt
+	// the payer and the public verifier see. Nil-safe: no gateway, no receipts.
+	if src := service.NewGatewayReceiptSource(gw, cfg.Environment); src != nil {
+		receiptSrc = src
 	}
 
 	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox, platform, proofAdmin, proofAdminSandbox, mfa)

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,9 +17,8 @@ import (
 )
 
 type fakeReceiptCore struct {
-	transfer  *service.Transfer
-	transErr  error
-	consumers map[string]*service.ConsumerRecord
+	transfer *service.Transfer
+	transErr error
 }
 
 func (f *fakeReceiptCore) GetTransfer(_ context.Context, _ string) (*service.Transfer, error) {
@@ -26,9 +26,6 @@ func (f *fakeReceiptCore) GetTransfer(_ context.Context, _ string) (*service.Tra
 		return nil, f.transErr
 	}
 	return f.transfer, nil
-}
-func (f *fakeReceiptCore) GetConsumer(_ context.Context, id string) (*service.ConsumerRecord, error) {
-	return f.consumers[id], nil
 }
 
 func sampleTransfer() *service.Transfer {
@@ -46,12 +43,17 @@ func sampleTransfer() *service.Transfer {
 	}
 }
 
-func sampleParties() map[string]*service.ConsumerRecord {
-	jn := "João Manuel"
-	mc := "Mercado Central, Lda."
-	return map[string]*service.ConsumerRecord{
-		"s1": {ID: "s1", Handle: "joaomanuel", DisplayName: &jn},
-		"r1": {ID: "r1", Handle: "mercadocentral", DisplayName: &mc},
+// sampleReceipt is a payment to a Business as the gateway derives it.
+func sampleReceipt() documents.Receipt {
+	at := time.Date(2026, 9, 10, 19, 13, 27, 0, time.UTC)
+	return documents.Receipt{
+		OperationKind: documents.OperationPayment, Channel: documents.ChannelPaymentLink,
+		FundingSource: documents.FundingBanzamiBalance, Status: "CONFIRMED",
+		AmountMinor: 200000, Currency: "AOA",
+		Payer:       documents.Party{Kind: documents.PartyPerson, DisplayName: "João Manuel", Handle: "joaomanuel"},
+		Payee:       documents.Party{Kind: documents.PartyBusiness, DisplayName: "Doa", Handle: "doa"},
+		ConfirmedAt: &at, Environment: "SANDBOX", Network: "BANZA", Operator: "Banzami",
+		TransactionID: "11112222-3333-4444-5555-666677778888",
 	}
 }
 
@@ -73,8 +75,8 @@ func TestConsumerReceipt_OwnerOK(t *testing.T) {
 	for _, owner := range []string{"s1", "r1"} {
 		// A receipt now requires an established public proof, so the happy path
 		// must supply one. The filename below is that proof's reference.
-		h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
-			gen: stubGen(), proofs: &fakeMinter{ref: "BZM-1111-2222"}, env: "SANDBOX"}
+		h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()},
+			gen: stubGen(), receipts: &fakeMinter{ref: "BZM-1111-2222"}, env: "SANDBOX"}
 		w, r := newReq(t, owner)
 		h.ConsumerReceipt(w, r)
 		if w.Code != http.StatusOK {
@@ -93,7 +95,7 @@ func TestConsumerReceipt_OwnerOK(t *testing.T) {
 }
 
 func TestConsumerReceipt_NotOwner404(t *testing.T) {
-	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, gen: stubGen()}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()}, gen: stubGen()}
 	w, r := newReq(t, "intruder")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusNotFound {
@@ -102,7 +104,7 @@ func TestConsumerReceipt_NotOwner404(t *testing.T) {
 }
 
 func TestConsumerReceipt_NotFound404(t *testing.T) {
-	h := &ReceiptHandler{core: &fakeReceiptCore{transErr: service.ErrTransferNotFound, consumers: sampleParties()}, gen: stubGen()}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transErr: service.ErrTransferNotFound}, gen: stubGen()}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusNotFound {
@@ -114,7 +116,7 @@ func TestConsumerReceipt_GenFailure503(t *testing.T) {
 	failGen := pdfGenerator(func(context.Context, documents.ReceiptData) ([]byte, error) {
 		return nil, context.DeadlineExceeded
 	})
-	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, gen: failGen}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()}, gen: failGen, receipts: &fakeMinter{ref: "BZM-1111-2222"}}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusServiceUnavailable {
@@ -122,51 +124,47 @@ func TestConsumerReceipt_GenFailure503(t *testing.T) {
 	}
 }
 
-func TestBuildConsumerReceipt(t *testing.T) {
-	p := sampleParties()
-	tx := sampleTransfer()
-	// The derived-reference helper is gone: a receipt reference now only ever
-	// comes from the proof service. buildConsumerReceipt renders whatever it is
-	// handed, so hand it one directly.
-	d := buildConsumerReceipt(tx, p["s1"], p["r1"], "BZM-1111-2222", "SANDBOX")
-	if d.Perspective != documents.PerspectiveConsumer {
-		t.Error("wrong perspective")
+// The PDF renders the canonical receipt the gateway returned — the payee the
+// proof names, the proof's reference — and nothing public-api looked up.
+func TestConsumerReceipt_RendersTheCanonicalReceipt(t *testing.T) {
+	var got documents.ReceiptData
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()}, receipts: &fakeMinter{ref: secureRef}, env: "SANDBOX",
+		gen: func(_ context.Context, d documents.ReceiptData) ([]byte, error) { got = d; return []byte("%PDF"), nil }}
+	w, r := newReq(t, "s1")
+	h.ConsumerReceipt(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d", w.Code)
 	}
-	if d.Environment != "SANDBOX" {
-		t.Errorf("environment not propagated: %q", d.Environment)
+	if got.Reference != secureRef || got.RecipientName != "Doa" || got.RecipientHandle != "doa" ||
+		got.OperationKind != documents.OperationPayment || got.Channel != documents.ChannelPaymentLink {
+		t.Fatalf("rendered %+v", got)
 	}
-	if d.Reference != "BZM-1111-2222" {
-		t.Errorf("reference = %q", d.Reference)
-	}
-	if d.AmountMinor != 2500000 || d.Currency != "AOA" {
-		t.Errorf("amount = %d %s", d.AmountMinor, d.Currency)
-	}
-	if d.PayerName != "João Manuel" || d.PayerHandle != "joaomanuel" {
-		t.Errorf("payer = %q/%q", d.PayerName, d.PayerHandle)
-	}
-	if d.RecipientName != "Mercado Central, Lda." || d.RecipientHandle != "mercadocentral" {
-		t.Errorf("recipient = %q/%q", d.RecipientName, d.RecipientHandle)
-	}
-	// rendered receipt must carry no secrets
-	html, _ := documents.RenderHTML(d)
-	for _, bad := range []string{"API Key", "PIN", "Bearer ", "token="} {
+	html, _ := documents.RenderHTML(got)
+	for _, bad := range []string{"API Key", "PIN", "Bearer ", "token=", "Payment link:"} {
 		if strings.Contains(html, bad) {
 			t.Errorf("receipt contains %q", bad)
 		}
 	}
 }
 
-// The PDF and the proof are built from the same stored description, and neither
-// edits it: what the payer wrote is what the receipt prints and what the public
-// proof — and so the verification page — carries.
-func TestReceiptAndProofCarryTheStoredDescriptionVerbatim(t *testing.T) {
-	p := sampleParties()
-	tx := sampleTransfer()
-	stored := "  Ação — <b>obrigado</b> 🙏 "
-	tx.Description = &stored
-	pdf := buildConsumerReceipt(tx, p["s1"], p["r1"], "BZM-1111-2222", "SANDBOX")
-	proof := proofInputFromTransfer(tx, p["s1"], p["r1"], "SANDBOX")
-	if pdf.Description != stored || proof.Description != stored {
-		t.Fatalf("stored %q, receipt %q, proof %q", stored, pdf.Description, proof.Description)
+// The JSON the app renders is the same receipt, with the same reference.
+func TestConsumerReceiptJSON_IsTheSameReceipt(t *testing.T) {
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()}, receipts: &fakeMinter{ref: secureRef}, env: "SANDBOX", gen: stubGen()}
+	w, r := newReq(t, "r1")
+	h.ConsumerReceiptJSON(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status %d", w.Code)
+	}
+	var rec documents.Receipt
+	if err := json.Unmarshal(w.Body.Bytes(), &rec); err != nil {
+		t.Fatal(err)
+	}
+	if rec.ProofReference != secureRef || rec.Payee.Handle != "doa" || rec.OperationKind != documents.OperationPayment {
+		t.Fatalf("json receipt %+v", rec)
+	}
+	w2, r2 := newReq(t, "intruder")
+	h.ConsumerReceiptJSON(w2, r2)
+	if w2.Code != http.StatusNotFound {
+		t.Fatalf("a non-party read the receipt: %d", w2.Code)
 	}
 }

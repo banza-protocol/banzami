@@ -32,6 +32,7 @@ type ProofHandler struct {
 // (service.ReceiptSemantics).
 type receiptIssuer interface {
 	TransferReceipt(ctx context.Context, transferID, environment string, issue bool) (documents.Receipt, error)
+	WalletPaymentReceipt(ctx context.Context, id string, issue bool) (documents.Receipt, error)
 }
 
 func NewProofHandler(svc *service.ProofService, salt string) *ProofHandler {
@@ -166,6 +167,52 @@ func (h *ProofHandler) TransferReceipt(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"receipt": rec})
+}
+
+// POST /internal/v1/receipts/wallet-payment — INTERNAL (admin-api). {id, issue}.
+// The canonical receipt of a wallet payment; issue=false writes nothing.
+func (h *ProofHandler) WalletPaymentReceipt(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil || h.semantics == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "receipts unavailable"})
+		return
+	}
+	var in struct {
+		ID    string `json:"id"`
+		Issue bool   `json:"issue"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.ID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "id is required"})
+		return
+	}
+	rec, err := h.semantics.WalletPaymentReceipt(r.Context(), in.ID, in.Issue)
+	switch {
+	case err == nil:
+		writeJSON(w, http.StatusOK, map[string]any{"receipt": rec})
+	case errors.Is(err, service.ErrReceiptSourceNotFound):
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "no such wallet payment"})
+	default:
+		slog.ErrorContext(r.Context(), "receipt.failed", "wallet_payment_id", in.ID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not establish the receipt"})
+	}
+}
+
+// GET /internal/v1/businesses/{id}/public-identity — INTERNAL (public-api).
+// The Business a payer is about to pay, as every receipt will name it.
+func (h *ProofHandler) BusinessIdentity(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "unavailable"})
+		return
+	}
+	b, err := service.LookupBusinessIdentity(r.Context(), h.svc.Pool(), chi.URLParam(r, "id"))
+	if errors.Is(err, service.ErrBusinessNotFound) {
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "business not found"})
+		return
+	}
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not read the business"})
+		return
+	}
+	writeJSON(w, http.StatusOK, b)
 }
 
 func (h *ProofHandler) issue(w http.ResponseWriter, r *http.Request, id, env string, issue bool) (documents.Receipt, bool) {

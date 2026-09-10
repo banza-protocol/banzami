@@ -6,18 +6,31 @@ import (
 	"net/http"
 	"testing"
 
+	documents "github.com/banzami/banzami/services/common/documents"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
+// fakeMinter stands in for the gateway's receipt derivation.
 type fakeMinter struct {
-	ref   string
-	err   error
-	calls int
+	ref     string
+	err     error
+	calls   int
+	gotEnv  string
+	receipt documents.Receipt
 }
 
-func (f *fakeMinter) EnsureReference(ctx context.Context, in service.ProofEnsureInput) (string, error) {
+func (f *fakeMinter) TransferReceipt(ctx context.Context, id, env string, issue bool) (documents.Receipt, error) {
 	f.calls++
-	return f.ref, f.err
+	f.gotEnv = env
+	if f.err != nil {
+		return documents.Receipt{}, f.err
+	}
+	r := f.receipt
+	if r.OperationKind == "" {
+		r = sampleReceipt()
+	}
+	r.ProofReference = f.ref
+	return r, nil
 }
 
 const secureRef = "BZM-ABCD-2345-6789-JKMN-PQRS-TVWX"
@@ -25,8 +38,8 @@ const secureRef = "BZM-ABCD-2345-6789-JKMN-PQRS-TVWX"
 // A receipt may only be issued once its public proof durably exists.
 func TestConsumerReceipt_IssuedWhenProofEstablished(t *testing.T) {
 	m := &fakeMinter{ref: secureRef}
-	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
-		gen: stubGen(), proofs: m, env: "SANDBOX"}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()},
+		gen: stubGen(), receipts: m, env: "SANDBOX"}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusOK {
@@ -41,8 +54,8 @@ func TestConsumerReceipt_IssuedWhenProofEstablished(t *testing.T) {
 // can ask again. Issuing a receipt that advertises verification it cannot deliver
 // is the defect this replaces.
 func TestConsumerReceipt_RefusedWhenProofFails(t *testing.T) {
-	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
-		gen: stubGen(), proofs: &fakeMinter{err: errors.New("gateway unreachable")}, env: "SANDBOX"}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()},
+		gen: stubGen(), receipts: &fakeMinter{err: errors.New("gateway unreachable")}, env: "SANDBOX"}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusServiceUnavailable {
@@ -55,8 +68,8 @@ func TestConsumerReceipt_RefusedWhenProofFails(t *testing.T) {
 
 // An empty reference is a failure even without an error.
 func TestConsumerReceipt_RefusedOnEmptyReference(t *testing.T) {
-	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
-		gen: stubGen(), proofs: &fakeMinter{ref: ""}, env: "SANDBOX"}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()},
+		gen: stubGen(), receipts: &fakeMinter{ref: ""}, env: "SANDBOX"}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusServiceUnavailable {
@@ -67,8 +80,8 @@ func TestConsumerReceipt_RefusedOnEmptyReference(t *testing.T) {
 // Deterministic misconfiguration must refuse too — this is the deployed case,
 // where the internal proof authority was never configured at all.
 func TestConsumerReceipt_RefusedWhenProofClientMissing(t *testing.T) {
-	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
-		gen: stubGen(), proofs: nil, env: "SANDBOX"}
+	h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer()},
+		gen: stubGen(), receipts: nil, env: "SANDBOX"}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
 	if w.Code != http.StatusServiceUnavailable {
@@ -82,11 +95,11 @@ func TestConsumerReceipt_RefusedWhenProofClientMissing(t *testing.T) {
 // dereferences its way back to unverifiable receipts.
 func TestConsumerReceipt_TypedNilProofClientIsTreatedAsMissing(t *testing.T) {
 	var unconfigured *service.ProofClient // exactly what NewProofClient returns
-	h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
+	h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer()},
 		unconfigured, "SANDBOX")
 	h.gen = stubGen() // never the real Chromium generator in a unit test
-	if h.proofs != nil {
-		t.Fatal("a nil *ProofClient must normalise to a nil ProofMinter")
+	if h.receipts != nil {
+		t.Fatal("a nil *ProofClient must normalise to a nil ReceiptIssuer")
 	}
 	w, r := newReq(t, "s1")
 	h.ConsumerReceipt(w, r)
@@ -102,7 +115,7 @@ func TestConsumerReceipt_TypedNilProofClientIsTreatedAsMissing(t *testing.T) {
 func TestConsumerReceipt_EnvironmentIsParsedNotAssumed(t *testing.T) {
 	for _, bad := range []string{"", "PRODUCTION", "development"} {
 		m := &fakeMinter{ref: secureRef}
-		h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, m, bad)
+		h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer()}, m, bad)
 		h.gen = stubGen()
 		w, r := newReq(t, "s1")
 		h.ConsumerReceipt(w, r)
@@ -110,7 +123,7 @@ func TestConsumerReceipt_EnvironmentIsParsedNotAssumed(t *testing.T) {
 			t.Fatalf("environment %q: status %d, proof calls %d; want 503 and none", bad, w.Code, m.calls)
 		}
 	}
-	h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, &fakeMinter{ref: secureRef}, "sandbox")
+	h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer()}, &fakeMinter{ref: secureRef}, "sandbox")
 	if h.env != "SANDBOX" {
 		t.Fatalf("env = %q, want SANDBOX", h.env)
 	}

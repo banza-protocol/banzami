@@ -10,40 +10,69 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	documents "github.com/banzami/banzami/services/common/documents"
+	banzamienv "github.com/banzami/banzami/services/common/env"
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
 	"github.com/banzami/banzami/services/public-api/internal/notify"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
-// paymentLinkView is the public response shape — PaymentLink fields plus
-// merchant_name resolved from the merchants table so consumers see the store
-// name rather than a UUID.
+// paymentLinkView is the public response shape — PaymentLink fields plus the
+// payee a payer is about to pay, named as every receipt will name it.
 type paymentLinkView struct {
 	*service.PaymentLink
-	MerchantName *string `json:"merchant_name"`
+	// MerchantName / MerchantHandle are the Business's PUBLIC identity (the name
+	// it presents and the @handle it owns). They used to be the Business's
+	// account name, which for a Business created by the retired Console setup
+	// was "Sandbox · <Project name>" — a Project is never the payee.
+	MerchantName   *string `json:"merchant_name"`
+	MerchantHandle *string `json:"merchant_handle,omitempty"`
 	// TransactionID is the resulting transfer's id, set only on the pay response.
 	// The receipt endpoint keys on the transaction id (not the link id), so the
 	// client needs it to fetch the comprovativo. Nil on GET (no transfer yet).
 	TransactionID *string `json:"transaction_id,omitempty"`
+	// Receipt is the canonical receipt of the payment, set only on the pay
+	// response when its proof was established — the phone's comprovativo shows
+	// exactly this. Absent ⇒ the app asks GET /v1/consumer/transactions/{id}/receipt.
+	Receipt *documents.Receipt `json:"receipt,omitempty"`
+}
+
+// linkReceipts is what the link handler needs from the gateway.
+type linkReceipts interface {
+	ReceiptIssuer
+	BusinessIdentity(ctx context.Context, merchantID string) (service.BusinessIdentity, error)
 }
 
 // PaymentLinkHandler handles consumer-facing payment link operations.
 type PaymentLinkHandler struct {
-	core *service.CorePublicClient
-	fcm  *notify.FCMService
+	core     *service.CorePublicClient
+	fcm      *notify.FCMService
+	receipts linkReceipts
+	env      string
 }
 
-func NewPaymentLinkHandler(core *service.CorePublicClient, fcm *notify.FCMService) *PaymentLinkHandler {
-	return &PaymentLinkHandler{core: core, fcm: fcm}
+func NewPaymentLinkHandler(core *service.CorePublicClient, fcm *notify.FCMService, proofs *service.ProofClient, environment string) *PaymentLinkHandler {
+	h := &PaymentLinkHandler{core: core, fcm: fcm, env: banzamienv.Parse(environment).String()}
+	if proofs != nil { // a nil *ProofClient in an interface is not nil
+		h.receipts = proofs
+	}
+	return h
 }
 
-// withMerchantName enriches a PaymentLink with the merchant's display name.
-// Errors are non-fatal — merchant_name will be nil rather than failing the call.
+// withMerchantName enriches a PaymentLink with the payee's public identity.
+// Errors are non-fatal — merchant_name is nil rather than failing the call, and
+// never falls back to the account name.
 func (h *PaymentLinkHandler) withMerchantName(ctx context.Context, link *service.PaymentLink) *paymentLinkView {
 	view := &paymentLinkView{PaymentLink: link}
-	if m, err := h.core.GetMerchant(ctx, link.MerchantID); err == nil {
-		view.MerchantName = &m.Name
+	if h.receipts == nil {
+		return view
+	}
+	if b, err := h.receipts.BusinessIdentity(ctx, link.MerchantID); err == nil {
+		view.MerchantName = &b.DisplayName
+		if b.Handle != "" {
+			view.MerchantHandle = &b.Handle
+		}
 	}
 	return view
 }
@@ -135,7 +164,10 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		RecipientAccountID: link.WalletAccountID,
 		AmountMinor:        *amountMinor,
 		Currency:           link.Currency,
-		Description:        "Payment link: " + slug,
+		// What the Business wrote on the link, or nothing. This used to be
+		// "Payment link: <slug>" — an internal id the payer then read as the
+		// payment's description on their receipt.
+		Description: linkDescription(link),
 	})
 	if err != nil {
 		switch {
@@ -194,5 +226,26 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	view := h.withMerchantName(r.Context(), final)
 	view.TransactionID = &transfer.ID // so the client can fetch the receipt by transaction id
+
+	// The payment's proof is established now, at completion, so the payer's
+	// comprovativo shows the one reference the PDF and the verifier will show.
+	// Best-effort and bounded: the payment has already happened, and the app
+	// asks again (GET …/receipt) when this is absent.
+	if h.receipts != nil {
+		rctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+		if rec, err := h.receipts.TransferReceipt(rctx, transfer.ID, h.env, true); err == nil && rec.ProofReference != "" {
+			view.Receipt = &rec
+		} else if err != nil {
+			slog.WarnContext(r.Context(), "payment_link.receipt_deferred", "transfer_id", transfer.ID, "error", err)
+		}
+		cancel()
+	}
 	respond(w, http.StatusOK, view)
+}
+
+func linkDescription(link *service.PaymentLink) string {
+	if link.Description == nil {
+		return ""
+	}
+	return *link.Description
 }

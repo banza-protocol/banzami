@@ -255,6 +255,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// Idempotent proof minting for services that render receipts (public-api).
 		r.Post("/internal/v1/proofs/ensure", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).EnsureProof)
 		r.Post("/internal/v1/receipts/transfer", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).TransferReceipt)
+		r.Post("/internal/v1/receipts/wallet-payment", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).WalletPaymentReceipt)
+		r.Get("/internal/v1/businesses/{id}/public-identity", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).BusinessIdentity)
 		// Proactive proof reversal — admin-api on dispute WON_BY_CONSUMER (and any
 		// future core reversal event). Flips the public proof to REVERSED.
 		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)

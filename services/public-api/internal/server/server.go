@@ -68,7 +68,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	transferH := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
 	activityH := handler.NewActivityHandler(deps.CoreClient)
 	receiptH := handler.NewReceiptHandler(deps.CoreClient, deps.ProofClient, cfg.Environment)
-	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc)
+	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc, deps.ProofClient, cfg.Environment)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH := handler.NewOnboardingHandler(deps.CoreClient)
@@ -124,6 +124,8 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 		// Official transfer receipt (PDF) — Document Engine, real transfers data.
 		r.Get("/v1/consumer/transactions/{id}/receipt.pdf", receiptH.ConsumerReceipt)
+		// The same canonical receipt as JSON — the app's comprovativo screen.
+		r.Get("/v1/consumer/transactions/{id}/receipt", receiptH.ConsumerReceiptJSON)
 
 		// Payment link payment
 		r.Post("/v1/payment-links/{slug}/pay", paymentLinkH.Pay)
