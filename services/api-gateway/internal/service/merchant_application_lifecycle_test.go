@@ -8,6 +8,7 @@ package service
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -155,11 +156,24 @@ func TestApprove_PressedTwiceTogetherProvisionsOneBusiness(t *testing.T) {
 	appID, _, _ := f.application("")
 	seedRequiredDocs(f.ctx, t, f.pool, appID)
 	prov := &recordingProvisioner{fakeProvisioner: f.provisioner(), delay: 150 * time.Millisecond}
-	svc := NewPostgresMerchantApplicationAdminService(f.pool, prov)
+	// A pool of its own, sized for the race. The default is max(4, NumCPU): on
+	// a 4-CPU CI runner the warm-up below waited forever for an 8th connection,
+	// and four approvals holding four connections left none for anything else.
+	cfg, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.MaxConns = 16
+	racePool, err := pgxpool.NewWithConfig(f.ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer racePool.Close()
+	svc := NewPostgresMerchantApplicationAdminService(racePool, prov)
 	// Warm the pool so every approval has its own connection from the start.
 	var conns []*pgxpool.Conn
 	for i := 0; i < 8; i++ {
-		c, err := f.pool.Acquire(f.ctx)
+		c, err := racePool.Acquire(f.ctx)
 		if err != nil {
 			t.Fatal(err)
 		}
