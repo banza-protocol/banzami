@@ -358,6 +358,34 @@ release_config_env() {
       # JSON route instead of a page a person can pay on.
       echo "PAY_BASE_URL=https://pay.banzami.com"
       ;;
+    public-api-staging)
+      # Where public-api asks the Gateway to mint a transaction proof.
+      #
+      # The Gateway owns proof generation (it holds the signing key and hash
+      # salt), so public-api calls /internal/v1/proofs/ensure when a consumer
+      # asks for a receipt. INTERNAL_API_KEY already arrives from
+      # /run/secrets/core_internal_key; this URL never did, and NewProofClient
+      # returns nil when either half is missing.
+      #
+      # The consequence was silent and total: every consumer receipt fell back
+      # to a reference derived from the transfer id, no proof was ever minted,
+      # and transaction_proofs stayed empty — so every receipt Banzami issued
+      # advertised a verification page that answered "does not exist or may have
+      # been forged". Receipt issuance now fails closed instead of falling back,
+      # which turns that missing URL from a silent wrong answer into a visible
+      # refusal; this is the setting that makes it succeed.
+      # Resolved from the running Gateway rather than from BZSB_PROJECT: the
+      # single-service swap path does not carry that variable, and a config value
+      # that is correct only on a full bootstrap is the failure mode this whole
+      # function exists to prevent.
+      local gw
+      # || true: pipefail turns an empty grep into a failed command substitution,
+      # which under set -e kills the deploy — the same trap already documented at
+      # the top of cmd_deploy_one.
+      gw="$(docker ps --format '{{.Names}}' | grep -E -- '-api-gateway-staging$' | head -1 || true)"
+      [ -n "$gw" ] || gw="${BZSB_PROJECT:-}-api-gateway-staging"
+      echo "GATEWAY_INTERNAL_URL=http://${gw}:8080"
+      ;;
   esac
 }
 
