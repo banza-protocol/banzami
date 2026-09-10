@@ -97,7 +97,15 @@ call "$PUB" 8083 POST "/v1/payment-links/$SLUG/pay" '{"amount_minor":2000}' "$AJ
 WP=$(psqlro "SELECT id FROM wallet_payments WHERE merchant_id='$MID' ORDER BY created_at DESC LIMIT 1")
 RC=$(docker exec "$GW" curl -s -o /tmp/ra-m.pdf -w '%{http_code}' -H "Authorization: Bearer $MJWT" "http://localhost:8080/v1/merchant/transactions/$WP/receipt.pdf")
 chk merchant-receipt "$RC|$(docker exec "$GW" head -c 4 /tmp/ra-m.pdf 2>/dev/null)" "200|%PDF"
-check_receipt merchant "$WP" /tmp/ra-m.pdf "$GW"
+# One operation, one proof: the Business's receipt of a wallet payment is the
+# receipt of the transfer it records — the payer's reference, not a second one.
+WPT=$(psqlro "SELECT transfer_id FROM wallet_payments WHERE id='$WP'")
+chk merchant-no-second-proof "$(psqlro "SELECT count(*) FROM transaction_proofs WHERE transaction_id='$WP'")" 0
+check_receipt merchant "$WPT" /tmp/ra-m.pdf "$GW"
+RC=$(docker exec "$PUB" curl -s -o /tmp/ra-mp.pdf -w '%{http_code}' -H "Authorization: Bearer $AJ" "http://localhost:8083/v1/consumer/transactions/$WPT/receipt.pdf")
+chk merchant-payer-receipt "$RC|$(docker exec "$PUB" head -c 4 /tmp/ra-mp.pdf 2>/dev/null)" "200|%PDF"
+chk merchant-one-reference-both-copies "$(docker exec "$PUB" sh -c "grep -aoE 'https?://[^ )>]*/r/BZM-[0-9A-Z-]+' /tmp/ra-mp.pdf | sort -u")" "https://banzami.com/r/$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE transaction_id='$WPT'")"
+docker exec "$PUB" rm -f /tmp/ra-mp.pdf
 
 # ── the historical receipt ─────────────────────────────────────────────────
 H=$(curl -s "$PUBLIC_API/v1/public/proofs/BZM-F993-38E2")
