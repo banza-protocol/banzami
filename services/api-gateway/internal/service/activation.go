@@ -179,6 +179,16 @@ func (s *PostgresActivationService) Complete(ctx context.Context, rawToken, pin 
 		return err
 	}
 
+	// A new PIN is a new sign-in: whatever was signed in with the old one —
+	// including a device the Business may have lost — has to sign in again.
+	// (A first activation has no sessions; this touches nothing then.)
+	if _, err := tx.Exec(ctx,
+		`UPDATE merchant_app_sessions SET revoked_at = now(), revoked_reason = 'SIGNED_OUT'
+		  WHERE merchant_id = $1 AND environment = $2 AND revoked_at IS NULL`,
+		merchantID, environment); err != nil {
+		return err
+	}
+
 	return tx.Commit(ctx)
 }
 

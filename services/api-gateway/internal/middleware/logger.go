@@ -60,4 +60,3 @@ func LoggedPath(path string) string {
 	}
 	return publicProofPrefix + ref
 }
-

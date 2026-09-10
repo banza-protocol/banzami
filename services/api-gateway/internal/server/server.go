@@ -59,6 +59,7 @@ type Dependencies struct {
 	MerchantCredSvc          service.MerchantCredentialService
 	MerchantSessionSvc       service.MerchantSessionService
 	BusinessLinkCodeSvc      service.BusinessLinkCodeService
+	BusinessPinResetSvc      *service.BusinessPinResetService
 	MerchantAppSvc           service.MerchantApplicationService
 	MerchantAppAdminSvc      service.MerchantApplicationAdminService
 	MerchantDocumentSvc      service.MerchantDocumentService
@@ -259,6 +260,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// developer-api spends a Business's consent code for a Project.
 		r.Post("/internal/v1/business-link-codes/redeem", businessOnboardingHandler.RedeemLinkCode)
 		r.Get("/internal/v1/businesses/{merchantID}/state", merchantAppAdminHandler.BusinessStateForMerchant)
+		// An operator gives a Business that forgot its PIN a fresh activation link.
+		if deps.BusinessPinResetSvc != nil {
+			r.Post("/internal/v1/businesses/{merchantID}/app-pin-reset", handler.NewBusinessPinResetHandler(deps.BusinessPinResetSvc).Reset)
+		}
 		r.Route("/internal/v1/merchant-applications", func(r chi.Router) {
 			r.Get("/", merchantAppAdminHandler.List)
 			r.Get("/{id}", merchantAppAdminHandler.Get)

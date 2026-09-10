@@ -32,6 +32,12 @@ func (s *Sender) MerchantInformationRequested(to, request, statusURL, environmen
 		"A sua candidatura Banzami precisa de mais informação", html, text))
 }
 
+// MerchantAppPinReset — "Novo PIN da app Business". Security → From noreply@.
+func (s *Sender) MerchantAppPinReset(to, handle, environment, resetURL string) {
+	html, text := RenderMerchantAppPinReset(MerchantAppPinResetData{Handle: handle, ResetURL: resetURL, Sandbox: envIsSandbox(environment)})
+	s.Deliver(s.Automated("business_app_pin_reset", to, "Novo PIN da app Banzami Business", html, text, ""))
+}
+
 // AdminOperatorInvite — "Foi convidado para o BANZADMIN". Security → From
 // noreply@, no Reply-To. fullName is accepted for compatibility (not shown).
 func (s *Sender) AdminOperatorInvite(to, fullName, role, invitedBy, inviteURL string) {

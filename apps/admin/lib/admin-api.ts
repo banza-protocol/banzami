@@ -1020,6 +1020,10 @@ export class AdminApi {
   businessState(merchantId: string): Promise<{ business: ApplicationBusinessState }> {
     return this.req(`/admin/v1/businesses/${merchantId}`);
   }
+  /** A fresh app-PIN link for an activated Business (audited; the link is shown only in the Sandbox). */
+  resetBusinessAppPin(merchantId: string, confirmation: string, reason: string): Promise<{ email_sent_to: string; expires_at?: string; activation_url?: string }> {
+    return this.req(`/admin/v1/businesses/${merchantId}/app-pin-reset`, { method: 'POST', body: JSON.stringify({ confirmation, reason }) });
+  }
   applicationBusinessState(id: string): Promise<{ business: ApplicationBusinessState | null }> {
     return this.req(`/admin/v1/merchant-applications/${id}/business-state`);
   }

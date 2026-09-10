@@ -124,6 +124,7 @@ var auditActions = map[string]string{
 	"POST /admin/v1/merchant-applications/{id}/request-information":             "REQUEST_APPLICATION_INFORMATION",
 	"POST /admin/v1/merchant-applications/{id}/link-existing":                   "LINK_APPLICATION_TO_EXISTING_BUSINESS",
 	"POST /admin/v1/merchant-applications/{id}/reissue-activation":              "REISSUE_ACTIVATION",
+	"POST /admin/v1/businesses/{id}/app-pin-reset":                              "RESET_BUSINESS_APP_PIN",
 	"POST /admin/v1/merchant-applications/{id}/documents/{documentId}/read-url": "VIEW_KYB_DOCUMENT",
 	"POST /admin/v1/merchant-applications/{id}/documents/{documentId}/accept":   "APPROVE_KYB",
 	"POST /admin/v1/merchant-applications/{id}/documents/{documentId}/reject":   "REJECT_KYB",

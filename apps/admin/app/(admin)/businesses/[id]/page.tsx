@@ -8,6 +8,7 @@ import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { ErrorState } from '@/components/ui/table';
 import { BusinessStateRows } from '@/components/applications/ApplicationLifecycle';
 import { formatDate, withAt } from '@/lib/format';
+import { AppPinReset } from '@/components/businesses/app-pin-reset';
 
 /**
  * One Business's whole institutional state: identity and @handle, KYB (the one
@@ -55,6 +56,10 @@ export default function BusinessPage() {
         <h3 className="m-0 mb-4 text-[15px] font-black">Estado institucional</h3>
         <BusinessStateRows state={state} />
       </div>
+
+      {api && state.status === 'ACTIVE' && state.login_activated && state.handle ? (
+        <AppPinReset api={api} merchantId={state.merchant_id} handle={state.handle} />
+      ) : null}
 
       <div className="grid grid-cols-2 gap-4 max-[1040px]:grid-cols-1">
         <div className="rounded-[18px] border border-[#f1e3e3] bg-white p-6">

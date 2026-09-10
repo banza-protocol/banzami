@@ -80,6 +80,7 @@ func main() {
 	var merchantCredSvc service.MerchantCredentialService
 	var merchantSessionSvc service.MerchantSessionService
 	var businessLinkCodeSvc service.BusinessLinkCodeService
+	var businessPinResetSvc *service.BusinessPinResetService
 	var merchantAppSvc service.MerchantApplicationService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
@@ -154,6 +155,7 @@ func main() {
 		merchantCredSvc = credSvc
 		merchantSessionSvc = service.NewPostgresMerchantSessionService(dbPool)
 		businessLinkCodeSvc = service.NewPostgresBusinessLinkCodeService(dbPool)
+		businessPinResetSvc = service.NewBusinessPinResetService(dbPool)
 		appSvc := service.NewPostgresMerchantApplicationService(dbPool)
 		// Keeps @handle holds honest: alive while Banzami owes a decision,
 		// released when the application closes (handle hold lifecycle).
@@ -253,6 +255,7 @@ func main() {
 		MerchantCredSvc:          merchantCredSvc,
 		MerchantSessionSvc:       merchantSessionSvc,
 		BusinessLinkCodeSvc:      businessLinkCodeSvc,
+		BusinessPinResetSvc:      businessPinResetSvc,
 		MerchantAppSvc:           merchantAppSvc,
 		MerchantAppAdminSvc:      merchantAppAdminSvc,
 		MerchantDocumentSvc:      merchantDocumentSvc,

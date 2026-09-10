@@ -32,6 +32,7 @@ type GatewayApplications interface {
 	LinkCandidatesRaw(ctx context.Context, id, handle string) (json.RawMessage, int, error)
 	ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error)
 	BusinessStateRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error)
+	ResetBusinessAppPinRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error)
 }
 
 // ApplicationMailer is the subset of the email sender the admin handler uses.
@@ -39,6 +40,7 @@ type ApplicationMailer interface {
 	MerchantApplicationApproved(to, businessName, handle, environment, activationURL string)
 	MerchantApplicationRejected(to, businessName, message, environment string)
 	MerchantInformationRequested(to, request, statusURL, environment string)
+	MerchantAppPinReset(to, handle, environment, resetURL string)
 }
 
 // PlatformModeReader reads the global Platform Status (SANDBOX/LIVE). Business
@@ -444,6 +446,75 @@ func (h *MerchantApplicationHandler) BusinessByID(w http.ResponseWriter, r *http
 		return
 	}
 	writeRaw(w, code, raw)
+}
+
+// POST /admin/v1/businesses/{id}/app-pin-reset   {confirmation, reason}
+//
+// A Business that forgot its app PIN gets a fresh activation link: emailed to
+// the Business, shown to the operator only while the platform is SANDBOX. The
+// operator types the Business's @handle to confirm and gives a reason; both
+// land in the audit trail. The current PIN keeps working until the link is
+// used, and using it signs out every device signed in with the old PIN.
+func (h *MerchantApplicationHandler) ResetBusinessAppPin(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body struct {
+		Confirmation string `json:"confirmation"`
+		Reason       string `json:"reason"`
+	}
+	if err := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+	reason := strings.TrimSpace(body.Reason)
+	if reason == "" {
+		writeError(w, http.StatusBadRequest, "REASON_REQUIRED", "say why this Business needs a new PIN")
+		return
+	}
+	stateRaw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.BusinessStateRaw(r.Context(), id)
+	})
+	if err != nil || code != http.StatusOK {
+		writeRaw(w, validStatus(code), stateRaw)
+		return
+	}
+	var st struct {
+		Business struct {
+			Handle string `json:"handle"`
+		} `json:"business"`
+	}
+	_ = json.Unmarshal(stateRaw, &st)
+	typed := strings.ToLower(strings.TrimPrefix(strings.TrimSpace(body.Confirmation), "@"))
+	if st.Business.Handle == "" || typed != strings.ToLower(st.Business.Handle) {
+		writeError(w, http.StatusUnprocessableEntity, "CONFIRMATION_MISMATCH", "type the Business's @handle to confirm")
+		return
+	}
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.ResetBusinessAppPinRaw(r.Context(), id)
+	})
+	if err != nil || code != http.StatusOK {
+		writeRaw(w, validStatus(code), raw)
+		return
+	}
+	var res struct {
+		Email           string `json:"email"`
+		Handle          string `json:"handle"`
+		ActivationToken string `json:"activation_token"`
+		ExpiresAt       string `json:"expires_at"`
+	}
+	if err := json.Unmarshal(raw, &res); err != nil || res.ActivationToken == "" {
+		writeErr(w, http.StatusBadGateway, "could not read the reset")
+		return
+	}
+	link, show := h.activationLink(r.Context(), res.ActivationToken)
+	if res.Email != "" {
+		h.mailer.MerchantAppPinReset(res.Email, res.Handle, h.platformEnv(r.Context()), link)
+	}
+	auditAfter(r, "merchant", id, map[string]any{"reason": reason, "email_sent_to": res.Email, "expires_at": res.ExpiresAt})
+	out := map[string]any{"email_sent_to": res.Email, "expires_at": res.ExpiresAt}
+	if show {
+		out["activation_url"] = link
+	}
+	writeRaw(w, http.StatusOK, mustJSON(out))
 }
 
 // -------------------------------------------------------------------------

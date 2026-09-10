@@ -197,6 +197,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/link-candidates", applicationsH.LinkCandidates)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/business-state", applicationsH.BusinessState)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/businesses/{id}", applicationsH.BusinessByID)
+		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/businesses/{id}/app-pin-reset", applicationsH.ResetBusinessAppPin)
 		// KYB documents (Track 3) — admin review.
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/documents", applicationsH.ListDocuments)
 		r.With(cap(auth.CapApplicationView)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/read-url", applicationsH.DocumentReadURL)

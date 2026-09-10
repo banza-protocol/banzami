@@ -162,6 +162,12 @@ func (c *GatewayClient) LinkCandidatesRaw(ctx context.Context, id, handle string
 	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/link-candidates?handle="+url.QueryEscape(handle), nil)
 }
 
+// ResetBusinessAppPinRaw asks the gateway for a fresh activation token for an
+// activated Business login (operator PIN reset). The token comes back once.
+func (c *GatewayClient) ResetBusinessAppPinRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/businesses/"+merchantID+"/app-pin-reset", nil)
+}
+
 func (c *GatewayClient) BusinessStateRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodGet, "/internal/v1/businesses/"+merchantID+"/state", nil)
 }

@@ -21,6 +21,9 @@ type fakeGW struct {
 	notFound    bool // when set, id-keyed ops return 404 (application lives in the other stack)
 	linkCalls   int
 	lastLink    [3]string
+	// Business state + PIN reset.
+	businessHandle string
+	pinResets      int
 }
 
 func (f *fakeGW) ListApplicationsRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
@@ -85,7 +88,14 @@ func (f *fakeGW) RequestApplicationInformationRaw(_ context.Context, id, _, mess
 	return json.RawMessage(`{"id":"` + id + `","status":"INFORMATION_REQUIRED","email":"loja@example.test"}`), 200, nil
 }
 func (f *fakeGW) BusinessStateRaw(context.Context, string) (json.RawMessage, int, error) {
+	if f.businessHandle != "" {
+		return json.RawMessage(`{"business":{"handle":"` + f.businessHandle + `"}}`), 200, nil
+	}
 	return json.RawMessage(`{"business":{}}`), 200, nil
+}
+func (f *fakeGW) ResetBusinessAppPinRaw(_ context.Context, id string) (json.RawMessage, int, error) {
+	f.pinResets++
+	return json.RawMessage(`{"merchant_id":"` + id + `","email":"loja@example.test","handle":"` + f.businessHandle + `","activation_token":"tok-reset","expires_at":"2026-09-13T00:00:00Z"}`), 200, nil
 }
 func (f *fakeGW) RejectDocumentRaw(_ context.Context, _, _, _, _ string) (json.RawMessage, int, error) {
 	return json.RawMessage(`{"status":"REJECTED"}`), 200, nil
@@ -97,6 +107,11 @@ type fakeMailer struct {
 	approvedCalled                       bool
 	rejectedCalled                       bool
 	infoTo, infoRequest, infoURL         string
+	pinResetTo, pinResetURL              string
+}
+
+func (m *fakeMailer) MerchantAppPinReset(to, _, _, url string) {
+	m.pinResetTo, m.pinResetURL = to, url
 }
 
 func (m *fakeMailer) MerchantInformationRequested(to, request, url, _ string) {

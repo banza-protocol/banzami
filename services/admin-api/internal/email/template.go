@@ -160,6 +160,34 @@ func RenderMerchantInformationRequested(d MerchantInformationRequestedData) (htm
 	return
 }
 
+// MerchantAppPinResetData — an operator reset the Business's app PIN.
+type MerchantAppPinResetData struct {
+	Handle   string
+	ResetURL string
+	Sandbox  bool
+}
+
+// RenderMerchantAppPinReset — a new PIN for the Banzami Business app. The
+// current PIN keeps working until the link is used; using it signs out every
+// device signed in with the old one.
+func RenderMerchantAppPinReset(d MerchantAppPinResetData) (html, text string) {
+	paras := []string{
+		"A equipa Banzami preparou um novo PIN para a app Banzami Business de @" + strings.TrimPrefix(d.Handle, "@") + ".",
+		"Abra o link abaixo e escolha o novo PIN. Até lá, o PIN atual continua a funcionar; depois, todos os dispositivos terão de entrar com o novo PIN.",
+		"Se não pediu esta alteração, ignore este email e contacte a equipa Banzami.",
+	}
+	body := emTitle("Novo PIN da app Business") + emPara(esc(paras[0])) + emPara(paras[1]) + emPara(paras[2])
+	if d.Sandbox {
+		body += emNotice("shield", "Ambiente SANDBOX — esta conta pertence ao ambiente de testes da plataforma.")
+		paras = append(paras, "Esta conta pertence ao ambiente de testes da plataforma.")
+	}
+	body += emButton("Escolher novo PIN", d.ResetURL) + emURLFallback("Ou abra este endereço:", d.ResetURL)
+	html = renderLayout(layoutOpts{Subtitle: "Business", BadgeKind: "business", SafetyKind: "security",
+		Preheader: "Escolha o novo PIN da app Banzami Business.", Body: body})
+	text = textDoc("Novo PIN da app Business", paras, nil, "Escolher novo PIN", d.ResetURL, footerSafety("security"))
+	return
+}
+
 // ── 3. Convite BANZADMIN ─────────────────────────────────────────────────────
 
 type AdminInviteData struct {
