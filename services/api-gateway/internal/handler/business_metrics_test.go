@@ -86,7 +86,7 @@ func TestBusinessMetrics_LabelsAreAClosedVocabulary(t *testing.T) {
 		appResultOK, appResultReplayed, appResultRefused, appResultFailed,
 		authResultIssued, authResultRefused, authResultLocked, authResultOwnerMismatch,
 		authResultRefreshed, authResultRefreshRefused, authResultRefreshReused,
-		tenantSurfaceWallet,
+		tenantSurfaceWallet, tenantSurfaceQr, tenantSurfacePaymentLink, tenantSurfaceCollection,
 		docResultUploaded, docResultContentRefused, docResultRefused, docResultStorageOff, docResultFailed,
 	} {
 		closed[v] = true

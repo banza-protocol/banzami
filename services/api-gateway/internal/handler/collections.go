@@ -16,11 +16,19 @@ import (
 // ALWAYS taken from the merchant principal (never the client body), so the core
 // enforces tenant + environment isolation and returns 404 on cross-tenant access.
 type CollectionHandler struct {
-	svc service.CollectionService
+	wallets walletReader
+	svc     service.CollectionService
 }
 
 func NewCollectionHandler(svc service.CollectionService) *CollectionHandler {
 	return &CollectionHandler{svc: svc}
+}
+
+// WithWallets gives the handler what it needs to check that a collection pays
+// into the Business's own wallet.
+func (h *CollectionHandler) WithWallets(w walletReader) *CollectionHandler {
+	h.wallets = w
+	return h
 }
 
 // merchantScope returns the authenticated merchant id + environment, or false
@@ -73,6 +81,15 @@ func (h *CollectionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	body, err := colDecodeBody(r)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "invalid JSON body")
+		return
+	}
+	// A collection pays into the wallet it names. That wallet came from the
+	// body and was forwarded unchecked to core, which pays collection.wallet_id
+	// — one Business could raise a collection into another's wallet.
+	walletID, _ := body["wallet_id"].(string)
+	if !ownsWallet(r.Context(), h.wallets, walletID, merchant) {
+		businessTenantDenials.WithLabelValues(tenantSurfaceCollection).Inc()
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found")
 		return
 	}
 	status, raw, err := h.svc.Create(r.Context(), merchant, env, body)

@@ -166,8 +166,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// Split Sessions is SUPERSEDED by Collections (ADR-036) — answered at the edge, never proxied.
 	splitsSuperseded := handler.SplitsSuperseded()
 	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc).
-		WithBindingSeal(deps.BindingSeal)
-	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
+		WithBindingSeal(deps.BindingSeal).WithWallets(deps.WalletSvc)
+	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc).WithWallets(deps.WalletSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc, deps.WebhookSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 	refundHandler := handler.NewRefundHandler(deps.RefundSvc)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
@@ -89,7 +90,7 @@ func TestPaymentLink_CreateForAnotherMerchantRefused(t *testing.T) {
 // honest client is not forced to restate its own identity.
 func TestPaymentLink_CreateBindsToPrincipal(t *testing.T) {
 	spy := ownedLinkSpy()
-	h := handler.NewPaymentLinkHandler(spy, nil, nil)
+	h := handler.NewPaymentLinkHandler(spy, nil, nil).WithWallets(walletsOwnedBy{"w-1": ownerID})
 	body := map[string]any{"wallet_id": "w-1", "amount_minor": 1000, "currency": "AOA"}
 
 	w := httptest.NewRecorder()
@@ -183,4 +184,44 @@ func stringContains(s, sub string) bool {
 		}
 	}
 	return false
+}
+
+// walletsOwnedBy answers wallet lookups from a fixed ownership map.
+type walletsOwnedBy map[string]string
+
+func (m walletsOwnedBy) Get(_ context.Context, id string) (*service.WalletRecord, error) {
+	owner, ok := m[id]
+	if !ok {
+		return nil, service.ErrWalletNotFound
+	}
+	return &service.WalletRecord{ID: id, MerchantID: owner, Currency: "AOA"}, nil
+}
+
+// A Business's own link must pay into its OWN wallet. The wallet id came from
+// the body and nothing down to core checked it, and acquiring credits the
+// link's wallet: Business A could open a link collecting into Business B's.
+func TestPaymentLink_CreateIntoAnotherBusinessWalletIsNotFound(t *testing.T) {
+	spy := ownedLinkSpy()
+	h := handler.NewPaymentLinkHandler(spy, nil, nil).WithWallets(walletsOwnedBy{"w-victim": ownerID})
+	body := map[string]any{"wallet_id": "w-victim", "amount_minor": 1000, "currency": "AOA"}
+	w := httptest.NewRecorder()
+	h.Create(w, withMerchant(httptest.NewRequest(http.MethodPost, "/v1/payment-links", jsonBody(body)), attackerID))
+	if w.Code != http.StatusNotFound || spy.created != 0 {
+		t.Fatalf("status %d, created %d — the link must never reach the service", w.Code, spy.created)
+	}
+	if strings.Contains(w.Body.String(), ownerID) {
+		t.Fatal("the refusal named the wallet's owner")
+	}
+}
+
+// Without an ownership check wired, a merchant link is refused, not trusted.
+func TestPaymentLink_CreateWithoutWalletCheckFailsClosed(t *testing.T) {
+	spy := ownedLinkSpy()
+	h := handler.NewPaymentLinkHandler(spy, nil, nil)
+	body := map[string]any{"wallet_id": "w-1", "amount_minor": 1000, "currency": "AOA"}
+	w := httptest.NewRecorder()
+	h.Create(w, withMerchant(httptest.NewRequest(http.MethodPost, "/v1/payment-links", jsonBody(body)), ownerID))
+	if spy.created != 0 {
+		t.Fatal("a link was created with no way to check its wallet")
+	}
 }

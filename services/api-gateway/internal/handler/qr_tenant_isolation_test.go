@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/go-chi/chi/v5"
@@ -137,5 +138,68 @@ func TestQrMarkUsed_RejectsUnauthenticated(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden || svc.markedUsed != 0 {
 		t.Fatalf("unauthenticated burn not blocked: code=%d marked=%d", rec.Code, svc.markedUsed)
+	}
+}
+
+// A Business may create QR codes owned by itself and nothing else. The
+// CONSUMER branch used to pass unchecked, so a Business could mint a QR owned
+// by any consumer id it named.
+func TestQrCreateStatic_OnlyForTheAuthenticatedBusiness(t *testing.T) {
+	h := NewQrHandler(&ownedQrService{})
+	for name, c := range map[string]struct {
+		body string
+		want int
+	}{
+		"a consumer's QR":       {`{"owner_type":"CONSUMER","owner_id":"consumer-1","currency":"AOA"}`, http.StatusForbidden},
+		"another Business's QR": {`{"owner_type":"MERCHANT","owner_id":"victim-merchant","currency":"AOA"}`, http.StatusForbidden},
+		"its own QR":            {`{"owner_type":"MERCHANT","owner_id":"attacker-merchant","currency":"AOA"}`, 0},
+	} {
+		t.Run(name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/v1/qr/static", strings.NewReader(c.body))
+			req = req.WithContext(middleware.ContextWithPrincipal(req.Context(),
+				&middleware.Principal{MerchantID: "attacker-merchant", Environment: "SANDBOX"}))
+			rec := httptest.NewRecorder()
+			h.CreateStatic(rec, req)
+			if c.want != 0 && rec.Code != c.want {
+				t.Fatalf("status %d, want %d", rec.Code, c.want)
+			}
+			if c.want == 0 && rec.Code == http.StatusForbidden {
+				t.Fatalf("a Business was refused its own QR")
+			}
+		})
+	}
+}
+
+// collectionSpy embeds the interface as nil: only Create is exercised.
+type collectionSpy struct {
+	service.CollectionService
+	created int
+}
+
+func (c *collectionSpy) Create(context.Context, string, string, map[string]any) (int, json.RawMessage, error) {
+	c.created++
+	return http.StatusCreated, json.RawMessage(`{}`), nil
+}
+
+// A collection pays into the wallet it names; it must be the Business's own.
+func TestCollectionCreate_OnlyIntoTheBusinessOwnWallet(t *testing.T) {
+	spy := &collectionSpy{}
+	h := NewCollectionHandler(spy).WithWallets(&fakeWallets{merchantID: "victim-merchant"})
+	req := httptest.NewRequest(http.MethodPost, "/v1/collections", strings.NewReader(`{"wallet_id":"w-victim"}`))
+	req = req.WithContext(middleware.ContextWithPrincipal(req.Context(),
+		&middleware.Principal{MerchantID: "attacker-merchant", Environment: "SANDBOX"}))
+	rec := httptest.NewRecorder()
+	h.Create(rec, req)
+	if rec.Code != http.StatusNotFound || spy.created != 0 {
+		t.Fatalf("status %d, created %d", rec.Code, spy.created)
+	}
+	own := NewCollectionHandler(spy).WithWallets(&fakeWallets{merchantID: "attacker-merchant"})
+	req = httptest.NewRequest(http.MethodPost, "/v1/collections", strings.NewReader(`{"wallet_id":"w-own"}`))
+	req = req.WithContext(middleware.ContextWithPrincipal(req.Context(),
+		&middleware.Principal{MerchantID: "attacker-merchant", Environment: "SANDBOX"}))
+	rec = httptest.NewRecorder()
+	own.Create(rec, req)
+	if rec.Code != http.StatusCreated || spy.created != 1 {
+		t.Fatalf("a Business's own collection: %d", rec.Code)
 	}
 }

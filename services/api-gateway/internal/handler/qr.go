@@ -36,11 +36,17 @@ func NewQrHandler(svc service.QrService) *QrHandler {
 // RA-047 shape on a third surface, and the third time a client-supplied ownership
 // identifier has been trusted on this API.
 //
-// A CONSUMER-owned QR is not a merchant resource and is left to its own authority
-// rather than being forced through a merchant check that does not apply to it.
+// This surface is the merchant surface: every caller is a Business (merchant
+// JWT) or a Project acting for its bound Business. Neither is authority over a
+// consumer's QR. The CONSUMER branch used to pass unchecked — so a Business
+// could mint a QR owned by any consumer id it named. A consumer's QR is made
+// on the consumer surface (public-api), under the consumer's own token.
 func requireOwnQrOwner(w http.ResponseWriter, r *http.Request, ownerType, ownerID string) bool {
 	if !strings.EqualFold(ownerType, "MERCHANT") {
-		return true
+		businessTenantDenials.WithLabelValues(tenantSurfaceQr).Inc()
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"a Business may only create QR codes owned by itself")
+		return false
 	}
 	p, ok := middleware.GetPrincipal(r.Context())
 	if !ok || p.MerchantID == "" {
@@ -48,6 +54,7 @@ func requireOwnQrOwner(w http.ResponseWriter, r *http.Request, ownerType, ownerI
 		return false
 	}
 	if ownerID != p.MerchantID {
+		businessTenantDenials.WithLabelValues(tenantSurfaceQr).Inc()
 		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
 			"a QR code may only be created for the authenticated merchant")
 		return false

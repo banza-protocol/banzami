@@ -1,6 +1,9 @@
 package handler
 
 import (
+	"context"
+
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -62,7 +65,10 @@ const (
 	authResultRefreshRefused = "refresh_refused"
 	authResultRefreshReused  = "refresh_reused"
 
-	tenantSurfaceWallet = "wallet"
+	tenantSurfaceWallet      = "wallet"
+	tenantSurfaceQr          = "qr"
+	tenantSurfacePaymentLink = "payment_link"
+	tenantSurfaceCollection  = "collection"
 
 	docResultUploaded       = "uploaded"
 	docResultContentRefused = "content_mismatch"
@@ -84,4 +90,19 @@ var lifecycleActionLabel = map[string]string{
 
 func observeApplication(action, result string) {
 	businessApplicationEvents.WithLabelValues(action, result).Inc()
+}
+
+// walletReader is what an ownership check needs from the wallet service.
+type walletReader interface {
+	Get(ctx context.Context, id string) (*service.WalletRecord, error)
+}
+
+// ownsWallet reports whether the wallet exists and belongs to merchantID. Any
+// lookup failure is "no": an ownership check that fails open is not one.
+func ownsWallet(ctx context.Context, wallets walletReader, walletID, merchantID string) bool {
+	if wallets == nil || walletID == "" || merchantID == "" {
+		return false
+	}
+	w, err := wallets.Get(ctx, walletID)
+	return err == nil && w != nil && w.MerchantID == merchantID
 }

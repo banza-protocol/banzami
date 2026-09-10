@@ -19,9 +19,17 @@ import (
 
 type PaymentLinkHandler struct {
 	seal        bindingSealer
+	wallets     walletReader
 	svc         service.PaymentLinkService
 	merchantSvc service.MerchantService
 	webhookSvc  service.WebhookService
+}
+
+// WithWallets gives the handler what it needs to check that a Business's link
+// pays into its own wallet. Without it every merchant-created link is refused.
+func (h *PaymentLinkHandler) WithWallets(w walletReader) *PaymentLinkHandler {
+	h.wallets = w
+	return h
 }
 
 func NewPaymentLinkHandler(svc service.PaymentLinkService, merchantSvc service.MerchantService, webhookSvc service.WebhookService) *PaymentLinkHandler {
@@ -152,6 +160,15 @@ func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 		if body.MerchantID != "" && body.MerchantID != mid {
 			apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
 				"a payment link may only be created for the authenticated merchant")
+			return
+		}
+		// And into its OWN wallet. The wallet was taken from the body with no
+		// ownership check anywhere down to core, and acquiring credits the
+		// link's wallet — so Business A could open a link collecting into
+		// Business B's wallet. Answered as not found: no existence oracle.
+		if body.WalletID != "" && !ownsWallet(r.Context(), h.wallets, body.WalletID, mid) {
+			businessTenantDenials.WithLabelValues(tenantSurfacePaymentLink).Inc()
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found")
 			return
 		}
 		req.MerchantID = mid
