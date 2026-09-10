@@ -202,8 +202,14 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 
 	// Public transaction-proof verification (BANZA ADR-023) — no auth, rate-limited,
 	// safe fields only. The QR/short link on every receipt resolves here.
-	r.With(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits)).
-		Get("/v1/public/proofs/{ref}", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Verify)
+	// The legacy limiter runs INSIDE the generic one and before the handler, so a
+	// 429 is decided without ever asking whether the proof exists.
+	r.With(
+		middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits),
+		middleware.ProofVerifyRateLimit(deps.Redis, func(ref string) bool {
+			return service.ClassifyReference(ref) == service.ReferenceLegacyV0
+		}),
+	).Get("/v1/public/proofs/{ref}", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Verify)
 
 	// Public Business onboarding — no JWT required.
 	r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)

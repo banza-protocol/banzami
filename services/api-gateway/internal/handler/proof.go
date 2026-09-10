@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -51,14 +52,23 @@ func clientIP(r *http.Request) string {
 // GET /v1/public/proofs/{proof_reference}
 func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	if h.svc == nil {
+		middleware.RecordProofVerify(middleware.RefClassInvalid, middleware.ProofResultUnavailable)
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"exists": false, "status": "UNAVAILABLE", "message": "verificação temporariamente indisponível"})
 		return
 	}
 	ref := strings.TrimSpace(chi.URLParam(r, "ref"))
+	refClass := middleware.RefClassInvalid
+	switch service.ClassifyReference(ref) {
+	case service.ReferenceLegacyV0:
+		refClass = middleware.RefClassLegacyV0
+	case service.ReferenceSecureV1:
+		refClass = middleware.RefClassSecureV1
+	}
 	proof, err := h.svc.GetByReference(r.Context(), ref)
 	if err != nil {
 		if errors.Is(err, service.ErrProofNotFound) {
 			// Friendly 404 — the anti-fraud message is the point.
+			middleware.RecordProofVerify(refClass, middleware.ProofResultNotFound)
 			writeJSON(w, http.StatusNotFound, map[string]any{
 				"exists":  false,
 				"status":  "NOT_FOUND",
@@ -66,14 +76,23 @@ func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
+		middleware.RecordProofVerify(refClass, middleware.ProofResultError)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"exists": false, "status": "ERROR", "message": "não foi possível verificar"})
 		return
 	}
 	// Record the verification (hashed ip/ua only) and bump the counter.
 	h.svc.RecordVerification(r.Context(), proof.ID, h.hash(clientIP(r)), h.hash(r.UserAgent()), "")
 
-	// Flow log — public proof status, no PII (correlation_id added by obs).
-	slog.InfoContext(r.Context(), "proof.verify", "reference", ref, "status", proof.Status)
+	// Flow log — class and outcome only.
+	//
+	// This logged the full reference. A public proof reference is a BEARER
+	// capability: anyone holding it learns the amount, both @handles and the
+	// description, so writing it to every log sink turns the log into a
+	// distribution channel for the thing it is describing. The class is enough to
+	// understand traffic, and the proof id is already the durable audit link.
+	slog.InfoContext(r.Context(), "proof.verify",
+		"reference_class", refClass, "proof_id", proof.ID, "status", proof.Status)
+	middleware.RecordProofVerify(refClass, middleware.ProofResultVerified)
 
 	w.Header().Set("Cache-Control", "public, max-age=15")
 	// The verification is still recorded above (operator analytics), but the
