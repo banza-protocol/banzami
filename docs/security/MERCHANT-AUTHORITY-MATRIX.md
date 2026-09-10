@@ -58,7 +58,8 @@ No credentials, tokens or secrets appear here.
 | `/v1/consumers/{id}` | GET | path id | none — any merchant may read any consumer's handle/status/created_at | **See note 1** |
 | `/v1/consumers/handle/{handle}` | GET | handle | none — by design: handle lookup is how a payer is addressed | SAFE (directory) |
 | `/v1/merchant/wallet-payments` | GET | — | scoped by principal | SAFE (derived) |
-| `/v1/integration` | GET | — | self-scoped | SAFE (derived) |
+| `/v1/integration` | GET | — | self-scoped to the merchant session; a Project key → 403 `USE_FINANCIAL_SETUP` (ADR-057) | SAFE (derived) |
+| `/v1/financial-setup` | GET | `fee_destination` (optional @banza to evaluate) | Project key (`identity:read`); owner from the Project binding; no owner/wallet/account ids returned (ADR-057) | SAFE (derived) |
 | `/v1/merchant/transactions/{id}/receipt.pdf` | GET | path id | wallet_payments scoped by principal | SAFE |
 
 ## Merchant-owned resources

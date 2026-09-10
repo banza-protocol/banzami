@@ -44,11 +44,14 @@ account. Plain QRs and P2P are unaffected.
 
 ### Settle out of an account
 `POST /v1/application-settlements {source_account_id, beneficiary_banza_name,
-fee_destination_banza_name, application_fee_bps}` → gross = the account's balance →
-only that account is debited → the fee is **app-defined** (`application_fee_bps`,
-ADR-029; operator `pricing_rules` are not used) → `application_settlement.completed`
-webhook. (The operator-priced `/v1/application-settlements` + `fee_policy_ref` path
-remains for operator-priced settlements.)
+fee_destination_banza_name}` → gross = the account's balance → only that account is
+debited → the fee is **operator-priced** from the `SETTLEMENT` rule of the owner's
+assigned pricing profile ([ADR-057](../../adr/ADR-057-project-financial-readiness.md));
+the fee destination is required and validated (ADR-028) only when that fee is > 0 →
+`application_settlement.completed` webhook. The request carries no rate: a caller
+pricing field (`application_fee_bps`, `fee_policy_ref`, …) is refused with 400
+`PRICING_FIELD_NOT_ACCEPTED`. (*Historical:* the ADR-029 app-defined
+`application_fee_bps` path is removed.)
 
 ## Invariants
 - Exactly one `PRIMARY` per wallet (partial unique index).

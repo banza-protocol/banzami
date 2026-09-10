@@ -37,7 +37,9 @@ app-specific logic** (no `doa_fee`, no campaign rules).
 
 Both are resolved by the **same Pricing Engine** (`core/pricing`) from references
 — so percentages live **only** in `pricing_rules`, never hard-coded. The
-application fee uses the settlement's own `business_category`/`pricing_profile`.
+application fee uses the `pricing_profile` the operator assigned to the owner
+(the gateway resolves it from the merchant's record; ADR-057). A category selects
+nothing.
 
 ```
 payment → Operator Fee → NET into the campaign wallet      (increment 3)
@@ -106,20 +108,25 @@ recomputes the Operator Fee, never touches old PaymentIntents.
   debit total equals the gross.
 - **INV-APPSETTLE-006** — the application fee is resolved only by the Pricing
   Engine; no percentage exists in this crate.
-- **INV-APPSETTLE-007** (ADR-028) — an application fee may only be paid to a
-  **validated Business Account**: the fee destination must resolve to a merchant
-  that is KYB-approved, active, and of a permitted type (`APPLICATION`/`PLATFORM`).
-  Enforced fail-closed in `guard_application_fee_destination` before the settlement
-  is created — an unvetted fee destination is rejected, never rerouted. This is the
-  teeth behind "an app that takes a cut must be a Banzami Business Account."
-- **INV-APPSETTLE-008** (ADR-029) — the application fee is resolved one of two
-  mutually-exclusive ways: **app-defined** (`application_fee_bps` set ⇒ the operator
-  computes `floor(gross*bps/10000)` and the Pricing Engine / `pricing_rules` are NOT
-  consulted; the snapshot is marked `APP_DEFINED` and no pricing rule is pinned), or
-  **operator-priced** (`fee_policy_ref` ⇒ the Pricing Engine, INV-APPSETTLE-006). An
-  app-defined `bps` is bounded by `MAX_APPLICATION_FEE_BPS` (5000 = 50%), an
-  anti-abuse guardrail — not operator pricing. So the **operator never decides an
-  app's commercial rate**: it validates and executes (ADR-029). DOA's 5% is `bps=500`.
+- **INV-APPSETTLE-007** (ADR-028, as stated in ADR-057 §4) — when the resolved
+  application fee is greater than zero it may only be paid to a **validated
+  Business Account**: the fee destination must exist and be `ACTIVE`, be KYB
+  `APPROVED`, hold an `ACTIVE` wallet containing the destination account, and be
+  classified `APPLICATION`/`PLATFORM` (an operator-only, audited decision; default
+  `MERCHANT`). Every condition is evaluated by `evaluate_fee_destination`, which
+  both `guard_application_fee_destination` (settlement) and
+  `POST /internal/v1/settlement-readiness` call. Fail-closed: an unvetted
+  destination is rejected, never rerouted. When the resolved fee is zero no
+  destination is required and a named one is not validated. No dedicated
+  application-purpose wallet account is required.
+- **INV-APPSETTLE-008** (ADR-057) — the application fee is resolved **only** by the
+  Pricing Engine, from the `SETTLEMENT` rule of the pricing profile the operator
+  assigned (`resolve_settlement_fee`). No caller supplies a rate: the public
+  surface refuses `application_fee_bps` and every other pricing field with 400
+  `PRICING_FIELD_NOT_ACCEPTED`. *Historical:* under ADR-029 (superseded) an
+  app-defined `application_fee_bps` skipped the Pricing Engine (snapshot
+  `APP_DEFINED`, bounded at 5000 = 50%); that path is removed from the domain
+  request, the route and the engine.
 
 ---
 
@@ -177,6 +184,7 @@ application fee, balanced postings, idempotency, internal events, real-DB tests
 (increment 4); the operator-only internal HTTP API + route test (increment 5).
 
 **Not** in these increments: the app consumers — **DOA first**, then Mongo /
-marketplace / crowdfunding — which call this capability with their own
-`business_category`/profile and decide *when* to settle (increment 6). No
+marketplace / crowdfunding — which call this capability and decide *when* to
+settle (increment 6); the profile that prices them is the operator's assignment
+(ADR-057), never theirs. No
 DOA-specific logic exists here by design.

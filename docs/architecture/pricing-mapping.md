@@ -1,90 +1,96 @@
 # Pricing Mapping — Banzami
 
-How a merchant's category becomes an operator fee, and how that differs from a
-platform's own application fee (e.g. DOA's 2%).
+How an owner's fee rate is decided, and why a merchant's category no longer
+selects it.
 
-See also [business-taxonomy.md](./business-taxonomy.md) and Banzami ADR-021
-(Pricing Engine) / ADR-031 (transaction_type dimension).
+Canonical model: [economic-model.md](./economic-model.md). Decisions: Banzami
+ADR-021 (Pricing Engine) · ADR-031 (operation dimension) ·
+[ADR-057](../adr/ADR-057-project-financial-readiness.md) (the operator alone
+prices; supersedes ADR-029).
 
-## The chain
+## The current chain
 
 ```
-category (onboarding)
-   │  resolvePricing()  (lib/business-taxonomy.ts)
+operator assigns a pricing profile to the owner   (BANZADMIN, audited)
+   │
    ▼
-business_category  +  pricing_category
-   │  stored on the merchant at onboarding
+fee-bearing operation being executed               (SETTLEMENT | PAYOUT)
+   │  core/pricing — (profile, operation, effective window) → exactly one rule
    ▼
-payment / merchant payment carries business_category (+ pricing_profile, transaction_type)
-   │  core/pricing rule_matches (business_category + currency [+ transaction_type])
-   ▼
-operator fee (rate_bps, flat, rounding)
+fee (rate_bps, flat, rounding) + immutable snapshot
 ```
 
-The Pricing Engine (`core/pricing`) resolves a rule by matching the transaction's
-`business_category` against a rule's `business_category` (plus currency and the
-optional `transaction_type` matcher). `pricing_category` from the taxonomy is the
-value used for that match.
-
-## business_category_pricing_map
-
-The mapping is the taxonomy itself (`BUSINESS_TAXONOMY`): `category → { businessCategory, pricingCategory }`.
-No per-merchant manual rule selection.
-
-| pricing_category | seeded rule (SANDBOX) | fee |
+| profile (SANDBOX) | SETTLEMENT | PAYOUT |
 |---|---|---|
-| DONATION | donation-standard | 2.5% (250 bps) |
-| MARKETPLACE | marketplace-standard | 1.5% (150 bps) |
-| MERCHANT_PAYMENT | merchant-payment-standard | fallback (currently disabled → 0) |
+| `sandbox-default` — self-service default | 0 bps (explicit) | 75 bps |
+| `sandbox-reference` — controlled non-zero policy | 200 bps | 75 bps |
 
-> Note: the seeded rules use `business_category` values `DONATION`, `MARKETPLACE`
-> (uppercase) and `merchant_payment` (lowercase). The taxonomy uses the uppercase
-> canonical `MERCHANT_PAYMENT`; normalising the general-commerce rule key is a
-> backend follow-up (the rule is disabled today, so the fallback is fee-free).
+No per-caller input participates. `business_category`, `pricing_profile`,
+`fee_policy_ref`, a rate or a fee sent by a caller is refused (400
+`PRICING_FIELD_NOT_ACCEPTED` on the settlement request).
 
-## Operator fee vs application fee
+## Where the category still appears
 
-Two **separate** fees that must never be conflated:
+The onboarding taxonomy (`apps/website/lib/business-taxonomy.ts`,
+[business-taxonomy.md](./business-taxonomy.md)) still records a category and a
+derived `pricing_category` for a merchant. Both are **descriptive**: no pricing
+rule is keyed on a category, and neither selects a rate.
 
-| | Operator fee (Banzami) | Application fee (DOA) |
+## The settlement fee: who prices, who receives
+
+There is one fee on an application settlement, and its two halves belong to
+different parties:
+
+| | Rate | Recipient |
 |---|---|---|
-| Owner | Banzami operator | The app (DOA) |
-| Defined in | BANZADMIN pricing rules | DOA settings |
-| Selected by | `pricing_category` (merchant category) | the app, per settlement |
-| Wire field | pricing rule → transaction fee | `application_fee_bps` |
-| Example | donation-standard = 2.5% | 2% (200 bps) → @doa |
+| Decided by | the operator — the assigned profile's `SETTLEMENT` rule | the application — `fee_destination_banza_name` |
+| Configured in | BANZADMIN (profile assignment + pricing rules) | the settlement request |
+| Validated by | the Pricing Engine (0 / 1 / >1 rule) | ADR-028 when the resolved fee > 0 |
 
-DOA sends `application_fee_bps = 200` at settlement (ADR-029). This is DOA's
-platform commission, taken on top of / separate from any operator fee. It is NOT
-a Banzami pricing rule and never appears in BANZADMIN pricing.
+The operator's withdrawal fee is the profile's `PAYOUT` rule, charged when money
+leaves the network. Neither appears as a value the application sends.
 
 ## Examples
 
-**DOA (donation platform)**
+**Ordinary Project on `sandbox-default`**
 ```
-category = Doações e causas → business_category = donation, pricing_category = DONATION
-operator fee     = donation-standard (2.5%)
-application fee  = 2% (application_fee_bps=200 → @doa)   ← DOA's own, separate
-```
-
-**Marketplace**
-```
-category = Marketplace e plataformas → business_category = marketplace, pricing_category = MARKETPLACE
-operator fee = marketplace-standard (1.5%)
+settlement fee = 0 bps  → no fee destination required; a named one is not validated
+payout fee     = 75 bps
 ```
 
-**Restaurante**
+**Owner on `sandbox-reference`**
 ```
-category = Alimentação e bebidas → business_category = food_and_drinks, pricing_category = MERCHANT_PAYMENT
-operator fee = merchant-payment fallback (disabled → 0 today)
+gross 100 000 → settlement fee 2 000 (200 bps) → fee destination, net 98 000 → beneficiary
+fee destination must be ACTIVE, KYB APPROVED, hold an ACTIVE wallet with the
+account, and be classified APPLICATION or PLATFORM (operator decision)
 ```
 
-## Fallback & conflict avoidance
+**DOA**
+```
+rate      = the SETTLEMENT rule of the profile the operator assigned to @doa's owner
+recipient = @doa (named by DOA)
+```
 
-- **Fallback**: unmapped/`other` → `MERCHANT_PAYMENT` with `fallback: true`
-  (operator reviews before activation).
-- **Missing mapping** blocks activation (`resolvePricing()` → `null`).
-- **Conflict**: at most one enabled rule should match a given
-  (business_category, currency, transaction_type); overlapping enabled rules are
-  a configuration error surfaced in BANZADMIN (specificity + `priority` break
-  ties in the engine).
+## Conflict avoidance
+
+- **No rule** → `PRICING_NOT_CONFIGURED` (someone must assign a policy; never
+  priced at zero by accident).
+- **More than one rule** → `PRICING_CONFIGURATION_ERROR` (refused, never ranked).
+- Every assigned profile must have exactly one rule per released operation
+  (`tools/check-pricing-assignment.mjs`).
+
+## Historical (superseded)
+
+The mapping below described the retired model and is kept for context only.
+
+- **Category chain.** `category (onboarding) → resolvePricing() → business_category
+  + pricing_category → core/pricing rule_matches(business_category + currency
+  [+ transaction_type]) → operator fee`. Seeded SANDBOX rules then were
+  `donation-standard` (DONATION, 250 bps), `marketplace-standard` (MARKETPLACE,
+  150 bps) and `merchant-payment-standard` (disabled → 0). Replaced by the
+  profile model above ([economic-model.md](./economic-model.md)).
+- **Operator fee vs application fee as two rates.** The operator fee was
+  selected by `pricing_category`; the application fee was a rate the app chose
+  and sent as `application_fee_bps` (ADR-029) — e.g. DOA sent
+  `application_fee_bps = 200` → @doa. ADR-057 removed the caller-sent rate: the
+  application now names only the recipient.

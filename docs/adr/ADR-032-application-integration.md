@@ -5,6 +5,8 @@
 (application business account), ADR-029 (application-defined settlement fees),
 ADR-030 (payment sessions), ADR-031 (transaction-type pricing).
 
+> **Superseded in part (2026-09-10):** the app-defined application fee this ADR references (`application_fee_bps`, ADR-029; decisions 4 and 7) was superseded by [ADR-057](ADR-057-project-financial-readiness.md) — the operator's assigned pricing profile sets the rate, the app names only the fee destination, and a Project reads its readiness from `GET /v1/financial-setup`.
+
 ## Context
 
 Multiple applications integrate with the Banzami operator — first-party apps,
