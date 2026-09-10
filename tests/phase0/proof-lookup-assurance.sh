@@ -34,7 +34,11 @@ POOL=()
 pool_up(){ local n="$1" i; for i in $(seq 1 "$n"); do
   POOL+=("$(docker run -d --rm --network "$NET" --entrypoint sleep "$IMG" 900)"); done; }
 pool_down(){ [ ${#POOL[@]} -gt 0 ] && docker rm -f "${POOL[@]}" >/dev/null 2>&1; }
-trap pool_down EXIT
+# The run's own cleanup (lib/e2e-run.sh) owns the EXIT trap; the client pool
+# goes with it, however the script ends.
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+E2E_ALSO='pool_down'
+e2e_begin
 # client <n> <refs...>: lookups from pool member n; one status per reference.
 client(){ local c="${POOL[$1]}"; shift; docker exec "$c" sh -c '
   for r in "$@"; do curl -s -o /dev/null -w "%{http_code}\n" "'"$TARGET"'/$r"; done' sh "$@"; }
