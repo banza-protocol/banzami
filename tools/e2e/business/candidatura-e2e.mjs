@@ -160,12 +160,20 @@ async function journey(browser, { name, viewport, validations }) {
     { note: `${posts.length} POST(s), ${ids.length} application id(s)`, application_id: ids[0] });
   rec(`${name}: the applicant sees a reference`, /Referência da candidatura/.test(reference), { note: reference.trim() });
 
+  // The form uploads one document after another once the application exists,
+  // showing each one's progress under the reference. Read the server's list
+  // until the required ones are there (or 30 s pass), not at the first frame.
   let docs = [];
-  if (ids[0]) {
+  const uploadedNow = () => docs.filter((d) => d.status === 'UPLOADED').map((d) => d.document_type).sort();
+  for (let i = 0; ids[0] && i < 30; i++) {
     const r = await fetch(`${API}/v1/merchant/applications/${ids[0]}/documents`);
     docs = (await r.json().catch(() => ({}))).data ?? [];
+    const u = uploadedNow();
+    if (u.includes('BUSINESS_REGISTRATION') && u.includes('REPRESENTATIVE_ID')) break;
+    if (await page.getByText('O envio de documentos ainda não está disponível').count() > 0) break;
+    await page.waitForTimeout(1000);
   }
-  const uploaded = docs.filter((d) => d.status === 'UPLOADED').map((d) => d.document_type).sort();
+  const uploaded = uploadedNow();
   const storageOff = await page.getByText('O envio de documentos ainda não está disponível').count() > 0;
   if (storageOff) {
     // The Gateway has no KYB storage: the applicant must be told the documents

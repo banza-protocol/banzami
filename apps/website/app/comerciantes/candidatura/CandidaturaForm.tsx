@@ -694,6 +694,16 @@ export function CandidaturaForm() {
     return true;
   }
 
+  // While a document is still on its way, closing the tab would lose it with no
+  // word to the applicant: the browser is asked to confirm first.
+  const uploadingNow = Object.values(docUpload).some((u) => u?.status === 'uploading');
+  useEffect(() => {
+    if (!uploadingNow) return;
+    const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [uploadingNow]);
+
   async function uploadAllDocs(appId: string) {
     for (const d of DOC_DEFS) {
       const keepGoing = await uploadOne(appId, d.key);
