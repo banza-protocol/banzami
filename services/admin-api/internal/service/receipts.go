@@ -44,9 +44,11 @@ func NewPostgresReceiptSource(pool *pgxpool.Pool) *PostgresReceiptSource {
 //
 // With no proof, the receipt simply renders no verification block.
 func (s *PostgresReceiptSource) existingProofReference(ctx context.Context, txnID, environment string) string {
-	env := strings.TrimSpace(environment)
-	if env == "" {
-		env = "LIVE"
+	// A record with no environment has no proof to show: the lookup is by
+	// environment, and guessing LIVE could show a proof of the wrong record set.
+	env := strings.ToUpper(strings.TrimSpace(environment))
+	if env != "SANDBOX" && env != "LIVE" {
+		return ""
 	}
 	var ref string
 	if err := s.pool.QueryRow(ctx,

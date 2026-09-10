@@ -17,6 +17,7 @@ import (
 // authorisation check must reject BEFORE any merchant/API-key operation runs.
 type recordingMerchants struct {
 	createdKeys int
+	lastKeyEnv  service.ApiKeyEnvironment
 	listedKeys  int
 	revoked     int
 	suspended   int
@@ -36,6 +37,7 @@ func (f *recordingMerchants) Suspend(ctx context.Context, id string) (*service.M
 }
 func (f *recordingMerchants) CreateApiKey(ctx context.Context, merchantID, name string, env service.ApiKeyEnvironment) (*service.ApiKeyWithSecret, error) {
 	f.createdKeys++
+	f.lastKeyEnv = env
 	return &service.ApiKeyWithSecret{}, nil
 }
 func (f *recordingMerchants) ListApiKeys(ctx context.Context, merchantID string) ([]*service.ApiKeyRecord, error) {
@@ -144,9 +146,32 @@ func TestMerchantSelfServiceStillWorks(t *testing.T) {
 
 	rec = httptest.NewRecorder()
 	h.CreateApiKey(rec, merchantReq("POST", "/v1/merchants/me/api-keys", "own-merchant", "own-merchant",
-		`{"name":"my key","environment":"SANDBOX"}`))
+		`{"name":"my key","environment":"LIVE"}`))
 	if rec.Code != http.StatusCreated || svc.createdKeys != 1 {
 		t.Fatalf("owner denied own key creation: %d %s", rec.Code, rec.Body.String())
+	}
+}
+
+// A key opens the environment of the session that asks for it: an omitted
+// environment is the session's (it used to be LIVE), and naming the other one
+// is refused — one stack's key cannot open the other anyway.
+func TestApiKeyEnvironmentIsTheSessions(t *testing.T) {
+	svc := &recordingMerchants{}
+	h := NewMerchantHandler(svc)
+	sandboxReq := func(body string) *http.Request {
+		req := merchantReq("POST", "/v1/merchants/me/api-keys", "own-merchant", "own-merchant", body)
+		return req.WithContext(middleware.ContextWithPrincipal(req.Context(),
+			&middleware.Principal{MerchantID: "own-merchant", Scopes: []string{"*"}, Environment: "SANDBOX"}))
+	}
+	rec := httptest.NewRecorder()
+	h.CreateApiKey(rec, sandboxReq(`{"name":"k"}`))
+	if rec.Code != http.StatusCreated || svc.lastKeyEnv != "SANDBOX" {
+		t.Fatalf("omitted environment in a Sandbox session: %d env=%q; want 201 SANDBOX", rec.Code, svc.lastKeyEnv)
+	}
+	rec = httptest.NewRecorder()
+	h.CreateApiKey(rec, sandboxReq(`{"name":"k","environment":"LIVE"}`))
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("a Sandbox session asking for a LIVE key: %d; want 400", rec.Code)
 	}
 }
 

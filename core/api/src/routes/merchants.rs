@@ -179,7 +179,8 @@ pub async fn suspend_merchant(
 #[derive(Deserialize)]
 pub struct CreateApiKeyBody {
     pub name: String,
-    /// "LIVE" or "SANDBOX" — defaults to "LIVE" if omitted.
+    /// "LIVE" or "SANDBOX" — required. It used to default to LIVE when
+    /// omitted, minting a real-money key for a caller that forgot to say.
     pub environment: Option<String>,
 }
 
@@ -196,10 +197,11 @@ pub async fn create_api_key(
         return Err(ApiError::bad_request("name is required"));
     }
 
-    let environment = match body.environment.as_deref() {
-        Some("SANDBOX") => ApiKeyEnvironment::Sandbox,
-        _ => ApiKeyEnvironment::Live,
-    };
+    let environment = body
+        .environment
+        .as_deref()
+        .and_then(ApiKeyEnvironment::parse)
+        .ok_or_else(|| ApiError::bad_request("environment must be SANDBOX or LIVE"))?;
 
     let key_secret = state
         .merchant

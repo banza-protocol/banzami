@@ -5,6 +5,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
 // Config holds all runtime configuration for the admin-api service.
@@ -99,12 +101,14 @@ type Config struct {
 // Load reads config from environment variables.
 // Missing required values cause an error.
 func Load() (*Config, error) {
-	// The primary database's environment label. Defaults to LIVE so an existing
-	// live deployment behaves exactly as before; a Sandbox-only stack sets
-	// ENVIRONMENT=SANDBOX and the console stops calling Sandbox data LIVE.
-	environment := strings.ToUpper(strings.TrimSpace(os.Getenv("ENVIRONMENT")))
-	if environment == "" {
-		environment = "LIVE"
+	// The primary database's environment label, required. It used to default to
+	// LIVE "so an existing live deployment behaves exactly as before" — which
+	// meant a stack that forgot the variable labelled Sandbox data as real money
+	// and minted API keys for it as LIVE. Every deployment sets it; a missing or
+	// unrecognised value is a configuration error, not a guess.
+	environment := banzamienv.Parse(os.Getenv("ENVIRONMENT"))
+	if !environment.IsKnown() {
+		return nil, fmt.Errorf("ENVIRONMENT must be SANDBOX or LIVE (got %q)", strings.TrimSpace(os.Getenv("ENVIRONMENT")))
 	}
 
 	port := 8082
@@ -165,7 +169,7 @@ func Load() (*Config, error) {
 	noreplyAddress := getenvDefault("EMAIL_NOREPLY_ADDRESS", "noreply@banzami.com")
 
 	return &Config{
-		Environment:          environment,
+		Environment:          environment.String(),
 		WebhookEncryptionKey: webhookKey,
 		Port:                 port,
 		CoreAPIURL:           coreURL,

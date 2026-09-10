@@ -6,16 +6,28 @@ use banzami_types::{ApiKeyId, MerchantId};
 /// Whether a key grants access to live or sandbox payment data.
 /// LIVE keys carry the prefix "bz_live_"; SANDBOX keys carry "bz_test_".
 /// These two environments MUST NEVER share financial data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
+///
+/// There is no default: a key that does not say which environment it opens is
+/// not a key. The default used to be LIVE.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum ApiKeyEnvironment {
     #[serde(rename = "LIVE")]
-    #[default]
     Live,
     #[serde(rename = "SANDBOX")]
     Sandbox,
 }
 
 impl ApiKeyEnvironment {
+    /// The canonical wire value, exactly: "SANDBOX" or "LIVE". Anything else,
+    /// including a missing value, is `None` — never LIVE by omission.
+    pub fn parse(raw: &str) -> Option<Self> {
+        match raw {
+            "SANDBOX" => Some(ApiKeyEnvironment::Sandbox),
+            "LIVE" => Some(ApiKeyEnvironment::Live),
+            _ => None,
+        }
+    }
+
     pub fn as_str(&self) -> &'static str {
         match self {
             ApiKeyEnvironment::Live => "LIVE",
@@ -92,4 +104,30 @@ pub(crate) fn hash_key(raw: &str) -> String {
         write!(s, "{b:02x}").unwrap();
         s
     })
+}
+
+#[cfg(test)]
+mod environment_tests {
+    use super::ApiKeyEnvironment;
+
+    // A key names its environment exactly. It used to be LIVE unless it said
+    // SANDBOX, so a missing or misspelled value minted a real-money key.
+    #[test]
+    fn only_the_two_canonical_names_parse() {
+        assert_eq!(
+            ApiKeyEnvironment::parse("SANDBOX"),
+            Some(ApiKeyEnvironment::Sandbox)
+        );
+        assert_eq!(
+            ApiKeyEnvironment::parse("LIVE"),
+            Some(ApiKeyEnvironment::Live)
+        );
+        for bad in ["", "live", "sandbox", "PRODUCTION", " LIVE"] {
+            assert_eq!(
+                ApiKeyEnvironment::parse(bad),
+                None,
+                "{bad:?} must not parse"
+            );
+        }
+    }
 }

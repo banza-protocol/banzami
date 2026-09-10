@@ -55,8 +55,10 @@ func NewProofClient(baseURL, internalKey string) *ProofClient {
 	}
 }
 
-// EnsureReference returns the proof's public reference (BZM-XXXX-XXXX). A nil
-// client or any error yields "" so the receipt falls back to its derived ref.
+// EnsureReference returns the proof's public reference. A nil client or any
+// error returns an error, and the caller issues no receipt: there is no
+// fallback reference (a receipt must never advertise a proof that does not
+// exist).
 func (c *ProofClient) EnsureReference(ctx context.Context, in ProofEnsureInput) (string, error) {
 	if c == nil {
 		return "", errors.New("proof client not configured")

@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	documents "github.com/banzami/banzami/services/common/documents"
+	banzamienv "github.com/banzami/banzami/services/common/env"
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
 	"github.com/banzami/banzami/services/public-api/internal/service"
@@ -52,11 +53,14 @@ func NewReceiptHandler(core ReceiptCore, proofs ProofMinter, environment string)
 	if pc, ok := proofs.(*service.ProofClient); ok && pc == nil {
 		proofs = nil
 	}
-	env := "LIVE"
-	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
-		env = "SANDBOX"
+	// The proof names the environment this stack serves, parsed — not "LIVE
+	// unless it says SANDBOX". The process refuses to boot on an unknown
+	// environment (main.go); here an unknown one issues no receipt at all.
+	parsed := banzamienv.Parse(environment)
+	if !parsed.IsKnown() {
+		proofs = nil
 	}
-	return &ReceiptHandler{core: core, gen: documents.GeneratePDF, proofs: proofs, env: env}
+	return &ReceiptHandler{core: core, gen: documents.GeneratePDF, proofs: proofs, env: parsed.String()}
 }
 
 func nameOf(c *service.ConsumerRecord) string {

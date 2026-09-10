@@ -632,8 +632,9 @@ export class AdminApi {
     return this.req('/admin/v1/merchants', { method: 'POST', body: JSON.stringify({ name, email, currency, sandbox }) });
   }
 
-  createApiKey(merchantId: string, keyName: string): Promise<{ secret: string; key: { id: string } }> {
-    return this.req(`/admin/v1/merchants/${merchantId}/api-keys`, { method: 'POST', body: JSON.stringify({ name: keyName }) });
+  /** The environment is required: admin-api refuses a key that does not name one. */
+  createApiKey(merchantId: string, keyName: string, environment: 'SANDBOX' | 'LIVE'): Promise<{ secret: string; key: { id: string } }> {
+    return this.req(`/admin/v1/merchants/${merchantId}/api-keys`, { method: 'POST', body: JSON.stringify({ name: keyName, environment }) });
   }
 
   resendCredentials(merchantId: string): Promise<{

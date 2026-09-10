@@ -397,10 +397,8 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
 }
 
 fn api_key_from_row(row: ApiKeyRow) -> Result<ApiKey, MerchantError> {
-    let environment = match row.environment.as_str() {
-        "SANDBOX" => ApiKeyEnvironment::Sandbox,
-        _ => ApiKeyEnvironment::Live,
-    };
+    let environment = ApiKeyEnvironment::parse(row.environment.as_str())
+        .ok_or_else(|| MerchantError::UnknownApiKeyEnvironment(row.environment.clone()))?;
     Ok(ApiKey {
         id: ApiKeyId::from_uuid(row.id),
         merchant_id: MerchantId::from_uuid(row.merchant_id),

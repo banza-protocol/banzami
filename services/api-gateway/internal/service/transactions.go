@@ -11,13 +11,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // ErrTransactionNotFound is returned when a transaction does not exist or does
@@ -94,126 +90,6 @@ type TransactionService interface {
 	// environment — a SANDBOX principal cannot read LIVE records and vice-versa.
 	Get(ctx context.Context, merchantID, id, environment string) (*Transaction, error)
 	List(ctx context.Context, req ListTransactionsRequest) (*TransactionPage, error)
-}
-
-// ---------------------------------------------------------------------------
-// Stub — local development only
-// ---------------------------------------------------------------------------
-
-// StubTransactionService returns synthetic transactions without hitting the
-// Rust core. It stores created transactions in memory so that Get and List
-// work correctly within a single process lifetime.
-// Replace with the real gRPC client once the transport is ready.
-type StubTransactionService struct {
-	mu   sync.RWMutex
-	rows []*Transaction // append-only, insertion order
-}
-
-func NewStubTransactionService() *StubTransactionService {
-	return &StubTransactionService{}
-}
-
-func (s *StubTransactionService) Create(_ context.Context, req CreateTransactionRequest) (*Transaction, error) {
-	env := req.Environment
-	if env == "" {
-		env = "LIVE"
-	}
-	tx := &Transaction{
-		ID:             uuid.NewString(),
-		Status:         "PENDING",
-		AmountMinor:    req.AmountMinor,
-		Currency:       req.Currency,
-		MerchantID:     req.MerchantID,
-		IdempotencyKey: req.IdempotencyKey,
-		Description:    req.Description,
-		Environment:    env,
-		CreatedAt:      time.Now().UTC(),
-	}
-	s.mu.Lock()
-	s.rows = append(s.rows, tx)
-	s.mu.Unlock()
-	return tx, nil
-}
-
-func (s *StubTransactionService) Get(_ context.Context, merchantID, id, environment string) (*Transaction, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	for _, tx := range s.rows {
-		if tx.ID == id && tx.MerchantID == merchantID && tx.Environment == environment {
-			cp := *tx
-			return &cp, nil
-		}
-	}
-	return nil, ErrTransactionNotFound
-}
-
-func (s *StubTransactionService) List(_ context.Context, req ListTransactionsRequest) (*TransactionPage, error) {
-	s.mu.RLock()
-	// Collect all transactions for this merchant in the requested environment.
-	var all []*Transaction
-	for _, tx := range s.rows {
-		if tx.MerchantID == req.MerchantID && tx.Environment == req.Environment {
-			cp := *tx
-			all = append(all, &cp)
-		}
-	}
-	s.mu.RUnlock()
-
-	sort.Slice(all, func(i, j int) bool {
-		if all[i].CreatedAt.Equal(all[j].CreatedAt) {
-			return all[i].ID > all[j].ID
-		}
-		return all[i].CreatedAt.After(all[j].CreatedAt)
-	})
-
-	// Apply since filter: exclude transactions older than the lower bound.
-	if req.Since != nil {
-		filtered := all[:0]
-		for _, tx := range all {
-			if !tx.CreatedAt.Before(*req.Since) {
-				filtered = append(filtered, tx)
-			}
-		}
-		all = filtered
-	}
-
-	// Apply cursor filter: skip items that are not older than the cursor position.
-	if req.Cursor != "" {
-		cursorTime, cursorID, err := decodeCursor(req.Cursor)
-		if err == nil {
-			filtered := all[:0]
-			for _, tx := range all {
-				before := tx.CreatedAt.Before(cursorTime)
-				sameTime := tx.CreatedAt.Equal(cursorTime) && tx.ID < cursorID
-				if before || sameTime {
-					filtered = append(filtered, tx)
-				}
-			}
-			all = filtered
-		}
-	}
-
-	limit := req.Limit
-	if limit <= 0 {
-		limit = 20
-	}
-
-	hasMore := len(all) > limit
-	if hasMore {
-		all = all[:limit]
-	}
-
-	var nextCursor string
-	if hasMore && len(all) > 0 {
-		last := all[len(all)-1]
-		nextCursor = encodeCursor(last.CreatedAt, last.ID)
-	}
-
-	return &TransactionPage{
-		Data:       all,
-		NextCursor: nextCursor,
-		HasMore:    hasMore,
-	}, nil
 }
 
 // ---------------------------------------------------------------------------

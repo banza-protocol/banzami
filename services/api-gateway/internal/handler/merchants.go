@@ -11,6 +11,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
 type MerchantHandler struct {
@@ -131,7 +132,7 @@ func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 
 	var body struct {
 		Name        string `json:"name"`
-		Environment string `json:"environment"` // "LIVE" | "SANDBOX"; defaults to "LIVE"
+		Environment string `json:"environment"` // optional; must equal the session's
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_REQUEST", "request body is not valid JSON")
@@ -142,16 +143,23 @@ func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env := service.ApiKeyEnvironmentLive
-	switch body.Environment {
-	case "", "LIVE":
-		env = service.ApiKeyEnvironmentLive
-	case "SANDBOX":
-		env = service.ApiKeyEnvironmentSandbox
-	default:
-		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR",
-			`environment must be "LIVE" or "SANDBOX"`)
+	// A key opens the environment of the session that asks for it. An omitted
+	// field used to mean LIVE, so a Sandbox Business minted a real-money key by
+	// leaving it out; one that names the other environment is refused.
+	principal, _ := middleware.GetPrincipal(r.Context())
+	sessionEnv := banzamienv.Parse(principal.Environment)
+	if !sessionEnv.IsKnown() {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "the session does not name an environment")
 		return
+	}
+	if body.Environment != "" && banzamienv.Parse(body.Environment) != sessionEnv {
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR",
+			"environment must be the session's own ("+sessionEnv.String()+")")
+		return
+	}
+	env := service.ApiKeyEnvironmentLive
+	if sessionEnv.IsSandbox() {
+		env = service.ApiKeyEnvironmentSandbox
 	}
 
 	result, err := h.svc.CreateApiKey(r.Context(), merchantID, body.Name, env)

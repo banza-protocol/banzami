@@ -141,9 +141,14 @@ func (h *MerchantSetupHandler) CreateApiKey(w http.ResponseWriter, r *http.Reque
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		body.Name = "admin-generated"
 	}
-	if !env.Parse(body.Environment).IsSandbox() {
-		body.Environment = "LIVE"
+	// The operator names the environment. Anything that is not SANDBOX used to
+	// become LIVE, so an omitted field minted a real-money key.
+	environment := env.Parse(body.Environment)
+	if !environment.IsKnown() {
+		writeError(w, http.StatusBadRequest, "ENVIRONMENT_REQUIRED", "environment must be SANDBOX or LIVE")
+		return
 	}
+	body.Environment = environment.String()
 
 	result, err := h.core.CreateApiKey(r.Context(), id, body.Name, body.Environment)
 	if err != nil {

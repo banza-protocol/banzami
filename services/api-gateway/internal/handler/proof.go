@@ -144,6 +144,10 @@ func (h *ProofHandler) EnsureProof(w http.ResponseWriter, r *http.Request) {
 		AmountMinor: in.AmountMinor, Currency: in.Currency, Status: in.Status, Description: in.Description,
 		Method: in.Method, LedgerReference: in.LedgerReference, ConfirmedAt: in.ConfirmedAt,
 	})
+	if errors.Is(err, service.ErrProofEnvironmentRequired) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "environment must be SANDBOX or LIVE"})
+		return
+	}
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not ensure proof"})
 		return
@@ -169,7 +173,12 @@ func (h *ProofHandler) Reverse(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "transaction_id is required"})
 		return
 	}
-	if err := h.svc.MarkReversed(r.Context(), in.TransactionID, in.Environment); err != nil {
+	err := h.svc.MarkReversed(r.Context(), in.TransactionID, in.Environment)
+	if errors.Is(err, service.ErrProofEnvironmentRequired) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "environment must be SANDBOX or LIVE"})
+		return
+	}
+	if err != nil {
 		slog.ErrorContext(r.Context(), "proof.mark_reversed.failed", "transaction_id", in.TransactionID, "error", err)
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not reverse proof"})
 		return

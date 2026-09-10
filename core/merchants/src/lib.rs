@@ -43,6 +43,11 @@ pub enum MerchantError {
     #[error("invalid business account type: {0}")]
     InvalidBusinessAccountType(String),
 
+    /// A stored key whose environment is neither SANDBOX nor LIVE. Refused
+    /// rather than read as LIVE.
+    #[error("API key has an unknown environment: {0}")]
+    UnknownApiKeyEnvironment(String),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 }

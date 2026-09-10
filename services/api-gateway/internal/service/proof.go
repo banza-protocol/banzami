@@ -16,6 +16,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
 // Transaction Proof service (BANZA ADR-023). Materializes an immutable, publicly
@@ -295,10 +297,11 @@ func (s *ProofService) updateStatus(ctx context.Context, id, status string) (*Pr
 // materialize the proof as REVERSED the next time a receipt is requested with the
 // reversed transaction status.
 func (s *ProofService) MarkReversed(ctx context.Context, transactionID, environment string) error {
-	if environment == "" {
-		environment = "LIVE"
+	environment, err := proofEnvironment(environment)
+	if err != nil {
+		return err
 	}
-	_, err := s.pool.Exec(ctx, `
+	_, err = s.pool.Exec(ctx, `
 		UPDATE transaction_proofs
 		   SET status = 'REVERSED',
 		       reversed_at = COALESCE(reversed_at, now()),
@@ -386,9 +389,11 @@ func (s *ProofService) ensureWith(
 	mint func() (string, error),
 	maxAttempts int,
 ) (*Proof, error) {
-	if in.Environment == "" {
-		in.Environment = "LIVE"
+	environment, err := proofEnvironment(in.Environment)
+	if err != nil {
+		return nil, err
 	}
+	in.Environment = environment
 	// Normalize to the proof status vocabulary (the transaction_proofs CHECK):
 	// callers pass their own transaction status (e.g. a transfer's "COMPLETED"),
 	// which must map onto {PENDING,CONFIRMED,FAILED,REVERSED,CANCELLED,EXPIRED}.
@@ -581,4 +586,20 @@ func nz(s string) any {
 		return nil
 	}
 	return s
+}
+
+// ErrProofEnvironmentRequired refuses a proof write that does not say which
+// environment it belongs to. The environment decides whether the public lookup
+// can see the proof at all; it used to default to LIVE, so a caller that forgot
+// it minted a Sandbox receipt as real money — the fail-open that produced
+// BZM-F993-38E2's mislabelled rows, one layer down.
+var ErrProofEnvironmentRequired = errors.New("proof environment must be SANDBOX or LIVE")
+
+// proofEnvironment is the canonical spelling of an explicit environment.
+func proofEnvironment(raw string) (string, error) {
+	e := banzamienv.Parse(raw)
+	if !e.IsKnown() {
+		return "", ErrProofEnvironmentRequired
+	}
+	return e.String(), nil
 }

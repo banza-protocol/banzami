@@ -94,3 +94,24 @@ func TestConsumerReceipt_TypedNilProofClientIsTreatedAsMissing(t *testing.T) {
 		t.Fatalf("status = %d, want 503", w.Code)
 	}
 }
+
+// The proof names this stack's environment, parsed. "Anything but SANDBOX is
+// LIVE" stamped a receipt as real money whenever the value was unset or spelled
+// another way; an unrecognised environment now issues no receipt, and a
+// recognised one reaches the proof in its canonical spelling.
+func TestConsumerReceipt_EnvironmentIsParsedNotAssumed(t *testing.T) {
+	for _, bad := range []string{"", "PRODUCTION", "development"} {
+		m := &fakeMinter{ref: secureRef}
+		h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, m, bad)
+		h.gen = stubGen()
+		w, r := newReq(t, "s1")
+		h.ConsumerReceipt(w, r)
+		if w.Code != http.StatusServiceUnavailable || m.calls != 0 {
+			t.Fatalf("environment %q: status %d, proof calls %d; want 503 and none", bad, w.Code, m.calls)
+		}
+	}
+	h := NewReceiptHandler(&fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, &fakeMinter{ref: secureRef}, "sandbox")
+	if h.env != "SANDBOX" {
+		t.Fatalf("env = %q, want SANDBOX", h.env)
+	}
+}

@@ -9,6 +9,7 @@ import (
 // single KYC_SANDBOX_STORAGE_BUCKET (or nothing) is enough, and SANDBOX evidence
 // is never signed against the live bucket.
 func TestSandboxKycStorage_BucketAndFallback(t *testing.T) {
+	t.Setenv("ENVIRONMENT", "LIVE")
 	// Live KYC creds present; no sandbox overrides.
 	t.Setenv("KYC_STORAGE_PROVIDER", "r2")
 	t.Setenv("KYC_STORAGE_ENDPOINT", "https://acct.r2.cloudflarestorage.com")
