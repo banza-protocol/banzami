@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A non-JSON error body now surfaces as `BanzamiApiException` with its status,
   not a `FormatException`.
 
+### Removed
+- `verifyMerchantKyb`. A Business cannot verify itself: KYB is decided by
+  Banzami's review, and `POST /v1/compliance/merchants/verify` is refused with
+  403 `KYB_DECIDED_BY_REVIEW`. Read the decision with `getMerchantKybStatus`
+  and submit documents with `requestMerchantKybDocumentUploadUrl` /
+  `completeMerchantKybDocumentUpload`.
+
 ## [0.1.0] — 2026-05-15
 
 ### Added

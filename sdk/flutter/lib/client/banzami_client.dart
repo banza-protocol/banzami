@@ -722,19 +722,11 @@ class BanzamiClient {
     return _get('/v1/compliance/customers/status');
   }
 
-  /// Submit a merchant business identity for KYB verification. Returns the
-  /// updated compliance record (kyb_status + aml_status).
-  Future<Map<String, dynamic>> verifyMerchantKyb({
-    required String legalName,
-    required String taxId,
-    required String representativeName,
-  }) async {
-    return _postWithRetry('/v1/compliance/merchants/verify', {
-      'legal_name': legalName,
-      'tax_id': taxId,
-      'representative_name': representativeName,
-    });
-  }
+  // verifyMerchantKyb — REMOVED. A Business cannot verify itself: KYB is
+  // decided by Banzami's review of the application and its documents, and
+  // POST /v1/compliance/merchants/verify now answers 403
+  // KYB_DECIDED_BY_REVIEW. The Business App shows the decision
+  // (getMerchantKybStatus) and uploads documents for the review.
 
   /// The authenticated merchant's real KYB status + the 3 business document
   /// slots (read-only). The Business app shows this without re-submitting the
