@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
@@ -85,7 +86,7 @@ func (h *WalletPaymentsHandler) List(w http.ResponseWriter, r *http.Request) {
 	for _, it := range items {
 		out.Items = append(out.Items, walletPaymentDTO{
 			ID:               it.ID,
-			Reference:        reference(it.ID),
+			Reference:        legacyDisplayReference(it.ID),
 			AmountMinor:      it.AmountMinor,
 			Currency:         it.Currency,
 			Status:           it.Status,
@@ -95,4 +96,22 @@ func (h *WalletPaymentsHandler) List(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, out)
+}
+
+// legacyDisplayReference is a SHORT DISPLAY id for the merchant's own payment
+// list. It is NOT a public proof reference.
+//
+// It happens to share the legacy proof shape because both were derived the same
+// way, and for payments predating the proof-before-receipt fix the two values
+// coincide. For payments made after it they do not: the proof reference is
+// SECURE_V1 (24 symbols) while this stays 8. A merchant pasting this value into
+// the public verifier for a NEW payment would get NOT_FOUND — see RECEIPT
+// follow-up; this list should carry the payment's actual proof reference, or a
+// value that does not look like one.
+func legacyDisplayReference(id string) string {
+	hex := strings.ToUpper(strings.ReplaceAll(id, "-", ""))
+	if len(hex) < 8 {
+		return "BZM-" + hex
+	}
+	return "BZM-" + hex[0:4] + "-" + hex[4:8]
 }

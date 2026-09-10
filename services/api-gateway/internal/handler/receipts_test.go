@@ -70,6 +70,7 @@ func TestMerchantReceipt_OwnerOK(t *testing.T) {
 	h := &ReceiptHandler{
 		payments: &fakePayments{wp: sampleWP()}, consumers: &fakeConsumers{rec: sampleConsumer()},
 		merchants: &fakeMerchants{rec: sampleMerchant()}, gen: okGen(),
+		proofs: &fakeEnsurer{ref: "BZM-AAAA-1111"},
 	}
 	w, r := mkReq(t, "m1", "LIVE")
 	h.MerchantReceipt(w, r)
@@ -112,7 +113,9 @@ func TestMerchantReceipt_NotFound404(t *testing.T) {
 }
 
 func TestBuildMerchantReceipt(t *testing.T) {
-	d := buildMerchantReceipt(sampleWP(), sampleConsumer(), sampleMerchant(), reference(sampleWP().ID))
+	// The derived-reference helper is gone from the receipt path: a receipt
+	// reference now only ever comes from the proof service.
+	d := buildMerchantReceipt(sampleWP(), sampleConsumer(), sampleMerchant(), "BZM-1111-2222")
 	if d.Perspective != documents.PerspectiveMerchant {
 		t.Error("wrong perspective")
 	}
@@ -134,4 +137,17 @@ func TestBuildMerchantReceipt(t *testing.T) {
 			t.Errorf("receipt contains %q", bad)
 		}
 	}
+}
+
+// fakeEnsurer stands in for the proof service so both outcomes are reachable.
+type fakeEnsurer struct {
+	ref string
+	err error
+}
+
+func (f *fakeEnsurer) Ensure(ctx context.Context, in service.ProofInput) (*service.Proof, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &service.Proof{ProofReference: f.ref}, nil
 }

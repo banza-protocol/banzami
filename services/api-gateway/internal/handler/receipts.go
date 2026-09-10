@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -34,20 +35,25 @@ type ReceiptHandler struct {
 	payments  walletPaymentLookup
 	consumers consumerLookup
 	merchants merchantLookup
-	proofs    *service.ProofService
-	gen       pdfGenerator
+	// ProofEnsurer, not the concrete service, so both outcomes — proof established
+	// or not — are reachable in a test. A receipt is issued only in the first case.
+	proofs ProofEnsurer
+	gen    pdfGenerator
+}
+
+// ProofEnsurer establishes the durable public proof a receipt may advertise.
+type ProofEnsurer interface {
+	Ensure(ctx context.Context, in service.ProofInput) (*service.Proof, error)
 }
 
 func NewReceiptHandler(p walletPaymentLookup, c consumerLookup, m merchantLookup, proofs *service.ProofService) *ReceiptHandler {
-	return &ReceiptHandler{payments: p, consumers: c, merchants: m, proofs: proofs, gen: documents.GeneratePDF}
-}
-
-func reference(id string) string {
-	hex := strings.ToUpper(strings.ReplaceAll(id, "-", ""))
-	if len(hex) < 8 {
-		return "BZM-" + hex
+	// A nil *ProofService in an interface is not nil — normalise, or the required
+	// dependency check reads as satisfied on a service that does not exist.
+	var ensurer ProofEnsurer
+	if proofs != nil {
+		ensurer = proofs
 	}
-	return "BZM-" + hex[0:4] + "-" + hex[4:8]
+	return &ReceiptHandler{payments: p, consumers: c, merchants: m, proofs: ensurer, gen: documents.GeneratePDF}
 }
 
 func consumerName(c *service.ConsumerRecord) string {
@@ -94,16 +100,28 @@ func (h *ReceiptHandler) MerchantReceipt(w http.ResponseWriter, r *http.Request)
 	payer, _ := h.consumers.Get(r.Context(), wp.ConsumerID)
 	merchant, _ := h.merchants.Get(r.Context(), wp.MerchantID)
 
-	// The receipt is not the proof. Materialize (idempotently) the public,
-	// verifiable proof and use its non-enumerable reference on the document, so the
-	// printed code resolves at banzami.com/r/<ref>. Fall back to the derived
-	// reference only if proofs are unavailable.
-	ref := reference(wp.ID)
-	if h.proofs != nil {
-		if proof, perr := h.proofs.Ensure(r.Context(), proofInputFromPayment(wp, payer, merchant)); perr == nil {
-			ref = proof.ProofReference
-		}
+	// The receipt is not the proof — and it may not be issued without one.
+	//
+	// This fell back to a reference derived from the payment id whenever proofs
+	// were unavailable, which produced a document advertising a verification URL
+	// that no proof backed and that therefore answered "does not exist or may have
+	// been forged" forever. The payment stays complete either way; the receipt can
+	// be requested again once the proof subsystem is healthy.
+	if h.proofs == nil {
+		slog.ErrorContext(r.Context(), "receipt refused: proof service not configured")
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "RECEIPT_UNAVAILABLE",
+			"receipt generation is temporarily unavailable")
+		return
 	}
+	proof, perr := h.proofs.Ensure(r.Context(), proofInputFromPayment(wp, payer, merchant))
+	if perr != nil || proof == nil || proof.ProofReference == "" {
+		slog.ErrorContext(r.Context(), "receipt refused: could not establish public proof",
+			"wallet_payment_id", wp.ID, "error", perr)
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "RECEIPT_UNAVAILABLE",
+			"receipt generation is temporarily unavailable")
+		return
+	}
+	ref := proof.ProofReference
 
 	data := buildMerchantReceipt(wp, payer, merchant, ref)
 

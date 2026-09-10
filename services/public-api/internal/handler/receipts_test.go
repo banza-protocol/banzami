@@ -71,7 +71,10 @@ func stubGen() pdfGenerator {
 
 func TestConsumerReceipt_OwnerOK(t *testing.T) {
 	for _, owner := range []string{"s1", "r1"} {
-		h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()}, gen: stubGen()}
+		// A receipt now requires an established public proof, so the happy path
+		// must supply one. The filename below is that proof's reference.
+		h := &ReceiptHandler{core: &fakeReceiptCore{transfer: sampleTransfer(), consumers: sampleParties()},
+			gen: stubGen(), proofs: &fakeMinter{ref: "BZM-1111-2222"}, env: "SANDBOX"}
 		w, r := newReq(t, owner)
 		h.ConsumerReceipt(w, r)
 		if w.Code != http.StatusOK {
@@ -122,7 +125,10 @@ func TestConsumerReceipt_GenFailure503(t *testing.T) {
 func TestBuildConsumerReceipt(t *testing.T) {
 	p := sampleParties()
 	tx := sampleTransfer()
-	d := buildConsumerReceipt(tx, p["s1"], p["r1"], reference(tx.ID), "SANDBOX")
+	// The derived-reference helper is gone: a receipt reference now only ever
+	// comes from the proof service. buildConsumerReceipt renders whatever it is
+	// handed, so hand it one directly.
+	d := buildConsumerReceipt(tx, p["s1"], p["r1"], "BZM-1111-2222", "SANDBOX")
 	if d.Perspective != documents.PerspectiveConsumer {
 		t.Error("wrong perspective")
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -27,13 +28,30 @@ type pdfGenerator func(context.Context, documents.ReceiptData) ([]byte, error)
 // ReceiptHandler serves the official Consumer transfer receipt (PDF) generated
 // server-side by the shared Document Engine from real `transfers` data.
 type ReceiptHandler struct {
-	core   ReceiptCore
-	gen    pdfGenerator
-	proofs *service.ProofClient // optional; mints the verifiable proof reference
-	env    string               // "LIVE" | "SANDBOX" (gateway proof vocabulary)
+	core ReceiptCore
+	gen  pdfGenerator
+	// ProofMinter, not the concrete client, so the two outcomes that matter —
+	// a proof was established, or it was not — are both reachable in a test.
+	// A receipt is only issued in the first case, and that is the whole contract.
+	proofs ProofMinter
+	env    string // "LIVE" | "SANDBOX" (gateway proof vocabulary)
 }
 
-func NewReceiptHandler(core ReceiptCore, proofs *service.ProofClient, environment string) *ReceiptHandler {
+// ProofMinter establishes the durable public proof a receipt is allowed to
+// advertise. Narrow on purpose: the receipt path needs exactly one thing from it.
+type ProofMinter interface {
+	EnsureReference(ctx context.Context, in service.ProofEnsureInput) (string, error)
+}
+
+func NewReceiptHandler(core ReceiptCore, proofs ProofMinter, environment string) *ReceiptHandler {
+	// A nil *ProofClient stored in an interface is NOT nil. NewProofClient returns
+	// nil when the internal proof authority is unconfigured — precisely the
+	// deployed defect this change exists to stop — and without this normalisation
+	// the required-dependency check would silently pass on a nil client and issue
+	// unverifiable receipts again, through a bug that reads as correct Go.
+	if pc, ok := proofs.(*service.ProofClient); ok && pc == nil {
+		proofs = nil
+	}
 	env := "LIVE"
 	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
 		env = "SANDBOX"
@@ -60,14 +78,6 @@ func handleOf(c *service.ConsumerRecord) string {
 
 // reference derives a human, verifiable reference from a transfer UUID:
 // BZM-XXXX-XXXX (first 8 hex chars, uppercased).
-func reference(id string) string {
-	hex := strings.ToUpper(strings.ReplaceAll(id, "-", ""))
-	if len(hex) < 8 {
-		return "BZM-" + hex
-	}
-	return "BZM-" + hex[0:4] + "-" + hex[4:8]
-}
-
 // GET /v1/consumer/transactions/{id}/receipt.pdf
 func (h *ReceiptHandler) ConsumerReceipt(w http.ResponseWriter, r *http.Request) {
 	consumer, ok := middleware.GetConsumer(r.Context())
@@ -97,15 +107,31 @@ func (h *ReceiptHandler) ConsumerReceipt(w http.ResponseWriter, r *http.Request)
 	sender, _ := h.core.GetConsumer(r.Context(), t.SenderID)
 	recipient, _ := h.core.GetConsumer(r.Context(), t.RecipientID)
 
-	// Mint (idempotently) the verifiable transaction proof so the receipt QR
-	// resolves to a GREEN verification page at banzami.com/r/<ref>. Fall back to
-	// the derived reference if the gateway is unreachable — the QR still renders
-	// (it just won't resolve until a proof exists), never blocking the receipt.
-	ref := reference(t.ID)
-	if h.proofs != nil {
-		if pref, perr := h.proofs.EnsureReference(r.Context(), proofInputFromTransfer(t, sender, recipient, h.env)); perr == nil && pref != "" {
-			ref = pref
-		}
+	// The proof comes FIRST, and a receipt is only issued if it exists.
+	//
+	// This used to fall back to a reference derived from the transfer id whenever
+	// the gateway was unreachable, on the reasoning that the QR "still renders, it
+	// just won't resolve until a proof exists". It never resolved: no proof was
+	// ever minted for it, so every such receipt advertised a verification URL that
+	// answered "does not exist or may have been forged" forever. A receipt that
+	// promises verification it cannot deliver is worse than no receipt — the
+	// transfer is complete and the user can ask again in a moment.
+	//
+	// The error is not swallowed either. A nil client is deterministic
+	// misconfiguration; a failing call is a transient outage; both mean no PDF.
+	if h.proofs == nil {
+		slog.ErrorContext(r.Context(), "receipt refused: proof client not configured")
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "RECEIPT_UNAVAILABLE",
+			"receipt generation is temporarily unavailable")
+		return
+	}
+	ref, perr := h.proofs.EnsureReference(r.Context(), proofInputFromTransfer(t, sender, recipient, h.env))
+	if perr != nil || ref == "" {
+		slog.ErrorContext(r.Context(), "receipt refused: could not establish public proof",
+			"transfer_id", t.ID, "error", perr)
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "RECEIPT_UNAVAILABLE",
+			"receipt generation is temporarily unavailable")
+		return
 	}
 
 	data := buildConsumerReceipt(t, sender, recipient, ref, h.env)
