@@ -49,17 +49,30 @@ SELECT 'TRANSFER_AMOUNT_DIFFERS_FROM_POSTING', count(*)
 
 -- ── Receipts (BZM proofs) ───────────────────────────────────────────────────
 -- A BZM reference is a promise that it resolves: a signed proof of a real
--- transfer, for its amount, with its description verbatim.
+-- transfer, for its amount, with its description as the operation defines it —
+-- a P2P note verbatim; for a payment-link payment, what the Business wrote on
+-- the link (the transfer's own description there was generated, "Payment link:
+-- <slug>", and is never printed), or nothing when it repeats the Business's
+-- reference or context. See docs/api/receipt-semantics.md.
 SELECT 'PROOFS_UNSIGNED', count(*) FROM transaction_proofs WHERE signature_value IS NULL OR signature_value = '';
 SELECT 'PROOFS_OF_MISSING_TRANSFERS', count(*)
   FROM transaction_proofs p WHERE p.transfer_id IS NOT NULL
    AND NOT EXISTS (SELECT 1 FROM transfers t WHERE t.id::text = p.transfer_id);
 SELECT 'PROOF_AMOUNT_DIFFERS_FROM_TRANSFER', count(*)
   FROM transaction_proofs p JOIN transfers t ON t.id::text = p.transfer_id WHERE p.amount_minor <> t.amount_minor;
-SELECT 'PROOF_DESCRIPTION_DIFFERS_FROM_TRANSFER', count(*)
+SELECT 'PROOF_DESCRIPTION_DIFFERS_FROM_OPERATION', count(*)
   FROM transaction_proofs p JOIN transfers t ON t.id::text = p.transfer_id
- WHERE COALESCE(NULLIF(t.description, ''), '') <> COALESCE(NULLIF(p.description, ''), '')
+  LEFT JOIN payment_links pl ON t.idempotency_key = 'pl-pay-' || pl.id::text AND pl.wallet_id = t.recipient_id
+ WHERE COALESCE(NULLIF(CASE WHEN pl.id IS NOT NULL THEN pl.description ELSE t.description END, ''), '')
+       <> COALESCE(NULLIF(p.description, ''), '')
+   AND NOT (pl.id IS NOT NULL AND COALESCE(p.description, '') = ''
+            AND lower(btrim(pl.description)) IN (lower(btrim(COALESCE(p.merchant_reference, ''))), lower(btrim(COALESCE(p.display_context, '')))))
    AND p.issued_at > '2026-09-10';
+SELECT 'PROOF_PRINTS_A_TECHNICAL_LINK_DESCRIPTION', count(*)
+  FROM transaction_proofs WHERE description ~ '^Payment link: ';
+SELECT 'PROOF_OF_A_BUSINESS_PAYMENT_WITHOUT_ITS_PAYEE', count(*)
+  FROM transaction_proofs p JOIN transfers t ON t.id::text = p.transfer_id JOIN wallets w ON w.id = t.recipient_id
+ WHERE p.operation_kind IS DISTINCT FROM 'PAYMENT' OR COALESCE(p.payee_display_name, '') = '' OR p.payee_subject_type IS DISTINCT FROM 'merchant';
 SELECT 'PROOF_REFERENCES_DUPLICATED', count(*) FROM (
   SELECT proof_reference FROM transaction_proofs GROUP BY proof_reference HAVING count(*) > 1) x;
 SELECT 'PROOFS_TOTAL', count(*) FROM transaction_proofs;

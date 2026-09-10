@@ -25,7 +25,8 @@ const ZERO = [
   'LEDGER_TOTAL_DEBITS_MINUS_CREDITS', 'NEGATIVE_BUSINESS_WALLET_ACCOUNT_BALANCES',
   'NEGATIVE_BUSINESS_WALLET_AVAILABLE_BALANCES', 'NEGATIVE_CONSUMER_WALLET_AVAILABLE_BALANCES',
   'COMPLETED_TRANSFERS_WITHOUT_POSTING', 'TRANSFER_AMOUNT_DIFFERS_FROM_POSTING', 'PROOFS_UNSIGNED',
-  'PROOFS_OF_MISSING_TRANSFERS', 'PROOF_AMOUNT_DIFFERS_FROM_TRANSFER', 'PROOF_DESCRIPTION_DIFFERS_FROM_TRANSFER',
+  'PROOFS_OF_MISSING_TRANSFERS', 'PROOF_AMOUNT_DIFFERS_FROM_TRANSFER', 'PROOF_DESCRIPTION_DIFFERS_FROM_OPERATION',
+  'PROOF_PRINTS_A_TECHNICAL_LINK_DESCRIPTION', 'PROOF_OF_A_BUSINESS_PAYMENT_WITHOUT_ITS_PAYEE',
   'PROOF_REFERENCES_DUPLICATED', 'LIVE_DEFAULTED_ENVIRONMENT_COLUMNS', 'BUSINESS_LOGIN_NOT_OWNING_ITS_HANDLE',
   'APPROVED_APPLICATIONS_WITHOUT_RESOLUTION', 'APPLICATION_HOLDS_OF_CLOSED_APPLICATIONS',
   'HANDLES_WITH_MORE_THAN_ONE_OWNER', 'VERIFIED_FLAG_DISAGREES_WITH_KYB', 'WEBHOOK_EVENTS_DELIVERED_TWICE_TO_ONE_ENDPOINT',
@@ -66,6 +67,31 @@ describe('financial assurance counters', () => {
     const c = counts();
     assert.equal(c.PROOFS_UNSIGNED, 1);
     assert.equal(c.PROOFS_OF_MISSING_TRANSFERS, 1);
+  });
+
+  it('a link payment proven the old way — empty payee, generated description — is caught', () => {
+    psql(`INSERT INTO consumers (id, handle, status) VALUES ('c0000000-0000-4000-8000-000000000001','payerx','ACTIVE');
+          INSERT INTO merchants (id, name, email, status) VALUES ('d0000000-0000-4000-8000-000000000001','Loja','l@x.test','ACTIVE');
+          INSERT INTO ledger_accounts (id, account_type, name, currency) VALUES
+            ('a0000000-0000-4000-8000-000000000011','LIABILITY','w1','AOA'), ('a0000000-0000-4000-8000-000000000012','LIABILITY','w2','AOA');
+          INSERT INTO wallets (id, merchant_id, currency, available_account_id, reserved_account_id)
+            VALUES ('e0000000-0000-4000-8000-000000000001','d0000000-0000-4000-8000-000000000001','AOA','a0000000-0000-4000-8000-000000000011','a0000000-0000-4000-8000-000000000012');
+          INSERT INTO payment_links (id, slug, merchant_id, wallet_id, amount_minor, currency, description, status, environment)
+            VALUES ('f0000000-0000-4000-8000-000000000001','f00000000000','d0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000001',100,'AOA','ORD-1','USED','SANDBOX');
+          INSERT INTO transfers (id, idempotency_key, sender_id, recipient_id, amount_minor, currency, status, description, environment)
+            VALUES ('90000000-0000-4000-8000-000000000001','pl-pay-f0000000-0000-4000-8000-000000000001','c0000000-0000-4000-8000-000000000001','e0000000-0000-4000-8000-000000000001',100,'AOA','COMPLETED','Payment link: f00000000000','SANDBOX');
+          INSERT INTO transaction_proofs (proof_reference, transaction_id, transfer_id, environment, amount_minor, currency, description, payee_subject_type, signature_value, issued_at)
+            VALUES ('BZM-TEST-0125','90000000-0000-4000-8000-000000000001','90000000-0000-4000-8000-000000000001','SANDBOX',100,'AOA','Payment link: f00000000000','consumer','sig', now())`);
+    const c = counts();
+    assert.equal(c.PROOF_DESCRIPTION_DIFFERS_FROM_OPERATION, 1);
+    assert.equal(c.PROOF_PRINTS_A_TECHNICAL_LINK_DESCRIPTION, 1);
+    assert.equal(c.PROOF_OF_A_BUSINESS_PAYMENT_WITHOUT_ITS_PAYEE, 1);
+    // …and the canonical proof of the same payment is clean.
+    psql(`UPDATE transaction_proofs SET description='ORD-1', payee_subject_type='merchant', payee_display_name='Loja', operation_kind='PAYMENT' WHERE proof_reference='BZM-TEST-0125'`);
+    const d = counts();
+    assert.equal(d.PROOF_DESCRIPTION_DIFFERS_FROM_OPERATION, 0);
+    assert.equal(d.PROOF_PRINTS_A_TECHNICAL_LINK_DESCRIPTION, 0);
+    assert.equal(d.PROOF_OF_A_BUSINESS_PAYMENT_WITHOUT_ITS_PAYEE, 0);
   });
 
   it('a verification badge that disagrees with the KYB decision is caught', () => {
