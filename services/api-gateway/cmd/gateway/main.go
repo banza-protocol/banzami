@@ -79,6 +79,7 @@ func main() {
 	var teamSvc service.TeamService
 	var merchantCredSvc service.MerchantCredentialService
 	var merchantSessionSvc service.MerchantSessionService
+	var businessLinkCodeSvc service.BusinessLinkCodeService
 	var merchantAppSvc service.MerchantApplicationService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
@@ -152,8 +153,15 @@ func main() {
 		}
 		merchantCredSvc = credSvc
 		merchantSessionSvc = service.NewPostgresMerchantSessionService(dbPool)
+		businessLinkCodeSvc = service.NewPostgresBusinessLinkCodeService(dbPool)
 		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
-		merchantAppAdminSvc = service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
+		appAdmin := service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
+		// Approving a Developer Project's application binds that Project to the
+		// Business it provisions, through developer-api (the binding's owner).
+		if dk := service.NewDeveloperKeyClient(cfg.DeveloperAPIURL, cfg.DeveloperInternalKey); dk != nil {
+			appAdmin.SetProjectBinder(dk)
+		}
+		merchantAppAdminSvc = appAdmin
 		activationSvc = service.NewPostgresActivationService(dbPool)
 		walletPaymentService := service.NewPostgresWalletPaymentService(dbPool)
 		walletPaymentSvc = walletPaymentService
@@ -240,6 +248,7 @@ func main() {
 		TeamSvc:                  teamSvc,
 		MerchantCredSvc:          merchantCredSvc,
 		MerchantSessionSvc:       merchantSessionSvc,
+		BusinessLinkCodeSvc:      businessLinkCodeSvc,
 		MerchantAppSvc:           merchantAppSvc,
 		MerchantAppAdminSvc:      merchantAppAdminSvc,
 		MerchantDocumentSvc:      merchantDocumentSvc,

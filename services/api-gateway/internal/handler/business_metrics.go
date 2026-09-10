@@ -35,6 +35,11 @@ var (
 		Help: "Requests refused because the resource belongs to another Business.",
 	}, []string{"surface"})
 
+	businessLinkCodes = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "banzami_business_link_codes_total",
+		Help: "Business consent codes for connecting a Developer Project, by result.",
+	}, []string{"result"})
+
 	businessApplicationDocuments = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "banzami_business_application_documents_total",
 		Help: "Business application document uploads by result.",
@@ -69,6 +74,11 @@ const (
 	tenantSurfaceQr          = "qr"
 	tenantSurfacePaymentLink = "payment_link"
 	tenantSurfaceCollection  = "collection"
+
+	linkResultIssued   = "issued"
+	linkResultRedeemed = "redeemed"
+	linkResultRefused  = "refused"
+	linkResultNotReady = "business_not_ready"
 
 	docResultUploaded       = "uploaded"
 	docResultContentRefused = "content_mismatch"

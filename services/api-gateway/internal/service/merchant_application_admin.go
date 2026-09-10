@@ -90,6 +90,9 @@ type MerchantApplication struct {
 	Origin string `json:"origin"`
 	// ProjectID is the Developer Project that asked, for DEVELOPER_PROJECT.
 	ProjectID string `json:"project_id,omitempty"`
+	// SubmittedByUserID is the Console user who submitted a Project's
+	// application; the binding approval records is made in their name.
+	SubmittedByUserID string `json:"submitted_by_user_id,omitempty"`
 	// InformationRequest is what the reviewer asked for, while
 	// INFORMATION_REQUIRED.
 	InformationRequest       string     `json:"information_request,omitempty"`
@@ -111,6 +114,16 @@ type ApprovalResult struct {
 	// the application approved and changed nothing. No new activation token is
 	// issued, so no second email is sent.
 	AlreadyApproved bool `json:"already_approved"`
+	// ProjectBinding, for an application from a Developer Project: BOUND when
+	// the Project now receives into the new Business, PENDING when binding it
+	// failed and approving again will retry it, CONFLICT when the Project was
+	// already bound to another Business. Empty for a public application.
+	ProjectBinding string `json:"project_binding,omitempty"`
+}
+
+// ProjectBinder records a Developer Project's payee binding (developer-api).
+type ProjectBinder interface {
+	BindProject(ctx context.Context, projectID, merchantID, walletID, walletAccountID, actorUserID string) error
 }
 
 // LinkResult is the outcome of attaching an application to an existing
@@ -145,6 +158,7 @@ type MerchantApplicationAdminService interface {
 	RequestInformation(ctx context.Context, id, reviewedBy, message string) (MerchantApplication, error)
 	PublicStatus(ctx context.Context, id string) (ApplicationStatus, error)
 	Resubmit(ctx context.Context, id string) (ApplicationStatus, error)
+	LatestForProject(ctx context.Context, projectID string) (ProjectApplication, error)
 }
 
 // coreProvisioner is the slice of core-api provisioning calls the approval flow
@@ -174,8 +188,48 @@ func defaultPricingProfile(environment string) string {
 var requiredApplicationDocuments = []string{"BUSINESS_REGISTRATION", "REPRESENTATIVE_ID"}
 
 type PostgresMerchantApplicationAdminService struct {
-	pool *pgxpool.Pool
-	core coreProvisioner
+	pool     *pgxpool.Pool
+	core     coreProvisioner
+	projects ProjectBinder
+}
+
+// SetProjectBinder wires the Developer Platform, so approving a Project's
+// application binds that Project to the Business it provisions.
+func (s *PostgresMerchantApplicationAdminService) SetProjectBinder(b ProjectBinder) { s.projects = b }
+
+// ensureProjectBinding is the last provisioning step for an application a
+// Developer Project started: the Project receives into the Business the
+// approval created. It is recorded when it succeeds and retried by approving
+// again when it did not; it never undoes the Business, which is real either way.
+func (s *PostgresMerchantApplicationAdminService) ensureProjectBinding(ctx context.Context, app MerchantApplication, merchantID, walletID string) string {
+	if app.Origin != ApplicationOriginDeveloperProject || app.ProjectID == "" {
+		return ""
+	}
+	if app.ProvisioningProjectBound {
+		return "BOUND"
+	}
+	if s.projects == nil || merchantID == "" || walletID == "" {
+		return "PENDING"
+	}
+	var account string
+	if err := s.pool.QueryRow(ctx,
+		`SELECT id::text FROM wallet_accounts WHERE wallet_id = $1 AND purpose = 'PRIMARY' LIMIT 1`, walletID).Scan(&account); err != nil {
+		return "PENDING"
+	}
+	err := s.projects.BindProject(ctx, app.ProjectID, merchantID, walletID, account, app.SubmittedByUserID)
+	switch {
+	case errors.Is(err, ErrProjectBoundElsewhere):
+		_, _ = s.pool.Exec(ctx, `UPDATE merchant_applications SET provisioning_error = $2, updated_at = now() WHERE id = $1`,
+			app.ID, "bind project: the Project is already bound to another Business")
+		return "CONFLICT"
+	case err != nil:
+		_, _ = s.pool.Exec(ctx, `UPDATE merchant_applications SET provisioning_error = $2, updated_at = now() WHERE id = $1`,
+			app.ID, "bind project: "+err.Error())
+		return "PENDING"
+	}
+	_, _ = s.pool.Exec(ctx,
+		`UPDATE merchant_applications SET provisioning_project_bound = true, provisioning_error = NULL, updated_at = now() WHERE id = $1`, app.ID)
+	return "BOUND"
 }
 
 func NewPostgresMerchantApplicationAdminService(pool *pgxpool.Pool, core coreProvisioner) *PostgresMerchantApplicationAdminService {
@@ -191,7 +245,7 @@ const appCols = `id::text, status, environment, desired_handle, business_name,
 	COALESCE(provisioning_wallet_id::text,''), COALESCE(provisioning_api_key_prefix,''), provisioning_compliance_done,
 	COALESCE(provisioning_error,''), provisioning_attempts,
 	claims_existing_business, COALESCE(resolution,''),
-	origin, COALESCE(project_id::text,''), COALESCE(information_request,''), provisioning_project_bound,
+	origin, COALESCE(project_id::text,''), COALESCE(submitted_by_user_id::text,''), COALESCE(information_request,''), provisioning_project_bound,
 	created_at, reviewed_at`
 
 func scanApplication(row pgx.Row) (MerchantApplication, error) {
@@ -205,7 +259,7 @@ func scanApplication(row pgx.Row) (MerchantApplication, error) {
 		&a.ProvisioningWalletID, &a.ProvisioningApiKeyPrefix, &a.ProvisioningComplianceDone,
 		&a.ProvisioningError, &a.ProvisioningAttempts,
 		&a.ClaimsExistingBusiness, &a.Resolution,
-		&a.Origin, &a.ProjectID, &a.InformationRequest, &a.ProvisioningProjectBound,
+		&a.Origin, &a.ProjectID, &a.SubmittedByUserID, &a.InformationRequest, &a.ProvisioningProjectBound,
 		&a.CreatedAt, &a.ReviewedAt)
 	return a, err
 }
@@ -357,6 +411,8 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 			ApplicationID: id, MerchantID: app.CreatedMerchantID, BusinessName: app.BusinessName,
 			Email: app.Email, Handle: app.DesiredHandle, Environment: app.Environment,
 			ApiKeyPrefix: app.ProvisioningApiKeyPrefix, AlreadyApproved: true,
+			// Approving again is how a Project binding that failed is retried.
+			ProjectBinding: s.ensureProjectBinding(ctx, app, app.CreatedMerchantID, app.ProvisioningWalletID),
 		}, nil
 	}
 	// PROVISIONING_FAILED is re-approvable too — that IS the reprocess path.
@@ -544,6 +600,7 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		Environment:     app.Environment,
 		ActivationToken: rawToken,
 		ApiKeyPrefix:    apiKeyPrefix,
+		ProjectBinding:  s.ensureProjectBinding(ctx, app, merchantID, walletID),
 	}, nil
 }
 

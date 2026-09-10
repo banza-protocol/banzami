@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -63,7 +64,30 @@ type MerchantApplicationInput struct {
 	// same key returns the application the first one created.
 	IdempotencyKey string
 	TermsAccepted  bool
+	// Origin is where the application was started: ApplicationOriginStandalone
+	// (the public form) or ApplicationOriginDeveloperProject (a Project's
+	// Financial Setup, with ProjectID and the Console user who submitted).
+	// Required: no writer is assumed to be the public form.
+	Origin            string
+	ProjectID         string
+	SubmittedByUserID string
 }
+
+// Application origins (migration 0121).
+const (
+	ApplicationOriginStandalone       = "STANDALONE_BUSINESS"
+	ApplicationOriginDeveloperProject = "DEVELOPER_PROJECT"
+)
+
+var (
+	// ErrApplicationOrigin: the origin is missing, unknown, or inconsistent
+	// with a Project (a Project application names its Project; a public one
+	// never does).
+	ErrApplicationOrigin = errors.New("application origin is missing or inconsistent")
+	// ErrProjectHasOpenApplication: a Project has at most one application in
+	// progress.
+	ErrProjectHasOpenApplication = errors.New("this Project already has an application in progress")
+)
 
 type MerchantApplicationService interface {
 	CheckHandle(ctx context.Context, handle string) (available bool, reason string, err error)
@@ -138,6 +162,23 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	}
 	if in.BusinessName == "" || in.Email == "" || !in.TermsAccepted {
 		return "", ErrApplicationIncomplete
+	}
+	switch in.Origin {
+	case ApplicationOriginStandalone:
+		if in.ProjectID != "" {
+			return "", ErrApplicationOrigin
+		}
+	case ApplicationOriginDeveloperProject:
+		// A Project that already has a Business connects it with the
+		// Business's consent (a link code), not by claiming its handle here.
+		if in.ProjectID == "" || in.ExistingBusiness {
+			return "", ErrApplicationOrigin
+		}
+		if _, err := uuid.Parse(in.ProjectID); err != nil {
+			return "", ErrApplicationOrigin
+		}
+	default:
+		return "", ErrApplicationOrigin
 	}
 	env := "LIVE"
 	if in.Environment == "SANDBOX" {
@@ -248,13 +289,20 @@ func (s *PostgresMerchantApplicationService) insertApplication(ctx context.Conte
 		   (id, status, environment, desired_handle, business_name, category, subcategory, email, phone,
 		    nif, country, province, municipality, city, address, address_reference,
 		    legal_representative, representative_role, representative_email, representative_phone,
-		    business_activity, estimated_volume, claims_existing_business, submit_idempotency_key, terms_accepted_at)
-		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, now())`,
+		    business_activity, estimated_volume, claims_existing_business, submit_idempotency_key, terms_accepted_at,
+		    origin, project_id, submitted_by_user_id)
+		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, now(),
+		         $24, $25::uuid, $26::uuid)`,
 		appID, env, handle, in.BusinessName, nullStr(in.Category), nullStr(in.Subcategory), in.Email, nullStr(in.Phone),
 		nullStr(in.Nif), nullStr(in.Country), nullStr(in.Province), nullStr(in.Municipality), nullStr(in.City),
 		nullStr(in.Address), nullStr(in.AddressReference),
 		nullStr(in.LegalRepresentative), nullStr(in.RepresentativeRole), nullStr(in.RepresentativeEmail), nullStr(in.RepresentativePhone),
 		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume), in.ExistingBusiness, keyHash,
+		in.Origin, nullStr(in.ProjectID), nullStr(in.SubmittedByUserID),
 	)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.ConstraintName == "uq_merchant_applications_open_per_project" {
+		return ErrProjectHasOpenApplication
+	}
 	return err
 }

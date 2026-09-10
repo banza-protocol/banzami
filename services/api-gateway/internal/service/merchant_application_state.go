@@ -317,3 +317,46 @@ func requirementsError(r Requirements) error {
 	}
 	return fmt.Errorf("%w: %s", ErrRequiredDocumentsMissing, strings.Join(codes, ", "))
 }
+
+// ProjectApplication is a Developer Project's application as the Project's own
+// Console shows it: the applicant is the developer, so the business name they
+// typed comes back; nothing the reviewer wrote does, except what was asked of
+// them.
+type ProjectApplication struct {
+	ApplicationStatus
+	BusinessName   string `json:"business_name"`
+	ProjectBinding string `json:"project_binding,omitempty"` // BOUND | PENDING, once APPROVED
+}
+
+// LatestForProject returns the Project's most recent application, or
+// ErrApplicationNotFound when it never applied.
+func (s *PostgresMerchantApplicationAdminService) LatestForProject(ctx context.Context, projectID string) (ProjectApplication, error) {
+	if _, err := uuid.Parse(projectID); err != nil {
+		return ProjectApplication{}, ErrApplicationNotFound
+	}
+	var id string
+	err := s.pool.QueryRow(ctx,
+		`SELECT id::text FROM merchant_applications WHERE project_id = $1 ORDER BY created_at DESC LIMIT 1`, projectID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ProjectApplication{}, ErrApplicationNotFound
+	}
+	if err != nil {
+		return ProjectApplication{}, err
+	}
+	st, err := s.PublicStatus(ctx, id)
+	if err != nil {
+		return ProjectApplication{}, err
+	}
+	app, err := s.Get(ctx, id)
+	if err != nil {
+		return ProjectApplication{}, err
+	}
+	out := ProjectApplication{ApplicationStatus: st, BusinessName: app.BusinessName}
+	if app.Status == "APPROVED" {
+		out.ProjectBinding = "PENDING"
+		if app.ProvisioningProjectBound {
+			out.ProjectBinding = "BOUND"
+		}
+	}
+	return out, nil
+}

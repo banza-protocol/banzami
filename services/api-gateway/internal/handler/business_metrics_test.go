@@ -87,12 +87,13 @@ func TestBusinessMetrics_LabelsAreAClosedVocabulary(t *testing.T) {
 		authResultIssued, authResultRefused, authResultLocked, authResultOwnerMismatch,
 		authResultRefreshed, authResultRefreshRefused, authResultRefreshReused,
 		tenantSurfaceWallet, tenantSurfaceQr, tenantSurfacePaymentLink, tenantSurfaceCollection,
+		linkResultIssued, linkResultRedeemed, linkResultRefused, linkResultNotReady,
 		docResultUploaded, docResultContentRefused, docResultRefused, docResultStorageOff, docResultFailed,
 	} {
 		closed[v] = true
 	}
 	reg := prometheus.NewPedanticRegistry()
-	for _, c := range []prometheus.Collector{businessApplicationEvents, businessAuthAttempts, businessTenantDenials, businessApplicationDocuments} {
+	for _, c := range []prometheus.Collector{businessApplicationEvents, businessAuthAttempts, businessTenantDenials, businessApplicationDocuments, businessLinkCodes} {
 		reg.MustRegister(c)
 	}
 	families, err := reg.Gather()

@@ -316,7 +316,8 @@ func TestSubmit_ExistingBusinessHoldsNothingAndReplaysByKey(t *testing.T) {
 	_, handle := f.business()
 	apps := NewPostgresMerchantApplicationService(f.pool)
 	in := MerchantApplicationInput{Environment: "SANDBOX", DesiredHandle: handle, BusinessName: "Negócio Existente",
-		Email: "x@example.test", TermsAccepted: true, ExistingBusiness: true, IdempotencyKey: uuid.NewString()}
+		Email: "x@example.test", TermsAccepted: true, ExistingBusiness: true, IdempotencyKey: uuid.NewString(),
+		Origin: ApplicationOriginStandalone}
 	id1, err := apps.Submit(f.ctx, in)
 	if err != nil {
 		t.Fatal(err)
@@ -357,5 +358,77 @@ func TestReissueActivation_LeavesOnlyTheNewestLinkUsable(t *testing.T) {
 	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM merchant_activation_tokens WHERE merchant_id=$1 AND used_at IS NULL AND expires_at > now()`, first.MerchantID).Scan(&live)
 	if live != 1 {
 		t.Fatalf("%d usable activation links, want 1", live)
+	}
+}
+
+// An application says where it came from, and a Project's application names
+// its Project; a Project has at most one application in progress; and nothing
+// is assumed to be the public form.
+func TestSubmit_OriginIsExplicitAndAProjectHasOneApplicationInProgress(t *testing.T) {
+	f := newLifecycle(t)
+	apps := NewPostgresMerchantApplicationService(f.pool)
+	project := uuid.NewString()
+	base := func(handle string) MerchantApplicationInput {
+		return MerchantApplicationInput{Environment: "SANDBOX", DesiredHandle: handle, BusinessName: "Projeto Lda",
+			Email: handle + "@example.test", TermsAccepted: true}
+	}
+	var created []string
+	t.Cleanup(func() {
+		for _, id := range created {
+			_, _ = f.pool.Exec(f.ctx, `DELETE FROM handle_registry WHERE owner_type='APPLICATION' AND owner_id=$1`, id)
+			_, _ = f.pool.Exec(f.ctx, `DELETE FROM merchant_applications WHERE id=$1`, id)
+		}
+	})
+
+	for name, in := range map[string]MerchantApplicationInput{
+		"no origin": base("o" + hex10()),
+		"a public application with a Project": func() MerchantApplicationInput {
+			i := base("o" + hex10())
+			i.Origin = ApplicationOriginStandalone
+			i.ProjectID = project
+			return i
+		}(),
+		"a Project application without one": func() MerchantApplicationInput {
+			i := base("o" + hex10())
+			i.Origin = ApplicationOriginDeveloperProject
+			return i
+		}(),
+		"a Project claiming an existing Business by handle": func() MerchantApplicationInput {
+			i := base("o" + hex10())
+			i.Origin = ApplicationOriginDeveloperProject
+			i.ProjectID = project
+			i.ExistingBusiness = true
+			return i
+		}(),
+	} {
+		if _, err := apps.Submit(f.ctx, in); !errors.Is(err, ErrApplicationOrigin) {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+
+	in := base("p" + hex10())
+	in.Origin, in.ProjectID, in.SubmittedByUserID = ApplicationOriginDeveloperProject, project, uuid.NewString()
+	id, err := apps.Submit(f.ctx, in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created = append(created, id)
+	var origin, proj string
+	_ = f.pool.QueryRow(f.ctx, `SELECT origin, project_id::text FROM merchant_applications WHERE id=$1`, id).Scan(&origin, &proj)
+	if origin != ApplicationOriginDeveloperProject || proj != project {
+		t.Fatalf("stored origin %q project %q", origin, proj)
+	}
+
+	second := base("p" + hex10())
+	second.Origin, second.ProjectID = ApplicationOriginDeveloperProject, project
+	if id2, err := apps.Submit(f.ctx, second); !errors.Is(err, ErrProjectHasOpenApplication) {
+		created = append(created, id2)
+		t.Fatalf("a second open application for one Project: %v", err)
+	}
+	// The refused one took no handle.
+	var held int
+	_ = f.pool.QueryRow(f.ctx, `SELECT count(*) FROM handle_registry WHERE handle=$1`, second.DesiredHandle).Scan(&held)
+	if held != 0 {
+		t.Fatal("a refused application kept its handle hold")
 	}
 }

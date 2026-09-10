@@ -18,12 +18,14 @@ type fakeProvisioner struct {
 	pool               *pgxpool.Pool
 	createMerchantHook func() (string, error)
 	walletHook         func() (string, error) // optional; default returns a fresh uuid
-	createMerchant     int
-	createWallet       int
-	createApiKey       int
-	approveCompliance  int
-	assignPricing      int
-	lastProfile        string
+	// walletForMerchant, when set, creates a real wallet for the merchant.
+	walletForMerchant func(merchantID string) (string, error)
+	createMerchant    int
+	createWallet      int
+	createApiKey      int
+	approveCompliance int
+	assignPricing     int
+	lastProfile       string
 }
 
 func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email, businessAccountType string) (string, error) {
@@ -32,6 +34,9 @@ func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email, busin
 }
 func (f *fakeProvisioner) CreateWallet(ctx context.Context, merchantID, currency string) (string, error) {
 	f.createWallet++
+	if f.walletForMerchant != nil {
+		return f.walletForMerchant(merchantID)
+	}
 	if f.walletHook != nil {
 		return f.walletHook()
 	}

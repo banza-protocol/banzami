@@ -952,6 +952,14 @@ func (s *Service) BindProjectSandbox(ctx context.Context, projectID, merchantID,
 		WalletAccountID: walletAccountID, CreatedByUserID: actorUserID,
 	})
 	if err == ErrConflict {
+		// Already bound. To the same payee, this is a retry of the same
+		// decision (an approval that bound the Project, then lost the answer)
+		// and returns what exists; to a different one, it is a conflict — the
+		// payee of a bound Project changes only through an audited rebind.
+		if existing, gerr := s.store.ActiveBindingForProject(ctx, projectID); gerr == nil && existing != nil &&
+			existing.MerchantID == merchantID && existing.WalletID == walletID && existing.WalletAccountID == walletAccountID {
+			return *existing, nil
+		}
 		return SandboxBinding{}, ErrConflict
 	}
 	if err != nil {

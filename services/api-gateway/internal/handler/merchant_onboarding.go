@@ -136,6 +136,9 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		// One key per form session: a double click or a retried request returns
 		// the application the first one created.
 		IdempotencyKey: r.Header.Get("Idempotency-Key"),
+		// The public form. A Project's application comes through the Developer
+		// Platform, never through this route: nothing here can attach one.
+		Origin: service.ApplicationOriginStandalone,
 	})
 	switch {
 	case err == nil:

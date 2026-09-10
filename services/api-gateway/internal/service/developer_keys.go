@@ -10,7 +10,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -98,4 +100,41 @@ func (c *DeveloperKeyClient) Authorize(ctx context.Context, rawKey string) (*Dev
 		return nil, ErrAuthorizationUnavailable // malformed introspection body
 	}
 	return &out, nil
+}
+
+// ErrProjectBoundElsewhere: the Project already has a payee, and it is not the
+// Business being connected. A bound Project's payee changes only through the
+// audited rebind (and never once sealed, ADR-055).
+var ErrProjectBoundElsewhere = errors.New("the Project is already bound to another Business")
+
+// BindProject records a Project's payee binding through developer-api — the
+// binding's owner, which validates the payee with core before recording it.
+// Binding the same payee again is a no-op there, so a retried approval is safe.
+func (c *DeveloperKeyClient) BindProject(ctx context.Context, projectID, merchantID, walletID, walletAccountID, actorUserID string) error {
+	if c == nil {
+		return ErrAuthorizationUnavailable
+	}
+	body, _ := json.Marshal(map[string]string{
+		"merchant_id": merchantID, "wallet_id": walletID, "wallet_account_id": walletAccountID, "actor_user_id": actorUserID,
+	})
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		c.baseURL+"/internal/v1/projects/"+url.PathEscape(projectID)+"/binding", bytes.NewReader(body))
+	if err != nil {
+		return ErrAuthorizationUnavailable
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Internal-Key", c.internalKey)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return ErrAuthorizationUnavailable
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated:
+		return nil
+	case http.StatusConflict:
+		return ErrProjectBoundElsewhere
+	default:
+		return fmt.Errorf("%w: binding answered %d", ErrAuthorizationUnavailable, resp.StatusCode)
+	}
 }

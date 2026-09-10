@@ -66,6 +66,9 @@ func (f *fakeAppAdmin) PublicStatus(_ context.Context, id string) (service.Appli
 	}
 	return service.ApplicationStatus{ApplicationID: id, Status: "SUBMITTED"}, nil
 }
+func (f *fakeAppAdmin) LatestForProject(_ context.Context, projectID string) (service.ProjectApplication, error) {
+	return service.ProjectApplication{}, service.ErrApplicationNotFound
+}
 func (f *fakeAppAdmin) Resubmit(_ context.Context, id string) (service.ApplicationStatus, error) {
 	return service.ApplicationStatus{}, service.ErrNothingToResubmit
 }

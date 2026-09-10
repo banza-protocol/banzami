@@ -58,6 +58,7 @@ type Dependencies struct {
 	TeamSvc                  service.TeamService
 	MerchantCredSvc          service.MerchantCredentialService
 	MerchantSessionSvc       service.MerchantSessionService
+	BusinessLinkCodeSvc      service.BusinessLinkCodeService
 	MerchantAppSvc           service.MerchantApplicationService
 	MerchantAppAdminSvc      service.MerchantApplicationAdminService
 	MerchantDocumentSvc      service.MerchantDocumentService
@@ -145,6 +146,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	envGate := service.NewEnvGate(cfg.Environment, deps.PlatformSvc)
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate).WithReadiness(deps.SettlementReadinessSvc)
+	businessOnboardingHandler := handler.NewBusinessOnboardingHandler(deps.MerchantAppSvc, deps.MerchantAppAdminSvc, deps.BusinessLinkCodeSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
 	businessMeHandler := handler.NewBusinessMeHandler(deps.BusinessSelfSvc)
@@ -249,6 +251,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// Proactive proof reversal — admin-api on dispute WON_BY_CONSUMER (and any
 		// future core reversal event). Flips the public proof to REVERSED.
 		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)
+		// developer-api spends a Business's consent code for a Project.
+		r.Post("/internal/v1/business-link-codes/redeem", businessOnboardingHandler.RedeemLinkCode)
 		r.Route("/internal/v1/merchant-applications", func(r chi.Router) {
 			r.Get("/", merchantAppAdminHandler.List)
 			r.Get("/{id}", merchantAppAdminHandler.Get)
@@ -256,6 +260,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Post("/{id}/reject", merchantAppAdminHandler.Reject)
 			r.Post("/{id}/start-review", merchantAppAdminHandler.StartReview)
 			r.Post("/{id}/request-information", merchantAppAdminHandler.RequestInformation)
+			// A Developer Project's application, submitted and read by
+			// developer-api on behalf of a developer it has authorised.
+			r.Post("/for-project", businessOnboardingHandler.SubmitForProject)
+			r.Get("/for-project/{projectID}", businessOnboardingHandler.LatestForProject)
 			r.Post("/{id}/link-existing", merchantAppAdminHandler.LinkExisting)
 			r.Post("/{id}/reissue-activation", merchantAppAdminHandler.ReissueActivation)
 			r.Get("/{id}/link-candidates", merchantAppAdminHandler.LinkCandidates)
@@ -324,6 +332,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Use(middleware.Idempotency(deps.Redis))
 			// Claim/update the merchant @handle + PIN (already authenticated).
 			r.Post("/merchant/auth/claim", merchantAuthHandler.Claim)
+			// A signed-in Business consents to a Developer Project connecting
+			// to it: a short-lived single-use code, shown only here.
+			r.Post("/merchant/project-link-codes", businessOnboardingHandler.IssueLinkCode)
 
 			r.Post("/transactions", txHandler.Create)
 			r.Get("/transactions", txHandler.List)
