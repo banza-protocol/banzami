@@ -163,6 +163,19 @@ func (s *ComplianceService) Sync(ctx context.Context) error {
 
 // ── Reads ───────────────────────────────────────────────────────────────────
 
+// CaseStatusOpen is the list filter (Status) for every case not yet resolved —
+// the Inbox's "Requer atenção" view, and exactly what OpenCount counts.
+const CaseStatusOpen = "OPEN"
+
+// OpenCount counts this environment's unresolved cases (Sync first for a fresh
+// view) — the set List returns for Status = CaseStatusOpen.
+func (s *ComplianceService) OpenCount(ctx context.Context) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM compliance_cases WHERE environment = $1 AND status <> 'RESOLVED'`, s.env).Scan(&n)
+	return n, err
+}
+
 func (s *ComplianceService) List(ctx context.Context, f CaseFilters) ([]ComplianceCase, int, error) {
 	if f.PageSize <= 0 || f.PageSize > 100 {
 		f.PageSize = 25
@@ -180,7 +193,7 @@ func (s *ComplianceService) List(ctx context.Context, f CaseFilters) ([]Complian
 		  FROM compliance_cases
 		 WHERE environment = $1
 		   AND ($2 = '' OR case_type = $2)
-		   AND ($3 = '' OR status = $3)
+		   AND ($3 = '' OR status = $3 OR ($3 = 'OPEN' AND status <> 'RESOLVED'))
 		   AND ($4 = '' OR priority = $4)
 		   AND ($5 = '' OR risk_level = $5)
 		   AND ($6 = '' OR assigned_operator_id::text = $6)

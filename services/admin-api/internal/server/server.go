@@ -95,6 +95,31 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/password-reset/validate", resetH.Validate)
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/password-reset/complete", resetH.Complete)
 
+	// Operator attention sources, per environment. Typed nils stay out of the
+	// interfaces (an interface holding a nil pointer is not nil).
+	attentionSources := map[string]handler.AttentionSource{}
+	if gw != nil {
+		src := handler.AttentionSource{Gateway: gw}
+		if compliance != nil {
+			src.Compliance = compliance
+		}
+		if notif != nil {
+			src.Notifications = notif
+		}
+		attentionSources["LIVE"] = src
+	}
+	if cfg.GatewayStagingInternalURL != "" {
+		src := handler.AttentionSource{Gateway: service.NewGatewayClient(cfg.GatewayStagingInternalURL, cfg.StagingInternalAPIKey)}
+		if complianceSandbox != nil {
+			src.Compliance = complianceSandbox
+		}
+		if notifSandbox != nil {
+			src.Notifications = notifSandbox
+		}
+		attentionSources["SANDBOX"] = src
+	}
+	attentionH := handler.NewAttentionHandler(attentionSources)
+
 	// All admin routes require an operator JWT (per-operator email/password).
 	// The legacy ADMIN_API_KEY no longer authenticates the portal. Every mutation
 	// is gated by a single capability middleware (RequireCapability) and recorded
@@ -102,6 +127,9 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AdminJWT(cfg.AdminJWTSecret, jwtStore))
 		r.Use(middleware.Audit(auditSink(audit)))
+		// A successful mutation can change what waits for an operator; the next
+		// attention summary is computed afresh instead of served from cache.
+		r.Use(middleware.AfterMutation(attentionH.InvalidateAttention))
 
 		// cap is a small alias so the route table reads as a permission matrix.
 		cap := middleware.RequireCapability
@@ -215,9 +243,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapKybAccept)).Post("/admin/v1/merchant-kyb/documents/{id}/approve", merchantKybH.Approve)
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-kyb/documents/{id}/reject", merchantKybH.Reject)
 
-		// Operator review-queue summary (sidebar badges). Read-only.
-		notificationsH := handler.NewNotificationsHandler(gw, gwSandbox, notif, notifSandbox)
-		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/notifications/summary", notificationsH.Summary)
+		// Operator attention (sidebar badges + bell): one read-only summary per
+		// environment, RBAC-filtered per category inside the handler. Read-only.
+		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/attention-summary", attentionH.Summary)
+		notificationsH := handler.NewNotificationsHandler(notif, notifSandbox)
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/notifications", notificationsH.List)
 		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/notifications/{id}/read", notificationsH.MarkRead)
 		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/notifications/{id}/dismiss", notificationsH.Dismiss)

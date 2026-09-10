@@ -116,3 +116,40 @@ func TestCompliance_SyncAssignNotesResolve(t *testing.T) {
 		t.Fatalf("unknown id: want ErrComplianceCaseNotFound, got %v", err)
 	}
 }
+
+// The Inbox badge (OpenCount) and the Inbox "Requer atenção" view (List with
+// Status=OPEN) are the same set: every unresolved case, and no resolved one.
+func TestCompliance_OpenCountMatchesOpenList(t *testing.T) {
+	ctx := context.Background()
+	pool := compliancePoolOrSkip(ctx, t)
+	defer pool.Close()
+	svc := NewComplianceService(pool, "SANDBOX")
+	for _, st := range []string{"UNASSIGNED", "ASSIGNED", "ESCALATED", "RESOLVED"} {
+		id := uuid.NewString()
+		if _, err := pool.Exec(ctx, `INSERT INTO compliance_cases (id, environment, case_type, entity_type, entity_id, entity_name, status, priority, risk_level, source_key, created_at, last_activity)
+		      VALUES ($1,'SANDBOX','KYB_MERCHANT','merchant',$2,'Paridade',$3,'NORMAL','LOW',$4, now(), now())`,
+			id, uuid.NewString(), st, "open-parity:"+id); err != nil {
+			t.Fatalf("seed %s: %v", st, err)
+		}
+		t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM compliance_cases WHERE id=$1`, id) })
+	}
+	n, err := svc.OpenCount(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	list, total, err := svc.List(ctx, CaseFilters{Status: CaseStatusOpen, PageSize: 100})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != n {
+		t.Fatalf("badge %d, OPEN list total %d — must agree", n, total)
+	}
+	for _, c := range list {
+		if c.Status == "RESOLVED" {
+			t.Fatal("the OPEN view holds a resolved case")
+		}
+	}
+	if n < 3 {
+		t.Fatalf("open %d, want at least the 3 seeded open cases", n)
+	}
+}

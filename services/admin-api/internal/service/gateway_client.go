@@ -228,10 +228,10 @@ func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, r
 
 // ── Merchant KYB documents (post-approval) — admin review ───────────────────
 
-// NotificationSummaryRaw returns the operator review-queue counts from the
-// gateway (live or staging, per the chosen client).
-func (c *GatewayClient) NotificationSummaryRaw(ctx context.Context) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/notifications/summary", nil)
+// AttentionSummaryRaw returns what waits for an operator, per category, in the
+// gateway's own environment (api-gateway service/attention.go). Counts only.
+func (c *GatewayClient) AttentionSummaryRaw(ctx context.Context) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/attention-summary", nil)
 }
 
 func (c *GatewayClient) ListMerchantKybDocumentsRaw(ctx context.Context, status, limit string) (json.RawMessage, int, error) {
