@@ -112,7 +112,7 @@ try {
   }
 
   // ── Privileged/credential-substitution denials ─────────────────────────────
-  rec('RT02.dev-key-cannot-hit-internal', await fetch(`${GW}/internal/v1/notifications/summary`, { headers: { Authorization: `Bearer ${kA.secret}` } }).then(r => r.status).catch(() => 0) >= 400, 'internal route not authorized by dev key');
+  rec('RT02.dev-key-cannot-hit-internal', await fetch(`${GW}/internal/v1/attention-summary`, { headers: { Authorization: `Bearer ${kA.secret}` } }).then(r => r.status).catch(() => 0) >= 400, 'internal route not authorized by dev key');
   rec('RT02.dev-key-not-merchant-jwt', await fetch(`${GW}/v1/transactions`, { headers: { Authorization: `Bearer ${kA.secret}` } }).then(r => r.status).catch(() => 0) === 401, 'merchant route (JWT) rejects dev key → 401');
 
   // ── Lifecycle reflected at the Gateway ─────────────────────────────────────
