@@ -558,6 +558,64 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Business application resolution (0118)",
+      "why": "An approved application must say whether it provisioned a new Business or was linked to an existing one, and a public submission must be replay-safe.",
+      "tables": [
+        {
+          "name": "merchant_applications",
+          "columns": [
+            {
+              "name": "resolution",
+              "nullable": true
+            },
+            {
+              "name": "claims_existing_business",
+              "nullable": false
+            },
+            {
+              "name": "submit_idempotency_key",
+              "nullable": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "webhook delivery attempt history (0119)",
+      "why": "A retried delivery must keep what the receiver answered on every attempt; the delivery row alone overwrote it.",
+      "tables": [
+        {
+          "name": "webhook_delivery_attempts",
+          "columns": [
+            {
+              "name": "delivery_id",
+              "nullable": false
+            },
+            {
+              "name": "attempt_number",
+              "nullable": false
+            },
+            {
+              "name": "outcome",
+              "nullable": false
+            },
+            {
+              "name": "status_code",
+              "nullable": true
+            },
+            {
+              "name": "error_class",
+              "nullable": true
+            },
+            {
+              "name": "attempted_at",
+              "nullable": false
+            }
+          ]
+        }
+      ]
     }
   ]
 }
