@@ -82,14 +82,24 @@ Onboarding is only considered complete for SDK merchants when a successful sandb
 
 ## Business application lifecycle (as implemented)
 
-Decision record: [ADR-058](../../adr/ADR-058-business-application-lifecycle.md).
-The phases above describe the product intent; this is what the code does.
+Decision records: [ADR-058](../../adr/ADR-058-business-application-lifecycle.md),
+[ADR-059](../../adr/ADR-059-one-business-identity-one-kyb-authority.md) (surfaces,
+authority hierarchy, state machine, @banza lifecycle). The phases above describe
+the product intent; this is what the code does.
+
+Two surfaces reach the same application: the public form (origin
+`STANDALONE_BUSINESS`) and a Developer Project's Financial Setup in the Console
+(origin `DEVELOPER_PROJECT`; approval also binds the Project). A Project can
+instead connect an existing Business with the consent code the Business App
+issues. The KYB authority is `merchant_compliance.kyb_status`; `merchants.verified`
+is its projection.
 
 | Step | Where | What happens |
 |---|---|---|
 | Apply | `banzami.com/comerciantes/candidatura` → `POST /v1/merchant/applications` | Application `SUBMITTED`; the requested `@handle` held for 30 days (`APPLICATION` owner). One `Idempotency-Key` per form session; replay returns the same id. |
 | Documents | `POST …/documents/upload-url` → PUT to private storage → `…/confirm` | Required: `BUSINESS_REGISTRATION`, `REPRESENTATIVE_ID`. Size ≤ 5 MB; the bytes must be a PDF/JPEG/PNG of the declared type or the object is deleted and the document `REJECTED`. `503 STORAGE_NOT_CONFIGURED` when the stack has no KYB storage. |
 | Review | BANZADMIN → `start-review` | `UNDER_REVIEW`. |
+| Ask | BANZADMIN → `request-information` (message, emailed) | `INFORMATION_REQUIRED`; the applicant answers at `/comerciantes/candidatura/estado?ref=…` and resubmits. |
 | Approve | BANZADMIN → `approve` | New Business: merchant (class `MERCHANT`), wallet, API key, KYB approved, default pricing profile, handle from the application's own hold, login + activation link. `resolution=PROVISIONED_NEW`. Idempotent; a partial failure is `PROVISIONING_FAILED` and approving again resumes. |
 | Link | BANZADMIN → `link-existing` (target, typed `@handle`, reason) | Existing Business: documents + KYB attached, nothing created or moved. `resolution=LINKED_EXISTING`. |
 | Reject | BANZADMIN → `reject` | `REJECTED`; the application's own handle hold released. |
