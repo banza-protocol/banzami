@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `ensureSession()`.
 - `RenewedSession`, `MerchantAuthTokens` (access token, expiry, environment,
   rotating refresh token and its expiry).
+- `createProjectLinkCode()` → `ProjectLinkCode` (`code`, `expiresAt`,
+  `remainingAt`): the signed-in Business issues a single-use, 10-minute
+  consent code for a Developer Project to connect to it
+  (`POST /v1/merchant/project-link-codes`). Each call issues a new code and
+  retires the previous one; failures throw, never a placeholder code.
 
 ### Changed
 - `loginMerchantHandlePin` returns `MerchantAuthTokens` (was a record); the

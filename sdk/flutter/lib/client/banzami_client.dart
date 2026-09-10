@@ -8,6 +8,7 @@ import '../models/merchant.dart';
 import '../models/merchant_kyb.dart';
 import '../models/merchant_wallet_payment.dart';
 import '../models/payment_link.dart';
+import '../models/project_link_code.dart';
 import '../models/collection.dart';
 import '../models/qr_code.dart';
 import '../models/wallet_balance.dart';
@@ -735,6 +736,34 @@ class BanzamiClient {
       if (sha256 != null && sha256.isNotEmpty) 'sha256': sha256,
     });
     return MerchantKybDocument.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Developer Projects — a Business's consent to be connected to one
+  // ---------------------------------------------------------------------------
+
+  /// Issues a consent code with which a Developer Project connects to the
+  /// signed-in Business (`POST /v1/merchant/project-link-codes`, merchant
+  /// session). The Business gives the code to the developer, who enters it in
+  /// the Developers Console; redeeming it binds the Project to this Business.
+  ///
+  /// Every call issues a NEW code — valid 10 minutes, single use — and retires
+  /// the previous one on Banzami, so no idempotency key is sent and nothing is
+  /// retried automatically (a retry would retire the code it was retrying).
+  ///
+  /// Throws [BanzamiApiException] 503 `SERVICE_UNAVAILABLE` / `UNAVAILABLE`
+  /// when Banzami cannot issue one now, 401 when the session has ended (after
+  /// `onUnauthorized`), and [BanzamiNetworkException] when Banzami could not
+  /// be reached or answered something that is not a code. It never returns a
+  /// placeholder.
+  Future<ProjectLinkCode> createProjectLinkCode() async {
+    try {
+      // A 2xx body that is not JSON (a proxy page) is a FormatException too.
+      return ProjectLinkCode.fromJson(
+          await _post('/v1/merchant/project-link-codes', null));
+    } on FormatException {
+      throw const BanzamiNetworkException('malformed project link code answer');
+    }
   }
 
   static String _ymd(DateTime d) => '${d.year.toString().padLeft(4, '0')}-'

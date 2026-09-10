@@ -112,6 +112,25 @@ client = BanzamiClient(
 - `logoutMerchantSession(refreshToken)` revokes the sign-in server-side.
 - `ensureSession()` renews now if needed (e.g. when the device is unlocked).
 
+### Connecting a Developer Project (Business consent)
+
+A developer whose Project should receive payments for an existing Business
+does not name it — the Business consents from its own signed-in session:
+
+```dart
+final c = await client.createProjectLinkCode(); // POST /v1/merchant/project-link-codes
+// Show c.code (ABCD-EFGH-JKMN) and count down to c.expiresAt.
+```
+
+- The code is single-use and valid for 10 minutes; calling again issues a new
+  one and retires the previous one on Banzami (no idempotency key, no
+  automatic retry).
+- 503 (`SERVICE_UNAVAILABLE`), no network, or a body that is not a code throw
+  (`BanzamiApiException` / `BanzamiNetworkException`) — never a placeholder
+  code. A 401 goes through the session handling above.
+- The developer enters the code in the Developers Console; redeeming it binds
+  the Project to the Business.
+
 ---
 
 ## Quick start — consumer app
@@ -616,6 +635,7 @@ flutter test
 | `TransferPage`           | `models/transfer.dart`             | Paginated transfer list                  |
 | `PaymentLink`            | `models/payment_link.dart`         | Merchant payment link                    |
 | `PaymentLinkPage`        | `models/payment_link.dart`         | Paginated payment link list              |
+| `ProjectLinkCode`        | `models/project_link_code.dart`    | A Business's consent code for a Developer Project (code + expiry) |
 | `QrCode`                 | `models/qr_code.dart`              | QR code record                           |
 | `QrResponse`             | `models/qr_code.dart`              | QR code + encoded payload                |
 | `ParsedQr`               | `models/qr_code.dart`              | Decoded QR payload fields                |
