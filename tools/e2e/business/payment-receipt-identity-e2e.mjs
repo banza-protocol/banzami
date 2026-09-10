@@ -134,6 +134,12 @@ async function crossSurface(label, { transferId, payResponse, payer, token, expe
   `amount ${amount}, credited ${expect.kind === 'PAYMENT' ? `Business ${creditedMerchant.slice(0, 8)}` : `@${creditedConsumerHandle}`}`);
   rec(`${label}: no generated description on the transfer`, !/^Payment link:/.test(transferDesc), transferDesc || '(none)');
 
+  const views = [];
+  if (payResponse) views.push(['pay response', payResponse]);
+  const j = await http(`${GW}/consumer/v1/consumer/transactions/${transferId}/receipt`, { token });
+  views.push(['receipt JSON', j.body]);
+  // A P2P proof is established on the first receipt request, so the proof row
+  // is read after it.
   const proof = q(`SELECT proof_reference, operation_kind, channel, funding_source, coalesce(payee_handle,''), coalesce(payee_display_name,''), coalesce(merchant_reference,''), coalesce(display_context,''), coalesce(description,''), to_char(confirmed_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US'), status FROM transaction_proofs WHERE transaction_id='${transferId}'`).split('|');
   const [ref, pKind, pChannel, pFunding, pPayeeHandle, pPayeeName, pRef, pCtx, pDesc, pConfirmed, pStatus] = proof;
   rec(`${label}: the proof`, pKind === expect.kind && pChannel === expect.channel && pFunding === 'BANZAMI_BALANCE'
@@ -141,10 +147,6 @@ async function crossSurface(label, { transferId, payResponse, payer, token, expe
     && pCtx === (expect.displayContext ?? '') && pDesc === (expect.description ?? '') && pConfirmed === confirmedUtc && pStatus === 'CONFIRMED',
   `${pKind}/${pChannel} payee ${pPayeeName} @${pPayeeHandle}`);
 
-  const views = [];
-  if (payResponse) views.push(['pay response', payResponse]);
-  const j = await http(`${GW}/consumer/v1/consumer/transactions/${transferId}/receipt`, { token });
-  views.push(['receipt JSON', j.body]);
   for (const [name, r] of views) {
     rec(`${label}: ${name}`, r && r.proof_reference === ref && r.operation_kind === expect.kind && r.channel === expect.channel
       && r.funding_source === 'BANZAMI_BALANCE' && r.amount_minor === Number(amount)
@@ -287,7 +289,7 @@ async function main() {
     body: { recipient: `@${friend.handle}`, amount_minor: 50000, currency: 'AOA', note: `jantar ${stamp}`, idempotency_key: `rcpt-p-${stamp}` } });
   rec('a P2P transfer', [200, 201].includes(p2p.status) && p2p.body?.transfer_id, `${p2p.status}`);
   await crossSurface('p2p-transfer', { transferId: p2p.body?.transfer_id, payer, token: payer.token,
-    expect: { kind: 'P2P_TRANSFER', channel: 'HANDLE', channelLabel: 'Endereço @banza', payeeKind: 'PERSON', payeeHandle: friend.handle,
+    expect: { kind: 'P2P_TRANSFER', channel: 'HANDLE', channelLabel: 'Endereço @banza', payeeKind: 'PERSON', payeeHandle: friend.handle, payeeName: friend.name,
       amountText: '500 Kz', merchantReference: '', displayContext: '', description: `jantar ${stamp}` } });
 }
 
