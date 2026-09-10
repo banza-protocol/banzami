@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,28 @@ var (
 	ErrApplicationNotFound   = errors.New("application not found")
 	ErrApplicationNotOpen    = errors.New("application is not open for review")
 	ErrAutoApproveNotSandbox = errors.New("auto-approval is only available for sandbox applications")
+	// ErrRequiredDocumentsMissing: the application cannot be approved without the
+	// documents the review is made on (company registration, representative ID).
+	ErrRequiredDocumentsMissing = errors.New("required documents have not been uploaded")
+	// ErrHandleOwnedByBusiness: the requested @handle already belongs to a
+	// Business Account. Approving would create a second owner; the application
+	// can only be LINKED to the existing one.
+	ErrHandleOwnedByBusiness = errors.New("the requested handle already belongs to a Business Account; link the application to it instead")
+	// ErrClaimsExistingBusiness: the applicant said the Business exists already;
+	// it is resolved by linking, never by provisioning a new one.
+	ErrClaimsExistingBusiness = errors.New("this application claims an existing Business Account; link it instead of provisioning a new one")
+	// ErrLinkTargetInvalid: the chosen Business Account cannot take this
+	// application (missing, not ACTIVE, or not the owner of the requested handle).
+	ErrLinkTargetInvalid = errors.New("the chosen Business Account cannot be linked to this application")
+	// ErrLinkConfirmationMismatch: the operator did not type the target's handle.
+	ErrLinkConfirmationMismatch = errors.New("confirmation does not match the Business Account's handle")
+	// ErrApplicationNotLinkable: a partially provisioned or already correctly
+	// resolved application is not re-linked.
+	ErrApplicationNotLinkable = errors.New("this application cannot be linked")
+	// ErrExistingBusinessNotFound: an application claiming an existing Business
+	// named a handle no ACTIVE Business Account uses.
+	ErrExistingBusinessNotFound = errors.New("no active Business Account uses this handle")
+	ErrLinkReasonRequired       = errors.New("a reason is required to link an application to an existing Business")
 )
 
 type MerchantApplication struct {
@@ -57,6 +80,8 @@ type MerchantApplication struct {
 	ProvisioningComplianceDone bool       `json:"provisioning_compliance_done"`
 	ProvisioningError          string     `json:"provisioning_error"` // failure reason, for operator visibility
 	ProvisioningAttempts       int        `json:"provisioning_attempts"`
+	ClaimsExistingBusiness     bool       `json:"claims_existing_business"`
+	Resolution                 string     `json:"resolution"` // PROVISIONED_NEW | LINKED_EXISTING, when APPROVED
 	CreatedAt                  time.Time  `json:"created_at"`
 	ReviewedAt                 *time.Time `json:"reviewed_at"`
 }
@@ -70,6 +95,22 @@ type ApprovalResult struct {
 	Environment     string `json:"environment"`
 	ActivationToken string `json:"activation_token"` // raw, returned ONCE for the email link
 	ApiKeyPrefix    string `json:"api_key_prefix"`
+	// AlreadyApproved: a repeated approval (a double click, two operators) found
+	// the application approved and changed nothing. No new activation token is
+	// issued, so no second email is sent.
+	AlreadyApproved bool `json:"already_approved"`
+}
+
+// LinkResult is the outcome of attaching an application to an existing
+// Business Account.
+type LinkResult struct {
+	ApplicationID string `json:"application_id"`
+	MerchantID    string `json:"merchant_id"`
+	Handle        string `json:"handle"`
+	BusinessName  string `json:"business_name"`
+	Environment   string `json:"environment"`
+	// AlreadyLinked: the application was already linked to this Business.
+	AlreadyLinked bool `json:"already_linked"`
 }
 
 type RejectionResult struct {
@@ -83,8 +124,12 @@ type MerchantApplicationAdminService interface {
 	List(ctx context.Context, status, environment string) ([]MerchantApplication, error)
 	Get(ctx context.Context, id string) (MerchantApplication, error)
 	Approve(ctx context.Context, id, reviewedBy string, activationTTL time.Duration) (ApprovalResult, error)
-	AutoApproveSandbox(ctx context.Context, id string, activationTTL time.Duration) (ApprovalResult, error)
 	Reject(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (RejectionResult, error)
+	StartReview(ctx context.Context, id, reviewedBy string) (MerchantApplication, error)
+	LinkExisting(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (LinkResult, error)
+	ReissueActivation(ctx context.Context, id string, ttl time.Duration) (ActivationReissue, error)
+	LinkCandidates(ctx context.Context, id, lookupHandle string) ([]LinkCandidate, error)
+	BusinessState(ctx context.Context, id string, readiness SettlementReadinessService) (*BusinessState, error)
 }
 
 // coreProvisioner is the slice of core-api provisioning calls the approval flow
@@ -95,7 +140,23 @@ type coreProvisioner interface {
 	CreateWallet(ctx context.Context, merchantID, currency string) (string, error)
 	CreateApiKey(ctx context.Context, merchantID, name, environment string) (string, error)
 	ApproveCompliance(ctx context.Context, merchantID string) error
+	AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error
 }
+
+// defaultPricingProfile is what an approved Business is priced by, per
+// environment. The Sandbox has an explicit zero-rate settlement profile: an
+// approved Business is priced by a rule that says zero, never by nothing
+// matching. A LIVE Business is priced by an operator decision, so there is no
+// default and settlement stays fail-closed until one is made.
+func defaultPricingProfile(environment string) string {
+	if environment == "SANDBOX" {
+		return "sandbox-default"
+	}
+	return ""
+}
+
+// requiredApplicationDocuments are the documents a review is made on.
+var requiredApplicationDocuments = []string{"BUSINESS_REGISTRATION", "REPRESENTATIVE_ID"}
 
 type PostgresMerchantApplicationAdminService struct {
 	pool *pgxpool.Pool
@@ -114,6 +175,7 @@ const appCols = `id::text, status, environment, desired_handle, business_name,
 	COALESCE(merchant_message,''), COALESCE(created_merchant_id::text,''),
 	COALESCE(provisioning_wallet_id::text,''), COALESCE(provisioning_api_key_prefix,''), provisioning_compliance_done,
 	COALESCE(provisioning_error,''), provisioning_attempts,
+	claims_existing_business, COALESCE(resolution,''),
 	created_at, reviewed_at`
 
 func scanApplication(row pgx.Row) (MerchantApplication, error) {
@@ -126,6 +188,7 @@ func scanApplication(row pgx.Row) (MerchantApplication, error) {
 		&a.MerchantMessage, &a.CreatedMerchantID,
 		&a.ProvisioningWalletID, &a.ProvisioningApiKeyPrefix, &a.ProvisioningComplianceDone,
 		&a.ProvisioningError, &a.ProvisioningAttempts,
+		&a.ClaimsExistingBusiness, &a.Resolution,
 		&a.CreatedAt, &a.ReviewedAt)
 	return a, err
 }
@@ -159,51 +222,177 @@ func (s *PostgresMerchantApplicationAdminService) Get(ctx context.Context, id st
 	return a, err
 }
 
-// Approve provisions the merchant (core: merchant + wallet + api-key +
-// compliance), then atomically (gateway DB) creates the profile, converts the
-// handle APPLICATION→MERCHANT, creates a PIN-less credential + activation token,
-// and marks the application APPROVED. Returns the raw activation token ONCE.
+// lockApplication serialises every transition of one application across all
+// gateway instances. Approval spans several core calls that cannot share a
+// database transaction, so a row lock cannot cover it; a session-level advisory
+// lock on a dedicated connection can. Two operators pressing Approve together —
+// or one pressing it twice — are handled one after the other, and the second
+// finds the first one's result.
+func (s *PostgresMerchantApplicationAdminService) lockApplication(ctx context.Context, id string) (func(), error) {
+	conn, err := s.pool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	const key = `hashtextextended('merchant_application:' || $1, 0)`
+	if _, err := conn.Exec(ctx, `SELECT pg_advisory_lock(`+key+`)`, id); err != nil {
+		conn.Release()
+		return nil, err
+	}
+	return func() {
+		_, _ = conn.Exec(context.Background(), `SELECT pg_advisory_unlock(`+key+`)`, id)
+		conn.Release()
+	}, nil
+}
+
+// missingDocuments returns the required document types this application has
+// not supplied (uploaded or accepted, not deleted).
+func (s *PostgresMerchantApplicationAdminService) missingDocuments(ctx context.Context, id string) ([]string, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT DISTINCT document_type FROM merchant_application_documents
+		  WHERE application_id = $1 AND deleted_at IS NULL AND status IN ('UPLOADED','ACCEPTED')`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	have := map[string]bool{}
+	for rows.Next() {
+		var t string
+		if err := rows.Scan(&t); err != nil {
+			return nil, err
+		}
+		have[t] = true
+	}
+	var missing []string
+	for _, t := range requiredApplicationDocuments {
+		if !have[t] {
+			missing = append(missing, t)
+		}
+	}
+	return missing, rows.Err()
+}
+
+// handleOwner reports who holds a handle in the global registry ("" when free).
+func (s *PostgresMerchantApplicationAdminService) handleOwner(ctx context.Context, handle string) (ownerType, ownerID string, err error) {
+	err = s.pool.QueryRow(ctx,
+		`SELECT owner_type, COALESCE(owner_id::text,'') FROM handle_registry WHERE handle = $1`, handle).
+		Scan(&ownerType, &ownerID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", nil
+	}
+	return ownerType, ownerID, err
+}
+
+// StartReview moves a SUBMITTED application to UNDER_REVIEW: an operator has
+// opened it. Idempotent for an application already under review.
+func (s *PostgresMerchantApplicationAdminService) StartReview(ctx context.Context, id, reviewedBy string) (MerchantApplication, error) {
+	release, err := s.lockApplication(ctx, id)
+	if err != nil {
+		return MerchantApplication{}, err
+	}
+	defer release()
+	app, err := s.Get(ctx, id)
+	if err != nil {
+		return MerchantApplication{}, err
+	}
+	switch app.Status {
+	case "UNDER_REVIEW":
+		return app, nil
+	case "SUBMITTED":
+	default:
+		return MerchantApplication{}, ErrApplicationNotOpen
+	}
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE merchant_applications SET status='UNDER_REVIEW', updated_at=now()
+		  WHERE id=$1 AND status='SUBMITTED'`, id); err != nil {
+		return MerchantApplication{}, err
+	}
+	return s.Get(ctx, id)
+}
+
+// Approve resolves an application by provisioning a NEW Business Account:
+// merchant, wallet (core creates its PRIMARY account), KYB decision, the
+// Sandbox default pricing profile, then — atomically in the gateway database —
+// the public profile, the handle (APPLICATION hold → MERCHANT), a PIN-less
+// Business App credential with an activation token, and APPROVED.
 //
-// Recovery: core resources cannot share the gateway DB transaction. If a core
-// step fails, the application stays SUBMITTED (re-approvable). The merchant id is
-// recorded as soon as it is created, so a retry RESUMES on the same merchant
-// rather than minting a duplicate (forward recovery). The application only flips
-// to APPROVED after the gateway transaction commits, so it is never left
-// half-approved. A residual wallet/api-key created just before a failure can still
-// be re-created on retry — full multi-resource compensation (saga/outbox) plus the
-// orphan-reconciliation query (tools/) are the tracked follow-up.
+// What the applicant supplied never classifies the account: it is created as
+// the default type, MERCHANT. APPLICATION/PLATFORM is a separate, privileged
+// operator decision (ADR-057) — approval must not repeat the promotion
+// migration 0115 had to revert.
+//
+// Idempotent and replay-safe. Transitions are serialised per application; an
+// application already APPROVED is returned as it is (AlreadyApproved) with no
+// new token; each core step records what it created and a retry resumes it;
+// a failure records PROVISIONING_FAILED only if nothing approved it meanwhile.
 func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, id, reviewedBy string, activationTTL time.Duration) (ApprovalResult, error) {
+	release, err := s.lockApplication(ctx, id)
+	if err != nil {
+		return ApprovalResult{}, err
+	}
+	defer release()
+
 	app, err := s.Get(ctx, id)
 	if err != nil {
 		return ApprovalResult{}, err
 	}
+	if app.Status == "APPROVED" {
+		return ApprovalResult{
+			ApplicationID: id, MerchantID: app.CreatedMerchantID, BusinessName: app.BusinessName,
+			Email: app.Email, Handle: app.DesiredHandle, Environment: app.Environment,
+			ApiKeyPrefix: app.ProvisioningApiKeyPrefix, AlreadyApproved: true,
+		}, nil
+	}
 	// PROVISIONING_FAILED is re-approvable too — that IS the reprocess path.
 	if app.Status != "SUBMITTED" && app.Status != "UNDER_REVIEW" && app.Status != "PROVISIONING_FAILED" {
 		return ApprovalResult{}, ErrApplicationNotOpen
+	}
+	if app.ClaimsExistingBusiness {
+		return ApprovalResult{}, ErrClaimsExistingBusiness
+	}
+	missing, err := s.missingDocuments(ctx, id)
+	if err != nil {
+		return ApprovalResult{}, err
+	}
+	if len(missing) > 0 {
+		return ApprovalResult{}, fmt.Errorf("%w: %s", ErrRequiredDocumentsMissing, strings.Join(missing, ", "))
+	}
+	// The requested handle must still be this application's to convert. If a
+	// Business Account owns it, this is an existing Business: link, do not
+	// create a second owner.
+	ownerType, ownerID, err := s.handleOwner(ctx, app.DesiredHandle)
+	if err != nil {
+		return ApprovalResult{}, err
+	}
+	switch {
+	case ownerType == "MERCHANT" && ownerID != app.CreatedMerchantID:
+		return ApprovalResult{}, ErrHandleOwnedByBusiness
+	case ownerType == "APPLICATION" && ownerID != id:
+		return ApprovalResult{}, ErrMerchantHandleTaken
+	case ownerType == "CONSUMER" || ownerType == "SYSTEM":
+		return ApprovalResult{}, ErrMerchantHandleTaken
 	}
 
 	// Count the attempt and clear any prior error up front.
 	_, _ = s.pool.Exec(ctx,
 		`UPDATE merchant_applications SET provisioning_attempts=provisioning_attempts+1, provisioning_error=NULL, updated_at=now() WHERE id=$1`, id)
 
-	// fail records PROVISIONING_FAILED + the failing step so an operator sees it and
-	// can reprocess, then returns the wrapped error. The application is never left
-	// looking "approved" while the merchant cannot sign in.
+	// fail records PROVISIONING_FAILED + the failing step so an operator sees it
+	// and can reprocess. Conditional: it never overwrites an approval.
 	fail := func(step string, e error) (ApprovalResult, error) {
 		_, _ = s.pool.Exec(ctx,
-			`UPDATE merchant_applications SET status='PROVISIONING_FAILED', provisioning_error=$2, updated_at=now() WHERE id=$1`,
+			`UPDATE merchant_applications SET status='PROVISIONING_FAILED', provisioning_error=$2, updated_at=now()
+			  WHERE id=$1 AND status <> 'APPROVED'`,
 			id, step+": "+e.Error())
 		return ApprovalResult{}, fmt.Errorf("%s: %w", step, e)
 	}
 
-	// Phase A — non-transactional core calls. Each created resource is recorded
-	// immediately, so a retry RESUMES each step instead of duplicating it (outbox-
-	// style forward recovery; the application row is the command record).
+	// Phase A — non-transactional core calls, each recorded as soon as it
+	// succeeds so a retry RESUMES instead of duplicating.
 
-	// Step 1 — merchant.
+	// Step 1 — merchant, always the default account type.
 	merchantID := app.CreatedMerchantID
 	if merchantID == "" {
-		merchantID, err = s.core.CreateMerchant(ctx, app.BusinessName, app.Email, app.BusinessAccountType)
+		merchantID, err = s.core.CreateMerchant(ctx, app.BusinessName, app.Email, "")
 		if err != nil {
 			return fail("create merchant", err)
 		}
@@ -239,7 +428,7 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		}
 	}
 
-	// Step 4 — compliance.
+	// Step 4 — compliance: the approval IS the KYB decision.
 	if !app.ProvisioningComplianceDone {
 		if err := s.core.ApproveCompliance(ctx, merchantID); err != nil {
 			return fail("approve compliance", err)
@@ -247,6 +436,15 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		if _, err = s.pool.Exec(ctx,
 			`UPDATE merchant_applications SET provisioning_compliance_done=true, updated_at=now() WHERE id=$1`, id); err != nil {
 			return fail("record compliance", err)
+		}
+	}
+
+	// Step 5 — pricing. An approved Sandbox Business is priced by the explicit
+	// zero-rate default, so its first settlement resolves a rule rather than
+	// failing as unpriced. Idempotent (an assignment, not a creation).
+	if code := defaultPricingProfile(app.Environment); code != "" {
+		if err := s.core.AssignPricingProfile(ctx, merchantID, code); err != nil {
+			return fail("assign pricing profile", err)
 		}
 	}
 
@@ -262,9 +460,6 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 	}
 	defer tx.Rollback(ctx)
 
-	// Phase B body in a closure so a failure can roll the tx back (releasing the
-	// row lock) BEFORE fail() marks PROVISIONING_FAILED on the same row — otherwise
-	// fail()'s separate connection would deadlock against the open tx.
 	pbErr := func() error {
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO merchant_profiles (merchant_id, handle, display_name, category, wallet_id, public)
@@ -273,11 +468,22 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 			merchantID, app.DesiredHandle, app.BusinessName, nullStr(app.Category), nullStr(walletID)); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx,
-			`UPDATE handle_registry
+		// The handle becomes the Business's — only from THIS application's hold
+		// (or already the Business's, on a resumed attempt). A hold that lapsed
+		// and was taken meanwhile fails the approval instead of being overwritten.
+		tag, err := tx.Exec(ctx,
+			`INSERT INTO handle_registry (handle, owner_type, owner_id)
+			 VALUES ($1, 'MERCHANT', $2)
+			 ON CONFLICT (handle) DO UPDATE
 			    SET owner_type='MERCHANT', owner_id=$2, reserved_until=NULL, reserved_reason=NULL
-			  WHERE handle=$1`, app.DesiredHandle, merchantID); err != nil {
+			  WHERE (handle_registry.owner_type='APPLICATION' AND handle_registry.owner_id=$3::uuid)
+			     OR (handle_registry.owner_type='MERCHANT' AND handle_registry.owner_id=$2::uuid)`,
+			app.DesiredHandle, merchantID, id)
+		if err != nil {
 			return err
+		}
+		if tag.RowsAffected() != 1 {
+			return fmt.Errorf("handle @%s is no longer held by this application", app.DesiredHandle)
 		}
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO merchant_app_credentials (merchant_id, environment, handle, pin_hash, activated_at)
@@ -294,12 +500,11 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		}
 		if _, err := tx.Exec(ctx,
 			`UPDATE merchant_applications
-			    SET status='APPROVED', created_merchant_id=$2, reviewed_by=$3, reviewed_at=now(), updated_at=now()
+			    SET status='APPROVED', resolution='PROVISIONED_NEW', created_merchant_id=$2,
+			        reviewed_by=$3, reviewed_at=now(), updated_at=now()
 			  WHERE id=$1`, id, merchantID, reviewedBy); err != nil {
 			return err
 		}
-		// Link the application's documents to the new merchant (history) and bridge
-		// them into the merchant-maintained KYB set (post-approval source of truth).
 		if _, err := tx.Exec(ctx,
 			`UPDATE merchant_application_documents SET merchant_id=$2, updated_at=now()
 			  WHERE application_id=$1 AND deleted_at IS NULL`, id, merchantID); err != nil {
@@ -311,7 +516,7 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		return tx.Commit(ctx)
 	}()
 	if pbErr != nil {
-		_ = tx.Rollback(ctx) // release the row lock before fail() touches the row
+		_ = tx.Rollback(ctx) // release row locks before fail() touches the row
 		return fail("provisioning (phase b)", pbErr)
 	}
 
@@ -327,45 +532,155 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 	}, nil
 }
 
-// AutoApproveSandbox provisions a SANDBOX application immediately, without manual
-// review — the assisted onboarding flow so a tester gets a usable Business Account
-// in seconds. It reuses the exact same Approve provisioning (merchant + wallet +
-// api-key + compliance + activation), records reviewed_by='SANDBOX_AUTO_APPROVE',
-// and marks sandbox_auto_approved=true for audit.
+// LinkExisting resolves an application by attaching it to a Business Account
+// that already exists: the application's institutional and KYB truth — its
+// reviewed documents and the approval — become that Business's. Nothing is
+// created and nothing moves: no merchant, no wallet, no handle, no login, no
+// Project binding, no ledger. It is how a Business provisioned some other way
+// first (an operator setup, a Developer Project's financial owner) enters the
+// application lifecycle.
 //
-// HARD GUARD: this refuses any non-SANDBOX application. A LIVE application is never
-// auto-approved here — it always goes through manual review. Callers additionally
-// gate on the stack environment, so a LIVE stack never reaches this path.
-func (s *PostgresMerchantApplicationAdminService) AutoApproveSandbox(ctx context.Context, id string, activationTTL time.Duration) (ApprovalResult, error) {
+// Never automatic. The operator chooses the target and confirms it by typing
+// its @handle; a reason is recorded. The requested handle is never transferred:
+// if a Business owns it, the target must BE that Business.
+//
+// An application already APPROVED against a Business that has since lost the
+// requested handle may be re-linked to the handle's current owner — the case of
+// a handle consolidated after approval. Nothing else re-links.
+func (s *PostgresMerchantApplicationAdminService) LinkExisting(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (LinkResult, error) {
+	if strings.TrimSpace(reason) == "" {
+		return LinkResult{}, ErrLinkReasonRequired
+	}
+	release, err := s.lockApplication(ctx, id)
+	if err != nil {
+		return LinkResult{}, err
+	}
+	defer release()
+
 	app, err := s.Get(ctx, id)
 	if err != nil {
-		return ApprovalResult{}, err
-	}
-	if app.Environment != "SANDBOX" {
-		return ApprovalResult{}, ErrAutoApproveNotSandbox
+		return LinkResult{}, err
 	}
 
-	res, err := s.Approve(ctx, id, "SANDBOX_AUTO_APPROVE", activationTTL)
+	// The target: an ACTIVE Business Account with a handle.
+	var status, targetHandle string
+	err = s.pool.QueryRow(ctx,
+		`SELECT m.status,
+		        COALESCE((SELECT hr.handle FROM handle_registry hr
+		                   WHERE hr.owner_type='MERCHANT' AND hr.owner_id=m.id
+		                   ORDER BY (hr.handle = $2) DESC, hr.handle LIMIT 1), '')
+		   FROM merchants m WHERE m.id = $1`, merchantID, app.DesiredHandle).
+		Scan(&status, &targetHandle)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (status != "ACTIVE" || targetHandle == "")) {
+		return LinkResult{}, ErrLinkTargetInvalid
+	}
 	if err != nil {
-		return ApprovalResult{}, err
+		return LinkResult{}, err
+	}
+	if NormaliseHandle(confirmationHandle) != targetHandle {
+		return LinkResult{}, ErrLinkConfirmationMismatch
 	}
 
-	// Provisioning already succeeded; the flag is best-effort audit metadata.
-	if _, e := s.pool.Exec(ctx,
-		`UPDATE merchant_applications SET sandbox_auto_approved=true, updated_at=now() WHERE id=$1`, id); e != nil {
-		return res, nil
+	// No handle transfer: a Business that owns the requested handle is the
+	// only Business this application can be linked to.
+	ownerType, ownerID, err := s.handleOwner(ctx, app.DesiredHandle)
+	if err != nil {
+		return LinkResult{}, err
 	}
-	return res, nil
+	if ownerType == "MERCHANT" && ownerID != merchantID {
+		return LinkResult{}, ErrLinkTargetInvalid
+	}
+
+	switch app.Status {
+	case "APPROVED":
+		if app.CreatedMerchantID == merchantID {
+			return LinkResult{ApplicationID: id, MerchantID: merchantID, Handle: targetHandle,
+				BusinessName: app.BusinessName, Environment: app.Environment, AlreadyLinked: true}, nil
+		}
+		// Re-link only an approval whose Business no longer holds the handle, to
+		// the Business that does.
+		if !(ownerType == "MERCHANT" && ownerID == merchantID) {
+			return LinkResult{}, ErrApplicationNotLinkable
+		}
+	case "SUBMITTED", "UNDER_REVIEW", "PROVISIONING_FAILED":
+		// A partial provisioning created resources for a NEW Business; linking
+		// would strand them. Reprocess or reject that application instead.
+		if app.CreatedMerchantID != "" {
+			return LinkResult{}, ErrApplicationNotLinkable
+		}
+	default:
+		return LinkResult{}, ErrApplicationNotOpen
+	}
+
+	missing, err := s.missingDocuments(ctx, id)
+	if err != nil {
+		return LinkResult{}, err
+	}
+	if len(missing) > 0 {
+		return LinkResult{}, fmt.Errorf("%w: %s", ErrRequiredDocumentsMissing, strings.Join(missing, ", "))
+	}
+
+	// The reviewed application is the KYB decision for the existing Business.
+	if err := s.core.ApproveCompliance(ctx, merchantID); err != nil {
+		return LinkResult{}, fmt.Errorf("approve compliance: %w", err)
+	}
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return LinkResult{}, err
+	}
+	defer tx.Rollback(ctx)
+	// This application's own hold on a handle the Business does not use returns
+	// to the pool; the Business keeps the handle it has.
+	if _, err := tx.Exec(ctx,
+		`DELETE FROM handle_registry WHERE handle=$1 AND owner_type='APPLICATION' AND owner_id=$2::uuid`,
+		app.DesiredHandle, id); err != nil {
+		return LinkResult{}, err
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE merchant_applications
+		    SET status='APPROVED', resolution='LINKED_EXISTING', created_merchant_id=$2,
+		        reviewed_by=$3, reviewed_at=now(), updated_at=now(), provisioning_error=NULL,
+		        admin_notes = concat_ws(E'\n', NULLIF(admin_notes,''), $4::text)
+		  WHERE id=$1`, id, merchantID, reviewedBy, "Associada a @"+targetHandle+": "+strings.TrimSpace(reason)); err != nil {
+		return LinkResult{}, err
+	}
+	if _, err := tx.Exec(ctx,
+		`UPDATE merchant_application_documents SET merchant_id=$2, updated_at=now()
+		  WHERE application_id=$1 AND deleted_at IS NULL`, id, merchantID); err != nil {
+		return LinkResult{}, err
+	}
+	if err := BridgeFromApplicationTx(ctx, tx, id, merchantID, app.Environment); err != nil {
+		return LinkResult{}, fmt.Errorf("bridge kyb documents: %w", err)
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return LinkResult{}, err
+	}
+	return LinkResult{ApplicationID: id, MerchantID: merchantID, Handle: targetHandle,
+		BusinessName: app.BusinessName, Environment: app.Environment}, nil
 }
 
-// Reject marks the application REJECTED and releases its APPLICATION-reserved
-// handle, keeping the admin notes + applicant message for audit/email.
+// Reject marks the application REJECTED and releases ITS handle hold, keeping
+// the admin notes + applicant message for audit/email. A failed provisioning
+// that created nothing can be rejected too; one that created a Business is
+// reprocessed instead, so nothing is stranded.
 func (s *PostgresMerchantApplicationAdminService) Reject(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (RejectionResult, error) {
+	release, err := s.lockApplication(ctx, id)
+	if err != nil {
+		return RejectionResult{}, err
+	}
+	defer release()
 	app, err := s.Get(ctx, id)
 	if err != nil {
 		return RejectionResult{}, err
 	}
-	if app.Status != "SUBMITTED" && app.Status != "UNDER_REVIEW" {
+	switch app.Status {
+	case "SUBMITTED", "UNDER_REVIEW":
+	case "PROVISIONING_FAILED":
+		if app.CreatedMerchantID != "" {
+			return RejectionResult{}, ErrApplicationNotOpen
+		}
+	default:
 		return RejectionResult{}, ErrApplicationNotOpen
 	}
 
@@ -376,7 +691,8 @@ func (s *PostgresMerchantApplicationAdminService) Reject(ctx context.Context, id
 	defer tx.Rollback(ctx)
 
 	if _, err := tx.Exec(ctx,
-		`DELETE FROM handle_registry WHERE handle=$1 AND owner_type='APPLICATION'`, app.DesiredHandle); err != nil {
+		`DELETE FROM handle_registry WHERE handle=$1 AND owner_type='APPLICATION' AND owner_id=$2::uuid`,
+		app.DesiredHandle, id); err != nil {
 		return RejectionResult{}, err
 	}
 	if _, err := tx.Exec(ctx,

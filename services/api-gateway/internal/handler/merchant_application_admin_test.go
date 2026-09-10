@@ -20,6 +20,8 @@ type fakeAppAdmin struct {
 	getErr     error
 	approveErr error
 	rejectErr  error
+	link       service.LinkResult
+	linkErr    error
 
 	approveCalls int
 }
@@ -37,9 +39,20 @@ func (f *fakeAppAdmin) Approve(_ context.Context, _, _ string, _ time.Duration) 
 	f.approveCalls++
 	return f.approval, f.approveErr
 }
-func (f *fakeAppAdmin) AutoApproveSandbox(_ context.Context, _ string, _ time.Duration) (service.ApprovalResult, error) {
-	f.approveCalls++
-	return f.approval, f.approveErr
+func (f *fakeAppAdmin) StartReview(_ context.Context, _, _ string) (service.MerchantApplication, error) {
+	return service.MerchantApplication{ID: "app-1", Status: "UNDER_REVIEW"}, nil
+}
+func (f *fakeAppAdmin) LinkExisting(_ context.Context, _, _, _, _, _ string) (service.LinkResult, error) {
+	return f.link, f.linkErr
+}
+func (f *fakeAppAdmin) ReissueActivation(_ context.Context, _ string, _ time.Duration) (service.ActivationReissue, error) {
+	return service.ActivationReissue{}, service.ErrActivationNotReissuable
+}
+func (f *fakeAppAdmin) LinkCandidates(_ context.Context, _, _ string) ([]service.LinkCandidate, error) {
+	return nil, nil
+}
+func (f *fakeAppAdmin) BusinessState(_ context.Context, _ string, _ service.SettlementReadinessService) (*service.BusinessState, error) {
+	return nil, nil
 }
 func (f *fakeAppAdmin) Reject(_ context.Context, _, _, _, _ string) (service.RejectionResult, error) {
 	return f.rejection, f.rejectErr

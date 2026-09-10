@@ -20,24 +20,10 @@ type MerchantOnboardingHandler struct {
 	apps       service.MerchantApplicationService
 	activation service.ActivationService
 	gate       *service.EnvGate
-	// admin is used ONLY for SANDBOX assisted onboarding (auto-approve). Optional:
-	// when nil, applications are simply created SUBMITTED (manual review).
-	admin service.MerchantApplicationAdminService
 }
-
-// sandboxAutoApproveTTL is the activation-link lifetime for a sandbox auto-approved
-// account — generous, since sandbox accounts are for extended testing.
-const sandboxAutoApproveTTL = 30 * 24 * time.Hour
 
 func NewMerchantOnboardingHandler(apps service.MerchantApplicationService, activation service.ActivationService, gate *service.EnvGate) *MerchantOnboardingHandler {
 	return &MerchantOnboardingHandler{apps: apps, activation: activation, gate: gate}
-}
-
-// WithAutoApprove enables SANDBOX assisted onboarding (auto-approve + provision).
-// Left unset in tests / environments that shouldn't auto-approve.
-func (h *MerchantOnboardingHandler) WithAutoApprove(admin service.MerchantApplicationAdminService) *MerchantOnboardingHandler {
-	h.admin = admin
-	return h
 }
 
 // POST /v1/merchant/applications/check-handle   {handle}
@@ -97,8 +83,11 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		RepresentativePhone string `json:"representative_phone"`
 		BusinessActivity    string `json:"business_activity"`
 		EstimatedVolume     string `json:"estimated_volume"`
-		BusinessAccountType string `json:"business_account_type"`
 		TermsAccepted       bool   `json:"terms_accepted"`
+		// The applicant says the requested @handle is already their Business's.
+		// No handle is held; an operator resolves the application by linking it
+		// to that Business, never by creating another.
+		ExistingBusiness bool `json:"existing_business"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body")
@@ -142,8 +131,11 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		RepresentativePhone: body.RepresentativePhone,
 		BusinessActivity:    body.BusinessActivity,
 		EstimatedVolume:     body.EstimatedVolume,
-		BusinessAccountType: body.BusinessAccountType,
 		TermsAccepted:       body.TermsAccepted,
+		ExistingBusiness:    body.ExistingBusiness,
+		// One key per form session: a double click or a retried request returns
+		// the application the first one created.
+		IdempotencyKey: r.Header.Get("Idempotency-Key"),
 	})
 	switch {
 	case errors.Is(err, service.ErrHandleInvalid):
@@ -154,6 +146,12 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_RESERVED", "this handle is reserved")
 	case errors.Is(err, service.ErrMerchantHandleTaken):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "this handle is no longer available")
+	case errors.Is(err, service.ErrHandleOwnedByBusiness):
+		apierror.Respond(w, r, http.StatusConflict, "HANDLE_OWNED_BY_BUSINESS",
+			"a Business Account already uses this handle; if it is yours, apply to regularise it")
+	case errors.Is(err, service.ErrExistingBusinessNotFound):
+		apierror.Respond(w, r, http.StatusConflict, "HANDLE_NOT_A_BUSINESS",
+			"no Business Account uses this handle; apply for it as a new Business")
 	case err != nil:
 		// The public response stays exactly as it was — a generic INTERNAL_ERROR
 		// with a request id, leaking no SQL, constraint name or column. The
@@ -185,36 +183,10 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 	default:
 		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", appID)
 
-		// SANDBOX assisted onboarding: auto-approve + provision immediately so the
-		// account is testable without manual review. Best-effort — if provisioning
-		// fails the application stays SUBMITTED and can be approved manually.
-		//
-		// NEVER in LIVE: `env` is stamped from the stack (StackEnv), not the client,
-		// and the service itself refuses any non-SANDBOX application — a LIVE stack
-		// can never reach or trigger auto-approval.
-		if env == "SANDBOX" && h.admin != nil {
-			res, aerr := h.admin.AutoApproveSandbox(r.Context(), appID, sandboxAutoApproveTTL)
-			if aerr != nil {
-				slog.WarnContext(r.Context(), "merchant.application.sandbox_auto_approve_failed",
-					"application_id", appID, "error", aerr.Error())
-				writeJSON(w, http.StatusCreated, map[string]any{"application_id": appID, "status": "SUBMITTED"})
-				return
-			}
-			slog.InfoContext(r.Context(), "merchant.application.sandbox_auto_approved",
-				"application_id", appID, "merchant_id", res.MerchantID)
-			// The raw activation token is returned ONLY in sandbox, so the tester can
-			// self-activate (set a PIN) without waiting for the email — the applicant
-			// owns this test account and no real money is involved.
-			writeJSON(w, http.StatusCreated, map[string]any{
-				"application_id":        appID,
-				"status":                "APPROVED",
-				"sandbox_auto_approved": true,
-				"merchant_id":           res.MerchantID,
-				"activation_token":      res.ActivationToken,
-			})
-			return
-		}
-
+		// Every application is reviewed by an operator — in the Sandbox too. It
+		// used to be approved here, on submit, before a single document had been
+		// uploaded: 29 Sandbox Businesses exist with no reviewed evidence at all,
+		// and the approval that provisioned them was nobody's decision.
 		writeJSON(w, http.StatusCreated, map[string]any{"application_id": appID, "status": "SUBMITTED"})
 	}
 }

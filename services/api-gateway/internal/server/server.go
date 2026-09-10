@@ -142,8 +142,8 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// (ADR-025): this gate refuses application submission/approval when the gateway
 	// stack's environment (cfg.Environment) disagrees with the current mode.
 	envGate := service.NewEnvGate(cfg.Environment, deps.PlatformSvc)
-	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate).WithAutoApprove(deps.MerchantAppAdminSvc)
-	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate)
+	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
+	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate).WithReadiness(deps.SettlementReadinessSvc)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
 	businessMeHandler := handler.NewBusinessMeHandler(deps.BusinessSelfSvc)
@@ -213,16 +213,22 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		}),
 	).Get("/v1/public/proofs/{ref}", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Verify)
 
-	// Public Business onboarding — no JWT required.
-	r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
-	r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
-	r.Post("/v1/merchant/activation/validate", merchantOnboardingHandler.ValidateActivation)
-	r.Post("/v1/merchant/activation/complete", merchantOnboardingHandler.CompleteActivation)
-	// KYB documents (Track 3) — public applicant flow. The application id is the
-	// unguessable capability token (same model as activation).
-	r.Post("/v1/merchant/applications/{id}/documents/upload-url", merchantDocumentHandler.RequestUploadURL)
-	r.Post("/v1/merchant/applications/{id}/documents/{document_id}/confirm", merchantDocumentHandler.ConfirmUpload)
-	r.Get("/v1/merchant/applications/{id}/documents", merchantDocumentHandler.ListDocuments)
+	// Public Business onboarding — no JWT required, so rate-limited per IP: a
+	// handle check is an availability oracle and a submission reserves a name
+	// for 30 days, and neither had any limit. Generous enough for a person
+	// filling in the form; not for a script walking the namespace.
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.RateLimitPerIP(deps.Redis, 30, "onboarding"))
+		r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
+		r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
+		r.Post("/v1/merchant/activation/validate", merchantOnboardingHandler.ValidateActivation)
+		r.Post("/v1/merchant/activation/complete", merchantOnboardingHandler.CompleteActivation)
+		// KYB documents (Track 3) — public applicant flow. The application id is
+		// the unguessable capability token (same model as activation).
+		r.Post("/v1/merchant/applications/{id}/documents/upload-url", merchantDocumentHandler.RequestUploadURL)
+		r.Post("/v1/merchant/applications/{id}/documents/{document_id}/confirm", merchantDocumentHandler.ConfirmUpload)
+		r.Get("/v1/merchant/applications/{id}/documents", merchantDocumentHandler.ListDocuments)
+	})
 
 	// Internal service-to-service endpoints — admin-api / public-api only (shared secret).
 	r.Group(func(r chi.Router) {
@@ -237,6 +243,11 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 			r.Get("/{id}", merchantAppAdminHandler.Get)
 			r.Post("/{id}/approve", merchantAppAdminHandler.Approve)
 			r.Post("/{id}/reject", merchantAppAdminHandler.Reject)
+			r.Post("/{id}/start-review", merchantAppAdminHandler.StartReview)
+			r.Post("/{id}/link-existing", merchantAppAdminHandler.LinkExisting)
+			r.Post("/{id}/reissue-activation", merchantAppAdminHandler.ReissueActivation)
+			r.Get("/{id}/link-candidates", merchantAppAdminHandler.LinkCandidates)
+			r.Get("/{id}/business-state", merchantAppAdminHandler.BusinessState)
 			// KYB documents — admin review flow (read-url / accept / reject).
 			r.Get("/{id}/documents", merchantDocumentHandler.AdminList)
 			r.Post("/{id}/documents/{document_id}/read-url", merchantDocumentHandler.AdminReadURL)

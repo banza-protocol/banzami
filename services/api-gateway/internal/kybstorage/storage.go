@@ -63,7 +63,12 @@ type KybDocumentStorage interface {
 	// HeadObject reports whether the object exists and its size/content-type.
 	HeadObject(ctx context.Context, key string) (ObjectInfo, error)
 
-	// DeleteObject removes the object (used by hard-delete tooling only).
+	// ReadPrefix returns up to n leading bytes of the object — enough to check
+	// what the file actually is, rather than what the uploader declared.
+	ReadPrefix(ctx context.Context, key string, n int) ([]byte, error)
+
+	// DeleteObject removes the object (hard-delete tooling, and an upload that
+	// failed validation after it landed).
 	DeleteObject(ctx context.Context, key string) error
 
 	// Bucket is the configured bucket name (stored alongside the key in DB).

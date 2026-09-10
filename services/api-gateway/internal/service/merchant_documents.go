@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"path/filepath"
@@ -27,6 +28,12 @@ var (
 	ErrEmptyFile            = errors.New("empty file")
 	ErrDocumentNotFound     = errors.New("document not found")
 	ErrObjectMissing        = errors.New("uploaded object not found in storage")
+	// ErrContentMismatch: the uploaded bytes are not the kind of file declared
+	// (a renamed executable called registo.pdf, say). Refused and deleted.
+	ErrContentMismatch = errors.New("the uploaded file is not a valid PDF, JPEG or PNG of the declared type")
+	// ErrApplicationClosed: documents are part of a review; a decided
+	// application takes no more.
+	ErrApplicationClosed = errors.New("this application is no longer accepting documents")
 )
 
 // Allowed document types (v1). Three required company documents plus an
@@ -148,13 +155,17 @@ func (s *PostgresMerchantDocumentService) RequestUpload(ctx context.Context, app
 		return RequestUploadResult{}, err
 	}
 
-	var environment string
-	err := s.pool.QueryRow(ctx, `SELECT environment FROM merchant_applications WHERE id = $1`, appID).Scan(&environment)
+	var environment, appStatus string
+	err := s.pool.QueryRow(ctx, `SELECT environment, status FROM merchant_applications WHERE id = $1`, appID).
+		Scan(&environment, &appStatus)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return RequestUploadResult{}, ErrApplicationNotFound
 	}
 	if err != nil {
 		return RequestUploadResult{}, err
+	}
+	if !documentsOpen(appStatus) {
+		return RequestUploadResult{}, ErrApplicationClosed
 	}
 
 	documentID := uuid.NewString()
@@ -202,11 +213,12 @@ func (s *PostgresMerchantDocumentService) ConfirmUpload(ctx context.Context, app
 	if s.storage == nil {
 		return DocumentView{}, ErrStorageNotConfigured
 	}
-	var storageKey string
+	var storageKey, declaredMime, appStatus string
 	err := s.pool.QueryRow(ctx,
-		`SELECT storage_key FROM merchant_application_documents
-		  WHERE id=$1 AND application_id=$2 AND deleted_at IS NULL`,
-		documentID, appID).Scan(&storageKey)
+		`SELECT d.storage_key, d.mime_type, a.status FROM merchant_application_documents d
+		   JOIN merchant_applications a ON a.id = d.application_id
+		  WHERE d.id=$1 AND d.application_id=$2 AND d.deleted_at IS NULL`,
+		documentID, appID).Scan(&storageKey, &declaredMime, &appStatus)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return DocumentView{}, ErrDocumentNotFound
 	}
@@ -220,6 +232,36 @@ func (s *PostgresMerchantDocumentService) ConfirmUpload(ctx context.Context, app
 	}
 	if !info.Exists {
 		return DocumentView{}, ErrObjectMissing
+	}
+
+	if !documentsOpen(appStatus) {
+		return DocumentView{}, ErrApplicationClosed
+	}
+
+	// The upload URL is signed for the host only, so the store enforced neither
+	// the size nor the type the client declared when it asked for it. Both are
+	// checked here, on what actually arrived; a file that fails is deleted and
+	// its row refused, so nothing unverified reaches a reviewer.
+	refuse := func(reason string, e error) (DocumentView, error) {
+		_ = s.storage.DeleteObject(ctx, storageKey)
+		_, _ = s.pool.Exec(ctx,
+			`UPDATE merchant_application_documents
+			    SET status='REJECTED', rejection_reason=$2, deleted_at=now(), updated_at=now()
+			  WHERE id=$1`, documentID, reason)
+		return DocumentView{}, e
+	}
+	if info.SizeBytes > s.maxSize {
+		return refuse("FILE_TOO_LARGE", ErrFileTooLarge)
+	}
+	if info.SizeBytes == 0 {
+		return refuse("EMPTY_FILE", ErrEmptyFile)
+	}
+	head, err := s.storage.ReadPrefix(ctx, storageKey, 16)
+	if err != nil {
+		return DocumentView{}, err
+	}
+	if sniffDocumentType(head) != declaredMime {
+		return refuse("CONTENT_MISMATCH", ErrContentMismatch)
 	}
 
 	// Trust the real object size when the store reports it.
@@ -359,4 +401,27 @@ func (s *PostgresMerchantDocumentService) Reject(ctx context.Context, appID, doc
 		return AdminDocumentView{}, ErrDocumentNotFound
 	}
 	return s.getAdmin(ctx, appID, documentID)
+}
+
+// documentsOpen: an application takes documents while it is being reviewed.
+func documentsOpen(status string) bool {
+	switch status {
+	case "SUBMITTED", "UNDER_REVIEW", "PROVISIONING_FAILED":
+		return true
+	}
+	return false
+}
+
+// sniffDocumentType names the file by its leading bytes — the only accepted
+// kinds — or returns "" for anything else.
+func sniffDocumentType(head []byte) string {
+	switch {
+	case bytes.HasPrefix(head, []byte("%PDF-")):
+		return "application/pdf"
+	case bytes.HasPrefix(head, []byte("\x89PNG\r\n\x1a\n")):
+		return "image/png"
+	case bytes.HasPrefix(head, []byte{0xFF, 0xD8, 0xFF}):
+		return "image/jpeg"
+	}
+	return ""
 }

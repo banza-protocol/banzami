@@ -52,6 +52,10 @@ func (h *MerchantDocumentHandler) mapErr(w http.ResponseWriter, r *http.Request,
 		apierror.Respond(w, r, http.StatusRequestEntityTooLarge, "FILE_TOO_LARGE", "file exceeds the maximum allowed size")
 	case errors.Is(err, service.ErrEmptyFile):
 		apierror.Respond(w, r, http.StatusBadRequest, "EMPTY_FILE", "file is empty")
+	case errors.Is(err, service.ErrContentMismatch):
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "CONTENT_MISMATCH", "the file is not a valid PDF, JPEG or PNG of the declared type")
+	case errors.Is(err, service.ErrApplicationClosed):
+		apierror.Respond(w, r, http.StatusConflict, "APPLICATION_CLOSED", "this application is no longer accepting documents")
 	default:
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not process document request")
 	}

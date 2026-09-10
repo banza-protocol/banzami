@@ -3,6 +3,7 @@ package kybstorage
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -98,6 +99,24 @@ func (s *s3Storage) HeadObject(ctx context.Context, key string) (ObjectInfo, err
 	default:
 		return ObjectInfo{}, fmt.Errorf("head object: unexpected status %d", resp.StatusCode)
 	}
+}
+
+func (s *s3Storage) ReadPrefix(ctx context.Context, key string, n int) ([]byte, error) {
+	u := s.presign(http.MethodGet, key, 60*time.Second, s.now(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Range", fmt.Sprintf("bytes=0-%d", n-1))
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusPartialContent {
+		return nil, fmt.Errorf("read object prefix: unexpected status %d", resp.StatusCode)
+	}
+	return io.ReadAll(io.LimitReader(resp.Body, int64(n)))
 }
 
 func (s *s3Storage) DeleteObject(ctx context.Context, key string) error {

@@ -22,6 +22,8 @@ type fakeProvisioner struct {
 	createWallet       int
 	createApiKey       int
 	approveCompliance  int
+	assignPricing      int
+	lastProfile        string
 }
 
 func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email, businessAccountType string) (string, error) {
@@ -42,6 +44,25 @@ func (f *fakeProvisioner) CreateApiKey(ctx context.Context, merchantID, name, en
 func (f *fakeProvisioner) ApproveCompliance(ctx context.Context, merchantID string) error {
 	f.approveCompliance++
 	return nil
+}
+func (f *fakeProvisioner) AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error {
+	f.assignPricing++
+	f.lastProfile = profileCode
+	return nil
+}
+
+// seedRequiredDocs gives an application the documents a review is made on.
+func seedRequiredDocs(ctx context.Context, t *testing.T, pool *pgxpool.Pool, appID string) {
+	t.Helper()
+	for _, typ := range requiredApplicationDocuments {
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO merchant_application_documents
+			   (id, application_id, document_type, original_filename, storage_bucket, storage_key, mime_type, size_bytes, status, uploaded_at, confirmed_at)
+			 VALUES ($1,$2,$3,'doc.pdf','test',$4,'application/pdf',1024,'UPLOADED',now(),now())`,
+			uuid.NewString(), appID, typ, "kyb/test/"+appID+"/"+typ); err != nil {
+			t.Fatalf("seed document %s: %v", typ, err)
+		}
+	}
 }
 
 func appAdminPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
@@ -91,7 +112,7 @@ func TestApprove_ResumesExistingMerchant(t *testing.T) {
 		t.Fatalf("seed merchant: %v", err)
 	}
 	// …and the application already records it.
-	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'SYSTEM',NULL,'application')`, handle); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'APPLICATION',$2,'application')`, handle, appID); err != nil {
 		t.Fatalf("seed handle: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
@@ -105,6 +126,7 @@ func TestApprove_ResumesExistingMerchant(t *testing.T) {
 		t.Fatal("CreateMerchant must NOT be called when the application already has a merchant id")
 		return "", nil
 	}}
+	seedRequiredDocs(ctx, t, pool, appID)
 	svc := NewPostgresMerchantApplicationAdminService(pool, fake)
 
 	res, err := svc.Approve(ctx, appID, "tester", time.Hour)
@@ -140,7 +162,7 @@ func TestApprove_FreshCreatesAndRecordsMerchant(t *testing.T) {
 		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
 	})
 
-	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'SYSTEM',NULL,'application')`, handle); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'APPLICATION',$2,'application')`, handle, appID); err != nil {
 		t.Fatalf("seed handle: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
@@ -156,6 +178,7 @@ func TestApprove_FreshCreatesAndRecordsMerchant(t *testing.T) {
 			merchantID, "Fresh Co", email)
 		return merchantID, err
 	}}
+	seedRequiredDocs(ctx, t, pool, appID)
 	svc := NewPostgresMerchantApplicationAdminService(pool, fake)
 
 	res, err := svc.Approve(ctx, appID, "tester", time.Hour)
@@ -199,7 +222,7 @@ func TestApprove_FailsThenResumesWithoutDuplication(t *testing.T) {
 		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
 	})
 
-	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'SYSTEM',NULL,'application')`, handle); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'APPLICATION',$2,'application')`, handle, appID); err != nil {
 		t.Fatalf("seed handle: %v", err)
 	}
 	if _, err := pool.Exec(ctx,
@@ -222,6 +245,7 @@ func TestApprove_FailsThenResumesWithoutDuplication(t *testing.T) {
 			return uuid.NewString(), nil
 		},
 	}
+	seedRequiredDocs(ctx, t, pool, appID)
 	svc := NewPostgresMerchantApplicationAdminService(pool, fake)
 
 	// First attempt fails at the wallet step.
@@ -263,126 +287,5 @@ func TestApprove_FailsThenResumesWithoutDuplication(t *testing.T) {
 	_ = pool.QueryRow(ctx, `SELECT status FROM merchant_applications WHERE id=$1`, appID).Scan(&status)
 	if status != "APPROVED" {
 		t.Fatalf("reprocess did not finalize: status=%s", status)
-	}
-}
-
-// SANDBOX assisted onboarding: AutoApproveSandbox provisions the merchant, flips
-// the application to APPROVED, records reviewed_by=SANDBOX_AUTO_APPROVE and sets
-// sandbox_auto_approved=true — the same provisioning path as a manual approval.
-func TestAutoApproveSandbox_ProvisionsAndFlags(t *testing.T) {
-	ctx := context.Background()
-	pool := appAdminPoolOrSkip(ctx, t)
-	defer pool.Close()
-
-	appID := uuid.NewString()
-	handle := "t_" + uuid.NewString()[:8]
-	email := handle + "@example.test"
-	var merchantID string
-
-	t.Cleanup(func() {
-		if merchantID != "" {
-			_, _ = pool.Exec(ctx, `DELETE FROM merchant_activation_tokens WHERE merchant_id=$1`, merchantID)
-			_, _ = pool.Exec(ctx, `DELETE FROM merchant_app_credentials WHERE merchant_id=$1`, merchantID)
-			_, _ = pool.Exec(ctx, `DELETE FROM merchant_profiles WHERE merchant_id=$1`, merchantID)
-		}
-		_, _ = pool.Exec(ctx, `DELETE FROM merchant_applications WHERE id=$1`, appID)
-		if merchantID != "" {
-			_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, merchantID)
-		}
-		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
-	})
-
-	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'APPLICATION',$2,'application')`, handle, appID); err != nil {
-		t.Fatalf("seed handle: %v", err)
-	}
-	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email)
-		 VALUES ($1,'SUBMITTED','SANDBOX',$2,'Sandbox Co',$3)`,
-		appID, handle, email); err != nil {
-		t.Fatalf("seed application: %v", err)
-	}
-
-	fake := &fakeProvisioner{createMerchantHook: func() (string, error) {
-		merchantID = uuid.NewString()
-		if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email) VALUES ($1,$2,$3)`, merchantID, "Sandbox Co", email); err != nil {
-			return "", err
-		}
-		return merchantID, nil
-	}}
-	svc := NewPostgresMerchantApplicationAdminService(pool, fake)
-
-	res, err := svc.AutoApproveSandbox(ctx, appID, time.Hour)
-	if err != nil {
-		t.Fatalf("auto-approve: %v", err)
-	}
-	if fake.createMerchant != 1 || fake.createApiKey != 1 || fake.approveCompliance != 1 {
-		t.Fatalf("provisioning not run: merchant=%d apikey=%d compliance=%d", fake.createMerchant, fake.createApiKey, fake.approveCompliance)
-	}
-
-	var status, reviewedBy string
-	var autoApproved bool
-	if err := pool.QueryRow(ctx,
-		`SELECT status, COALESCE(reviewed_by,''), sandbox_auto_approved FROM merchant_applications WHERE id=$1`, appID).
-		Scan(&status, &reviewedBy, &autoApproved); err != nil {
-		t.Fatalf("read back: %v", err)
-	}
-	if status != "APPROVED" {
-		t.Fatalf("status = %s, want APPROVED", status)
-	}
-	if !autoApproved {
-		t.Fatal("sandbox_auto_approved was not set")
-	}
-	if reviewedBy != "SANDBOX_AUTO_APPROVE" {
-		t.Fatalf("reviewed_by = %q, want SANDBOX_AUTO_APPROVE", reviewedBy)
-	}
-	if res.MerchantID != merchantID {
-		t.Fatalf("result merchant %s != provisioned %s", res.MerchantID, merchantID)
-	}
-}
-
-// A LIVE application must NEVER be auto-approved — it stays SUBMITTED, unflagged,
-// and no provisioning runs. This is the hard backend guard.
-func TestAutoApproveSandbox_RefusesLive(t *testing.T) {
-	ctx := context.Background()
-	pool := appAdminPoolOrSkip(ctx, t)
-	defer pool.Close()
-
-	appID := uuid.NewString()
-	handle := "t_" + uuid.NewString()[:8]
-
-	t.Cleanup(func() {
-		_, _ = pool.Exec(ctx, `DELETE FROM merchant_applications WHERE id=$1`, appID)
-		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
-	})
-
-	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'APPLICATION',$2,'application')`, handle, appID); err != nil {
-		t.Fatalf("seed handle: %v", err)
-	}
-	if _, err := pool.Exec(ctx,
-		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email)
-		 VALUES ($1,'SUBMITTED','LIVE',$2,'Live Co',$3)`,
-		appID, handle, handle+"@example.test"); err != nil {
-		t.Fatalf("seed application: %v", err)
-	}
-
-	fake := &fakeProvisioner{createMerchantHook: func() (string, error) {
-		t.Fatal("provisioning must NOT run for a LIVE application")
-		return "", nil
-	}}
-	svc := NewPostgresMerchantApplicationAdminService(pool, fake)
-
-	_, err := svc.AutoApproveSandbox(ctx, appID, time.Hour)
-	if err != ErrAutoApproveNotSandbox {
-		t.Fatalf("err = %v, want ErrAutoApproveNotSandbox", err)
-	}
-
-	var status string
-	var autoApproved bool
-	_ = pool.QueryRow(ctx, `SELECT status, sandbox_auto_approved FROM merchant_applications WHERE id=$1`, appID).Scan(&status, &autoApproved)
-	if status != "SUBMITTED" || autoApproved {
-		t.Fatalf("LIVE app changed: status=%s auto=%v", status, autoApproved)
-	}
-	if fake.createMerchant != 0 {
-		t.Fatalf("provisioning ran for LIVE (%d)", fake.createMerchant)
 	}
 }

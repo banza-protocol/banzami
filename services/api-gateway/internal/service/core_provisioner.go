@@ -69,3 +69,18 @@ func (c *CoreApiClient) ApproveCompliance(ctx context.Context, merchantID string
 	var out map[string]any
 	return c.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/approve", nil, &out)
 }
+
+// AssignPricingProfile records which operator-governed pricing profile prices a
+// merchant. An assignment, not a creation: repeating it is harmless, so a
+// resumed approval can call it on every attempt.
+func (c *CoreApiClient) AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error {
+	status, raw, err := c.requestRaw(ctx, "PUT", "/internal/v1/merchants/"+merchantID+"/pricing-profile",
+		map[string]string{"profile_code": profileCode})
+	if err != nil {
+		return err
+	}
+	if status >= 300 {
+		return fmt.Errorf("core-api: assign pricing profile: %d %.160s", status, string(raw))
+	}
+	return nil
+}

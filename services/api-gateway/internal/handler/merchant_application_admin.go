@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -17,12 +18,51 @@ import (
 // endpoints the admin-api calls (behind InternalAuth). The activation token is
 // returned to the admin-api ONCE for the approved email and is never logged.
 type MerchantApplicationAdminHandler struct {
-	svc  service.MerchantApplicationAdminService
-	gate *service.EnvGate
+	svc       service.MerchantApplicationAdminService
+	gate      *service.EnvGate
+	readiness service.SettlementReadinessService
 }
 
 func NewMerchantApplicationAdminHandler(svc service.MerchantApplicationAdminService, gate *service.EnvGate) *MerchantApplicationAdminHandler {
 	return &MerchantApplicationAdminHandler{svc: svc, gate: gate}
+}
+
+// WithReadiness lets the Business-state view show core's settlement readiness.
+func (h *MerchantApplicationAdminHandler) WithReadiness(r service.SettlementReadinessService) *MerchantApplicationAdminHandler {
+	h.readiness = r
+	return h
+}
+
+// respondLifecycleError maps the application-lifecycle refusals to precise
+// codes an operator UI can explain.
+func respondLifecycleError(w http.ResponseWriter, r *http.Request, err error, action string) {
+	switch {
+	case errors.Is(err, service.ErrApplicationNotFound):
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "application not found")
+	case errors.Is(err, service.ErrApplicationNotOpen):
+		apierror.Respond(w, r, http.StatusConflict, "NOT_OPEN", "application is not open for this action")
+	case errors.Is(err, service.ErrRequiredDocumentsMissing):
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "DOCUMENTS_REQUIRED", err.Error())
+	case errors.Is(err, service.ErrHandleOwnedByBusiness):
+		apierror.Respond(w, r, http.StatusConflict, "HANDLE_OWNED_BY_BUSINESS", err.Error())
+	case errors.Is(err, service.ErrClaimsExistingBusiness):
+		apierror.Respond(w, r, http.StatusConflict, "LINK_REQUIRED", err.Error())
+	case errors.Is(err, service.ErrMerchantHandleTaken):
+		apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "the requested handle is held by someone else")
+	case errors.Is(err, service.ErrLinkTargetInvalid):
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "LINK_TARGET_INVALID", err.Error())
+	case errors.Is(err, service.ErrLinkConfirmationMismatch):
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "CONFIRMATION_MISMATCH", err.Error())
+	case errors.Is(err, service.ErrApplicationNotLinkable):
+		apierror.Respond(w, r, http.StatusConflict, "NOT_LINKABLE", err.Error())
+	case errors.Is(err, service.ErrLinkReasonRequired):
+		apierror.Respond(w, r, http.StatusBadRequest, "REASON_REQUIRED", err.Error())
+	case errors.Is(err, service.ErrActivationNotReissuable):
+		apierror.Respond(w, r, http.StatusConflict, "NO_PENDING_ACTIVATION", err.Error())
+	default:
+		slog.ErrorContext(r.Context(), "merchant.application."+action+".failed", "error_kind", fmt.Sprintf("%T", err))
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not "+action+" application")
+	}
 }
 
 // activationTTL is the lifetime of an activation link issued at approval.
@@ -78,19 +118,14 @@ func (h *MerchantApplicationAdminHandler) Approve(w http.ResponseWriter, r *http
 	}
 
 	res, err := h.svc.Approve(r.Context(), chi.URLParam(r, "id"), body.ReviewedBy, approvalActivationTTL)
-	switch {
-	case errors.Is(err, service.ErrApplicationNotFound):
-		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "application not found")
-	case errors.Is(err, service.ErrApplicationNotOpen):
-		apierror.Respond(w, r, http.StatusConflict, "NOT_OPEN", "application is not open for review")
-	case err != nil:
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not approve application")
-	default:
-		// merchant_id is safe to log; the activation token is NOT.
-		slog.InfoContext(r.Context(), "merchant.application.approved",
-			"application_id", res.ApplicationID, "merchant_id", res.MerchantID)
-		writeJSON(w, http.StatusOK, res)
+	if err != nil {
+		respondLifecycleError(w, r, err, "approve")
+		return
 	}
+	// merchant_id is safe to log; the activation token is NOT.
+	slog.InfoContext(r.Context(), "merchant.application.approved",
+		"application_id", res.ApplicationID, "merchant_id", res.MerchantID, "already_approved", res.AlreadyApproved)
+	writeJSON(w, http.StatusOK, res)
 }
 
 func (h *MerchantApplicationAdminHandler) Reject(w http.ResponseWriter, r *http.Request) {
@@ -106,15 +141,104 @@ func (h *MerchantApplicationAdminHandler) Reject(w http.ResponseWriter, r *http.
 	_ = json.NewDecoder(r.Body).Decode(&body)
 
 	res, err := h.svc.Reject(r.Context(), chi.URLParam(r, "id"), body.ReviewedBy, body.AdminNotes, body.MerchantMessage)
-	switch {
-	case errors.Is(err, service.ErrApplicationNotFound):
-		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "application not found")
-	case errors.Is(err, service.ErrApplicationNotOpen):
-		apierror.Respond(w, r, http.StatusConflict, "NOT_OPEN", "application is not open for review")
-	case err != nil:
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not reject application")
-	default:
-		slog.InfoContext(r.Context(), "merchant.application.rejected", "application_id", res.ApplicationID)
-		writeJSON(w, http.StatusOK, res)
+	if err != nil {
+		respondLifecycleError(w, r, err, "reject")
+		return
 	}
+	slog.InfoContext(r.Context(), "merchant.application.rejected", "application_id", res.ApplicationID)
+	writeJSON(w, http.StatusOK, res)
+}
+
+// POST /internal/v1/merchant-applications/{id}/start-review {reviewed_by}
+func (h *MerchantApplicationAdminHandler) StartReview(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	var body struct {
+		ReviewedBy string `json:"reviewed_by"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	app, err := h.svc.StartReview(r.Context(), chi.URLParam(r, "id"), body.ReviewedBy)
+	if err != nil {
+		respondLifecycleError(w, r, err, "start review of")
+		return
+	}
+	slog.InfoContext(r.Context(), "merchant.application.review_started", "application_id", app.ID)
+	writeJSON(w, http.StatusOK, app)
+}
+
+// POST /internal/v1/merchant-applications/{id}/link-existing
+// {merchant_id, confirmation_handle, reason, reviewed_by}
+func (h *MerchantApplicationAdminHandler) LinkExisting(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	var body struct {
+		MerchantID         string `json:"merchant_id"`
+		ConfirmationHandle string `json:"confirmation_handle"`
+		Reason             string `json:"reason"`
+		ReviewedBy         string `json:"reviewed_by"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "merchant_id is required")
+		return
+	}
+	if mode, gerr := h.gate.Verify(r.Context()); errors.Is(gerr, service.ErrEnvMismatch) {
+		apierror.Respond(w, r, http.StatusConflict, "ENVIRONMENT_MISMATCH",
+			"cannot link here because the platform is currently in "+mode+" mode")
+		return
+	}
+	res, err := h.svc.LinkExisting(r.Context(), chi.URLParam(r, "id"), body.MerchantID, body.ConfirmationHandle, body.ReviewedBy, body.Reason)
+	if err != nil {
+		respondLifecycleError(w, r, err, "link")
+		return
+	}
+	slog.InfoContext(r.Context(), "merchant.application.linked_existing",
+		"application_id", res.ApplicationID, "merchant_id", res.MerchantID, "already_linked", res.AlreadyLinked)
+	writeJSON(w, http.StatusOK, res)
+}
+
+// POST /internal/v1/merchant-applications/{id}/reissue-activation
+func (h *MerchantApplicationAdminHandler) ReissueActivation(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	res, err := h.svc.ReissueActivation(r.Context(), chi.URLParam(r, "id"), approvalActivationTTL)
+	if err != nil {
+		respondLifecycleError(w, r, err, "reissue activation for")
+		return
+	}
+	slog.InfoContext(r.Context(), "merchant.application.activation_reissued", "application_id", res.ApplicationID)
+	writeJSON(w, http.StatusOK, res)
+}
+
+// GET /internal/v1/merchant-applications/{id}/link-candidates?handle=
+func (h *MerchantApplicationAdminHandler) LinkCandidates(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	out, err := h.svc.LinkCandidates(r.Context(), chi.URLParam(r, "id"), r.URL.Query().Get("handle"))
+	if err != nil {
+		respondLifecycleError(w, r, err, "list candidates for")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"candidates": out})
+}
+
+// GET /internal/v1/merchant-applications/{id}/business-state
+func (h *MerchantApplicationAdminHandler) BusinessState(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "applications are not available")
+		return
+	}
+	st, err := h.svc.BusinessState(r.Context(), chi.URLParam(r, "id"), h.readiness)
+	if err != nil {
+		respondLifecycleError(w, r, err, "read the business of")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"business": st})
 }

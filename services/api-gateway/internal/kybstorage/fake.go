@@ -13,6 +13,7 @@ type FakeStorage struct {
 	bucket    string
 	ttl       time.Duration
 	objects   map[string]ObjectInfo // key -> info (presence = "uploaded")
+	contents  map[string][]byte     // key -> bytes, when a test supplies them
 	UploadLog []string              // keys for which an upload URL was minted
 	ReadLog   []string              // keys for which a read URL was minted
 	Deleted   []string
@@ -21,10 +22,11 @@ type FakeStorage struct {
 
 func NewFakeStorage(bucket string) *FakeStorage {
 	return &FakeStorage{
-		bucket:  bucket,
-		ttl:     300 * time.Second,
-		objects: map[string]ObjectInfo{},
-		now:     time.Now,
+		bucket:   bucket,
+		ttl:      300 * time.Second,
+		objects:  map[string]ObjectInfo{},
+		contents: map[string][]byte{},
+		now:      time.Now,
 	}
 }
 
@@ -33,6 +35,38 @@ func (f *FakeStorage) PutObject(key string, size int64, contentType string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.objects[key] = ObjectInfo{Exists: true, SizeBytes: size, ContentType: contentType}
+}
+
+// PutObjectBytes simulates an upload with real content, so signature checks
+// see what a client actually sent.
+func (f *FakeStorage) PutObjectBytes(key string, body []byte, contentType string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.objects[key] = ObjectInfo{Exists: true, SizeBytes: int64(len(body)), ContentType: contentType}
+	f.contents[key] = body
+}
+
+// ReadPrefix returns the leading bytes of a PutObjectBytes upload. An object
+// put without content (PutObject) reads as a valid file of its recorded type,
+// so tests that only simulate presence keep describing a genuine upload.
+func (f *FakeStorage) ReadPrefix(_ context.Context, key string, n int) ([]byte, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	b, ok := f.contents[key]
+	if !ok {
+		switch f.objects[key].ContentType {
+		case "image/png":
+			b = []byte("\x89PNG\r\n\x1a\n")
+		case "image/jpeg":
+			b = []byte{0xFF, 0xD8, 0xFF, 0xE0}
+		default:
+			b = []byte("%PDF-1.7\n")
+		}
+	}
+	if len(b) > n {
+		b = b[:n]
+	}
+	return append([]byte(nil), b...), nil
 }
 
 func (f *FakeStorage) Bucket() string { return f.bucket }

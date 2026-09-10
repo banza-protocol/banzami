@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -23,6 +26,10 @@ const (
 	HandleReasonReserved = "RESERVED"
 	HandleReasonTaken    = "TAKEN"
 	HandleReasonPending  = "PENDING" // held by another in-flight application
+	// HandleReasonBusiness: an existing Business Account uses this handle. It
+	// cannot be requested as new; its owner can apply to regularise it
+	// (existing_business), resolved by an operator link.
+	HandleReasonBusiness = "BUSINESS"
 )
 
 // applicationHandleTTL is how long a submitted application holds its handle.
@@ -49,11 +56,13 @@ type MerchantApplicationInput struct {
 	RepresentativePhone string
 	BusinessActivity    string
 	EstimatedVolume     string
-	// BusinessAccountType is the ADR-028 type the applicant declares (e.g.
-	// APPLICATION for an app like DOA). Confirmed at KYB; copied to the merchant
-	// on approval. Empty ⇒ treated as MERCHANT.
-	BusinessAccountType string
-	TermsAccepted       bool
+	// ExistingBusiness: the applicant says the requested handle is already
+	// their Business's. No hold is taken; it is resolved by an operator link.
+	ExistingBusiness bool
+	// IdempotencyKey: the public form's per-session key. A resubmission with the
+	// same key returns the application the first one created.
+	IdempotencyKey string
+	TermsAccepted  bool
 }
 
 type MerchantApplicationService interface {
@@ -81,7 +90,10 @@ func classifyHandle(ownerType string, reservedReason *string, reservedUntil *tim
 		}
 		return true, HandleAvailable // expired reservation → available again
 	}
-	return false, HandleReasonTaken // CONSUMER or MERCHANT
+	if ownerType == "MERCHANT" {
+		return false, HandleReasonBusiness
+	}
+	return false, HandleReasonTaken // CONSUMER
 }
 
 // CheckHandle reports whether a desired @negócio can be requested right now.
@@ -132,6 +144,21 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		env = "SANDBOX"
 	}
 
+	var keyHash any
+	if k := strings.TrimSpace(in.IdempotencyKey); k != "" {
+		sum := sha256.Sum256([]byte(k))
+		keyHash = hex.EncodeToString(sum[:])
+		var existing string
+		err := s.pool.QueryRow(ctx,
+			`SELECT id::text FROM merchant_applications WHERE submit_idempotency_key = $1`, keyHash).Scan(&existing)
+		if err == nil {
+			return existing, nil
+		}
+		if !errors.Is(err, pgx.ErrNoRows) {
+			return "", err
+		}
+	}
+
 	appID := uuid.NewString()
 
 	tx, err := s.pool.Begin(ctx)
@@ -139,6 +166,29 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		return "", err
 	}
 	defer tx.Rollback(ctx)
+
+	if in.ExistingBusiness {
+		// The handle must already be an ACTIVE Business's. It is not held or
+		// touched: it stays with its owner until an operator links the
+		// application to that owner — or rejects it.
+		var ownerStatus string
+		err := tx.QueryRow(ctx,
+			`SELECT m.status FROM handle_registry hr JOIN merchants m ON m.id = hr.owner_id
+			  WHERE hr.handle = $1 AND hr.owner_type = 'MERCHANT'`, handle).Scan(&ownerStatus)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && ownerStatus != "ACTIVE") {
+			return "", ErrExistingBusinessNotFound
+		}
+		if err != nil {
+			return "", err
+		}
+		if err := s.insertApplication(ctx, tx, appID, env, handle, in, keyHash); err != nil {
+			return "", err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return "", err
+		}
+		return appID, nil
+	}
 
 	// Lock the handle row (if any) and decide whether we can reserve it.
 	var (
@@ -166,6 +216,9 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 			if reason == HandleReasonReserved {
 				return "", ErrHandleReserved
 			}
+			if reason == HandleReasonBusiness {
+				return "", ErrHandleOwnedByBusiness
+			}
 			return "", ErrMerchantHandleTaken
 		}
 		// Expired APPLICATION reservation → take it over.
@@ -178,19 +231,7 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		}
 	}
 
-	if _, err := tx.Exec(ctx,
-		`INSERT INTO merchant_applications
-		   (id, status, environment, desired_handle, business_name, category, subcategory, email, phone,
-		    nif, country, province, municipality, city, address, address_reference,
-		    legal_representative, representative_role, representative_email, representative_phone,
-		    business_activity, estimated_volume, business_account_type, terms_accepted_at)
-		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22, now())`,
-		appID, env, handle, in.BusinessName, nullStr(in.Category), nullStr(in.Subcategory), in.Email, nullStr(in.Phone),
-		nullStr(in.Nif), nullStr(in.Country), nullStr(in.Province), nullStr(in.Municipality), nullStr(in.City),
-		nullStr(in.Address), nullStr(in.AddressReference),
-		nullStr(in.LegalRepresentative), nullStr(in.RepresentativeRole), nullStr(in.RepresentativeEmail), nullStr(in.RepresentativePhone),
-		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume), nullStr(in.BusinessAccountType),
-	); err != nil {
+	if err := s.insertApplication(ctx, tx, appID, env, handle, in, keyHash); err != nil {
 		return "", err
 	}
 
@@ -198,4 +239,22 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		return "", err
 	}
 	return appID, nil
+}
+
+// insertApplication writes a SUBMITTED application inside the caller's tx.
+func (s *PostgresMerchantApplicationService) insertApplication(ctx context.Context, tx pgx.Tx, appID, env, handle string, in MerchantApplicationInput, keyHash any) error {
+	_, err := tx.Exec(ctx,
+		`INSERT INTO merchant_applications
+		   (id, status, environment, desired_handle, business_name, category, subcategory, email, phone,
+		    nif, country, province, municipality, city, address, address_reference,
+		    legal_representative, representative_role, representative_email, representative_phone,
+		    business_activity, estimated_volume, claims_existing_business, submit_idempotency_key, terms_accepted_at)
+		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23, now())`,
+		appID, env, handle, in.BusinessName, nullStr(in.Category), nullStr(in.Subcategory), in.Email, nullStr(in.Phone),
+		nullStr(in.Nif), nullStr(in.Country), nullStr(in.Province), nullStr(in.Municipality), nullStr(in.City),
+		nullStr(in.Address), nullStr(in.AddressReference),
+		nullStr(in.LegalRepresentative), nullStr(in.RepresentativeRole), nullStr(in.RepresentativeEmail), nullStr(in.RepresentativePhone),
+		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume), in.ExistingBusiness, keyHash,
+	)
+	return err
 }
