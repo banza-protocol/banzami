@@ -521,8 +521,8 @@ func scanBinding(row pgx.Row) (*SandboxBinding, error) {
 func (s *pgStore) CreateBinding(ctx context.Context, in BindingInsert) (SandboxBinding, error) {
 	b, err := scanBinding(s.pool.QueryRow(ctx,
 		`INSERT INTO developer.dev_project_sandbox_binding
-		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id)
-		 VALUES ($1,$2,$3,$4,$5) RETURNING `+bindingCols,
+		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id, environment)
+		 VALUES ($1,$2,$3,$4,$5,'SANDBOX') RETURNING `+bindingCols,
 		in.ProjectID, in.MerchantID, in.WalletID, in.WalletAccountID, in.CreatedByUserID))
 	if err != nil {
 		if isUnique(err) {
@@ -558,8 +558,8 @@ func (s *pgStore) SupersedeAndCreateBinding(ctx context.Context, in BindingInser
 
 	b, err := scanBinding(tx.QueryRow(ctx,
 		`INSERT INTO developer.dev_project_sandbox_binding
-		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id)
-		 VALUES ($1,$2,$3,$4,$5) RETURNING `+bindingCols,
+		    (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id, environment)
+		 VALUES ($1,$2,$3,$4,$5,'SANDBOX') RETURNING `+bindingCols,
 		in.ProjectID, in.MerchantID, in.WalletID, in.WalletAccountID, in.CreatedByUserID))
 	if err != nil {
 		if isUnique(err) {

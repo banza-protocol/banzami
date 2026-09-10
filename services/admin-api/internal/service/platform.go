@@ -105,8 +105,8 @@ func (s *PlatformService) SetMode(ctx context.Context, mode, confirmationText, r
 	}
 
 	if _, err := tx.Exec(ctx,
-		`INSERT INTO platform_settings (key, value, reason, updated_by, updated_at, version)
-		 VALUES ($1, $2, $3, $4, now(), 1)
+		`INSERT INTO platform_settings (key, value, environment, reason, updated_by, updated_at, version)
+		 VALUES ($1, $2, 'GLOBAL', $3, $4, now(), 1)
 		 ON CONFLICT (key) DO UPDATE
 		    SET value=$2, reason=$3, updated_by=$4, updated_at=now(), version=platform_settings.version+1`,
 		platformModeKey, mode, reason, nullStr(operator)); err != nil {
@@ -140,8 +140,8 @@ func (s *PlatformService) propagateMode(ctx context.Context, mode, reason, opera
 		return nil
 	}
 	_, err := s.stagingPool.Exec(ctx,
-		`INSERT INTO platform_settings (key, value, reason, updated_by, updated_at, version)
-		 VALUES ($1, $2, $3, $4, now(), 1)
+		`INSERT INTO platform_settings (key, value, environment, reason, updated_by, updated_at, version)
+		 VALUES ($1, $2, 'GLOBAL', $3, $4, now(), 1)
 		 ON CONFLICT (key) DO UPDATE
 		    SET value=$2, reason=$3, updated_by=$4, updated_at=now(), version=platform_settings.version+1`,
 		platformModeKey, mode, reason, nullStr(operator))

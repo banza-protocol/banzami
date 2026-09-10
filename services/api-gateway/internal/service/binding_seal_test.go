@@ -58,8 +58,8 @@ func bind(t *testing.T, pool *pgxpool.Pool, projID, merchant, wallet string) str
 	var id string
 	if err := pool.QueryRow(context.Background(),
 		`INSERT INTO developer.dev_project_sandbox_binding
-		   (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id)
-		 VALUES ($1,$2,$3,gen_random_uuid(),gen_random_uuid()) RETURNING id::text`,
+		   (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id, environment)
+		 VALUES ($1,$2,$3,gen_random_uuid(),gen_random_uuid(),'SANDBOX') RETURNING id::text`,
 		projID, merchant, wallet).Scan(&id); err != nil {
 		t.Fatalf("bind: %v", err)
 	}
@@ -176,8 +176,8 @@ func TestSeal_ArtifactVersusRebindHasNoSplitBrain(t *testing.T) {
 		}
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO developer.dev_project_sandbox_binding
-			   (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id)
-			 VALUES ($1,$2,$3,gen_random_uuid(),gen_random_uuid())`, projID, mB, wB); err != nil {
+			   (project_id, merchant_id, wallet_id, wallet_account_id, created_by_user_id, environment)
+			 VALUES ($1,$2,$3,gen_random_uuid(),gen_random_uuid(),'SANDBOX')`, projID, mB, wB); err != nil {
 			rebindErr = err
 			return
 		}
