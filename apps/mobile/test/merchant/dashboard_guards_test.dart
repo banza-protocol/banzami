@@ -28,6 +28,20 @@ void main() {
       expect(profile.contains('0xFFBFDBFE'), isFalse);
     });
 
+    test('profile: "Empresa verificada" only from the server-verified flag; no session internals', () {
+      expect(profile.contains("'Empresa verificada'"), isTrue);
+      expect(profile.contains('if (session.verified)'), isTrue,
+          reason: 'shown only when Banzami says the KYB is approved');
+      expect(profile.contains("'Verificado'"), isFalse);
+      // Account classification is not verification, and a token is not UI.
+      for (final leak in const [
+        'MERCHANT', 'APPLICATION', 'Sessão API', 'jwtExpiresAt', 'refreshExpiresAt',
+        'sessionExpiresAt', 'refreshToken', '.jwt',
+      ]) {
+        expect(profile.contains(leak), isFalse, reason: leak);
+      }
+    });
+
     test('lifecycle debug logging removed from main_screen', () {
       expect(mainScreen.contains("debugPrint('[APP-LOCK]"), isFalse);
     });

@@ -331,10 +331,11 @@ class _MerchantProfileHeader extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               // What "verified" means here, precisely: Banzami approved this
-              // business's KYB. Not the account class (merchant, application,
-              // platform), not settlement readiness, not the session.
+              // business's KYB — the server's merchant.verified / KYB status.
+              // Not the account class (merchant, application, platform), not
+              // settlement readiness, not the session.
               Text(
-                'Negócio verificado · KYB aprovado',
+                'Verificação KYB aprovada pelo Banzami',
                 style: BanzamiTextStyles.bodySm.copyWith(
                   color: BanzamiColors.white.withValues(alpha: 0.35),
                 ),
@@ -383,8 +384,9 @@ class _VerifiedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The KYB-approved entity — shown only when Banzami says so.
     return const MerchantStatusBadge(
-      label: 'Verificado',
+      label: 'Empresa verificada',
       icon: Icons.verified_rounded,
       tone: MerchantBadgeTone.success,
     );

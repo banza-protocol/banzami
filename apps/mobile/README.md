@@ -89,7 +89,7 @@ O ícone sandbox (`AppIconSandbox.appiconset`) é um asset permanente em `ios/Ru
 | Dashboard | Live balance, daily/monthly revenue stats, recent payment links, quick charge button |
 | Histórico | Two-tab view: real transactions + payment links with infinite scroll |
 | Receber | Static merchant QR code with share + fixed-amount charge shortcut |
-| Perfil | Merchant ID copy, biometrics toggle, payout request, sign out, remove account |
+| Perfil | @banza address, "Empresa verificada" (only when Banzami approved the KYB), biometrics toggle, payout request, sign out, remove account |
 | Payout | Bank withdrawal form — amount, Angolan bank (BNA codes), IBAN, holder name |
 | Cobrança | Create fixed-amount payment links with description and expiry |
 
