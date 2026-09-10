@@ -24,6 +24,14 @@ func (s *Sender) MerchantApplicationRejected(to, businessName, message, environm
 		"Atualização sobre o seu pedido Banzami", html, text))
 }
 
+// MerchantInformationRequested — "Precisamos de mais informação".
+func (s *Sender) MerchantInformationRequested(to, request, statusURL, environment string) {
+	html, text := RenderMerchantInformationRequested(MerchantInformationRequestedData{
+		Request: request, StatusURL: statusURL, Sandbox: envIsSandbox(environment)})
+	s.Deliver(s.Institutional("application_information_requested", to,
+		"A sua candidatura Banzami precisa de mais informação", html, text))
+}
+
 // AdminOperatorInvite — "Foi convidado para o BANZADMIN". Security → From
 // noreply@, no Reply-To. fullName is accepted for compatibility (not shown).
 func (s *Sender) AdminOperatorInvite(to, fullName, role, invitedBy, inviteURL string) {

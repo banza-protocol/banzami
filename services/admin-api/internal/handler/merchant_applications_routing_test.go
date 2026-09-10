@@ -89,6 +89,9 @@ func (s *stubGateway) RejectApplicationRaw(context.Context, string, string, stri
 func (s *stubGateway) StartApplicationReviewRaw(context.Context, string, string) (json.RawMessage, int, error) {
 	return json.RawMessage(`{}`), 200, nil
 }
+func (s *stubGateway) RequestApplicationInformationRaw(context.Context, string, string, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 404, nil
+}
 func (s *stubGateway) LinkApplicationRaw(context.Context, string, string, string, string, string) (json.RawMessage, int, error) {
 	return json.RawMessage(`{}`), 200, nil
 }

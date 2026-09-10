@@ -27,6 +27,7 @@ type GatewayApplications interface {
 	RejectApplicationRaw(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (json.RawMessage, int, error)
 	StartApplicationReviewRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error)
 	LinkApplicationRaw(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (json.RawMessage, int, error)
+	RequestApplicationInformationRaw(ctx context.Context, id, reviewedBy, message string) (json.RawMessage, int, error)
 	ReissueActivationRaw(ctx context.Context, id string) (json.RawMessage, int, error)
 	LinkCandidatesRaw(ctx context.Context, id, handle string) (json.RawMessage, int, error)
 	ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error)
@@ -36,6 +37,7 @@ type GatewayApplications interface {
 type ApplicationMailer interface {
 	MerchantApplicationApproved(to, businessName, handle, environment, activationURL string)
 	MerchantApplicationRejected(to, businessName, message, environment string)
+	MerchantInformationRequested(to, request, statusURL, environment string)
 }
 
 // PlatformModeReader reads the global Platform Status (SANDBOX/LIVE). Business
@@ -273,6 +275,47 @@ func (h *MerchantApplicationHandler) StartReview(w http.ResponseWriter, r *http.
 		auditAfter(r, "merchant_application", id, map[string]any{"status": "UNDER_REVIEW"})
 	}
 	writeRaw(w, code, raw)
+}
+
+// RequestInformation: the reviewer needs something before deciding. The
+// applicant is emailed the request and a link to answer it; the application
+// keeps its @ hold and its documents. A message is required — "please send more
+// information" is not a request anyone can act on.
+func (h *MerchantApplicationHandler) RequestInformation(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Message string `json:"message"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if strings.TrimSpace(body.Message) == "" {
+		writeRaw(w, http.StatusBadRequest, mustJSON(map[string]string{"code": "MESSAGE_REQUIRED", "error": "say what information is needed"}))
+		return
+	}
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.RequestApplicationInformationRaw(r.Context(), id, actorOf(r), body.Message)
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not request information")
+		return
+	}
+	if code != http.StatusOK {
+		writeRaw(w, code, raw)
+		return
+	}
+	var app struct {
+		Email string `json:"email"`
+	}
+	_ = json.Unmarshal(raw, &app)
+	statusURL := strings.TrimRight(h.websiteBaseURL, "/") + "/comerciantes/candidatura/estado?ref=" + id
+	if app.Email != "" {
+		h.mailer.MerchantInformationRequested(app.Email, strings.TrimSpace(body.Message), statusURL, h.platformEnv(r.Context()))
+	}
+	auditAfter(r, "merchant_application", id, map[string]any{
+		"status":              "INFORMATION_REQUIRED",
+		"information_request": strings.TrimSpace(body.Message),
+		"email_sent_to":       app.Email,
+	})
+	writeRaw(w, http.StatusOK, raw)
 }
 
 // LinkExisting attaches the application to an existing Business Account,

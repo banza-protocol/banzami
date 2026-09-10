@@ -191,6 +191,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/approve", applicationsH.Approve)
 		r.With(cap(auth.CapApplicationReject)).Post("/admin/v1/merchant-applications/{id}/reject", applicationsH.Reject)
 		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/start-review", applicationsH.StartReview)
+		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/request-information", applicationsH.RequestInformation)
 		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/link-existing", applicationsH.LinkExisting)
 		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/reissue-activation", applicationsH.ReissueActivation)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/link-candidates", applicationsH.LinkCandidates)

@@ -143,6 +143,11 @@ func (c *GatewayClient) StartApplicationReviewRaw(ctx context.Context, id, revie
 		map[string]string{"reviewed_by": reviewedBy})
 }
 
+func (c *GatewayClient) RequestApplicationInformationRaw(ctx context.Context, id, reviewedBy, message string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/request-information",
+		map[string]string{"reviewed_by": reviewedBy, "message": message})
+}
+
 func (c *GatewayClient) LinkApplicationRaw(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/link-existing",
 		map[string]string{"merchant_id": merchantID, "confirmation_handle": confirmationHandle,

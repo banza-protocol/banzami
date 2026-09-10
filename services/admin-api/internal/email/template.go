@@ -127,6 +127,39 @@ func RenderMerchantRejected(d MerchantRejectedData) (html, text string) {
 	return
 }
 
+// ── 2b. Pedido de informação ────────────────────────────────────────────────
+
+// MerchantInformationRequestedData is what the reviewer asked, and where the
+// applicant answers it (the application's status page, by reference).
+type MerchantInformationRequestedData struct {
+	Request   string
+	StatusURL string
+	Sandbox   bool
+}
+
+// RenderMerchantInformationRequested — the review is waiting for the
+// applicant. Not a rejection: the application keeps its @ and its documents.
+func RenderMerchantInformationRequested(d MerchantInformationRequestedData) (html, text string) {
+	paras := []string{
+		"Estamos a analisar a sua candidatura ao Banzami Business e precisamos de um elemento antes de decidir.",
+		"A sua candidatura continua aberta e o @negócio pedido continua reservado. Responda no link abaixo — pode enviar documentos e reenviar para análise.",
+	}
+	body := emTitle("Precisamos de mais informação") +
+		emPara(paras[0]) + emPara(paras[1]) +
+		emNotice("doc", "Pedido — "+esc(strings.TrimSpace(d.Request)))
+	if d.Sandbox {
+		body += emNotice("shield", "Ambiente SANDBOX — esta candidatura foi feita no ambiente de testes da plataforma.")
+		paras = append(paras, "Esta candidatura foi feita no ambiente de testes da plataforma.")
+	}
+	body += emButton("Responder ao pedido", d.StatusURL) +
+		emURLFallback("Ou abra este endereço:", d.StatusURL)
+	html = renderLayout(layoutOpts{Subtitle: "Business", BadgeKind: "business", SafetyKind: "normal",
+		Preheader: "A análise da sua candidatura Banzami Business precisa de um elemento.", Body: body})
+	text = textDoc("Precisamos de mais informação", append(paras, "Pedido — "+strings.TrimSpace(d.Request)),
+		nil, "Responder ao pedido", d.StatusURL, footerSafety("normal"))
+	return
+}
+
 // ── 3. Convite BANZADMIN ─────────────────────────────────────────────────────
 
 type AdminInviteData struct {

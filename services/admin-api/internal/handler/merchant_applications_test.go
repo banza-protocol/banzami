@@ -14,12 +14,13 @@ import (
 )
 
 type fakeGW struct {
-	approval   service.ApprovalResult
-	rejection  service.RejectionResult
-	approveErr error
-	notFound   bool // when set, id-keyed ops return 404 (application lives in the other stack)
-	linkCalls  int
-	lastLink   [3]string
+	infoMessage string
+	approval    service.ApprovalResult
+	rejection   service.RejectionResult
+	approveErr  error
+	notFound    bool // when set, id-keyed ops return 404 (application lives in the other stack)
+	linkCalls   int
+	lastLink    [3]string
 }
 
 func (f *fakeGW) ListApplicationsRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
@@ -79,6 +80,10 @@ func (f *fakeGW) CreateDocumentReadURLRaw(_ context.Context, _, _ string) (json.
 func (f *fakeGW) AcceptDocumentRaw(_ context.Context, _, _, _ string) (json.RawMessage, int, error) {
 	return json.RawMessage(`{"status":"ACCEPTED"}`), 200, nil
 }
+func (f *fakeGW) RequestApplicationInformationRaw(_ context.Context, id, _, message string) (json.RawMessage, int, error) {
+	f.infoMessage = message
+	return json.RawMessage(`{"id":"` + id + `","status":"INFORMATION_REQUIRED","email":"loja@example.test"}`), 200, nil
+}
 func (f *fakeGW) RejectDocumentRaw(_ context.Context, _, _, _, _ string) (json.RawMessage, int, error) {
 	return json.RawMessage(`{"status":"REJECTED"}`), 200, nil
 }
@@ -88,6 +93,11 @@ type fakeMailer struct {
 	rejectedTo, rejectedMsg              string
 	approvedCalled                       bool
 	rejectedCalled                       bool
+	infoTo, infoRequest, infoURL         string
+}
+
+func (m *fakeMailer) MerchantInformationRequested(to, request, url, _ string) {
+	m.infoTo, m.infoRequest, m.infoURL = to, request, url
 }
 
 func (m *fakeMailer) MerchantApplicationApproved(to, _, _, environment, url string) {
@@ -103,7 +113,30 @@ func route(h *MerchantApplicationHandler) *chi.Mux {
 	r.Post("/admin/v1/merchant-applications/{id}/reject", h.Reject)
 	r.Post("/admin/v1/merchant-applications/{id}/link-existing", h.LinkExisting)
 	r.Post("/admin/v1/merchant-applications/{id}/reissue-activation", h.ReissueActivation)
+	r.Post("/admin/v1/merchant-applications/{id}/request-information", h.RequestInformation)
 	return r
+}
+
+// Asking for information needs a request someone can act on, reaches the
+// gateway with it, and emails the applicant the request and where to answer.
+func TestRequestInformation_EmailsTheRequestAndWhereToAnswerIt(t *testing.T) {
+	gw, mailer := &fakeGW{}, &fakeMailer{}
+	h := NewMerchantApplicationHandler(gw, nil, mailer, "https://banzami.com", nil)
+	rec := httptest.NewRecorder()
+	route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/request-information",
+		strings.NewReader(`{"message":"  "}`)))
+	if rec.Code != 400 || gw.infoMessage != "" {
+		t.Fatalf("an empty request reached the gateway: %d", rec.Code)
+	}
+	rec = httptest.NewRecorder()
+	route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/request-information",
+		strings.NewReader(`{"message":"Envie o registo comercial actualizado."}`)))
+	if rec.Code != 200 || gw.infoMessage != "Envie o registo comercial actualizado." {
+		t.Fatalf("%d %q", rec.Code, gw.infoMessage)
+	}
+	if mailer.infoTo != "loja@example.test" || mailer.infoURL != "https://banzami.com/comerciantes/candidatura/estado?ref=app-1" {
+		t.Fatalf("email to %q with %q", mailer.infoTo, mailer.infoURL)
+	}
 }
 
 // When the application isn't in the LIVE stack (404), approval must fall back to

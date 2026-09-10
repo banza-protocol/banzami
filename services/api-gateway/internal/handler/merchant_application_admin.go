@@ -102,7 +102,17 @@ func (h *MerchantApplicationAdminHandler) Get(w http.ResponseWriter, r *http.Req
 	case err != nil:
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not load application")
 	default:
-		writeJSON(w, http.StatusOK, app)
+		// The reviewer sees the application with its standing against the
+		// requirements policy — the same answer the applicant and the
+		// approval read.
+		out := struct {
+			service.MerchantApplication
+			Requirements *service.Requirements `json:"requirements,omitempty"`
+		}{MerchantApplication: app}
+		if st, serr := h.svc.PublicStatus(r.Context(), app.ID); serr == nil {
+			out.Requirements = &st.Requirements
+		}
+		writeJSON(w, http.StatusOK, out)
 	}
 }
 
