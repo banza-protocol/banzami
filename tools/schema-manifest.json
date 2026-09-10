@@ -616,6 +616,125 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "Business App sessions (0120 / ADR-059)",
+      "why": "A Business signs in once and renews with a rotating single-use refresh token; reuse revokes the sign-in. Without the table every sign-in fails closed.",
+      "tables": [
+        {
+          "name": "merchant_app_sessions",
+          "columns": [
+            {
+              "name": "family_id",
+              "nullable": false
+            },
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            },
+            {
+              "name": "refresh_token_hash",
+              "nullable": false
+            },
+            {
+              "name": "expires_at",
+              "nullable": false
+            },
+            {
+              "name": "rotated_at",
+              "nullable": true
+            },
+            {
+              "name": "revoked_at",
+              "nullable": true
+            },
+            {
+              "name": "revoked_reason",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "idx_merchant_app_sessions_family",
+            "idx_merchant_app_sessions_merchant_live"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "Business onboarding surfaces (0121 / 0123 / ADR-059)",
+      "why": "One Business application for both surfaces: where it came from (NOT NULL, no default since 0123), the Project it was made for, one in progress per Project, the reviewer's information request; and the single-use consent code a Business issues to a Developer Project.",
+      "$note": "0122 (KYB single authority) adds only triggers; the drift detector covers tables, columns and indexes, so 0122 is proven by tests/ops/migration-0122-kyb-single-authority.test.mjs and the VERIFIED_FLAG_DISAGREES_WITH_KYB assurance check instead.",
+      "tables": [
+        {
+          "name": "merchant_applications",
+          "columns": [
+            {
+              "name": "origin",
+              "nullable": false
+            },
+            {
+              "name": "project_id",
+              "nullable": true
+            },
+            {
+              "name": "submitted_by_user_id",
+              "nullable": true
+            },
+            {
+              "name": "information_request",
+              "nullable": true
+            },
+            {
+              "name": "information_requested_at",
+              "nullable": true
+            },
+            {
+              "name": "provisioning_project_bound",
+              "nullable": false
+            }
+          ],
+          "indexes": [
+            "uq_merchant_applications_open_per_project",
+            "idx_merchant_applications_origin"
+          ]
+        },
+        {
+          "name": "business_link_codes",
+          "columns": [
+            {
+              "name": "merchant_id",
+              "nullable": false
+            },
+            {
+              "name": "environment",
+              "nullable": false
+            },
+            {
+              "name": "code_hash",
+              "nullable": false
+            },
+            {
+              "name": "expires_at",
+              "nullable": false
+            },
+            {
+              "name": "redeemed_at",
+              "nullable": true
+            },
+            {
+              "name": "redeemed_project_id",
+              "nullable": true
+            }
+          ],
+          "indexes": [
+            "idx_business_link_codes_merchant"
+          ]
+        }
+      ]
     }
   ]
 }
