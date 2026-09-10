@@ -17,11 +17,11 @@ import (
 // admins", or the next authorisation branch someone writes. Each state now
 // names what is still missing.
 const (
-	StatusInvited              = "INVITED"                    // identity exists, no credential
-	StatusMFAEnrolmentRequired = "MFA_ENROLMENT_REQUIRED"     // password set, no confirmed factor
-	StatusMFARecoveryAck       = "MFA_RECOVERY_ACK_REQUIRED"  // factor confirmed, codes not acknowledged
-	StatusActive               = "ACTIVE"                     // password + factor + codes + acknowledgement
-	StatusSuspended            = "SUSPENDED"                  // disabled
+	StatusInvited              = "INVITED"                   // identity exists, no credential
+	StatusMFAEnrolmentRequired = "MFA_ENROLMENT_REQUIRED"    // password set, no confirmed factor
+	StatusMFARecoveryAck       = "MFA_RECOVERY_ACK_REQUIRED" // factor confirmed, codes not acknowledged
+	StatusActive               = "ACTIVE"                    // password + factor + codes + acknowledgement
+	StatusSuspended            = "SUSPENDED"                 // disabled
 )
 
 // EnrollingStatuses are the states in which an operator may complete a password

@@ -41,6 +41,8 @@ type ApprovalResult struct {
 	Environment     string `json:"environment"`
 	ActivationToken string `json:"activation_token"`
 	ApiKeyPrefix    string `json:"api_key_prefix"`
+	// AlreadyApproved: a repeated approval changed nothing; no new link exists.
+	AlreadyApproved bool `json:"already_approved"`
 }
 
 type RejectionResult struct {
@@ -120,6 +122,43 @@ func (c *GatewayClient) RejectApplication(ctx context.Context, id, reviewedBy, a
 	code, err := c.do(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/reject",
 		map[string]string{"reviewed_by": reviewedBy, "admin_notes": adminNotes, "merchant_message": merchantMessage}, &out)
 	return out, code, err
+}
+
+// Application lifecycle — raw passthrough, so the operator UI sees the
+// gateway's precise refusal (DOCUMENTS_REQUIRED, LINK_REQUIRED,
+// HANDLE_OWNED_BY_BUSINESS …) instead of a generic failure.
+
+func (c *GatewayClient) ApproveApplicationRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/approve",
+		map[string]string{"reviewed_by": reviewedBy})
+}
+
+func (c *GatewayClient) RejectApplicationRaw(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/reject",
+		map[string]string{"reviewed_by": reviewedBy, "admin_notes": adminNotes, "merchant_message": merchantMessage})
+}
+
+func (c *GatewayClient) StartApplicationReviewRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/start-review",
+		map[string]string{"reviewed_by": reviewedBy})
+}
+
+func (c *GatewayClient) LinkApplicationRaw(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/link-existing",
+		map[string]string{"merchant_id": merchantID, "confirmation_handle": confirmationHandle,
+			"reviewed_by": reviewedBy, "reason": reason})
+}
+
+func (c *GatewayClient) ReissueActivationRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/reissue-activation", nil)
+}
+
+func (c *GatewayClient) LinkCandidatesRaw(ctx context.Context, id, handle string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/link-candidates?handle="+url.QueryEscape(handle), nil)
+}
+
+func (c *GatewayClient) ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/business-state", nil)
 }
 
 // -------------------------------------------------------------------------

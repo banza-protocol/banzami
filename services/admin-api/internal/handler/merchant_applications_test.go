@@ -18,6 +18,8 @@ type fakeGW struct {
 	rejection  service.RejectionResult
 	approveErr error
 	notFound   bool // when set, id-keyed ops return 404 (application lives in the other stack)
+	linkCalls  int
+	lastLink   [3]string
 }
 
 func (f *fakeGW) ListApplicationsRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
@@ -37,6 +39,35 @@ func (f *fakeGW) ApproveApplication(_ context.Context, _, _ string) (service.App
 }
 func (f *fakeGW) RejectApplication(_ context.Context, _, _, _, _ string) (service.RejectionResult, int, error) {
 	return f.rejection, 200, nil
+}
+func (f *fakeGW) ApproveApplicationRaw(ctx context.Context, id, by string) (json.RawMessage, int, error) {
+	res, code, err := f.ApproveApplication(ctx, id, by)
+	if err != nil {
+		return json.RawMessage(`{"code":"DOCUMENTS_REQUIRED","message":"required documents have not been uploaded"}`), code, nil
+	}
+	b, _ := json.Marshal(res)
+	return b, code, nil
+}
+func (f *fakeGW) RejectApplicationRaw(_ context.Context, _, _, _, _ string) (json.RawMessage, int, error) {
+	b, _ := json.Marshal(f.rejection)
+	return b, 200, nil
+}
+func (f *fakeGW) StartApplicationReviewRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"status":"UNDER_REVIEW"}`), 200, nil
+}
+func (f *fakeGW) LinkApplicationRaw(_ context.Context, _, merchantID, confirmation, _, reason string) (json.RawMessage, int, error) {
+	f.linkCalls++
+	f.lastLink = [3]string{merchantID, confirmation, reason}
+	return json.RawMessage(`{"merchant_id":"` + merchantID + `"}`), 200, nil
+}
+func (f *fakeGW) ReissueActivationRaw(_ context.Context, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"email":"l@x.co","business_name":"Loja","handle":"loja","activation_token":"REISSUED-SECRET"}`), 200, nil
+}
+func (f *fakeGW) LinkCandidatesRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"candidates":[]}`), 200, nil
+}
+func (f *fakeGW) ApplicationBusinessStateRaw(_ context.Context, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"business":null}`), 200, nil
 }
 
 func (f *fakeGW) ListApplicationDocumentsRaw(_ context.Context, _ string) (json.RawMessage, int, error) {
@@ -70,6 +101,8 @@ func route(h *MerchantApplicationHandler) *chi.Mux {
 	r := chi.NewRouter()
 	r.Post("/admin/v1/merchant-applications/{id}/approve", h.Approve)
 	r.Post("/admin/v1/merchant-applications/{id}/reject", h.Reject)
+	r.Post("/admin/v1/merchant-applications/{id}/link-existing", h.LinkExisting)
+	r.Post("/admin/v1/merchant-applications/{id}/reissue-activation", h.ReissueActivation)
 	return r
 }
 
@@ -198,5 +231,77 @@ func TestApproveEmailEnvironmentFollowsPlatformStatus(t *testing.T) {
 				t.Fatalf("email env = %q, want %q (platform, not application LIVE)", mailer.approvedEnv, c.want)
 			}
 		})
+	}
+}
+
+type fixedMode struct{ mode string }
+
+func (f fixedMode) GetMode(context.Context) service.PlatformMode {
+	return service.PlatformMode{Mode: f.mode}
+}
+
+// A repeated approval (a double click, a second operator) changed nothing: no
+// email, no new link.
+func TestApproveRepeatedSendsNoSecondEmail(t *testing.T) {
+	gw := &fakeGW{approval: service.ApprovalResult{MerchantID: "m1", Email: "l@x.co", AlreadyApproved: true}}
+	mailer := &fakeMailer{}
+	h := NewMerchantApplicationHandler(gw, nil, mailer, "https://banzami.com", fixedMode{"SANDBOX"})
+	rec := httptest.NewRecorder()
+	route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/a/approve", nil))
+	if rec.Code != 200 || mailer.approvedCalled || strings.Contains(rec.Body.String(), "activation_url") {
+		t.Fatalf("code=%d emailed=%v body=%s", rec.Code, mailer.approvedCalled, rec.Body.String())
+	}
+}
+
+// The gateway's precise refusal reaches the operator, not "could not approve".
+func TestApproveForwardsThePreciseRefusal(t *testing.T) {
+	h := NewMerchantApplicationHandler(&fakeGW{approveErr: errBoom}, nil, &fakeMailer{}, "https://banzami.com", nil)
+	rec := httptest.NewRecorder()
+	route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/a/approve", nil))
+	if !strings.Contains(rec.Body.String(), "DOCUMENTS_REQUIRED") {
+		t.Fatalf("body = %s", rec.Body.String())
+	}
+}
+
+// The activation link is shown to the operator only on a platform KNOWN to be
+// in Sandbox mode; never on LIVE, and never when the mode cannot be read.
+func TestActivationLinkIsShownOnlyInAKnownSandbox(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		mode PlatformModeReader
+		want bool
+	}{
+		{"sandbox", fixedMode{"SANDBOX"}, true},
+		{"live", fixedMode{"LIVE"}, false},
+		{"unknown", nil, false},
+	} {
+		gw := &fakeGW{approval: service.ApprovalResult{MerchantID: "m1", Email: "l@x.co", ActivationToken: "TOKEN-1"}}
+		h := NewMerchantApplicationHandler(gw, nil, &fakeMailer{}, "https://banzami.com", tc.mode)
+		for _, path := range []string{"approve", "reissue-activation"} {
+			rec := httptest.NewRecorder()
+			route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/a/"+path, nil))
+			shown := strings.Contains(rec.Body.String(), "activation_url")
+			if shown != tc.want {
+				t.Errorf("%s %s: activation link shown=%v want %v (%s)", tc.name, path, shown, tc.want, rec.Body.String())
+			}
+		}
+	}
+}
+
+// Linking needs a reason; the operator's choice is passed through untouched.
+func TestLinkExistingRequiresAReason(t *testing.T) {
+	gw := &fakeGW{}
+	h := NewMerchantApplicationHandler(gw, nil, &fakeMailer{}, "https://banzami.com", nil)
+	rec := httptest.NewRecorder()
+	route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/a/link-existing",
+		strings.NewReader(`{"merchant_id":"m-x","confirmation_handle":"@loja","reason":"  "}`)))
+	if rec.Code != 400 || gw.linkCalls != 0 {
+		t.Fatalf("no-reason link reached the gateway: code=%d calls=%d", rec.Code, gw.linkCalls)
+	}
+	rec = httptest.NewRecorder()
+	route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/a/link-existing",
+		strings.NewReader(`{"merchant_id":"m-x","confirmation_handle":"@loja","reason":"verified registration"}`)))
+	if rec.Code != 200 || gw.lastLink != [3]string{"m-x", "@loja", "verified registration"} {
+		t.Fatalf("code=%d link=%v", rec.Code, gw.lastLink)
 	}
 }

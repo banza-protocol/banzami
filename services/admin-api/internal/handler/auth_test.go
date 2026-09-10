@@ -60,6 +60,7 @@ func (f *fakeStore) ResetLoginCountersAndTouch(_ context.Context, id string) {
 func (f *fakeStore) RecordLoginAttempt(_ context.Context, _ string, _ *string, _, _ string, success bool, reason string) {
 	f.attempts = append(f.attempts, map[bool]string{true: "success", false: "fail"}[success]+":"+reason)
 }
+
 // Records the lifecycle transitions a test drove, so an assertion can check the
 // state moved and not merely that a response was 200.
 func (f *fakeStore) AdvanceLifecycle(_ context.Context, id, from, to string) error {

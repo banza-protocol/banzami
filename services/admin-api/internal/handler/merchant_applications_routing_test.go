@@ -79,3 +79,25 @@ func TestGatewayForRequest_UnreadableModeFailsToSandbox(t *testing.T) {
 		t.Fatalf("routed to %s with no platform reader, want sandbox", got)
 	}
 }
+
+func (s *stubGateway) ApproveApplicationRaw(context.Context, string, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}
+func (s *stubGateway) RejectApplicationRaw(context.Context, string, string, string, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}
+func (s *stubGateway) StartApplicationReviewRaw(context.Context, string, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}
+func (s *stubGateway) LinkApplicationRaw(context.Context, string, string, string, string, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}
+func (s *stubGateway) ReissueActivationRaw(context.Context, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}
+func (s *stubGateway) LinkCandidatesRaw(context.Context, string, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}
+func (s *stubGateway) ApplicationBusinessStateRaw(context.Context, string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{}`), 200, nil
+}

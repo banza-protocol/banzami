@@ -22,6 +22,14 @@ type GatewayApplications interface {
 	CreateDocumentReadURLRaw(ctx context.Context, id, documentID string) (json.RawMessage, int, error)
 	AcceptDocumentRaw(ctx context.Context, id, documentID, reviewedBy string) (json.RawMessage, int, error)
 	RejectDocumentRaw(ctx context.Context, id, documentID, reviewedBy, reason string) (json.RawMessage, int, error)
+	// Lifecycle passthrough — the gateway's status and body, verbatim.
+	ApproveApplicationRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error)
+	RejectApplicationRaw(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (json.RawMessage, int, error)
+	StartApplicationReviewRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error)
+	LinkApplicationRaw(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (json.RawMessage, int, error)
+	ReissueActivationRaw(ctx context.Context, id string) (json.RawMessage, int, error)
+	LinkCandidatesRaw(ctx context.Context, id, handle string) (json.RawMessage, int, error)
+	ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error)
 }
 
 // ApplicationMailer is the subset of the email sender the admin handler uses.
@@ -143,42 +151,75 @@ func (h *MerchantApplicationHandler) Get(w http.ResponseWriter, r *http.Request)
 	writeRaw(w, code, raw)
 }
 
+// activationLink builds the link an applicant uses to set their Business PIN.
+// In the Sandbox it is also returned to the operator, once: Sandbox applicants
+// are testers whose addresses often receive no mail, and the operator who
+// approved them hands it over. It never is on a LIVE platform.
+//
+// Fail-safe the other way from platformEnv: an email may say "Sandbox" when the
+// mode cannot be read, but a credential is shown only when the platform is
+// POSITIVELY known to be in SANDBOX mode.
+func (h *MerchantApplicationHandler) activationLink(ctx context.Context, token string) (link string, showToOperator bool) {
+	link = h.websiteBaseURL + "/comerciantes/activar?token=" + token
+	return link, h.platform != nil && h.platform.GetMode(ctx).Mode == "SANDBOX"
+}
+
 func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	// Attribution comes from the authenticated operator, never the client.
 	// Try the live stack; if the application isn't there (404), it belongs to the
 	// SANDBOX stack — approve it there (ADR-025).
 	id := chi.URLParam(r, "id")
-	res, code, err := h.gw.ApproveApplication(r.Context(), id, actorOf(r))
-	if code == http.StatusNotFound && h.gwStaging != nil {
-		res, code, err = h.gwStaging.ApproveApplication(r.Context(), id, actorOf(r))
-	}
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.ApproveApplicationRaw(r.Context(), id, actorOf(r))
+	})
 	if err != nil {
-		writeErr(w, code, "could not approve application")
+		writeErr(w, http.StatusBadGateway, "could not approve application")
+		return
+	}
+	if code != http.StatusOK {
+		// The gateway's own refusal — DOCUMENTS_REQUIRED, LINK_REQUIRED,
+		// HANDLE_OWNED_BY_BUSINESS … — is what the operator needs to read.
+		writeRaw(w, code, raw)
+		return
+	}
+	var res service.ApprovalResult
+	if err := json.Unmarshal(raw, &res); err != nil {
+		writeErr(w, http.StatusBadGateway, "could not read approval")
+		return
+	}
+	out := map[string]any{
+		"status":           "APPROVED",
+		"merchant_id":      res.MerchantID,
+		"handle":           res.Handle,
+		"api_key_prefix":   res.ApiKeyPrefix,
+		"already_approved": res.AlreadyApproved,
+	}
+	// A repeated approval (a double click, a second operator) changed nothing:
+	// no new link exists, so no second email is sent and no audit row claims a
+	// decision that was not made.
+	if res.AlreadyApproved {
+		writeRaw(w, http.StatusOK, mustJSON(out))
 		return
 	}
 
-	// Build the activation link and email it. The token is never returned to the
-	// admin UI nor logged.
-	activationURL := h.websiteBaseURL + "/comerciantes/activar?token=" + res.ActivationToken
+	link, show := h.activationLink(r.Context(), res.ActivationToken)
 	// The email communicates the GLOBAL platform environment (Platform Status),
 	// never the application's own field — so a SANDBOX platform never says "Produção".
-	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, res.Handle, h.platformEnv(r.Context()), activationURL)
+	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, res.Handle, h.platformEnv(r.Context()), link)
 
 	// Audit (no token, no full API key — prefix/handle/merchant id are safe).
-	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{
+	auditAfter(r, "merchant_application", id, map[string]any{
 		"status":        "APPROVED",
+		"resolution":    "PROVISIONED_NEW",
 		"merchant_id":   res.MerchantID,
 		"handle":        res.Handle,
 		"email_sent_to": res.Email,
 	})
-
-	writeRaw(w, http.StatusOK, mustJSON(map[string]any{
-		"status":         "APPROVED",
-		"merchant_id":    res.MerchantID,
-		"handle":         res.Handle,
-		"api_key_prefix": res.ApiKeyPrefix,
-		"email_sent_to":  res.Email,
-	}))
+	out["email_sent_to"] = res.Email
+	if show {
+		out["activation_url"] = link
+	}
+	writeRaw(w, http.StatusOK, mustJSON(out))
 }
 
 func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Request) {
@@ -189,18 +230,23 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 	_ = json.NewDecoder(r.Body).Decode(&body)
 
 	id := chi.URLParam(r, "id")
-	res, code, err := h.gw.RejectApplication(r.Context(), id, actorOf(r), body.AdminNotes, body.MerchantMessage)
-	if code == http.StatusNotFound && h.gwStaging != nil {
-		res, code, err = h.gwStaging.RejectApplication(r.Context(), id, actorOf(r), body.AdminNotes, body.MerchantMessage)
-	}
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.RejectApplicationRaw(r.Context(), id, actorOf(r), body.AdminNotes, body.MerchantMessage)
+	})
 	if err != nil {
-		writeErr(w, code, "could not reject application")
+		writeErr(w, http.StatusBadGateway, "could not reject application")
 		return
 	}
+	if code != http.StatusOK {
+		writeRaw(w, code, raw)
+		return
+	}
+	var res service.RejectionResult
+	_ = json.Unmarshal(raw, &res)
 
 	h.mailer.MerchantApplicationRejected(res.Email, res.BusinessName, res.MerchantMessage, h.platformEnv(r.Context()))
 
-	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{
+	auditAfter(r, "merchant_application", id, map[string]any{
 		"status":           "REJECTED",
 		"admin_notes":      body.AdminNotes,
 		"merchant_message": res.MerchantMessage,
@@ -211,6 +257,120 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 		"status":        "REJECTED",
 		"email_sent_to": res.Email,
 	}))
+}
+
+// StartReview: an operator opened the application (SUBMITTED → UNDER_REVIEW).
+func (h *MerchantApplicationHandler) StartReview(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.StartApplicationReviewRaw(r.Context(), id, actorOf(r))
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not start review")
+		return
+	}
+	if code == http.StatusOK {
+		auditAfter(r, "merchant_application", id, map[string]any{"status": "UNDER_REVIEW"})
+	}
+	writeRaw(w, code, raw)
+}
+
+// LinkExisting attaches the application to an existing Business Account,
+// chosen by the operator and confirmed by typing its @handle, with a reason.
+// Nothing is created; the gateway enforces every invariant.
+func (h *MerchantApplicationHandler) LinkExisting(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		MerchantID         string `json:"merchant_id"`
+		ConfirmationHandle string `json:"confirmation_handle"`
+		Reason             string `json:"reason"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.MerchantID == "" {
+		writeErr(w, http.StatusBadRequest, "merchant_id is required")
+		return
+	}
+	if strings.TrimSpace(body.Reason) == "" {
+		writeRaw(w, http.StatusBadRequest, mustJSON(map[string]string{"code": "REASON_REQUIRED", "error": "a reason is required"}))
+		return
+	}
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.LinkApplicationRaw(r.Context(), id, body.MerchantID, body.ConfirmationHandle, actorOf(r), body.Reason)
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not link application")
+		return
+	}
+	if code == http.StatusOK {
+		auditAfter(r, "merchant_application", id, map[string]any{
+			"status":      "APPROVED",
+			"resolution":  "LINKED_EXISTING",
+			"merchant_id": body.MerchantID,
+			"handle":      strings.TrimPrefix(strings.TrimSpace(body.ConfirmationHandle), "@"),
+			"reason":      body.Reason,
+		})
+	}
+	writeRaw(w, code, raw)
+}
+
+// ReissueActivation replaces a lost or expired activation link and emails it.
+// In the Sandbox the operator also sees the link, once.
+func (h *MerchantApplicationHandler) ReissueActivation(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.ReissueActivationRaw(r.Context(), id)
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not reissue activation")
+		return
+	}
+	if code != http.StatusOK {
+		writeRaw(w, code, raw)
+		return
+	}
+	var res struct {
+		Email           string `json:"email"`
+		BusinessName    string `json:"business_name"`
+		Handle          string `json:"handle"`
+		ActivationToken string `json:"activation_token"`
+	}
+	if err := json.Unmarshal(raw, &res); err != nil || res.ActivationToken == "" {
+		writeErr(w, http.StatusBadGateway, "could not read activation")
+		return
+	}
+	link, show := h.activationLink(r.Context(), res.ActivationToken)
+	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, res.Handle, h.platformEnv(r.Context()), link)
+	auditAfter(r, "merchant_application", id, map[string]any{"activation": "REISSUED", "email_sent_to": res.Email})
+	out := map[string]any{"email_sent_to": res.Email}
+	if show {
+		out["activation_url"] = link
+	}
+	writeRaw(w, http.StatusOK, mustJSON(out))
+}
+
+// LinkCandidates: the Business Accounts this application may be linked to.
+func (h *MerchantApplicationHandler) LinkCandidates(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.LinkCandidatesRaw(r.Context(), id, r.URL.Query().Get("handle"))
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not list candidates")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
+// BusinessState: the whole state of the Business an application resolved to.
+func (h *MerchantApplicationHandler) BusinessState(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.ApplicationBusinessStateRaw(r.Context(), id)
+	})
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not read the business")
+		return
+	}
+	writeRaw(w, code, raw)
 }
 
 // -------------------------------------------------------------------------
