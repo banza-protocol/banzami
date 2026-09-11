@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/error_messages.dart';
 import '../widgets/banzami_components.dart';
 import 'payment_request_screen.dart';
 
@@ -55,6 +57,9 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
   bool _loading = true;
   String? _error;
 
+  /// Only a 404 means the link does not exist; an outage can be retried.
+  bool _retryable = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,17 +67,30 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
   }
 
   Future<void> _load() async {
+    if (!_loading) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final link = await widget.client.getPaymentLinkBySlug(widget.slug);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _link = link;
           _loading = false;
         });
-    } catch (_) {
+      }
+    } catch (e) {
       if (mounted) {
+        final notFound = e is BanzamiApiException && e.statusCode == 404;
         setState(() {
-          _error = 'Link de pagamento não encontrado.';
+          // "Não encontrado" only when the server said so — offline or a 5xx
+          // is not a missing link, and says so.
+          _error = notFound
+              ? 'Link de pagamento não encontrado.'
+              : banzamiErrorMessage(e);
+          _retryable = !notFound;
           _loading = false;
         });
       }
@@ -105,6 +123,10 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
                     .copyWith(color: BanzamiColors.gray400),
                 textAlign: TextAlign.center),
             const SizedBox(height: BanzamiSpacing.xl),
+            if (_retryable) ...[
+              BanzamiPrimaryButton(label: 'Tentar novamente', onPressed: _load),
+              const SizedBox(height: BanzamiSpacing.sm),
+            ],
             BanzamiGhostButton(
               label: 'Voltar',
               onPressed: () => Navigator.of(context).pop(),
