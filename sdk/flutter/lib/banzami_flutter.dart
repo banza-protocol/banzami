@@ -110,4 +110,3 @@ export 'screens/payment_link_screen.dart';
 export 'screens/receipt_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
-export 'screens/structured_qr_pay_screen.dart';

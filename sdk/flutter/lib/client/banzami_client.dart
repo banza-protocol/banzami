@@ -422,8 +422,8 @@ class BanzamiClient {
 
   // payQr — REMOVED. The gateway does not mount POST /v1/qr/pay (RA-053): a
   // merchant credential is not authority to debit a consumer's wallet, and the
-  // route took the payer as free text. The payer pays a scanned QR with
-  // ConsumerPublicClient.payStructuredQr, as the authenticated consumer.
+  // route took the payer as free text. The public-api has no QR-pay route
+  // either, so no client can settle a structured QR today.
 
   // ---------------------------------------------------------------------------
   // Merchants

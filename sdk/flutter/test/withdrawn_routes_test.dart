@@ -21,14 +21,20 @@ void main() {
         '403 KYB_DECIDED_BY_REVIEW: a Business cannot verify itself',
   };
 
-  // Not mounted on the GATEWAY's merchant surface. The consumer surface
-  // (public-api, ConsumerPublicClient) serves its own /v1/qr/pay, derived from
-  // the consumer's token — so these are checked in the gateway client only.
+  // Not mounted on the GATEWAY's merchant surface — checked in the gateway
+  // client only.
   const withdrawnFromGateway = {
     '/v1/consumer-wallets':
         'not mounted (RA-058): a merchant has no authority over a consumer wallet',
     '/v1/qr/pay':
         'not mounted (RA-053): a merchant JWT cannot debit a consumer',
+  };
+
+  // The consumer surface (public-api) mounts NO /v1/qr route at all — not
+  // decode, not get-by-id, not pay (QR pay withdrawn, RA-053). The gateway's
+  // merchant QR routes (static/dynamic/decode/{id}) stay in BanzamiClient.
+  const withdrawnFromConsumer = {
+    '/v1/qr/': 'public-api mounts no /v1/qr/decode, /v1/qr/{id} or /v1/qr/pay',
   };
 
   final sources = Directory('lib')
@@ -37,6 +43,10 @@ void main() {
       .where((f) => f.path.endsWith('.dart'))
       .toList();
   final gatewayClient = [File('lib/client/banzami_client.dart')];
+  // Everything that is not the gateway (merchant) client talks to the
+  // public-api: the consumer client and the SDK screens.
+  final consumerSide =
+      sources.where((f) => !f.path.endsWith('banzami_client.dart')).toList();
 
   List<String> offenders(List<File> files, String route) {
     final quoted = RegExp('[\'"]${RegExp.escape(route)}');
@@ -56,6 +66,12 @@ void main() {
   for (final entry in withdrawn.entries) {
     test('no client call to ${entry.key} — ${entry.value}', () {
       expect(offenders(sources, entry.key), isEmpty);
+    });
+  }
+  for (final entry in withdrawnFromConsumer.entries) {
+    test('no consumer-side call to ${entry.key} — ${entry.value}', () {
+      expect(File('lib/client/consumer_public_client.dart').existsSync(), isTrue);
+      expect(offenders(consumerSide, entry.key), isEmpty);
     });
   }
   for (final entry in withdrawnFromGateway.entries) {

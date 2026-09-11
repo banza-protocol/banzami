@@ -10,9 +10,14 @@ import '../widgets/banzami_qr_scanner.dart';
 import 'payment_link_screen.dart';
 import 'payment_request_screen.dart';
 import 'send_screen.dart';
-import 'structured_qr_pay_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
+
+/// Shown when a structured Banzami QR (a merchant's static/dynamic code) is
+/// scanned: this version of the app cannot pay one.
+const String kStructuredQrUnavailableMessage =
+    'Pagamento por QR ainda não disponível nesta versão — peça um link de '
+    'pagamento ou o @banza.';
 
 /// Scan-to-pay router.
 ///
@@ -21,6 +26,8 @@ enum _ScanStep { scanning, resolving, error }
 ///  • Payment-request code → [BanzamiPaymentRequestScreen] (locked)
 ///  • Handle + fixed amount → [BanzamiPaymentRequestScreen] (locked, sendByHandle)
 ///  • Handle only           → [BanzamiSendScreen] (amount editable)
+///  • Payment link          → [BanzamiPaymentLinkScreen]
+///  • Structured Banzami QR → refused with [kStructuredQrUnavailableMessage]
 class BanzamiScanScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final String? ownHandle;
@@ -135,9 +142,17 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           await _openSendScreen(handle: handle);
         }
 
-      case BanzamiQrStructuredPayment(:final payload, :final isStatic):
-        debugPrint('[QR-SCAN] route=StructuredQrPay static=$isStatic');
-        await _openStructuredPayment(payload: payload, isStatic: isStatic);
+      case BanzamiQrStructuredPayment(:final isStatic):
+        // No consumer route settles a structured Banzami QR: the public-api
+        // mounts no /v1/qr/* (QR pay withdrawn, RA-053). Say so plainly
+        // instead of opening a screen whose every call fails.
+        debugPrint('[QR-SCAN] route=StructuredQr (unsupported) static=$isStatic');
+        if (mounted) {
+          setState(() {
+            _error = kStructuredQrUnavailableMessage;
+            _step = _ScanStep.error;
+          });
+        }
 
       case BanzamiQrSplitPayment():
         // Pre-protocol P2P split (/v1/splits) was retired in favour of BANZA
@@ -167,24 +182,6 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         ownHandle: widget.ownHandle,
         isSandbox: widget.isSandbox,
         onSuccess: (transfer) => widget.onSuccess(transfer),
-      ),
-    ));
-    if (mounted) _rescan();
-  }
-
-  Future<void> _openStructuredPayment({
-    required String payload,
-    required bool isStatic,
-  }) async {
-    if (!mounted) return;
-    await Navigator.of(context).push(BanzamiPageRoute(
-      page: BanzamiStructuredQrPayScreen(
-        client: widget.client,
-        payload: payload,
-        isStatic: isStatic,
-        payerHandle: widget.ownHandle ?? '',
-        isSandbox: widget.isSandbox,
-        onSuccess: widget.onSuccess,
       ),
     ));
     if (mounted) _rescan();
