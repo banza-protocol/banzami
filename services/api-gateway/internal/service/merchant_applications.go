@@ -14,6 +14,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/banzami/banzami/services/common/env"
 )
 
 // Merchant onboarding applications (Merchant Lifecycle, Track 1). A merchant
@@ -182,10 +184,14 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	default:
 		return "", ErrApplicationOrigin
 	}
-	env := "LIVE"
-	if in.Environment == "SANDBOX" {
-		env = "SANDBOX"
+	// Named, never inferred: anything but SANDBOX used to become LIVE, so a
+	// Sandbox gateway that lost its ENVIRONMENT created LIVE applications from
+	// whatever the request body said (A2-01).
+	parsed := env.Parse(in.Environment)
+	if !parsed.IsKnown() {
+		return "", ErrEnvironmentUndeclared
 	}
+	envName := parsed.String()
 
 	var keyHash any
 	if k := strings.TrimSpace(in.IdempotencyKey); k != "" {
@@ -224,7 +230,7 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		if err != nil {
 			return "", err
 		}
-		if err := s.insertApplication(ctx, tx, appID, env, handle, in, keyHash); err != nil {
+		if err := s.insertApplication(ctx, tx, appID, envName, handle, in, keyHash); err != nil {
 			return "", err
 		}
 		if err := tx.Commit(ctx); err != nil {
@@ -274,7 +280,7 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		}
 	}
 
-	if err := s.insertApplication(ctx, tx, appID, env, handle, in, keyHash); err != nil {
+	if err := s.insertApplication(ctx, tx, appID, envName, handle, in, keyHash); err != nil {
 		return "", err
 	}
 

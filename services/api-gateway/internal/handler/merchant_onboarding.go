@@ -106,9 +106,16 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 			"onboarding is unavailable here because the platform is currently in "+mode+" mode")
 		return
 	}
-	env := body.Environment
-	if se := h.gate.StackEnv(); se != "" {
-		env = se
+	// The stack's environment, never the body's. A gateway with no declared
+	// environment used to take it from the request (anything but SANDBOX became
+	// LIVE), so a caller chose whether its application — and the keys and logins
+	// its approval mints — were Sandbox or Live (A2-01). A stack that cannot say
+	// which it is refuses.
+	env := h.gate.StackEnv()
+	if env == "" {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "ENVIRONMENT_UNDECLARED",
+			"onboarding is unavailable: this service has no declared environment")
+		return
 	}
 
 	appID, err := h.apps.Submit(r.Context(), service.MerchantApplicationInput{

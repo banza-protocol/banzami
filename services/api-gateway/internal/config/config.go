@@ -83,7 +83,6 @@ type Config struct {
 func Load() (*Config, error) {
 	cfg := &Config{
 		Port:                   8080,
-		Environment:            "development",
 		LogLevel:               "info",
 		LogFormat:              "json",
 		KYBStorageRegion:       "auto",
@@ -99,8 +98,14 @@ func Load() (*Config, error) {
 		cfg.Port = p
 	}
 
-	if v := os.Getenv("ENVIRONMENT"); v != "" {
-		cfg.Environment = v
+	// Required, with no default (as developer-api since RA-086). It defaulted to
+	// "development", which reads as no environment at all: the Live start-up
+	// refusals (no proof signing key, no webhook encryption key) and the
+	// platform-mode guard switched off, and public onboarding took the
+	// environment from the request body (A2-01). "development" must now be said.
+	cfg.Environment = strings.TrimSpace(os.Getenv("ENVIRONMENT"))
+	if cfg.Environment == "" {
+		return nil, fmt.Errorf("ENVIRONMENT must be set (sandbox, live, or development for a local run)")
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v

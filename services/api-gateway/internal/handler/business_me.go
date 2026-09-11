@@ -10,6 +10,8 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+
+	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
 // BusinessMeHandler serves the authenticated Business account its own
@@ -63,10 +65,13 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env := "LIVE"
-	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
-		env = "SANDBOX"
+	parsed := banzamienv.Parse(environment)
+	if !parsed.IsKnown() {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "ENVIRONMENT_UNDECLARED",
+			"this service cannot say which environment the credential belongs to")
+		return
 	}
+	env := parsed.String()
 
 	slog.InfoContext(r.Context(), "business_resolution_started",
 		"merchant_id", merchantID, "environment", env)

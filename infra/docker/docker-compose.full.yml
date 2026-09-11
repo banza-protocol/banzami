@@ -133,6 +133,9 @@ services:
       dockerfile: Dockerfile
     environment:
       PORT:                     "8080"
+      # Required — the gateway refuses to start without it (A2-01). A local
+      # stack is neither Sandbox nor Live; onboarding is refused on it.
+      ENVIRONMENT:              ${ENVIRONMENT:-development}
       JWT_SECRET:               ${JWT_SECRET}
       CORE_API_URL:             http://core-api:8081
       REDIS_URL:                redis://redis:6379

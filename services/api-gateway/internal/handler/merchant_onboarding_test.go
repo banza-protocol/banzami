@@ -94,7 +94,7 @@ func TestSubmitApplication(t *testing.T) {
 	valid := `{"desired_handle":"cantina_alex","business_name":"Cantina","email":"a@b.co","terms_accepted":true}`
 
 	t.Run("success → 201", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{appID: "app-1"}, nil, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{appID: "app-1"}, nil, sandboxGate)
 		rec := postJSON(h.SubmitApplication, valid)
 		if rec.Code != http.StatusCreated {
 			t.Fatalf("status=%d want 201", rec.Code)
@@ -106,21 +106,21 @@ func TestSubmitApplication(t *testing.T) {
 	})
 
 	t.Run("incomplete → 400", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrApplicationIncomplete}, nil, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrApplicationIncomplete}, nil, sandboxGate)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusBadRequest {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
 	})
 
 	t.Run("handle taken → 409", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrMerchantHandleTaken}, nil, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrMerchantHandleTaken}, nil, sandboxGate)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusConflict {
 			t.Fatalf("status=%d want 409", rec.Code)
 		}
 	})
 
 	t.Run("reserved handle → 409", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrHandleReserved}, nil, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrHandleReserved}, nil, sandboxGate)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusConflict {
 			t.Fatalf("status=%d want 409", rec.Code)
 		}
@@ -128,7 +128,7 @@ func TestSubmitApplication(t *testing.T) {
 
 	t.Run("structured Business fields map through (no folding)", func(t *testing.T) {
 		apps := &fakeApps{appID: "app-9"}
-		h := NewMerchantOnboardingHandler(apps, nil, nil)
+		h := NewMerchantOnboardingHandler(apps, nil, sandboxGate)
 		body := `{
 		  "environment":"SANDBOX","desired_handle":"cantina_alex","business_name":"Cantina do Alex",
 		  "category":"Alimentação e bebidas","subcategory":"Cantina","email":"geral@cantina.co.ao",
@@ -160,7 +160,7 @@ func TestSubmitApplication(t *testing.T) {
 
 	t.Run("proof_of_address is ignored, never folded into address", func(t *testing.T) {
 		apps := &fakeApps{appID: "app-1"}
-		h := NewMerchantOnboardingHandler(apps, nil, nil)
+		h := NewMerchantOnboardingHandler(apps, nil, sandboxGate)
 		body := `{"desired_handle":"loja_x","business_name":"Loja","email":"a@b.co","terms_accepted":true,"proof_of_address":"should-be-ignored"}`
 		if rec := postJSON(h.SubmitApplication, body); rec.Code != http.StatusCreated {
 			t.Fatalf("status=%d", rec.Code)
@@ -227,4 +227,26 @@ func TestActivation(t *testing.T) {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
 	})
+}
+
+var sandboxGate = service.NewEnvGate("sandbox", nil)
+
+// A2-01. The application's environment is the stack's. It was taken from the
+// request body whenever the gateway had no declared environment, and anything
+// but SANDBOX became LIVE — so the caller chose whether the keys and logins its
+// approval would mint were Sandbox or Live.
+func TestSubmitApplication_TheEnvironmentIsTheStacksNeverTheBodys(t *testing.T) {
+	body := `{"desired_handle":"cantina_alex","business_name":"Cantina","email":"a@b.co","terms_accepted":true,"environment":"LIVE"}`
+
+	apps := &fakeApps{appID: "app-1"}
+	rec := postJSON(NewMerchantOnboardingHandler(apps, nil, sandboxGate).SubmitApplication, body)
+	if rec.Code != http.StatusCreated || apps.got.Environment != "SANDBOX" {
+		t.Fatalf("a Sandbox stack filed the application as %q (%d)", apps.got.Environment, rec.Code)
+	}
+
+	undeclared := &fakeApps{appID: "app-2"}
+	rec = postJSON(NewMerchantOnboardingHandler(undeclared, nil, service.NewEnvGate("", nil)).SubmitApplication, body)
+	if rec.Code != http.StatusServiceUnavailable || undeclared.got.Environment != "" {
+		t.Fatalf("a stack with no environment accepted the body's (%d, %q)", rec.Code, undeclared.got.Environment)
+	}
 }

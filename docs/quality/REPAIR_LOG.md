@@ -3180,3 +3180,21 @@ reverses each posting exactly; a PROCESSING payout with no recorded posting cann
 marked SENT, and processing it again completes it without posting twice. Tests
 `failing_a_half_processed_payout_returns_exactly_what_moved` (the id-only reversal
 leaves the net debited) and `a_payout_without_its_posting_recorded_is_resumed_not_sent`.
+
+## RA-114 — the gateway ran with no environment and let the caller pick one
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-01)
+- **Status:** FIXED (gateway)
+
+`ENVIRONMENT` defaulted to "development", which the gateway reads as no environment at
+all: the Live start-up refusals (no proof signing key, no webhook encryption key) and
+the platform-mode guard switched off, and public onboarding took the environment from
+the request body — anything but "SANDBOX" became LIVE, and approval then minted keys,
+logins and activation tokens in the environment the caller chose. The local compose
+file set no ENVIRONMENT for the gateway at all. The same "else LIVE" mapping sat in the
+KYB upload, the application-to-KYB bridge and `/v1/me`. The gateway now refuses to
+start without a declared ENVIRONMENT (as developer-api since RA-086); onboarding takes
+the stack's environment and refuses when the stack has none; every mapping parses the
+environment and refuses one it cannot name. Tests `TestLoad_RefusesToStartWithoutAnEnvironment`,
+`TestSubmit_RefusesAnUndeclaredEnvironment`, `TestSubmitApplication_TheEnvironmentIsTheStacksNeverTheBodys`
+(each fails on the previous code).

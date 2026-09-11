@@ -13,6 +13,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/kybstorage"
+
+	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
 // Merchant-authenticated KYB documents (Banzami operator policy). After approval
@@ -250,10 +252,11 @@ func (s *PostgresMerchantKybService) RequestUploadURL(ctx context.Context, merch
 	} else if !kybAllowedMimes[contentType] {
 		return "", kybstorage.UploadURL{}, ErrKybInvalidMime
 	}
-	env := "LIVE"
-	if strings.EqualFold(environment, "SANDBOX") {
-		env = "SANDBOX"
+	parsed := banzamienv.Parse(environment)
+	if !parsed.IsKnown() {
+		return "", kybstorage.UploadURL{}, ErrEnvironmentUndeclared
 	}
+	env := parsed.String()
 	docID = uuid.New().String()
 	// merchant-scoped key, separate from the public application prefix.
 	storageKey := fmt.Sprintf("kyb/merchant/%s/%s/%s", merchantID, strings.ToLower(docType), docID)
@@ -689,10 +692,11 @@ func (s *PostgresMerchantKybService) decide(ctx context.Context, docID, actor, d
 // references the application's accepted/uploaded documents as VALID merchant KYB
 // documents (history in merchant_application_documents is preserved). Idempotent.
 func BridgeFromApplicationTx(ctx context.Context, tx pgx.Tx, applicationID, merchantID, environment string) error {
-	env := "LIVE"
-	if strings.EqualFold(environment, "SANDBOX") {
-		env = "SANDBOX"
+	parsed := banzamienv.Parse(environment)
+	if !parsed.IsKnown() {
+		return ErrEnvironmentUndeclared
 	}
+	env := parsed.String()
 	rows, err := tx.Query(ctx, `
 		SELECT document_type, storage_bucket, storage_key, mime_type, size_bytes, COALESCE(checksum_sha256,'')
 		  FROM merchant_application_documents
