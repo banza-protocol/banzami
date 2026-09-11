@@ -1,0 +1,1267 @@
+{
+  "$comment": "Deployed-component coverage matrix — which part of the running Public Sandbox is assured by what. Component axis; capability status stays in operator-assurance-manifest.yaml and is referenced here by id, never restated. Enforced by tools/check-component-coverage.mjs: every container in ops/sandbox-host-manifest.tsv, every directory under apps/, services/ and sdk/, and every background worker must have an entry. Programme: full-system assurance, 2026-09-11.",
+  "version": 1,
+  "risk_levels": {
+    "P0": "financial authority, operator authority or authentication",
+    "P1": "onboarding, external trust (receipts, webhooks, SDK, documents)",
+    "P2": "lower-risk UX or tooling"
+  },
+  "components": [
+    {
+      "id": "core-api",
+      "kind": "service",
+      "runtime": "{P}-core-api-staging (Rust, core/api)",
+      "entry_points": [
+        "internal HTTP :8081 (/internal/v1/*), never on a public route"
+      ],
+      "actors": [
+        "api-gateway",
+        "public-api",
+        "admin-api",
+        "developer-api",
+        "operator tooling over loopback"
+      ],
+      "authentication": "service credential per route group (CORE_INTERNAL_KEY; refunds; payee validation), loopback excepted — RA-094",
+      "authorization": "caller service passes the authenticated owner; Core re-checks ownership of accounts, sessions, settlements",
+      "sensitive_data": [
+        "ledger",
+        "balances",
+        "consumer/merchant ids",
+        "pricing"
+      ],
+      "financial_authority": "write",
+      "environment": "SANDBOX (CoreEnvironment from config; LIVE fail-closed)",
+      "critical_actions": [
+        "postings",
+        "transfers",
+        "payment sessions",
+        "acquiring settlement",
+        "application settlements",
+        "payouts",
+        "refunds",
+        "freezes",
+        "wallet account close",
+        "sandbox fund retirement"
+      ],
+      "dependencies": [
+        "postgres"
+      ],
+      "capabilities": [
+        "CAP-LEDGER-001",
+        "CAP-WALLET-001",
+        "CAP-TRANSFER-002",
+        "CAP-PAY-001",
+        "CAP-PAY-002",
+        "CAP-PAY-003",
+        "CAP-REFUND-001",
+        "CAP-PAYOUT-001",
+        "CAP-COLLECT-001"
+      ],
+      "tests": [
+        "core/api/src/routes",
+        "core/app-settlement/tests",
+        "tests/ops/core-internal-routes-gated.test.mjs"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/economic-model-smoke.sh",
+        "tests/phase0/refund-settlement-matrix.sh",
+        "tests/phase0/ledger-reconciliation.sh"
+      ],
+      "gaps": [
+        "application settlements, pricing and handle registry have no capability entry in the manifest"
+      ],
+      "risk": "P0"
+    },
+    {
+      "id": "core-workers",
+      "kind": "worker",
+      "runtime": "tasks inside core-api-staging (core/api/src/main.rs: QR expiry, payment-link expiry, settlement scheduler, balance checker)",
+      "entry_points": [
+        "timers"
+      ],
+      "actors": [
+        "system"
+      ],
+      "authentication": "none (in-process)",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "ledger"
+      ],
+      "financial_authority": "write",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "expire QR codes and links",
+        "scheduled settlements",
+        "balance consistency checks"
+      ],
+      "dependencies": [
+        "postgres"
+      ],
+      "capabilities": [
+        "CAP-PAY-002",
+        "CAP-PAY-003",
+        "CAP-LEDGER-001"
+      ],
+      "tests": [
+        "core/api/src/routes"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/ledger-reconciliation.sh"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "api-gateway",
+      "kind": "service",
+      "runtime": "{P}-api-gateway-staging (Go, services/api-gateway) — sandbox-api.banzami.com, checkout.banzami.com",
+      "entry_points": [
+        "/v1/* developer + merchant surface",
+        "/v1/public/pay/*",
+        "/v1/merchant/auth/*",
+        "/v1/merchant/applications/*",
+        "/internal/v1/* (InternalAuth)"
+      ],
+      "actors": [
+        "Project keys",
+        "merchant keys",
+        "Business App sessions",
+        "anonymous payers",
+        "admin-api",
+        "public-api",
+        "developer-api"
+      ],
+      "authentication": "API keys (hash+pepper), merchant JWT sessions, internal key",
+      "authorization": "principal → Project binding / merchant → owned resources",
+      "sensitive_data": [
+        "proof references",
+        "KYB documents (signed URLs)",
+        "webhook secrets",
+        "API keys"
+      ],
+      "financial_authority": "write (via Core)",
+      "environment": "SANDBOX (env.Parse; KYB bucket bound to environment — RA-100)",
+      "critical_actions": [
+        "payment sessions/links",
+        "refunds",
+        "application settlements",
+        "wallet-account transfers",
+        "payouts",
+        "webhooks",
+        "proofs/receipts",
+        "KYB documents",
+        "Business applications and activation"
+      ],
+      "dependencies": [
+        "core-api",
+        "postgres",
+        "redis",
+        "developer-api",
+        "r2-kyb-sandbox",
+        "firebase"
+      ],
+      "capabilities": [
+        "CAP-PAY-001",
+        "CAP-PAY-002",
+        "CAP-REFUND-001",
+        "CAP-WEBHOOK-001",
+        "CAP-PROOF-001",
+        "CAP-READINESS-001",
+        "CAP-TRANSFER-002"
+      ],
+      "tests": [
+        "services/api-gateway/internal"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/business-tenant-isolation.sh",
+        "tests/phase0/proof-lookup-assurance.sh",
+        "tests/phase0/receipt-assurance.sh",
+        "tests/phase0/webhook-lifecycle-e2e.sh",
+        "tests/phase0/kyb-storage-boundary-e2e.sh",
+        "tests/phase0/transfer-devkey-e2e.sh"
+      ],
+      "gaps": [],
+      "risk": "P0"
+    },
+    {
+      "id": "gateway-workers",
+      "kind": "worker",
+      "runtime": "goroutines inside api-gateway-staging (webhook dispatcher 5s, request-log flush/prune, application reservation expiry)",
+      "entry_points": [
+        "timers"
+      ],
+      "actors": [
+        "system"
+      ],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "webhook secrets (encrypted at rest)",
+        "request logs"
+      ],
+      "financial_authority": "none (observational)",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "signed webhook delivery and retry",
+        "handle reservation expiry"
+      ],
+      "dependencies": [
+        "postgres"
+      ],
+      "capabilities": [
+        "CAP-WEBHOOK-001",
+        "CAP-DEV-003"
+      ],
+      "tests": [
+        "services/api-gateway/internal/service"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/webhook-retry-cleanroom.sh",
+        "tests/phase0/webhook-lifecycle-e2e.sh"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "public-api",
+      "kind": "service",
+      "runtime": "{P}-public-api-staging (Go, services/public-api) — consumer app backend",
+      "entry_points": [
+        "/v1/consumer/*",
+        "/v1/transfers (P2P)",
+        "/v1/payment-links/{slug}/pay",
+        "/v1/consumer-pay-links/*",
+        "/v1/sandbox/fund"
+      ],
+      "actors": [
+        "consumers (mobile app)"
+      ],
+      "authentication": "consumer JWT (phone + OTP onboarding, PIN)",
+      "authorization": "sender derives from the token",
+      "sensitive_data": [
+        "phone numbers",
+        "balances",
+        "history"
+      ],
+      "financial_authority": "write (via Core)",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "P2P transfer",
+        "link payment",
+        "sandbox funding (pilot cap)"
+      ],
+      "dependencies": [
+        "core-api",
+        "api-gateway",
+        "postgres",
+        "redis"
+      ],
+      "capabilities": [
+        "CAP-APP-001",
+        "CAP-PAY-002"
+      ],
+      "tests": [
+        "services/public-api/internal"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/receipt-assurance.sh",
+        "tests/phase0/campaign-payment-segregation.sh"
+      ],
+      "gaps": [
+        "consumer onboarding OTP on a real device is a human boundary"
+      ],
+      "risk": "P0"
+    },
+    {
+      "id": "developer-api",
+      "kind": "service",
+      "runtime": "{P}-developer-api (Go, services/developer-api) — developer-api.banzami.com",
+      "entry_points": [
+        "Console API (identity OTP, workspaces, projects, keys, webhooks, logs, financial setup)",
+        "/internal/v1/* (DEVELOPER_INTERNAL_KEY)"
+      ],
+      "actors": [
+        "developers (Console)",
+        "gateway",
+        "harnesses (fixture routes, Sandbox only)"
+      ],
+      "authentication": "email OTP → Console session + CSRF; internal key",
+      "authorization": "workspace membership roles → project",
+      "sensitive_data": [
+        "API key secrets (one-time)",
+        "emails"
+      ],
+      "financial_authority": "binding authority (ADR-055 sealed bindings)",
+      "environment": "SANDBOX (fail-closed without ENVIRONMENT — RA-086)",
+      "critical_actions": [
+        "API key issue/revoke",
+        "project binding/seal",
+        "financial setup submission",
+        "project retirement"
+      ],
+      "dependencies": [
+        "postgres",
+        "api-gateway",
+        "resend"
+      ],
+      "capabilities": [
+        "CAP-DEV-001",
+        "CAP-DEV-002",
+        "CAP-DEV-003",
+        "CAP-READINESS-001"
+      ],
+      "tests": [
+        "services/developer-api/internal"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/adr055-binding-seal-e2e.sh",
+        "tests/phase0/project-readiness-e2e.sh",
+        "tests/phase0/developer-platform-e2e.sh",
+        "tests/phase0/retired-authority-denied.sh"
+      ],
+      "gaps": [],
+      "risk": "P0"
+    },
+    {
+      "id": "admin-api",
+      "kind": "service",
+      "runtime": "{P}-admin-api (Go, services/admin-api) — admin.banzami.com/api",
+      "entry_points": [
+        "/admin/v1/*"
+      ],
+      "actors": [
+        "operators (BANZADMIN)"
+      ],
+      "authentication": "password + TOTP MFA, operator sessions",
+      "authorization": "RBAC capabilities (services/admin-api/internal/auth/rbac.go); SUPER_ADMIN implicit",
+      "sensitive_data": [
+        "KYB/KYC decisions and documents",
+        "all tenants' financial state"
+      ],
+      "financial_authority": "operator (classification, pricing, freezes, credits, wallet account close)",
+      "environment": "SANDBOX default (lib/admin-env; LIVE disabled)",
+      "critical_actions": [
+        "KYB/KYC decisions",
+        "business classification",
+        "pricing assignment",
+        "freeze/suspend",
+        "operator management",
+        "sandbox credits",
+        "wallet account close"
+      ],
+      "dependencies": [
+        "core-api",
+        "api-gateway",
+        "postgres"
+      ],
+      "capabilities": [
+        "CAP-APP-003"
+      ],
+      "tests": [
+        "services/admin-api/internal"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "a signed-in walk needs the owner's MFA (human boundary)"
+      ],
+      "risk": "P0"
+    },
+    {
+      "id": "admin-frontend",
+      "kind": "frontend",
+      "runtime": "{P}-admin-frontend (Next.js, apps/admin) — admin.banzami.com",
+      "entry_points": [
+        "BANZADMIN UI"
+      ],
+      "actors": [
+        "operators"
+      ],
+      "authentication": "via admin-api session",
+      "authorization": "server-side (admin-api); UI hides only",
+      "sensitive_data": [
+        "KYB/KYC",
+        "tenant financial state"
+      ],
+      "financial_authority": "none directly",
+      "environment": "SANDBOX default",
+      "critical_actions": [
+        "operator journeys",
+        "attention badges"
+      ],
+      "dependencies": [
+        "admin-api"
+      ],
+      "capabilities": [
+        "CAP-APP-003"
+      ],
+      "tests": [
+        "apps/admin/lib",
+        "apps/admin/components"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "signed-in UI walk and live badges need the owner's MFA"
+      ],
+      "risk": "P0"
+    },
+    {
+      "id": "pay-frontend",
+      "kind": "frontend",
+      "runtime": "{P}-pay-frontend (Next.js, apps/pay) — pay.banzami.com (checkout.* 308)",
+      "entry_points": [
+        "hosted payer pages /{slug}"
+      ],
+      "actors": [
+        "anonymous payers"
+      ],
+      "authentication": "none (bearer link)",
+      "authorization": "link state",
+      "sensitive_data": [
+        "merchant public identity"
+      ],
+      "financial_authority": "initiates acquiring payment (simulated in Sandbox)",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "hosted checkout payment"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [
+        "CAP-APP-004"
+      ],
+      "tests": [
+        "apps/pay"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/pay-frontend-lifecycle-e2e.sh",
+        "tests/phase0/hosted-checkout-e2e.sh",
+        "tests/phase0/hosted-checkout-payment-e2e.sh"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "website",
+      "kind": "frontend",
+      "runtime": "banzami-website-frontend-1 (Next.js, apps/website) behind banzami-website-nginx-1 — banzami.com, developers.banzami.com",
+      "entry_points": [
+        "public site",
+        "/verificar",
+        "/r/{ref}",
+        "/comerciantes/candidatura",
+        "Developers Console + docs (/developers/*)"
+      ],
+      "actors": [
+        "public",
+        "Business applicants",
+        "developers"
+      ],
+      "authentication": "Console: developer-api session",
+      "authorization": "Console: server-side (developer-api)",
+      "sensitive_data": [
+        "proof references",
+        "applicant PII in the candidature"
+      ],
+      "financial_authority": "none",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "proof verification",
+        "Business candidature",
+        "Console key/webhook/financial setup"
+      ],
+      "dependencies": [
+        "api-gateway",
+        "developer-api"
+      ],
+      "capabilities": [
+        "CAP-PROOF-001",
+        "CAP-DEV-001",
+        "CAP-DOCS-001"
+      ],
+      "tests": [
+        "apps/website/app"
+      ],
+      "deployed_e2e": [
+        "tools/e2e/security/proof-reference-canonicality.mjs",
+        "tools/e2e/business/candidatura-e2e.mjs",
+        "tools/e2e/console/route-suite.mjs"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "sandbox-edge",
+      "kind": "edge",
+      "runtime": "bzsbedge-sandbox-edge (nginx) behind Cloudflare; banzami-origin-ingress.service restricts the origin to Cloudflare",
+      "entry_points": [
+        "admin.*, sandbox-api.*, developer-api.*, pay.*, checkout.*, sandbox-webhook.* banzami.com"
+      ],
+      "actors": [
+        "internet via Cloudflare"
+      ],
+      "authentication": "n/a",
+      "authorization": "routing only; /internal not routed",
+      "sensitive_data": [
+        "access logs (proof refs redacted — RA-082)"
+      ],
+      "financial_authority": "none",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "real client IP from Cloudflare ranges only",
+        "redaction of bearer values"
+      ],
+      "dependencies": [
+        "api-gateway",
+        "public-api",
+        "developer-api",
+        "admin-api",
+        "admin-frontend",
+        "pay-frontend",
+        "webhook-sink"
+      ],
+      "capabilities": [],
+      "tests": [
+        "tests/ops/sandbox-edge-perimeter.test.mjs",
+        "tests/ops/nginx-proof-log-redaction.test.mjs"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/sandbox-host-attestation.sh"
+      ],
+      "gaps": [],
+      "risk": "P0"
+    },
+    {
+      "id": "website-nginx",
+      "kind": "edge",
+      "runtime": "banzami-website-nginx-1 (nginx) — banzami.com, developers.banzami.com",
+      "entry_points": [
+        "website"
+      ],
+      "actors": [
+        "internet via Cloudflare"
+      ],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "access logs (proof paths redacted)"
+      ],
+      "financial_authority": "none",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "redaction of /r/ and /verificar"
+      ],
+      "dependencies": [
+        "website"
+      ],
+      "capabilities": [],
+      "tests": [
+        "tests/ops/nginx-proof-log-redaction.test.mjs"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/sandbox-host-attestation.sh"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "webhook-sink",
+      "kind": "tooling",
+      "runtime": "banzami-webhook-sink — sandbox-webhook.banzami.com (test receiver)",
+      "entry_points": [
+        "POST receiver"
+      ],
+      "actors": [
+        "gateway webhook dispatcher",
+        "harnesses"
+      ],
+      "authentication": "signature verification",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "test webhook payloads"
+      ],
+      "financial_authority": "none",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "receives signed test deliveries"
+      ],
+      "dependencies": [],
+      "capabilities": [
+        "CAP-WEBHOOK-001"
+      ],
+      "tests": [],
+      "deployed_e2e": [
+        "tests/phase0/webhook-retry-cleanroom.sh"
+      ],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "postgres",
+      "kind": "data",
+      "runtime": "{P}-postgres-1 (banzami_staging)",
+      "entry_points": [
+        "stack network only"
+      ],
+      "actors": [
+        "services (bl_app_runtime)",
+        "migration executor"
+      ],
+      "authentication": "per-role credentials (secrets files)",
+      "authorization": "DML grants; migrations by the executor image only",
+      "sensitive_data": [
+        "all financial truth",
+        "PII"
+      ],
+      "financial_authority": "store of record",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "append-only ledger",
+        "migrations (immutable, checksummed)"
+      ],
+      "dependencies": [],
+      "capabilities": [
+        "CAP-LEDGER-001"
+      ],
+      "tests": [
+        "tools/assurance/sandbox-financial-assurance.sql",
+        "tools/assurance/migration-drift.mjs"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/ledger-reconciliation.sh"
+      ],
+      "gaps": [],
+      "risk": "P0"
+    },
+    {
+      "id": "redis",
+      "kind": "data",
+      "runtime": "{P}-redis-1",
+      "entry_points": [
+        "stack network only"
+      ],
+      "actors": [
+        "gateway",
+        "public-api",
+        "admin-api"
+      ],
+      "authentication": "password",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "rate-limit counters",
+        "idempotency cache"
+      ],
+      "financial_authority": "none (credential limits survive its loss — D40)",
+      "environment": "SANDBOX",
+      "critical_actions": [
+        "rate limiting"
+      ],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [],
+      "deployed_e2e": [
+        "tests/phase0/sandbox-host-attestation.sh"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "host-jobs",
+      "kind": "job",
+      "runtime": "/etc/cron.daily/banzami-container-log-retention; banzami-origin-ingress.service",
+      "entry_points": [
+        "cron",
+        "systemd"
+      ],
+      "actors": [
+        "host"
+      ],
+      "authentication": "root",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "rotated container logs"
+      ],
+      "financial_authority": "none",
+      "environment": "SANDBOX host",
+      "critical_actions": [
+        "delete rotated log copies older than 14 days, never a live log",
+        "origin reachable only from Cloudflare"
+      ],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [
+        "tests/ops/container-log-retention.test.mjs"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/sandbox-host-attestation.sh"
+      ],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "mobile-consumer",
+      "kind": "client",
+      "runtime": "apps/mobile flavor consumer (com.banzami.consumer)",
+      "entry_points": [
+        "app screens",
+        "deep links",
+        "push"
+      ],
+      "actors": [
+        "consumers"
+      ],
+      "authentication": "phone OTP + PIN → consumer JWT",
+      "authorization": "server-side (public-api)",
+      "sensitive_data": [
+        "tokens (secure storage)",
+        "balances",
+        "history"
+      ],
+      "financial_authority": "initiates P2P and payments",
+      "environment": "Sandbox build",
+      "critical_actions": [
+        "send",
+        "pay link/QR",
+        "receipts"
+      ],
+      "dependencies": [
+        "public-api",
+        "api-gateway",
+        "firebase"
+      ],
+      "capabilities": [
+        "CAP-APP-001"
+      ],
+      "tests": [
+        "apps/mobile/test"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "device walk needs the owner's iPhone (human boundary)"
+      ],
+      "risk": "P0"
+    },
+    {
+      "id": "mobile-business",
+      "kind": "client",
+      "runtime": "apps/mobile flavor merchant (com.banzami.merchant)",
+      "entry_points": [
+        "app screens",
+        "deep links",
+        "push"
+      ],
+      "actors": [
+        "Business owners"
+      ],
+      "authentication": "@handle + PIN → Business session (activation link sets the PIN)",
+      "authorization": "server-side (gateway)",
+      "sensitive_data": [
+        "tokens",
+        "balances",
+        "KYB state"
+      ],
+      "financial_authority": "payouts, receive",
+      "environment": "session environment (push topic follows it)",
+      "critical_actions": [
+        "receive",
+        "history",
+        "payout",
+        "KYB documents"
+      ],
+      "dependencies": [
+        "api-gateway",
+        "firebase"
+      ],
+      "capabilities": [
+        "CAP-APP-005"
+      ],
+      "tests": [
+        "apps/mobile/test"
+      ],
+      "deployed_e2e": [
+        "tools/e2e/business/business-app-session-e2e.mjs"
+      ],
+      "gaps": [
+        "activation needs an operator-approved application; device walk needs the owner's iPhone"
+      ],
+      "risk": "P0"
+    },
+    {
+      "id": "sdk-typescript",
+      "kind": "sdk",
+      "runtime": "npm @banzami/sdk (sdk/typescript)",
+      "entry_points": [
+        "BanzamiClient"
+      ],
+      "actors": [
+        "integrators (server side)"
+      ],
+      "authentication": "secret key (server only)",
+      "authorization": "Project key scopes",
+      "sensitive_data": [
+        "secret key"
+      ],
+      "financial_authority": "via API",
+      "environment": "base URL per environment",
+      "critical_actions": [
+        "payment sessions",
+        "wallet accounts",
+        "refunds",
+        "settlements",
+        "webhook verification"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [
+        "CAP-SDK-001"
+      ],
+      "tests": [
+        "sdk/typescript/src"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/sdk-wallet-accounts-public.sh",
+        "tests/phase0/refund-published-sdk-e2e.sh"
+      ],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "sdk-dart-client",
+      "kind": "sdk",
+      "runtime": "pub.dev banzami_client (sdk/dart-client)",
+      "entry_points": [
+        "public client"
+      ],
+      "actors": [
+        "client apps"
+      ],
+      "authentication": "publishable key (read-only)",
+      "authorization": "read-only scopes",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "base URL",
+      "critical_actions": [
+        "read public payment state"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [
+        "CAP-SDK-002"
+      ],
+      "tests": [
+        "sdk/dart-client/test"
+      ],
+      "deployed_e2e": [
+        "sdk/dart-client/test/sandbox_e2e_test.dart"
+      ],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "sdk-python",
+      "kind": "sdk",
+      "runtime": "sdk/python (banzami-python) — not published on PyPI",
+      "entry_points": [
+        "client"
+      ],
+      "actors": [
+        "integrators"
+      ],
+      "authentication": "secret key",
+      "authorization": "Project key scopes",
+      "sensitive_data": [
+        "secret key"
+      ],
+      "financial_authority": "via API",
+      "environment": "base URL",
+      "critical_actions": [
+        "as TypeScript SDK subset"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [],
+      "tests": [
+        "sdk/python"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "not published; publication decision is the owner's"
+      ],
+      "risk": "P2"
+    },
+    {
+      "id": "sdk-php",
+      "kind": "sdk",
+      "runtime": "sdk/php (banzami/sdk-php) — not on Packagist",
+      "entry_points": [
+        "client"
+      ],
+      "actors": [
+        "integrators"
+      ],
+      "authentication": "secret key",
+      "authorization": "Project key scopes",
+      "sensitive_data": [
+        "secret key"
+      ],
+      "financial_authority": "via API",
+      "environment": "base URL",
+      "critical_actions": [
+        "as TypeScript SDK subset"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [],
+      "tests": [
+        "sdk/php"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "not published; publication decision is the owner's"
+      ],
+      "risk": "P2"
+    },
+    {
+      "id": "sdk-go",
+      "kind": "sdk",
+      "runtime": "sdk/go — not published",
+      "entry_points": [
+        "client"
+      ],
+      "actors": [
+        "integrators"
+      ],
+      "authentication": "secret key",
+      "authorization": "Project key scopes",
+      "sensitive_data": [
+        "secret key"
+      ],
+      "financial_authority": "via API",
+      "environment": "base URL",
+      "critical_actions": [
+        "as TypeScript SDK subset"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [],
+      "tests": [
+        "sdk/go"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "not published"
+      ],
+      "risk": "P2"
+    },
+    {
+      "id": "sdk-flutter",
+      "kind": "sdk",
+      "runtime": "sdk/flutter banzami_flutter — internal (publish_to: none, ADR-053)",
+      "entry_points": [
+        "used by apps/mobile"
+      ],
+      "actors": [
+        "Banzami apps"
+      ],
+      "authentication": "session tokens",
+      "authorization": "server-side",
+      "sensitive_data": [
+        "tokens"
+      ],
+      "financial_authority": "via API",
+      "environment": "app environment",
+      "critical_actions": [
+        "app API client"
+      ],
+      "dependencies": [
+        "public-api",
+        "api-gateway"
+      ],
+      "capabilities": [
+        "CAP-APP-001",
+        "CAP-APP-005"
+      ],
+      "tests": [
+        "sdk/flutter/test"
+      ],
+      "deployed_e2e": [],
+      "gaps": [
+        "exercised only through the two apps; their device walk is a human boundary"
+      ],
+      "risk": "P1"
+    },
+    {
+      "id": "sdk-checkout-web",
+      "kind": "sdk",
+      "runtime": "sdk/checkout-web",
+      "entry_points": [
+        "browser checkout helper"
+      ],
+      "actors": [
+        "merchant web pages"
+      ],
+      "authentication": "publishable key",
+      "authorization": "read-only",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "base URL",
+      "critical_actions": [
+        "redirect to hosted pay"
+      ],
+      "dependencies": [
+        "pay-frontend"
+      ],
+      "capabilities": [
+        "CAP-APP-004"
+      ],
+      "tests": [],
+      "deployed_e2e": [],
+      "gaps": [
+        "no automated test"
+      ],
+      "risk": "P2"
+    },
+    {
+      "id": "dashboard-legacy",
+      "kind": "not-deployed",
+      "runtime": "apps/dashboard — superseded by the Console in apps/website/app/developers; not in the host manifest",
+      "entry_points": [],
+      "actors": [],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "n/a",
+      "critical_actions": [],
+      "dependencies": [],
+      "capabilities": [
+        "CAP-APP-002"
+      ],
+      "tests": [],
+      "deployed_e2e": [],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "validation-studio",
+      "kind": "not-deployed",
+      "runtime": "apps/validation-studio — local governance tool",
+      "entry_points": [],
+      "actors": [
+        "owner"
+      ],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "local",
+      "critical_actions": [],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [],
+      "deployed_e2e": [],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "sandbox-operator",
+      "kind": "not-deployed",
+      "runtime": "services/sandbox-operator — not in the host manifest (pending stage)",
+      "entry_points": [],
+      "actors": [],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "n/a",
+      "critical_actions": [],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [],
+      "deployed_e2e": [],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "services-common",
+      "kind": "library",
+      "runtime": "services/common (shared Go modules: env, obs)",
+      "entry_points": [],
+      "actors": [
+        "Go services"
+      ],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "defines env.Parse (Unknown is never LIVE)",
+      "critical_actions": [
+        "environment parsing",
+        "ID masking"
+      ],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [
+        "services/common"
+      ],
+      "deployed_e2e": [],
+      "gaps": [],
+      "risk": "P1"
+    },
+    {
+      "id": "mobile-app-package",
+      "kind": "library",
+      "runtime": "apps/mobile — Flutter project holding both app flavors (see mobile-consumer, mobile-business)",
+      "entry_points": [],
+      "actors": [],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "n/a",
+      "critical_actions": [],
+      "dependencies": [],
+      "capabilities": [
+        "CAP-APP-001",
+        "CAP-APP-005"
+      ],
+      "tests": [
+        "apps/mobile/test"
+      ],
+      "deployed_e2e": [],
+      "gaps": [],
+      "risk": "P2"
+    },
+    {
+      "id": "doa-reference-app",
+      "kind": "external",
+      "runtime": "DOA (www.doadoa.app, admin.doadoa.app on Vercel) — reference application integrating by Project key; Project Doa-Sandbox bound to @doa",
+      "entry_points": [
+        "Banzami API with its Project keys",
+        "webhook receiver"
+      ],
+      "actors": [
+        "DOA donors and admins"
+      ],
+      "authentication": "Project secret keys (web + admin runtime)",
+      "authorization": "its Project binding, like any tenant",
+      "sensitive_data": [
+        "donor contacts (DOA-side, Vault encrypted)"
+      ],
+      "financial_authority": "tenant (no special branch in Banzami)",
+      "environment": "Banzami Sandbox",
+      "critical_actions": [
+        "payment sessions",
+        "application settlement",
+        "webhooks"
+      ],
+      "dependencies": [
+        "api-gateway"
+      ],
+      "capabilities": [
+        "CAP-PAY-001",
+        "CAP-WEBHOOK-001"
+      ],
+      "tests": [],
+      "deployed_e2e": [
+        "tests/phase0/project-readiness-probe.sh",
+        "tests/phase0/doa-canonical-binding.sh"
+      ],
+      "gaps": [
+        "fresh donation + settlement needs the owner's DOA sign-in/OTP"
+      ],
+      "risk": "P1"
+    },
+    {
+      "id": "external-providers",
+      "kind": "external",
+      "runtime": "Cloudflare (DNS/proxy), R2 banzami-kyb-sandbox, Resend (email), Firebase (push), npm registry",
+      "entry_points": [],
+      "actors": [],
+      "authentication": "provider credentials (secret files)",
+      "authorization": "n/a",
+      "sensitive_data": [
+        "KYB documents (R2)"
+      ],
+      "financial_authority": "none",
+      "environment": "Sandbox resources only (KYB bucket bound — RA-100)",
+      "critical_actions": [
+        "document storage",
+        "email",
+        "push"
+      ],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [
+        "services/api-gateway/internal/kybstorage"
+      ],
+      "deployed_e2e": [
+        "tests/phase0/kyb-storage-boundary-e2e.sh"
+      ],
+      "gaps": [
+        "email and push delivery end to end need a real inbox/device"
+      ],
+      "risk": "P1"
+    },
+    {
+      "id": "plugins",
+      "kind": "not-deployed",
+      "runtime": "plugins/ — commerce plugins, not deployed",
+      "entry_points": [],
+      "actors": [],
+      "authentication": "n/a",
+      "authorization": "n/a",
+      "sensitive_data": [],
+      "financial_authority": "none",
+      "environment": "n/a",
+      "critical_actions": [],
+      "dependencies": [],
+      "capabilities": [],
+      "tests": [],
+      "deployed_e2e": [],
+      "gaps": [],
+      "risk": "P2"
+    }
+  ],
+  "source_map": {
+    "apps/admin": "admin-frontend",
+    "apps/dashboard": "dashboard-legacy",
+    "apps/mobile": "mobile-app-package",
+    "apps/pay": "pay-frontend",
+    "apps/validation-studio": "validation-studio",
+    "apps/website": "website",
+    "services/admin-api": "admin-api",
+    "services/api-gateway": "api-gateway",
+    "services/common": "services-common",
+    "services/developer-api": "developer-api",
+    "services/public-api": "public-api",
+    "services/sandbox-operator": "sandbox-operator",
+    "sdk/checkout-web": "sdk-checkout-web",
+    "sdk/dart-client": "sdk-dart-client",
+    "sdk/flutter": "sdk-flutter",
+    "sdk/go": "sdk-go",
+    "sdk/php": "sdk-php",
+    "sdk/python": "sdk-python",
+    "sdk/typescript": "sdk-typescript"
+  },
+  "host_map": {
+    "{P}-core-api-staging": "core-api",
+    "{P}-api-gateway-staging": "api-gateway",
+    "{P}-public-api-staging": "public-api",
+    "{P}-developer-api": "developer-api",
+    "{P}-admin-api": "admin-api",
+    "{P}-admin-frontend": "admin-frontend",
+    "{P}-pay-frontend": "pay-frontend",
+    "{P}-postgres-1": "postgres",
+    "{P}-redis-1": "redis",
+    "bzsbedge-sandbox-edge": "sandbox-edge",
+    "banzami-webhook-sink": "webhook-sink",
+    "banzami-website-frontend-1": "website",
+    "banzami-website-nginx-1": "website-nginx"
+  }
+}

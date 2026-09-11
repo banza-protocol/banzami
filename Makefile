@@ -292,7 +292,10 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-released-operations check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
+check-component-coverage:
+	@node tools/check-component-coverage.mjs
+
+.PHONY: check-component-coverage check-all test-all check-repo-layout check-pricing-consumers check-economic-authority check-released-operations check-harness-hygiene check-remote-contract check-host-attestation check-sdk-payment-boundary banza-conformance-l0 check-assurance check-assurance-release check-assurance-reference
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
@@ -374,7 +377,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance security-check
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
