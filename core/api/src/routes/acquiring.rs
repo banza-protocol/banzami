@@ -378,6 +378,15 @@ pub async fn settle_confirmed_payment(
             payment_id = %payment.id,
             "acquiring: settlement already posted — replay credited nothing"
         );
+        // The session may not have heard: a crash between the commit and the
+        // line below leaves it ACTIVE, and the provider's retry is what heals it.
+        super::payment_sessions::settle_for_acquired_link(
+            state,
+            payment.payment_link_id.as_uuid(),
+            payment.id.as_uuid(),
+            amt,
+        )
+        .await;
         return Ok(()); // an earlier callback settled it: idempotent success
     };
 
@@ -405,6 +414,17 @@ pub async fn settle_confirmed_payment(
     tx.commit()
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // A link that belongs to a Payment Session pays the session: PAID, its QR
+    // retired, payment_session.paid emitted. Idempotent, and a no-op for a
+    // plain link.
+    super::payment_sessions::settle_for_acquired_link(
+        state,
+        payment.payment_link_id.as_uuid(),
+        payment.id.as_uuid(),
+        amt,
+    )
+    .await;
 
     // Velocity counters (fire-and-forget).
     let hour_start = now

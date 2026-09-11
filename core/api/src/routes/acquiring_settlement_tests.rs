@@ -504,3 +504,159 @@ async fn a_callback_for_another_amount_confirms_nothing(pool: PgPool) {
         "the confirming callback was not marked processed"
     );
 }
+
+/// A link that belongs to a Payment Session pays the session on this rail too.
+/// Before the fix the account was credited and the link marked used while the
+/// session stayed ACTIVE — its dynamic QR still payable, and no
+/// payment_session.paid for the integrator. A replayed confirmation changes
+/// nothing further and emits nothing further.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_session_paid_on_the_acquiring_rail_is_paid(pool: PgPool) {
+    use axum::{extract::State, Json};
+
+    let f = seed(&pool).await;
+    let (wa, campaign_ledger) = route_link_to_campaign(&pool, &f).await;
+    let merchant: Uuid = sqlx::query_scalar("SELECT merchant_id FROM wallets WHERE id = $1")
+        .bind(f.wallet)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let state = build_state(pool.clone()).await;
+    let (_, Json(s)) = crate::routes::payment_sessions::create(
+        State(state.clone()),
+        Json(crate::routes::payment_sessions::CreateBody {
+            merchant_id: merchant.to_string(),
+            wallet_account_id: wa.to_string(),
+            purpose: Some("DONATION".into()),
+            reference_type: Some("DOA_CAMPAIGN".into()),
+            reference_id: Some("hosted-rail".into()),
+            amount_minor: Some(100_000),
+            currency: Some("AOA".into()),
+            description: Some("Campanha".into()),
+            expires_at: None,
+            metadata: None,
+        }),
+    )
+    .await
+    .unwrap();
+    let link = Uuid::parse_str(s["payment_link_id"].as_str().unwrap()).unwrap();
+    let qr = Uuid::parse_str(s["qr_code_id"].as_str().unwrap()).unwrap();
+
+    let payment = confirmed_payment(&pool, link, 100_000).await;
+    settle_confirmed_payment(&state, &payment).await.unwrap();
+    let after_first: String =
+        sqlx::query_scalar("SELECT status FROM payment_sessions WHERE payment_link_id = $1")
+            .bind(link)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        after_first, "PAID",
+        "the confirmation that credited the account did not pay the session"
+    );
+    settle_confirmed_payment(&state, &payment).await.unwrap(); // the provider retries
+
+    assert_eq!(
+        balance(&pool, campaign_ledger).await,
+        100_000,
+        "credited once"
+    );
+    let session: String =
+        sqlx::query_scalar("SELECT status FROM payment_sessions WHERE payment_link_id = $1")
+            .bind(link)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        session, "PAID",
+        "the session its link paid for is still open"
+    );
+    let qr_status: String = sqlx::query_scalar("SELECT status FROM qr_codes WHERE id = $1")
+        .bind(qr)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        qr_status, "EXPIRED",
+        "the paid session's QR is still payable"
+    );
+    let events: Vec<serde_json::Value> = sqlx::query_scalar(
+        "SELECT payload FROM webhook_events WHERE merchant_id = $1 AND event_type = 'payment_session.paid'",
+    )
+    .bind(merchant)
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(events.len(), 1, "one payment, one event");
+    let data = &events[0]["data"];
+    assert_eq!(data["acquiring_payment_id"], payment.id.to_string());
+    assert!(
+        data.get("transfer_id").is_none(),
+        "no transfer paid this session"
+    );
+    assert!(data["refund_source"].is_null());
+    // Nothing was paid from a wallet, so nothing claims it was.
+    let wallet_payments: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM wallet_payments")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(wallet_payments, 0);
+}
+
+/// The credit committed and the process died before the session heard. The
+/// provider retries; the retry credits nothing (the posting exists) and must
+/// still pay the session, or it stays open for good.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_retried_confirmation_pays_a_session_the_first_one_missed(pool: PgPool) {
+    use axum::{extract::State, Json};
+
+    let f = seed(&pool).await;
+    let (wa, _) = route_link_to_campaign(&pool, &f).await;
+    let merchant: Uuid = sqlx::query_scalar("SELECT merchant_id FROM wallets WHERE id = $1")
+        .bind(f.wallet)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let state = build_state(pool.clone()).await;
+    let (_, Json(s)) = crate::routes::payment_sessions::create(
+        State(state.clone()),
+        Json(crate::routes::payment_sessions::CreateBody {
+            merchant_id: merchant.to_string(),
+            wallet_account_id: wa.to_string(),
+            purpose: Some("DONATION".into()),
+            reference_type: Some("DOA_CAMPAIGN".into()),
+            reference_id: Some("hosted-rail-crash".into()),
+            amount_minor: Some(100_000),
+            currency: Some("AOA".into()),
+            description: None,
+            expires_at: None,
+            metadata: None,
+        }),
+    )
+    .await
+    .unwrap();
+    let link = Uuid::parse_str(s["payment_link_id"].as_str().unwrap()).unwrap();
+    let payment = confirmed_payment(&pool, link, 100_000).await;
+    // What the first confirmation left behind: its posting, and nothing after it.
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES (gen_random_uuid(), 'first confirmation', $1, now())",
+    )
+    .bind(format!("acquiring-settle-{}", payment.id))
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    settle_confirmed_payment(&state, &payment).await.unwrap();
+
+    let session: String =
+        sqlx::query_scalar("SELECT status FROM payment_sessions WHERE payment_link_id = $1")
+            .bind(link)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        session, "PAID",
+        "the retry found the credit posted and left the session open"
+    );
+}

@@ -35,9 +35,14 @@ The operator **generates the signing secret**, stores it encrypted at rest
 
 ## Events
 
-- `payment_session.paid` — a session was paid through any interface (link/QR).
-  Carries `reference_type` / `reference_id` (e.g. `DOA_DONATION` + intent id, or
-  `DOA_CAMPAIGN` + campaign id) so the app maps it to its own record.
+- `payment_session.paid` — a session was paid through any interface (link/QR),
+  on either rail. Carries `reference_type` / `reference_id` (e.g. `DOA_DONATION` +
+  intent id, or `DOA_CAMPAIGN` + campaign id) so the app maps it to its own record.
+  Paid from a wallet, it names the settling `transfer_id` and a `refund_source`.
+  Paid on the hosted checkout (pay.banzami.com — Multicaixa, or its Sandbox
+  simulation), it names the `acquiring_payment_id` instead and `refund_source` is
+  `null`: that rail produces no typed refund source today. Before 2026-09-11 the
+  hosted rail sent no `payment_session.paid` at all (RA-098).
 - `application_settlement.completed | failed | cancelled` — terminal settlement
   state (ADR-029).
 

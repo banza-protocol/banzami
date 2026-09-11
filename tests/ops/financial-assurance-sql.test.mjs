@@ -35,6 +35,7 @@ const ZERO = [
   'PAYOUTS_PROCESSED_WITHOUT_POSTING', 'SETTLEMENTS_SETTLED_WITHOUT_POSTING', 'APP_SETTLEMENTS_COMPLETED_WITHOUT_POSTING',
   'DEPOSITS_CONFIRMED_WITHOUT_POSTING', 'RESTITUTIONS_WITHOUT_POSTING', 'PAID_LINKS_WITHOUT_PAYMENT',
   'PAID_SESSIONS_WITHOUT_PAYMENT', 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE',
+  'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID',
 ];
 
 describe('financial assurance counters', () => {
@@ -152,6 +153,15 @@ describe('financial assurance counters', () => {
           INSERT INTO payment_sessions (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose, status, qr_code_id)
             VALUES ('b0000000-0000-4000-8000-0000000000e2','d0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','c0000000-0000-4000-8000-0000000000e1','AOA',100,'DONATION','PAID','b0000000-0000-4000-8000-0000000000e1')`);
     assert.equal(counts().PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE - before, 1);
+  });
+
+  it('a session left open after its link was paid is caught', () => {
+    const before = counts().SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID;
+    psql(`INSERT INTO payment_links (id, merchant_id, wallet_id, slug, amount_minor, currency, status, environment)
+            VALUES ('b0000000-0000-4000-8000-0000000000f1','d0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','sf1',100,'AOA','USED','SANDBOX');
+          INSERT INTO payment_sessions (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose, status, payment_link_id)
+            VALUES ('b0000000-0000-4000-8000-0000000000f2','d0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','c0000000-0000-4000-8000-0000000000e1','AOA',100,'DONATION','ACTIVE','b0000000-0000-4000-8000-0000000000f1')`);
+    assert.equal(counts().SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID - before, 1);
   });
 
   it('a login that does not own its handle is caught', () => {

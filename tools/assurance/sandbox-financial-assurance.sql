@@ -160,3 +160,7 @@ SELECT 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE', count(*) FROM payment_sessions 
   LEFT JOIN qr_codes q ON q.id = s.qr_code_id
   LEFT JOIN payment_links l ON l.id = s.payment_link_id
  WHERE s.status = 'PAID' AND (q.status = 'ACTIVE' OR l.status = 'ACTIVE');
+-- A session whose link was paid is paid, whichever rail paid it (RA-098).
+SELECT 'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', count(*) FROM payment_sessions s
+  JOIN payment_links l ON l.id = s.payment_link_id
+ WHERE l.status = 'USED' AND s.status IN ('CREATED','ACTIVE');

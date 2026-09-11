@@ -326,45 +326,8 @@ pub async fn settle_for_interface(
     amount_minor: i64,
     interface: &str,
 ) {
-    let column = match kind {
-        "link" => "payment_link_id",
-        "qr" => "qr_code_id",
-        _ => return,
-    };
-    // Atomic transition: only CREATED/ACTIVE flips to PAID; RETURNING tells us
-    // whether THIS call performed it (so the event fires exactly once).
-    //
-    // A session is paid once, through whichever interface paid it; the OTHER
-    // interface stops being payable in the same statement — the dynamic QR
-    // expires when the link paid, the link is cancelled when the QR paid. It
-    // used to stay ACTIVE for its whole 89-day life beside a PAID session, so the
-    // session could have been paid a second time the day a QR payment route
-    // exists (the interface that paid is never touched here).
-    let sibling = match kind {
-        "link" => {
-            "UPDATE qr_codes SET status = 'EXPIRED'
-              WHERE id IN (SELECT qr_code_id FROM s) AND status = 'ACTIVE'"
-        }
-        _ => {
-            "UPDATE payment_links SET status = 'CANCELLED', updated_at = now()
-              WHERE id IN (SELECT payment_link_id FROM s) AND status = 'ACTIVE'"
-        }
-    };
-    let row = sqlx::query_as::<_, (Uuid, Uuid, Uuid, Option<String>, Option<String>)>(&format!(
-        "WITH s AS (
-            UPDATE payment_sessions
-               SET status = 'PAID', updated_at = now()
-             WHERE {column} = $1 AND status IN ('CREATED','ACTIVE')
-         RETURNING id, merchant_id, wallet_account_id, reference_type, reference_id,
-                   qr_code_id, payment_link_id
-         ), retired AS ({sibling})
-         SELECT id, merchant_id, wallet_account_id, reference_type, reference_id FROM s",
-    ))
-    .bind(ref_id)
-    .fetch_optional(&state.pool)
-    .await;
-
-    let Ok(Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id))) = row
+    let Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id)) =
+        mark_paid(state, kind, ref_id).await
     else {
         return; // not found, already terminal, or a transient error — no-op
     };
@@ -419,6 +382,94 @@ pub async fn settle_for_interface(
             "reference_type": reference_type,
             "reference_id": reference_id,
             "refund_source": refund_source,
+        }),
+    )
+    .await;
+}
+
+/// The session a paid interface belongs to, moved CREATED|ACTIVE → PAID in one
+/// statement that also retires its other interface. Returns the session only to
+/// the call that performed the transition, so whatever follows (the record, the
+/// event) happens once however many callers race.
+type PaidSession = (Uuid, Uuid, Uuid, Option<String>, Option<String>);
+
+async fn mark_paid(state: &AppState, kind: &str, ref_id: Uuid) -> Option<PaidSession> {
+    let column = match kind {
+        "link" => "payment_link_id",
+        "qr" => "qr_code_id",
+        _ => return None,
+    };
+    // Atomic transition: only CREATED/ACTIVE flips to PAID; RETURNING tells us
+    // whether THIS call performed it (so the event fires exactly once).
+    //
+    // A session is paid once, through whichever interface paid it; the OTHER
+    // interface stops being payable in the same statement — the dynamic QR
+    // expires when the link paid, the link is cancelled when the QR paid. It
+    // used to stay ACTIVE for its whole 89-day life beside a PAID session, so the
+    // session could have been paid a second time the day a QR payment route
+    // exists (the interface that paid is never touched here).
+    let sibling = match kind {
+        "link" => {
+            "UPDATE qr_codes SET status = 'EXPIRED'
+              WHERE id IN (SELECT qr_code_id FROM s) AND status = 'ACTIVE'"
+        }
+        _ => {
+            "UPDATE payment_links SET status = 'CANCELLED', updated_at = now()
+              WHERE id IN (SELECT payment_link_id FROM s) AND status = 'ACTIVE'"
+        }
+    };
+    sqlx::query_as::<_, PaidSession>(&format!(
+        "WITH s AS (
+            UPDATE payment_sessions
+               SET status = 'PAID', updated_at = now()
+             WHERE {column} = $1 AND status IN ('CREATED','ACTIVE')
+         RETURNING id, merchant_id, wallet_account_id, reference_type, reference_id,
+                   qr_code_id, payment_link_id
+         ), retired AS ({sibling})
+         SELECT id, merchant_id, wallet_account_id, reference_type, reference_id FROM s",
+    ))
+    .bind(ref_id)
+    .fetch_optional(&state.pool)
+    .await
+    .ok()
+    .flatten()
+}
+
+/// Settle the Payment Session whose link was paid on the hosted acquiring rail
+/// (pay.banzami.com: the provider callback, or the Sandbox's simulated one).
+///
+/// That rail credited the session's account and marked the link USED, and never
+/// told the session: 52 sessions on the Sandbox stayed ACTIVE after their link
+/// was paid — each with a dynamic QR still payable for 89 days, and no
+/// `payment_session.paid` for the integrator that created it. Same transition as
+/// the wallet rail; the event names the acquiring payment instead of a transfer.
+/// No wallet payment is recorded — nothing was paid from a wallet — and the event
+/// says so rather than naming a refund source this rail does not produce.
+pub async fn settle_for_acquired_link(
+    state: &AppState,
+    link_id: Uuid,
+    acquiring_payment_id: Uuid,
+    amount_minor: i64,
+) {
+    let Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id)) =
+        mark_paid(state, "link", link_id).await
+    else {
+        return;
+    };
+    let _ = super::webhooks::emit(
+        &state.pool,
+        merchant_id,
+        "payment_session.paid",
+        &format!("payment_session.paid:{session_id}"),
+        serde_json::json!({
+            "payment_session_id": session_id,
+            "acquiring_payment_id": acquiring_payment_id,
+            "amount_minor": amount_minor,
+            "interface": "PAYMENT_LINK",
+            "destination_account_ref": wallet_account_id,
+            "reference_type": reference_type,
+            "reference_id": reference_id,
+            "refund_source": serde_json::Value::Null,
         }),
     )
     .await;

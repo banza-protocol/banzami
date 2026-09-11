@@ -2878,3 +2878,27 @@ retire, merchant/consumer suspend), dry-run by default, BEFORE/AFTER counts prin
 `tests/ops/retire-synthetic-residue.test.mjs` runs the shapes against real and harness
 names; re-adding the Console domain, dropping the DOA exclusion or adding a row write
 each fail it.
+
+## RA-098 — a session paid on the hosted checkout stayed open, with a payable QR
+
+- **Found:** 2026-09-11 (closure phase, while checking what blocks closing synthetic accounts)
+- **Status:** FIXED (code + migration 0128)
+
+The hosted acquiring rail (pay.banzami.com: the provider callback, and the Sandbox's
+simulated confirmation) credited the session's account and marked its link USED, and
+never told the session. Only the wallet rail (public-api link pay) called the session
+settlement. 52 sessions on the Sandbox — the newest paid that morning — were ACTIVE
+beside a USED link, each with a dynamic QR payable for 89 days, and the integrator
+that created them never received `payment_session.paid`. It also blocked closing
+their accounts: an open session is one of the things a close refuses.
+
+Core's acquiring settlement now pays the session itself, after the credit commits and
+again on a replayed confirmation (a crash between the two is healed by the provider's
+retry): PAID, the QR retired, `payment_session.paid` naming the acquiring payment. No
+wallet payment is recorded and `refund_source` is null — nothing was paid from a
+wallet, and this rail has no typed refund source (open finding, not addressed here).
+Migration 0128 repairs the sessions paid before; no event is sent for them. Counter
+`SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID`. Tests
+`a_session_paid_on_the_acquiring_rail_is_paid` and
+`a_retried_confirmation_pays_a_session_the_first_one_missed` — removing either call
+fails its test; `tests/ops/migration-0128-sessions-paid-on-hosted-rail.test.mjs`.
