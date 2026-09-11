@@ -171,6 +171,11 @@ Every commit of this programme is on `origin/main` and deployed through
 for the exact runtime parity (image tag = commit) and CI state at the time of
 reporting.
 
+Second pass (2026-09-12): the candidate is `6967a619`. HEAD = `origin/main` =
+every service image tag = the build the runtime reports at `/readyz`. Migrations
+0134…0138 were applied through the executor before the code that needs them, and
+the drift check reads 135 applied / 135 files, pending 0, checksum drift 0.
+
 ## 7. Defect ledger (this programme)
 
 | ID | Sev | Domain | Finding | Status |
