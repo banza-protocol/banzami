@@ -194,9 +194,13 @@ pub async fn authorize(
     .bind(merchant_id.as_uuid())
     .fetch_one(&state.pool)
     .await
-    .unwrap_or((0, 0));
+    // A failed read is not "no activity": it used to become (0, 0), so a
+    // statement timeout turned a velocity or daily-limit decline into an allow
+    // (A2-16). No signal, no authorization.
+    .map_err(|e| ApiError::internal(format!("risk signals unavailable: {e}")))?;
 
-    // Account signal: age of the merchant account in days.
+    // Account signal: age of the merchant account in days. A merchant with no
+    // row is new (0 days), never the most trusted age; a failed read refuses.
     let account_age_days: i64 = sqlx::query_scalar(
         "SELECT GREATEST(0, EXTRACT(DAY FROM (now() - created_at)))::BIGINT
          FROM merchants WHERE id = $1",
@@ -204,9 +208,8 @@ pub async fn authorize(
     .bind(merchant_id.as_uuid())
     .fetch_optional(&state.pool)
     .await
-    .ok()
-    .flatten()
-    .unwrap_or(365);
+    .map_err(|e| ApiError::internal(format!("risk signals unavailable: {e}")))?
+    .unwrap_or(0);
 
     let assessment = state
         .risk

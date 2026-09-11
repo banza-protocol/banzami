@@ -3550,3 +3550,16 @@ guard now counts SUPER_ADMINs who have set a password (one part-way through enro
 factor still counts: they can finish it themselves). Test
 `TestLastSuperAdmin_AnUnusedInviteDoesNotCount` (the previous count lets the demotion
 through); the concurrency test's operators now have passwords.
+
+## RA-136 — a failed risk read authorized the transaction
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-16)
+- **Status:** FIXED (core)
+
+Before authorizing, core reads the merchant's velocity (authorizations in the last
+hour, amount today) and account age. A failed read became `(0, 0)` and `365` days —
+no activity, an old and trusted account — so a statement timeout turned a velocity or
+daily-limit decline into an allow (admin-api calls this authorize route). A failed
+read now refuses the authorization (500), and a merchant with no record is new (0
+days), not the most trusted age. The same pattern in `qr.rs` sits in the unmounted QR
+pay route (A4-13). Core suite 193/193.
