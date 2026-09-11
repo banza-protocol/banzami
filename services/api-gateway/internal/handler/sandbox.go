@@ -250,7 +250,7 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 
 	// Credit the wallet's available ledger account directly (ledger-backed,
 	// persisted, immediately reflected in balance queries).
-	balance, err := h.walletSvc.SandboxFund(r.Context(), wallet.ID, body.AmountMinor, body.Currency)
+	balance, err := h.walletSvc.SandboxFund(r.Context(), wallet.ID, body.AmountMinor, body.Currency, r.Header.Get("Idempotency-Key"))
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return

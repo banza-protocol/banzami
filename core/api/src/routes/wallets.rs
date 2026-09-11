@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use super::credit_idempotency;
 use serde::{Deserialize, Serialize};
 
 use banzami_types::{Currency, LedgerEntryId, LedgerPostingId, MerchantId, WalletId};
@@ -115,6 +116,9 @@ pub async fn balance(
 pub struct SandboxCreditBody {
     pub amount_minor: i64,
     pub currency: Option<String>,
+    /// One credit per key (see credit_idempotency). Optional for fixtures.
+    #[serde(default)]
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -168,6 +172,20 @@ pub async fn sandbox_credit(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("wallet not found or not active"))?;
 
+    let key = credit_idempotency::ledger_key("sandbox-credit", &wallet_id.to_string(), body.idempotency_key.as_deref())?;
+    if body.idempotency_key.is_some() {
+        if let Some(prev) = credit_idempotency::posted(&state.pool, &key).await? {
+            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency_code)?;
+            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            return Ok(Json(SandboxCreditResponse {
+                wallet_id: wallet_id.to_string(),
+                currency: currency_code.to_owned(),
+                amount_minor: body.amount_minor,
+                new_balance,
+            }));
+        }
+    }
+
     let posting_id = LedgerPostingId::new();
     let now = chrono::Utc::now();
 
@@ -191,21 +209,35 @@ pub async fn sandbox_credit(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    sqlx::query(
+    match sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",
     )
     .bind(posting_id.as_uuid())
     .bind("[SANDBOX] Merchant wallet top-up — DR transit / CR merchant available")
-    .bind(format!(
-        "sandbox-credit-{}-{}",
-        wallet_id,
-        uuid::Uuid::new_v4()
-    ))
+    .bind(&key)
     .bind(now)
     .execute(&mut *tx)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    {
+        Ok(_) => {}
+        // A concurrent request with the same key posted first.
+        Err(e) if credit_idempotency::is_duplicate_key(&e) => {
+            drop(tx);
+            let prev = credit_idempotency::posted(&state.pool, &key)
+                .await?
+                .ok_or_else(|| ApiError::internal("duplicate credit key without its posting"))?;
+            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency_code)?;
+            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            return Ok(Json(SandboxCreditResponse {
+                wallet_id: wallet_id.to_string(),
+                currency: currency_code.to_owned(),
+                amount_minor: body.amount_minor,
+                new_balance,
+            }));
+        }
+        Err(e) => return Err(ApiError::internal(e.to_string())),
+    }
 
     // DEBIT: transit account (ASSET — the float pays out)
     sqlx::query(
@@ -282,6 +314,9 @@ pub struct AdminCreditBody {
     pub amount_minor: i64,
     pub currency: Option<String>,
     pub reason: String,
+    /// One credit per key (see credit_idempotency). admin-api always sends one.
+    #[serde(default)]
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -333,6 +368,20 @@ pub async fn admin_credit(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("wallet not found or not active"))?;
 
+    let key = credit_idempotency::ledger_key("admin-credit", &wallet_id.to_string(), body.idempotency_key.as_deref())?;
+    if body.idempotency_key.is_some() {
+        if let Some(prev) = credit_idempotency::posted(&state.pool, &key).await? {
+            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency_code)?;
+            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            return Ok(Json(AdminCreditResponse {
+                wallet_id: wallet_id.to_string(),
+                currency: currency_code.to_owned(),
+                amount_minor: body.amount_minor,
+                new_balance,
+            }));
+        }
+    }
+
     let posting_id = LedgerPostingId::new();
     let now = chrono::Utc::now();
     let description = format!("[ADMIN] Manual wallet credit — {}", body.reason.trim());
@@ -355,21 +404,35 @@ pub async fn admin_credit(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    sqlx::query(
+    match sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",
     )
     .bind(posting_id.as_uuid())
     .bind(&description)
-    .bind(format!(
-        "admin-credit-{}-{}",
-        wallet_id,
-        uuid::Uuid::new_v4()
-    ))
+    .bind(&key)
     .bind(now)
     .execute(&mut *tx)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    {
+        Ok(_) => {}
+        // A concurrent request with the same key posted first.
+        Err(e) if credit_idempotency::is_duplicate_key(&e) => {
+            drop(tx);
+            let prev = credit_idempotency::posted(&state.pool, &key)
+                .await?
+                .ok_or_else(|| ApiError::internal("duplicate credit key without its posting"))?;
+            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency_code)?;
+            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            return Ok(Json(AdminCreditResponse {
+                wallet_id: wallet_id.to_string(),
+                currency: currency_code.to_owned(),
+                amount_minor: body.amount_minor,
+                new_balance,
+            }));
+        }
+        Err(e) => return Err(ApiError::internal(e.to_string())),
+    }
 
     sqlx::query(
         "INSERT INTO ledger_entries

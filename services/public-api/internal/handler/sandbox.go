@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/banzami/banzami/services/common/env"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
@@ -100,9 +101,19 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 		body.Currency = "AOA"
 	}
 
-	newBalance, err := h.core.SandboxCreditConsumer(r.Context(), consumer.ID, body.AmountMinor, body.Currency)
+	// The client's Idempotency-Key makes a retried top-up the same top-up.
+	newBalance, err := h.core.SandboxCreditConsumer(r.Context(), consumer.ID, body.AmountMinor, body.Currency, r.Header.Get("Idempotency-Key"))
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		if strings.Contains(err.Error(), "core-api error 409") {
+			apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED",
+				"this Idempotency-Key was already used for a different top-up")
+			return
+		}
+		if strings.Contains(err.Error(), "core-api error 400") {
+			apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "the top-up request was refused")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "the sandbox top-up could not be applied")
 		return
 	}
 

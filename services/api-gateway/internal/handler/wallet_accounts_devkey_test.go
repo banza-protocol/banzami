@@ -211,7 +211,7 @@ func (f *ownedWallets) Balance(_ context.Context, id string) (*service.WalletBal
 func (f *ownedWallets) GetForMerchant(context.Context, string, string) (*service.WalletRecord, error) {
 	return nil, nil
 }
-func (f *ownedWallets) SandboxFund(context.Context, string, int64, string) (*service.WalletBalance, error) {
+func (f *ownedWallets) SandboxFund(context.Context, string, int64, string, string) (*service.WalletBalance, error) {
 	return nil, nil
 }
 func (f *ownedWallets) Analytics(context.Context, string, string, string) (json.RawMessage, error) {

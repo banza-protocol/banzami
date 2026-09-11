@@ -16,6 +16,7 @@ mod compliance_tests;
 pub mod consumer_deposits;
 pub mod consumer_pay_links;
 pub mod consumer_wallets;
+pub mod credit_idempotency;
 pub mod consumers;
 pub mod disputes;
 pub mod finance_catalogs;

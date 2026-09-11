@@ -102,9 +102,25 @@ func (h *WalletHandler) AdminCredit(w http.ResponseWriter, r *http.Request) {
 	if currency == "" {
 		currency = "AOA"
 	}
+	// One credit per click. Without a key a double submit, a retry after a
+	// timeout or a replayed request each created the money again.
+	idemKey := r.Header.Get("Idempotency-Key")
+	if idemKey == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": map[string]any{"code": "IDEMPOTENCY_KEY_REQUIRED", "message": "an Idempotency-Key header is required for a wallet credit"},
+		})
+		return
+	}
 
-	result, err := h.core.AdminCreditWallet(r.Context(), walletID, body.AmountMinor, currency, body.Reason)
+	result, err := h.core.AdminCreditWallet(r.Context(), walletID, body.AmountMinor, currency, body.Reason, idemKey)
 	if err != nil {
+		var ce *service.CoreError
+		if errors.As(err, &ce) && ce.Status == http.StatusConflict {
+			writeJSON(w, http.StatusConflict, map[string]any{
+				"error": map[string]any{"code": ce.Code, "message": ce.Message},
+			})
+			return
+		}
 		if errors.Is(err, service.ErrNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]any{
 				"error": map[string]any{"code": "NOT_FOUND", "message": "wallet not found"},

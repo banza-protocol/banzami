@@ -56,7 +56,7 @@ type WalletService interface {
 	GetForMerchant(ctx context.Context, merchantID, currency string) (*WalletRecord, error)
 	// SandboxFund credits a sandbox wallet's available balance directly via the
 	// ledger engine. Only callable in SANDBOX environments — enforced by callers.
-	SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency string) (*WalletBalance, error)
+	SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency, idempotencyKey string) (*WalletBalance, error)
 	// Analytics returns merchant payment-volume analytics (raw JSON passthrough
 	// from the core), aggregated from the ledger. from/to are optional RFC3339.
 	Analytics(ctx context.Context, walletID, from, to string) (json.RawMessage, error)

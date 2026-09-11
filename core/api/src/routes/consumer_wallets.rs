@@ -3,6 +3,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use super::credit_idempotency;
 use serde::{Deserialize, Serialize};
 
 use banzami_consumer_wallets::{
@@ -37,6 +38,9 @@ pub struct TestCreditBody {
     pub consumer_id: String,
     pub amount_minor: i64,
     pub currency: Option<String>,
+    /// One credit per key (see credit_idempotency). Optional for fixtures.
+    #[serde(default)]
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -313,6 +317,22 @@ pub async fn test_credit(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("no active wallet for consumer in that currency"))?;
 
+    // Idempotency first: a replay succeeds even when the pilot cap is now full.
+    let idempotency_key =
+        credit_idempotency::ledger_key("admin-test-credit", &consumer_id.to_string(), body.idempotency_key.as_deref())?;
+    if body.idempotency_key.is_some() {
+        if let Some(prev) = credit_idempotency::posted(&state.pool, &idempotency_key).await? {
+            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency.code())?;
+            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            return Ok(Json(TestCreditResponse {
+                consumer_id: body.consumer_id.clone(),
+                currency: currency_code.to_owned(),
+                amount_minor: body.amount_minor,
+                new_balance,
+            }));
+        }
+    }
+
     // V1.0 pilot-limit overlay (internal Sandbox / Phase 0; disabled by default,
     // never on live/production): enforce the consumer balance cap and the aggregate
     // funds-in-circulation cap BEFORE this synthetic credit posts. A rejection
@@ -337,7 +357,6 @@ pub async fn test_credit(
     //   DR transit account    (ASSET  — funds leave system transit float)
     //   CR consumer available (LIABILITY — we owe the consumer these funds)
     let amount = Money::new(body.amount_minor, currency);
-    let idempotency_key = format!("admin-test-credit-{}-{}", consumer_id, uuid::Uuid::new_v4());
     let posting_id = LedgerPostingId::new();
     let now = chrono::Utc::now();
 
@@ -347,7 +366,7 @@ pub async fn test_credit(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    sqlx::query(
+    match sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",
     )
@@ -357,7 +376,25 @@ pub async fn test_credit(
     .bind(now)
     .execute(&mut *tx)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    {
+        Ok(_) => {}
+        // A concurrent request with the same key posted first.
+        Err(e) if credit_idempotency::is_duplicate_key(&e) => {
+            drop(tx);
+            let prev = credit_idempotency::posted(&state.pool, &idempotency_key)
+                .await?
+                .ok_or_else(|| ApiError::internal("duplicate credit key without its posting"))?;
+            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency.code())?;
+            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            return Ok(Json(TestCreditResponse {
+                consumer_id: body.consumer_id.clone(),
+                currency: currency_code.to_owned(),
+                amount_minor: body.amount_minor,
+                new_balance,
+            }));
+        }
+        Err(e) => return Err(ApiError::internal(e.to_string())),
+    }
 
     // DEBIT: transit account (ASSET account loses funds — funds flow out to consumer)
     sqlx::query(

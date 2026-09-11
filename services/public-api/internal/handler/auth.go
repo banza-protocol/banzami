@@ -90,7 +90,9 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		// fails once the Phase-0 pilot funds-in-circulation cap is reached (core
 		// answers 422) and registration must still succeed, but the operator has
 		// to be able to see it.
-		if _, err := h.core.SandboxCreditConsumer(r.Context(), consumer.ID, 1_000_000, "AOA"); err != nil {
+		// One grant per consumer, ever: a retried registration must not fund
+		// the same account twice.
+		if _, err := h.core.SandboxCreditConsumer(r.Context(), consumer.ID, 1_000_000, "AOA", "registration-grant"); err != nil {
 			slog.Warn("sandbox registration grant did not apply — consumer starts at zero",
 				"consumer_id", consumer.ID, "error", err)
 		}

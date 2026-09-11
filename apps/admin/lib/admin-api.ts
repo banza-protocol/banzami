@@ -830,10 +830,13 @@ export class AdminApi {
   getWallet(merchantId: string, currency = 'AOA'): Promise<Wallet> {
     return this.req(`/admin/v1/wallets?merchant_id=${encodeURIComponent(merchantId)}&currency=${encodeURIComponent(currency)}`);
   }
-  adminCreditWallet(walletId: string, amountMinor: number, reason: string, currency = 'AOA'): Promise<AdminCreditResult> {
+  // One credit per key: create the key once per form submission and reuse it
+  // on a retry — admin-api refuses a credit without one.
+  adminCreditWallet(walletId: string, amountMinor: number, reason: string, idempotencyKey: string, currency = 'AOA'): Promise<AdminCreditResult> {
     return this.req(`/admin/v1/wallets/${walletId}/credit`, {
-      method: 'POST',
-      body:   JSON.stringify({ amount_minor: amountMinor, currency, reason }),
+      method:  'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body:    JSON.stringify({ amount_minor: amountMinor, currency, reason }),
     });
   }
 

@@ -30,7 +30,7 @@ func (f *fakeWallets) Balance(ctx context.Context, id string) (*service.WalletBa
 func (f *fakeWallets) GetForMerchant(ctx context.Context, m, c string) (*service.WalletRecord, error) {
 	return nil, nil
 }
-func (f *fakeWallets) SandboxFund(ctx context.Context, id string, a int64, c string) (*service.WalletBalance, error) {
+func (f *fakeWallets) SandboxFund(ctx context.Context, id string, a int64, c, _ string) (*service.WalletBalance, error) {
 	return nil, nil
 }
 func (f *fakeWallets) Analytics(ctx context.Context, id, from, to string) (json.RawMessage, error) {

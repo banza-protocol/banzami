@@ -130,13 +130,13 @@ type PaymentLink struct {
 	WalletID        string     `json:"wallet_id"`
 	WalletAccountID string     `json:"wallet_account_id"`
 	AmountMinor     *int64     `json:"amount_minor"`
-	Currency    string     `json:"currency"`
-	Description *string    `json:"description"`
-	Status      string     `json:"status"`
-	ExpiresAt   *time.Time `json:"expires_at"`
-	PaidAt      *time.Time `json:"paid_at"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	Currency        string     `json:"currency"`
+	Description     *string    `json:"description"`
+	Status          string     `json:"status"`
+	ExpiresAt       *time.Time `json:"expires_at"`
+	PaidAt          *time.Time `json:"paid_at"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 // ---------------------------------------------------------------------------
@@ -444,11 +444,17 @@ func mapP2pTransferError(err error) error {
 
 // SandboxCreditConsumer injects virtual funds into a consumer's available ledger account.
 // Only callable when the service is deployed in SANDBOX environment.
-func (c *CorePublicClient) SandboxCreditConsumer(ctx context.Context, consumerID string, amountMinor int64, currency string) (int64, error) {
+//
+// idempotencyKey (optional) makes it one credit per key: core answers a replay
+// with the original result and refuses the key for a different amount (409).
+func (c *CorePublicClient) SandboxCreditConsumer(ctx context.Context, consumerID string, amountMinor int64, currency, idempotencyKey string) (int64, error) {
 	body := map[string]any{
 		"consumer_id":  consumerID,
 		"amount_minor": amountMinor,
 		"currency":     currency,
+	}
+	if idempotencyKey != "" {
+		body["idempotency_key"] = idempotencyKey
 	}
 	var resp struct {
 		NewBalance int64 `json:"new_balance"`

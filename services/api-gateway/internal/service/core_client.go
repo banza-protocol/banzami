@@ -333,10 +333,13 @@ func (s *CoreApiWalletService) GetForMerchant(ctx context.Context, merchantID, c
 	return resp.toWalletRecord(), nil
 }
 
-func (s *CoreApiWalletService) SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency string) (*WalletBalance, error) {
+func (s *CoreApiWalletService) SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency, idempotencyKey string) (*WalletBalance, error) {
 	body := map[string]any{
 		"amount_minor": amountMinor,
 		"currency":     currency,
+	}
+	if idempotencyKey != "" {
+		body["idempotency_key"] = idempotencyKey // one credit per key (core credit_idempotency)
 	}
 	var resp struct {
 		WalletID    string `json:"wallet_id"`

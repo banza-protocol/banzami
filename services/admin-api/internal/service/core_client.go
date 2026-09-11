@@ -339,10 +339,13 @@ func (c *CoreAdminClient) ListWalletAccounts(ctx context.Context, walletID strin
 	return out, c.get(ctx, "/internal/v1/wallets/"+walletID+"/accounts", &out)
 }
 
-func (c *CoreAdminClient) AdminCreditWallet(ctx context.Context, walletID string, amountMinor int64, currency, reason string) (map[string]any, error) {
+// AdminCreditWallet posts one operator credit per idempotencyKey: core turns
+// the key into the posting's unique ledger key, answers a replay with the
+// original result, and refuses the same key for different economics (409).
+func (c *CoreAdminClient) AdminCreditWallet(ctx context.Context, walletID string, amountMinor int64, currency, reason, idempotencyKey string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/wallets/"+walletID+"/admin-credit",
-		map[string]any{"amount_minor": amountMinor, "currency": currency, "reason": reason}, &out)
+		map[string]any{"amount_minor": amountMinor, "currency": currency, "reason": reason, "idempotency_key": idempotencyKey}, &out)
 }
 
 func (c *CoreAdminClient) CreateTransaction(ctx context.Context, body map[string]any) (map[string]any, error) {
