@@ -118,8 +118,8 @@ function PaidUI({ environment }: { environment: 'SANDBOX' | 'LIVE' }) {
         </h1>
         <p className="mt-2 text-sm text-gray-400">
           {isSandbox
-            ? 'Este pedido foi liquidado em ambiente sandbox.'
-            : 'Este pedido de pagamento foi liquidado.'}
+            ? 'Este pedido já foi pago, em ambiente sandbox.'
+            : 'Este pedido já foi pago.'}
         </p>
         <div className="mt-4 flex justify-center">
           {isSandbox
