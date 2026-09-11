@@ -46,7 +46,8 @@ func (f *fakeMFA) BeginEnrolment(_ context.Context, _, email string) (string, st
 }
 func (f *fakeMFA) BeginReplacement(ctx context.Context, id, email string) (string, string, error) {
 	f.replacements++
-	f.enrolled = false // the old factor is gone until the new one proves a code
+	// The confirmed factor keeps guarding until the new one proves a code
+	// (the real service keeps it; see TestMFAReplacement_* in the service).
 	return f.BeginEnrolment(ctx, id, email)
 }
 func (f *fakeMFA) VerifyForReauthentication(_ context.Context, _, code string) error {
@@ -487,12 +488,12 @@ func TestMFA_ReplacementNeverLeavesASuperAdminWithoutAFactor(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("replacement failed: %d", w.Code)
 	}
-	// The old factor is gone — and that is precisely why the account must not be
-	// loginable on a password alone now. Status() reports not-enrolled, so login
-	// issues an ENROLMENT token: still not a session.
+	// Mid-replacement the old factor still guards the account: a password alone
+	// is answered with a CHALLENGE for that factor — not an enrolment token,
+	// which is what used to lead, three calls later, to a session (A5-01).
 	st, _ := f.Status(context.Background(), u.ID)
-	if st.Enrolled {
-		t.Fatal("the old factor survived the replacement")
+	if !st.Enrolled {
+		t.Fatal("starting a replacement dropped the confirmed factor")
 	}
 	login := NewAuthHandler(&fakeLogins{user: u}, testSecret, time.Hour).WithMFA(f)
 	lw := post(login.Login, "", `{"email":"fidel.monteiro@banzami.com","password":"the real password"}`)
@@ -505,9 +506,58 @@ func TestMFA_ReplacementNeverLeavesASuperAdminWithoutAFactor(t *testing.T) {
 		t.Fatal("mid-replacement, a password alone produced a session")
 	}
 	p, _ := auth.Parse(testSecret, out.ChallengeToken)
-	if p.Purpose != auth.PurposeMFAEnroll {
-		t.Fatalf("mid-replacement login issued a %q token", p.Purpose)
+	if p.Purpose != auth.PurposeMFAChallenge {
+		t.Fatalf("mid-replacement login issued a %q token, want a challenge", p.Purpose)
 	}
+}
+
+// Five wrong answers — password or code — lock the account, and the lock
+// covers the second step. When it engages, every token the account holds dies.
+func TestMFA_WrongCodesLockTheAccountAndEndItsTokens(t *testing.T) {
+	u := service.AdminUser{ID: "op-1", Email: "op@banzami.com", Role: "SUPER_ADMIN", Status: "ACTIVE", TokenVersion: 3}
+	logins := &lockingLogins{fakeLogins: fakeLogins{user: u}}
+	f := &fakeMFA{enrolled: true, acceptCode: "123456"}
+	h := NewMFAHandler(f, logins, testSecret, time.Hour)
+	chal := tokenFor(t, u, auth.PurposeMFAChallenge)
+
+	for i := 1; i <= 4; i++ {
+		if w := post(h.Verify, chal, `{"code":"000000"}`); w.Code != http.StatusUnauthorized {
+			t.Fatalf("wrong code %d: %d", i, w.Code)
+		}
+	}
+	if w := post(h.Verify, chal, `{"code":"000000"}`); w.Code != http.StatusTooManyRequests {
+		t.Fatalf("the fifth wrong code did not lock the account: %d", w.Code)
+	}
+	if logins.bumps != 1 {
+		t.Fatalf("the lock did not end the account's tokens (bumps=%d)", logins.bumps)
+	}
+	// Locked: even the right code is not checked.
+	verifies := f.verifies
+	if w := post(h.Verify, chal, `{"code":"123456"}`); w.Code != http.StatusTooManyRequests || f.verifies != verifies {
+		t.Fatalf("a locked account's code was checked (%d)", w.Code)
+	}
+}
+
+type lockingLogins struct {
+	fakeLogins
+	bumps int
+}
+
+func (l *lockingLogins) RecordFailedLogin(context.Context, string) (*time.Time, error) {
+	l.user.FailedLoginAttempts++
+	if l.user.FailedLoginAttempts >= service.MaxFailedLogins {
+		until := time.Now().Add(service.LockoutWindow)
+		l.user.LockedUntil = &until
+	}
+	return l.user.LockedUntil, nil
+}
+func (l *lockingLogins) BumpTokenVersion(context.Context, string) error {
+	l.bumps++
+	l.user.TokenVersion++
+	return nil
+}
+func (l *lockingLogins) GetByID(context.Context, string) (service.AdminUser, error) {
+	return l.user, nil
 }
 
 func TestMFA_EveryEnrolmentMintsADifferentSeed(t *testing.T) {

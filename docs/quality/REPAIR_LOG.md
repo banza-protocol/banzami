@@ -3035,3 +3035,40 @@ pending, unexpired invite, and a lost race answers "invite no longer valid". Tes
 `TestRevokeInvite_AnotherWorkspacesInviteIsNotFound` and the real-database
 `TestPgInvite_ScopedRevokeAndPendingOnlyAccept` (dropping the workspace scope or the
 accept's state check each fails it).
+
+## RA-107 — an abandoned factor replacement left BANZADMIN one password from a session
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-01/A5-02)
+- **Status:** FIXED (admin-api + migration 0130)
+
+Starting a factor replacement overwrote the confirmed TOTP secret and set
+`confirmed_at` back to NULL. Until the operator confirmed the new app, the account
+behaved as never-enrolled: login with the password alone returned an enrolment token,
+enrolment was allowed (nothing was confirmed), and confirm + acknowledge ended in a
+session — for a SUPER_ADMIN too. The handler test that covered it stopped at "an
+enrolment token, not a session", and its fake copied the defect. The new seed now waits
+in `pending_secret_encrypted` (migration 0130, additive); the confirmed factor keeps
+guarding every login and is swapped only when a code from the new authenticator
+verifies, in a statement conditioned on that same pending seed. Confirming a new factor
+ends every other session (token version). Separately, a wrong second-factor code never
+fed the account's failure counter, so guessing a six-digit code was limited only per
+IP; wrong codes now count with wrong passwords (five lock the account for 15 minutes,
+ending all its tokens), a locked account's code is not checked, and only something
+shaped like a recovery code reaches bcrypt. Tests
+`TestMFAReplacement_TheOldFactorGuardsUntilTheNewOneIsProven` (real DB; restoring the
+old reset fails it), `TestMFA_WrongCodesLockTheAccountAndEndItsTokens`,
+`TestMFARecoveryCode_OnlyItsShapeReachesBcrypt`, and the corrected
+`TestMFA_ReplacementNeverLeavesASuperAdminWithoutAFactor`.
+
+## RA-108 — an operator could suppress their own audit row by disconnecting
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-03)
+- **Status:** FIXED (admin-api)
+
+`admin_audit_log` is written after the action commits, with the request's context. A
+client that disconnects cancels that context; the insert failed and only a log line
+remained — while approve, reject and reissue send email synchronously first, giving the
+operator hundreds of milliseconds to abort. Core records these actions as "ADMIN", so
+the audit row is the only record of who acted. The write is now detached from the
+request (bounded at five seconds). Test `TestAuditWrite_SurvivesTheClientGoingAway`
+(real DB; with the request's context it records nothing).

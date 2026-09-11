@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,6 +44,14 @@ func (s *AuditService) Write(ctx context.Context, e AuditEntry) {
 	if s == nil || s.pool == nil {
 		return
 	}
+	// Detached from the request. The row is written after the action has
+	// already committed, and a request's context is cancelled the moment its
+	// client goes away — so an operator who closed the connection mid-response
+	// (an email send gives them hundreds of milliseconds) left an action with no
+	// record of who took it (A5-03). The action happened; its audit row is not
+	// the client's to cancel. Bounded, so a stalled database cannot hold it open.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
 	_, err := s.pool.Exec(ctx,
 		`INSERT INTO admin_audit_log
 		   (id, admin_user_id, admin_email, full_name, role, action, entity_type, entity_id,

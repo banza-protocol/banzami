@@ -131,8 +131,24 @@ func (h *MFAHandler) ConfirmEnrol(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusUnauthorized, "MFA_CODE_REJECTED", "that code did not verify")
 			return
 		}
+		if errors.Is(err, service.ErrMFANothingToConfirm) {
+			writeError(w, http.StatusConflict, "NOTHING_TO_CONFIRM", "no enrolment or replacement is pending")
+			return
+		}
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not confirm the second factor")
 		return
+	}
+	// A new factor ends every session the old one opened. For a first enrolment
+	// there are none; after a replacement, a session on a stolen laptop or a lost
+	// phone must not outlive the authenticator it was opened with. The
+	// acknowledgement step below carries the new version, so this operator's
+	// own sign-in completes.
+	if err := h.users.BumpTokenVersion(r.Context(), p.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not end the old sessions")
+		return
+	}
+	if u, err := h.users.GetByID(r.Context(), p.ID); err == nil {
+		p.TokenVersion = u.TokenVersion
 	}
 	// The state moves with the fact. Confirming a factor does not make the
 	// account active — the codes are on screen and unacknowledged — so it lands
@@ -221,7 +237,30 @@ func (h *MFAHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body)
 
+	// The account's lock covers the second step too. A challenge token is good
+	// for minutes and fresh ones come from repeated logins, so without this the
+	// only brake on guessing a six-digit code was a per-IP limit (A5-02).
+	u, err := h.users.GetByID(r.Context(), p.ID)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
+		return
+	}
+	if u.IsLocked(time.Now()) {
+		h.writeAudit(r, p, "MFA_FAILED", map[string]string{"reason": "LOCKED"})
+		writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
+		return
+	}
 	if err := h.mfa.Verify(r.Context(), p.ID, body.Code); err != nil {
+		// Counted with the password failures: five wrong answers of either kind
+		// lock the account. When the lock engages, every token the account holds —
+		// this challenge, and any session — stops working.
+		lockedUntil, _ := h.users.RecordFailedLogin(r.Context(), p.ID)
+		if lockedUntil != nil && lockedUntil.After(time.Now()) {
+			_ = h.users.BumpTokenVersion(r.Context(), p.ID)
+			h.writeAudit(r, p, "MFA_FAILED", map[string]string{"reason": "CODE_REJECTED_ACCOUNT_LOCKED"})
+			writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
+			return
+		}
 		h.writeAudit(r, p, "MFA_FAILED", map[string]string{"reason": "CODE_REJECTED"})
 		writeError(w, http.StatusUnauthorized, "MFA_CODE_REJECTED", "that code did not verify")
 		return

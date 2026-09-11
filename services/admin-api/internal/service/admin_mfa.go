@@ -14,6 +14,7 @@ import (
 	"context"
 	"crypto/rand"
 	"errors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -29,6 +30,10 @@ var ErrMFANotEnrolled = errors.New("no confirmed second factor")
 
 // ErrMFACodeRejected: the code did not verify, or has already been used.
 var ErrMFACodeRejected = errors.New("code rejected")
+
+// ErrMFANothingToConfirm: the factor is already confirmed and no replacement is
+// pending, so there is no new authenticator for a code to prove.
+var ErrMFANothingToConfirm = errors.New("no enrolment or replacement is pending")
 
 // MFAService owns operator second factors.
 //
@@ -83,15 +88,17 @@ func (s *MFAService) BeginEnrolment(ctx context.Context, adminUserID, accountEma
 	return s.begin(ctx, adminUserID, accountEmail, false)
 }
 
-// BeginReplacement is BeginEnrolment for an operator whose authenticator is
-// gone, and it is deliberately a different entry point.
+// BeginReplacement starts enrolling a new authenticator for an operator whose
+// current one is going away, and it is deliberately a different entry point.
 //
-// The caller must have re-authenticated — password plus a valid unused recovery
-// code — because this discards a working factor. What it does NOT do is leave
-// the account without one: confirmed_at goes back to NULL, so until the new
-// authenticator proves a code the operator's login yields an enrolment token
-// and never a session. There is no state in which a SUPER_ADMIN has a password
-// and no second factor and a privileged session.
+// The caller must have re-authenticated — password plus a current second
+// factor. The confirmed factor is NOT touched: the new seed waits as pending,
+// and every login keeps being challenged by the old factor until a code from
+// the new authenticator confirms it (ConfirmEnrolment swaps them). It used to
+// discard the confirmed factor at this point, and an abandoned replacement left
+// an account whose password alone reached enrolment and then a full session
+// (A5-01). There is still no state in which an operator has a password, no
+// working second factor and a privileged session.
 func (s *MFAService) BeginReplacement(ctx context.Context, adminUserID, accountEmail string) (secret, uri string, err error) {
 	return s.begin(ctx, adminUserID, accountEmail, true)
 }
@@ -116,14 +123,35 @@ func (s *MFAService) begin(ctx context.Context, adminUserID, accountEmail string
 			return "", "", err
 		}
 	}
-	if _, err = s.pool.Exec(ctx,
+	if confirmed != nil {
+		// A replacement: the new seed is pending, the confirmed one still guards.
+		tag, err := s.pool.Exec(ctx,
+			`UPDATE admin_mfa
+			    SET pending_secret_encrypted = $2, pending_started_at = now(), updated_at = now()
+			  WHERE admin_user_id = $1 AND confirmed_at IS NOT NULL`,
+			adminUserID, stored)
+		if err != nil {
+			return "", "", err
+		}
+		if tag.RowsAffected() != 1 {
+			return "", "", errors.New("the confirmed factor changed while the replacement started")
+		}
+		return secret, auth.TOTPProvisioningURI(secret, accountEmail, "BANZADMIN"), nil
+	}
+	tag, err := s.pool.Exec(ctx,
 		`INSERT INTO admin_mfa (admin_user_id, secret_encrypted, confirmed_at, last_step)
 		 VALUES ($1, $2, NULL, NULL)
 		 ON CONFLICT (admin_user_id) DO UPDATE
 		    SET secret_encrypted = EXCLUDED.secret_encrypted,
-		        confirmed_at = NULL, last_step = NULL, updated_at = now()`,
-		adminUserID, stored); err != nil {
+		        confirmed_at = NULL, last_step = NULL,
+		        pending_secret_encrypted = NULL, pending_started_at = NULL, updated_at = now()
+		  WHERE admin_mfa.confirmed_at IS NULL`,
+		adminUserID, stored)
+	if err != nil {
 		return "", "", err
+	}
+	if tag.RowsAffected() != 1 {
+		return "", "", errors.New("a confirmed second factor already exists")
 	}
 	return secret, auth.TOTPProvisioningURI(secret, accountEmail, "BANZADMIN"), nil
 }
@@ -135,7 +163,49 @@ func (s *MFAService) begin(ctx context.Context, adminUserID, accountEmail string
 // themselves out of a console they are responsible for: an enrolment that was
 // never proven does not gate anything.
 func (s *MFAService) ConfirmEnrolment(ctx context.Context, adminUserID, code string) ([]string, error) {
-	secret, _, err := s.load(ctx, adminUserID)
+	var stored string
+	var pending *string
+	var confirmed *time.Time
+	err := s.pool.QueryRow(ctx,
+		`SELECT secret_encrypted, pending_secret_encrypted, confirmed_at FROM admin_mfa WHERE admin_user_id = $1`,
+		adminUserID).Scan(&stored, &pending, &confirmed)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrMFANotEnrolled
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	if confirmed == nil {
+		// First enrolment: the code proves the only seed there is.
+		secret, err := s.reveal(stored)
+		if err != nil {
+			return nil, err
+		}
+		step, ok := auth.VerifyTOTP(secret, code, time.Now())
+		if !ok {
+			return nil, ErrMFACodeRejected
+		}
+		tag, err := s.pool.Exec(ctx,
+			`UPDATE admin_mfa SET confirmed_at = now(), last_step = $2, updated_at = now()
+			  WHERE admin_user_id = $1 AND confirmed_at IS NULL AND secret_encrypted = $3`,
+			adminUserID, step, stored)
+		if err != nil {
+			return nil, err
+		}
+		if tag.RowsAffected() != 1 {
+			return nil, ErrMFACodeRejected
+		}
+		return s.regenerateRecoveryCodes(ctx, adminUserID)
+	}
+
+	// A replacement: the code must come from the NEW authenticator. Only then
+	// does the pending seed become the factor, in one statement that also checks
+	// nobody started a different replacement in between.
+	if pending == nil {
+		return nil, ErrMFANothingToConfirm
+	}
+	secret, err := s.reveal(*pending)
 	if err != nil {
 		return nil, err
 	}
@@ -143,12 +213,26 @@ func (s *MFAService) ConfirmEnrolment(ctx context.Context, adminUserID, code str
 	if !ok {
 		return nil, ErrMFACodeRejected
 	}
-	if _, err := s.pool.Exec(ctx,
-		`UPDATE admin_mfa SET confirmed_at = now(), last_step = $2, updated_at = now()
-		  WHERE admin_user_id = $1`, adminUserID, step); err != nil {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE admin_mfa
+		    SET secret_encrypted = pending_secret_encrypted, confirmed_at = now(), last_step = $2,
+		        pending_secret_encrypted = NULL, pending_started_at = NULL, updated_at = now()
+		  WHERE admin_user_id = $1 AND pending_secret_encrypted = $3`,
+		adminUserID, step, *pending)
+	if err != nil {
 		return nil, err
 	}
+	if tag.RowsAffected() != 1 {
+		return nil, ErrMFACodeRejected
+	}
 	return s.regenerateRecoveryCodes(ctx, adminUserID)
+}
+
+func (s *MFAService) reveal(stored string) (string, error) {
+	if s.cipher == nil {
+		return stored, nil
+	}
+	return s.cipher.Decrypt(stored)
 }
 
 // Verify checks a TOTP code, or a recovery code, and consumes what it used.
@@ -272,6 +356,12 @@ func (s *MFAService) regenerateRecoveryCodes(ctx context.Context, adminUserID st
 
 func (s *MFAService) consumeRecoveryCode(ctx context.Context, adminUserID, code string) error {
 	code = strings.ToLower(strings.TrimSpace(code))
+	// Only something shaped like a recovery code is compared. Every refused TOTP
+	// guess used to fall through to up to ten bcrypt comparisons — CPU an
+	// attacker spends nothing to make us burn (A5-02).
+	if !recoveryCodeShape.MatchString(code) {
+		return ErrMFACodeRejected
+	}
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, code_hash FROM admin_mfa_recovery_codes
 		  WHERE admin_user_id = $1 AND used_at IS NULL`, adminUserID)
@@ -311,6 +401,9 @@ func (s *MFAService) consumeRecoveryCode(ctx context.Context, adminUserID, code 
 	}
 	return ErrMFACodeRejected
 }
+
+// recoveryCodeShape is exactly what newRecoveryCode produces.
+var recoveryCodeShape = regexp.MustCompile(`^[abcdefghjkmnpqrstuvwxyz23456789]{5}-[abcdefghjkmnpqrstuvwxyz23456789]{5}$`)
 
 // newRecoveryCode returns a code in the shape people can read off paper:
 // lowercase, unambiguous alphabet, grouped.
