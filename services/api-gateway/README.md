@@ -72,7 +72,7 @@ internal/
 | DELETE | /v1/webhooks/endpoints/{id} | JWT | Deactivate endpoint |
 | GET | /v1/webhooks/events | JWT | List webhook events |
 | GET | /v1/webhooks/events/{id}/deliveries | JWT | List deliveries |
-| POST | /v1/merchants | JWT | Create merchant |
+| POST | /v1/merchants | JWT | Create merchant — **Sandbox fixture route only**; not mounted on LIVE (a Business is created through an approved application, ADR-058) |
 | GET | /v1/merchants/{id} | JWT | Get merchant |
 | POST | /v1/merchants/{id}/suspend | JWT | Suspend merchant |
 | POST | /v1/merchants/{id}/api-keys | JWT | Create API key |

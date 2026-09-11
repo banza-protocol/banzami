@@ -99,3 +99,21 @@ func TestMerchantSurface_ExpectedRoutesStillMounted(t *testing.T) {
 		}
 	}
 }
+
+// A Business is created only through an approved application (ADR-058). The
+// merchant-session create route survives only as the Sandbox fixture route.
+func TestMerchantSurface_CreateMerchantIsSandboxOnly(t *testing.T) {
+	for envName, want := range map[string]bool{"SANDBOX": true, "LIVE": false} {
+		r := newRouter(&config.Config{Port: 8080, Environment: envName, JWTSecret: "0123456789abcdef0123456789abcdef"}, Dependencies{})
+		mounted := false
+		_ = chi.Walk(r, func(method, route string, _ http.Handler, _ ...func(http.Handler) http.Handler) error {
+			if method == http.MethodPost && (route == "/v1/merchants/" || route == "/v1/merchants") {
+				mounted = true
+			}
+			return nil
+		})
+		if mounted != want {
+			t.Errorf("%s: POST /v1/merchants mounted=%v, want %v", envName, mounted, want)
+		}
+	}
+}

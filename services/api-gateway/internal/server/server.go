@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"net/http"
 	"time"
@@ -366,7 +367,15 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 
 			r.Route("/merchants", func(r chi.Router) {
 				r.Use(middleware.RequireMerchant) // SEC-004
-				r.Post("/", mchHandler.Create)
+				// Creating a Business from a merchant session is the pre-ADR-058
+				// path: no application, no handle, no review. The Business it
+				// makes is inert (no credential, no wallet) but real rows and an
+				// e-mail oracle; it survives only as the Sandbox fixture route
+				// the phase0 harnesses use. A LIVE stack does not mount it — a
+				// Business exists there only through an approved application.
+				if env.Parse(cfg.Environment).IsSandbox() {
+					r.Post("/", mchHandler.Create)
+				}
 				r.Get("/{id}", mchHandler.Get)
 				r.Post("/{id}/suspend", mchHandler.Suspend)
 				r.Post("/{id}/api-keys", mchHandler.CreateApiKey)
