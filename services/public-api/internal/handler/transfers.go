@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -149,11 +150,20 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 	// Resolve sender's @banza handle from the credential store.
 	// The JWT carries only consumer_id — the handle lives in public_api_credentials.
 	senderHandle, err := h.handles.GetHandle(r.Context(), consumer.ID)
-	if err != nil {
+	if errors.Is(err, service.ErrInvalidCredentials) {
 		// Consumer exists in JWT but not in credential store — should never happen
 		// under normal operation. Treat as unauthenticated.
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED",
 			"could not resolve sender identity")
+		return
+	}
+	if err != nil {
+		// The credential store could not answer. That is an outage, not a
+		// refusal: a 401 here made the consumer app sign out and wipe the
+		// device on a database blip (A8-09). Nothing was sent.
+		slog.ErrorContext(r.Context(), "transfer.sender_lookup_failed", "error_kind", fmt.Sprintf("%T", err))
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE",
+			"transfers are temporarily unavailable; try again")
 		return
 	}
 

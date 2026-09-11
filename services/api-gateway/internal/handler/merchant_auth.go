@@ -84,24 +84,32 @@ func (h *MerchantAuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	merchantID, env, err := h.creds.VerifyHandlePin(r.Context(), body.Handle, body.Pin)
-	if err != nil {
-		switch {
-		case errors.Is(err, service.ErrMerchantLocked):
-			businessAuthAttempts.WithLabelValues(authResultLocked).Inc()
-		case errors.Is(err, service.ErrHandleOwnerMismatch):
+	switch {
+	case err == nil:
+	case errors.Is(err, service.ErrMerchantLocked):
+		businessAuthAttempts.WithLabelValues(authResultLocked).Inc()
+		slog.WarnContext(r.Context(), "merchant.auth.locked", "ip", r.RemoteAddr)
+		apierror.Respond(w, r, http.StatusTooManyRequests, "LOCKED", "too many attempts; try again later")
+		return
+	case errors.Is(err, service.ErrMerchantCredsInvalid):
+		// Unknown handle, wrong PIN, not activated, suspended, or a credential
+		// that is not the handle's owner's: the same 401 (non-enumerating).
+		if errors.Is(err, service.ErrHandleOwnerMismatch) {
 			businessAuthAttempts.WithLabelValues(authResultOwnerMismatch).Inc()
-		default:
+		} else {
 			businessAuthAttempts.WithLabelValues(authResultRefused).Inc()
 		}
-		if errors.Is(err, service.ErrMerchantLocked) {
-			slog.WarnContext(r.Context(), "merchant.auth.locked", "ip", r.RemoteAddr)
-			apierror.Respond(w, r, http.StatusTooManyRequests, "LOCKED", "too many attempts; try again later")
-			return
-		}
-		// Unknown handle and wrong PIN return the same 401 (non-enumerating).
 		slog.WarnContext(r.Context(), "merchant.auth.invalid",
 			"ip", r.RemoteAddr, "user_agent", r.Header.Get("User-Agent"))
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid handle or pin")
+		return
+	default:
+		// The credential store could not answer. That is not a refusal: a 401
+		// here made the Business App forget the handle and PIN on a database
+		// blip (A8-09). 503, and the app keeps its session and says so.
+		businessAuthAttempts.WithLabelValues(authResultUnavailable).Inc()
+		slog.ErrorContext(r.Context(), "merchant.auth.verify_failed", "error_kind", fmt.Sprintf("%T", err))
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "sign-in is temporarily unavailable; try again")
 		return
 	}
 

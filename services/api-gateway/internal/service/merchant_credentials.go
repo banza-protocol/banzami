@@ -27,6 +27,9 @@ var (
 	// the operator's metrics can tell a data defect from a wrong PIN.
 	ErrHandleOwnerMismatch = fmt.Errorf("%w: credential does not belong to the handle's owner", ErrMerchantCredsInvalid)
 	ErrMerchantLocked      = errors.New("too many attempts; try again later")
+	// ErrMerchantCredsUnavailable: the credential store could not answer. It is
+	// not a refusal, and must never be answered as one (A8-09).
+	ErrMerchantCredsUnavailable = errors.New("merchant credential store unavailable")
 )
 
 const (
@@ -140,7 +143,7 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", "", ErrMerchantCredsInvalid
 		}
-		return "", "", err
+		return "", "", fmt.Errorf("%w: read credential: %w", ErrMerchantCredsUnavailable, err)
 	}
 
 	// Not yet activated (no PIN set) → cannot log in (non-enumerating).
@@ -198,7 +201,7 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		return "", "", ErrMerchantLocked
 	}
 	if err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("%w: claim attempt: %w", ErrMerchantCredsUnavailable, err)
 	}
 
 	if bcrypt.CompareHashAndPassword([]byte(*pinHash), []byte(pin)) != nil {
@@ -210,7 +213,7 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		`UPDATE merchant_app_credentials
 		    SET failed_attempts = 0, locked_until = NULL, updated_at = now()
 		  WHERE handle = $1`, handle); err != nil {
-		return "", "", err
+		return "", "", fmt.Errorf("%w: clear attempts: %w", ErrMerchantCredsUnavailable, err)
 	}
 	return merchantID, environment, nil
 }
