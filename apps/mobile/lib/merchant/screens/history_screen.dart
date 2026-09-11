@@ -8,6 +8,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/app_screen_header.dart';
 import '../models/merchant_payment_entry.dart';
+import '../services/receipt_file_name.dart';
 import '../services/merchant_session_service.dart';
 
 class MerchantHistoryScreen extends StatefulWidget {
@@ -633,11 +634,13 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     try {
       final bytes = await client.fetchMerchantReceiptPdf(p.id);
       final dir   = await getTemporaryDirectory();
-      file        = File('${dir.path}/Banzami-Comprovativo-${p.reference}.pdf');
+      file        = File('${dir.path}/${receiptPdfFileName(p.reference, p.createdAt)}');
       await file.writeAsBytes(bytes, flush: true);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
-        subject: 'Comprovativo Banzami · ${p.reference}',
+        subject: p.reference.trim().isNotEmpty
+            ? 'Comprovativo Banzami · ${p.reference.trim()}'
+            : 'Comprovativo Banzami',
       );
     } catch (_) {
       if (mounted) _snack('Não foi possível obter o comprovativo.');
