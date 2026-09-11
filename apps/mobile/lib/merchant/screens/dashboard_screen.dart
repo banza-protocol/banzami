@@ -424,7 +424,7 @@ class _DashboardHeader extends StatelessWidget {
                   const Icon(Icons.savings_rounded, size: 15, color: BanzamiColors.white),
                   const SizedBox(width: 7),
                   Text(
-                    'Retido em campanhas ',
+                    'Fundos retidos ',
                     style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.white),
                   ),
                   Text(
