@@ -43,6 +43,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // KYB + AML as the payout gate sees them (null until loaded / unreadable).
   // A withdrawal needs both — KYB alone never says "levantamentos disponíveis".
   MerchantComplianceStatus? _compliance;
+  // The Business's latest withdrawals from GET /v1/payouts (null until loaded
+  // or when unreadable — shown as such, never as "none").
+  List<Payout>? _payouts;
+  bool _payoutsFailed = false;
 
   @override
   void initState() {
@@ -90,7 +94,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (mounted) setState(() => _compliance = c);
     }).catchError((_) { /* the card says it could not confirm */ });
 
-    await Future.wait([balanceFuture, statsFuture, kybFuture, complianceFuture]);
+    final payoutsFuture = client.listPayouts(limit: 3).then((p) {
+      if (mounted) setState(() { _payouts = p; _payoutsFailed = false; });
+    }).catchError((_) {
+      if (mounted) setState(() => _payoutsFailed = true);
+    });
+
+    await Future.wait([
+      balanceFuture, statsFuture, kybFuture, complianceFuture, payoutsFuture,
+    ]);
     if (mounted) setState(() { _loading = false; _error = err; });
   }
 
@@ -233,6 +245,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
               // Withdrawals — gated on what the payout endpoint enforces.
               _PayoutsCard(
                 gate: withdrawGate(compliance: _compliance, kybVerified: verified),
+                payouts: _payouts,
+                failed: _payoutsFailed,
                 onVerify: () => _open(const KybScreen()),
                 onPayout: () => _open(const PayoutScreen()),
               ),
@@ -555,11 +569,15 @@ WithdrawGate withdrawGate({
 
 class _PayoutsCard extends StatelessWidget {
   final WithdrawGate gate;
+  final List<Payout>? payouts;
+  final bool failed;
   final VoidCallback onVerify;
   final VoidCallback onPayout;
 
   const _PayoutsCard({
     required this.gate,
+    required this.payouts,
+    required this.failed,
     required this.onVerify,
     required this.onPayout,
   });
@@ -597,12 +615,17 @@ class _PayoutsCard extends StatelessWidget {
           Text('Levantamentos', style: BanzamiTextStyles.headingSm),
         ]),
         const SizedBox(height: BanzamiSpacing.sm),
-        Text(
-          gate == WithdrawGate.ready
-              ? 'Levantamentos disponíveis para a conta bancária do negócio.'
-              : 'Os seus pedidos de levantamento aparecerão aqui.',
-          style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-        ),
+        if (payouts != null && payouts!.isNotEmpty)
+          ...payouts!.map((p) => PayoutRow(payout: p))
+        else
+          Text(
+            failed
+                ? 'Não foi possível carregar os levantamentos.'
+                : payouts == null
+                    ? 'A carregar levantamentos…'
+                    : 'Ainda não pediu nenhum levantamento.',
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          ),
         const SizedBox(height: BanzamiSpacing.md),
         if (note != null)
           Container(
@@ -624,6 +647,46 @@ class _PayoutsCard extends StatelessWidget {
           ),
         const SizedBox(height: BanzamiSpacing.md),
         BanzamiSecondaryButton(label: label, onPressed: action),
+      ]),
+    );
+  }
+}
+
+/// One requested withdrawal: amount asked, its state, when it was asked.
+class PayoutRow extends StatelessWidget {
+  final Payout payout;
+  const PayoutRow({super.key, required this.payout});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (payout.status.toUpperCase()) {
+      'CONFIRMED' => BanzamiColors.success,
+      'FAILED' || 'RETURNED' => BanzamiColors.error,
+      _ => BanzamiColors.warning,
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.xs),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            MoneyAmount(payout.amountMinor, currency: payout.currency, size: MoneySize.sm),
+            Text(
+              BanzamiDateFormatter.formatActivityTime(payout.createdAt),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            ),
+          ]),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
+          decoration: BoxDecoration(
+            color:        color.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.fullAll,
+          ),
+          child: Text(
+            payout.statusLabel,
+            style: BanzamiTextStyles.label.copyWith(color: color, fontSize: 11),
+          ),
+        ),
       ]),
     );
   }

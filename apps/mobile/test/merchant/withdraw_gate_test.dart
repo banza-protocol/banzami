@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:banzami_mobile/merchant/screens/dashboard_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 MerchantComplianceStatus _c(String kyb, String aml) =>
@@ -40,5 +41,21 @@ void main() {
         expect(src.contains(word), isFalse, reason: '$f: $word');
       }
     }
+  });
+
+  testWidgets('the dashboard lists a real withdrawal: amount and state', (t) async {
+    await t.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: PayoutRow(
+          payout: Payout(
+            id: 'p1', status: 'PROCESSING', amountMinor: 5000000,
+            currency: 'AOA', createdAt: DateTime.now().toUtc(),
+          ),
+        ),
+      ),
+    ));
+    expect(find.text('50 000 Kz'), findsOneWidget);
+    expect(find.text('Em processamento'), findsOneWidget);
+    expect(find.textContaining('Hoje'), findsOneWidget);
   });
 }
