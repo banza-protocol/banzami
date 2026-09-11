@@ -356,10 +356,6 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 		apierror.Respond(w, r, http.StatusUnprocessableEntity, "SOURCE_NOT_SEGREGATED", "settle from a segregated (e.g. CAMPAIGN) account, not the primary")
 		return
 	}
-	if acc.AvailableBalanceMinor <= 0 {
-		apierror.Respond(w, r, http.StatusUnprocessableEntity, "NOTHING_TO_SETTLE", "source account has no available balance")
-		return
-	}
 	currency := acc.Currency
 	coreSource, cerr := h.accounts.CoreAccountID(r.Context(), body.SourceAccountID)
 	if cerr != nil || coreSource == "" {
@@ -376,6 +372,40 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	}
 	if berr != nil || ben == nil || ben.AvailableAccountID == "" {
 		apierror.Respond(w, r, http.StatusUnprocessableEntity, "BENEFICIARY_NOT_FOUND", "beneficiary_banza_name has no active wallet in this currency")
+		return
+	}
+
+	// A retry is answered with the settlement the key already made. The request
+	// names no amount — the gross is the source's balance when it runs — so a
+	// retry after the settlement completed found an empty account and was told
+	// NOTHING_TO_SETTLE: a client whose first response was lost learned that it
+	// had failed when it had not. The same caller, source and beneficiary under
+	// the same key is the same settlement; anything else under that key is a
+	// conflict, and says nothing about the settlement that owns it.
+	prior, perr := h.settlements.ByIdempotencyKey(r.Context(), body.IdempotencyKey)
+	switch {
+	case perr == nil && prior != nil:
+		if prior.ApplicationID != callerMerchantID || prior.SourceAccountID != coreSource || prior.BeneficiaryAccountID != ben.AvailableAccountID {
+			apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_CONFLICT", "this idempotency_key was already used for a different settlement")
+			return
+		}
+		if prior.Status == "CREATED" || prior.Status == "PENDING" {
+			completed, cerr := h.settlements.Complete(r.Context(), prior.ID)
+			if cerr != nil {
+				apierror.Respond(w, r, http.StatusUnprocessableEntity, "SETTLEMENT_NOT_COMPLETED", "settlement could not be completed")
+				return
+			}
+			prior = completed
+		}
+		respond(w, http.StatusOK, prior)
+		return
+	case perr != nil && !errors.Is(perr, service.ErrNotFound):
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE", "the settlement could not be checked right now")
+		return
+	}
+
+	if acc.AvailableBalanceMinor <= 0 {
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, "NOTHING_TO_SETTLE", "source account has no available balance")
 		return
 	}
 

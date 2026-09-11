@@ -40,11 +40,18 @@ func (f *fakeWallets) Analytics(ctx context.Context, id, from, to string) (json.
 type fakeSettlements struct {
 	created, completed int
 	lastInput          service.CreateApplicationSettlementInput
+	byKey              map[string]*service.ApplicationSettlement
 }
 
 func (f *fakeSettlements) Create(ctx context.Context, in service.CreateApplicationSettlementInput) (*service.ApplicationSettlement, error) {
 	f.created++
 	f.lastInput = in
+	if f.byKey == nil {
+		f.byKey = map[string]*service.ApplicationSettlement{}
+	}
+	f.byKey[in.IdempotencyKey] = &service.ApplicationSettlement{ID: "set-1", ApplicationID: in.ApplicationID,
+		SourceAccountID: in.SourceAccountID, BeneficiaryAccountID: in.BeneficiaryAccountID, Status: "COMPLETED",
+		GrossAmountMinor: in.GrossAmountMinor, Currency: in.Currency}
 	// Echo the gross the gateway read so the test can assert it was used.
 	return &service.ApplicationSettlement{ID: "set-1", OwnerRef: in.OwnerRef, Status: "CREATED", GrossAmountMinor: in.GrossAmountMinor, Currency: in.Currency}, nil
 }
@@ -54,6 +61,12 @@ func (f *fakeSettlements) Complete(ctx context.Context, id string) (*service.App
 }
 func (f *fakeSettlements) Get(ctx context.Context, id string) (*service.ApplicationSettlement, error) {
 	return &service.ApplicationSettlement{ID: id, Status: "COMPLETED"}, nil
+}
+func (f *fakeSettlements) ByIdempotencyKey(ctx context.Context, key string) (*service.ApplicationSettlement, error) {
+	if s, ok := f.byKey[key]; ok {
+		return s, nil
+	}
+	return nil, service.ErrNotFound
 }
 
 // fakeParties resolves @handle → an account; keyed by handle so beneficiary and
@@ -356,5 +369,34 @@ func TestApplicationSettlement_UnpricedOwnerIsRefused(t *testing.T) {
 				t.Error("an unpriced settlement reached the settlement service")
 			}
 		})
+	}
+}
+
+// A retry is the same settlement. The first response is lost, the client sends
+// the same request again, and by then the source is empty: it used to be told
+// NOTHING_TO_SETTLE — that it had failed — when the settlement had run.
+func TestBusinessSettlement_RetryAnswersWithTheSettlementItMade(t *testing.T) {
+	fs := &fakeSettlements{}
+	accounts := &fakeWalletAccounts{balance: 200000}
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, accounts, &fakeParties{}, pricedFake())
+	if rec := postBusiness(h, "doa-merchant", doaBody); rec.Code != http.StatusCreated {
+		t.Fatalf("first: want 201, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	accounts.balance = 0 // the settlement emptied the source
+	rec := postBusiness(h, "doa-merchant", doaBody)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), `"id":"set-1"`) {
+		t.Fatalf("retry: want 200 with the same settlement, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if fs.created != 1 {
+		t.Fatalf("a retry created a second settlement (created=%d)", fs.created)
+	}
+	// The key belongs to that settlement: a different beneficiary under it is a
+	// conflict, and another Business using it learns nothing about it.
+	other := strings.Replace(doaBody, `@maria`, `@joao`, 1)
+	if rec := postBusiness(h, "doa-merchant", other); rec.Code != http.StatusConflict {
+		t.Fatalf("same key, different beneficiary: want 409, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if rec := postBusiness(h, "another-merchant", doaBody); rec.Code == http.StatusOK {
+		t.Fatalf("another Business was handed this settlement (%s)", rec.Body.String())
 	}
 }

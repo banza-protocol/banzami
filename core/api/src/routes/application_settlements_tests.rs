@@ -189,6 +189,23 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     .await
     .unwrap();
     assert_eq!(net, 93_100);
+
+    // The key finds the settlement it made — the answer a retry is given — and an
+    // unknown key finds nothing.
+    let Json(by_key) = routes::get_by_idempotency_key(
+        State(build_state(pool.clone()).await),
+        Path("as-route-1".to_string()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(by_key["id"], done["id"]);
+    assert_eq!(by_key["status"], "COMPLETED");
+    assert!(routes::get_by_idempotency_key(
+        State(build_state(pool.clone()).await),
+        Path("never-used".to_string()),
+    )
+    .await
+    .is_err());
     Ok(())
 }
 

@@ -15,7 +15,8 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use banzami_app_settlement::{
-    ApplicationSettlementEngine, ApplicationSettlementError, CreateApplicationSettlementRequest,
+    ApplicationSettlementEngine, ApplicationSettlementError, ApplicationSettlementRepository,
+    CreateApplicationSettlementRequest, PostgresApplicationSettlementRepository,
 };
 use banzami_types::{AccountId, ApplicationSettlementId, Currency, Money};
 
@@ -472,6 +473,25 @@ pub async fn get(
         .await
         .map_err(map_err)?;
     Ok(Json(serde_json::to_value(&s).unwrap()))
+}
+
+/// GET /internal/v1/application-settlements/by-idempotency-key/:key
+///
+/// The settlement a key already produced, or 404. A settlement request names no
+/// amount — the gross is the source account's balance when it runs — so a retry
+/// after a completed settlement asks for 0 and could never match the original
+/// in `create`. The gateway reads the key here first and answers a retry with
+/// the settlement it already made.
+pub async fn get_by_idempotency_key(
+    State(state): State<AppState>,
+    Path(key): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let found = PostgresApplicationSettlementRepository::new(state.pool.clone())
+        .get_by_idempotency_key(&key)
+        .await
+        .map_err(map_err)?
+        .ok_or_else(|| ApiError::not_found("no settlement for this idempotency key"))?;
+    Ok(Json(serde_json::to_value(&found).unwrap()))
 }
 
 pub async fn list(

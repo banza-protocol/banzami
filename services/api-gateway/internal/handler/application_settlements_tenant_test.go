@@ -106,3 +106,7 @@ func TestApplicationSettlementCreate_BindsToAuthenticatedMerchant(t *testing.T) 
 		t.Fatalf("settlement not bound to the authenticated merchant: %q", fs.lastInput.ApplicationID)
 	}
 }
+
+func (f *boundSettlements) ByIdempotencyKey(ctx context.Context, key string) (*service.ApplicationSettlement, error) {
+	return nil, service.ErrNotFound
+}

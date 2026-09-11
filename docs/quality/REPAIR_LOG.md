@@ -2933,3 +2933,22 @@ gateway's environment and refuses a bucket that does not name it, or names the o
 (`ErrBucketEnvironment`); positive, so a bucket named for neither is refused too. The
 gateway then runs with document storage disabled (the document endpoints answer 503)
 instead of writing anywhere. Test `TestBucketMustBelongToTheEnvironment` (seven cases).
+
+## RA-101 — a retried settlement was told it had failed
+
+- **Found:** 2026-09-11 (closure phase, by the rewritten economic-model smoke, case C)
+- **Status:** FIXED (core + gateway)
+
+`POST /v1/application-settlements` names no amount: the gross is the source
+account's balance when the request runs. A client whose first response was lost
+retried with the same idempotency key, found the account already emptied by its own
+settlement, and was answered `422 NOTHING_TO_SETTLE` — told it had failed when it had
+not. Core's idempotency could not help: the retry's gross (0) differed from the
+original's, and a different request under a known key is refused. Nothing moved
+twice; the client was misinformed. The gateway now reads the key first
+(`GET /internal/v1/application-settlements/by-idempotency-key/:key`, new) and answers a
+retry from the same caller, for the same source and beneficiary, with the settlement
+it made (200; completed if it was left CREATED/PENDING). The same key for anything
+else is `409 IDEMPOTENCY_CONFLICT`, which says nothing about the settlement that owns
+it. Tests `TestBusinessSettlement_RetryAnswersWithTheSettlementItMade` (removing the
+lookup or the ownership check fails it) and `create_then_complete_via_api`.

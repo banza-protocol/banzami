@@ -480,6 +480,10 @@ async fn main() {
             get(routes::application_settlements::list),
         )
         .route(
+            "/internal/v1/application-settlements/by-idempotency-key/:key",
+            get(routes::application_settlements::get_by_idempotency_key),
+        )
+        .route(
             "/internal/v1/application-settlements/:id",
             get(routes::application_settlements::get),
         )

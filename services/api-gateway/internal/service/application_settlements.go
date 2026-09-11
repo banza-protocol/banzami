@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"net/url"
 	"time"
 )
 
@@ -15,13 +16,17 @@ type ApplicationSettlement struct {
 	// settlement — the authorisation binding used to scope reads (SEC-002).
 	// It is gateway-internal: `json:"-"` keeps it out of the app-facing payload,
 	// which stays amounts + status only.
-	ApplicationID       string `json:"-"`
-	Status              string `json:"status"`
-	GrossAmountMinor    int64  `json:"gross_amount_minor"`
-	ApplicationFeeMinor int64  `json:"application_fee_minor"`
-	NetAmountMinor      int64  `json:"net_amount_minor"`
-	Currency            string `json:"currency"`
-	Environment         string `json:"environment"`
+	ApplicationID string `json:"-"`
+	// The accounts it moved value between — gateway-internal, used to tell a
+	// retry of this settlement from a different request under the same key.
+	SourceAccountID      string `json:"-"`
+	BeneficiaryAccountID string `json:"-"`
+	Status               string `json:"status"`
+	GrossAmountMinor     int64  `json:"gross_amount_minor"`
+	ApplicationFeeMinor  int64  `json:"application_fee_minor"`
+	NetAmountMinor       int64  `json:"net_amount_minor"`
+	Currency             string `json:"currency"`
+	Environment          string `json:"environment"`
 	// Pricing is the operator's decision as it was applied to THIS settlement,
 	// read from the snapshot core stores with it. It is not re-derived from the
 	// pricing tables on read, so repricing a profile later cannot change what a
@@ -77,6 +82,8 @@ type ApplicationSettlementService interface {
 	Create(ctx context.Context, in CreateApplicationSettlementInput) (*ApplicationSettlement, error)
 	Complete(ctx context.Context, id string) (*ApplicationSettlement, error)
 	Get(ctx context.Context, id string) (*ApplicationSettlement, error)
+	// ByIdempotencyKey is the settlement a key already produced, or ErrNotFound.
+	ByIdempotencyKey(ctx context.Context, key string) (*ApplicationSettlement, error)
 }
 
 // coreSettlementResp mirrors the core settlement JSON (Money is nested).
@@ -84,6 +91,8 @@ type coreSettlementResp struct {
 	ID             string        `json:"id"`
 	OwnerRef       string        `json:"owner_ref"`
 	ApplicationID  string        `json:"application_id"`
+	SourceAccount  string        `json:"source_account_id"`
+	Beneficiary    string        `json:"beneficiary_account_id"`
 	Status         string        `json:"status"`
 	GrossAmount    coreMoneyResp `json:"gross_amount"`
 	ApplicationFee coreMoneyResp `json:"application_fee"`
@@ -104,6 +113,7 @@ type coreSettlementResp struct {
 func (r *coreSettlementResp) toSafe() *ApplicationSettlement {
 	out := &ApplicationSettlement{
 		ID: r.ID, OwnerRef: r.OwnerRef, ApplicationID: r.ApplicationID, Status: r.Status,
+		SourceAccountID: r.SourceAccount, BeneficiaryAccountID: r.Beneficiary,
 		GrossAmountMinor: r.GrossAmount.AmountMinor, ApplicationFeeMinor: r.ApplicationFee.AmountMinor,
 		NetAmountMinor: r.NetAmount.AmountMinor, Currency: r.Currency, Environment: r.Environment,
 		CreatedAt: r.CreatedAt, CompletedAt: r.CompletedAt, FailureReason: r.FailureReason,
@@ -175,6 +185,14 @@ func (s *CoreApiApplicationSettlementService) Complete(ctx context.Context, id s
 func (s *CoreApiApplicationSettlementService) Get(ctx context.Context, id string) (*ApplicationSettlement, error) {
 	var resp coreSettlementResp
 	if err := s.client.get(ctx, "/internal/v1/application-settlements/"+id, &resp); err != nil {
+		return nil, err
+	}
+	return resp.toSafe(), nil
+}
+
+func (s *CoreApiApplicationSettlementService) ByIdempotencyKey(ctx context.Context, key string) (*ApplicationSettlement, error) {
+	var resp coreSettlementResp
+	if err := s.client.get(ctx, "/internal/v1/application-settlements/by-idempotency-key/"+url.PathEscape(key), &resp); err != nil {
 		return nil, err
 	}
 	return resp.toSafe(), nil

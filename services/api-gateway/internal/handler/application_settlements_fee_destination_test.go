@@ -204,3 +204,7 @@ func TestApplicationSettlement_AResolverOutageIsNotAnUnknownHandle(t *testing.T)
 		t.Fatalf("an unknown @banza stays 422, got %d %s", rec.Code, rec.Body.String())
 	}
 }
+
+func (f *rejectingSettlements) ByIdempotencyKey(ctx context.Context, key string) (*service.ApplicationSettlement, error) {
+	return nil, service.ErrNotFound
+}
