@@ -100,6 +100,52 @@ void main() {
       expect(bodies[1], bodies[0], reason: 'same amount, same key');
     });
 
+    test('a Business withdrawal that never answers times out, same key on retry',
+        () async {
+      final keys = <String?>[];
+      final client = BanzamiClient(
+        apiKey: 'bz_test_key',
+        baseUrl: 'https://api.test',
+        maxRetries: 1,
+        retryDelay: const Duration(milliseconds: 1),
+        requestTimeout: const Duration(milliseconds: 50),
+        httpClient: MockClient((req) async {
+          if (req.url.path == '/v1/auth/token') {
+            return http.Response(
+                jsonEncode({
+                  'token': 't',
+                  'expires_at': DateTime.now()
+                      .add(const Duration(hours: 1))
+                      .toIso8601String(),
+                }),
+                200);
+          }
+          keys.add(req.headers['Idempotency-Key']);
+          return Completer<http.Response>().future; // accepted, then silence
+        }),
+      );
+
+      try {
+        await client.createPayout(
+          walletId: 'w1',
+          amountMinor: 100000,
+          bankAccountNumber: 'AO06000600000000000000000',
+          bankCode: 'BAI',
+          accountHolderName: 'Loja Lda',
+        );
+        fail('expected a timeout');
+      } catch (e) {
+        expect(e, isA<BanzamiTimeoutException>());
+        expect(isOutcomeUnknown(e), isTrue,
+            reason: 'the withdrawal may have been made');
+        expect(banzamiErrorMessage(e), kBanzamiTimeoutMessage);
+      }
+
+      expect(keys, hasLength(2), reason: 'the timeout was retried');
+      expect(keys.first, isNotNull);
+      expect(keys[1], keys[0], reason: 'one key per withdrawal, not per attempt');
+    });
+
     test('a request that never answers times out as an unknown outcome', () async {
       final client = ConsumerPublicClient(
         baseUrl: 'https://api.test',

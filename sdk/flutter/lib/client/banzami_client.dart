@@ -79,6 +79,15 @@ class BanzamiClient {
   final int maxRetries;
   final Duration retryDelay;
 
+  /// How long one request may take before it is given up on.
+  ///
+  /// Without a deadline a connection that is accepted and then goes silent
+  /// leaves the Business waiting for ever on a screen that cannot say what
+  /// happened to the money. On expiry a [BanzamiTimeoutException] is thrown —
+  /// a network failure, so [isOutcomeUnknown] is true and the screen offers a
+  /// retry that repeats the SAME idempotency key.
+  final Duration requestTimeout;
+
   final OnRequestHook? onRequest;
   final OnResponseHook? onResponse;
   final OnErrorHook? onError;
@@ -139,6 +148,7 @@ class BanzamiClient {
     http.Client? httpClient,
     this.maxRetries = 3,
     this.retryDelay = const Duration(milliseconds: 500),
+    this.requestTimeout = const Duration(seconds: 30),
     this.onRequest,
     this.onResponse,
     this.onError,
@@ -185,13 +195,16 @@ class BanzamiClient {
   }) async {
     late http.Response resp;
     try {
-      resp = await _http.post(
-        Uri.parse('$baseUrl/v1/merchant/auth/token'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'handle': handle, 'pin': pin}),
-      );
+      resp = await _bounded(
+          _http.post(
+            Uri.parse('$baseUrl/v1/merchant/auth/token'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'handle': handle, 'pin': pin}),
+          ),
+          'POST',
+          '/v1/merchant/auth/token');
     } catch (e) {
-      if (e is BanzamiApiException) rethrow;
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -218,11 +231,14 @@ class BanzamiClient {
     if (refreshToken.isEmpty) return null; // no session to renew
     late http.Response resp;
     try {
-      resp = await _http.post(
-        Uri.parse('$baseUrl/v1/merchant/auth/refresh'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refreshToken}),
-      );
+      resp = await _bounded(
+          _http.post(
+            Uri.parse('$baseUrl/v1/merchant/auth/refresh'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          ),
+          'POST',
+          '/v1/merchant/auth/refresh');
     } catch (e) {
       if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
@@ -254,11 +270,14 @@ class BanzamiClient {
   Future<void> logoutMerchantSession(String refreshToken) async {
     late http.Response resp;
     try {
-      resp = await _http.post(
-        Uri.parse('$baseUrl/v1/merchant/auth/logout'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'refresh_token': refreshToken}),
-      );
+      resp = await _bounded(
+          _http.post(
+            Uri.parse('$baseUrl/v1/merchant/auth/logout'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'refresh_token': refreshToken}),
+          ),
+          'POST',
+          '/v1/merchant/auth/logout');
     } catch (e) {
       if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
@@ -299,12 +318,16 @@ class BanzamiClient {
   ) async {
     late http.Response resp;
     try {
-      resp = await _http.post(
-        Uri.parse('$baseUrl/v1/merchant/auth/lookup'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'handle': handle}),
-      );
+      resp = await _bounded(
+          _http.post(
+            Uri.parse('$baseUrl/v1/merchant/auth/lookup'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'handle': handle}),
+          ),
+          'POST',
+          '/v1/merchant/auth/lookup');
     } catch (e) {
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -801,8 +824,8 @@ class BanzamiClient {
     onRequest?.call('GET', path, 0);
     late http.Response resp;
     try {
-      resp = await _authorized(
-          (headers) => _http.get(Uri.parse('$baseUrl$path'), headers: headers));
+      resp = await _authorized((headers) => _bounded(
+          _http.get(Uri.parse('$baseUrl$path'), headers: headers), 'GET', path));
     } catch (e) {
       if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
@@ -860,7 +883,8 @@ class BanzamiClient {
   Future<PaymentLink> getPaymentLinkBySlug(String slug) async {
     late http.Response resp;
     try {
-      resp = await _http.get(Uri.parse('$baseUrl/public/pay/$slug'));
+      resp = await _bounded(_http.get(Uri.parse('$baseUrl/public/pay/$slug')),
+          'GET', '/public/pay/$slug');
     } catch (e) {
       if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
@@ -877,7 +901,10 @@ class BanzamiClient {
   Future<bool> getPaymentLinkStatus(String slug) async {
     late http.Response resp;
     try {
-      resp = await _http.get(Uri.parse('$baseUrl/public/pay/$slug/status'));
+      resp = await _bounded(
+          _http.get(Uri.parse('$baseUrl/public/pay/$slug/status')),
+          'GET',
+          '/public/pay/$slug/status');
     } catch (e) {
       return false;
     }
@@ -889,6 +916,16 @@ class BanzamiClient {
   // ---------------------------------------------------------------------------
   // HTTP helpers
   // ---------------------------------------------------------------------------
+
+  /// Puts [requestTimeout] on one request. EVERY call this client makes goes
+  /// through here: `HttpClient.connectionTimeout` only bounds opening the
+  /// socket, so without this an accepted-then-silent connection never
+  /// completes and the app waits for ever.
+  Future<http.Response> _bounded(
+          Future<http.Response> response, String method, String path) =>
+      response.timeout(requestTimeout,
+          onTimeout: () => throw BanzamiTimeoutException(
+              '$method $path took longer than ${requestTimeout.inSeconds}s'));
 
   // Makes sure a usable token is installed before a request is sent.
   //
@@ -925,13 +962,16 @@ class BanzamiClient {
   Future<void> _exchangeApiKey() async {
     late http.Response resp;
     try {
-      resp = await _http.post(
-        Uri.parse('$baseUrl/v1/auth/token'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'api_key': apiKey}),
-      );
+      resp = await _bounded(
+          _http.post(
+            Uri.parse('$baseUrl/v1/auth/token'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'api_key': apiKey}),
+          ),
+          'POST',
+          '/v1/auth/token');
     } catch (e) {
-      if (e is BanzamiApiException) rethrow;
+      if (e is BanzamiApiException || e is BanzamiNetworkException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -1044,11 +1084,21 @@ class BanzamiClient {
     return result;
   }
 
-  Future<Map<String, dynamic>> _get(String path) => _send('GET', path,
-      (headers) => _http.get(Uri.parse('$baseUrl$path'), headers: headers));
+  Future<Map<String, dynamic>> _get(String path) => _send(
+      'GET',
+      path,
+      (headers) => _bounded(
+          _http.get(Uri.parse('$baseUrl$path'), headers: headers),
+          'GET',
+          path));
 
-  Future<Map<String, dynamic>> _delete(String path) => _send('DELETE', path,
-      (headers) => _http.delete(Uri.parse('$baseUrl$path'), headers: headers));
+  Future<Map<String, dynamic>> _delete(String path) => _send(
+      'DELETE',
+      path,
+      (headers) => _bounded(
+          _http.delete(Uri.parse('$baseUrl$path'), headers: headers),
+          'DELETE',
+          path));
 
   Future<Map<String, dynamic>> _post(
     String path,
@@ -1059,11 +1109,14 @@ class BanzamiClient {
         if (idempotencyKey != null) {
           headers['Idempotency-Key'] = idempotencyKey;
         }
-        return _http.post(
-          Uri.parse('$baseUrl$path'),
-          headers: headers,
-          body: body != null ? jsonEncode(body) : null,
-        );
+        return _bounded(
+            _http.post(
+              Uri.parse('$baseUrl$path'),
+              headers: headers,
+              body: body != null ? jsonEncode(body) : null,
+            ),
+            'POST',
+            path);
       });
 
   Future<Map<String, dynamic>> _postWithRetry(
