@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:banzami_flutter/banzami_flutter.dart' show MerchantAuthTokens, RenewedSession;
-import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../services/pin_hasher.dart';
 import '../../services/push_notification_service.dart';
 import 'merchant_push_registration.dart';
 
@@ -137,10 +136,18 @@ class MerchantSessionService extends ChangeNotifier {
 
   final MerchantPushRegistration _push;
 
+  // This device only: the Business session never travels in an iCloud
+  // keychain or a device backup restored onto another phone.
   static const _store = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
   );
+  /// What older versions wrote with — still readable, rewritten once by
+  /// [_migrateKeychainOnce], and included when the account is wiped.
+  static const _legacyIOptions =
+      IOSOptions(accessibility: KeychainAccessibility.first_unlock);
+  static const _kKeychainV2   = 'merchant_keychain_this_device_v2';
+  static const _legacyPinSalt = 'banzami:merchant:{pin}:ao';
   static final _bio = LocalAuthentication();
 
   static const _kMerchantId    = 'merchant_id';
@@ -248,8 +255,36 @@ class MerchantSessionService extends ChangeNotifier {
   // Lifecycle
   // ---------------------------------------------------------------------------
 
+  /// Items written before this version are AfterFirstUnlock (they could leave
+  /// the device in a backup). Rewriting each moves it to ThisDeviceOnly — the
+  /// plugin re-adds an item whose accessibility differs. Once per install.
+  Future<void> _migrateKeychainOnce() async {
+    try {
+      if (await _store.read(key: _kKeychainV2) != null) return;
+      for (final k in const [
+        _kMerchantId, _kMerchantName, _kMerchantEmail, _kWalletId, _kJwt,
+        _kJwtExpiry, _kRefreshToken, _kRefreshExpiry, _kHandle, _kLoginMethod,
+        _kEnvironment, _kPinHash, _kBioEnabled, _kVerified, _kNotifSound,
+      ]) {
+        final v = await _store.read(key: k);
+        if (v != null) await _store.write(key: k, value: v);
+      }
+      await _store.write(key: _kKeychainV2, value: '1');
+    } catch (e) {
+      debugPrint('[session] keychain migration deferred: ${e.runtimeType}');
+    }
+  }
+
+  Future<void> _wipeEverything() async {
+    await _store.deleteAll();
+    // deleteAll only matches items of its own accessibility: also remove
+    // anything an older version wrote.
+    await _store.deleteAll(iOptions: _legacyIOptions);
+  }
+
   Future<void> initialize() async {
     final started = DateTime.now();
+    await _migrateKeychainOnce();
     final merchantId    = await _store.read(key: _kMerchantId);
     final merchantName  = await _store.read(key: _kMerchantName);
     final merchantEmail = await _store.read(key: _kMerchantEmail);
@@ -273,7 +308,7 @@ class MerchantSessionService extends ChangeNotifier {
     if (legacyApiKey != null || (merchantId != null && method != 'handle_pin')) {
       _unregisterPush(merchantId);
       try {
-        await _serial(_store.deleteAll);
+        await _serial(_wipeEverything);
       } catch (e) {
         debugPrint('[session] could not wipe a legacy API-key session: ${e.runtimeType}');
       }
@@ -456,7 +491,7 @@ class MerchantSessionService extends ChangeNotifier {
     await _store.write(key: _kWalletId,      value: walletId);
     await _store.write(key: _kEnvironment,   value: env);
     await _store.write(key: _kVerified,      value: verified ? 'true' : 'false');
-    await _store.write(key: _kPinHash,       value: _hash(pin));
+    await _store.write(key: _kPinHash,       value: PinHasher.hash(pin));
   }
 
   /// The refresh token is written BEFORE the access token: the presented one
@@ -531,7 +566,14 @@ class MerchantSessionService extends ChangeNotifier {
 
   Future<bool> verifyPin(String pin) async {
     final stored = await _store.read(key: _kPinHash);
-    return stored != null && _hash(pin) == stored;
+    if (stored == null) return false;
+    final ok = PinHasher.verify(pin, stored, legacySalt: _legacyPinSalt);
+    // A hash from an older version is replaced by a slow, salted one the
+    // first time the right PIN is entered.
+    if (ok && PinHasher.isLegacy(stored)) {
+      await _serial(() => _store.write(key: _kPinHash, value: PinHasher.hash(pin)));
+    }
+    return ok;
   }
 
   void unlock() {
@@ -687,15 +729,6 @@ class MerchantSessionService extends ChangeNotifier {
     _locked       = true;
     _expired      = false;
     notifyListeners();
-    await _serial(_store.deleteAll);
-  }
-
-  // ---------------------------------------------------------------------------
-  // PIN hashing — SHA-256 with app-specific salt
-  // ---------------------------------------------------------------------------
-
-  static String _hash(String pin) {
-    final bytes = utf8.encode('banzami:merchant:$pin:ao');
-    return sha256.convert(bytes).toString();
+    await _serial(_wipeEverything);
   }
 }

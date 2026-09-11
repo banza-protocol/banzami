@@ -1,5 +1,6 @@
 import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:banzami_mobile/screens/pin_screen.dart';
+import 'package:banzami_mobile/services/pin_hasher.dart';
 import 'package:banzami_mobile/services/push_topic_registration.dart';
 import 'package:banzami_mobile/services/session_service.dart';
 import 'package:flutter/services.dart';
@@ -115,6 +116,30 @@ void main() {
         expect(consumerUnlockDecision(loginError: e, tokenExpired: false), ConsumerUnlock.unlockDegraded);
         expect(consumerUnlockDecision(loginError: e, tokenExpired: true), ConsumerUnlock.stayLocked);
       }
+    });
+  });
+
+  group('the device PIN hash', () {
+    test('is stored slow and salted, never the old fixed-salt SHA-256', () async {
+      await signedIn(_FakePush());
+      expect(store['pin_hash'], startsWith('pbkdf2-sha256\$'));
+    });
+
+    test('an old install still unlocks and its hash is upgraded on the right PIN', () async {
+      store
+        ..['consumer_id'] = 'c-A'
+        ..['wallet_id'] = 'w'
+        ..['handle'] = 'ana'
+        ..['token'] = 'a.b.c'
+        ..['pin_hash'] = PinHasher.legacyHash('123456', 'banzami:{pin}:ao');
+      final svc = SessionService(push: _FakePush());
+      await svc.initialize();
+      expect(svc.hasSession, isTrue, reason: 'the keychain migration keeps the account');
+      expect(await svc.verifyPin('000000'), isFalse);
+      expect(PinHasher.isLegacy(store['pin_hash']!), isTrue);
+      expect(await svc.verifyPin('123456'), isTrue);
+      expect(store['pin_hash'], startsWith('pbkdf2-sha256\$'));
+      expect(await svc.verifyPin('123456'), isTrue);
     });
   });
 }
