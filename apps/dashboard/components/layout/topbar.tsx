@@ -6,7 +6,7 @@ const TITLES: Record<string, string> = {
   '/':               'Visão geral',
   '/transactions':   'Transacções',
   '/wallets':        'Carteiras',
-  '/payouts':        'Pagamentos',
+  '/payouts':        'Levantamentos',
   '/payment-links':  'Cobranças',
   '/webhooks':       'Webhooks',
   '/settings':       'Definições',

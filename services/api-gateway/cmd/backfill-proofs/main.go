@@ -149,11 +149,19 @@ func main() {
 		os.Exit(correctSemantics(ctx, pool, svc, *apply))
 	}
 
+	// The semantics of a receipt are derived by the one authority that derives
+	// them for the live path — never written here as text. This pass used to
+	// mint proofs carrying "Transferência Banzami · @banza" and no operation,
+	// channel or funding source, which a second -correct-semantics run then had
+	// to repair; a proof is signed when it is written, so it was wrong in the
+	// record from the moment it existed (A7-61).
+	sem := service.NewReceiptSemantics(pool, svc)
+
 	total := outcome{}
 	// env.SandboxName, not the string on the row: platform_mode is the authority
 	// and the rows are the thing being corrected.
-	total.add(run(ctx, pool, svc, "transfers", transfersQuery, scanTransfer, env.SandboxName, *apply))
-	total.add(run(ctx, pool, svc, "wallet_payments", walletPaymentsQuery, scanWalletPayment, env.SandboxName, *apply))
+	total.add(run(ctx, pool, svc, sem, "transfers", transfersQuery, scanTransfer, env.SandboxName, *apply))
+	total.add(run(ctx, pool, svc, sem, "wallet_payments", walletPaymentsQuery, scanWalletPayment, env.SandboxName, *apply))
 
 	verb := "would materialise"
 	if *apply {
@@ -189,7 +197,8 @@ func scanTransfer(r scannable, environment string) (string, service.ProofInput, 
 		PayeeDisplayName: recipientName, PayeeHandle: recipientHandle,
 		AmountMinor: amount, Currency: currency, Status: status,
 		Description: description,
-		Method:      "Transferência Banzami · @banza",
+		// Method, operation, channel and funding source are NOT written here:
+		// run() fills them from the live derivation (A7-61).
 		// The live path uses the transfer id as the ledger reference; keeping it
 		// identical matters because it is one of the signed fields.
 		LedgerReference: id,
@@ -213,14 +222,14 @@ func scanWalletPayment(r scannable, environment string) (string, service.ProofIn
 		PayeeSubjectType: "merchant", PayeeSubjectID: merchantID,
 		PayeeDisplayName: merchantName,
 		AmountMinor:      amount, Currency: currency, Status: status,
-		Method:          "Pagamento por QR · @banza",
 		LedgerReference: id,
 		ConfirmedAt:     &created,
 	}, nil
 }
 
 func run(ctx context.Context, pool *pgxpool.Pool, svc *service.ProofService,
-	family, query string, scan rowScanner, environment string, apply bool) outcome {
+	sem *service.ReceiptSemantics, family, query string, scan rowScanner,
+	environment string, apply bool) outcome {
 	rows, err := pool.Query(ctx, query, environment)
 	if err != nil {
 		fatal("%s: %v", family, err)
@@ -245,11 +254,33 @@ func run(ctx context.Context, pool *pgxpool.Pool, svc *service.ProofService,
 	out := outcome{}
 	fmt.Printf("%s: %d record(s) without a proof\n", family, len(items))
 	for _, it := range items {
+		// Operation, channel, funding source and the payee's public identity
+		// come from the same derivation the live path uses. A record whose
+		// semantics cannot be derived mints nothing: a signed proof that says
+		// the wrong thing is worse than a missing one.
+		derived, derr := deriveSemantics(ctx, sem, family, it.sourceID, it.in.Environment)
+		if derr != nil {
+			out.failed++
+			slog.Error("semantics undeterminable — no proof minted",
+				"family", family, "source_id", it.sourceID, "error", derr)
+			continue
+		}
+		in := it.in
+		in.OperationKind = derived.OperationKind
+		in.Channel = derived.Channel
+		in.FundingSource = derived.FundingSource
+		in.Method = derived.Method
+		if derived.PayeeHandle != "" {
+			in.PayeeHandle = derived.PayeeHandle
+			in.PayeeDisplayName = derived.PayeeDisplayName
+			in.PayeeSubjectType = derived.PayeeSubjectType
+			in.PayeeSubjectID = derived.PayeeSubjectID
+		}
 		if !apply {
 			out.materialised++
 			continue
 		}
-		p, err := svc.EnsureHistorical(ctx, it.sourceID, it.in)
+		p, err := svc.EnsureHistorical(ctx, it.sourceID, in)
 		switch {
 		case err == nil:
 			out.materialised++
@@ -356,4 +387,17 @@ func (o *outcome) add(other outcome) {
 func fatal(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, "backfill-proofs: "+format+"\n", args...)
 	os.Exit(1)
+}
+
+// deriveSemantics asks the live derivation what this record's receipt says.
+func deriveSemantics(ctx context.Context, sem *service.ReceiptSemantics,
+	family, sourceID, environment string) (service.ProofInput, error) {
+	switch family {
+	case "transfers":
+		return sem.ForTransfer(ctx, sourceID, environment)
+	case "wallet_payments":
+		return sem.ForWalletPayment(ctx, sourceID)
+	default:
+		return service.ProofInput{}, service.ErrReceiptUndeterminable
+	}
 }

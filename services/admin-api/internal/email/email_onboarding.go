@@ -61,12 +61,3 @@ func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 	s.Deliver(s.Automated("admin_password_reset", to,
 		"Recupere a sua palavra-passe Banzami", html, text, ""))
 }
-
-// PaymentReceipt — "Recebeu um pagamento — <valor>". Automatic notification →
-// From noreply@, Reply-To contact@. The subject carries the dynamic amount.
-// (Not wired to a payment event yet — no such trigger exists in this service.)
-func (s *Sender) PaymentReceipt(to string, d ReceiptData) {
-	html, text := RenderReceipt(d)
-	s.Deliver(s.Automated("payment_receipt", to,
-		"Recebeu um pagamento — "+d.AmountText, html, text, s.ReplyTo()))
-}

@@ -138,7 +138,11 @@ function CreatePayoutModal({
       setError('ID de carteira não configurado na sessão.');
       return;
     }
-    const amountMinor = Math.round(parseFloat(form.amount));
+    // Kwanzas in, minor units out. This took the typed number as minor units,
+    // so a 50 000 Kz withdrawal was requested as 500 Kz — a hundredth of what
+    // the Business asked for (A7-62). The surface is not deployed; the
+    // arithmetic is corrected so it cannot ship wrong.
+    const amountMinor = Math.round(parseFloat(form.amount) * 100);
     if (!amountMinor || amountMinor <= 0) {
       setError('Introduza um montante válido.');
       return;

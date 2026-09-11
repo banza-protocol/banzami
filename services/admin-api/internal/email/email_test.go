@@ -50,8 +50,7 @@ func renderAll() map[string]string {
 	r, _ := RenderMerchantRejected(MerchantRejectedData{})
 	i, _ := RenderAdminInvite(AdminInviteData{Role: "SUPER_ADMIN", InvitedBy: "security@banzami.com", AcceptURL: "https://admin.banzami.com/invite/accept?token=DEF"})
 	rs, _ := RenderAdminPasswordReset(AdminResetData{ResetURL: "https://admin.banzami.com/reset?token=GHI"})
-	rc, _ := RenderReceipt(ReceiptData{FromHandle: "joaomanuel", ToHandle: "mercadocentral", Reference: "BZM-7F3A-92K1", DateText: "27 jun 2026, 14:32", AmountText: "Kz 25.000,00", ReceiptURL: "https://banzami.com/r/BZM-7F3A-92K1"})
-	return map[string]string{"approved": a, "rejected": r, "invite": i, "reset": rs, "receipt": rc}
+	return map[string]string{"approved": a, "rejected": r, "invite": i, "reset": rs}
 }
 
 func TestTemplatesContainExpectedCopy(t *testing.T) {
@@ -61,7 +60,6 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 		"rejected": {"Sobre o seu pedido Banzami", "Contactar o suporte", "Motivo"},
 		"invite":   {"Foi convidado para o BANZADMIN", "Criar palavra-passe", "Administrador", "security@banzami.com", "7 dias"},
 		"reset":    {"Recupere a sua palavra-passe", "Recuperar palavra-passe", "30 minutos"},
-		"receipt":  {"Recebeu um pagamento", "Kz 25.000,00", "Recebido de @joaomanuel", "Descarregar comprovativo", "Confirmado"},
 	}
 	for name, musts := range cases {
 		html := all[name]
@@ -92,7 +90,7 @@ func TestEmailRobustHTML(t *testing.T) {
 			t.Errorf("%s: must not use border-collapse:collapse (square corners)", name)
 		}
 	}
-	for _, name := range []string{"approved", "invite", "reset", "receipt"} {
+	for _, name := range []string{"approved", "invite", "reset"} {
 		if !strings.Contains(all[name], "overflow-wrap:anywhere") {
 			t.Errorf("%s: URL fallback must use overflow-wrap:anywhere", name)
 		}
@@ -102,7 +100,7 @@ func TestEmailRobustHTML(t *testing.T) {
 			t.Errorf("%s: must not use inline SVG (Gmail strips it)", name)
 		}
 	}
-	for _, name := range []string{"rejected", "invite", "reset", "receipt"} {
+	for _, name := range []string{"rejected", "invite", "reset"} {
 		if !strings.Contains(all[name], "email-assets/") {
 			t.Errorf("%s: icons must be hosted PNGs (email-assets)", name)
 		}
@@ -165,13 +163,11 @@ func TestSubjects(t *testing.T) {
 	s.MerchantApplicationRejected("m@x.test", "Loja", "", "LIVE")
 	s.AdminOperatorInvite("u@x.test", "U", "SUPER_ADMIN", "s@b.com", "https://x/i?token=X")
 	s.AdminPasswordReset("u@x.test", "U", "https://x/r?token=Y")
-	s.PaymentReceipt("m@x.test", ReceiptData{AmountText: "Kz 25.000,00", FromHandle: "a", ToHandle: "b", ReceiptURL: "https://x/r"})
 	want := []string{
 		"A sua conta Business está pronta",
 		"Atualização sobre o seu pedido Banzami",
 		"Foi convidado para o BANZADMIN",
 		"Recupere a sua palavra-passe Banzami",
-		"Recebeu um pagamento — Kz 25.000,00",
 	}
 	for i, w := range want {
 		if captured[i].Subject != w {

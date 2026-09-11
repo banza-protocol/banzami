@@ -1,8 +1,6 @@
 package email
 
 import (
-	"log/slog"
-
 	ce "github.com/banzami/banzami/services/common/email"
 )
 
@@ -27,20 +25,4 @@ type Sender struct {
 // NewSender builds an admin-api email sender over the shared transport.
 func NewSender(cfg Config) *Sender {
 	return &Sender{Sender: ce.NewSender(cfg)}
-}
-
-// MerchantWelcome sends the welcome email with credentials to a new merchant.
-// It is automatic (From noreply@) but Reply-To contact@ so the merchant can
-// reach support. Non-blocking — call it in a goroutine.
-func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey string) {
-	if !s.Enabled() && !s.DryRun() {
-		slog.Warn("email not configured — skipping merchant welcome email",
-			"merchant_id", merchantID, "to", to)
-		return
-	}
-	html, text := RenderMerchantWelcome(MerchantWelcomeData{
-		MerchantName: merchantName, MerchantID: merchantID, APIKey: apiKey,
-	})
-	s.Deliver(s.Automated("merchant_welcome", to,
-		"Bem-vindo à Banzami — as suas credenciais", html, text, s.ReplyTo()))
 }

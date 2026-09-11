@@ -24,7 +24,7 @@ const NAV = [
   { href: '/transactions',   label: 'Transacções',    icon: ArrowLeftRight  },
   { href: '/analytics',      label: 'Análises',       icon: BarChart3       },
   { href: '/wallets',        label: 'Carteiras',      icon: Wallet          },
-  { href: '/payouts',        label: 'Pagamentos',     icon: Banknote        },
+  { href: '/payouts',        label: 'Levantamentos',  icon: Banknote        },
   { href: '/payment-links',  label: 'Cobranças',      icon: Link2           },
   { href: '/receive',        label: 'Receber (QR)',   icon: QrCode          },
   { href: '/refunds',        label: 'Reembolsos',     icon: RotateCcw       },
