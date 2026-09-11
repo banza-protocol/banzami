@@ -85,7 +85,11 @@ func (h *AcquiringHandler) InitiatePay(w http.ResponseWriter, r *http.Request) {
 
 	payment, err := h.svc.InitiatePay(r.Context(), link.ID, amountMinor, currency)
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		// An anonymous route: the error text (the transport error naming core's
+		// address, or core's own database error) is logged here and never
+		// written into the body (A6-11).
+		slog.ErrorContext(r.Context(), "acquiring.initiate_pay.failed", "payment_link_id", link.ID, "error", err)
+		respondCoreError(w, r, err, "could not start the payment")
 		return
 	}
 

@@ -56,7 +56,14 @@ func TestCoreErr_ForwardsStatusAndPayload(t *testing.T) {
 			if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 				t.Fatalf("bad body: %v", err)
 			}
-			if body.Error.Code != sc.code || body.Error.Message != "upstream message" {
+			// A decision (4xx) keeps core's reason. A failure (5xx) keeps its
+			// status and code, never its text: a core 5xx message can be core's
+			// own database error (A6-11).
+			wantMsg := "upstream message"
+			if sc.status >= 500 {
+				wantMsg = internalErrorMessage
+			}
+			if body.Error.Code != sc.code || body.Error.Message != wantMsg {
 				t.Fatalf("payload not preserved: %+v", body.Error)
 			}
 		})

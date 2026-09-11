@@ -31,6 +31,10 @@ var ErrMFANotEnrolled = errors.New("no confirmed second factor")
 // ErrMFACodeRejected: the code did not verify, or has already been used.
 var ErrMFACodeRejected = errors.New("code rejected")
 
+// ErrMFAAlreadyConfirmed: a confirmed factor exists, so a fresh enrolment may
+// not replace it (replacement is its own, re-authenticated entry point).
+var ErrMFAAlreadyConfirmed = errors.New("a confirmed second factor already exists")
+
 // ErrMFANothingToConfirm: the factor is already confirmed and no replacement is
 // pending, so there is no new authenticator for a code to prove.
 var ErrMFANothingToConfirm = errors.New("no enrolment or replacement is pending")
@@ -110,7 +114,7 @@ func (s *MFAService) begin(ctx context.Context, adminUserID, accountEmail string
 		return "", "", err
 	}
 	if confirmed != nil && !replacing {
-		return "", "", errors.New("a confirmed second factor already exists")
+		return "", "", ErrMFAAlreadyConfirmed
 	}
 
 	secret, err = auth.NewTOTPSecret()
@@ -151,7 +155,7 @@ func (s *MFAService) begin(ctx context.Context, adminUserID, accountEmail string
 		return "", "", err
 	}
 	if tag.RowsAffected() != 1 {
-		return "", "", errors.New("a confirmed second factor already exists")
+		return "", "", ErrMFAAlreadyConfirmed
 	}
 	return secret, auth.TOTPProvisioningURI(secret, accountEmail, "BANZADMIN"), nil
 }

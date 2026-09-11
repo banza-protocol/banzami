@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
@@ -38,12 +39,22 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 // its exact status code + `{error:{code,message}}` payload — a 400/401/403/404/
 // 409/422/429 stays itself, never masked as 500. Only genuine internal failures
 // (transport, decode, unexpected) become a 500.
+//
+// The TEXT of a failure is never forwarded (A6-11): a transport error names
+// core's internal address ("dial tcp …"), and a core 5xx message can be core's
+// own database error. Both are logged here and answered with a stable code and a
+// generic message. A core 4xx message is core's curated reason and still passes.
 func handleCoreErr(w http.ResponseWriter, err error) {
 	var ce *service.CoreError
 	if errors.As(err, &ce) {
 		code := ce.Code
 		if code == "" {
 			code = "ERROR"
+		}
+		if ce.Status >= http.StatusInternalServerError {
+			slog.Error("admin.core_call.upstream_failed", "status", ce.Status, "code", code, "error", err)
+			writeError(w, ce.Status, code, internalErrorMessage)
+			return
 		}
 		writeError(w, ce.Status, code, ce.Message)
 		return
@@ -53,8 +64,13 @@ func handleCoreErr(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "resource not found")
 		return
 	}
-	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+	slog.Error("admin.core_call.failed", "error", err)
+	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", internalErrorMessage)
 }
+
+// internalErrorMessage is the whole of what an operator is told about a failure
+// that is not a decision: the detail is in the log, under the same request.
+const internalErrorMessage = "the request could not be completed; try again"
 
 // actorIsSuperAdmin reports whether the calling operator is a SUPER_ADMIN.
 func actorIsSuperAdmin(r *http.Request) bool {

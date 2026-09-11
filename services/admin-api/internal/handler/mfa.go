@@ -99,8 +99,15 @@ func (h *MFAHandler) Enrol(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	secret, uri, err := h.mfa.BeginEnrolment(r.Context(), p.ID, p.Email)
+	if errors.Is(err, service.ErrMFAAlreadyConfirmed) {
+		writeError(w, http.StatusConflict, "ENROLMENT_REFUSED", "a confirmed second factor already exists")
+		return
+	}
 	if err != nil {
-		writeError(w, http.StatusConflict, "ENROLMENT_REFUSED", err.Error())
+		// A database failure is not a refusal, and its text is not the
+		// caller's to read (A6-11).
+		slog.ErrorContext(r.Context(), "admin.mfa.enrolment_failed", "admin_user_id", p.ID, "error", err)
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", internalErrorMessage)
 		return
 	}
 	// The secret is a credential: logged by id, never by value.

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -63,7 +64,8 @@ func (h *PaymentRequestHandler) Create(w http.ResponseWriter, r *http.Request) {
 		IdempotencyKey: body.IdempotencyKey,
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "payment_request.create.failed", "error", err)
+		respondCoreError(w, r, err, "could not create the payment request")
 		return
 	}
 	respond(w, http.StatusCreated, req)
@@ -141,7 +143,8 @@ func (h *PaymentRequestHandler) Pay(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment request not found")
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "payment_request.pay.failed", "error", err)
+		respondCoreError(w, r, err, "could not pay the payment request")
 		return
 	}
 	respond(w, http.StatusOK, req)
@@ -169,7 +172,8 @@ func (h *PaymentRequestHandler) Decline(w http.ResponseWriter, r *http.Request) 
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment request not found or not pending")
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "payment_request.decline.failed", "error", err)
+		respondCoreError(w, r, err, "could not decline the payment request")
 		return
 	}
 	respond(w, http.StatusOK, req)
@@ -197,7 +201,8 @@ func (h *PaymentRequestHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment request not found or not pending")
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "payment_request.cancel.failed", "error", err)
+		respondCoreError(w, r, err, "could not cancel the payment request")
 		return
 	}
 	respond(w, http.StatusOK, req)

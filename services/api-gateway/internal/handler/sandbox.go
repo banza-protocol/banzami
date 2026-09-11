@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/banzami/banzami/services/common/env"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -182,7 +183,8 @@ func (h *SandboxHandler) SimulatePayment(w http.ResponseWriter, r *http.Request)
 		Environment:     "SANDBOX",
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "sandbox.simulate.failed", "error", err)
+		respondCoreError(w, r, err, "could not simulate the payment")
 		return
 	}
 
@@ -252,7 +254,8 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 	// persisted, immediately reflected in balance queries).
 	balance, err := h.walletSvc.SandboxFund(r.Context(), wallet.ID, body.AmountMinor, body.Currency, r.Header.Get("Idempotency-Key"))
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "sandbox.fund.failed", "wallet_id", wallet.ID, "error", err)
+		respondCoreError(w, r, err, "could not fund the sandbox wallet")
 		return
 	}
 

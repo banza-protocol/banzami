@@ -24,9 +24,7 @@ func (h *ConsumerHandler) List(w http.ResponseWriter, r *http.Request) {
 	handle := r.URL.Query().Get("handle")
 	result, err := h.core.ListConsumers(r.Context(), handle)
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": map[string]any{"code": "INTERNAL_ERROR", "message": err.Error()},
-		})
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -43,9 +41,7 @@ func (h *ConsumerHandler) Get(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": map[string]any{"code": "INTERNAL_ERROR", "message": err.Error()},
-		})
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -74,9 +70,9 @@ func (h *ConsumerHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
-			"error": map[string]any{"code": "UNPROCESSABLE", "message": err.Error()},
-		})
+		// Core's refusal keeps its own status and reason; a failure is never
+		// answered with its text (A6-11).
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -109,9 +105,7 @@ func (h *ConsumerHandler) SetBadge(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error": map[string]any{"code": "BAD_REQUEST", "message": err.Error()},
-		})
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
