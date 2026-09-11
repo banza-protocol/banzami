@@ -29,13 +29,14 @@
 import { execFileSync } from 'node:child_process';
 import { createHash, randomBytes, randomInt } from 'node:crypto';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 import { join } from 'node:path';
 
 const GW = process.env.GW_API ?? 'https://sandbox-api.banzami.com';
 const REMOTE = process.env.BANZAMI_REMOTE ?? 'root@217.160.9.248';
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? process.argv[i + 1] : d; };
 const AWAIT = Number(arg('--await-decision', '0'));
-const OUT = arg('--out', join(process.cwd(), `evidence/assurance/business/kyb-attention-${Date.now()}`));
+const OUT = arg('--out', assuranceDir(`business/kyb-attention-${Date.now()}`));
 mkdirSync(OUT, { recursive: true });
 
 const steps = [];

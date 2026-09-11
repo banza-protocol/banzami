@@ -29,6 +29,7 @@
 import { execFileSync } from 'node:child_process';
 import { randomInt } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 import { join } from 'node:path';
 
 const GW = process.env.GW_API ?? 'https://sandbox-api.banzami.com';
@@ -40,7 +41,7 @@ const APP = arg('--application');
 const ACT = arg('--activation');
 const CSTATE = arg('--console-state');
 const RETIRE = process.argv.includes('--retire');
-const OUT = arg('--out', join(process.cwd(), `evidence/assurance/business/approved-business-${Date.now()}`));
+const OUT = arg('--out', assuranceDir(`business/approved-business-${Date.now()}`));
 if (!APP || !ACT) { console.error('usage: --application <id> --activation <link>'); process.exit(2); }
 mkdirSync(OUT, { recursive: true });
 

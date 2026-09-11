@@ -21,6 +21,7 @@
  * Nothing here needs a credential.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 
@@ -33,7 +34,7 @@ const arg = (n, d) => { const i = process.argv.indexOf(n); return i > -1 ? proce
 const SITE = arg('--site', 'https://banzami.com');
 const API = arg('--api', 'https://sandbox-api.banzami.com');
 const EXISTING_HANDLE = arg('--existing-handle', 'doa'); // any handle a Business Account uses
-const OUT = arg('--out', join(process.cwd(), `evidence/assurance/business/candidatura-${Date.now()}`));
+const OUT = arg('--out', assuranceDir(`business/candidatura-${Date.now()}`));
 mkdirSync(OUT, { recursive: true });
 
 const steps = [];
