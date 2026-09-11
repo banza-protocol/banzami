@@ -226,7 +226,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                         ),
                         const SizedBox(width: 5),
                         Text(
-                          'Endereço Banzami',
+                          'Endereço @banza',
                           style: BanzamiTextStyles.label.copyWith(
                             color: BanzamiColors.primary,
                             fontSize: 11,

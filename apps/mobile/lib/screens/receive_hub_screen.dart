@@ -124,10 +124,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final client = context.read<ConsumerPublicClient>();
       final page   = await client.getActivity(limit: 50, directionFilter: 'INCOMING');
       if (mounted) setState(() { _received = page.items; _loadingTransfers = false; });
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _transferError    = 'Não foi possível carregar os pagamentos.';
+          _transferError    = banzamiErrorMessage(e);
           _loadingTransfers = false;
         });
       }
@@ -324,7 +324,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                             Text(
                               AppConfig.isSandbox
                                   ? 'QR de teste · Sem valor financeiro real'
-                                  : 'Mostre este QR para receber pagamentos',
+                                  : 'Mostre este QR para receber uma transferência',
                               style: BanzamiTextStyles.bodySm.copyWith(
                                 color: AppConfig.isSandbox
                                     ? const Color(0xFFB45309)
@@ -393,7 +393,9 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                 child: Row(
                   children: [
                     Text(
-                      'Pagamentos recebidos',
+                      // Person-to-person money in: transferências, not
+                      // "pagamentos" (a payment is to a Business).
+                      'Transferências recebidas',
                       style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const Spacer(),
@@ -462,7 +464,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                           ),
                         ),
                         const SizedBox(height: BanzamiSpacing.md),
-                        const Text('Nenhum pagamento recebido', style: BanzamiTextStyles.headingSm),
+                        const Text('Nenhuma transferência recebida', style: BanzamiTextStyles.headingSm),
                         const SizedBox(height: BanzamiSpacing.xs),
                         Text(
                           'Partilhe o seu QR ou link para receber',

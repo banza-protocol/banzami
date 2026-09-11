@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/error_messages.dart';
 import '../utils/qr_parser.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
@@ -13,11 +14,6 @@ import 'send_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
 
-/// Shown when a structured Banzami QR (a merchant's static/dynamic code) is
-/// scanned: this version of the app cannot pay one.
-const String kStructuredQrUnavailableMessage =
-    'Pagamento por QR ainda não disponível nesta versão — peça um link de '
-    'pagamento ou o @banza.';
 
 /// Scan-to-pay router.
 ///
@@ -190,9 +186,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   // Returns true (and shows error) if the QR environment doesn't match the app.
   bool _sandboxMismatch(bool qrIsSandbox) {
     if (qrIsSandbox == widget.isSandbox) return false;
-    final msg = qrIsSandbox
-        ? 'Este QR pertence ao ambiente sandbox.'
-        : 'Este QR pertence ao ambiente live.';
+    final msg = environmentMismatchMessage(fromSandbox: qrIsSandbox);
     debugPrint('[QR-SCAN] error=sandboxMismatch '
         'qrSandbox=$qrIsSandbox appSandbox=${widget.isSandbox}');
     if (mounted)

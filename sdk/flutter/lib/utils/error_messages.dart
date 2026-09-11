@@ -47,6 +47,19 @@ const String kBanzamiGenericErrorMessage =
 const String kBanzamiSessionEndedMessage =
     'A sua sessão terminou. Entre novamente.';
 
+/// Shown when a structured Banzami QR (a merchant's static/dynamic code) is
+/// scanned: this version of the app cannot pay one.
+const String kStructuredQrUnavailableMessage =
+    'Pagamento por QR ainda não disponível nesta versão — peça um link de '
+    'pagamento ou o @banza.';
+
+/// A QR or link from the other environment. "Sandbox" is the test
+/// environment with test money; the other side is real money — never the
+/// English word "live" on a user's screen.
+String environmentMismatchMessage({required bool fromSandbox}) => fromSandbox
+    ? 'Este código é do ambiente de testes (Sandbox). Esta app usa dinheiro real.'
+    : 'Este código é de dinheiro real. Esta app está no ambiente de testes (Sandbox).';
+
 /// Whether [error] says nothing about the outcome — no answer, or an answer
 /// from a proxy/outage rather than a decision. A money request that failed
 /// this way may still have been executed.
