@@ -336,3 +336,16 @@ async fn an_unpaid_session_cancels_with_its_interfaces(pool: PgPool) {
     .await;
     assert!(refused.is_err(), "a paid session must not be cancellable");
 }
+
+// A1-06: a session naming another merchant's account is refused as not found —
+// the same answer as an id nobody holds, never a 403 that confirms it exists.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_foreign_account_is_not_found(pool: PgPool) {
+    let (_owner, _wid, wa, _acct) = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+    let stranger = Uuid::new_v4();
+    let err = routes::create(State(state), Json(body(stranger, wa, Some(1_000), Some("x"))))
+        .await
+        .expect_err("a foreign account was accepted");
+    assert_eq!(err.status.as_u16(), 404);
+}

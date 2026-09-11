@@ -147,10 +147,10 @@ pub async fn create(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?
         .ok_or_else(|| ApiError::not_found("wallet account not found"))?;
+    // Another merchant's account is not found — the same answer as an id nobody
+    // holds. A 403 here confirmed the id existed (A1-06).
     if wa_merchant != merchant_id {
-        return Err(ApiError::forbidden(
-            "wallet account is not owned by this merchant",
-        ));
+        return Err(ApiError::not_found("wallet account not found"));
     }
     if wa_status != "ACTIVE" {
         return Err(ApiError::conflict(

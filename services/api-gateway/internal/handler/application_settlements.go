@@ -349,7 +349,9 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	}
 	wal, werr := h.wallets.Get(r.Context(), acc.WalletID)
 	if werr != nil || wal == nil || wal.MerchantID != callerMerchantID {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "source account is not owned by this merchant")
+		// Not found, exactly as for an id nobody holds: a 403 confirmed that
+		// another merchant's account existed (A1-06).
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "source account not found")
 		return
 	}
 	if acc.Purpose == "PRIMARY" {

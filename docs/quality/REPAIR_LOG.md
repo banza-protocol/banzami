@@ -3522,3 +3522,17 @@ same normaliser. Tests `one_at_and_ascii_case_only`,
 `the_registry_names_are_reserved_here_too`, `TestNormaliseHandle_ASCIIOnly` (each fails
 on the previous normaliser), `tests/ops/migration-0133-one-reserved-list.test.mjs`
 (both directions of the one list).
+
+## RA-134 — two creation paths confirmed another merchant's account existed
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit A1-06)
+- **Status:** FIXED (core, gateway) — residual noted
+
+Creating a Payment Session that names another merchant's wallet account (core), and a
+business settlement from another merchant's source account (gateway), answered 403
+"not owned by this merchant", while an unknown id answered 404: the difference confirmed
+the id existed. Both now answer 404, exactly as for an id nobody holds. Tests
+`a_foreign_account_is_not_found`, `TestBusinessSettlement_AForeignSourceIsNotFound`.
+Residual: idempotency keys on application settlements, transactions and payouts are
+still unique globally, so a key another owner used answers 409 — a weaker oracle, and
+per-owner uniqueness needs a migration of three unique indexes.

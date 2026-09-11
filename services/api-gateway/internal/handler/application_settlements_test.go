@@ -400,3 +400,14 @@ func TestBusinessSettlement_RetryAnswersWithTheSettlementItMade(t *testing.T) {
 		t.Fatalf("another Business was handed this settlement (%s)", rec.Body.String())
 	}
 }
+
+// A1-06: another merchant's source account is not found — the same answer as an
+// id nobody holds. A 403 confirmed the account existed.
+func TestBusinessSettlement_AForeignSourceIsNotFound(t *testing.T) {
+	fs := &fakeSettlements{}
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "someone-else"}, &fakeWalletAccounts{balance: 200000}, &fakeParties{}, pricedFake())
+	rec := postBusiness(h, "doa-merchant", doaBody)
+	if rec.Code != http.StatusNotFound || fs.created != 0 {
+		t.Fatalf("a foreign source answered %d (created %d), want 404 and nothing created", rec.Code, fs.created)
+	}
+}
