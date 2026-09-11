@@ -49,6 +49,14 @@ describe('public proof verification states', () => {
     expect(r.status).toBe('CONFIRMED');
   });
 
+  // The payload carries no environment; the proof's is the stack that answered.
+  // platform-mode is unreadable here, so the target is the fail-safe SANDBOX.
+  it("a proof carries the environment of the stack it was read from", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { exists: true, status: 'CONFIRMED', amount: 1000000 }));
+    const r = await getProof('BZM-5EED-0A11');
+    expect(r.environment).toBe('SANDBOX');
+  });
+
   it('404 is a definitive NOT_FOUND — the only case that may accuse', async () => {
     fetchMock.mockResolvedValue(jsonResponse(404, { exists: false, status: 'NOT_FOUND', message: 'não existe' }));
     const r = await getProof('BZM-0000-0000');

@@ -1,4 +1,4 @@
-import { API_ENV } from '@/lib/api';
+import { platformTarget } from '@/lib/api';
 import { INVALID_PROOF, TrustNote, VerdictHeader, VerifierFrame } from './verifier-parts';
 
 /**
@@ -9,10 +9,14 @@ import { INVALID_PROOF, TrustNote, VerdictHeader, VerifierFrame } from './verifi
  * or an integrator's HTTP client is not told that a page for a non-existent
  * proof exists. Reached only through notFound() on a definitive answer; an
  * unavailable verifier renders the amber page with its own status, never this.
+ *
+ * A proof that does not exist has no environment of its own; the Sandbox
+ * disclosure here says which stack was asked (platformTarget fails to SANDBOX).
  */
-export default function ProofNotFound() {
+export default async function ProofNotFound() {
+  const { env } = await platformTarget();
   return (
-    <VerifierFrame sandbox={API_ENV === 'SANDBOX'}>
+    <VerifierFrame sandbox={env === 'SANDBOX'}>
       <VerdictHeader tone="red" title={INVALID_PROOF.title} sub={INVALID_PROOF.sub} />
       <TrustNote tone="red" />
     </VerifierFrame>

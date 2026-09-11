@@ -13,9 +13,10 @@ const notFound = vi.fn(() => { throw NOT_FOUND; });
 vi.mock('next/navigation', () => ({ notFound: () => notFound() }));
 
 const getProof = vi.fn<(ref: string) => Promise<ProofResult>>();
+const platformTarget = vi.fn(async () => ({ base: 'https://sandbox-api.test', env: 'SANDBOX' as 'LIVE' | 'SANDBOX' }));
 vi.mock('@/lib/api', async () => {
   const actual = await vi.importActual<typeof import('@/lib/api')>('@/lib/api');
-  return { ...actual, getProof: (ref: string) => getProof(ref) };
+  return { ...actual, getProof: (ref: string) => getProof(ref), platformTarget: () => platformTarget() };
 });
 
 const { default: ProofPage } = await import('./page');
@@ -57,12 +58,22 @@ describe('verifier HTTP status', () => {
     expect(html).toContain('Pagamento verificado');
   });
 
-  it('the 404 page is the same Portuguese invalid-proof view', () => {
-    const html = renderToStaticMarkup(<ProofNotFound />);
+  it('the 404 page is the same Portuguese invalid-proof view', async () => {
+    const html = renderToStaticMarkup(await ProofNotFound());
     expect(html).toContain('Comprovativo inválido');
     expect(html).toContain('VERIFICAÇÃO OFICIAL');
     expect(html).toContain('Fonte da verdade');
     expect(html).toContain('Verificar outro comprovativo');
+  });
+
+  // The Sandbox disclosure is the proof's environment — the stack it was read
+  // from — not the build-time API host.
+  it('the Sandbox banner follows the proof, not the build', async () => {
+    const proof = { exists: true, status: 'CONFIRMED', amount: 500000, currency: 'AOA', operation_kind: 'PAYMENT' };
+    getProof.mockResolvedValue({ ...proof, environment: 'SANDBOX' });
+    expect(renderToStaticMarkup(await run())).toContain('SANDBOX · sem valor financeiro real');
+    getProof.mockResolvedValue({ ...proof, environment: 'LIVE' });
+    expect(renderToStaticMarkup(await run())).not.toContain('SANDBOX');
   });
 
   it('only a definitive answer is "absent"', () => {

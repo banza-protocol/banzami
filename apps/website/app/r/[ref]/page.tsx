@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getProof, type ProofResult, API_ENV } from '@/lib/api';
+import { getProof, type ProofResult } from '@/lib/api';
 import { isProofRef } from '@/lib/proof-ref';
 import { MoneyAmount } from '@/components/MoneyAmount';
 import { confirmedTitle, proofRows, proofDefinitivelyAbsent } from '@/lib/proof-view';
@@ -80,7 +80,10 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
   const v = verdict(p);
 
   return (
-    <VerifierFrame sandbox={API_ENV === 'SANDBOX'}>
+    // The Sandbox disclosure follows the proof's environment (the stack it was
+    // read from), not the build-time API host — which named LIVE while the
+    // proof on screen came from the Sandbox stack.
+    <VerifierFrame sandbox={p.environment === 'SANDBOX'}>
       <VerdictHeader tone={v.tone} title={v.title} sub={v.sub} reference={isProofRef(ref) ? ref : undefined} />
 
       {p.exists && (
