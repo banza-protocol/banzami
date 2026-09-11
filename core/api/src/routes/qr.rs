@@ -114,24 +114,30 @@ pub async fn create_dynamic(
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }
 
-    // ADR-042: a bound segregated account must belong to the owner MERCHANT wallet,
-    // be ACTIVE, and match the QR currency. Validated here for early feedback; the
-    // transfer engine re-checks at pay time (authoritative).
+    // ADR-042: a bound segregated account must belong to the owning MERCHANT, be
+    // ACTIVE, and match the QR currency. Validated here for early feedback; the
+    // transfer engine re-checks at pay time (authoritative). The owner id is a
+    // merchant id, so it is compared with the account's merchant — comparing it
+    // with the account's wallet id matched nothing and refused every binding.
     let wallet_account_id = match body.wallet_account_id.as_deref() {
         None => None,
         Some(raw) => {
             let wa_id = uuid::Uuid::parse_str(raw)
                 .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
-            let ok: Option<uuid::Uuid> = sqlx::query_scalar(
-                "SELECT id FROM wallet_accounts
-                  WHERE id = $1 AND wallet_id = $2 AND currency = $3 AND status = 'ACTIVE'",
-            )
-            .bind(wa_id)
-            .bind(owner_id)
-            .bind(currency.code())
-            .fetch_optional(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
+            let ok: Option<uuid::Uuid> = if owner_type != QrOwnerType::Merchant {
+                None
+            } else {
+                sqlx::query_scalar(
+                    "SELECT id FROM wallet_accounts
+                      WHERE id = $1 AND merchant_id = $2 AND currency = $3 AND status = 'ACTIVE'",
+                )
+                .bind(wa_id)
+                .bind(owner_id)
+                .bind(currency.code())
+                .fetch_optional(&state.pool)
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?
+            };
             if ok.is_none() {
                 return Err(ApiError::unprocessable(
                     "INVALID_WALLET_ACCOUNT",

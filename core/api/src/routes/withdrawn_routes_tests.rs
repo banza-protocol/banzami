@@ -55,9 +55,16 @@ fn no_withdrawn_feature_is_mounted() {
     );
     let revived: Vec<&String> = mounted
         .iter()
-        .filter(|p| WITHDRAWN.iter().any(|w| p.as_str() == *w || p.starts_with(&format!("{w}/"))))
+        .filter(|p| {
+            WITHDRAWN
+                .iter()
+                .any(|w| p.as_str() == *w || p.starts_with(&format!("{w}/")))
+        })
         .collect();
-    assert!(revived.is_empty(), "withdrawn routes are mounted again: {revived:?}");
+    assert!(
+        revived.is_empty(),
+        "withdrawn routes are mounted again: {revived:?}"
+    );
 }
 
 #[test]
