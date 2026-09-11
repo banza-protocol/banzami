@@ -3219,3 +3219,20 @@ Migration 0132 adds the consumer counter (additive). Tests
 the lock condition all 50 are compared) and
 `TestVerifyHandlePin_ConcurrentGuessesCannotPassTheLimit` (the previous code compares
 33 of 40).
+
+## RA-116 — a revoked API key's token kept working for a day, and could mint a new key
+
+- **Found:** 2026-09-11 (full-system assurance, auth audit A9-02)
+- **Status:** FIXED (gateway) — residual noted
+
+`POST /v1/auth/token` exchanged a merchant API key for a 24-hour, full-scope token that
+is not checked against revocation on each request: revoking the key stopped new
+exchanges and nothing else. And any merchant token — that one included — could call
+`POST /v1/merchants/{id}/api-keys` and receive a fresh secret, so a leaked key could plant
+its own replacement and outlive its revocation. The key-derived token now lives fifteen
+minutes (the Business App's own access-token life; the SDKs re-exchange on expiry) and
+carries its source (`src: api_key`); such a token cannot mint keys — a Business mints them
+from the Business App or the Console. Tests `TestAPIKeyToken_IsShortLivedAndMarked`,
+`TestCreateApiKey_AKeyCannotMintKeys` (the previous code fails both). Residual: a PIN
+reset still ends app sessions only, not keys already minted from them (no "revoke all
+keys" on credential reset yet).

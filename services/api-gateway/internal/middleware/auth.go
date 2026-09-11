@@ -26,7 +26,14 @@ type Principal struct {
 	// obtain this token. All data access is scoped to this environment;
 	// cross-environment operations are rejected at the handler layer.
 	Environment string
+	// Source names the credential the token was exchanged for. "api_key" for
+	// POST /v1/auth/token; empty for a Business App session (and for tokens an
+	// operator harness mints). A key-derived token may not mint more keys.
+	Source string
 }
+
+// SourceAPIKey marks a token exchanged for a merchant API key.
+const SourceAPIKey = "api_key"
 
 type principalKey struct{}
 
@@ -113,6 +120,16 @@ func RequireScope(scope string) func(http.Handler) http.Handler {
 // environment must be "LIVE" or "SANDBOX" and is embedded as a claim so that
 // every downstream handler knows which data universe the caller may access.
 func NewMerchantToken(secret, merchantID string, scopes []string, environment string, ttl time.Duration) (token, expiresAt string, err error) {
+	return newMerchantToken(secret, merchantID, scopes, environment, "", ttl)
+}
+
+// NewAPIKeyToken is NewMerchantToken for a token exchanged for an API key: it
+// says so, and what it says limits it (it cannot mint keys).
+func NewAPIKeyToken(secret, merchantID string, scopes []string, environment string, ttl time.Duration) (token, expiresAt string, err error) {
+	return newMerchantToken(secret, merchantID, scopes, environment, SourceAPIKey, ttl)
+}
+
+func newMerchantToken(secret, merchantID string, scopes []string, environment, source string, ttl time.Duration) (token, expiresAt string, err error) {
 	// SEC-001 fail-closed: refuse to mint a token that would be signed with an
 	// empty key (such a token is forgeable by anyone).
 	if secret == "" {
@@ -124,6 +141,7 @@ func NewMerchantToken(secret, merchantID string, scopes []string, environment st
 		MerchantID:  merchantID,
 		Scopes:      scopes,
 		Environment: environment,
+		Source:      source,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -146,6 +164,7 @@ type jwtClaims struct {
 	CustomerID  string   `json:"customer_id,omitempty"`
 	Scopes      []string `json:"scopes"`
 	Environment string   `json:"environment,omitempty"` // "LIVE" | "SANDBOX"
+	Source      string   `json:"src,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -199,6 +218,7 @@ func verifyJWT(tokenStr, secret string) (*Principal, error) {
 		CustomerID:  c.CustomerID,
 		Scopes:      c.Scopes,
 		Environment: c.Environment,
+		Source:      c.Source,
 	}, nil
 }
 

@@ -143,10 +143,19 @@ func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A key is minted by the Business, not by another key. Any merchant token
+	// could mint one — including one exchanged for an API key — so a leaked key
+	// could create its own replacement and outlive its revocation (A9-02).
+	principal, _ := middleware.GetPrincipal(r.Context())
+	if principal.Source == middleware.SourceAPIKey {
+		apierror.Respond(w, r, http.StatusForbidden, "KEY_CANNOT_MINT_KEYS",
+			"an API key cannot create API keys — sign in to the Business App or the Console")
+		return
+	}
+
 	// A key opens the environment of the session that asks for it. An omitted
 	// field used to mean LIVE, so a Sandbox Business minted a real-money key by
 	// leaving it out; one that names the other environment is refused.
-	principal, _ := middleware.GetPrincipal(r.Context())
 	sessionEnv := banzamienv.Parse(principal.Environment)
 	if !sessionEnv.IsKnown() {
 		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "the session does not name an environment")

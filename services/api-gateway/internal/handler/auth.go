@@ -14,7 +14,11 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-const tokenTTL = 24 * time.Hour
+// tokenTTL bounds what a revoked key still opens. A key-derived token is not
+// checked against revocation on every request, so it lived 24 hours after its
+// key was revoked (A9-02); fifteen minutes is the Business App's own access
+// token life, and the SDKs re-exchange on expiry.
+const tokenTTL = 15 * time.Minute
 
 type AuthHandler struct {
 	cfg         *config.Config
@@ -64,7 +68,7 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusForbidden, "MERCHANT_NOT_ACTIVE", "this Business Account is not active")
 		return
 	}
-	token, expiresAt, err := middleware.NewMerchantToken(
+	token, expiresAt, err := middleware.NewAPIKeyToken(
 		h.cfg.JWTSecret,
 		merchant.ID,
 		[]string{"*"},
