@@ -149,6 +149,19 @@ describe('P2E — public trust artifacts', () => {
   });
 });
 
+describe('P2E — the summary describes the pay page as it is served', () => {
+  // The summary said pay.banzami.com "answers 503" / "não implantados" long
+  // after the hosted payer surface was deployed in the Sandbox project
+  // (Banzami ADR-052). What stays unavailable is live money on it, not the page.
+  it('does not call the deployed Sandbox payer page undeployed', () => {
+    const flat = SUMMARY_MD.replace(/\s+/g, ' ');
+    expect(flat).not.toMatch(/answers 503|responde 503/);
+    expect(flat).not.toMatch(/pay\/checkout \(not deployed|pay\/checkout públicos \(não implantados/);
+    expect(flat).toContain('pay.banzami.com is deployed and serves the Sandbox payer page');
+    expect(flat).toContain('pay.banzami.com está implantada e serve a página de pagamento do Sandbox');
+  });
+});
+
 describe('P2E — previous honesty preserved', () => {
   it('SDK-first, no fake installs, HTTP secondary, PT/EN only', () => {
     expect(PT).toContain('camada de referência técnica do protocolo');

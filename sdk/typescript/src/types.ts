@@ -462,9 +462,15 @@ export interface ListDisputesParams {
 }
 
 // ---------------------------------------------------------------------------
-// Payment requests
+// Payment requests — DEPRECATED (RA-057)
 // ---------------------------------------------------------------------------
+//
+// The payment-request methods were removed with their gateway routes (RA-057):
+// they let a caller name any requester and debit any payer. These types stayed
+// exported from a published package, so they remain for one more major version
+// to avoid breaking a compile, but nothing in this SDK uses them.
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method returns this. Removed in the next major version. */
 export type PaymentRequestStatus =
   | 'PENDING'
   | 'PAID'
@@ -472,6 +478,7 @@ export type PaymentRequestStatus =
   | 'CANCELLED'
   | 'EXPIRED';
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method returns this. Removed in the next major version. */
 export interface PaymentRequest {
   id:             string;
   requester_id:   string;
@@ -485,6 +492,7 @@ export interface PaymentRequest {
   updated_at:     string;
 }
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method accepts this. Removed in the next major version. */
 export interface CreatePaymentRequestParams {
   requester_id:     string;
   payer_handle?:    string;
@@ -495,6 +503,7 @@ export interface CreatePaymentRequestParams {
   idempotency_key?: string;
 }
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method accepts this. Removed in the next major version. */
 export interface ListPaymentRequestsParams {
   status?: PaymentRequestStatus;
   limit?:  number;
@@ -651,9 +660,12 @@ export interface CreateBusinessApplicationSettlementParams {
 export type PaymentSessionInterfaceType = 'PAYMENT_LINK' | 'DYNAMIC_QR' | 'STATIC_QR' | 'DEEP_LINK';
 
 /** One interface presenting a session (canonical ADR-043 shape). `value` is the
- *  presentable artifact — a URL (link/deep link) or a signed QR payload — and
- *  carries only an opaque session reference, never an account id. The app DISPLAYS
- *  it; it never builds a financial payload itself. */
+ *  presentable artifact and carries only an opaque session reference, never an
+ *  account id: a URL for PAYMENT_LINK / DEEP_LINK, and for the QR interfaces
+ *  (DYNAMIC_QR = fixed amount, STATIC_QR = open amount) the string the QR
+ *  encodes — the session's hosted pay URL (https://pay.banzami.com/pay/{slug}),
+ *  which any phone camera opens. The app DISPLAYS it; it never builds a
+ *  financial payload itself. */
 export interface PaymentSessionInterface {
   type: PaymentSessionInterfaceType;
   value: string;

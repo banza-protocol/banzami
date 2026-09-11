@@ -95,7 +95,7 @@ capabilities:
       - core/wallets
       - core/transfers
     api_surface:
-      - /v1/transfers
+      - /v1/transfers — public-api Consumer surface only (consumer token; sender derived from the token). Not mounted on the developer gateway (SEC-015)
       - /v1/wallets
     threat_category: financial-money-movement
     tests:
@@ -201,9 +201,13 @@ capabilities:
     #
     # What that journey establishes for this capability specifically: a session
     # created with a developer key carries the exact amount and currency, issues
-    # a usable payment link, deep link and dynamic QR, replays idempotently and
+    # a usable payment link, deep link and QR, replays idempotently and
     # returns 409 on a changed payload, refuses a client-supplied payee (400 —
     # the payee comes only from the binding), and is unreadable across projects.
+    #
+    # The session QR encodes the hosted pay URL (pay.banzami.com/pay/{slug}), so
+    # a scan opens the pay page and settles on the link rail. It used to encode
+    # the structured dynamic-QR payload, which no route pays (A4-01, RA-096).
 
   - id: CAP-PAY-002
     name: Payment links
@@ -217,7 +221,7 @@ capabilities:
     implementation:
       - services/api-gateway
     api_surface:
-      - /v1/payment-links + public /public/pay/{slug} (merchant-JWT today; dev-key path pending ADR-047)
+      - /v1/payment-links + public /public/pay/{slug} (merchant login token or a bound developer key, ADR-047)
     threat_category: financial-money-movement
     tests:
       unit: []
@@ -248,9 +252,9 @@ capabilities:
     surface: public
     disposition: released
     status: verified
-    # RT03: functions for merchant-JWT holders; developer-facing release HELD on
-    # the Project→Merchant binding (ADR-047). §4 public-payer UUID redaction
-    # deployed. Released only after ADR-047 + RT03 §6 deployed E2E.
+    # RT03: functions for merchant-JWT holders and, since ADR-047 was deployed,
+    # for developer keys bound to a Project (payment_links:read/write; the payee
+    # comes only from the binding). §4 public-payer UUID redaction deployed.
 
   - id: CAP-PAY-003
     name: QR payment flows (Banzami QR)
@@ -265,37 +269,34 @@ capabilities:
       - services/api-gateway
       - apps/mobile
     api_surface:
-      - /v1/qr
+      - POST /v1/qr/static (QR issuance only)
+      - POST /v1/qr/dynamic (QR issuance only)
     threat_category: financial-money-movement
     tests:
       unit: []
       integration: []
-      e2e_sandbox:
-        - 'WH.delivery.received · signature-header-present · signature-valid-independently (deployed sandbox, public HTTPS receiver)'
-        - 'WH.delivery.signed-over-raw-bytes — a re-serialised body does NOT verify'
-        - 'WH.retry.first-attempt-delivered · retries-on-5xx · event-id-stable-across-attempts'
-        - 'WH.retry.no-duplicate-business-events — retries add attempts, not events'
-        - 'WH.isolation.source-commits-despite-failing-receiver · source-state-correct · no-financial-side-effect'
-      negative_security:
-        - 'WH.tamper.body-rejected · tamper.signature-rejected · tamper.timestamp-rejected'
-        - 'WH.dest.* — http scheme, loopback (v4/v6/name), RFC1918, link-local metadata, unspecified, missing/malformed host all 400 (RA-023)'
-        - 'WH.authz.* — cross-merchant read/deactivate 404; victim endpoint unchanged; B sees nothing of A'
-        - 'WH.payload.no-secret · no-secret-in-transit · no-foreign-merchant'
+      e2e_sandbox: []
+      negative_security: []
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence:
-      - evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json
-      - tools/e2e/webhooks/cap-webhook-001-sandbox-e2e.mjs
-      - infra/sandbox/webhook-sink/sink.mjs
+    evidence: []
     surface: public
-    disposition: released
-    status: verified
-    # 55/55 deployed-Sandbox assertions, 0 blocked, against a genuinely public
-    # HTTPS receiver — the SSRF policy (RA-023) is not relaxed for the test rail.
-    # Delivery required giving the gateway egress it never had: its networks were
-    # internal:true, so no outbound webhook could leave. Egress is now a dedicated
-    # guarded network (private space DROPped at the host), so RA-023 stays
-    # defence-in-depth rather than the sole control.
+    disposition: pending-e2e
+    status: blocked
+    # BLOCKED: no route pays a structured QR. POST /v1/qr/pay was removed from
+    # the merchant surface (RA-053) and the consumer route it must be rebuilt as
+    # does not exist (docs/security/QR-PAY-AUTHORITY-CONTRACT.md: "CAP-PAY-003
+    # cannot be released"). The api_surface is limited to what is mounted —
+    # QR issuance — and claims nothing about paying one.
+    #
+    # This capability was marked verified/released in 8ad5eabd with the webhook
+    # suite's tests and evidence (WH.*, cap-webhook-001-sandbox-e2e.json) — a
+    # CAP-WEBHOOK-001 promotion that landed on the wrong entry (A4-02). Those
+    # belong to CAP-WEBHOOK-001, which carries them. Nothing proves QR payment,
+    # so the tests and evidence here are empty until a QR-pay suite exists.
+    #
+    # Payment-session QRs are not blocked by this: they encode the hosted pay
+    # URL and settle on the payment-link rail (CAP-PAY-001/002).
 
   - id: CAP-REFUND-001
     name: Typed-source refunds (refund_source)
@@ -741,7 +742,8 @@ capabilities:
     # `banzami` is Banzami-owned. Publication remains a deliberate manual owner
     # action; no long-lived write token exists in CI.
     #
-    # latest = 0.8.3, PUBLISHED 2026-09-06, which follows the refund route to
+    # latest = 0.12.1 (npm view @banzami/sdk version, 2026-09-11). 0.8.3,
+    # published 2026-09-06, followed the refund route to
     # its canonical public path. 0.8.1 had moved the client to
     # /v1/business/refunds to match the server; the server moved to /v1/refunds
     # instead, so 0.8.1 and 0.8.2 now 404 on every refund — the retired path is
@@ -819,7 +821,7 @@ capabilities:
     implementation:
       - apps/mobile (main_consumer.dart)
     api_surface:
-      - consumer mobile UI (deep-link inbound payments; no camera QR scan)
+      - consumer mobile UI (deep-link inbound payments; camera QR scan of @banza and payment-link QRs — a structured Banzami QR is refused, no consumer QR-pay route exists)
     threat_category: tenant-data
     tests:
       unit:

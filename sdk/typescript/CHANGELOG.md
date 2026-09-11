@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — `formatMinor` printed AOA amounts 100 times too large
+
+`formatMinor` (`@banzami/sdk/money`) treated one AOA minor unit as one kwanza.
+AOA minor units are cêntimos (1 Kz = 100), as in the ledger and every Banzami
+surface, so `formatMinor(5_000_000, 'AOA')` printed `"5.000.000 Kz"` for
+50 000 Kz. It now divides by 100 and follows the Banzami display rule:
+`"50 000 Kz"`, `"50 000,50 Kz"`. If you worked around the old output by
+dividing first, remove the workaround.
+
+### Deprecated — payment-request types
+
+`PaymentRequest`, `PaymentRequestStatus`, `CreatePaymentRequestParams` and
+`ListPaymentRequestsParams` are still exported, but the methods that used them
+were removed with their routes (RA-057). They are marked `@deprecated` and will
+be removed in the next major version.
+
+### Documentation — README
+
+- Every amount comment read minor units as kwanzas (`amountMinor: 12500, //
+  12 500 Kz` is 125 Kz). They now use 1 Kz = 100 minor units, and a repository
+  guard (`tests/ops/sdk-readme-money.test.mjs`) holds that.
+- Payment sessions — the recommended flow — are documented.
+- The QR section no longer says a payer pays a structured QR from the app: no
+  route pays one. To be paid by QR, show a payment session's or payment link's
+  QR (the hosted pay URL).
+- The refund example used `transactionId`; `createRefund` takes the typed
+  source (`source_type`, `source_id`) and a required `idempotency_key`. The
+  dispute example now passes `OpenDisputeParams`.
+
+### Changed (operator) — the payment-session QR is the hosted pay URL
+
+A payment session's QR interface (`DYNAMIC_QR` for a fixed amount, `STATIC_QR`
+for an open amount) and `GET /v1/payment-sessions/{id}/qr` now carry the
+session's hosted pay URL (`https://pay.banzami.com/pay/{slug}`). A fixed-amount
+session used to carry a structured dynamic-QR payload that no route could pay.
+The shape is unchanged — no SDK code change; the type docs now say what
+`value` holds.
+
 ## [0.12.1] — 2026-09-11
 
 ### Deprecated — `createApplicationSettlement()`

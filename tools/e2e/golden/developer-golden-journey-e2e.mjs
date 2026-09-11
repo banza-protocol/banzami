@@ -179,7 +179,10 @@ let session, linkSlug, qrPayload, payRef;
   rec('GJ.session.link-is-usable-url',
       !!link && /^https:\/\/[^/]+\/pay\/[A-Za-z0-9]+$/.test(link.value),
       link ? `${new URL(link.value).origin}/pay/…` : 'no PAYMENT_LINK interface');
-  rec('GJ.session.qr-payload-signed', !!qr && typeof qr.value === 'string' && qr.value.length > 40 && !!qr.qr_url);
+  // The session QR encodes the hosted pay URL (A4-01): a structured dynamic-QR
+  // payload has no route that pays it, so the QR must open the pay page.
+  rec('GJ.session.qr-is-pay-url', !!qr && !!link && qr.value === link.value && !!qr.qr_url,
+      qr ? (qr.value === link?.value ? 'QR = PAYMENT_LINK' : 'QR value differs from the pay URL') : 'no DYNAMIC_QR interface');
   linkSlug = link ? link.value.split('/').pop() : null;
   qrPayload = qr?.value;
 

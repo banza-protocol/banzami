@@ -79,6 +79,16 @@ describe('P2B — install commands match what is actually published', () => {
     expect(PT).not.toMatch(/SDKs ainda não estão publicados publicamente/);
     expect(EN).not.toMatch(/SDKs are not yet publicly published/);
   });
+  // A4-10 in the rendered docs: npm and pub.dev are live, so no sentence may
+  // say a published registry has nothing, or tell a reader to wait for it.
+  it('no sentence says a published package is unpublished', () => {
+    const flat = (s: string) => s.replace(/\s+/g, ' ');
+    for (const [name, src] of Object.entries({ PT: flat(PT), EN: flat(EN) })) {
+      expect(src, `${name}: "Until public packages are published"`).not.toMatch(/Until public packages are published/i);
+      expect(src, `${name}: Dart listed as unpublished`).not.toMatch(/Python, PHP, Dart/);
+      expect(src, `${name}: npm or pub.dev listed as unpublished`).not.toMatch(/not (yet )?published to npm|not yet published to [^.]*pub\.dev|não estão publicados em [^.]*pub\.dev/i);
+    }
+  });
 });
 
 describe('P2B — sdk-first manifest', () => {

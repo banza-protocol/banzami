@@ -2,8 +2,16 @@ import { describe, expect, it } from 'vitest';
 import { addMinor, formatMinor, subtractMinor } from './money.js';
 
 describe('formatMinor', () => {
-  it('formats AOA as integer kwanzas with Kz suffix', () => {
-    expect(formatMinor(50000, 'AOA')).toBe('50 000 Kz'); // non-breaking space from pt-AO locale
+  // AOA minor units are cêntimos: 1 Kz = 100 minor (core/types currency.rs,
+  // docs/architecture/money-engine.md). The helper used to print minor units as
+  // whole kwanzas, so 5 000 000 minor (50 000 Kz) showed as "5.000.000 Kz".
+  it('formats AOA minor units (cêntimos) as kwanzas, Money Engine style', () => {
+    expect(formatMinor(5_000_000, 'AOA')).toBe('50 000 Kz');
+    expect(formatMinor(50_000, 'AOA')).toBe('500 Kz');
+    expect(formatMinor(12_500, 'AOA')).toBe('125 Kz');
+    expect(formatMinor(5_000_050, 'AOA')).toBe('50 000,50 Kz');
+    expect(formatMinor(1, 'AOA')).toBe('0,01 Kz');
+    expect(formatMinor(-150, 'AOA')).toBe('-1,50 Kz');
   });
 
   it('formats AOA zero correctly', () => {
@@ -26,11 +34,9 @@ describe('formatMinor', () => {
     expect(result).toContain('50');
   });
 
-  it('AOA uses minor == whole units (no division by 100)', () => {
-    // 1 AOA = 1 minor unit. 50 000 minor = 50 000 Kz, NOT 500 Kz.
-    const result = formatMinor(50000, 'AOA');
-    expect(result).not.toContain('500,');
-    expect(result).toContain('50');
+  it('AOA divides by 100 (1 Kz = 100 cêntimos), like every other currency', () => {
+    expect(formatMinor(50000, 'AOA')).not.toContain('50 000');
+    expect(formatMinor(100, 'AOA')).toBe('1 Kz');
   });
 });
 

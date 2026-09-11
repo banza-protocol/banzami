@@ -95,10 +95,15 @@ func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 
 	// Public payload exposes only safe fields — no internal ids/ledger/signature.
 	pub := svc.Public(got)
-	for _, forbidden := range []string{"payer_subject_id", "payee_subject_id", "ledger_reference", "signature", "signature_value", "transaction_id", "id", "environment"} {
+	for _, forbidden := range []string{"payer_subject_id", "payee_subject_id", "ledger_reference", "signature", "signature_value", "transaction_id", "id"} {
 		if _, ok := pub[forbidden]; ok {
 			t.Fatalf("public payload leaked %q", forbidden)
 		}
+	}
+	// The proof's own environment is public (A2-17): it is what tells a reader a
+	// Sandbox receipt is not real money.
+	if pub["environment"] != "SANDBOX" {
+		t.Fatalf("public payload environment = %v, want SANDBOX", pub["environment"])
 	}
 	if pub["amount"] != int64(2500000) || pub["payer_handle"] != "joao" || pub["operator"] != "banzami" {
 		t.Fatalf("public payload wrong: %+v", pub)

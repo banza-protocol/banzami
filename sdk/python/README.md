@@ -36,9 +36,9 @@ import asyncio
 from banzami import Banzami
 
 async def main():
-    async with Banzami(api_key="bz_live_...") as client:
+    async with Banzami(api_key="bz_test_...") as client:
         tx = await client.transactions.create(
-            amount=50000,   # 50 000 Kz
+            amount=50000,   # 500 Kz (minor units are cêntimos: 1 Kz = 100)
             currency="AOA",
             description="Compra na loja",
         )
@@ -47,22 +47,17 @@ async def main():
 asyncio.run(main())
 ```
 
-## QR payment
+## Being paid by QR
 
-```python
-from datetime import datetime, timedelta, timezone
+Show the QR of a **payment link**: encode `link.checkout_url` (the hosted pay
+URL, `https://pay.banzami.com/pay/{slug}`) into the QR image. Any phone camera
+opens the pay page. See [Payment links](#payment-links).
 
-qr = await client.qr_payments.create_dynamic(
-    owner_id="wallet_...",
-    amount=25000,
-    expires_at=datetime.now(tz=timezone.utc) + timedelta(minutes=15),
-)
-print(qr.payload)          # raw QR payload to encode into an image
-print(qr.qr_code.status)  # ACTIVE
-```
+`client.qr_payments.create_static()` / `create_dynamic()` issue structured
+Banzami QR codes. No route pays a structured QR today (the QR-pay route is being
+rebuilt on the consumer surface), so do not present them to payers.
 
-A payer pays a QR from the Banzami app, under their own authentication. A server
-key never moves a person's money, so this SDK has no transfer call: the
+A server key never moves a person's money, so this SDK has no transfer call: the
 id-based merchant transfer surface was retired, and consumer-to-consumer
 transfers belong to the consumer app.
 
@@ -122,9 +117,11 @@ client = Banzami(
 ```python
 from banzami.utils.money import format_minor, to_minor, from_minor
 
-format_minor(50000, "AOA")   # "50.000 Kz"
+# Minor units are cêntimos for AOA: 1 Kz = 100 minor units.
+format_minor(5000000, "AOA") # "50 000 Kz"
+format_minor(5000050, "AOA") # "50 000,50 Kz"
 format_minor(5000,  "USD")   # "USD 50.00"
-to_minor(1500.0, "AOA")      # 1500
+to_minor(1500.0, "AOA")      # 150000
 to_minor(19.99,  "USD")      # 1999
 ```
 
@@ -182,14 +179,17 @@ await client.payment_links.cancel(link.id)
 
 ```python
 refund = await client.refunds.create(
-    transaction_id="tx_001",
+    source_type="WALLET_PAYMENT",   # or ACQUIRING_PAYMENT
+    source_id="wp_001",
     amount=20000,           # partial refund: 200 Kz
+    currency="AOA",
     reason="Produto devolvido",
+    idempotency_key="refund-order-001",  # required: a stable key for this refund
 )
 print(refund.status)       # PENDING → SUCCEEDED
 
-# List refunds for a transaction
-page = await client.refunds.list(transaction_id="tx_001")
+# List refunds, optionally for one source
+page = await client.refunds.list(source_id="wp_001")
 ```
 
 ## Disputes
@@ -199,7 +199,7 @@ page = await client.refunds.list(transaction_id="tx_001")
 dispute = await client.disputes.open(
     transaction_id="tx_001",
     consumer_id="con_001",
-    amount=50000,
+    amount=50000,           # 500 Kz
     reason="Produto não recebido",
 )
 

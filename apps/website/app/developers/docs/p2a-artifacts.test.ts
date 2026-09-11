@@ -121,6 +121,21 @@ describe('P2A — OpenAPI spec', () => {
     expect(raw).toContain('req_xxx');
     expect(raw).toContain('idem_xxx');
   });
+  it('documents the session QR as the hosted pay URL (A4-01), never a structured payload', () => {
+    // No route pays a structured dynamic-QR payload, so the gateway encodes the
+    // session's pay URL in every session QR; the spec and the rendered reference
+    // must show that value, not a <qr-payload> placeholder.
+    const qrEx = OPENAPI.paths['/v1/payment-sessions/{id}/qr'].get.responses['200'].content['application/json'].example;
+    expect(qrEx.value).toMatch(/^https:\/\/pay\.banzami\.com\/pay\//);
+    const created = OPENAPI.paths['/v1/payment-sessions'].post.responses['201'].content['application/json'].example;
+    const qrIface = created.interfaces.find((i: { type: string }) => i.type === 'DYNAMIC_QR');
+    const link = created.interfaces.find((i: { type: string }) => i.type === 'PAYMENT_LINK');
+    expect(qrIface.value).toBe(link.value);
+    for (const src of [JSON.stringify(OPENAPI), read('apps/website/app/developers/docs/reference.tsx'), read('apps/website/app/developers/docs/content-pt.tsx')]) {
+      expect(src).not.toContain('qr-payload>');
+      expect(src).not.toContain('"<payload>"');
+    }
+  });
 });
 
 describe('P2A — examples and fixtures', () => {
@@ -177,6 +192,23 @@ describe('P2A — Postman collection', () => {
       const path = u.replace('{{baseUrl}}', '').replace('{{sessionId}}', '{id}').split('?')[0];
       expect(ALLOWED_PATHS.includes(path), `unexpected Postman path: ${path}`).toBe(true);
     }
+  });
+  it('sends each request to the path it displays (url.path agrees with url.raw)', () => {
+    // Postman sends the structured url.path, not url.raw. The session requests
+    // once carried a legacy /v1/business/... path array under a correct raw URL,
+    // so the collection displayed a mounted route and called an unmounted one.
+    for (const folder of POSTMAN.item) {
+      for (const req of folder.item) {
+        const url = req.request.url;
+        const rawPath = url.raw.replace('{{baseUrl}}', '').split('?')[0];
+        expect('/' + url.path.join('/'), `${req.name}: url.path disagrees with url.raw`).toBe(rawPath);
+      }
+    }
+  });
+  it('describes the session QR as the hosted pay URL, not a structured payload', () => {
+    const raw = JSON.stringify(POSTMAN);
+    expect(raw).not.toContain('png/pdf');
+    expect(raw).toContain('https://pay.banzami.com/pay/{slug}');
   });
 });
 

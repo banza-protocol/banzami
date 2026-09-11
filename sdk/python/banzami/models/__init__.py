@@ -4,7 +4,6 @@ from .common import Money
 from .dispute import Dispute, DisputeStatus
 from .merchant import ApiKey, Merchant, MerchantStatus, NewApiKey
 from .payment_link import PaymentLink, PaymentLinkStatus
-from .payment_request import PaymentRequest, PaymentRequestStatus
 from .payout import Payout, PayoutStatus
 from .qr_payment import ParsedQr, QrCode, QrCodeStatus, QrCodeType, QrPayment
 from .refund import Refund, RefundStatus
@@ -40,8 +39,6 @@ __all__ = [
     "RefundStatus",
     "Dispute",
     "DisputeStatus",
-    "PaymentRequest",
-    "PaymentRequestStatus",
     "WebhookEndpoint",
     "WebhookEndpointStatus",
     "WebhookEvent",

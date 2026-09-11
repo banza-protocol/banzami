@@ -13,6 +13,19 @@
 > implement it. The API contract and phases below remain the operator's
 > implementation of the BANZA standard.
 
+> **Implementation note (2026-09-11, audit finding A4-01).** The session QR —
+> both the `DYNAMIC_QR`/`STATIC_QR` interface `value` and
+> `GET /v1/payment-sessions/{id}/qr` — encodes the session's **hosted pay URL**
+> (`https://pay.banzami.com/pay/{slug}`), for a fixed-amount session as for an
+> open one. A fixed-amount session used to encode core's structured dynamic-QR
+> payload, and no route pays a structured QR
+> ([QR-PAY-AUTHORITY-CONTRACT](../security/QR-PAY-AUTHORITY-CONTRACT.md), RA-096),
+> so that QR could be scanned but never paid. The response shape is unchanged;
+> the `qr_payload` / `qr_image_url` fields sketched below were never the shipped
+> contract (the shipped one is the `interfaces[]` array, BANZA ADR-015). "Pay by
+> QR" below therefore means: the QR opens the pay page, and the payment settles
+> on the link rail.
+
 ---
 
 ## Context

@@ -1,4 +1,10 @@
-"""Money formatting and conversion unit tests."""
+"""Money formatting and conversion unit tests.
+
+AOA minor units are cêntimos: 1 Kz = 100 minor units, as in the ledger
+(core/types currency.rs) and docs/architecture/money-engine.md. These helpers
+used to treat 1 minor unit as 1 Kz, so every AOA amount displayed and converted
+100 times too large.
+"""
 
 import pytest
 
@@ -6,11 +12,20 @@ from banzami.utils.money import format_minor, from_minor, to_minor
 
 
 class TestFormatMinor:
-    def test_aoa_no_decimal(self):
-        assert format_minor(50000, "AOA") == "50.000 Kz"
+    def test_aoa_minor_units_are_centimos(self):
+        assert format_minor(5_000_000, "AOA") == "50 000 Kz"
+        assert format_minor(50_000, "AOA") == "500 Kz"
+        assert format_minor(12_500, "AOA") == "125 Kz"
+
+    def test_aoa_centimos_shown_only_when_present(self):
+        assert format_minor(5_000_050, "AOA") == "50 000,50 Kz"
+        assert format_minor(1, "AOA") == "0,01 Kz"
+
+    def test_aoa_negative(self):
+        assert format_minor(-150, "AOA") == "-1,50 Kz"
 
     def test_aoa_lowercase(self):
-        assert format_minor(1000, "aoa") == "1.000 Kz"
+        assert format_minor(100_000, "aoa") == "1 000 Kz"
 
     def test_aoa_zero(self):
         assert format_minor(0, "AOA") == "0 Kz"
@@ -27,14 +42,12 @@ class TestFormatMinor:
 
 
 class TestToMinor:
-    def test_aoa_integer(self):
-        assert to_minor(1000.0, "AOA") == 1000
+    def test_aoa_multiplies_by_100(self):
+        assert to_minor(1000.0, "AOA") == 100_000
 
-    def test_aoa_rounds_up(self):
-        assert to_minor(99.6, "AOA") == 100
-
-    def test_aoa_rounds_down(self):
-        assert to_minor(99.4, "AOA") == 99
+    def test_aoa_centimos(self):
+        assert to_minor(99.6, "AOA") == 9960
+        assert to_minor(0.01, "AOA") == 1
 
     def test_usd_multiplies(self):
         assert to_minor(50.0, "USD") == 5000
@@ -43,17 +56,18 @@ class TestToMinor:
         assert to_minor(0.01, "USD") == 1
 
     def test_case_insensitive(self):
-        assert to_minor(500.0, "aoa") == 500
+        assert to_minor(500.0, "aoa") == 50_000
         assert to_minor(1.0, "usd") == 100
 
 
 class TestFromMinor:
-    def test_aoa_identity(self):
-        assert from_minor(50000, "AOA") == 50000.0
+    def test_aoa_divides_by_100(self):
+        assert from_minor(50000, "AOA") == 500.0
 
     def test_usd_divides(self):
         assert from_minor(5000, "USD") == 50.0
 
-    def test_roundtrip_usd(self):
-        original = 49.99
-        assert from_minor(to_minor(original, "USD"), "USD") == pytest.approx(original, abs=0.01)
+    def test_roundtrip(self):
+        for cur in ("USD", "AOA"):
+            original = 49.99
+            assert from_minor(to_minor(original, cur), cur) == pytest.approx(original, abs=0.01)

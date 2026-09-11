@@ -147,8 +147,12 @@ export const ENDPOINTS: EndpointSpec[] = [
   "expires_at": "2026-07-11T12:00:00Z",
   "created_at": "2026-07-11T11:45:00Z",
   "interfaces": [
-    { "type": "DYNAMIC_QR", "value": "<payload>", "format": "QR_PAYLOAD",
-      "qr_url": "https://pay.banzami.com/…", "expires_at": "2026-07-11T12:00:00Z" }
+    { "type": "PAYMENT_LINK", "value": "https://pay.banzami.com/pay/slug_exemplo", "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z" },
+    { "type": "DEEP_LINK", "value": "banzami://pay/slug_exemplo", "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z" },
+    { "type": "DYNAMIC_QR", "value": "https://pay.banzami.com/pay/slug_exemplo", "format": "QR_PAYLOAD",
+      "qr_url": "/v1/payment-sessions/psess_exemplo/qr", "expires_at": "2026-07-11T12:00:00Z" }
   ]
 }`,
     errors: [
@@ -209,8 +213,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/payment-sessions/{id}/qr',
     tone: 'ok',
     desc: {
-      pt: 'Devolve o QR da sessão. Sem parâmetros devolve o valor codificável em JSON; com ?format=png|svg|pdf devolve a imagem renderizada.',
-      en: 'Returns the session QR. Without parameters it returns the encodable value as JSON; with ?format=png|svg|pdf it returns the rendered image.',
+      pt: 'Devolve o QR da sessão. O QR codifica o URL da página de pagamento da sessão (https://pay.banzami.com/pay/{slug}) — qualquer câmara de telemóvel abre a página e o pagador paga aí. Sem parâmetros devolve o valor codificável em JSON ({"type":"QR","value":"https://pay.banzami.com/pay/{slug}"}); com ?format=png|svg devolve a imagem renderizada (?format=pdf responde 415).',
+      en: 'Returns the session QR. The QR encodes the session’s hosted pay URL (https://pay.banzami.com/pay/{slug}) — any phone camera opens the page and the payer pays there. Without parameters it returns the encodable value as JSON ({"type":"QR","value":"https://pay.banzami.com/pay/{slug}"}); with ?format=png|svg it returns the rendered image (?format=pdf answers 415).',
     },
     credential: { pt: 'Como na criação', en: 'Same as creation' },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],

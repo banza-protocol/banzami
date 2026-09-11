@@ -301,3 +301,72 @@ func TestPaymentSession_WithoutPayBaseURLTheLegacyShapeIsKept(t *testing.T) {
 		}
 	}
 }
+
+// A4-01: the QR a session hands out must be payable. The fixed-amount session
+// used to return core's structured dynamic-QR payload (BANZA-SBX:…) as its QR,
+// and no route pays a structured QR (docs/security/QR-PAY-AUTHORITY-CONTRACT.md,
+// RA-096) — so a customer scanning it had nowhere to go. Every session carries a
+// payment link, so the QR encodes the hosted pay URL: any phone camera opens the
+// pay page, which is the one rail that settles.
+func TestPaymentSession_QrEncodesTheHostedPayURL(t *testing.T) {
+	const want = "https://pay.banzami.com/pay/abc123"
+	for _, fixedAmount := range []bool{true, false} {
+		h := psHandler("doa-merchant", fixedAmount).WithPayBaseURL("https://pay.banzami.com")
+
+		// Create response: the QR interface's value is the pay URL.
+		rec := httptest.NewRecorder()
+		h.Create(rec, reqWith("POST", "https://sandbox-api.banzami.com/v1/payment-sessions",
+			`{"wallet_account_id":"wa-1","purpose":"DONATION","amount_minor":50000}`, "doa-merchant"))
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("fixed=%v: want 201, got %d (%s)", fixedAmount, rec.Code, rec.Body.String())
+		}
+		if strings.Contains(rec.Body.String(), "BANZA-SBX:") {
+			t.Fatalf("fixed=%v: the unpayable structured QR payload is still handed out: %s", fixedAmount, rec.Body.String())
+		}
+		var resp struct {
+			Interfaces []struct {
+				Type   string `json:"type"`
+				Value  string `json:"value"`
+				Format string `json:"format"`
+				QrURL  string `json:"qr_url"`
+			} `json:"interfaces"`
+		}
+		_ = json.Unmarshal(rec.Body.Bytes(), &resp)
+		qrType := "STATIC_QR"
+		if fixedAmount {
+			qrType = "DYNAMIC_QR"
+		}
+		found := false
+		for _, i := range resp.Interfaces {
+			if i.Type == "DYNAMIC_QR" || i.Type == "STATIC_QR" {
+				found = true
+				if i.Type != qrType {
+					t.Fatalf("fixed=%v: QR interface type = %q, want %q (shape kept stable)", fixedAmount, i.Type, qrType)
+				}
+				if i.Value != want {
+					t.Fatalf("fixed=%v: QR interface value = %q, want the hosted pay URL %q", fixedAmount, i.Value, want)
+				}
+				if i.QrURL != "/v1/payment-sessions/sess-1/qr" {
+					t.Fatalf("fixed=%v: qr_url = %q", fixedAmount, i.QrURL)
+				}
+			}
+		}
+		if !found {
+			t.Fatalf("fixed=%v: no QR interface: %s", fixedAmount, rec.Body.String())
+		}
+
+		// GET /qr: the encodable value (and so the rendered image) is the pay URL.
+		r := chi.NewRouter()
+		r.Get("/v1/payment-sessions/{id}/qr", h.Qr)
+		rec = httptest.NewRecorder()
+		r.ServeHTTP(rec, reqWith("GET", "https://sandbox-api.banzami.com/v1/payment-sessions/sess-1/qr", "", "doa-merchant"))
+		if rec.Code != http.StatusOK {
+			t.Fatalf("fixed=%v: GET qr want 200, got %d (%s)", fixedAmount, rec.Code, rec.Body.String())
+		}
+		var qr struct{ Type, Value string }
+		_ = json.Unmarshal(rec.Body.Bytes(), &qr)
+		if qr.Type != "QR" || qr.Value != want {
+			t.Fatalf("fixed=%v: GET qr = %+v, want {QR %s}", fixedAmount, qr, want)
+		}
+	}
+}

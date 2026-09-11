@@ -134,3 +134,93 @@ export function parseManifest(root) {
 
   return { meta, capabilities };
 }
+
+// ---------------------------------------------------------------------------
+// api_surface ↔ router comparison
+// ---------------------------------------------------------------------------
+
+// The two public HTTP surfaces. They are different products: the gateway serves
+// the merchant/developer API; public-api serves the Consumer app (behind
+// /consumer/ at the edge). A declared route is checked against the gateway
+// unless the entry names public-api — a route mounted only on the Consumer
+// surface is not a developer-API surface, and merging the two routers let the
+// registry claim `/v1/transfers` for the gateway, where SEC-015 unmounted it.
+export const PUBLIC_ROUTERS = {
+  gateway: 'services/api-gateway/internal/server/server.go',
+  'public-api': 'services/public-api/internal/server/server.go',
+};
+
+const HTTP_VERBS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+const normRoute = p => p.replace(/\{[^}]+\}/g, '{p}').replace(/(.)\/$/, '$1');
+
+// Parse chi registrations from a router source file into [{ method, path }].
+// Path parameters are normalised to {p}.
+export function parseMountedRoutes(src) {
+  const routes = [];
+  const stack = [];
+  let depth = 0;
+  for (const line of src.split('\n')) {
+    const route = line.match(/\.Route\("([^"]+)"/);
+    // Any receiver, not just a bare `r.`: registrations are frequently chained
+    // through middleware (`r.With(cap(...)).Get("/v1/...")`), and anchoring on
+    // `r.` silently skipped exactly those — including a mounted proof route.
+    // A chained registration may also BEGIN a line, with the dot left on the
+    // previous one (`r.With(...).` then `Get("/v1/...")`).
+    const verb = line.match(/(?:^\s*|\.)(Get|Post|Put|Patch|Delete)\("([^"]+)"/);
+    if (verb) {
+      // A registration may carry the full path already, or be relative to the
+      // enclosing r.Route prefix. Absolute wins; prefixing it would invent
+      // `/v1/v1/...` and make a mounted route look absent.
+      const raw = verb[2];
+      const p = raw.startsWith('/v1') ? raw
+        : stack.map(s => s.prefix).join('') + (raw === '/' ? '' : raw);
+      routes.push({ method: verb[1].toUpperCase(), path: normRoute(p) });
+    }
+    const opens = (line.match(/\{/g) ?? []).length;
+    const closes = (line.match(/\}/g) ?? []).length;
+    if (route) stack.push({ prefix: route[1], depth });
+    depth += opens - closes;
+    while (stack.length && depth <= stack[stack.length - 1].depth) stack.pop();
+  }
+  return routes;
+}
+
+export function loadMountedRoutes(root) {
+  const out = {};
+  for (const [svc, rel] of Object.entries(PUBLIC_ROUTERS)) {
+    out[svc] = parseMountedRoutes(readFileSync(join(root, rel), 'utf-8'));
+  }
+  return out;
+}
+
+// Every declared `/v1/...` api_surface path must be a route the named service
+// mounts EXACTLY — not a prefix of one. A prefix match let `/v1/qr` stand for
+// CAP-PAY-003 (QR payments) because `/v1/qr/static` exists, while the route that
+// pays a QR was removed (RA-053). An optional leading HTTP verb must match too.
+// Entries without a `/v1/` token describe a mechanism, not a mount, and are
+// skipped. Returns human-readable violations.
+export function apiSurfaceViolations(caps, routesByService) {
+  const out = [];
+  for (const c of caps) {
+    for (const raw of c.api_surface ?? []) {
+      const entry = String(raw).trim();
+      const tokens = entry.split(/\s+/);
+      // "none (frozen; legacy /v1/splits returns 410 at edge)" declares NO
+      // surface; the path in its note is history, not a claim.
+      if (tokens[0] === 'none') continue;
+      const idx = tokens.findIndex(t => t.startsWith('/v1/'));
+      if (idx < 0) continue;
+      const path = tokens[idx].replace(/[,;:)]+$/, '');
+      const method = idx > 0 && HTTP_VERBS.includes(tokens[idx - 1]) ? tokens[idx - 1] : null;
+      const svc = /\bpublic-api\b/.test(entry) ? 'public-api' : 'gateway';
+      const norm = normRoute(path);
+      const routes = routesByService[svc] ?? [];
+      const hit = routes.some(r => r.path === norm && (!method || r.method === method));
+      if (!hit) {
+        out.push(`${c.id}: api_surface "${method ? `${method} ` : ''}${path}" is not a route ${svc} mounts ` +
+          `(exact match required${svc === 'gateway' ? '; name public-api in the entry for a Consumer-surface route' : ''})`);
+      }
+    }
+  }
+  return out;
+}
