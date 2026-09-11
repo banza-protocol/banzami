@@ -63,6 +63,17 @@ export function payeeLabel(display?: string | null, handle?: string | null): str
   return display || null;
 }
 
+/**
+ * Whether the verifier's answer is that this proof definitively does not exist
+ * — a malformed reference, or a 404 from the verifier. Only then does the page
+ * answer HTTP 404. An unavailable or erroring verifier is not an answer about the
+ * proof at all, and must never become a 404 (or a "forged").
+ */
+export function proofDefinitivelyAbsent(p: Pick<ProofResult, 'exists' | 'status'>): boolean {
+  if (p.exists) return false;
+  return p.status !== 'UNAVAILABLE' && p.status !== 'ERROR';
+}
+
 export interface ProofRow { label: string; value: string; mono?: boolean }
 
 /** The detail rows, in order. Absent optional fields are left out, never dashed. */
