@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { getProof, type ProofResult } from '@/lib/api';
 import { isProofRef } from '@/lib/proof-ref';
 import { MoneyAmount } from '@/components/MoneyAmount';
-import { confirmedTitle, proofRows, proofDefinitivelyAbsent } from '@/lib/proof-view';
+import { confirmedTitle, fmtWAT, proofRows, proofDefinitivelyAbsent } from '@/lib/proof-view';
 import { proofStatusLabel } from '@/lib/status-labels';
 import { TONE, TrustNote, VerdictHeader, VerifierFrame } from './verifier-parts';
 
@@ -17,10 +17,10 @@ export const metadata: Metadata = {
 
 // Query timestamp (Africa/Luanda, UTC+1). Rendered server-side per request so the
 // reader knows the verification is live, not cached from a document (ADR-033 §9).
+// The same format as "Confirmado em" above it (fmtWAT): the page used to show
+// "11/09/26, 14:05" beside "10/09/2026, 20:13 (WAT)".
 function nowWAT(): string {
-  return new Date().toLocaleString('pt-PT', {
-    timeZone: 'Africa/Luanda', dateStyle: 'short', timeStyle: 'short',
-  });
+  return fmtWAT(new Date().toISOString());
 }
 
 // Technical status → localized label (ADR-033 §6). Internal states stay internal:
@@ -114,7 +114,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
             </div>
           )}
           <div style={{ fontSize: 12, fontWeight: 700, color: '#9a8a8e' }}>
-            Registado no sistema oficial do Banzami · Verificado agora · {nowWAT()} (WAT)
+            Registado no sistema oficial do Banzami · Verificado agora · {nowWAT()}
           </div>
         </div>
       )}

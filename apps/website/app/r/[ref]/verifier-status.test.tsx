@@ -76,6 +76,17 @@ describe('verifier HTTP status', () => {
     expect(renderToStaticMarkup(await run())).not.toContain('SANDBOX');
   });
 
+  // One date format per page: "Verificado agora" uses the same clock and shape
+  // as "Confirmado em" — dd/mm/yyyy, hh:mm (WAT).
+  it('shows every time in one format', async () => {
+    getProof.mockResolvedValue({ exists: true, status: 'CONFIRMED', amount: 500000, currency: 'AOA', confirmed_at: '2026-09-10T19:13:00Z' });
+    const html = renderToStaticMarkup(await run());
+    expect(html).toContain('10/09/2026, 20:13 (WAT)');
+    const stamps = html.match(/\d{2}\/\d{2}\/\d{2,4},? \d{2}:\d{2}[^<]*/g) ?? [];
+    expect(stamps.length).toBeGreaterThanOrEqual(2);
+    for (const s of stamps) expect(s).toMatch(/^\d{2}\/\d{2}\/\d{4}, \d{2}:\d{2} \(WAT\)/);
+  });
+
   it('only a definitive answer is "absent"', () => {
     expect(proofDefinitivelyAbsent({ exists: false, status: 'NOT_FOUND' })).toBe(true);
     expect(proofDefinitivelyAbsent({ exists: false, status: 'INVALID_REFERENCE' })).toBe(true);
