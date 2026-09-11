@@ -12,6 +12,7 @@ import { useDialog } from '@/components/ui/dialog';
 import { KybDocumentsSection } from '@/components/applications/KybDocumentsSection';
 import { ApplicationActions, ApplicationOrigin, BusinessStatePanel, RequirementsPanel } from '@/components/applications/ApplicationLifecycle';
 import { formatDate, initials, withAt } from '@/lib/format';
+import { takeReason } from '@/lib/reason';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -55,7 +56,9 @@ export default function MerchantDetailPage() {
 
   async function flagAml() {
     if (!api || !approvedMerchant) return;
-    const notes = (await dialog.prompt({ title: 'Sinalizar AML', label: 'Nota AML (interna)', multiline: true, confirmLabel: 'Sinalizar' })) ?? '';
+    // Cancel (null) or a blank note stops here — never an empty flag.
+    const notes = takeReason(await dialog.prompt({ title: 'Sinalizar AML', label: 'Nota AML (interna)', multiline: true, confirmLabel: 'Sinalizar', required: true }));
+    if (notes === null) return;
     setBusy('aml');
     try {
       await api.flagAML(approvedMerchant, notes);
@@ -69,7 +72,9 @@ export default function MerchantDetailPage() {
 
   async function suspend() {
     if (!api || !approvedMerchant) return;
-    const notes = (await dialog.prompt({ title: 'Suspender conta', label: 'Motivo da suspensão (interna)', multiline: true, confirmLabel: 'Suspender' })) ?? '';
+    // Cancel (null) or a blank reason stops here — the account is not suspended.
+    const notes = takeReason(await dialog.prompt({ title: 'Suspender conta', label: 'Motivo da suspensão (interna)', multiline: true, confirmLabel: 'Suspender', required: true }));
+    if (notes === null) return;
     setBusy('suspend');
     try {
       await api.suspendMerchant(approvedMerchant, notes);
