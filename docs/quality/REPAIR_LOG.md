@@ -2633,3 +2633,18 @@ mutations caught). The two nginx edges and the webhook sink were restarted
 by every deploy. Live-log size caps need `log-opts` at container creation —
 open for the long-lived containers (docs/operations/LOG_RETENTION.md).
 
+
+## RA-086 — developer-api chose "development" when ENVIRONMENT was missing
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open review)
+- **Status:** FIXED
+
+`developer-api` defaulted `Environment` to `"development"`, and
+`"development"` switches on the Sandbox privileges there (operator fixture
+keys, the self-service path into a financial owner). The Sandbox sets
+`ENVIRONMENT=sandbox`, so nothing ran wrongly — but a Live deploy that forgot
+the variable would have started with them. Every other service already failed
+closed (the canonical `env.Parse` maps anything but SANDBOX/LIVE to Unknown,
+which grants nothing). Now `developer-api` refuses to start without
+`ENVIRONMENT`. Test: `internal/config/config_test.go` (mutation: restore the
+default → fails).

@@ -5,6 +5,7 @@ import (
 	"github.com/banzami/banzami/services/common/env"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config for the Developer Platform management API (developer-api.banzami.com,
@@ -102,7 +103,6 @@ func (c *Config) SecureCookies() bool { return c.Environment != "development" }
 func Load() (*Config, error) {
 	cfg := &Config{
 		Port:            8086,
-		Environment:     "development",
 		LogLevel:        "info",
 		LogFormat:       "json",
 		ConsoleOrigin:   "https://developers.banzami.com",
@@ -119,8 +119,13 @@ func Load() (*Config, error) {
 	if v := os.Getenv("WEBHOOK_ENCRYPTION_KEY"); v != "" {
 		cfg.WebhookEncryptionKey = v
 	}
-	if v := os.Getenv("ENVIRONMENT"); v != "" {
-		cfg.Environment = v
+	// Required, with no default. It defaulted to "development", and
+	// "development" switches on the Sandbox privileges (fixture keys, the
+	// self-service path into a financial owner) — so a Live deploy that forgot
+	// the variable would have run with them.
+	cfg.Environment = strings.TrimSpace(os.Getenv("ENVIRONMENT"))
+	if cfg.Environment == "" {
+		return nil, fmt.Errorf("ENVIRONMENT must be set (sandbox, live, or development for a local run)")
 	}
 	if v := os.Getenv("LOG_LEVEL"); v != "" {
 		cfg.LogLevel = v
