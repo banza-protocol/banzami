@@ -38,8 +38,19 @@ export interface PaymentLink {
   currency:      string;
   description:   string | null;
   status:        'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+  /**
+   * Whether the payment this link asked for has been made: the link was used,
+   * or it was retired (CANCELLED) because its Payment Session was paid by QR.
+   * Absent from a gateway that predates it.
+   */
+  paid?:         boolean;
   expires_at:    string | null;
   paid_at:       string | null;
+}
+
+/** The link's payment has been made — by this link, or by its session's QR. */
+export function linkIsPaid(link: Pick<PaymentLink, 'status' | 'paid'>): boolean {
+  return link.paid === true || link.status === 'USED';
 }
 
 export interface PaymentInstructions {

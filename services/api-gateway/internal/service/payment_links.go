@@ -166,6 +166,23 @@ func (s *CoreApiPaymentLinkService) Cancel(ctx context.Context, id string) (*Pay
 	return &link, nil
 }
 
+// SessionStatus is the status of the Payment Session this link belongs to, or ""
+// when it belongs to none. A session paid by its QR retires its link
+// (CANCELLED, core payment_sessions mark_paid); the public payer view reads this
+// to say the payment was made rather than that the link is invalid.
+func (s *CoreApiPaymentLinkService) SessionStatus(ctx context.Context, linkID string) (string, error) {
+	var sess struct {
+		Status string `json:"status"`
+	}
+	if err := s.client.get(ctx, "/internal/v1/payment-sessions/by-interface/link/"+url.PathEscape(linkID), &sess); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return "", nil
+		}
+		return "", err
+	}
+	return sess.Status, nil
+}
+
 func (s *CoreApiPaymentLinkService) MarkUsed(ctx context.Context, id string) (*PaymentLink, error) {
 	var link PaymentLink
 	if err := s.client.post(ctx, "/internal/v1/payment-links/"+url.PathEscape(id)+"/mark-used", nil, &link); err != nil {

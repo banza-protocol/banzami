@@ -730,6 +730,7 @@ it.
   "currency":        "AOA",
   "description":     "Donativo",
   "status":          "ACTIVE",
+  "paid":            false,
   "expires_at":      null,
   "paid_at":         null,
   "merchant_name":   "Doa",
@@ -737,6 +738,12 @@ it.
 }
 ```
 `merchant_handle` is `null` for a Business with no @banza.
+
+`paid` is whether the payment the link asked for has been made: `true` for a
+`USED` link, and for a link that is `CANCELLED` because its Payment Session was
+paid through the session's QR (the session retires its other interface when it
+is paid). The pay page shows "Este pagamento já foi feito" for it, not an
+invalid link. A session status that cannot be read answers `false`.
 
 **Errors:** `404 NOT_FOUND` — no link has that exact slug. `500 INTERNAL_ERROR` — the link could not be read.
 
@@ -748,7 +755,8 @@ Lightweight status poll for the pay page.
 ```json
 { "paid": false }
 ```
-Returns `true` when `status == "USED"`.
+Returns `true` when the link is `USED`, or `CANCELLED` because its Payment
+Session was paid (the same rule as `paid` above).
 
 ---
 

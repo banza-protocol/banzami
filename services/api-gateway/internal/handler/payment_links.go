@@ -395,25 +395,32 @@ func dispatchPaymentLinkPaid(webhookSvc service.WebhookService, link *service.Pa
 // Business made by the retired Console setup that is "Sandbox · <Project>", the
 // name of a Project that created the link, which is what pay.banzami.com showed
 // the payer ("Sandbox · Doa-Sandbox", and no @doa).
+//
+// Paid says whether the payment this link asked for has been made. A link that
+// belongs to a Payment Session is retired (CANCELLED) when the session is paid
+// by its QR; the status alone told the payer opening the link that it was
+// cancelled ("Link inválido") when the payment had in fact been made.
 type publicPaymentLink struct {
 	Slug           string     `json:"slug"`
 	AmountMinor    *int64     `json:"amount_minor"`
 	Currency       string     `json:"currency"`
 	Description    *string    `json:"description"`
 	Status         string     `json:"status"`
+	Paid           bool       `json:"paid"`
 	ExpiresAt      *time.Time `json:"expires_at"`
 	PaidAt         *time.Time `json:"paid_at"`
 	MerchantName   string     `json:"merchant_name"`
 	MerchantHandle *string    `json:"merchant_handle"`
 }
 
-func toPublicPaymentLink(link *service.PaymentLink, payee service.BusinessIdentity) publicPaymentLink {
+func toPublicPaymentLink(link *service.PaymentLink, payee service.BusinessIdentity, paid bool) publicPaymentLink {
 	view := publicPaymentLink{
 		Slug:         link.Slug,
 		AmountMinor:  link.AmountMinor,
 		Currency:     link.Currency,
 		Description:  link.Description,
 		Status:       link.Status,
+		Paid:         paid,
 		ExpiresAt:    link.ExpiresAt,
 		PaidAt:       link.PaidAt,
 		MerchantName: payee.DisplayName,
@@ -479,7 +486,33 @@ func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, http.StatusOK, toPublicPaymentLink(link, payee))
+	respond(w, http.StatusOK, toPublicPaymentLink(link, payee, h.linkPaid(r.Context(), link)))
+}
+
+// linkSessionStatus is implemented by a link service that can tell the status of
+// the Payment Session a link belongs to ("" when it belongs to none).
+type linkSessionStatus interface {
+	SessionStatus(ctx context.Context, linkID string) (string, error)
+}
+
+// linkPaid reports whether the payment a link asked for has been made: the link
+// was used, or it was retired because its Payment Session was paid through the
+// session's other interface, the QR. Any failure to read the session answers
+// "not known to be paid" — the link keeps its own status, never a claim of
+// payment the operator could not confirm.
+func (h *PaymentLinkHandler) linkPaid(ctx context.Context, link *service.PaymentLink) bool {
+	if link.Status == "USED" {
+		return true
+	}
+	if link.Status != "CANCELLED" {
+		return false
+	}
+	sessions, ok := h.svc.(linkSessionStatus)
+	if !ok {
+		return false
+	}
+	status, err := sessions.SessionStatus(ctx, link.ID)
+	return err == nil && status == "PAID"
 }
 
 // GET /public/pay/{slug}/status
@@ -494,6 +527,5 @@ func (h *PaymentLinkHandler) Status(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch payment link")
 		return
 	}
-	paid := link.Status == "USED"
-	respond(w, http.StatusOK, map[string]bool{"paid": paid})
+	respond(w, http.StatusOK, map[string]bool{"paid": h.linkPaid(r.Context(), link)})
 }

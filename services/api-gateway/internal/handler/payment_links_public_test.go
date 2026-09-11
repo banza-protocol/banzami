@@ -75,6 +75,77 @@ func TestPublicPaymentLink_NoHandleIsNull(t *testing.T) {
 	}
 }
 
+// sessionLinks is a link service whose link is in `status` and belongs to a
+// Payment Session in `session` (or fails to say, with err).
+type sessionLinks struct {
+	fakeLinks
+	status  string
+	session string
+	err     error
+}
+
+func (s *sessionLinks) GetBySlug(context.Context, string) (*service.PaymentLink, error) {
+	l := s.fakeLinks.link()
+	l.Status = s.status
+	return l, nil
+}
+
+func (s *sessionLinks) SessionStatus(_ context.Context, linkID string) (string, error) {
+	if linkID != "11111111-1111-4111-8111-111111111111" {
+		return "", errors.New("asked about another link")
+	}
+	return s.session, s.err
+}
+
+// A link retired because its Payment Session was paid by QR is reported as paid
+// — on the page view and on the status poll — not as a cancelled link.
+func TestPublicPaymentLink_SessionPaidByQrIsPaid(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		status  string
+		session string
+		err     error
+		paid    bool
+	}{
+		{"used", "USED", "", nil, true},
+		{"cancelled, session paid", "CANCELLED", "PAID", nil, true},
+		{"cancelled, session cancelled", "CANCELLED", "CANCELLED", nil, false},
+		{"cancelled, no session", "CANCELLED", "", nil, false},
+		{"cancelled, session unreadable", "CANCELLED", "", errors.New("core down"), false},
+		{"active", "ACTIVE", "PAID", nil, false},
+		{"expired", "EXPIRED", "PAID", nil, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			links := &sessionLinks{fakeLinks: fakeLinks{merchant: "doa-merchant"}, status: tc.status, session: tc.session, err: tc.err}
+			h := NewPaymentLinkHandler(links, service.NewStubMerchantService(), service.NewStubWebhookService())
+			h.identities = func(context.Context, string) (service.BusinessIdentity, error) {
+				return service.BusinessIdentity{DisplayName: "Doa", Handle: "doa"}, nil
+			}
+
+			code, body, raw := publicLinkGet(t, h)
+			if code != http.StatusOK {
+				t.Fatalf("status %d: %s", code, raw)
+			}
+			if body["paid"] != tc.paid {
+				t.Errorf("view paid = %v, want %v (%s)", body["paid"], tc.paid, raw)
+			}
+			if body["status"] != tc.status {
+				t.Errorf("view status = %v, want the link's own %s", body["status"], tc.status)
+			}
+
+			r := chi.NewRouter()
+			r.Get("/public/pay/{slug}/status", h.Status)
+			rec := httptest.NewRecorder()
+			r.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/public/pay/abc123/status", nil))
+			var poll map[string]bool
+			_ = json.Unmarshal(rec.Body.Bytes(), &poll)
+			if poll["paid"] != tc.paid {
+				t.Errorf("status poll paid = %v, want %v", poll["paid"], tc.paid)
+			}
+		})
+	}
+}
+
 // A failed identity lookup names nobody — it never falls back to the account name.
 func TestPublicPaymentLink_IdentityFailureNeverShowsTheAccountName(t *testing.T) {
 	merchants := service.NewStubMerchantService()
