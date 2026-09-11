@@ -46,6 +46,9 @@ export interface PricingRule {
   fee_policy_ref:     string | null;
   currency:           string | null;
   country:            string | null;
+  /** The fee-bearing operation the rule prices (SETTLEMENT | PAYOUT). Null
+   *  only on a disabled historical row — such a rule prices nothing. */
+  pricing_operation:  string | null;
   rate_bps:           number;
   flat_minor:         number;
   min_fee_minor:      number | null;
@@ -71,6 +74,8 @@ export interface PricingRuleInput {
   fee_policy_ref?:    string | null;
   currency?:          string | null;
   country?:           string | null;
+  /** Required by Core: SETTLEMENT | PAYOUT. '' only while the form is unfilled. */
+  pricing_operation:  string;
   rate_bps:           number;
   flat_minor:         number;
   min_fee_minor?:     number | null;
