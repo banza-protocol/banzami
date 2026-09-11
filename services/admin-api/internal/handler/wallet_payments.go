@@ -23,10 +23,16 @@ func NewWalletPaymentsHandler(l AdminWalletPaymentLister) *WalletPaymentsHandler
 	return &WalletPaymentsHandler{lister: l}
 }
 
+// adminWalletPaymentDTO: payee_handle / payee_display_name are the Business's
+// public identity (what receipts show); merchant_name is the raw account name.
+// proof_reference is the operation's existing proof (the transfer's) or empty —
+// never a value derived from an id (see service.AdminWalletPaymentItem).
 type adminWalletPaymentDTO struct {
 	ID               string `json:"id"`
 	MerchantID       string `json:"merchant_id"`
 	MerchantName     string `json:"merchant_name"`
+	PayeeHandle      string `json:"payee_handle"`
+	PayeeDisplayName string `json:"payee_display_name"`
 	PayerName        string `json:"payer_name"`
 	AmountMinor      int64  `json:"amount_minor"`
 	Currency         string `json:"currency"`
@@ -34,6 +40,7 @@ type adminWalletPaymentDTO struct {
 	Environment      string `json:"environment"`
 	CreatedAt        string `json:"created_at"`
 	ReceiptAvailable bool   `json:"receipt_available"`
+	ProofReference   string `json:"proof_reference"`
 }
 
 type adminWalletPaymentListResponse struct {
@@ -88,6 +95,8 @@ func (h *WalletPaymentsHandler) List(w http.ResponseWriter, r *http.Request) {
 			ID:               it.ID,
 			MerchantID:       it.MerchantID,
 			MerchantName:     it.MerchantName,
+			PayeeHandle:      it.PayeeHandle,
+			PayeeDisplayName: it.PayeeDisplayName,
 			PayerName:        it.PayerName,
 			AmountMinor:      it.AmountMinor,
 			Currency:         it.Currency,
@@ -95,6 +104,7 @@ func (h *WalletPaymentsHandler) List(w http.ResponseWriter, r *http.Request) {
 			Environment:      it.Environment,
 			CreatedAt:        it.CreatedAt.UTC().Format(time.RFC3339),
 			ReceiptAvailable: it.Status == "COMPLETED",
+			ProofReference:   it.ProofReference,
 		})
 	}
 	writeJSON(w, http.StatusOK, out)

@@ -25,6 +25,9 @@ export interface Settlement {
   transaction_count: number;
   period_start:      string;
   period_end:        string;
+  /** Set when the settlement was submitted / became SETTLED (core Settlement). */
+  submitted_at?:     string | null;
+  settled_at?:       string | null;
   created_at:        string;
   updated_at:        string;
 }
@@ -46,6 +49,9 @@ export interface PricingRule {
   fee_policy_ref:     string | null;
   currency:           string | null;
   country:            string | null;
+  /** The fee-bearing operation the rule prices (SETTLEMENT | PAYOUT). Null
+   *  only on a disabled historical row — such a rule prices nothing. */
+  pricing_operation:  string | null;
   rate_bps:           number;
   flat_minor:         number;
   min_fee_minor:      number | null;
@@ -71,6 +77,8 @@ export interface PricingRuleInput {
   fee_policy_ref?:    string | null;
   currency?:          string | null;
   country?:           string | null;
+  /** Required by Core: SETTLEMENT | PAYOUT. '' only while the form is unfilled. */
+  pricing_operation:  string;
   rate_bps:           number;
   flat_minor:         number;
   min_fee_minor?:     number | null;
@@ -1532,6 +1540,12 @@ export interface AdminProof {
   payee_display_name?: string;
   payee_handle?:       string;
   method?:             string;
+  /** PAYMENT | P2P_TRANSFER — absent on a legacy proof (then `method` applies). */
+  operation_kind?:     string;
+  /** PAYMENT_LINK | QR | HANDLE. */
+  channel?:            string;
+  /** BANZAMI_BALANCE. */
+  funding_source?:     string;
   description?:        string;
   proof_hash?:         string;
   signature_key_id?:   string;
@@ -1608,9 +1622,15 @@ export interface AdminNotification {
 
 export interface WalletPayment {
   id:                string;
-  reference:         string;
   merchant_id:       string;
+  /** The raw account name (merchants.name) — not what receipts call the payee. */
   merchant_name:     string;
+  /** The Business as receipts show it (business_public_identities). */
+  payee_handle:      string;
+  payee_display_name: string;
+  /** The operation's existing proof (the transfer's), or '' when none was issued.
+   *  Never derived from an id. A bearer reference: whoever holds it reads the proof. */
+  proof_reference:   string;
   payer_name:        string;
   amount_minor:      number;
   currency:          string;

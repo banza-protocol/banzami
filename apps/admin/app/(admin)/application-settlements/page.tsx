@@ -4,14 +4,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { X, ChevronDown, ChevronRight, Ban, AlertTriangle } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type ApplicationSettlement, type AppSettlementFilters } from '@/lib/admin-api';
-import { Badge } from '@/components/ui/badge';
+import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
 import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
 import { filterByStates } from '@/lib/attention';
+import { actionErrorPt } from '@/lib/errors';
+import { takeReason } from '@/lib/reason';
 
 const CATEGORIES = ['DONATION', 'CROWDFUNDING', 'MARKETPLACE', 'ECOMMERCE', 'DELIVERY', 'FOOD_DELIVERY', 'RIDE_HAILING', 'SUBSCRIPTION', 'TICKETING', 'DIGITAL_GOODS', 'PHYSICAL_GOODS', 'P2P', 'BILL_PAYMENT', 'NGO', 'GOVERNMENT'];
 const STATUSES = ['CREATED', 'PENDING', 'COMPLETED', 'FAILED', 'CANCELLED'];
@@ -87,7 +89,7 @@ export default function ApplicationSettlementsPage() {
       toast('success', 'Liquidação cancelada.');
       await refreshSelected(s.id);
     } catch (e) {
-      toast('danger', e instanceof Error ? e.message : 'Não foi possível cancelar.');
+      toast('danger', actionErrorPt(e, 'Não foi possível cancelar a liquidação.'));
     } finally {
       setBusy(false);
     }
@@ -96,21 +98,21 @@ export default function ApplicationSettlementsPage() {
   async function fail(s: ApplicationSettlement) {
     const api = getApi();
     if (!api) return;
-    const reason = await dialog.prompt({
+    const reason = takeReason(await dialog.prompt({
       title: 'Marcar como falhada',
       label: 'Motivo',
       placeholder: 'Motivo da falha',
       required: true,
       multiline: true,
-    });
-    if (!reason) return;
+    }));
+    if (reason === null) return;
     setBusy(true);
     try {
       await api.failAppSettlement(s.id, reason);
       toast('success', 'Liquidação marcada como falhada.');
       await refreshSelected(s.id);
     } catch (e) {
-      toast('danger', e instanceof Error ? e.message : 'Não foi possível marcar como falhada.');
+      toast('danger', actionErrorPt(e, 'Não foi possível marcar a liquidação como falhada.'));
     } finally {
       setBusy(false);
     }
@@ -134,7 +136,7 @@ export default function ApplicationSettlementsPage() {
         <input className={selClass} placeholder="owner_ref" value={filters.owner_ref ?? ''} onChange={(e) => set('owner_ref', e.target.value)} />
         <select className={selClass} value={filters.status ?? ''} onChange={(e) => set('status', e.target.value)}>
           <option value="">Todos os estados</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          {STATUSES.map((s) => <option key={s} value={s}>{statusLabelPt(s)}</option>)}
         </select>
         <select className={selClass} value={filters.business_category ?? ''} onChange={(e) => set('business_category', e.target.value)}>
           <option value="">Todas as categorias</option>
@@ -180,10 +182,10 @@ export default function ApplicationSettlementsPage() {
                       <Td>{formatDate(r.created_at)}</Td>
                       <Td className="font-extrabold">{r.owner_ref}</Td>
                       <Td>{r.business_category ?? <span className="text-[#b3a3a7]">—</span>}</Td>
-                      <Td right mono>{formatKz(r.gross_amount.amount_minor)}</Td>
-                      <Td right mono className="text-[#B5101F]">{formatKz(r.application_fee.amount_minor)}</Td>
-                      <Td right mono className="font-extrabold">{formatKz(r.net_amount.amount_minor)}</Td>
-                      <Td><Badge label={r.status} variant={statusVariant(r.status)} /></Td>
+                      <Td right mono>{formatMoney(r.gross_amount.amount_minor, r.gross_amount.currency || r.currency)}</Td>
+                      <Td right mono className="text-[#B5101F]">{formatMoney(r.application_fee.amount_minor, r.application_fee.currency || r.currency)}</Td>
+                      <Td right mono className="font-extrabold">{formatMoney(r.net_amount.amount_minor, r.net_amount.currency || r.currency)}</Td>
+                      <Td><Badge label={statusLabelPt(r.status)} variant={statusVariant(r.status)} /></Td>
                     </tr>
                   ))}
                 </tbody>
@@ -198,11 +200,11 @@ export default function ApplicationSettlementsPage() {
             <div className="flex flex-col gap-[2px] p-[18px]">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[15px] font-black">{selected.owner_ref}</span>
-                <Badge label={selected.status} variant={statusVariant(selected.status)} />
+                <Badge label={statusLabelPt(selected.status)} variant={statusVariant(selected.status)} />
               </div>
-              <Row label="Bruto" value={`${formatKz(selected.gross_amount.amount_minor)} ${selected.currency}`} />
-              <Row label="Taxa da app" value={`${formatKz(selected.application_fee.amount_minor)} ${selected.currency}`} strong />
-              <Row label="Líquido" value={`${formatKz(selected.net_amount.amount_minor)} ${selected.currency}`} />
+              <Row label="Bruto" value={formatMoney(selected.gross_amount.amount_minor, selected.gross_amount.currency || selected.currency)} />
+              <Row label="Taxa da app" value={formatMoney(selected.application_fee.amount_minor, selected.application_fee.currency || selected.currency)} strong />
+              <Row label="Líquido" value={formatMoney(selected.net_amount.amount_minor, selected.net_amount.currency || selected.currency)} />
               <Row label="Origem" value={selected.source_account_id} mono />
               <Row label="Beneficiário" value={selected.beneficiary_account_id} mono />
               <Row label="Destino taxa app" value={selected.application_fee_account_id ?? '—'} mono />
@@ -218,10 +220,10 @@ export default function ApplicationSettlementsPage() {
               />
               <Row label="Posting líquido" value={selected.settlement_posting_id ?? '—'} mono />
               <Row label="Posting taxa" value={selected.fee_posting_id ?? '—'} mono />
-              <Row label="Criado" value={formatDate(selected.created_at)} />
-              {selected.completed_at && <Row label="Concluído" value={formatDate(selected.completed_at)} />}
-              {selected.cancelled_at && <Row label="Cancelado" value={formatDate(selected.cancelled_at)} />}
-              {selected.failed_at && <Row label="Falhado" value={formatDate(selected.failed_at)} />}
+              <Row label="Criado" value={formatDateTime(selected.created_at)} />
+              {selected.completed_at && <Row label="Concluído" value={formatDateTime(selected.completed_at)} />}
+              {selected.cancelled_at && <Row label="Cancelado" value={formatDateTime(selected.cancelled_at)} />}
+              {selected.failed_at && <Row label="Falhado" value={formatDateTime(selected.failed_at)} />}
               {selected.failure_reason && <Row label="Motivo" value={selected.failure_reason} />}
 
               <button onClick={() => setSnapOpen((v) => !v)} className="mt-2 flex items-center gap-1 text-[12.5px] font-extrabold text-[#5a4a4e]">

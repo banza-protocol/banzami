@@ -8,7 +8,7 @@
 //   Documentos KYB       → kyb_documents           → Businesses with documents pending review → /merchant-kyb?attention=1
 //   Documentos KYC       → kyc_documents           → cases the consumer submitted → /consumer-kyc?attention=1 (UNDER_REVIEW)
 //   Liquidações          → settlements             → to submit / confirm         → /settlements?attention=1
-//   Pagamentos           → payouts                 → not yet terminal            → /payments?attention=1
+//   Levantamentos        → payouts                 → not yet terminal            → /payments?attention=1
 //   Reconciliação        → reconciliation          → latest run failed / unmatched items → /reconciliation
 //   Disputas             → disputes                → waiting for the operator    → /disputes?attention=1
 //   Risco & Audit        → risk_flags              → unresolved flags            → /risk?attention=1
@@ -40,7 +40,7 @@ export const NAV: NavEntry[] = [
   { href: '/consumer-kyc', label: 'Documentos KYC', Icon: ScanFace, attentionKey: 'kyc_documents' },
   { href: '/consumers', label: 'Consumidores', Icon: Users },
   { href: '/settlements', label: 'Liquidações', Icon: Layers, attentionKey: 'settlements' },
-  { href: '/payments', label: 'Pagamentos', Icon: CreditCard, attentionKey: 'payouts' },
+  { href: '/payments', label: 'Levantamentos', Icon: CreditCard, attentionKey: 'payouts' },
   { href: '/proofs', label: 'Comprovativos', Icon: ShieldCheck },
   { href: '/wallet-payments', label: 'Pagamentos recebidos', Icon: ReceiptText },
   { href: '/reconciliation', label: 'Reconciliação', Icon: RefreshCw, attentionKey: 'reconciliation' },

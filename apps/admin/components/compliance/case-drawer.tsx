@@ -6,6 +6,7 @@ import { X, AlertTriangle, ExternalLink, Send } from 'lucide-react';
 import { AdminApi, type ComplianceCase, type ComplianceNote } from '@/lib/admin-api';
 import { useToast } from '@/components/ui/toast';
 import { formatDate, timeAgo, slaBucket } from '@/lib/format';
+import { actionErrorPt } from '@/lib/errors';
 
 type Env = 'LIVE' | 'SANDBOX';
 
@@ -113,8 +114,8 @@ export function CaseDrawer({
       toast('success', okMsg);
       await load();
       onChanged();
-    } catch {
-      toast('danger', 'Não foi possível concluir a ação.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível concluir a ação.'));
     } finally {
       setBusy(false);
     }
@@ -131,8 +132,8 @@ export function CaseDrawer({
       const nn = await api.listCaseNotes(caseId, envParam(env));
       setNotes(nn.notes ?? []);
       onChanged();
-    } catch {
-      toast('danger', 'Não foi possível adicionar a nota.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível adicionar a nota.'));
     } finally {
       setBusy(false);
     }

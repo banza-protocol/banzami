@@ -8,8 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatAmountMinor, formatDate, formatMoney } from '@/lib/format';
 import { useAdminEnv } from '@/lib/admin-env';
+import { actionErrorPt } from '@/lib/errors';
+import { PRICING_OPERATIONS, operationLabel, pricingRuleErrorPt, validateRuleForm } from '@/lib/pricing-rules';
 
 const CATEGORIES = [
   'DONATION', 'CROWDFUNDING', 'MARKETPLACE', 'ECOMMERCE', 'DELIVERY', 'FOOD_DELIVERY',
@@ -25,6 +27,12 @@ function getApi(): AdminApi | null {
   return s ? new AdminApi(s.token) : null;
 }
 
+/** A rule's flat fee in the rule's currency; a rule for "any" currency charges
+ *  it in the payment's own currency, so no unit is invented. */
+function flatFee(minor: number, currency: string | null): string {
+  return currency ? formatMoney(minor, currency) : `${formatAmountMinor(minor)} (moeda do pagamento)`;
+}
+
 /** bps → percentage string, e.g. 200 → "2.00%". */
 function pct(bps: number): string {
   return `${(bps / 100).toFixed(2)}%`;
@@ -33,7 +41,8 @@ function pct(bps: number): string {
 function emptyForm(): PricingRuleInput {
   return {
     rule_key: '', environment: 'SANDBOX', business_category: '', pricing_profile: '',
-    fee_policy_ref: '', currency: 'AOA', country: '', rate_bps: 0, flat_minor: 0,
+    // No default operation: which act a rate charges is a decision, not a default.
+    fee_policy_ref: '', currency: 'AOA', country: '', pricing_operation: '', rate_bps: 0, flat_minor: 0,
     min_fee_minor: null, max_fee_minor: null, rounding: 'HALF_UP', priority: 0,
     effective_from: null, effective_to: null, description: '',
   };
@@ -43,7 +52,8 @@ function ruleToForm(r: PricingRule): PricingRuleInput {
   return {
     rule_key: r.rule_key, environment: r.environment, business_category: r.business_category ?? '',
     pricing_profile: r.pricing_profile ?? '', fee_policy_ref: r.fee_policy_ref ?? '',
-    currency: r.currency ?? '', country: r.country ?? '', rate_bps: r.rate_bps, flat_minor: r.flat_minor,
+    currency: r.currency ?? '', country: r.country ?? '', pricing_operation: r.pricing_operation ?? '',
+    rate_bps: r.rate_bps, flat_minor: r.flat_minor,
     min_fee_minor: r.min_fee_minor, max_fee_minor: r.max_fee_minor, rounding: r.rounding,
     priority: r.priority, effective_from: null, effective_to: r.effective_to, description: r.description ?? '',
   };
@@ -118,8 +128,8 @@ export default function PricingRulesPage() {
     try {
       const r = await api.getPricingRuleVersions(rule.id);
       setVersions(r.data);
-    } catch {
-      toast('danger', 'Não foi possível carregar as versões.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível carregar as versões.'));
     }
   }
   function closePanel() { setMode({ kind: 'none' }); }
@@ -127,7 +137,8 @@ export default function PricingRulesPage() {
   async function save() {
     const api = getApi();
     if (!api) return;
-    if (!form.rule_key.trim()) { toast('danger', 'A chave da regra é obrigatória.'); return; }
+    const invalid = validateRuleForm(form);
+    if (invalid) { toast('danger', invalid); return; }
     // normalize empty strings → null so "any" matchers are stored as NULL
     const body: PricingRuleInput = {
       ...form,
@@ -153,7 +164,7 @@ export default function PricingRulesPage() {
       closePanel();
       await load(filters);
     } catch (e) {
-      toast('danger', e instanceof Error ? e.message : 'Falha ao guardar a regra.');
+      toast('danger', pricingRuleErrorPt(e, 'Não foi possível guardar a regra.'));
     } finally {
       setSaving(false);
     }
@@ -178,8 +189,8 @@ export default function PricingRulesPage() {
       else await api.enablePricingRule(rule.id);
       toast('success', turningOff ? 'Regra desativada.' : 'Regra ativada.');
       await load(filters);
-    } catch {
-      toast('danger', 'Não foi possível alterar o estado da regra.');
+    } catch (e) {
+      toast('danger', pricingRuleErrorPt(e, 'Não foi possível alterar o estado da regra.'));
     } finally {
       setBusy(null);
     }
@@ -202,7 +213,7 @@ export default function PricingRulesPage() {
       toast('success', 'Regra duplicada.');
       await load(filters);
     } catch (e) {
-      toast('danger', e instanceof Error ? e.message : 'Não foi possível duplicar.');
+      toast('danger', pricingRuleErrorPt(e, 'Não foi possível duplicar a regra.'));
     } finally {
       setBusy(null);
     }
@@ -249,6 +260,7 @@ export default function PricingRulesPage() {
                 <thead>
                   <tr className="bg-[#FFF7F6]">
                     <Th>Chave</Th>
+                    <Th>Operação</Th>
                     <Th>Categoria</Th>
                     <Th>Perfil</Th>
                     <Th right>Taxa</Th>
@@ -269,10 +281,15 @@ export default function PricingRulesPage() {
                           {r.used && <Badge label="USADA" variant="neutral" />}
                         </div>
                       </Td>
+                      <Td>
+                        {r.pricing_operation
+                          ? <span className="font-bold">{operationLabel(r.pricing_operation)}</span>
+                          : <span className="font-bold text-[#B5101F]" title="Uma regra sem operação não taxa nada.">Nenhuma</span>}
+                      </Td>
                       <Td>{r.business_category ?? <span className="text-[#b3a3a7]">qualquer</span>}</Td>
                       <Td>{r.pricing_profile ?? <span className="text-[#b3a3a7]">qualquer</span>}</Td>
                       <Td right mono className="font-extrabold">{pct(r.rate_bps)}</Td>
-                      <Td right mono>{r.flat_minor ? formatKz(r.flat_minor) : '—'}</Td>
+                      <Td right mono>{r.flat_minor ? flatFee(r.flat_minor, r.currency) : '—'}</Td>
                       <Td right mono>{r.priority}</Td>
                       <Td><Badge label={r.enabled ? 'ATIVA' : 'INATIVA'} variant={r.enabled ? 'success' : 'neutral'} /></Td>
                       <Td right>
@@ -335,7 +352,7 @@ export default function PricingRulesPage() {
                   <div className="flex items-center gap-2">
                     <span className="rounded-[6px] bg-[#f3e9e9] px-[7px] py-[2px] font-mono text-[12px] font-bold text-[#7a6a6e]">v{v.version}</span>
                     <span className="font-mono text-[13px] font-extrabold">{pct(v.rate_bps)}</span>
-                    {v.flat_minor > 0 && <span className="text-[12px] text-[#7a6a6e]">+{formatKz(v.flat_minor)}</span>}
+                    {v.flat_minor > 0 && <span className="text-[12px] text-[#7a6a6e]">+{flatFee(v.flat_minor, v.currency)}</span>}
                   </div>
                   <div className="flex items-center gap-2 text-[12px] text-[#7a6a6e]">
                     <span>{formatDate(v.created_at)}</span>
@@ -425,6 +442,13 @@ function RuleForm({ form, setForm, lockKey, profileCodes, policyCodes, liveAvail
           <option value="LIVE" disabled={!liveAvailable}>{liveAvailable ? 'LIVE' : 'LIVE (indisponível)'}</option>
         </select>
       </Field>
+      <Field label="Operação taxada (obrigatória)" labelClass={labelClass}>
+        <select className={inputClass} aria-label="Operação taxada" value={form.pricing_operation}
+          onChange={(e) => set('pricing_operation', e.target.value)}>
+          <option value="">Escolher…</option>
+          {PRICING_OPERATIONS.map((op) => <option key={op} value={op}>{operationLabel(op)}</option>)}
+        </select>
+      </Field>
       <Field label="Moeda (vazio = qualquer)" labelClass={labelClass}>
         <select className={inputClass} value={form.currency ?? ''} onChange={(e) => set('currency', e.target.value)}>
           <option value="">qualquer</option>
@@ -435,7 +459,7 @@ function RuleForm({ form, setForm, lockKey, profileCodes, policyCodes, liveAvail
         <input className={inputClass} list="pr-cats" value={form.business_category ?? ''} onChange={(e) => set('business_category', e.target.value)} />
         <datalist id="pr-cats">{CATEGORIES.map((c) => <option key={c} value={c} />)}</datalist>
       </Field>
-      <Field label="Perfil (vazio = qualquer)" labelClass={labelClass}>
+      <Field label="Perfil (obrigatório)" labelClass={labelClass}>
         <input className={inputClass} list="pr-profiles" value={form.pricing_profile ?? ''} onChange={(e) => set('pricing_profile', e.target.value)} />
         <datalist id="pr-profiles">{profileOptions.map((p) => <option key={p} value={p} />)}</datalist>
       </Field>

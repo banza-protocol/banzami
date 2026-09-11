@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import type { AdminApi } from '@/lib/admin-api';
+import { AdminApiError, type AdminApi } from '@/lib/admin-api';
+import { actionErrorPt } from '@/lib/errors';
 import { withAt } from '@/lib/format';
 
 const input =
@@ -30,7 +31,13 @@ export function AppPinReset({ api, merchantId, handle }: { api: AdminApi; mercha
       const r = await api.resetBusinessAppPin(merchantId, typed.trim(), reason.trim());
       setDone({ email: r.email_sent_to, link: r.activation_url, expires: r.expires_at });
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : 'Não foi possível preparar o novo PIN.');
+      // admin-api's refusals are English; say them in Portuguese.
+      const code = e instanceof AdminApiError ? e.code : '';
+      setError(
+        code === 'CONFIRMATION_MISMATCH' ? 'A confirmação não corresponde ao @handle do negócio.'
+          : code === 'REASON_REQUIRED' ? 'Indique porque é que este negócio precisa de um novo PIN.'
+            : actionErrorPt(e, 'Não foi possível preparar o novo PIN.'),
+      );
     } finally {
       setBusy(false);
     }

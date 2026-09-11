@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -101,6 +102,7 @@ func (h *PayoutHandler) Fail(w http.ResponseWriter, r *http.Request) {
 		Reason string `json:"reason"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
+	body.Reason = strings.TrimSpace(body.Reason)
 	if body.Reason == "" {
 		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "reason is required")
 		return
@@ -116,13 +118,27 @@ func (h *PayoutHandler) Fail(w http.ResponseWriter, r *http.Request) {
 
 // MarkReturned handles POST /admin/v1/payouts/{id}/returned.
 // Records bank return (e.g. invalid account) and reverses the ledger entry.
+//
+// The operator must say why the bank returned the money. Core's transition
+// takes no reason, so the reason lives in the audit row — where a reversed
+// payout is later explained. Before this, the console asked for a "Motivo da
+// devolução" and the reason was never read.
 func (h *PayoutHandler) MarkReturned(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	var body struct {
+		Reason string `json:"reason"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	body.Reason = strings.TrimSpace(body.Reason)
+	if body.Reason == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "reason is required")
+		return
+	}
 	result, err := h.core.MarkPayoutReturned(r.Context(), id)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
 	}
-	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "RETURNED"})
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "RETURNED", "reason": body.Reason})
 	writeJSON(w, http.StatusOK, result)
 }

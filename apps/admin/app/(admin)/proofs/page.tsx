@@ -6,9 +6,10 @@ import { getSession } from '@/lib/session';
 import { AdminApi, type AdminProof, type ProofVerification } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import { useAdminEnv, type Env } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
+import { confirmedTitle, operationRows, proofStatusLabel } from '@/lib/proof-view';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -89,8 +90,8 @@ export default function ProofsPage() {
                     {p.payer_display_name || p.payer_handle || '—'} → {p.payee_display_name || p.payee_handle || '—'} · {p.verification_count} verificaç{p.verification_count === 1 ? 'ão' : 'ões'} · {formatDate(p.issued_at)}
                   </div>
                 </div>
-                <span className="text-sm font-extrabold text-[#2a2024]">{formatKz(p.amount_minor)}</span>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>{p.status}</span>
+                <span className="text-sm font-extrabold text-[#2a2024]">{formatMoney(p.amount_minor, p.currency)}</span>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>{proofStatusLabel(p.status)}</span>
               </button>
             ))}
           </div>
@@ -103,20 +104,23 @@ export default function ProofsPage() {
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <div className="font-mono text-[18px] font-black text-[#9A1B22]">{selected.proof.proof_reference}</div>
-                <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[selected.proof.status] ?? 'bg-gray-100 text-gray-500'}`}>{selected.proof.status}</span>
+                {selected.proof.status === 'CONFIRMED' && (
+                  <div className="mt-1 text-[14px] font-extrabold text-[#166534]">{confirmedTitle(selected.proof.operation_kind)}</div>
+                )}
+                <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[selected.proof.status] ?? 'bg-gray-100 text-gray-500'}`}>{proofStatusLabel(selected.proof.status)}</span>
               </div>
               <button onClick={() => copy(selected.proof.public_url)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#eaddde] px-3 py-1.5 text-[13px] font-bold text-[#5a4a4e] hover:bg-[#FFF7F6]"><Copy size={14} /> Copiar URL pública</button>
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[#f1e3e3] pt-4 text-[13.5px]">
               {[
-                ['Valor', formatKz(selected.proof.amount_minor)],
+                ['Valor', formatMoney(selected.proof.amount_minor, selected.proof.currency)],
                 ['Moeda', selected.proof.currency],
                 ['De', selected.proof.payer_display_name || selected.proof.payer_handle],
                 ['Para', selected.proof.payee_display_name || selected.proof.payee_handle],
-                ['Método', selected.proof.method],
+                ...operationRows(selected.proof),
                 ['Transaction id', selected.proof.transaction_id],
-                ['Confirmado', selected.proof.confirmed_at ? formatDate(selected.proof.confirmed_at) : '—'],
-                ['Emitido', formatDate(selected.proof.issued_at)],
+                ['Confirmado', selected.proof.confirmed_at ? formatDateTime(selected.proof.confirmed_at) : '—'],
+                ['Emitido', formatDateTime(selected.proof.issued_at)],
                 ['Hash', selected.proof.proof_hash?.slice(0, 24)],
                 ['Assinatura', `${selected.proof.signature_algorithm ?? ''} · ${selected.proof.signature_key_id ?? ''}`],
                 ['Verificações', String(selected.proof.verification_count)],
@@ -135,7 +139,7 @@ export default function ProofsPage() {
               <ul className="space-y-1.5">
                 {selected.verifications.map((v, i) => (
                   <li key={i} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-[12.5px]">
-                    <span className="font-semibold text-[#2a2024]">{formatDate(v.verified_at)}</span>
+                    <span className="font-semibold text-[#2a2024]">{formatDateTime(v.verified_at)}</span>
                     <span className="font-bold text-green-700">{v.result}</span>
                   </li>
                 ))}

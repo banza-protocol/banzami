@@ -83,7 +83,7 @@ describe('Sidebar attention badges', () => {
   it('hides a category the server did not return (role cannot open it)', async () => {
     await renderWith(async () => summary({ business_applications: 3 }));
     expect(rowBadge(link(/^Disputas$/))).toBeNull();
-    expect(rowBadge(link(/^Pagamentos$/))).toBeNull();
+    expect(rowBadge(link(/^Levantamentos$/))).toBeNull();
   });
 
   it('never badges menus that are not queues', async () => {

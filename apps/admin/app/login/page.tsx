@@ -6,6 +6,9 @@ import { AlertCircle } from 'lucide-react';
 import { saveSession } from '@/lib/session';
 import { adminLoginStep1, adminMfaEnrol, adminMfaConfirm, adminMfaAcknowledge, adminMfaVerify, AdminApiError } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
+import { isServiceUnavailable } from '@/lib/errors';
+
+const LOGIN_UNAVAILABLE = 'O serviço de autenticação está indisponível. Tente novamente dentro de momentos.';
 
 const inputCls =
   'w-full rounded-[14px] border-[1.5px] border-[#f1e3e3] bg-[#FFF7F6] px-4 py-[14px] text-[15px] font-semibold text-[#2a2024] outline-none transition-[border-color,box-shadow] duration-150 focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10';
@@ -73,6 +76,10 @@ export default function LoginPage() {
     } catch (err) {
       if (err instanceof AdminApiError && err.status === 429) {
         setError('Muitas tentativas. Tente novamente mais tarde.');
+      } else if (isServiceUnavailable(err)) {
+        // A 5xx or no answer at all says nothing about the credentials —
+        // calling them invalid sends an operator to reset a correct password.
+        setError(LOGIN_UNAVAILABLE);
       } else {
         // Always generic — never reveal whether the email exists.
         setError('Email ou palavra-passe inválidos.');
@@ -103,6 +110,8 @@ export default function LoginPage() {
       if (err instanceof AdminApiError && err.status === 403) {
         setError('Esta sessão de verificação expirou. Volte a entrar.');
         setChallenge(null);
+      } else if (isServiceUnavailable(err)) {
+        setError(LOGIN_UNAVAILABLE);
       } else {
         setError('Esse código não confere.');
       }

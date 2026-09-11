@@ -5,7 +5,8 @@ import { Coins, CalendarDays, HandCoins, Clock, AlertTriangle } from 'lucide-rea
 import { getSession } from '@/lib/session';
 import { AdminApi, type FinanceDashboard, type FinanceDashboardFilters, type FeeBucket } from '@/lib/admin-api';
 import { Card, CardHeader, ErrorState, EmptyMsg } from '@/components/ui/table';
-import { formatKz } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
+import { watDayBoundary, watDayFromBoundary } from '@/lib/time';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -15,11 +16,18 @@ function getApi(): AdminApi | null {
 const selClass = 'rounded-[11px] border border-[#f1e3e3] bg-white px-[12px] py-[8px] text-[13px] font-semibold text-[#3a2e32] outline-none focus:border-[#B5101F]';
 const CURRENCIES = ['AOA', 'USD', 'EUR'];
 
-/** "1.000,00 AOA · 50,00 USD" from a list of per-currency buckets. */
+/** "1 000 Kz · 50 USD" from buckets keyed by currency — one figure per currency. */
 function moneyByCurrency(buckets: FeeBucket[]): string {
   if (buckets.length === 0) return '—';
-  return buckets.map((b) => `${formatKz(b.total_minor)} ${b.key ?? ''}`.trim()).join(' · ');
+  return buckets.map((b) => formatMoney(b.total_minor, b.key)).join(' · ');
 }
+
+// Core sums category/profile/day buckets over every currency unless a currency
+// filter is set (core/api/src/routes/finance_dashboard.rs `grouped`). Adding
+// kwanza cêntimos to dollar cents is meaningless, so those charts show money
+// only when one currency is chosen; otherwise they show how many fees.
+const MIXED_HINT = 'Sem moeda escolhida, mostra o número de taxas — valores de moedas diferentes nunca se somam.';
+
 function sumCount(buckets: FeeBucket[]): number {
   return buckets.reduce((a, b) => a + b.count, 0);
 }
@@ -28,7 +36,9 @@ export default function FinanceDashboardPage() {
   const [data, setData] = useState<FinanceDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<FinanceDashboardFilters>({ environment: 'SANDBOX' });
+  // Kwanza by default: every money chart below is then in one currency.
+  const [filters, setFilters] = useState<FinanceDashboardFilters>({ environment: 'SANDBOX', currency: 'AOA' });
+  const cur = filters.currency;
 
   const load = useCallback(async (f: FinanceDashboardFilters) => {
     const api = getApi();
@@ -70,8 +80,10 @@ export default function FinanceDashboardPage() {
           <option value="">Todas as moedas</option>
           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input className={selClass} type="date" value={filters.from?.slice(0, 10) ?? ''} onChange={(e) => set('from', e.target.value ? `${e.target.value}T00:00:00Z` : '')} />
-        <input className={selClass} type="date" value={filters.to?.slice(0, 10) ?? ''} onChange={(e) => set('to', e.target.value ? `${e.target.value}T23:59:59Z` : '')} />
+        {/* A picked day is a Luanda day: from its 00:00 WAT to its 23:59:59.999 WAT. */}
+        <input className={selClass} type="date" aria-label="Desde (dia WAT)" title="Dia em hora de Luanda (WAT)" value={watDayFromBoundary(filters.from)} onChange={(e) => set('from', e.target.value ? watDayBoundary(e.target.value, 'start') : '')} />
+        <input className={selClass} type="date" aria-label="Até (dia WAT)" title="Dia em hora de Luanda (WAT)" value={watDayFromBoundary(filters.to)} onChange={(e) => set('to', e.target.value ? watDayBoundary(e.target.value, 'end') : '')} />
+        <span className="text-[12px] font-bold text-[#9a8a8e]">Datas em hora de Luanda (WAT)</span>
       </div>
 
       {loading ? (
@@ -81,26 +93,30 @@ export default function FinanceDashboardPage() {
       ) : !data ? null : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-            <Kpi icon={Coins} bg="#fff1f0" color="#B5101F" label="Taxas hoje" big={String(sumCount(data.operator_fees.today))} sub={moneyByCurrency(data.operator_fees.today)} />
-            <Kpi icon={CalendarDays} bg="#eef4ff" color="#2657c9" label="Taxas no mês" big={String(sumCount(data.operator_fees.month))} sub={moneyByCurrency(data.operator_fees.month)} />
-            <Kpi icon={HandCoins} bg="#eafaf0" color="#1f9d57" label="Liquidações hoje" big={String(data.application_settlements.today_count)} sub="aplicações" />
+            {/* Core cuts "today", "this month" and the day buckets on the
+                UTC calendar (core/api/src/routes/finance_dashboard.rs), so
+                they are labelled UTC — not passed off as the Luanda day. */}
+            <Kpi icon={Coins} bg="#fff1f0" color="#B5101F" label="Taxas hoje (dia UTC)" big={String(sumCount(data.operator_fees.today))} sub={moneyByCurrency(data.operator_fees.today)} />
+            <Kpi icon={CalendarDays} bg="#eef4ff" color="#2657c9" label="Taxas no mês (UTC)" big={String(sumCount(data.operator_fees.month))} sub={moneyByCurrency(data.operator_fees.month)} />
+            <Kpi icon={HandCoins} bg="#eafaf0" color="#1f9d57" label="Liquidações hoje (dia UTC)" big={String(data.application_settlements.today_count)} sub="aplicações" />
             <Kpi icon={Clock} bg="#fff7e8" color="#b07d18" label="Pendentes" big={String(data.application_settlements.pending_count)} sub="por concluir" />
             <Kpi icon={AlertTriangle} bg="#fdeef0" color="#c0392b" label="Falhadas" big={String(data.application_settlements.failed_count)} sub="requerem atenção" />
           </div>
 
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <ChartCard title="Receita por categoria" buckets={data.operator_fees.by_business_category} />
-            <ChartCard title="Receita por moeda" buckets={data.operator_fees.by_currency} />
-            <ChartCard title="Receita por perfil" buckets={data.operator_fees.by_pricing_profile} />
-            <ChartCard title="Liquidações por estado" buckets={data.application_settlements.by_status} valueIsMoney={false} />
+            <ChartCard title={cur ? 'Receita por categoria' : 'Taxas por categoria'} buckets={data.operator_fees.by_business_category} mode={cur ? { money: cur } : 'count'} hint={cur ? undefined : MIXED_HINT} />
+            <ChartCard title="Receita por moeda" buckets={data.operator_fees.by_currency} mode="perCurrency" />
+            <ChartCard title={cur ? 'Receita por perfil' : 'Taxas por perfil'} buckets={data.operator_fees.by_pricing_profile} mode={cur ? { money: cur } : 'count'} hint={cur ? undefined : MIXED_HINT} />
+            <ChartCard title="Liquidações por estado" buckets={data.application_settlements.by_status} mode="count" />
           </div>
 
           <Card>
-            <CardHeader title="Taxas por dia (janela do filtro)" />
+            <CardHeader title={cur ? 'Taxas por dia UTC (janela do filtro)' : 'Número de taxas por dia UTC (janela do filtro)'} />
             <div className="p-[18px]">
+              {!cur && <p className="m-0 mb-3 text-[12.5px] font-semibold text-[#9a8a8e]">{MIXED_HINT}</p>}
               {data.operator_fees.by_day.length === 0
                 ? <EmptyMsg title="Sem dados" hint="Nenhuma taxa na janela selecionada." />
-                : <DayBars buckets={data.operator_fees.by_day} />}
+                : <DayBars buckets={data.operator_fees.by_day} currency={cur} />}
             </div>
           </Card>
         </>
@@ -124,20 +140,36 @@ function Kpi({ icon: Icon, bg, color, label, big, sub }: {
   );
 }
 
-function ChartCard({ title, buckets, valueIsMoney = true }: { title: string; buckets: FeeBucket[]; valueIsMoney?: boolean }) {
+/**
+ * How a chart reads its buckets:
+ *  - { money: 'AOA' } — every bucket is in that one currency: sized and labelled by amount;
+ *  - 'perCurrency'    — each bucket IS a currency: labelled in its own currency,
+ *                       sized by count (amounts in different currencies are not comparable);
+ *  - 'count'          — sized and labelled by how many.
+ */
+type ChartMode = { money: string } | 'perCurrency' | 'count';
+
+function ChartCard({ title, buckets, mode, hint }: { title: string; buckets: FeeBucket[]; mode: ChartMode; hint?: string }) {
   return (
     <Card>
       <CardHeader title={title} />
       <div className="p-[18px]">
-        {buckets.length === 0 ? <EmptyMsg title="Sem dados" hint="Nada para mostrar nesta janela." /> : <Bars buckets={buckets} valueIsMoney={valueIsMoney} />}
+        {hint && <p className="m-0 mb-3 text-[12.5px] font-semibold text-[#9a8a8e]">{hint}</p>}
+        {buckets.length === 0 ? <EmptyMsg title="Sem dados" hint="Nada para mostrar nesta janela." /> : <Bars buckets={buckets} mode={mode} />}
       </div>
     </Card>
   );
 }
 
-/** Horizontal bars sized by `total_minor` (revenue) or `count`. */
-function Bars({ buckets, valueIsMoney }: { buckets: FeeBucket[]; valueIsMoney: boolean }) {
-  const metric = (b: FeeBucket) => (valueIsMoney ? b.total_minor : b.count);
+function bucketLabel(b: FeeBucket, mode: ChartMode): string {
+  if (mode === 'count') return String(b.count);
+  if (mode === 'perCurrency') return `${formatMoney(b.total_minor, b.key)} · ${b.count}`;
+  return formatMoney(b.total_minor, mode.money);
+}
+
+/** Horizontal bars; see ChartMode for what sizes and labels them. */
+function Bars({ buckets, mode }: { buckets: FeeBucket[]; mode: ChartMode }) {
+  const metric = (b: FeeBucket) => (typeof mode === 'object' ? b.total_minor : b.count);
   const max = Math.max(1, ...buckets.map(metric));
   return (
     <div className="flex flex-col gap-[11px]">
@@ -148,7 +180,7 @@ function Bars({ buckets, valueIsMoney }: { buckets: FeeBucket[]; valueIsMoney: b
           <div key={`${b.key}-${i}`} className="flex flex-col gap-[4px]">
             <div className="flex items-center justify-between text-[12.5px]">
               <span className="font-extrabold text-[#2a2024]">{b.key ?? 'sem categoria'}</span>
-              <span className="font-mono font-bold text-[#5a4a4e]">{valueIsMoney ? formatKz(v) : v}{!valueIsMoney && ` · ${b.count}`}</span>
+              <span className="font-mono font-bold text-[#5a4a4e]">{bucketLabel(b, mode)}</span>
             </div>
             <div className="h-[9px] w-full overflow-hidden rounded-full bg-[#f6eded]">
               <div className="h-full rounded-full bg-[#B5101F]" style={{ width: `${pctW}%` }} />
@@ -160,15 +192,17 @@ function Bars({ buckets, valueIsMoney }: { buckets: FeeBucket[]; valueIsMoney: b
   );
 }
 
-/** Compact vertical day bars (fees over the window). */
-function DayBars({ buckets }: { buckets: FeeBucket[] }) {
-  const max = Math.max(1, ...buckets.map((b) => b.total_minor));
+/** Compact vertical day bars — amounts in `currency`, or counts when none is chosen. */
+function DayBars({ buckets, currency }: { buckets: FeeBucket[]; currency?: string }) {
+  const metric = (b: FeeBucket) => (currency ? b.total_minor : b.count);
+  const max = Math.max(1, ...buckets.map(metric));
   return (
     <div className="flex items-end gap-[3px] overflow-x-auto pb-1" style={{ height: 160 }}>
       {buckets.map((b) => {
-        const h = Math.max(3, Math.round((b.total_minor / max) * 140));
+        const h = Math.max(3, Math.round((metric(b) / max) * 140));
+        const tip = currency ? `${b.key}: ${formatMoney(b.total_minor, currency)} (${b.count})` : `${b.key}: ${b.count} taxas`;
         return (
-          <div key={b.key} className="flex flex-none flex-col items-center gap-1" title={`${b.key}: ${formatKz(b.total_minor)} (${b.count})`}>
+          <div key={b.key} className="flex flex-none flex-col items-center gap-1" title={tip}>
             <div className="w-[14px] rounded-t-[4px] bg-[#B5101F]" style={{ height: h }} />
             <span className="font-mono text-[9px] text-[#b3a3a7]">{(b.key ?? '').slice(5)}</span>
           </div>
