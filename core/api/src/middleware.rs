@@ -373,3 +373,41 @@ mod general_gate_tests {
         assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Operator attribution (A5-13)
+// ---------------------------------------------------------------------------
+
+tokio::task_local! {
+    /// The BANZADMIN operator on whose behalf this request acts, when admin-api
+    /// says so (`X-Banzami-Operator`). Attribution, not authority: the route
+    /// group is already service-authenticated.
+    static OPERATOR: Option<String>;
+}
+
+/// Carries `X-Banzami-Operator` (a UUID, nothing else) into the request's task,
+/// where `risk::audit` reads it. Operator actions were recorded as the literal
+/// "ADMIN" — freezes, compliance decisions, settlements, payouts — so the only
+/// record of WHO acted was admin-api's own log, which a disconnect could lose
+/// (A5-03, now fixed) and which core never saw.
+pub async fn operator(req: Request, next: Next) -> Response {
+    let op = req
+        .headers()
+        .get("X-Banzami-Operator")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s.trim()).ok())
+        .map(|u| u.to_string());
+    OPERATOR.scope(op, next.run(req)).await
+}
+
+/// The operator this request acts for, if admin-api named one.
+pub fn current_operator() -> Option<String> {
+    OPERATOR.try_with(|o| o.clone()).ok().flatten()
+}
+
+/// Runs `f` as a request acting for `op` — for tests of what is recorded.
+#[cfg(test)]
+pub async fn with_operator<F: std::future::Future>(op: Option<String>, f: F) -> F::Output {
+    OPERATOR.scope(op, f).await
+}
+

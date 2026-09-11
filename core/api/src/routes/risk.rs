@@ -81,17 +81,29 @@ pub async fn audit(
     metadata: serde_json::Value,
     request_id: Option<&str>,
 ) {
-    let _ = sqlx::query(
+    // "ADMIN" names a role, not a person. When admin-api said which operator is
+    // acting, the record says that instead (A5-13).
+    let actor = match (actor, crate::middleware::current_operator()) {
+        ("ADMIN", Some(op)) => format!("ADMIN:{op}"), // the column's own convention (0025)
+        _ => actor.to_string(),
+    };
+    // Still fire-and-forget — an audit write must not fail the action — but a
+    // refused write is said out loud. It was discarded: two actions missing from
+    // the log's CHECK list lost every such record, unnoticed (0134).
+    if let Err(e) = sqlx::query(
         "INSERT INTO audit_log (actor, action, subject, metadata, request_id)
          VALUES ($1, $2, $3, $4, $5)",
     )
-    .bind(actor)
+    .bind(&actor)
     .bind(action)
     .bind(subject)
     .bind(metadata)
     .bind(request_id)
     .execute(pool)
-    .await;
+    .await
+    {
+        tracing::error!(action, subject, error = %e, "audit record refused — the action is not recorded");
+    }
 }
 
 /// Logs a suspicious activity event (also fire-and-forget).
@@ -221,3 +233,73 @@ pub async fn get_velocity(
 
     (hourly.0, hourly.1, daily.0, daily.1)
 }
+
+#[cfg(test)]
+mod attribution_tests {
+    use sqlx::PgPool;
+
+    // A5-13: an operator action is recorded under the operator admin-api named,
+    // not under the role "ADMIN"; without one it stays "ADMIN".
+    #[sqlx::test(migrations = "../../db/migrations")]
+    async fn an_operator_action_names_the_operator(pool: PgPool) {
+        let op = "5f0e1d2c-2222-4b3a-8c9d-0e1f2a3b4c5d".to_string();
+        crate::middleware::with_operator(Some(op.clone()), async {
+            super::audit(&pool, "ADMIN", "ACCOUNT_FROZEN", "merchant:x", serde_json::json!({}), None).await;
+        })
+        .await;
+        super::audit(&pool, "ADMIN", "ACCOUNT_FROZEN", "merchant:y", serde_json::json!({}), None).await;
+        let rows: Vec<(String, String)> =
+            sqlx::query_as("SELECT subject, actor FROM audit_log WHERE action = 'ACCOUNT_FROZEN' ORDER BY subject")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert_eq!(rows, vec![("merchant:x".into(), format!("ADMIN:{op}")), ("merchant:y".into(), "ADMIN".into())]);
+    }
+}
+
+#[cfg(test)]
+mod action_list_tests {
+    // Every action literal core passes to `audit` is one the log's CHECK accepts
+    // (the latest migration that redefines it). Two were missing and every such
+    // record was refused, silently (0134).
+    #[test]
+    fn every_audited_action_is_accepted_by_the_log() {
+        let migrations = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../db/migrations");
+        let mut files: Vec<_> = std::fs::read_dir(&migrations).unwrap().map(|e| e.unwrap().path()).collect();
+        files.sort();
+        let latest = files
+            .iter()
+            .rev()
+            .map(|p| std::fs::read_to_string(p).unwrap())
+            .find(|s| s.contains("ADD CONSTRAINT audit_log_action_check"))
+            .expect("no migration defines audit_log_action_check");
+        let list = &latest[latest.find("ADD CONSTRAINT audit_log_action_check").unwrap()..];
+        let list = &list[..list.find(';').unwrap()];
+        let src_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/routes");
+        let mut missing = Vec::new();
+        for entry in std::fs::read_dir(src_dir).unwrap() {
+            let src = std::fs::read_to_string(entry.unwrap().path()).unwrap();
+            for (i, _) in src.match_indices("audit(") {
+                // The action is the third argument: the second string literal.
+                let tail = &src[i..(i + 400).min(src.len())];
+                let lits: Vec<&str> = tail.split('"').skip(1).step_by(2).take(2).collect();
+                if let [_, action] = lits[..] {
+                    // The actor vocabulary is not an action (a call whose actor is
+                    // a variable shifts the literals by one).
+                    let actor = ["ADMIN", "SYSTEM", "CONSUMER", "MERCHANT", "ACQUIRING"].contains(&action);
+                    if !actor
+                        && action.chars().all(|c| c.is_ascii_uppercase() || c == '_')
+                        && action.len() > 3
+                        && !list.contains(&format!("'{action}'"))
+                    {
+                        missing.push(action.to_string());
+                    }
+                }
+            }
+        }
+        missing.sort();
+        missing.dedup();
+        assert!(missing.is_empty(), "audited actions the log refuses: {missing:?}");
+    }
+}
+

@@ -3563,3 +3563,25 @@ daily-limit decline into an allow (admin-api calls this authorize route). A fail
 read now refuses the authorization (500), and a merchant with no record is new (0
 days), not the most trusted age. The same pattern in `qr.rs` sits in the unmounted QR
 pay route (A4-13). Core suite 193/193.
+
+## RA-137 — operator actions recorded as "ADMIN"; consumer pay-link payments not recorded at all
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-13; the second defect found while fixing it)
+- **Status:** FIXED (core, admin-api, migration 0134)
+
+Core attributed operator actions — freezes, compliance decisions, settlements, payouts —
+to the literal "ADMIN", so the only record of which operator acted was admin-api's own
+log. admin-api now sends the acting operator (`X-Banzami-Operator`, a UUID) on every
+core call; core carries it in a task-local and records the action as `ADMIN:<operator>`,
+the column's own convention (0025). Attribution only — the route group remains
+service-authenticated. Fixing it exposed that core's audit writes were fire-and-forget
+with the error discarded, and two actions the code writes were missing from the log's
+CHECK list: every consumer pay-link payment (`CONSUMER_PAY_LINK_PAID`) left no audit
+record, and so would a paid payment request (`PAYMENT_REQUEST_PAID`, unmounted).
+Migration 0134 adds them (0126's list plus the two), and a refused write is now logged.
+Tests `an_operator_action_names_the_operator`, `TestCoreAdminClient_NamesTheActingOperator`,
+`every_audited_action_is_accepted_by_the_log` (a static check of every `audit(...)` call
+against the latest list; without the two additions it names them), and
+`tests/ops/audit-action-list-only-grows.test.mjs` — the first draft of 0134 copied 0117's
+list and would have dropped 0126's two actions; the guard now refuses any redefinition
+that loses one.

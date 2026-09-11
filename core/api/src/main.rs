@@ -945,6 +945,7 @@ async fn main() {
         .merge(payee_routes)
         .with_state(state)
         .layer(axum_middleware::from_fn(middleware::request_id))
+        .layer(axum_middleware::from_fn(middleware::operator))
         // Outermost: enter the correlation span first so request_id + handlers log
         // under it and Go↔Rust logs join on correlation_id.
         .layer(axum_middleware::from_fn(middleware::correlation_id))

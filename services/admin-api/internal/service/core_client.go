@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"github.com/banzami/banzami/services/common/corepath"
 )
 
@@ -780,6 +781,12 @@ func (c *CoreAdminClient) get(ctx context.Context, path string, out any) error {
 }
 
 func (c *CoreAdminClient) do(req *http.Request, out any) error {
+	// Name the operator acting, so core's audit records a person rather than
+	// the role "ADMIN" (A5-13). Attribution only; the call is still
+	// service-authenticated.
+	if p, ok := auth.FromContext(req.Context()); ok && p.ID != "" {
+		req.Header.Set("X-Banzami-Operator", p.ID)
+	}
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("core-api transport: %w", err)
