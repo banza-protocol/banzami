@@ -17,12 +17,26 @@ import (
 type Consumer struct {
 	ID     string
 	Scopes []string
+	// TokenVersion is the session version the token was issued under; a
+	// sign-out bumps the consumer's version and ends every older token.
+	TokenVersion int
+}
+
+// SessionChecker says whether a consumer's token is still good: the consumer
+// is ACTIVE and the token carries the current session version.
+type SessionChecker interface {
+	SessionValid(ctx context.Context, consumerID string, tokenVersion int) (bool, error)
 }
 
 type consumerKey struct{}
 
 // Auth returns middleware that enforces JWT Bearer authentication for consumers.
-func Auth(cfg *config.Config) func(http.Handler) http.Handler {
+//
+// A valid signature is not enough: the token must still name a live session —
+// the consumer ACTIVE and on the version the token was issued under. A 24-hour
+// token used to outlive a sign-out (there was none) and a suspension. Without
+// a way to check, nothing is let through.
+func Auth(cfg *config.Config, sessions SessionChecker) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			raw, err := extractBearer(r)
@@ -35,6 +49,22 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 			if err != nil {
 				apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_TOKEN",
 					"token is invalid or expired")
+				return
+			}
+			if sessions == nil {
+				apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE",
+					"sessions cannot be checked right now")
+				return
+			}
+			live, err := sessions.SessionValid(r.Context(), consumer.ID, consumer.TokenVersion)
+			if err != nil {
+				apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE",
+					"sessions cannot be checked right now")
+				return
+			}
+			if !live {
+				apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_TOKEN",
+					"this session has ended — sign in again")
 				return
 			}
 
@@ -59,7 +89,7 @@ func InjectConsumer(ctx context.Context, c *Consumer) context.Context {
 
 // NewConsumerToken mints a signed JWT for the given consumer.
 // The returned expiresAt string is RFC3339, suitable for API responses.
-func NewConsumerToken(secret, consumerID string, scopes []string, ttl time.Duration) (token, expiresAt string, err error) {
+func NewConsumerToken(secret, consumerID string, tokenVersion int, scopes []string, ttl time.Duration) (token, expiresAt string, err error) {
 	// SEC-001 fail-closed: never mint a token signed with an empty key.
 	if secret == "" {
 		return "", "", errNoSigningKey
@@ -67,8 +97,9 @@ func NewConsumerToken(secret, consumerID string, scopes []string, ttl time.Durat
 	now := time.Now()
 	exp := now.Add(ttl)
 	claims := &jwtClaims{
-		CustomerID: consumerID,
-		Scopes:     scopes,
+		CustomerID:   consumerID,
+		Scopes:       scopes,
+		TokenVersion: tokenVersion,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -89,6 +120,10 @@ func NewConsumerToken(secret, consumerID string, scopes []string, ttl time.Durat
 type jwtClaims struct {
 	CustomerID string   `json:"customer_id,omitempty"`
 	Scopes     []string `json:"scopes"`
+	// TokenVersion: the consumer's session version at issue ("tv"). A token
+	// minted before versions existed reads 0, the version every consumer
+	// starts on, so it stays good until the first sign-out.
+	TokenVersion int `json:"tv"`
 	jwt.RegisteredClaims
 }
 
@@ -136,7 +171,8 @@ func verifyJWT(tokenStr, secret string) (*Consumer, error) {
 	}
 
 	return &Consumer{
-		ID:     c.CustomerID,
-		Scopes: c.Scopes,
+		ID:           c.CustomerID,
+		Scopes:       c.Scopes,
+		TokenVersion: c.TokenVersion,
 	}, nil
 }

@@ -99,7 +99,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token, expiresAt, err := middleware.NewConsumerToken(
-		h.cfg.JWTSecret, consumer.ID, []string{"consumer"}, consumerTokenTTL,
+		h.cfg.JWTSecret, consumer.ID, 0, []string{"consumer"}, consumerTokenTTL,
 	)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue token")
@@ -133,7 +133,7 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 
 	handle := strings.ToLower(strings.TrimSpace(body.Handle))
 
-	consumerID, err := h.creds.Verify(r.Context(), handle, body.Pin)
+	consumerID, tokenVersion, err := h.creds.Verify(r.Context(), handle, body.Pin)
 	if err != nil {
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid handle or PIN")
@@ -144,12 +144,17 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 				"too many wrong PINs — try again in 15 minutes")
 			return
 		}
+		if errors.Is(err, service.ErrConsumerNotActive) {
+			apierror.Respond(w, r, http.StatusForbidden, "ACCOUNT_SUSPENDED",
+				"this account is not active")
+			return
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "authentication failed")
 		return
 	}
 
 	token, expiresAt, err := middleware.NewConsumerToken(
-		h.cfg.JWTSecret, consumerID, []string{"consumer"}, consumerTokenTTL,
+		h.cfg.JWTSecret, consumerID, tokenVersion, []string{"consumer"}, consumerTokenTTL,
 	)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue token")
@@ -161,4 +166,21 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		"expires_at": expiresAt,
 		"token_type": "Bearer",
 	})
+}
+
+// POST /v1/auth/logout
+// Ends every session the signed-in consumer holds: tokens issued before it
+// stop being accepted on the next request. There was no way to end one.
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	consumer, ok := middleware.GetConsumer(r.Context())
+	if !ok {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "not signed in")
+		return
+	}
+	if err := h.creds.RevokeSessions(r.Context(), consumer.ID); err != nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "SERVICE_UNAVAILABLE",
+			"could not sign out — try again")
+		return
+	}
+	respond(w, http.StatusOK, map[string]any{"signed_out": true})
 }

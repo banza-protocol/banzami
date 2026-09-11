@@ -45,6 +45,7 @@ The PIN is hashed with bcrypt (cost 10) before storage. The plaintext PIN is nev
 {
   "customer_id": "550e8400-e29b-41d4-a716-446655440000",
   "scopes": ["consumer"],
+  "tv": 0,
   "iat": 1748000000,
   "exp": 1748086400
 }
@@ -65,10 +66,28 @@ POST /v1/auth/register
 
 POST /v1/auth/token
   Body: { handle, pin }
-  1. SELECT * FROM public_api_credentials WHERE handle = $1
+  1. Claim a login attempt on the handle (5 per 15 min, migration 0132)
   2. bcrypt.CompareHashAndPassword(stored_hash, pin)
-  3. Return { token, expires_at }
+  3. The consumer must be ACTIVE — else 403 ACCOUNT_SUSPENDED
+  4. Return { token, expires_at } — the token carries the session version (tv)
+
+Every authenticated request
+  The token must name a live session: the consumer ACTIVE and on the version
+  the token was issued under (public_api_credentials.token_version, migration
+  0137). A store that cannot be read answers 503, never a pass.
+
+POST /v1/auth/logout   (authenticated)
+  Bumps token_version: every token the consumer holds, on every device, stops
+  being accepted. The consumer app offers it as "Terminar sessão em todos os
+  dispositivos"; "Terminar sessão" only leaves the device.
 ```
+
+**Session revocation (2026-09-11, RA-149).** A 24-hour token used to outlive
+a sign-out (there was none) and the consumer's suspension. Sessions are now
+checked per request against the version and status above; the check is cached
+in-process for at most 10 seconds, so a sign-out through the same instance is
+immediate and a suspension, or a sign-out through another instance, takes
+effect within that.
 
 ---
 
@@ -126,7 +145,7 @@ See ADR-003 for the general rationale. For consumers specifically: the complexit
 - **Phone number + OTP:** for BNA identity verification compliance, binding a verified phone number to a consumer account.
 - **Biometric auth:** Flutter SDK can use `local_auth` for fingerprint/face unlock as a PIN replacement on supported devices.
 - **PIN reset flow:** self-service recovery via SMS OTP or email link.
-- **JWT revocation:** Redis blocklist for immediate token invalidation on logout or compromise.
+- ~~**JWT revocation:**~~ done by session version, not a blocklist (see Auth flow).
 
 ---
 

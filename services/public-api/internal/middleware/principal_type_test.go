@@ -41,7 +41,7 @@ func TestConsumerSurface_RejectsMerchantToken(t *testing.T) {
 		`{"merchant_id":"m-1","scopes":["*"],"environment":"LIVE","exp":`+exp()+`,"iat":`+iat()+`}`)
 
 	reached := false
-	h := Auth(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := Auth(cfg, liveSessions{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reached = true
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -68,7 +68,7 @@ func TestConsumerSurface_RejectsTokenWithoutConsumerIdentity(t *testing.T) {
 	anon := forgeHS256(t, secret, `{"scopes":["consumer"],"exp":`+exp()+`,"iat":`+iat()+`}`)
 
 	reached := false
-	h := Auth(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached = true }))
+	h := Auth(cfg, liveSessions{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached = true }))
 	req := httptest.NewRequest(http.MethodGet, "/v1/transfers/some-id", nil)
 	req.Header.Set("Authorization", "Bearer "+anon)
 	rec := httptest.NewRecorder()
@@ -89,7 +89,7 @@ func TestConsumerSurface_AcceptsConsumerToken(t *testing.T) {
 		`{"customer_id":"consumer-1","scopes":["consumer"],"exp":`+exp()+`,"iat":`+iat()+`}`)
 
 	var got string
-	h := Auth(cfg)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := Auth(cfg, liveSessions{})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if c, ok := GetConsumer(r.Context()); ok {
 			got = c.ID
 		}

@@ -136,7 +136,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 	// Authenticated consumer endpoints
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.Auth(cfg))
+		r.Use(middleware.Auth(cfg, sessionsOf(deps.CredStore)))
+
+		r.Post("/v1/auth/logout", authH.Logout)
 
 		// @banza suggestions for a signed-in consumer, limited per consumer. The
 		// static /search segment wins over the public /{handle} route in chi.
@@ -214,4 +216,13 @@ func (s *Server) Start() error {
 
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
+}
+
+// sessionsOf keeps a nil store a nil interface, so Auth refuses (503) rather
+// than calling a method on a nil pointer.
+func sessionsOf(c *service.CredentialStore) middleware.SessionChecker {
+	if c == nil {
+		return nil
+	}
+	return c
 }

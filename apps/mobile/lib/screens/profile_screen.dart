@@ -115,6 +115,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
+                icon:  Icons.devices_other_rounded,
+                label: 'Terminar sessão em todos os dispositivos',
+                sub:   'Incluindo este',
+                onTap: () => _confirmSignOutEverywhere(svc),
+                color: BanzamiColors.primary,
+              ),
+              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
+              _RowChevron(
                 icon:  Icons.delete_outline_rounded,
                 label: 'Remover conta',
                 sub:   'Apaga todos os dados guardados',
@@ -168,6 +176,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
           (_) => false,
         );
       }
+    }
+  }
+
+  /// Ends every session this account holds, on every device — for a lost or
+  /// shared phone. "Terminar sessão" above only leaves this device.
+  Future<void> _confirmSignOutEverywhere(SessionService svc) async {
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.devices_other_rounded,
+      title:        'Terminar todas as sessões?',
+      description:  'Sai da sua conta em todos os dispositivos onde entrou, incluindo este.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Terminar todas',
+      variant:      BanzamiDialogVariant.warning,
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await context.read<ConsumerPublicClient>().signOutEverywhere();
+    } catch (_) {
+      // The server was not told: other devices are still signed in. Say so
+      // and keep this session, so the person can try again.
+      if (mounted) {
+        BanzamiToast.showWarning(context,
+            'Não foi possível terminar as outras sessões. Tente novamente.');
+      }
+      return;
+    }
+    await svc.logout();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        (_) => false,
+      );
     }
   }
 

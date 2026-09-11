@@ -10,6 +10,7 @@
 # Codes public-api passes through from core rather than naming in a
 # Respond call (the Sandbox top-up refusal, handler/sandbox.go
 # sandboxCreditRefusal) are listed with the `passthrough` marker.
+ACCOUNT_SUSPENDED 403
 ACCOUNT_FROZEN 422
 BAD_REQUEST 400
 CONSUMER_NOT_FOUND 404

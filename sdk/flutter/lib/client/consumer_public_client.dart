@@ -106,6 +106,14 @@ class ConsumerPublicClient {
 
   /// Signed out: nothing authenticated may be sent with the old token.
   void clearToken() => _token = null;
+
+  /// Ends every session this consumer holds — on this device and any other —
+  /// then forgets the token here. Throws when the server could not be told,
+  /// in which case other devices stay signed in and the caller should say so.
+  Future<void> signOutEverywhere() async {
+    await _call(method: 'POST', path: '/v1/auth/logout');
+    _token = null;
+  }
   String? get token => _token;
 
   // ---------------------------------------------------------------------------

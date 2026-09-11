@@ -77,4 +77,33 @@ void main() {
     } catch (_) {}
     expect(key, 'kyc-1');
   });
+
+  // A sign-out used to end nothing on the server: a 24-hour token stayed good
+  // wherever it had been copied. Signing out everywhere tells the server, with
+  // the session's own token, and forgets it here.
+  group('signOutEverywhere', () {
+    test('asks the server to end every session, then forgets the token', () async {
+      final calls = <String>[];
+      final client = ConsumerPublicClient(
+        baseUrl: 'https://api.test',
+        httpClient: MockClient((req) async {
+          calls.add('${req.method} ${req.url.path} ${req.headers['Authorization']}');
+          return http.Response(jsonEncode({'signed_out': true}), 200);
+        }),
+      )..setToken('live.jwt');
+      await client.signOutEverywhere();
+      expect(calls, ['POST /v1/auth/logout Bearer live.jwt']);
+      expect(client.token, isNull);
+    });
+
+    test('a server that could not be told keeps the token and says so', () async {
+      final client = ConsumerPublicClient(
+        baseUrl: 'https://api.test',
+        httpClient: MockClient((_) async =>
+            http.Response('{"code":"SERVICE_UNAVAILABLE","message":"x"}', 503)),
+      )..setToken('live.jwt');
+      await expectLater(client.signOutEverywhere(), throwsA(isA<BanzamiApiException>()));
+      expect(client.token, 'live.jwt');
+    });
+  });
 }
