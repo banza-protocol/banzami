@@ -90,3 +90,70 @@ async fn verify_customer_is_audited(pool: PgPool) {
         "consumer KYC decision audited exactly once"
     );
 }
+
+async fn statuses(pool: &PgPool, merchant: Uuid) -> (String, String) {
+    sqlx::query_as("SELECT kyb_status, aml_status FROM merchant_compliance WHERE merchant_id = $1")
+        .bind(merchant)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+fn notes(n: &str) -> Json<compliance::NotesBody> {
+    Json(compliance::NotesBody { notes: n.into() })
+}
+
+// A5-06. "Approve" set KYB and AML to APPROVED whatever they were: it lifted a
+// suspension, and it cleared an AML review flag, with no reason and no trace of
+// the flag. Approval is refused while suspended and leaves an AML flag standing.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn approval_does_not_lift_a_suspension_or_clear_an_aml_flag(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+
+    let suspended = Uuid::new_v4();
+    sqlx::query("INSERT INTO merchants (id, name, email, status) VALUES ($1,'s',$2,'ACTIVE')")
+        .bind(suspended)
+        .bind(format!("{suspended}@compliance.test"))
+        .execute(&pool)
+        .await
+        .unwrap();
+    compliance::suspend_merchant(State(state.clone()), Path(suspended.to_string()), notes("fraude"))
+        .await
+        .unwrap();
+    assert!(
+        compliance::approve_merchant(State(state.clone()), Path(suspended.to_string())).await.is_err(),
+        "approval lifted a suspension"
+    );
+    assert_eq!(statuses(&pool, suspended).await, ("SUSPENDED".into(), "SUSPENDED".into()));
+
+    let flagged = Uuid::new_v4();
+    compliance::flag_aml(State(state.clone()), Path(flagged.to_string()), notes("padrão suspeito"))
+        .await
+        .unwrap();
+    compliance::approve_merchant(State(state.clone()), Path(flagged.to_string()))
+        .await
+        .unwrap();
+    assert_eq!(
+        statuses(&pool, flagged).await,
+        ("APPROVED".into(), "UNDER_REVIEW".into()),
+        "approving KYB cleared the AML flag"
+    );
+}
+
+// Decisions on different columns do not erase each other: a KYB rejection and
+// an AML flag racing both stand.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_decisions_on_different_columns_both_stand(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    for _ in 0..5 {
+        let m = Uuid::new_v4();
+        let _ = compliance::get_merchant(State(state.clone()), Path(m.to_string())).await;
+        let (a, b) = tokio::join!(
+            compliance::reject_merchant(State(state.clone()), Path(m.to_string()), notes("documentos")),
+            compliance::flag_aml(State(state.clone()), Path(m.to_string()), notes("padrão")),
+        );
+        a.unwrap();
+        b.unwrap();
+        assert_eq!(statuses(&pool, m).await, ("REJECTED".into(), "UNDER_REVIEW".into()));
+    }
+}

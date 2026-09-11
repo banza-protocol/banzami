@@ -7,7 +7,7 @@ use crate::{
         CustomerVerificationRequest, KycProvider, KycProviderError, MerchantVerificationRequest,
         VerificationDecision,
     },
-    repository::ComplianceRepository,
+    repository::{ComplianceRepository, MerchantDecision},
     ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance,
     OperationType, TransactionAuthorization, UNVERIFIED_INBOUND_CAP_MINOR,
 };
@@ -208,6 +208,31 @@ fn map_provider_err(e: KycProviderError) -> ComplianceError {
     }
 }
 
+impl<R: ComplianceRepository> PostgresComplianceEngine<R> {
+    /// Each decision moves only its own columns, on the condition it needs, in
+    /// one statement (A5-06). The record used to be read, edited and written
+    /// back whole: "approve" silently lifted a suspension or an AML flag, and a
+    /// concurrent AML flag and KYB rejection each erased the other.
+    async fn decide(
+        &self,
+        merchant_id: MerchantId,
+        decision: MerchantDecision,
+    ) -> Result<MerchantCompliance, ComplianceError> {
+        self.get_or_create_merchant(merchant_id).await?;
+        match self.repo.decide_merchant(merchant_id, &decision).await? {
+            Some(record) => Ok(record),
+            None => Err(ComplianceError::MerchantBlocked {
+                reason: match decision {
+                    MerchantDecision::Approve => {
+                        "the merchant is suspended — approval does not lift a suspension".into()
+                    }
+                    _ => "AML is suspended — it cannot be put under review".into(),
+                },
+            }),
+        }
+    }
+}
+
 impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
     async fn get_or_create_merchant(
         &self,
@@ -263,13 +288,7 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         &self,
         merchant_id: MerchantId,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.kyb_status = ComplianceStatus::Approved;
-        record.aml_status = ComplianceStatus::Approved;
-        record.reviewed_at = Some(Utc::now());
-        record.updated_at = Utc::now();
-        self.repo.upsert_merchant(&record).await?;
-        Ok(record)
+        self.decide(merchant_id, MerchantDecision::Approve).await
     }
 
     async fn reject_merchant(
@@ -277,13 +296,7 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.kyb_status = ComplianceStatus::Rejected;
-        record.reviewed_at = Some(Utc::now());
-        record.notes = Some(notes);
-        record.updated_at = Utc::now();
-        self.repo.upsert_merchant(&record).await?;
-        Ok(record)
+        self.decide(merchant_id, MerchantDecision::Reject(notes)).await
     }
 
     async fn suspend_merchant(
@@ -291,14 +304,7 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.kyb_status = ComplianceStatus::Suspended;
-        record.aml_status = ComplianceStatus::Suspended;
-        record.reviewed_at = Some(Utc::now());
-        record.notes = Some(notes);
-        record.updated_at = Utc::now();
-        self.repo.upsert_merchant(&record).await?;
-        Ok(record)
+        self.decide(merchant_id, MerchantDecision::Suspend(notes)).await
     }
 
     async fn flag_merchant_for_aml_review(
@@ -306,13 +312,7 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.aml_status = ComplianceStatus::UnderReview;
-        record.reviewed_at = Some(Utc::now());
-        record.notes = Some(notes);
-        record.updated_at = Utc::now();
-        self.repo.upsert_merchant(&record).await?;
-        Ok(record)
+        self.decide(merchant_id, MerchantDecision::FlagAml(notes)).await
     }
 
     async fn get_or_create_customer(
@@ -529,6 +529,46 @@ mod tests {
                 lock.push(record.clone());
             }
             Ok(())
+        }
+        async fn decide_merchant(
+            &self,
+            id: MerchantId,
+            decision: &MerchantDecision,
+        ) -> Result<Option<MerchantCompliance>, ComplianceError> {
+            let mut lock = self.merchants.lock().unwrap();
+            let Some(m) = lock.iter_mut().find(|m| m.merchant_id == id) else {
+                return Ok(None);
+            };
+            match decision {
+                MerchantDecision::Approve => {
+                    if m.kyb_status == ComplianceStatus::Suspended
+                        || m.aml_status == ComplianceStatus::Suspended
+                    {
+                        return Ok(None);
+                    }
+                    m.kyb_status = ComplianceStatus::Approved;
+                    if m.aml_status == ComplianceStatus::Pending {
+                        m.aml_status = ComplianceStatus::Approved;
+                    }
+                }
+                MerchantDecision::Reject(n) => {
+                    m.kyb_status = ComplianceStatus::Rejected;
+                    m.notes = Some(n.clone());
+                }
+                MerchantDecision::Suspend(n) => {
+                    m.kyb_status = ComplianceStatus::Suspended;
+                    m.aml_status = ComplianceStatus::Suspended;
+                    m.notes = Some(n.clone());
+                }
+                MerchantDecision::FlagAml(n) => {
+                    if m.aml_status == ComplianceStatus::Suspended {
+                        return Ok(None);
+                    }
+                    m.aml_status = ComplianceStatus::UnderReview;
+                    m.notes = Some(n.clone());
+                }
+            }
+            Ok(Some(m.clone()))
         }
         async fn get_customer(
             &self,

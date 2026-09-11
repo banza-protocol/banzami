@@ -3282,3 +3282,20 @@ still under review, in the UPDATE itself; otherwise it answers `DOCUMENT_NOT_UPL
 or `APPLICATION_CLOSED` and changes nothing. Test
 `TestDocumentDecision_NeedsAFileAndAnOpenApplication` (real DB; the previous code
 accepts the never-uploaded document).
+
+## RA-120 — "approve" lifted suspensions and cleared AML flags; compliance decisions erased each other
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-06)
+- **Status:** FIXED (core/compliance + admin-api)
+
+`approve_merchant` set KYB and AML to APPROVED whatever they were: it silently lifted
+a suspension and cleared an AML review flag, and the operator route asked for no
+reason. Every compliance decision read the whole record, edited it and wrote it back,
+so a concurrent AML flag and KYB rejection each overwrote the other. Each decision is
+now one statement that moves only its own columns on the condition it needs: approval
+is refused while KYB or AML is suspended and approves AML only while it is still
+pending; an AML flag does not undo a suspension. The operator's approval requires a
+reason, recorded in the audit. Tests
+`approval_does_not_lift_a_suspension_or_clear_an_aml_flag`,
+`concurrent_decisions_on_different_columns_both_stand` (real DB; the previous engine
+fails both), `TestApproveMerchant_RequiresAReason`.

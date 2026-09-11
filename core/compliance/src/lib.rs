@@ -12,7 +12,7 @@ pub use provider::{
     MerchantVerificationRequest, VerificationDecision, VerificationOutcome,
 };
 pub use providers::{ExternalKycProvider, KycProviderKind, SimulatedKycProvider};
-pub use repository::{ComplianceRepository, PostgresComplianceRepository};
+pub use repository::{ComplianceRepository, MerchantDecision, PostgresComplianceRepository};
 pub use verification::VerificationRecordStatus;
 
 use chrono::{DateTime, Utc};

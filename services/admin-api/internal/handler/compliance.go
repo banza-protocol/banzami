@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -30,16 +31,24 @@ func (h *ComplianceHandler) GetMerchant(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, record)
 }
 
-// ApproveMerchant handles POST /admin/v1/compliance/merchants/{id}/approve.
-// Sets both KYB and AML status to Approved, enabling transaction processing.
+// ApproveMerchant handles POST /admin/v1/compliance/merchants/{id}/approve  {notes}.
+// Approves KYB (and AML while it is still pending). Core refuses it for a
+// suspended merchant and leaves an AML review flag standing (A5-06); the
+// operator states why, as for every other compliance decision.
 func (h *ComplianceHandler) ApproveMerchant(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	var body notesBody
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if strings.TrimSpace(body.Notes) == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "notes is required: say why this merchant is approved")
+		return
+	}
 	record, err := h.core.ApproveMerchant(r.Context(), id)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
 	}
-	auditAfter(r, "merchant", id, map[string]any{"merchant_id": id, "kyb_status": "APPROVED", "aml_status": "APPROVED"})
+	auditAfter(r, "merchant", id, map[string]any{"merchant_id": id, "decision": "APPROVE", "notes": body.Notes, "record": record})
 	writeJSON(w, http.StatusOK, record)
 }
 
