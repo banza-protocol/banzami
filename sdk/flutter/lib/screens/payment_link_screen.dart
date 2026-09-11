@@ -130,7 +130,10 @@ class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
     // @handle); the link reference is the subtitle and the receipt note.
     return BanzamiPaymentRequestScreen(
       client: widget.client,
-      recipientHandle: link.merchantHandle ?? link.merchantName ?? link.slug,
+      // Not a person's @handle (recipientIsHandle: false): the screens show the
+      // Business's name and put "@" only before its real @handle (subtitle).
+      recipientHandle:
+          link.merchantHandle ?? link.merchantName ?? 'Pagamento Banzami',
       // The Business's public name, and under it the @handle it is paid at
       // ("Doa" / "@doa"). The link's description (e.g. a DOA reference) is not
       // who is paid; it appears on the receipt as the Business's reference.

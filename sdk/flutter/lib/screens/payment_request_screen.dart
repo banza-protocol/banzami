@@ -165,7 +165,9 @@ class _BanzamiPaymentRequestScreenState
           // Until the canonical receipt arrives: the payee at its @handle.
           recipient: paid.merchantHandle != null
               ? '@${paid.merchantHandle}'
-              : (paid.merchantName ?? widget.recipientDisplayName ?? paid.slug),
+              : (paid.merchantName ??
+                  widget.recipientDisplayName ??
+                  'Pagamento Banzami'),
           amountMinor: paid.amountMinor ?? amount,
           currency: paid.currency,
           status: 'COMPLETED',
@@ -238,6 +240,21 @@ class _BanzamiPaymentRequestScreenState
         _error = 'Erro de ligação. Tente novamente.';
       });
     }
+  }
+
+  /// Who is paid, as these screens name them: "@ana" for a person; for a
+  /// Business its display name (its @handle, when it has one, is the
+  /// subtitle). An "@" is only ever put before a real @handle.
+  String get _payeeLabel => widget.recipientIsHandle
+      ? '@${widget.recipientHandle}'
+      : (widget.recipientDisplayName ?? widget.recipientHandle);
+
+  /// The avatar letter — safe for an empty name or handle (a malformed link).
+  String get _initial {
+    final source = (widget.recipientDisplayName ?? widget.recipientHandle)
+        .replaceFirst('@', '')
+        .trim();
+    return source.isEmpty ? '·' : source[0].toUpperCase();
   }
 
   // ── Review UI builders ─────────────────────────────────────────────────────
@@ -322,9 +339,8 @@ class _BanzamiPaymentRequestScreenState
   }
 
   Widget _buildReviewUI() {
-    final handle = widget.recipientHandle;
     final displayName = widget.recipientDisplayName;
-    final initial = (displayName ?? handle)[0].toUpperCase();
+    final initial = _initial;
     final amount = widget.locked && widget.amountMinor != null
         ? formatMinor(widget.amountMinor!, widget.currency)
         : null;
@@ -365,11 +381,15 @@ class _BanzamiPaymentRequestScreenState
                             fontWeight: FontWeight.w700,
                           )),
                       const SizedBox(height: 2),
-                      Text(widget.recipientSubtitle ?? '@$handle',
-                          style: BanzamiTextStyles.bodySm
-                              .copyWith(color: BanzamiColors.gray400)),
+                      if (widget.recipientSubtitle != null ||
+                          widget.recipientIsHandle)
+                        Text(
+                            widget.recipientSubtitle ??
+                                '@${widget.recipientHandle}',
+                            style: BanzamiTextStyles.bodySm
+                                .copyWith(color: BanzamiColors.gray400)),
                     ] else
-                      Text('@$handle',
+                      Text(_payeeLabel,
                           style: BanzamiTextStyles.headingSm.copyWith(
                             color: BanzamiColors.gray900,
                             fontWeight: FontWeight.w700,
@@ -491,7 +511,6 @@ class _BanzamiPaymentRequestScreenState
   }
 
   Widget _buildProgressOverlay() {
-    final handle = widget.recipientHandle;
     final amount = widget.locked && widget.amountMinor != null
         ? formatMinor(widget.amountMinor!, widget.currency)
         : formatMinor(_amountMinor, widget.currency);
@@ -529,7 +548,7 @@ class _BanzamiPaymentRequestScreenState
                 ),
                 const SizedBox(height: BanzamiSpacing.sm),
                 Text(
-                  'para @$handle',
+                  'para $_payeeLabel',
                   style: BanzamiTextStyles.bodyMd.copyWith(
                     color: BanzamiColors.gray400,
                   ),
