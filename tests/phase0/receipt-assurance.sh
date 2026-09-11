@@ -44,6 +44,9 @@ onboard(){ SEQ=$((SEQ+1));HANDLE="ra${RR}s${SEQ}";
   OCID=$(jpath consumer.id); OTOK=$(jpath token);}
 PASS=0;FAIL=0
 chk(){ if [ "$2" = "$3" ];then echo "  $1 PASS ($2)";PASS=$((PASS+1));else echo "  $1 FAIL (got '$2' want '$3')";FAIL=$((FAIL+1));fi;}
+# same <a> <b>: compares two values that contain a proof reference without
+# printing either — a reference is a bearer capability, not log output.
+same(){ if [ "$1" = "$2" ]; then echo exact; else echo differs; fi; }
 SECURE_RE='^BZM(-[0-9A-HJKMNP-TV-Z]{4}){6}$'
 T0=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
@@ -71,7 +74,7 @@ check_receipt(){ # label txn_id pdf_path_in_container container
   chk "$label-environment" "$env" SANDBOX
   chk "$label-proof-before-receipt" "$before" true
   local urls; urls=$(docker exec "$ct" sh -c "grep -aoE 'https?://[^ )>]*/r/BZM-[0-9A-Z-]+' $pdf | sort -u")
-  chk "$label-qr-link-exact" "$urls" "https://banzami.com/r/$ref"
+  chk "$label-qr-link-exact" "$(same "$urls" "https://banzami.com/r/$ref")" exact
   local pubj; pubj=$(curl -s "$PUBLIC_API/v1/public/proofs/$ref")
   chk "$label-public-verified" "$(printf '%s' "$pubj" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(j.exists===true&&j.status==="CONFIRMED"?"VERIFIED":String(j.status))}catch{process.stdout.write("unparseable")}})')" VERIFIED
   local lower; lower=$(printf '%s' "$ref" | tr 'A-Z' 'a-z')
@@ -104,7 +107,7 @@ chk merchant-no-second-proof "$(psqlro "SELECT count(*) FROM transaction_proofs 
 check_receipt merchant "$WPT" /tmp/ra-m.pdf "$GW"
 RC=$(docker exec "$PUB" curl -s -o /tmp/ra-mp.pdf -w '%{http_code}' -H "Authorization: Bearer $AJ" "http://localhost:8083/v1/consumer/transactions/$WPT/receipt.pdf")
 chk merchant-payer-receipt "$RC|$(docker exec "$PUB" head -c 4 /tmp/ra-mp.pdf 2>/dev/null)" "200|%PDF"
-chk merchant-one-reference-both-copies "$(docker exec "$PUB" sh -c "grep -aoE 'https?://[^ )>]*/r/BZM-[0-9A-Z-]+' /tmp/ra-mp.pdf | sort -u")" "https://banzami.com/r/$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE transaction_id='$WPT'")"
+chk merchant-one-reference-both-copies "$(same "$(docker exec "$PUB" sh -c "grep -aoE 'https?://[^ )>]*/r/BZM-[0-9A-Z-]+' /tmp/ra-mp.pdf | sort -u")" "https://banzami.com/r/$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE transaction_id='$WPT'")")" exact
 docker exec "$PUB" rm -f /tmp/ra-mp.pdf
 
 # ── the historical receipt ─────────────────────────────────────────────────
