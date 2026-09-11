@@ -127,27 +127,27 @@ Create a payment link.
 }
 ```
 
-**Pay URL:** `https://pay.banzami.com/{slug}`
+**Pay URL:** `https://pay.banzami.com/pay/{slug}` (the bare `https://pay.banzami.com/{slug}` redirects there).
 
-#### GET /v1/payment-links?merchant_id=&limit=&cursor=
+#### GET /v1/payment-links?limit=&cursor=
 
-List payment links for a merchant.
+List the caller's own payment links. The Business comes from the credential (the
+merchant JWT, or the project key's binding) — never from the request. A
+`merchant_id` query naming another Business answers `403 FORBIDDEN`.
 
 #### GET /v1/payment-links/{id}
 
-Get a single payment link by UUID.
+Get one of the caller's payment links by its id (a UUID). Another Business's
+link — or an id that is not a UUID, such as a slug — answers `404 NOT_FOUND`.
 
-#### GET /v1/payment-links/by-slug/{slug}
+A link is read by slug only on the public payer surface:
+`GET /public/pay/{slug}` (below), which carries no internal identifiers.
 
-Get a payment link by slug.
+#### DELETE /v1/payment-links/{id}
 
-#### POST /v1/payment-links/{id}/cancel
-
-Cancel an active link. Returns `PAYMENT_LINK_NOT_ACTIVE (409)` if not ACTIVE.
-
-#### POST /v1/payment-links/{id}/mark-used
-
-Mark a link as used (called internally after a successful payment). Returns the updated link.
+Cancel one of the caller's active links. Returns the cancelled link.
+`422 LINK_NOT_ACTIVE` if it is no longer ACTIVE; `404 NOT_FOUND` for another
+Business's link.
 
 ---
 
