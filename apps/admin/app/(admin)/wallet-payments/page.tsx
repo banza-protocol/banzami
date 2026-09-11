@@ -6,7 +6,7 @@ import { AdminApi, type WalletPayment } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, formatDate } from '@/lib/format';
+import { businessLabel, formatMoney, formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -16,6 +16,12 @@ function getApi(): AdminApi | null {
 // "Pagamentos recebidos" — wallet-native merchant payments (canonical:
 // wallet_payments), distinct from /payments (payouts). Official receipt PDF via
 // the Document Engine.
+//
+// "Negócio" is the Business as its receipts name it (@handle · public name),
+// not the raw account name. "Referência" is the operation's existing proof —
+// the same one on the payer's and the Business's receipts — shown in full as
+// on the Comprovativos page, or "—" when no proof was issued. The console
+// never derives one.
 export default function WalletPaymentsPage() {
   const toast = useToast();
   const [rows, setRows] = useState<WalletPayment[]>([]);
@@ -102,7 +108,7 @@ export default function WalletPaymentsPage() {
             <thead>
               <tr>
                 <Th>Referência</Th>
-                <Th>Comerciante</Th>
+                <Th>Negócio</Th>
                 <Th>Pagador</Th>
                 <Th right>Valor</Th>
                 <Th>Estado</Th>
@@ -114,8 +120,14 @@ export default function WalletPaymentsPage() {
             <tbody>
               {rows.map((p) => (
                 <tr key={p.id} className="adm-row transition-colors">
-                  <Td mono className="font-extrabold text-[#B5101F]">{p.reference}</Td>
-                  <Td className="font-semibold text-[#231F20]">{p.merchant_name || p.merchant_id.slice(0, 8)}</Td>
+                  <Td mono className="font-extrabold text-[#B5101F]">
+                    {p.proof_reference || <span className="font-semibold text-[#b09a9e]" title="Ainda não foi emitido comprovativo para esta operação.">—</span>}
+                  </Td>
+                  <Td className="font-semibold text-[#231F20]">
+                    <span title={p.merchant_name ? `Conta: ${p.merchant_name}` : undefined}>
+                      {businessLabel(p.payee_handle, p.payee_display_name, p.merchant_name || p.merchant_id.slice(0, 8))}
+                    </span>
+                  </Td>
                   <Td className="text-[#5a4a4e]">{p.payer_name || '—'}</Td>
                   <Td right mono className="font-extrabold">{formatMoney(p.amount_minor, p.currency)}</Td>
                   <Td><Badge label={statusLabelPt(p.status)} /></Td>

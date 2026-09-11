@@ -122,6 +122,17 @@ export function initials(name: string | null | undefined): string {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+/**
+ * A Business as receipts present it: "@handle · Public name". Either part may
+ * be missing; `fallback` (e.g. a shortened id) is used only when both are.
+ */
+export function businessLabel(handle: string | null | undefined, name: string | null | undefined, fallback = '—'): string {
+  const h = handle ? withAt(handle) : '';
+  const n = (name ?? '').trim();
+  if (h && n) return `${h} · ${n}`;
+  return h || n || fallback;
+}
+
 /** Ensure a handle is shown as @handle. */
 export function withAt(handle: string | null | undefined): string {
   if (!handle) return '—';

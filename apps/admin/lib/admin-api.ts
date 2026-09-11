@@ -1616,9 +1616,15 @@ export interface AdminNotification {
 
 export interface WalletPayment {
   id:                string;
-  reference:         string;
   merchant_id:       string;
+  /** The raw account name (merchants.name) — not what receipts call the payee. */
   merchant_name:     string;
+  /** The Business as receipts show it (business_public_identities). */
+  payee_handle:      string;
+  payee_display_name: string;
+  /** The operation's existing proof (the transfer's), or '' when none was issued.
+   *  Never derived from an id. A bearer reference: whoever holds it reads the proof. */
+  proof_reference:   string;
   payer_name:        string;
   amount_minor:      number;
   currency:          string;
