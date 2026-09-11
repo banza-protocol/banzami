@@ -96,3 +96,33 @@ describe('public proof verification states', () => {
     }
   });
 });
+
+/**
+ * An altered reference is never another name for a real proof: the page refuses
+ * it definitively and does not even ask the verifier. The reproduced defect was
+ * a reference ending BYNO (letter O) resolving to the proof whose
+ * reference ends in the digit 0.
+ */
+describe('getProof: exact reference or nothing', () => {
+  const C = 'BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0';
+  const aliases = [
+    C.slice(0, -1) + 'O', C.toLowerCase(), C + ' ', ' ' + C, C + '\u00A0', C + '\u200B',
+    C.replace(/-/g, '\u2013'), C.slice(0, -1) + '\u039F', C.slice(0, -1) + '%30', 'bzm-f993-38e2',
+  ];
+  for (const ref of aliases) {
+    it(`refuses ${JSON.stringify(ref)} without a request`, async () => {
+      fetchMock.mockResolvedValue(jsonResponse(200, { exists: true, status: 'CONFIRMED' }));
+      const r = await getProof(ref);
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(r.exists).toBe(false);
+      expect(r.status).toBe('INVALID_REFERENCE');
+    });
+  }
+
+  it('the canonical reference is asked for, byte for byte', async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { exists: true, status: 'CONFIRMED' }));
+    await getProof(C);
+    const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.endsWith(`/v1/public/proofs/${C}`))).toBe(true);
+  });
+});

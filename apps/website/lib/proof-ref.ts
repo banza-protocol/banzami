@@ -1,53 +1,47 @@
-// Proof references, as the verifier form accepts them.
+// Proof references — exact identifiers.
 //
-// The operator issues two shapes (api-gateway service/proof.go,
-// ClassifyReference) and looks a proof up by its exact canonical spelling:
+// A proof reference has one spelling: the one the operator's generator emitted
+// (api-gateway service.secureReference). It is a bearer capability and an exact
+// identifier, so nothing here corrects it. No trimming, no case change, no
+// look-alike repair (an O is not a 0), no dash or Unicode normalization, no
+// percent-decoding, no fishing a reference out of surrounding text. A reference
+// that is not spelled exactly is refused with a format error, and it is never
+// sent to the verifier.
 //
-//   SECURE_V1  BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX  24 symbols, Crockford base32
-//   LEGACY_V0  BZM-XXXX-XXXX                       8 hex digits (Sandbox only)
+// The grammar is the operator's (services/common/documents/proof_reference.go):
 //
-// A person pastes whatever they have: the reference alone, the verification
-// link, or the comprovativo's copied details. normalizeProofRef finds the
-// reference in it and returns its canonical spelling, or null.
+//   SECURE_V1  BZM + six groups of four symbols from PROOF_REF_ALPHABET
+//   LEGACY_V0  BZM + two groups of four upper-case hex digits (Sandbox only)
+//
+// The server enforces the same grammar independently; this is the UX copy of it.
 
-const SECURE_V1 = /^BZM(?:-[0-9A-HJKMNP-TV-Z]{4}){6}$/;
+export const PROOF_REF_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+const SECURE_V1 = new RegExp(`^BZM(?:-[${PROOF_REF_ALPHABET}]{4}){6}$`);
 const LEGACY_V0 = /^BZM(?:-[0-9A-F]{4}){2}$/;
 
-// A reference written with its hyphens, anywhere in the text.
-const HYPHENATED = [
-  /BZM(?:-[0-9A-Z]{4}){6}(?![0-9A-Z])/,
-  /BZM(?:-[0-9A-Z]{4}){2}(?![0-9A-Z]|-[0-9A-Z])/,
-];
+// The canonical verification link as it is printed and encoded in the QR:
+// https://banzami.com/r/<reference> (the PDF prints it without the scheme).
+// Only the path segment is taken, exactly as written — it is not decoded.
+const VERIFICATION_LINK = /^(?:https:\/\/)?banzami\.com\/r\/([^/?#]*)$/;
 
-export const PROOF_REF_PLACEHOLDER = 'BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX';
+export const PROOF_REF_FORMAT = 'BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX';
 
 export function isProofRef(ref: string): boolean {
   return SECURE_V1.test(ref) || LEGACY_V0.test(ref);
 }
 
-export function normalizeProofRef(input: string): string | null {
-  const text = input
-    .normalize('NFKC')
-    .toUpperCase()
-    .replace(/[‐-―−]/g, '-') // typographic dashes a PDF or phone may add
-    .trim();
+export type ProofInput =
+  | { ok: true; ref: string }
+  | { ok: false; reason: 'empty' | 'whitespace' | 'format' };
 
-  let body = '';
-  for (const re of HYPHENATED) {
-    const m = text.match(re);
-    if (m) { body = m[0].slice(3).replace(/-/g, ''); break; }
-  }
-  if (!body) {
-    // Only the reference, typed without (or with odd) separators.
-    const bare = text.replace(/[\s-]/g, '');
-    if (!bare.startsWith('BZM')) return null;
-    body = bare.slice(3);
-  }
-  if (body.length !== 24 && body.length !== 8) return null;
+// Any whitespace or invisible character — reported, never removed.
+const WHITESPACE_OR_INVISIBLE = /[\s\u00AD\u180E\u200B-\u200F\u2028-\u202F\u2060-\u2064\uFEFF]/;
 
-  // Crockford base32 reads the letters it never issues as the digits they
-  // resemble; U is never issued and has no reading.
-  body = body.replace(/O/g, '0').replace(/[IL]/g, '1');
-  const ref = ['BZM', ...(body.match(/.{4}/g) ?? [])].join('-');
-  return isProofRef(ref) ? ref : null;
+export function parseProofInput(input: string): ProofInput {
+  if (input === '') return { ok: false, reason: 'empty' };
+  if (WHITESPACE_OR_INVISIBLE.test(input)) return { ok: false, reason: 'whitespace' };
+  if (isProofRef(input)) return { ok: true, ref: input };
+  const link = input.match(VERIFICATION_LINK);
+  if (link && isProofRef(link[1])) return { ok: true, ref: link[1] };
+  return { ok: false, reason: 'format' };
 }

@@ -4,7 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BrandMark } from '@/components/site/BrandMark';
-import { normalizeProofRef, PROOF_REF_PLACEHOLDER } from '@/lib/proof-ref';
+import { parseProofInput, PROOF_REF_FORMAT } from '@/lib/proof-ref';
+
+const REASON: Record<'empty' | 'whitespace' | 'format', string> = {
+  empty: 'Introduza a referência do comprovativo.',
+  whitespace: 'A referência tem espaços ou caracteres invisíveis. Introduza-a exatamente como aparece no comprovativo.',
+  format: 'Referência inválida. Introduza exatamente a referência apresentada no comprovativo.',
+};
 
 export default function VerificarPage() {
   const router = useRouter();
@@ -13,13 +19,16 @@ export default function VerificarPage() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const ref = normalizeProofRef(code);
-    if (!ref) {
-      setError('Referência inválida. Cole a referência que aparece no comprovativo, ou o link de verificação.');
+    // Exactly what was entered — nothing is trimmed, re-cased or corrected. A
+    // reference that is not spelled exactly as issued is refused here, and the
+    // operator refuses it independently.
+    const parsed = parseProofInput(code);
+    if (!parsed.ok) {
+      setError(REASON[parsed.reason]);
       return;
     }
     setError('');
-    router.push(`/r/${ref}`);
+    router.push(`/r/${parsed.ref}`);
   }
 
   return (
@@ -35,7 +44,7 @@ export default function VerificarPage() {
         <div style={{ borderRadius: 20, border: '1px solid #f1e3e3', background: '#fff', padding: 28, boxShadow: '0 20px 60px -30px rgba(0,0,0,0.2)' }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#1a1a1a' }}>Verificar comprovativo</h1>
           <p style={{ margin: '10px 0 20px', fontSize: 14.5, fontWeight: 600, lineHeight: 1.55, color: '#6a5a5e' }}>
-            Introduza a referência do comprovativo (ou cole o link). Confirmamos o registo oficial no sistema seguro do Banzami — não confie apenas em screenshots ou PDFs.
+            Introduza a referência exatamente como aparece no comprovativo (ou cole o link). Confirmamos o registo oficial no sistema seguro do Banzami — não confie apenas em screenshots ou PDFs.
           </p>
           <form onSubmit={submit}>
             <input
@@ -44,13 +53,13 @@ export default function VerificarPage() {
               onChange={(e) => setCode(e.target.value)}
               placeholder="Referência ou link"
               aria-label="Referência do comprovativo"
-              autoCapitalize="characters"
+              autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
               style={{ width: '100%', boxSizing: 'border-box', borderRadius: 14, border: '1.5px solid #f1e3e3', background: '#FBF4F3', padding: '14px 16px', fontFamily: 'JetBrains Mono, monospace', fontSize: 16, fontWeight: 700, color: '#2a2024', outline: 'none' }}
             />
             <p style={{ margin: '8px 0 0', fontSize: 12.5, fontWeight: 600, color: '#8a7a7e', overflowWrap: 'anywhere' }}>
-              Formato: <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{PROOF_REF_PLACEHOLDER}</span>
+              Formato: <span style={{ fontFamily: 'JetBrains Mono, monospace' }}>{PROOF_REF_FORMAT}</span>
             </p>
             {error && <p style={{ margin: '8px 0 0', fontSize: 13, fontWeight: 700, color: '#B5101F' }}>{error}</p>}
             <button type="submit" style={{ marginTop: 16, width: '100%', borderRadius: 40, border: 'none', background: '#B5101F', color: '#fff', padding: '14px', fontSize: 15, fontWeight: 900, cursor: 'pointer' }}>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getProof, type ProofResult, API_ENV } from '@/lib/api';
+import { isProofRef } from '@/lib/proof-ref';
 import { BrandMark } from '@/components/site/BrandMark';
 import { MoneyAmount } from '@/components/MoneyAmount';
 import { confirmedTitle, proofRows } from '@/lib/proof-view';
@@ -105,7 +106,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
 
         <div style={{ borderRadius: 20, overflow: 'hidden', border: '1px solid #f1e3e3', background: '#fff', boxShadow: '0 20px 60px -30px rgba(0,0,0,0.2)' }}>
           <div style={{ background: t.bar, color: '#fff', padding: '22px 26px' }}>
-            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', opacity: 0.85 }}>VERIFICAÇÃO OFICIAL · {ref.toUpperCase()}</div>
+            <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', opacity: 0.85 }}>VERIFICAÇÃO OFICIAL{isProofRef(ref) ? ` · ${ref}` : ''}</div>
             <div style={{ fontSize: 26, fontWeight: 900, marginTop: 4 }}>{v.title}</div>
             <div style={{ fontSize: 14, fontWeight: 600, marginTop: 6, opacity: 0.95 }}>{v.sub}</div>
           </div>
@@ -118,7 +119,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
                   <MoneyAmount amountMinor={p.amount ?? null} currency={p.currency} size="xl" />
                 </div>
               </div>
-              {proofRows(p, ref.toUpperCase()).map((r) => <Row key={r.label} label={r.label} value={r.value} mono={r.mono} />)}
+              {proofRows(p, ref).map((r) => <Row key={r.label} label={r.label} value={r.value} mono={r.mono} />)}
               <Row label="Estado" value={statusPT(p.status)} />
               <Row label="Rede" value={netLabel(p.network)} />
               <Row label="Operador" value={opLabel(p.operator)} />

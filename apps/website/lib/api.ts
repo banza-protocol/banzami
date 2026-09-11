@@ -2,6 +2,8 @@
 // Production → api.banzami.com; sandbox/dev → sandbox-api.banzami.com.
 // Never logs tokens/PINs.
 
+import { isProofRef } from './proof-ref';
+
 export const API_BASE =
   (process.env.NEXT_PUBLIC_BANZAMI_API_URL || 'https://api.banzami.com').replace(/\/+$/, '');
 
@@ -107,6 +109,17 @@ export interface ProofResult {
  * failure became a forgery claim.
  */
 export async function getProof(ref: string): Promise<ProofResult> {
+  // A reference that is not spelled exactly as issued is not a reference: it is
+  // refused here, definitively and without asking the verifier. The operator
+  // refuses it too (it never reaches its database); this keeps the page from
+  // even sending it. Nothing is corrected — see lib/proof-ref.ts.
+  if (!isProofRef(ref)) {
+    return {
+      exists: false,
+      status: 'INVALID_REFERENCE',
+      message: 'Referência inválida. A referência tem de estar escrita exatamente como aparece no comprovativo.',
+    };
+  }
   const unavailable = (why: string): ProofResult => ({
     exists: false,
     status: 'UNAVAILABLE',

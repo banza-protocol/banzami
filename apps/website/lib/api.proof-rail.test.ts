@@ -37,7 +37,7 @@ describe('getProof resolves its rail from Platform Mode', () => {
 
   it('asks the Sandbox rail, not the fail-closed LIVE one', async () => {
     const { getProof } = await import('./api');
-    const r = await getProof('BZM-TEST');
+    const r = await getProof('BZM-F993-38E2');
 
     const proofCall = calls.find(c => c.includes('/v1/public/proofs/'));
     expect(proofCall, 'no proof lookup was made').toBeDefined();
@@ -48,7 +48,7 @@ describe('getProof resolves its rail from Platform Mode', () => {
 
   it('a fail-closed LIVE platform-mode response does not make a real proof look forged', async () => {
     const { getProof } = await import('./api');
-    const r = await getProof('BZM-TEST');
+    const r = await getProof('BZM-F993-38E2');
     expect(r.status).not.toBe('NOT_FOUND');
     expect(r.message ?? '').not.toContain('falsificado');
   });
