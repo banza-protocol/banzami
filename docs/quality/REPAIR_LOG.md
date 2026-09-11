@@ -2854,3 +2854,27 @@ link → CANCELLED); the interface that paid is untouched. Migration 0127 repair
 sessions paid before. Counter `PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE` (0 on a clean
 database, moves for an injected one). Test `paying_a_session_retires_its_other_interface`
 (both directions); dropping the sibling update fails it.
+
+## RA-097 — the fixture sweeps chose merchants by the Console's own email domain
+
+- **Found:** 2026-09-11 (closure phase, before the synthetic-residue retirement ran)
+- **Status:** FIXED (new tool; the old sweeps are not used)
+
+Every merchant the Developer Console provisions for a Sandbox project gets an
+address at `projects.banzami.test` — a real developer's as much as a harness's. A
+selection that treated that domain as proof of "synthetic" matched
+`Sandbox · DOA Sandbox`, DOA's earlier project tenant, and would have suspended it
+and closed its accounts. The dry run of the first draft of the new retirement tool
+showed it; nothing had run. The existing sweeps (`tools/ops/prune-fixture-authority.sh
+--apply`, `tools/ops/sweep-console-fixtures.mjs`, `tools/e2e/console/lib/run-cleanup.mjs`)
+also mutate by raw SQL, which this phase forbids.
+
+`tools/ops/retire-synthetic-residue.sh` replaces them for this purpose. A selection is
+positive: a harness name shape, a true test domain (`synthetic.test`,
+`banzami-e2e.test`, …), or a binding to a harness project. DOA's two workspaces are
+excluded as a whole. Every change is a canonical API call (payout fail, link cancel,
+fund retirement to transit, account close, key revoke, webhook deactivate, project
+retire, merchant/consumer suspend), dry-run by default, BEFORE/AFTER counts printed.
+`tests/ops/retire-synthetic-residue.test.mjs` runs the shapes against real and harness
+names; re-adding the Console domain, dropping the DOA exclusion or adding a row write
+each fail it.
