@@ -7,7 +7,7 @@ import { AdminApi, type OperatorFee, type OperatorFeeFilters } from '@/lib/admin
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate } from '@/lib/format';
 
 const CATEGORIES = ['DONATION', 'CROWDFUNDING', 'MARKETPLACE', 'ECOMMERCE', 'DELIVERY', 'FOOD_DELIVERY', 'RIDE_HAILING', 'SUBSCRIPTION', 'TICKETING', 'DIGITAL_GOODS', 'PHYSICAL_GOODS', 'P2P', 'BILL_PAYMENT', 'NGO', 'GOVERNMENT'];
 const CURRENCIES = ['AOA', 'USD', 'EUR'];
@@ -128,9 +128,9 @@ export default function OperatorFeesPage() {
                       <Td>{formatDate(r.created_at)}</Td>
                       <Td mono className="text-[12px]">{r.transaction_id.slice(0, 8)}…</Td>
                       <Td>{r.business_category ?? <span className="text-[#b3a3a7]">—</span>}</Td>
-                      <Td right mono>{formatKz(r.gross_minor)}</Td>
-                      <Td right mono className="font-extrabold text-[#B5101F]">{formatKz(r.fee_minor)}</Td>
-                      <Td right mono>{formatKz(r.net_minor)}</Td>
+                      <Td right mono>{formatMoney(r.gross_minor, r.currency)}</Td>
+                      <Td right mono className="font-extrabold text-[#B5101F]">{formatMoney(r.fee_minor, r.currency)}</Td>
+                      <Td right mono>{formatMoney(r.net_minor, r.currency)}</Td>
                       <Td><Badge label={r.status} variant="success" /></Td>
                     </tr>
                   ))}
@@ -144,9 +144,9 @@ export default function OperatorFeesPage() {
           <Card>
             <CardHeader title="Detalhe da taxa" action={<button title="Fechar" onClick={() => setSelected(null)} className="flex h-[32px] w-[32px] items-center justify-center rounded-[9px] border border-[#f1e3e3] text-[#5a4a4e] hover:bg-[#FFF7F6]"><X size={15} strokeWidth={2.2} /></button>} />
             <div className="flex flex-col gap-[2px] p-[18px]">
-              <Row label="Bruto" value={`${formatKz(selected.gross_minor)} ${selected.currency}`} />
-              <Row label="Taxa" value={`${formatKz(selected.fee_minor)} ${selected.currency}`} strong />
-              <Row label="Líquido" value={`${formatKz(selected.net_minor)} ${selected.currency}`} />
+              <Row label="Bruto" value={formatMoney(selected.gross_minor, selected.currency)} />
+              <Row label="Taxa" value={formatMoney(selected.fee_minor, selected.currency)} strong />
+              <Row label="Líquido" value={formatMoney(selected.net_minor, selected.currency)} />
               <Row label="Transação" value={selected.transaction_id} mono />
               <Row label="Comerciante" value={selected.merchant_id} mono />
               <Row label="Posting" value={selected.posting_id} mono />

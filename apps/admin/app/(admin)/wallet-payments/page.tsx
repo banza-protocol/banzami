@@ -6,7 +6,7 @@ import { AdminApi, type WalletPayment } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -117,7 +117,7 @@ export default function WalletPaymentsPage() {
                   <Td mono className="font-extrabold text-[#B5101F]">{p.reference}</Td>
                   <Td className="font-semibold text-[#231F20]">{p.merchant_name || p.merchant_id.slice(0, 8)}</Td>
                   <Td className="text-[#5a4a4e]">{p.payer_name || '—'}</Td>
-                  <Td right mono className="font-extrabold">{formatKz(p.amount_minor)}</Td>
+                  <Td right mono className="font-extrabold">{formatMoney(p.amount_minor, p.currency)}</Td>
                   <Td><Badge label={statusLabelPt(p.status)} /></Td>
                   <Td mono className="text-[#9a8a8e]">{p.environment}</Td>
                   <Td className="text-[#9a8a8e]">{formatDate(p.created_at)}</Td>

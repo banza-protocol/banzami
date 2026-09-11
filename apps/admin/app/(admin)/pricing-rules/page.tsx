@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatAmountMinor, formatDate, formatMoney } from '@/lib/format';
 import { useAdminEnv } from '@/lib/admin-env';
 import { actionErrorPt } from '@/lib/errors';
 import { PRICING_OPERATIONS, operationLabel, pricingRuleErrorPt, validateRuleForm } from '@/lib/pricing-rules';
@@ -25,6 +25,12 @@ const ROUNDINGS = ['HALF_UP', 'HALF_EVEN', 'FLOOR', 'CEIL'] as const;
 function getApi(): AdminApi | null {
   const s = getSession();
   return s ? new AdminApi(s.token) : null;
+}
+
+/** A rule's flat fee in the rule's currency; a rule for "any" currency charges
+ *  it in the payment's own currency, so no unit is invented. */
+function flatFee(minor: number, currency: string | null): string {
+  return currency ? formatMoney(minor, currency) : `${formatAmountMinor(minor)} (moeda do pagamento)`;
 }
 
 /** bps → percentage string, e.g. 200 → "2.00%". */
@@ -283,7 +289,7 @@ export default function PricingRulesPage() {
                       <Td>{r.business_category ?? <span className="text-[#b3a3a7]">qualquer</span>}</Td>
                       <Td>{r.pricing_profile ?? <span className="text-[#b3a3a7]">qualquer</span>}</Td>
                       <Td right mono className="font-extrabold">{pct(r.rate_bps)}</Td>
-                      <Td right mono>{r.flat_minor ? formatKz(r.flat_minor) : '—'}</Td>
+                      <Td right mono>{r.flat_minor ? flatFee(r.flat_minor, r.currency) : '—'}</Td>
                       <Td right mono>{r.priority}</Td>
                       <Td><Badge label={r.enabled ? 'ATIVA' : 'INATIVA'} variant={r.enabled ? 'success' : 'neutral'} /></Td>
                       <Td right>
@@ -346,7 +352,7 @@ export default function PricingRulesPage() {
                   <div className="flex items-center gap-2">
                     <span className="rounded-[6px] bg-[#f3e9e9] px-[7px] py-[2px] font-mono text-[12px] font-bold text-[#7a6a6e]">v{v.version}</span>
                     <span className="font-mono text-[13px] font-extrabold">{pct(v.rate_bps)}</span>
-                    {v.flat_minor > 0 && <span className="text-[12px] text-[#7a6a6e]">+{formatKz(v.flat_minor)}</span>}
+                    {v.flat_minor > 0 && <span className="text-[12px] text-[#7a6a6e]">+{flatFee(v.flat_minor, v.currency)}</span>}
                   </div>
                   <div className="flex items-center gap-2 text-[12px] text-[#7a6a6e]">
                     <span>{formatDate(v.created_at)}</span>

@@ -14,16 +14,60 @@ function groupThousands(n: number): string {
   return (neg ? '-' : '') + out;
 }
 
-/** Format minor units (cêntimos) as "4 250 000 Kz" / "4 250 000,50 Kz". */
-export function formatKz(amountMinor: number | null | undefined): string {
+/** Minor units as a bare grouped number, no currency: 425000050 → "4 250 000,50". */
+export function formatAmountMinor(amountMinor: number | null | undefined): string {
   if (amountMinor == null) return '—';
   const abs = Math.abs(Math.trunc(amountMinor));
   const major = Math.trunc(abs / 100);
   const frac = abs % 100;
   let out = groupThousands(major);
   if (frac !== 0) out += ',' + String(frac).padStart(2, '0');
-  if (amountMinor < 0) out = '-' + out;
-  return `${out} Kz`;
+  return amountMinor < 0 ? '-' + out : out;
+}
+
+/**
+ * Minor units in their own currency, the currency written ONCE at the end:
+ * AOA → "4 250 000 Kz", USD → "50 USD", EUR → "12,50 EUR". Same rule as the
+ * website's formatMoneyDisplay. Callers never append the currency themselves —
+ * that is how "50 Kz USD" happened. A missing currency is shown as Kz, the
+ * product's default unit.
+ */
+export function formatMoney(amountMinor: number | null | undefined, currency?: string | null): string {
+  if (amountMinor == null) return '—';
+  const ccy = (currency || 'AOA').toUpperCase();
+  return `${formatAmountMinor(amountMinor)} ${ccy === 'AOA' ? 'Kz' : ccy}`;
+}
+
+/** Format minor units (cêntimos) of KWANZA as "4 250 000 Kz". AOA only — for any
+ *  amount that carries a currency, use formatMoney(amount, currency). */
+export function formatKz(amountMinor: number | null | undefined): string {
+  return formatMoney(amountMinor, 'AOA');
+}
+
+/**
+ * Totals per currency — amounts in different currencies are never added.
+ * Items with no amount are skipped; a missing currency counts as AOA.
+ */
+export function totalsByCurrency<T>(
+  items: T[],
+  amount: (item: T) => number | null | undefined,
+  currency: (item: T) => string | null | undefined,
+): Map<string, number> {
+  const out = new Map<string, number>();
+  for (const it of items) {
+    const a = amount(it);
+    if (a == null) continue;
+    const c = (currency(it) || 'AOA').toUpperCase();
+    out.set(c, (out.get(c) ?? 0) + a);
+  }
+  return out;
+}
+
+/** "50 000 Kz · 12 USD" — one figure per currency, AOA first; '0 Kz' when empty. */
+export function formatTotals(totals: Map<string, number>): string {
+  if (totals.size === 0) return formatKz(0);
+  const keys = [...totals.keys()].sort((a, b) => (a === 'AOA' ? -1 : b === 'AOA' ? 1 : a.localeCompare(b)));
+  return keys.map((c) => formatMoney(totals.get(c)!, c)).join(' · ');
 }
 
 /** Format a major-unit number as "4 250 000 Kz" (cêntimos when present). */

@@ -7,7 +7,7 @@ import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate } from '@/lib/format';
 import { payoutActions, PAYOUT_ACTION_LABEL, type PayoutAction } from '@/lib/payouts';
 import { takeReason } from '@/lib/reason';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
@@ -68,7 +68,7 @@ export default function PaymentsPage() {
     const api = getApi();
     if (!api) return;
     const ref = p.id.slice(0, 10);
-    const amount = formatKz(p.amount?.amount_minor);
+    const amount = formatMoney(p.amount?.amount_minor, p.amount?.currency);
 
     let reason: string | null = null;
     if (action === 'return' || action === 'fail') {
@@ -144,7 +144,7 @@ export default function PaymentsPage() {
             <tr key={p.id} className="adm-row transition-colors">
               <Td mono className="font-extrabold text-[#B5101F]">{p.id.slice(0, 10)}</Td>
               <Td mono className="font-semibold text-[#5a4a4e]">{p.destination?.account_holder_name || p.merchant_id.slice(0, 8)}</Td>
-              <Td right mono className="font-extrabold">{formatKz(p.amount?.amount_minor)}</Td>
+              <Td right mono className="font-extrabold">{formatMoney(p.amount?.amount_minor, p.amount?.currency)}</Td>
               <Td mono className="font-semibold text-[#5a4a4e]">{formatDate(p.created_at)}</Td>
               <Td><Badge label={statusLabelPt(p.status)} /></Td>
               <Td right>

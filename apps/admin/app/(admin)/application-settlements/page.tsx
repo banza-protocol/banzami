@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate } from '@/lib/format';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
 import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
 import { filterByStates } from '@/lib/attention';
@@ -180,9 +180,9 @@ export default function ApplicationSettlementsPage() {
                       <Td>{formatDate(r.created_at)}</Td>
                       <Td className="font-extrabold">{r.owner_ref}</Td>
                       <Td>{r.business_category ?? <span className="text-[#b3a3a7]">—</span>}</Td>
-                      <Td right mono>{formatKz(r.gross_amount.amount_minor)}</Td>
-                      <Td right mono className="text-[#B5101F]">{formatKz(r.application_fee.amount_minor)}</Td>
-                      <Td right mono className="font-extrabold">{formatKz(r.net_amount.amount_minor)}</Td>
+                      <Td right mono>{formatMoney(r.gross_amount.amount_minor, r.gross_amount.currency || r.currency)}</Td>
+                      <Td right mono className="text-[#B5101F]">{formatMoney(r.application_fee.amount_minor, r.application_fee.currency || r.currency)}</Td>
+                      <Td right mono className="font-extrabold">{formatMoney(r.net_amount.amount_minor, r.net_amount.currency || r.currency)}</Td>
                       <Td><Badge label={r.status} variant={statusVariant(r.status)} /></Td>
                     </tr>
                   ))}
@@ -200,9 +200,9 @@ export default function ApplicationSettlementsPage() {
                 <span className="text-[15px] font-black">{selected.owner_ref}</span>
                 <Badge label={selected.status} variant={statusVariant(selected.status)} />
               </div>
-              <Row label="Bruto" value={`${formatKz(selected.gross_amount.amount_minor)} ${selected.currency}`} />
-              <Row label="Taxa da app" value={`${formatKz(selected.application_fee.amount_minor)} ${selected.currency}`} strong />
-              <Row label="Líquido" value={`${formatKz(selected.net_amount.amount_minor)} ${selected.currency}`} />
+              <Row label="Bruto" value={formatMoney(selected.gross_amount.amount_minor, selected.gross_amount.currency || selected.currency)} />
+              <Row label="Taxa da app" value={formatMoney(selected.application_fee.amount_minor, selected.application_fee.currency || selected.currency)} strong />
+              <Row label="Líquido" value={formatMoney(selected.net_amount.amount_minor, selected.net_amount.currency || selected.currency)} />
               <Row label="Origem" value={selected.source_account_id} mono />
               <Row label="Beneficiário" value={selected.beneficiary_account_id} mono />
               <Row label="Destino taxa app" value={selected.application_fee_account_id ?? '—'} mono />

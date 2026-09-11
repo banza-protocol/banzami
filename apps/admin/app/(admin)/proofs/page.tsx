@@ -6,7 +6,7 @@ import { getSession } from '@/lib/session';
 import { AdminApi, type AdminProof, type ProofVerification } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate } from '@/lib/format';
 import { useAdminEnv, type Env } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
 
@@ -89,7 +89,7 @@ export default function ProofsPage() {
                     {p.payer_display_name || p.payer_handle || '—'} → {p.payee_display_name || p.payee_handle || '—'} · {p.verification_count} verificaç{p.verification_count === 1 ? 'ão' : 'ões'} · {formatDate(p.issued_at)}
                   </div>
                 </div>
-                <span className="text-sm font-extrabold text-[#2a2024]">{formatKz(p.amount_minor)}</span>
+                <span className="text-sm font-extrabold text-[#2a2024]">{formatMoney(p.amount_minor, p.currency)}</span>
                 <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>{p.status}</span>
               </button>
             ))}
@@ -109,7 +109,7 @@ export default function ProofsPage() {
             </div>
             <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[#f1e3e3] pt-4 text-[13.5px]">
               {[
-                ['Valor', formatKz(selected.proof.amount_minor)],
+                ['Valor', formatMoney(selected.proof.amount_minor, selected.proof.currency)],
                 ['Moeda', selected.proof.currency],
                 ['De', selected.proof.payer_display_name || selected.proof.payer_handle],
                 ['Para', selected.proof.payee_display_name || selected.proof.payee_handle],

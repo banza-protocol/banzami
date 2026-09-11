@@ -7,7 +7,7 @@ import { AdminApi, type Settlement } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatKz, formatDate } from '@/lib/format';
+import { formatMoney, formatDate } from '@/lib/format';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
 import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
 import { filterByStates } from '@/lib/attention';
@@ -102,7 +102,7 @@ export default function SettlementsPage() {
                 <tr key={s.id} className="adm-row transition-colors">
                   <Td mono className="font-extrabold text-[#B5101F]">{s.id.slice(0, 10)}</Td>
                   <Td className="font-bold">{s.merchant_id.slice(0, 10)}…</Td>
-                  <Td right mono className="font-extrabold">{formatKz(s.net_amount?.amount_minor)}</Td>
+                  <Td right mono className="font-extrabold">{formatMoney(s.net_amount?.amount_minor, s.net_amount?.currency ?? s.currency)}</Td>
                   <Td mono className="font-semibold text-[#5a4a4e]">{formatDate(s.created_at)}</Td>
                   <Td><Badge label={statusLabelPt(s.status)} /></Td>
                   <Td right>

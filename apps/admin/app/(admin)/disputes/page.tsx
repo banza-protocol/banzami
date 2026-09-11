@@ -8,7 +8,7 @@ import { AdminApi, type AdminDispute } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatKz } from '@/lib/format';
+import { formatMoney } from '@/lib/format';
 import { actionErrorPt } from '@/lib/errors';
 import {
   DISPUTE_OUTCOMES, OUTCOME_EFFECT, OUTCOME_LABEL, disputeStatusLabel, isDisputeClosed, type DisputeOutcome,
@@ -110,7 +110,7 @@ export default function DisputesPage() {
                 <div className="font-mono text-[12px] font-semibold text-[#9a8a8e]">{d.consumer_id.slice(0, 8)}…</div>
               </Td>
               <Td className="font-semibold text-[#5a4a4e]">{d.reason || '—'}</Td>
-              <Td right mono className="font-extrabold">{formatKz(d.amount_minor)}</Td>
+              <Td right mono className="font-extrabold">{formatMoney(d.amount_minor, d.currency)}</Td>
               <Td><Badge label={disputeStatusLabel(d.status)} variant={statusVariant(d.status)} /></Td>
               <Td right>
                 {closed ? (
@@ -170,7 +170,7 @@ function ResolveModal({ dispute, busy, onCancel, onResolve }: {
           </button>
         </div>
         <p className="m-0 mb-3 text-[13.5px] font-semibold text-[#5a4a4e]">
-          Valor em disputa: <span className="font-mono font-extrabold">{formatKz(dispute.amount_minor)}</span>. A decisão é definitiva e fica registada no log de auditoria.
+          Valor em disputa: <span className="font-mono font-extrabold">{formatMoney(dispute.amount_minor, dispute.currency)}</span>. A decisão é definitiva e fica registada no log de auditoria.
         </p>
         <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
           <legend className="mb-1.5 text-[13px] font-extrabold">Resultado</legend>
