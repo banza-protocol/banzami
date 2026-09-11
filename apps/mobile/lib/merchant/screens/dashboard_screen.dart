@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../models/merchant_payment_entry.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_dashboard_stats.dart';
 import '../widgets/merchant_kpi_grid.dart';
@@ -33,7 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// balance, which is shown as 0 Kz.
   String? _balanceError;
   MerchantDashboardStats? _stats;
-  List<MerchantTransaction> _recent = const [];
+  List<MerchantPaymentEntry> _recent = const [];
   bool _loading = false;
   String? _error;
   // Live KYB-verified state (null until loaded). Overrides the stale login-time
@@ -90,7 +91,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// last-7-days window, aggregated into [MerchantDashboardStats] plus the
   /// most recent received payments. No mocked data — everything is derived
   /// from real `listMerchantTransactions` results.
-  Future<(MerchantDashboardStats, List<MerchantTransaction>)> _loadStats(
+  Future<(MerchantDashboardStats, List<MerchantPaymentEntry>)> _loadStats(
       BanzamiClient client) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -99,7 +100,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final windowStart =
         (monthStart.isBefore(sevenAgo) ? monthStart : sevenAgo).toUtc();
 
-    final all = <MerchantTransaction>[];
+    final all = <MerchantPaymentEntry>[];
     String? cursor;
     do {
       final page = await client.listMerchantTransactions(
@@ -107,13 +108,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         since: windowStart,
         cursor: cursor,
       );
-      all.addAll(page.data);
+      all.addAll(page.data.map(MerchantPaymentEntry.fromTransaction));
       cursor = page.hasMore ? page.nextCursor : null;
     } while (cursor != null);
 
     final stats = MerchantDashboardStats.compute(all, now: now);
 
-    final recent = all.where((t) => t.isCompleted).toList()
+    final recent = all.where((t) => t.isReceived).toList()
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return (stats, recent.take(5).toList());
@@ -579,7 +580,7 @@ class _SettlementCard extends StatelessWidget {
 // =============================================================================
 
 class _RecentPaymentTile extends StatelessWidget {
-  final MerchantTransaction tx;
+  final MerchantPaymentEntry tx;
   final bool isFirst;
   final bool isLast;
 
@@ -616,7 +617,7 @@ class _RecentPaymentTile extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
-                  tx.description?.isNotEmpty == true ? tx.description! : 'Pagamento recebido',
+                  tx.description ?? 'Pagamento recebido',
                   style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

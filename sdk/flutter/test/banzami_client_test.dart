@@ -132,7 +132,7 @@ void main() {
         'data': [
           {
             'id': 'tx-001',
-            'status': 'COMPLETED',
+            'status': 'CAPTURED',
             'amount_minor': 50000,
             'currency': 'AOA',
             'merchant_id': 'merch-001',
@@ -141,7 +141,7 @@ void main() {
           },
           {
             'id': 'tx-002',
-            'status': 'PAID',
+            'status': 'REFUNDED',
             'amount_minor': 25000,
             'currency': 'AOA',
             'merchant_id': 'merch-001',
@@ -161,7 +161,24 @@ void main() {
       expect(page.data[0].id, equals('tx-001'));
       expect(page.data[0].isCompleted, isTrue);
       expect(page.data[1].id, equals('tx-002'));
+      expect(page.data[1].isCompleted, isFalse);
       expect(page.data[1].description, isNull);
+    });
+
+    test('only CAPTURED is received — Core never sends COMPLETED/PAID', () {
+      MerchantTransaction tx(String status) => MerchantTransaction(
+            id: 't',
+            status: status,
+            amountMinor: 1,
+            currency: 'AOA',
+            merchantId: 'm',
+            createdAt: DateTime.utc(2026),
+          );
+      expect(tx('CAPTURED').isCompleted, isTrue);
+      for (final s in ['PENDING', 'AUTHORIZED', 'FAILED', 'REVERSED',
+          'REFUNDED', 'COMPLETED', 'PAID']) {
+        expect(tx(s).isCompleted, isFalse, reason: s);
+      }
     });
 
     test('empty list — returns page with no items', () async {

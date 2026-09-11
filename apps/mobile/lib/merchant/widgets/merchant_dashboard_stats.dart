@@ -1,4 +1,4 @@
-import 'package:banzami_flutter/banzami_flutter.dart';
+import '../models/merchant_payment_entry.dart';
 
 /// Volume received on a single calendar day (local time).
 class DayVolume {
@@ -7,8 +7,8 @@ class DayVolume {
   const DayVolume(this.day, this.volumeMinor);
 }
 
-/// Pure, dependency-free aggregation of a merchant's recent transactions into
-/// the figures shown on the Banzami Business dashboard.
+/// Pure, dependency-free aggregation of a merchant's recent payments into the
+/// figures shown on the Banzami Business dashboard.
 ///
 /// Every value is derived from REAL transaction data — nothing is mocked.
 /// Figures that cannot be computed from the available data are exposed as
@@ -53,25 +53,11 @@ class MerchantDashboardStats {
   bool get hasMonthActivity => monthCount > 0;
   bool get has7DayVolume => last7Days.any((d) => d.volumeMinor > 0);
 
-  /// Statuses that count as a terminal failure for the success-rate basis.
-  static bool _isFailed(String status) {
-    switch (status) {
-      case 'FAILED':
-      case 'CANCELLED':
-      case 'EXPIRED':
-      case 'DECLINED':
-      case 'REVERSED':
-        return true;
-      default:
-        return false;
-    }
-  }
-
-  /// Aggregate [txs] relative to [now] (a local DateTime). Volume/count figures
-  /// use completed (received) payments only; success rate uses terminal
-  /// transactions (completed + failed), ignoring still-pending ones.
+  /// Aggregate [entries] relative to [now] (a local DateTime). Volume/count
+  /// figures use received payments only; success rate uses terminal payments
+  /// (received + failed/voided), ignoring still-pending ones.
   static MerchantDashboardStats compute(
-    List<MerchantTransaction> txs, {
+    List<MerchantPaymentEntry> entries, {
     required DateTime now,
   }) {
     final today = DateTime(now.year, now.month, now.day);
@@ -86,11 +72,11 @@ class MerchantDashboardStats {
     int todayVol = 0, todayCnt = 0, monthVol = 0, monthCnt = 0;
     int completedTerminal = 0, failedTerminal = 0;
 
-    for (final tx in txs) {
-      final completed = tx.isCompleted;
+    for (final tx in entries) {
+      final completed = tx.isReceived;
       if (completed) {
         completedTerminal++;
-      } else if (_isFailed(tx.status)) {
+      } else if (tx.isUnsuccessful) {
         failedTerminal++;
       }
       if (!completed) continue;
@@ -122,7 +108,9 @@ class MerchantDashboardStats {
       todayCount: todayCnt,
       monthVolumeMinor: monthVol,
       monthCount: monthCnt,
-      avgTicketMinor: monthCnt > 0 ? (monthVol / monthCnt).round() : null,
+      // Integer minor units, rounded half up — money never becomes a double.
+      avgTicketMinor:
+          monthCnt > 0 ? (monthVol + monthCnt ~/ 2) ~/ monthCnt : null,
       successRate: terminal > 0 ? completedTerminal / terminal : null,
       last7Days: last7,
     );

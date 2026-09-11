@@ -73,7 +73,10 @@ class MerchantTransaction {
     required this.createdAt,
   });
 
-  bool get isCompleted => status == 'COMPLETED' || status == 'PAID';
+  /// Core transaction statuses (core/transactions): PENDING, AUTHORIZED,
+  /// CAPTURED, FAILED, REVERSED, REFUNDED. Only CAPTURED is money the merchant
+  /// received — COMPLETED/PAID are not statuses this object ever carries.
+  bool get isCompleted => status == 'CAPTURED';
 
   factory MerchantTransaction.fromJson(Map<String, dynamic> json) =>
       MerchantTransaction(

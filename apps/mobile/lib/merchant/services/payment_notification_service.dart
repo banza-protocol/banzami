@@ -4,6 +4,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../services/push_notification_service.dart';
+import '../models/merchant_payment_entry.dart';
 
 /// Polls for new completed transactions and fires local notifications.
 /// Used as a foreground fallback — real push notifications arrive via FCM.
@@ -47,10 +48,11 @@ class PaymentNotificationService {
         return;
       }
 
-      final newTxs = <MerchantTransaction>[];
+      final newTxs = <MerchantPaymentEntry>[];
       for (final tx in page.data) {
         if (tx.id == _latestSeenId) break;
-        if (tx.isCompleted) newTxs.add(tx);
+        final entry = MerchantPaymentEntry.fromTransaction(tx);
+        if (entry.isReceived) newTxs.add(entry);
       }
 
       if (newTxs.isEmpty) {
@@ -69,11 +71,9 @@ class PaymentNotificationService {
     }
   }
 
-  Future<void> _notify(MerchantTransaction tx) async {
+  Future<void> _notify(MerchantPaymentEntry tx) async {
     final amount = formatMinor(tx.amountMinor, tx.currency);
-    final description = tx.description?.isNotEmpty == true
-        ? tx.description!
-        : 'Pagamento recebido';
+    final description = tx.description ?? 'Pagamento recebido';
 
     await _plugin.show(
       _notifId++,

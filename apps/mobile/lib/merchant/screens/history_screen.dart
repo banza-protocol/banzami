@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/app_screen_header.dart';
+import '../models/merchant_payment_entry.dart';
 import '../services/merchant_session_service.dart';
 
 class MerchantHistoryScreen extends StatefulWidget {
@@ -134,7 +135,7 @@ class _TransactionsTab extends StatefulWidget {
 class _TransactionsTabState extends State<_TransactionsTab>
     with AutomaticKeepAliveClientMixin {
 
-  final List<MerchantTransaction> _txs = [];
+  final List<MerchantPaymentEntry> _txs = [];
   String? _cursor;
   bool    _loading = false;
   bool    _hasMore = true;
@@ -160,7 +161,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
     try {
       final page = await client.listMerchantTransactions(limit: 30, cursor: _cursor);
       setState(() {
-        _txs.addAll(page.data);
+        _txs.addAll(page.data.map(MerchantPaymentEntry.fromTransaction));
         _cursor  = page.nextCursor;
         _hasMore = page.hasMore;
       });
@@ -245,7 +246,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
           );
         }
 
-        final tx      = item as MerchantTransaction;
+        final tx      = item as MerchantPaymentEntry;
         final prev    = i > 0 ? grouped[i - 1] : null;
         final next    = i < grouped.length - 1 ? grouped[i + 1] : null;
         final isFirst = prev == null || prev is String;
@@ -275,42 +276,37 @@ class _TransactionsTabState extends State<_TransactionsTab>
 }
 
 class _TransactionTile extends StatelessWidget {
-  final MerchantTransaction tx;
+  final MerchantPaymentEntry tx;
   const _TransactionTile({required this.tx});
 
   @override
   Widget build(BuildContext context) {
-    final statusUp = tx.status.toUpperCase();
-    final (icon, iconColor, label, amountColor, sign) = switch (statusUp) {
-      'COMPLETED' || 'PAID' => (
+    final (icon, iconColor, amountColor) = switch (tx.state) {
+      MerchantPaymentState.received => (
         Icons.arrow_downward_rounded,
         BanzamiColors.success,
-        tx.description ?? 'Pagamento recebido',
         BanzamiColors.success,
-        '+',
       ),
-      'CANCELLED' => (
-        Icons.arrow_upward_rounded,
-        BanzamiColors.error,
-        tx.description ?? 'Cancelamento',
-        BanzamiColors.error,
-        '−',
+      MerchantPaymentState.refunded => (
+        Icons.undo_rounded,
+        BanzamiColors.gray400,
+        BanzamiColors.gray400,
       ),
-      'FAILED' => (
+      MerchantPaymentState.failed || MerchantPaymentState.reversed => (
         Icons.close_rounded,
         BanzamiColors.error,
-        tx.description ?? 'Falhado',
-        BanzamiColors.error,
-        '−',
+        BanzamiColors.gray400,
       ),
       _ => (
         Icons.access_time_rounded,
         BanzamiColors.primary,
-        tx.description ?? 'Pendente',
         BanzamiColors.gray900,
-        '',
       ),
     };
+    // The description (when the merchant wrote one) is the title; the status is
+    // always said on the second line so a refund never reads as a receipt.
+    final label = tx.description ?? tx.stateLabel;
+    final sign  = tx.amountSign;
 
     final local   = tx.createdAt.toLocal();
     final timeStr = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
@@ -340,7 +336,7 @@ class _TransactionTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              timeStr,
+              tx.description != null ? '$timeStr · ${tx.stateLabel}' : timeStr,
               style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ]),
