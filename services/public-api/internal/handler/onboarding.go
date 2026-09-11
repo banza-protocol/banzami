@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -10,6 +12,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 
@@ -26,7 +29,12 @@ import (
 // JWT before onboarding completes. Rate limiting is applied per phone number
 // and per IP to prevent enumeration and OTP brute-force.
 type OnboardingHandler struct {
-	core    *service.CorePublicClient
+	core *service.CorePublicClient
+	// creds: completing onboarding must leave an account its owner can sign
+	// into. Core keeps the wallet PIN; sign-in reads public_api_credentials,
+	// which this flow never wrote — so every wallet it made was a dead end,
+	// and (since RA-149) its token names no live session.
+	creds   *service.CredentialStore
 	limiter *onboardingRateLimiter
 	// sandbox: the test OTP is accepted only here (core refuses it in LIVE too).
 	sandbox bool
@@ -43,6 +51,13 @@ func NewOnboardingHandler(core *service.CorePublicClient) *OnboardingHandler {
 		core:    core,
 		limiter: newOnboardingRateLimiter(),
 	}
+}
+
+// WithCredentials gives the handler the store that sign-in reads, so a
+// completed onboarding leaves an account its owner can sign into.
+func (h *OnboardingHandler) WithCredentials(creds *service.CredentialStore) *OnboardingHandler {
+	h.creds = creds
+	return h
 }
 
 // ---------------------------------------------------------------------------
@@ -406,6 +421,17 @@ func (h *OnboardingHandler) Complete(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not complete onboarding")
 		}
 		return
+	}
+
+	// The same PIN becomes the sign-in credential for this handle. A failure
+	// here leaves a wallet its owner cannot sign into, so it is said loudly
+	// rather than swallowed; the wallet itself exists and is reported.
+	if h.creds != nil {
+		if cerr := h.creds.Save(r.Context(), wallet.ConsumerID, wallet.BanzaHandle, body.Pin); cerr != nil &&
+			!errors.Is(cerr, service.ErrHandleAlreadyRegistered) {
+			slog.ErrorContext(r.Context(), "onboarding.credentials_not_saved — this wallet cannot sign in",
+				"consumer_id", obs.MaskID(wallet.ConsumerID), "error_kind", fmt.Sprintf("%T", cerr))
+		}
 	}
 
 	respond(w, http.StatusCreated, map[string]any{

@@ -95,7 +95,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc, deps.ProofClient, cfg.Environment)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
-	onboardingH := handler.NewOnboardingHandler(deps.CoreClient).WithEnvironment(cfg.Environment)
+	onboardingH := handler.NewOnboardingHandler(deps.CoreClient).WithCredentials(deps.CredStore).WithEnvironment(cfg.Environment)
 	debugPushH := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
 	pushTopicH := handler.NewPushTopicHandler(deps.PushTopics)
 	kycH := handler.NewKycHandler(deps.KycSvc)

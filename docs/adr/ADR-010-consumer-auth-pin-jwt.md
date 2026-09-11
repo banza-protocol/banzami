@@ -64,6 +64,11 @@ POST /v1/auth/register
   4. Auto-provision AOA wallet in core-api
   5. Return { consumer, token, expires_at }
 
+POST /v1/consumer/onboarding/complete
+  Sets the handle and the PIN. The PIN becomes BOTH the wallet PIN core keeps
+  and the sign-in credential in public_api_credentials: this flow used to write
+  only core's, so every wallet it made was an account nobody could sign into.
+
 POST /v1/auth/token
   Body: { handle, pin }
   1. Claim a login attempt on the handle (5 per 15 min, migration 0132)
