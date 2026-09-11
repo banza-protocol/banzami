@@ -465,11 +465,25 @@ export async function resubmitApplication(applicationId: string): Promise<Resubm
 
 export type ActivationStatus = {
   valid: boolean;
-  reason: string; // VALID | INVALID | EXPIRED | USED
+  /**
+   * VALID | INVALID | EXPIRED | USED — the gateway's answer about the link.
+   * RATE_LIMITED | UNAVAILABLE — no answer about the link at all: the gateway
+   * refused to answer now (429) or failed (5xx, unreadable body).
+   */
+  reason: string;
   business_name?: string;
   handle?: string;
 };
 
+/**
+ * Ask the gateway whether an activation link is good.
+ *
+ * This used to return res.json() whatever the status, so a 503 or a 429 — a
+ * body with no `valid` — read as `valid: false`, and the page told the owner
+ * "Este link de ativação é inválido" about a link that was fine. Only a 2xx
+ * answer, or a 4xx refusal of the link itself, is a verdict about the link.
+ * A network failure still throws, and the page reports it as such.
+ */
 export async function validateActivation(token: string): Promise<ActivationStatus> {
   const { base } = await onboardingTarget();
   const res = await fetch(`${base}/v1/merchant/activation/validate`, {
@@ -477,7 +491,17 @@ export async function validateActivation(token: string): Promise<ActivationStatu
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
   });
-  return res.json();
+  if (res.status === 429) return { valid: false, reason: 'RATE_LIMITED' };
+  if (res.status >= 500) return { valid: false, reason: 'UNAVAILABLE' };
+  if (!res.ok) {
+    // A definitive refusal of this link (400 VALIDATION_ERROR and its kind).
+    return res.status >= 400 && res.status < 500
+      ? { valid: false, reason: 'INVALID' }
+      : { valid: false, reason: 'UNAVAILABLE' };
+  }
+  const j = (await res.json().catch(() => null)) as ActivationStatus | null;
+  if (!j || typeof j.valid !== 'boolean') return { valid: false, reason: 'UNAVAILABLE' };
+  return j;
 }
 
 export type CompleteResult = { ok: boolean; status: number; error?: string };
