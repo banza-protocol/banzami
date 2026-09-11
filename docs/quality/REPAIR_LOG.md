@@ -2968,3 +2968,20 @@ client's publishable-key test ("it cannot transfer"), had been probing the missi
 route. All now name `/v1/wallet-account-transfers`; the harness passes 20/20. The same
 rename had also turned the refund harness's retired-path probes into live-path ones
 (fixed with the DOA conversion, `refund-devkey-e2e.sh`).
+
+## RA-103 — consumers created outside onboarding were missing from the @banza namespace
+
+- **Found:** 2026-09-11 (full-system assurance, handle invariants)
+- **Status:** FIXED (code + migration 0129)
+
+`handle_registry` is the one table every @banza lookup routes through. Onboarding
+(consumer-wallets) writes a consumer's handle there; the identity path (core/identity,
+behind `POST /internal/v1/consumers`) wrote `consumers` only. 26 consumers created since
+2026-09-09 were missing — two of them real people. None could be named as a settlement
+party, and a Business could have registered the same name: one @banza, two possible
+owners. The identity path now writes the identity and its registry entry in one
+transaction, and a name already held by anyone is refused (`HandleTaken`), leaving no
+consumer behind. Migration 0129 registers the consumers it missed (only names nobody
+holds; none collided). Counter `CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE`. Tests
+`created_consumer_is_in_the_handle_registry`, `a_name_a_business_holds_is_refused_and_nothing_is_written`
+(dropping the registry insert fails both), `tests/ops/migration-0129-consumer-handles-registered.test.mjs`.

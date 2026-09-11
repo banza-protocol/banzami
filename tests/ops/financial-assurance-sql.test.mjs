@@ -35,7 +35,7 @@ const ZERO = [
   'PAYOUTS_PROCESSED_WITHOUT_POSTING', 'SETTLEMENTS_SETTLED_WITHOUT_POSTING', 'APP_SETTLEMENTS_COMPLETED_WITHOUT_POSTING',
   'DEPOSITS_CONFIRMED_WITHOUT_POSTING', 'RESTITUTIONS_WITHOUT_POSTING', 'PAID_LINKS_WITHOUT_PAYMENT',
   'PAID_SESSIONS_WITHOUT_PAYMENT', 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE',
-  'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID',
+  'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', 'CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE',
 ];
 
 describe('financial assurance counters', () => {
@@ -162,6 +162,12 @@ describe('financial assurance counters', () => {
           INSERT INTO payment_sessions (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose, status, payment_link_id)
             VALUES ('b0000000-0000-4000-8000-0000000000f2','d0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','c0000000-0000-4000-8000-0000000000e1','AOA',100,'DONATION','ACTIVE','b0000000-0000-4000-8000-0000000000f1')`);
     assert.equal(counts().SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID - before, 1);
+  });
+
+  it('a consumer whose @banza is not in the namespace is caught', () => {
+    const before = counts().CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE;
+    psql(`INSERT INTO consumers (id, handle, status, created_at, updated_at) VALUES ('d0000000-0000-4000-8000-0000000000c9','fora_do_registo','ACTIVE',now(),now())`);
+    assert.equal(counts().CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE - before, 1);
   });
 
   it('a login that does not own its handle is caught', () => {

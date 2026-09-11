@@ -64,7 +64,24 @@ const SELECT: &str =
 
 impl IdentityRepository for PostgresIdentityRepository {
     async fn create(&self, identity: ConsumerIdentity) -> Result<ConsumerIdentity, IdentityError> {
-        let result = sqlx::query(
+        // The identity and its entry in the ONE @banza namespace, together or not
+        // at all. `handle_registry` is what every @banza lookup routes through;
+        // this path wrote only `consumers`, so its consumers could not be named
+        // by a settlement — and a Business could register the same name, leaving
+        // one @banza with two owners. Onboarding already registers
+        // (consumer-wallets); this was the other door (2026-09-11: 26 consumers,
+        // two of them real people, were missing from the registry).
+        let mut tx = self.pool.begin().await.map_err(IdentityError::Database)?;
+        let taken = |e: sqlx::Error, handle: &str| match e {
+            sqlx::Error::Database(ref db_err)
+                if db_err.constraint() == Some("consumers_handle_key")
+                    || db_err.code().as_deref() == Some("23505") =>
+            {
+                IdentityError::HandleTaken(handle.to_string())
+            }
+            other => IdentityError::Database(other),
+        };
+        sqlx::query(
             "INSERT INTO consumers
              (id, handle, display_name, status, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6)",
@@ -75,18 +92,19 @@ impl IdentityRepository for PostgresIdentityRepository {
         .bind(identity.status.as_str())
         .bind(identity.created_at)
         .bind(identity.updated_at)
-        .execute(&self.pool)
-        .await;
-
-        match result {
-            Err(sqlx::Error::Database(ref db_err))
-                if db_err.constraint() == Some("consumers_handle_key") =>
-            {
-                return Err(IdentityError::HandleTaken(identity.handle));
-            }
-            Err(e) => return Err(IdentityError::Database(e)),
-            Ok(_) => {}
-        }
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| taken(e, &identity.handle))?;
+        sqlx::query(
+            "INSERT INTO handle_registry (handle, owner_type, owner_id, created_at)
+             VALUES ($1, 'CONSUMER', $2, now())",
+        )
+        .bind(&identity.handle)
+        .bind(identity.id.as_uuid())
+        .execute(&mut *tx)
+        .await
+        .map_err(|e| taken(e, &identity.handle))?;
+        tx.commit().await.map_err(IdentityError::Database)?;
 
         tracing::info!(
             consumer_id = %identity.id,

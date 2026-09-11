@@ -237,3 +237,65 @@ async fn concurrent_registration_creates_one_owner(pool: PgPool) {
     assert_eq!(successes, 1, "exactly one registration must succeed");
     assert_eq!(conflicts, 4, "all other attempts must be rejected");
 }
+
+// ── The handle is registered in the one @banza namespace ─────────────────────
+//
+// This path wrote `consumers` only: its consumers were invisible to every
+// @banza lookup, and a Business could claim the same name.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn created_consumer_is_in_the_handle_registry(pool: PgPool) {
+    let eng = make_engine(pool.clone());
+    let identity = eng
+        .create(CreateConsumerRequest {
+            handle: "registo_ok".into(),
+            display_name: None,
+        })
+        .await
+        .unwrap();
+    let owner: Option<(String, uuid::Uuid)> = sqlx::query_as(
+        "SELECT owner_type, owner_id FROM handle_registry WHERE handle = 'registo_ok'",
+    )
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        owner,
+        Some(("CONSUMER".to_string(), identity.id.as_uuid())),
+        "the consumer's handle must route to the consumer"
+    );
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_name_a_business_holds_is_refused_and_nothing_is_written(pool: PgPool) {
+    let merchant = uuid::Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO merchants (id, name, email, status) VALUES ($1,'B','b@x.test','ACTIVE')",
+    )
+    .bind(merchant)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO handle_registry (handle, owner_type, owner_id) VALUES ('loja_x','MERCHANT',$1)")
+        .bind(merchant)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let eng = make_engine(pool.clone());
+    let err = eng
+        .create(CreateConsumerRequest {
+            handle: "loja_x".into(),
+            display_name: None,
+        })
+        .await
+        .unwrap_err();
+    assert!(matches!(err, IdentityError::HandleTaken(_)), "{err:?}");
+    let consumers: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM consumers WHERE handle = 'loja_x'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        consumers, 0,
+        "a refused handle must leave no consumer behind"
+    );
+}

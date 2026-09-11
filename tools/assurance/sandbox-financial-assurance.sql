@@ -164,3 +164,7 @@ SELECT 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE', count(*) FROM payment_sessions 
 SELECT 'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', count(*) FROM payment_sessions s
   JOIN payment_links l ON l.id = s.payment_link_id
  WHERE l.status = 'USED' AND s.status IN ('CREATED','ACTIVE');
+-- Every consumer's @banza routes to that consumer through the one namespace (0129).
+SELECT 'CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE', count(*) FROM consumers c
+ WHERE c.handle IS NOT NULL
+   AND NOT EXISTS (SELECT 1 FROM handle_registry h WHERE h.handle = c.handle AND h.owner_id = c.id);
