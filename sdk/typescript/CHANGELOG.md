@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1] — 2026-09-11
+
 ### Deprecated — `createApplicationSettlement()`
 
 It sent a wallet-to-wallet settlement (`source_wallet_id`,
