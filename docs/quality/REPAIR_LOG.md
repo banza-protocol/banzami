@@ -3379,3 +3379,21 @@ internal `consumer_id`, the acquiring `transaction_id` and the `wallet_id` to an
 with `refunds:read` — a Project key included (only `merchant_id` was stripped for
 keys). A refund is addressed by its public typed source (`source_type`, `source_id`);
 none of the three is now sent. Test `TestRefundResponse_CarriesNoPayerOrInternalIds`.
+
+## RA-126 — capability tokens and personal data in query strings reached the edge logs
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-01/A6-02/A6-03, auth audit A9-07)
+- **Status:** FIXED (both edges' nginx config; applied with the edge/website deploy)
+
+The redaction maps covered proof references (RA-092) and application ids in paths
+only. Query strings were logged whole: an operator's invite or reset token
+(`/reset-password?token=` — whoever reads it sets the password and enrols their own
+factor), a Business activation token (`/comerciantes/activar?token=`, it sets the PIN),
+an applicant's status reference (`?ref=<application id>`), a developer's email
+(`?email=`). And nginx's error log, with no directive, copied request lines and the
+Referer unredacted on every upstream failure. A third map now cuts every query to
+`?...`, the access format records `$upstream_status` so upstream failures stay visible,
+and the error log keeps only critical conditions. Validated with `nginx -t` in the edge
+image and a live probe (the log reads `GET /reset-password?... ` and `GET /r/BZM-7K2M...`).
+Guard `tests/ops/nginx-query-log-redaction.test.mjs` (logging stage two instead of
+stage three fails it).

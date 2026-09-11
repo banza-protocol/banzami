@@ -93,7 +93,10 @@ function appRedactor(path) {
   const conf = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
   const m = conf.match(/map \$bz_request_redacted \$bz_request_logged \{\s*"~(\*?)([^"]+)"\s+"([^"]+)";\s*default \$bz_request_redacted;/);
   assert.ok(m, `${path}: the application-id map is missing or changed shape`);
-  assert.match(conf, /log_format bz_redacted '[^']*"\$bz_request_logged"/, `${path}: the log format does not write the second stage`);
+  // Stage two feeds the log — directly, or through stage three, which only cuts
+  // the query (tests/ops/nginx-query-log-redaction.test.mjs).
+  assert.match(conf, /map \$bz_request_logged \$bz_request_final \{/, `${path}: stage three must read stage two`);
+  assert.match(conf, /log_format bz_redacted '[^']*"\$bz_request_final"/, `${path}: the log format does not write the final stage`);
   const re = new RegExp(m[2].replace(/\(\?<(\w+)>/g, '(?<$1>'), m[1] ? 'i' : '');
   return (line) => line.replace(re, m[3].replace(/\$\{(\w+)\}/g, '$<$1>'));
 }

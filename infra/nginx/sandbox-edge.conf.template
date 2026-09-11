@@ -99,7 +99,21 @@ map $bz_request_redacted $bz_request_logged {
     "~*^(?<bz_app_head>\S+ .*?applications/(?:%7b|\{|urn(?::|%3a)uuid(?::|%3a))?[0-9a-f]{8})[^/ ?]*(?<bz_app_tail>.*)$" "${bz_app_head}...${bz_app_tail}";
     default $bz_request_redacted;
 }
-log_format bz_redacted '$remote_addr [$time_local] "$bz_request_logged" $status $body_bytes_sent "$http_user_agent"';
+# Third stage: no query string is logged. Queries carry capabilities — an
+# operator's invite or reset token (/reset-password?token=, a full operator
+# takeover for 72 h), a Business activation token (/comerciantes/activar?token=,
+# it sets the PIN), an applicant's status reference (?ref=<application id>) —
+# and personal data (?email=). A path is enough to debug; the query is cut to
+# "?…" whatever it holds (A6-01/A6-02/A9-07).
+map $bz_request_logged $bz_request_final {
+    "~^(?<bz_q_head>\S+ [^? ]*)\?[^ ]*(?<bz_q_tail>(?: HTTP/[0-9.]+)?)$" "${bz_q_head}?...${bz_q_tail}";
+    default $bz_request_logged;
+}
+log_format bz_redacted '$remote_addr [$time_local] "$bz_request_final" $status $body_bytes_sent $upstream_status "$http_user_agent"';
+# nginx's own error lines copy the request line and the Referer unredacted, so
+# only critical conditions are written there; an upstream failure is still
+# visible, redacted, as $upstream_status in the access log (A6-03).
+error_log /var/log/nginx/error.log crit;
 
 
 # ─── admin.banzami.com — BANZADMIN, the Sandbox operator control plane ───────
