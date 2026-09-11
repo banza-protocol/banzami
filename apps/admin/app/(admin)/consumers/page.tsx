@@ -9,7 +9,7 @@ import { formatDate, initials, withAt } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 export default function ConsumersPage() {

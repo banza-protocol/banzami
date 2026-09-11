@@ -14,7 +14,7 @@ import { PRODUCT_TZ_LABEL } from '@/lib/time';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 type Kpi = {

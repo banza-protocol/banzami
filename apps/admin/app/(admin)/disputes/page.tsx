@@ -19,7 +19,7 @@ import { filterByStates } from '@/lib/attention';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 // Open work is loud; a dispute with an outcome is history.

@@ -17,7 +17,7 @@ export function canTriageNotifications(role: string | null | undefined): boolean
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 const SEV: Record<string, string> = {

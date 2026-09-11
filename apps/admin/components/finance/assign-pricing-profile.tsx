@@ -31,7 +31,7 @@ export function AssignPricingProfile() {
   const toast = useToast();
   const [api] = useState<AdminApi | null>(() => {
     const s = getSession();
-    return s ? new AdminApi(s.token) : null;
+    return s ? new AdminApi() : null;
   });
 
   const [merchants, setMerchants] = useState<Merchant[]>([]);

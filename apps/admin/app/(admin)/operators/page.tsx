@@ -15,7 +15,7 @@ const ROLES: OperatorRole[] = ['SUPER_ADMIN', 'OPERATIONS', 'COMPLIANCE', 'SUPPO
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 function isLocked(o: Operator): boolean {

@@ -10,6 +10,7 @@ import { ToastProvider } from '@/components/ui/toast';
 import { DialogProvider } from '@/components/ui/dialog';
 import { BanzamiLogo } from '@/components/ui/brand';
 import { AttentionProvider } from '@/components/layout/attention-provider';
+import { StepUpProvider } from '@/components/layout/step-up';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -22,11 +23,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.replace('/login');
       return;
     }
-    // Validate the token against /auth/me; refresh the operator profile.
-    new AdminApi(session.token)
+    // The session is the HttpOnly cookie; /auth/me says whether it is still
+    // alive (idle expiry, logout elsewhere, revocation) and refreshes the
+    // profile the console draws.
+    new AdminApi()
       .me()
       .then((r) => {
-        saveSession({ token: session.token, user: r.user });
+        saveSession({ user: r.user });
         setUser(r.user);
         setReady(true);
       })
@@ -49,6 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <ToastProvider>
       <DialogProvider>
+        <StepUpProvider>
         <AttentionProvider>
           <div className="flex min-h-screen bg-[#FFF7F6]">
             <Sidebar />
@@ -58,6 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
           </div>
         </AttentionProvider>
+        </StepUpProvider>
       </DialogProvider>
     </ToastProvider>
   );

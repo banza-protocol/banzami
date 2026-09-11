@@ -64,7 +64,7 @@ export default function LoginPage() {
     try {
       const r = await adminLoginStep1(email.trim(), password);
       if (r.kind === 'session') {
-        saveSession({ token: r.token, user: r.user });
+        saveSession({ user: r.user });
         router.replace('/');
         return;
       }
@@ -103,7 +103,7 @@ export default function LoginPage() {
         setAckToken(r.acknowledge_token);
       } else {
         const r = await adminMfaVerify(challenge, code.trim());
-        saveSession({ token: r.token, user: r.user });
+        saveSession({ user: r.user });
         router.replace('/');
       }
     } catch (err) {
@@ -144,7 +144,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const r = await adminMfaAcknowledge(ackToken);
-      saveSession({ token: r.token, user: r.user });
+      saveSession({ user: r.user });
       router.replace('/');
     } catch {
       setError('A confirmação expirou. Volte a entrar — o seu segundo factor já está configurado.');

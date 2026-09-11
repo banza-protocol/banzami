@@ -17,7 +17,7 @@ export default function BusinessesPage() {
   const router = useRouter();
   const [api] = useState<AdminApi | null>(() => {
     const s = getSession();
-    return s ? new AdminApi(s.token) : null;
+    return s ? new AdminApi() : null;
   });
   const [rows, setRows] = useState<Merchant[] | null>(null);
   const [error, setError] = useState(false);
