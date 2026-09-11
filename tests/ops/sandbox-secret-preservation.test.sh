@@ -190,6 +190,11 @@ grep -q 'api-gateway-staging|developer-api) key_args=(-v "$WEBHOOK_KEY_FILE' "$S
   && grep -q 'api-gateway-staging|developer-api) kf="webhook_encryption_key"' "$SRC" \
   && ok "the webhook key is mounted only where webhook secrets are stored" \
   || no "the webhook key is not scoped to the gateway and developer-api"
+grep -q 'api-gateway-staging|public-api-staging) key_args+=(-v "$PUSH_TOPIC_KEY_FILE' "$SRC" \
+  && grep -q 'push_topic_key:PUSH_TOPIC_KEY' "$SRC" \
+  && [ "$(grep -c '/run/secrets/push_topic_key:ro' "$SRC")" = 2 ] \
+  && ok "the push-topic key reaches the gateway and public-api, on first create and on redeploy" \
+  || no "the push-topic key is not provisioned to exactly the two services that publish pushes"
 
 echo
 echo "  $pass passed, $fail failed"

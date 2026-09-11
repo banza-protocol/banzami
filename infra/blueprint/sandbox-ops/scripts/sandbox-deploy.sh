@@ -103,6 +103,9 @@ load_context() {
   # At-rest encryption of recoverable secrets (webhook signing secrets): the
   # gateway and developer-api share it because they share webhook_endpoints.
   WEBHOOK_KEY_FILE="$EVIDENCE_ROOT/webhook_encryption_key"
+  # Keys the push-notification topic names (A6-06): the gateway and public-api
+  # both publish to a Business's topic, so they share it.
+  PUSH_TOPIC_KEY_FILE="$EVIDENCE_ROOT/push_topic_key"
 }
 svc_image() { docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$1" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1; }
 
@@ -227,6 +230,7 @@ write_devkey_secrets() {
   keep_or_mint "$SESSION_FILE"       session_secret
   keep_or_mint "$OTP_FILE"           otp_pepper
   keep_or_mint_key32 "$WEBHOOK_KEY_FILE" webhook_encryption_key
+  keep_or_mint_key32 "$PUSH_TOPIC_KEY_FILE" push_topic_key
 }
 
 # ensure_proof_signing_key — the operator key that makes a public proof an
@@ -268,6 +272,8 @@ deploy_one() { # <name> <port> <binary> <tag>
   # read — not to every service on the stack (A6-09).
   local key_args=()
   case "$name" in api-gateway-staging|developer-api) key_args=(-v "$WEBHOOK_KEY_FILE:/run/secrets/webhook_encryption_key:ro") ;; esac
+  # The push-topic key only to the two services that publish pushes (A6-06).
+  case "$name" in api-gateway-staging|public-api-staging) key_args+=(-v "$PUSH_TOPIC_KEY_FILE:/run/secrets/push_topic_key:ro") ;; esac
   # synthetic NON-secret config; secrets are file-only + exported in-process (never -e)
   # `docker create` + attach + `start`, never `docker run -d` followed by a
   # `network connect`. Attaching the second network to an ALREADY-RUNNING
@@ -382,7 +388,40 @@ cmd_clean() {
 # So these are declared once, used by both the bootstrap create and the
 # single-service swap, and re-applied on every deploy: the release wins over
 # whatever the previous container happened to carry.
+# client_ip_config <service> — who may name the client (A9-09, A9-04, A9-08).
+#
+# The four Go services believe X-Real-IP only from a peer inside
+# TRUSTED_PROXY_CIDRS (services/common/clientip); without it every request is
+# the edge's own address and all of the Sandbox shares one rate-limit bucket.
+# The trusted peer is the Sandbox edge, as the /32 it holds on the app network
+# right now — read at deploy time, because Docker assigns it. Trusting the
+# whole app subnet would trust every container on it, which is the spoofing
+# A9-09 is about. If the edge is ever recreated at another address, the
+# services fall back to believing no header (safe, one shared bucket) until
+# they are redeployed; the host attestation compares the two.
+#
+# The Gateway also believes X-Banzami-Reader-IP on public proof lookups from
+# the website — which reaches it through Cloudflare from this host's own
+# public address — so a proof reader is limited per reader, not per website.
+client_ip_config() {
+  local edge ip src
+  edge="$(docker ps --format '{{.Names}}' | grep -E -- '^bzsbedge-sandbox-edge$' | head -1 || true)"
+  if [ -n "$edge" ]; then
+    ip="$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{println $k $v.IPAddress}}{{end}}' "$edge" 2>/dev/null \
+          | awk '$1 ~ /^bzsb-app-/ && $2 != "" {print $2; exit}' || true)"
+    [ -n "$ip" ] && echo "TRUSTED_PROXY_CIDRS=$ip/32"
+  fi
+  if [ "$1" = api-gateway-staging ]; then
+    src="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for (i = 1; i < NF; i++) if ($i == "src") {print $(i+1); exit}}' || true)"
+    [ -n "$src" ] && echo "PROOF_READER_FORWARDER_CIDRS=$src/32"
+  fi
+  return 0
+}
+
 release_config_env() {
+  case "$1" in
+    admin-api|api-gateway-staging|developer-api|public-api-staging) client_ip_config "$1" ;;
+  esac
   case "$1" in
     admin-api)
       # The console must label what it shows for what it is. Without this the
@@ -672,6 +711,16 @@ cmd_deploy_one() {
       keep_or_mint_key32 "$sd/$kf" "$kf"
       printf '%s\n' "${run[@]}" | grep -q "/run/secrets/$kf" || run+=(-v "$sd/$kf:/run/secrets/$kf:ro")
     fi
+    # The push-topic key (A6-06): a topic name is a keyed hash of the account
+    # id, so only the account's own session learns it. Shared by the two
+    # services that publish pushes; never rotated, because every installed app
+    # is subscribed under it.
+    case "$name" in
+      api-gateway-staging|public-api-staging)
+        keep_or_mint_key32 "$sd/push_topic_key" push_topic_key
+        printf '%s\n' "${run[@]}" | grep -q "/run/secrets/push_topic_key" || run+=(-v "$sd/push_topic_key:/run/secrets/push_topic_key:ro")
+        ;;
+    esac
   fi
   # Clone the previous container's env EXCEPT anything the new image is the
   # authority on. BANZAMI_BUILD_COMMIT is baked into each image by the build
@@ -722,7 +771,7 @@ cmd_deploy_one() {
   # One value on both sides, named for what it authorises at each end: the
   # Gateway reads INTERNAL_API_KEY to decide whether to accept an internal call,
   # admin-api reads STAGING_INTERNAL_API_KEY to decide what to send.
-  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY kyb_storage_endpoint:KYB_STORAGE_ENDPOINT kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY webhook_encryption_key:WEBHOOK_ENCRYPTION_KEY admin_mfa_encryption_key:WEBHOOK_ENCRYPTION_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
+  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY kyb_storage_endpoint:KYB_STORAGE_ENDPOINT kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY webhook_encryption_key:WEBHOOK_ENCRYPTION_KEY admin_mfa_encryption_key:WEBHOOK_ENCRYPTION_KEY push_topic_key:PUSH_TOPIC_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
   docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
   "${run[@]}" --entrypoint sh "$tag" -c "$ep" >/dev/null 2>&1 || { echo "  $name docker run FAIL"; return 1; }
   local i; for i in "${nets[@]:1}"; do docker network connect "$i" "$cname" >/dev/null 2>&1 || true; done

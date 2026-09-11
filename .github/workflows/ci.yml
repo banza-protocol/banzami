@@ -524,6 +524,12 @@ jobs:
       - name: Sandbox secret-preservation gate
         run: bash tests/ops/sandbox-secret-preservation.test.sh
 
+      # The deploy names the one peer the services believe about the client —
+      # the edge's own address, never a subnet (A9-09) — and the website's egress
+      # for proof readers (A9-08). docker and ip are stubbed.
+      - name: Sandbox client-IP deploy config
+        run: bash tests/ops/sandbox-client-ip-config.test.sh
+
       # ADR-057: the public Project contract held by counting — no /business
       # route, no caller pricing field, no SDK reader of the Business profile,
       # no branch on one application's identity, no self-service classification.
