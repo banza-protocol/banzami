@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/receipt.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/idempotency_intent.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
@@ -87,8 +87,10 @@ class _BanzamiPaymentRequestScreenState
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseScale;
 
-  // Generated once so payment-link retries reuse the same idempotency key.
-  final String _idem = const Uuid().v4();
+  // One key per payment intent (this recipient + this amount), reused by every
+  // retry — a lost answer followed by another tap must never become a second
+  // payment.
+  final IdempotencyIntent _intent = IdempotencyIntent();
 
   @override
   void initState() {
@@ -129,6 +131,7 @@ class _BanzamiPaymentRequestScreenState
       return;
     }
     HapticFeedback.mediumImpact();
+    final idem = _intent.keyFor(amount);
     setState(() {
       _sending = true;
       _error = null;
@@ -146,7 +149,7 @@ class _BanzamiPaymentRequestScreenState
         final paid = await widget.client.payPaymentLink(
           widget.paymentLinkSlug!,
           amountMinor: amount,
-          idempotencyKey: _idem,
+          idempotencyKey: idem,
         );
         // The pay response carries the canonical receipt once its proof is
         // established — the payee, the reference and the time the PDF and the
@@ -175,6 +178,7 @@ class _BanzamiPaymentRequestScreenState
         final link = await widget.client.payConsumerPayLink(
           widget.linkCode!,
           amountMinor: widget.locked ? null : amount,
+          idempotencyKey: idem,
         );
         transfer =
             Transfer.fromConsumerPayLink(link, ownHandle: widget.ownHandle);
@@ -184,10 +188,12 @@ class _BanzamiPaymentRequestScreenState
           amountMinor: amount,
           currency: widget.currency,
           note: widget.note,
-          idempotencyKey: const Uuid().v4(),
+          idempotencyKey: idem,
         );
       }
 
+      // Paid: a later tap is a new payment, never a replay of this one.
+      _intent.complete();
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
