@@ -1,6 +1,6 @@
 // The comprovativo renders the canonical receipt — the one the PDF and the
 // public verifier show — for the real reported payment: 2 000 Kz from @fm65 to
-// @doa through a DOA payment link, proof BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T.
+// @doa through a DOA payment link (synthetic proof reference).
 import 'dart:async';
 import 'dart:io';
 
@@ -10,7 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-const _ref = 'BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T';
+const _ref = 'BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T';
 
 Receipt _receipt({String? context = 'Vaquinha · Jornada economica fresca'}) => Receipt.fromJson({
       'proof_reference': _ref,
@@ -90,10 +90,10 @@ void main() {
 
   testWidgets('the reference is the proof’s; the transaction id never is', (tester) async {
     await _pump(tester, receipt: _receipt());
-    expect(find.text('BZM-BMJN-CFAF-…-FB0T'), findsOneWidget);
+    expect(find.text('BZM-Q7RT-CFAF-…-FB0T'), findsOneWidget);
     expect(find.textContaining('0056EAD5'), findsNothing);
     expect(find.textContaining('0056ead5'), findsNothing);
-    expect(find.textContaining('Comprovativo Banzami  •  BZM-BMJN-CFAF-…-FB0T'), findsOneWidget);
+    expect(find.textContaining('Comprovativo Banzami  •  BZM-Q7RT-CFAF-…-FB0T'), findsOneWidget);
   });
 
   testWidgets('copying the reference copies it whole', (tester) async {
@@ -103,7 +103,7 @@ void main() {
       return null;
     });
     await _pump(tester, receipt: _receipt());
-    await tester.tap(find.text('BZM-BMJN-CFAF-…-FB0T'));
+    await tester.tap(find.text('BZM-Q7RT-CFAF-…-FB0T'));
     await tester.pump();
     expect(copied, _ref);
     await tester.pump(const Duration(seconds: 3));
@@ -154,7 +154,7 @@ void main() {
     });
     expect(calls, 1);
     expect(find.text('para @doa'), findsOneWidget);
-    expect(find.text('BZM-BMJN-CFAF-…-FB0T'), findsOneWidget);
+    expect(find.text('BZM-Q7RT-CFAF-…-FB0T'), findsOneWidget);
   });
 
   testWidgets('if the receipt cannot be had, no reference is invented', (tester) async {

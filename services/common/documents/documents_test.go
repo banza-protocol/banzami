@@ -211,7 +211,7 @@ func TestRenderHTML_DescriptionIsVerbatimAndInert(t *testing.T) {
 func paymentReceipt() Receipt {
 	at := time.Date(2026, 9, 10, 19, 13, 27, 0, time.UTC)
 	return Receipt{
-		ProofReference: "BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T",
+		ProofReference: "BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T",
 		OperationKind:  OperationPayment, Channel: ChannelPaymentLink, FundingSource: FundingBanzamiBalance,
 		Status: "CONFIRMED", AmountMinor: 200000, Currency: "AOA",
 		Payer:             Party{Kind: PartyPerson, DisplayName: "Fidel Monteiro", Handle: "fm65"},
@@ -231,7 +231,7 @@ func TestPaymentReceiptSaysPayment(t *testing.T) {
 	for _, must := range []string{
 		"Comprovativo de pagamento", "Pagamento confirmado", "Valor pago", "2 000 Kz",
 		"Fidel Monteiro", "@fm65", ">@doa<",
-		"Referência do comprovativo", "BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T",
+		"Referência do comprovativo", "BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T",
 		"Pagamento · Link de pagamento", "Saldo Banzami",
 		"Referência do comerciante", "DOA-55791091", "Finalidade", "Vaquinha · Jornada economica fresca",
 		// 19:13 UTC is 20:13 in Luanda, and the document says which clock it is.

@@ -33,7 +33,7 @@ class ReceiptParty {
 }
 
 class Receipt {
-  /// The canonical proof reference, e.g. BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T.
+  /// The canonical proof reference, e.g. BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T.
   /// The ONLY receipt reference — never a transaction id.
   final String? proofReference;
   final String? verificationUrl;
@@ -124,7 +124,7 @@ class Receipt {
       channelLabel == null ? operationLabel : '$operationLabel · $channelLabel';
 
   /// A long SECURE_V1 reference shortened for display, keeping its start and
-  /// end: BZM-BMJN-CFAF-…-FB0T. Copy/share always use [proofReference] whole.
+  /// end: BZM-Q7RT-CFAF-…-FB0T. Copy/share always use [proofReference] whole.
   String? get shortReference {
     final r = proofReference;
     if (r == null) return null;

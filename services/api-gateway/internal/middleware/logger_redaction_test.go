@@ -12,7 +12,7 @@ import (
 // A public proof reference is a bearer capability; the access log keeps a
 // prefix of it and never the whole.
 func TestLoggerDoesNotWriteTheFullProofReference(t *testing.T) {
-	const ref = "BZM-AMFY-ADZ2-32E5-QDWV-K4EC-NTRE"
+	const ref = "BZM-W3NH-5TQE-8GZC-RV2D-M6KA-X9PJ"
 	var buf bytes.Buffer
 	prev := slog.Default()
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&buf, nil)))
@@ -22,10 +22,10 @@ func TestLoggerDoesNotWriteTheFullProofReference(t *testing.T) {
 	h.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/v1/public/proofs/"+ref, nil))
 
 	out := buf.String()
-	if strings.Contains(out, ref) || strings.Contains(out, "32E5-QDWV") {
+	if strings.Contains(out, ref) || strings.Contains(out, "8GZC-RV2D") {
 		t.Fatalf("the full reference reached the log: %s", out)
 	}
-	if !strings.Contains(out, "/v1/public/proofs/BZM-AMFY") {
+	if !strings.Contains(out, "/v1/public/proofs/BZM-W3NH") {
 		t.Fatalf("the log lost the route entirely: %s", out)
 	}
 }

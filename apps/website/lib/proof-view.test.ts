@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { confirmedTitle, fmtWAT, partyLabel, proofRows } from './proof-view';
 import type { ProofResult } from './api';
 
-const REF = 'BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T';
+const REF = 'BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T';
 
 const payment: ProofResult = {
   exists: true, status: 'CONFIRMED', amount: 200000, currency: 'AOA',

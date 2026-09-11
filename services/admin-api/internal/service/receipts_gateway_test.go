@@ -25,7 +25,7 @@ func (f *fakeReceiptGW) receiptRaw(_ context.Context, path string, body any) (js
 		panic("an operator's read must never issue a proof")
 	}
 	raw, _ := json.Marshal(map[string]any{"receipt": documents.Receipt{
-		ProofReference: "BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T", OperationKind: documents.OperationPayment,
+		ProofReference: "BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T", OperationKind: documents.OperationPayment,
 		Payee: documents.Party{Kind: documents.PartyBusiness, DisplayName: "Doa", Handle: "doa"},
 	}})
 	return raw, http.StatusOK, nil
