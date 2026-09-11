@@ -4,15 +4,16 @@ import 'package:permission_handler/permission_handler.dart';
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/error_messages.dart';
 import '../utils/qr_parser.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'payment_link_screen.dart';
 import 'payment_request_screen.dart';
 import 'send_screen.dart';
-import 'structured_qr_pay_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
+
 
 /// Scan-to-pay router.
 ///
@@ -21,6 +22,8 @@ enum _ScanStep { scanning, resolving, error }
 ///  • Payment-request code → [BanzamiPaymentRequestScreen] (locked)
 ///  • Handle + fixed amount → [BanzamiPaymentRequestScreen] (locked, sendByHandle)
 ///  • Handle only           → [BanzamiSendScreen] (amount editable)
+///  • Payment link          → [BanzamiPaymentLinkScreen]
+///  • Structured Banzami QR → refused with [kStructuredQrUnavailableMessage]
 class BanzamiScanScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final String? ownHandle;
@@ -101,11 +104,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     switch (parsed) {
       case BanzamiQrInvalid(:final reason):
         debugPrint('[QR-SCAN] error=$reason');
-        if (mounted)
+        if (mounted) {
           setState(() {
             _error = reason;
             _step = _ScanStep.error;
           });
+        }
 
       case BanzamiQrPaymentRequest(:final code, :final isSandbox):
         debugPrint(
@@ -135,9 +139,17 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           await _openSendScreen(handle: handle);
         }
 
-      case BanzamiQrStructuredPayment(:final payload, :final isStatic):
-        debugPrint('[QR-SCAN] route=StructuredQrPay static=$isStatic');
-        await _openStructuredPayment(payload: payload, isStatic: isStatic);
+      case BanzamiQrStructuredPayment(:final isStatic):
+        // No consumer route settles a structured Banzami QR: the public-api
+        // mounts no /v1/qr/* (QR pay withdrawn, RA-053). Say so plainly
+        // instead of opening a screen whose every call fails.
+        debugPrint('[QR-SCAN] route=StructuredQr (unsupported) static=$isStatic');
+        if (mounted) {
+          setState(() {
+            _error = kStructuredQrUnavailableMessage;
+            _step = _ScanStep.error;
+          });
+        }
 
       case BanzamiQrSplitPayment():
         // Pre-protocol P2P split (/v1/splits) was retired in favour of BANZA
@@ -172,37 +184,18 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     if (mounted) _rescan();
   }
 
-  Future<void> _openStructuredPayment({
-    required String payload,
-    required bool isStatic,
-  }) async {
-    if (!mounted) return;
-    await Navigator.of(context).push(BanzamiPageRoute(
-      page: BanzamiStructuredQrPayScreen(
-        client: widget.client,
-        payload: payload,
-        isStatic: isStatic,
-        payerHandle: widget.ownHandle ?? '',
-        isSandbox: widget.isSandbox,
-        onSuccess: widget.onSuccess,
-      ),
-    ));
-    if (mounted) _rescan();
-  }
-
   // Returns true (and shows error) if the QR environment doesn't match the app.
   bool _sandboxMismatch(bool qrIsSandbox) {
     if (qrIsSandbox == widget.isSandbox) return false;
-    final msg = qrIsSandbox
-        ? 'Este QR pertence ao ambiente sandbox.'
-        : 'Este QR pertence ao ambiente live.';
+    final msg = environmentMismatchMessage(fromSandbox: qrIsSandbox);
     debugPrint('[QR-SCAN] error=sandboxMismatch '
         'qrSandbox=$qrIsSandbox appSandbox=${widget.isSandbox}');
-    if (mounted)
+    if (mounted) {
       setState(() {
         _error = msg;
         _step = _ScanStep.error;
       });
+    }
     return true;
   }
 
@@ -252,11 +245,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       final msg = e.isNotFound
           ? 'Pedido de pagamento não encontrado.'
           : 'Não foi possível verificar o QR. Tente novamente.';
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = msg;
           _step = _ScanStep.error;
         });
+      }
     } catch (e) {
       debugPrint('[QR-SCAN] error=$e');
       if (mounted) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../models/merchant_payment_entry.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_dashboard_stats.dart';
 import '../widgets/merchant_kpi_grid.dart';
@@ -33,12 +34,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   /// balance, which is shown as 0 Kz.
   String? _balanceError;
   MerchantDashboardStats? _stats;
-  List<MerchantTransaction> _recent = const [];
+  List<MerchantPaymentEntry> _recent = const [];
   bool _loading = false;
   String? _error;
   // Live KYB-verified state (null until loaded). Overrides the stale login-time
   // session.verified so a sandbox auto-approval reflects immediately.
   bool? _kybVerified;
+  // KYB + AML as the payout gate sees them (null until loaded / unreadable).
+  // A withdrawal needs both — KYB alone never says "levantamentos disponíveis".
+  MerchantComplianceStatus? _compliance;
+  // The Business's latest withdrawals from GET /v1/payouts (null until loaded
+  // or when unreadable — shown as such, never as "none").
+  List<Payout>? _payouts;
+  bool _payoutsFailed = false;
 
   @override
   void initState() {
@@ -82,15 +90,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await sessionService.setVerified(verified);
     }).catchError((_) { /* leave banner as-is on a transient failure */ });
 
-    await Future.wait([balanceFuture, statsFuture, kybFuture]);
+    final complianceFuture = client.getMerchantComplianceStatus().then((c) {
+      if (mounted) setState(() => _compliance = c);
+    }).catchError((_) { /* the card says it could not confirm */ });
+
+    final payoutsFuture = client.listPayouts(limit: 3).then((p) {
+      if (mounted) setState(() { _payouts = p; _payoutsFailed = false; });
+    }).catchError((_) {
+      if (mounted) setState(() => _payoutsFailed = true);
+    });
+
+    await Future.wait([
+      balanceFuture, statsFuture, kybFuture, complianceFuture, payoutsFuture,
+    ]);
     if (mounted) setState(() { _loading = false; _error = err; });
   }
 
-  /// One paginated transaction read covering both the current month and the
-  /// last-7-days window, aggregated into [MerchantDashboardStats] plus the
-  /// most recent received payments. No mocked data — everything is derived
-  /// from real `listMerchantTransactions` results.
-  Future<(MerchantDashboardStats, List<MerchantTransaction>)> _loadStats(
+  /// Every payment of the current month and the last-7-days window, from both
+  /// sources — acquiring transactions and wallet-native payments (QR, link,
+  /// session) — aggregated into [MerchantDashboardStats] plus the most recent
+  /// received payments. No mocked data.
+  Future<(MerchantDashboardStats, List<MerchantPaymentEntry>)> _loadStats(
       BanzamiClient client) async {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -99,24 +119,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final windowStart =
         (monthStart.isBefore(sevenAgo) ? monthStart : sevenAgo).toUtc();
 
-    final all = <MerchantTransaction>[];
-    String? cursor;
-    do {
-      final page = await client.listMerchantTransactions(
-        limit: 100,
-        since: windowStart,
-        cursor: cursor,
-      );
-      all.addAll(page.data);
-      cursor = page.hasMore ? page.nextCursor : null;
-    } while (cursor != null);
+    Future<List<MerchantPaymentEntry>> acquiring() async {
+      final out = <MerchantPaymentEntry>[];
+      String? cursor;
+      do {
+        final page = await client.listMerchantTransactions(
+          limit: 100,
+          since: windowStart,
+          cursor: cursor,
+        );
+        out.addAll(page.data.map(MerchantPaymentEntry.fromTransaction));
+        cursor = page.hasMore ? page.nextCursor : null;
+      } while (cursor != null);
+      return out;
+    }
+
+    Future<List<MerchantPaymentEntry>> wallet() async {
+      final out = <MerchantPaymentEntry>[];
+      String? cursor;
+      do {
+        final page = await client.listMerchantWalletPayments(
+          limit: 100,
+          since: windowStart,
+          cursor: cursor,
+        );
+        out.addAll(page.items.map(MerchantPaymentEntry.fromWalletPayment));
+        cursor = page.items.isEmpty ? null : page.nextCursor;
+      } while (cursor != null);
+      return out;
+    }
+
+    final lists = await Future.wait([acquiring(), wallet()]);
+    final all = mergePaymentEntries(lists);
 
     final stats = MerchantDashboardStats.compute(all, now: now);
-
-    final recent = all.where((t) => t.isCompleted).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    return (stats, recent.take(5).toList());
+    final recent = all.where((t) => t.isReceived).take(5).toList();
+    return (stats, recent);
   }
 
   @override
@@ -204,9 +242,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: BanzamiSpacing.lg),
               ],
 
-              // Settlement / payout summary (no merchant settlement endpoint yet)
-              _SettlementCard(
-                verified: verified,
+              // Withdrawals — gated on what the payout endpoint enforces.
+              _PayoutsCard(
+                gate: withdrawGate(compliance: _compliance, kybVerified: verified),
+                payouts: _payouts,
+                failed: _payoutsFailed,
                 onVerify: () => _open(const KybScreen()),
                 onPayout: () => _open(const PayoutScreen()),
               ),
@@ -384,7 +424,7 @@ class _DashboardHeader extends StatelessWidget {
                   const Icon(Icons.savings_rounded, size: 15, color: BanzamiColors.white),
                   const SizedBox(width: 7),
                   Text(
-                    'Retido em campanhas ',
+                    'Fundos retidos ',
                     style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.white),
                   ),
                   Text(
@@ -481,7 +521,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     // Visual hierarchy via the same BanzamiActionTile design-system component:
     // 'Cobrar' is the primary CTA (premium red gradient, stronger shadow), QR and
-    // Payout are secondary (red-tinted icon on a white tile). Equal widths.
+    // Levantar are secondary (red-tinted icon on a white tile). Equal widths.
     return Row(children: [
       BanzamiActionTile(
         icon:    Icons.add_circle_outline_rounded,
@@ -499,7 +539,7 @@ class _QuickActions extends StatelessWidget {
       const SizedBox(width: BanzamiSpacing.md),
       BanzamiActionTile(
         icon:   Icons.account_balance_rounded,
-        label:  'Payout',
+        label:  'Levantar',
         onTap:  onPayout,
         accent: true,
       ),
@@ -508,22 +548,58 @@ class _QuickActions extends StatelessWidget {
 }
 
 // =============================================================================
-// Settlement / payout summary
+// Withdrawals (levantamentos)
 // =============================================================================
 
-class _SettlementCard extends StatelessWidget {
-  final bool verified;
+/// Whether the Business may ask for a withdrawal, as the gateway decides it:
+/// KYB AND AML approved (services/api-gateway compliance CanProcess).
+enum WithdrawGate { ready, kybPending, amlPending, unknown }
+
+WithdrawGate withdrawGate({
+  required MerchantComplianceStatus? compliance,
+  required bool kybVerified,
+}) {
+  if (compliance == null) {
+    return kybVerified ? WithdrawGate.unknown : WithdrawGate.kybPending;
+  }
+  if (compliance.canWithdraw) return WithdrawGate.ready;
+  if (!compliance.kybApproved) return WithdrawGate.kybPending;
+  return WithdrawGate.amlPending;
+}
+
+class _PayoutsCard extends StatelessWidget {
+  final WithdrawGate gate;
+  final List<Payout>? payouts;
+  final bool failed;
   final VoidCallback onVerify;
   final VoidCallback onPayout;
 
-  const _SettlementCard({
-    required this.verified,
+  const _PayoutsCard({
+    required this.gate,
+    required this.payouts,
+    required this.failed,
     required this.onVerify,
     required this.onPayout,
   });
 
   @override
   Widget build(BuildContext context) {
+    final note = switch (gate) {
+      WithdrawGate.ready => null,
+      WithdrawGate.kybPending =>
+        'Verificação do negócio (KYB) necessária para pedir levantamentos.',
+      WithdrawGate.amlPending =>
+        'Negócio verificado. Os levantamentos ficam disponíveis quando a '
+            'verificação AML estiver concluída.',
+      WithdrawGate.unknown =>
+        'Não foi possível confirmar agora se os levantamentos estão disponíveis.',
+    };
+    final (label, action) = switch (gate) {
+      WithdrawGate.kybPending => ('Verificar negócio', onVerify),
+      WithdrawGate.amlPending => ('Ver verificação', onVerify),
+      _ => ('Pedir levantamento', onPayout),
+    };
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
@@ -536,15 +612,22 @@ class _SettlementCard extends StatelessWidget {
         const Row(children: [
           Icon(Icons.account_balance_rounded, color: BanzamiColors.primary, size: 18),
           SizedBox(width: BanzamiSpacing.sm),
-          Text('Liquidações e payouts', style: BanzamiTextStyles.headingSm),
+          Text('Levantamentos', style: BanzamiTextStyles.headingSm),
         ]),
         const SizedBox(height: BanzamiSpacing.sm),
-        Text(
-          'Os teus payouts e liquidações aparecerão aqui.',
-          style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-        ),
+        if (payouts != null && payouts!.isNotEmpty)
+          ...payouts!.map((p) => PayoutRow(payout: p))
+        else
+          Text(
+            failed
+                ? 'Não foi possível carregar os levantamentos.'
+                : payouts == null
+                    ? 'A carregar levantamentos…'
+                    : 'Ainda não pediu nenhum levantamento.',
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          ),
         const SizedBox(height: BanzamiSpacing.md),
-        if (!verified)
+        if (note != null)
           Container(
             padding: const EdgeInsets.all(BanzamiSpacing.md),
             decoration: const BoxDecoration(
@@ -556,18 +639,53 @@ class _SettlementCard extends StatelessWidget {
               const SizedBox(width: BanzamiSpacing.sm),
               Expanded(
                 child: Text(
-                  'Verificação (KYB) necessária para solicitar payouts.',
+                  note,
                   style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.warning),
                 ),
               ),
             ]),
-          )
-        else
-          const SizedBox.shrink(),
+          ),
         const SizedBox(height: BanzamiSpacing.md),
-        BanzamiSecondaryButton(
-          label:     verified ? 'Solicitar payout' : 'Verificar negócio',
-          onPressed: verified ? onPayout : onVerify,
+        BanzamiSecondaryButton(label: label, onPressed: action),
+      ]),
+    );
+  }
+}
+
+/// One requested withdrawal: amount asked, its state, when it was asked.
+class PayoutRow extends StatelessWidget {
+  final Payout payout;
+  const PayoutRow({super.key, required this.payout});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (payout.status.toUpperCase()) {
+      'CONFIRMED' => BanzamiColors.success,
+      'FAILED' || 'RETURNED' => BanzamiColors.error,
+      _ => BanzamiColors.warning,
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.xs),
+      child: Row(children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            MoneyAmount(payout.amountMinor, currency: payout.currency, size: MoneySize.sm),
+            Text(
+              BanzamiDateFormatter.formatActivityTime(payout.createdAt),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            ),
+          ]),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
+          decoration: BoxDecoration(
+            color:        color.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.fullAll,
+          ),
+          child: Text(
+            payout.statusLabel,
+            style: BanzamiTextStyles.label.copyWith(color: color, fontSize: 11),
+          ),
         ),
       ]),
     );
@@ -579,7 +697,7 @@ class _SettlementCard extends StatelessWidget {
 // =============================================================================
 
 class _RecentPaymentTile extends StatelessWidget {
-  final MerchantTransaction tx;
+  final MerchantPaymentEntry tx;
   final bool isFirst;
   final bool isLast;
 
@@ -616,7 +734,7 @@ class _RecentPaymentTile extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
-                  tx.description?.isNotEmpty == true ? tx.description! : 'Pagamento recebido',
+                  tx.description ?? tx.payer ?? 'Pagamento recebido',
                   style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

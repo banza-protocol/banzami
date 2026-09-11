@@ -63,18 +63,44 @@ class ActivityItem {
     }
   }
 
-  /// Bold title for an activity row: the counterparty when known — a merchant
-  /// name (e.g. "Doa") or an @handle for P2P — otherwise a clean label. Never
-  /// exposes a raw technical code.
+  /// The counterparty's @banza, "@"-prefixed, or null when unknown.
+  String? get counterpartyAt {
+    final handle = counterpartyHandle?.trim();
+    if (handle == null || handle.isEmpty) return null;
+    return handle.startsWith('@') ? handle : '@$handle';
+  }
+
+  String? get _name {
+    final name = counterpartyDisplayName?.trim();
+    return (name == null || name.isEmpty) ? null : name;
+  }
+
+  /// Bold title for an activity row: the counterparty's @banza when known —
+  /// the identity people are addressed by, for a person and for a Business
+  /// ("@doa") alike — else its name, else a clean label. Never exposes a raw
+  /// technical code.
   String get displayTitle {
-    final name = counterpartyDisplayName;
-    if (name != null && name.trim().isNotEmpty) return name;
-    final handle = counterpartyHandle;
-    if (handle != null && handle.trim().isNotEmpty) {
-      return handle.startsWith('@') ? handle : '@$handle';
-    }
+    final at = counterpartyAt;
+    if (at != null) return at;
+    final name = _name;
+    if (name != null) return name;
     if (isFunding) return 'Multicaixa';
     return typeLabel;
+  }
+
+  /// Second line: the category, with the display name as secondary detail
+  /// when the title is the @banza ("Enviado · Fidel Monteiro").
+  String get displaySubtitle {
+    final name = _name;
+    if (counterpartyAt != null && name != null) return '$typeLabel · $name';
+    return typeLabel;
+  }
+
+  /// The letter for the row's avatar — never the "@".
+  String get avatarInitial {
+    final source = _name ?? counterpartyAt?.substring(1) ?? displayTitle;
+    final trimmed = source.trim();
+    return trimmed.isEmpty ? '·' : trimmed[0].toUpperCase();
   }
 
   String get amountFormatted => formatMinor(amountMinor, currency);

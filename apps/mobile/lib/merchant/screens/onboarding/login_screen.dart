@@ -6,7 +6,6 @@ import '../../../branding_assets.dart';
 import '../../../widgets/pin_pad.dart';
 import '../../services/merchant_session_service.dart';
 import '../../services/merchant_reauth.dart';
-import 'setup_screen.dart';
 
 enum _Step { handle, pin }
 
@@ -131,23 +130,13 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
       );
       if (!mounted) return;
       Navigator.of(context).popUntil((r) => r.isFirst);
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
+      // Only a 401 is a wrong PIN. A 5xx or a lost connection says so — it
+      // is never reported as "PIN incorrecto".
       setState(() {
         _loading = false;
         _pin     = '';
-        _error   = e.statusCode == 429
-            ? 'Conta temporariamente bloqueada. Tente novamente mais tarde.'
-            : 'PIN incorreto.';
-      });
-    } on BanzamiNetworkException {
-      setState(() {
-        _loading = false; _pin = '';
-        _error   = 'Não foi possível conectar. Tente novamente.';
-      });
-    } catch (_) {
-      setState(() {
-        _loading = false; _pin = '';
-        _error   = 'Não foi possível conectar. Tente novamente.';
+        _error   = businessSignInError(e);
       });
     }
   }
@@ -218,14 +207,6 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
               onPressed: _loading ? null : _continueToPin,
             ),
 
-            const SizedBox(height: BanzamiSpacing.md),
-            BanzamiGhostButton(
-              label:     'Entrar com credenciais de integração',
-              color:     BanzamiColors.gray600,
-              onPressed: () => Navigator.of(context).push(
-                BanzamiPageRoute(page: const MerchantSetupScreen()),
-              ),
-            ),
             const SizedBox(height: BanzamiSpacing.xxl),
           ],
         ),
@@ -296,4 +277,15 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
         hintStyle:  BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray400),
         errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
       );
+}
+
+/// What a failed Business sign-in says. Only a definitive 401 is a wrong
+/// PIN; 429 is the server lockout; everything else goes through the mapper
+/// (service unavailable, no connection) and never blames the PIN.
+String businessSignInError(Object e) {
+  if (e is BanzamiApiException && e.statusCode == 401) return 'PIN incorrecto.';
+  if (e is BanzamiApiException && e.statusCode == 429) {
+    return 'Conta temporariamente bloqueada. Tente novamente mais tarde.';
+  }
+  return banzamiErrorMessage(e);
 }

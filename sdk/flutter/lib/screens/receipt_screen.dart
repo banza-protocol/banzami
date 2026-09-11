@@ -48,6 +48,12 @@ class BanzamiReceiptScreen extends StatefulWidget {
   /// The sender's own handle — displayed without hitting the API.
   final String? ownHandle;
 
+  /// The money came IN — this device is the receiver (a "payment received"
+  /// push). The sender is then [Transfer.sender], never [ownHandle], the title
+  /// says "recebida", and the date waits for the receipt's own confirmed time
+  /// instead of showing when the notification was tapped.
+  final bool incoming;
+
   final void Function(Transfer) onDone;
 
   final bool isSandbox;
@@ -76,6 +82,7 @@ class BanzamiReceiptScreen extends StatefulWidget {
     super.key,
     required this.transfer,
     this.ownHandle,
+    this.incoming = false,
     required this.onDone,
     this.isSandbox = false,
     this.logoAssetPath,
@@ -235,13 +242,32 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
       widget.transfer.createdAt;
 
   /// The official receipt clock — Luanda time, labelled (WAT) — the same the
-  /// PDF and the public verifier print.
-  String get _dateLong => BanzamiDateFormatter.formatOfficialReceipt(_when);
+  /// PDF and the public verifier print. An incoming transfer opened from a
+  /// push knows no time of its own until the receipt arrives: it says so
+  /// rather than printing the moment the notification was tapped.
+  String get _dateLong {
+    if (widget.incoming && _receipt?.confirmedAt == null) {
+      return _receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…';
+    }
+    return BanzamiDateFormatter.formatOfficialReceipt(_when);
+  }
 
   String get _from {
-    final h =
-        _receipt?.payer.handle ?? widget.ownHandle ?? widget.transfer.sender;
+    // Incoming: the sender is the other party — never this device's handle.
+    final h = _receipt?.payer.handle ??
+        (widget.incoming
+            ? widget.transfer.sender
+            : (widget.ownHandle ?? widget.transfer.sender));
+    if (h.isEmpty) return '—';
     return h.startsWith('@') ? h : '@$h';
+  }
+
+  /// The headline — by direction first, then by what the operation WAS.
+  String get _title {
+    if (widget.incoming) {
+      return _isPayment ? 'Pagamento recebido' : 'Transferência recebida';
+    }
+    return _isPayment ? 'Pagamento concluído' : 'Enviado com sucesso';
   }
 
   /// Recipient as shown to the user: the receipt's payee ("Doa · @doa" for a
@@ -307,9 +333,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         sharePositionOrigin: origin,
       );
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         BanzamiToast.showError(
             context, 'Não foi possível obter o comprovativo.');
+      }
     } finally {
       // Never accumulate PDFs — delete the temp file after sharing.
       if (file != null) {
@@ -551,10 +578,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           Text(
                             // A payment reads "Pagamento concluído", a P2P
                             // transfer "Enviado com sucesso" — by what the
-                            // operation WAS (the receipt's operation kind).
-                            _isPayment
-                                ? 'Pagamento concluído'
-                                : 'Enviado com sucesso',
+                            // operation WAS (the receipt's operation kind); an
+                            // incoming one "Transferência recebida".
+                            _title,
                             style: BanzamiTextStyles.headingSm.copyWith(
                               color: Colors.white.withValues(alpha: 0.80),
                             ),
@@ -572,7 +598,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           const SizedBox(height: BanzamiSpacing.xs),
 
                           Text(
-                            'para $_recipientLabel',
+                            widget.incoming
+                                ? 'de $_from'
+                                : 'para $_recipientLabel',
                             style: BanzamiTextStyles.bodyMd.copyWith(
                               color: Colors.white.withValues(alpha: 0.60),
                             ),
@@ -615,7 +643,15 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                     value: r!.displayContext!),
                               if (note != null)
                                 _DetailRow(label: 'Descrição', value: note),
-                              _DetailRow(label: 'Data', value: _dateLong),
+                              _DetailRow(
+                                label: 'Data',
+                                value: _dateLong,
+                                onTap: widget.incoming &&
+                                        _receipt == null &&
+                                        _receiptFailed
+                                    ? _loadReceipt
+                                    : null,
+                              ),
                               if (r != null)
                                 _DetailRow(
                                     label: 'Operação', value: r.operationLine),

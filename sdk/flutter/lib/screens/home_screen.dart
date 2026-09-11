@@ -9,6 +9,7 @@ import '../utils/banzami_toast.dart';
 import '../widgets/banzami_sandbox_banner.dart';
 import '../utils/camera_permission.dart';
 import '../utils/date_formatter.dart';
+import '../utils/error_messages.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_components.dart';
 import 'receive_screen.dart';
@@ -121,33 +122,38 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
       final bal = await widget.client.getBalance();
       debugPrint(
           '[refresh] Home balance updated: ${bal.availableMinor} ${bal.currency}');
-      if (mounted)
+      if (mounted) {
         setState(() {
           _balance = bal;
+          _error = null; // a successful reload clears the old failure
           _loadingBalance = false;
         });
-    } catch (_) {
-      if (mounted)
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _error = 'Não foi possível carregar o saldo';
+          _error = banzamiErrorMessage(e);
           _loadingBalance = false;
         });
+      }
     }
   }
 
   Future<void> _loadActivity() async {
     try {
       final page = await widget.client.getActivity(limit: 10);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _activity = page.items;
           _loadingActivity = false;
         });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loadingActivity = false;
         });
+      }
     }
   }
 
@@ -296,7 +302,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                   ),
 
                 // ── Section header ────────────────────────────────────────
-                SliverToBoxAdapter(
+                const SliverToBoxAdapter(
                   child: BanzamiSectionTitle(
                     title: 'Actividade recente',
                     action: 'Ver tudo',
@@ -379,9 +385,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = displayName != null
-        ? displayName!.split(' ').take(2).map((w) => w[0]).join().toUpperCase()
-        : handle[0].toUpperCase();
+    final initials = homeInitials(displayName: displayName, handle: handle);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -434,7 +438,7 @@ class _TopBar extends StatelessWidget {
             child: Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: BanzamiColors.white,
                 shape: BoxShape.circle,
                 boxShadow: BanzamiShadows.card,
@@ -637,11 +641,11 @@ class _ActivityRow extends StatelessWidget {
     final isCredit = item.isIncoming;
     final amountFormatted =
         '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
-    final initial = item.displayTitle[0];
+    final initial = item.avatarInitial;
 
     return BanzamiActivityRow(
       title: item.displayTitle,
-      subtitle: item.typeLabel,
+      subtitle: item.displaySubtitle,
       amount: amountFormatted,
       time: _formatTime(item.createdAt),
       isCredit: isCredit,
@@ -673,7 +677,7 @@ class _ActivityIcon extends StatelessWidget {
       return Container(
         width: 44,
         height: 44,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: BanzamiColors.successBg,
           shape: BoxShape.circle,
         ),
@@ -739,7 +743,7 @@ class _EmptyActivity extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: BanzamiSpacing.xs),
-            Text(
+            const Text(
               'As suas actividades aparecerão aqui',
               style: BanzamiTextStyles.bodySm,
               textAlign: TextAlign.center,
@@ -755,16 +759,22 @@ class _EmptyActivity extends StatelessWidget {
 // Sandbox fund panel — premium funding card
 // =============================================================================
 
-String _fmtKz(int kz) {
-  final s = kz.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.writeCharCode(0x202F);
-    buf.write(s[i]);
-  }
-  buf.write(' Kz');
-  return buf.toString();
+/// The avatar initials: the first letters of up to two words of the name
+/// (any run of spaces between them), else the handle's first letter — never a
+/// crash on "Ana  Silva", a blank name or an empty handle.
+String homeInitials({String? displayName, required String handle}) {
+  final words = (displayName ?? '')
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .take(2);
+  if (words.isNotEmpty) return words.map((w) => w[0]).join().toUpperCase();
+  final h = handle.replaceFirst('@', '').trim();
+  return h.isEmpty ? '·' : h[0].toUpperCase();
 }
+
+/// Whole kwanzas in the standard money format ("50 000 Kz").
+String _fmtKz(int kz) => formatMinor(kz * 100, 'AOA');
 
 class _SandboxFundPanel extends StatefulWidget {
   final ConsumerPublicClient client;
@@ -806,11 +816,13 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
       setState(() => _expanded = false);
       BanzamiToast.showSuccess(
         context,
-        '${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox',
+        '${formatMinor(result.creditedMinor, result.currency)} adicionados à carteira sandbox',
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      BanzamiToast.showError(context, 'Erro ao adicionar fundos');
+      // e.g. PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED: the pilot's test-funds cap
+      // was reached — say that, not a generic error.
+      BanzamiToast.showError(context, banzamiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }

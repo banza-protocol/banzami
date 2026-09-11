@@ -36,16 +36,6 @@ void main() {
   });
 
   group('MerchantSession model', () {
-    test('apiKey session: authIdentity = apiKey, sandbox from environment', () {
-      const s = MerchantSession(
-        merchantId: 'm', merchantName: 'n', merchantEmail: 'e', walletId: 'w',
-        loginMethod: MerchantLoginMethod.apiKey, environment: 'SANDBOX', apiKey: 'bz_test_x',
-      );
-      expect(s.isSandbox, isTrue);
-      expect(s.isHandleLogin, isFalse);
-      expect(s.authIdentity, 'bz_test_x');
-    });
-
     test('handle session: authIdentity = jwt', () {
       final s = MerchantSession(
         merchantId: 'm', merchantName: 'n', merchantEmail: 'e', walletId: 'w',
@@ -59,24 +49,6 @@ void main() {
   });
 
   group('MerchantSessionService — unified persistence', () {
-    test('API-key login persists and restores as an apiKey session', () async {
-      final a = MerchantSessionService();
-      await a.createSession(
-        merchantId: 'm1', merchantName: 'Doa', merchantEmail: 'e', walletId: 'w1',
-        apiKey: 'bz_test_abc', pin: '1234', verified: true,
-      );
-      expect(a.session!.loginMethod, MerchantLoginMethod.apiKey);
-      expect(a.isLocked, isFalse);
-
-      final b = MerchantSessionService();
-      await b.initialize();
-      expect(b.hasSession, isTrue);
-      expect(b.session!.loginMethod, MerchantLoginMethod.apiKey);
-      expect(b.session!.apiKey, 'bz_test_abc');
-      expect(b.session!.isSandbox, isTrue);
-      expect(b.session!.jwt, isNull);
-    });
-
     test('handle login persists and restores as a handle session', () async {
       final a = MerchantSessionService();
       await a.createHandleSession(
@@ -93,7 +65,6 @@ void main() {
       expect(b.session!.canRenew, isTrue,
           reason: 'an expired access token with a live refresh token renews');
       expect(b.session!.handle, 'doa_sandbox');
-      expect(b.session!.apiKey, isNull);
       expect(b.session!.authIdentity, 'jwt.abc');
     });
 
@@ -108,29 +79,27 @@ void main() {
       expect(renewed.refreshToken, 'r2');
     });
 
-    test('switching modes clears the previous credential', () async {
+    test('a handle sign-in removes any secret API key left on the device', () async {
+      store['merchant_api_key'] = 'bz_live_k';
       final a = MerchantSessionService();
-      await a.createSession(
-        merchantId: 'm1', merchantName: 'D', merchantEmail: 'e', walletId: 'w',
-        apiKey: 'bz_live_k', pin: '1234',
-      );
       await a.createHandleSession(
         merchantId: 'm1', merchantName: 'D', merchantEmail: 'e', walletId: 'w',
         jwt: 'jwt.z', jwtExpiresAt: DateTime(2026), handle: 'cantina', environment: 'LIVE', pin: '1234',
         refreshToken: 'rt.z', refreshExpiresAt: DateTime.now().add(const Duration(days: 30)),
       );
+      expect(store.containsKey('merchant_api_key'), isFalse);
       final b = MerchantSessionService();
       await b.initialize();
       expect(b.session!.loginMethod, MerchantLoginMethod.handlePin);
-      expect(b.session!.apiKey, isNull); // api key cleared
       expect(b.session!.jwt, 'jwt.z');
     });
 
     test('verifyPin + biometrics toggle + clearAccount wipes storage', () async {
       final a = MerchantSessionService();
-      await a.createSession(
+      await a.createHandleSession(
         merchantId: 'm1', merchantName: 'D', merchantEmail: 'e', walletId: 'w',
-        apiKey: 'bz_test_k', pin: '4321',
+        jwt: 'jwt.k', jwtExpiresAt: DateTime.now().add(const Duration(minutes: 10)),
+        handle: 'd', environment: 'SANDBOX', pin: '4321',
       );
       expect(await a.verifyPin('4321'), isTrue);
       expect(await a.verifyPin('0000'), isFalse);
@@ -144,7 +113,7 @@ void main() {
       expect(b.hasSession, isFalse);
     });
 
-    test('backward compat: legacy api-key session (no login_method) restores fine', () async {
+    test('upgrade: a stored API-key session is wiped, never restored', () async {
       store['merchant_id'] = 'm1';
       store['merchant_name'] = 'D';
       store['merchant_email'] = 'e';
@@ -155,9 +124,23 @@ void main() {
 
       final b = MerchantSessionService();
       await b.initialize();
-      expect(b.hasSession, isTrue);
-      expect(b.session!.loginMethod, MerchantLoginMethod.apiKey);
-      expect(b.session!.isSandbox, isTrue); // derived from bz_test prefix
+      expect(b.hasSession, isFalse, reason: 'a secret key never signs a phone in');
+      expect(b.route, MerchantRoute.welcome);
+      expect(store.containsKey('merchant_api_key'), isFalse);
+      expect(store.containsKey('merchant_id'), isFalse);
+      expect(store.containsKey('merchant_pin_hash'), isFalse);
+    });
+
+    test('upgrade: an api_key login method is wiped too', () async {
+      store['merchant_id'] = 'm1';
+      store['merchant_name'] = 'D';
+      store['merchant_email'] = 'e';
+      store['merchant_wallet_id'] = 'w';
+      store['merchant_login_method'] = 'api_key';
+      final b = MerchantSessionService();
+      await b.initialize();
+      expect(b.hasSession, isFalse);
+      expect(store, isEmpty);
     });
   });
 }

@@ -1,8 +1,5 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:banzami_flutter/banzami_flutter.dart';
-import 'package:banzami_mobile/merchant/screens/onboarding/setup_screen.dart';
 
 // Source-text guards (cwd = apps/mobile when running flutter test) locking the
 // Banzami Business UI unification against regression.
@@ -12,7 +9,6 @@ const _screensDir = 'lib/merchant/screens';
 
 void main() {
   final welcome = _read('$_screensDir/onboarding/welcome_screen.dart');
-  final setup = _read('$_screensDir/onboarding/setup_screen.dart');
 
   group('Welcome screen is modern (mirrors consumer)', () {
     test('uses the gradient hero + BanzamiPrimaryButton, not a raw button', () {
@@ -28,24 +24,12 @@ void main() {
     });
   });
 
-  group('Setup screen uses design-system components', () {
-    test('BanzamiScaffold + BanzamiAppBar + BanzamiPrimaryButton + BanzamiErrorBanner', () {
-      expect(setup.contains('BanzamiScaffold'), isTrue);
-      expect(setup.contains('BanzamiAppBar'), isTrue);
-      expect(setup.contains('BanzamiPrimaryButton'), isTrue);
-      expect(setup.contains('BanzamiErrorBanner'), isTrue);
-      expect(setup.contains('BanzamiCard'), isTrue); // help card
-    });
-  });
-
   group('No raw Material AppBar left on the pushed/tab merchant screens', () {
     const files = [
-      'onboarding/setup_screen.dart',
       'charge_screen.dart',
       'payout_screen.dart',
       'qr_screen.dart',
       'kyb_screen.dart',
-      'pin_create_screen.dart',
     ];
     for (final f in files) {
       test('$f uses BanzamiAppBar (no raw "appBar: AppBar(")', () {
@@ -90,38 +74,18 @@ void main() {
     });
   });
 
-  group('Setup screen renders without overflow', () {
-    testWidgets('renders the modern form at phone width', (t) async {
-      await t.pumpWidget(MaterialApp(
-        theme: BanzamiTheme.light,
-        home: const MerchantSetupScreen(),
-      ));
-      await t.pump();
-      expect(find.text('Verificar e continuar'), findsOneWidget); // BanzamiPrimaryButton
-      expect(t.takeException(), isNull); // no overflow / build error
-    });
-  });
-
-  group('API Key advanced mode (Credenciais de integração)', () {
-    testWidgets('setup is now the integration-credentials advanced screen', (t) async {
-      await t.pumpWidget(MaterialApp(
-        theme: BanzamiTheme.light,
-        home: const MerchantSetupScreen(),
-      ));
-      await t.pump();
-      expect(find.text('Credenciais de integração'), findsWidgets); // appbar + heading
-      // Still exactly Merchant ID + API Key (no @handle field on this screen).
-      expect(find.byType(TextFormField), findsNWidgets(2));
-      expect(t.takeException(), isNull);
-    });
-
-    test('API-key flow intact; the old "em breve" teaser is gone', () {
-      expect(setup.contains("labelText:  'Merchant ID'"), isTrue);
-      expect(setup.contains("labelText:  'API Key'"), isTrue);
-      expect(setup.contains('_verify'), isTrue);
-      // The placeholder teaser was replaced by the real handle login.
-      expect(setup.contains('_HandleLoginTeaser'), isFalse);
-      expect(setup.contains('Em breve'), isFalse);
+  group('no secret API key in the Business App', () {
+    test('the "credenciais de integração" setup is gone; @banza + PIN is the only way in', () {
+      expect(File('$_screensDir/onboarding/setup_screen.dart').existsSync(), isFalse);
+      expect(File('$_screensDir/pin_create_screen.dart').existsSync(), isFalse);
+      final login = _read('$_screensDir/onboarding/login_screen.dart');
+      expect(login.contains('credenciais de integração'), isFalse);
+      expect(login.contains('MerchantSetupScreen'), isFalse);
+      for (final f in Directory('lib/merchant').listSync(recursive: true).whereType<File>()) {
+        final src = f.readAsStringSync();
+        expect(src.contains("'bz_live_"), isFalse, reason: f.path);
+        expect(RegExp(r'apiKey:\s*s\?\.apiKey').hasMatch(src), isFalse, reason: f.path);
+      }
     });
   });
 }

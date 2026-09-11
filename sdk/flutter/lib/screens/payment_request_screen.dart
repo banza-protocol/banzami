@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/receipt.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/error_messages.dart';
+import '../utils/idempotency_intent.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
@@ -82,13 +83,21 @@ class _BanzamiPaymentRequestScreenState
   String? _amountError;
   bool _sending = false;
   String? _error;
+
+  /// The last attempt got no answer, or the server said the payment is still
+  /// being confirmed (PAYMENT_NOT_CONFIRMED). The button then repeats the SAME
+  /// request — same key, same slug, same amount — which completes it or
+  /// returns the original outcome; it never pays twice.
+  bool _retrySame = false;
   bool _entered = false;
 
   late final AnimationController _pulseCtrl;
   late final Animation<double> _pulseScale;
 
-  // Generated once so payment-link retries reuse the same idempotency key.
-  final String _idem = const Uuid().v4();
+  // One key per payment intent (this recipient + this amount), reused by every
+  // retry — a lost answer followed by another tap must never become a second
+  // payment.
+  final IdempotencyIntent _intent = IdempotencyIntent();
 
   @override
   void initState() {
@@ -129,6 +138,7 @@ class _BanzamiPaymentRequestScreenState
       return;
     }
     HapticFeedback.mediumImpact();
+    final idem = _intent.keyFor(amount);
     setState(() {
       _sending = true;
       _error = null;
@@ -146,7 +156,7 @@ class _BanzamiPaymentRequestScreenState
         final paid = await widget.client.payPaymentLink(
           widget.paymentLinkSlug!,
           amountMinor: amount,
-          idempotencyKey: _idem,
+          idempotencyKey: idem,
         );
         // The pay response carries the canonical receipt once its proof is
         // established — the payee, the reference and the time the PDF and the
@@ -161,7 +171,9 @@ class _BanzamiPaymentRequestScreenState
           // Until the canonical receipt arrives: the payee at its @handle.
           recipient: paid.merchantHandle != null
               ? '@${paid.merchantHandle}'
-              : (paid.merchantName ?? widget.recipientDisplayName ?? paid.slug),
+              : (paid.merchantName ??
+                  widget.recipientDisplayName ??
+                  'Pagamento Banzami'),
           amountMinor: paid.amountMinor ?? amount,
           currency: paid.currency,
           status: 'COMPLETED',
@@ -175,6 +187,7 @@ class _BanzamiPaymentRequestScreenState
         final link = await widget.client.payConsumerPayLink(
           widget.linkCode!,
           amountMinor: widget.locked ? null : amount,
+          idempotencyKey: idem,
         );
         transfer =
             Transfer.fromConsumerPayLink(link, ownHandle: widget.ownHandle);
@@ -184,10 +197,12 @@ class _BanzamiPaymentRequestScreenState
           amountMinor: amount,
           currency: widget.currency,
           note: widget.note,
-          idempotencyKey: const Uuid().v4(),
+          idempotencyKey: idem,
         );
       }
 
+      // Paid: a later tap is a new payment, never a replay of this one.
+      _intent.complete();
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
@@ -207,38 +222,46 @@ class _BanzamiPaymentRequestScreenState
           fetchReceipt: () => widget.client.fetchReceipt(transfer.transferId),
         ),
       ));
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
+      final notConfirmed =
+          e is BanzamiApiException && e.code == 'PAYMENT_NOT_CONFIRMED';
       setState(() {
         _sending = false;
-        _error = switch (e.code) {
-          'INSUFFICIENT_FUNDS' => 'Saldo insuficiente para esta transferência.',
-          'LINK_NOT_ACTIVE' => 'Este pedido de pagamento já não está activo.',
-          'ACCOUNT_FROZEN' => 'A sua conta está suspensa. Contacte o suporte.',
-          'SELF_TRANSFER_NOT_ALLOWED' => 'Não pode pagar o seu próprio pedido.',
-          'RECIPIENT_NOT_FOUND' => '@${widget.recipientHandle} não encontrado.',
-          'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa.',
-          'SELF_TRANSFER' => 'Não pode enviar para si mesmo.',
-          'WALLET_NOT_FOUND' => 'Carteira de destino não encontrada.',
-          'NO_WALLET' => 'Não tem carteira activa para esta moeda.',
-          _ => e.message.isNotEmpty
-              ? e.message
-              : 'Erro de envio. Tente novamente.',
-        };
-      });
-    } catch (_) {
-      if (!mounted) return;
-      _pulseCtrl.stop();
-      _pulseCtrl.reset();
-      HapticFeedback.heavyImpact();
-      setState(() {
-        _sending = false;
-        _error = 'Erro de ligação. Tente novamente.';
+        _retrySame = notConfirmed || isOutcomeUnknown(e);
+        _error = notConfirmed
+            ? kPaymentNotConfirmedMessage
+            : isOutcomeUnknown(e)
+                ? kPaymentOutcomeUnknownMessage
+                : banzamiErrorMessage(e, codes: {
+                    'LINK_NOT_ACTIVE':
+                        'Este pedido de pagamento já não está activo.',
+                    'SELF_TRANSFER_NOT_ALLOWED':
+                        'Não pode pagar o seu próprio pedido.',
+                    if (widget.recipientIsHandle)
+                      'RECIPIENT_NOT_FOUND':
+                          '@${widget.recipientHandle} não existe.',
+                  });
       });
     }
+  }
+
+  /// Who is paid, as these screens name them: "@ana" for a person; for a
+  /// Business its display name (its @handle, when it has one, is the
+  /// subtitle). An "@" is only ever put before a real @handle.
+  String get _payeeLabel => widget.recipientIsHandle
+      ? '@${widget.recipientHandle}'
+      : (widget.recipientDisplayName ?? widget.recipientHandle);
+
+  /// The avatar letter — safe for an empty name or handle (a malformed link).
+  String get _initial {
+    final source = (widget.recipientDisplayName ?? widget.recipientHandle)
+        .replaceFirst('@', '')
+        .trim();
+    return source.isEmpty ? '·' : source[0].toUpperCase();
   }
 
   // ── Review UI builders ─────────────────────────────────────────────────────
@@ -323,9 +346,8 @@ class _BanzamiPaymentRequestScreenState
   }
 
   Widget _buildReviewUI() {
-    final handle = widget.recipientHandle;
     final displayName = widget.recipientDisplayName;
-    final initial = (displayName ?? handle)[0].toUpperCase();
+    final initial = _initial;
     final amount = widget.locked && widget.amountMinor != null
         ? formatMinor(widget.amountMinor!, widget.currency)
         : null;
@@ -366,11 +388,15 @@ class _BanzamiPaymentRequestScreenState
                             fontWeight: FontWeight.w700,
                           )),
                       const SizedBox(height: 2),
-                      Text(widget.recipientSubtitle ?? '@$handle',
-                          style: BanzamiTextStyles.bodySm
-                              .copyWith(color: BanzamiColors.gray400)),
+                      if (widget.recipientSubtitle != null ||
+                          widget.recipientIsHandle)
+                        Text(
+                            widget.recipientSubtitle ??
+                                '@${widget.recipientHandle}',
+                            style: BanzamiTextStyles.bodySm
+                                .copyWith(color: BanzamiColors.gray400)),
                     ] else
-                      Text('@$handle',
+                      Text(_payeeLabel,
                           style: BanzamiTextStyles.headingSm.copyWith(
                             color: BanzamiColors.gray900,
                             fontWeight: FontWeight.w700,
@@ -389,6 +415,9 @@ class _BanzamiPaymentRequestScreenState
                     else ...[
                       BanzamiAmountInput(
                         initialAmountMinor: widget.amountMinor,
+                        // Editing is only possible when nothing is pending:
+                        // a changed amount is a new intent (new key).
+                        enabled: !_retrySame,
                         onChanged: (v) => setState(() {
                           _amountMinor = v;
                           _amountError = null;
@@ -441,7 +470,11 @@ class _BanzamiPaymentRequestScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   BanzamiPrimaryButton(
-                    label: buttonLabel,
+                    label: _retrySame
+                        ? (_error == kPaymentNotConfirmedMessage
+                            ? 'Tentar novamente'
+                            : 'Verificar')
+                        : buttonLabel,
                     isLoading: false,
                     height: 58,
                     onPressed: _pay,
@@ -492,7 +525,6 @@ class _BanzamiPaymentRequestScreenState
   }
 
   Widget _buildProgressOverlay() {
-    final handle = widget.recipientHandle;
     final amount = widget.locked && widget.amountMinor != null
         ? formatMinor(widget.amountMinor!, widget.currency)
         : formatMinor(_amountMinor, widget.currency);
@@ -530,7 +562,7 @@ class _BanzamiPaymentRequestScreenState
                 ),
                 const SizedBox(height: BanzamiSpacing.sm),
                 Text(
-                  'para @$handle',
+                  'para $_payeeLabel',
                   style: BanzamiTextStyles.bodyMd.copyWith(
                     color: BanzamiColors.gray400,
                   ),
@@ -549,15 +581,20 @@ class _BanzamiPaymentRequestScreenState
 
   @override
   Widget build(BuildContext context) {
-    return BanzamiScaffold(
-      appBar: _sending
-          ? null
-          : const BanzamiAppBar(title: 'Confirmar pagamento', showBack: true),
-      body: Stack(
-        children: [
-          if (!_sending) SafeArea(child: _buildReviewUI()),
-          if (_sending) _buildProgressOverlay(),
-        ],
+    // No way back while the payment is in flight: leaving would lose its
+    // answer, and the only safe next step is the same request again.
+    return PopScope(
+      canPop: !_sending,
+      child: BanzamiScaffold(
+        appBar: _sending
+            ? null
+            : const BanzamiAppBar(title: 'Confirmar pagamento', showBack: true),
+        body: Stack(
+          children: [
+            if (!_sending) SafeArea(child: _buildReviewUI()),
+            if (_sending) _buildProgressOverlay(),
+          ],
+        ),
       ),
     );
   }

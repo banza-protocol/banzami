@@ -39,3 +39,11 @@ class BanzamiNetworkException implements Exception {
   @override
   String toString() => 'BanzamiNetworkException: $message';
 }
+
+/// The request left but no answer came back in time. Like any network
+/// failure it says nothing about the outcome: a payment may have been made.
+class BanzamiTimeoutException extends BanzamiNetworkException {
+  const BanzamiTimeoutException(super.message);
+  @override
+  String toString() => 'BanzamiTimeoutException: $message';
+}

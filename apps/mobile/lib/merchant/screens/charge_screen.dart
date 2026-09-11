@@ -100,12 +100,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
         description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
       );
       setState(() => _link = link);
-    } on BanzamiApiException catch (e) {
-      setState(() => _error = e.message);
-    } on BanzamiNetworkException {
-      setState(() => _error = 'Sem ligação. Verifique a sua rede.');
-    } catch (_) {
-      setState(() => _error = 'Não foi possível criar a cobrança.');
+    } catch (e) {
+      if (mounted) setState(() => _error = banzamiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _creating = false);
     }
@@ -143,12 +139,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
           initialShares:     result.shares,
         ),
       ));
-    } on BanzamiApiException catch (e) {
-      setState(() => _error = e.message);
-    } on BanzamiNetworkException {
-      setState(() => _error = 'Sem ligação. Verifique a sua rede.');
-    } catch (_) {
-      setState(() => _error = 'Não foi possível criar a cobrança dividida.');
+    } catch (e) {
+      if (mounted) setState(() => _error = banzamiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _creating = false);
     }

@@ -52,6 +52,10 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   int       _failedAttempts = 0;
   DateTime? _lockoutUntil;
 
+  /// Why the PIN (right on this device) did not open the app: Banzami could
+  /// not be reached with an expired session, or locked the sign-in.
+  String?   _notice;
+
   @override
   void initState() {
     super.initState();
@@ -110,7 +114,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
       return;
     }
 
-    setState(() { _checking = true; _error = false; });
+    setState(() { _checking = true; _error = false; _notice = null; });
 
     final svc    = context.read<SessionService>();
     final client = context.read<ConsumerPublicClient>();
@@ -120,13 +124,46 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     if (ok) {
       _failedAttempts = 0;
       _lockoutUntil   = null;
+      Object? loginError;
       try {
         final result = await client.login(
           handle: svc.session!.handle,
           pin:    _pin,
         );
         await svc.updateToken(result.token);
-      } catch (_) {}
+      } catch (e) {
+        loginError = e;
+      }
+      if (!mounted) return;
+      switch (consumerUnlockDecision(loginError: loginError, tokenExpired: svc.isTokenExpired)) {
+        case ConsumerUnlock.unlock:
+          break;
+        case ConsumerUnlock.unlockDegraded:
+          // Banzami is unreachable but this device's session is still valid:
+          // open, and say the data may be stale.
+          BanzamiToast.showWarning(context,
+              'Sem ligação ao Banzami. Alguns dados podem não estar actualizados.');
+        case ConsumerUnlock.stayLocked:
+          setState(() {
+            _notice      = banzamiErrorMessage(loginError!);
+            _checking    = false;
+            _pin         = '';
+            _padResetKey += 1;
+          });
+          return;
+        case ConsumerUnlock.signOut:
+          // A definitive refusal of this @banza + PIN (it was changed, or the
+          // account is gone): the session on this device ends.
+          await svc.logout();
+          if (!mounted) return;
+          BanzamiToast.showWarning(context,
+              'Não foi possível entrar com este PIN. Entre novamente na sua conta.');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+            (_) => false,
+          );
+          return;
+      }
       svc.unlock();
       if (mounted) {
         if (widget.isAppLock) {
@@ -223,9 +260,11 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                         ? 'Conta bloqueada temporariamente.'
                         : _error
                             ? 'PIN incorrecto. Tente novamente.'
-                            : 'Introduza o PIN',
+                            : _notice ?? 'Introduza o PIN',
                     style: BanzamiTextStyles.bodyMd.copyWith(
-                      color: _error ? BanzamiColors.error : BanzamiColors.gray400,
+                      color: (_error || _notice != null)
+                          ? BanzamiColors.error
+                          : BanzamiColors.gray400,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -271,4 +310,35 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+/// What a PIN that matched on this device does, given how the server sign-in
+/// went.
+enum ConsumerUnlock {
+  /// Signed in again: a fresh token.
+  unlock,
+
+  /// Banzami unreachable, but the stored token is still valid: open, and say
+  /// the data may be stale.
+  unlockDegraded,
+
+  /// Nothing can be done without Banzami (expired session during an outage)
+  /// or its lockout: stay on the PIN screen and say why.
+  stayLocked,
+
+  /// A definitive 401 refusal of the @banza + PIN: the session ends here.
+  signOut,
+}
+
+ConsumerUnlock consumerUnlockDecision({
+  required Object? loginError,
+  required bool tokenExpired,
+}) {
+  if (loginError == null) return ConsumerUnlock.unlock;
+  if (loginError is BanzamiApiException) {
+    if (loginError.statusCode == 401) return ConsumerUnlock.signOut;
+    if (loginError.statusCode == 429) return ConsumerUnlock.stayLocked;
+  }
+  // An outage (network, timeout, 5xx) says nothing about the account.
+  return tokenExpired ? ConsumerUnlock.stayLocked : ConsumerUnlock.unlockDegraded;
 }

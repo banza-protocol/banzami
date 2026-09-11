@@ -45,4 +45,26 @@ void main() {
       expect(success, isNot(danger));
     });
   });
+
+  group('BanzamiAmountInput — integer minor units only', () {
+    testWidgets('typing "50 000,50" reports 5000050 minor units', (t) async {
+      int? got;
+      await _pump(t, BanzamiAmountInput(onChanged: (v) => got = v));
+      await t.enterText(find.byType(TextField), '50000,50');
+      expect(got, 5000050);
+      expect(find.text('50 000,50'), findsOneWidget);
+    });
+
+    testWidgets('an initial amount with cêntimos is shown exactly, not rounded',
+        (t) async {
+      await _pump(t, BanzamiAmountInput(initialAmountMinor: 5000050, onChanged: (_) {}));
+      expect(find.text('50 000,50'), findsOneWidget);
+    });
+  });
+
+  test('home initials survive double spaces, blank names and empty handles', () {
+    expect(homeInitials(displayName: 'Ana  Silva', handle: 'ana'), 'AS');
+    expect(homeInitials(displayName: '   ', handle: 'ana'), 'A');
+    expect(homeInitials(displayName: null, handle: ''), '·');
+  });
 }

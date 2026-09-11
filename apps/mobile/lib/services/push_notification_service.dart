@@ -162,18 +162,28 @@ class PushNotificationService {
 
   // ── Topic subscription ─────────────────────────────────────────────────────
 
+  /// The FCM topic a consumer's notifications are published to.
+  static String consumerTopic(String consumerId, {required bool sandbox}) =>
+      sandbox ? 'sandbox_consumer_$consumerId' : 'consumer_$consumerId';
+
+  /// Every topic a consumer's notifications could reach this device on — both
+  /// environments, so signing out leaves neither behind.
+  static List<String> consumerTopics(String consumerId) => [
+        consumerTopic(consumerId, sandbox: false),
+        consumerTopic(consumerId, sandbox: true),
+      ];
+
   /// Subscribes to a consumer topic with sandbox isolation.
   /// Use this for the logged-in consumer: topic = consumer_<id> or sandbox_consumer_<id>.
-  static Future<void> subscribeConsumer(String consumerId) async {
-    final topic = AppConfig.isSandbox
-        ? 'sandbox_consumer_$consumerId'
-        : 'consumer_$consumerId';
+  static Future<void> subscribeConsumer(String consumerId,
+      {bool Function()? stillWanted}) async {
+    final topic = consumerTopic(consumerId, sandbox: AppConfig.isSandbox);
     _fcmDiagSnapshot['consumer_id']     = consumerId;
     _fcmDiagSnapshot['subscribed_topic'] = topic;
     _fcmDiagSnapshot['environment']     = AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION';
     debugPrint('[FCM] AppConfig.isSandbox=${AppConfig.isSandbox} consumerId=$consumerId');
     debugPrint('[FCM] subscribing topic=$topic');
-    await _subscribeTopic(topic);
+    await _subscribeTopic(topic, stillWanted: stillWanted);
   }
 
   /// The FCM topic a Business's payment notifications are published to, as

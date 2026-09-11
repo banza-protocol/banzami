@@ -12,9 +12,13 @@ void main() {
   final mainScreen = _read('lib/merchant/screens/main_screen.dart');
 
   group('P0 security / tech-debt fixes', () {
-    test('QR uses app-private storage, never world-readable systemTemp', () {
-      expect(qr.contains('getTemporaryDirectory'), isTrue);
+    test('Receber never shows a structured QR nobody can pay (RA-053)', () {
+      // No consumer route settles /v1/qr/static codes: the tab offers the
+      // charge (payment link + its QR) flow instead, and writes no files.
+      expect(qr.contains('createStaticQr'), isFalse);
       expect(qr.contains('Directory.systemTemp'), isFalse);
+      expect(qr.contains('ChargeScreen'), isTrue);
+      expect(qr.contains('Mostre este QR ao cliente'), isFalse);
     });
 
     test('app version is dynamic (PackageInfo), not hardcoded', () {
@@ -73,6 +77,17 @@ void main() {
       test('${e.key} uses Banzami, never bare "Banza"', () {
         expect(bareBanza.hasMatch(_read(e.value)), isFalse);
       });
+    }
+  });
+
+  test('Business history and KYB dates go through the shared formatter', () {
+    for (final f in [
+      'lib/merchant/screens/history_screen.dart',
+      'lib/merchant/screens/kyb_screen.dart',
+    ]) {
+      final src = _read(f);
+      expect(src.contains("padLeft(2, '0')"), isFalse, reason: '$f hand-formats a date');
+      expect(src.contains('DateFormat('), isFalse, reason: '$f formats outside the formatter');
     }
   });
 }

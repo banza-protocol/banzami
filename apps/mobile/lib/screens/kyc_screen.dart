@@ -37,6 +37,9 @@ class _Capture {
 
 class _KycScreenState extends State<KycScreen> {
   final _picker = ImagePicker();
+  // One key per "start verification with this document": a retry after a
+  // lost answer resumes the same case instead of opening another.
+  final _startIntent = IdempotencyIntent();
 
   _Step _step = _Step.loading;
   KycCase? _case;
@@ -146,7 +149,8 @@ class _KycScreenState extends State<KycScreen> {
   Future<void> _startWithDocument(KycDocumentType type) async {
     setState(() { _error = null; _docType = type; });
     try {
-      final c = await _client.createKycCase(documentType: type, country: 'AO');
+      final c = await _client.createKycCase(
+          documentType: type, country: 'AO', idempotencyKey: _startIntent.keyFor(type));
       if (!mounted) return;
       // A different document was already in progress server-side: keep that case
       // and drop any local captures that no longer apply.
@@ -155,10 +159,8 @@ class _KycScreenState extends State<KycScreen> {
         _docType = c.documentType;
       }
       setState(() { _case = c; _step = _Step.capture; });
-    } on BanzamiApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Não foi possível iniciar a verificação.');
+    } catch (e) {
+      if (mounted) setState(() => _error = banzamiErrorMessage(e));
     }
   }
 
@@ -201,11 +203,11 @@ class _KycScreenState extends State<KycScreen> {
       _captures.clear();
       setState(() { _case = submitted; _step = _Step.status; });
     } on BanzamiApiException catch (e) {
-      final msg = e.code == 'EVIDENCE_INCOMPLETE'
-          ? 'Faltam documentos. Capture todos antes de enviar.'
-          : e.code == 'STORAGE_NOT_CONFIGURED'
-              ? 'Serviço de verificação temporariamente indisponível. Tente mais tarde.'
-              : e.message;
+      final msg = banzamiErrorMessage(e, codes: const {
+        'EVIDENCE_INCOMPLETE': 'Faltam documentos. Capture todos antes de enviar.',
+        'STORAGE_NOT_CONFIGURED':
+            'Serviço de verificação temporariamente indisponível. Tente mais tarde.',
+      });
       if (mounted) setState(() { _error = msg; _step = _Step.review; });
     } on _MissingEvidence {
       if (mounted) setState(() { _error = 'Faltam documentos. Capture todos antes de enviar.'; _step = _Step.review; });

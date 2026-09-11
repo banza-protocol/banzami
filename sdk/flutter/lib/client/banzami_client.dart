@@ -8,6 +8,7 @@ import '../models/merchant.dart';
 import '../models/merchant_kyb.dart';
 import '../models/merchant_wallet_payment.dart';
 import '../models/payment_link.dart';
+import '../models/payout.dart';
 import '../models/project_link_code.dart';
 import '../models/collection.dart';
 import '../models/qr_code.dart';
@@ -306,8 +307,9 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400)
+    if (resp.statusCode >= 400) {
       throw BanzamiApiException.fromJson(resp.statusCode, body);
+    }
     return (
       exists: body['exists'] as bool? ?? false,
       canLogin: body['can_login'] as bool? ?? false,
@@ -421,8 +423,8 @@ class BanzamiClient {
 
   // payQr — REMOVED. The gateway does not mount POST /v1/qr/pay (RA-053): a
   // merchant credential is not authority to debit a consumer's wallet, and the
-  // route took the payer as free text. The payer pays a scanned QR with
-  // ConsumerPublicClient.payStructuredQr, as the authenticated consumer.
+  // route took the payer as free text. The public-api has no QR-pay route
+  // either, so no client can settle a structured QR today.
 
   // ---------------------------------------------------------------------------
   // Merchants
@@ -649,6 +651,12 @@ class BanzamiClient {
   // KYB_DECIDED_BY_REVIEW. The Business App shows the decision
   // (getMerchantKybStatus) and uploads documents for the review.
 
+  /// KYB + AML as the payout gate sees them. Use [MerchantComplianceStatus.
+  /// canWithdraw] before offering a withdrawal — KYB alone is not enough.
+  Future<MerchantComplianceStatus> getMerchantComplianceStatus() async =>
+      MerchantComplianceStatus.fromJson(
+          await _get('/v1/compliance/merchants/status'));
+
   /// The authenticated merchant's real KYB status + the 3 business document
   /// slots (read-only). The Business app shows this without re-submitting the
   /// application. The operator decides approval — never an upload.
@@ -740,8 +748,9 @@ class BanzamiClient {
     DateTime? since,
   }) async {
     var path = '/v1/transactions?limit=$limit';
-    if (since != null)
+    if (since != null) {
       path += '&since=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
+    }
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     final json = await _get(path);
     return MerchantTransactionPage.fromJson(json);
@@ -751,16 +760,22 @@ class BanzamiClient {
   // Received wallet-native payments (canonical: wallet_payments) + receipts
   // ---------------------------------------------------------------------------
 
-  /// Lists the merchant's received wallet-native payments. Scoped server-side to
-  /// the authenticated merchant + environment.
+  /// Lists the merchant's received wallet-native payments (QR, payment link,
+  /// payment session), newest first. Scoped server-side to the authenticated
+  /// merchant + environment. [since] maps to the gateway's `date_from`.
   Future<MerchantWalletPaymentPage> listMerchantWalletPayments({
     int limit = 20,
     String? cursor,
     String? status,
+    DateTime? since,
   }) async {
     var path = '/v1/merchant/wallet-payments?limit=$limit';
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     if (status != null) path += '&status=${Uri.encodeComponent(status)}';
+    if (since != null) {
+      path +=
+          '&date_from=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
+    }
     final json = await _get(path);
     return MerchantWalletPaymentPage.fromJson(json);
   }
@@ -813,6 +828,16 @@ class BanzamiClient {
         idempotencyKey: idempotencyKey);
   }
 
+  /// The Business's recent withdrawals (`GET /v1/payouts`), newest first.
+  Future<List<Payout>> listPayouts({int limit = 20}) async {
+    final json = await _get('/v1/payouts?limit=$limit');
+    final data = (json['data'] as List<dynamic>? ?? const []);
+    return data
+        .map((e) => Payout.fromJson(e as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
   // ---------------------------------------------------------------------------
   // Payment links — public endpoints (no auth required)
   // ---------------------------------------------------------------------------
@@ -828,8 +853,9 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400)
+    if (resp.statusCode >= 400) {
       throw BanzamiApiException.fromJson(resp.statusCode, body);
+    }
     return PaymentLink.fromJson(body);
   }
 

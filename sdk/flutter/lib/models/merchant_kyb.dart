@@ -111,6 +111,32 @@ class MerchantKybStatus {
       );
 }
 
+/// The merchant's compliance decision as the gateway enforces it
+/// (`GET /v1/compliance/merchants/status`). A withdrawal needs BOTH the
+/// business verification (KYB) and the AML review approved — the payout
+/// endpoint refuses otherwise (KYB_REQUIRED).
+class MerchantComplianceStatus {
+  final String kybStatus;
+  final String amlStatus;
+
+  const MerchantComplianceStatus({
+    required this.kybStatus,
+    required this.amlStatus,
+  });
+
+  bool get kybApproved => kybStatus == 'APPROVED';
+  bool get amlApproved => amlStatus == 'APPROVED';
+
+  /// Mirrors the gateway's `CanProcess()`: KYB and AML approved.
+  bool get canWithdraw => kybApproved && amlApproved;
+
+  factory MerchantComplianceStatus.fromJson(Map<String, dynamic> json) =>
+      MerchantComplianceStatus(
+        kybStatus: ((json['kyb_status'] as String?) ?? 'PENDING').toUpperCase(),
+        amlStatus: ((json['aml_status'] as String?) ?? 'PENDING').toUpperCase(),
+      );
+}
+
 /// A short-lived signed upload target. The [url] must never be logged;
 /// [toString] redacts it.
 class MerchantKybUploadUrl {

@@ -5,9 +5,11 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../services/merchant_session_service.dart';
 
 /// Breakdown of funds held in the merchant wallet's segregated sub-accounts
-/// (BANZA ADR-042) — the "Retido em campanhas" total from the dashboard. Each
-/// campaign/purpose account is money received but not part of the spendable
-/// available balance; it settles to the beneficiary when the campaign closes.
+/// (BANZA ADR-042) — the "Fundos retidos" total from the dashboard. Each
+/// account is money received but kept out of the spendable available balance,
+/// for the purpose the API names (campaign, project, event, escrow, …). This
+/// screen says only that: what happens to the money later is not something the
+/// API tells the app, so it makes no promise about it.
 class CampaignAccountsScreen extends StatefulWidget {
   const CampaignAccountsScreen({super.key});
 
@@ -37,7 +39,7 @@ class _CampaignAccountsScreenState extends State<CampaignAccountsScreen> {
         ..sort((a, b) => b.availableBalanceMinor.compareTo(a.availableBalanceMinor));
       if (mounted) setState(() { _accounts = held; _loading = false; });
     } catch (_) {
-      if (mounted) setState(() { _error = 'Não foi possível carregar as campanhas.'; _loading = false; });
+      if (mounted) setState(() { _error = 'Não foi possível carregar os fundos retidos.'; _loading = false; });
     }
   }
 
@@ -45,7 +47,7 @@ class _CampaignAccountsScreenState extends State<CampaignAccountsScreen> {
   Widget build(BuildContext context) {
     return BanzamiScaffold(
       backgroundColor: BanzamiColors.gray100,
-      appBar: const BanzamiAppBar(title: 'Retido em campanhas', showBack: true),
+      appBar: const BanzamiAppBar(title: 'Fundos retidos', showBack: true),
       body: RefreshIndicator(
         onRefresh: _load,
         color: BanzamiColors.primary,
@@ -65,7 +67,7 @@ class _CampaignAccountsScreenState extends State<CampaignAccountsScreen> {
     if (accounts.isEmpty) {
       return const _MessageState(
         icon: Icons.savings_outlined,
-        text: 'Ainda não há fundos retidos em campanhas.',
+        text: 'Ainda não há fundos retidos.',
       );
     }
 
@@ -99,7 +101,7 @@ class _CampaignAccountsScreenState extends State<CampaignAccountsScreen> {
                       color: BanzamiColors.white, fontWeight: FontWeight.w700)),
               const SizedBox(height: BanzamiSpacing.xs),
               Text(
-                'Segregado por campanha · liquida ao beneficiário no fecho',
+                'Recebido, mas separado do saldo disponível, por finalidade.',
                 style: BanzamiTextStyles.bodySm.copyWith(
                     color: BanzamiColors.white.withValues(alpha: 0.70)),
               ),
@@ -122,9 +124,12 @@ class _AccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = (account.label != null && account.label!.trim().isNotEmpty)
-        ? account.label!
-        : 'Campanha';
+    final purpose = walletAccountPurposeLabel(account.purpose);
+    final hasLabel = account.label != null && account.label!.trim().isNotEmpty;
+    final title = hasLabel ? account.label!.trim() : purpose;
+    final subtitle = hasLabel
+        ? '$purpose · ${walletAccountStatusLabel(account.status)}'
+        : walletAccountStatusLabel(account.status);
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
       decoration: BoxDecoration(
@@ -140,7 +145,10 @@ class _AccountCard extends StatelessWidget {
               color: BanzamiColors.primary.withValues(alpha: 0.08),
               borderRadius: BanzamiRadius.mdAll,
             ),
-            child: const Icon(Icons.volunteer_activism_rounded,
+            child: Icon(
+                account.purpose == 'CAMPAIGN'
+                    ? Icons.volunteer_activism_rounded
+                    : Icons.savings_outlined,
                 size: 20, color: BanzamiColors.primary),
           ),
           const SizedBox(width: BanzamiSpacing.md),
@@ -152,7 +160,7 @@ class _AccountCard extends StatelessWidget {
                     style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600),
                     maxLines: 1, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 2),
-                Text(_statusLabel(account.status),
+                Text(subtitle,
                     style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
               ],
             ),
@@ -165,14 +173,29 @@ class _AccountCard extends StatelessWidget {
       ),
     );
   }
-
-  static String _statusLabel(String status) => switch (status) {
-        'ACTIVE'  => 'Ativa',
-        'SETTLED' => 'Liquidada',
-        'CLOSED'  => 'Fechada',
-        _         => status,
-      };
 }
+
+/// The account's purpose as the API names it (wallet_accounts.purpose).
+String walletAccountPurposeLabel(String purpose) => switch (purpose.toUpperCase()) {
+      'CAMPAIGN'   => 'Campanha',
+      'PROJECT'    => 'Projecto',
+      'EVENT'      => 'Evento',
+      'STORE'      => 'Loja',
+      'ESCROW'     => 'Garantia',
+      'RESERVE'    => 'Reserva',
+      'SETTLEMENT' => 'Liquidação',
+      'CUSTOM'     => 'Conta dedicada',
+      _            => 'Conta segregada',
+    };
+
+/// The account's state in Portuguese — never the raw wire value.
+String walletAccountStatusLabel(String status) => switch (status.toUpperCase()) {
+      'ACTIVE'   => 'Activa',
+      'INACTIVE' => 'Inactiva',
+      'SETTLED'  => 'Liquidada',
+      'CLOSED'   => 'Fechada',
+      _          => 'Estado desconhecido',
+    };
 
 class _MessageState extends StatelessWidget {
   final IconData icon;

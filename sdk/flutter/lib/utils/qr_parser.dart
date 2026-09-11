@@ -7,6 +7,8 @@
 ///  • https://pay.banzami.com/u/{handle}[?amount=N&note=...&sandbox=1]
 ///  • banzami://pay?request={code}              (+ legacy banza://)
 ///  • banzami-sandbox://pay?request={code}       (+ legacy banza-sandbox://)
+///  • banzami://pay/{slug}                      (Payment Session DEEP_LINK)
+///  • banzami://pay/link/{slug}                 (merchant payment link)
 ///  • banzami://pay/u/{handle}[?amount=N&note=...]
 ///  • banzami-sandbox://pay/u/{handle}[?amount=N&note=...]
 ///  • banzami:@{handle}[?amount=N&currency=AOA]          (+ legacy banza:@)
@@ -95,6 +97,13 @@ class BanzamiQrParser {
 
   static const _maxLength = 512;
 
+  /// A payment-link slug as the operator issues it (core/payment-links: hex),
+  /// the same shape the public client SDK accepts (BanzamiLinks.isValidSlug).
+  /// A deep link is attacker-reachable: a segment that is not a slug is never
+  /// treated as one.
+  static final RegExp _slug = RegExp(r'^[A-Za-z0-9]{6,64}$');
+  static bool isPaymentSlug(String s) => _slug.hasMatch(s);
+
   /// Parses [raw] and returns a typed [BanzamiQrResult].
   static BanzamiQrResult parse(String raw) {
     if (raw.isEmpty || raw.length > _maxLength) {
@@ -173,6 +182,13 @@ class BanzamiQrParser {
       // form above.
       if (segs.length >= 2 && segs[0] == 'link') {
         return BanzamiQrPaymentLink(slug: segs[1]);
+      }
+
+      // banzami://pay/{slug} — the Payment Session's DEEP_LINK interface
+      // (gateway payment_sessions.go; documented by the public client SDK's
+      // BanzamiLinks.parseSlug). A single slug-shaped segment under "pay".
+      if (uri.host == 'pay' && segs.length == 1 && isPaymentSlug(segs[0])) {
+        return BanzamiQrPaymentLink(slug: segs[0]);
       }
 
       // banzami://pay/u/{handle}[?amount=N&note=...]

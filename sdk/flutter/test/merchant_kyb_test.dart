@@ -153,4 +153,20 @@ void main() {
           MerchantKybDocumentStatus.unknown);
     });
   });
+
+  group('MerchantComplianceStatus — withdrawals need KYB AND AML', () {
+    test('KYB approved alone does not allow a withdrawal', () async {
+      final c = _client(200, {'kyb_status': 'APPROVED', 'aml_status': 'PENDING'});
+      final st = await c.client.getMerchantComplianceStatus();
+      expect(c.requests.single.url.path, '/v1/compliance/merchants/status');
+      expect(st.kybApproved, isTrue);
+      expect(st.canWithdraw, isFalse);
+    });
+
+    test('both approved allows it', () {
+      final st = MerchantComplianceStatus.fromJson(
+          {'kyb_status': 'APPROVED', 'aml_status': 'APPROVED'});
+      expect(st.canWithdraw, isTrue);
+    });
+  });
 }

@@ -90,15 +90,17 @@ int parseMoneyInput(String input, {String currency = 'AOA'}) {
   // Drop the currency symbol and thousands separators (space / NBSP).
   s = s.replaceAll(c.symbol, '').replaceAll(' ', '').replaceAll(' ', '').trim();
   if (s.isEmpty) throw const MoneyFormatException('Indique um valor.');
-  if (s.startsWith('-'))
+  if (s.startsWith('-')) {
     throw const MoneyFormatException('Valor não pode ser negativo.');
+  }
   if (s.contains('.')) {
     throw const MoneyFormatException(
         'Use vírgula para os cêntimos (ex: 50 000,50).');
   }
   final parts = s.split(',');
-  if (parts.length > 2)
+  if (parts.length > 2) {
     throw const MoneyFormatException('Use apenas uma vírgula.');
+  }
   final intPart = parts[0].isEmpty ? '0' : parts[0];
   final fracPart = parts.length == 2 ? parts[1] : '';
   if (!RegExp(r'^\d+$').hasMatch(intPart)) {
@@ -160,8 +162,9 @@ String fromMinorUnits(int amountMinor, {String currency = 'AOA'}) {
   final major = abs ~/ c.subunit;
   final frac = abs % c.subunit;
   var out = major.toString();
-  if (frac != 0)
+  if (frac != 0) {
     out = '$out${c.decimalSep}${frac.toString().padLeft(c.scale, '0')}';
+  }
   return neg ? '-$out' : out;
 }
 

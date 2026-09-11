@@ -11,11 +11,28 @@ import 'package:intl/date_symbol_data_local.dart';
 //   - production: the panel does not exist at all.
 
 class _HomeHttpClient extends http.BaseClient {
+  /// Answers /sandbox/fund with the pilot-cap refusal.
+  final bool pilotCapReached;
+  /// Fails the first balance read with a 503, then answers normally.
+  bool failFirstBalance;
+  _HomeHttpClient({this.pilotCapReached = false, this.failFirstBalance = false});
+
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final path = request.url.path;
     Map<String, dynamic> body;
-    if (path.contains('/wallet/balance')) {
+    var status = 200;
+    if (path.contains('/sandbox/fund') && pilotCapReached) {
+      status = 422;
+      body = {
+        'code': 'PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED',
+        'message': 'the Sandbox refused this top-up: PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED',
+      };
+    } else if (path.contains('/wallet/balance') && failFirstBalance) {
+      failFirstBalance = false;
+      status = 503;
+      body = {'code': 'INTERNAL_ERROR', 'message': 'could not compute balance'};
+    } else if (path.contains('/wallet/balance')) {
       body = {
         'wallet_id': 'w', 'consumer_id': 'c', 'currency': 'AOA',
         'available_minor': 355000, 'reserved_minor': 0, 'total_minor': 355000,
@@ -28,19 +45,20 @@ class _HomeHttpClient extends http.BaseClient {
     }
     return http.StreamedResponse(
       Stream.value(utf8.encode(jsonEncode(body))),
-      200,
+      status,
       headers: {'content-type': 'application/json'},
     );
   }
 }
 
-ConsumerPublicClient _client() =>
-    ConsumerPublicClient(baseUrl: 'http://test', httpClient: _HomeHttpClient())
+ConsumerPublicClient _client([_HomeHttpClient? http]) =>
+    ConsumerPublicClient(baseUrl: 'http://test', httpClient: http ?? _HomeHttpClient())
       ..setToken('tok');
 
-Widget _home(BanzamiEnvironment env) => MaterialApp(
+Widget _home(BanzamiEnvironment env, {_HomeHttpClient? http, ValueNotifier<int>? refresh}) => MaterialApp(
       home: BanzamiHomeScreen(
-        client:      _client(),
+        client:      _client(http),
+        refreshSignal: refresh,
         consumerId:  'c',
         handle:      'joao',
         environment: env,
@@ -90,5 +108,37 @@ void main() {
     expect(find.text('Adicionar dinheiro de teste'), findsNothing);
     expect(find.text('Toque para adicionar dinheiro de teste'), findsNothing);
     expect(find.text('Adicionar ao saldo'), findsNothing);
+  });
+
+  testWidgets('the pilot test-funds cap is said as such, not "Erro ao adicionar fundos"', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(_home(BanzamiEnvironment.sandbox,
+        http: _HomeHttpClient(pilotCapReached: true)));
+    await _settle(tester);
+    await tester.tap(find.text('Toque para adicionar dinheiro de teste'));
+    await _settle(tester);
+    await tester.tap(find.text('Adicionar ao saldo'));
+    await _settle(tester);
+
+    expect(find.textContaining('limite total de fundos de teste'), findsOneWidget);
+    expect(find.text('Erro ao adicionar fundos'), findsNothing);
+    await tester.pump(const Duration(seconds: 5));
+  });
+
+  testWidgets('a balance error clears after a successful reload', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final refresh = ValueNotifier<int>(0);
+
+    await tester.pumpWidget(_home(BanzamiEnvironment.production,
+        http: _HomeHttpClient(failFirstBalance: true), refresh: refresh));
+    await _settle(tester);
+    expect(find.textContaining('temporariamente indisponível'), findsOneWidget);
+
+    refresh.value++; // e.g. a payment completed elsewhere → reload
+    await _settle(tester);
+    expect(find.textContaining('temporariamente indisponível'), findsNothing);
   });
 }

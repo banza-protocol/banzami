@@ -9,6 +9,12 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../branding_assets.dart';
 import '../config.dart';
 
+/// What cancelling does, in words that stay true whatever happens to the
+/// share links afterwards: only what this screen can verify is promised.
+const String kSplitCancelExplanation =
+    'A cobrança fica cancelada; as partes já pagas mantêm-se. Este ecrã '
+    'continua a mostrar qualquer pagamento que ainda chegue.';
+
 /// Acompanha uma cobrança dividida (BANZA ADR-036 Collection).
 ///
 /// Mostra o total, quanto já foi pago e quanto falta; lista cada parte (share)
@@ -78,18 +84,18 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
         _error      = null;
       });
       _surfacePending();
-    } on BanzamiApiException catch (e) {
-      if (mounted) setState(() { _error = e.message; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() { _error = 'Não foi possível carregar a cobrança.'; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = banzamiErrorMessage(e); _loading = false; });
     }
   }
 
-  // Silent refresh used by the poller — never toggles the loading spinner and
-  // stops once the collection reaches a terminal state.
+  // Silent refresh used by the poller — never toggles the loading spinner.
+  // It stops only once every share is paid. A CANCELLED collection keeps being
+  // watched: cancelling changes the collection's status, and this screen cannot
+  // know that no share link will still be paid — so a later payment shows up.
   Future<void> _refresh() async {
     final c = _collection;
-    if (c != null && c.isTerminal) {
+    if (c != null && c.isCompleted) {
       _poll?.cancel();
       return;
     }
@@ -155,8 +161,7 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
           const Text('Cancelar cobrança?', style: BanzamiTextStyles.headingSm),
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
-            'As partes ainda não pagas deixam de poder ser pagas. As partes já '
-            'pagas não são afetadas.',
+            kSplitCancelExplanation,
             textAlign: TextAlign.center,
             style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
           ),
@@ -178,27 +183,25 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
     try {
       final c = await _client.cancelCollection(widget.collectionId);
       if (mounted) setState(() { _collection = c; _cancelling = false; });
-      _poll?.cancel();
-    } on BanzamiApiException catch (e) {
+      // The poll keeps running: a payment that still arrives is shown here.
+    } catch (e) {
       if (mounted) {
         setState(() => _cancelling = false);
-        BanzamiToast.showError(context, e.message);
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _cancelling = false);
-        BanzamiToast.showError(context, 'Não foi possível cancelar.');
+        BanzamiToast.showError(context, banzamiErrorMessage(e));
       }
     }
   }
 
   Future<void> _shareAll() async {
-    final pending = _shares.where((s) => s.isPending).toList();
+    // Every share still waiting for its money — PENDING, LINK_CREATED (the
+    // poll turns a surfaced share into it) or a status we do not know yet.
+    final awaiting = _shares.where((s) => s.isAwaitingPayment).toList();
     final lines = <String>[];
-    for (var i = 0; i < pending.length; i++) {
-      final url = _payUrls[pending[i].id] ?? await _ensureSurface(pending[i].id);
+    for (var i = 0; i < awaiting.length; i++) {
+      final s = awaiting[i];
+      final url = _payUrls[s.id] ?? (s.isPending ? await _ensureSurface(s.id) : null);
       if (url != null) {
-        lines.add('Pessoa ${_shares.indexOf(pending[i]) + 1}: $url');
+        lines.add('Pessoa ${_shares.indexOf(s) + 1}: $url');
       }
     }
     if (lines.isEmpty) {
@@ -286,11 +289,13 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
 
         // ── Shares ─────────────────────────────────────────────────────────
         for (var i = 0; i < _shares.length; i++) ...[
-          _ShareRow(
+          ShareRow(
             index: i + 1,
             share: _shares[i],
             hasLink: _payUrls.containsKey(_shares[i].id),
-            onTap: _shares[i].isPending ? () => _openShareSheet(i) : null,
+            onTap: !c.isTerminal && _shares[i].isAwaitingPayment
+                ? () => _openShareSheet(i)
+                : null,
           ),
           const SizedBox(height: BanzamiSpacing.sm),
         ],
@@ -310,6 +315,13 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
   Future<void> _openShareSheet(int i) async {
     final share = _shares[i];
     var url = _payUrls[share.id];
+    if (url == null && !share.isPending) {
+      // Surfaced before this screen opened (LINK_CREATED): the server does not
+      // surface a share twice, and this screen never learnt its link.
+      BanzamiToast.showInfo(context,
+          'O link desta parte já foi gerado noutra sessão e não pode ser mostrado aqui.');
+      return;
+    }
     if (url == null) {
       BanzamiToast.showInfo(context, 'A gerar o link…');
       url = await _ensureSurface(share.id);
@@ -397,18 +409,28 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
 // One share row
 // =============================================================================
 
-class _ShareRow extends StatelessWidget {
+class ShareRow extends StatelessWidget {
   final int index;
   final CollectionShare share;
   final bool hasLink;
   final VoidCallback? onTap;
 
-  const _ShareRow({
+  const ShareRow({
+    super.key,
     required this.index,
     required this.share,
     required this.hasLink,
     this.onTap,
   });
+
+  /// The share's state in words; unknown statuses read as still waiting.
+  static String stateLabel(CollectionShare share) => switch (share.status) {
+        ShareStatus.paid      => 'Pago',
+        ShareStatus.expired   => 'Expirada',
+        ShareStatus.cancelled => 'Cancelada',
+        ShareStatus.failed    => 'Falhou',
+        _                     => 'A aguardar pagamento',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -452,13 +474,13 @@ class _ShareRow extends StatelessWidget {
                     size: 13,
                     color: paid ? BanzamiColors.success : BanzamiColors.gray400),
                 const SizedBox(width: 4),
-                Text(paid ? 'Pago' : 'A aguardar pagamento',
+                Text(stateLabel(share),
                     style: BanzamiTextStyles.bodySm.copyWith(
                         color: paid ? BanzamiColors.success : BanzamiColors.gray400)),
               ]),
             ]),
           ),
-          if (!paid)
+          if (onTap != null)
             Icon(hasLink ? Icons.qr_code_rounded : Icons.hourglass_empty_rounded,
                 size: 22, color: BanzamiColors.primary),
         ]),

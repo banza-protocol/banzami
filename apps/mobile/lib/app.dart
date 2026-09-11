@@ -15,7 +15,6 @@ import 'services/session_service.dart';
 import 'services/wallet_refresh_bus.dart';
 import 'branding_assets.dart';
 import 'screens/splash_screen.dart';
-import 'screens/onboarding/welcome_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 final _guardKey     = GlobalKey<SecureAppLifecycleGuardState>();
@@ -56,6 +55,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // (pay.banzami.com/pay/{slug}).
   String?   _pendingRequestCode;
   String?   _pendingLinkSlug;
+  // A @banza pay link (…/u/{handle}[?amount=]) — parked like the others: it
+  // used to be dropped on a cold start.
+  Uri?      _pendingHandleUri;
   bool      _splashComplete = false;
 
   // ── Locked deep link ───────────────────────────────────────────────────────
@@ -64,8 +66,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
   Uri?      _pendingDeepLinkUri;
 
   // ── Notification tap ───────────────────────────────────────────────────────
-  // When a push notification is tapped while the session is locked, we park
-  // the message here and process it after the user successfully unlocks.
+  // A tap is parked here while it cannot be routed yet: on a cold start until
+  // the splash has navigated (the same _splashComplete gate deep links use —
+  // routing earlier is replaced by the splash's pushReplacement, or dropped
+  // because the session has not loaded), and while the session is locked
+  // until the user unlocks.
   RemoteMessage? _pendingNotificationMsg;
 
   String _normalizeUri(Uri uri) {
@@ -111,11 +116,26 @@ class _BanzamiAppState extends State<BanzamiApp> {
     debugPrint('[FCM-ROUTE] tap received type=${msg.data["type"]} '
         'route=${msg.data["route"]} transfer_id=${msg.data["transfer_id"]}');
 
+    // Cold start (getInitialMessage): the session is still loading and the
+    // splash has yet to navigate. Park; _processPendingDeepLink routes it.
+    if (!_splashComplete) {
+      debugPrint('[FCM-ROUTE] splash not complete — parking tap');
+      _pendingNotificationMsg = msg;
+      return;
+    }
+
     final ctx        = _navigatorKey.currentContext;
     final guardState = _guardKey.currentState;
     final svc        = ctx?.read<SessionService>();
 
     debugPrint('[FCM-ROUTE] locked=${svc?.isLocked}');
+
+    // Signed out: a notification of the account that was here opens nothing —
+    // never its receipt for whoever holds the phone now.
+    if (svc != null && !svc.hasSession) {
+      debugPrint('[FCM-ROUTE] no session — tap dropped');
+      return;
+    }
 
     if (svc != null && svc.hasSession && svc.isLocked) {
       debugPrint('[FCM-ROUTE] pending=true — parking and triggering unlock');
@@ -139,8 +159,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
     if (ctx == null || nav == null) return;
 
     final svc    = ctx.read<SessionService>();
+    // Re-checked here: the session may have ended while the tap was parked.
+    if (!svc.hasSession || svc.isLocked) {
+      debugPrint('[FCM-ROUTE] no unlocked session — tap dropped');
+      return;
+    }
     final client = ctx.read<ConsumerPublicClient>();
-    final handle = svc.session?.handle ?? '';
+    final handle = svc.session!.handle;
 
     BanzamiNotificationRouter.route(
       data:         msg.data.map((k, v) => MapEntry(k, v.toString())),
@@ -194,9 +219,38 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
-    // ── Custom scheme: banzami://pay/... ─────────────────────────────────────
-    if (uri.scheme != 'banzami' || uri.host != 'pay') return;
+    // ── Custom scheme: banzami://pay/... (+ banzami-sandbox, legacy banza) ──
+    if (!_isBanzamiScheme(uri)) return;
     _handleBanzamiScheme(uri);
+  }
+
+  static const _schemes = {
+    BanzamiQrScheme.live, BanzamiQrScheme.sandbox,
+    BanzamiQrScheme.legacyLive, BanzamiQrScheme.legacySandbox,
+  };
+
+  bool _isBanzamiScheme(Uri uri) => _schemes.contains(uri.scheme) && uri.host == 'pay';
+
+  /// Whether the link says it belongs to the Sandbox — the same markers the
+  /// scanner reads: `?sandbox=1` on the web form, a `-sandbox` scheme.
+  bool _linkIsSandbox(Uri uri) => uri.scheme == 'https'
+      ? uri.queryParameters['sandbox'] == '1'
+      : uri.scheme.endsWith('-sandbox');
+
+  /// A request or @banza link from the other environment never opens a
+  /// payment here: a Sandbox link must not pay with real money, nor the
+  /// reverse. (Payment links carry no marker: the slug only resolves on the
+  /// stack that issued it.) Returns true when the link was refused.
+  bool _refuseOtherEnvironment(Uri uri) {
+    final linkSandbox = _linkIsSandbox(uri);
+    if (linkSandbox == AppConfig.isSandbox) return false;
+    debugPrint('[deep-link] environment mismatch linkSandbox=$linkSandbox '
+        'appSandbox=${AppConfig.isSandbox} — refused');
+    final ctx = _navigatorKey.currentContext;
+    if (ctx != null) {
+      BanzamiToast.showWarning(ctx, environmentMismatchMessage(fromSandbox: linkSandbox));
+    }
+    return true;
   }
 
   // Called by the guard after successful unlock when a deep link was pending.
@@ -208,7 +262,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.com') {
       _handleUniversalLink(uri);
-    } else if (uri.scheme == 'banzami' && uri.host == 'pay') {
+    } else if (_isBanzamiScheme(uri)) {
       _handleBanzamiScheme(uri);
     }
   }
@@ -217,17 +271,21 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // https://pay.banzami.com/r/{code}[?sandbox=1]        ← payment request
   // https://pay.banzami.com/u/{handle}[?amount=&currency=]  ← handle pay
   void _handleUniversalLink(Uri uri) {
-    final segs = uri.pathSegments;
+    final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
     if (segs.isEmpty) return;
 
     switch (segs[0]) {
       case 'r':
         // Payment-request link — maps 1:1 to banzami://pay?request={code}
-        if (segs.length >= 2) _openPaymentRequest(segs[1]);
+        if (segs.length >= 2 && !_refuseOtherEnvironment(uri)) {
+          _openPaymentRequest(segs[1]);
+        }
 
       case 'u':
         // Handle-based pay link — maps to banzami://pay/u/{handle}
-        if (segs.length >= 2) _openHandlePay(uri, segs[1]);
+        if (segs.length >= 2 && !_refuseOtherEnvironment(uri)) {
+          _openHandlePay(uri, segs[1]);
+        }
 
       case 'pay':
         // Payment link — https://pay.banzami.com/pay/{slug}; same target as
@@ -284,7 +342,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _handleBanzamiScheme(Uri uri) {
-    final segs = uri.pathSegments;
+    final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
 
     // banzami://pay/link/{slug}
     if (segs.isNotEmpty && segs[0] == 'link' && segs.length >= 2) {
@@ -294,15 +352,24 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     // banzami://pay/u/{handle}?amount={minor}&currency={currency}
     if (segs.isNotEmpty && segs[0] == 'u' && segs.length >= 2) {
-      _openHandlePay(uri, segs[1]);
+      if (!_refuseOtherEnvironment(uri)) _openHandlePay(uri, segs[1]);
       return;
     }
 
+    // banzami://pay/{slug} — a Payment Session's DEEP_LINK interface (gateway
+    // payment_sessions.go). Only a slug-shaped segment: a deep link is
+    // attacker-reachable.
+    if (segs.length == 1 && BanzamiQrParser.isPaymentSlug(segs[0])) {
+      _openPaymentLink(segs[0]);
+      return;
+    }
 
     // banzami://pay?request={code}
     if (segs.isEmpty) {
       final code = uri.queryParameters['request'];
-      if (code != null && code.isNotEmpty) _openPaymentRequest(code);
+      if (code != null && code.isNotEmpty && !_refuseOtherEnvironment(uri)) {
+        _openPaymentRequest(code);
+      }
     }
   }
 
@@ -366,10 +433,24 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _openHandlePay(Uri uri, String handle) {
+    // A link with an empty or malformed @banza opens nothing (it used to crash
+    // the payment screen on "/u/?amount=500").
+    final h = handle.replaceFirst('@', '').trim();
+    if (!RegExp(r'^[A-Za-z0-9_.]{1,64}$').hasMatch(h)) {
+      debugPrint('[deep-link] invalid handle in link — ignored');
+      return;
+    }
     final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-    final session = ctx.read<SessionService>().session;
-    if (session == null) return;
+    final session = ctx?.read<SessionService>().session;
+    if (ctx == null || session == null) {
+      // Cold start: navigator or session not ready — park and open after the
+      // splash, like payment links and requests.
+      debugPrint('[deep-link] handle link deferred');
+      _pendingHandleUri = uri;
+      return;
+    }
+    _pendingHandleUri = null;
+    handle = h;
     final client  = ctx.read<ConsumerPublicClient>();
     final rawAmt  = uri.queryParameters['amount'];
     final amount  = rawAmt != null ? int.tryParse(rawAmt) : null;
@@ -415,7 +496,20 @@ class _BanzamiAppState extends State<BanzamiApp> {
     final ctx = _navigatorKey.currentContext;
     if (ctx == null) return;
     final svc = ctx.read<SessionService>();
-    if (!svc.hasSession || svc.isLocked) return;
+    if (!svc.hasSession) {
+      // Signed out: a parked notification of whoever was here opens nothing.
+      _pendingNotificationMsg = null;
+      return;
+    }
+    if (svc.isLocked) return;
+
+    final msg = _pendingNotificationMsg;
+    if (msg != null) {
+      _pendingNotificationMsg = null;
+      debugPrint('[FCM-ROUTE] coldStart processing tap (post-splash)');
+      _routeToNotification(msg);
+      return;
+    }
 
     final slug = _pendingLinkSlug;
     if (slug != null) {
@@ -429,6 +523,14 @@ class _BanzamiAppState extends State<BanzamiApp> {
       _pendingRequestCode = null;
       debugPrint('[deep-link] coldStart processing code=$code (post-splash)');
       _openPaymentRequest(code);
+      return;
+    }
+    final handleUri = _pendingHandleUri;
+    if (handleUri != null) {
+      _pendingHandleUri = null;
+      final segs = handleUri.pathSegments.where((s) => s.isNotEmpty).toList();
+      final i = segs.indexOf('u');
+      if (i >= 0 && i + 1 < segs.length) _openHandlePay(handleUri, segs[i + 1]);
     }
   }
 
@@ -450,7 +552,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
       child: Consumer<SessionService>(
         builder: (context, session, _) {
           final client = context.read<ConsumerPublicClient>();
-          if (session.session != null) {
+          if (session.session == null) {
+            // Signed out: the previous account's token is never sent again.
+            client.clearToken();
+          } else {
             client.setToken(session.session!.token);
             // Cold-start deep link: only process AFTER the splash has navigated
             // (_splashComplete) and the session is unlocked — otherwise the
@@ -459,17 +564,20 @@ class _BanzamiAppState extends State<BanzamiApp> {
             // Consumer); the initial unlocked case is kicked by onBootComplete.
             if (_splashComplete &&
                 !session.isLocked &&
-                (_pendingLinkSlug != null || _pendingRequestCode != null)) {
+                (_pendingLinkSlug != null ||
+                    _pendingRequestCode != null ||
+                    _pendingHandleUri != null ||
+                    _pendingNotificationMsg != null)) {
               WidgetsBinding.instance.addPostFrameCallback((_) => _processPendingDeepLink());
             }
           }
-          // Auto-logout on 401: clear session and return to WelcomeScreen.
+          // A 401 on an authenticated call: the TOKEN was refused (expired or
+          // revoked) — not the account. Drop the token and lock; the PIN signs
+          // in again. Only a 401 to the @banza + PIN itself (PinScreen) ends
+          // the session and wipes the device.
           client.onUnauthorized = () {
-            context.read<SessionService>().logout();
-            _navigatorKey.currentState?.pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-              (_) => false,
-            );
+            context.read<SessionService>().expireToken();
+            _guardKey.currentState?.triggerUnlock(() {});
           };
           return MaterialApp(
             title:                      'Banzami',

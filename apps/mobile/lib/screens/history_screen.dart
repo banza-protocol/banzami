@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
@@ -23,6 +22,11 @@ class _HistoryScreenState extends State<HistoryScreen>
   bool           _hasMore = true;
   String?        _error;
   _HistoryFilter _filter  = _HistoryFilter.all;
+
+  /// Bumped whenever the list is started over (filter switch, refresh). An
+  /// answer that belongs to an older generation is dropped — switching the
+  /// filter mid-load must never mix "Recebidos" into "Enviados".
+  int _generation = 0;
 
   late AnimationController _fadeCtrl;
   late Animation<double>   _fadeAnim;
@@ -47,9 +51,15 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   Future<void> _load({ bool refresh = false }) async {
+    if (refresh) {
+      // Start over: whatever is in flight now belongs to the past.
+      _generation++;
+      _loading = false;
+    }
     if (_loading) return;
     if (!_hasMore && !refresh) return;
 
+    final generation = _generation;
     setState(() { _loading = true; _error = null; });
     if (refresh) {
       _items.clear();
@@ -70,47 +80,36 @@ class _HistoryScreenState extends State<HistoryScreen>
           _HistoryFilter.all      => null,
         },
       );
+      if (!mounted || generation != _generation) return; // stale answer
       setState(() {
         _items.addAll(page.items);
         _cursor  = page.nextCursor;
         _hasMore = page.hasMore;
       });
       _fadeCtrl.forward();
-    } catch (_) {
-      setState(() => _error = 'Não foi possível carregar o histórico.');
+    } catch (e) {
+      if (!mounted || generation != _generation) return;
+      setState(() => _error = banzamiErrorMessage(e));
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && generation == _generation) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   Future<void> _switchFilter(_HistoryFilter f) async {
     if (f == _filter) return;
     HapticFeedback.selectionClick();
-    setState(() {
-      _filter = f;
-      _items.clear();
-      _cursor  = null;
-      _hasMore = true;
-    });
-    await _load();
+    setState(() => _filter = f);
+    await _load(refresh: true);
   }
 
   List<dynamic> _grouped(List<ActivityItem> items) {
-    final today     = BanzamiDateFormatter.toLocalDate(DateTime.now());
-    final yesterday = today.subtract(const Duration(days: 1));
     final grouped   = <dynamic>[];
     String? lastKey;
 
     for (final item in items) {
-      final date = BanzamiDateFormatter.toLocalDate(item.createdAt);
-      final String key;
-      if (date == today) {
-        key = 'Hoje';
-      } else if (date == yesterday) {
-        key = 'Ontem';
-      } else {
-        key = DateFormat('d MMM yyyy', 'pt_PT').format(date);
-      }
+      final key = BanzamiDateFormatter.formatDayHeader(item.createdAt);
       if (key != lastKey) { grouped.add(key); lastKey = key; }
       grouped.add(item);
     }
@@ -195,7 +194,25 @@ class _HistoryScreenState extends State<HistoryScreen>
         itemCount: grouped.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, i) {
           if (i == grouped.length) {
-            if (!_loading) _load();
+            // A page that failed stops here and waits for a tap — it is not
+            // re-requested on every frame.
+            if (_error != null) {
+              return Padding(
+                padding: const EdgeInsets.all(BanzamiSpacing.lg),
+                child: Column(children: [
+                  Text(_error!,
+                      textAlign: TextAlign.center,
+                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                  const SizedBox(height: BanzamiSpacing.sm),
+                  BanzamiGhostButton(label: 'Tentar novamente', onPressed: _load),
+                ]),
+              );
+            }
+            if (!_loading) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _load();
+              });
+            }
             return const Padding(
               padding: EdgeInsets.all(BanzamiSpacing.xl),
               child:   Center(
@@ -744,9 +761,9 @@ class _HistoryRow extends StatelessWidget {
     final isCredit  = item.isIncoming;
     final amount    = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
     final title     = item.displayTitle;
-    final subtitle  = item.typeLabel;
+    final subtitle  = item.displaySubtitle;
     final time      = _formatTime(item.createdAt);
-    final initial   = item.displayTitle[0];
+    final initial   = item.avatarInitial;
 
     return Padding(
       padding: const EdgeInsets.symmetric(

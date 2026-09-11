@@ -51,10 +51,12 @@ void main() {
   });
 
   group('Receber (QR) and KYB show @banza', () {
-    test('QR screen shows "Receber em @banza"', () {
+    test('Receber shows the @banza identity without promising payments to it', () {
+      // A Business @banza is not a transfer destination (transfers route to
+      // consumer handles only), so "Receber em @banza" would be a dead promise.
       final qr = File('lib/merchant/screens/qr_screen.dart').readAsStringSync();
-      expect(qr.contains('Receber em '), isTrue);
       expect(qr.contains('session.banzaAddress'), isTrue);
+      expect(qr.contains('Receber em '), isFalse);
     });
     test('KYB screen shows the negócio + @banza identity', () {
       final kyb = File('lib/merchant/screens/kyb_screen.dart').readAsStringSync();

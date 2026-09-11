@@ -82,6 +82,12 @@ class ConsumerPublicClient {
   /// the risk layer can recognise a known device vs a new one (RSK-001).
   final String? deviceId;
 
+  /// How long one request may take end to end. The HTTP client only bounds
+  /// the connection; without this a payment whose answer never came would
+  /// spin forever. On expiry a [BanzamiTimeoutException] is thrown — the
+  /// outcome is then unknown, and the screens retry with the same key.
+  final Duration requestTimeout;
+
   ConsumerPublicClient({
     required this.baseUrl,
     this.environment = BanzamiEnvironment.production,
@@ -90,10 +96,15 @@ class ConsumerPublicClient {
     this.onResponse,
     this.onError,
     this.deviceId,
+    this.requestTimeout = const Duration(seconds: 30),
   })  : _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
-  void setToken(String token) => _token = token;
+  /// Installs the session token. An empty token is no token.
+  void setToken(String token) => _token = token.isEmpty ? null : token;
+
+  /// Signed out: nothing authenticated may be sent with the old token.
+  void clearToken() => _token = null;
   String? get token => _token;
 
   // ---------------------------------------------------------------------------
@@ -182,7 +193,7 @@ class ConsumerPublicClient {
   /// Throws [BanzamiNetworkException] on network failure.
   Future<bool> handleExists(String handle) async {
     try {
-      await _call(method: 'GET', path: '/v1/consumers/$handle', auth: false);
+      await _call(method: 'GET', path: '/v1/consumers/${_seg(handle)}', auth: false);
       return true;
     } on BanzamiApiException catch (e) {
       if (e.isNotFound) return false;
@@ -243,10 +254,12 @@ class ConsumerPublicClient {
   }) async {
     var path = '/v1/me/activity?limit=$limit';
     if (cursor != null) path += '&cursor=${Uri.encodeQueryComponent(cursor)}';
-    if (typeFilter != null)
+    if (typeFilter != null) {
       path += '&type=${Uri.encodeQueryComponent(typeFilter)}';
-    if (directionFilter != null)
+    }
+    if (directionFilter != null) {
       path += '&direction=${Uri.encodeQueryComponent(directionFilter)}';
+    }
     final json = await _call(method: 'GET', path: path);
     return ActivityPage.fromJson(json);
   }
@@ -258,7 +271,7 @@ class ConsumerPublicClient {
   Future<PaymentLink> getPaymentLinkBySlug(String slug) async {
     final json = await _call(
       method: 'GET',
-      path: '/v1/payment-links/$slug',
+      path: '/v1/payment-links/${_seg(slug)}',
       auth: false,
     );
     return PaymentLink.fromJson(json);
@@ -277,11 +290,12 @@ class ConsumerPublicClient {
     final body = <String, dynamic>{
       'idempotency_key': idempotencyKey ?? _uuid.v4(),
     };
-    if (amountMinor != null && amountMinor > 0)
+    if (amountMinor != null && amountMinor > 0) {
       body['amount_minor'] = amountMinor;
+    }
     final json = await _call(
       method: 'POST',
-      path: '/v1/payment-links/$slug/pay',
+      path: '/v1/payment-links/${_seg(slug)}/pay',
       body: body,
     );
     return PaymentLink.fromJson(json);
@@ -318,7 +332,7 @@ class ConsumerPublicClient {
   Future<ConsumerPayLink> getConsumerPayLinkByCode(String code) async {
     final json = await _call(
       method: 'GET',
-      path: '/v1/consumer-pay-links/$code',
+      path: '/v1/consumer-pay-links/${_seg(code)}',
       auth: false,
     );
     return ConsumerPayLink.fromJson(json);
@@ -339,47 +353,21 @@ class ConsumerPublicClient {
     };
     final json = await _call(
       method: 'POST',
-      path: '/v1/consumer-pay-links/$code/pay',
+      path: '/v1/consumer-pay-links/${_seg(code)}/pay',
       body: body,
     );
     return ConsumerPayLink.fromJson(json);
   }
 
   // ---------------------------------------------------------------------------
-  // Structured QR (scan-to-pay)
+  // Structured QR (scan-to-pay) — WITHDRAWN
+  //
+  // decodeQr / getQrCode / payStructuredQr called /v1/qr/decode, /v1/qr/{id}
+  // and /v1/qr/pay on the public-api, which mounts none of them (QR pay was
+  // withdrawn with RA-053): every call could only fail. The consumer app
+  // refuses a structured Banzami QR with an explicit message until a consumer
+  // QR-pay route exists; @banza and payment-link QRs keep working.
   // ---------------------------------------------------------------------------
-
-  /// Decode a scanned structured QR payload into its parsed fields
-  /// (`qr_type`, `qr_code_id`, `owner_type`, …). Used to learn whether the code
-  /// is static (payer enters the amount) or dynamic (fixed amount).
-  Future<Map<String, dynamic>> decodeQr(String payload) =>
-      _call(method: 'POST', path: '/v1/qr/decode', body: {'payload': payload});
-
-  /// Fetch a QR code record by id — used to read a dynamic QR's fixed amount
-  /// before confirming the payment.
-  Future<Map<String, dynamic>> getQrCode(String id) =>
-      _call(method: 'GET', path: '/v1/qr/$id');
-
-  /// Settle a scanned structured QR. [payer] is the authenticated consumer's
-  /// @banza handle. [amountMinor] is required for static QR and ignored for
-  /// dynamic QR. Throws [BanzamiApiException] carrying the outcome code on
-  /// refusal (`KYC_REQUIRED`, `INSUFFICIENT_FUNDS`, `QR_ALREADY_USED`, …).
-  Future<Map<String, dynamic>> payStructuredQr({
-    required String payer,
-    required String payload,
-    int? amountMinor,
-    String? note,
-    String? idempotencyKey,
-  }) {
-    final body = <String, dynamic>{
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-      'payer': payer,
-      'payload': payload,
-      if (amountMinor != null && amountMinor > 0) 'amount_minor': amountMinor,
-      if (note != null) 'note': note,
-    };
-    return _call(method: 'POST', path: '/v1/qr/pay', body: body);
-  }
 
   // Pre-protocol P2P bill-division (P2P-002) was retired in favour of BANZA
   // Collections (ADR-036). Dividing a bill is a merchant feature now
@@ -411,6 +399,12 @@ class ConsumerPublicClient {
         'document_type': documentType.wire,
         if (country != null && country.isNotEmpty) 'country': country,
       },
+      // The server reads the key from the header (public-api kyc.go); it used
+      // to be accepted here and never sent.
+      headers: {
+        if (idempotencyKey != null && idempotencyKey.isNotEmpty)
+          'Idempotency-Key': idempotencyKey,
+      },
     );
     return KycCase.fromJson(json);
   }
@@ -429,7 +423,7 @@ class ConsumerPublicClient {
   /// Loads a case by id. Throws [BanzamiApiException] (404) if it is not the
   /// caller's case — cross-subject access is indistinguishable from "not found".
   Future<KycCase> getKycCase(String caseId) async {
-    final json = await _call(method: 'GET', path: '/v1/kyc/cases/$caseId');
+    final json = await _call(method: 'GET', path: '/v1/kyc/cases/${_seg(caseId)}');
     return KycCase.fromJson(json);
   }
 
@@ -446,7 +440,7 @@ class ConsumerPublicClient {
   }) async {
     final json = await _call(
       method: 'POST',
-      path: '/v1/kyc/cases/$caseId/evidence/upload-url',
+      path: '/v1/kyc/cases/${_seg(caseId)}/evidence/upload-url',
       body: {
         'evidence_type': evidenceType.wire,
         if (side != null) 'side': side.wire,
@@ -467,7 +461,7 @@ class ConsumerPublicClient {
   }) async {
     final json = await _call(
       method: 'POST',
-      path: '/v1/kyc/cases/$caseId/evidence/complete',
+      path: '/v1/kyc/cases/${_seg(caseId)}/evidence/complete',
       body: {
         'evidence_id': evidenceId,
         if (sha256 != null && sha256.isNotEmpty) 'sha256': sha256,
@@ -481,14 +475,14 @@ class ConsumerPublicClient {
   /// still missing — the consumer cannot self-approve.
   Future<KycCase> submitKycCase(String caseId) async {
     final json =
-        await _call(method: 'POST', path: '/v1/kyc/cases/$caseId/submit');
+        await _call(method: 'POST', path: '/v1/kyc/cases/${_seg(caseId)}/submit');
     return KycCase.fromJson(json);
   }
 
   /// The current [KycStatus] of a case.
   Future<KycStatus> getKycStatus(String caseId) async {
     final json =
-        await _call(method: 'GET', path: '/v1/kyc/cases/$caseId/status');
+        await _call(method: 'GET', path: '/v1/kyc/cases/${_seg(caseId)}/status');
     return KycStatus.fromWire(json['status'] as String?);
   }
 
@@ -536,7 +530,7 @@ class ConsumerPublicClient {
   Future<Receipt> fetchReceipt(String transactionId) async {
     final json = await _call(
       method: 'GET',
-      path: '/v1/consumer/transactions/$transactionId/receipt',
+      path: '/v1/consumer/transactions/${_seg(transactionId)}/receipt',
     );
     return Receipt.fromJson(json);
   }
@@ -546,10 +540,13 @@ class ConsumerPublicClient {
   /// Throws [BanzamiApiException] on 401/403/404/etc. The app must never build
   /// PDFs locally — this is the single official document.
   Future<List<int>> fetchReceiptPdf(String transactionId) async {
-    final path = '/v1/consumer/transactions/$transactionId/receipt.pdf';
+    final path = '/v1/consumer/transactions/${_seg(transactionId)}/receipt.pdf';
     onRequest?.call('GET', path);
-    final resp =
-        await _http.get(Uri.parse('$baseUrl$path'), headers: _headers());
+    final resp = await _http
+        .get(Uri.parse('$baseUrl$path'), headers: _headers())
+        .timeout(requestTimeout,
+            onTimeout: () => throw BanzamiTimeoutException(
+                'GET $path took longer than ${requestTimeout.inSeconds}s'));
     if (resp.statusCode != 200) {
       Map<String, dynamic>? j;
       try {
@@ -569,6 +566,19 @@ class ConsumerPublicClient {
   // HTTP helpers
   // ---------------------------------------------------------------------------
 
+  /// One path segment from untrusted input (a scanned slug, a deep-link code):
+  /// percent-encoded, so "../x" or "a/b" can never reach another endpoint.
+  /// "", "." and ".." cannot be a segment at all (URI normalisation resolves
+  /// dot segments even when percent-encoded): they are refused before any
+  /// request is sent, as a link that does not exist.
+  static String _seg(String value) {
+    if (value.isEmpty || value == '.' || value == '..') {
+      throw const BanzamiApiException(
+          statusCode: 404, code: 'NOT_FOUND', message: 'invalid path segment');
+    }
+    return Uri.encodeComponent(value);
+  }
+
   Map<String, String> _headers({bool auth = true}) => {
         'Content-Type': 'application/json',
         'User-Agent': 'Banzami/1.0 (mobile)',
@@ -581,22 +591,26 @@ class ConsumerPublicClient {
     required String path,
     Map<String, dynamic>? body,
     bool auth = true,
+    Map<String, String> headers = const {},
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final headers = _headers(auth: auth);
+    final allHeaders = {..._headers(auth: auth), ...headers};
     final start = DateTime.now();
 
     onRequest?.call(method, path);
 
     late http.Response resp;
     try {
-      resp = switch (method) {
-        'GET' => await _http.get(uri, headers: headers),
-        'POST' => await _http.post(uri,
-            headers: headers, body: body != null ? jsonEncode(body) : null),
-        'DELETE' => await _http.delete(uri, headers: headers),
+      final Future<http.Response> request = switch (method) {
+        'GET' => _http.get(uri, headers: allHeaders),
+        'POST' => _http.post(uri,
+            headers: allHeaders, body: body != null ? jsonEncode(body) : null),
+        'DELETE' => _http.delete(uri, headers: allHeaders),
         _ => throw ArgumentError('Unsupported method: $method'),
       };
+      resp = await request.timeout(requestTimeout,
+          onTimeout: () => throw BanzamiTimeoutException(
+              '$method $path took longer than ${requestTimeout.inSeconds}s'));
     } catch (e) {
       final err = e is BanzamiNetworkException
           ? e
@@ -612,9 +626,18 @@ class ConsumerPublicClient {
     try {
       decoded = jsonDecode(resp.body) as Map<String, dynamic>;
     } catch (_) {
-      // Non-JSON body (e.g. nginx 404 text). Wrap it so callers get a readable message.
-      final err = BanzamiNetworkException(
-          'HTTP ${resp.statusCode}: ${resp.body.trim()}');
+      // A non-JSON body — a proxy's 502/503/429 page, an nginx 404. An error
+      // status is still an answer from the server side, not a missing network:
+      // keep its status so the app can say "serviço indisponível" / "demasiadas
+      // tentativas" instead of "sem ligação".
+      final Exception err = resp.statusCode >= 400
+          ? BanzamiApiException(
+              statusCode: resp.statusCode,
+              code: 'UNKNOWN',
+              message: 'HTTP ${resp.statusCode} (non-JSON body)',
+            )
+          : BanzamiNetworkException(
+              'HTTP ${resp.statusCode}: malformed response body');
       onError?.call(method, path, err);
       throw err;
     }
@@ -626,8 +649,9 @@ class ConsumerPublicClient {
 
     final exception = BanzamiApiException.fromJson(resp.statusCode, decoded);
     onError?.call(method, path, exception);
-    if (resp.statusCode == 401 && auth && _token != null)
+    if (resp.statusCode == 401 && auth && _token != null) {
       onUnauthorized?.call();
+    }
     throw exception;
   }
 }

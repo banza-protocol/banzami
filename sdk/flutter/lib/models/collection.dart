@@ -17,13 +17,20 @@ class CollectionStatus {
   static const cancelled = 'CANCELLED';
 }
 
-/// Lifecycle of a single share.
+/// Lifecycle of a single share (core/collections ShareStatus):
+/// PENDING → LINK_CREATED (surfaced as a payment link/QR) → PAID, or EXPIRED /
+/// CANCELLED / FAILED. Raw strings are kept: an unknown future status must
+/// never make a payable share untappable.
 class ShareStatus {
   static const pending = 'PENDING';
-  static const paymentRequested = 'PAYMENT_REQUESTED';
+  static const linkCreated = 'LINK_CREATED';
   static const paid = 'PAID';
   static const expired = 'EXPIRED';
   static const cancelled = 'CANCELLED';
+  static const failed = 'FAILED';
+
+  /// Statuses after which a share can no longer be paid.
+  static const ended = {paid, expired, cancelled, failed};
 }
 
 class Collection {
@@ -116,7 +123,14 @@ class CollectionShare {
   });
 
   bool get isPaid => status == ShareStatus.paid;
+
+  /// Not surfaced yet — the only status that can still be surfaced.
   bool get isPending => status == ShareStatus.pending;
+
+  /// Still waiting for its money: PENDING, LINK_CREATED, or any status this
+  /// client does not know yet. Only an explicit end (paid, expired, cancelled,
+  /// failed) closes a share.
+  bool get isAwaitingPayment => !ShareStatus.ended.contains(status);
 
   factory CollectionShare.fromJson(Map<String, dynamic> json) =>
       CollectionShare(

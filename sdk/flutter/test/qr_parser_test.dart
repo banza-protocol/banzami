@@ -242,4 +242,24 @@ void main() {
       }
     });
   });
+
+  group('Payment Session DEEP_LINK — banzami://pay/{slug}', () {
+    test('a single slug under pay is a payment link', () {
+      final r = BanzamiQrParser.parse('banzami://pay/3f9a1c2b7d4e');
+      expect(r, isA<BanzamiQrPaymentLink>());
+      expect((r as BanzamiQrPaymentLink).slug, '3f9a1c2b7d4e');
+    });
+
+    test('a segment that is not slug-shaped is refused', () {
+      for (final raw in ['banzami://pay/..', 'banzami://pay/a%2Fb', 'banzami://pay/abc']) {
+        expect(BanzamiQrParser.parse(raw), isA<BanzamiQrInvalid>(), reason: raw);
+      }
+    });
+
+    test('the existing forms keep their meaning', () {
+      expect(BanzamiQrParser.parse('banzami://pay/link/3f9a1c2b7d4e'), isA<BanzamiQrPaymentLink>());
+      expect(BanzamiQrParser.parse('banzami://pay/u/ana'), isA<BanzamiQrHandlePayment>());
+      expect(BanzamiQrParser.parse('banzami://pay?request=abc'), isA<BanzamiQrPaymentRequest>());
+    });
+  });
 }

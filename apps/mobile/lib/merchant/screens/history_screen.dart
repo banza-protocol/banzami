@@ -1,13 +1,14 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../widgets/app_screen_header.dart';
+import '../models/merchant_payment_entry.dart';
+import '../services/receipt_file_name.dart';
 import '../services/merchant_session_service.dart';
 
 class MerchantHistoryScreen extends StatefulWidget {
@@ -87,16 +88,9 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
 // Shared date-grouping helpers
 // =============================================================================
 
-String _dateHeader(DateTime dt) {
-  final now       = DateTime.now();
-  final today     = DateUtils.dateOnly(now);
-  final yesterday = today.subtract(const Duration(days: 1));
-  final date      = DateUtils.dateOnly(dt);
-
-  if (date == today)     return 'Hoje';
-  if (date == yesterday) return 'Ontem';
-  return DateFormat('d MMM yyyy', 'pt_PT').format(date);
-}
+// Server timestamps are UTC: every date shown here goes through the shared
+// formatter, which converts to local time before comparing calendar days.
+String _dateHeader(DateTime dt) => BanzamiDateFormatter.formatDayHeader(dt);
 
 Widget _emptyState({required IconData icon, required String label}) {
   return Center(
@@ -134,8 +128,30 @@ class _TransactionsTab extends StatefulWidget {
 class _TransactionsTabState extends State<_TransactionsTab>
     with AutomaticKeepAliveClientMixin {
 
-  final List<MerchantTransaction> _txs = [];
-  String? _cursor;
+  // Acquiring transactions + wallet-native payments (QR, link, session), as
+  // one newest-first history. The Transacções tab read only the first, so no
+  // QR or link payment ever appeared here.
+  late final MerchantPaymentFeed _feed = MerchantPaymentFeed([
+    (cursor) async {
+      final page = await context
+          .read<BanzamiClient>()
+          .listMerchantTransactions(limit: 30, cursor: cursor);
+      return (
+        page.data.map(MerchantPaymentEntry.fromTransaction).toList(),
+        page.hasMore ? page.nextCursor : null,
+      );
+    },
+    (cursor) async {
+      final page = await context
+          .read<BanzamiClient>()
+          .listMerchantWalletPayments(limit: 30, cursor: cursor);
+      return (
+        page.items.map(MerchantPaymentEntry.fromWalletPayment).toList(),
+        page.nextCursor,
+      );
+    },
+  ]);
+  List<MerchantPaymentEntry> _txs = const [];
   bool    _loading = false;
   bool    _hasMore = true;
   String? _error;
@@ -154,18 +170,19 @@ class _TransactionsTabState extends State<_TransactionsTab>
     if (!_hasMore && !refresh) return;
 
     setState(() { _loading = true; _error = null; });
-    if (refresh) { _txs.clear(); _cursor = null; _hasMore = true; }
+    if (refresh) { _feed.reset(); _txs = const []; _hasMore = true; }
 
-    final client = context.read<BanzamiClient>();
     try {
-      final page = await client.listMerchantTransactions(limit: 30, cursor: _cursor);
+      await _feed.loadMore();
+      if (!mounted) return;
       setState(() {
-        _txs.addAll(page.data);
-        _cursor  = page.nextCursor;
-        _hasMore = page.hasMore;
+        _txs     = _feed.visible;
+        _hasMore = _feed.hasMore;
       });
     } catch (_) {
-      setState(() => _error = 'Não foi possível carregar as transacções.');
+      if (mounted) {
+        setState(() => _error = 'Não foi possível carregar as transacções.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -175,7 +192,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
     final items = <dynamic>[];
     String? lastKey;
     for (final tx in _txs) {
-      final key = _dateHeader(tx.createdAt.toLocal());
+      final key = _dateHeader(tx.createdAt);
       if (key != lastKey) { items.add(key); lastKey = key; }
       items.add(tx);
     }
@@ -221,7 +238,22 @@ class _TransactionsTabState extends State<_TransactionsTab>
       itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
         if (i == grouped.length) {
-          if (!_loading) _load();
+          // A page that failed waits for a tap — it is never re-requested on
+          // every frame.
+          if (_error != null) {
+            return Padding(
+              padding: const EdgeInsets.all(BanzamiSpacing.lg),
+              child:   Center(child: BanzamiGhostButton(
+                label:     'Tentar novamente',
+                onPressed: _load,
+              )),
+            );
+          }
+          if (!_loading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _load();
+            });
+          }
           return const Padding(
             padding: EdgeInsets.all(BanzamiSpacing.xl),
             child:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
@@ -245,7 +277,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
           );
         }
 
-        final tx      = item as MerchantTransaction;
+        final tx      = item as MerchantPaymentEntry;
         final prev    = i > 0 ? grouped[i - 1] : null;
         final next    = i < grouped.length - 1 ? grouped[i + 1] : null;
         final isFirst = prev == null || prev is String;
@@ -275,45 +307,40 @@ class _TransactionsTabState extends State<_TransactionsTab>
 }
 
 class _TransactionTile extends StatelessWidget {
-  final MerchantTransaction tx;
+  final MerchantPaymentEntry tx;
   const _TransactionTile({required this.tx});
 
   @override
   Widget build(BuildContext context) {
-    final statusUp = tx.status.toUpperCase();
-    final (icon, iconColor, label, amountColor, sign) = switch (statusUp) {
-      'COMPLETED' || 'PAID' => (
+    final (icon, iconColor, amountColor) = switch (tx.state) {
+      MerchantPaymentState.received => (
         Icons.arrow_downward_rounded,
         BanzamiColors.success,
-        tx.description ?? 'Pagamento recebido',
         BanzamiColors.success,
-        '+',
       ),
-      'CANCELLED' => (
-        Icons.arrow_upward_rounded,
-        BanzamiColors.error,
-        tx.description ?? 'Cancelamento',
-        BanzamiColors.error,
-        '−',
+      MerchantPaymentState.refunded => (
+        Icons.undo_rounded,
+        BanzamiColors.gray400,
+        BanzamiColors.gray400,
       ),
-      'FAILED' => (
+      MerchantPaymentState.failed || MerchantPaymentState.reversed => (
         Icons.close_rounded,
         BanzamiColors.error,
-        tx.description ?? 'Falhado',
-        BanzamiColors.error,
-        '−',
+        BanzamiColors.gray400,
       ),
       _ => (
         Icons.access_time_rounded,
         BanzamiColors.primary,
-        tx.description ?? 'Pendente',
         BanzamiColors.gray900,
-        '',
       ),
     };
+    // The description (when the merchant wrote one) is the title; the status is
+    // always said on the second line so a refund never reads as a receipt.
+    final label = tx.title;
+    final sign  = tx.amountSign;
 
-    final local   = tx.createdAt.toLocal();
-    final timeStr = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    // Rows sit under a day header: the time of day is enough.
+    final timeStr = BanzamiDateFormatter.formatTime(tx.createdAt);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -340,7 +367,7 @@ class _TransactionTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              timeStr,
+              label != tx.stateLabel ? '$timeStr · ${tx.stateLabel}' : timeStr,
               style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ]),
@@ -607,11 +634,13 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     try {
       final bytes = await client.fetchMerchantReceiptPdf(p.id);
       final dir   = await getTemporaryDirectory();
-      file        = File('${dir.path}/Banzami-Comprovativo-${p.reference}.pdf');
+      file        = File('${dir.path}/${receiptPdfFileName(p.reference, p.createdAt)}');
       await file.writeAsBytes(bytes, flush: true);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
-        subject: 'Comprovativo Banzami · ${p.reference}',
+        subject: p.reference.trim().isNotEmpty
+            ? 'Comprovativo Banzami · ${p.reference.trim()}'
+            : 'Comprovativo Banzami',
       );
     } catch (_) {
       if (mounted) _snack('Não foi possível obter o comprovativo.');
@@ -673,7 +702,8 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${formatMinor(p.amountMinor, p.currency)} · ${_dateHeader(p.createdAt)}',
+                      '${formatMinor(p.amountMinor, p.currency)} · '
+                      '${BanzamiDateFormatter.formatActivityTime(p.createdAt)}',
                       style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                     ),
                   ],

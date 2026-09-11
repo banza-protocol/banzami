@@ -179,4 +179,56 @@ void main() {
       }
     });
   }
+
+  group('an incoming transfer opened from a push', () {
+    Future<void> pumpIncoming(WidgetTester tester, Future<Receipt> Function() fetch) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(MaterialApp(
+        home: BanzamiReceiptScreen(
+          // What the notification router builds from a payment_received push.
+          transfer: Transfer(
+            transferId: 't-in', sender: 'ana', recipient: 'fm65',
+            amountMinor: 150000, currency: 'AOA', status: 'COMPLETED',
+            createdAt: DateTime.now().toUtc(), // the tap, not the transfer
+          ),
+          ownHandle: 'fm65',
+          incoming: true,
+          onDone: (_) {},
+          fetchReceipt: fetch,
+        ),
+      ));
+      for (var i = 0; i < 10; i++) {
+        await tester.pump(const Duration(milliseconds: 60));
+      }
+    }
+
+    testWidgets('reads as received, from the sender, with no invented time', (tester) async {
+      final pending = Completer<Receipt>();
+      await pumpIncoming(tester, () => pending.future);
+      expect(find.text('Transferência recebida'), findsOneWidget);
+      expect(find.text('Enviado com sucesso'), findsNothing);
+      expect(find.text('de @ana'), findsOneWidget);
+      expect(find.text('@ana'), findsOneWidget); // the De row
+      expect(find.text('@fm65'), findsOneWidget); // only the Para row
+      expect(find.textContaining('(WAT)'), findsNothing);
+      expect(find.text('A obter…'), findsWidgets);
+    });
+
+    testWidgets('shows the confirmed time once the receipt arrives', (tester) async {
+      await pumpIncoming(tester, () async => Receipt.fromJson({
+            'proof_reference': _ref,
+            'operation_kind': 'P2P_TRANSFER',
+            'status': 'CONFIRMED',
+            'amount_minor': 150000,
+            'currency': 'AOA',
+            'payer': {'kind': 'PERSON', 'handle': 'ana'},
+            'payee': {'kind': 'PERSON', 'handle': 'fm65'},
+            'confirmed_at': '2026-09-10T19:13:27Z',
+            'environment': 'SANDBOX',
+          }));
+      expect(find.text('Transferência recebida'), findsOneWidget);
+      expect(find.text('10 de setembro de 2026, 20:13 (WAT)'), findsOneWidget);
+    });
+  });
 }

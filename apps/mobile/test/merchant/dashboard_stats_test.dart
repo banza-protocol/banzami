@@ -1,16 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
+import 'package:banzami_mobile/merchant/models/merchant_payment_entry.dart';
 import 'package:banzami_mobile/merchant/widgets/merchant_dashboard_stats.dart';
 
-MerchantTransaction _tx(String status, int amount, DateTime when) =>
-    MerchantTransaction(
+// Fixtures carry the statuses Core really sends (core/transactions):
+// PENDING, AUTHORIZED, CAPTURED, FAILED, REVERSED, REFUNDED.
+MerchantPaymentEntry _tx(String status, int amount, DateTime when) =>
+    MerchantPaymentEntry.fromTransaction(MerchantTransaction(
       id: 'tx-${when.microsecondsSinceEpoch}-$amount',
       status: status,
       amountMinor: amount,
       currency: 'AOA',
       merchantId: 'm1',
       createdAt: when,
-    );
+    ));
 
 void main() {
   // Fixed "now" (local) so day math is deterministic regardless of timezone.
@@ -32,12 +35,14 @@ void main() {
       expect(s.has7DayVolume, isFalse);
     });
 
-    test('today and month volume/count count only completed payments', () {
+    test('today and month volume/count count only captured payments', () {
       final s = MerchantDashboardStats.compute([
-        _tx('COMPLETED', 100000, today),
-        _tx('PAID', 50000, today),
+        _tx('CAPTURED', 100000, today),
+        _tx('CAPTURED', 50000, today),
         _tx('PENDING', 999999, today), // excluded from volume/count
-        _tx('COMPLETED', 200000, earlierMonth),
+        _tx('AUTHORIZED', 999999, today), // not settled yet — excluded
+        _tx('REFUNDED', 999999, today), // returned to the payer — excluded
+        _tx('CAPTURED', 200000, earlierMonth),
       ], now: now);
 
       expect(s.todayVolumeMinor, 150000); // 100000 + 50000
@@ -48,8 +53,8 @@ void main() {
 
     test('average ticket = month volume / month count (rounded)', () {
       final s = MerchantDashboardStats.compute([
-        _tx('COMPLETED', 100000, today),
-        _tx('COMPLETED', 50000, yesterday),
+        _tx('CAPTURED', 100000, today),
+        _tx('CAPTURED', 50000, yesterday),
       ], now: now);
       expect(s.monthCount, 2);
       expect(s.avgTicketMinor, 75000);
@@ -63,15 +68,44 @@ void main() {
       expect(s.avgTicketMinor, isNull);
     });
 
-    test('success rate = completed / (completed + failed); pending ignored', () {
+    test('success rate = captured / (captured + failed/voided); pending ignored', () {
       final s = MerchantDashboardStats.compute([
-        _tx('COMPLETED', 1, today),
-        _tx('PAID', 1, today),
+        _tx('CAPTURED', 1, today),
+        _tx('CAPTURED', 1, today),
         _tx('FAILED', 1, today),
+        _tx('REVERSED', 1, today),
         _tx('PENDING', 1, today), // not terminal → excluded from rate
       ], now: now);
-      // 2 completed (COMPLETED + PAID) / (2 completed + 1 failed) = 2/3
-      expect(s.successRate, closeTo(2 / 3, 1e-9));
+      // 2 captured / (2 captured + 1 failed + 1 reversed) = 1/2
+      expect(s.successRate, closeTo(1 / 2, 1e-9));
+    });
+
+    test('average ticket stays in integer minor units (half up)', () {
+      final s = MerchantDashboardStats.compute([
+        _tx('CAPTURED', 1, today),
+        _tx('CAPTURED', 2, today),
+      ], now: now);
+      expect(s.avgTicketMinor, 2); // 3 / 2 = 1.5 → 2
+    });
+
+    test('status labels and signs follow what the money did', () {
+      final l = {
+        for (final st in ['CAPTURED', 'PENDING', 'AUTHORIZED', 'FAILED',
+            'REVERSED', 'REFUNDED'])
+          st: _tx(st, 1, today),
+      };
+      expect(l['CAPTURED']!.stateLabel, 'Pagamento recebido');
+      expect(l['CAPTURED']!.amountSign, '+');
+      expect(l['PENDING']!.stateLabel, 'Pendente');
+      expect(l['AUTHORIZED']!.stateLabel, 'Pendente');
+      expect(l['REFUNDED']!.stateLabel, 'Reembolsado');
+      expect(l['REVERSED']!.stateLabel, 'Anulado');
+      expect(l['FAILED']!.stateLabel, 'Falhou');
+      // A failed, voided or refunded payment is never shown as a "−" debit.
+      for (final st in ['FAILED', 'REVERSED', 'REFUNDED', 'PENDING']) {
+        expect(l[st]!.amountSign, isNot(contains('−')), reason: st);
+        expect(l[st]!.amountSign, isNot(contains('-')), reason: st);
+      }
     });
 
     test('success rate is null when there are no terminal transactions', () {
@@ -83,9 +117,9 @@ void main() {
 
     test('7-day buckets attribute volume to the correct local day', () {
       final s = MerchantDashboardStats.compute([
-        _tx('COMPLETED', 100000, today),
-        _tx('COMPLETED', 40000, yesterday),
-        _tx('COMPLETED', 60000, yesterday),
+        _tx('CAPTURED', 100000, today),
+        _tx('CAPTURED', 40000, yesterday),
+        _tx('CAPTURED', 60000, yesterday),
       ], now: now);
 
       expect(s.last7Days.length, 7);
@@ -98,7 +132,7 @@ void main() {
 
     test('transactions outside the 7-day window do not pollute the chart', () {
       final s = MerchantDashboardStats.compute([
-        _tx('COMPLETED', 200000, earlierMonth), // 22 days before "today"
+        _tx('CAPTURED', 200000, earlierMonth), // 22 days before "today"
       ], now: now);
       // still counted in the month total, but not in any 7-day bucket
       expect(s.monthVolumeMinor, 200000);

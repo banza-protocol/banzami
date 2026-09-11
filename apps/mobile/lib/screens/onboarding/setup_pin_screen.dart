@@ -95,19 +95,12 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
       } else {
         _goToMain();
       }
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
       setState(() {
-        _apiError   = e.code == 'HANDLE_TAKEN'
-            ? 'Este @banza já está em uso. Volte atrás e escolha outro.'
-            : e.message;
-        _saving     = false;
-        _step       = _Step.enter;
-        _firstPin   = '';
-        _currentPin = '';
-      });
-    } catch (_) {
-      setState(() {
-        _apiError   = 'Erro de ligação. Verifique a internet e tente novamente.';
+        _apiError   = banzamiErrorMessage(e, codes: const {
+          'HANDLE_TAKEN':
+              'Este @banza já está em uso. Volte atrás e escolha outro.',
+        });
         _saving     = false;
         _step       = _Step.enter;
         _firstPin   = '';

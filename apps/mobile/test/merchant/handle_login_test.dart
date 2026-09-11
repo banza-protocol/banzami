@@ -104,7 +104,8 @@ void main() {
       await t.pump();
       expect(find.text('Entrar na sua conta Business'), findsOneWidget);
       expect(find.byType(TextFormField), findsOneWidget);
-      expect(find.text('Entrar com credenciais de integração'), findsOneWidget);
+      // No secret-API-key path: @banza + PIN is the only way in.
+      expect(find.text('Entrar com credenciais de integração'), findsNothing);
     });
 
     testWidgets('invalid handle shows a clean error (no lookup, no PIN)', (t) async {
@@ -127,16 +128,6 @@ void main() {
       await t.pumpAndSettle();
       expect(find.text('Digite o PIN Business'), findsOneWidget);
       expect(find.text('@cantina_alex'), findsOneWidget); // normalised subtitle
-    });
-
-    testWidgets('advanced link opens the integration-credentials screen', (t) async {
-      _tall(t);
-      await t.pumpWidget(plain());
-      await t.pump();
-      await t.tap(find.text('Entrar com credenciais de integração'));
-      await t.pumpAndSettle();
-      expect(find.text('Credenciais de integração'), findsWidgets); // appbar + heading
-      expect(find.textContaining('Use este método'), findsOneWidget);
     });
   });
 
@@ -207,7 +198,6 @@ void main() {
       expect(svc.hasSession, isTrue);
       expect(svc.session!.loginMethod, MerchantLoginMethod.handlePin);
       expect(svc.session!.handle, 'doa_sandbox');
-      expect(svc.session!.apiKey, isNull);             // never store an API key
       expect(svc.session!.jwt, _fakeJwt({'merchant_id': 'm1', 'environment': 'SANDBOX'}));
       expect(store.containsKey('merchant_api_key'), isFalse);
       expect(store['merchant_login_method'], 'handle_pin');
@@ -230,9 +220,9 @@ void main() {
       expect(login.contains('loginMerchantHandlePin'), isTrue);
       expect(login.contains('setJwt'), isTrue);
       expect(login.contains('createHandleSession'), isTrue);
-      expect(login.contains('PIN incorreto.'), isTrue);
+      expect(login.contains('PIN incorrecto.'), isTrue);
       expect(login.contains('Conta temporariamente bloqueada'), isTrue);
-      expect(login.contains('Não foi possível conectar'), isTrue);
+      expect(login.contains('businessSignInError(e)'), isTrue);
     });
 
     test('welcome opens the @handle login (not the API-key setup)', () {

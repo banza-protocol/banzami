@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:uuid/uuid.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
@@ -11,6 +10,8 @@ import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/banzami_toast.dart';
 import '../utils/camera_permission.dart';
+import '../utils/error_messages.dart';
+import '../utils/idempotency_intent.dart';
 import '../utils/qr_parser.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
@@ -53,6 +54,7 @@ class BanzamiSendScreen extends StatefulWidget {
 }
 
 class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
+  final IdempotencyIntent _intent = IdempotencyIntent();
   final _handleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _handleFocus = FocusNode();
@@ -182,8 +184,11 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     }
     if (!mounted) return;
 
-    final idempotencyKey = const Uuid().v4();
     final note = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
+    // One key per transfer intent (recipient + amount + note): coming back
+    // from an unanswered confirmation and tapping "Continuar" again repeats
+    // the same transfer, it never makes a second one.
+    final idempotencyKey = _intent.keyFor((handle, _amountMinor, note));
 
     await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiConfirmScreen(
@@ -249,26 +254,24 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         _prefillFromQr(handle: handle, amountMinor: amountMinor, note: note);
 
       case BanzamiQrStructuredPayment():
-        // The send screen chooses a person to pay; a merchant payment QR is
-        // handled by the scan-to-pay flow instead.
-        BanzamiToast.showWarning(
-            context, 'Este é um QR de pagamento. Use o ecrã Pagar.');
+        // No consumer route pays a structured QR yet (see scan_screen).
+        BanzamiToast.showWarning(context, kStructuredQrUnavailableMessage);
 
       case BanzamiQrSplitPayment():
         BanzamiToast.showWarning(
-            context, 'Este é um QR de divisão de conta. Use o ecrã Pagar.');
+            context, 'Este QR de divisão de conta já não é suportado.');
 
       case BanzamiQrPaymentLink():
-        BanzamiToast.showWarning(
-            context, 'Este é um QR de pagamento. Use o ecrã Pagar.');
+        // "Enviar" pays a person; a payment link opens from "QR Code" on the
+        // home screen (the scanner) — the screen that really exists.
+        BanzamiToast.showWarning(context,
+            'Este é um link de pagamento. Leia-o em "QR Code", no início.');
     }
   }
 
   bool _sandboxMismatch(bool qrIsSandbox) {
     if (qrIsSandbox == widget.isSandbox) return false;
-    final msg = qrIsSandbox
-        ? 'Este QR pertence ao ambiente sandbox.'
-        : 'Este QR pertence ao ambiente live.';
+    final msg = environmentMismatchMessage(fromSandbox: qrIsSandbox);
     BanzamiToast.showWarning(context, msg);
     return true;
   }

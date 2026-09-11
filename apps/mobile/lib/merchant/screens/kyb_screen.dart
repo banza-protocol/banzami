@@ -66,6 +66,9 @@ class _KybScreenState extends State<KybScreen> {
   bool _loading = true;
   String? _loadError;
   MerchantKybStatus? _status;
+  // KYB + AML as the payout gate sees them (null when it could not be read).
+  // "Levantamentos disponíveis" is said only when both are approved.
+  MerchantComplianceStatus? _compliance;
   MerchantKybDocumentType? _busyType; // document currently uploading
   final Map<MerchantKybDocumentType, String> _selectedName = {};
 
@@ -78,9 +81,16 @@ class _KybScreenState extends State<KybScreen> {
   Future<void> _load() async {
     setState(() { _loading = true; _loadError = null; });
     final client = context.read<BanzamiClient>();
+    // Best-effort: without it the screen still shows the KYB decision, and
+    // simply does not claim that withdrawals are available.
+    final compliance = client
+        .getMerchantComplianceStatus()
+        .then<MerchantComplianceStatus?>((c) => c)
+        .catchError((Object _) => null);
     try {
       final st = await client.getMerchantKybStatus();
-      if (mounted) setState(() => _status = st);
+      final c = await compliance;
+      if (mounted) setState(() { _status = st; _compliance = c; });
     } catch (_) {
       if (mounted) setState(() => _loadError = 'Não foi possível carregar a verificação.');
     } finally {
@@ -190,9 +200,10 @@ class _KybScreenState extends State<KybScreen> {
       await _load();
     } on BanzamiApiException catch (e) {
       if (mounted) {
-        _snack(e.code == 'STORAGE_NOT_CONFIGURED'
-            ? 'Serviço temporariamente indisponível. Tente mais tarde.'
-            : 'Não foi possível enviar: ${e.message}');
+        _snack(banzamiErrorMessage(e, codes: const {
+          'STORAGE_NOT_CONFIGURED':
+              'Serviço temporariamente indisponível. Tente mais tarde.',
+        }));
       }
     } catch (_) {
       if (mounted) { _snack('O envio falhou. Verifique a ligação e tente novamente.'); }
@@ -278,7 +289,19 @@ class _KybScreenState extends State<KybScreen> {
           return const _OverallView('Documentos expirados', 'Atualize os documentos expirados.',
               BanzamiColors.warning, Icons.event_busy_outlined);
         }
-        return const _OverallView('Aprovado', 'O seu negócio está verificado.',
+        final c = _compliance;
+        if (c != null && c.canWithdraw) {
+          return const _OverallView('Aprovado',
+              'O seu negócio está verificado. Levantamentos disponíveis.',
+              BanzamiColors.success, Icons.verified_rounded);
+        }
+        if (c != null) {
+          return const _OverallView('Verificação AML em curso',
+              'Documentos aprovados. Os levantamentos ficam disponíveis quando '
+              'a verificação AML estiver concluída.',
+              BanzamiColors.warning, Icons.hourglass_top_rounded);
+        }
+        return const _OverallView('Aprovado', 'Os documentos do negócio estão aprovados.',
             BanzamiColors.success, Icons.verified_rounded);
       case 'REJECTED':
         return const _OverallView('Rejeitado', 'A verificação foi recusada. Reenvie os documentos.',
@@ -316,8 +339,7 @@ class _OverallView {
       _ => (label: 'Em falta', color: BanzamiColors.gray400),
     };
 
-String _fmtDate(DateTime? d) =>
-    d == null ? '' : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+String _fmtDate(DateTime? d) => d == null ? '' : BanzamiDateFormatter.formatDate(d);
 
 // ── Cards ────────────────────────────────────────────────────────────────────
 
@@ -475,6 +497,7 @@ class _ActionsCard extends StatelessWidget {
     final ok = view.label == 'Aprovado';
     final msg = switch (view.label) {
       'Aprovado' => 'Tudo em ordem. Nenhuma ação necessária.',
+      'Verificação AML em curso' => 'Não é necessária nenhuma ação sua.',
       'Rejeitado' => 'Reenvie os documentos pedidos ou contacte o suporte.',
       'Suspenso' => 'Contacte o suporte para reativar a conta.',
       'Documentos necessários' => 'Envie os documentos em falta usando "Atualizar documento".',
