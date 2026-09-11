@@ -2793,3 +2793,29 @@ and the cap is reached. New consumers start at zero and cannot be funded, so
 harness payers hit `INSUFFICIENT_FUNDS`. Raising or resetting the cap is a
 product decision. public-api reported that refusal as `500 INTERNAL_ERROR`; it
 now answers `422` with core's code (`sandboxCreditRefusal`, tested).
+
+## RA-094 — any container on the Sandbox network could call Core's /internal routes
+
+- **Found:** 2026-09-11 (residual of the full-system assurance; closed in the closure phase)
+- **Status:** FIXED
+
+Core authenticated two route groups — refunds (`CORE_INTERNAL_KEY`) and payee
+validation (`CORE_PAYEE_VALIDATION_KEY`). Every other `/internal` route — transfers,
+wallet credits, payouts, settlements, application settlements, freezes, merchant
+creation, pricing — answered whoever reached Core's port. Nothing public reaches it
+(no edge routes `/internal`), but every Sandbox container shares the network: a
+compromised pay-frontend or admin-frontend could have moved money directly.
+
+Now the general group is behind the existing `internal_service_auth` check on
+`CORE_INTERNAL_KEY` (constant time, fails closed on an unset key), with one
+exception: a request from Core's own loopback — only a process inside Core's
+container can originate there, i.e. `docker exec` on the host, which already holds
+every secret. The four Go services send the key on every Core call through their
+HTTP transport (8028dab6, deployed first so the gate never outran its callers); a
+request that already names a dedicated key keeps it. `/health` stays open.
+Guards: `general_gate_tests` (no key / wrong key → 401, key → accepted, loopback →
+accepted, no connection info → not loopback), `tests/ops/core-internal-routes-gated.test.mjs`
+(every `/internal` route literal sits inside an authenticated group; a route added
+outside them fails — mutation-proven), and a per-client test that each Go client
+sends the key.
+

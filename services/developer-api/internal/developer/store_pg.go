@@ -673,6 +673,7 @@ func (s *pgStore) WalletAccountsForMerchant(ctx context.Context, merchantID stri
 		   JOIN wallets w ON w.id = wa.wallet_id
 		   LEFT JOIN ledger_entries e ON e.account_id = wa.account_id
 		  WHERE w.merchant_id = $1
+		    AND wa.status <> 'CLOSED' -- a closed account is history, not one to use
 		    AND ($2 = '' OR (wa.created_at, wa.id) <
 		         (SELECT c.created_at, c.id FROM wallet_accounts c WHERE c.id::text = $2))
 		  GROUP BY wa.id, wa.label, wa.purpose, wa.reference_type, wa.reference_id,
@@ -856,7 +857,7 @@ func (s *pgStore) WalletAccountCountForMerchant(ctx context.Context, merchantID 
 	var n int
 	err := s.pool.QueryRow(ctx,
 		`SELECT count(*) FROM wallet_accounts wa JOIN wallets w ON w.id = wa.wallet_id
-		  WHERE w.merchant_id = $1`, merchantID).Scan(&n)
+		  WHERE w.merchant_id = $1 AND wa.status <> 'CLOSED'`, merchantID).Scan(&n)
 	return n, err
 }
 

@@ -262,9 +262,219 @@ async fn resolve_and_list(pool: PgPool) {
     .unwrap();
     assert_eq!(resolved["reference_id"], "camp_R");
 
-    let Json(list) = routes::list_for_wallet(State(state), Path(wid.to_string()))
-        .await
-        .unwrap();
+    let Json(list) = routes::list_for_wallet(
+        State(state),
+        Path(wid.to_string()),
+        Query(routes::ListQuery {
+            include_closed: None,
+        }),
+    )
+    .await
+    .unwrap();
     // PRIMARY + the campaign account.
     assert_eq!(list["data"].as_array().unwrap().len(), 2);
+}
+
+// ── close ────────────────────────────────────────────────────────────────────
+
+async fn campaign(state: &AppState, wid: Uuid, reference: &str) -> (Uuid, Uuid) {
+    let (_, Json(created)) = routes::create(
+        State(state.clone()),
+        Json(body(wid, "CAMPAIGN", Some(reference))),
+    )
+    .await
+    .unwrap();
+    (
+        Uuid::parse_str(created["id"].as_str().unwrap()).unwrap(),
+        Uuid::parse_str(created["account_id"].as_str().unwrap()).unwrap(),
+    )
+}
+
+fn close_body(reason: &str, merchant: Option<Uuid>) -> routes::CloseBody {
+    routes::CloseBody {
+        reason: reason.into(),
+        closed_by: "test-operator".into(),
+        merchant_id: merchant.map(|m| m.to_string()),
+    }
+}
+
+async fn list_ids(state: &AppState, wid: Uuid, include_closed: bool) -> Vec<String> {
+    let Json(list) = routes::list_for_wallet(
+        State(state.clone()),
+        Path(wid.to_string()),
+        Query(routes::ListQuery {
+            include_closed: Some(include_closed),
+        }),
+    )
+    .await
+    .unwrap();
+    list["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|a| a["id"].as_str().unwrap().to_string())
+        .collect()
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn an_empty_account_closes_once_audited_and_leaves_the_lists(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let merchant = Uuid::new_v4();
+    let (wid, _) = seed_wallet(&pool, merchant).await;
+    let (id, _) = campaign(&state, wid, "close-1").await;
+
+    let Json(closed) = routes::close(
+        State(state.clone()),
+        Path(id.to_string()),
+        Json(close_body("synthetic fixture", Some(merchant))),
+    )
+    .await
+    .unwrap();
+    assert_eq!(closed["status"], "CLOSED");
+    assert!(
+        !list_ids(&state, wid, false).await.contains(&id.to_string()),
+        "a closed account is not in the list"
+    );
+    assert!(
+        list_ids(&state, wid, true).await.contains(&id.to_string()),
+        "but it is not gone"
+    );
+    let audits: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM audit_log WHERE action = 'WALLET_ACCOUNT_CLOSED' AND subject = $1",
+    )
+    .bind(format!("wallet_account:{id}"))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(audits, 1);
+
+    // Idempotent: a second close changes nothing and audits nothing.
+    let Json(again) = routes::close(
+        State(state.clone()),
+        Path(id.to_string()),
+        Json(close_body("again", None)),
+    )
+    .await
+    .unwrap();
+    assert_eq!(again["status"], "CLOSED");
+    let audits: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM audit_log WHERE action = 'WALLET_ACCOUNT_CLOSED' AND subject = $1",
+    )
+    .bind(format!("wallet_account:{id}"))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(audits, 1);
+
+    // It can no longer be named as a payee.
+    let Json(v) = routes::validate_payee(
+        State(state.clone()),
+        Json(routes::ValidatePayeeBody {
+            merchant_id: merchant.to_string(),
+            wallet_id: wid.to_string(),
+            wallet_account_id: id.to_string(),
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(v["valid"], false);
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn close_is_refused_for_primary_money_links_and_other_owners(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let merchant = Uuid::new_v4();
+    let (wid, _) = seed_wallet(&pool, merchant).await;
+    let code = |r: crate::error::ApiResult<Json<serde_json::Value>>| r.err().map(|e| e.code);
+
+    let primary: Uuid = sqlx::query_scalar(
+        "SELECT id FROM wallet_accounts WHERE wallet_id = $1 AND purpose = 'PRIMARY'",
+    )
+    .bind(wid)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        code(
+            routes::close(
+                State(state.clone()),
+                Path(primary.to_string()),
+                Json(close_body("x", None))
+            )
+            .await
+        ),
+        Some("PRIMARY_ACCOUNT")
+    );
+
+    let (funded, funded_acct) = campaign(&state, wid, "close-funded").await;
+    fund(&pool, funded_acct, 1_000).await;
+    assert_eq!(
+        code(
+            routes::close(
+                State(state.clone()),
+                Path(funded.to_string()),
+                Json(close_body("x", None))
+            )
+            .await
+        ),
+        Some("BALANCE_NOT_ZERO")
+    );
+
+    let (linked, _) = campaign(&state, wid, "close-linked").await;
+    sqlx::query(
+        "INSERT INTO payment_links (id, slug, merchant_id, wallet_id, amount_minor, currency, status, environment, wallet_account_id)
+         VALUES ($1, 'closelinked01', $2, $3, 100, 'AOA', 'ACTIVE', 'SANDBOX', $4)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(merchant)
+    .bind(wid)
+    .bind(linked)
+    .execute(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        code(
+            routes::close(
+                State(state.clone()),
+                Path(linked.to_string()),
+                Json(close_body("x", None))
+            )
+            .await
+        ),
+        Some("OPEN_PAYMENT_LINKS")
+    );
+
+    let (other, _) = campaign(&state, wid, "close-other").await;
+    assert_eq!(
+        code(
+            routes::close(
+                State(state.clone()),
+                Path(other.to_string()),
+                Json(close_body("x", Some(Uuid::new_v4())))
+            )
+            .await
+        ),
+        Some("NOT_FOUND")
+    );
+    assert_eq!(
+        code(
+            routes::close(
+                State(state.clone()),
+                Path(other.to_string()),
+                Json(close_body("  ", None))
+            )
+            .await
+        ),
+        Some("BAD_REQUEST")
+    );
+
+    // None of the refused accounts moved.
+    let active: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM wallet_accounts WHERE wallet_id = $1 AND status = 'ACTIVE'",
+    )
+    .bind(wid)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(active, 4);
 }

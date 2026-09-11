@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"strings"
@@ -190,6 +191,17 @@ func (c *CoreAdminClient) MarkPayoutReturned(ctx context.Context, id string) (ma
 // ---------------------------------------------------------------------------
 // Risk / freeze / audit log
 // ---------------------------------------------------------------------------
+
+// CloseWalletAccount ends a segregated wallet account through Core's lifecycle:
+// refused (409, with Core's code) when it holds money, is PRIMARY, or anything
+// could still pay through it.
+func (c *CoreAdminClient) CloseWalletAccount(ctx context.Context, id, reason, closedBy string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/wallet-accounts/"+url.PathEscape(id)+"/close", map[string]any{
+		"reason":    reason,
+		"closed_by": closedBy,
+	}, &out)
+}
 
 func (c *CoreAdminClient) FreezeAccount(ctx context.Context, entityType, entityID, reason, frozenBy string) (map[string]any, error) {
 	var out map[string]any

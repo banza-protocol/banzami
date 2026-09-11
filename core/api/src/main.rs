@@ -235,9 +235,19 @@ async fn main() {
         )
         .route_layer(payee_service_auth);
 
-    let app = Router::new()
-        // Health
-        .route("/health", get(health))
+    // Every other /internal route: CORE_INTERNAL_KEY (loopback excepted — see
+    // internal_service_auth_or_loopback). Applied as a route_layer to this group
+    // only; /health stays open, and the refund and payee groups keep their own
+    // narrower credentials. A route added below the route_layer call would be
+    // ungated — tests/ops/core-internal-routes-gated.test.mjs fails on that.
+    let general_key = core_internal_key.clone();
+    let general_service_auth = axum_middleware::from_fn(
+        move |req: axum::extract::Request, next: axum_middleware::Next| {
+            let key = general_key.clone();
+            async move { middleware::internal_service_auth_or_loopback(key, req, next).await }
+        },
+    );
+    let internal_routes = Router::new()
         // Merchants
         .route(
             "/internal/v1/merchants",
@@ -497,6 +507,14 @@ async fn main() {
         .route(
             "/internal/v1/wallet-accounts/:id",
             get(routes::wallet_accounts::get),
+        )
+        .route(
+            "/internal/v1/wallet-accounts/:id/close",
+            post(routes::wallet_accounts::close),
+        )
+        .route(
+            "/internal/v1/sandbox/retire-funds",
+            post(routes::sandbox_funds::retire),
         )
         .route(
             "/internal/v1/wallets/:wallet_id/accounts",
@@ -907,6 +925,12 @@ async fn main() {
             "/internal/v1/consumer-pay-links/:code/pay",
             post(routes::consumer_pay_links::pay),
         )
+        .route_layer(general_service_auth);
+
+    let app = Router::new()
+        // Health — open: the container healthcheck and the gateway's readiness.
+        .route("/health", get(health))
+        .merge(internal_routes)
         // Service-authenticated refund route group (CORE_INTERNAL_KEY, F4).
         .merge(refund_routes)
         .merge(payee_routes)
@@ -924,7 +948,14 @@ async fn main() {
         .await
         .expect("failed to bind");
 
-    axum::serve(listener, app).await.expect("server error");
+    // With the peer address, so the /internal gate can tell this container's
+    // loopback from another container.
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .await
+    .expect("server error");
 }
 
 async fn health() -> &'static str {

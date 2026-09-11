@@ -53,6 +53,20 @@ pricing field (`application_fee_bps`, `fee_policy_ref`, …) is refused with 400
 `PRICING_FIELD_NOT_ACCEPTED`. (*Historical:* the ADR-029 app-defined
 `application_fee_bps` path is removed.)
 
+### Close an account (the end of its life)
+`POST /internal/v1/wallet-accounts/:id/close {reason, closed_by, merchant_id?}`
+(operator: `POST /admin/v1/wallet-accounts/{id}/close`, SUPER_ADMIN, reason
+required). An account is never deleted — its ledger account keeps its history and
+the row keeps its identity. Closing sets `status = CLOSED`: the account can no longer
+receive (routing requires `ACTIVE`) or be named as a payee, and it leaves every
+active list (Core's `/wallets/:id/accounts` unless `include_closed=true`, the
+Developers Console list and count). Refused with 409 while it is `PRIMARY`
+(`PRIMARY_ACCOUNT`), holds money (`BALANCE_NOT_ZERO`), or anything could still pay
+through it (`OPEN_PAYMENT_LINKS`, `OPEN_PAYMENT_SESSIONS`, `ACTIVE_QR_CODES`,
+`PENDING_SETTLEMENT`). The row is locked for the check; closing twice is a no-op;
+`audit_log` records `WALLET_ACCOUNT_CLOSED` with the reason in the same
+transaction.
+
 ## Invariants
 - Exactly one `PRIMARY` per wallet (partial unique index).
 - An account's balance is ledger-derived; no mutable balance field.

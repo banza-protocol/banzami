@@ -65,6 +65,33 @@ pub async fn internal_service_auth(key: Option<String>, req: Request, next: Next
     next.run(req).await
 }
 
+/// The gate on every Core `/internal` route that has no narrower credential of
+/// its own: `CORE_INTERNAL_KEY`, exactly as [`internal_service_auth`] — except a
+/// request from this container's own loopback.
+///
+/// Until 2026-09-11 only refunds (and payee validation) were authenticated, so
+/// any container on the Sandbox network could post a transfer, credit a wallet
+/// or complete a settlement by calling Core directly. The four Go services now
+/// send the key on every Core call. Loopback stays open because only a process
+/// inside this container's network namespace can originate from it — that is
+/// `docker exec` on the host (the operator and the Sandbox harnesses), which
+/// already holds every secret; another container never can.
+pub async fn internal_service_auth_or_loopback(
+    key: Option<String>,
+    req: Request,
+    next: Next,
+) -> Response {
+    let from_loopback = req
+        .extensions()
+        .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+        .map(|c| c.0.ip().is_loopback())
+        .unwrap_or(false);
+    if from_loopback {
+        return next.run(req).await;
+    }
+    internal_service_auth(key, req, next).await
+}
+
 #[cfg(test)]
 mod internal_auth_tests {
     use axum::{
@@ -267,3 +294,82 @@ pub async fn request_id(mut req: Request, next: Next) -> Response {
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct RequestId(pub String);
+
+#[cfg(test)]
+mod general_gate_tests {
+    use axum::{
+        body::Body,
+        extract::ConnectInfo,
+        http::{Request as HttpRequest, StatusCode},
+        routing::post,
+        Router,
+    };
+    use std::net::SocketAddr;
+    use tower::util::ServiceExt;
+
+    async fn reached() -> &'static str {
+        "REACHED_HANDLER"
+    }
+
+    fn app() -> Router {
+        let auth = axum::middleware::from_fn(
+            move |req: axum::extract::Request, next: axum::middleware::Next| async move {
+                super::internal_service_auth_or_loopback(Some("core-key".into()), req, next).await
+            },
+        );
+        Router::new()
+            .route("/internal/v1/transfers", post(reached))
+            .route_layer(auth)
+    }
+
+    fn req(peer: &str, key: Option<&str>) -> HttpRequest<Body> {
+        let mut b = HttpRequest::builder()
+            .method("POST")
+            .uri("/internal/v1/transfers");
+        if let Some(k) = key {
+            b = b.header("X-Internal-Key", k);
+        }
+        let mut r = b.body(Body::empty()).unwrap();
+        r.extensions_mut()
+            .insert(ConnectInfo(peer.parse::<SocketAddr>().unwrap()));
+        r
+    }
+
+    #[tokio::test]
+    async fn another_container_without_the_key_is_refused() {
+        let resp = app().oneshot(req("172.20.0.9:40000", None)).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn another_container_with_a_wrong_key_is_refused() {
+        let resp = app()
+            .oneshot(req("172.20.0.9:40000", Some("nope")))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn a_service_with_the_key_is_accepted() {
+        let resp = app()
+            .oneshot(req("172.20.0.9:40000", Some("core-key")))
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn this_containers_loopback_is_accepted() {
+        let resp = app().oneshot(req("127.0.0.1:50000", None)).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn no_connection_info_is_not_loopback() {
+        let mut r = req("127.0.0.1:50000", None);
+        r.extensions_mut().remove::<ConnectInfo<SocketAddr>>();
+        let resp = app().oneshot(r).await.unwrap();
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+}

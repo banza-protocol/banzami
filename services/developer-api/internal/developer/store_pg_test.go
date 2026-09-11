@@ -85,3 +85,44 @@ func TestPgStore_APIKeyLifecycle(t *testing.T) {
 		t.Errorf("missing scope: want ErrForbidden, got %v", err)
 	}
 }
+
+// A closed wallet account is history: the Console neither lists nor counts it.
+func TestPgStore_WalletAccountsLeaveOutClosed(t *testing.T) {
+	ctx := context.Background()
+	pool := devPoolOrSkip(ctx, t)
+	defer pool.Close()
+	s := NewPGStore(pool, env.Sandbox).(*pgStore)
+
+	merchant, wallet := uuid.NewString(), uuid.NewString()
+	acct := func() string {
+		var id string
+		if err := pool.QueryRow(ctx, `INSERT INTO ledger_accounts (id, account_type, name, currency) VALUES (gen_random_uuid(), 'LIABILITY', 't', 'AOA') RETURNING id::text`).Scan(&id); err != nil {
+			t.Fatal(err)
+		}
+		return id
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO wallets (id, merchant_id, currency, status, available_account_id, reserved_account_id) VALUES ($1, $2, 'AOA', 'ACTIVE', $3, $4)`, wallet, merchant, acct(), acct()); err != nil {
+		t.Fatalf("seed wallet: %v", err)
+	}
+	for i, st := range []string{"ACTIVE", "CLOSED"} {
+		if _, err := pool.Exec(ctx, `INSERT INTO wallet_accounts (wallet_id, account_id, merchant_id, currency, purpose, status, label, reference_type, reference_id) VALUES ($1, $2, $3, 'AOA', 'CAMPAIGN', $4, 't', 'T', $5)`, wallet, acct(), merchant, st, uuid.NewString()); err != nil {
+			t.Fatalf("seed account %d: %v", i, err)
+		}
+	}
+	list, err := s.WalletAccountsForMerchant(ctx, merchant, WalletAccountFilter{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range list {
+		if a.Status == "CLOSED" {
+			t.Fatalf("a closed account was listed: %+v", a)
+		}
+	}
+	n, err := s.WalletAccountCountForMerchant(ctx, merchant)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != len(list) || n != 2 { // PRIMARY (created by the wallet trigger) + the ACTIVE campaign
+		t.Fatalf("count %d, listed %d, want 2", n, len(list))
+	}
+}

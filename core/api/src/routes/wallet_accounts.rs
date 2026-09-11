@@ -200,16 +200,27 @@ pub async fn create(
     ))
 }
 
+#[derive(Deserialize)]
+pub struct ListQuery {
+    /// A closed account is history, not an account anyone can use; lists leave
+    /// it out unless asked.
+    pub include_closed: Option<bool>,
+}
+
 pub async fn list_for_wallet(
     State(state): State<AppState>,
     Path(wallet_id): Path<String>,
+    Query(q): Query<ListQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let wid =
         Uuid::parse_str(&wallet_id).map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
     let rows = sqlx::query_as::<_, WaRow>(&format!(
-        "SELECT {WA_COLS} FROM wallet_accounts WHERE wallet_id = $1 ORDER BY purpose, created_at"
+        "SELECT {WA_COLS} FROM wallet_accounts
+          WHERE wallet_id = $1 AND ($2 OR status <> 'CLOSED')
+          ORDER BY purpose, created_at"
     ))
     .bind(wid)
+    .bind(q.include_closed.unwrap_or(false))
     .fetch_all(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
@@ -367,4 +378,145 @@ pub async fn validate_payee(
         "currency": wa_currency,
         "environment": state.environment.as_str(),
     })))
+}
+
+// ── Close (the lifecycle end of a segregated account) ────────────────────────
+//
+// A wallet account is never deleted: its ledger account keeps its history and
+// the row keeps its identity. Closing is the product meaning of "delete": the
+// account can no longer receive or send, cannot be named as a payee, and leaves
+// every active list. It is refused while it holds money or anything could still
+// move money through it.
+
+#[derive(Deserialize)]
+pub struct CloseBody {
+    /// Why — recorded in the audit log.
+    pub reason: String,
+    /// Who — an operator id, or the tool acting for one.
+    pub closed_by: String,
+    /// Optional owner assertion: a caller scoped to one Business names it, and an
+    /// account of another Business answers 404.
+    pub merchant_id: Option<String>,
+}
+
+/// POST /internal/v1/wallet-accounts/:id/close
+pub async fn close(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<CloseBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let id = Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("invalid id"))?;
+    let reason = body.reason.trim();
+    let closed_by = body.closed_by.trim();
+    if reason.is_empty() || reason.len() > 500 {
+        return Err(ApiError::bad_request(
+            "reason is required (at most 500 characters)",
+        ));
+    }
+    if closed_by.is_empty() || closed_by.len() > 200 {
+        return Err(ApiError::bad_request("closed_by is required"));
+    }
+    let scope: Option<Uuid> = match body.merchant_id.as_deref() {
+        Some(m) => {
+            Some(Uuid::parse_str(m).map_err(|_| ApiError::bad_request("invalid merchant_id"))?)
+        }
+        None => None,
+    };
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+
+    let mut tx = state.pool.begin().await.map_err(db)?;
+    let row = sqlx::query_as::<_, (Uuid, Uuid, String, String, Option<String>)>(
+        "SELECT account_id, merchant_id, purpose, status, label
+           FROM wallet_accounts WHERE id = $1 FOR UPDATE",
+    )
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db)?;
+    let Some((account_id, merchant_id, purpose, status, label)) = row else {
+        return Err(ApiError::not_found("wallet account not found"));
+    };
+    if scope.is_some_and(|m| m != merchant_id) {
+        return Err(ApiError::not_found("wallet account not found"));
+    }
+    if status == "CLOSED" {
+        tx.commit().await.map_err(db)?;
+        return Ok(Json(fetch_json(&state.pool, id).await?));
+    }
+    if purpose == "PRIMARY" {
+        return Err(ApiError::conflict(
+            "PRIMARY_ACCOUNT",
+            "the primary account is the wallet's own and is never closed",
+        ));
+    }
+    let balance: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE entry_type WHEN 'CREDIT' THEN amount_minor ELSE -amount_minor END), 0)::BIGINT
+           FROM ledger_entries WHERE account_id = $1",
+    )
+    .bind(account_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db)?;
+    if balance != 0 {
+        return Err(ApiError::conflict(
+            "BALANCE_NOT_ZERO",
+            "the account holds money — settle or move it before closing",
+        ));
+    }
+    let blocking: Vec<(&'static str, &'static str, &str)> = vec![
+        ("OPEN_PAYMENT_LINKS", "an active payment link still pays into this account",
+         "SELECT count(*) FROM payment_links WHERE wallet_account_id = $1 AND status = 'ACTIVE'"),
+        ("OPEN_PAYMENT_SESSIONS", "an open payment session still pays into this account",
+         "SELECT count(*) FROM payment_sessions WHERE wallet_account_id = $1 AND status IN ('CREATED','ACTIVE','PARTIALLY_PAID')"),
+        ("ACTIVE_QR_CODES", "an active QR code still pays into this account",
+         "SELECT count(*) FROM qr_codes WHERE wallet_account_id = $1 AND status = 'ACTIVE' AND (expires_at IS NULL OR expires_at > now())"),
+    ];
+    for (code, message, sql) in blocking {
+        let n: i64 = sqlx::query_scalar(sql)
+            .bind(id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db)?;
+        if n > 0 {
+            return Err(ApiError::conflict(code, message));
+        }
+    }
+    let pending_settlements: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM app_settlements
+          WHERE (source_account_id = $1 OR beneficiary_account_id = $1 OR application_fee_account_id = $1)
+            AND status IN ('CREATED','PENDING')",
+    )
+    .bind(account_id)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(db)?;
+    if pending_settlements > 0 {
+        return Err(ApiError::conflict(
+            "PENDING_SETTLEMENT",
+            "a settlement from or into this account has not finished",
+        ));
+    }
+
+    sqlx::query("UPDATE wallet_accounts SET status = 'CLOSED', updated_at = now() WHERE id = $1")
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db)?;
+    sqlx::query(
+        "INSERT INTO audit_log (actor, action, subject, metadata) VALUES ($1, 'WALLET_ACCOUNT_CLOSED', $2, $3)",
+    )
+    .bind(format!("OPERATOR:{closed_by}"))
+    .bind(format!("wallet_account:{id}"))
+    .bind(serde_json::json!({
+        "merchant_id": merchant_id,
+        "purpose": purpose,
+        "label": label,
+        "previous_status": status,
+        "reason": reason,
+    }))
+    .execute(&mut *tx)
+    .await
+    .map_err(db)?;
+    tx.commit().await.map_err(db)?;
+    Ok(Json(fetch_json(&state.pool, id).await?))
 }

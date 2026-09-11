@@ -56,6 +56,9 @@ const (
 	CapDisputeResolve Capability = "dispute.resolve"
 	CapRiskResolve    Capability = "risk.resolve" // resolve flags / acquiring recon
 	CapRiskFreeze     Capability = "risk.freeze"
+	// CapWalletAccountClose ends a Business's segregated wallet account (it must
+	// be empty, with nothing pending). No role holds it; SUPER_ADMIN only.
+	CapWalletAccountClose Capability = "wallet_account.close"
 )
 
 // RoleSuperAdmin holds every capability implicitly (see Can).

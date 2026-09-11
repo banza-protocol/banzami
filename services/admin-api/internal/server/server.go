@@ -187,6 +187,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		consumerH := handler.NewConsumerHandler(core)
 		walletH := handler.NewWalletHandler(core)
 		riskH := handler.NewRiskHandler(core)
+		walletAccountH := handler.NewWalletAccountHandler(core)
 		// This admin instance's environment (live admin → LIVE, admin-api-staging →
 		// SANDBOX) selects which gateway's proof to reverse on WON_BY_CONSUMER.
 		adminEnv := os.Getenv("ENVIRONMENT")
@@ -375,6 +376,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 
 		// Risk — freeze/unfreeze, risk flags, audit log, acquiring reconciliation
 		r.With(cap(auth.CapRiskFreeze)).Post("/admin/v1/risk/freeze", riskH.FreezeAccount)
+		r.With(cap(auth.CapWalletAccountClose)).Post("/admin/v1/wallet-accounts/{id}/close", walletAccountH.Close)
 		r.With(cap(auth.CapRiskFreeze)).Delete("/admin/v1/risk/freeze/{entity_type}/{entity_id}", riskH.UnfreezeAccount)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/flags", riskH.ListRiskFlags)
 		r.With(cap(auth.CapRiskResolve)).Post("/admin/v1/risk/flags/{id}/resolve", riskH.ResolveRiskFlag)
