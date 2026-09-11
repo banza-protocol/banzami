@@ -43,9 +43,19 @@ func coreSourceType(public string) (string, bool) {
 // surfaced to developers. WALLET_PAYMENT passes through unchanged. This maps only
 // the response representation — Core persistence is untouched.
 func publicizeRefund(r *service.Refund) {
-	if r != nil && r.SourceType == "TRANSACTION" {
+	if r == nil {
+		return
+	}
+	if r.SourceType == "TRANSACTION" {
 		r.SourceType = sourceAcquiring
 	}
+	// A refund is addressed by its public typed source. The payer's internal
+	// consumer id, the acquiring transaction id and the wallet id went to every
+	// caller — a Project key included — and none of them is the caller's to
+	// hold (F3 docs research, A6 class).
+	r.ConsumerID = nil
+	r.TransactionID = nil
+	r.WalletID = ""
 }
 
 type RefundHandler struct {

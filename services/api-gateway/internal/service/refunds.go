@@ -32,10 +32,10 @@ type Refund struct {
 	ID            string     `json:"id"`
 	SourceType    string     `json:"source_type"`
 	SourceID      string     `json:"source_id"`
-	TransactionID *string    `json:"transaction_id"` // acquiring only
+	TransactionID *string    `json:"transaction_id,omitempty"` // acquiring only; never sent to a caller
 	MerchantID    string     `json:"merchant_id"`
-	ConsumerID    *string    `json:"consumer_id"` // wallet-native only
-	WalletID      string     `json:"wallet_id"`
+	ConsumerID    *string    `json:"consumer_id,omitempty"` // wallet-native only; never sent to a caller
+	WalletID      string     `json:"wallet_id,omitempty"`   // never sent to a caller
 	AmountMinor   int64      `json:"amount_minor"`
 	Currency      string     `json:"currency"`
 	Reason        *string    `json:"reason"`

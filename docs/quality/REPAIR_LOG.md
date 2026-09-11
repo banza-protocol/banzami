@@ -3368,3 +3368,14 @@ returns @banza handles only; the app sends its token. Handle lookup
 Test `TestConsumerSearch_HandlesOnlyAndWildcardsAreLiteral` (the previous handler returns
 the name and forwards the wildcards). To verify on the deployed runtime: the search
 answers 401 without a consumer token.
+
+## RA-125 — refund responses handed the payer's internal id to every caller
+
+- **Found:** 2026-09-11 (full-system assurance, found while documenting A4-08)
+- **Status:** FIXED (gateway)
+
+`GET /v1/refunds`, `GET /v1/refunds/{id}` and the create response carried the payer's
+internal `consumer_id`, the acquiring `transaction_id` and the `wallet_id` to any caller
+with `refunds:read` — a Project key included (only `merchant_id` was stripped for
+keys). A refund is addressed by its public typed source (`source_type`, `source_id`);
+none of the three is now sent. Test `TestRefundResponse_CarriesNoPayerOrInternalIds`.
