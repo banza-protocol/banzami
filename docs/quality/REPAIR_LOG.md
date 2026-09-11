@@ -2606,3 +2606,30 @@ from_env` no longer invents a secret. Both providers verify through
 Tests: `state::secret_tests` (six) and `providers::tests::
 only_the_secret_signs_a_callback`; mutations restoring the default (three
 fail) and accepting any 32-byte tag (fails) are caught.
+
+## RA-085 — a forced log rotation left `docker logs --tail` hanging on every container
+
+- **Found:** 2026-09-11, minutes after installing log rotation (RA-082 follow-up)
+- **Status:** FIXED on the edges; stack services recover on their next deploy;
+  PostgreSQL and Redis deliberately not restarted
+
+I installed a logrotate stanza for `/var/lib/docker/containers/*/*-json.log`
+with `copytruncate` and forced one rotation, to move the pre-redaction access
+lines (223 and 96 naming a reference) out of the two nginx edges' active logs.
+The rotation itself worked — the active logs hold 0, the old content sits in
+two root-only rotated files, nothing was edited line by line — but Docker's
+`json-file` logger keeps its own count of bytes written, and `docker logs
+--tail` reads back from that count: on a file truncated underneath it, every
+`--tail` hung (15 s timeouts on all 14 containers; a fresh container tailed in
+18 ms). `--since` and plain `docker logs` still worked, and nothing was lost.
+The stanza would have repeated this daily.
+
+Now: the stanza is removed; a daily job deletes only rotated copies
+(`<id>-json.log-*`) older than 14 days and never a live log
+(`infra/sandbox/log-retention/`, guard `tests/ops/container-log-retention.test.mjs`
+— it also fails on any host config that truncates a live Docker log; three
+mutations caught). The two nginx edges and the webhook sink were restarted
+(under a second each; `--tail` works again); the stack services are recreated
+by every deploy. Live-log size caps need `log-opts` at container creation —
+open for the long-lived containers (docs/operations/LOG_RETENTION.md).
+

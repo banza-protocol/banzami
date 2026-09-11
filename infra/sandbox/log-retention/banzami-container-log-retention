@@ -1,0 +1,13 @@
+#!/bin/sh
+# Installed as /etc/cron.daily/banzami-container-log-retention on the Sandbox
+# host (217.160.9.248). Policy: docs/operations/LOG_RETENTION.md.
+#
+# Deletes rotated container log files older than 14 days — the copies left
+# beside each container's log by the one forced rotation of 2026-09-11, named
+# <id>-json.log-<date>-<epoch>. It never touches a live log (<id>-json.log):
+# Docker's json-file logger counts its own write position, so truncating a
+# live log from outside (logrotate copytruncate) leaves `docker logs --tail`
+# hanging until the container restarts. Live logs are bounded by Docker itself
+# (log-opts max-size/max-file) when a container is created with them.
+find /var/lib/docker/containers -mindepth 2 -maxdepth 2 -type f \
+  -name '*-json.log-*' -mtime +13 -delete
