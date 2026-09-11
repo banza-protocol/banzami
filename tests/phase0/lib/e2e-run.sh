@@ -150,6 +150,15 @@ e2e_core() { # method path json
 e2e_retire_merchant_funds() { # merchant
   local m="$1" wa code why="e2e fixture $E2E_RUN_ID"
   [ -n "$(e2e_sql "select 1 from handle_registry where owner_id = '$m' and handle = 'doa'")" ] && { echo 409; return; }
+  # A payout still in flight holds value the merchant no longer shows. Failing
+  # it through the payout lifecycle returns that value first — otherwise every
+  # run that made a payout left it PENDING, and its money out of reach.
+  local po
+  while read -r po; do
+    [ -n "$po" ] || continue
+    code=$(e2e_core POST "/internal/v1/payouts/$po/fail" "{\"reason\":\"$why\"}")
+    case "$code" in 2*) ;; *) echo "$code"; return ;; esac
+  done < <(e2e_sql "select id from payouts where merchant_id = '$m' and status in ('PENDING','PROCESSING','SENT')")
   while read -r wa; do
     [ -n "$wa" ] || continue
     code=$(e2e_core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"WALLET_ACCOUNT\",\"owner_id\":\"$wa\",\"reason\":\"$why\",\"retired_by\":\"e2e-run\",\"idempotency_key\":\"e2e-$E2E_RUN_ID-wa-$wa\"}")
