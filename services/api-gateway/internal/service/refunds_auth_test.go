@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-// The gateway→Core service credential (X-Internal-Key / CORE_INTERNAL_KEY) is an
-// EXPLICIT opt-in scoped to the Refund service boundary only. It must ride
-// refund create/get/list, and never leak onto any other Gateway→Core route
-// group (least-privilege, minimal propagation surface).
-func TestCoreInternalKey_OnlyOnRefundCalls(t *testing.T) {
+// The gateway→Core service credential (X-Internal-Key / CORE_INTERNAL_KEY)
+// rides every Gateway→Core call: refund create/get/list and everything else.
+// It was once scoped to refunds only; Core now authenticates every /internal
+// route, so a call without it would be refused.
+func TestCoreInternalKey_OnEveryCoreCall(t *testing.T) {
 	const key = "test-core-internal-key-9f3a"
 
 	type seen struct{ path, keyHdr string }
@@ -48,7 +48,9 @@ func TestCoreInternalKey_OnlyOnRefundCalls(t *testing.T) {
 		t.Fatalf("refund list should succeed: %v", err)
 	}
 
-	// Unrelated Core traffic — MUST NOT carry the key.
+	// Every other Core call carries it too: Core authenticates every /internal
+	// route (this test used to assert the opposite, when refunds were the only
+	// authenticated group).
 	var out map[string]any
 	_ = client.get(ctx, "/internal/v1/transactions/abc", &out)
 	_, _, _ = client.postRaw(ctx, "/internal/v1/wallets/x/transfer", map[string]any{"a": 1})
@@ -65,8 +67,8 @@ func TestCoreInternalKey_OnlyOnRefundCalls(t *testing.T) {
 			if s.keyHdr != key {
 				t.Fatalf("refund call %s must carry X-Internal-Key, got %q", s.path, s.keyHdr)
 			}
-		} else if s.keyHdr != "" {
-			t.Fatalf("non-refund call %s leaked X-Internal-Key (%q) — must be key-free", s.path, s.keyHdr)
+		} else if s.keyHdr != key {
+			t.Fatalf("Core call %s must carry X-Internal-Key, got %q", s.path, s.keyHdr)
 		}
 	}
 	if !sawRefund {

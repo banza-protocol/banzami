@@ -42,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	core := service.NewCoreAdminClient(cfg.CoreAPIURL)
+	core := service.NewCoreAdminClient(cfg.CoreAPIURL).WithInternalKey(cfg.CoreInternalKey)
 	gw := service.NewGatewayClient(cfg.GatewayInternalURL, cfg.InternalAPIKey)
 	// The primary gateway is the one of the environment this console runs in.
 	// On a Sandbox deployment that is the stack's own gateway: the LIVE default

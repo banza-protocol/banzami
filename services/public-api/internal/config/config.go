@@ -36,6 +36,8 @@ type Config struct {
 	// reference (the QR still renders, but resolves only once a proof exists).
 	GatewayInternalURL string
 	InternalAPIKey     string
+	// CoreInternalKey authenticates this service to Core (X-Internal-Key).
+	CoreInternalKey string
 }
 
 // Load reads config from environment variables.
@@ -96,5 +98,6 @@ func Load() (*Config, error) {
 		Environment:             env,
 		GatewayInternalURL:      os.Getenv("GATEWAY_INTERNAL_URL"),
 		InternalAPIKey:          os.Getenv("INTERNAL_API_KEY"),
+		CoreInternalKey:         os.Getenv("CORE_INTERNAL_KEY"),
 	}, nil
 }

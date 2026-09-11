@@ -64,7 +64,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	core := service.NewCorePublicClient(cfg.CoreAPIURL)
+	core := service.NewCorePublicClient(cfg.CoreAPIURL).WithInternalKey(cfg.CoreInternalKey)
 	creds := service.NewCredentialStore(pool)
 
 	// Consumer KYC evidence storage (R2). Optional: a nil storage makes upload

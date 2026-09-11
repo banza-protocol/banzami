@@ -114,7 +114,7 @@ func main() {
 	// The Console's own refund (the first financial write this service makes).
 	// Unset key → nil Refunder → the Console reports the capability as
 	// unavailable rather than rendering a control that would fail when pressed.
-	if rf := developer.NewCoreRefunder(coreclient.NewRefund(cfg.CoreAPIURL, cfg.CoreRefundKey)); rf != nil {
+	if rf := developer.NewCoreRefunder(coreclient.NewRefund(cfg.CoreAPIURL, cfg.CoreRefundKey).WithInternalKey(cfg.CoreInternalKey)); rf != nil {
 		devSvc.SetRefunder(rf)
 
 		// Webhook signing secrets at rest. The Console creates endpoints now, so this
@@ -150,7 +150,7 @@ func main() {
 	} else {
 		slog.Warn("GATEWAY_INTERNAL_URL / INTERNAL_API_KEY not set — Project financial onboarding is unavailable")
 	}
-	if pc := coreclient.NewProvision(cfg.CoreAPIURL); pc != nil {
+	if pc := coreclient.NewProvision(cfg.CoreAPIURL).WithInternalKey(cfg.CoreInternalKey); pc != nil {
 		devSvc.SetSandboxProvisioner(developer.NewSandboxProvisioner(pc))
 		// The Console reads the same readiness a Project key reads.
 		devSvc.SetReadinessReader(developer.NewReadinessReader(pc))

@@ -63,6 +63,9 @@ type Config struct {
 	// Empty → the Console reports refunds as unavailable, which is true, instead
 	// of offering a button that fails when pressed.
 	CoreRefundKey string
+	// CoreInternalKey authenticates this service to Core's /internal routes
+	// (X-Internal-Key); the payee-validation and refund keys stay dedicated.
+	CoreInternalKey string
 	// GatewayInternalURL + GatewayInternalKey reach the Gateway's Business
 	// onboarding domain (applications, Business consent codes). The key is the
 	// Gateway's internal credential (INTERNAL_API_KEY on both sides).
@@ -159,6 +162,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_PAYEE_VALIDATION_KEY"); v != "" {
 		cfg.CorePayeeValidationKey = v
+	}
+	if v := os.Getenv("CORE_INTERNAL_KEY"); v != "" {
+		cfg.CoreInternalKey = v
 	}
 	if v := os.Getenv("CORE_REFUND_KEY"); v != "" {
 		cfg.CoreRefundKey = v

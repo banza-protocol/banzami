@@ -122,6 +122,16 @@ func NewRefund(baseURL, refundKey string) *RefundClient {
 	return &RefundClient{baseURL: baseURL, refundKey: refundKey, http: &http.Client{Timeout: 15 * time.Second}}
 }
 
+// WithInternalKey makes every request carry Core's service credential
+// (CORE_INTERNAL_KEY) unless it already names the refund key. Core refuses an
+// /internal request without one (the payment-session read, here).
+func (c *RefundClient) WithInternalKey(key string) *RefundClient {
+	if c != nil {
+		c.http.Transport = coreKeyTransport{key: key, base: c.http.Transport}
+	}
+	return c
+}
+
 // PaymentSource is what Core says a payment can be refunded against: the typed
 // source of BANZA ADR-017, plus the merchant that owns the payment so the caller
 // can check it against the one its own authority chain produced.
@@ -289,6 +299,37 @@ func NewProvision(baseURL string) *ProvisionClient {
 		return nil
 	}
 	return &ProvisionClient{baseURL: baseURL, http: &http.Client{Timeout: 20 * time.Second}}
+}
+
+// WithInternalKey makes every request carry Core's service credential
+// (CORE_INTERNAL_KEY). Core refuses an /internal request without it.
+func (c *ProvisionClient) WithInternalKey(key string) *ProvisionClient {
+	if c != nil {
+		c.http.Transport = coreKeyTransport{key: key, base: c.http.Transport}
+	}
+	return c
+}
+
+// coreKeyTransport attaches Core's service credential (X-Internal-Key,
+// CORE_INTERNAL_KEY) to every request this client sends. Core authenticates
+// every /internal route, so a request without it is refused; a request that
+// already carries a dedicated key (a narrower credential for one route group)
+// keeps it. The value is never logged.
+type coreKeyTransport struct {
+	key  string
+	base http.RoundTripper
+}
+
+func (t coreKeyTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if t.key != "" && r.Header.Get("X-Internal-Key") == "" {
+		r = r.Clone(r.Context())
+		r.Header.Set("X-Internal-Key", t.key)
+	}
+	base := t.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	return base.RoundTrip(r)
 }
 
 // SandboxOwner is what was provisioned. The developer never sees these ids; they

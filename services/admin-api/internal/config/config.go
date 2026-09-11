@@ -58,6 +58,8 @@ type Config struct {
 	// Gateway internal API — for the merchant-application orchestration.
 	GatewayInternalURL string // e.g. http://api-gateway:8080
 	InternalAPIKey     string // shared secret sent as X-Internal-Key
+	// CoreInternalKey authenticates this service to Core (X-Internal-Key).
+	CoreInternalKey string
 	// Optional: lets the (live) portal review SANDBOX merchant KYB documents by
 	// forwarding to the staging gateway. Absent → the SANDBOX toggle is disabled.
 	GatewayStagingInternalURL string // e.g. http://api-gateway-staging:8080
@@ -196,6 +198,7 @@ func Load() (*Config, error) {
 		EmailDryRun:               os.Getenv("EMAIL_DRY_RUN") != "false",
 		GatewayInternalURL:        getenvDefault("GATEWAY_INTERNAL_URL", "http://api-gateway:8080"),
 		InternalAPIKey:            os.Getenv("INTERNAL_API_KEY"),
+		CoreInternalKey:           os.Getenv("CORE_INTERNAL_KEY"),
 		GatewayStagingInternalURL: os.Getenv("GATEWAY_STAGING_INTERNAL_URL"),
 		StagingInternalAPIKey:     os.Getenv("STAGING_INTERNAL_API_KEY"),
 		WebsiteBaseURL:            getenvDefault("WEBSITE_BASE_URL", "https://banzami.com"),

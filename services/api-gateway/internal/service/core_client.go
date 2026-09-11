@@ -45,10 +45,32 @@ func NewCoreApiClient(baseURL, coreInternalKey string) *CoreApiClient {
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			// Propagate the flow's correlation_id to core-api so Go and Rust logs
-			// can be joined end-to-end.
-			Transport: obs.NewPropagationTransport(nil),
+			// can be joined end-to-end, and authenticate every request.
+			Transport: coreKeyTransport{key: coreInternalKey, base: obs.NewPropagationTransport(nil)},
 		},
 	}
+}
+
+// coreKeyTransport attaches Core's service credential (X-Internal-Key,
+// CORE_INTERNAL_KEY) to every request this client sends. Core authenticates
+// every /internal route, so a request without it is refused; a request that
+// already carries a dedicated key (a narrower credential for one route group)
+// keeps it. The value is never logged.
+type coreKeyTransport struct {
+	key  string
+	base http.RoundTripper
+}
+
+func (t coreKeyTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if t.key != "" && r.Header.Get("X-Internal-Key") == "" {
+		r = r.Clone(r.Context())
+		r.Header.Set("X-Internal-Key", t.key)
+	}
+	base := t.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	return base.RoundTrip(r)
 }
 
 // coreReqOption mutates an outgoing Core request before it is sent. Reusable,
@@ -56,10 +78,11 @@ func NewCoreApiClient(baseURL, coreInternalKey string) *CoreApiClient {
 // default, so a credential can never travel to an unrelated route group.
 type coreReqOption func(*http.Request)
 
-// internalAuth is the EXPLICIT opt-in that attaches the Gateway→Core service
-// credential (X-Internal-Key). It is applied ONLY at the Refund service boundary
-// (create/get/list); no other Gateway→Core traffic carries CORE_INTERNAL_KEY.
-// The value is never logged (only method/path/status are traced).
+// internalAuth attaches the Gateway→Core service credential (X-Internal-Key)
+// explicitly. It was once the ONLY carrier of CORE_INTERNAL_KEY (refunds); since
+// Core authenticates every /internal route, coreKeyTransport sends it on every
+// request and this remains for the refund calls that name it. The value is
+// never logged (only method/path/status are traced).
 func (c *CoreApiClient) internalAuth() coreReqOption {
 	return func(req *http.Request) {
 		if c.coreInternalKey != "" {

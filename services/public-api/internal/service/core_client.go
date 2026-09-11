@@ -67,6 +67,35 @@ func NewCorePublicClient(baseURL string) *CorePublicClient {
 	}
 }
 
+// WithInternalKey makes every request carry Core's service credential
+// (CORE_INTERNAL_KEY). Core refuses an /internal request without it.
+func (c *CorePublicClient) WithInternalKey(key string) *CorePublicClient {
+	c.httpClient.Transport = coreKeyTransport{key: key, base: c.httpClient.Transport}
+	return c
+}
+
+// coreKeyTransport attaches Core's service credential (X-Internal-Key,
+// CORE_INTERNAL_KEY) to every request this client sends. Core authenticates
+// every /internal route, so a request without it is refused; a request that
+// already carries a dedicated key (a narrower credential for one route group)
+// keeps it. The value is never logged.
+type coreKeyTransport struct {
+	key  string
+	base http.RoundTripper
+}
+
+func (t coreKeyTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	if t.key != "" && r.Header.Get("X-Internal-Key") == "" {
+		r = r.Clone(r.Context())
+		r.Header.Set("X-Internal-Key", t.key)
+	}
+	base := t.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	return base.RoundTrip(r)
+}
+
 // ---------------------------------------------------------------------------
 // Domain types
 // ---------------------------------------------------------------------------
