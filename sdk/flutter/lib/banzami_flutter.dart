@@ -46,6 +46,7 @@ export 'client/banzami_environment.dart';
 export 'client/consumer_public_client.dart';
 export 'client/pinned_http_client.dart';
 export 'client/api_exception.dart';
+export 'client/push_topic.dart';
 
 // Models
 export 'models/activity_item.dart';

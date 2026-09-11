@@ -12,6 +12,7 @@ import (
 
 	documents "github.com/banzami/banzami/services/common/documents"
 	banzamienv "github.com/banzami/banzami/services/common/env"
+	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
 	"github.com/banzami/banzami/services/public-api/internal/notify"
@@ -228,8 +229,7 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		defer cancel()
 		slog.Info("[FCM] event created",
 			"event", "payment_link_paid",
-			"merchant_id", merchantID,
-			"amount_minor", amount,
+			"merchant_id", obs.MaskID(merchantID),
 		)
 		h.fcm.SendPaymentLinkPaid(ctx, merchantID, amount, currency)
 	}(link.MerchantID, *amountMinor, link.Currency)

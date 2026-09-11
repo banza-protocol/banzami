@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
+
 import '../client/api_exception.dart';
 
 /// The one place a failure becomes words a Banzami user reads.
@@ -83,6 +85,11 @@ bool isOutcomeUnknown(Object error) {
   return false;
 }
 
+/// Whether [code] has copy of its own (rather than its status class's).
+/// For tests that check every code the server sends is worded.
+@visibleForTesting
+bool banzamiErrorCodeHasCopy(String code) => _byCode(code.toUpperCase()) != null;
+
 String? _byCode(String code) {
   if (code.startsWith('PILOT_LIMIT_')) return _pilotLimit(code);
   switch (code) {
@@ -163,6 +170,12 @@ String? _byCode(String code) {
       return 'Este @banza não está disponível.';
     case 'PIN_POLICY_FAILED':
       return 'Este PIN é demasiado fácil de adivinhar. Escolha outro.';
+    case 'TOO_MANY_ATTEMPTS':
+      return 'Demasiadas tentativas com o PIN errado. Aguarde alguns minutos e tente novamente.';
+    case 'ONBOARDING_NOT_FOUND':
+      return 'O registo expirou. Comece de novo.';
+    case 'DUPLICATE_WALLET':
+      return 'Já existe uma carteira Banzami para este número de telefone.';
 
     // Verification (KYC / KYB) and payouts
     case 'EVIDENCE_INCOMPLETE':
@@ -178,6 +191,12 @@ String? _byCode(String code) {
       return 'A verificação de conformidade está indisponível. Tente novamente em instantes.';
     case 'SANDBOX_ONLY':
       return 'Disponível apenas no ambiente de testes (Sandbox).';
+    case 'SANDBOX_CREDIT_REFUSED':
+      return 'O ambiente de testes (Sandbox) recusou este carregamento.';
+
+    // Documents
+    case 'RECEIPT_UNAVAILABLE':
+      return 'O comprovativo não está disponível neste momento. Tente novamente dentro de momentos.';
   }
   return null;
 }

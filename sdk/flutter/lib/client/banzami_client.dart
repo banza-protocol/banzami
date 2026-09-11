@@ -15,6 +15,7 @@ import '../models/qr_code.dart';
 import 'api_exception.dart';
 import 'banzami_environment.dart';
 import 'merchant_session_tokens.dart';
+import 'push_topic.dart';
 
 /// HTTP client for the Banzami Go api-gateway.
 ///
@@ -778,6 +779,18 @@ class BanzamiClient {
     }
     final json = await _get(path);
     return MerchantWalletPaymentPage.fromJson(json);
+  }
+
+  /// The FCM topic this Business's payment notifications are published to,
+  /// exactly as the gateway names it, or null when push topics are not
+  /// configured there.
+  ///
+  /// The name is a keyed hash of the merchant id, disclosed only to the
+  /// Business's own session (A6-06): subscribe to exactly this, and never
+  /// derive a topic from the id.
+  Future<String?> getMerchantPushTopic() async {
+    final json = await _get('/v1/merchant/push-topic');
+    return banzamiPushTopicFrom(json);
   }
 
   /// Fetches the official merchant payment receipt PDF (generated server-side by

@@ -167,6 +167,9 @@ class MerchantSessionService extends ChangeNotifier {
   static const _kBioEnabled    = 'merchant_bio_enabled';
   static const _kVerified      = 'merchant_verified';
   static const _kNotifSound    = 'merchant_notif_sound';
+  /// The FCM topic the gateway named for the signed-in Business (A6-06), so
+  /// ending the session leaves it even before the app has asked again.
+  static const _kPushTopic     = 'merchant_push_topic';
 
   /// What an ended Business session leaves behind: the tokens first (so an
   /// interrupted wipe can never leave a renewable session), then everything
@@ -176,6 +179,7 @@ class MerchantSessionService extends ChangeNotifier {
   static const _sessionKeys = [
     _kRefreshToken, _kRefreshExpiry, _kJwt, _kJwtExpiry,
     _kMerchantId, _kMerchantName, _kMerchantEmail, _kWalletId, _kVerified,
+    _kPushTopic,
   ];
 
   /// Whether to play a confirmation sound on incoming payment notifications.
@@ -186,6 +190,8 @@ class MerchantSessionService extends ChangeNotifier {
       _store.write(key: _kNotifSound, value: on ? '1' : '0');
 
   MerchantSession? _session;
+  /// The topic [rememberPushTopic] recorded for the signed-in Business.
+  String? _pushTopic;
   bool             _locked      = true;
   bool             _initialized = false;
   bool             _expired     = false;
@@ -300,6 +306,7 @@ class MerchantSessionService extends ChangeNotifier {
     final bioEnabled    = await _store.read(key: _kBioEnabled);
     final verified      = await _store.read(key: _kVerified);
     final pinHash       = await _store.read(key: _kPinHash);
+    _pushTopic          = await _store.read(key: _kPushTopic);
 
     // Withdrawn API-key sessions: a device that stored a secret API key (or a
     // session signed in any other way than @banza + PIN) keeps nothing of it.
@@ -391,12 +398,31 @@ class MerchantSessionService extends ChangeNotifier {
   /// in, and the platform SDKs retry a topic operation that could not be sent.
   /// A signed-out device must not keep announcing the Business's payments.
   void _unregisterPush(String? merchantId) {
-    if (merchantId == null || merchantId.isEmpty) return;
-    for (final topic in PushNotificationService.merchantTopics(merchantId)) {
+    // The topic the gateway named (A6-06), and the legacy id-derived ones.
+    final topics = [
+      if (merchantId != null && merchantId.isNotEmpty)
+        ...PushNotificationService.legacyMerchantTopics(merchantId),
+      if (_pushTopic != null && _pushTopic!.isNotEmpty) _pushTopic!,
+    ];
+    _pushTopic = null;
+    for (final topic in topics) {
       // Future.sync: the call starts now, while the session is still here.
       unawaited(Future.sync(() => _push.unsubscribe(topic)).catchError((Object e) {
         debugPrint('[session] could not unsubscribe from a Business topic: ${e.runtimeType}');
       }));
+    }
+  }
+
+  /// Records the FCM topic the gateway named for [merchantId] (A6-06) —
+  /// before the device subscribes — so ending the session leaves it. Ignored
+  /// once that Business is no longer the one signed in here.
+  Future<void> rememberPushTopic(String merchantId, String topic) async {
+    if (_session?.merchantId != merchantId || topic.isEmpty) return;
+    _pushTopic = topic;
+    try {
+      await _serial(() => _store.write(key: _kPushTopic, value: topic));
+    } catch (e) {
+      debugPrint('[session] could not store the push topic: ${e.runtimeType}');
     }
   }
 

@@ -1098,7 +1098,9 @@ Handlers que disparam FCM:
 | `ENVIRONMENT` | `public-api` | `LIVE` |
 | `ENVIRONMENT` | `public-api-staging` | `SANDBOX` |
 
-O `ENVIRONMENT` controla o prefixo do tópico (`sandbox_consumer_` vs `consumer_`) e bloqueia o endpoint de debug em LIVE.
+| `PUSH_TOPIC_KEY` | `public-api`, `api-gateway` (cada stack) | Chave aleatória ≥ 32 bytes; o mesmo valor nos dois serviços do stack (ver §16) |
+
+O `ENVIRONMENT` controla o prefixo do tópico (`sandbox_` vs nenhum) e bloqueia o endpoint de debug em LIVE.
 
 > **Projeto Firebase atual: `banzami` (project_number `473654224852`).** O `FIREBASE_CREDENTIALS_JSON` tem de ser o service account **deste** projeto — gerado em Firebase Console → Project Settings → Service accounts → Generate new private key — e o seu `project_id` tem de ser igual ao `PROJECT_ID` dos `GoogleService-Info.plist` / `google-services.json` do mobile. Os tópicos FCM são por-projeto: credenciais de outro projeto não entregam push às apps. (Migração histórica: o projeto anterior era `banza-e0c07` / `186759898040`; já não deve ser usado em nenhum passo ativo.)
 
@@ -1108,23 +1110,43 @@ O `ENVIRONMENT` controla o prefixo do tópico (`sandbox_consumer_` vs `consumer_
 
 ## 16. Nomenclatura de tópicos
 
-Os tópicos FCM seguem o padrão:
+> **Os tópicos são nomes com chave (A6-06).** Antes eram `consumer_<uuid>` e
+> `merchant_<uuid>`. O FCM não autentica quem subscreve um tópico, e a
+> configuração cliente do Firebase é pública: quem soubesse um id (os ids de
+> Business aparecem em superfícies públicas) recebia "Recebeu X de @pagador"
+> de todos os pagamentos dessa conta. As secções acima que mostram
+> `consumer_<id>` descrevem o desenho antigo.
+
+O servidor deriva o nome (`services/common/pushtopic`):
 
 | Ambiente | Destinatário | Tópico |
 |---|---|---|
-| SANDBOX | Consumer | `sandbox_consumer_<consumer_uuid>` |
-| SANDBOX | Merchant | `sandbox_merchant_<merchant_uuid>` |
-| LIVE | Consumer | `consumer_<consumer_uuid>` |
-| LIVE | Merchant | `merchant_<merchant_uuid>` |
+| SANDBOX | Consumer | `sandbox_c_<hex(HMAC-SHA256(PUSH_TOPIC_KEY, "consumer:"+uuid))[:32]>` |
+| SANDBOX | Merchant | `sandbox_m_<hex(HMAC-SHA256(PUSH_TOPIC_KEY, "merchant:"+uuid))[:32]>` |
+| LIVE | Consumer | `c_<…mesma derivação…>` |
+| LIVE | Merchant | `m_<…mesma derivação…>` |
 
 **Regras:**
 
-1. O tópico de subscrição no mobile e o tópico de envio no backend têm de ser **exactamente iguais** — um caractere de diferença e a notificação nunca chega.
-2. Usar sempre `consumer_id` (UUID da tabela `consumers`), nunca `user_id` ou `handle`.
-3. O isolamento sandbox/live é garantido pelo prefixo — uma notificação de sandbox nunca chega a um dispositivo em modo live e vice-versa.
-4. Para novos tipos de destinatário (ex: merchant consumer), definir o padrão explicitamente antes de implementar — não inventar variações ad-hoc.
-
----
+1. **Só o servidor calcula o tópico.** A app pergunta-o à sessão autenticada —
+   consumer: `GET /v1/me/push-topic` (public-api); Business:
+   `GET /v1/merchant/push-topic` (gateway) — e subscreve exactamente o que
+   recebe. A app nunca deriva um tópico a partir do id.
+2. `PUSH_TOPIC_KEY` (≥ 32 bytes, aleatório) tem de ser **o mesmo valor** no
+   public-api e no gateway de cada stack: o tópico de um Business é publicado
+   pelos dois (pagamento por link no public-api, pagamento acquiring no
+   gateway).
+3. **Sem chave não há tópico.** Os envios por tópico são saltados (um aviso
+   no log, uma vez) e as rotas acima respondem `{"topic": null}` — nunca um
+   regresso ao nome adivinhável.
+4. Rodar a chave muda todos os tópicos: cada app volta a subscrever o novo
+   nome na próxima abertura; até lá não recebe push (o histórico por polling
+   continua a funcionar).
+5. Ao subscrever o tópico novo, a app retira o dispositivo dos tópicos
+   antigos (`consumer_<id>`, `sandbox_consumer_<id>`, `merchant_<id>`,
+   `sandbox_merchant_<id>`); ao terminar sessão retira-o de todos.
+6. O log nunca regista o tópico, o @handle do pagador nem o valor; os ids
+   aparecem mascarados (`obs.MaskID`).
 
 ## 17. Checklist de validação end-to-end
 

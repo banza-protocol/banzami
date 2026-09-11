@@ -62,12 +62,17 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       };
     }
 
-    // Skipped if the consumer signed out while APNs was still starting — a
-    // late subscription would undo the sign-out's unsubscription.
-    await PushNotificationService.subscribeConsumer(session.consumerId,
-        stillWanted: () => svc.isSignedInAs(session.consumerId));
+    // The topic is the one the server names for this consumer's own session
+    // (A6-06) — never derived here. Skipped if the consumer signed out while
+    // APNs was still starting: a late subscription would undo the sign-out.
+    await PushNotificationService.joinServerTopic(
+      fetchTopic:   client.getPushTopic,
+      legacyTopics: PushNotificationService.legacyConsumerTopics(session.consumerId),
+      remember:     (topic) => svc.rememberPushTopic(session.consumerId, topic),
+      stillWanted:  () => svc.isSignedInAs(session.consumerId),
+    );
     final token = await PushNotificationService.getToken();
-    debugPrint('[FCM] token registered consumerId=${session.consumerId} hasToken=${token != null}');
+    debugPrint('[FCM] token registered hasToken=${token != null}');
   }
 
   Future<void> _refreshProfile() async {

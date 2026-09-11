@@ -4,9 +4,11 @@ import '../../services/push_notification_service.dart';
 
 /// This device's registration for a Business's push notifications.
 ///
-/// The Business App receives a Business's payment notifications through an
-/// FCM topic (see [PushNotificationService.merchantTopics]); there is no
-/// per-device token registered with Banzami. Ending the session must take the
+/// The Business App receives a Business's payment notifications through the
+/// FCM topic the gateway named for it (A6-06,
+/// [PushNotificationService.joinServerTopic]); the legacy id-derived topics
+/// ([PushNotificationService.legacyMerchantTopics]) are only ever left. There
+/// is no per-device token registered with Banzami. Ending the session must take the
 /// device off that topic, or a signed-out phone keeps announcing the
 /// Business's payments. [MerchantSessionService] owns that; this interface is
 /// what it calls, so the behaviour can be tested without Firebase.

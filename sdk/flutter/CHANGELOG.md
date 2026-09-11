@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `ConsumerPublicClient.getPushTopic()` (`GET /v1/me/push-topic`) and
+  `BanzamiClient.getMerchantPushTopic()` (`GET /v1/merchant/push-topic`): the
+  FCM topic the server names for the signed-in account — a keyed name only
+  that session learns (A6-06) — or null when push topics are not configured.
+  Subscribe to exactly this name; never derive a topic from an account id.
+  `banzamiPushTopicFrom(json)` accepts only a valid FCM topic name.
 - Renewable Business App sessions: `BanzamiClient(refreshSession: …)` renews a
   handle-login access token before it expires and on a 401 — one shared
   renewal for concurrent requests, one retry per failed request, never a loop.

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/common/pushtopic"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -43,6 +44,10 @@ type Dependencies struct {
 	FCMSvc      *notify.FCMService
 	KycSvc      *service.KycService
 	ProofClient *service.ProofClient // optional; mints receipt proof references
+
+	// PushTopics names the signed-in consumer's FCM topic for
+	// GET /v1/me/push-topic. Nil (no PUSH_TOPIC_KEY) answers null.
+	PushTopics *pushtopic.Namer
 }
 
 // Server wraps the HTTP server lifecycle.
@@ -88,6 +93,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH := handler.NewOnboardingHandler(deps.CoreClient).WithEnvironment(cfg.Environment)
 	debugPushH := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
+	pushTopicH := handler.NewPushTopicHandler(deps.PushTopics)
 	kycH := handler.NewKycHandler(deps.KycSvc)
 
 	// Public auth — no JWT required. Rate-limited per IP against brute-force +
@@ -145,6 +151,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Get("/v1/me/wallet", meH.Wallet)
 		r.Get("/v1/me/wallet/balance", meH.Balance)
 		r.Get("/v1/me/activity", activityH.Activity)
+		// The FCM topic this consumer's notifications are published to — a
+		// keyed name only its own session learns (A6-06).
+		r.Get("/v1/me/push-topic", pushTopicH.Consumer)
 
 		// Transfers
 		r.Post("/v1/transfers", transferH.Send)

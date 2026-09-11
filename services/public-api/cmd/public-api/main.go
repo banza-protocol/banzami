@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/common/pushtopic"
 	"os"
 	"os/signal"
 	"syscall"
@@ -88,7 +89,14 @@ func main() {
 	}
 	kycSvc := service.NewKycService(pool, kycStore, cfg.Environment)
 
-	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment)
+	// The FCM topic names are keyed (A6-06). Without the key no topic is
+	// named: pushes are skipped and GET /v1/me/push-topic answers null.
+	pushTopics, topicErr := pushtopic.New(cfg.PushTopicKey, env.Parse(cfg.Environment).IsSandbox())
+	if topicErr != nil {
+		slog.Warn("[FCM] push topics disabled", "reason", topicErr.Error())
+	}
+
+	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment, pushTopics)
 	if err != nil {
 		slog.Error("[FCM] initialization failed", "error", err)
 		os.Exit(1)
@@ -98,6 +106,7 @@ func main() {
 		CoreClient:  core,
 		CredStore:   creds,
 		FCMSvc:      fcmSvc,
+		PushTopics:  pushTopics,
 		KycSvc:      kycSvc,
 		ProofClient: service.NewProofClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
 	})

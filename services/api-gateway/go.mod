@@ -106,3 +106,7 @@ replace github.com/banzami/banzami/services/common/webhookprov => ../common/webh
 require github.com/banzami/banzami/services/common/corepath v0.0.0
 
 replace github.com/banzami/banzami/services/common/corepath => ../common/corepath
+
+require github.com/banzami/banzami/services/common/pushtopic v0.0.0
+
+replace github.com/banzami/banzami/services/common/pushtopic => ../common/pushtopic

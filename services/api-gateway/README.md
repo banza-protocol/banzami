@@ -149,6 +149,7 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | POST · GET | /v1/transactions | Create · list transactions |
 | GET | /v1/transactions/{id} | Read a transaction |
 | GET | /v1/merchant/wallet-payments | Wallet payments received |
+| GET | /v1/merchant/push-topic | The Business's own FCM topic, `{"topic": "m_<32 hex>"}` (`sandbox_m_…` on the Sandbox), or `{"topic": null}` when `PUSH_TOPIC_KEY` is unset. The Business App subscribes to exactly this name (A6-06). Merchant JWT only; a consumer token gets 403 |
 | GET | /v1/merchant/transactions/{id}/receipt.pdf | Receipt PDF |
 | POST | /v1/merchants | Create merchant — **Sandbox fixture route only**; not mounted on LIVE (ADR-058) |
 | GET | /v1/merchants/{id} | Read merchant |
@@ -233,6 +234,7 @@ go run cmd/gateway/main.go
 | CORE_API_URL | — | Yes | Base URL for the Rust core-api (e.g. `http://localhost:8081`) |
 | OTLP_ENDPOINT | — | No | OpenTelemetry collector endpoint; tracing disabled when empty |
 | FIREBASE_CREDENTIALS_JSON | — | No | Firebase service-account JSON (minified); push notifications disabled when empty |
+| PUSH_TOPIC_KEY | — | For push | Random secret, at least 32 bytes, keying the FCM topic names (A6-06, `services/common/pushtopic`). Must be the **same value in public-api** on the same stack. Empty or short: topic pushes are skipped (logged once) and `GET /v1/merchant/push-topic` answers `{"topic": null}` — there is no fallback to the guessable `merchant_<id>` |
 
 ## Middleware Stack
 

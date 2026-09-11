@@ -81,8 +81,14 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     final granted = await PushNotificationService.requestPermission();
     if (!granted || !stillThisBusiness()) return;
 
-    await PushNotificationService.subscribeMerchant(merchantId,
-        environment: environment, stillWanted: stillThisBusiness);
+    // The topic is the one the gateway of this session's environment names
+    // for this Business (A6-06) — never derived here from the merchant id.
+    await PushNotificationService.joinServerTopic(
+      fetchTopic:   client.getMerchantPushTopic,
+      legacyTopics: PushNotificationService.legacyMerchantTopics(merchantId),
+      remember:     (topic) => svc.rememberPushTopic(merchantId, topic),
+      stillWanted:  stillThisBusiness,
+    );
     await PushNotificationService.getToken();
   }
 

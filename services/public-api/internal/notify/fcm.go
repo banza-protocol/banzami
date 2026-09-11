@@ -4,27 +4,46 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/banzami/banzami/services/common/env"
 	"log/slog"
 	"strconv"
+	"strings"
+	"sync"
+
+	"github.com/banzami/banzami/services/common/documents"
+	"github.com/banzami/banzami/services/common/env"
+	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/common/pushtopic"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
 	"google.golang.org/api/option"
 )
 
+// sender is the part of the Firebase messaging client this service uses; a
+// test replaces it to see what would be sent.
+type sender interface {
+	Send(ctx context.Context, message *messaging.Message) (string, error)
+}
+
 // FCMService wraps the Firebase Cloud Messaging client for the public-api.
 // A nil receiver is safe — all methods become no-ops when FCM is disabled
 // (FIREBASE_CREDENTIALS_JSON not set).
+//
+// Topics are named by [pushtopic.Namer] (A6-06): a keyed hash of the account
+// id, never the id itself. Without PUSH_TOPIC_KEY there is no topic and every
+// topic send is skipped — there is no fallback to a guessable name.
 type FCMService struct {
-	client      *messaging.Client
+	client      sender
 	environment string // "PRODUCTION" or "SANDBOX"
+	topics      *pushtopic.Namer
+	noTopicOnce sync.Once
 }
 
 // NewFCMService initialises the FCM client from a JSON service-account string.
 // Returns nil (disabled) when credentialsJSON is empty so public-api starts
-// cleanly in environments without Firebase configured.
-func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*FCMService, error) {
+// cleanly in environments without Firebase configured. topics names the
+// topics to publish to; nil (no PUSH_TOPIC_KEY) skips every topic send.
+func NewFCMService(ctx context.Context, credentialsJSON, environment string, topics *pushtopic.Namer) (*FCMService, error) {
 	if credentialsJSON == "" {
 		slog.Warn("[FCM] FIREBASE_CREDENTIALS_JSON not set — push notifications disabled")
 		return nil, nil
@@ -54,28 +73,41 @@ func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*F
 	if err != nil {
 		return nil, fmt.Errorf("fcm: init messaging client: %w", err)
 	}
-	slog.Info("[FCM] initialized", "environment", environment)
-	return &FCMService{client: client, environment: environment}, nil
+	slog.Info("[FCM] initialized", "environment", environment, "topics", topics != nil)
+	return &FCMService{client: client, environment: environment, topics: topics}, nil
 }
 
 func (s *FCMService) isSandbox() bool {
 	return s != nil && env.Parse(s.environment).IsSandbox()
 }
 
-// topicForConsumer returns the FCM topic for a consumer, with sandbox isolation.
-func (s *FCMService) topicForConsumer(consumerID string) string {
-	if s.isSandbox() {
-		return "sandbox_consumer_" + consumerID
+// topicForConsumer is the consumer's keyed topic; false when there is none
+// (no PUSH_TOPIC_KEY), and the send must be skipped.
+func (s *FCMService) topicForConsumer(consumerID string) (string, bool) {
+	topic, ok := s.topics.Consumer(consumerID)
+	if !ok {
+		s.warnNoTopic()
 	}
-	return "consumer_" + consumerID
+	return topic, ok
 }
 
-// topicForMerchant returns the FCM topic for a merchant, with sandbox isolation.
-func (s *FCMService) topicForMerchant(merchantID string) string {
-	if s.isSandbox() {
-		return "sandbox_merchant_" + merchantID
+// topicForMerchant is the Business's keyed topic — the same one the gateway
+// publishes to (both services hold the same PUSH_TOPIC_KEY).
+func (s *FCMService) topicForMerchant(merchantID string) (string, bool) {
+	topic, ok := s.topics.Merchant(merchantID)
+	if !ok {
+		s.warnNoTopic()
 	}
-	return "merchant_" + merchantID
+	return topic, ok
+}
+
+func (s *FCMService) warnNoTopic() {
+	if s.topics != nil {
+		return // a key, but no id: nothing to announce
+	}
+	s.noTopicOnce.Do(func() {
+		slog.Warn("[FCM] " + pushtopic.EnvVar + " not set — topic push notifications are skipped")
+	})
 }
 
 func (s *FCMService) sandboxPrefix() string {
@@ -105,23 +137,38 @@ func apnsConfig(title, body string) *messaging.APNSConfig {
 	}
 }
 
+// transferReceivedTitle names a person-to-person transfer — never a
+// "pagamento" (that is a Business's).
+const transferReceivedTitle = "Transferência recebida"
+
+// receivedBody is "Recebeu 2 000 Kz de @ana", in the Banzami money format; with
+// no payer handle it ends at the amount.
+func receivedBody(amountMinor int64, currency, payerHandle string) string {
+	body := "Recebeu " + documents.FormatAmount(amountMinor, currency)
+	if h := strings.TrimPrefix(strings.TrimSpace(payerHandle), "@"); h != "" {
+		body += " de @" + h
+	}
+	return body
+}
+
 // SendPaymentReceived notifies a consumer that they received a transfer.
 // Runs best-effort — errors are logged, never returned.
 func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerID, senderHandle string, amountMinor int64, currency, transferID string) {
 	if s == nil {
 		return
 	}
+	topic, ok := s.topicForConsumer(recipientConsumerID)
+	if !ok {
+		return
+	}
 	prefix := s.sandboxPrefix()
-	topic := s.topicForConsumer(recipientConsumerID)
-	title := prefix + "Pagamento recebido"
-	body := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
+	title := prefix + transferReceivedTitle
+	body := receivedBody(amountMinor, currency, senderHandle)
 
+	// Ids masked; the payer's handle and the amount are not logged (A6-14).
 	slog.Info("[FCM] sending payment_received",
-		"topic", topic,
-		"consumer_id", recipientConsumerID,
-		"sender", senderHandle,
-		"amount_minor", amountMinor,
-		"transfer_id", transferID,
+		"consumer_id", obs.MaskID(recipientConsumerID),
+		"transfer_id", obs.MaskID(transferID),
 	)
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
@@ -141,11 +188,11 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 	})
 	if err != nil {
 		slog.Error("[FCM] payment_received send failed",
-			"consumer_id", recipientConsumerID,
+			"consumer_id", obs.MaskID(recipientConsumerID),
 			"error", err,
 		)
 	} else {
-		slog.Info("[FCM] payment_received sent", "topic", topic, "message_id", msgID)
+		slog.Info("[FCM] payment_received sent", "message_id", msgID)
 	}
 }
 
@@ -155,17 +202,18 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 	if s == nil {
 		return
 	}
+	topic, ok := s.topicForMerchant(merchantID)
+	if !ok {
+		return
+	}
 	prefix := s.sandboxPrefix()
-	topic := s.topicForMerchant(merchantID)
 
-	slog.Info("[FCM] sending payment_link_paid",
-		"topic", topic,
-		"merchant_id", merchantID,
-		"amount_minor", amountMinor,
-	)
+	slog.Info("[FCM] sending payment_link_paid", "merchant_id", obs.MaskID(merchantID))
 
+	// The Business App routes payment_link_paid like payment_received
+	// (apps/mobile merchant_notification_router.dart paymentTypes).
 	title := prefix + "Pagamento recebido"
-	body := formatAmount(amountMinor, currency)
+	body := receivedBody(amountMinor, currency, "")
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{Title: title, Body: body},
@@ -182,11 +230,11 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 	})
 	if err != nil {
 		slog.Error("[FCM] payment_link_paid send failed",
-			"merchant_id", merchantID,
+			"merchant_id", obs.MaskID(merchantID),
 			"error", err,
 		)
 	} else {
-		slog.Info("[FCM] payment_link_paid sent", "topic", topic, "message_id", msgID)
+		slog.Info("[FCM] payment_link_paid sent", "message_id", msgID)
 	}
 }
 
@@ -197,19 +245,21 @@ func (s *FCMService) SendPaymentRequestPaid(ctx context.Context, recipientConsum
 	if s == nil {
 		return
 	}
+	topic, ok := s.topicForConsumer(recipientConsumerID)
+	if !ok {
+		return
+	}
 	prefix := s.sandboxPrefix()
-	topic := s.topicForConsumer(recipientConsumerID)
-	body := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
+	// A paid payment request is a person-to-person transfer. The payer's
+	// handle may be unknown: the body then ends at the amount, never "de ".
+	body := receivedBody(amountMinor, currency, senderHandle)
 
 	slog.Info("[FCM] sending payment_request_paid",
-		"topic", topic,
-		"consumer_id", recipientConsumerID,
-		"sender", senderHandle,
-		"amount_minor", amountMinor,
-		"transfer_id", transferID,
+		"consumer_id", obs.MaskID(recipientConsumerID),
+		"transfer_id", obs.MaskID(transferID),
 	)
 
-	title := prefix + "Pagamento recebido"
+	title := prefix + transferReceivedTitle
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{Title: title, Body: body},
@@ -228,11 +278,11 @@ func (s *FCMService) SendPaymentRequestPaid(ctx context.Context, recipientConsum
 	})
 	if err != nil {
 		slog.Error("[FCM] payment_request_paid send failed",
-			"consumer_id", recipientConsumerID,
+			"consumer_id", obs.MaskID(recipientConsumerID),
 			"error", err,
 		)
 	} else {
-		slog.Info("[FCM] payment_request_paid sent", "topic", topic, "message_id", msgID)
+		slog.Info("[FCM] payment_request_paid sent", "message_id", msgID)
 	}
 }
 
@@ -243,11 +293,14 @@ func (s *FCMService) SendDebugPush(ctx context.Context, recipientConsumerID stri
 	if s == nil {
 		return "", "", fmt.Errorf("FCM not initialized — FIREBASE_CREDENTIALS_JSON not set")
 	}
-	topic = s.topicForConsumer(recipientConsumerID)
+	topic, ok := s.topicForConsumer(recipientConsumerID)
+	if !ok {
+		return "", "", fmt.Errorf("push topics disabled — %s not set", pushtopic.EnvVar)
+	}
 	title := s.sandboxPrefix() + "Debug: Push funcionando ✓"
 	body := "Notificações estão a funcionar correctamente."
 
-	slog.Info("[FCM] sending debug push (topic)", "topic", topic, "consumer_id", recipientConsumerID)
+	slog.Info("[FCM] sending debug push (topic)", "consumer_id", obs.MaskID(recipientConsumerID))
 
 	msgID, sendErr := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{Title: title, Body: body},
@@ -261,10 +314,10 @@ func (s *FCMService) SendDebugPush(ctx context.Context, recipientConsumerID stri
 		Topic:   topic,
 	})
 	if sendErr != nil {
-		slog.Error("[FCM] debug push (topic) failed", "consumer_id", recipientConsumerID, "error", sendErr)
+		slog.Error("[FCM] debug push (topic) failed", "consumer_id", obs.MaskID(recipientConsumerID), "error", sendErr)
 		return "", topic, sendErr
 	}
-	slog.Info("[FCM] debug push (topic) sent", "topic", topic, "message_id", msgID)
+	slog.Info("[FCM] debug push (topic) sent", "message_id", msgID)
 	return msgID, topic, nil
 }
 
@@ -305,29 +358,4 @@ func min(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// formatAmount formats a minor-unit amount for notification body text.
-func formatAmount(minor int64, currency string) string {
-	whole := minor / 100
-	frac := minor % 100
-	if currency == "AOA" {
-		if frac == 0 {
-			return fmt.Sprintf("%s Kz", insertSep(whole))
-		}
-		return fmt.Sprintf("%s,%02d Kz", insertSep(whole), frac)
-	}
-	return fmt.Sprintf("%s.%02d %s", insertSep(whole), frac, currency)
-}
-
-func insertSep(n int64) string {
-	s := strconv.FormatInt(n, 10)
-	out := make([]byte, 0, len(s)+len(s)/3)
-	for i, c := range []byte(s) {
-		if i > 0 && (len(s)-i)%3 == 0 {
-			out = append(out, '.')
-		}
-		out = append(out, c)
-	}
-	return string(out)
 }
