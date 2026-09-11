@@ -230,6 +230,43 @@ fn withheld() -> ApiError {
     )
 }
 
+/// The link a confirmed acquiring payment paid: USED (from ACTIVE, or from
+/// EXPIRED — the payer started before the expiry and the provider has confirmed
+/// the money, so the link records what happened), `payment_link.paid` for the
+/// claim this call made, and the Payment Session the link belongs to. A
+/// CANCELLED link is left as it is: that money needs an operator, not a status.
+async fn complete_acquired_link_in(
+    tx: &mut sqlx::PgConnection,
+    payment: &AcquiringPayment,
+    amount_minor: i64,
+) -> ApiResult<()> {
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let link_id = payment.payment_link_id.as_uuid();
+    let claimed: Option<uuid::Uuid> = sqlx::query_scalar(
+        "UPDATE payment_links
+            SET status = 'USED', paid_at = COALESCE(paid_at, now()), updated_at = now()
+          WHERE id = $1 AND status IN ('ACTIVE','EXPIRED')
+         RETURNING id",
+    )
+    .bind(link_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db)?;
+    if claimed.is_some() {
+        super::payment_links::emit_link_paid_in(&mut *tx, link_id, None)
+            .await
+            .map_err(db)?;
+    }
+    super::payment_sessions::settle_for_acquired_link_in(
+        &mut *tx,
+        link_id,
+        payment.id.as_uuid(),
+        amount_minor,
+    )
+    .await
+    .map_err(db)
+}
+
 pub async fn settle_confirmed_payment(
     state: &AppState,
     payment: &AcquiringPayment,
@@ -372,22 +409,18 @@ pub async fn settle_confirmed_payment(
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
     let Some(posting_id) = posting_id else {
-        // Already settled by an earlier callback. Nothing to add.
-        let _ = tx.rollback().await;
+        // Already settled by an earlier callback: the credit is posted. The
+        // link, its session and their events are completed below, in this
+        // transaction — for a settlement that predates their being part of it,
+        // this is where they catch up; otherwise each step finds nothing to do.
         tracing::info!(
             payment_id = %payment.id,
             "acquiring: settlement already posted — replay credited nothing"
         );
-        // The session may not have heard: a crash between the commit and the
-        // line below leaves it ACTIVE, and the provider's retry is what heals it.
-        super::payment_sessions::settle_for_acquired_link(
-            state,
-            payment.payment_link_id.as_uuid(),
-            payment.id.as_uuid(),
-            amt,
-        )
-        .await
-        .map_err(|e| ApiError::internal(format!("session settlement failed: {e}")))?;
+        complete_acquired_link_in(&mut tx, payment, amt).await?;
+        tx.commit()
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
         return Ok(()); // an earlier callback settled it: idempotent success
     };
 
@@ -412,23 +445,18 @@ pub async fn settle_confirmed_payment(
         .map_err(|e| ApiError::internal(e.to_string()))?;
     }
 
+    // The link is paid, its session with it, and both events are written — in
+    // the credit's own transaction (A2-07). The gateway used to claim the link
+    // and emit payment_link.paid after this returned, best-effort: a link that
+    // expired between initiation and callback, or a transient error, left the
+    // merchant credited, the link payable and no event — while the provider got
+    // 200 and never retried. Any failure here rolls the credit back and answers
+    // 5xx, and the provider's retry completes all of it.
+    complete_acquired_link_in(&mut tx, payment, amt).await?;
+
     tx.commit()
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
-
-    // A link that belongs to a Payment Session pays the session: PAID, its QR
-    // retired, payment_session.paid emitted. Idempotent, and a no-op for a
-    // plain link.
-    // An error answers 5xx: the provider retries, and the retry's replay branch
-    // above settles the session (A2-06/A2-07: this used to be dropped).
-    super::payment_sessions::settle_for_acquired_link(
-        state,
-        payment.payment_link_id.as_uuid(),
-        payment.id.as_uuid(),
-        amt,
-    )
-    .await
-    .map_err(|e| ApiError::internal(format!("session settlement failed: {e}")))?;
 
     // Velocity counters (fire-and-forget).
     let hour_start = now

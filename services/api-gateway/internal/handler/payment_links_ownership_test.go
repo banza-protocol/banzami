@@ -131,19 +131,20 @@ func TestPaymentLink_CrossMerchantCancelDoesNotMutate(t *testing.T) {
 	}
 }
 
-// Marking another merchant's link as used would also emit payment_link.paid to
-// THEIR webhook endpoints.
-func TestPaymentLink_CrossMerchantMarkUsedDoesNotMutate(t *testing.T) {
+// mark-used is retired for everyone (A4-08): it marked a link paid with no
+// money moving. Whoever calls it — owner or not — mutates nothing.
+func TestPaymentLink_MarkUsedIsRetiredForEveryone(t *testing.T) {
 	spy := ownedLinkSpy()
 	h := handler.NewPaymentLinkHandler(spy, nil, nil)
-	w := httptest.NewRecorder()
-	h.MarkUsed(w, withRouteID(withMerchant(httptest.NewRequest(http.MethodPost, "/v1/payment-links/"+linkID+"/mark-used", nil), attackerID), linkID))
-
-	if w.Code != http.StatusNotFound {
-		t.Fatalf("expected 404, got %d", w.Code)
+	for _, who := range []string{attackerID, ownerID} {
+		w := httptest.NewRecorder()
+		h.MarkUsed(w, withRouteID(withMerchant(httptest.NewRequest(http.MethodPost, "/v1/payment-links/"+linkID+"/mark-used", nil), who), linkID))
+		if w.Code != http.StatusGone {
+			t.Fatalf("mark-used by %s: got %d, want 410", who, w.Code)
+		}
 	}
 	if spy.markedUsed != 0 {
-		t.Fatal("the link was marked used for a merchant that does not own it")
+		t.Fatal("a retired route marked a link used")
 	}
 }
 
@@ -256,9 +257,6 @@ func TestPaymentLink_ConsumerTokenCanDoNothing(t *testing.T) {
 		"cancel": func(w http.ResponseWriter) {
 			h.Cancel(w, withRouteID(withConsumer(httptest.NewRequest(http.MethodDelete, "/", nil)), linkID))
 		},
-		"mark-used": func(w http.ResponseWriter) {
-			h.MarkUsed(w, withRouteID(withConsumer(httptest.NewRequest(http.MethodPost, "/", nil)), linkID))
-		},
 	} {
 		w := httptest.NewRecorder()
 		call(w)
@@ -287,16 +285,11 @@ func TestPaymentLink_DeveloperKeyIsBoundToItsOwnMerchant(t *testing.T) {
 		t.Fatalf("a key must list its own merchant's links: %d %v", w.Code, spy.listedFor)
 	}
 
-	// cancel / mark-used another merchant's link: not found, nothing mutated
+	// cancel another merchant's link: not found, nothing mutated
 	w = httptest.NewRecorder()
 	h.Cancel(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodDelete, "/", nil), attackerID, "payment_links:write"), linkID))
 	if w.Code != http.StatusNotFound || spy.cancelled != 0 {
 		t.Fatalf("a key bound to another merchant cancelled the owner's link: %d cancelled=%d", w.Code, spy.cancelled)
-	}
-	w = httptest.NewRecorder()
-	h.MarkUsed(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodPost, "/", nil), attackerID, "payment_links:write"), linkID))
-	if w.Code != http.StatusNotFound || spy.markedUsed != 0 {
-		t.Fatalf("a key bound to another merchant marked the owner's link used: %d marked=%d", w.Code, spy.markedUsed)
 	}
 
 	// its own link, with the write scope: allowed
@@ -304,12 +297,6 @@ func TestPaymentLink_DeveloperKeyIsBoundToItsOwnMerchant(t *testing.T) {
 	h.Cancel(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodDelete, "/", nil), ownerID, "payment_links:write"), linkID))
 	if w.Code != http.StatusOK || spy.cancelled != 1 {
 		t.Fatalf("the owner's key must cancel its own link: %d", w.Code)
-	}
-	// without the write scope: refused before any lookup
-	w = httptest.NewRecorder()
-	h.MarkUsed(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodPost, "/", nil), ownerID, "payment_links:read"), linkID))
-	if w.Code != http.StatusForbidden || spy.markedUsed != 0 {
-		t.Fatalf("mark-used without payment_links:write: %d", w.Code)
 	}
 }
 

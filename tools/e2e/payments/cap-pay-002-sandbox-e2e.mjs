@@ -99,8 +99,10 @@ rec('PAY002.neg.cross-merchant-read', bReads.status === 404, `HTTP ${bReads.stat
 const bLists = await req('GET', `/v1/payment-links?merchant_id=${A.merchantId}`, { token: B.token });
 rec('PAY002.neg.cross-merchant-list', bLists.status === 403, `HTTP ${bLists.status}`);
 
+// mark-used is retired for everyone (A4-08) — it marked a link paid with no
+// payment. Nobody, owner or not, can move a link to USED by asking.
 const bMarksUsed = await req('POST', `/v1/payment-links/${link.id}/mark-used`, { token: B.token, idem: idemKey(runId, 'bola-mu') });
-rec('PAY002.neg.cross-merchant-mark-used', bMarksUsed.status === 404, `HTTP ${bMarksUsed.status}`);
+rec('PAY002.neg.mark-used-retired', bMarksUsed.status === 410, `HTTP ${bMarksUsed.status}`);
 
 const bCancels = await req('DELETE', `/v1/payment-links/${link.id}`, { token: B.token });
 rec('PAY002.neg.cross-merchant-cancel', bCancels.status === 404, `HTTP ${bCancels.status}`);

@@ -45,6 +45,20 @@ function sinkAdmin(path, postData) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/**
+ * Pays a link the way a payer does on the Sandbox's hosted rail: initiate the
+ * payment, then confirm THAT payment by its provider reference. payment_link.paid
+ * is written by core in the paying transaction — there is no way to produce it
+ * without a payment (the merchant mark-used route that did is retired, A4-08).
+ */
+async function payLink(link) {
+  const slug = link.body?.slug;
+  const init = await req('POST', `/public/pay/${slug}/pay`, { body: {} });
+  const ref = init.body?.external_ref;
+  const confirm = await req('POST', `/public/pay/${slug}/test-confirm?ref=${encodeURIComponent(ref || '')}`);
+  return { init, confirm, ok: init.status === 201 && [200, 201].includes(confirm.status) };
+}
+
 /** Waits for the delivery worker rather than assuming a fixed latency. */
 async function waitForRequests(cap, atLeast, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
@@ -167,18 +181,20 @@ async function main() {
     JSON.stringify(beforeB.body?.data ?? []) === JSON.stringify(afterB.body?.data ?? []), 'B\'s view unchanged');
 
   // ── Event production — independent of CAP-PAY-003 and KYC ────────────────
-  // payment_link.paid is emitted by the merchant's own mark-used lifecycle:
-  // no consumer, no KYC, no settlement.
+  // payment_link.paid comes from a payment: the Sandbox hosted rail, no consumer
+  // or KYC involved. The retired mark-used route must not produce it.
   assertNominal(5_000);
   const link = await req('POST', '/v1/payment-links', {
     token: A.token, idem: idemKey(runId, 'link'),
     body: { wallet_id: A.walletId, amount_minor: 5_000, currency: 'AOA', description: 'CAP-WEBHOOK-001' },
   });
   rec('WH.source.link-created', link.status === 201, `HTTP ${link.status}`);
-  const marked = await req('POST', `/v1/payment-links/${link.body?.id}/mark-used`, {
+  const retired = await req('POST', `/v1/payment-links/${link.body?.id}/mark-used`, {
     token: A.token, idem: idemKey(runId, 'mark'), body: {},
   });
-  rec('WH.source.mark-used', marked.status === 200, `HTTP ${marked.status}`);
+  rec('WH.source.mark-used-retired', retired.status === 410, `HTTP ${retired.status}`);
+  const paid = await payLink(link);
+  rec('WH.source.link-paid', paid.ok, `initiate ${paid.init.status} · confirm ${paid.confirm.status}`);
 
   const events = await req('GET', '/v1/webhooks/events', { token: A.token });
   const evs = events.body?.data ?? [];
@@ -220,9 +236,8 @@ async function main() {
     token: A.token, idem: idemKey(runId, 'dlink'),
     body: { wallet_id: A.walletId, amount_minor: 5_000, currency: 'AOA', description: 'CAP-WEBHOOK-001 delivery' },
   });
-  await req('POST', `/v1/payment-links/${dlink.body?.id}/mark-used`, {
-    token: A.token, idem: idemKey(runId, 'dmark'), body: {},
-  });
+  const dpaid = await payLink(dlink);
+  rec('WH.sink.link-paid', dpaid.ok, `initiate ${dpaid.init.status} · confirm ${dpaid.confirm.status}`);
 
   const sunk = await waitForRequests(cap, 1, 90_000);
   const d = (sunk.requests || [])[0];
@@ -282,18 +297,17 @@ async function main() {
     token: A.token, idem: idemKey(runId, 'rlink'),
     body: { wallet_id: A.walletId, amount_minor: 5_000, currency: 'AOA', description: 'CAP-WEBHOOK-001 retry' },
   });
-  const rmark = await req('POST', `/v1/payment-links/${rlink.body?.id}/mark-used`, {
-    token: A.token, idem: idemKey(runId, 'rmark'), body: {},
-  });
+  const rpaid = await payLink(rlink);
 
-  // Failure isolation: the business transition must commit regardless of what
-  // the receiver does. Webhook transport is not a financial control.
-  rec('WH.isolation.source-commits-despite-failing-receiver', rmark.status === 200, `mark-used HTTP ${rmark.status}`);
+  // Failure isolation: the payment commits regardless of what the receiver
+  // does. Webhook transport is not a financial control.
+  rec('WH.isolation.source-commits-despite-failing-receiver', rpaid.ok,
+    `initiate ${rpaid.init.status} · confirm ${rpaid.confirm.status}`);
   const rlinkAfter = await req('GET', `/v1/payment-links/${rlink.body?.id}`, { token: A.token });
   rec('WH.isolation.source-state-correct',
     ['USED', 'PAID', 'used', 'paid'].includes(String(rlinkAfter.body?.status)), String(rlinkAfter.body?.status));
   const afterBal = (await req('GET', `/v1/wallets/${A.walletId}/balance`, { token: A.token })).body?.available_minor;
-  rec('WH.isolation.no-financial-side-effect', beforeBal === afterBal, `${beforeBal} → ${afterBal}`);
+  rec('WH.isolation.payment-credited-exactly-once', afterBal - beforeBal === 5_000, `${beforeBal} → ${afterBal}`);
 
   const first = await waitForRequests(rcap, 1, 90_000);
   rec('WH.retry.first-attempt-delivered', first.count >= 1, `${first.count} attempt(s)`);

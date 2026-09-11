@@ -331,31 +331,17 @@ func (h *PaymentLinkHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, link)
 }
 
-// POST /v1/payment-links/{id}/mark-used  (called by mobile app after payment)
+// POST /v1/payment-links/{id}/mark-used — retired.
+//
+// It marked a link USED and sent payment_link.paid with no money moving: an
+// integration could be told, by its own call, that a link was paid when nobody
+// had paid it; on a link that belongs to a Payment Session the session stayed
+// ACTIVE beside a "paid" link (A4-08). A link is paid only by a payment, and
+// core marks it and emits the event in that payment's own transaction. A link
+// the Business wants closed is cancelled: DELETE /v1/payment-links/{id}.
 func (h *PaymentLinkHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	// Ownership BEFORE mutation, and before any webhook is dispatched: marking
-	// another merchant's link as paid would emit payment_link.paid to THEIR
-	// endpoints (RA-047).
-	if _, ok := h.requireOwnedLink(w, r, id, "payment_links:write"); !ok {
-		return
-	}
-	link, err := h.svc.MarkUsed(r.Context(), id)
-	if err != nil {
-		switch {
-		case errors.Is(err, service.ErrPaymentLinkNotFound):
-			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment link not found")
-		case errors.Is(err, service.ErrPaymentLinkNotActive):
-			apierror.Respond(w, r, http.StatusUnprocessableEntity, "LINK_NOT_ACTIVE", "payment link is not active")
-		default:
-			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not mark payment link as used")
-		}
-		return
-	}
-
-	dispatchPaymentLinkPaid(h.webhookSvc, link)
-
-	respond(w, http.StatusOK, link)
+	apierror.Respond(w, r, http.StatusGone, "ROUTE_RETIRED",
+		"a payment link is marked paid only by a payment; to close an unpaid link, cancel it with DELETE /v1/payment-links/{id}")
 }
 
 // dispatchPaymentLinkPaid emits payment_link.paid to the merchant's registered

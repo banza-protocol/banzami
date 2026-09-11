@@ -3134,3 +3134,31 @@ session settle and the acquiring settle return errors; the acquiring callback an
 a_failed_completion_leaves_nothing_half_done_and_a_retry_completes_it,
 an_open_amount_link_records_what_was_paid}` (real DB; swallowing the settle error or
 recording 0 fails them), `TestPayLink_AFailedCompletionAsksForARetryAndIsOneCall`.
+
+## RA-112 — payment_link.paid: sent for links nobody paid, missing for links that were
+
+- **Found:** 2026-09-11 (full-system assurance, A2-07 fail-open, A4-08 route drift)
+- **Status:** FIXED (core + gateway + E2E)
+
+Three faces of one event. (1) On the hosted acquiring rail, core credited the merchant
+and returned; the gateway then claimed the link and dispatched `payment_link.paid`,
+best-effort — a link that expired between initiation and callback, or a transient
+error, left the merchant credited, the link payable and no event, while the provider
+was told 200 (and a core 5xx was answered 422, "refused for good"). (2) On the wallet
+rail — a link paid from the Banzami app — nothing emitted `payment_link.paid` at all.
+(3) `POST /v1/payment-links/{id}/mark-used` marked a link USED and sent
+`payment_link.paid` with no money moving, beside a session left ACTIVE; the webhook
+E2E used it as its event source, so the suite proved the event could be faked. Core is
+now the one writer: the acquiring settlement claims the link (from ACTIVE, or EXPIRED —
+the payer started in time and the money is confirmed), writes `payment_link.paid` and
+settles the session in the credit's own transaction, and the wallet completion (RA-111)
+writes it with its refund source. A failure rolls the credit back and the gateway
+answers 502 so the provider retries. mark-used answers 410 for everyone. The webhook E2E
+now pays its links on the Sandbox hosted rail and asserts the retired route produces
+nothing. Tests `acquiring_settlement_tests::{the_link_is_paid_with_its_event_in_the_credits_transaction,
+a_link_that_expired_while_the_payer_paid_is_recorded_as_paid,
+a_failed_completion_rolls_back_the_credit_and_a_retry_settles_it}` (dropping the
+completion or the EXPIRED claim fails them), the refund-source assertion in
+`an_open_amount_link_records_what_was_paid`, `TestPayerPaths_LeaveTheLinkAndItsEventToCore`,
+`TestEmisCallback_AnUnfinishedSettlementAsksForARetry`,
+`TestPaymentLink_MarkUsedIsRetiredForEveryone`, `TestPaymentLink_RetiredMarkUsedEmitsNothing`.

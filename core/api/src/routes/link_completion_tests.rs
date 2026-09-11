@@ -223,4 +223,20 @@ async fn an_open_amount_link_records_what_was_paid(pool: PgPool) {
         1,
         "an open-amount link payment is refundable for what was paid"
     );
+
+    // A plain link paid from a wallet tells its integrator: payment_link.paid,
+    // naming the refundable payment. Nothing emitted it on this rail before.
+    let (wp, event_source): (Uuid, Option<String>) = sqlx::query_as(
+        "SELECT wp.id, e.payload->'data'->'refund_source'->>'source_id'
+           FROM wallet_payments wp
+           LEFT JOIN webhook_events e
+             ON e.event_type = 'payment_link.paid' AND e.payload->'data'->>'id' = $2::text
+          WHERE wp.transfer_id = $1",
+    )
+    .bind(transfer)
+    .bind(link)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(event_source, Some(wp.to_string()), "payment_link.paid is missing or names no refund source");
 }

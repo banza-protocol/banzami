@@ -92,6 +92,44 @@ async fn link_response_with_refund_source(
     resp
 }
 
+/// Write `payment_link.paid` for a link THIS transaction just claimed, to the
+/// outbox on `conn`, so the event exists exactly when the payment's completion
+/// does. Core is the one writer: the wallet rail (link completion below) and the
+/// hosted acquiring rail (acquiring settlement) both call it inside their own
+/// transaction. The wallet rail never emitted it at all — a plain link paid from
+/// the Banzami app told the integrator nothing — and the acquiring rail emitted
+/// it from the gateway after a separate, best-effort claim (A2-07). The payload
+/// is the link as the API returns it; the key makes a replay a no-op.
+pub async fn emit_link_paid_in(
+    conn: &mut sqlx::PgConnection,
+    link_id: Uuid,
+    refund_source: Option<serde_json::Value>,
+) -> Result<(), sqlx::Error> {
+    let (merchant_id, mut data): (Uuid, serde_json::Value) = sqlx::query_as(
+        "SELECT merchant_id, json_build_object(
+                    'id', id::text, 'slug', slug, 'merchant_id', merchant_id::text,
+                    'wallet_id', wallet_id::text, 'wallet_account_id', wallet_account_id::text,
+                    'amount_minor', amount_minor, 'currency', currency, 'description', description,
+                    'status', status, 'expires_at', expires_at, 'paid_at', paid_at,
+                    'created_at', created_at, 'updated_at', updated_at)::jsonb
+           FROM payment_links WHERE id = $1",
+    )
+    .bind(link_id)
+    .fetch_one(&mut *conn)
+    .await?;
+    if let Some(rs) = refund_source {
+        data["refund_source"] = rs;
+    }
+    super::webhooks::emit(
+        &mut *conn,
+        merchant_id,
+        "payment_link.paid",
+        &format!("payment_link.paid:{link_id}"),
+        data,
+    )
+    .await
+}
+
 #[derive(Deserialize)]
 pub struct ListQuery {
     pub merchant_id: String,
@@ -292,7 +330,7 @@ pub async fn mark_used(
         let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
         return Ok(Json(link_response_with_refund_source(&state.pool, link).await));
     };
-    super::wallet_payments::record_merchant_interface_payment(
+    let recorded = super::wallet_payments::record_merchant_interface_payment(
         &mut tx,
         merchant_id,
         transfer_id,
@@ -311,6 +349,13 @@ pub async fn mark_used(
         link_id,
         transfer_id,
         "PAYMENT_LINK",
+    )
+    .await
+    .map_err(db)?;
+    emit_link_paid_in(
+        &mut tx,
+        link_id,
+        recorded.map(super::refund_source::wallet_payment_source),
     )
     .await
     .map_err(db)?;

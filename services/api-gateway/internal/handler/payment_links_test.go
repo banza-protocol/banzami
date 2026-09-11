@@ -18,8 +18,9 @@ import (
 // fakeLinks implements service.PaymentLinkService; Get/MarkUsed return a link
 // owned by `merchant` and carrying an (optional) refund_source.
 type fakeLinks struct {
-	merchant string
-	rs       *service.RefundSource
+	merchant      string
+	rs            *service.RefundSource
+	markUsedCalls int
 }
 
 func (f *fakeLinks) link() *service.PaymentLink {
@@ -40,6 +41,7 @@ func (f *fakeLinks) Cancel(context.Context, string) (*service.PaymentLink, error
 	return f.link(), nil
 }
 func (f *fakeLinks) MarkUsed(context.Context, string) (*service.PaymentLink, error) {
+	f.markUsedCalls++
 	return f.link(), nil
 }
 
@@ -105,42 +107,21 @@ func TestPaymentLink_RefundSourceOwnerOnly(t *testing.T) {
 	}
 }
 
-// WS1 item 4: payment_link.paid carries the same refund_source object.
-func TestPaymentLink_PaidWebhookIncludesRefundSource(t *testing.T) {
-	rs := &service.RefundSource{SourceType: "WALLET_PAYMENT", SourceID: "wp-77"}
-	h, cw := linkHandler(rs)
+// payment_link.paid is core's to write, in the paying transaction (with its
+// refund_source — core's link_completion tests). The retired merchant mark-used
+// route emits nothing: it used to announce a payment nobody made (A4-08).
+func TestPaymentLink_RetiredMarkUsedEmitsNothing(t *testing.T) {
+	h, cw := linkHandler(&service.RefundSource{SourceType: "WALLET_PAYMENT", SourceID: "wp-77"})
 	r := chi.NewRouter()
 	r.Post("/v1/payment-links/{id}/mark-used", h.MarkUsed)
 	rec := httptest.NewRecorder()
 	r.ServeHTTP(rec, reqWith("POST", "https://x/v1/payment-links/11111111-1111-4111-8111-111111111111/mark-used", "", "doa-merchant"))
-	if rec.Code != http.StatusOK {
-		t.Fatalf("mark-used want 200, got %d (%s)", rec.Code, rec.Body.String())
+	if rec.Code != http.StatusGone {
+		t.Fatalf("mark-used want 410, got %d (%s)", rec.Code, rec.Body.String())
 	}
-	// The dispatch is fire-and-forget in a goroutine; poll briefly.
-	var payload map[string]any
-	var typ string
-	var last json.RawMessage
-	for i := 0; i < 50; i++ {
-		if typ, last = cw.captured(); last != nil {
-			break
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	if typ != "payment_link.paid" {
-		t.Fatalf("expected payment_link.paid, got %q", typ)
-	}
-	if err := json.Unmarshal(last, &payload); err != nil {
-		t.Fatalf("bad payload: %v", err)
-	}
-	src, ok := payload["refund_source"].(map[string]any)
-	if !ok {
-		t.Fatalf("payment_link.paid must include refund_source: %s", string(last))
-	}
-	if src["source_type"] != "WALLET_PAYMENT" || src["source_id"] != "wp-77" {
-		t.Fatalf("refund_source = %+v, want WALLET_PAYMENT/wp-77", src)
-	}
-	if strings.Contains(string(last), "TRANSACTION") {
-		t.Fatalf("webhook must never leak TRANSACTION: %s", string(last))
+	time.Sleep(100 * time.Millisecond)
+	if typ, _ := cw.captured(); typ != "" {
+		t.Fatalf("the retired route dispatched %s", typ)
 	}
 }
 

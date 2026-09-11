@@ -66,33 +66,49 @@ func routeWithSlug(h http.HandlerFunc, method, path string) *httptest.ResponseRe
 	return rec
 }
 
-func TestTestConfirm_DispatchesPaymentLinkPaid(t *testing.T) {
-	h, cw := acquiringHandlerForTest()
-	rec := routeWithSlug(h.TestConfirm, http.MethodPost, "/public/pay/abc123/x?ref=ref-1")
-	if rec.Code != http.StatusOK {
-		t.Fatalf("test-confirm status = %d, want 200", rec.Code)
-	}
-	typ, payload := awaitDispatch(t, cw)
-	if typ != "payment_link.paid" {
-		t.Fatalf("event type = %q, want payment_link.paid — a Sandbox payment that emits nothing lets an integration pass here and go silent in Live", typ)
-	}
-	if len(payload) == 0 {
-		t.Fatal("dispatched payload is empty")
+// Both payer paths leave the link and its event to core, which marks the link
+// USED and writes payment_link.paid in the settlement's own transaction. A
+// second dispatch here would deliver the event twice (A2-07).
+func TestPayerPaths_LeaveTheLinkAndItsEventToCore(t *testing.T) {
+	for name, call := range map[string]func(h *AcquiringHandler) int{
+		"test-confirm": func(h *AcquiringHandler) int {
+			return routeWithSlug(h.TestConfirm, http.MethodPost, "/public/pay/abc123/x?ref=ref-1").Code
+		},
+		"emis-callback": func(h *AcquiringHandler) int {
+			rec := httptest.NewRecorder()
+			h.EmisCallback(rec, httptest.NewRequest(http.MethodPost, "/v1/callbacks/emis", http.NoBody))
+			return rec.Code
+		},
+	} {
+		h, cw := acquiringHandlerForTest()
+		if code := call(h); code != http.StatusOK {
+			t.Fatalf("%s: status %d, want 200", name, code)
+		}
+		time.Sleep(150 * time.Millisecond)
+		if typ, _ := cw.captured(); typ != "" {
+			t.Fatalf("%s: the gateway dispatched %s itself — core already wrote it", name, typ)
+		}
+		if n := h.paymentLinks.(*fakeLinks).markUsedCalls; n != 0 {
+			t.Fatalf("%s: the gateway marked the link used (%d) — core already did", name, n)
+		}
 	}
 }
 
-func TestEmisCallback_DispatchesPaymentLinkPaid(t *testing.T) {
-	h, cw := acquiringHandlerForTest()
-	req := httptest.NewRequest(http.MethodPost, "/v1/callbacks/emis", http.NoBody)
+// A settlement core could not complete answers 5xx, so the provider retries.
+// It answered 422 — "refused" — and the provider never tried again.
+func TestEmisCallback_AnUnfinishedSettlementAsksForARetry(t *testing.T) {
+	h := NewAcquiringHandler(&failingAcquiring{}, &fakeLinks{merchant: "m"}, nil, nil)
 	rec := httptest.NewRecorder()
-	h.EmisCallback(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Fatalf("callback status = %d, want 200", rec.Code)
+	h.EmisCallback(rec, httptest.NewRequest(http.MethodPost, "/v1/callbacks/emis", http.NoBody))
+	if rec.Code != http.StatusBadGateway {
+		t.Fatalf("an unfinished settlement answered %d, want 502", rec.Code)
 	}
-	typ, _ := awaitDispatch(t, cw)
-	if typ != "payment_link.paid" {
-		t.Fatalf("event type = %q, want payment_link.paid — the real provider path must notify the merchant", typ)
-	}
+}
+
+type failingAcquiring struct{ fakeAcquiring }
+
+func (*failingAcquiring) ProcessCallback(context.Context, []byte, string) (*service.AcquiringPayment, error) {
+	return nil, &service.CoreError{Status: http.StatusInternalServerError, Code: "INTERNAL", Message: "outbox unavailable"}
 }
 
 // A nil webhook service must not panic the payment path: delivery is

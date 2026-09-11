@@ -110,27 +110,26 @@ func (h *AcquiringHandler) EmisCallback(w http.ResponseWriter, r *http.Request) 
 		// the reason class only — core's own text (which named amounts and
 		// statuses) is an internal detail, and this route is public.
 		slog.Error("acquiring: callback processing failed", "error", err)
-		code := "CALLBACK_REJECTED"
-		if ce, ok := service.AsCoreError(err); ok && ce.Code != "" {
-			code = ce.Code
+		if ce, ok := service.AsCoreError(err); ok && ce.IsClientError() {
+			code := ce.Code
+			if code == "" {
+				code = "CALLBACK_REJECTED"
+			}
+			apierror.Respond(w, r, http.StatusUnprocessableEntity, code, "the callback was not accepted")
+			return
 		}
-		apierror.Respond(w, r, http.StatusUnprocessableEntity, code, "the callback was not accepted")
+		// Core could not complete the settlement (it rolled back as a whole).
+		// A 5xx is what makes the provider retry; a 422 here used to tell it
+		// the callback was refused for good, and the payment was never settled.
+		apierror.Respond(w, r, http.StatusBadGateway, "CALLBACK_NOT_PROCESSED", "the callback could not be processed — retry")
 		return
 	}
 
-	// Mark the payment link as used so it can no longer accept new payments.
-	// This is best-effort: the payment is already confirmed in the acquiring
-	// ledger; reconciliation will catch any inconsistency.
-	if link, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
-		slog.Error("acquiring: failed to mark payment link used",
-			"payment_link_id", payment.PaymentLinkID,
-			"error", mlErr,
-		)
-	} else {
-		// The payer paid: the merchant's integration has to hear about it.
-		// Authority comes from the provider-signed callback, which the core
-		// validated above, so the link is the one the payment belongs to.
-		dispatchPaymentLinkPaid(h.webhookSvc, link)
+	// Core settled the credit, marked the link USED, paid its session and wrote
+	// payment_link.paid / payment_session.paid — in one transaction (A2-07). The
+	// gateway used to do the link and the event here, after core answered,
+	// best-effort: a failure was logged and the provider was told 200.
+	if link, lerr := h.paymentLinks.Get(r.Context(), payment.PaymentLinkID); lerr == nil {
 		go h.fcm.SendPaymentToMerchant(context.Background(), link.MerchantID, "", payment.AmountMinor, payment.Currency)
 	}
 
@@ -191,18 +190,9 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "no pending payment for that reference")
 		return
 	}
-	if usedLink, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
-		slog.Error("test-confirm: failed to mark payment link used",
-			"payment_link_id", payment.PaymentLinkID,
-			"error", mlErr,
-		)
-	} else {
-		// Same event a real provider confirmation produces. The Sandbox rail
-		// must behave like the rail it stands in for, or an integration that
-		// passes in Sandbox would go silent in Live.
-		dispatchPaymentLinkPaid(h.webhookSvc, usedLink)
-	}
-
+	// Core marked the link USED and wrote payment_link.paid in the settlement's
+	// transaction — the same event a real provider confirmation produces, so an
+	// integration that passes in Sandbox does not go silent in Live.
 	go h.fcm.SendPaymentToMerchant(context.Background(), link.MerchantID, "", payment.AmountMinor, payment.Currency)
 
 	respond(w, http.StatusOK, payment)

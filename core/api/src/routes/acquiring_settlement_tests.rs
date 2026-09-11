@@ -660,3 +660,94 @@ async fn a_retried_confirmation_pays_a_session_the_first_one_missed(pool: PgPool
         "the retry found the credit posted and left the session open"
     );
 }
+
+async fn link_status(pool: &PgPool, link: Uuid) -> String {
+    sqlx::query_scalar("SELECT status FROM payment_links WHERE id = $1")
+        .bind(link)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+async fn link_paid_events(pool: &PgPool, link: Uuid) -> i64 {
+    sqlx::query_scalar(
+        "SELECT count(*) FROM webhook_events
+          WHERE event_type = 'payment_link.paid' AND payload->'data'->>'id' = $1::text",
+    )
+    .bind(link)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+// A2-07: the link a confirmed payment paid is USED and payment_link.paid is in
+// the outbox, in the credit's own transaction — once, however often the
+// provider retries. The gateway used to do both after core answered, best-effort.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn the_link_is_paid_with_its_event_in_the_credits_transaction(pool: PgPool) {
+    let f = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+    let payment = confirmed_payment(&pool, f.link, 3_000).await;
+
+    settle_confirmed_payment(&state, &payment).await.unwrap();
+    assert_eq!(link_status(&pool, f.link).await, "USED", "the first confirmation left the link payable");
+    assert_eq!(link_paid_events(&pool, f.link).await, 1);
+
+    settle_confirmed_payment(&state, &payment).await.unwrap(); // provider retry
+    assert_eq!(link_paid_events(&pool, f.link).await, 1, "a retry emitted the event again");
+}
+
+// The payer started before the link expired and the provider confirmed the
+// money: the link records that it was paid rather than "expired, unpaid".
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_link_that_expired_while_the_payer_paid_is_recorded_as_paid(pool: PgPool) {
+    let f = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+    let payment = confirmed_payment(&pool, f.link, 3_000).await;
+    sqlx::query("UPDATE payment_links SET status = 'EXPIRED' WHERE id = $1")
+        .bind(f.link)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    settle_confirmed_payment(&state, &payment).await.unwrap();
+    assert_eq!(link_status(&pool, f.link).await, "USED");
+    assert_eq!(link_paid_events(&pool, f.link).await, 1);
+}
+
+// If the event cannot be written, nothing is: no credit, no USED link. The
+// callback answers 5xx and the provider's retry settles it all.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_failed_completion_rolls_back_the_credit_and_a_retry_settles_it(pool: PgPool) {
+    let f = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+    let payment = confirmed_payment(&pool, f.link, 3_000).await;
+    sqlx::query(
+        "CREATE FUNCTION test_refuse_event() RETURNS trigger LANGUAGE plpgsql AS
+           $$ BEGIN RAISE EXCEPTION 'outbox unavailable'; END $$",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "CREATE TRIGGER test_refuse_event BEFORE INSERT ON webhook_events
+           FOR EACH ROW EXECUTE FUNCTION test_refuse_event()",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let err = settle_confirmed_payment(&state, &payment).await.unwrap_err();
+    assert_eq!(err.status.as_u16(), 500);
+    assert_eq!(balance(&pool, f.default_account).await, 0, "credited without its completion");
+    assert_eq!(link_status(&pool, f.link).await, "ACTIVE");
+
+    sqlx::query("DROP TRIGGER test_refuse_event ON webhook_events")
+        .execute(&pool)
+        .await
+        .unwrap();
+    settle_confirmed_payment(&state, &payment).await.unwrap();
+    assert_eq!(balance(&pool, f.default_account).await, 3_000);
+    assert_eq!(link_status(&pool, f.link).await, "USED");
+    assert_eq!(link_paid_events(&pool, f.link).await, 1);
+}

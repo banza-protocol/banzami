@@ -455,23 +455,21 @@ async fn mark_paid_in(
 /// No wallet payment is recorded — nothing was paid from a wallet — and the event
 /// says so rather than naming a refund source this rail does not produce.
 ///
-/// The transition and its event commit together, and an error is returned: the
-/// acquiring callback answers 5xx so the provider retries, and the retry's
-/// replay branch settles the session again.
-pub async fn settle_for_acquired_link(
-    state: &AppState,
+/// Runs in the acquiring settlement's own transaction, so the credit, the link,
+/// the session and their events commit together or not at all.
+pub async fn settle_for_acquired_link_in(
+    conn: &mut sqlx::PgConnection,
     link_id: Uuid,
     acquiring_payment_id: Uuid,
     amount_minor: i64,
 ) -> Result<(), sqlx::Error> {
-    let mut tx = state.pool.begin().await?;
     let Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id)) =
-        mark_paid_in(&mut tx, "link", link_id).await?
+        mark_paid_in(&mut *conn, "link", link_id).await?
     else {
         return Ok(());
     };
     super::webhooks::emit(
-        &mut *tx,
+        &mut *conn,
         merchant_id,
         "payment_session.paid",
         &format!("payment_session.paid:{session_id}"),
@@ -486,8 +484,7 @@ pub async fn settle_for_acquired_link(
             "refund_source": serde_json::Value::Null,
         }),
     )
-    .await?;
-    tx.commit().await
+    .await
 }
 
 #[derive(Deserialize)]
