@@ -186,12 +186,15 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
   }
 
   Future<void> _shareAll() async {
-    final pending = _shares.where((s) => s.isPending).toList();
+    // Every share still waiting for its money — PENDING, LINK_CREATED (the
+    // poll turns a surfaced share into it) or a status we do not know yet.
+    final awaiting = _shares.where((s) => s.isAwaitingPayment).toList();
     final lines = <String>[];
-    for (var i = 0; i < pending.length; i++) {
-      final url = _payUrls[pending[i].id] ?? await _ensureSurface(pending[i].id);
+    for (var i = 0; i < awaiting.length; i++) {
+      final s = awaiting[i];
+      final url = _payUrls[s.id] ?? (s.isPending ? await _ensureSurface(s.id) : null);
       if (url != null) {
-        lines.add('Pessoa ${_shares.indexOf(pending[i]) + 1}: $url');
+        lines.add('Pessoa ${_shares.indexOf(s) + 1}: $url');
       }
     }
     if (lines.isEmpty) {
@@ -279,11 +282,13 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
 
         // ── Shares ─────────────────────────────────────────────────────────
         for (var i = 0; i < _shares.length; i++) ...[
-          _ShareRow(
+          ShareRow(
             index: i + 1,
             share: _shares[i],
             hasLink: _payUrls.containsKey(_shares[i].id),
-            onTap: _shares[i].isPending ? () => _openShareSheet(i) : null,
+            onTap: !c.isTerminal && _shares[i].isAwaitingPayment
+                ? () => _openShareSheet(i)
+                : null,
           ),
           const SizedBox(height: BanzamiSpacing.sm),
         ],
@@ -303,6 +308,13 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
   Future<void> _openShareSheet(int i) async {
     final share = _shares[i];
     var url = _payUrls[share.id];
+    if (url == null && !share.isPending) {
+      // Surfaced before this screen opened (LINK_CREATED): the server does not
+      // surface a share twice, and this screen never learnt its link.
+      BanzamiToast.showInfo(context,
+          'O link desta parte já foi gerado noutra sessão e não pode ser mostrado aqui.');
+      return;
+    }
     if (url == null) {
       BanzamiToast.showInfo(context, 'A gerar o link…');
       url = await _ensureSurface(share.id);
@@ -390,18 +402,28 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
 // One share row
 // =============================================================================
 
-class _ShareRow extends StatelessWidget {
+class ShareRow extends StatelessWidget {
   final int index;
   final CollectionShare share;
   final bool hasLink;
   final VoidCallback? onTap;
 
-  const _ShareRow({
+  const ShareRow({
+    super.key,
     required this.index,
     required this.share,
     required this.hasLink,
     this.onTap,
   });
+
+  /// The share's state in words; unknown statuses read as still waiting.
+  static String stateLabel(CollectionShare share) => switch (share.status) {
+        ShareStatus.paid      => 'Pago',
+        ShareStatus.expired   => 'Expirada',
+        ShareStatus.cancelled => 'Cancelada',
+        ShareStatus.failed    => 'Falhou',
+        _                     => 'A aguardar pagamento',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -445,13 +467,13 @@ class _ShareRow extends StatelessWidget {
                     size: 13,
                     color: paid ? BanzamiColors.success : BanzamiColors.gray400),
                 const SizedBox(width: 4),
-                Text(paid ? 'Pago' : 'A aguardar pagamento',
+                Text(stateLabel(share),
                     style: BanzamiTextStyles.bodySm.copyWith(
                         color: paid ? BanzamiColors.success : BanzamiColors.gray400)),
               ]),
             ]),
           ),
-          if (!paid)
+          if (onTap != null)
             Icon(hasLink ? Icons.qr_code_rounded : Icons.hourglass_empty_rounded,
                 size: 22, color: BanzamiColors.primary),
         ]),
