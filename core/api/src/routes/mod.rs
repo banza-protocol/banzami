@@ -53,6 +53,8 @@ pub mod sandbox_business;
 mod sandbox_business_tests;
 #[cfg(test)]
 mod sandbox_credit_tests;
+#[cfg(test)]
+mod onboarding_tests;
 pub mod settlement_readiness;
 #[cfg(test)]
 mod settlement_readiness_tests;

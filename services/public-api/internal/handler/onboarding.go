@@ -26,6 +26,14 @@ import (
 type OnboardingHandler struct {
 	core    *service.CorePublicClient
 	limiter *onboardingRateLimiter
+	// sandbox: the test OTP is accepted only here (core refuses it in LIVE too).
+	sandbox bool
+}
+
+// WithEnvironment records this stack's environment.
+func (h *OnboardingHandler) WithEnvironment(environment string) *OnboardingHandler {
+	h.sandbox = isSandboxEnvironment(environment)
+	return h
 }
 
 func NewOnboardingHandler(core *service.CorePublicClient) *OnboardingHandler {
@@ -197,6 +205,13 @@ func (h *OnboardingHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// The test OTP is a Sandbox affordance. The comment above promised
+	// "non-production only" and nothing checked it (core refuses it in LIVE
+	// as well, and refuses a start without any OTP: there is no SMS layer).
+	if body.OtpPlaintextTest != nil && !h.sandbox {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "otp_plaintext_for_test is a Sandbox-only field")
+		return
+	}
 	// In production, otpForTest is nil and the OTP is dispatched by the SMS layer.
 	// In non-production environments, otp_plaintext_for_test may be supplied so that
 	// integration tests can drive the full flow without an SMS gateway.

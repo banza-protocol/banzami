@@ -265,7 +265,7 @@ async fn sandbox_credit_same_key_posts_once(pool: PgPool) {
 async fn sandbox_credit_same_key_other_amount_is_refused(pool: PgPool) {
     let wallet = seed_wallet(&pool).await;
     let state = build_state(pool.clone()).await;
-    routes::sandbox_credit(State(state.clone()), Path(wallet.to_string()), Json(sandbox_body(7_000, Some("retry-key-0002"))))
+    let _ = routes::sandbox_credit(State(state.clone()), Path(wallet.to_string()), Json(sandbox_body(7_000, Some("retry-key-0002"))))
         .await
         .expect("first credit");
     let err = routes::sandbox_credit(State(state), Path(wallet.to_string()), Json(sandbox_body(9_000, Some("retry-key-0002"))))
@@ -307,7 +307,7 @@ async fn admin_credit_same_key_posts_once_and_rejects_bad_keys(pool: PgPool) {
         idempotency_key: Some(key.to_string()),
     };
     for _ in 0..3 {
-        routes::admin_credit(State(state.clone()), Path(wallet.to_string()), Json(body("operator-click-01")))
+        let _ = routes::admin_credit(State(state.clone()), Path(wallet.to_string()), Json(body("operator-click-01")))
             .await
             .expect("admin credit");
     }

@@ -80,7 +80,26 @@ pub async fn start(
     let currency = Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", body.currency)))?;
 
-    let otp_plaintext_for_test = body.otp_plaintext_for_test.clone();
+    // There is no SMS layer. The only OTP this operator can check is one a test
+    // supplies — a Sandbox affordance. It used to be accepted in every
+    // environment, and without it the engine stored sha256(""), so an EMPTY
+    // code verified: phone ownership was never proven, and anyone could bind
+    // someone else's number to a wallet (and lock its owner out).
+    let otp_plaintext_for_test = match body.otp_plaintext_for_test.clone() {
+        Some(_) if state.environment.is_live() => {
+            return Err(ApiError::forbidden("otp_plaintext_for_test is a Sandbox-only field"));
+        }
+        Some(p) if !(4..=8).contains(&p.len()) || !p.bytes().all(|b| b.is_ascii_digit()) => {
+            return Err(ApiError::bad_request("otp_plaintext_for_test must be 4 to 8 digits"));
+        }
+        Some(p) => Some(p),
+        None => {
+            return Err(ApiError::unprocessable(
+                "OTP_DELIVERY_UNAVAILABLE",
+                "phone verification is not available: no SMS provider is configured",
+            ));
+        }
+    };
 
     let session = state
         .consumer_wallet
@@ -118,6 +137,9 @@ pub async fn verify_otp(
     State(state): State<AppState>,
     Json(body): Json<VerifyOtpBody>,
 ) -> ApiResult<Json<VerifyOtpResponse>> {
+    if !(4..=8).contains(&body.otp_code.len()) || !body.otp_code.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(ApiError::bad_request("otp_code must be 4 to 8 digits"));
+    }
     let session = state
         .consumer_wallet
         .verify_otp(VerifyOtpRequest {

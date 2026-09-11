@@ -346,7 +346,15 @@ where
         // Verify OTP: compare SHA-256(submitted) against stored hash.
         let submitted_hash = sha256_hex(&req.otp_code);
         let stored_hash = session.otp_code_hash.as_deref().unwrap_or("");
-        if submitted_hash != stored_hash {
+        // Constant time: `!=` on the hashes leaked, through timing, how long a
+        // prefix of the stored hash a guess matched.
+        let same = submitted_hash.len() == stored_hash.len()
+            && submitted_hash
+                .bytes()
+                .zip(stored_hash.bytes())
+                .fold(0u8, |acc, (a, b)| acc | (a ^ b))
+                == 0;
+        if stored_hash.is_empty() || !same {
             return Err(ConsumerWalletError::OtpInvalid);
         }
 
