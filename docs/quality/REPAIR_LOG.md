@@ -2952,3 +2952,19 @@ it made (200; completed if it was left CREATED/PENDING). The same key for anythi
 else is `409 IDEMPOTENCY_CONFLICT`, which says nothing about the settlement that owns
 it. Tests `TestBusinessSettlement_RetryAnswersWithTheSettlementItMade` (removing the
 lookup or the ownership check fails it) and `create_then_complete_via_api`.
+
+## RA-102 — the developer docs sent account transfers to a route that was withdrawn
+
+- **Found:** 2026-09-11 (closure phase, transfer-devkey-e2e.sh after its DOA conversion)
+- **Status:** FIXED (docs, harness, Dart test)
+
+The rename that dropped the `/business` namespace (8327a9cd) rewrote
+`/v1/business/transfers` as `/v1/transfers` — the gateway route withdrawn for
+security (SEC-015) — instead of `/v1/wallet-account-transfers`, where account-to-account
+transfers are served. The public reference's curl example, the English credential
+note and the machine-readable availability file sent a developer to a 404; the
+Portuguese page had it right. The harness that proves transfers, and the Dart
+client's publishable-key test ("it cannot transfer"), had been probing the missing
+route. All now name `/v1/wallet-account-transfers`; the harness passes 20/20. The same
+rename had also turned the refund harness's retired-path probes into live-path ones
+(fixed with the DOA conversion, `refund-devkey-e2e.sh`).

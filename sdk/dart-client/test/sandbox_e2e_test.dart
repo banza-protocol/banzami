@@ -77,7 +77,7 @@ void main() {
 
     test('it cannot transfer', () async {
       expect(
-          await post('/v1/transfers',
+          await post('/v1/wallet-account-transfers',
               '{"source_wallet_account_id":"a","destination_wallet_account_id":"b","amount_minor":1,"currency":"AOA","idempotency_key":"k"}'),
           403);
     });

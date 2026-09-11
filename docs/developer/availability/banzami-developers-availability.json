@@ -51,7 +51,7 @@
     "transfers": {
       "state": "available_controlled_sandbox",
       "credential": "developer_key_scoped",
-      "note": "POST /v1/transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
+      "note": "POST /v1/wallet-account-transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
     },
     "production_live_rails": {
       "state": "not_available",

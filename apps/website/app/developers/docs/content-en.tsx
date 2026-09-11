@@ -634,7 +634,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Credential note: refunds and transfers are reached with a project key holding
                 {' '}<Code>refunds:write</Code> and <Code>transfers:write</Code>, on <Code>/v1/refunds</Code> and
-                {' '}<Code>/v1/transfers</Code>. Both were verified end to end against the deployed Sandbox, including
+                {' '}<Code>/v1/wallet-account-transfers</Code>. Both were verified end to end against the deployed Sandbox, including
                 the refusals: a read-only key cannot write, and another project&rsquo;s payment or account answers <Code>404</Code>.
                 Sandbox only — never present either as available in Production.
               </P>

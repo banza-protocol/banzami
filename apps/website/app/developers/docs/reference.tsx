@@ -321,7 +321,7 @@ export const ENDPOINTS: EndpointSpec[] = [
       { name: 'idempotency_key', note: { pt: 'obrigatório — sem ele cada repetição seria uma transferência nova', en: 'required — without it every retry would be a new transfer' } },
       { name: 'description', note: { pt: 'opcional', en: 'optional' } },
     ],
-    curl: `curl -X POST https://sandbox-api.banzami.com/v1/transfers \\
+    curl: `curl -X POST https://sandbox-api.banzami.com/v1/wallet-account-transfers \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
   -H "Content-Type: application/json" \\
   -d '{

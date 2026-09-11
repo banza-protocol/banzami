@@ -103,7 +103,7 @@ chk SOURCE_FUNDED "$A0" "300000"
 echo "### the transfer"
 IDEM="tr-idem-$R"
 TB="{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":50000,\"currency\":\"AOA\",\"idempotency_key\":\"$IDEM\"}"
-call "$GW" 8080 POST /v1/transfers "$TB" "$KEY"
+call "$GW" 8080 POST /v1/wallet-account-transfers "$TB" "$KEY"
 echo "  create → http=$CODE $(printf '%s' "$LAST" | head -c 130)"
 chk TRANSFER_ACCEPTED "$CODE" "201"
 TID=$(jget id)
@@ -119,13 +119,13 @@ echo "### the ledger stays balanced"
 chk LEDGER_BALANCED "$(unbalanced)" "0"   # clean ledger: nothing unbalanced, ever
 
 echo "### idempotency"
-call "$GW" 8080 POST /v1/transfers "$TB" "$KEY"
+call "$GW" 8080 POST /v1/wallet-account-transfers "$TB" "$KEY"
 chk IDEMPOTENT_REPLAY "$(jget id)" "$TID"
 A2=$(bal "$A" "$KEY"); B2=$(bal "$B" "$KEY")
 chk REPLAY_MOVED_NOTHING "$A2:$B2" "$A1:$B1"
 
 echo "### the same key with a different request is a conflict, not a silent replay"
-call "$GW" 8080 POST /v1/transfers \
+call "$GW" 8080 POST /v1/wallet-account-transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":77000,\"currency\":\"AOA\",\"idempotency_key\":\"$IDEM\"}" "$KEY"
 # Returning the original here would answer a question the caller did not ask:
 # a 200 for a transfer of the wrong amount, which they would believe happened.
@@ -134,13 +134,13 @@ AC=$(bal "$A" "$KEY"); BC=$(bal "$B" "$KEY")
 chk CONFLICT_MOVED_NOTHING "$AC:$BC" "$A1:$B1"
 
 echo "### rejected transfers move nothing"
-call "$GW" 8080 POST /v1/transfers \
+call "$GW" 8080 POST /v1/wallet-account-transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":99999999,\"currency\":\"AOA\",\"idempotency_key\":\"over-$R\"}" "$KEY"
 chk INSUFFICIENT_FUNDS_REJECTED "$([ "$CODE" -ge 400 ] && echo rejected)" "rejected"
-call "$GW" 8080 POST /v1/transfers \
+call "$GW" 8080 POST /v1/wallet-account-transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$B\",\"amount_minor\":-50000,\"currency\":\"AOA\",\"idempotency_key\":\"neg-$R\"}" "$KEY"
 chk NEGATIVE_REJECTED "$CODE" "400"
-call "$GW" 8080 POST /v1/transfers \
+call "$GW" 8080 POST /v1/wallet-account-transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$A\",\"amount_minor\":1000,\"currency\":\"AOA\",\"idempotency_key\":\"self-$R\"}" "$KEY"
 chk SELF_TRANSFER_REJECTED "$CODE" "400"
 A3=$(bal "$A" "$KEY"); B3=$(bal "$B" "$KEY")
@@ -161,11 +161,11 @@ OKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 # Foreign SOURCE — stealing from A.
-call "$GW" 8080 POST /v1/transfers \
+call "$GW" 8080 POST /v1/wallet-account-transfers \
   "{\"source_wallet_account_id\":\"$A\",\"destination_wallet_account_id\":\"$OWACCT\",\"amount_minor\":10000,\"currency\":\"AOA\",\"idempotency_key\":\"steal-$R\"}" "$OKEY"
 chk FOREIGN_SOURCE_REJECTED "$CODE" "404"
 # Foreign DESTINATION — pushing into A from outside.
-call "$GW" 8080 POST /v1/transfers \
+call "$GW" 8080 POST /v1/wallet-account-transfers \
   "{\"source_wallet_account_id\":\"$OWACCT\",\"destination_wallet_account_id\":\"$A\",\"amount_minor\":10000,\"currency\":\"AOA\",\"idempotency_key\":\"push-$R\"}" "$OKEY"
 chk FOREIGN_DESTINATION_REJECTED "$CODE" "404"
 
