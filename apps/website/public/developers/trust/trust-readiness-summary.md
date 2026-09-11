@@ -66,13 +66,16 @@ self_service_access: false
 
 ## O que não está disponível / não aprovado — What is not available / not approved
 
-- **PT** · Trilhos de Produção/live, pay/checkout públicos (não implantados —
-  pay.banzami.com responde 503), fornecedores externos, emissão de chaves live,
+- **PT** · Trilhos de Produção/live — incluindo pagamentos com dinheiro real na
+  página de pagamento (pay.banzami.com está implantada e serve a página de
+  pagamento do Sandbox: dinheiro virtual, nenhum trilho live) —, fornecedores
+  externos, emissão de chaves live,
   a framework Flutter interna `banzami_flutter` (nunca publicada — o SDK
   cliente publicado é `banzami_client`), dashboard da Consola (pré-visualização
   demo), Stage C (não implementado/não aprovado).
-- **EN** · Production/live rails, public pay/checkout (not deployed —
-  pay.banzami.com answers 503), external providers, live key issuance, the
+- **EN** · Production/live rails — including real-money payments on the pay
+  page (pay.banzami.com is deployed and serves the Sandbox payer page: virtual
+  money, no live rail) —, external providers, live key issuance, the
   internal `banzami_flutter` framework (never published — the published client
   SDK is `banzami_client`), the Console dashboard (demo preview),
   Stage C (not implemented/not approved).

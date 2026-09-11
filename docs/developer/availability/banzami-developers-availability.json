@@ -71,7 +71,7 @@
     "pay_checkout_live_rails": {
       "state": "not_approved",
       "credential": null,
-      "note": "Public pay/checkout surfaces are not available and not approved for restore."
+      "note": "Live rails on the public pay/checkout surface are not available and not approved. pay.banzami.com is deployed and serves the Sandbox payer page only (virtual money)."
     },
     "external_provider_rails": {
       "state": "not_approved",
