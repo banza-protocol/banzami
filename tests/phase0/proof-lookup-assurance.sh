@@ -99,7 +99,19 @@ while [ $i -lt ${#LEG[@]} ]; do
   # clients again (their own windows have expired too).
   if [ $c -eq 10 ] && [ $i -lt ${#LEG[@]} ]; then wait_window 62; c=0; fi
 done
-for code in $(client 13 "${SEC[@]}"); do [ "$code" = 200 ] && V=$((V+1)); done
+# The SECURE_V1 references are paged across the same client pool, six at a time,
+# for the same reason the legacy ones are: one client may ask sixty times a
+# minute. This batch used to go out from a single client in one call, which was
+# fine while there were fewer than sixty of them — when the store grew past
+# that, the tail came back 429 and the harness read it as proofs that do not
+# verify (16 of 156 on 2026-09-12).
+i=0
+while [ $i -lt ${#SEC[@]} ]; do
+  batch=("${SEC[@]:$i:6}")
+  for code in $(client "$c" "${batch[@]}"); do [ "$code" = 200 ] && V=$((V+1)); done
+  i=$((i+6)); c=$((c+1))
+  if [ $c -eq 10 ] && [ $i -lt ${#SEC[@]} ]; then wait_window 62; c=0; fi
+done
 chk historical-proofs-verify "$V/$N" "$N/$N"
 echo "  (legacy ${#LEG[@]}, SECURE_V1 ${#SEC[@]})"
 
@@ -133,7 +145,11 @@ chk every-altered-reference-not-found "$A404/${#ALIASES[@]}" "${#ALIASES[@]}/${#
 echo "  (${#ALIASES[@]} altered spellings of $N stored proofs; other statuses: $AOTHER)"
 
 echo "### 7 the synthetic register holds no real proof"
-REG="$(cd "$(dirname "$0")" && pwd)/synthetic-proof-references.txt"
+# The register is canonical assurance data and lives with the other assurance
+# queries. It was looked for beside this script, where it has never been, so
+# this check reported "missing" instead of asserting anything.
+REG="$(cd "$(dirname "$0")/../.." && pwd)/tools/assurance/synthetic-proof-references.txt"
+[ -f "$REG" ] || REG="$(cd "$(dirname "$0")" && pwd)/synthetic-proof-references.txt"
 if [ -f "$REG" ]; then
   VALS=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$REG" | grep -E '^BZM-[0-9A-Z-]+$' | sed "s/.*/('&')/" | paste -sd, -)
   REAL=$(psqlro "SELECT count(*) FROM transaction_proofs p JOIN (VALUES $VALS) v(r) ON p.proof_reference = v.r")
