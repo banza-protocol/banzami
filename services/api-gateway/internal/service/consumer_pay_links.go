@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"net/url"
+	"regexp"
 	"time"
 )
 
@@ -36,9 +38,17 @@ func NewCoreApiConsumerPayLinkService(client *CoreApiClient) *CoreApiConsumerPay
 	return &CoreApiConsumerPayLinkService{client: client}
 }
 
+// ConsumerPayLinkCodePattern is the one spelling a pay-link code has (core
+// consumer_pay_links generate_link_code): 8 characters of that alphabet.
+var ConsumerPayLinkCodePattern = regexp.MustCompile(`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$`)
+
 func (s *CoreApiConsumerPayLinkService) GetByCode(ctx context.Context, code string) (*ConsumerPayLink, error) {
+	// Exact, then escaped: the router already decoded it once (see GetBySlug).
+	if !ConsumerPayLinkCodePattern.MatchString(code) {
+		return nil, ErrConsumerPayLinkNotFound
+	}
 	var link ConsumerPayLink
-	if err := s.client.get(ctx, "/internal/v1/consumer-pay-links/by-code/"+code, &link); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/consumer-pay-links/by-code/"+url.PathEscape(code), &link); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerPayLinkNotFound
 		}

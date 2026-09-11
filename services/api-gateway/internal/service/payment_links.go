@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"regexp"
 	"time"
 )
 
@@ -108,9 +110,19 @@ func (s *CoreApiPaymentLinkService) Get(ctx context.Context, id string) (*Paymen
 	return &link, nil
 }
 
+// PaymentLinkSlugPattern is the one spelling a slug has: 12 lower-case hex
+// characters (core payment-links generate_slug). Anything else is not a slug.
+var PaymentLinkSlugPattern = regexp.MustCompile(`^[0-9a-f]{12}$`)
+
 func (s *CoreApiPaymentLinkService) GetBySlug(ctx context.Context, slug string) (*PaymentLink, error) {
+	// The slug arrives already decoded by the router and was pasted into core's
+	// URL, which decodes it again: %2541… and <slug>%3Fx resolved to a link. A
+	// public link identifier is exact — checked here, then escaped.
+	if !PaymentLinkSlugPattern.MatchString(slug) {
+		return nil, ErrPaymentLinkNotFound
+	}
 	var link PaymentLink
-	if err := s.client.get(ctx, fmt.Sprintf("/internal/v1/payment-links/by-slug/%s", slug), &link); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/payment-links/by-slug/"+url.PathEscape(slug), &link); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentLinkNotFound
 		}

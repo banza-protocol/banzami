@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"net/url"
@@ -36,9 +37,9 @@ var (
 	ErrTransferRecipientUnavailable = errors.New("recipient cannot receive funds")
 	// ErrTransferKeyReused: the idempotency key already names a different
 	// transfer — on a payment link, someone else already paid it.
-	ErrTransferKeyReused = errors.New("idempotency key already used for a different transfer")
-	ErrPaymentLinkNotFound          = errors.New("payment link not found")
-	ErrPaymentLinkNotActive         = errors.New("payment link is no longer active")
+	ErrTransferKeyReused    = errors.New("idempotency key already used for a different transfer")
+	ErrPaymentLinkNotFound  = errors.New("payment link not found")
+	ErrPaymentLinkNotActive = errors.New("payment link is no longer active")
 
 	// Onboarding domain errors
 	ErrOtpInvalid         = errors.New("OTP is invalid or expired")
@@ -491,7 +492,10 @@ func (c *CorePublicClient) GetMerchant(ctx context.Context, id string) (*Merchan
 
 func (c *CorePublicClient) GetPaymentLinkBySlug(ctx context.Context, slug string) (*PaymentLink, error) {
 	var out PaymentLink
-	if err := c.get(ctx, "/internal/v1/payment-links/by-slug/"+slug, &out); err != nil {
+	if !paymentLinkSlug.MatchString(slug) { // exact, then escaped — never decoded twice
+		return nil, ErrPaymentLinkNotFound
+	}
+	if err := c.get(ctx, "/internal/v1/payment-links/by-slug/"+url.PathEscape(slug), &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentLinkNotFound
 		}
@@ -803,7 +807,10 @@ func (c *CorePublicClient) CreateConsumerPayLink(ctx context.Context, req Create
 
 func (c *CorePublicClient) GetConsumerPayLinkByCode(ctx context.Context, code string) (*ConsumerPayLink, error) {
 	var out ConsumerPayLink
-	if err := c.get(ctx, "/internal/v1/consumer-pay-links/by-code/"+code, &out); err != nil {
+	if !consumerPayLinkCode.MatchString(code) { // exact, then escaped
+		return nil, ErrConsumerPayLinkNotFound
+	}
+	if err := c.get(ctx, "/internal/v1/consumer-pay-links/by-code/"+url.PathEscape(code), &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerPayLinkNotFound
 		}
@@ -814,7 +821,10 @@ func (c *CorePublicClient) GetConsumerPayLinkByCode(ctx context.Context, code st
 
 func (c *CorePublicClient) PayConsumerPayLink(ctx context.Context, code string, req PayConsumerPayLinkRequest) (*ConsumerPayLink, error) {
 	var out ConsumerPayLink
-	if err := c.post(ctx, "/internal/v1/consumer-pay-links/"+code+"/pay", req, &out); err != nil {
+	if !consumerPayLinkCode.MatchString(code) {
+		return nil, ErrConsumerPayLinkNotFound
+	}
+	if err := c.post(ctx, "/internal/v1/consumer-pay-links/"+url.PathEscape(code)+"/pay", req, &out); err != nil {
 		return nil, mapConsumerPayLinkPayError(err)
 	}
 	return &out, nil
@@ -909,3 +919,11 @@ func (c *CorePublicClient) do(req *http.Request, out any) error {
 	}
 	return nil
 }
+
+// Public link identifiers have one spelling each (core generate_slug /
+// generate_link_code). The router decodes the path once; pasting the result
+// into core's URL decoded it a second time, so %2541… or <slug>%3Fx resolved.
+var (
+	paymentLinkSlug     = regexp.MustCompile(`^[0-9a-f]{12}$`)
+	consumerPayLinkCode = regexp.MustCompile(`^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{8}$`)
+)
