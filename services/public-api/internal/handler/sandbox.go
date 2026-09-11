@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/banzami/banzami/services/common/env"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -113,6 +114,10 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "the top-up request was refused")
 			return
 		}
+		if code, ok := sandboxCreditRefusal(err); ok {
+			apierror.Respond(w, r, http.StatusUnprocessableEntity, code, "the Sandbox refused this top-up: "+code)
+			return
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "the sandbox top-up could not be applied")
 		return
 	}
@@ -125,3 +130,21 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 		"note":           "Sandbox wallet credited. Virtual balance — no real funds moved.",
 	})
 }
+
+// sandboxCreditRefusal recognises core's deliberate refusal of a top-up (a
+// 422 with a code — e.g. PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED once the Sandbox
+// pilot cap is reached) so the caller is told which rule refused it. It was
+// answered as a 500, "could not be applied", which reads as an outage and
+// hides the one thing the caller can act on.
+func sandboxCreditRefusal(err error) (string, bool) {
+	if err == nil || !strings.Contains(err.Error(), "core-api error 422") {
+		return "", false
+	}
+	m := coreErrorCode.FindStringSubmatch(err.Error())
+	if m == nil {
+		return "SANDBOX_CREDIT_REFUSED", true
+	}
+	return m[1], true
+}
+
+var coreErrorCode = regexp.MustCompile(`"code"\s*:\s*"([A-Z0-9_]{1,64})"`)

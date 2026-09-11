@@ -2757,3 +2757,39 @@ log fields go through `obs.MaskID`. Guards: `TestRedactPath_ApplicationID`,
 edges equal, the log format writes it), `tests/ops/application-id-log-masking.test.mjs`
 (any unmasked `"application_id"` log field). Each mutation-proven. Probed live on
 the Sandbox edge with a synthetic id: prefix only.
+
+## RA-093 — a hygiene sweep wrote into DOA's tenant; the Sandbox pilot cap refuses new funding
+
+- **Found:** 2026-09-11, by my own run of `fixture-hygiene-suite.sh`
+- **Status:** guard FIXED; two DOA sub-accounts left for the owner's decision;
+  the pilot cap is an owner decision
+
+**What I did.** I ran `fixture-hygiene-suite.sh` to measure fixture leakage,
+taking it for a read-only check because it writes nothing itself. It runs every
+stateful harness — including the nine that act inside DOA's real Project or
+Business. Measured afterwards (read-only): no DOA ledger entry, payout, payment
+link or delivery; no application settlement created or completed anywhere (the
+preserved DOA settlement untouched). But `campaign-payment-segregation.sh`
+opened two CAMPAIGN sub-accounts in DOA's wallet ("Campanha A/B — demo",
+balance 0) before it stopped. Earlier runs had left eight more: DOA holds ten
+such empty demo accounts. They were not closed — the standing rule is never to
+mutate canonical @doa state to clean fixtures — and are listed for the owner.
+Three payment links on synthetic fixture merchants (`@synthetic.test`) were
+left ACTIVE by harnesses that could not pay them; they were cancelled through
+the API as their owners (open links back to 7).
+
+**The guard.** The suite now skips any harness that names DOA's Project,
+@doa or doadoa.app unless `BANZAMI_ALLOW_DOA_TENANT_WRITES=1`, detected from
+the harness source; `--list` shows the selection without touching the Sandbox.
+`tests/ops/fixture-suite-doa-tenant.test.mjs` fails if a default run would
+include one. DOA being used as the test tenant of nine harnesses is itself the
+defect — "DOA must never be special as a Banzami tenant" — and moving them onto
+a generic fixture Project is open.
+
+**Why most harnesses failed.** Core refuses every Sandbox top-up with
+`422 PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED`: the pilot overlay
+(`BANZAMI_PILOT_LIMITS=1`) caps synthetic funds in circulation at Kz 500 000,
+and the cap is reached. New consumers start at zero and cannot be funded, so
+harness payers hit `INSUFFICIENT_FUNDS`. Raising or resetting the cap is a
+product decision. public-api reported that refusal as `500 INTERNAL_ERROR`; it
+now answers `422` with core's code (`sandboxCreditRefusal`, tested).

@@ -9,6 +9,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -200,5 +201,22 @@ func TestSandboxFund_ZeroAmountReturns400(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("expected 400 for zero amount, got %d", w.Code)
+	}
+}
+
+// Core's deliberate refusal of a top-up reaches the caller as a 422 with core's
+// code — not a 500.
+func TestSandboxCreditRefusal(t *testing.T) {
+	code, ok := sandboxCreditRefusal(errors.New(`core-api error 422: {"error":{"code":"PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED","message":"x"}}`))
+	if !ok || code != "PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED" {
+		t.Fatalf("got %q %v", code, ok)
+	}
+	if code, ok := sandboxCreditRefusal(errors.New(`core-api error 422: not json`)); !ok || code != "SANDBOX_CREDIT_REFUSED" {
+		t.Fatalf("unparsable 422: %q %v", code, ok)
+	}
+	for _, e := range []error{nil, errors.New("core-api error 500: boom"), errors.New("dial tcp: refused")} {
+		if _, ok := sandboxCreditRefusal(e); ok {
+			t.Fatalf("%v is not a refusal", e)
+		}
 	}
 }

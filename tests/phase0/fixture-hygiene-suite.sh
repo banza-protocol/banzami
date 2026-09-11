@@ -15,11 +15,16 @@
 set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
-CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
-[ -n "$PG" ] && [ -n "$CORE" ] || { echo "run this on the Sandbox VM" >&2; exit 2; }
-PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
-q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
+# DOA is a tenant, not a test fixture. Several harnesses act inside DOA's real
+# Project or Business — mint keys on it, open campaign accounts in its wallet,
+# deliver to doadoa.app — and this suite used to run all of them whenever it
+# ran: on 2026-09-11 a sweep meant as a hygiene check added two empty campaign
+# accounts to DOA's wallet (ten such "demo" accounts had accumulated). Any
+# harness that names DOA's Project or DOA's site is now skipped unless the
+# caller says, explicitly, that writing into DOA's tenant is intended.
+# Detected from the harness itself, so a new one is covered the day it lands.
+touches_doa_tenant() { grep -qE 'DOA_PROJECT|doadoa\.app|@doa' "$HERE/$1"; }
+ALLOW_DOA="${BANZAMI_ALLOW_DOA_TENANT_WRITES:-0}"
 
 inventory() {
   echo "live merchant API keys|$(q "select count(*) from api_keys where revoked_at is null")"
@@ -57,6 +62,25 @@ webhook-delivery-to-doa.sh
 webhook-lifecycle-e2e.sh
 "
 
+SELECTED=""; SKIPPED_DOA=""
+for h in $HARNESSES; do
+  if touches_doa_tenant "$h" && [ "$ALLOW_DOA" != "1" ]; then SKIPPED_DOA="$SKIPPED_DOA $h"; else SELECTED="$SELECTED $h"; fi
+done
+# --list: what would run, and what is held back — without touching the Sandbox.
+if [ "${1:-}" = "--list" ]; then
+  for h in $SELECTED; do echo "run $h"; done
+  for h in $SKIPPED_DOA; do echo "skip-doa-tenant $h"; done
+  exit 0
+fi
+HARNESSES="$SELECTED"
+
+PG=$(docker ps --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1)
+CORE=$(docker ps --format '{{.Names}}' | grep core-api-staging | head -1)
+[ -n "$PG" ] && [ -n "$CORE" ] || { echo "run this on the Sandbox VM" >&2; exit 2; }
+PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
+q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
+
+[ -n "$SKIPPED_DOA" ] && echo "  skipped — they write into DOA's tenant (BANZAMI_ALLOW_DOA_TENANT_WRITES=1 includes them):$SKIPPED_DOA"
 BEFORE=$(inventory)
 echo "── operator authority before the suite ──"
 printf '%s\n' "$BEFORE" | while IFS='|' read -r l n; do printf '  %-28s %s\n' "$l" "$n"; done
