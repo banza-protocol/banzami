@@ -1,237 +1,116 @@
-import 'dart:io';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../../branding_assets.dart';
 import '../../widgets/app_screen_header.dart';
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
 
-/// Ecrã "Receber" — mostra o QR estático do comerciante e permite criar
-/// cobranças com valor fixo.
-class MerchantQrScreen extends StatefulWidget {
+/// Ecrã "Receber" — como o negócio recebe um pagamento hoje: uma cobrança
+/// (link de pagamento) cujo QR/link o cliente paga na app Banzami.
+///
+/// It used to show a static structured QR (`/v1/qr/static`) as "Mostre este QR
+/// ao cliente". No client can pay one: the consumer surface has no QR-pay route
+/// (withdrawn, RA-053) and the consumer app refuses structured QRs. A
+/// Business's @banza is not a P2P destination either (transfers route to
+/// consumer handles only). So the tab no longer shows a code nobody can pay —
+/// it says what works and opens it.
+class MerchantQrScreen extends StatelessWidget {
   const MerchantQrScreen({super.key});
 
   @override
-  State<MerchantQrScreen> createState() => _MerchantQrScreenState();
-}
-
-class _MerchantQrScreenState extends State<MerchantQrScreen> {
-  String?   _qrPayload;
-  bool      _loading = false;
-  bool      _sharing = false;
-  String?   _error;
-  ui.Image? _logoImage;
-
-  final _shareButtonKey = GlobalKey();
-
-  @override
-  void initState() {
-    super.initState();
-    _loadQr();
-    _loadLogo();
-  }
-
-  Future<void> _loadLogo() async {
-    final data  = await rootBundle.load(BrandingAssets.businessLogo);
-    final codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
-      targetWidth:  160,
-      targetHeight: 160,
-    );
-    final frame    = await codec.getNextFrame();
-    final composed = await composeQrCenterLogo(frame.image);
-    if (mounted) setState(() => _logoImage = composed);
-  }
-
-  Future<void> _loadQr() async {
-    if (_loading) return;
-    setState(() { _loading = true; _error = null; });
-
-    final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzamiClient>();
-
-    try {
-      final qr = await client.createStaticQr(
-        ownerId:   session.merchantId,
-        ownerType: 'MERCHANT',
-        currency:  'AOA',
-      );
-      if (mounted) setState(() => _qrPayload = qr.payload);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Não foi possível gerar o QR.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _shareQr(MerchantSession session) async {
-    if (_sharing) return;
-    setState(() => _sharing = true);
-    try {
-      // Canonical QR painter (shared with the on-screen widget) rasterized to PNG.
-      final painter = banzamiQrPainter(
-        payload: _qrPayload!,
-        logo: _logoImage,
-        renderSize: 512,
-      );
-
-      final byteData = await painter.toImageData(512);
-      if (byteData == null) throw Exception('QR render retornou imagem vazia');
-      final bytes = byteData.buffer.asUint8List();
-
-      // App-private cache directory — never a world-readable location for a
-      // merchant payment QR. The file is removed again after sharing.
-      final dir  = await getTemporaryDirectory();
-      final file = File('${dir.path}/qr_${session.merchantId}.png');
-      await file.writeAsBytes(bytes);
-
-      final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
-      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
-
-      try {
-        await Share.shareXFiles(
-          [XFile(file.path, mimeType: 'image/png')],
-          subject:             'QR de pagamento — ${session.merchantName}',
-          sharePositionOrigin: origin,
-        );
-      } finally {
-        if (await file.exists()) {
-          try { await file.delete(); } catch (_) {/* best-effort cleanup */}
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        BanzamiToast.showError(context, 'Erro ao partilhar: $e');
-      }
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final session = context.read<MerchantSessionService>().session!;
+    final session = context.read<MerchantSessionService>().session;
 
     return BanzamiScaffold(
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppScreenHeader(
+            const AppScreenHeader(
               title:    'Receber',
-              subtitle: 'QR Code e ligação de pagamento',
-              trailing: IconButton(
-                icon:      const Icon(Icons.refresh_rounded, size: 20),
-                color:     BanzamiColors.gray400,
-                onPressed: _loadQr,
-                tooltip:   'Regenerar QR',
-              ),
+              subtitle: 'Cobranças por link e QR',
             ),
             Expanded(
-              child: _loading
-                  ? const Center(child: CircularProgressIndicator(color: BanzamiColors.primary))
-                  : _error != null
-                      ? _buildError()
-                      : _buildBody(session),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BanzamiSpacing.xl,
+                  vertical:   BanzamiSpacing.lg,
+                ),
+                child: Column(children: [
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(BanzamiSpacing.xl),
+                    decoration: const BoxDecoration(
+                      color:        BanzamiColors.white,
+                      borderRadius: BanzamiRadius.xxlAll,
+                      boxShadow:    BanzamiShadows.card,
+                    ),
+                    child: Column(children: [
+                      const Icon(Icons.qr_code_2_rounded,
+                          color: BanzamiColors.primary, size: 48),
+                      const SizedBox(height: BanzamiSpacing.md),
+                      if (session != null) ...[
+                        Text(
+                          session.merchantName,
+                          style:     BanzamiTextStyles.headingSm,
+                          textAlign: TextAlign.center,
+                        ),
+                        if (session.banzaAddress != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            session.banzaAddress!,
+                            style: BanzamiTextStyles.bodyMd.copyWith(
+                              color: BanzamiColors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                        const SizedBox(height: BanzamiSpacing.md),
+                      ],
+                      Text(
+                        kReceiveHowItWorks,
+                        style: BanzamiTextStyles.bodyMd.copyWith(
+                          color: BanzamiColors.gray600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: BanzamiSpacing.sm),
+                      Text(
+                        kStaticQrUnavailable,
+                        style: BanzamiTextStyles.bodySm.copyWith(
+                          color: BanzamiColors.gray400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ]),
+                  ),
+                  const SizedBox(height: BanzamiSpacing.xl),
+                  BanzamiPrimaryButton(
+                    label:     'Criar cobrança',
+                    icon:      Icons.add_circle_outline_rounded,
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const ChargeScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: BanzamiSpacing.page),
+                ]),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildError() {
-    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
-      const SizedBox(height: 12),
-      Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-      const SizedBox(height: 16),
-      BanzamiGhostButton(label: 'Tentar novamente', onPressed: _loadQr),
-    ]));
-  }
-
-  Widget _buildBody(MerchantSession session) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.xl,
-        vertical:   BanzamiSpacing.lg,
-      ),
-      child: Column(children: [
-        Text(
-          'Mostre este QR ao cliente para receber pagamentos.',
-          style:     BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: BanzamiSpacing.xl),
-
-        Container(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
-          decoration: const BoxDecoration(
-            color:        BanzamiColors.white,
-            borderRadius: BanzamiRadius.xxlAll,
-            boxShadow:    BanzamiShadows.card,
-          ),
-          child: Column(children: [
-            CustomPaint(
-              size: const Size(256, 256),
-              // Canonical QR (shared painter) — reuses the already-loaded logo.
-              painter: banzamiQrPainter(
-                payload: _qrPayload!,
-                logo: _logoImage,
-                renderSize: 256,
-              ),
-            ),
-            const SizedBox(height: BanzamiSpacing.lg),
-            Text(
-              session.merchantName,
-              style:     BanzamiTextStyles.headingSm,
-              textAlign: TextAlign.center,
-            ),
-            if (session.banzaAddress != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                'Receber em ${session.banzaAddress}',
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: BanzamiColors.primary, fontWeight: FontWeight.w700),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            const SizedBox(height: 4),
-            Text(
-              'Qualquer valor · AOA',
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-            ),
-          ]),
-        ),
-
-        const SizedBox(height: BanzamiSpacing.xl),
-
-        BanzamiPrimaryButton(
-          key:       _shareButtonKey,
-          label:     'Partilhar QR',
-          icon:      Icons.share_rounded,
-          isLoading: _sharing,
-          onPressed: _sharing ? null : () => _shareQr(session),
-        ),
-        const SizedBox(height: BanzamiSpacing.md),
-
-        BanzamiSecondaryButton(
-          label:     'Cobrança com valor fixo',
-          onPressed: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ChargeScreen()),
-          ),
-        ),
-
-        const SizedBox(height: BanzamiSpacing.page),
-      ]),
-    );
-  }
 }
+
+/// What works today: a charge is a payment link with its own QR.
+const String kReceiveHowItWorks =
+    'Crie uma cobrança: o cliente paga pelo link ou pelo QR da cobrança, '
+    'na app Banzami.';
+
+/// No dead promise: a counter QR for any amount does not exist yet.
+const String kStaticQrUnavailable =
+    'O QR fixo de balcão ainda não está disponível nesta versão.';
