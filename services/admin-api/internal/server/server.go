@@ -169,7 +169,6 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		settlementH := handler.NewSettlementHandler(core)
 		payoutH := handler.NewPayoutHandler(core)
 		merchantH := handler.NewMerchantHandler(core)
-		merchantSetupH := handler.NewMerchantSetupHandler(core, mailer)
 		// Sandbox gateway client (banzami_staging) for environment-aware routing of
 		// Business applications + KYB (ADR-025). Nil when staging is unconfigured;
 		// the guard below keeps it a true nil interface (not a typed-nil) so the
@@ -197,10 +196,13 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		disputeH := handler.NewDisputeHandler(core, gw, adminEnv)
 
 		// Merchants
-		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants", merchantSetupH.Create)
+		// Retired (A5-09): a Business is created by an approved application, keys
+		// are minted by the Business itself, and a Business is never deleted. See
+		// handler.RetiredMerchantSetup.
+		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants", handler.RetiredMerchantSetup)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/merchants", merchantH.List)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/merchants/{id}", merchantH.Get)
-		r.With(cap(auth.CapMerchantManage)).Delete("/admin/v1/merchants/{id}", merchantH.Delete)
+		r.With(cap(auth.CapMerchantManage)).Delete("/admin/v1/merchants/{id}", handler.RetiredMerchantSetup)
 		// PATCH /admin/v1/merchants/{id}/verified is retired: "verified" is the
 		// KYB decision (migration 0122), made through application review, KYB
 		// document review or the compliance actions below — not a toggle.
@@ -210,9 +212,9 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// who edit a Business Account's details are not necessarily the people who
 		// price it.
 		r.With(cap(auth.CapPricingManage)).Put("/admin/v1/merchants/{id}/pricing-profile", merchantH.AssignPricingProfile)
-		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/api-keys", merchantSetupH.CreateApiKey)
-		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
-		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/wallets", merchantSetupH.CreateWallet)
+		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/api-keys", handler.RetiredMerchantSetup)
+		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/resend-credentials", handler.RetiredMerchantSetup)
+		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/wallets", handler.RetiredMerchantSetup)
 
 		// Business onboarding applications (Merchant Lifecycle)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications", applicationsH.List)

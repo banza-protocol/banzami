@@ -174,12 +174,21 @@ func (h *MerchantHandler) AssignPricingProfile(w http.ResponseWriter, r *http.Re
 	writeJSON(w, http.StatusOK, result)
 }
 
-// Delete handles DELETE /admin/v1/merchants/{id}.
-func (h *MerchantHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	id := chi.URLParam(r, "id")
-	if err := h.core.DeleteMerchant(r.Context(), id); err != nil {
-		handleCoreErr(w, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
+// RetiredMerchantSetup answers the operator routes that built a Business
+// outside its lifecycle (A5-09):
+//
+//   - POST /admin/v1/merchants created a merchant and, with "sandbox": true,
+//     approved its KYB and AML without an application, in any platform mode;
+//   - POST …/api-keys and …/resend-credentials minted keys — resend always LIVE,
+//     returned and emailed the secret, and never revoked the old ones;
+//   - POST …/wallets provisioned a wallet by hand;
+//   - DELETE /admin/v1/merchants/{id} hard-deleted the merchant with its KYB
+//     decision record and its keys, with no reason and no snapshot.
+//
+// A Business is created by an approved application (Candidaturas), its keys are
+// minted by the Business in the Console or the Business App and shown to it
+// once, and a Business is suspended, never deleted.
+func RetiredMerchantSetup(w http.ResponseWriter, _ *http.Request) {
+	writeError(w, http.StatusGone, "ROUTE_RETIRED",
+		"a Business is created by an approved application, keys are minted by the Business itself, and a Business is suspended, never deleted")
 }

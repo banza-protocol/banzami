@@ -3316,3 +3316,20 @@ client; every pasted segment and query value is escaped. S3 signing code, which 
 Tests `corepath.TestWellFormed`, `TestCoreAdminClient_AnIdentifierCannotChooseTheRoute`
 (unescaped and unguarded, the operator id reaches `/risk/freeze`), and the gateway's
 `core_path_test.go`.
+
+## RA-122 — operator routes that built a Business outside its lifecycle
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-09, fail-open A2-11, privacy A6-04)
+- **Status:** RETIRED (admin-api)
+
+Five SUPER_ADMIN routes, reachable by API only (no console screen called them), sat
+beside the one KYB authority: `POST /admin/v1/merchants` created a merchant and, with
+`"sandbox": true`, approved its KYB and AML without an application in any platform
+mode; `…/api-keys` and `…/resend-credentials` minted keys — resend always LIVE, the
+secret returned to the operator and emailed in the clear, the old keys never revoked;
+`…/wallets` hand-provisioned a wallet; `DELETE /admin/v1/merchants/{id}` hard-deleted
+the merchant together with its KYB decision record and its keys, with no reason and no
+snapshot. All five answer 410 `ROUTE_RETIRED`: a Business is created by an approved
+application, keys are minted by the Business itself and shown to it once, and a
+Business is suspended, never deleted. The console's unused client methods are removed.
+Test `TestMerchantSetupRoutes_AreRetired`.
