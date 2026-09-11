@@ -43,9 +43,19 @@ pub trait PayoutRepository: Send + Sync {
         limit: i64,
     ) -> Result<Vec<Payout>, PayoutError>;
     async fn list_all(&self, limit: i64, status: Option<&str>) -> Result<Vec<Payout>, PayoutError>;
+    /// Moves a payout from `from` to `status` — only if it is still `from`.
+    ///
+    /// This is the payout's lock. Every transition used to read the status,
+    /// decide, move money and then update unconditionally, so two operators (or
+    /// a retry) acting at once could both pass the check: a concurrent fail and
+    /// return posted two reversals and gave the money back twice, and a fail
+    /// racing a confirm could leave a CONFIRMED payout with its money returned.
+    /// The engine now claims the transition here FIRST and moves money only
+    /// once it holds it. Losing the race is `InvalidStatusTransition`.
     async fn update_status(
         &self,
         id: PayoutId,
+        from: PayoutStatus,
         status: PayoutStatus,
         ledger_posting_id: Option<LedgerPostingId>,
         failure_reason: Option<String>,
@@ -298,6 +308,7 @@ impl PayoutRepository for PostgresPayoutRepository {
     async fn update_status(
         &self,
         id: PayoutId,
+        from: PayoutStatus,
         status: PayoutStatus,
         ledger_posting_id: Option<LedgerPostingId>,
         failure_reason: Option<String>,
@@ -314,7 +325,7 @@ impl PayoutRepository for PostgresPayoutRepository {
                 confirmed_at        = CASE WHEN $2 = 'CONFIRMED' THEN $5 ELSE confirmed_at  END,
                 returned_at         = CASE WHEN $2 = 'RETURNED'  THEN $5 ELSE returned_at   END,
                 failed_at           = CASE WHEN $2 = 'FAILED'    THEN $5 ELSE failed_at     END
-            WHERE id = $1
+            WHERE id = $1 AND status = $6
             -- Named, not `RETURNING *`.
             --
             -- The wildcard compiled fine until payouts gained pricing snapshot
@@ -332,10 +343,17 @@ impl PayoutRepository for PostgresPayoutRepository {
             ledger_posting_id.map(|id| id.as_uuid()),
             failure_reason,
             now,
+            from.as_str(),
         )
         .fetch_optional(&self.pool)
-        .await?
-        .ok_or(PayoutError::NotFound(id))?;
-        row_to_payout(row)
+        .await?;
+        match row {
+            Some(row) => row_to_payout(row),
+            // Not updated: missing, or someone else moved it first.
+            None => {
+                let current = self.get(id).await?;
+                Err(PayoutError::InvalidStatusTransition { from: current.status, to: status })
+            }
+        }
     }
 }

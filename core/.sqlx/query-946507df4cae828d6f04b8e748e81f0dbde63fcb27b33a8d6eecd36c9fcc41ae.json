@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE payouts SET\n                status              = $2,\n                ledger_posting_id   = COALESCE($3, ledger_posting_id),\n                failure_reason      = COALESCE($4, failure_reason),\n                sent_at             = CASE WHEN $2 = 'SENT'      THEN $5 ELSE sent_at      END,\n                confirmed_at        = CASE WHEN $2 = 'CONFIRMED' THEN $5 ELSE confirmed_at  END,\n                returned_at         = CASE WHEN $2 = 'RETURNED'  THEN $5 ELSE returned_at   END,\n                failed_at           = CASE WHEN $2 = 'FAILED'    THEN $5 ELSE failed_at     END\n            WHERE id = $1\n            -- Named, not `RETURNING *`.\n            --\n            -- The wildcard compiled fine until payouts gained pricing snapshot\n            -- columns, at which point query_as! found six fields PayoutRow does\n            -- not have and the crate stopped building. A star in a typed query\n            -- makes every future column an incompatible change to a struct that\n            -- has nothing to do with it.\n            RETURNING id, merchant_id, wallet_id, idempotency_key, status, environment,\n                      amount_minor, currency, bank_account_number, bank_code,\n                      account_holder_name, ledger_posting_id, failure_reason,\n                      created_at, sent_at, confirmed_at, returned_at, failed_at\n            ",
+  "query": "\n            UPDATE payouts SET\n                status              = $2,\n                ledger_posting_id   = COALESCE($3, ledger_posting_id),\n                failure_reason      = COALESCE($4, failure_reason),\n                sent_at             = CASE WHEN $2 = 'SENT'      THEN $5 ELSE sent_at      END,\n                confirmed_at        = CASE WHEN $2 = 'CONFIRMED' THEN $5 ELSE confirmed_at  END,\n                returned_at         = CASE WHEN $2 = 'RETURNED'  THEN $5 ELSE returned_at   END,\n                failed_at           = CASE WHEN $2 = 'FAILED'    THEN $5 ELSE failed_at     END\n            WHERE id = $1 AND status = $6\n            -- Named, not `RETURNING *`.\n            --\n            -- The wildcard compiled fine until payouts gained pricing snapshot\n            -- columns, at which point query_as! found six fields PayoutRow does\n            -- not have and the crate stopped building. A star in a typed query\n            -- makes every future column an incompatible change to a struct that\n            -- has nothing to do with it.\n            RETURNING id, merchant_id, wallet_id, idempotency_key, status, environment,\n                      amount_minor, currency, bank_account_number, bank_code,\n                      account_holder_name, ledger_posting_id, failure_reason,\n                      created_at, sent_at, confirmed_at, returned_at, failed_at\n            ",
   "describe": {
     "columns": [
       {
@@ -100,7 +100,8 @@
         "Text",
         "Uuid",
         "Text",
-        "Timestamptz"
+        "Timestamptz",
+        "Text"
       ]
     },
     "nullable": [
@@ -124,5 +125,5 @@
       true
     ]
   },
-  "hash": "5c3c08347e6d8aefda5cf3513f385427429300e47930c666fa0bf6aa8eec4fb9"
+  "hash": "946507df4cae828d6f04b8e748e81f0dbde63fcb27b33a8d6eecd36c9fcc41ae"
 }

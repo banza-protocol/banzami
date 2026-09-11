@@ -283,7 +283,9 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .reverse(
                 &net_posting,
                 format!("Payout {} — {} reversal (net)", payout.id, reason),
-                format!("{}:reverse:{}", payout.idempotency_key, reason),
+                // One reversal per payout, whatever the reason: a fail and a
+                // return racing each other must not both give the money back.
+                format!("{}:reverse", payout.idempotency_key),
             )
             .await?;
 
@@ -308,7 +310,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 // Reverse of (DR available fee / CR operator_fee fee).
                 let fee_reversal = PostingBuilder::new(
                     format!("Payout {} — {} reversal (fee)", payout.id, reason),
-                    format!("{}:reverse:fee:{}", payout.idempotency_key, reason),
+                    format!("{}:reverse:fee", payout.idempotency_key),
                 )
                 .debit(self.operator_fee_account_id, fee) // REVENUE ↓ give the fee back
                 .credit(available_account_id, fee) // LIABILITY ↑ restore to merchant
@@ -411,12 +413,23 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .await
             .map_err(|e| PayoutError::Wallet(e.to_string()))?;
 
-        let posting = self
-            .post_initiation(&payout, wallet.available_account_id)
+        // Claim first; move money only while holding the transition.
+        self.repo
+            .update_status(id, payout.status, PayoutStatus::Processing, None, None)
             .await?;
+        let posting = match self.post_initiation(&payout, wallet.available_account_id).await {
+            Ok(p) => p,
+            Err(e) => {
+                let _ = self
+                    .repo
+                    .update_status(id, PayoutStatus::Processing, payout.status, None, None)
+                    .await;
+                return Err(e);
+            }
+        };
 
         self.repo
-            .update_status(id, PayoutStatus::Processing, Some(posting.id), None)
+            .update_status(id, PayoutStatus::Processing, PayoutStatus::Processing, Some(posting.id), None)
             .await
     }
 
@@ -429,7 +442,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             });
         }
         self.repo
-            .update_status(id, PayoutStatus::Sent, None, None)
+            .update_status(id, payout.status, PayoutStatus::Sent, None, None)
             .await
     }
 
@@ -443,7 +456,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         }
         // Ledger is already balanced from process() — no additional entry needed.
         self.repo
-            .update_status(id, PayoutStatus::Confirmed, None, None)
+            .update_status(id, payout.status, PayoutStatus::Confirmed, None, None)
             .await
     }
 
@@ -455,15 +468,23 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 to: PayoutStatus::Failed,
             });
         }
-
+        // Claim FAILED first; only then give the money back. A confirm (or a
+        // return) that won the race makes this claim fail, and nothing moves.
+        let failed = self
+            .repo
+            .update_status(id, payout.status, PayoutStatus::Failed, None, Some(reason))
+            .await?;
         // Reverse the ledger posting if it was already made (i.e., we reached Processing/Sent).
         if payout.ledger_posting_id.is_some() {
-            self.post_reversal(&payout, "fail").await?;
+            if let Err(e) = self.post_reversal(&payout, "fail").await {
+                let _ = self
+                    .repo
+                    .update_status(id, PayoutStatus::Failed, payout.status, None, None)
+                    .await;
+                return Err(e);
+            }
         }
-
-        self.repo
-            .update_status(id, PayoutStatus::Failed, None, Some(reason))
-            .await
+        Ok(failed)
     }
 
     async fn mark_returned(&self, id: PayoutId) -> Result<Payout, PayoutError> {
@@ -474,12 +495,18 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
                 to: PayoutStatus::Returned,
             });
         }
-
-        self.post_reversal(&payout, "return").await?;
-
-        self.repo
-            .update_status(id, PayoutStatus::Returned, None, None)
-            .await
+        let returned = self
+            .repo
+            .update_status(id, payout.status, PayoutStatus::Returned, None, None)
+            .await?;
+        if let Err(e) = self.post_reversal(&payout, "return").await {
+            let _ = self
+                .repo
+                .update_status(id, PayoutStatus::Returned, payout.status, None, None)
+                .await;
+            return Err(e);
+        }
+        Ok(returned)
     }
 
     async fn get(&self, id: PayoutId) -> Result<Payout, PayoutError> {
@@ -760,6 +787,7 @@ mod tests {
         async fn update_status(
             &self,
             id: PayoutId,
+            from: PayoutStatus,
             status: PayoutStatus,
             posting_id: Option<banzami_types::LedgerPostingId>,
             failure_reason: Option<String>,
@@ -769,6 +797,9 @@ mod tests {
                 .iter_mut()
                 .find(|p| p.id == id)
                 .ok_or(PayoutError::NotFound(id))?;
+            if p.status != from {
+                return Err(PayoutError::InvalidStatusTransition { from: p.status, to: status });
+            }
             p.status = status;
             if let Some(pid) = posting_id {
                 p.ledger_posting_id = Some(pid);

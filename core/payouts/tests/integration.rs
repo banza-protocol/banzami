@@ -469,3 +469,87 @@ async fn duplicate_initiate_returns_existing_payout(pool: PgPool) -> sqlx::Resul
 
     Ok(())
 }
+
+// ─── Races: a payout is reversed at most once, and never after it confirmed ─
+//
+// Every transition read the status, moved money, then updated unconditionally.
+// A fail and a return arriving together both passed the check and posted two
+// reversals under different keys — the money went back twice. A fail racing a
+// confirm could leave a CONFIRMED payout whose money had been returned. The
+// transition is now claimed first (compare-and-set) and the reversal key is one
+// per payout.
+
+async fn reversals(pool: &PgPool, key: &str) -> i64 {
+    sqlx::query_scalar("SELECT COUNT(*) FROM ledger_postings WHERE idempotency_key LIKE $1 || ':reverse%'")
+        .bind(key)
+        .fetch_one(pool)
+        .await
+        .unwrap()
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_fail_and_return_reverse_once(pool: PgPool) -> sqlx::Result<()> {
+    let fix = setup(pool).await;
+    for round in 0..8 {
+        let key = format!("payout-race-fr-{round}");
+        let payout = fix
+            .payout_engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: key.clone(),
+                merchant_id: fix.merchant_id,
+                wallet_id: fix.wallet_id,
+                amount: kz(1_000_000),
+                destination: destination(),
+            })
+            .await
+            .unwrap();
+        fix.payout_engine.process(payout.id).await.unwrap();
+        fix.payout_engine.mark_sent(payout.id).await.unwrap();
+
+        let (a, b) = tokio::join!(
+            fix.payout_engine.fail(payout.id, "bank rejected".into()),
+            fix.payout_engine.mark_returned(payout.id),
+        );
+        assert_eq!(a.is_ok() as u8 + b.is_ok() as u8, 1, "round {round}: exactly one of fail/return may win");
+        let net_and_fee = reversals(&fix.pool, &key).await;
+        assert!(net_and_fee >= 1 && net_and_fee <= 2, "round {round}: {net_and_fee} reversal postings");
+        let bank = fix.ledger.balance(fix.bank_id).await.unwrap();
+        assert_eq!(bank.amount_minor(), 0, "round {round}: the payout was given back more (or less) than once");
+    }
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_fail_racing_a_confirm_never_returns_confirmed_money(pool: PgPool) -> sqlx::Result<()> {
+    let fix = setup(pool).await;
+    for round in 0..8 {
+        let key = format!("payout-race-fc-{round}");
+        let payout = fix
+            .payout_engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: key.clone(),
+                merchant_id: fix.merchant_id,
+                wallet_id: fix.wallet_id,
+                amount: kz(1_000_000),
+                destination: destination(),
+            })
+            .await
+            .unwrap();
+        fix.payout_engine.process(payout.id).await.unwrap();
+        fix.payout_engine.mark_sent(payout.id).await.unwrap();
+
+        let (c, f) = tokio::join!(
+            fix.payout_engine.confirm(payout.id),
+            fix.payout_engine.fail(payout.id, "bank rejected".into()),
+        );
+        assert_eq!(c.is_ok() as u8 + f.is_ok() as u8, 1, "round {round}: exactly one may win");
+        let status = fix.payout_engine.get(payout.id).await.unwrap().status;
+        let reversed = reversals(&fix.pool, &key).await > 0;
+        match status {
+            PayoutStatus::Confirmed => assert!(!reversed, "round {round}: a CONFIRMED payout had its money returned"),
+            PayoutStatus::Failed => assert!(reversed, "round {round}: a FAILED payout kept the merchant's money out"),
+            other => panic!("round {round}: unexpected status {other:?}"),
+        }
+    }
+    Ok(())
+}
