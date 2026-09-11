@@ -139,15 +139,18 @@ forNothing.status === forReal.status
   : bad(`existence is disclosed: real=${forReal.status}, invented=${forNothing.status}`);
 
 step('and each still sees its own');
-// Balances need a financial binding, and a brand-new project has none — that
-// 404 means "no payee yet", which is the state the page explains. The route
+// Balances need a financial binding, and a brand-new project has none. Your own
+// project in that state is not a missing one: it answers 409
+// PROJECT_FINANCIAL_SETUP_REQUIRED (0ccc0b8f), the state the Console page
+// explains — while a stranger's project stays a plain 404, as above. The route
 // that proves membership without needing a binding is the project's own keys.
 const ownKeys = await api(tokA, `/projects/${prjA.body?.id}/keys`);
 ownKeys.status === 200 ? ok('A reads its own project') : bad(`A cannot read its own project (${ownKeys.status})`);
 const ownBal = await api(tokA, `/projects/${prjA.body?.id}/balances`);
-ownBal.status === 404
-  ? ok('a project with no binding has no balances, and says so')
-  : bad(`unexpected balances status for an unbound project: ${ownBal.status}`);
+const ownCode = ownBal.body?.error?.code ?? ownBal.body?.code;
+ownBal.status === 409 && ownCode === 'PROJECT_FINANCIAL_SETUP_REQUIRED'
+  ? ok('a project with no binding has no balances, and says it needs financial setup')
+  : bad(`unexpected balances answer for an unbound project: ${ownBal.status} ${ownCode ?? ''}`);
 
 // ── cleanup ─────────────────────────────────────────────────────────────────
 // The projects hold no financial binding and no keys; the accounts and
