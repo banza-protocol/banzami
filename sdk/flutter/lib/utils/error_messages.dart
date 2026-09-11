@@ -194,6 +194,10 @@ String? _byCode(String code) {
     case 'SANDBOX_CREDIT_REFUSED':
       return 'O ambiente de testes (Sandbox) recusou este carregamento.';
 
+    // Outage: a store the server needs could not be read. The session stands.
+    case 'SERVICE_UNAVAILABLE':
+      return 'O Banzami está temporariamente indisponível. Tente novamente dentro de momentos.';
+
     // Documents
     case 'RECEIPT_UNAVAILABLE':
       return 'O comprovativo não está disponível neste momento. Tente novamente dentro de momentos.';
