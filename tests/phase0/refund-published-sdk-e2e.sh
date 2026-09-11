@@ -9,11 +9,23 @@
 #
 # The full matrix, because a refund that "works" is not the same as a refund
 # that debits the right account and cannot be made twice.
+#
+# The refunding project is a synthetic tenant built for this run
+# (tests/phase0/lib/synthetic-tenant.sh) — its own Project, key, Business and
+# wallet. It used to be DOA's Project, so both of the accounts below were
+# opened in DOA's wallet and the payment's remainder stayed there. The method
+# under test is the same one a reference application calls; proving it on a
+# tenant nobody else uses is the stronger proof, since nothing about it can be
+# special.
+#
+# Needs Sandbox funding (the payer is funded through /v1/sandbox/fund). The
+# payer's remaining balance and everything left in the tenant are retired when
+# the run ends (tests/phase0/lib/e2e-run.sh).
 set -uo pipefail
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
@@ -72,8 +84,10 @@ RESOLVED=$(node -e "const l=JSON.parse(require('fs').readFileSync('$WORK/package
 chk SDK_REGISTRY_SOURCE "$(printf '%s' "$RESOLVED" | grep -c '^https://registry.npmjs.org/')" "1"
 
 echo "### two project keys and two accounts of the same owner"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"rf-pub-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret); e2e_own fixture_key "$(jget id)"
+# The run's own tenant; its key carries the same scopes this harness's key has
+# always been given, and is retired with the tenant on the way out.
+synthetic_tenant rfpub "$SC" || true
+KEY="${ST_KEY:-}"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 mk(){ call "$GW" 8080 POST /v1/wallet-accounts \
@@ -88,13 +102,18 @@ call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\
 SID=$(jget session_id)
 call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
 call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
-PAYER=$(jget consumer_id); CJWT=$(mint customer_id "$PAYER")
+PAYER=$(jget consumer_id)
+# Owned the moment it exists: the Sandbox value it is given goes back when the
+# run ends, or the pilot funding cap fills with money nobody will spend.
+e2e_own consumer "$PAYER"
+CJWT=$(mint customer_id "$PAYER")
 call "$GW" 8080 POST /v1/compliance/customers/verify \
   "{\"full_name\":\"REFUND PUB E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"RP$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
 call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":300000,"currency":"AOA"}' "$CJWT"
 [ "$CODE" = "200" ] || { echo "payer funding refused ($CODE)"; exit 1; }
 call "$GW" 8080 POST /v1/payment-sessions \
   "{\"wallet_account_id\":\"$A\",\"purpose\":\"DONATION\",\"reference_type\":\"RF_PUB\",\"reference_id\":\"rf-pay-$R\",\"amount_minor\":200000,\"currency\":\"AOA\"}" "$KEY"
+e2e_own payment_session "$(jget session_id)" "${ST_MERCHANT:-}"
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
 call "$PUB" 8083 POST "/v1/payment-links/$SLUG/pay" '{"amount_minor":200000}' "$CJWT"
 chk PAYMENT_COMPLETED "$CODE" "200"

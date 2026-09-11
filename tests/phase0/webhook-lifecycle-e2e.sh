@@ -6,11 +6,19 @@
 # separation, secret rotation, and a foreign endpoint that is indistinguishable
 # from one that does not exist.
 #
+# The application is a tenant this run builds for itself
+# (tests/phase0/lib/synthetic-tenant.sh): its own Project, key, Business and
+# Wallet, all retired when the run ends. It used to be DOA's Project, with the
+# probe endpoint registered under DOA's Business at DOA's real webhook route.
+# DOA is a tenant, not a fixture: for the length of every run its payments had a
+# second endpoint to be delivered to, signed with a secret DOA never held. The
+# probe now points at a reserved .test host that resolves nowhere, under a
+# Business that takes no payments.
+#
 # No secret is printed. Rotation is asserted by "a secret came back and it is not
 # the previous one", never by showing either.
 set -uo pipefail
 
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
@@ -45,30 +53,37 @@ RO='["identity:read","webhooks:read"]'
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
 
 echo "### keys"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"wh-rw-$R\",\"scopes\":$RW,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret)
-e2e_own fixture_key "$(jget id)"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" "{\"name\":\"wh-ro-$R\",\"scopes\":$RO,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
+# The tenant's own key is the read-write one; the read-only key is a second
+# credential on the same Project.
+synthetic_tenant webhooks "$RW" || { echo "could not build the synthetic tenant"; exit 1; }
+KEY="$ST_KEY"
+call "$DEV" 8086 POST "/internal/v1/projects/$ST_PROJECT/fixture-keys" "{\"name\":\"wh-ro-$R\",\"scopes\":$RO,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 RKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
 chk KEYS_ISSUED "$([ -n "$KEY" ] && [ -n "$RKEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
-BOUND_MERCHANT=$(psqlro "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$DOA_PROJECT' AND state='ACTIVE'")
+BOUND_MERCHANT=$(psqlro "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$ST_PROJECT' AND state='ACTIVE'")
 
 echo "### register — under the binding's merchant, for an event core actually emits"
 call "$GW" 8080 POST /v1/webhooks/endpoints \
-  "{\"url\":\"https://www.doadoa.app/api/webhooks/banzami?probe=$R\",\"events\":[\"payment_session.paid\"]}" "$KEY"
+  "{\"url\":\"https://webhooks.synthetic.test/banzami?probe=$R\",\"events\":[\"payment_session.paid\"]}" "$KEY"
 chk REGISTERED "$CODE" "201"
 EP=$(jget id)
-e2e_own webhook_endpoint "$EP" "$(jget merchant_id)"
+# Owned under the binding's merchant. The response no longer names it — a
+# Project key never receives the owner behind its Project (06d5a93f) — and
+# reading the owner from the response left cleanup deactivating the endpoint
+# as nobody, which the gateway refused.
+e2e_own webhook_endpoint "$EP" "$BOUND_MERCHANT"
 SEC1=$(sighash)
 chk SECRET_RETURNED_ONCE "$([ -n "$SEC1" ] && echo yes)" yes
-chk UNDER_BOUND_MERCHANT "$(jget merchant_id)" "$BOUND_MERCHANT"
+chk UNDER_BOUND_MERCHANT "$(psqlro "SELECT merchant_id FROM webhook_endpoints WHERE id='$EP'")" "$BOUND_MERCHANT"
+chk OWNER_NOT_DISCLOSED "$(jget merchant_id)" ""
 
 echo "### the secret is never readable again"
 call "$GW" 8080 GET "/v1/webhooks/endpoints/$EP" - "$KEY"
@@ -130,7 +145,7 @@ e2e_own fixture_key "$(jget id)"
 call "$GW" 8080 GET /v1/webhooks/endpoints - "$UKEY"
 chk UNBOUND_403 "$CODE" "403"
 
-echo "### cleanup — this probe endpoint is not the canonical one"
+echo "### cleanup — the owner's key deactivates the probe endpoint"
 call "$GW" 8080 DELETE "/v1/webhooks/endpoints/$EP" - "$KEY"
 chk PROBE_DEACTIVATED "$([ "$CODE" -lt 300 ] && echo yes)" yes
 

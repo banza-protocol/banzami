@@ -6,12 +6,16 @@
 # instead, because "the row says REVOKED" and "the door is shut" are different
 # claims, and only one of them is the one that matters.
 #
-# Three doors, each proved by opening it first — a denial test that never saw
-# the credential work proves only that something is broken:
+# Doors, each proved by opening it first — a denial test that never saw the
+# credential work proves only that something is broken:
 #
 #   a developer key works, is revoked, and is then refused
-#   a merchant app login works, the merchant is suspended, and it is then refused
-#   the canonical DOA key still works throughout
+#   a second key on the same Project still works throughout
+#
+# The third door — a suspended Business's app login — is proved against a real
+# database (TestVerifyHandlePin_RefusesASuspendedBusiness) and in the
+# human-gated approved-Business journey: a PIN now exists only through an
+# operator-approved activation, which a harness does not fake (see below).
 #
 # The third is not decoration. A mass revocation is only safe if the credentials
 # that had to survive still authenticate, and that is exactly the thing a
@@ -21,10 +25,16 @@
 # recorded anywhere, by design. It mints its own, proves the path, and retires
 # what it made.
 #
+# The Project is a tenant this run builds for itself
+# (tests/phase0/lib/synthetic-tenant.sh). The probe key used to be minted on
+# DOA's Project, and "the credential that had to survive" was DOA's, checked
+# only as a row count. DOA is a tenant, not a fixture. The survivor is now the
+# synthetic tenant's own key, and it is proved at the door — before the
+# revocation, after it, and after the suspension.
+#
 # Usage (on the VM): bash tests/phase0/retired-authority-denied.sh
 set -uo pipefail
 
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 # The canonical remote-execution contract: prove the host, run there, and return
@@ -35,7 +45,7 @@ for _p in "$(dirname "$0")/remote.sh" "$(dirname "$0")/lib/remote.sh" \
 done
 command -v remote_self_or_continue >/dev/null 2>&1 \
   || { echo "✗ tools/ops/lib/remote.sh not found — refusing to run without the host guard" >&2; exit 2; }
-REMOTE_EXTRA_FILES="$(dirname "$0")/lib/e2e-run.sh"
+REMOTE_EXTRA_FILES="$(dirname "$0")/lib/e2e-run.sh $(dirname "$0")/lib/synthetic-tenant.sh"
 remote_self_or_continue
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
@@ -49,6 +59,9 @@ PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's
 psql(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
 
 for _r in "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh" "$(cd "$(dirname "$0")" && pwd)/e2e-run.sh"; do
+  [ -f "$_r" ] && { . "$_r"; break; }
+done
+for _r in "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh" "$(cd "$(dirname "$0")" && pwd)/synthetic-tenant.sh"; do
   [ -f "$_r" ] && { . "$_r"; break; }
 done
 e2e_begin
@@ -68,8 +81,14 @@ mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const 
 
 R="${RANDOM}${RANDOM}"
 
+echo "### a Project of its own, and the key on it that has to survive"
+synthetic_tenant denial '["identity:read"]' || { echo "could not build the synthetic tenant"; exit 1; }
+SURVIVOR="$ST_KEY"
+call "$GW" 8080 GET /v1/me - "$SURVIVOR"
+chk SURVIVING_KEY_WORKS_BEFORE "$CODE" "200"
+
 echo "### a developer key, before and after revocation"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
+call "$DEV" 8086 POST "/internal/v1/projects/$ST_PROJECT/fixture-keys" \
   "{\"name\":\"$(e2e_name denial)\",\"scopes\":[\"identity:read\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 KEY=$(jget secret); KEYID=$(jget id)
 e2e_own fixture_key "$KEYID"
@@ -85,49 +104,70 @@ call "$GW" 8080 GET /v1/me - "$KEY"
 chk REVOKED_KEY_REFUSED "$([ "$CODE" -ge 400 ] && echo "refused($CODE)" || echo "ACCEPTED($CODE)")" "refused($CODE)"
 chk REVOKED_KEY_NOT_2XX "$([ "$CODE" -lt 300 ] && echo accepted || echo refused)" "refused"
 
-echo "### a merchant app login, before and after suspension"
+# Same Project, same scopes: the only difference is which one was revoked.
+call "$GW" 8080 GET /v1/me - "$SURVIVOR"
+chk SURVIVING_KEY_WORKS_AFTER_REVOCATION "$CODE" "200"
+
+echo "### a merchant, suspended"
+# This used to prove, live, that a suspended Business's PIN stops working. It
+# set the PIN through /v1/merchant/auth/claim — now retired (410): a Business
+# App PIN is set only by an activation link, which only an operator's approval
+# of an application issues, a person's decision this harness does not fake —
+# and then marked the credential activated by hand. Without a real login, a
+# refused sign-in proves nothing (a Business with no login is refused anyway)
+# and the public lookup, which does not enumerate, says nothing either. So the
+# refusal is proved where it lives, against a real database:
+# TestVerifyHandlePin_RefusesASuspendedBusiness (services/api-gateway). The
+# live end-to-end half needs an operator-approved Business and is part of the
+# human-gated journey (tools/e2e/business/approved-business-e2e.mjs).
 MJWT=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"E2E den $R\",\"email\":\"den$R@synthetic.test\"}" "$MJWT"
 MID=$(jget id); e2e_own merchant "$MID"; MJWT=$(mint merchant_id "$MID")
-HANDLE="den${R:0:8}"; PIN=$(printf '%04d' $((RANDOM % 10000)))
-
-call "$GW" 8080 POST /v1/merchant/auth/claim "{\"handle\":\"$HANDLE\",\"pin\":\"$PIN\"}" "$MJWT"
-chk HANDLE_CLAIMED "$([ "$CODE" -lt 300 ] && echo yes || echo "no($CODE)")" "yes"
-
-# Activation is its own product flow (an emailed capability token). The property
-# under test is whether suspension closes the login, so the credential is marked
-# activated directly — test setup, not a claim about the activation path.
-psql "UPDATE merchant_app_credentials SET activated_at = now() WHERE merchant_id = '$MID'" >/dev/null
-
-call "$GW" 8080 POST /v1/merchant/auth/token "{\"handle\":\"$HANDLE\",\"pin\":\"$PIN\"}" -
-chk PIN_LOGIN_WORKS_WHILE_ACTIVE "$CODE" "200"
-
 call "$GW" 8080 POST "/v1/merchants/$MID/suspend" - "$MJWT"
 chk SUSPEND_ACCEPTED "$([ "$CODE" -lt 300 ] && echo yes || echo "no($CODE)")" "yes"
-
-call "$GW" 8080 POST /v1/merchant/auth/token "{\"handle\":\"$HANDLE\",\"pin\":\"$PIN\"}" -
-chk SUSPENDED_MERCHANT_CANNOT_LOG_IN "$CODE" "401"
+chk SUSPENDED_IN_THE_RECORD "$(psql "SELECT status FROM merchants WHERE id='$MID'")" "SUSPENDED"
 
 echo "### the credentials that had to survive"
-# Read from the database, because the canonical secrets are held only by the
-# deployments that use them and are not readable from here — which is the point.
-chk CANONICAL_KEYS_STILL_ACTIVE "$(psql "SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id=k.project_id WHERE k.status='ACTIVE' AND p.name='DOA Sandbox'")" "3"
-# The api_key_pepper rotation superseded three keys. Their records are revoked,
-# and they were unverifiable from the moment the pepper changed — the hash they
-# were stored under can no longer be produced from any input.
-chk SUPERSEDED_KEYS_REVOKED "$(psql "SELECT count(*) FROM developer.dev_api_keys WHERE status='ACTIVE' AND name NOT LIKE '%[rotated%'")" "0"
-chk CANONICAL_PROJECT_ACTIVE "$(psql "SELECT status FROM developer.dev_projects WHERE name='DOA Sandbox'")" "ACTIVE"
-chk CANONICAL_MERCHANT_ACTIVE "$(psql "SELECT status FROM merchants WHERE name='Doa'")" "ACTIVE"
-chk NO_OTHER_ACTIVE_MERCHANT "$(psql "SELECT count(*) FROM merchants WHERE status='ACTIVE' AND name<>'Doa'")" "0"
+# At the door first: after a revocation beside it and a suspension elsewhere,
+# the survivor still authenticates.
+call "$GW" 8080 GET /v1/me - "$SURVIVOR"
+chk SURVIVING_KEY_WORKS_THROUGHOUT "$CODE" "200"
+# Then the records agree: on the tenant's Project exactly the survivor is live
+# — the revocation took the probe and nothing beside it — and the Project and
+# the Business holding it are untouched by a suspension aimed at another.
+chk SURVIVING_KEYS_STILL_ACTIVE "$(psql "SELECT count(*) FROM developer.dev_api_keys WHERE project_id='$ST_PROJECT' AND status='ACTIVE'")" "1"
+chk SURVIVING_KEY_IS_THE_SURVIVOR "$(psql "SELECT status FROM developer.dev_api_keys WHERE id='$ST_KEY_ID'")" "ACTIVE"
+chk TENANT_PROJECT_ACTIVE "$(psql "SELECT status FROM developer.dev_projects WHERE id='$ST_PROJECT'")" "ACTIVE"
+chk TENANT_MERCHANT_ACTIVE "$(psql "SELECT status FROM merchants WHERE id='$ST_MERCHANT'")" "ACTIVE"
 
-echo "### the retired population, as the database holds it"
-chk NO_LIVE_KEY_OFF_THE_CANONICAL_PROJECT "$(psql "SELECT count(*) FROM developer.dev_api_keys k JOIN developer.dev_projects p ON p.id=k.project_id WHERE k.status='ACTIVE' AND p.name<>'DOA Sandbox'")" "0"
-# Not "no unlocked PIN row exists on a suspended merchant" — rows are history and
-# some are held by it. The question is whether any of them can open a door, and
-# the answer above is that suspension returns 401 whatever the PIN says.
-chk NO_PIN_CAN_LOG_IN_EXCEPT_THE_CANONICAL_ONE "$(psql "SELECT count(*) FROM merchant_app_credentials c JOIN merchants m ON m.id=c.merchant_id WHERE m.status='ACTIVE' AND m.name<>'Doa' AND (c.locked_until IS NULL OR c.locked_until < now())")" "0"
-chk NO_ACTIVE_WEBHOOK_OFF_THE_CANONICAL_MERCHANT "$(psql "SELECT count(*) FROM webhook_endpoints w JOIN merchants m ON m.id=w.merchant_id WHERE w.active AND m.name<>'Doa'")" "0"
-chk NO_OPEN_PAYMENT_LINK "$(psql "SELECT count(*) FROM payment_links WHERE status='ACTIVE'")" "0"
+# REFERENCE_APPLICATION_DOA: rewritten above, not dropped —
+# CANONICAL_KEYS_STILL_ACTIVE (DOA's Project held exactly its three keys) is now
+# SURVIVING_KEYS_STILL_ACTIVE on the tenant's Project, and
+# CANONICAL_PROJECT_ACTIVE / CANONICAL_MERCHANT_ACTIVE are now the tenant's
+# Project and Business, looked up by id rather than by DOA's names.
+#
+# REFERENCE_APPLICATION_DOA: removed from here — each was a claim about the
+# whole Sandbox population with DOA's tenant as the one allowed survivor, not a
+# property of a revocation or a suspension, and none can hold while this run
+# holds a live synthetic tenant (or while any other tenant exists):
+#   SUPERSEDED_KEYS_REVOKED — no ACTIVE key without the '[rotated' name marker,
+#     true only while DOA's keys re-issued in the api_key_pepper rotation are
+#     the only live ones; the survivor above is live and carries no marker.
+#   NO_OTHER_ACTIVE_MERCHANT — no ACTIVE merchant but DOA's; the tenant's is.
+#   NO_LIVE_KEY_OFF_THE_CANONICAL_PROJECT — no live key off DOA's Project; the
+#     survivor is one.
+#   NO_PIN_CAN_LOG_IN_EXCEPT_THE_CANONICAL_ONE, NO_ACTIVE_WEBHOOK_OFF_THE_CANONICAL_MERCHANT
+#     — no door open on any ACTIVE merchant but DOA's.
+# The run-scoped half of each is asserted above, at the door: the revoked key is
+# refused, the suspended merchant's PIN is refused, and the survivor works. A
+# census of the retired population belongs to an operator audit that knows
+# which tenants are real, not to a harness that must not name one.
+
+echo "### what the run retired, as the database holds it"
+# Scoped to the merchant this run suspended. A count over every link in the
+# Sandbox measured every tenant's open links — a real tenant's included — and
+# could not pass while any Business was taking payments.
+chk NO_OPEN_PAYMENT_LINK "$(psql "SELECT count(*) FROM payment_links WHERE status='ACTIVE' AND merchant_id='$MID'")" "0"
 
 echo
 [ "$FAIL" -eq 0 ] && echo "RETIRED_AUTHORITY_DENIED: PASS=$PASS FAIL=0" || echo "RETIRED_AUTHORITY_DENIED: PASS=$PASS FAIL=$FAIL"

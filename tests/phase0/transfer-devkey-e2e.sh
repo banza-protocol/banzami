@@ -9,9 +9,15 @@
 # The negative half is the reason the product is shaped this way, so it is tested
 # as seriously as the positive: a second project with an equally valid key must
 # not be able to use the first project's account as a source OR a destination.
+#
+# The bound owner is a tenant this run builds for itself
+# (tests/phase0/lib/synthetic-tenant.sh): its own Project, key, Business and
+# Wallet. It used to be DOA's Project, so every run opened two campaign accounts
+# in DOA's wallet and left them there holding the money the run had paid in.
+# DOA is a tenant, not a fixture. The accounts are now the synthetic Business's,
+# and their value is retired and the accounts closed when the run ends.
 set -uo pipefail
 
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
@@ -48,20 +54,21 @@ SC='["identity:read","payment_sessions:read","payment_sessions:write","wallet_ac
 # retired on the way out, however the script exits — a failed assertion used to
 # skip cleanup entirely, which is precisely when residue was left behind.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
 
 echo "### key"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
-  "{\"name\":\"transfer-e2e-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret)
-e2e_own fixture_key "$(jget id)"
+# sandbox-default: the ordinary Business an operator has priced. Nothing here
+# settles or pays out, so no fee applies either way.
+synthetic_tenant transfer "$SC" sandbox-default || { echo "could not build the synthetic tenant"; exit 1; }
+KEY="$ST_KEY"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
 echo "### two accounts of the same owner, one of them funded"
 mk(){ call "$GW" 8080 POST /v1/wallet-accounts \
-  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"tr-$1-$R\",\"label\":\"Transfer $1\"}" "$KEY"; jget id; }
+  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"CAMPAIGN\",\"reference_id\":\"tr-$1-$R\",\"label\":\"Transfer $1\"}" "$KEY"; jget id; }
 A=$(mk a); B=$(mk b)
 chk ACCOUNTS_OPENED "$([ -n "$A" ] && [ -n "$B" ] && [ "$A" != "$B" ] && echo yes)" yes
 
@@ -76,6 +83,8 @@ SID=$(jget session_id)
 call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
 call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
 PAYER=$(jget consumer_id)
+# Owned the moment it exists: what it does not spend is retired, then it is suspended.
+e2e_own consumer "$PAYER"
 [ -n "$PAYER" ] || { echo "payer onboarding failed"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")
 call "$GW" 8080 POST /v1/compliance/customers/verify \
@@ -83,7 +92,7 @@ call "$GW" 8080 POST /v1/compliance/customers/verify \
 call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":400000,"currency":"AOA"}' "$CJWT"
 [ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE) — the rest would be vacuous"; exit 1; }
 call "$GW" 8080 POST /v1/payment-sessions \
-  "{\"wallet_account_id\":\"$A\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"tr-fund-$R\",\"amount_minor\":300000,\"currency\":\"AOA\"}" "$KEY"
+  "{\"wallet_account_id\":\"$A\",\"purpose\":\"DONATION\",\"reference_type\":\"DONATION\",\"reference_id\":\"tr-fund-$R\",\"amount_minor\":300000,\"currency\":\"AOA\"}" "$KEY"
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
 call "$PUB" 8083 POST "/v1/payment-links/$SLUG/pay" '{"amount_minor":300000}' "$CJWT"
 A0=$(bal "$A" "$KEY"); B0=$(bal "$B" "$KEY")
@@ -148,7 +157,7 @@ MJWT=$(mint merchant_id "$OMID")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"; OWID=$(jget id)
 OWACCT=$(psqlro "SELECT id FROM wallet_accounts WHERE wallet_id='$OWID' AND purpose='PRIMARY'")
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/fixture-keys" "{\"name\":\"tr-other-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-OKEY=$(jget secret)
+OKEY=$(jget secret); e2e_own fixture_key "$(jget id)"
 call "$DEV" 8086 POST "/internal/v1/projects/$OTHER/binding" "{\"merchant_id\":\"$OMID\",\"wallet_id\":\"$OWID\",\"wallet_account_id\":\"$OWACCT\",\"actor_user_id\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 
 # Foreign SOURCE — stealing from A.

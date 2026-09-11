@@ -49,6 +49,7 @@ ACTOR=11111111-2222-4333-8444-555555555555
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 # The sessions this run opens are its payer-facing artifacts — including five
 # fired concurrently, whose ids never reach the shell. They are recovered by
@@ -65,11 +66,25 @@ own_sessions_since() {
   done
 }
 
-# @doa's payee, and two wallet accounts under it. The seal is about which payee
-# a project resolves to, so A and B differ by account: a real correction, and
-# one that cannot move money outside the same owner.
-MERCHANT=050b68c2-221a-45a7-b801-35fd75cd9185
-WALLET=010b4702-cb45-421a-9186-ea0d5323d8a6
+# A payee of the run's own (tests/phase0/lib/synthetic-tenant.sh), and two
+# wallet accounts under it. The seal is about which payee a project resolves
+# to, so A and B differ by account: a real correction, and one that cannot move
+# money outside the same owner.
+#
+# This used to be DOA's Business and the two oldest accounts in its wallet. DOA
+# is a tenant, not a fixture: every run left two sealed bindings naming DOA's
+# accounts, and the sessions recovered for cleanup below are found by account
+# and start time — on DOA's accounts that window could also hold DOA's own
+# sessions, which cleanup would then cancel. A tenant built for the run has
+# nothing on these accounts but what the run put there.
+#
+# The tenant's own Project and key are not the ones under test: its Project is
+# already bound, and step 1 needs a Project that is not. The key carries the
+# same scopes as the probe keys below.
+synthetic_tenant adr055 '["identity:read","payment_sessions:read","payment_sessions:write"]' \
+  || { echo "could not build the synthetic tenant"; exit 2; }
+MERCHANT="$ST_MERCHANT"
+WALLET="$ST_WALLET"
 
 sql() { docker exec -e U="$DBURL" "$PG" sh -c 'psql "$U" -tAc "'"$1"'"' 2>&1 | tr -d '\r'; }
 dev() { # dev METHOD PATH [BODY]
@@ -99,9 +114,17 @@ uuid_or_die() {
   esac
 }
 
-ACCOUNTS=$(sql "select id from wallet_accounts where wallet_id='$WALLET' and status='ACTIVE' order by created_at limit 2")
-ACC_A=$(echo "$ACCOUNTS" | sed -n 1p)
-ACC_B=$(echo "$ACCOUNTS" | sed -n 2p)
+# A fresh wallet holds only its PRIMARY, so the two accounts are opened by the
+# Business itself, in its own wallet, on the route a Business uses. They are
+# segregated accounts, closed with the Business when the run ends.
+open_account() { # label -> id
+  st_call "$E2E_GW" 8080 POST /v1/wallet-accounts \
+    "{\"wallet_id\":\"$WALLET\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"ADR055\",\"reference_id\":\"adr055-$1-$E2E_SHORT\",\"label\":\"adr055 $1\"}" \
+    "Authorization: Bearer $(e2e_jwt merchant_id "$MERCHANT")"
+  st_get id
+}
+ACC_A=$(open_account a)
+ACC_B=$(open_account b)
 [ -n "$ACC_A" ] && [ -n "$ACC_B" ] || { echo "need two active wallet accounts under $WALLET"; exit 2; }
 
 echo "ADR-055 binding seal — deployed Sandbox"
@@ -210,7 +233,8 @@ SEALED2=$(sql "select artifact_created from developer.dev_project_sandbox_bindin
 [ "$SEALED2" = "t" ] && ok "and it is sealed" || bad "it is not sealed ($SEALED2)"
 
 # ── cleanup ───────────────────────────────────────────────────────────────────
-# Handled by the run trap: keys revoked, projects archived. The sealed bindings
+# Handled by the run trap: sessions cancelled, keys revoked, projects archived,
+# the Business's two accounts closed and the Business suspended. The sealed bindings
 # stay exactly as they are — there is no unseal and there must never be one, so
 # the disposable unit is the project that holds the binding, not the binding.
 step "cleanup"

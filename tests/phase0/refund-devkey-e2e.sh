@@ -9,9 +9,21 @@
 # The negative half matters as much: a second project, holding an equally valid
 # key, must not be able to refund the first project's payment. Knowing a payment
 # id is not authority over it.
+#
+# THE PROJECT IS THE RUN'S OWN
+#
+# The refunding project is a synthetic tenant built for this run
+# (tests/phase0/lib/synthetic-tenant.sh): its own Project, key, Business and
+# wallet. It used to be DOA's Project, so every run opened a campaign account
+# in DOA's wallet and left the payment in it. The payer is onboarded and funded
+# by the run as well, rather than borrowed from whichever consumer happened to
+# hold enough — on this Sandbox that can be a real person's balance.
+#
+# Needs Sandbox funding (the payer is funded through /v1/sandbox/fund). The
+# payer's remaining balance and everything left in the tenant are retired when
+# the run ends (tests/phase0/lib/e2e-run.sh).
 set -uo pipefail
 
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 GW=$(docker ps  --format '{{.Names}}' | grep api-gateway-staging | head -1)
@@ -29,6 +41,7 @@ psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzam
 # and retired on the way out — including when an assertion fails, which is when
 # it used to leak.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
 PASS=0; FAIL=0
@@ -50,25 +63,37 @@ R="${RANDOM}${RANDOM}"
 SC='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create","refunds:read","refunds:write"]'
 
 echo "### keys"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
-  "{\"name\":\"refund-e2e-$R\",\"scopes\":$SC,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret)
-e2e_own fixture_key "$(jget id)"
+# The run's own tenant, and a key with the same scopes the refunding project's
+# key has always been given. The tenant and its key are retired on the way out.
+synthetic_tenant refund "$SC" || true
+KEY="${ST_KEY:-}"
 chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
 echo "### a real payment into the project's own account"
 call "$GW" 8080 POST /v1/wallet-accounts \
-  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"refund-$R\",\"label\":\"Refund probe\"}" "$KEY"
+  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"REFUND_E2E\",\"reference_id\":\"refund-$R\",\"label\":\"Refund probe\"}" "$KEY"
 ACCT=$(jget id)
-PAYER=$(psqlro "SELECT cw.consumer_id FROM consumer_wallets cw JOIN ledger_entries le ON le.account_id=cw.available_account_id WHERE cw.status='ACTIVE' AND cw.currency='AOA' GROUP BY cw.consumer_id HAVING COALESCE(SUM(CASE WHEN le.entry_type='CREDIT' THEN le.amount_minor ELSE -le.amount_minor END),0) >= 300000 ORDER BY 1 LIMIT 1")
-chk PAYER_AVAILABLE "$([ -n "$PAYER" ] && echo yes)" yes
-[ -n "$PAYER" ] || { echo "no funded payer in this Sandbox"; exit 1; }
+# A payer of the run's own, funded for this payment. Owned the moment it
+# exists, so the Sandbox value it is given goes back when the run ends.
+PH="+2449${R:0:4}43"; H="rd${R:0:5}p"
+call "$PUB" 8083 POST /v1/consumer/onboarding/start "{\"phone_number\":\"$PH\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" -
+SID=$(jget session_id)
+call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
+call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
+PAYER=$(jget consumer_id)
+e2e_own consumer "$PAYER"
 CJWT=$(mint customer_id "$PAYER")
+call "$GW" 8080 POST /v1/compliance/customers/verify \
+  "{\"full_name\":\"REFUND DEVKEY E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"RD$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
+call "$PUB" 8083 POST /v1/sandbox/fund '{"amount_minor":300000,"currency":"AOA"}' "$CJWT"
+chk PAYER_AVAILABLE "$([ -n "$PAYER" ] && [ "$CODE" = "200" ] && echo yes)" yes
+[ -n "$PAYER" ] && [ "$CODE" = "200" ] || { echo "payer onboarding or funding refused ($CODE)"; exit 1; }
 
 call "$GW" 8080 POST /v1/payment-sessions \
-  "{\"wallet_account_id\":\"$ACCT\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"refund-$R\",\"amount_minor\":200000,\"currency\":\"AOA\"}" "$KEY"
+  "{\"wallet_account_id\":\"$ACCT\",\"purpose\":\"DONATION\",\"reference_type\":\"REFUND_E2E\",\"reference_id\":\"refund-$R\",\"amount_minor\":200000,\"currency\":\"AOA\"}" "$KEY"
 SESSION=$(jget session_id)
+e2e_own payment_session "$SESSION" "${ST_MERCHANT:-}"
 SLUG=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
 call "$PUB" 8083 POST "/v1/payment-links/$SLUG/pay" '{"amount_minor":200000}' "$CJWT"
 chk PAYMENT_COMPLETED "$CODE" "200"
@@ -124,17 +149,23 @@ echo "### the retired path is gone from the runtime, not just from the docs"
 # /business/refunds was the merchant-credential-only mount; it is unmounted, so
 # the router falls through to its own not-found rather than to an auth error —
 # the same answer a developer gets for any path this API does not have.
-call "$GW" 8080 POST /v1/refunds "$RB" "$KEY"
+#
+# The bulk rename that moved refunds to /v1/refunds (8327a9cd) rewrote these
+# probes too, so they asked the LIVE path for a 404 and could never pass. They
+# name the retired path again.
+call "$GW" 8080 POST /v1/business/refunds "$RB" "$KEY"
 chk RETIRED_CREATE_PATH_NOT_FOUND "$CODE" "404"
-call "$GW" 8080 GET "/v1/refunds/$RID" - "$KEY"
+call "$GW" 8080 GET "/v1/business/refunds/$RID" - "$KEY"
 chk RETIRED_READ_PATH_NOT_FOUND "$CODE" "404"
-call "$GW" 8080 GET /v1/refunds - "$KEY"
+call "$GW" 8080 GET /v1/business/refunds - "$KEY"
 chk RETIRED_LIST_PATH_NOT_FOUND "$CODE" "404"
 # And the money is where it was: a 404 must not have been a silent second refund.
 chk RETIRED_PATH_MOVED_NO_MONEY "$(bal "$ACCT" "$KEY")" "$AFTER_REFUND"
 
 echo "### scope separation"
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
+# A second key on the SAME project, read-only: the refusal is about scope, not
+# about whose payment it is.
+call "$DEV" 8086 POST "/internal/v1/projects/$ST_PROJECT/fixture-keys" \
   "{\"name\":\"refund-ro-$R\",\"scopes\":[\"identity:read\",\"refunds:read\"],\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
 ROKEY=$(jget secret)
 e2e_own fixture_key "$(jget id)"
