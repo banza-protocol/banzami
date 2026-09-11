@@ -63,6 +63,31 @@ func merchantPrincipalID(r *http.Request) (string, bool) {
 	return p.MerchantID, true
 }
 
+// linkActor is who may act on payment links: a bound developer key holding the
+// scope (payee from its Project binding), or a merchant JWT. Nothing else.
+//
+// A consumer token is signed with the same HS256 secret and authenticates on
+// this surface with no merchant id. Every check below keyed on "is there a
+// merchant principal?", so a consumer token — even one naming a consumer that
+// does not exist — skipped them all: measured on the deployed Sandbox, it
+// listed another merchant's links and passed ownership on cancel. A developer
+// key had the same gap on list, cancel and mark-used.
+func linkActor(w http.ResponseWriter, r *http.Request, scope string) (string, bool) {
+	payee, handled, isDev := developerPaymentAuthority(w, r, scope)
+	if handled {
+		return "", false
+	}
+	if isDev {
+		return payee.merchantID, true
+	}
+	if mid, ok := merchantPrincipalID(r); ok {
+		return mid, true
+	}
+	apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED",
+		"merchant credentials or a project key are required")
+	return "", false
+}
+
 // linkIDIsWellFormed rejects an id that cannot name a link, before any lookup.
 //
 // A malformed id is the caller's mistake, not the operator's failure. Passing it
@@ -85,7 +110,11 @@ func linkIDIsWellFormed(w http.ResponseWriter, r *http.Request, id string) bool 
 // would confirm the id exists and make the resource enumerable. This matches the
 // privacy behaviour the payment-session surface already uses for a cross-merchant
 // read, and the behaviour the developer-key path already had here.
-func (h *PaymentLinkHandler) requireOwnedLink(w http.ResponseWriter, r *http.Request, id string) (*service.PaymentLink, bool) {
+func (h *PaymentLinkHandler) requireOwnedLink(w http.ResponseWriter, r *http.Request, id, scope string) (*service.PaymentLink, bool) {
+	actor, ok := linkActor(w, r, scope)
+	if !ok {
+		return nil, false
+	}
 	if !linkIDIsWellFormed(w, r, id) {
 		return nil, false
 	}
@@ -98,7 +127,7 @@ func (h *PaymentLinkHandler) requireOwnedLink(w http.ResponseWriter, r *http.Req
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch payment link")
 		return nil, false
 	}
-	if mid, ok := merchantPrincipalID(r); ok && link.MerchantID != mid {
+	if link.MerchantID != actor {
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "payment link not found")
 		return nil, false
 	}
@@ -203,19 +232,16 @@ func (h *PaymentLinkHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/payment-links
 func (h *PaymentLinkHandler) List(w http.ResponseWriter, r *http.Request) {
-	merchantID := r.URL.Query().Get("merchant_id")
-	// A merchant JWT lists ITS OWN links. The query parameter used to select the
-	// tenant, so any merchant could enumerate another merchant's links (RA-047).
-	if mid, ok := merchantPrincipalID(r); ok {
-		if merchantID != "" && merchantID != mid {
-			apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
-				"a merchant may only list its own payment links")
-			return
-		}
-		merchantID = mid
+	// The caller lists ITS OWN links — the merchant of its JWT or of its key's
+	// binding. The query parameter used to select the tenant (RA-047), and for a
+	// developer key or a consumer token it still did (see linkActor).
+	merchantID, ok := linkActor(w, r, "payment_links:read")
+	if !ok {
+		return
 	}
-	if merchantID == "" {
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_PARAM", "merchant_id query parameter is required")
+	if q := r.URL.Query().Get("merchant_id"); q != "" && q != merchantID {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"payment links can only be listed for your own merchant")
 		return
 	}
 	limit := int64(20)
@@ -242,6 +268,11 @@ func (h *PaymentLinkHandler) Get(w http.ResponseWriter, r *http.Request) {
 	// bound merchant (tenant isolation) — enforced before the record is exposed.
 	dev, handled, isDev := developerPaymentAuthority(w, r, "payment_links:read")
 	if handled {
+		return
+	}
+	if _, ok := merchantPrincipalID(r); !isDev && !ok {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED",
+			"merchant credentials or a project key are required")
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -282,7 +313,7 @@ func (h *PaymentLinkHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	// Ownership BEFORE mutation. This had no check at all, so any merchant could
 	// cancel any other merchant's link — and it took effect, killing the victim's
 	// ability to be paid through it (RA-047).
-	if _, ok := h.requireOwnedLink(w, r, id); !ok {
+	if _, ok := h.requireOwnedLink(w, r, id, "payment_links:write"); !ok {
 		return
 	}
 	link, err := h.svc.Cancel(r.Context(), id)
@@ -306,7 +337,7 @@ func (h *PaymentLinkHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
 	// Ownership BEFORE mutation, and before any webhook is dispatched: marking
 	// another merchant's link as paid would emit payment_link.paid to THEIR
 	// endpoints (RA-047).
-	if _, ok := h.requireOwnedLink(w, r, id); !ok {
+	if _, ok := h.requireOwnedLink(w, r, id, "payment_links:write"); !ok {
 		return
 	}
 	link, err := h.svc.MarkUsed(r.Context(), id)

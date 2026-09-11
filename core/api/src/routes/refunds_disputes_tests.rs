@@ -641,6 +641,7 @@ async fn open_dispute(state: &AppState, tx: Uuid, consumer: Uuid) -> disputes::D
             transaction_id: tx.to_string(),
             consumer_id: consumer.to_string(),
             reason: "item not received".into(),
+            merchant_id: None,
         }),
     )
     .await
@@ -708,6 +709,7 @@ async fn duplicate_open_dispute_rejected(pool: PgPool) {
             transaction_id: seed.transaction_id.to_string(),
             consumer_id: consumer.to_string(),
             reason: "again".into(),
+            merchant_id: None,
         }),
     )
     .await
@@ -1649,4 +1651,48 @@ async fn refund_is_refused_when_the_merchant_no_longer_holds_the_funds(pool: PgP
     .await
     .unwrap();
     assert_eq!(balance, 0, "the merchant account moved");
+}
+
+// A dispute opened from the merchant surface names its merchant: another
+// merchant's transaction is answered like a missing one, and nothing is opened.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn dispute_open_for_another_merchants_transaction_is_not_found(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 2_000).await;
+    let err = disputes::open(
+        State(state.clone()),
+        Json(disputes::OpenDisputeBody {
+            transaction_id: seed.transaction_id.to_string(),
+            consumer_id: Uuid::new_v4().to_string(),
+            reason: "not mine".into(),
+            merchant_id: Some(Uuid::new_v4().to_string()),
+        }),
+    )
+    .await
+    .err()
+    .expect("another merchant's transaction must not be disputable");
+    assert_eq!(err.status, axum::http::StatusCode::NOT_FOUND);
+    let opened: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM disputes").fetch_one(&pool).await.unwrap();
+    assert_eq!(opened, 0, "a dispute was opened on another merchant's transaction");
+}
+
+// A merchant filter that does not parse is refused — it used to mean "every tenant".
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn dispute_list_with_a_malformed_filter_is_refused(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 2_000).await;
+    open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+    let err = disputes::list(
+        State(state.clone()),
+        axum::extract::Query(disputes::ListDisputesQuery {
+            merchant_id: Some("x".into()),
+            consumer_id: None,
+            status: None,
+            limit: None,
+        }),
+    )
+    .await
+    .err()
+    .expect("a malformed merchant_id must not list every tenant");
+    assert_eq!(err.status, axum::http::StatusCode::BAD_REQUEST);
 }

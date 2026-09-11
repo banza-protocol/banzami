@@ -338,6 +338,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 		// Merchant surface — merchant JWT auth, default rate limits, idempotency.
 		r.Group(func(r chi.Router) {
 			r.Use(middleware.Auth(cfg))
+			// The merchant surface is a Business's: a consumer token (same
+			// secret, no merchant id) is refused on every route except consumer
+			// KYC, which is the one consumer-token use this surface has.
+			r.Use(middleware.RequireMerchantExcept("/v1/compliance/customers/"))
 			r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))
 			r.Use(middleware.Idempotency(deps.Redis))
 			// Retired: 410 — a Business's PIN is set only by its activation link.
@@ -624,6 +628,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 				r.Use(middleware.RedactOwnerIdentifiers)
 			} else {
 				r.Use(middleware.Auth(cfg))
+				// Merchant-JWT-only fallback: still a Business's surface, so a
+				// consumer token is refused here exactly as DualAuth refuses it.
+				r.Use(middleware.RequireMerchant)
 			}
 			r.Use(middleware.Idempotency(deps.Redis))
 			r.Route("/payment-sessions", func(r chi.Router) {

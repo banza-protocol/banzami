@@ -55,6 +55,11 @@ pub struct OpenDisputeBody {
     pub transaction_id: String,
     pub consumer_id: String,
     pub reason: String,
+    /// The Business opening it (merchant surface). When present, the
+    /// transaction must be that merchant's — a dispute on someone else's
+    /// payment is answered exactly like a missing transaction.
+    #[serde(default)]
+    pub merchant_id: Option<String>,
 }
 
 pub async fn open(
@@ -89,6 +94,14 @@ pub async fn open(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("transaction not found"))?;
 
+    if let Some(caller) = body.merchant_id.as_deref() {
+        let caller: Uuid = caller
+            .parse()
+            .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+        if tx.merchant_id != caller {
+            return Err(ApiError::not_found("transaction not found"));
+        }
+    }
     if !["CAPTURED", "SETTLED"].contains(&tx.status.as_str()) {
         return Err(ApiError::unprocessable(
             "INVALID_TRANSACTION_STATUS",
@@ -218,6 +231,19 @@ pub async fn list(
     Query(q): Query<ListDisputesQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let limit = q.limit.unwrap_or(20).clamp(1, 100);
+    // A filter that does not parse is refused. It used to become "no filter":
+    // ?merchant_id=x returned every tenant's disputes.
+    let uuid_filter = |v: &Option<String>, name: &str| -> ApiResult<Option<Uuid>> {
+        match v.as_deref() {
+            None | Some("") => Ok(None),
+            Some(s) => s
+                .parse::<Uuid>()
+                .map(Some)
+                .map_err(|_| ApiError::bad_request(format!("invalid {name}"))),
+        }
+    };
+    let merchant_filter = uuid_filter(&q.merchant_id, "merchant_id")?;
+    let consumer_filter = uuid_filter(&q.consumer_id, "consumer_id")?;
 
     let rows = sqlx::query!(
         r#"
@@ -231,12 +257,8 @@ pub async fn list(
         ORDER BY created_at DESC
         LIMIT $4
         "#,
-        q.merchant_id
-            .as_deref()
-            .and_then(|s| s.parse::<Uuid>().ok()),
-        q.consumer_id
-            .as_deref()
-            .and_then(|s| s.parse::<Uuid>().ok()),
+        merchant_filter,
+        consumer_filter,
         q.status,
         limit,
     )

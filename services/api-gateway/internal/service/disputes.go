@@ -51,6 +51,9 @@ type OpenDisputeRequest struct {
 	TransactionID string
 	ConsumerID    string
 	Reason        string
+	// MerchantID is the calling Business; core refuses (not found) a
+	// transaction that is not its own.
+	MerchantID string
 }
 
 type SubmitEvidenceRequest struct {
@@ -90,6 +93,9 @@ func (s *CoreApiDisputeService) Open(ctx context.Context, req OpenDisputeRequest
 		"transaction_id": req.TransactionID,
 		"consumer_id":    req.ConsumerID,
 		"reason":         req.Reason,
+	}
+	if req.MerchantID != "" {
+		body["merchant_id"] = req.MerchantID
 	}
 	var resp Dispute
 	if err := s.client.post(ctx, "/internal/v1/disputes", body, &resp); err != nil {

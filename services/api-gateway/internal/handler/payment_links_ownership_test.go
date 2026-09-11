@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 	"github.com/go-chi/chi/v5"
 )
@@ -26,7 +27,7 @@ import (
 const (
 	ownerID    = "merchant-owner"
 	attackerID = "merchant-attacker"
-	linkID     = "link-1"
+	linkID     = "6b1f3c2e-8a4d-4c1b-9e2f-7d5a0b3c9e11" // a well-formed id, so a 404 here is ownership, not a malformed id
 )
 
 type linkSvcSpy struct {
@@ -223,5 +224,101 @@ func TestPaymentLink_CreateWithoutWalletCheckFailsClosed(t *testing.T) {
 	h.Create(w, withMerchant(httptest.NewRequest(http.MethodPost, "/v1/payment-links", jsonBody(body)), ownerID))
 	if spy.created != 0 {
 		t.Fatal("a link was created with no way to check its wallet")
+	}
+}
+
+// ── V01: principals other than the owning merchant ──────────────────────────
+// A consumer token authenticates on this surface with no merchant id, and the
+// ownership checks only ran "if there is a merchant principal". A developer
+// key had no branch on list, cancel or mark-used. Both are refused now.
+
+func withConsumer(r *http.Request) *http.Request {
+	p := &middleware.Principal{CustomerID: "c-anyone", Scopes: []string{"consumer"}}
+	return r.WithContext(middleware.ContextWithPrincipal(r.Context(), p))
+}
+
+func withDevOf(r *http.Request, merchantID string, scopes ...string) *http.Request {
+	p := &middleware.DeveloperPrincipal{KeyID: "k", Environment: "SANDBOX", KeyStatus: "active", Scopes: scopes,
+		Bound: true, MerchantID: merchantID, WalletID: "w", WalletAccountID: "wa"}
+	return r.WithContext(middleware.ContextWithDeveloperPrincipal(r.Context(), p))
+}
+
+func TestPaymentLink_ConsumerTokenCanDoNothing(t *testing.T) {
+	spy := ownedLinkSpy()
+	h := handler.NewPaymentLinkHandler(spy, nil, nil)
+	for name, call := range map[string]func(http.ResponseWriter){
+		"list": func(w http.ResponseWriter) {
+			h.List(w, withConsumer(httptest.NewRequest(http.MethodGet, "/v1/payment-links?merchant_id="+ownerID, nil)))
+		},
+		"get": func(w http.ResponseWriter) {
+			h.Get(w, withRouteID(withConsumer(httptest.NewRequest(http.MethodGet, "/", nil)), linkID))
+		},
+		"cancel": func(w http.ResponseWriter) {
+			h.Cancel(w, withRouteID(withConsumer(httptest.NewRequest(http.MethodDelete, "/", nil)), linkID))
+		},
+		"mark-used": func(w http.ResponseWriter) {
+			h.MarkUsed(w, withRouteID(withConsumer(httptest.NewRequest(http.MethodPost, "/", nil)), linkID))
+		},
+	} {
+		w := httptest.NewRecorder()
+		call(w)
+		if w.Code != http.StatusUnauthorized {
+			t.Errorf("%s with a consumer token: got %d, want 401", name, w.Code)
+		}
+	}
+	if len(spy.listedFor) != 0 || spy.cancelled != 0 || spy.markedUsed != 0 {
+		t.Fatalf("a consumer token reached the service: listed=%v cancelled=%d marked=%d", spy.listedFor, spy.cancelled, spy.markedUsed)
+	}
+}
+
+func TestPaymentLink_DeveloperKeyIsBoundToItsOwnMerchant(t *testing.T) {
+	spy := ownedLinkSpy()
+	h := handler.NewPaymentLinkHandler(spy, nil, nil)
+
+	// list: the binding's merchant, never the query's
+	w := httptest.NewRecorder()
+	h.List(w, withDevOf(httptest.NewRequest(http.MethodGet, "/v1/payment-links?merchant_id="+ownerID, nil), attackerID, "payment_links:read"))
+	if w.Code != http.StatusForbidden || len(spy.listedFor) != 0 {
+		t.Fatalf("a key bound to another merchant listed the owner's links: %d %v", w.Code, spy.listedFor)
+	}
+	w = httptest.NewRecorder()
+	h.List(w, withDevOf(httptest.NewRequest(http.MethodGet, "/v1/payment-links", nil), attackerID, "payment_links:read"))
+	if w.Code != http.StatusOK || len(spy.listedFor) != 1 || spy.listedFor[0] != attackerID {
+		t.Fatalf("a key must list its own merchant's links: %d %v", w.Code, spy.listedFor)
+	}
+
+	// cancel / mark-used another merchant's link: not found, nothing mutated
+	w = httptest.NewRecorder()
+	h.Cancel(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodDelete, "/", nil), attackerID, "payment_links:write"), linkID))
+	if w.Code != http.StatusNotFound || spy.cancelled != 0 {
+		t.Fatalf("a key bound to another merchant cancelled the owner's link: %d cancelled=%d", w.Code, spy.cancelled)
+	}
+	w = httptest.NewRecorder()
+	h.MarkUsed(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodPost, "/", nil), attackerID, "payment_links:write"), linkID))
+	if w.Code != http.StatusNotFound || spy.markedUsed != 0 {
+		t.Fatalf("a key bound to another merchant marked the owner's link used: %d marked=%d", w.Code, spy.markedUsed)
+	}
+
+	// its own link, with the write scope: allowed
+	w = httptest.NewRecorder()
+	h.Cancel(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodDelete, "/", nil), ownerID, "payment_links:write"), linkID))
+	if w.Code != http.StatusOK || spy.cancelled != 1 {
+		t.Fatalf("the owner's key must cancel its own link: %d", w.Code)
+	}
+	// without the write scope: refused before any lookup
+	w = httptest.NewRecorder()
+	h.MarkUsed(w, withRouteID(withDevOf(httptest.NewRequest(http.MethodPost, "/", nil), ownerID, "payment_links:read"), linkID))
+	if w.Code != http.StatusForbidden || spy.markedUsed != 0 {
+		t.Fatalf("mark-used without payment_links:write: %d", w.Code)
+	}
+}
+
+func TestPaymentLink_NoPrincipalIsRefused(t *testing.T) {
+	spy := ownedLinkSpy()
+	h := handler.NewPaymentLinkHandler(spy, nil, nil)
+	w := httptest.NewRecorder()
+	h.List(w, httptest.NewRequest(http.MethodGet, "/v1/payment-links?merchant_id="+ownerID, nil))
+	if w.Code != http.StatusUnauthorized || len(spy.listedFor) != 0 {
+		t.Fatalf("no principal listed links: %d", w.Code)
 	}
 }

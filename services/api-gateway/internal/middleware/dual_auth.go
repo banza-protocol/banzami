@@ -59,6 +59,19 @@ func DualAuth(cfg *config.Config, devClient devKeyAuthorizer) func(http.Handler)
 				apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_TOKEN", "token is invalid or expired")
 				return
 			}
+			// This surface is for a Business (merchant JWT) or a Project (key).
+			// A consumer token is signed with the same secret and verifies here
+			// with no merchant id; handlers that asked "is there a merchant?"
+			// then skipped their ownership checks — a consumer token listed and
+			// cancelled another merchant's payment links on the deployed Sandbox.
+			// Refused at the door, whatever the handler remembers to check.
+			if principal.MerchantID == "" {
+				slog.WarnContext(r.Context(), "auth.non_merchant_principal_on_merchant_surface",
+					"path", LoggedPath(r.URL.Path), "has_customer_id", principal.CustomerID != "")
+				apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+					"merchant credentials or a project key are required")
+				return
+			}
 			ctx := context.WithValue(r.Context(), principalKey{}, principal)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

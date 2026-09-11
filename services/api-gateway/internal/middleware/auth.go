@@ -232,3 +232,27 @@ func RequireMerchant(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// RequireMerchantExcept is RequireMerchant for a whole route group, naming the
+// path prefixes inside it that a consumer token may legitimately reach.
+//
+// RequireMerchant was opt-in per route and only /merchants, /wallets and
+// /consumers had opted in, so every other route of the merchant surface let a
+// consumer token through to handlers that had to remember to check — the same
+// shape that let a consumer token list and cancel another merchant's payment
+// links on the dual-credential surface. The exception is now the explicit list,
+// and a new route is gated by default.
+func RequireMerchantExcept(consumerPrefixes ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		gated := RequireMerchant(next)
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			for _, prefix := range consumerPrefixes {
+				if strings.HasPrefix(r.URL.Path, prefix) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+			gated.ServeHTTP(w, r)
+		})
+	}
+}

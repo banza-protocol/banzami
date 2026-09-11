@@ -7,6 +7,7 @@ package middleware
 // protected handler never runs.
 
 import (
+	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -102,5 +103,28 @@ func TestDualAuth_DevKeyDisabledFailsClosed(t *testing.T) {
 	h.ServeHTTP(rr, req)
 	if rr.Code != http.StatusUnauthorized || ran {
 		t.Fatalf("dev key with nil client must fail closed: status=%d ran=%v", rr.Code, ran)
+	}
+}
+
+// A consumer token is signed with the same secret as a merchant token and
+// verifies here, with no merchant id. It is refused at the door: handlers that
+// keyed ownership on "is there a merchant principal?" let it list and cancel
+// another merchant's payment links on the deployed Sandbox (V01).
+func TestDualAuth_ConsumerTokenRefused(t *testing.T) {
+	cfg := &config.Config{JWTSecret: "test-secret"}
+	claims := &jwtClaims{CustomerID: "c-1", Scopes: []string{"consumer"}, Environment: "SANDBOX",
+		RegisteredClaims: jwt.RegisteredClaims{ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour))}}
+	tok, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte("test-secret"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ran := false
+	h := DualAuth(cfg, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { ran = true }))
+	req := httptest.NewRequest(http.MethodGet, "/v1/payment-links?merchant_id=m-victim", nil)
+	req.Header.Set("Authorization", "Bearer "+tok)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	if w.Code != http.StatusForbidden || ran {
+		t.Fatalf("a consumer token on the merchant/developer surface: got %d (handler ran: %v), want 403", w.Code, ran)
 	}
 }
