@@ -108,7 +108,13 @@ adds `token_version INT DEFAULT 1` to `admin_users`.
     table, SUPER_ADMIN/SUPPORT).
 
 Effect: a stale or stolen token stops working immediately, without waiting for
-the 12h JWT TTL.
+the JWT TTL.
+
+**Since A6-12 / A5-08** (see the Runbook, *Authentification*): the session is an
+HttpOnly `__Host-bzadm_session` cookie with a CSRF token, it expires after 30
+minutes of inactivity (12 h absolute), `POST /auth/logout` revokes it on the
+server, and the highest-risk routes require a TOTP proof from the last 5
+minutes.
 
 ---
 
@@ -177,11 +183,19 @@ in flight.
 
 `apps/admin/next.config.mjs` adds `object-src 'none'` and `frame-src 'none'` and
 keeps the existing `frame-ancestors 'none'`, `base-uri 'self'`,
-`form-action 'self'`. `script-src`/`style-src` still allow `'unsafe-inline'`:
-Next.js 14 (app router) emits inline bootstrap/hydration scripts and `next/font`
-injects inline styles. Removing it safely requires a per-request nonce served
-from a Next middleware and a runtime verification pass — deferred to a follow-up
-so we don't risk breaking hydration under the no-deploy constraint of this phase.
+`form-action 'self'`. `script-src`/`style-src` still allowed `'unsafe-inline'`:
+Next.js (app router) emits inline bootstrap/hydration scripts and `next/font`
+injects inline styles. Removing it safely needed a per-request nonce served from
+a Next middleware and a runtime verification pass — deferred at the time so we
+did not risk breaking hydration under the no-deploy constraint of this phase.
+
+**Done since (A6-12).** `apps/admin/middleware.ts` mints a nonce per request and
+sets it on both the response policy and the request's `Content-Security-Policy`
+header (where Next takes the nonce for the scripts it emits); `script-src` is now
+`'self' 'nonce-…' 'strict-dynamic'` with no `'unsafe-inline'`, and the root
+layout reads the nonce so pages render per request. `style-src` keeps
+`'unsafe-inline'`. Verified on a production build: every script tag carries the
+request's nonce and the console hydrates.
 
 ---
 

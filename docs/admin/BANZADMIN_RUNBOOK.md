@@ -40,7 +40,8 @@ portail consomme les contrats du protocole, il ne les redéfinit pas.
         │                    │  (pose X-Real-IP, TLS origine)
         │                    ▼
         │            apps/admin  (Next.js, standalone)
-        │                    │  fetch Authorization: Bearer <admin JWT>
+        │                    │  fetch même origine (/api), cookie de session
+        │                    │  HttpOnly + en-tête X-CSRF-Token
         ▼                    ▼
   ───────────────►  services/admin-api  (Go, chi, :8082)
                            │
@@ -67,12 +68,76 @@ portail consomme les contrats du protocole, il ne les redéfinit pas.
 
 | Élément | Valeur |
 |---|---|
-| Login | email + mot de passe (`POST /admin/v1/auth/login`) |
+| Login | email + mot de passe (`POST /admin/v1/auth/login`) — puis **second facteur obligatoire** |
 | Hachage mot de passe | **bcrypt** (coût par défaut) ; jamais journalisé/retourné |
 | Jeton | **JWT HS256** signé par `ADMIN_JWT_SECRET` |
-| Claims JWT | `sub`, `email`, `role`, `token_version`, `iat`, `exp`, `iss=banzami-admin` — **rien d'autre** |
-| Durée du JWT | **12 heures** |
+| Claims JWT | `sub`, `email`, `role`, `token_version`, `purpose`, `auth_time`, `stepped_up_at`, `iat`, `exp`, `iss=banzami-admin` — **rien d'autre** |
+| Transport | **cookie `__Host-bzadm_session`** : HttpOnly, Secure, SameSite=Strict, `Path=/`, sans `Domain` |
+| Inactivité | **30 minutes** sans requête de l'opérateur ⇒ session expirée |
+| Durée absolue | **12 heures** depuis `auth_time` (la connexion), quoi qu'il arrive |
+| CSRF | cookie lisible `__Host-bzadm_csrf` + en-tête **`X-CSRF-Token`** sur chaque POST/PUT/PATCH/DELETE |
 | Identité/rôle live | rechargés depuis la DB **à chaque requête** (le JWT ne porte ni le nom ni les permissions) |
+
+### Session dans un cookie (A6-12)
+
+La session **n'est jamais** rendue au JavaScript : ni dans le corps du login, ni
+dans `localStorage`. `admin-api` la pose en cookie `HttpOnly` sur la même origine
+que la console (`admin.banzami.com`, nginx route `/api/` vers admin-api), donc :
+
+- un script injecté peut *utiliser* la session tant que l'onglet est ouvert,
+  mais ne peut ni la **lire**, ni la copier, ni la rejouer ailleurs ;
+- le préfixe `__Host-` interdit à tout sous-domaine de poser ou d'écraser ce
+  cookie ;
+- l'en-tête `Authorization: Bearer` **n'est plus accepté** comme session (les
+  jetons courts de MFA restent en `Authorization`, car ils ne sont pas des
+  sessions) ;
+- `localStorage` ne contient plus que le **profil** (nom, rôle) pour l'affichage,
+  et l'ancienne clé `banzami_admin_session` est supprimée au premier chargement.
+
+Chaque mutation doit présenter `X-CSRF-Token`, recalculé côté serveur à partir de
+la session (HMAC de l'opérateur + `auth_time` + `token_version`, comparaison à
+temps constant). `SameSite=Strict` seul ne suffirait pas : un autre
+`*.banzami.com` n'est pas « cross-site ».
+
+### Expiration d'inactivité (A5-08)
+
+`exp` du JWT vaut **30 minutes** ; chaque requête *de l'opérateur* le réémet
+(session glissante), sans jamais dépasser `auth_time + 12 h`. Les sondages de
+fond de la console (badges, fil d'activité, mode plateforme) envoient
+`X-Banzadmin-Activity: passive` : ils sont servis normalement mais **ne
+prolongent pas** la session — un onglet laissé ouvert finit donc par se
+déconnecter tout seul (le sondage suivant reçoit 401 et la console renvoie sur
+`/login`).
+
+### Déconnexion
+
+`POST /admin/v1/auth/logout` **révoque côté serveur** (incrémente
+`token_version`) et demande au navigateur d'effacer les deux cookies. Comme le
+compteur est par opérateur, se déconnecter ferme **toutes** ses sessions, sur
+tous ses appareils. (Avant : la route renvoyait 204 sans rien faire, et le jeton
+restait valable jusqu'à son expiration.)
+
+### Step-up : re-prouver le second facteur (A5-08)
+
+Les routes les plus sensibles exigent, **en plus** de la capability, une
+vérification TOTP de moins de **5 minutes** (`stepped_up_at`) :
+
+- opérateurs : création/invitation, changement de rôle, suspension, réactivation,
+  renvoi d'invitation, reset de mot de passe, terminaison des sessions d'autrui ;
+- tarification : profil de prix d'un Business, classification ADR-028, règles de
+  prix, profils, politiques de frais ;
+- argent : settlements, application settlements (annuler/échouer), payouts,
+  crédit de wallet, résolution de dispute ;
+- risque : gel/dégel, clôture de compte wallet ;
+- identifiants : réémission d'activation, reset du PIN app d'un Business ;
+- plateforme : bascule SANDBOX/LIVE.
+
+Sinon : `403 STEP_UP_REQUIRED`. La console ouvre alors une boîte de dialogue,
+envoie le code à `POST /admin/v1/auth/step-up` et **rejoue l'action une fois**.
+Le code est consommé (un code TOTP ne passe qu'une fois ; un code de
+récupération est brûlé), les échecs comptent dans le lockout, et le
+verrouillage met fin à la session en cours. Se connecter avec un code compte
+comme une preuve fraîche : on n'est pas re-sollicité pendant 5 minutes.
 
 ### token_version (révocation de session)
 
@@ -83,9 +148,11 @@ chaque requête — **mismatch ⇒ 401 immédiat**. `token_version` est incréme
 - changement de mot de passe,
 - complétion d'invitation / de reset,
 - suspension **et** réactivation d'un opérateur,
-- « terminer les sessions » (self ou opérateur).
+- « terminer les sessions » (self ou opérateur),
+- **déconnexion** (`/auth/logout`),
+- verrouillage du compte après 5 codes/mots de passe erronés.
 
-Effet : un jeton volé/périmé cesse de fonctionner **sans attendre** l'expiration 12h.
+Effet : un jeton volé/périmé cesse de fonctionner **sans attendre** l'expiration.
 
 ### Changement de mot de passe
 
@@ -406,8 +473,16 @@ l'IP conteneur, ou `admin.banzami.com` de bout en bout) :
       operators → **403** ; SUPER_ADMIN → 200
 - [ ] **audit** : chaque mutation crée une ligne (`admin_audit_log`) avec
       actor/entity/status ; scan secrets `before_json`/`after_json` = 0
-- [ ] **terminate sessions** : ancien JWT → **401**
-- [ ] **change password** : ancien JWT → **401**
+- [ ] **cookie de session** : la réponse du 2e facteur pose
+      `__Host-bzadm_session` (HttpOnly, Secure, SameSite=Strict) et **aucun**
+      `token` dans le corps ; `localStorage` ne contient aucun jeton
+- [ ] **CSRF** : une mutation sans `X-CSRF-Token` → **403 CSRF_REJECTED**
+- [ ] **logout** : ancien cookie → **401**
+- [ ] **inactivité** : 30 min sans action → la console renvoie sur `/login`
+- [ ] **step-up** : créer un opérateur sans code récent → **403
+      STEP_UP_REQUIRED** ; après le code → 201 ; le même code une 2e fois → refusé
+- [ ] **terminate sessions** : ancien cookie → **401**
+- [ ] **change password** : ancien cookie → **401**
 - [ ] **invite** : créer opérateur → INVITED → lien → ACTIVE
 - [ ] **reset** : lien à usage unique → mot de passe redéfini
 - [ ] **lockout** : 5 échecs → **429**
@@ -422,7 +497,10 @@ l'IP conteneur, ou `admin.banzami.com` de bout en bout) :
 | Symptôme | Cause probable | Action |
 |---|---|---|
 | **401** après login OK | `token_version` JWT ≠ DB (password changé / sessions terminées / suspendu) ailleurs | Se reconnecter ; le client efface la session et redirige vers `/login` |
-| **401** général soudain sur toutes les routes | `ADMIN_JWT_SECRET` absent/changé, ou JWT expiré (12h) | Vérifier l'env du conteneur ; reconnexion |
+| **401** général soudain sur toutes les routes | `ADMIN_JWT_SECRET` absent/changé, ou session expirée (30 min d'inactivité / 12 h absolues) | Vérifier l'env du conteneur ; reconnexion |
+| **403 CSRF_REJECTED** | La console appelle une autre origine que celle qui l'a servie (cookie non envoyé), ou le cookie CSRF est absent | La console doit appeler `/api` **sur son propre hôte** (`NEXT_PUBLIC_ADMIN_API_URL=https://admin.banzami.com/api`) ; se reconnecter |
+| **403 STEP_UP_REQUIRED** | Action sensible sans code récent | Saisir le code de l'authentificateur dans la boîte de dialogue ; il vaut 5 minutes |
+| Déconnexions trop fréquentes | 30 min d'inactivité — les sondages de fond ne prolongent pas la session | Comportement voulu ; se reconnecter |
 | **403** sur une action | Le rôle n'a pas la capability | Vérifier la matrice RBAC ; assigner le bon rôle (SUPER_ADMIN) |
 | **429** au login/reset | Rate limit IP (20/min) ou lockout (5 échecs) | Attendre `Retry-After` / 15 min ; vérifier l'IP source (nginx pose `X-Real-IP`) |
 | **503** sur auth | DB ou `ADMIN_JWT_SECRET` non configurés | Vérifier `DATABASE_URL` + `ADMIN_JWT_SECRET` du conteneur |
