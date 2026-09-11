@@ -31,4 +31,34 @@ void main() {
       expect(client.token, isNull);
     });
   });
+
+  group('untrusted slugs and codes stay one path segment', () {
+    test('a traversal slug or code cannot reach another endpoint', () async {
+      final paths = <String>[];
+      final client = ConsumerPublicClient(
+        baseUrl: 'https://api.test',
+        httpClient: MockClient((req) async {
+          paths.add(req.url.path);
+          return http.Response('{"code":"NOT_FOUND","message":"x"}', 404);
+        }),
+      )..setToken('t');
+      for (final call in <Future<Object?> Function()>[
+        () => client.getPaymentLinkBySlug('../me/wallet'),
+        () => client.payPaymentLink('..', amountMinor: 1),
+        () => client.getConsumerPayLinkByCode('a/b'),
+        () => client.payConsumerPayLink('x?y=1'),
+      ]) {
+        try {
+          await call();
+        } catch (_) {}
+      }
+      for (final p in paths) {
+        expect(p.startsWith('/v1/payment-links/') || p.startsWith('/v1/consumer-pay-links/'),
+            isTrue, reason: p);
+        expect(p.contains('/me/'), isFalse, reason: p);
+      }
+      expect(paths.any((p) => p.endsWith('/pay') && !p.contains('links/')), isFalse);
+      expect(paths.length, 3, reason: '".." is refused before any request');
+    });
+  });
 }

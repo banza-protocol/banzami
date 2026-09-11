@@ -50,4 +50,11 @@ void main() {
     expect(app.contains("uri.queryParameters['sandbox'] == '1'"), isTrue);
     expect(app.contains("uri.scheme.endsWith('-sandbox')"), isTrue);
   });
+
+  test('a @banza link with no handle opens nothing; on a cold start it is parked, not dropped', () {
+    final open = body('void _openHandlePay(');
+    expect(open.contains("RegExp(r'^[A-Za-z0-9_.]{1,64}\$').hasMatch(h)"), isTrue);
+    expect(open.contains('_pendingHandleUri = uri'), isTrue);
+    expect(body('void _processPendingDeepLink(').contains('_pendingHandleUri'), isTrue);
+  });
 }

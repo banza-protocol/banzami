@@ -186,7 +186,7 @@ class ConsumerPublicClient {
   /// Throws [BanzamiNetworkException] on network failure.
   Future<bool> handleExists(String handle) async {
     try {
-      await _call(method: 'GET', path: '/v1/consumers/$handle', auth: false);
+      await _call(method: 'GET', path: '/v1/consumers/${_seg(handle)}', auth: false);
       return true;
     } on BanzamiApiException catch (e) {
       if (e.isNotFound) return false;
@@ -262,7 +262,7 @@ class ConsumerPublicClient {
   Future<PaymentLink> getPaymentLinkBySlug(String slug) async {
     final json = await _call(
       method: 'GET',
-      path: '/v1/payment-links/$slug',
+      path: '/v1/payment-links/${_seg(slug)}',
       auth: false,
     );
     return PaymentLink.fromJson(json);
@@ -285,7 +285,7 @@ class ConsumerPublicClient {
       body['amount_minor'] = amountMinor;
     final json = await _call(
       method: 'POST',
-      path: '/v1/payment-links/$slug/pay',
+      path: '/v1/payment-links/${_seg(slug)}/pay',
       body: body,
     );
     return PaymentLink.fromJson(json);
@@ -322,7 +322,7 @@ class ConsumerPublicClient {
   Future<ConsumerPayLink> getConsumerPayLinkByCode(String code) async {
     final json = await _call(
       method: 'GET',
-      path: '/v1/consumer-pay-links/$code',
+      path: '/v1/consumer-pay-links/${_seg(code)}',
       auth: false,
     );
     return ConsumerPayLink.fromJson(json);
@@ -343,7 +343,7 @@ class ConsumerPublicClient {
     };
     final json = await _call(
       method: 'POST',
-      path: '/v1/consumer-pay-links/$code/pay',
+      path: '/v1/consumer-pay-links/${_seg(code)}/pay',
       body: body,
     );
     return ConsumerPayLink.fromJson(json);
@@ -407,7 +407,7 @@ class ConsumerPublicClient {
   /// Loads a case by id. Throws [BanzamiApiException] (404) if it is not the
   /// caller's case — cross-subject access is indistinguishable from "not found".
   Future<KycCase> getKycCase(String caseId) async {
-    final json = await _call(method: 'GET', path: '/v1/kyc/cases/$caseId');
+    final json = await _call(method: 'GET', path: '/v1/kyc/cases/${_seg(caseId)}');
     return KycCase.fromJson(json);
   }
 
@@ -424,7 +424,7 @@ class ConsumerPublicClient {
   }) async {
     final json = await _call(
       method: 'POST',
-      path: '/v1/kyc/cases/$caseId/evidence/upload-url',
+      path: '/v1/kyc/cases/${_seg(caseId)}/evidence/upload-url',
       body: {
         'evidence_type': evidenceType.wire,
         if (side != null) 'side': side.wire,
@@ -445,7 +445,7 @@ class ConsumerPublicClient {
   }) async {
     final json = await _call(
       method: 'POST',
-      path: '/v1/kyc/cases/$caseId/evidence/complete',
+      path: '/v1/kyc/cases/${_seg(caseId)}/evidence/complete',
       body: {
         'evidence_id': evidenceId,
         if (sha256 != null && sha256.isNotEmpty) 'sha256': sha256,
@@ -459,14 +459,14 @@ class ConsumerPublicClient {
   /// still missing — the consumer cannot self-approve.
   Future<KycCase> submitKycCase(String caseId) async {
     final json =
-        await _call(method: 'POST', path: '/v1/kyc/cases/$caseId/submit');
+        await _call(method: 'POST', path: '/v1/kyc/cases/${_seg(caseId)}/submit');
     return KycCase.fromJson(json);
   }
 
   /// The current [KycStatus] of a case.
   Future<KycStatus> getKycStatus(String caseId) async {
     final json =
-        await _call(method: 'GET', path: '/v1/kyc/cases/$caseId/status');
+        await _call(method: 'GET', path: '/v1/kyc/cases/${_seg(caseId)}/status');
     return KycStatus.fromWire(json['status'] as String?);
   }
 
@@ -514,7 +514,7 @@ class ConsumerPublicClient {
   Future<Receipt> fetchReceipt(String transactionId) async {
     final json = await _call(
       method: 'GET',
-      path: '/v1/consumer/transactions/$transactionId/receipt',
+      path: '/v1/consumer/transactions/${_seg(transactionId)}/receipt',
     );
     return Receipt.fromJson(json);
   }
@@ -524,7 +524,7 @@ class ConsumerPublicClient {
   /// Throws [BanzamiApiException] on 401/403/404/etc. The app must never build
   /// PDFs locally — this is the single official document.
   Future<List<int>> fetchReceiptPdf(String transactionId) async {
-    final path = '/v1/consumer/transactions/$transactionId/receipt.pdf';
+    final path = '/v1/consumer/transactions/${_seg(transactionId)}/receipt.pdf';
     onRequest?.call('GET', path);
     final resp =
         await _http.get(Uri.parse('$baseUrl$path'), headers: _headers());
@@ -546,6 +546,19 @@ class ConsumerPublicClient {
   // ---------------------------------------------------------------------------
   // HTTP helpers
   // ---------------------------------------------------------------------------
+
+  /// One path segment from untrusted input (a scanned slug, a deep-link code):
+  /// percent-encoded, so "../x" or "a/b" can never reach another endpoint.
+  /// "", "." and ".." cannot be a segment at all (URI normalisation resolves
+  /// dot segments even when percent-encoded): they are refused before any
+  /// request is sent, as a link that does not exist.
+  static String _seg(String value) {
+    if (value.isEmpty || value == '.' || value == '..') {
+      throw const BanzamiApiException(
+          statusCode: 404, code: 'NOT_FOUND', message: 'invalid path segment');
+    }
+    return Uri.encodeComponent(value);
+  }
 
   Map<String, String> _headers({bool auth = true}) => {
         'Content-Type': 'application/json',

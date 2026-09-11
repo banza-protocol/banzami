@@ -61,4 +61,10 @@ void main() {
       expect(find.text('50 000,50'), findsOneWidget);
     });
   });
+
+  test('home initials survive double spaces, blank names and empty handles', () {
+    expect(homeInitials(displayName: 'Ana  Silva', handle: 'ana'), 'AS');
+    expect(homeInitials(displayName: '   ', handle: 'ana'), 'A');
+    expect(homeInitials(displayName: null, handle: ''), '·');
+  });
 }

@@ -55,6 +55,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // (pay.banzami.com/pay/{slug}).
   String?   _pendingRequestCode;
   String?   _pendingLinkSlug;
+  // A @banza pay link (…/u/{handle}[?amount=]) — parked like the others: it
+  // used to be dropped on a cold start.
+  Uri?      _pendingHandleUri;
   bool      _splashComplete = false;
 
   // ── Locked deep link ───────────────────────────────────────────────────────
@@ -268,7 +271,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // https://pay.banzami.com/r/{code}[?sandbox=1]        ← payment request
   // https://pay.banzami.com/u/{handle}[?amount=&currency=]  ← handle pay
   void _handleUniversalLink(Uri uri) {
-    final segs = uri.pathSegments;
+    final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
     if (segs.isEmpty) return;
 
     switch (segs[0]) {
@@ -430,10 +433,24 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _openHandlePay(Uri uri, String handle) {
+    // A link with an empty or malformed @banza opens nothing (it used to crash
+    // the payment screen on "/u/?amount=500").
+    final h = handle.replaceFirst('@', '').trim();
+    if (!RegExp(r'^[A-Za-z0-9_.]{1,64}$').hasMatch(h)) {
+      debugPrint('[deep-link] invalid handle in link — ignored');
+      return;
+    }
     final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-    final session = ctx.read<SessionService>().session;
-    if (session == null) return;
+    final session = ctx?.read<SessionService>().session;
+    if (ctx == null || session == null) {
+      // Cold start: navigator or session not ready — park and open after the
+      // splash, like payment links and requests.
+      debugPrint('[deep-link] handle link deferred');
+      _pendingHandleUri = uri;
+      return;
+    }
+    _pendingHandleUri = null;
+    handle = h;
     final client  = ctx.read<ConsumerPublicClient>();
     final rawAmt  = uri.queryParameters['amount'];
     final amount  = rawAmt != null ? int.tryParse(rawAmt) : null;
@@ -506,6 +523,14 @@ class _BanzamiAppState extends State<BanzamiApp> {
       _pendingRequestCode = null;
       debugPrint('[deep-link] coldStart processing code=$code (post-splash)');
       _openPaymentRequest(code);
+      return;
+    }
+    final handleUri = _pendingHandleUri;
+    if (handleUri != null) {
+      _pendingHandleUri = null;
+      final segs = handleUri.pathSegments.where((s) => s.isNotEmpty).toList();
+      final i = segs.indexOf('u');
+      if (i >= 0 && i + 1 < segs.length) _openHandlePay(handleUri, segs[i + 1]);
     }
   }
 
@@ -541,6 +566,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
                 !session.isLocked &&
                 (_pendingLinkSlug != null ||
                     _pendingRequestCode != null ||
+                    _pendingHandleUri != null ||
                     _pendingNotificationMsg != null)) {
               WidgetsBinding.instance.addPostFrameCallback((_) => _processPendingDeepLink());
             }

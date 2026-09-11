@@ -383,9 +383,7 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initials = displayName != null
-        ? displayName!.split(' ').take(2).map((w) => w[0]).join().toUpperCase()
-        : handle[0].toUpperCase();
+    final initials = homeInitials(displayName: displayName, handle: handle);
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -758,6 +756,20 @@ class _EmptyActivity extends StatelessWidget {
 // =============================================================================
 // Sandbox fund panel — premium funding card
 // =============================================================================
+
+/// The avatar initials: the first letters of up to two words of the name
+/// (any run of spaces between them), else the handle's first letter — never a
+/// crash on "Ana  Silva", a blank name or an empty handle.
+String homeInitials({String? displayName, required String handle}) {
+  final words = (displayName ?? '')
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((w) => w.isNotEmpty)
+      .take(2);
+  if (words.isNotEmpty) return words.map((w) => w[0]).join().toUpperCase();
+  final h = handle.replaceFirst('@', '').trim();
+  return h.isEmpty ? '·' : h[0].toUpperCase();
+}
 
 /// Whole kwanzas in the standard money format ("50 000 Kz").
 String _fmtKz(int kz) => formatMinor(kz * 100, 'AOA');
