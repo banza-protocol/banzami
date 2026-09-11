@@ -135,8 +135,30 @@ class _TransactionsTab extends StatefulWidget {
 class _TransactionsTabState extends State<_TransactionsTab>
     with AutomaticKeepAliveClientMixin {
 
-  final List<MerchantPaymentEntry> _txs = [];
-  String? _cursor;
+  // Acquiring transactions + wallet-native payments (QR, link, session), as
+  // one newest-first history. The Transacções tab read only the first, so no
+  // QR or link payment ever appeared here.
+  late final MerchantPaymentFeed _feed = MerchantPaymentFeed([
+    (cursor) async {
+      final page = await context
+          .read<BanzamiClient>()
+          .listMerchantTransactions(limit: 30, cursor: cursor);
+      return (
+        page.data.map(MerchantPaymentEntry.fromTransaction).toList(),
+        page.hasMore ? page.nextCursor : null,
+      );
+    },
+    (cursor) async {
+      final page = await context
+          .read<BanzamiClient>()
+          .listMerchantWalletPayments(limit: 30, cursor: cursor);
+      return (
+        page.items.map(MerchantPaymentEntry.fromWalletPayment).toList(),
+        page.nextCursor,
+      );
+    },
+  ]);
+  List<MerchantPaymentEntry> _txs = const [];
   bool    _loading = false;
   bool    _hasMore = true;
   String? _error;
@@ -155,18 +177,19 @@ class _TransactionsTabState extends State<_TransactionsTab>
     if (!_hasMore && !refresh) return;
 
     setState(() { _loading = true; _error = null; });
-    if (refresh) { _txs.clear(); _cursor = null; _hasMore = true; }
+    if (refresh) { _feed.reset(); _txs = const []; _hasMore = true; }
 
-    final client = context.read<BanzamiClient>();
     try {
-      final page = await client.listMerchantTransactions(limit: 30, cursor: _cursor);
+      await _feed.loadMore();
+      if (!mounted) return;
       setState(() {
-        _txs.addAll(page.data.map(MerchantPaymentEntry.fromTransaction));
-        _cursor  = page.nextCursor;
-        _hasMore = page.hasMore;
+        _txs     = _feed.visible;
+        _hasMore = _feed.hasMore;
       });
     } catch (_) {
-      setState(() => _error = 'Não foi possível carregar as transacções.');
+      if (mounted) {
+        setState(() => _error = 'Não foi possível carregar as transacções.');
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -222,7 +245,22 @@ class _TransactionsTabState extends State<_TransactionsTab>
       itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
         if (i == grouped.length) {
-          if (!_loading) _load();
+          // A page that failed waits for a tap — it is never re-requested on
+          // every frame.
+          if (_error != null) {
+            return Padding(
+              padding: const EdgeInsets.all(BanzamiSpacing.lg),
+              child:   Center(child: BanzamiGhostButton(
+                label:     'Tentar novamente',
+                onPressed: _load,
+              )),
+            );
+          }
+          if (!_loading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _load();
+            });
+          }
           return const Padding(
             padding: EdgeInsets.all(BanzamiSpacing.xl),
             child:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
@@ -305,7 +343,7 @@ class _TransactionTile extends StatelessWidget {
     };
     // The description (when the merchant wrote one) is the title; the status is
     // always said on the second line so a refund never reads as a receipt.
-    final label = tx.description ?? tx.stateLabel;
+    final label = tx.title;
     final sign  = tx.amountSign;
 
     final local   = tx.createdAt.toLocal();
@@ -336,7 +374,7 @@ class _TransactionTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              tx.description != null ? '$timeStr · ${tx.stateLabel}' : timeStr,
+              label != tx.stateLabel ? '$timeStr · ${tx.stateLabel}' : timeStr,
               style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ]),

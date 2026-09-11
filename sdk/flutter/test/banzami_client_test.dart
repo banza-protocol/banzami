@@ -125,6 +125,43 @@ void main() {
     });
   });
 
+  group('BanzamiClient.listMerchantWalletPayments', () {
+    test('since is sent as date_from (RFC3339 UTC); items parse', () async {
+      Uri? seen;
+      final client = BanzamiClient(
+        apiKey: _apiKey,
+        baseUrl: _baseUrl,
+        httpClient: MockClient((request) async {
+          if (request.url.path.endsWith('/v1/auth/token')) {
+            return http.Response(_jwtBody, 200);
+          }
+          seen = request.url;
+          return http.Response(
+              jsonEncode({
+                'items': [
+                  {
+                    'id': 'wp-1',
+                    'amount_minor': 250000,
+                    'currency': 'AOA',
+                    'status': 'COMPLETED',
+                    'payer_name': '@ana',
+                    'created_at': '2026-09-11T09:00:00Z',
+                    'receipt_available': true,
+                  }
+                ],
+              }),
+              200);
+        }),
+      );
+      final page = await client.listMerchantWalletPayments(
+          limit: 100, since: DateTime.utc(2026, 9, 1));
+      expect(seen!.path, '/v1/merchant/wallet-payments');
+      expect(seen!.queryParameters['date_from'], '2026-09-01T00:00:00.000Z');
+      expect(page.items.single.status, 'COMPLETED');
+      expect(page.nextCursor, isNull);
+    });
+  });
+
   group('BanzamiClient.listMerchantTransactions', () {
     test('happy path — returns list with pagination', () async {
       final now = DateTime.now().toUtc();

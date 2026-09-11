@@ -87,10 +87,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (mounted) setState(() { _loading = false; _error = err; });
   }
 
-  /// One paginated transaction read covering both the current month and the
-  /// last-7-days window, aggregated into [MerchantDashboardStats] plus the
-  /// most recent received payments. No mocked data — everything is derived
-  /// from real `listMerchantTransactions` results.
+  /// Every payment of the current month and the last-7-days window, from both
+  /// sources — acquiring transactions and wallet-native payments (QR, link,
+  /// session) — aggregated into [MerchantDashboardStats] plus the most recent
+  /// received payments. No mocked data.
   Future<(MerchantDashboardStats, List<MerchantPaymentEntry>)> _loadStats(
       BanzamiClient client) async {
     final now = DateTime.now();
@@ -100,24 +100,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final windowStart =
         (monthStart.isBefore(sevenAgo) ? monthStart : sevenAgo).toUtc();
 
-    final all = <MerchantPaymentEntry>[];
-    String? cursor;
-    do {
-      final page = await client.listMerchantTransactions(
-        limit: 100,
-        since: windowStart,
-        cursor: cursor,
-      );
-      all.addAll(page.data.map(MerchantPaymentEntry.fromTransaction));
-      cursor = page.hasMore ? page.nextCursor : null;
-    } while (cursor != null);
+    Future<List<MerchantPaymentEntry>> acquiring() async {
+      final out = <MerchantPaymentEntry>[];
+      String? cursor;
+      do {
+        final page = await client.listMerchantTransactions(
+          limit: 100,
+          since: windowStart,
+          cursor: cursor,
+        );
+        out.addAll(page.data.map(MerchantPaymentEntry.fromTransaction));
+        cursor = page.hasMore ? page.nextCursor : null;
+      } while (cursor != null);
+      return out;
+    }
+
+    Future<List<MerchantPaymentEntry>> wallet() async {
+      final out = <MerchantPaymentEntry>[];
+      String? cursor;
+      do {
+        final page = await client.listMerchantWalletPayments(
+          limit: 100,
+          since: windowStart,
+          cursor: cursor,
+        );
+        out.addAll(page.items.map(MerchantPaymentEntry.fromWalletPayment));
+        cursor = page.items.isEmpty ? null : page.nextCursor;
+      } while (cursor != null);
+      return out;
+    }
+
+    final lists = await Future.wait([acquiring(), wallet()]);
+    final all = mergePaymentEntries(lists);
 
     final stats = MerchantDashboardStats.compute(all, now: now);
-
-    final recent = all.where((t) => t.isReceived).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    return (stats, recent.take(5).toList());
+    final recent = all.where((t) => t.isReceived).take(5).toList();
+    return (stats, recent);
   }
 
   @override
@@ -617,7 +635,7 @@ class _RecentPaymentTile extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(
-                  tx.description ?? 'Pagamento recebido',
+                  tx.description ?? tx.payer ?? 'Pagamento recebido',
                   style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

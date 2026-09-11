@@ -6,7 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../services/push_notification_service.dart';
 import '../models/merchant_payment_entry.dart';
 
-/// Polls for new completed transactions and fires local notifications.
+/// Polls for newly received payments and fires local notifications.
 /// Used as a foreground fallback — real push notifications arrive via FCM.
 ///
 /// Start with [startPolling] when the merchant session is active.
@@ -23,7 +23,7 @@ class PaymentNotificationService {
       PushNotificationService.initialize();
 
   Timer?  _timer;
-  String? _latestSeenId;
+  final   _tracker = ReceivedPaymentTracker();
   int     _notifId = 0;
 
   void startPolling() {
@@ -37,34 +37,22 @@ class PaymentNotificationService {
     _timer = null;
   }
 
+  // Both sources: acquiring transactions AND wallet-native payments. A QR,
+  // link or session payment exists only in the second, so polling the first
+  // alone never announced one.
   Future<void> _poll() async {
     try {
-      final page = await _client.listMerchantTransactions(limit: 10);
-      if (page.data.isEmpty) return;
-
-      // On first poll just record the latest ID — no notification.
-      if (_latestSeenId == null) {
-        _latestSeenId = page.data.first.id;
-        return;
-      }
-
-      final newTxs = <MerchantPaymentEntry>[];
-      for (final tx in page.data) {
-        if (tx.id == _latestSeenId) break;
-        final entry = MerchantPaymentEntry.fromTransaction(tx);
-        if (entry.isReceived) newTxs.add(entry);
-      }
-
-      if (newTxs.isEmpty) {
-        // Update marker even if none are completed, so we don't re-check old ones.
-        _latestSeenId = page.data.first.id;
-        return;
-      }
-
-      _latestSeenId = page.data.first.id;
-
-      for (final tx in newTxs) {
-        await _notify(tx);
+      final results = await Future.wait([
+        _client
+            .listMerchantTransactions(limit: 10)
+            .then((p) => p.data.map(MerchantPaymentEntry.fromTransaction)),
+        _client
+            .listMerchantWalletPayments(limit: 10)
+            .then((p) => p.items.map(MerchantPaymentEntry.fromWalletPayment)),
+      ]);
+      // The first poll only records what is already there.
+      for (final entry in _tracker.newlyReceived(mergePaymentEntries(results))) {
+        await _notify(entry);
       }
     } catch (_) {
       // Polling is non-critical — swallow all errors.
@@ -73,7 +61,7 @@ class PaymentNotificationService {
 
   Future<void> _notify(MerchantPaymentEntry tx) async {
     final amount = formatMinor(tx.amountMinor, tx.currency);
-    final description = tx.description ?? 'Pagamento recebido';
+    final description = tx.description ?? tx.payer ?? 'Pagamento recebido';
 
     await _plugin.show(
       _notifId++,

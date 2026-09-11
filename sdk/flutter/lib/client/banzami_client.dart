@@ -751,16 +751,22 @@ class BanzamiClient {
   // Received wallet-native payments (canonical: wallet_payments) + receipts
   // ---------------------------------------------------------------------------
 
-  /// Lists the merchant's received wallet-native payments. Scoped server-side to
-  /// the authenticated merchant + environment.
+  /// Lists the merchant's received wallet-native payments (QR, payment link,
+  /// payment session), newest first. Scoped server-side to the authenticated
+  /// merchant + environment. [since] maps to the gateway's `date_from`.
   Future<MerchantWalletPaymentPage> listMerchantWalletPayments({
     int limit = 20,
     String? cursor,
     String? status,
+    DateTime? since,
   }) async {
     var path = '/v1/merchant/wallet-payments?limit=$limit';
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     if (status != null) path += '&status=${Uri.encodeComponent(status)}';
+    if (since != null) {
+      path +=
+          '&date_from=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
+    }
     final json = await _get(path);
     return MerchantWalletPaymentPage.fromJson(json);
   }
