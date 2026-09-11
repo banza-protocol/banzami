@@ -76,3 +76,7 @@ replace github.com/banzami/banzami/services/common/webhookprov => ../common/webh
 require github.com/banzami/banzami/services/common/corepath v0.0.0
 
 replace github.com/banzami/banzami/services/common/corepath => ../common/corepath
+
+require github.com/banzami/banzami/services/common/clientip v0.0.0
+
+replace github.com/banzami/banzami/services/common/clientip => ../common/clientip

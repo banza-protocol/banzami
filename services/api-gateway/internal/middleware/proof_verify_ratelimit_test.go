@@ -220,3 +220,31 @@ func TestLegacyProof_SpoofedForwardedForEarnsNothing(t *testing.T) {
 		t.Fatalf("a spoofed X-Forwarded-For bought request %d: status %d", LegacyProofPerIPPerMinute+1, rec.Code)
 	}
 }
+
+// A9-04: a legacy-reference guesser rotating through its own IPv6 /64 is one
+// client. Counted in-process (no Redis), so this runs everywhere.
+func TestLegacyProof_IPv6RotationWithinA64IsOneClient(t *testing.T) {
+	h := ProofVerifyRateLimit(nil, isLegacyShape)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	router := chi.NewRouter()
+	router.Method(http.MethodGet, "/v1/public/proofs/{ref}", h)
+	status := func(remote string) int {
+		req := httptest.NewRequest(http.MethodGet, "/v1/public/proofs/"+legacyRef, nil)
+		req.RemoteAddr = remote
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	for i := 1; i <= LegacyProofPerIPPerMinute; i++ {
+		if code := status(fmt.Sprintf("2001:db8:5:6::%x", i)); code != http.StatusOK {
+			t.Fatalf("request %d: status %d", i, code)
+		}
+	}
+	if code := status("2001:db8:5:6:ffff::1"); code != http.StatusTooManyRequests {
+		t.Fatalf("a fresh address in the same /64 bought request %d: status %d", LegacyProofPerIPPerMinute+1, code)
+	}
+	if code := status("2001:db8:5:7::1"); code != http.StatusOK {
+		t.Fatalf("the neighbouring /64 was limited: status %d", code)
+	}
+}

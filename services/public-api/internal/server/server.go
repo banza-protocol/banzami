@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/banzami/banzami/services/common/clientip"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/common/pushtopic"
 	"time"
@@ -67,7 +68,10 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	})
 
 	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
-	r.Use(chimiddleware.RealIP)
+	// Who the client is: the edge's X-Real-IP, believed only from a trusted
+	// proxy (TRUSTED_PROXY_CIDRS). chi's RealIP believed True-Client-IP,
+	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
+	r.Use(cfg.ClientIP.Middleware)
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
@@ -101,7 +105,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	authLimiter := handler.NewTransferRateLimiter(authRateLimit, time.Minute)
 	authRL := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !authLimiter.Allow(r.RemoteAddr) {
+			// Keyed per address, per /64 for IPv6: rotating through one's own
+			// block bought a fresh allowance per attempt (A9-04).
+			if !authLimiter.Allow(clientip.LimiterKey(r.RemoteAddr)) {
 				apierror.Respond(w, r, http.StatusTooManyRequests, "RATE_LIMITED",
 					"too many attempts — please wait before trying again")
 				return

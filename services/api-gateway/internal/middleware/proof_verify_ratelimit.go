@@ -3,7 +3,6 @@ package middleware
 import (
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 // Legacy public proof references carry roughly 32 bits of guessing resistance —
@@ -111,15 +111,10 @@ func ProofVerifyRateLimit(rdb *redis.Client, isLegacy func(ref string) bool) fun
 // The reference is deliberately NOT part of the key. Keying on it would give an
 // attacker a fresh allowance for every guess, which is the opposite of a limit.
 func trustedClientIP(r *http.Request) string {
-	// The address chi's RealIP already resolved from the headers the edge SETS
-	// (sandbox-edge.conf.template: Cloudflare's CF-Connecting-IP, trusted only
-	// from Cloudflare's ranges, forwarded as X-Real-IP / True-Client-IP /
-	// X-Forwarded-For — replacing, never appending to, what the caller sent).
-	// Reading the first X-Forwarded-For entry here instead took the caller's own
-	// word for it: rotating that header gave a fresh per-IP allowance per guess.
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
+	// The address clientip already resolved (RemoteAddr): the edge's X-Real-IP,
+	// believed only from a trusted proxy (A9-09) — or, on this route, the
+	// website's forwarded reader (A9-08). Reading the first X-Forwarded-For entry
+	// here instead took the caller's own word for it: rotating that header gave a
+	// fresh per-IP allowance per guess. An IPv6 caller is one bucket per /64 (A9-04).
+	return clientip.LimiterKey(r.RemoteAddr)
 }

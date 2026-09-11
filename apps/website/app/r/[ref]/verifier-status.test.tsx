@@ -11,6 +11,9 @@ import type { ProofResult } from '@/lib/api';
 const NOT_FOUND = new Error('NEXT_NOT_FOUND');
 const notFound = vi.fn(() => { throw NOT_FOUND; });
 vi.mock('next/navigation', () => ({ notFound: () => notFound() }));
+// The page reads the reader's address from its request (A9-08); a request scope
+// exists only inside Next, so the test supplies the headers the edge would set.
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-real-ip': '198.51.100.7' }) }));
 
 const getProof = vi.fn<(ref: string) => Promise<ProofResult>>();
 const platformTarget = vi.fn(async () => ({ base: 'https://sandbox-api.test', env: 'SANDBOX' as 'LIVE' | 'SANDBOX' }));

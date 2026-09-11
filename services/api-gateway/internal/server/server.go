@@ -10,6 +10,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
+	"github.com/banzami/banzami/services/common/clientip"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/common/pushtopic"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -132,7 +133,10 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// Global middleware — applied to every request
 	// ---------------------------------------------------------------------------
 	r.Use(middleware.CORS)
-	r.Use(chimw.RealIP)
+	// Who the client is: the edge's X-Real-IP, believed only from a trusted
+	// proxy (TRUSTED_PROXY_CIDRS). chi's RealIP believed True-Client-IP,
+	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
+	r.Use(cfg.ClientIP.Middleware)
 	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
 	r.Use(middleware.Logger)
 	// Must sit above authentication (it reads the project the credential resolved
@@ -229,7 +233,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// safe fields only. The QR/short link on every receipt resolves here.
 	// The legacy limiter runs INSIDE the generic one and before the handler, so a
 	// 429 is decided without ever asking whether the proof exists.
-	mountPublicProofVerify(r, deps.Redis, deps.ProofSvc, deps.ProofHashSalt)
+	mountPublicProofVerify(r, deps.Redis, deps.ProofSvc, deps.ProofHashSalt, cfg.ProofReaders)
 
 	// Public Business onboarding — no JWT required, so rate-limited per IP: a
 	// handle check is an availability oracle and a submission reserves a name
@@ -804,8 +808,17 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 // reference. It is a function so the canonicality test (public_proof_route_test.go)
 // drives exactly the production chain — both limiters, the handler, the service —
 // rather than a copy of it.
-func mountPublicProofVerify(r chi.Router, rdb *redis.Client, proofs *service.ProofService, salt string) {
+//
+// readers names the reader when the lookup comes from the website's server
+// (banzami.com/r/{ref}): the website forwards the address of the person reading
+// in config.ProofReaderHeader, believed only when the caller — as the edge
+// resolved it — is the website's egress address (PROOF_READER_FORWARDER_CIDRS).
+// It runs first, so both limiters and the recorded verification key on the
+// reader. Without it every reader shared the website's one allowance, and ~70
+// requests a minute from one client made verification unavailable to all (A9-08).
+func mountPublicProofVerify(r chi.Router, rdb *redis.Client, proofs *service.ProofService, salt string, readers *clientip.Resolver) {
 	r.With(
+		readers.Middleware,
 		middleware.RateLimit(rdb, middleware.DefaultRateLimits),
 		middleware.ProofVerifyRateLimit(rdb, func(ref string) bool {
 			return service.ClassifyReference(ref) == service.ReferenceLegacyV0

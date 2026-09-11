@@ -4,6 +4,7 @@ use (
 	./sdk/go
 	./services/admin-api
 	./services/api-gateway
+	./services/common/clientip
 	./services/common/corepath
 	./services/common/documents
 	./services/common/email

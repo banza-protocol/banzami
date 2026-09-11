@@ -43,6 +43,17 @@ Visitor ──HTTPS:443──▶ Cloudflare (separate Banzami zone/account)
 | `/srv/banzami/website-nginx/certs/banzami-com.{pem,key}` | origin cert |
 | `/srv/banzami/src/apps/website/` | rsynced source for the image build |
 
+### Client address and the proof-page limit
+
+`website.conf` sets nginx's `real_ip` from Cloudflare's ranges (the Sandbox
+edge's list) and forwards `$remote_addr` in `X-Real-IP` — never the raw
+`CF-Connecting-IP`, which a caller reaching the origin directly writes itself.
+`/r/` and `/verificar` are limited per client (`limit_req`, 20/min, burst 10,
+429; IPv6 per /64). The `/r/{ref}` page forwards the reader's `X-Real-IP` to the
+gateway as `X-Banzami-Reader-IP`; the gateway believes it only from the
+website's egress address (`PROOF_READER_FORWARDER_CIDRS`). The nginx files are
+not shipped by `deploy.sh`: copy them to `conf.d/` and reload `website-nginx`.
+
 ## Deploy / update
 
 ```bash

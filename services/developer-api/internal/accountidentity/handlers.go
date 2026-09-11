@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/banzami/banzami/services/common/clientip"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/httpx"
 )
@@ -206,44 +207,8 @@ func userView(u User) map[string]any {
 	}
 }
 
-// realIP prefers X-Forwarded-For left-most (set by the trusted proxy), else
-// RemoteAddr host.
-func realIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		if i := indexComma(xff); i >= 0 {
-			return trimSpace(xff[:i])
-		}
-		return trimSpace(xff)
-	}
-	host := r.RemoteAddr
-	if i := lastColon(host); i >= 0 {
-		return host[:i]
-	}
-	return host
-}
-
-func indexComma(s string) int {
-	for i := 0; i < len(s); i++ {
-		if s[i] == ',' {
-			return i
-		}
-	}
-	return -1
-}
-func lastColon(s string) int {
-	for i := len(s) - 1; i >= 0; i-- {
-		if s[i] == ':' {
-			return i
-		}
-	}
-	return -1
-}
-func trimSpace(s string) string {
-	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
-		s = s[1:]
-	}
-	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
-		s = s[:len(s)-1]
-	}
-	return s
-}
+// realIP is the client clientip resolved for this service (RemoteAddr): the
+// edge's X-Real-IP only when the peer is a trusted proxy. It read the leftmost
+// X-Forwarded-For itself — a value the caller writes — so rotating it bought a
+// fresh OTP allowance per request (A9-09).
+func realIP(r *http.Request) string { return clientip.Host(r.RemoteAddr) }

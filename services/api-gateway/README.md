@@ -235,13 +235,15 @@ go run cmd/gateway/main.go
 | OTLP_ENDPOINT | — | No | OpenTelemetry collector endpoint; tracing disabled when empty |
 | FIREBASE_CREDENTIALS_JSON | — | No | Firebase service-account JSON (minified); push notifications disabled when empty |
 | PUSH_TOPIC_KEY | — | For push | Random secret, at least 32 bytes, keying the FCM topic names (A6-06, `services/common/pushtopic`). Must be the **same value in public-api** on the same stack. Empty or short: topic pushes are skipped (logged once) and `GET /v1/merchant/push-topic` answers `{"topic": null}` — there is no fallback to the guessable `merchant_<id>` |
+| TRUSTED_PROXY_CIDRS | — (trust none) | Behind the edge | CIDRs/addresses of the proxy whose `X-Real-IP` names the client (the Sandbox edge's address on the app network). Unset: the client is the direct peer, so behind a proxy every request shares the proxy's per-IP bucket. `0.0.0.0/0` / `::/0` and malformed lists refuse to start. See `services/common/clientip` |
+| PROOF_READER_FORWARDER_CIDRS | — (trust none) | For banzami.com/r/ | The website's egress address(es): only from these (as the edge resolved the caller) is `X-Banzami-Reader-IP` believed on `GET /v1/public/proofs/{ref}`, so proof lookups are limited per reader, not per website (A9-08) |
 
 ## Middleware Stack
 
 Applied globally (every request):
 
 1. `CORS` — sets `Access-Control-Allow-*` headers for allowed origins
-2. `RealIP` — resolves client IP from `X-Forwarded-For`
+2. `clientip` — the client is the edge's `X-Real-IP`, believed only from a peer in `TRUSTED_PROXY_CIDRS`; otherwise the direct peer. Every per-IP limiter keys on it, IPv6 per /64 (A9-09, A9-04)
 3. `RequestID` — generates or propagates `X-Request-ID`
 4. `Logger` — structured log after response: method, path, status, duration, request_id
 5. `Recoverer` — converts panics to 500 without crashing the process

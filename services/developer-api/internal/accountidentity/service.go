@@ -9,6 +9,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 const purposeLogin = "login"
@@ -110,7 +112,9 @@ func (s *Service) RequestOTP(ctx context.Context, email, ip, requestID string) e
 	okEmail, err := s.rl.Allow(ctx, "otp:req:email:"+bucket, s.cfg.PerEmailLimit, s.cfg.RateWindow)
 	if err == nil && ip != "" {
 		var okIP bool
-		okIP, err = s.rl.Allow(ctx, "otp:req:ip:"+ip, s.cfg.PerIPLimit, s.cfg.RateWindow)
+		// Per address; per /64 for IPv6, so rotating through one's own block
+		// buys nothing (A9-04). The full address is still what is recorded.
+		okIP, err = s.rl.Allow(ctx, "otp:req:ip:"+clientip.LimiterKey(ip), s.cfg.PerIPLimit, s.cfg.RateWindow)
 		okEmail = okEmail && okIP
 	}
 	if err != nil {
@@ -167,7 +171,7 @@ func (s *Service) VerifyOTP(ctx context.Context, email, code, ip, userAgent, req
 	// window (as the gateway's limiters do): per instance rather than shared,
 	// but never absent (A2-23).
 	if ip != "" {
-		key := "otp:vrf:ip:" + ip
+		key := "otp:vrf:ip:" + clientip.LimiterKey(ip)
 		ok, err := s.rl.Allow(ctx, key, s.cfg.PerIPLimit, s.cfg.RateWindow)
 		if err != nil {
 			slog.WarnContext(ctx, "auth.verify.rate_limit_store_unavailable — counting in this process", "error_kind", fmt.Sprintf("%T", err))

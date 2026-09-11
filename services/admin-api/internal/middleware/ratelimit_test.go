@@ -58,7 +58,7 @@ func TestRateLimiter_Middleware429(t *testing.T) {
 
 	call := func() *httptest.ResponseRecorder {
 		r := httptest.NewRequest("POST", "/admin/v1/auth/login", nil)
-		r.Header.Set("X-Real-IP", "7.7.7.7")
+		r.RemoteAddr = "7.7.7.7" // as the server's clientip middleware leaves it
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, r)
 		return w
@@ -72,5 +72,46 @@ func TestRateLimiter_Middleware429(t *testing.T) {
 	}
 	if w.Header().Get("Retry-After") == "" {
 		t.Fatal("429 must include Retry-After")
+	}
+}
+
+// A9-09: the limiter keys on the resolved client (RemoteAddr), never on a
+// header the caller wrote. Rotating X-Real-IP / X-Forwarded-For from one
+// address bought a fresh allowance per attempt.
+func TestRateLimiter_IgnoresClientHeaders(t *testing.T) {
+	l := NewIPRateLimiter(1, time.Minute)
+	h := l.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	codes := []int{}
+	for _, spoof := range []string{"198.51.100.1", "198.51.100.2"} {
+		r := httptest.NewRequest("POST", "/admin/v1/auth/login", nil)
+		r.RemoteAddr = "203.0.113.9"
+		r.Header.Set("X-Real-IP", spoof)
+		r.Header.Set("X-Forwarded-For", spoof)
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		codes = append(codes, w.Code)
+	}
+	if codes[1] != http.StatusTooManyRequests {
+		t.Fatalf("second attempt from one address with a new X-Real-IP got %d, want 429", codes[1])
+	}
+}
+
+// A9-04: an IPv6 client rotating through its /64 is one client.
+func TestRateLimiter_IPv6RotationWithinA64IsOneClient(t *testing.T) {
+	l := NewIPRateLimiter(1, time.Minute)
+	h := l.Middleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	call := func(remote string) int {
+		r := httptest.NewRequest("POST", "/admin/v1/auth/login", nil)
+		r.RemoteAddr = remote
+		w := httptest.NewRecorder()
+		h.ServeHTTP(w, r)
+		return w.Code
+	}
+	call("2001:db8:9:1::1")
+	if code := call("2001:db8:9:1:ffff::2"); code != http.StatusTooManyRequests {
+		t.Fatalf("a fresh address in the same /64 got %d, want 429", code)
+	}
+	if code := call("2001:db8:9:2::1"); code != http.StatusOK {
+		t.Fatalf("the neighbouring /64 got %d, want 200", code)
 	}
 }

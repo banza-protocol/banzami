@@ -3,6 +3,7 @@
 // Never logs tokens/PINs.
 
 import { isProofRef } from './proof-ref';
+import { proofReaderHeaders } from './proof-reader';
 
 export const API_BASE =
   (process.env.NEXT_PUBLIC_BANZAMI_API_URL || 'https://api.banzami.com').replace(/\/+$/, '');
@@ -116,7 +117,7 @@ export interface ProofResult {
  * collapsing everything unparseable into NOT_FOUND, which is how an operational
  * failure became a forgery claim.
  */
-export async function getProof(ref: string): Promise<ProofResult> {
+export async function getProof(ref: string, readerIp?: string): Promise<ProofResult> {
   // A reference that is not spelled exactly as issued is not a reference: it is
   // refused here, definitively and without asking the verifier. The operator
   // refuses it too (it never reaches its database); this keeps the page from
@@ -144,7 +145,12 @@ export async function getProof(ref: string): Promise<ProofResult> {
     // feature that calls a real record a forgery is worse than one that errors.
     const { base, env } = await platformTarget();
     asked = env;
-    const res = await fetch(`${base}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
+    // The reader's address, so the gateway limits per reader rather than per
+    // website (A9-08, lib/proof-reader.ts).
+    const res = await fetch(`${base}/v1/public/proofs/${encodeURIComponent(ref)}`, {
+      cache: 'no-store',
+      headers: proofReaderHeaders(readerIp),
+    });
 
     // 5xx and 503 are OUR failure, never the receipt's.
     if (res.status >= 500) return unavailable(`upstream_${res.status}`);
