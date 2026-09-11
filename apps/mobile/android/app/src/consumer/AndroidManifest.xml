@@ -1,0 +1,31 @@
+<!-- Consumer flavor only: the payment deep links. Merged into MainActivity
+     from src/main/AndroidManifest.xml; the merchant (Banzami Business) flavor
+     does not get them, so a payment link never offers the Business App. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <!-- Custom scheme: banzami://pay/... (QR codes, in-app links) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="banzami" android:host="pay"/>
+            </intent-filter>
+            <!-- Android App Links: https://pay.banzami.com/pay/* /r/* /u/*
+                 (.com is the canonical Banzami payment host; .org is reserved
+                 for the BANZA protocol and is NOT a payment host).
+                 autoVerify triggers verification against /.well-known/assetlinks.json
+                 at install time. Verified links open directly without a chooser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/pay/"/>
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/r/"/>
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/u/"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
