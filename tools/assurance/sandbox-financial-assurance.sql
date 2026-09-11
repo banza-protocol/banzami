@@ -105,3 +105,53 @@ SELECT 'WEBHOOK_EVENTS_DELIVERED_TWICE_TO_ONE_ENDPOINT', count(*) FROM (
 SELECT 'WEBHOOK_ATTEMPTS_BEYOND_DELIVERY_COUNT', count(*)
   FROM webhook_delivery_attempts a JOIN webhook_deliveries d ON d.id = a.delivery_id
  WHERE a.attempt_number > d.attempt_count;
+
+-- ── Ledger effect of financial objects (§8) ───────────────────────────────────
+-- A ledger entry belongs to a posting; a posting belongs to at most one object.
+SELECT 'LEDGER_ENTRIES_WITHOUT_POSTING', count(*)
+  FROM ledger_entries e WHERE NOT EXISTS (SELECT 1 FROM ledger_postings p WHERE p.id = e.posting_id);
+SELECT 'POSTINGS_CLAIMED_BY_TWO_OBJECTS', count(*) FROM (
+  SELECT pid FROM (
+    SELECT ledger_posting_id AS pid FROM transfers
+    UNION ALL SELECT ledger_posting_id FROM payouts
+    UNION ALL SELECT ledger_posting_id FROM settlements
+    UNION ALL SELECT ledger_posting_id FROM consumer_deposits
+    UNION ALL SELECT settlement_posting_id FROM app_settlements
+    UNION ALL SELECT fee_posting_id FROM app_settlements
+    UNION ALL SELECT posting_id FROM restitution_allocations) u
+  WHERE pid IS NOT NULL GROUP BY pid HAVING count(*) > 1) x;
+SELECT 'OBJECT_POSTINGS_THAT_DO_NOT_EXIST', count(*) FROM (
+    SELECT ledger_posting_id AS pid FROM transfers
+    UNION ALL SELECT ledger_posting_id FROM payouts
+    UNION ALL SELECT ledger_posting_id FROM settlements
+    UNION ALL SELECT ledger_posting_id FROM consumer_deposits
+    UNION ALL SELECT settlement_posting_id FROM app_settlements
+    UNION ALL SELECT fee_posting_id FROM app_settlements
+    UNION ALL SELECT posting_id FROM restitution_allocations) u
+  WHERE pid IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ledger_postings p WHERE p.id = u.pid);
+-- A state that says money moved has the posting that moved it. (A payout is
+-- posted when it is processed; PENDING has none by design.)
+SELECT 'PAYOUTS_PROCESSED_WITHOUT_POSTING', count(*)
+  FROM payouts WHERE status IN ('PROCESSING','SENT','CONFIRMED') AND ledger_posting_id IS NULL;
+SELECT 'SETTLEMENTS_SETTLED_WITHOUT_POSTING', count(*)
+  FROM settlements WHERE status = 'SETTLED' AND ledger_posting_id IS NULL;
+SELECT 'APP_SETTLEMENTS_COMPLETED_WITHOUT_POSTING', count(*)
+  FROM app_settlements WHERE status = 'COMPLETED'
+   AND (settlement_posting_id IS NULL OR (application_fee_minor > 0 AND fee_posting_id IS NULL));
+SELECT 'DEPOSITS_CONFIRMED_WITHOUT_POSTING', count(*)
+  FROM consumer_deposits WHERE status = 'CONFIRMED' AND ledger_posting_id IS NULL;
+SELECT 'RESTITUTIONS_WITHOUT_POSTING', count(*)
+  FROM restitution_allocations WHERE amount_minor > 0 AND posting_id IS NULL;
+-- Phantom PAID: a link or session that reads paid with no payment behind it —
+-- neither a recorded wallet payment nor a confirmed acquiring payment.
+SELECT 'PAID_LINKS_WITHOUT_PAYMENT', count(*) FROM payment_links l
+  WHERE (l.status IN ('PAID','USED') OR l.paid_at IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM wallet_payments w WHERE w.payment_link_id = l.id)
+    AND NOT EXISTS (SELECT 1 FROM acquiring_payments a WHERE a.payment_link_id = l.id AND a.status = 'CONFIRMED');
+SELECT 'PAID_SESSIONS_WITHOUT_PAYMENT', count(*) FROM payment_sessions s
+  WHERE s.status = 'PAID'
+    AND NOT EXISTS (SELECT 1 FROM wallet_payments w WHERE w.payment_link_id = s.payment_link_id OR w.qr_code_id = s.qr_code_id)
+    AND NOT EXISTS (SELECT 1 FROM acquiring_payments a WHERE a.payment_link_id = s.payment_link_id AND a.status = 'CONFIRMED');
+SELECT 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', count(*)
+  FROM wallet_payments w LEFT JOIN transfers t ON t.id = w.transfer_id
+  WHERE t.id IS NULL OR t.status <> 'COMPLETED';
