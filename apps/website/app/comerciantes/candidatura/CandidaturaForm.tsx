@@ -1240,10 +1240,23 @@ export function CandidaturaForm() {
                     A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for aprovado, receberá um
                     link de ativação no email indicado para definir o PIN de acesso à sua Conta Business.
                   </p>
+                  {/* The whole reference, exactly as the status page takes it.
+                      Eight characters of it were shown here, and the status page
+                      looks an application up only by the full id — and no email
+                      carries it, so this screen is the one place it is given. */}
                   {applicationId && (
-                    <p data-testid="application-reference" className="m-0 mt-3 text-[13px] font-bold text-[#9a8a8e]">
-                      Referência da candidatura: <span className="font-mono text-[#5a4a4e]">{applicationId.slice(0, 8).toUpperCase()}</span>
-                    </p>
+                    <div className="mx-auto mt-4 max-w-[440px] rounded-[12px] border-[1.5px] border-[#f4e6e6] bg-white px-4 py-3">
+                      <p className="m-0 text-[13px] font-bold text-[#9a8a8e]">Referência da candidatura</p>
+                      <p
+                        data-testid="application-reference"
+                        className="m-0 mt-1 select-all break-all font-mono text-[14px] font-extrabold text-[#5a4a4e]"
+                      >
+                        {applicationId}
+                      </p>
+                      <p className="m-0 mt-2 text-[12.5px] font-semibold text-[#9a8a8e]">
+                        Guarde esta referência: é com ela que acompanha o estado da candidatura.
+                      </p>
+                    </div>
                   )}
                   {applicationId && (
                     <p className="m-0 mt-2 text-[13px] font-bold">

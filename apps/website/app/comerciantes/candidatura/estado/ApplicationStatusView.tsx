@@ -96,7 +96,7 @@ export function ApplicationStatusView() {
       <Card>
         <h1 className="m-0 text-[24px] font-black">Estado da candidatura</h1>
         <p className="mb-5 mt-2 text-[15px] font-semibold text-[#6a5a5e]">
-          Introduza a referência completa que recebeu por email depois de submeter a candidatura.
+          Introduza a referência completa que apareceu no ecrã quando submeteu a candidatura.
         </p>
         <form
           onSubmit={(e) => {
