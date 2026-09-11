@@ -274,6 +274,21 @@ pub async fn apply_restitution(
         _ => return Err(RestitutionError::InvalidSourceType),
     };
 
+    // 4b. A freeze is total: restitution does not reach a frozen consumer either.
+    if let Some(consumer) = r.consumer_id {
+        let frozen: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM account_freezes
+              WHERE entity_type = 'CONSUMER' AND entity_id = $1 AND lifted_at IS NULL)",
+        )
+        .bind(consumer)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(db)?;
+        if frozen {
+            return Err(RestitutionError::AccountFrozen);
+        }
+    }
+
     // 5. Currency: reject a supplied currency that differs from the source.
     if !p.supplied_currency.is_empty() && !p.supplied_currency.eq_ignore_ascii_case(&r.currency) {
         return Err(RestitutionError::CurrencyMismatch {

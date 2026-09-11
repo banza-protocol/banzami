@@ -159,14 +159,15 @@ il n'existe **aucun** test `if role == ...` éparpillé dans les handlers.
 | Risk resolve / freeze | ✓ | — | ✓ | — | — |
 
 Un **freeze** (`POST /admin/v1/risk/freeze`, API seulement — aucun bouton dans
-BANZADMIN aujourd'hui) empêche l'argent de l'entité gelée de sortir : transfert
-P2P (par id ou @banza), paiement QR, payout, transfert entre ses propres comptes,
-paiement de pay-link et de demande de paiement, dépôt, restitution ; un marchand
-gelé n'est pas crédité par un paiement acquiring (retenu). Si le gel ne peut pas
-être lu, l'opération est refusée (RA-087). Pas encore couvert : les encaissements
-QR/P2P **vers** un marchand gelé, et les settlements d'application dont il est
-la source.
-| Audit read | ✓ | — | ✓ | ✓ | ✓ |
+BANZADMIN aujourd'hui) est **total** : aucun argent n'entre ni ne sort de l'entité
+gelée. Refusé (`ACCOUNT_FROZEN`) : transfert P2P et par id (dans les deux sens),
+paiement QR, paiement de pay-link (payeur et bénéficiaire), demande de paiement,
+dépôt, payout, transfert entre ses propres comptes, settlement d'application
+(source et bénéficiaire, à la création et à l'exécution), restitution (du marchand
+gelé et vers le consommateur gelé) ; un paiement acquiring vers un marchand gelé est
+retenu. La vérification se fait dans la transaction du mouvement ; si le gel ne peut
+pas être lu, l'opération est refusée (RA-087, RA-095). La levée (`DELETE …/freeze`)
+rétablit tout.
 
 ### Pourquoi ce modèle
 

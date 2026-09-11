@@ -136,7 +136,11 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         // Try consumer_wallets first (P2P transfers); fall back to merchant wallets
         // (payment link payments where recipient_id is the merchant wallet UUID).
         // `is_merchant_recipient` gates the ADR-042 segregated-account routing below.
-        let (recipient_available_acct, is_merchant_recipient): (uuid::Uuid, bool) = {
+        let (recipient_available_acct, is_merchant_recipient, recipient_merchant): (
+            uuid::Uuid,
+            bool,
+            Option<uuid::Uuid>,
+        ) = {
             let consumer_acct: Option<uuid::Uuid> = sqlx::query_scalar(
                 "SELECT available_account_id
                  FROM consumer_wallets
@@ -151,11 +155,11 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
             .map_err(TransferError::Database)?;
 
             if let Some(acct) = consumer_acct {
-                (acct, false)
+                (acct, false, None)
             } else {
                 // Recipient is a merchant wallet — look up by wallet UUID directly.
-                let acct = sqlx::query_scalar(
-                    "SELECT available_account_id
+                let (acct, merchant): (uuid::Uuid, uuid::Uuid) = sqlx::query_as(
+                    "SELECT available_account_id, merchant_id
                      FROM wallets
                      WHERE id = $1 AND currency = $2 AND status = 'ACTIVE'",
                 )
@@ -168,9 +172,32 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
                     consumer_id: req.recipient_id,
                     currency: req.currency,
                 })?;
-                (acct, true)
+                (acct, true, Some(merchant))
             }
         };
+
+        // ACCOUNT_FROZEN is a full freeze: nothing leaves a frozen sender and
+        // nothing reaches a frozen recipient. Read inside this transaction, so a
+        // freeze is either seen or applied after the transfer — never half.
+        let (recipient_type, recipient_entity) = match recipient_merchant {
+            Some(m) => ("MERCHANT", m),
+            None => ("CONSUMER", req.recipient_id.as_uuid()),
+        };
+        let frozen: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM account_freezes
+                            WHERE lifted_at IS NULL
+                              AND ((entity_type = 'CONSUMER' AND entity_id = $1)
+                                OR (entity_type = $2 AND entity_id = $3)))",
+        )
+        .bind(req.sender_id.as_uuid())
+        .bind(recipient_type)
+        .bind(recipient_entity)
+        .fetch_one(&mut *db_tx)
+        .await
+        .map_err(TransferError::Database)?;
+        if frozen {
+            return Err(TransferError::AccountFrozen);
+        }
 
         // ADR-042: optionally route the CREDIT to a segregated wallet account.
         // The account MUST belong to the recipient merchant wallet, be ACTIVE, and

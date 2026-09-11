@@ -303,3 +303,72 @@ async fn an_unreadable_freeze_refuses(pool: PgPool) {
     let r = risk::ensure_not_frozen(&pool, "CONSUMER", id).await;
     assert!(r.is_err(), "an unreadable freeze must refuse, not allow");
 }
+
+// A freeze is total: a frozen party receives nothing either.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_frozen_consumer_receives_nothing(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let (_, sender, sender_avail) = consumer(&pool, 100_000).await;
+    let (frozen, recipient, recipient_avail) = consumer(&pool, 0).await;
+    freeze(&state, "CONSUMER", frozen).await;
+    let r = transfers::send_p2p(
+        State(state.clone()),
+        Json(transfers::SendP2pBody {
+            idempotency_key: "frz-in-1".into(),
+            sender,
+            recipient,
+            amount_minor: 10_000,
+            currency: "AOA".into(),
+            note: None,
+        }),
+    )
+    .await;
+    assert_eq!(code(&r), Some("ACCOUNT_FROZEN"));
+    assert_eq!(balance(&pool, sender_avail).await, 100_000);
+    assert_eq!(balance(&pool, recipient_avail).await, 0);
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_frozen_merchant_receives_nothing(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let (payer, _, payer_avail) = consumer(&pool, 100_000).await;
+    let (m, wallet, merchant_avail) = merchant(&pool).await;
+    freeze(&state, "MERCHANT", m).await;
+    let r = transfers::send(
+        State(state.clone()),
+        Json(transfers::SendTransferBody {
+            idempotency_key: "frz-in-2".into(),
+            sender_id: payer.to_string(),
+            recipient_id: wallet.to_string(),
+            amount_minor: 10_000,
+            currency: "AOA".into(),
+            description: None,
+            recipient_account_id: None,
+        }),
+    )
+    .await;
+    assert_eq!(code(&r), Some("ACCOUNT_FROZEN"));
+    assert_eq!(balance(&pool, payer_avail).await, 100_000);
+    assert_eq!(balance(&pool, merchant_avail).await, 0);
+
+    lift(&state, "MERCHANT", m).await;
+    let r = transfers::send(
+        State(state.clone()),
+        Json(transfers::SendTransferBody {
+            idempotency_key: "frz-in-2".into(),
+            sender_id: payer.to_string(),
+            recipient_id: wallet.to_string(),
+            amount_minor: 10_000,
+            currency: "AOA".into(),
+            description: None,
+            recipient_account_id: None,
+        }),
+    )
+    .await;
+    assert!(
+        r.is_ok(),
+        "after the lift the payment goes through: {:?}",
+        code(&r)
+    );
+    assert_eq!(balance(&pool, merchant_avail).await, 10_000);
+}

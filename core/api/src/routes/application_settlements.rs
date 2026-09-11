@@ -334,6 +334,11 @@ pub async fn create(
         "beneficiary",
     )
     .await?;
+    // A freeze is total: a frozen source sends nothing, a frozen beneficiary
+    // receives nothing.
+    super::risk::ensure_account_owner_not_frozen(&state.pool, source_account_id.as_uuid()).await?;
+    super::risk::ensure_account_owner_not_frozen(&state.pool, beneficiary_account_id.as_uuid())
+        .await?;
     let named_fee_account = match (
         body.application_fee_account_id,
         body.application_fee_wallet_id,
@@ -406,6 +411,18 @@ pub async fn complete(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    // Money moves here: neither party may have been frozen since creation.
+    if let Some((source, beneficiary)) = sqlx::query_as::<_, (uuid::Uuid, uuid::Uuid)>(
+        "SELECT source_account_id, beneficiary_account_id FROM app_settlements WHERE id = $1",
+    )
+    .bind(parse_id(&id)?.as_uuid())
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        super::risk::ensure_account_owner_not_frozen(&state.pool, source).await?;
+        super::risk::ensure_account_owner_not_frozen(&state.pool, beneficiary).await?;
+    }
     let s = state
         .app_settlement
         .complete(parse_id(&id)?)

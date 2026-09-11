@@ -48,6 +48,29 @@ pub async fn ensure_not_frozen(
     }
 }
 
+/// The freeze of whoever owns a ledger account — a Business (its wallet or one
+/// of its wallet accounts) or a consumer. An account nobody owns (an operator
+/// account) has no freeze.
+pub async fn ensure_account_owner_not_frozen(
+    pool: &PgPool,
+    ledger_account_id: uuid::Uuid,
+) -> crate::error::ApiResult<()> {
+    let owner: Option<(String, uuid::Uuid)> = sqlx::query_as(
+        "SELECT 'MERCHANT', merchant_id FROM wallets WHERE available_account_id = $1
+         UNION ALL SELECT 'MERCHANT', merchant_id FROM wallet_accounts WHERE account_id = $1
+         UNION ALL SELECT 'CONSUMER', consumer_id FROM consumer_wallets WHERE available_account_id = $1
+         LIMIT 1",
+    )
+    .bind(ledger_account_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| crate::error::ApiError::internal(format!("freeze check failed: {e}")))?;
+    match owner {
+        Some((entity_type, id)) => ensure_not_frozen(pool, &entity_type, id).await,
+        None => Ok(()),
+    }
+}
+
 /// Records an entry in the immutable audit_log.
 /// Fire-and-forget — logging failures do not propagate to the caller.
 pub async fn audit(

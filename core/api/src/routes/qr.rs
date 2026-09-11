@@ -495,6 +495,10 @@ pub async fn pay(
                 TransferError::WalletNotFound { .. } | TransferError::WalletNotActive(_) => {
                     ApiError::unprocessable("PAYER_WALLET_NOT_ACTIVE", "payer wallet is not active")
                 }
+                TransferError::AccountFrozen => ApiError::unprocessable(
+                    "ACCOUNT_FROZEN",
+                    "an account in this transfer is frozen",
+                ),
                 other => ApiError::internal(other.to_string()),
             });
         }

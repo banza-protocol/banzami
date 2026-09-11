@@ -61,6 +61,11 @@ pub enum TransferError {
     #[error("invalid recipient wallet account")]
     InvalidWalletAccount,
 
+    /// The sender or the recipient has an active operator freeze. A freeze is
+    /// total: no money leaves or reaches a frozen account.
+    #[error("an account in this transfer is frozen")]
+    AccountFrozen,
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 }

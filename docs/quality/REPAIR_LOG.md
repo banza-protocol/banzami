@@ -2819,3 +2819,22 @@ accepted, no connection info → not loopback), `tests/ops/core-internal-routes-
 outside them fails — mutation-proven), and a per-client test that each Go client
 sends the key.
 
+## RA-095 — a freeze stopped half the account: money still reached a frozen party
+
+- **Found:** 2026-09-11 (residual of RA-087; decided in the closure phase)
+- **Status:** FIXED — ACCOUNT_FROZEN is a full freeze
+
+No ADR or operator copy defined a freeze, and the behaviour was split: a frozen
+consumer could not deposit and a frozen merchant's acquiring credit was withheld —
+inflows — while P2P transfers, transfers by id and QR payments *into* a frozen
+party went through. The existing precedents (deposits, acquiring, the requester of
+a payment request) made one policy consistent: **nothing leaves or reaches a frozen
+account.** The transfer engine now reads the freeze of both parties inside the
+transfer's own transaction (`TransferError::AccountFrozen` → 422 `ACCOUNT_FROZEN`),
+covering P2P, transfers by id, QR and link payments. Consumer pay-links check the
+receiver; application settlements check source and beneficiary at creation and at
+completion; restitution checks the receiving consumer. Runbook updated. Tests:
+`a_frozen_consumer_receives_nothing`, `a_frozen_merchant_receives_nothing`
+(balances unchanged, the lift restores the payment); disabling the engine check
+fails both.
+

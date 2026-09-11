@@ -245,6 +245,9 @@ pub async fn pay(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("consumer pay link not found"))?;
 
+    // A freeze is total: a frozen receiver is paid nothing either.
+    risk::ensure_not_frozen(&state.pool, "CONSUMER", pre.receiver_consumer_id).await?;
+
     if pre.status != "ACTIVE" {
         return Err(ApiError::unprocessable(
             "LINK_NOT_ACTIVE",
