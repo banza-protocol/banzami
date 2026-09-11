@@ -34,6 +34,7 @@ import {
   parseManifest, MANIFEST_PATH,
   VALID_STATUS, VALID_AUTHORITY, VALID_PUBLIC_STATUS, VALID_DISPOSITION, VALID_GATE,
   VALID_SURFACE, VALID_EXT_DISPOSITION,
+  loadMountedRoutes, apiSurfaceViolations,
 } from './assurance-manifest-lib.mjs';
 
 const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '..');
@@ -94,65 +95,22 @@ if (failures === 0) pass('structural validity (incl. surface + disposition)');
 // other check reads the manifest against itself: the one thing never compared was
 // the manifest against the router.
 //
-// So the router is parsed and each declared `/v1/...` path must appear in it. Only
-// version-prefixed paths are checked — an entry like "webhook delivery +
-// banza-signature header" describes a mechanism, not a mount, and is left alone.
+// So the routers are parsed and each declared `/v1/...` path must be mounted
+// EXACTLY by the service it belongs to (the gateway unless the entry names
+// public-api). A prefix match used to be accepted, which let `/v1/qr` stand for
+// QR payments (CAP-PAY-003) and `/v1/transfers` stand for a gateway route that
+// SEC-015 unmounted (A4-02, A4-09). See apiSurfaceViolations.
 {
-  // Both public HTTP surfaces, because they are different products: the gateway
-  // serves the merchant/developer API, public-api serves the Consumer app. A
-  // capability's route is legitimately mounted by either, and checking only the
-  // gateway reported Consumer P2P `/v1/transfers` as missing when it is mounted
-  // and reachable on public-api.
-  const ROUTERS = [
-    'services/api-gateway/internal/server/server.go',
-    'services/public-api/internal/server/server.go',
-  ];
-  const mounted = new Set();
-  for (const rel of ROUTERS) {
-    const f = join(ROOT, rel);
-    if (!existsSync(f)) continue;
-    const stack = [];
-    let depth = 0;
-    for (const line of readFileSync(f, 'utf8').split('\n')) {
-      const route = line.match(/\.Route\("([^"]+)"/);
-      // Any receiver, not just a bare `r.`: registrations are frequently chained
-      // through middleware (`r.With(cap(...)).Get("/v1/...")`), and anchoring on
-      // `r.` silently skipped exactly those — including a mounted proof route.
-      // A chained registration may also BEGIN a line, with the dot left on the
-      // previous one (`r.With(...).` then `Get("/v1/...")`). Requiring a literal
-      // preceding dot missed those entirely.
-      const verb = line.match(/(?:^\s*|\.)(Get|Post|Put|Patch|Delete)\("([^"]+)"/);
-      if (verb) {
-        // A registration may carry the full path already, or be relative to the
-        // enclosing r.Route prefix. Absolute wins; prefixing it would invent
-        // `/v1/v1/...` and make a mounted route look absent.
-        const raw = verb[2];
-        const p = raw.startsWith('/v1') ? raw
-          : stack.map(s => s.prefix).join('') + (raw === '/' ? '' : raw);
-        mounted.add(p.replace(/\{[^}]+\}/g, '{p}'));
-      }
-      const opens = (line.match(/\{/g) ?? []).length;
-      const closes = (line.match(/\}/g) ?? []).length;
-      if (route) stack.push({ prefix: route[1], depth });
-      depth += opens - closes;
-      while (stack.length && depth <= stack[stack.length - 1].depth) stack.pop();
-    }
-  }
-  // If the router could not be parsed, say so instead of passing vacuously — an
+  const routesByService = loadMountedRoutes(ROOT);
+  const total = Object.values(routesByService).reduce((n, r) => n + r.length, 0);
+  // If a router could not be parsed, say so instead of passing vacuously — an
   // empty mount set would silently approve every declaration in the file.
-  if (mounted.size < 20) {
-    fail(`api_surface check is vacuous: parsed only ${mounted.size} routes from the public routers`);
+  if (routesByService.gateway.length < 20 || routesByService['public-api'].length < 10) {
+    fail(`api_surface check is vacuous: parsed only ${routesByService.gateway.length} gateway / ${routesByService['public-api'].length} public-api routes`);
   } else {
-    for (const c of caps) {
-      for (const raw of c.api_surface ?? []) {
-        const path = String(raw).trim().split(/\s+/)[0];
-        if (!path.startsWith('/v1/')) continue;
-        const norm = path.replace(/\{[^}]+\}/g, '{p}').replace(/\/$/, '');
-        const hit = [...mounted].some(m => m === norm || m.startsWith(`${norm}/`));
-        if (!hit) fail(`${c.id}: api_surface "${path}" is not mounted by the gateway or public-api — the registry claims a surface that answers 404`);
-      }
-    }
-    if (failures === 0) pass(`api_surface routes are mounted (${mounted.size} public routes parsed)`);
+    const before = failures;
+    for (const v of apiSurfaceViolations(caps, routesByService)) fail(v);
+    if (failures === before) pass(`api_surface routes are mounted exactly (${total} public routes parsed)`);
   }
 }
 

@@ -13,9 +13,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| blocked | 5 |
+| blocked | 6 |
 | in-audit | 1 |
-| verified | 18 |
+| verified | 17 |
 | **total** | **24** |
 
 ## Capabilities
@@ -27,7 +27,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-TRANSFER-002 | Transferências between a project's own wallet accounts | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-001 | Payment sessions | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-002 | Payment links | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
+| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
@@ -52,10 +52,11 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
+| pending-e2e | 1 |
 | quarantined | 5 |
-| released | 18 |
+| released | 17 |
 
-Public surfaces released: **17/17**. Full external launch requires 17/17.
+Public surfaces released: **16/17**. Full external launch requires 17/17.
 
 ## Detail
 
@@ -82,7 +83,7 @@ Public surfaces released: **17/17**. Full external launch requires 17/17.
 - **Authority:** protocol — BANZA_REFERENCE wallet model
 - **Threat category:** financial-money-movement
 - **Implementation:** core/wallets, core/transfers
-- **API/UI surface:** /v1/transfers, /v1/wallets
+- **API/UI surface:** /v1/transfers — public-api Consumer surface only (consumer token; sender derived from the token). Not mounted on the developer gateway (SEC-015), /v1/wallets
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [core/transfers TransferEngine integration tests] · e2e_sandbox [tools/e2e/transfer-sandbox-e2e.mjs] · negative/security [transfer-sandbox-e2e negatives (unauthorized→401, cross-tenant/invalid recipient→404, insufficient→422)]
 - **Evidence:** evidence/assurance/transfer-sandbox-e2e-20260704.json
@@ -130,7 +131,7 @@ Public surfaces released: **17/17**. Full external launch requires 17/17.
 - **Authority:** protocol — BANZA payment link contract
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway
-- **API/UI surface:** /v1/payment-links + public /public/pay/{slug} (merchant-JWT today; dev-key path pending ADR-047)
+- **API/UI surface:** /v1/payment-links + public /public/pay/{slug} (merchant login token or a bound developer key, ADR-047)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [] · integration [] · e2e_sandbox ['PAY002.create · owner-is-caller · amount-exact · currency-preserved · slug-issued · initial-state-active', 'PAY002.read-own · list-own (owner-scoped)', 'PAY002.public-resolves · public-amount-matches · public-status (unauthenticated payer surface)', 'PAY002.idempotent-replay · idempotency-structural-canonical · idempotency-actor-scoped · concurrent-single-resource', 'PAY002.owner-cancel · public-reflects-cancellation (lifecycle)', 'PAY002.no-ledger-movement (link creation and resolution are non-financial)'] · negative/security [RT03 §4: public payer view redacts internal UUIDs (deployed), 'PAY002.neg.cross-merchant-create (403) · cross-merchant-list (403) — payee bound to the principal (RA-047)', 'PAY002.neg.cross-merchant-read · cross-merchant-cancel · cross-merchant-mark-used (404, non-enumerable)', 'PAY002.neg.victim-link-unchanged — the target link is untouched after every cross-tenant attempt', 'PAY002.neg.unauthenticated · neg.bogus-credential (401)', 'PAY002.neg.zero-amount · negative-amount · missing-wallet · missing-currency · past-expiry (400)', 'PAY002.neg.public-unknown-slug · public-malformed-slug (404) · public-no-internal-fields · public-no-internal-ids', 'PAY002.idempotency-conflict-rejected (409, ADR-022) · neg.cancel-twice (422)']
 - **Evidence:** evidence/assurance/payments/cap-pay-002-8647b001.json, tools/e2e/payments/cap-pay-002-sandbox-e2e.mjs, docs/quality/PAYMENTS_CONTRACT_AUDIT.md, docs/adr/ADR-047-project-merchant-binding-for-developer-payment-capabilities.md
@@ -146,14 +147,14 @@ Public surfaces released: **17/17**. Full external launch requires 17/17.
 - **Authority:** operator-extension — Banzami QR engine spec (project_qr_engine)
 - **Threat category:** financial-money-movement
 - **Implementation:** services/api-gateway, apps/mobile
-- **API/UI surface:** /v1/qr
+- **API/UI surface:** POST /v1/qr/static (QR issuance only), POST /v1/qr/dynamic (QR issuance only)
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox ['WH.delivery.received · signature-header-present · signature-valid-independently (deployed sandbox, public HTTPS receiver)', 'WH.delivery.signed-over-raw-bytes — a re-serialised body does NOT verify', 'WH.retry.first-attempt-delivered · retries-on-5xx · event-id-stable-across-attempts', 'WH.retry.no-duplicate-business-events — retries add attempts, not events', 'WH.isolation.source-commits-despite-failing-receiver · source-state-correct · no-financial-side-effect'] · negative/security ['WH.tamper.body-rejected · tamper.signature-rejected · tamper.timestamp-rejected', 'WH.dest.* — http scheme, loopback (v4/v6/name), RFC1918, link-local metadata, unspecified, missing/malformed host all 400 (RA-023)', 'WH.authz.* — cross-merchant read/deactivate 404; victim endpoint unchanged; B sees nothing of A', 'WH.payload.no-secret · no-secret-in-transit · no-foreign-merchant']
-- **Evidence:** evidence/assurance/webhooks/cap-webhook-001-sandbox-e2e.json, tools/e2e/webhooks/cap-webhook-001-sandbox-e2e.mjs, infra/sandbox/webhook-sink/sink.mjs
+- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
+- **Evidence:** —
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **released**
+- **External surface:** public · **Disposition:** **pending-e2e**
 - **Launch scope:** sandbox
-- **Status:** **verified**
+- **Status:** **blocked**
 
 ### CAP-REFUND-001 — Typed-source refunds (refund_source)
 
@@ -354,7 +355,7 @@ Public surfaces released: **17/17**. Full external launch requires 17/17.
 - **Authority:** internal — operator product
 - **Threat category:** tenant-data
 - **Implementation:** apps/mobile (main_consumer.dart)
-- **API/UI surface:** consumer mobile UI (deep-link inbound payments; no camera QR scan)
+- **API/UI surface:** consumer mobile UI (deep-link inbound payments; camera QR scan of @banza and payment-link QRs — a structured Banzami QR is refused, no consumer QR-pay route exists)
 - **Deployment gate:** sandbox-e2e-required
 - **Tests:** unit [apps/mobile/test (env_config, session, widget)] · integration [] · e2e_sandbox [] · negative/security []
 - **Evidence:** docs/quality/MOBILE_E2E_REQUIREMENTS.md
