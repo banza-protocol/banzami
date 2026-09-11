@@ -132,6 +132,10 @@ class BanzamiNotificationRouter {
       return;
     }
 
+    // This device RECEIVED the money: the sender is the push's sender_handle,
+    // this account is the recipient. The payload carries no time of its own —
+    // the receipt screen waits for the canonical receipt's confirmed time
+    // (incoming) instead of showing when the notification was tapped.
     final transfer = Transfer(
       transferId:  transferId,
       sender:      senderHandle,
@@ -146,6 +150,7 @@ class BanzamiNotificationRouter {
       builder: (_) => BanzamiReceiptScreen(
         transfer:      transfer,
         ownHandle:     ownHandle,
+        incoming:      true,
         // Received money — refresh the home balance when the receipt is closed.
         onDone:          (_) => WalletRefreshBus.instance.signal(),
         isSandbox:       AppConfig.isSandbox,
