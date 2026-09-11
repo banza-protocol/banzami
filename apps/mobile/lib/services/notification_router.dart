@@ -23,6 +23,16 @@ import 'wallet_refresh_bus.dart';
 /// Duplicate guard: the same transfer_id or link_code within 2 seconds is
 /// silently discarded to prevent double-push from getInitialMessage() +
 /// onMessageOpenedApp firing together on cold start.
+/// Whether a push's `environment` belongs to this build. The canonical wire
+/// value for Live is `LIVE` (services/common/env); `PRODUCTION` is still
+/// accepted from older senders. Anything else — including an unknown value —
+/// is treated as another environment and opens nothing.
+bool notificationIsForThisEnvironment(String environment, {required bool appIsSandbox}) {
+  final env = environment.trim().toUpperCase();
+  if (appIsSandbox) return env == 'SANDBOX';
+  return env == 'LIVE' || env == 'PRODUCTION';
+}
+
 class BanzamiNotificationRouter {
   BanzamiNotificationRouter._();
 
@@ -63,12 +73,11 @@ class BanzamiNotificationRouter {
 
     debugPrint('[FCM-ROUTE] payload=$data');
     debugPrint('[FCM-ROUTE] type=$type environment=$environment');
-    debugPrint('[FCM-ROUTE] appEnvironment=${AppConfig.isSandbox ? "SANDBOX" : "PRODUCTION"}');
+    debugPrint('[FCM-ROUTE] appEnvironment=${AppConfig.isSandbox ? "SANDBOX" : "LIVE"}');
 
     // ── Environment isolation ──────────────────────────────────────────────
     if (environment.isNotEmpty) {
-      final expected = AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION';
-      if (environment.toUpperCase() != expected) {
+      if (!notificationIsForThisEnvironment(environment, appIsSandbox: AppConfig.isSandbox)) {
         debugPrint('[FCM-ROUTE] environment mismatch — blocking');
         if (toastContext.mounted) {
           BanzamiToast.showWarning(
