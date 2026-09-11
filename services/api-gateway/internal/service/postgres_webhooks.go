@@ -17,6 +17,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
 	"github.com/banzami/banzami/services/common/env"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/webhook"
@@ -506,15 +507,22 @@ func (s *PostgresWebhookService) ReplayDelivery(ctx context.Context, merchantID,
 	// exactly what makes an event impossible to deliver as two separate
 	// deliveries. So a replay resets the row and lets the dispatcher pick it up,
 	// keeping the same delivery identity.
+	//
+	// A delivery that already succeeded is not re-queued: the integrator
+	// received that event and acted on it, and sending it again is a second
+	// "payment received" for one payment. Replay is for a delivery that failed.
 	now := time.Now().UTC()
 	var attempts int
 	err = s.pool.QueryRow(ctx,
 		`UPDATE webhook_deliveries
 		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
-		  WHERE id = $1
+		  WHERE id = $1 AND status <> 'SUCCESS'
 		RETURNING attempt_count`,
 		deliveryID,
 	).Scan(&attempts)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, ErrDeliveryAlreadyDelivered
+	}
 	if err != nil {
 		return nil, fmt.Errorf("replay delivery: %w", err)
 	}

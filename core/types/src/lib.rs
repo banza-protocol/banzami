@@ -2,6 +2,7 @@ pub mod environment;
 pub use environment::Environment;
 pub mod currency;
 pub mod ids;
+pub mod mask;
 pub mod money;
 
 pub use currency::Currency;

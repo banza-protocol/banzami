@@ -854,8 +854,8 @@ export const ENDPOINTS: EndpointSpec[] = [
     path: '/v1/webhooks/deliveries/{id}/replay',
     tone: 'ok',
     desc: {
-      pt: 'Volta a pôr uma entrega na fila como PENDING, com o mesmo id: uma entrega por evento e endpoint, por isso repetir é mais uma tentativa, nunca uma segunda entrega. Para recuperar após uma falha do seu endpoint. Sem corpo no pedido.',
-      en: 'Puts a delivery back in the queue as PENDING, keeping its id: one delivery per event and endpoint, so a replay is a further attempt, never a second delivery. For recovery after your endpoint failed. No request body.',
+      pt: 'Volta a pôr uma entrega na fila como PENDING, com o mesmo id: uma entrega por evento e endpoint, por isso repetir é mais uma tentativa, nunca uma segunda entrega. Para recuperar após uma falha do seu endpoint. Uma entrega que já teve sucesso responde 409 — não é enviada de novo. Sem corpo no pedido.',
+      en: 'Puts a delivery back in the queue as PENDING, keeping its id: one delivery per event and endpoint, so a replay is a further attempt, never a second delivery. For recovery after your endpoint failed. A delivery that already succeeded answers 409 — it is not sent again. No request body.',
     },
     credential: { pt: 'Chave de projeto (scope webhooks:write) ou credencial de merchant', en: 'Project key (webhooks:write scope) or merchant credential' },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],

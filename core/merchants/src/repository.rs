@@ -146,7 +146,7 @@ impl MerchantRepository for PostgresMerchantRepository {
             Ok(_) => {}
         }
 
-        tracing::info!(merchant_id = %m.id, email = %m.email, "merchant created");
+        tracing::info!(merchant_id = %m.id, email = %banzami_types::mask::email(&m.email), "merchant created");
         Ok(m)
     }
 

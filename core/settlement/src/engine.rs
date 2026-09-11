@@ -179,10 +179,22 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
         let posted = match self.ledger.post(posting).await {
             Ok(p) => p,
             Err(e) => {
-                let _ = self
+                // The claim is given back. If THAT fails too, the batch is
+                // SETTLED with no posting and no error said so — it was
+                // discarded. It is said now, with the id, so reconciliation
+                // has something to find.
+                if let Err(revert) = self
                     .repo
                     .update_status(id, SettlementStatus::Settled, s.status, None, None)
-                    .await;
+                    .await
+                {
+                    tracing::error!(
+                        settlement_id = %id,
+                        post_error = %e,
+                        revert_error = %revert,
+                        "settlement claimed SETTLED, ledger post failed, and the claim could not be given back — reconcile this batch"
+                    );
+                }
                 return Err(e.into());
             }
         };

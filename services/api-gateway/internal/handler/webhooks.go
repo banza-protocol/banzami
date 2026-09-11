@@ -291,6 +291,11 @@ func (h *WebhookHandler) ReplayDelivery(w http.ResponseWriter, r *http.Request) 
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "delivery not found")
 			return
 		}
+		if errors.Is(err, service.ErrDeliveryAlreadyDelivered) {
+			apierror.Respond(w, r, http.StatusConflict, "DELIVERY_ALREADY_SUCCEEDED",
+				"this delivery already succeeded — replay is for one that failed")
+			return
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
 			"delivery could not be replayed")
 		return

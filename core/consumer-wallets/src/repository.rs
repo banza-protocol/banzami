@@ -256,7 +256,7 @@ impl OnboardingRepository for PostgresOnboardingRepository {
         .await
         .map_err(ConsumerWalletError::Database)?;
 
-        tracing::info!(phone = %phone_number, "onboarding session created");
+        tracing::info!(phone = %banzami_types::mask::phone(&phone_number), "onboarding session created");
         onboarding_from_row(row)
     }
 

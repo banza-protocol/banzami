@@ -149,17 +149,56 @@ func (h *WalletAccountHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /v1/wallet-accounts/{id}
+//
+// A read names no wallet: the account it names says which wallet it belongs to,
+// and that wallet says whose it is. Asking a merchant JWT for a wallet_id it
+// has nowhere to put answered 400 to every such read.
 func (h *WalletAccountHandler) Get(w http.ResponseWriter, r *http.Request) {
-	walletID, _, ok := h.resolveWalletAuthority(w, r, "wallet_accounts:read", "")
-	if !ok {
+	notFound := func() {
+		// Ownership: a foreign account is NOT_FOUND, never FORBIDDEN — a status
+		// that distinguishes "yours" from "someone else's" is an enumeration
+		// oracle.
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet account not found")
+	}
+
+	var ownWallet string  // a developer key operates inside its bound wallet
+	var merchantID string // a merchant JWT operates inside its own wallets
+	if dp, isDev := middleware.GetDeveloperPrincipal(r.Context()); isDev {
+		if !dp.HasScope("wallet_accounts:read") {
+			apierror.Respond(w, r, http.StatusForbidden, "INSUFFICIENT_SCOPE", "missing required scope: wallet_accounts:read")
+			return
+		}
+		if !dp.Bound || dp.WalletID == "" {
+			apierror.Respond(w, r, http.StatusForbidden, "PAYMENTS_UNAVAILABLE",
+				"this project is not provisioned to hold funds")
+			return
+		}
+		ownWallet = dp.WalletID
+	} else {
+		principal, ok := middleware.GetPrincipal(r.Context())
+		if !ok || principal.MerchantID == "" {
+			apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+			return
+		}
+		merchantID = principal.MerchantID
+	}
+
+	acc, err := h.accounts.Get(r.Context(), chi.URLParam(r, "id"))
+	if err != nil || acc == nil {
+		notFound()
 		return
 	}
-	acc, err := h.accounts.Get(r.Context(), chi.URLParam(r, "id"))
-	// Ownership: the account's parent wallet must be the caller's own. A foreign
-	// account is NOT_FOUND, never FORBIDDEN — a status code that distinguishes
-	// "yours" from "someone else's" is an enumeration oracle.
-	if err != nil || acc == nil || acc.WalletID != walletID {
-		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet account not found")
+	if ownWallet != "" {
+		if acc.WalletID != ownWallet {
+			notFound()
+		} else {
+			respond(w, http.StatusOK, acc)
+		}
+		return
+	}
+	wal, werr := h.wallets.Get(r.Context(), acc.WalletID)
+	if werr != nil || wal == nil || wal.MerchantID != merchantID {
+		notFound()
 		return
 	}
 	respond(w, http.StatusOK, acc)

@@ -2120,7 +2120,7 @@
         ],
         "operationId": "replayWebhookDelivery",
         "summary": "Re-send one of your deliveries",
-        "description": "Puts an existing delivery back in the queue as PENDING, keeping its id — one delivery per event per endpoint, so a replay is a further attempt, never a second delivery. For recovery after an endpoint outage. No request body. Another project's delivery answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
+        "description": "Puts an existing delivery back in the queue as PENDING, keeping its id — one delivery per event per endpoint, so a replay is a further attempt, never a second delivery. For recovery after an endpoint outage; a delivery that already succeeded answers 409 and is not sent again. No request body. Another project's delivery answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
         "parameters": [
           {
             "name": "id",

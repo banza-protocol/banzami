@@ -816,7 +816,10 @@ export class BanzamiClient {
     );
   }
 
-  /** Re-queue a permanently-failed delivery as a fresh attempt. */
+  /**
+   * Re-queue a delivery that failed, as a further attempt on the same
+   * delivery. One that already succeeded is refused (409): it was received.
+   */
   replayWebhookDelivery(deliveryId: string): Promise<WebhookDeliveryRecord> {
     return this.request<WebhookDeliveryRecord>(
       `/webhooks/deliveries/${deliveryId}/replay`, { method: 'POST' },

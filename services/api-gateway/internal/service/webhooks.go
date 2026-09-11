@@ -19,6 +19,9 @@ import (
 
 var (
 	ErrEndpointNotFound = errors.New("webhook endpoint not found")
+	// ErrDeliveryAlreadyDelivered: replay is for a delivery that failed. One
+	// that succeeded is not sent again — the integrator already acted on it.
+	ErrDeliveryAlreadyDelivered = errors.New("webhook delivery already succeeded")
 	// ErrInvalidWebhookURL is returned when a merchant-supplied webhook URL
 	// fails SSRF validation (non-https or non-public host). See webhook_ssrf.go.
 	ErrInvalidWebhookURL = errors.New("invalid webhook URL")

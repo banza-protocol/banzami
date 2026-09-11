@@ -7,6 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
@@ -105,5 +107,35 @@ func TestWalletAccount_CreatesCampaign(t *testing.T) {
 	}
 	if strings.Contains(rec.Body.String(), "account_id") {
 		t.Fatalf("safe DTO must not leak ledger account_id: %s", rec.Body.String())
+	}
+}
+
+// A Business reading one of its own wallet accounts by id always got 400
+// "wallet_id is required": the read passed no wallet, and the merchant path
+// demanded one. The account's own wallet says whose it is.
+func TestWalletAccount_MerchantReadsItsOwnAccountById(t *testing.T) {
+	get := func(h *WalletAccountHandler, merchantID, id string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("GET", "/v1/wallet-accounts/"+id, nil)
+		rctx := chi.NewRouteContext()
+		rctx.URLParams.Add("id", id)
+		req = req.WithContext(context.WithValue(
+			middleware.ContextWithPrincipal(req.Context(), &middleware.Principal{MerchantID: merchantID, Environment: "SANDBOX"}),
+			chi.RouteCtxKey, rctx))
+		rec := httptest.NewRecorder()
+		h.Get(rec, req)
+		return rec
+	}
+
+	own := NewWalletAccountHandler(&fakeWalletAccounts{}, &fakeWallets{merchantID: "doa-merchant"}, activeMerchant())
+	if rec := get(own, "doa-merchant", "wa-1"); rec.Code != http.StatusOK {
+		t.Fatalf("a Business could not read its own wallet account: %d %s", rec.Code, rec.Body.String())
+	}
+	// Someone else's account is not found — never a code that says it exists.
+	foreign := NewWalletAccountHandler(&fakeWalletAccounts{}, &fakeWallets{merchantID: "other-merchant"}, activeMerchant())
+	if rec := get(foreign, "doa-merchant", "wa-1"); rec.Code != http.StatusNotFound {
+		t.Fatalf("another merchant's account answered %d, want 404", rec.Code)
+	}
+	if rec := get(own, "", "wa-1"); rec.Code != http.StatusUnauthorized {
+		t.Fatalf("an unauthenticated read answered %d, want 401", rec.Code)
 	}
 }
