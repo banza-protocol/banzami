@@ -129,15 +129,17 @@ jobs:
         working-directory: core
         run: cargo fmt --all -- --check
 
-      # Each counter of tools/assurance/sandbox-financial-assurance.sql reads
-      # zero on a clean database and moves for the defect it exists to catch.
+      # The DB-backed operator guards: each migration contract, and each counter
+      # of tools/assurance/sandbox-financial-assurance.sql (zero on a clean
+      # database, moves for the defect it exists to catch). The TypeScript job
+      # runs the rest — split by the same predicate.
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 20
 
-      - name: Financial assurance counters (tests/ops, DB-backed)
-        run: node --test tests/ops/financial-assurance-sql.test.mjs
+      - name: Operator guards (tests/ops, DB-backed)
+        run: node --test $(grep -l DATABASE_URL tests/ops/*.test.mjs)
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
 
@@ -405,10 +407,12 @@ jobs:
       # the financial-assurance SQL, the proof namespace, the synthetic proof
       # register, one URL per proof…) were local-only gates. A new guard is
       # enforced the moment it lands.
-      # The one DB-backed guard (financial-assurance-sql) needs PostgreSQL and
-      # sqlx, so it runs in the Rust job, which has both.
-      - name: All operator guards (tests/ops)
-        run: node --test $(ls tests/ops/*.test.mjs | grep -v '/financial-assurance-sql\.test\.mjs$')
+      # The DB-backed guards (every file that reads DATABASE_URL: the migration
+      # contracts and the financial-assurance SQL) need PostgreSQL and sqlx, so
+      # they run in the Rust job, which has both. The same predicate splits the
+      # set in both jobs, so no guard falls between them.
+      - name: All operator guards (tests/ops, no database)
+        run: node --test $(grep -L DATABASE_URL tests/ops/*.test.mjs)
 
       # Where this operator is allowed to charge money.
       #
