@@ -8,6 +8,8 @@ used to treat 1 minor unit as 1 Kz, so every AOA amount displayed and converted
 
 import pytest
 
+from decimal import Decimal
+
 from banzami.utils.money import format_minor, from_minor, to_minor
 
 
@@ -68,6 +70,14 @@ class TestFromMinor:
         assert from_minor(5000, "USD") == 50.0
 
     def test_roundtrip(self):
+        # Exact, not approximate: money is decimal, never binary floating point.
         for cur in ("USD", "AOA"):
-            original = 49.99
-            assert from_minor(to_minor(original, cur), cur) == pytest.approx(original, abs=0.01)
+            original = Decimal("49.99")
+            assert from_minor(to_minor(original, cur), cur) == original
+
+    def test_a_float_is_read_through_its_decimal_spelling(self):
+        # 1.15 in binary is just under 1.15; multiplying by 100 and flooring
+        # gave 114 minor units — a cêntimo lost on an amount a person typed.
+        assert to_minor(1.15, "AOA") == 115
+        assert to_minor("1.15", "AOA") == 115
+        assert to_minor(Decimal("1.15"), "AOA") == 115

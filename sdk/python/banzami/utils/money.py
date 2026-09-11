@@ -10,7 +10,7 @@ displayed and converted 100 times too large.
 
 from __future__ import annotations
 
-import math
+from decimal import ROUND_HALF_UP, Decimal
 
 _SUBUNIT = 100
 
@@ -53,27 +53,37 @@ def format_minor(amount_minor: int, currency: str) -> str:
     return f"{cur} {major:,.2f}"
 
 
-def to_minor(amount: float, currency: str) -> int:
+def to_minor(amount: Decimal | int | str | float, currency: str) -> int:
     """Convert a decimal amount to integer minor units (multiply by 100, round).
+
+    Money is never computed in binary floating point (Banzami engineering
+    constitution §9.3): a float argument is read through its decimal spelling,
+    so 1.15 is one hundred and fifteen minor units and not 114.
 
     Examples
     --------
-    >>> to_minor(1000.0, "AOA")
+    >>> to_minor(Decimal("1000.00"), "AOA")
     100000
-    >>> to_minor(50.99, "USD")
+    >>> to_minor("50.99", "USD")
     5099
+    >>> to_minor(1.15, "AOA")
+    115
     """
-    return math.floor(amount * _SUBUNIT + 0.5)
+    value = amount if isinstance(amount, Decimal) else Decimal(str(amount))
+    return int((value * _SUBUNIT).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
-def from_minor(amount_minor: int, currency: str) -> float:
-    """Convert integer minor units back to a decimal amount (divide by 100).
+def from_minor(amount_minor: int, currency: str) -> Decimal:
+    """Convert integer minor units back to an exact decimal amount.
+
+    Returns a Decimal, not a float: a float cannot hold most amounts exactly,
+    and an amount that is only nearly right is a wrong amount.
 
     Examples
     --------
     >>> from_minor(50000, "AOA")
-    500.0
+    Decimal('500.00')
     >>> from_minor(5000, "USD")
-    50.0
+    Decimal('50.00')
     """
-    return amount_minor / _SUBUNIT
+    return (Decimal(amount_minor) / _SUBUNIT).quantize(Decimal("0.01"))

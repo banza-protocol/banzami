@@ -12,6 +12,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
@@ -852,11 +854,31 @@ func classifyAttempt(statusCode int, err error) attemptOutcome {
 	}
 }
 
+// errText is what a merchant sees as last_error, and what the operator console
+// may display. A transport error quotes the endpoint URL whole — query string,
+// and any credentials in it — so the URL is reduced to its host (A6-13).
 func errText(err error) string {
 	if err == nil {
 		return ""
 	}
-	return err.Error()
+	return redactURLs(err.Error())
+}
+
+var urlInText = regexp.MustCompile(`https?://[^\s"']+`)
+
+// redactURLs keeps the scheme and host of any URL in a message and drops the
+// rest: "Post \"https://hook.example/x?token=abc\": dial tcp" becomes
+// "Post \"https://hook.example/…\": dial tcp".
+func redactURLs(msg string) string {
+	return urlInText.ReplaceAllStringFunc(msg, func(raw string) string {
+		trimmed := strings.TrimRight(raw, `".,;:`)
+		suffix := raw[len(trimmed):]
+		u, err := url.Parse(trimmed)
+		if err != nil || u.Host == "" {
+			return "[url]" + suffix
+		}
+		return u.Scheme + "://" + u.Host + "/…" + suffix
+	})
 }
 
 // recordAttempt applies the delivery's new state and appends the attempt, in

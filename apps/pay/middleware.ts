@@ -37,6 +37,10 @@ export function middleware(request: NextRequest) {
   // Forward the nonce to the RSC render pipeline via a request header.
   const reqHeaders = new Headers(request.headers);
   reqHeaders.set('x-nonce', nonce);
+  // Next.js takes the nonce for its own <script> tags from THIS header on the
+  // request. Without it the page renders unnonced inline scripts and the policy
+  // below would kill the payer page's own bootstrap.
+  reqHeaders.set('Content-Security-Policy', csp);
 
   const response = NextResponse.next({ request: { headers: reqHeaders } });
 

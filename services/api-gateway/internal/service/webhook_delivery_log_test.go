@@ -1,6 +1,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -43,5 +44,24 @@ func TestWebhookLogHost_NeverEchoesAnUnparseableURL(t *testing.T) {
 	}
 	if got := webhookLogHost("https://hooks.example.com/x?y=z"); got != "hooks.example.com" {
 		t.Fatalf("host = %q", got)
+	}
+}
+
+// last_error is stored and shown to the merchant (and the operator console).
+// A transport error quotes the endpoint URL whole — query string and any
+// credentials in it — so only its host survives.
+func TestErrText_KeepsNoURLBeyondItsHost(t *testing.T) {
+	in := errors.New(`Post "https://hook.example.ao/path?token=s3cr3t-value": dial tcp 10.0.0.1:443: connect: refused`)
+	got := errText(in)
+	for _, forbidden := range []string{"s3cr3t-value", "/path", "?token="} {
+		if strings.Contains(got, forbidden) {
+			t.Fatalf("last_error still carries %q: %s", forbidden, got)
+		}
+	}
+	if !strings.Contains(got, "https://hook.example.ao/…") || !strings.Contains(got, "dial tcp") {
+		t.Fatalf("last_error lost the host or the reason: %s", got)
+	}
+	if errText(nil) != "" {
+		t.Fatal("no error must be no text")
 	}
 }

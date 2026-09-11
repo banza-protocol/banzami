@@ -324,7 +324,7 @@ CORS is handled at two layers. An origin must appear in exactly one layer — ne
 
 | Origin | Layer |
 |--------|-------|
-| `https://admin.banzami.com` | nginx (`/srv/banzami/nginx/banzami.conf`) |
+| `https://admin.banzami.com` | nginx (`/srv/banzami/website-nginx/conf.d/website.conf`) |
 | `https://business.banzami.com` | nginx |
 | `https://pay.banzami.com` | Go middleware (`internal/middleware/cors.go`) |
 | `http://localhost:3010/3002/3003/3004` | Go middleware (local dev only) |
