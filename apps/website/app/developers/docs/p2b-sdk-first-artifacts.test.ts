@@ -24,7 +24,7 @@ const ART_MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));
 describe('P2B — SDK-first wording in PT and EN', () => {
   it('PT contains the SDK-first model with the required wording', () => {
     expect(PT).toContain('Modelo de integração SDK-first');
-    expect(PT).toContain('A filosofia de integração da Banzami é');
+    expect(PT).toContain('A filosofia de integração do Banzami é');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(PT).toContain('pré-visualização controlada até publicação oficial');
   });

@@ -24,7 +24,7 @@ const TEMPLATE = read(`${OB}/preview-issue-report-template.md`);
 
 describe('P2D — onboarding sections exist in PT and EN', () => {
   it('PT sections', () => {
-    for (const t of ['Onboarding do preview SDK', 'Jornada de integração em Sandbox', 'Responsabilidades do parceiro no preview', 'Responsabilidades da Banzami no preview', 'Como reportar problemas no preview', 'Checklist de validação Sandbox', 'Critérios de revisão de prontidão']) {
+    for (const t of ['Onboarding do preview SDK', 'Jornada de integração em Sandbox', 'Responsabilidades do parceiro no preview', 'Responsabilidades do Banzami no preview', 'Como reportar problemas no preview', 'Checklist de validação Sandbox', 'Critérios de revisão de prontidão']) {
       expect(PT.includes(t), `PT missing: ${t}`).toBe(true);
     }
     expect(PT).toContain('Não é um registo público self-service');
