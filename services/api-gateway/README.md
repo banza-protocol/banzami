@@ -138,7 +138,7 @@ identifiers are redacted from what it reads (ADR-057). Idempotency applies.
 | POST | /v1/webhooks/deliveries/{id}/replay | Replay a delivery |
 | POST · GET | /v1/payment-links | Create · list payment links |
 | GET · DELETE | /v1/payment-links/{id} | Read · cancel a payment link |
-| POST | /v1/payment-links/{id}/mark-used | Mark a link used |
+| POST | /v1/payment-links/{id}/mark-used | **Retired — 410 `ROUTE_RETIRED` for every caller.** A link is marked paid only by a payment; to close an unpaid link, `DELETE /v1/payment-links/{id}` |
 
 ### Merchant JWT (a consumer token is refused)
 
