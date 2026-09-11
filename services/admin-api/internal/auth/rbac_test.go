@@ -21,8 +21,12 @@ func TestCan_RoleMatrix(t *testing.T) {
 	}{
 		// OPERATIONS runs the onboarding desk but cannot manage operators,
 		// touch money, or act on KYB/AML.
-		{"OPERATIONS", CapApplicationApprove, true},
-		{"OPERATIONS", CapDisputeResolve, true},
+		// … and decides nothing: approval is the KYB decision (ADR-058) and a
+		// dispute resolution moves money.
+		{"OPERATIONS", CapApplicationApprove, false},
+		{"OPERATIONS", CapApplicationProcess, true},
+		{"OPERATIONS", CapApplicationReject, true},
+		{"OPERATIONS", CapDisputeResolve, false},
 		{"OPERATIONS", CapMerchantView, true},
 		{"OPERATIONS", CapOperatorManage, false},
 		{"OPERATIONS", CapWalletCredit, false},
@@ -35,7 +39,8 @@ func TestCan_RoleMatrix(t *testing.T) {
 		{"COMPLIANCE", CapAmlFlag, true},
 		{"COMPLIANCE", CapMerchantSuspend, true},
 		{"COMPLIANCE", CapRiskResolve, true},
-		{"COMPLIANCE", CapApplicationApprove, false},
+		{"COMPLIANCE", CapApplicationApprove, true},
+		{"COMPLIANCE", CapDisputeResolve, false},
 		{"COMPLIANCE", CapOperatorManage, false},
 		{"COMPLIANCE", CapPayoutManage, false},
 

@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -251,6 +252,14 @@ func (p fakePlatform) GetMode(context.Context) service.PlatformMode {
 	return service.PlatformMode{Mode: p.mode}
 }
 
+// ReadMode mirrors the stored-mode read: no mode is an error, never a fallback.
+func (p fakePlatform) ReadMode(context.Context) (string, error) {
+	if p.mode != "SANDBOX" && p.mode != "LIVE" {
+		return "", errors.New("platform mode unreadable")
+	}
+	return p.mode, nil
+}
+
 // The approval email's environment follows the GLOBAL Platform Status, never the
 // application's own field. SANDBOX platform → email says SANDBOX (never "Produção");
 // a nil/failed reader is fail-safe SANDBOX; LIVE → LIVE.
@@ -287,8 +296,27 @@ func TestApproveEmailEnvironmentFollowsPlatformStatus(t *testing.T) {
 
 type fixedMode struct{ mode string }
 
+// fallbackMode is the platform read failing: GetMode's display fallback says
+// SANDBOX, ReadMode errors.
+type fallbackMode struct{}
+
+func (fallbackMode) GetMode(context.Context) service.PlatformMode {
+	return service.PlatformMode{Mode: "SANDBOX", Reason: "fallback"}
+}
+func (fallbackMode) ReadMode(context.Context) (string, error) {
+	return "", errors.New("connection refused")
+}
+
 func (f fixedMode) GetMode(context.Context) service.PlatformMode {
 	return service.PlatformMode{Mode: f.mode}
+}
+
+// ReadMode mirrors the stored-mode read: no mode is an error, never a fallback.
+func (f fixedMode) ReadMode(context.Context) (string, error) {
+	if f.mode != "SANDBOX" && f.mode != "LIVE" {
+		return "", errors.New("platform mode unreadable")
+	}
+	return f.mode, nil
 }
 
 // A repeated approval (a double click, a second operator) changed nothing: no
@@ -325,6 +353,9 @@ func TestActivationLinkIsShownOnlyInAKnownSandbox(t *testing.T) {
 		{"sandbox", fixedMode{"SANDBOX"}, true},
 		{"live", fixedMode{"LIVE"}, false},
 		{"unknown", nil, false},
+		// the display read falls back to SANDBOX on a failed read; the
+		// credential decision must not — a LIVE Business's link was shown.
+		{"read failed, display fallback SANDBOX", fallbackMode{}, false},
 	} {
 		gw := &fakeGW{approval: service.ApprovalResult{MerchantID: "m1", Email: "l@x.co", ActivationToken: "TOKEN-1"}}
 		h := NewMerchantApplicationHandler(gw, nil, &fakeMailer{}, "https://banzami.com", tc.mode)

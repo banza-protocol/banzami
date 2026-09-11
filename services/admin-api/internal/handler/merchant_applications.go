@@ -47,6 +47,8 @@ type ApplicationMailer interface {
 // emails communicate the PLATFORM environment, never the application's own field.
 type PlatformModeReader interface {
 	GetMode(ctx context.Context) service.PlatformMode
+	// ReadMode is the stored mode or an error — never a fallback.
+	ReadMode(ctx context.Context) (string, error)
 }
 
 // MerchantApplicationHandler exposes the admin-authed application endpoints. It
@@ -181,7 +183,14 @@ func (h *MerchantApplicationHandler) Get(w http.ResponseWriter, r *http.Request)
 // POSITIVELY known to be in SANDBOX mode.
 func (h *MerchantApplicationHandler) activationLink(ctx context.Context, token string) (link string, showToOperator bool) {
 	link = h.websiteBaseURL + "/comerciantes/activar?token=" + token
-	return link, h.platform != nil && h.platform.GetMode(ctx).Mode == "SANDBOX"
+	// ReadMode, not GetMode: GetMode falls back to SANDBOX when the read fails,
+	// so a database error on a LIVE platform showed a live Business's
+	// activation link to the operator — who could set its PIN and sign in.
+	if h.platform == nil {
+		return link, false
+	}
+	mode, err := h.platform.ReadMode(ctx)
+	return link, err == nil && mode == "SANDBOX"
 }
 
 func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Request) {

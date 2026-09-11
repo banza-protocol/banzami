@@ -122,9 +122,9 @@ d'égaliser le temps de réponse. **Seul** un verrouillage réel renvoie `429`.
 | Rôle | Responsabilités | Permissions clés | Limitations |
 |---|---|---|---|
 | **SUPER_ADMIN** | Administration complète | **Toutes** les capabilities | Garde-fou : on ne peut ni suspendre ni rétrograder le **dernier** SUPER_ADMIN actif |
-| **OPERATIONS** | Guichet onboarding | dashboards, voir marchands/consommateurs/paiements, **approuver/rejeter candidatures**, résoudre disputes | Pas d'admin opérateurs, pas de KYB/AML, pas de mouvement financier |
-| **COMPLIANCE** | KYC/AML/KYB & standing marchand | accepter/rejeter KYB, flag AML, approuver/rejeter/suspendre marchand, résoudre risque, lire l'audit | Pas d'admin opérateurs, pas de settlement/payout |
-| **SUPPORT** | Help desk / récupération d'accès | lire opérateurs/marchands/consommateurs/paiements, **reset password & renvoi d'invitation** opérateur | **Aucune** action financière, pas d'approbation marchand, pas de changement de rôle/suspension d'opérateur |
+| **OPERATIONS** | Guichet onboarding | dashboards, voir marchands/consommateurs/paiements, **prendre en revue / demander des informations / rejeter** une candidature | Pas d'admin opérateurs, **pas de décision KYB** (approuver ou lier une candidature *est* la décision KYB — ADR-058), **pas de mouvement financier** (résoudre une dispute en est un) |
+| **COMPLIANCE** | KYC/AML/KYB & standing marchand | **décider les candidatures** (approuver, lier à un Business existant, réémettre l'activation), accepter/rejeter KYB, flag AML, suspendre marchand, résoudre risque, lire l'audit | Pas d'admin opérateurs, pas de settlement/payout, pas de résolution de dispute |
+| **SUPPORT** | Help desk / récupération d'accès | lire opérateurs/marchands/consommateurs/paiements, **reset password & renvoi d'invitation** opérateur (le lien part par e-mail au titulaire ; il n'est jamais montré à SUPPORT) | **Aucune** action financière, pas d'approbation marchand, pas de changement de rôle/suspension d'opérateur, **aucune action sur un compte SUPER_ADMIN** |
 | **READ_ONLY** | Observation | toutes les **vues** + audit | **Aucune** mutation |
 
 ---

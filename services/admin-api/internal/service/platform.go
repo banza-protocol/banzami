@@ -65,6 +65,20 @@ func ConfirmationFor(target string) string {
 	}
 }
 
+// ReadMode returns the stored mode, or an error. For decisions that must know:
+// GetMode's SANDBOX fallback is the safe default for DISPLAY, and the unsafe one
+// for showing a Business credential (activation / PIN-reset links).
+func (s *PlatformService) ReadMode(ctx context.Context) (string, error) {
+	var mode string
+	if err := s.pool.QueryRow(ctx, `SELECT value FROM platform_settings WHERE key = $1`, platformModeKey).Scan(&mode); err != nil {
+		return "", err
+	}
+	if !ValidMode(mode) {
+		return "", fmt.Errorf("platform mode %q is not a valid mode", mode)
+	}
+	return mode, nil
+}
+
 // GetMode returns the current mode. Any read failure falls back to SANDBOX (the
 // safe default) — the platform is never assumed LIVE on error.
 func (s *PlatformService) GetMode(ctx context.Context) PlatformMode {

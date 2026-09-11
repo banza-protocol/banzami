@@ -26,7 +26,12 @@ const (
 	CapOperatorReset  Capability = "operator.reset"  // reset password / resend invite / terminate sessions
 
 	// Merchant onboarding (applications + KYB + compliance).
+	// application.approve is the KYB decision (ADR-058: "the reviewed
+	// application is the KYB decision") — approve, link to an existing Business,
+	// and re-issuing its activation. application.process is the desk work that
+	// decides nothing: start review, request information.
 	CapApplicationApprove Capability = "application.approve"
+	CapApplicationProcess Capability = "application.process"
 	CapApplicationReject  Capability = "application.reject"
 	CapKybAccept          Capability = "kyb.accept"
 	CapKybReject          Capability = "kyb.reject"
@@ -60,20 +65,26 @@ const RoleSuperAdmin = "SUPER_ADMIN"
 // absent — Can short-circuits it to "all". A role missing from the map has no
 // capabilities (deny by default).
 var roleCapabilities = map[string]map[Capability]bool{
-	// OPERATIONS — run the onboarding desk: review/approve/reject applications,
-	// see merchants/consumers/payments, resolve disputes. No operator admin, no
-	// money movement, no KYB/AML/compliance authority.
+	// OPERATIONS — run the onboarding desk: take applications into review,
+	// request information, reject; see merchants/consumers/payments. No operator
+	// admin, no money movement, no KYB/AML/compliance authority.
+	//
+	// It held application.approve — which IS the KYB decision (ADR-058) — and
+	// dispute.resolve — which moves money (a WON_BY_CONSUMER restitution) —
+	// contradicting both halves of the line above. Both moved.
 	"OPERATIONS": capSet(
-		CapDashboardView, CapApplicationView, CapApplicationApprove, CapApplicationReject,
+		CapDashboardView, CapApplicationView, CapApplicationProcess, CapApplicationReject,
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
-		CapReconView, CapDisputeView, CapDisputeResolve, CapRiskView, CapPricingView, CapFinanceView,
+		CapReconView, CapDisputeView, CapRiskView, CapPricingView, CapFinanceView,
 	),
 
-	// COMPLIANCE — owns KYC/AML/KYB and merchant standing. Can accept/reject KYB
-	// documents, flag AML, approve/reject/suspend merchants, resolve risk flags,
-	// read the audit log. No operator admin, no settlement/payout execution.
+	// COMPLIANCE — owns KYC/AML/KYB and merchant standing: decides applications
+	// (approve / link, the KYB decision), accepts/rejects KYB documents, flags
+	// AML, suspends merchants, resolves risk flags, reads the audit log. No
+	// operator admin, no settlement/payout execution.
 	"COMPLIANCE": capSet(
-		CapDashboardView, CapApplicationView, CapMerchantView, CapConsumerView,
+		CapDashboardView, CapApplicationView, CapApplicationApprove, CapApplicationProcess, CapApplicationReject,
+		CapMerchantView, CapConsumerView,
 		CapKybAccept, CapKybReject, CapMerchantSuspend, CapComplianceReview, CapAmlFlag,
 		CapConsumerSuspend, CapRiskView, CapRiskResolve, CapRiskFreeze, CapAuditView,
 		CapPricingView, CapFinanceView,

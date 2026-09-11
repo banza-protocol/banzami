@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/banzami/banzami/services/admin-api/internal/service"
@@ -40,6 +41,14 @@ type stubPlatform struct{ mode string }
 
 func (s stubPlatform) GetMode(context.Context) service.PlatformMode {
 	return service.PlatformMode{Mode: s.mode}
+}
+
+// ReadMode mirrors the stored-mode read: no mode is an error, never a fallback.
+func (s stubPlatform) ReadMode(context.Context) (string, error) {
+	if s.mode != "SANDBOX" && s.mode != "LIVE" {
+		return "", errors.New("platform mode unreadable")
+	}
+	return s.mode, nil
 }
 
 // An unqualified request must follow the platform's mode, not default to live.
