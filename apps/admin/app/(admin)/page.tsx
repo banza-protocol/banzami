@@ -79,7 +79,7 @@ export default function OverviewPage() {
           chip: openDisputes ? 'a resolver' : 'sem abertas', Icon: Scale, bg: '#fbe3e1', color: '#9A1B22' },
         { key: 'recon', label: 'Reconciliações c/ divergência', value: dash(reconDiv ? reconDiv.length : null),
           chip: reconDiv && reconDiv[0] ? formatDate(reconDiv[0].reconciliation_date) : '—', Icon: RefreshCw, bg: '#e9effb', color: '#3a5bd0' },
-        { key: 'pay', label: 'Pagamentos pendentes', value: dash(pendingPayouts ? pendingPayouts.length : null),
+        { key: 'pay', label: 'Levantamentos pendentes', value: dash(pendingPayouts ? pendingPayouts.length : null),
           chip: pendingPayouts ? formatKz(payoutSum) : 'não disponível', Icon: CreditCard, bg: '#FFF1F0', color: '#7a6a6e' },
       ]);
 

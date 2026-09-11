@@ -35,3 +35,11 @@ describe('nav → attention mapping', () => {
     }
   });
 });
+
+describe('nav labels', () => {
+  it('payouts are "Levantamentos" — money leaving a wallet — never "Pagamentos"', () => {
+    const items = navItems();
+    expect(items.find((i) => i.href === '/payments')?.label).toBe('Levantamentos');
+    expect(items.find((i) => i.href === '/wallet-payments')?.label).toBe('Pagamentos recebidos');
+  });
+});

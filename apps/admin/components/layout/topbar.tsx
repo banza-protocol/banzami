@@ -17,7 +17,7 @@ const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
   { match: (p) => p.startsWith('/merchants'), title: 'Comerciantes', sub: 'Candidaturas Business, KYC e gestão de contas.' },
   { match: (p) => p.startsWith('/consumers'), title: 'Consumidores', sub: 'Carteiras e contas de consumidores.' },
   { match: (p) => p.startsWith('/settlements'), title: 'Liquidações', sub: 'Ciclo de liquidação aos comerciantes.' },
-  { match: (p) => p.startsWith('/payments'), title: 'Pagamentos', sub: 'Pagamentos e payouts pendentes.' },
+  { match: (p) => p.startsWith('/payments'), title: 'Levantamentos', sub: 'Levantamentos das carteiras dos negócios para o banco.' },
   { match: (p) => p.startsWith('/reconciliation'), title: 'Reconciliação', sub: 'Conferência de movimentos e divergências.' },
   { match: (p) => p.startsWith('/disputes'), title: 'Disputas', sub: 'Resolução de disputas de transações.' },
   { match: (p) => p.startsWith('/risk'), title: 'Risco & Audit', sub: 'Sinalizações de risco e registo de auditoria.' },
