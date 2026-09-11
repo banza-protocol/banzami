@@ -6,7 +6,10 @@ What was examined, what was found, what was fixed and how each fix is known to
 hold. Scope: the deployed Sandbox stack on 217.160.9.248, the two public nginx
 edges, the website, the SDKs in this repository, CI and the Sandbox host.
 Financial LIVE is **not ready and fail-closed**; nothing here changes that. The
-preserved DOA settlement was **not** executed.
+preserved DOA settlement was **not** executed. Under the owner's clean-slate
+decision of 2026-09-11 (§10) the old case it rested on is retired with the rest
+of DOA's test state; a final DOA acceptance settlement is to run on a new case,
+created after the reset, and needs the owner's DOA sign-in.
 
 Verdicts:
 
@@ -153,6 +156,16 @@ A recorded run of every TypeScript SDK method against the gateway's route
 table maps every request to a mounted route. Publishing the SDK source fixes is
 the owner's npm step; the gateway fixes make already-published versions work.
 
+Registry state (2026-09-11): `@banzami/sdk` **0.12.0** is `latest` on npm and is
+proved against the deployed Sandbox by `sdk-wallet-accounts-public.sh` (11/11) and
+`refund-published-sdk-e2e.sh` (25/25), both installing from the registry. The
+repository is at **0.12.1** (QR owner fields sent, `createApplicationSettlement`
+refused locally) — not yet published; 0.12.0 works against the server because
+the gateway fills the QR defaults. `banzami_client` 0.1.0 on pub.dev equals the
+repository's library. The Python (`banzami-python`) and PHP (`banzami/sdk-php`)
+SDKs are not on PyPI or Packagist. `banzami_flutter` is internal (ADR-053).
+Published-SDK/server contract drift: **0**.
+
 ## 6. Release state
 
 Every commit of this programme is on `origin/main` and deployed through
@@ -213,30 +226,89 @@ reporting.
 | D48 | P2 | ops | BANZADMIN containers missing from the host manifest — attestation failed | FIXED 8d5bd73b |
 | D49 | P1 | harness | the hygiene suite ran nine harnesses that write into DOA's tenant | FIXED 20c50249 (RA-093) |
 | D50 | P3 | API | a refused Sandbox top-up answered 500 | FIXED 20c50249 |
+| D51 | P1 | core | any container on the Sandbox network could call Core's `/internal` routes | FIXED 8028dab6, 3fa59183 (RA-094) |
+| D52 | P0 | controls | a freeze stopped money leaving, not reaching, a frozen account | FIXED ff9ba2b6 (RA-095) |
+| D53 | P2 | sessions | a paid session kept a payable dynamic QR (89 days) | FIXED 9101ca88 + 0127 (RA-096) |
+| D54 | P1 | ops | fixture sweeps chose merchants by the Console's own email domain | FIXED fcc2fea1 (RA-097) — caught in dry run, nothing ran |
+| D55 | P1 | sessions | a session paid on the hosted checkout stayed ACTIVE with a payable QR; no `payment_session.paid` | FIXED 3f7fdeea + 0128 (RA-098) |
+| D56 | P2 | sessions | an unpaid session could never end, so its account could never close | FIXED d6452014 (RA-099) |
+| D57 | P1 | KYB | only a deployment value kept Sandbox documents out of the Live bucket | FIXED decf5030 (RA-100) |
+| D58 | P2 | settlements | a retried settlement was answered NOTHING_TO_SETTLE after it had run | FIXED 608e68c0 (RA-101) |
+| D59 | P2 | docs | the developer reference sent account transfers to a withdrawn route (404) | FIXED 1b3919da (RA-102) |
+| D60 | P2 | harness | ten generic harnesses used DOA's tenant; runs left 28 demo accounts in it | FIXED 6539c594…22ae1ace |
+| D61 | P2 | harness | runs kept their Sandbox funding (505 000 Kz against a 500 000 Kz cap) and left payouts in flight | FIXED e96a831e, b51623c8, 006cce25 |
+| D62 | P2 | harness | stale probes: retired refund paths aimed at live ones; an owner read from a response that no longer names it; a login set through a retired route | FIXED 4a7b2333 |
+| D63 | P3 | ops | the legacy stack's Redis ran orphaned for two months | FIXED 2df198ac (retired; data kept) |
+| D64 | P2 | DOA | nine fixture admins (`@e2e.local`) kept the admin role in DOA's fixture store | FIXED doa c74ce6e (demoted, barred) |
 
 ## 8. Residual and latent risks
 
 | Risk | Why it is bounded |
 |---|---|
-| Core's `/internal` API has no service credential inside the Docker network | no public route reaches it (40 spellings × 5 hosts: 404); the network holds only stack services and the edge. A service credential is the next step for defence in depth |
-| Money **into** a frozen merchant by QR/P2P, and app settlements from a frozen source, are not refused | runbook states it; acquiring into a frozen merchant is withheld; no freeze has ever existed on the Sandbox |
-| A session's dynamic QR and link are both payable if QR pay is re-mounted | `qr::pay` has no public route since RA-053 |
+| ~~Core's `/internal` API has no service credential inside the Docker network~~ | CLOSED: every route requires a service credential (loopback excepted) — D51 |
+| ~~Money into a frozen account~~ | CLOSED: a freeze is total — D52 |
+| ~~A paid session's other interface stays payable~~ | CLOSED — D53, D55 |
 | BANZADMIN "Activate" can label an operator ACTIVE before enrolment finishes | login still routes through MFA enrolment; it cannot grant a session without the factor |
 | `docker logs --tail` on the stack PostgreSQL and legacy Redis hangs until their next restart | `--since` works; they were deliberately not restarted |
 | ~168 deploy bundle manifests deleted | receipts and git history still resolve commit → runtime |
 | Four historical real proof references remain in git history | not rewritten, by instruction |
-| `banzami-redis-1` legacy container | unused; owner decision |
-| Ten empty "Campanha A/B — demo" CAMPAIGN sub-accounts in DOA's wallet (two from this programme's sweep) | balance 0, no money; not closed — canonical @doa state is not mutated to clean fixtures. Owner decision |
-| Sandbox pilot overlay: synthetic funds cap (Kz 500 000) reached | new consumers start at zero and top-ups are refused (`PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED`) — the public Sandbox cannot fund a new wallet until the cap is raised or funds are retired. Product decision |
-| Nine harnesses use DOA's Project as their test tenant | skipped by default now; moving them onto a generic fixture Project is open |
-| Two Sandbox harnesses (`refund-settlement-matrix.sh`, `economic-model-smoke.sh`) still settle wallet-to-wallet, which the gateway retired on 2026-09-05 — their settlement steps fail (400) | not run in CI; the economics they assert are covered by the core real-DB suites (settlement, app-settlement, pricing). Rewriting them onto the account/@banza contract is open |
+| Four @doa CAMPAIGN accounts (19 900 Kz) behind campaigns DOA's live datastore still shows | closed only after DOA ends those campaigns (owner: DOA's reset), then `retire-stale-doa-tenant-state.sh --apply --doa-campaigns-ended` |
+| DOA's datastores still hold test campaigns and donations | only DOA's sanctioned reset removes them; it refuses while campaigns belong to a non-internal account — owner action |
+| Three rotated container-log copies from the forced rotation (webhook sink, PostgreSQL, stack Redis) | not named in the early-deletion authorisation; the retention job removes them on 2026-09-25. The two edge copies holding pre-redaction references are deleted |
+| Two small synthetic PDFs in `banzami-kyb-sandbox`, attached to rejected synthetic applications | no route deletes a decided application's documents, by design |
+| Handles of retired Businesses stay registered to the suspended Business | a handle is a routing entry with no release lifecycle; a suspended Business neither logs in nor receives |
+| Synthetic workspaces and identities remain ACTIVE rows | no lifecycle exists and their status is not enforced; every project in them is archived, every key revoked — they hold no authority |
+| A payment on the hosted checkout has no typed refund source | `payment_session.paid` says `refund_source: null`; refunds of that rail are an open product question |
+| ~~`banzami-redis-1` legacy container~~ | CLOSED: retired, host attestation 13/13 — D63 |
+| ~~DOA demo sub-accounts~~ | CLOSED: all 28 (10 under @doa, 18 under the old project) retired and closed (§10) |
+| ~~Pilot funding cap reached~~ | CLOSED without raising it: synthetic funds retired, 26 040 Kz of 500 000 in use, runs now return their funding (§10) |
+| ~~Harnesses on DOA's tenant~~ | CLOSED — D60; only the three labelled tests of DOA name it |
+| ~~Two harnesses settled wallet-to-wallet~~ | CLOSED: rewritten onto the account/@banza contract — 54/54 and 30/30 on the deployed Sandbox |
 
 ## 9. Boundaries (not claimed)
 
-- BANZADMIN signed-in UI walk — needs the owner's MFA.
+- BANZADMIN signed-in UI walk (and the attention badges live) — needs the owner's MFA.
 - Consumer and Business app walks on a device — needs the owner's iPhone.
-- KYB document storage — needs the owner's R2 credentials.
-- A fresh DOA reference payment — the donor half runs on doadoa.app behind a
-  real email OTP; the harness would also spend an arbitrary consumer's Sandbox
-  balance. Not run.
-- Publishing the SDK source fixes (npm / pub.dev / Packagist / PyPI).
+- ~~KYB document storage~~ — PASS: `kyb-storage-boundary-e2e.sh` 15/15 against
+  `banzami-kyb-sandbox` (never `-live`), round trip by sha256, a mislabelled file
+  refused and removed.
+- DOA's datastore reset and a fresh DOA reference payment and settlement on a new
+  case — DOA sign-in and email OTP are the owner's.
+- Publishing `@banzami/sdk` 0.12.1 (npm), and deciding on PyPI / Packagist.
+
+## 10. Closure — Sandbox clean slate (2026-09-11)
+
+Owner decision: nothing synthetic stays active; only the current canonical state
+remains. Done through canonical APIs only (`tools/ops/retire-synthetic-residue.sh`,
+`tools/ops/retire-stale-doa-tenant-state.sh`; docs/operations/SANDBOX_FIXTURE_HYGIENE.md).
+No row written by hand, no reset, the ledger keeps every posting (579 → 1 163
+postings, all balanced; reconciliation 6/6; every assurance counter 0).
+
+| Residue | Before | After |
+|---|---|---|
+| synthetic Businesses active | 40 | 0 |
+| synthetic Business value | 196 940 Kz | 0 |
+| synthetic consumers active | 85 | 0 |
+| synthetic consumer value | 279 960 Kz | 0 |
+| synthetic payouts in flight | 31 | 0 (failed through the payout lifecycle) |
+| synthetic API keys / webhooks / links / sessions | 28 / 18 / 6 / 5 | 0 / 0 / 0 / 0 |
+| synthetic projects active | 37 | 0 |
+| DOA demo sub-accounts (10 @doa + 18 old project) | 28 open, 52 000 Kz | 0 (retired, closed) |
+| other @doa fixture accounts | 6 open | 0 |
+| DOA stale: old project / its Business / first Business | ACTIVE | ARCHIVED / SUSPENDED / SUSPENDED |
+| DOA test keys on Doa-Sandbox | 2 | 0 (runtime web + admin kept) |
+| DOA fixture-store admins (`@e2e.local`) | 9 | 0 (demoted, barred) |
+| kept E2E manifests on the host | 9 | 0 |
+| orphan containers | 1 | 0 |
+| pilot aggregate (cap 500 000 Kz) | 505 000 Kz | 26 040 Kz — real users' only |
+
+What remains of DOA, proved live (`project-readiness-probe.sh`, 15/15): Project
+Doa-Sandbox bound (sealed) to @doa, KYB APPROVED, wallet ACTIVE/AOA,
+`sandbox-reference` (settlement 200 bps, payout 75 bps), fee destination eligible,
+`settlement.ready = true`, `blockers = []`. Real users' records were not modified
+(snapshot fingerprints unchanged).
+
+Every stateful harness now builds a tenant of its own and gives all of it back —
+its funding included. The hygiene suite ran twice: every harness green, no
+authority leaked; the residue each pass surfaced (consumers three harnesses did not
+own) is fixed at the harness and retired.
