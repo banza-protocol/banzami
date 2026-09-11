@@ -78,10 +78,8 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
         _error      = null;
       });
       _surfacePending();
-    } on BanzamiApiException catch (e) {
-      if (mounted) setState(() { _error = e.message; _loading = false; });
-    } catch (_) {
-      if (mounted) setState(() { _error = 'Não foi possível carregar a cobrança.'; _loading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = banzamiErrorMessage(e); _loading = false; });
     }
   }
 
@@ -179,15 +177,10 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
       final c = await _client.cancelCollection(widget.collectionId);
       if (mounted) setState(() { _collection = c; _cancelling = false; });
       _poll?.cancel();
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
       if (mounted) {
         setState(() => _cancelling = false);
-        BanzamiToast.showError(context, e.message);
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _cancelling = false);
-        BanzamiToast.showError(context, 'Não foi possível cancelar.');
+        BanzamiToast.showError(context, banzamiErrorMessage(e));
       }
     }
   }

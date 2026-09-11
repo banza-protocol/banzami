@@ -650,6 +650,12 @@ class BanzamiClient {
   // KYB_DECIDED_BY_REVIEW. The Business App shows the decision
   // (getMerchantKybStatus) and uploads documents for the review.
 
+  /// KYB + AML as the payout gate sees them. Use [MerchantComplianceStatus.
+  /// canWithdraw] before offering a withdrawal — KYB alone is not enough.
+  Future<MerchantComplianceStatus> getMerchantComplianceStatus() async =>
+      MerchantComplianceStatus.fromJson(
+          await _get('/v1/compliance/merchants/status'));
+
   /// The authenticated merchant's real KYB status + the 3 business document
   /// slots (read-only). The Business app shows this without re-submitting the
   /// application. The operator decides approval — never an upload.

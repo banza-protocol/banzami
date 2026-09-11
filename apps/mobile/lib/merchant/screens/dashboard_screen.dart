@@ -40,6 +40,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // Live KYB-verified state (null until loaded). Overrides the stale login-time
   // session.verified so a sandbox auto-approval reflects immediately.
   bool? _kybVerified;
+  // KYB + AML as the payout gate sees them (null until loaded / unreadable).
+  // A withdrawal needs both — KYB alone never says "levantamentos disponíveis".
+  MerchantComplianceStatus? _compliance;
 
   @override
   void initState() {
@@ -83,7 +86,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       await sessionService.setVerified(verified);
     }).catchError((_) { /* leave banner as-is on a transient failure */ });
 
-    await Future.wait([balanceFuture, statsFuture, kybFuture]);
+    final complianceFuture = client.getMerchantComplianceStatus().then((c) {
+      if (mounted) setState(() => _compliance = c);
+    }).catchError((_) { /* the card says it could not confirm */ });
+
+    await Future.wait([balanceFuture, statsFuture, kybFuture, complianceFuture]);
     if (mounted) setState(() { _loading = false; _error = err; });
   }
 
@@ -223,9 +230,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: BanzamiSpacing.lg),
               ],
 
-              // Settlement / payout summary (no merchant settlement endpoint yet)
-              _SettlementCard(
-                verified: verified,
+              // Withdrawals — gated on what the payout endpoint enforces.
+              _PayoutsCard(
+                gate: withdrawGate(compliance: _compliance, kybVerified: verified),
                 onVerify: () => _open(const KybScreen()),
                 onPayout: () => _open(const PayoutScreen()),
               ),
@@ -500,7 +507,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     // Visual hierarchy via the same BanzamiActionTile design-system component:
     // 'Cobrar' is the primary CTA (premium red gradient, stronger shadow), QR and
-    // Payout are secondary (red-tinted icon on a white tile). Equal widths.
+    // Levantar are secondary (red-tinted icon on a white tile). Equal widths.
     return Row(children: [
       BanzamiActionTile(
         icon:    Icons.add_circle_outline_rounded,
@@ -518,7 +525,7 @@ class _QuickActions extends StatelessWidget {
       const SizedBox(width: BanzamiSpacing.md),
       BanzamiActionTile(
         icon:   Icons.account_balance_rounded,
-        label:  'Payout',
+        label:  'Levantar',
         onTap:  onPayout,
         accent: true,
       ),
@@ -527,22 +534,54 @@ class _QuickActions extends StatelessWidget {
 }
 
 // =============================================================================
-// Settlement / payout summary
+// Withdrawals (levantamentos)
 // =============================================================================
 
-class _SettlementCard extends StatelessWidget {
-  final bool verified;
+/// Whether the Business may ask for a withdrawal, as the gateway decides it:
+/// KYB AND AML approved (services/api-gateway compliance CanProcess).
+enum WithdrawGate { ready, kybPending, amlPending, unknown }
+
+WithdrawGate withdrawGate({
+  required MerchantComplianceStatus? compliance,
+  required bool kybVerified,
+}) {
+  if (compliance == null) {
+    return kybVerified ? WithdrawGate.unknown : WithdrawGate.kybPending;
+  }
+  if (compliance.canWithdraw) return WithdrawGate.ready;
+  if (!compliance.kybApproved) return WithdrawGate.kybPending;
+  return WithdrawGate.amlPending;
+}
+
+class _PayoutsCard extends StatelessWidget {
+  final WithdrawGate gate;
   final VoidCallback onVerify;
   final VoidCallback onPayout;
 
-  const _SettlementCard({
-    required this.verified,
+  const _PayoutsCard({
+    required this.gate,
     required this.onVerify,
     required this.onPayout,
   });
 
   @override
   Widget build(BuildContext context) {
+    final note = switch (gate) {
+      WithdrawGate.ready => null,
+      WithdrawGate.kybPending =>
+        'Verificação do negócio (KYB) necessária para pedir levantamentos.',
+      WithdrawGate.amlPending =>
+        'Negócio verificado. Os levantamentos ficam disponíveis quando a '
+            'verificação AML estiver concluída.',
+      WithdrawGate.unknown =>
+        'Não foi possível confirmar agora se os levantamentos estão disponíveis.',
+    };
+    final (label, action) = switch (gate) {
+      WithdrawGate.kybPending => ('Verificar negócio', onVerify),
+      WithdrawGate.amlPending => ('Ver verificação', onVerify),
+      _ => ('Pedir levantamento', onPayout),
+    };
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
@@ -555,15 +594,17 @@ class _SettlementCard extends StatelessWidget {
         const Row(children: [
           Icon(Icons.account_balance_rounded, color: BanzamiColors.primary, size: 18),
           SizedBox(width: BanzamiSpacing.sm),
-          Text('Liquidações e payouts', style: BanzamiTextStyles.headingSm),
+          Text('Levantamentos', style: BanzamiTextStyles.headingSm),
         ]),
         const SizedBox(height: BanzamiSpacing.sm),
         Text(
-          'Os teus payouts e liquidações aparecerão aqui.',
+          gate == WithdrawGate.ready
+              ? 'Levantamentos disponíveis para a conta bancária do negócio.'
+              : 'Os seus pedidos de levantamento aparecerão aqui.',
           style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
         ),
         const SizedBox(height: BanzamiSpacing.md),
-        if (!verified)
+        if (note != null)
           Container(
             padding: const EdgeInsets.all(BanzamiSpacing.md),
             decoration: const BoxDecoration(
@@ -575,19 +616,14 @@ class _SettlementCard extends StatelessWidget {
               const SizedBox(width: BanzamiSpacing.sm),
               Expanded(
                 child: Text(
-                  'Verificação (KYB) necessária para solicitar payouts.',
+                  note,
                   style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.warning),
                 ),
               ),
             ]),
-          )
-        else
-          const SizedBox.shrink(),
+          ),
         const SizedBox(height: BanzamiSpacing.md),
-        BanzamiSecondaryButton(
-          label:     verified ? 'Solicitar payout' : 'Verificar negócio',
-          onPressed: verified ? onPayout : onVerify,
-        ),
+        BanzamiSecondaryButton(label: label, onPressed: action),
       ]),
     );
   }
