@@ -851,3 +851,24 @@ async fn two_settlements_never_overdraw_one_source(pool: PgPool) -> sqlx::Result
     }
     Ok(())
 }
+
+// A reused key with a different request is refused — it used to be answered
+// with the existing settlement, which the gateway then completed.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_reused_key_for_another_owner_is_refused(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
+    let first = fx.engine.create(req("shared-key", source, beneficiary, Some(app_fee), 5_000, Some(PROFILE))).await.unwrap();
+    let again = fx.engine.create(req("shared-key", source, beneficiary, Some(app_fee), 5_000, Some(PROFILE))).await.unwrap();
+    assert_eq!(again.id, first.id);
+    let mut other = req("shared-key", source, beneficiary, Some(app_fee), 5_000, Some(PROFILE));
+    other.owner_ref = "another-owner".into();
+    let err = fx.engine.create(other).await.err().expect("another owner must be refused");
+    assert!(matches!(err, ApplicationSettlementError::IdempotencyConflict(_)), "{err:?}");
+    let err = fx.engine.create(req("shared-key", source, beneficiary, Some(app_fee), 6_000, Some(PROFILE))).await.err().expect("amount drift must be refused");
+    assert!(matches!(err, ApplicationSettlementError::IdempotencyConflict(_)), "{err:?}");
+    Ok(())
+}

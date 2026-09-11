@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_payouts::{
-    BankDestination, CreatePayoutRequest, PayoutEngine, PayoutStatus, PostgresPayoutEngine,
+    BankDestination, CreatePayoutRequest, PayoutEngine, PayoutError, PayoutStatus, PostgresPayoutEngine,
     PostgresPayoutRepository,
 };
 use banzami_types::{AccountId, Currency, MerchantId, Money, WalletId};
@@ -550,6 +550,29 @@ async fn a_fail_racing_a_confirm_never_returns_confirmed_money(pool: PgPool) -> 
             PayoutStatus::Failed => assert!(reversed, "round {round}: a FAILED payout kept the merchant's money out"),
             other => panic!("round {round}: unexpected status {other:?}"),
         }
+    }
+    Ok(())
+}
+
+// A reused key with a different request is refused — never answered with the
+// existing payout (another merchant used to get this one back, bank details
+// included, and theirs was never created).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_reused_key_with_a_different_request_is_refused(pool: PgPool) -> sqlx::Result<()> {
+    let fix = setup(pool).await;
+    let req = |amount: i64, account: &str| CreatePayoutRequest {
+        idempotency_key: "payout-key-reuse".into(),
+        merchant_id: fix.merchant_id,
+        wallet_id: fix.wallet_id,
+        amount: kz(amount),
+        destination: BankDestination { account_number: account.into(), ..destination() },
+    };
+    let first = fix.payout_engine.initiate(req(1_000_000, "AO06000600000100037131174")).await.unwrap();
+    let again = fix.payout_engine.initiate(req(1_000_000, "AO06000600000100037131174")).await.unwrap();
+    assert_eq!(again.id, first.id, "the genuine replay still answers with the original");
+    for (amount, account) in [(2_000_000, "AO06000600000100037131174"), (1_000_000, "AO06000600009999999999999")] {
+        let err = fix.payout_engine.initiate(req(amount, account)).await.err().expect("drift must be refused");
+        assert!(matches!(err, PayoutError::DuplicateIdempotencyKey(_)), "{err:?}");
     }
     Ok(())
 }

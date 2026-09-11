@@ -337,13 +337,27 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         if req.amount.amount_minor() <= 0 {
             return Err(PayoutError::InvalidAmount);
         }
-        // Idempotency: return existing payout if key already exists.
+        // Idempotency: the same request under the same key is the same payout.
+        // Keys are global, and the existing payout used to be returned to
+        // whoever asked — another merchant reusing a key got this merchant's
+        // payout back, bank account included, and theirs was never created.
         if let Some(existing) = self
             .repo
             .get_by_idempotency_key(&req.idempotency_key)
             .await?
         {
-            return Ok(existing);
+            let d = &existing.destination;
+            let same = existing.merchant_id == req.merchant_id
+                && existing.wallet_id == req.wallet_id
+                && existing.amount.amount_minor() == req.amount.amount_minor()
+                && existing.amount.currency == req.amount.currency
+                && d.account_number == req.destination.account_number
+                && d.bank_code == req.destination.bank_code;
+            return if same {
+                Ok(existing)
+            } else {
+                Err(PayoutError::DuplicateIdempotencyKey(req.idempotency_key))
+            };
         }
 
         let wallet = self

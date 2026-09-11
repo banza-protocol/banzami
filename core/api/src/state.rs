@@ -27,8 +27,14 @@ pub type CoreEnvironment = banzami_types::Environment;
 mod tests {
     use super::CoreEnvironment;
 
+    // These tests share one process-wide variable. Run in parallel, one set
+    // ENVIRONMENT=sandbox while another asserted it was unset, and the suite
+    // failed at random.
+    static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     #[test]
     fn sandbox_env_var_accepted() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         // Temporarily set ENVIRONMENT=SANDBOX, then restore
         std::env::set_var("ENVIRONMENT", "SANDBOX");
         assert!(!CoreEnvironment::from_env().is_live());
@@ -37,6 +43,7 @@ mod tests {
 
     #[test]
     fn sandbox_case_insensitive() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("ENVIRONMENT", "sandbox");
         assert!(!CoreEnvironment::from_env().is_live());
         std::env::remove_var("ENVIRONMENT");
@@ -44,6 +51,7 @@ mod tests {
 
     #[test]
     fn unknown_env_defaults_to_live() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::set_var("ENVIRONMENT", "UNKNOWN_VALUE");
         assert!(CoreEnvironment::from_env().is_live());
         std::env::remove_var("ENVIRONMENT");
@@ -51,6 +59,7 @@ mod tests {
 
     #[test]
     fn missing_env_defaults_to_live() {
+        let _env = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         std::env::remove_var("ENVIRONMENT");
         assert!(CoreEnvironment::from_env().is_live());
     }

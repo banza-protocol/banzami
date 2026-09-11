@@ -261,6 +261,10 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
     use ApplicationSettlementError as E;
     match e {
         E::NotFound(_) => ApiError::not_found("application settlement not found"),
+        E::IdempotencyConflict(_) => ApiError::conflict(
+            "IDEMPOTENCY_KEY_REUSED",
+            "this idempotency key was already used for a different settlement",
+        ),
         E::InvalidAmount => ApiError::bad_request("gross amount must be positive"),
         E::CurrencyMismatch => ApiError::bad_request("currency mismatch"),
         E::FeeExceedsGross { .. } => ApiError::unprocessable(

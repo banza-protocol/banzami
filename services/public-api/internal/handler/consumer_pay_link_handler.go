@@ -136,6 +136,8 @@ func (h *ConsumerPayLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "consumer pay link not found")
 		case errors.Is(err, service.ErrConsumerPayLinkNotActive):
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "LINK_NOT_ACTIVE", "link is not active")
+		case errors.Is(err, service.ErrTransferKeyReused):
+			apierror.Respond(w, r, http.StatusConflict, "LINK_ALREADY_PAID", "this payment link has already been paid")
 		case errors.Is(err, service.ErrTransferInsufficientFunds):
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "INSUFFICIENT_FUNDS", "insufficient funds")
 		case errors.Is(err, service.ErrTransferWalletLocked):

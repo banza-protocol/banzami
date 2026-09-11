@@ -102,6 +102,12 @@ pub async fn send(
             TransferError::InvalidDescription(e) => {
                 ApiError::unprocessable("INVALID_DESCRIPTION", e.to_string())
             }
+            // The key was used for a different transfer (another payer, amount
+            // or recipient): refused, never answered with someone else's.
+            TransferError::DuplicateIdempotencyKey(_) => ApiError::conflict(
+                "IDEMPOTENCY_KEY_REUSED",
+                "this idempotency key was already used for a different transfer",
+            ),
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -270,6 +276,12 @@ pub async fn send_p2p(
             TransferError::InvalidDescription(e) => {
                 ApiError::unprocessable("INVALID_DESCRIPTION", e.to_string())
             }
+            // The key was used for a different transfer (another payer, amount
+            // or recipient): refused, never answered with someone else's.
+            TransferError::DuplicateIdempotencyKey(_) => ApiError::conflict(
+                "IDEMPOTENCY_KEY_REUSED",
+                "this idempotency key was already used for a different transfer",
+            ),
             other => ApiError::internal(other.to_string()),
         })?;
 

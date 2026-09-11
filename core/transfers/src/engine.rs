@@ -85,13 +85,17 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         // rather than in whichever renderer happens to display it.
         crate::description::validate_description(req.description.as_deref())?;
 
-        // Idempotency: return existing transfer for the same key.
+        // Idempotency: the same request under the same key is the same
+        // transfer. A DIFFERENT request under it is refused — it used to be
+        // answered with the existing transfer, whoever asked: a second payer on
+        // a payment link (key "pl-pay-<link>") received the first payer's
+        // transfer and receipt, was not charged, and saw someone else's payment.
         if let Some(existing) = self
             .repo
             .get_by_idempotency_key(&req.idempotency_key)
             .await?
         {
-            return Ok(existing);
+            return replay(existing, &req);
         }
 
         let transfer_id = TransferId::new();
@@ -266,7 +270,7 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         .map_err(TransferError::Database)?;
 
         // Insert transfer record in COMPLETED state.
-        sqlx::query(
+        let inserted = sqlx::query(
             "INSERT INTO transfers
              (id, idempotency_key, sender_id, recipient_id, amount_minor, currency,
               status, description, failure_reason, ledger_posting_id, recipient_handle,
@@ -288,8 +292,19 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         .bind(self.environment.as_str())
         .bind(now)
         .execute(&mut *db_tx)
-        .await
-        .map_err(TransferError::Database)?;
+        .await;
+        if let Err(e) = inserted {
+            // A concurrent request with the same key committed first. This
+            // transaction rolls back — its postings with it — and the request is
+            // answered exactly like a replay (or refused if it is not the same).
+            if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("23505") {
+                drop(db_tx);
+                if let Some(existing) = self.repo.get_by_idempotency_key(&req.idempotency_key).await? {
+                    return replay(existing, &req);
+                }
+            }
+            return Err(TransferError::Database(e));
+        }
 
         db_tx.commit().await.map_err(TransferError::Database)?;
 
@@ -319,5 +334,19 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         self.repo
             .list_for_consumer(consumer_id, limit, before_ts, before_id)
             .await
+    }
+}
+
+/// The existing transfer answers a replay only when the request is the same
+/// one: same sender, recipient, amount and currency.
+fn replay(existing: Transfer, req: &SendTransferRequest) -> Result<Transfer, TransferError> {
+    if existing.sender_id == req.sender_id
+        && existing.recipient_id == req.recipient_id
+        && existing.amount.amount_minor() == req.amount_minor
+        && existing.currency == req.currency
+    {
+        Ok(existing)
+    } else {
+        Err(TransferError::DuplicateIdempotencyKey(req.idempotency_key.clone()))
     }
 }

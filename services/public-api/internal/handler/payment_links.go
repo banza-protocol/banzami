@@ -171,6 +171,8 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	})
 	if err != nil {
 		switch {
+		case errors.Is(err, service.ErrTransferKeyReused):
+			apierror.Respond(w, r, http.StatusConflict, "LINK_ALREADY_PAID", "this payment link has already been paid")
 		case errors.Is(err, service.ErrTransferInsufficientFunds):
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "INSUFFICIENT_FUNDS", "insufficient funds")
 		case errors.Is(err, service.ErrTransferWalletNotFound):

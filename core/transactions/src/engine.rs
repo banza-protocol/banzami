@@ -98,6 +98,16 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
             .get_by_idempotency_key(&req.idempotency_key)
             .await?
         {
+            // Only the same request is the same transaction: another merchant
+            // (or another amount) under a reused key is refused, not answered
+            // with this one.
+            if existing.merchant_id != req.merchant_id
+                || existing.wallet_id != req.wallet_id
+                || existing.amount.amount_minor() != req.amount.amount_minor()
+                || existing.amount.currency != req.amount.currency
+            {
+                return Err(TransactionError::DuplicateIdempotencyKey(req.idempotency_key));
+            }
             tracing::info!(
                 idempotency_key = %req.idempotency_key,
                 tx_id = %existing.id,
@@ -519,25 +529,30 @@ mod tests {
     async fn create_is_idempotent() {
         let engine = make_engine();
         let tx1 = pending_tx(&engine).await;
-        // Second call with the same idempotency key must return the same tx.
-        let tx2 = engine
-            .create(CreateTransactionRequest {
-                idempotency_key: "idem-001".into(),
-                transaction_type: TransactionType::Payment,
-                amount: kz(50_000),
-                merchant_id: test_owner(),
-                wallet_id: WalletId::new(),
-                description: None,
-                business_category: None,
-                pricing_profile: None,
-                fee_policy_ref: None,
-            })
-            .await
-            .unwrap();
+        // The same request under the same key returns the same tx.
+        let replay = |wallet_id: WalletId, amount: i64| CreateTransactionRequest {
+            idempotency_key: "idem-001".into(),
+            transaction_type: TransactionType::Payment,
+            amount: kz(amount),
+            merchant_id: test_owner(),
+            wallet_id,
+            description: None,
+            business_category: None,
+            pricing_profile: None,
+            fee_policy_ref: None,
+        };
+        let tx2 = engine.create(replay(tx1.wallet_id, 50_000)).await.unwrap();
         assert_eq!(
             tx1.id, tx2.id,
             "idempotent create must return the same transaction"
         );
+        // A different request under it is refused, not answered with tx1.
+        for drift in [replay(WalletId::new(), 50_000), replay(tx1.wallet_id, 60_000)] {
+            assert!(matches!(
+                engine.create(drift).await,
+                Err(TransactionError::DuplicateIdempotencyKey(_))
+            ));
+        }
     }
 
     #[tokio::test]

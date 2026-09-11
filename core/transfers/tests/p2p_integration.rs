@@ -749,3 +749,37 @@ async fn chain_of_transfers(pool: PgPool) {
         "clara: received 2000 Kz"
     );
 }
+
+// ---------------------------------------------------------------------------
+// The same key from a DIFFERENT request is refused — never answered with
+// someone else's transfer. A second payer on a payment link (key
+// "pl-pay-<link>") used to receive the first payer's transfer and receipt.
+// ---------------------------------------------------------------------------
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_key_reused_by_another_sender_is_refused_not_replayed(pool: PgPool) {
+    let cw = cw_engine(pool.clone());
+    let tf = transfer_engine(pool.clone());
+    activate_wallet(&cw, "+244911009001", "first_payer").await;
+    activate_wallet(&cw, "+244911009002", "second_payer").await;
+    activate_wallet(&cw, "+244911009003", "the_merchant").await;
+    seed_balance(&pool, "first_payer", 500_000).await;
+    seed_balance(&pool, "second_payer", 500_000).await;
+
+    let first = p2p_send(&cw, &tf, "@first_payer", "@the_merchant", 100_000, "pl-pay-shared", None).await.unwrap();
+    let second = p2p_send(&cw, &tf, "@second_payer", "@the_merchant", 100_000, "pl-pay-shared", None).await;
+    assert!(
+        matches!(second, Err(TransferError::DuplicateIdempotencyKey(_))),
+        "the second payer must be refused, not handed the first payer's transfer {}",
+        first.id
+    );
+    assert_eq!(available_balance(&pool, "second_payer").await, 500_000, "the refused payer was charged");
+
+    // same sender, different amount: refused too
+    let drift = p2p_send(&cw, &tf, "@first_payer", "@the_merchant", 999, "pl-pay-shared", None).await;
+    assert!(matches!(drift, Err(TransferError::DuplicateIdempotencyKey(_))), "payload drift was accepted");
+
+    // the genuine replay still answers with the original
+    let again = p2p_send(&cw, &tf, "@first_payer", "@the_merchant", 100_000, "pl-pay-shared", None).await.unwrap();
+    assert_eq!(again.id, first.id);
+}

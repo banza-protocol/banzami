@@ -33,6 +33,10 @@ pub enum ApplicationSettlementError {
     #[error("application settlement {0} not found")]
     NotFound(ApplicationSettlementId),
 
+    /// The idempotency key already names a different settlement.
+    #[error("idempotency key {0} already used for a different settlement")]
+    IdempotencyConflict(String),
+
     #[error("gross amount must be positive")]
     InvalidAmount,
 

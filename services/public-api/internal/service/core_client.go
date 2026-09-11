@@ -34,6 +34,9 @@ var (
 	ErrTransferWalletLocked         = errors.New("sender wallet is locked — PIN reset required")
 	ErrTransferRecipientNotFound    = errors.New("recipient handle not found")
 	ErrTransferRecipientUnavailable = errors.New("recipient cannot receive funds")
+	// ErrTransferKeyReused: the idempotency key already names a different
+	// transfer — on a payment link, someone else already paid it.
+	ErrTransferKeyReused = errors.New("idempotency key already used for a different transfer")
 	ErrPaymentLinkNotFound          = errors.New("payment link not found")
 	ErrPaymentLinkNotActive         = errors.New("payment link is no longer active")
 
@@ -734,6 +737,8 @@ func mapTransferError(err error) error {
 		return ErrTransferInsufficientFunds
 	case contains(msg, "WALLET_NOT_FOUND"):
 		return ErrTransferWalletNotFound
+	case contains(msg, "IDEMPOTENCY_KEY_REUSED"):
+		return ErrTransferKeyReused
 	default:
 		return err
 	}

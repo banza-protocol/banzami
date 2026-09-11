@@ -202,7 +202,20 @@ where
             .get_by_idempotency_key(&req.idempotency_key)
             .await?
         {
-            return Ok(existing);
+            // The same request is the same settlement. A different owner,
+            // source, beneficiary or amount under a reused key is refused — it
+            // used to be handed the existing settlement, which the gateway then
+            // completed on the caller's behalf.
+            let same = existing.owner_ref == req.owner_ref
+                && existing.source_account_id == req.source_account_id
+                && existing.beneficiary_account_id == req.beneficiary_account_id
+                && existing.gross_amount.amount_minor() == req.gross_amount.amount_minor()
+                && existing.gross_amount.currency == req.gross_amount.currency;
+            return if same {
+                Ok(existing)
+            } else {
+                Err(ApplicationSettlementError::IdempotencyConflict(req.idempotency_key))
+            };
         }
         if !req.gross_amount.is_positive() {
             return Err(ApplicationSettlementError::InvalidAmount);

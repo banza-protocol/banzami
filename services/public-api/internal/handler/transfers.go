@@ -174,6 +174,8 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrTransferInvalidAmount):
 			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_AMOUNT",
 				"amount_minor must be a positive integer")
+		case errors.Is(err, service.ErrTransferKeyReused):
+			apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "this Idempotency-Key was already used for a different transfer")
 		case errors.Is(err, service.ErrTransferInsufficientFunds):
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "INSUFFICIENT_FUNDS",
 				"your available balance is too low for this transfer")
