@@ -580,6 +580,10 @@ func (s *ProofService) Public(p *Proof) map[string]any {
 		"verification_url": s.publicBase + p.ProofReference,
 		"network":          s.network,
 		"operator":         s.operatorID,
+		// The environment the proof belongs to, from the proof row itself
+		// (A2-17). SANDBOX or LIVE; null only if the stored value is not one of
+		// them, which a reader must treat as unverifiable, never as either.
+		"environment": publicEnvironment(p.Environment),
 	}
 	if p.ConfirmedAt != nil {
 		out["confirmed_at"] = p.ConfirmedAt.UTC().Format(time.RFC3339)
@@ -587,6 +591,16 @@ func (s *ProofService) Public(p *Proof) map[string]any {
 		out["confirmed_at"] = nil
 	}
 	return out
+}
+
+// publicEnvironment is the proof's stored environment in its canonical
+// spelling, or nil when it is not a known environment.
+func publicEnvironment(stored string) any {
+	e, err := proofEnvironment(stored)
+	if err != nil {
+		return nil
+	}
+	return e
 }
 
 func nilIfEmpty(v string) any {

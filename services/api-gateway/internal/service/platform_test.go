@@ -38,3 +38,15 @@ func TestPlatformReadService_NeverAssumesLive(t *testing.T) {
 		t.Fatalf("mode must be SANDBOX or LIVE, got %q", m)
 	}
 }
+
+// A2-17: a caller that must not guess (the proof verifier) can tell an unknown
+// mode from SANDBOX. Mode() keeps its SANDBOX fallback for the banner and the
+// onboarding gate, where the restricted answer is the safe one.
+func TestPlatformReadService_LookupReportsAnUnknownMode(t *testing.T) {
+	if mode, ok := (&PlatformReadService{}).Lookup(context.Background()); ok || mode != "" {
+		t.Fatalf("nil pool: Lookup = (%q, %v), want (\"\", false)", mode, ok)
+	}
+	if (&PlatformReadService{}).Mode(context.Background()) != "SANDBOX" {
+		t.Fatalf("Mode() must keep its SANDBOX fallback")
+	}
+}

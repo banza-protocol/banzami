@@ -34,7 +34,16 @@ QR / PDF / link ──▶ reference ──▶ Gateway proof endpoint (Resolution
 
 `exists`, `status`, `amount`, `currency`, `payer/payee_display` (privacy-gated),
 `payer/payee_handle`, `method`, `description`, `confirmed_at`, `issued_at`,
-`verification_url`, `network`, `operator`. Nothing else.
+`verification_url`, `network`, `operator`, `environment`. Nothing else.
+
+`environment` (`SANDBOX` | `LIVE`, from the proof row itself) is what tells a
+reader a Sandbox receipt is not real money; the page's Sandbox disclosure is
+drawn from it (audit finding A2-17). It was once absent, and the page labelled a
+proof by the stack it happened to ask. The page asks a stack only once the
+platform mode is **known**: `GET /v1/platform-mode` answers
+`503 PLATFORM_MODE_UNAVAILABLE` when the mode cannot be read, and the page then
+shows "Verificação indisponível" rather than guessing SANDBOX — a guess sent it
+to the Sandbox stack, where a genuine LIVE proof reads as not found.
 
 ## What it never exposes (§3–§5)
 

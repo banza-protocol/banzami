@@ -91,13 +91,13 @@ export interface ProofResult {
   operator?: string;
   message?: string;
   /**
-   * The environment the proof lives in. The verifier's public payload carries no
-   * environment field today, so this is the environment of the stack that
-   * answered — each stack has its own proofs, so a proof read from the Sandbox
-   * stack is a Sandbox proof. Preferred from the payload if it ever carries one.
-   * Absent for a reference refused before any stack was asked.
+   * The environment the proof lives in, from the verifier's payload (the proof
+   * row's own environment, A2-17). A gateway that predates the field leaves it
+   * out; then it is the stack that answered, which holds only its own proofs.
+   * Absent when no stack was asked (a refused reference, an unknown platform
+   * mode). The page's Sandbox disclosure is drawn from this.
    */
-  environment?: 'LIVE' | 'SANDBOX';
+  environment?: 'LIVE' | 'SANDBOX' | null;
 }
 
 // Public transaction-proof verification (BANZA ADR-023). The receipt is not the
@@ -142,7 +142,15 @@ export async function getProof(ref: string): Promise<ProofResult> {
     // HTML page — json() threw, and the page told the reader their genuine
     // Sandbox proof "does not exist or may have been forged". A verification
     // feature that calls a real record a forgery is worse than one that errors.
-    const { base, env } = await platformTarget();
+    //
+    // The mode must be KNOWN. An unreadable mode used to become SANDBOX here,
+    // so the page asked the Sandbox stack whatever the platform was: at LIVE a
+    // genuine proof would come back "not found" and a Sandbox one could be read
+    // in its place (A2-17). Unknown is an unknown, not a stack.
+    const mode = await readPlatformMode();
+    if (!mode) return unavailable('platform_mode_unknown');
+    const env = mode;
+    const base = baseForMode(mode);
     asked = env;
     const res = await fetch(`${base}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
 
@@ -154,9 +162,16 @@ export async function getProof(ref: string): Promise<ProofResult> {
     // A body we cannot read is an unknown, not a verdict.
     if (!j || typeof j.exists !== 'boolean') return unavailable('unparseable_response');
 
-    // The proof's environment is the stack it was read from — not the build's
-    // API_BASE, which named LIVE while the proof came from the Sandbox stack.
-    const environment = j.environment === 'LIVE' || j.environment === 'SANDBOX' ? j.environment : env;
+    // The proof's environment comes from the proof: the verifier's payload
+    // carries it (A2-17). A payload from a gateway that predates the field
+    // falls back to the stack that answered, which holds only its own proofs.
+    // A payload that has the field but cannot name the environment is an
+    // unknown — never shown as either.
+    let environment: 'LIVE' | 'SANDBOX' = env;
+    if ('environment' in j) {
+      if (j.environment !== 'LIVE' && j.environment !== 'SANDBOX') return unavailable('proof_environment_unknown');
+      environment = j.environment;
+    }
 
     // A definitive 404 is the one case that may say "invalid".
     if (res.status === 404) {
@@ -170,9 +185,27 @@ export async function getProof(ref: string): Promise<ProofResult> {
   }
 }
 
+/**
+ * The platform mode as the gateway states it, or null when it cannot be read
+ * (non-2xx — the gateway answers 503 PLATFORM_MODE_UNAVAILABLE — an unreadable
+ * body, a missing or unknown mode, a network failure). For callers that must
+ * not guess, such as proof verification.
+ */
+export async function readPlatformMode(): Promise<'LIVE' | 'SANDBOX' | null> {
+  try {
+    const res = await fetch(`${API_BASE}/v1/platform-mode`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const j = (await res.json()) as Partial<PlatformModeInfo>;
+    return j.mode === 'LIVE' || j.mode === 'SANDBOX' ? j.mode : null;
+  } catch {
+    return null;
+  }
+}
+
 // Reads the central platform mode (no rebuild needed to flip it). Production is
 // silent: only SANDBOX is communicated. On ANY failure it resolves to SANDBOX —
-// the site never assumes LIVE on error.
+// the site never assumes LIVE on error. That fallback is for what the site
+// SHOWS (the banner); a caller that acts on the mode uses readPlatformMode.
 export async function getPlatformMode(): Promise<PlatformModeInfo> {
   const fallback: PlatformModeInfo = {
     mode: 'SANDBOX', public_banner: true,

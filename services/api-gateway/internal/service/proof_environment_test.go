@@ -29,3 +29,21 @@ func TestProofEnvironmentIsCanonical(t *testing.T) {
 		}
 	}
 }
+
+// A2-17: the public verifier must say which environment a proof belongs to,
+// from the proof itself. The payload carried no environment, so the website
+// labelled a proof from the stack it happened to ask — which, after a failed
+// platform-mode read, was the Sandbox stack by default.
+func TestProofPublicPayloadCarriesTheProofsEnvironment(t *testing.T) {
+	svc := NewProofService(nil, "k", "", "banzami", "banza", "https://banzami.com/r/")
+	for stored, want := range map[string]any{"SANDBOX": "SANDBOX", "LIVE": "LIVE", "sandbox": "SANDBOX", "": nil, "staging-ish": nil} {
+		pub := svc.Public(&Proof{Environment: stored, Status: "CONFIRMED"})
+		got, ok := pub["environment"]
+		if !ok {
+			t.Fatalf("Public(%q): no environment field", stored)
+		}
+		if got != want {
+			t.Fatalf("Public(%q).environment = %v, want %v", stored, got, want)
+		}
+	}
+}

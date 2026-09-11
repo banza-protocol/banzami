@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -18,10 +19,19 @@ func NewPlatformHandler(svc *service.PlatformReadService) *PlatformHandler {
 }
 
 // GET /v1/platform-mode  (public, no auth)
+//
+// An unreadable mode answers 503 PLATFORM_MODE_UNAVAILABLE, never a guessed
+// SANDBOX (A2-17): the proof verifier chooses which stack to ask from this, and
+// a guess sent it to the Sandbox stack whatever the platform was. Readers that
+// only draw a banner already treat any non-2xx as Sandbox — the restricted
+// answer — so they are unaffected.
 func (h *PlatformHandler) Mode(w http.ResponseWriter, r *http.Request) {
-	mode := "SANDBOX"
-	if h.svc != nil {
-		mode = h.svc.Mode(r.Context())
+	mode, ok := h.svc.Lookup(r.Context())
+	if !ok {
+		w.Header().Set("Cache-Control", "no-store")
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "PLATFORM_MODE_UNAVAILABLE",
+			"the platform mode could not be read")
+		return
 	}
 	sandbox := mode == "SANDBOX"
 	// Short cache: the mode changes rarely; readers pick up a change within ~30s.
