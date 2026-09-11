@@ -3790,3 +3790,103 @@ fail without the guard.
 The audit record of a pricing-rule change now names the operation (SETTLEMENT/PAYOUT) and
 country it prices. The PHP README's idempotency examples use a key derived from the
 order, not a literal gitleaks read as a credential (it failed `make security-check`).
+
+## RA-152 — an idempotency key was global, so one tenant could learn or claim another's
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit A1-06)
+- **Status:** FIXED (migration 0138, core, api-gateway)
+
+Keys were unique across all tenants: reusing one told you another tenant's key existed
+(409), and predictable keys could be pre-claimed before their owner used them. The
+settlement lookup by key named no owner at all and answered with whatever settlement
+held it. Transactions and payouts are now keyed by (merchant_id, key), settlements by
+(application_id, key) — the SEC-002 binding, not the caller-written owner_ref — and the
+core lookups take the owner. Transfers keep a global key deliberately: on the hosted
+rail it is `pl-pay-<link>`, so a second payer's transfer collides before any money moves.
+
+## RA-153 — every service held every credential on the stack
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-09)
+- **Status:** FIXED (sandbox-deploy.sh, CI guard)
+
+A file read in public-api — consumer-facing, open registration — yielded the Console
+session secret, the API-key pepper, the proof signing key and core's internal authority.
+One mapping now says what each service may read; the first create, the redeploy and
+admin-api's own create build their mounts and their in-process exports from it, and a
+redeploy filters cloned mounts so a removed credential cannot survive by being copied.
+On the runtime: core-api holds 3 (db, core key, payee key), public-api 4, admin-api 5.
+`tests/ops/sandbox-secret-scope.test.mjs` derives the expectation from each service's own
+source and fails in both directions.
+
+## RA-154 — consumer KYC evidence could be stored in the other environment's bucket
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-12)
+- **Status:** FIXED (public-api, admin-api)
+
+The RA-100 defect, for consumers, and the evidence is identity documents: the store was
+built from whatever bucket the variables named. Both services refuse a bucket that names
+the other environment, or neither, or a stack that declares no environment. Latent on the
+Sandbox, which configures no KYC bucket — decided before the first one is placed.
+
+## RA-155 — onboarding produced an account nobody could sign into
+
+- **Found:** 2026-09-11 (full-system assurance; surfaced by RA-149 on the deployed stack)
+- **Status:** FIXED (public-api, ADR-010)
+
+The phone → OTP → PIN flow wrote the PIN only to core (the wallet PIN); sign-in reads
+`public_api_credentials`, which it never wrote. Every wallet it made was a dead end.
+RA-149's session check made it visible: the deployed developer-platform E2E's payer was
+refused 401 when paying a link. Completion now saves the same PIN as the sign-in
+credential; the harness passes 24/24 again on the deployed stack.
+
+## RA-156 — a Business could not read its own wallet account; a delivered webhook could be re-sent
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit; privacy audit A6-14; fail-open A2-21)
+- **Status:** FIXED (api-gateway, core)
+
+`GET /v1/wallet-accounts/{id}` passed no wallet id and the merchant path demanded one, so
+a Business reading its own account always got 400. Webhook replay re-queued a delivery
+that had already succeeded (409 now; replay is for one that failed). Core logged a
+consumer's phone number on a route reachable without signing in, and a Business's email
+on creation (`banzami_types::mask`). A settlement whose ledger post failed gave its
+SETTLED claim back; if that failed too the error was discarded — it is logged with the id.
+
+## RA-157 — a stored delivery error carried the endpoint URL; the Python SDK computed money in floating point
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-13; SDK review)
+- **Status:** FIXED (api-gateway, sdk/python, apps/pay, infra/nginx)
+
+`webhook_deliveries.last_error` is shown to the merchant and in the operator console and
+quoted the endpoint URL whole — query string and any credentials in it; only the scheme
+and host survive. The Python SDK's `to_minor` multiplied a binary float, so
+`to_minor(1.15)` was 114 minor units. apps/pay set its CSP on the response but not on the
+request, so Next rendered unnonced scripts under a nonce policy. The two retired nginx
+confs forwarded the raw CF-Connecting-IP header.
+
+## RA-158 — the Validation Studio said "commit created" for a commit git refused
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-27)
+- **Status:** FIXED (apps/validation-studio)
+
+git's error came back through the same path as its output, so a commit refused by a hook,
+an empty index or a missing identity was reported as made. The helper carries git's exit
+status; the test drives it against a scratch repository.
+
+## RA-159 — a BANZADMIN session was a readable 12-hour bearer that nothing could end
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-08, privacy audit A6-12)
+- **Status:** FIXED (admin-api, apps/admin, docs)
+
+The console kept the operator JWT in `localStorage` under a CSP allowing inline script, so
+any XSS read it and replayed it for 12 hours from anywhere; there was no idle expiry,
+logout revoked nothing, and no high-risk action asked for anything beyond the session — a
+stolen session could invite a new SUPER_ADMIN to the attacker's address.
+
+The session is now an HttpOnly, Secure, SameSite=Strict `__Host-` cookie on the console's
+own origin, with an HMAC-bound CSRF token on every mutation and a nonce CSP with no
+`'unsafe-inline'`; bearer sessions are refused. It expires after 30 minutes idle (background
+polls marked passive do not extend it), capped at 12 hours from sign-in; logout bumps the
+operator's token version; and 37 high-risk routes (operators, pricing, settlements,
+payouts, freeze, credentials) require a TOTP proof from the last 5 minutes, the code spent
+on use and failures feeding the lockout. No migration. Deploying admin-api and
+admin-frontend together signs every operator out once, by design.
