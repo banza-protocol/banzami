@@ -65,6 +65,9 @@ pub async fn create_batch(
             SettlementError::FeeExceedsGross { .. } => {
                 ApiError::bad_request("fee_amount exceeds gross_amount")
             }
+            SettlementError::InvalidAmount { .. } => ApiError::bad_request(
+                "gross_amount must be positive, fee_amount not negative, and less than gross",
+            ),
             other => ApiError::internal(other.to_string()),
         })?;
 

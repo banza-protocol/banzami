@@ -116,6 +116,12 @@ pub enum SettlementError {
     #[error("fee {fee} exceeds gross {gross}")]
     FeeExceedsGross { fee: Money, gross: Money },
 
+    /// Gross must be positive, the fee not negative, and something must be
+    /// left to settle. `fee <= gross` alone let gross -100 / fee -200 through
+    /// as a net +100 settlement.
+    #[error("invalid settlement amounts: gross {gross}, fee {fee}")]
+    InvalidAmount { gross: Money, fee: Money },
+
     #[error("ledger error: {0}")]
     Ledger(#[from] banzami_ledger::LedgerError),
 

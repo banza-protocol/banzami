@@ -273,3 +273,44 @@ async fn a_confirm_racing_a_fail_leaves_ledger_and_status_agreeing(
     }
     Ok(())
 }
+
+// Gross positive, fee not negative, something left to settle. `fee <= gross`
+// alone accepted gross -100 / fee -200 as a +100 settlement.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_batch_settles_a_positive_net_only(pool: PgPool) -> sqlx::Result<()> {
+    let fix = setup(pool).await;
+    for (i, (gross, fee)) in [(-100, -200), (0, 0), (1_000, -1), (1_000, 1_000), (-5, 0)]
+        .into_iter()
+        .enumerate()
+    {
+        let r = fix
+            .engine
+            .create_batch(CreateSettlementBatchRequest {
+                idempotency_key: format!("settle-bad-amount-{i}"),
+                merchant_id: fix.merchant_id,
+                wallet_id: fix.wallet_id,
+                gross_amount: kz(gross),
+                fee_amount: kz(fee),
+                transaction_count: 1,
+                period_start: Utc::now() - chrono::Duration::days(1),
+                period_end: Utc::now(),
+            })
+            .await;
+        assert!(r.is_err(), "gross {gross} / fee {fee} must be refused");
+    }
+    let ok = fix
+        .engine
+        .create_batch(CreateSettlementBatchRequest {
+            idempotency_key: "settle-good-amount".into(),
+            merchant_id: fix.merchant_id,
+            wallet_id: fix.wallet_id,
+            gross_amount: kz(1_000),
+            fee_amount: kz(0),
+            transaction_count: 1,
+            period_start: Utc::now() - chrono::Duration::days(1),
+            period_end: Utc::now(),
+        })
+        .await;
+    assert!(ok.is_ok(), "a fee-free positive batch is valid");
+    Ok(())
+}

@@ -94,6 +94,15 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
         &self,
         req: CreateSettlementBatchRequest,
     ) -> Result<Settlement, SettlementError> {
+        if req.gross_amount.amount_minor() <= 0
+            || req.fee_amount.amount_minor() < 0
+            || req.fee_amount.amount_minor() == req.gross_amount.amount_minor()
+        {
+            return Err(SettlementError::InvalidAmount {
+                gross: req.gross_amount,
+                fee: req.fee_amount,
+            });
+        }
         if req.fee_amount.amount_minor() > req.gross_amount.amount_minor() {
             return Err(SettlementError::FeeExceedsGross {
                 fee: req.fee_amount,
