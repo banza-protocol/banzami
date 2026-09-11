@@ -121,7 +121,7 @@ function Balances() {
         <Card style={{ padding: 26, marginBottom: 16 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não criou nenhuma conta.</p>
           <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
-            Uma conta mantém dinheiro separado do resto do projeto — uma por campanha, por vendedor, por
+            Uma conta mantém dinheiro separado do resto do negócio ligado a este projeto — uma por campanha, por vendedor, por
             evento, ou pelo que a sua aplicação precisar de manter à parte. Pode criá-la aqui ou pela API.
           </p>
         </Card>
@@ -135,7 +135,9 @@ function Balances() {
       {readiness}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <p style={{ margin: 0, fontSize: 13, color: '#8a7a7e', fontWeight: 700 }}>
-          {state.accounts.length} conta{state.accounts.length === 1 ? '' : 's'} neste projeto
+          {/* The accounts are the Business's, read for the whole Business the
+              Project receives into — not the Project's own. */}
+          {state.accounts.length} conta{state.accounts.length === 1 ? '' : 's'} do negócio ligado a este projeto
         </p>
         <WalletAccountForm onCreated={reload} />
       </div>

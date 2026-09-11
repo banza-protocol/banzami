@@ -182,7 +182,7 @@ function Transactions() {
       {state.k === 'ready' && state.rows.length === 0 && (
         <Card style={{ padding: 26 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>
-            {type ? 'Nenhuma operação deste tipo.' : 'Ainda não há operações neste projeto.'}
+            {type ? 'Nenhuma operação deste tipo.' : 'Ainda não há operações no negócio ligado a este projeto.'}
           </p>
           <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
             Um pagamento, um reembolso ou uma transferência entre contas aparece aqui assim que
@@ -315,7 +315,8 @@ export default function TransacoesPage() {
       <div className="bz-view" style={{ maxWidth: 980 }}>
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Transações</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
-          Pagamentos, reembolsos e transferências entre contas deste projeto. Os pedidos à API que
+          Pagamentos, reembolsos e transferências entre contas do negócio ligado a este projeto — de
+          todo o negócio, não só as que este projeto iniciou. Os pedidos à API que
           não movem dinheiro estão em Registos.
         </p>
         <Transactions />
