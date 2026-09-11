@@ -32,6 +32,8 @@ class BanzamiTransferItem extends StatelessWidget {
       'MERCHANT_PAYMENT_SENT' => (Icons.storefront_rounded, 'Pagamento'),
       'WALLET_FUNDED' => (Icons.add_rounded, 'Carregamento'),
       'WALLET_REVERSED' => (Icons.remove_rounded, 'Estorno'),
+      'REFUND_RECEIVED' => (Icons.undo_rounded, 'Reembolso'),
+      'RESTITUTION_RECEIVED' => (Icons.gavel_rounded, 'Restituição'),
       // Never surface a raw technical code — fall back to the shared label.
       _ => (Icons.swap_horiz_rounded, item.typeLabel),
     };

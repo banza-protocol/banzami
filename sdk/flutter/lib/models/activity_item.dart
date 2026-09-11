@@ -58,6 +58,10 @@ class ActivityItem {
         return 'Carregamento';
       case 'WALLET_REVERSED':
         return 'Estorno';
+      case 'REFUND_RECEIVED':
+        return 'Reembolso';
+      case 'RESTITUTION_RECEIVED':
+        return 'Restituição';
       default:
         return 'Pagamento';
     }

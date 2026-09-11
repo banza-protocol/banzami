@@ -95,3 +95,127 @@ async fn a_link_payment_names_the_business_and_its_own_words(pool: PgPool) {
     assert_eq!(row.counterparty_handle.as_deref(), Some("doaprobe"));
     assert_eq!(row.note.as_deref(), Some("DOA-55791091"));
 }
+
+/// A7-09. Money that entered the wallet without a transfer had no history row:
+/// a refund, a dispute restitution, a Sandbox top-up — and a real deposit, which
+/// is COMPLETED while the feed read only SETTLED. The balance moved; the history
+/// said nothing.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn every_credit_to_the_wallet_has_a_history_row(pool: PgPool) {
+    let me = Uuid::new_v4();
+    sqlx::query("INSERT INTO consumers (id, handle, phone_number, status) VALUES ($1,'credited1',$2,'ACTIVE')")
+        .bind(me)
+        .bind(format!("+2449{}", &me.to_string()[..8]))
+        .execute(&pool)
+        .await
+        .unwrap();
+    let available = ledger_account(&pool).await;
+    let wallet: Uuid = sqlx::query_scalar(
+        "INSERT INTO consumer_wallets (id, consumer_id, currency, status, available_account_id, reserved_account_id)
+         VALUES (gen_random_uuid(), $1, 'AOA', 'ACTIVE', $2, $3) RETURNING id",
+    )
+    .bind(me)
+    .bind(available)
+    .bind(ledger_account(&pool).await)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    let merchant = Uuid::new_v4();
+    let wp: Uuid = sqlx::query_scalar(
+        "INSERT INTO wallet_payments (id, transfer_id, merchant_id, consumer_id, amount_minor, currency, status, trace_id, environment)
+         VALUES (gen_random_uuid(), gen_random_uuid(), $1, $2, 1000, 'AOA', 'COMPLETED', gen_random_uuid(), 'SANDBOX') RETURNING id",
+    )
+    .bind(merchant)
+    .bind(me)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    // A refund of 300 and a dispute restitution of 200 on that payment.
+    sqlx::query(
+        "INSERT INTO refunds (id, merchant_id, consumer_id, wallet_id, amount_minor, currency, idempotency_key, status, source_type, source_id)
+         VALUES (gen_random_uuid(), $1, $2, $3, 300, 'AOA', 'rf-1', 'SUCCEEDED', 'WALLET_PAYMENT', $4)",
+    )
+    .bind(merchant)
+    .bind(me)
+    .bind(wallet)
+    .bind(wp)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO restitution_allocations (source_type, source_id, origin, origin_id, amount_minor, currency, idempotency_key, posting_id)
+         VALUES ('WALLET_PAYMENT', $1, 'DISPUTE', gen_random_uuid(), 200, 'AOA', 'dsp-1', gen_random_uuid())",
+    )
+    .bind(wp)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // A Sandbox top-up of 5 000: a balanced posting under the test-credit key.
+    let transit = ledger_account(&pool).await;
+    let posting: Uuid = sqlx::query_scalar(
+        "INSERT INTO ledger_postings (id, description, idempotency_key) VALUES (gen_random_uuid(), 'test credit', $1) RETURNING id",
+    )
+    .bind(format!("admin-test-credit-{me}-k-topup0001"))
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO ledger_entries (posting_id, account_id, entry_type, amount_minor, currency)
+         VALUES ($1, $2, 'DEBIT', 5000, 'AOA'), ($1, $3, 'CREDIT', 5000, 'AOA')",
+    )
+    .bind(posting)
+    .bind(transit)
+    .bind(available)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // A real deposit, COMPLETED.
+    sqlx::query(
+        "INSERT INTO consumer_deposits (id, consumer_id, wallet_id, amount_minor, currency, provider, external_ref, idempotency_key, status, expires_at)
+         VALUES (gen_random_uuid(), $1, $2, 7000, 'AOA', 'EMIS', 'ext-1', 'dep-1', 'COMPLETED', now() + interval '1 hour')",
+    )
+    .bind(me)
+    .bind(wallet)
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    let (items, _, _) = fetch_activity(&pool, me, 50, None, None, None)
+        .await
+        .unwrap();
+    let seen: Vec<(String, String, i64)> = items
+        .iter()
+        .map(|i| (i.item_type.clone(), i.direction.clone(), i.amount_minor))
+        .collect();
+    for want in [
+        ("REFUND_RECEIVED", 300),
+        ("RESTITUTION_RECEIVED", 200),
+        ("WALLET_FUNDED", 5000),
+        ("WALLET_FUNDED", 7000),
+    ] {
+        assert!(
+            seen.iter()
+                .any(|(t, d, a)| t == want.0 && d == "INCOMING" && *a == want.1),
+            "no history row for {want:?}; the feed has {seen:?}"
+        );
+    }
+    let topup = items.iter().find(|i| i.amount_minor == 5000).unwrap();
+    assert_eq!(
+        topup.counterparty_display_name.as_deref(),
+        Some("Carregamento de teste")
+    );
+
+    // Nobody else's credit shows up here.
+    let other = Uuid::new_v4();
+    let (theirs, _, _) = fetch_activity(&pool, other, 50, None, None, None)
+        .await
+        .unwrap();
+    assert!(
+        theirs.is_empty(),
+        "another consumer sees these credits: {theirs:?}"
+    );
+}

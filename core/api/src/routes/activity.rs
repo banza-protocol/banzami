@@ -23,7 +23,7 @@ pub struct ActivityQuery {
     pub limit: Option<i64>,
     pub cursor: Option<String>,
     /// Optional filter: P2P_SENT | P2P_RECEIVED | MERCHANT_PAYMENT_SENT |
-    /// WALLET_FUNDED | WALLET_REVERSED
+    /// WALLET_FUNDED | WALLET_REVERSED | REFUND_RECEIVED | RESTITUTION_RECEIVED
     pub r#type: Option<String>,
     /// Optional filter: OUTGOING | INCOMING | SYSTEM
     pub direction: Option<String>,
@@ -162,7 +162,81 @@ WITH activity AS (
         NULL::text               AS transfer_id,
         d.id::text               AS funding_id
     FROM consumer_deposits d
-    WHERE d.consumer_id = $1 AND d.status IN ('SETTLED', 'REVERSED')
+    -- A settled deposit is COMPLETED; SETTLED is the older spelling. Reading
+    -- only SETTLED left every real deposit out of the history (A7-09).
+    WHERE d.consumer_id = $1 AND d.status IN ('SETTLED', 'COMPLETED', 'REVERSED')
+
+    UNION ALL
+
+    -- REFUND_RECEIVED: a Business refunded this consumer's payment. The money
+    -- came back through the ledger with no transfer, so nothing above sees it.
+    SELECT
+        r.id::text               AS activity_id,
+        'REFUND_RECEIVED'::text  AS item_type,
+        'INCOMING'::text         AS direction,
+        r.amount_minor,
+        r.currency,
+        'COMPLETED'::text        AS status,
+        r.created_at,
+        r.created_at             AS completed_at,
+        b.handle                 AS counterparty_handle,
+        b.display_name           AS counterparty_display_name,
+        r.reason                 AS note,
+        NULL::text               AS transfer_id,
+        NULL::text               AS funding_id
+    FROM refunds r
+    LEFT JOIN business_public_identities b ON b.merchant_id = r.merchant_id
+    WHERE r.consumer_id = $1 AND r.status = 'SUCCEEDED'
+
+    UNION ALL
+
+    -- RESTITUTION_RECEIVED: a dispute on this consumer's wallet payment was
+    -- decided for them. Refunds are counted above from `refunds`, so only the
+    -- non-refund origins are read from the restitution ledger here.
+    SELECT
+        ra.id::text                   AS activity_id,
+        'RESTITUTION_RECEIVED'::text  AS item_type,
+        'INCOMING'::text              AS direction,
+        ra.amount_minor,
+        ra.currency,
+        'COMPLETED'::text             AS status,
+        ra.created_at,
+        ra.created_at                 AS completed_at,
+        b.handle                      AS counterparty_handle,
+        b.display_name                AS counterparty_display_name,
+        NULL::text                    AS note,
+        NULL::text                    AS transfer_id,
+        NULL::text                    AS funding_id
+    FROM restitution_allocations ra
+    JOIN wallet_payments wp ON wp.id = ra.source_id
+    LEFT JOIN business_public_identities b ON b.merchant_id = wp.merchant_id
+    WHERE ra.source_type = 'WALLET_PAYMENT' AND ra.origin IN ('DISPUTE', 'REVERSAL')
+      AND wp.consumer_id = $1
+
+    UNION ALL
+
+    -- A Sandbox top-up (/v1/sandbox/fund, BANZADMIN test credit): a balanced
+    -- ledger posting under this consumer's test-credit key, credited to the
+    -- consumer's wallet, with no deposit or transfer row. Named for what it is,
+    -- so it never reads as a Multicaixa top-up.
+    SELECT
+        p.id::text               AS activity_id,
+        'WALLET_FUNDED'::text    AS item_type,
+        'INCOMING'::text         AS direction,
+        e.amount_minor,
+        e.currency::text         AS currency,
+        'COMPLETED'::text        AS status,
+        p.created_at,
+        p.created_at             AS completed_at,
+        NULL::text               AS counterparty_handle,
+        'Carregamento de teste'::text AS counterparty_display_name,
+        NULL::text               AS note,
+        NULL::text               AS transfer_id,
+        p.id::text               AS funding_id
+    FROM ledger_postings p
+    JOIN ledger_entries e ON e.posting_id = p.id AND e.entry_type = 'CREDIT'
+    JOIN consumer_wallets cw ON cw.available_account_id = e.account_id AND cw.consumer_id = $1
+    WHERE p.idempotency_key LIKE 'admin-test-credit-' || $1::text || '-%'
 )
 SELECT * FROM activity
 WHERE (
@@ -220,7 +294,8 @@ pub async fn fetch_activity(
 /// GET /internal/v1/consumer/activity
 ///
 /// Returns the consumer-visible activity feed: a merged, time-ordered projection
-/// of P2P transfers (sent + received) and wallet fundings/reversals.
+/// of every movement of the consumer's money — transfers sent and received,
+/// deposits and Sandbox top-ups, refunds and dispute restitutions.
 pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ActivityQuery>,

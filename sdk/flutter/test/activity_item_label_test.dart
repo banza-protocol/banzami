@@ -37,6 +37,25 @@ void main() {
       expect(_item(itemType: 'WALLET_REVERSED').typeLabel, 'Estorno');
     });
 
+    // A7-09: money that comes back to the wallet has its own words — a refund
+    // or a dispute restitution is not a "Pagamento".
+    test('a refund and a restitution say what they are', () {
+      expect(_item(itemType: 'REFUND_RECEIVED', direction: 'INCOMING').typeLabel,
+          'Reembolso');
+      expect(
+          _item(itemType: 'RESTITUTION_RECEIVED', direction: 'INCOMING')
+              .typeLabel,
+          'Restituição');
+    });
+
+    test('a Sandbox top-up is titled as one, never as Multicaixa', () {
+      final topup = _item(
+          itemType: 'WALLET_FUNDED',
+          direction: 'INCOMING',
+          counterpartyDisplayName: 'Carregamento de teste');
+      expect(topup.displayTitle, 'Carregamento de teste');
+    });
+
     test('never leaks a raw technical code for unknown/future types', () {
       for (final raw in const [
         'P2P_SENT',
