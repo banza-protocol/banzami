@@ -25,18 +25,28 @@ func NewMerchantKybHandler(gw, gwSandbox *service.GatewayClient) *MerchantKybHan
 // pick returns the gateway client for the requested environment. SANDBOX routes
 // to the staging gateway (operator-only review of sandbox docs); when sandbox is
 // requested but not configured it returns nil so the handler can 503.
-func (h *MerchantKybHandler) pick(r *http.Request) (*service.GatewayClient, bool) {
-	if r.URL.Query().Get("environment") == "SANDBOX" {
-		return h.gwSandbox, h.gwSandbox != nil
+// It answers the request itself when it returns false: 400 for an environment
+// it does not recognise (requestedEnvironment, A2-22), 503 when the Sandbox
+// review is not configured.
+func (h *MerchantKybHandler) pick(w http.ResponseWriter, r *http.Request) (*service.GatewayClient, bool) {
+	e, ok := requestedEnvironment(w, r)
+	if !ok {
+		return nil, false
+	}
+	if e.IsSandbox() {
+		if h.gwSandbox == nil {
+			writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
+			return nil, false
+		}
+		return h.gwSandbox, true
 	}
 	return h.gw, true
 }
 
 // GET /admin/v1/merchant-kyb/documents?status=&limit=
 func (h *MerchantKybHandler) List(w http.ResponseWriter, r *http.Request) {
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	raw, code, err := gw.ListMerchantKybDocumentsRaw(r.Context(),
@@ -50,9 +60,8 @@ func (h *MerchantKybHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/merchant-kyb/merchants?limit=   — merchant-centric review queue.
 func (h *MerchantKybHandler) Merchants(w http.ResponseWriter, r *http.Request) {
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	raw, code, err := gw.ListMerchantKybMerchantsRaw(r.Context(), r.URL.Query().Get("limit"))
@@ -65,9 +74,8 @@ func (h *MerchantKybHandler) Merchants(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/merchant-kyb/merchants/{id}/documents
 func (h *MerchantKybHandler) MerchantDocuments(w http.ResponseWriter, r *http.Request) {
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	raw, code, err := gw.MerchantKybMerchantDocumentsRaw(r.Context(), chi.URLParam(r, "id"))
@@ -85,9 +93,8 @@ func (h *MerchantKybHandler) Approve(w http.ResponseWriter, r *http.Request) {
 		Notes      string `json:"notes"`
 	}
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body)
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -109,9 +116,8 @@ func (h *MerchantKybHandler) Reject(w http.ResponseWriter, r *http.Request) {
 		Notes           string `json:"notes"`
 	}
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body)
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -128,9 +134,8 @@ func (h *MerchantKybHandler) Reject(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/merchant-kyb/merchants/{id}/context
 func (h *MerchantKybHandler) Context(w http.ResponseWriter, r *http.Request) {
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	raw, code, err := gw.MerchantKybContextRaw(r.Context(), chi.URLParam(r, "id"))
@@ -143,9 +148,8 @@ func (h *MerchantKybHandler) Context(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/merchant-kyb/merchants/{id}/timeline
 func (h *MerchantKybHandler) Timeline(w http.ResponseWriter, r *http.Request) {
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	raw, code, err := gw.MerchantKybTimelineRaw(r.Context(), chi.URLParam(r, "id"))
@@ -166,9 +170,8 @@ func (h *MerchantKybHandler) ReadURL(w http.ResponseWriter, r *http.Request) {
 		Intent string `json:"intent"`
 	}
 	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 1<<10)).Decode(&body)
-	gw, ok := h.pick(r)
+	gw, ok := h.pick(w, r)
 	if !ok {
-		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
 		return
 	}
 	id := chi.URLParam(r, "id")

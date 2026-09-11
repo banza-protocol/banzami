@@ -20,18 +20,29 @@ func NewProofsHandler(live, sandbox *service.ProofAdminService) *ProofsHandler {
 	return &ProofsHandler{live: live, sandbox: sandbox}
 }
 
-func (h *ProofsHandler) pick(r *http.Request) (*service.ProofAdminService, bool) {
-	if r.URL.Query().Get("environment") == "SANDBOX" {
-		return h.sandbox, h.sandbox != nil
+// It answers the request itself when it returns false: 400 for an environment
+// it does not recognise (requestedEnvironment, A2-22), 503 when the
+// environment has no proof service.
+func (h *ProofsHandler) pick(w http.ResponseWriter, r *http.Request) (*service.ProofAdminService, bool) {
+	e, ok := requestedEnvironment(w, r)
+	if !ok {
+		return nil, false
 	}
-	return h.live, h.live != nil
+	svc := h.live
+	if e.IsSandbox() {
+		svc = h.sandbox
+	}
+	if svc == nil {
+		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "proofs are not available for this environment")
+		return nil, false
+	}
+	return svc, true
 }
 
 // GET /admin/v1/proofs?q=&environment=
 func (h *ProofsHandler) List(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "proofs are not available for this environment")
 		return
 	}
 	proofs, err := svc.List(r.Context(), r.URL.Query().Get("q"), 50)
@@ -44,9 +55,8 @@ func (h *ProofsHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/proofs/{ref}?environment=
 func (h *ProofsHandler) Get(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "proofs are not available for this environment")
 		return
 	}
 	proof, events, err := svc.Get(r.Context(), chi.URLParam(r, "ref"))

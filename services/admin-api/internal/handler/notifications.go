@@ -23,18 +23,29 @@ func NewNotificationsHandler(notif, notifSandbox *service.NotificationService) *
 	return &NotificationsHandler{notif: notif, notifSandbox: notifSandbox}
 }
 
-func (h *NotificationsHandler) pickNotif(r *http.Request) *service.NotificationService {
-	if r.URL.Query().Get("environment") == "SANDBOX" {
-		return h.notifSandbox
+// It answers the request itself when it returns false: 400 for an environment
+// it does not recognise (requestedEnvironment, A2-22), 503 when the
+// environment has no notification service.
+func (h *NotificationsHandler) pickNotif(w http.ResponseWriter, r *http.Request) (*service.NotificationService, bool) {
+	e, ok := requestedEnvironment(w, r)
+	if !ok {
+		return nil, false
 	}
-	return h.notif
+	n := h.notif
+	if e.IsSandbox() {
+		n = h.notifSandbox
+	}
+	if n == nil {
+		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "notifications are not configured for this environment")
+		return nil, false
+	}
+	return n, true
 }
 
 // GET /admin/v1/notifications?environment=&status=&limit=
 func (h *NotificationsHandler) List(w http.ResponseWriter, r *http.Request) {
-	n := h.pickNotif(r)
-	if n == nil {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "notifications are not configured for this environment")
+	n, ok := h.pickNotif(w, r)
+	if !ok {
 		return
 	}
 	_ = n.Generate(r.Context())
@@ -49,9 +60,8 @@ func (h *NotificationsHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/notifications/{id}/read?environment=
 func (h *NotificationsHandler) MarkRead(w http.ResponseWriter, r *http.Request) {
-	n := h.pickNotif(r)
-	if n == nil {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "notifications are not configured for this environment")
+	n, ok := h.pickNotif(w, r)
+	if !ok {
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -65,9 +75,8 @@ func (h *NotificationsHandler) MarkRead(w http.ResponseWriter, r *http.Request) 
 
 // POST /admin/v1/notifications/{id}/dismiss?environment=
 func (h *NotificationsHandler) Dismiss(w http.ResponseWriter, r *http.Request) {
-	n := h.pickNotif(r)
-	if n == nil {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "notifications are not configured for this environment")
+	n, ok := h.pickNotif(w, r)
+	if !ok {
 		return
 	}
 	id := chi.URLParam(r, "id")

@@ -56,7 +56,7 @@ const attentionTTL = 10 * time.Second
 var (
 	attentionRequests = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "banzadmin_attention_requests_total",
-		Help: "Attention summary requests by outcome (ok|unavailable|upstream_error|environment_mismatch) and cache (hit|miss).",
+		Help: "Attention summary requests by outcome (ok|invalid_environment|unavailable|upstream_error|environment_mismatch) and cache (hit|miss).",
 	}, []string{"outcome", "cache"})
 	attentionLatency = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name:    "banzadmin_attention_compute_seconds",
@@ -158,10 +158,12 @@ func (h *AttentionHandler) Summary(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "operator session required")
 		return
 	}
-	env := "LIVE"
-	if r.URL.Query().Get("environment") == "SANDBOX" {
-		env = "SANDBOX"
+	requested, ok := requestedEnvironment(w, r) // A2-22: an unknown value is 400, never Live
+	if !ok {
+		attentionRequests.WithLabelValues("invalid_environment", "miss").Inc()
+		return
 	}
+	env := requested.String()
 	src, ok := h.sources[env]
 	if !ok {
 		attentionRequests.WithLabelValues("unavailable", "miss").Inc()

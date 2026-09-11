@@ -8,6 +8,7 @@ import (
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/common/env"
 )
 
 // actorOf returns the authenticated operator's email for audit / reviewed_by.
@@ -91,4 +92,26 @@ func mayActOnOperator(w http.ResponseWriter, r *http.Request, targetRole string)
 		return false
 	}
 	return true
+}
+
+// requestedEnvironment reads ?environment= strictly (A2-22).
+//
+//	absent          → Live (the console sends no parameter for Live)
+//	SANDBOX / LIVE  → that environment, in any case, trimmed (env.Parse)
+//	anything else   → 400 INVALID_ENVIRONMENT, and no pool is reached
+//
+// The review handlers compared the raw value with "SANDBOX" and sent anything
+// else — "sandbox", "SANDBOX ", "SANDBX" — to the primary (Live) pool: an
+// operator who asked for the Sandbox queue and mistyped it acted on Live.
+func requestedEnvironment(w http.ResponseWriter, r *http.Request) (env.Environment, bool) {
+	q := r.URL.Query()
+	if !q.Has("environment") {
+		return env.Live, true
+	}
+	e := env.Parse(q.Get("environment"))
+	if !e.IsKnown() {
+		writeError(w, http.StatusBadRequest, "INVALID_ENVIRONMENT", "environment must be LIVE or SANDBOX")
+		return env.Unknown, false
+	}
+	return e, true
 }
