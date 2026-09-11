@@ -71,6 +71,9 @@ pub struct ApplyParams {
     pub posting_key: String,
     pub posting_description: String,
     pub transit_account_id: Uuid,
+    /// The stack environment, for the source's proof (transaction_proofs is
+    /// environment-scoped).
+    pub environment: String,
     /// Whether the merchant must actually HOLD the money being returned.
     ///
     /// A refund is voluntary: the merchant asks to give value back, and asking
@@ -152,20 +155,26 @@ fn normalize_source_type(raw: &str) -> Option<&'static str> {
 /// reversal (Banzami ADR-034 proof correction). A partial refund/restitution leaves
 /// the proof CONFIRMED; there is no PARTIALLY_REVERSED state in the protocol proof
 /// model (ADR-040). Idempotent, never deletes, no-op if no proof row exists yet.
-pub async fn mark_proof_fully_reversed(
-    pool: &sqlx::PgPool,
+///
+/// Runs inside the restitution's transaction. It ran after the commit, and
+/// ignored its own error: a failed write left a fully refunded payment with a
+/// proof that still verified as paid.
+async fn mark_proof_fully_reversed(
+    conn: &mut PgConnection,
     transaction_id: Uuid,
     environment: &str,
-) {
-    let _ = sqlx::query(
+) -> Result<(), RestitutionError> {
+    sqlx::query(
         "UPDATE transaction_proofs
             SET status = 'REVERSED', reversed_at = COALESCE(reversed_at, now()), updated_at = now()
           WHERE transaction_id = $1 AND environment = $2 AND status <> 'REVERSED'",
     )
     .bind(transaction_id.to_string())
     .bind(environment)
-    .execute(pool)
-    .await;
+    .execute(&mut *conn)
+    .await
+    .map_err(db)?;
+    Ok(())
 }
 
 struct Resolved {
@@ -419,6 +428,11 @@ pub async fn apply_restitution(
     .map_err(db)?;
 
     let cumulative_after = already + effective;
+    if cumulative_after == r.captured_amount {
+        if let Some(tid) = r.transaction_id {
+            mark_proof_fully_reversed(conn, tid, &p.environment).await?;
+        }
+    }
     Ok(RestitutionResult {
         replayed: false,
         effective_amount: effective,

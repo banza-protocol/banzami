@@ -2671,3 +2671,18 @@ mutations (each guard removed, the error fallback restored) each fail exactly
 their test. The BANZADMIN runbook matrix (stale since 0c408676 for
 application approval and dispute resolution) is corrected and documents what a
 freeze stops.
+
+## RA-088 — a fully refunded payment could keep a proof that verified as paid
+
+- **Found:** 2026-09-11 (receipts/proofs review)
+- **Status:** FIXED
+
+Refund and dispute restitution flipped the source's proof to `REVERSED` after
+committing the money movement, on the pool, ignoring the error. A failed write
+(lock timeout, connection loss, a trigger) left the payment fully refunded and
+its public proof still `CONFIRMED` — a receipt that verifies a payment the payer
+got back. The flip now runs inside `apply_restitution`'s transaction, when the
+cumulative restitution reaches the captured amount: both happen or neither.
+Test: `a_full_refund_whose_proof_cannot_be_reversed_does_not_happen` (a
+trigger refuses the proof write → the refund fails, nothing is restituted, the
+proof is unchanged); the original post-commit write fails it.

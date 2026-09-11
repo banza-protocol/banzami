@@ -143,6 +143,7 @@ pub async fn create(
             posting_key: format!("refund-{refund_id}"),
             posting_description: format!("refund:{refund_id}"),
             transit_account_id: state.transit_account_id.as_uuid(),
+            environment: state.environment.as_str().to_string(),
             // A refund is voluntary, so it must be funded. Asking to give money
             // back does not create it.
             require_available_funds: true,
@@ -234,15 +235,8 @@ pub async fn create(
     )
     .await;
 
-    // Proof correction: mark the acquiring proof REVERSED ONLY when the source is
-    // fully reversed (cumulative restitution == captured). A partial refund keeps
-    // the proof CONFIRMED — no PARTIALLY_REVERSED state.
-    if result.fully_reversed {
-        if let Some(tid) = result.transaction_id {
-            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str())
-                .await;
-        }
-    }
+    // Proof correction (REVERSED only on full cumulative reversal) happened
+    // inside apply_restitution's transaction.
 
     let refund = fetch_refund(&state.pool, refund_id, merchant_id).await?;
     Ok((StatusCode::CREATED, Json(refund)))

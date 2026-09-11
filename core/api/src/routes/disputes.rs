@@ -446,8 +446,6 @@ pub async fn resolve(
 
     let mut restitution_amount: i64 = 0;
     let mut restitution_reason: Option<String> = None;
-    let mut fully_reversed = false;
-    let mut restitution_tx_id: Option<Uuid> = None;
 
     if body.outcome == "WON_BY_CONSUMER" {
         // Source-aware restitution through the SHARED ceiling (Banzami ADR-034).
@@ -473,6 +471,7 @@ pub async fn resolve(
                 posting_key: format!("dispute-refund-{dispute_id}"),
                 posting_description: format!("dispute-refund:{dispute_id}"),
                 transit_account_id: state.transit_account_id.as_uuid(),
+                environment: state.environment.as_str().to_string(),
                 // A dispute is imposed from outside. The operator may have to honour
                 // it whether or not the merchant is still in funds, so the deficit
                 // becomes a debt to collect rather than a refusal the cardholder
@@ -484,8 +483,6 @@ pub async fn resolve(
         .map_err(map_dispute_restitution_err)?;
 
         restitution_amount = result.effective_amount;
-        fully_reversed = result.fully_reversed;
-        restitution_tx_id = result.transaction_id;
         restitution_reason = Some(if restitution_amount == 0 {
             "ALREADY_MADE_WHOLE".to_string()
         } else if restitution_amount < claim_amount {
@@ -530,13 +527,8 @@ pub async fn resolve(
         .map_err(|e| ApiError::internal(e.to_string()))?;
     }
 
-    // Proof correction (acquiring source): REVERSED only on full cumulative reversal.
-    if fully_reversed {
-        if let Some(tid) = restitution_tx_id {
-            restitution::mark_proof_fully_reversed(&state.pool, tid, state.environment.as_str())
-                .await;
-        }
-    }
+    // Proof correction (REVERSED only on full cumulative reversal) happened
+    // inside apply_restitution's transaction.
 
     risk::audit(
         &state.pool,

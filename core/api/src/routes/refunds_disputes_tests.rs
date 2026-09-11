@@ -1700,3 +1700,30 @@ async fn dispute_list_with_a_malformed_filter_is_refused(pool: PgPool) {
     .expect_err("a malformed merchant_id must not list every tenant");
     assert_eq!(err.status, axum::http::StatusCode::BAD_REQUEST);
 }
+
+// The proof flip is part of the restitution: if it cannot be written, the refund
+// does not happen. It ran after the commit with its error ignored, so a failed
+// write left a fully refunded payment whose proof still verified as paid.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_full_refund_whose_proof_cannot_be_reversed_does_not_happen(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    seed_proof(&pool, seed.transaction_id).await;
+    for ddl in [
+        "CREATE FUNCTION test_refuse_proof_update() RETURNS trigger LANGUAGE plpgsql AS
+           $$ BEGIN RAISE EXCEPTION 'proof write refused by test'; END $$",
+        "CREATE TRIGGER test_refuse_proof_update BEFORE UPDATE ON transaction_proofs
+           FOR EACH ROW EXECUTE FUNCTION test_refuse_proof_update()",
+    ] {
+        sqlx::raw_sql(ddl).execute(&pool).await.unwrap();
+    }
+
+    let r = refunds::create(State(state), Json(refund_body(&seed, 1_000, "full"))).await;
+    assert!(r.is_err(), "the refund must fail with its proof write");
+    assert_eq!(
+        alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await,
+        0,
+        "nothing was restituted"
+    );
+    assert_eq!(proof_status(&pool, seed.transaction_id).await, "CONFIRMED");
+}
