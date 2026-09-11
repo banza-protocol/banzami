@@ -96,6 +96,10 @@ def verify_signature(
         ``False`` for any verification failure (bad signature, expired
         timestamp, malformed header).
     """
+    # An empty key is a key anyone has: an integration that never configured its
+    # secret would accept any event signed with "" (A2-03).
+    if not isinstance(secret, str) or not secret.strip():
+        return False
     if not signature:
         return False
 

@@ -3397,3 +3397,21 @@ and the error log keeps only critical conditions. Validated with `nginx -t` in t
 image and a live probe (the log reads `GET /reset-password?... ` and `GET /r/BZM-7K2M...`).
 Guard `tests/ops/nginx-query-log-redaction.test.mjs` (logging stage two instead of
 stage three fails it).
+
+## RA-127 — every official webhook verifier accepted an empty secret
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-03; token audit A3-04)
+- **Status:** FIXED (TypeScript, Go, Python and PHP SDKs; the Laravel, generic-node and generic-php plugins)
+
+An integration that never configured its webhook secret verified against `""`: the
+Laravel plugin defaults `BANZAMI_WEBHOOK_SECRET` to empty, and the SDK verifiers ran the
+HMAC with whatever key they were given — so an event signed with the empty key (a
+forged `payment_link.paid`, say) was accepted and goods shipped. Every verifier now
+refuses an empty or blank secret, and the Laravel controller answers 500 "not
+configured" instead of verifying. The PHP verifier also computed the MAC over the raw
+`t` while checking freshness on `(int) $t`, so a `t` of `<T>.<first bytes of the body>`
+verified a body that was never signed; `t` must now be digits. Tests
+`webhook-secret.test.ts`, `TestVerifySignature_RefusesAnEmptySecret`,
+`test_webhook_secret.py`, `WebhooksTest::{testRefusesAnEmptySecret,
+testRefusesATimestampThatIsNotDigits}` (each fails on the previous verifier). The fix
+reaches integrators with the next SDK releases (npm is the owner's step).

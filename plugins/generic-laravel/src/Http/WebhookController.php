@@ -31,7 +31,13 @@ class WebhookController extends Controller
 {
     public function handle(Request $request): Response
     {
-        $secret = config('banzami.webhook_secret', '');
+        $secret = (string) config('banzami.webhook_secret', '');
+        // Not configured is an operator fault, not a webhook to accept: the SDK
+        // refuses to verify against an empty key (A2-03), and saying so here
+        // makes the misconfiguration visible instead of a stream of 401s.
+        if (trim($secret) === '') {
+            return response('BANZAMI_WEBHOOK_SECRET is not configured', 500);
+        }
 
         // Banzami\Webhooks::constructEvent is the SDK's actual API: static,
         // and it verifies the signature before decoding. The previous code

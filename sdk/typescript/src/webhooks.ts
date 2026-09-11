@@ -100,6 +100,13 @@ export function verifySignature(
     tolerance?: number;
   },
 ): void {
+  // An empty key is a key anyone has: an integration that never configured its
+  // secret would accept any event signed with "" (A2-03). Refused, loudly.
+  if (typeof secret !== 'string' || secret.trim() === '') {
+    throw new BanzamiWebhookSignatureError(
+      'No webhook secret is configured — refusing to verify. Set the endpoint\'s signing secret.',
+    );
+  }
   if (!header) {
     throw new BanzamiWebhookSignatureError(
       'banza-signature header is missing.',

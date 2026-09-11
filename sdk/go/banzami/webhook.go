@@ -84,6 +84,11 @@ func ConstructEvent(rawBody []byte, signatureHeader, secret string, tolerance ti
 // VerifySignature validates the banza-signature header against the raw body.
 // Returns a *WebhookSignatureError on any verification failure.
 func VerifySignature(rawBody []byte, signatureHeader, secret string, tolerance time.Duration) error {
+	// An empty key is a key anyone has: an integration that never configured
+	// its secret would accept any event signed with "" (A2-03).
+	if strings.TrimSpace(secret) == "" {
+		return &WebhookSignatureError{Reason: "no webhook secret is configured — refusing to verify"}
+	}
 	if signatureHeader == "" {
 		return &WebhookSignatureError{Reason: "banza-signature header is missing"}
 	}

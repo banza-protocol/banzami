@@ -305,7 +305,8 @@ class BanzamiClient
         string $signature,
         string $secret
     ): bool {
-        if (empty($signature)) {
+        // An empty key is a key anyone has (A2-03).
+        if (empty($signature) || trim($secret) === '') {
             return false;
         }
         $expected = 'sha256=' . hash_hmac('sha256', $rawBody, $secret);

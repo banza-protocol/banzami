@@ -58,12 +58,23 @@ final class Webhooks
         string $secret,
         int    $toleranceSeconds = self::TOLERANCE_SECONDS,
     ): void {
+        // An empty key is a key anyone has: an integration that never configured
+        // its secret would accept any event signed with '' (A2-03).
+        if (trim($secret) === '') {
+            throw new WebhookSignatureException('No webhook secret is configured — refusing to verify.');
+        }
         $parts     = self::parseHeader($signatureHeader);
         $timestamp = $parts['t'] ?? null;
         $v1        = $parts['v1'] ?? null;
 
         if ($timestamp === null || $v1 === null) {
             throw new WebhookSignatureException('Malformed banza-signature header — missing t or v1.');
+        }
+        // The timestamp is digits and nothing else. The MAC was computed over the
+        // raw `t` while freshness read (int) $t, so a `t` of "<T>.<first bytes of
+        // the body>" verified a body that was never signed (A3-04).
+        if (! ctype_digit($timestamp)) {
+            throw new WebhookSignatureException('Malformed banza-signature header — t must be a Unix timestamp.');
         }
 
         $timestampInt = (int) $timestamp;

@@ -276,7 +276,8 @@ export class BanzamiClient {
     signature: string,
     secret:    string,
   ): boolean {
-    if (!signature) return false;
+    // An empty key is a key anyone has (A2-03).
+    if (!signature || typeof secret !== 'string' || secret.trim() === '') return false;
     const body     = typeof rawBody === 'string' ? Buffer.from(rawBody) : rawBody;
     const expected = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');
     const sigBuf   = Buffer.from(signature);
