@@ -156,12 +156,10 @@ A recorded run of every TypeScript SDK method against the gateway's route
 table maps every request to a mounted route. Publishing the SDK source fixes is
 the owner's npm step; the gateway fixes make already-published versions work.
 
-Registry state (2026-09-11): `@banzami/sdk` **0.12.0** is `latest` on npm and is
-proved against the deployed Sandbox by `sdk-wallet-accounts-public.sh` (11/11) and
-`refund-published-sdk-e2e.sh` (25/25), both installing from the registry. The
-repository is at **0.12.1** (QR owner fields sent, `createApplicationSettlement`
-refused locally) — not yet published; 0.12.0 works against the server because
-the gateway fills the QR defaults. `banzami_client` 0.1.0 on pub.dev equals the
+Registry state (2026-09-11): `@banzami/sdk` **0.12.1** is `latest` on npm (published
+by the owner; shasum 4c327d7f…, equal to the repository tarball) and is proved
+against the deployed Sandbox by `sdk-wallet-accounts-public.sh` (11/11) and
+`refund-published-sdk-e2e.sh` (25/25), both installing from the registry. `banzami_client` 0.1.0 on pub.dev equals the
 repository's library. The Python (`banzami-python`) and PHP (`banzami/sdk-php`)
 SDKs are not on PyPI or Packagist. `banzami_flutter` is internal (ADR-053).
 Published-SDK/server contract drift: **0**.
@@ -274,7 +272,7 @@ reporting.
   refused and removed.
 - DOA's datastore reset and a fresh DOA reference payment and settlement on a new
   case — DOA sign-in and email OTP are the owner's.
-- Publishing `@banzami/sdk` 0.12.1 (npm), and deciding on PyPI / Packagist.
+- ~~Publishing `@banzami/sdk` 0.12.1~~ — published and proved. Deciding on PyPI / Packagist remains.
 
 ## 10. Closure — Sandbox clean slate (2026-09-11)
 

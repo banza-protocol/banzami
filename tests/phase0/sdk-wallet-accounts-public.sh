@@ -29,7 +29,7 @@ set -uo pipefail
 
 # The version an integrator installs today. It was 0.6.0 long after 0.6.0 stopped
 # matching the server: the proof kept testing a client nobody should install.
-SDK_VERSION="${SDK_VERSION:-0.12.0}"
+SDK_VERSION="${SDK_VERSION:-0.12.1}"
 BASE_URL="${BASE_URL:-https://sandbox-api.banzami.com}"
 
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
