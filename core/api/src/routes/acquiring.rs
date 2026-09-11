@@ -275,7 +275,10 @@ pub async fn settle_confirmed_payment(
     };
 
     // Refuse to credit a frozen merchant's wallet.
-    if risk::is_frozen(&state.pool, "MERCHANT", merchant_id_raw).await {
+    if risk::is_frozen(&state.pool, "MERCHANT", merchant_id_raw)
+        .await
+        .map_err(|e| ApiError::internal(format!("freeze check failed: {e}")))?
+    {
         risk::flag_suspicious(
             &state.pool,
             "MERCHANT",

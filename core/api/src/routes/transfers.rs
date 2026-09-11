@@ -50,7 +50,7 @@ pub async fn send(
     let currency = Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", body.currency)))?;
 
-    let sender_id = body
+    let sender_id: banzami_types::ConsumerId = body
         .sender_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid sender_id"))?;
@@ -59,6 +59,9 @@ pub async fn send(
         .recipient_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid recipient_id"))?;
+
+    // A frozen sender moves nothing.
+    super::risk::ensure_not_frozen(&state.pool, "CONSUMER", sender_id.as_uuid()).await?;
 
     let recipient_account_id = match body.recipient_account_id.as_deref() {
         Some(s) => Some(
@@ -218,6 +221,9 @@ pub async fn send_p2p(
             "sender wallet is not active",
         ));
     }
+    // A frozen sender moves nothing.
+    super::risk::ensure_not_frozen(&state.pool, "CONSUMER", sender_dest.consumer_id.as_uuid())
+        .await?;
 
     // Resolve recipient handle → routing destination (HDL-002 full pipeline).
     let recipient_dest = state

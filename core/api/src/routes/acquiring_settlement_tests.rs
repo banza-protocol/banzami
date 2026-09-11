@@ -419,7 +419,9 @@ async fn a_frozen_merchant_is_not_credited(pool: PgPool) {
     let payment = confirmed_payment(&pool, f.link, 100_000).await;
     let settled = settle_confirmed_payment(&state, &payment).await;
 
-    let frozen = crate::routes::risk::is_frozen(&pool, "MERCHANT", merchant).await;
+    let frozen = crate::routes::risk::is_frozen(&pool, "MERCHANT", merchant)
+        .await
+        .unwrap();
     if frozen {
         assert_eq!(
             settled.err().map(|e| e.code),

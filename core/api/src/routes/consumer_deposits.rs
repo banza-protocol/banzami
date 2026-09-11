@@ -131,7 +131,10 @@ pub async fn initiate(
     }
 
     // Refuse if the consumer account is frozen.
-    if risk::is_frozen(&state.pool, "CONSUMER", consumer_id.as_uuid()).await {
+    if risk::is_frozen(&state.pool, "CONSUMER", consumer_id.as_uuid())
+        .await
+        .map_err(|e| ApiError::internal(format!("freeze check failed: {e}")))?
+    {
         risk::flag_suspicious(
             &state.pool,
             "CONSUMER",

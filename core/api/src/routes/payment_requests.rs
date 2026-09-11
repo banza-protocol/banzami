@@ -95,8 +95,12 @@ pub async fn create(
     }
 
     // Check for account freezes
-    if risk::is_frozen(&state.pool, "CONSUMER", requester_id).await
-        || risk::is_frozen(&state.pool, "CONSUMER", payer_id).await
+    if risk::is_frozen(&state.pool, "CONSUMER", requester_id)
+        .await
+        .map_err(|e| ApiError::internal(format!("freeze check failed: {e}")))?
+        || risk::is_frozen(&state.pool, "CONSUMER", payer_id)
+            .await
+            .map_err(|e| ApiError::internal(format!("freeze check failed: {e}")))?
     {
         return Err(ApiError::unprocessable(
             "ACCOUNT_FROZEN",
@@ -211,7 +215,10 @@ pub async fn pay(
     }
 
     // Check freezes
-    if risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
+    if risk::is_frozen(&state.pool, "CONSUMER", payer_id)
+        .await
+        .map_err(|e| ApiError::internal(format!("freeze check failed: {e}")))?
+    {
         return Err(ApiError::unprocessable(
             "ACCOUNT_FROZEN",
             "payer account is frozen",

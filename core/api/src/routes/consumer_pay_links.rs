@@ -221,7 +221,10 @@ pub async fn pay(
     // ── Pre-flight checks (no row lock yet) ────────────────────────────────
     // These fast checks reject obviously invalid requests before taking a lock.
 
-    if risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
+    if risk::is_frozen(&state.pool, "CONSUMER", payer_id)
+        .await
+        .map_err(|e| ApiError::internal(format!("freeze check failed: {e}")))?
+    {
         return Err(ApiError::unprocessable(
             "ACCOUNT_FROZEN",
             "payer account is frozen",

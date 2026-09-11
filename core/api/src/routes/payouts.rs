@@ -50,6 +50,8 @@ pub async fn initiate(
         .map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
     let currency = banzami_types::Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request("unknown currency"))?;
+    // A frozen merchant withdraws nothing.
+    super::risk::ensure_not_frozen(&state.pool, "MERCHANT", merchant_id.as_uuid()).await?;
 
     let payout = state
         .payout

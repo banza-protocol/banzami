@@ -328,6 +328,8 @@ pub async fn pay(
             "payer wallet is not active",
         ));
     }
+    // A frozen payer moves nothing.
+    super::risk::ensure_not_frozen(&state.pool, "CONSUMER", payer.consumer_id.as_uuid()).await?;
 
     // 4. Recipient is the QR owner (consumer_id, or merchant wallet UUID).
     let recipient_id = ConsumerId::from_uuid(target.owner_id);

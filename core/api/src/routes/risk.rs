@@ -5,8 +5,14 @@
 use chrono::Timelike;
 use sqlx::PgPool;
 
-/// Returns true if the entity currently has an active account freeze.
-pub async fn is_frozen(pool: &PgPool, entity_type: &str, entity_id: uuid::Uuid) -> bool {
+/// Whether the entity has an active account freeze. An error is an error, not
+/// "not frozen": the query used to fall back to `false`, so a database hiccup
+/// let a frozen account move money.
+pub async fn is_frozen(
+    pool: &PgPool,
+    entity_type: &str,
+    entity_id: uuid::Uuid,
+) -> Result<bool, sqlx::Error> {
     sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(
             SELECT 1 FROM account_freezes
@@ -19,7 +25,27 @@ pub async fn is_frozen(pool: &PgPool, entity_type: &str, entity_id: uuid::Uuid) 
     .bind(entity_id)
     .fetch_one(pool)
     .await
-    .unwrap_or(false)
+}
+
+/// Refuses (403 ACCOUNT_FROZEN) when the entity is frozen, and fails closed
+/// when the freeze cannot be read. Every route where a party's money leaves
+/// its wallet calls this for that party — a freeze that only some routes read
+/// is not a freeze.
+pub async fn ensure_not_frozen(
+    pool: &PgPool,
+    entity_type: &str,
+    entity_id: uuid::Uuid,
+) -> crate::error::ApiResult<()> {
+    match is_frozen(pool, entity_type, entity_id).await {
+        Ok(false) => Ok(()),
+        Ok(true) => Err(crate::error::ApiError::unprocessable(
+            "ACCOUNT_FROZEN",
+            "the account is frozen",
+        )),
+        Err(e) => Err(crate::error::ApiError::internal(format!(
+            "freeze check failed: {e}"
+        ))),
+    }
 }
 
 /// Records an entry in the immutable audit_log.

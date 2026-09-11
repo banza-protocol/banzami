@@ -150,12 +150,22 @@ il n'existe **aucun** test `if role == ...` éparpillé dans les handlers.
 | Operator read | ✓ | — | — | ✓ | ✓ |
 | Operator manage (create/role/suspend/activate) | ✓ | — | — | — | — |
 | Operator reset / resend / terminate | ✓ | — | — | ✓ | — |
-| Application approve/reject | ✓ | ✓ | — | — | — |
+| Application approve / link (la décision KYB) | ✓ | — | ✓ | — | — |
+| Application review / demande d'informations / reject | ✓ | ✓ | ✓ | — | — |
 | KYB accept/reject, AML flag, merchant suspend | ✓ | — | ✓ | — | — |
 | Compliance approve/reject merchant | ✓ | — | ✓ | — | — |
 | Settlements / payouts / wallet credit / recon run | ✓ | — | — | — | — |
-| Dispute resolve | ✓ | ✓ | — | — | — |
+| Dispute resolve (peut restituer de l'argent) | ✓ | — | — | — | — |
 | Risk resolve / freeze | ✓ | — | ✓ | — | — |
+
+Un **freeze** (`POST /admin/v1/risk/freeze`, API seulement — aucun bouton dans
+BANZADMIN aujourd'hui) empêche l'argent de l'entité gelée de sortir : transfert
+P2P (par id ou @banza), paiement QR, payout, transfert entre ses propres comptes,
+paiement de pay-link et de demande de paiement, dépôt, restitution ; un marchand
+gelé n'est pas crédité par un paiement acquiring (retenu). Si le gel ne peut pas
+être lu, l'opération est refusée (RA-087). Pas encore couvert : les encaissements
+QR/P2P **vers** un marchand gelé, et les settlements d'application dont il est
+la source.
 | Audit read | ✓ | — | ✓ | ✓ | ✓ |
 
 ### Pourquoi ce modèle

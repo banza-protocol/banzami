@@ -24,6 +24,8 @@ pub mod finance_dashboard;
 #[cfg(test)]
 mod finance_dashboard_tests;
 #[cfg(test)]
+mod freeze_tests;
+#[cfg(test)]
 mod handle_namespace_tests;
 pub mod kyc_data;
 pub mod merchant_profiles;

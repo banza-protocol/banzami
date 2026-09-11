@@ -120,6 +120,8 @@ pub async fn create(
     if body.idempotency_key.trim().is_empty() {
         return Err(ApiError::bad_request("idempotency_key is required"));
     }
+    // A frozen merchant moves nothing, not even between its own accounts.
+    super::risk::ensure_not_frozen(&state.pool, "MERCHANT", merchant_id).await?;
     if body.amount_minor <= 0 {
         return Err(ApiError::bad_request(
             "amount_minor must be a positive integer",

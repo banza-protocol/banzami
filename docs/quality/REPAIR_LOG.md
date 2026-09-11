@@ -2648,3 +2648,26 @@ closed (the canonical `env.Parse` maps anything but SANDBOX/LIVE to Unknown,
 which grants nothing). Now `developer-api` refuses to start without
 `ENVIRONMENT`. Test: `internal/config/config_test.go` (mutation: restore the
 default → fails).
+
+## RA-087 — a frozen account could still send, pay and withdraw
+
+- **Found:** 2026-09-11 (operator control plane review)
+- **Status:** FIXED (outgoing money); inflows to a frozen merchant by QR/P2P and
+  application settlements from it remain open
+
+An operator freeze (`account_freezes`, admin-api `POST /admin/v1/risk/freeze`)
+was read by five routes — deposits, pay-link payment, payment requests,
+acquiring credit, restitution — and by none of the routes that move a frozen
+party's money out: P2P transfers (by id and by @banza), QR payment, merchant
+payouts, wallet-account transfers. And `is_frozen` answered `false` on any
+database error, so the five routes that did read it failed open.
+
+Now `is_frozen` returns the error, every existing caller fails closed, and
+`risk::ensure_not_frozen` (422 `ACCOUNT_FROZEN`) guards the four outgoing
+routes. Tests: `core/api/src/routes/freeze_tests.rs` — freeze through the
+operator route, the debit is refused and no ledger balance moves, lift, the
+same call is no longer refused; plus an unreadable freeze refuses. Six
+mutations (each guard removed, the error fallback restored) each fail exactly
+their test. The BANZADMIN runbook matrix (stale since 0c408676 for
+application approval and dispute resolution) is corrected and documents what a
+freeze stops.
