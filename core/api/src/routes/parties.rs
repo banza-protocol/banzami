@@ -26,7 +26,8 @@ pub async fn resolve(
     Path(handle): Path<String>,
     Query(q): Query<ResolveQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let normalized = handle.trim().trim_start_matches('@').to_lowercase();
+    // The one normalisation (banzami_identity::normalize_handle): one `@`, ASCII case.
+    let normalized = banzami_identity::normalize_handle(&handle);
     if normalized.is_empty() {
         return Err(ApiError::bad_request("handle is required"));
     }

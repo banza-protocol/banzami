@@ -3497,3 +3497,23 @@ existing application only for the same submission (same origin, Project, email a
 desired handle); anything else answers 409 `IDEMPOTENCY_KEY_REUSED`. Test
 `TestSubmit_AReplayAnswersOnlyTheSameSubmission` (real DB; the previous code hands the
 id to a different email).
+
+## RA-133 — one @banza namespace, three spellings of its rules
+
+- **Found:** 2026-09-11 (full-system assurance, token audit A3-07)
+- **Status:** FIXED (core, gateway, migration 0133)
+
+The handle rules disagreed across the stack. Core reserved one list of names for
+consumers (bna, bai, bfa, emis, multicaixa, security, compliance, banzai, …); the handle
+registry's SYSTEM rows — what a Business application checks — held a different one, so
+a Business could apply for @bna or @emis, stopped only by an operator noticing. The
+gateway stripped one leading `@`, core stripped all of them, so `@@doa` resolved in core
+and nowhere else. Both lowercased with Unicode rules: Go mapped `İ` and the Kelvin sign
+onto ASCII letters, so `İvo` named @ivo — one handle, two spellings. Now: every reserved
+name is a SYSTEM row (migration 0133; none was owned on the Sandbox) and core reserves
+the registry's names too; both languages strip at most one `@` and fold ASCII case only,
+leaving any other character for validation to refuse; core's party resolution uses the
+same normaliser. Tests `one_at_and_ascii_case_only`,
+`the_registry_names_are_reserved_here_too`, `TestNormaliseHandle_ASCIIOnly` (each fails
+on the previous normaliser), `tests/ops/migration-0133-one-reserved-list.test.mjs`
+(both directions of the one list).

@@ -275,5 +275,16 @@ func (s *PostgresMerchantCredentialService) lookupOtherEnv(ctx context.Context, 
 }
 
 func NormaliseHandle(handle string) string {
-	return strings.ToLower(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(handle), "@")))
+	h := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(handle), "@"))
+	// ASCII case folding only. strings.ToLower maps 'İ' (U+0130) and the Kelvin
+	// sign (U+212A) onto ASCII letters, so "İvo" named @ivo: two spellings, one
+	// handle (A3-07). A non-ASCII character is left as it is, and ValidateHandle
+	// refuses it.
+	b := []byte(h)
+	for i, c := range b {
+		if c >= 'A' && c <= 'Z' {
+			b[i] = c + ('a' - 'A')
+		}
+	}
+	return string(b)
 }

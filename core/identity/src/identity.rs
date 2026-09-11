@@ -36,6 +36,15 @@ const RESERVED_HANDLES: &[&str] = &[
     "bic",
     "millennium",
     "bde",
+    // The registry's own SYSTEM names (0051), so the two lists are one (0133).
+    "administrator",
+    "merchant",
+    "business",
+    "pay",
+    "payment",
+    "wallet",
+    "test",
+    "sandbox",
 ];
 
 /// Lifecycle state of a consumer identity.
@@ -129,9 +138,16 @@ pub struct HandleResolution {
     pub status: ConsumerStatus,
 }
 
-/// Strip leading `@`, lowercase, and trim whitespace.
+/// Trim whitespace, strip ONE leading `@`, and lowercase ASCII only.
+///
+/// One rule, the gateway's: it strips one `@` and so must this (it stripped all,
+/// so "@@doa" resolved here and nowhere else). Case folding is ASCII: a
+/// Unicode-aware lowercase maps characters such as the Kelvin sign onto ASCII
+/// letters, and a handle is an ASCII name with one spelling (A3-07). A non-ASCII
+/// character is left as it is, and validation refuses it.
 pub fn normalize_handle(raw: &str) -> String {
-    raw.trim().trim_start_matches('@').to_lowercase()
+    let t = raw.trim();
+    t.strip_prefix('@').unwrap_or(t).to_ascii_lowercase()
 }
 
 /// Validate a normalized handle (no leading `@`, already lowercased).
@@ -260,5 +276,26 @@ mod tests {
     fn normalize_strips_at_and_lowercases() {
         assert_eq!(normalize_handle("@Carlos"), "carlos");
         assert_eq!(normalize_handle("  @ANA  "), "ana");
+    }
+
+    // A3-07: one spelling per handle. One `@` is stripped (as the gateway does),
+    // and case folding is ASCII — the Kelvin sign and a dotted capital I do not
+    // become ASCII letters and so are refused, not aliased.
+    #[test]
+    fn one_at_and_ascii_case_only() {
+        assert_eq!(normalize_handle("  @Ana_M "), "ana_m");
+        assert_eq!(normalize_handle("@@doa"), "@doa");
+        assert!(validate_handle(&normalize_handle("@@doa")).is_err());
+        for alias in ["\u{212A}ilo", "\u{130}vo"] {
+            let n = normalize_handle(alias);
+            assert!(validate_handle(&n).is_err(), "{alias:?} normalised to a valid handle {n:?}");
+        }
+    }
+
+    #[test]
+    fn the_registry_names_are_reserved_here_too() {
+        for n in ["administrator", "merchant", "business", "pay", "payment", "wallet", "test", "sandbox", "bna", "emis"] {
+            assert!(validate_handle(n).is_err(), "{n} is not reserved");
+        }
     }
 }
