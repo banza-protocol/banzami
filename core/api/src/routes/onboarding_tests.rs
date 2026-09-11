@@ -29,7 +29,13 @@ async fn state(pool: PgPool, env: CoreEnvironment) -> AppState {
     let bank = account(&pool, "ASSET").await;
     let fee = account(&pool, "REVENUE").await;
     crate::state::configure_live_secrets_for_tests();
-    AppState::new(pool, AccountId::from_uuid(transit), AccountId::from_uuid(bank), AccountId::from_uuid(fee), env)
+    AppState::new(
+        pool,
+        AccountId::from_uuid(transit),
+        AccountId::from_uuid(bank),
+        AccountId::from_uuid(fee),
+        env,
+    )
 }
 
 fn start_body(otp: Option<&str>) -> StartOnboardingBody {
@@ -62,15 +68,24 @@ async fn no_otp_means_no_verification_is_possible(pool: PgPool) {
         .fetch_one(&pool)
         .await
         .unwrap_or(0);
-    assert_eq!(sessions, 0, "a session was created that anyone could verify with an empty code");
+    assert_eq!(
+        sessions, 0,
+        "a session was created that anyone could verify with an empty code"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn an_empty_code_never_verifies(pool: PgPool) {
     let st = state(pool, CoreEnvironment::Sandbox).await;
-    let err = onboarding::verify_otp(State(st), Json(VerifyOtpBody { session_id: Uuid::new_v4(), otp_code: String::new() }))
-        .await
-        .err()
-        .expect("an empty code is not a code");
+    let err = onboarding::verify_otp(
+        State(st),
+        Json(VerifyOtpBody {
+            session_id: Uuid::new_v4(),
+            otp_code: String::new(),
+        }),
+    )
+    .await
+    .err()
+    .expect("an empty code is not a code");
     assert_eq!(err.status, axum::http::StatusCode::BAD_REQUEST);
 }

@@ -352,7 +352,10 @@ impl PayoutRepository for PostgresPayoutRepository {
             // Not updated: missing, or someone else moved it first.
             None => {
                 let current = self.get(id).await?;
-                Err(PayoutError::InvalidStatusTransition { from: current.status, to: status })
+                Err(PayoutError::InvalidStatusTransition {
+                    from: current.status,
+                    to: status,
+                })
             }
         }
     }

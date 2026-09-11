@@ -16,8 +16,8 @@ mod compliance_tests;
 pub mod consumer_deposits;
 pub mod consumer_pay_links;
 pub mod consumer_wallets;
-pub mod credit_idempotency;
 pub mod consumers;
+pub mod credit_idempotency;
 pub mod disputes;
 pub mod finance_catalogs;
 pub mod finance_dashboard;
@@ -29,6 +29,8 @@ pub mod kyc_data;
 pub mod merchant_profiles;
 pub mod merchants;
 pub mod onboarding;
+#[cfg(test)]
+mod onboarding_tests;
 pub mod operator_fees;
 pub mod parties;
 pub mod payment_links;
@@ -53,8 +55,6 @@ pub mod sandbox_business;
 mod sandbox_business_tests;
 #[cfg(test)]
 mod sandbox_credit_tests;
-#[cfg(test)]
-mod onboarding_tests;
 pub mod settlement_readiness;
 #[cfg(test)]
 mod settlement_readiness_tests;

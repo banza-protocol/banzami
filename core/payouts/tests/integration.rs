@@ -12,8 +12,8 @@ use std::sync::Arc;
 
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_payouts::{
-    BankDestination, CreatePayoutRequest, PayoutEngine, PayoutError, PayoutStatus, PostgresPayoutEngine,
-    PostgresPayoutRepository,
+    BankDestination, CreatePayoutRequest, PayoutEngine, PayoutError, PayoutStatus,
+    PostgresPayoutEngine, PostgresPayoutRepository,
 };
 use banzami_types::{AccountId, Currency, MerchantId, Money, WalletId};
 use banzami_wallets::{
@@ -480,11 +480,13 @@ async fn duplicate_initiate_returns_existing_payout(pool: PgPool) -> sqlx::Resul
 // per payout.
 
 async fn reversals(pool: &PgPool, key: &str) -> i64 {
-    sqlx::query_scalar("SELECT COUNT(*) FROM ledger_postings WHERE idempotency_key LIKE $1 || ':reverse%'")
-        .bind(key)
-        .fetch_one(pool)
-        .await
-        .unwrap()
+    sqlx::query_scalar(
+        "SELECT COUNT(*) FROM ledger_postings WHERE idempotency_key LIKE $1 || ':reverse%'",
+    )
+    .bind(key)
+    .fetch_one(pool)
+    .await
+    .unwrap()
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -510,11 +512,22 @@ async fn concurrent_fail_and_return_reverse_once(pool: PgPool) -> sqlx::Result<(
             fix.payout_engine.fail(payout.id, "bank rejected".into()),
             fix.payout_engine.mark_returned(payout.id),
         );
-        assert_eq!(a.is_ok() as u8 + b.is_ok() as u8, 1, "round {round}: exactly one of fail/return may win");
+        assert_eq!(
+            a.is_ok() as u8 + b.is_ok() as u8,
+            1,
+            "round {round}: exactly one of fail/return may win"
+        );
         let net_and_fee = reversals(&fix.pool, &key).await;
-        assert!(net_and_fee >= 1 && net_and_fee <= 2, "round {round}: {net_and_fee} reversal postings");
+        assert!(
+            (1..=2).contains(&net_and_fee),
+            "round {round}: {net_and_fee} reversal postings"
+        );
         let bank = fix.ledger.balance(fix.bank_id).await.unwrap();
-        assert_eq!(bank.amount_minor(), 0, "round {round}: the payout was given back more (or less) than once");
+        assert_eq!(
+            bank.amount_minor(),
+            0,
+            "round {round}: the payout was given back more (or less) than once"
+        );
     }
     Ok(())
 }
@@ -542,12 +555,22 @@ async fn a_fail_racing_a_confirm_never_returns_confirmed_money(pool: PgPool) -> 
             fix.payout_engine.confirm(payout.id),
             fix.payout_engine.fail(payout.id, "bank rejected".into()),
         );
-        assert_eq!(c.is_ok() as u8 + f.is_ok() as u8, 1, "round {round}: exactly one may win");
+        assert_eq!(
+            c.is_ok() as u8 + f.is_ok() as u8,
+            1,
+            "round {round}: exactly one may win"
+        );
         let status = fix.payout_engine.get(payout.id).await.unwrap().status;
         let reversed = reversals(&fix.pool, &key).await > 0;
         match status {
-            PayoutStatus::Confirmed => assert!(!reversed, "round {round}: a CONFIRMED payout had its money returned"),
-            PayoutStatus::Failed => assert!(reversed, "round {round}: a FAILED payout kept the merchant's money out"),
+            PayoutStatus::Confirmed => assert!(
+                !reversed,
+                "round {round}: a CONFIRMED payout had its money returned"
+            ),
+            PayoutStatus::Failed => assert!(
+                reversed,
+                "round {round}: a FAILED payout kept the merchant's money out"
+            ),
             other => panic!("round {round}: unexpected status {other:?}"),
         }
     }
@@ -565,14 +588,38 @@ async fn a_reused_key_with_a_different_request_is_refused(pool: PgPool) -> sqlx:
         merchant_id: fix.merchant_id,
         wallet_id: fix.wallet_id,
         amount: kz(amount),
-        destination: BankDestination { account_number: account.into(), ..destination() },
+        destination: BankDestination {
+            account_number: account.into(),
+            ..destination()
+        },
     };
-    let first = fix.payout_engine.initiate(req(1_000_000, "AO06000600000100037131174")).await.unwrap();
-    let again = fix.payout_engine.initiate(req(1_000_000, "AO06000600000100037131174")).await.unwrap();
-    assert_eq!(again.id, first.id, "the genuine replay still answers with the original");
-    for (amount, account) in [(2_000_000, "AO06000600000100037131174"), (1_000_000, "AO06000600009999999999999")] {
-        let err = fix.payout_engine.initiate(req(amount, account)).await.err().expect("drift must be refused");
-        assert!(matches!(err, PayoutError::DuplicateIdempotencyKey(_)), "{err:?}");
+    let first = fix
+        .payout_engine
+        .initiate(req(1_000_000, "AO06000600000100037131174"))
+        .await
+        .unwrap();
+    let again = fix
+        .payout_engine
+        .initiate(req(1_000_000, "AO06000600000100037131174"))
+        .await
+        .unwrap();
+    assert_eq!(
+        again.id, first.id,
+        "the genuine replay still answers with the original"
+    );
+    for (amount, account) in [
+        (2_000_000, "AO06000600000100037131174"),
+        (1_000_000, "AO06000600009999999999999"),
+    ] {
+        let err = fix
+            .payout_engine
+            .initiate(req(amount, account))
+            .await
+            .expect_err("drift must be refused");
+        assert!(
+            matches!(err, PayoutError::DuplicateIdempotencyKey(_)),
+            "{err:?}"
+        );
     }
     Ok(())
 }

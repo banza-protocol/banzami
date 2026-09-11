@@ -88,7 +88,12 @@ pub enum AcquiringError {
     /// Nothing is confirmed: settling the stored amount would credit money the
     /// payer never sent.
     #[error("callback amount {got_minor} {got_currency} does not match payment {want_minor} {want_currency}")]
-    AmountMismatch { got_minor: i64, got_currency: String, want_minor: i64, want_currency: String },
+    AmountMismatch {
+        got_minor: i64,
+        got_currency: String,
+        want_minor: i64,
+        want_currency: String,
+    },
 
     /// A FAILED payment is not confirmed by a late callback; it needs an operator.
     #[error("acquiring payment is {0}, not pending")]

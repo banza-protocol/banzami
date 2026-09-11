@@ -17,7 +17,7 @@ func withCap(role string, cap auth.Capability) int {
 }
 
 func TestRequireCapability_AllowsWhenGranted(t *testing.T) {
-	if code := withCap("OPERATIONS", auth.CapApplicationApprove); code != http.StatusOK {
+	if code := withCap("COMPLIANCE", auth.CapApplicationApprove); code != http.StatusOK {
 		t.Fatalf("granted capability must pass, got %d", code)
 	}
 	if code := withCap("SUPER_ADMIN", auth.CapWalletCredit); code != http.StatusOK {
@@ -26,6 +26,10 @@ func TestRequireCapability_AllowsWhenGranted(t *testing.T) {
 }
 
 func TestRequireCapability_DeniesWhenMissing(t *testing.T) {
+	// Approval is the KYB decision (ADR-058) — not an OPERATIONS capability.
+	if code := withCap("OPERATIONS", auth.CapApplicationApprove); code != http.StatusForbidden {
+		t.Fatalf("operations must not approve, got %d", code)
+	}
 	if code := withCap("OPERATIONS", auth.CapWalletCredit); code != http.StatusForbidden {
 		t.Fatalf("missing capability must be 403, got %d", code)
 	}

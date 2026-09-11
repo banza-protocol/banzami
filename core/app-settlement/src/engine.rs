@@ -214,7 +214,9 @@ where
             return if same {
                 Ok(existing)
             } else {
-                Err(ApplicationSettlementError::IdempotencyConflict(req.idempotency_key))
+                Err(ApplicationSettlementError::IdempotencyConflict(
+                    req.idempotency_key,
+                ))
             };
         }
         if !req.gross_amount.is_positive() {

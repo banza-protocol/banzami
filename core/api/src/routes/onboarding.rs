@@ -87,10 +87,14 @@ pub async fn start(
     // someone else's number to a wallet (and lock its owner out).
     let otp_plaintext_for_test = match body.otp_plaintext_for_test.clone() {
         Some(_) if state.environment.is_live() => {
-            return Err(ApiError::forbidden("otp_plaintext_for_test is a Sandbox-only field"));
+            return Err(ApiError::forbidden(
+                "otp_plaintext_for_test is a Sandbox-only field",
+            ));
         }
         Some(p) if !(4..=8).contains(&p.len()) || !p.bytes().all(|b| b.is_ascii_digit()) => {
-            return Err(ApiError::bad_request("otp_plaintext_for_test must be 4 to 8 digits"));
+            return Err(ApiError::bad_request(
+                "otp_plaintext_for_test must be 4 to 8 digits",
+            ));
         }
         Some(p) => Some(p),
         None => {
@@ -137,7 +141,8 @@ pub async fn verify_otp(
     State(state): State<AppState>,
     Json(body): Json<VerifyOtpBody>,
 ) -> ApiResult<Json<VerifyOtpResponse>> {
-    if !(4..=8).contains(&body.otp_code.len()) || !body.otp_code.bytes().all(|b| b.is_ascii_digit()) {
+    if !(4..=8).contains(&body.otp_code.len()) || !body.otp_code.bytes().all(|b| b.is_ascii_digit())
+    {
         return Err(ApiError::bad_request("otp_code must be 4 to 8 digits"));
     }
     let session = state

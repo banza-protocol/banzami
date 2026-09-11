@@ -212,7 +212,10 @@ impl SettlementRepository for PostgresSettlementRepository {
         .map_err(SettlementError::Database)?;
         if done.rows_affected() != 1 {
             let current = self.get(id).await?;
-            return Err(SettlementError::InvalidStatusTransition { from: current.status, to: status });
+            return Err(SettlementError::InvalidStatusTransition {
+                from: current.status,
+                to: status,
+            });
         }
 
         self.get(id).await

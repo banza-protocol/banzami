@@ -389,7 +389,11 @@ fn acquiring_callback_secret(configured: Option<String>, live: bool) -> Vec<u8> 
     match configured {
         Some(s) if !s.is_empty() && s != "change-in-production" => s.into_bytes(),
         _ if live => panic!("ACQUIRING_WEBHOOK_SECRET is required in LIVE"),
-        _ => [uuid::Uuid::new_v4().into_bytes(), uuid::Uuid::new_v4().into_bytes()].concat(),
+        _ => [
+            uuid::Uuid::new_v4().into_bytes(),
+            uuid::Uuid::new_v4().into_bytes(),
+        ]
+        .concat(),
     }
 }
 
@@ -399,7 +403,10 @@ fn acquiring_callback_secret(configured: Option<String>, live: bool) -> Vec<u8> 
 pub(crate) fn configure_live_secrets_for_tests() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
-        std::env::set_var("ACQUIRING_WEBHOOK_SECRET", "test-only-acquiring-callback-secret");
+        std::env::set_var(
+            "ACQUIRING_WEBHOOK_SECRET",
+            "test-only-acquiring-callback-secret",
+        );
         std::env::set_var("QR_SIGNING_KEY", "test-only-qr-signing-key");
     });
 }
@@ -416,7 +423,11 @@ mod secret_tests {
 
     #[test]
     fn outside_live_an_unset_callback_secret_is_random_never_the_old_default() {
-        for unset in [None, Some(String::new()), Some("change-in-production".into())] {
+        for unset in [
+            None,
+            Some(String::new()),
+            Some("change-in-production".into()),
+        ] {
             let a = acquiring_callback_secret(unset.clone(), false);
             let b = acquiring_callback_secret(unset, false);
             assert_ne!(a, b"change-in-production");

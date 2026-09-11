@@ -106,7 +106,9 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
                 || existing.amount.amount_minor() != req.amount.amount_minor()
                 || existing.amount.currency != req.amount.currency
             {
-                return Err(TransactionError::DuplicateIdempotencyKey(req.idempotency_key));
+                return Err(TransactionError::DuplicateIdempotencyKey(
+                    req.idempotency_key,
+                ));
             }
             tracing::info!(
                 idempotency_key = %req.idempotency_key,
@@ -547,7 +549,10 @@ mod tests {
             "idempotent create must return the same transaction"
         );
         // A different request under it is refused, not answered with tx1.
-        for drift in [replay(WalletId::new(), 50_000), replay(tx1.wallet_id, 60_000)] {
+        for drift in [
+            replay(WalletId::new(), 50_000),
+            replay(tx1.wallet_id, 60_000),
+        ] {
             assert!(matches!(
                 engine.create(drift).await,
                 Err(TransactionError::DuplicateIdempotencyKey(_))

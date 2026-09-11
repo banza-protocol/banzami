@@ -818,16 +818,32 @@ async fn complete_racing_cancel_leaves_money_and_status_agreeing(pool: PgPool) -
         fund(&fx, source, 10_000).await;
         let s = fx
             .engine
-            .create(req(&format!("race-cc-{round}"), source, beneficiary, Some(app_fee), 10_000, Some(PROFILE)))
+            .create(req(
+                &format!("race-cc-{round}"),
+                source,
+                beneficiary,
+                Some(app_fee),
+                10_000,
+                Some(PROFILE),
+            ))
             .await
             .unwrap();
         let (c, x) = tokio::join!(fx.engine.complete(s.id), fx.engine.cancel(s.id));
-        assert_eq!(c.is_ok() as u8 + x.is_ok() as u8, 1, "round {round}: exactly one of complete/cancel may win");
+        assert_eq!(
+            c.is_ok() as u8 + x.is_ok() as u8,
+            1,
+            "round {round}: exactly one of complete/cancel may win"
+        );
         let status = fx.engine.get(s.id).await.unwrap().status;
         let left = net_credit(&fx.pool, source).await;
         match status {
-            ApplicationSettlementStatus::Completed => assert_eq!(left, 0, "round {round}: COMPLETED but the source was not debited"),
-            ApplicationSettlementStatus::Cancelled => assert_eq!(left, 10_000, "round {round}: CANCELLED but money moved"),
+            ApplicationSettlementStatus::Completed => assert_eq!(
+                left, 0,
+                "round {round}: COMPLETED but the source was not debited"
+            ),
+            ApplicationSettlementStatus::Cancelled => {
+                assert_eq!(left, 10_000, "round {round}: CANCELLED but money moved")
+            }
             other => panic!("round {round}: unexpected {other:?}"),
         }
     }
@@ -843,11 +859,40 @@ async fn two_settlements_never_overdraw_one_source(pool: PgPool) -> sqlx::Result
         let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
         let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
         fund(&fx, source, 10_000).await;
-        let a = fx.engine.create(req(&format!("race-od-a-{round}"), source, beneficiary, Some(app_fee), 6_000, Some(PROFILE))).await.unwrap();
-        let b = fx.engine.create(req(&format!("race-od-b-{round}"), source, beneficiary, Some(app_fee), 6_000, Some(PROFILE))).await.unwrap();
+        let a = fx
+            .engine
+            .create(req(
+                &format!("race-od-a-{round}"),
+                source,
+                beneficiary,
+                Some(app_fee),
+                6_000,
+                Some(PROFILE),
+            ))
+            .await
+            .unwrap();
+        let b = fx
+            .engine
+            .create(req(
+                &format!("race-od-b-{round}"),
+                source,
+                beneficiary,
+                Some(app_fee),
+                6_000,
+                Some(PROFILE),
+            ))
+            .await
+            .unwrap();
         let (ra, rb) = tokio::join!(fx.engine.complete(a.id), fx.engine.complete(b.id));
-        assert_eq!(ra.is_ok() as u8 + rb.is_ok() as u8, 1, "round {round}: only one 6 000 settlement fits in 10 000");
-        assert!(net_credit(&fx.pool, source).await >= 0, "round {round}: the source was overdrawn");
+        assert_eq!(
+            ra.is_ok() as u8 + rb.is_ok() as u8,
+            1,
+            "round {round}: only one 6 000 settlement fits in 10 000"
+        );
+        assert!(
+            net_credit(&fx.pool, source).await >= 0,
+            "round {round}: the source was overdrawn"
+        );
     }
     Ok(())
 }
@@ -861,14 +906,64 @@ async fn a_reused_key_for_another_owner_is_refused(pool: PgPool) -> sqlx::Result
     let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
     let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
     let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
-    let first = fx.engine.create(req("shared-key", source, beneficiary, Some(app_fee), 5_000, Some(PROFILE))).await.unwrap();
-    let again = fx.engine.create(req("shared-key", source, beneficiary, Some(app_fee), 5_000, Some(PROFILE))).await.unwrap();
+    let first = fx
+        .engine
+        .create(req(
+            "shared-key",
+            source,
+            beneficiary,
+            Some(app_fee),
+            5_000,
+            Some(PROFILE),
+        ))
+        .await
+        .unwrap();
+    let again = fx
+        .engine
+        .create(req(
+            "shared-key",
+            source,
+            beneficiary,
+            Some(app_fee),
+            5_000,
+            Some(PROFILE),
+        ))
+        .await
+        .unwrap();
     assert_eq!(again.id, first.id);
-    let mut other = req("shared-key", source, beneficiary, Some(app_fee), 5_000, Some(PROFILE));
+    let mut other = req(
+        "shared-key",
+        source,
+        beneficiary,
+        Some(app_fee),
+        5_000,
+        Some(PROFILE),
+    );
     other.owner_ref = "another-owner".into();
-    let err = fx.engine.create(other).await.err().expect("another owner must be refused");
-    assert!(matches!(err, ApplicationSettlementError::IdempotencyConflict(_)), "{err:?}");
-    let err = fx.engine.create(req("shared-key", source, beneficiary, Some(app_fee), 6_000, Some(PROFILE))).await.err().expect("amount drift must be refused");
-    assert!(matches!(err, ApplicationSettlementError::IdempotencyConflict(_)), "{err:?}");
+    let err = fx
+        .engine
+        .create(other)
+        .await
+        .expect_err("another owner must be refused");
+    assert!(
+        matches!(err, ApplicationSettlementError::IdempotencyConflict(_)),
+        "{err:?}"
+    );
+    let err = fx
+        .engine
+        .create(req(
+            "shared-key",
+            source,
+            beneficiary,
+            Some(app_fee),
+            6_000,
+            Some(PROFILE),
+        ))
+        .await
+        .expect_err("amount drift must be refused");
+    assert!(
+        matches!(err, ApplicationSettlementError::IdempotencyConflict(_)),
+        "{err:?}"
+    );
     Ok(())
 }

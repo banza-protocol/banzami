@@ -431,7 +431,10 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         self.repo
             .update_status(id, payout.status, PayoutStatus::Processing, None, None)
             .await?;
-        let posting = match self.post_initiation(&payout, wallet.available_account_id).await {
+        let posting = match self
+            .post_initiation(&payout, wallet.available_account_id)
+            .await
+        {
             Ok(p) => p,
             Err(e) => {
                 let _ = self
@@ -443,7 +446,13 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         };
 
         self.repo
-            .update_status(id, PayoutStatus::Processing, PayoutStatus::Processing, Some(posting.id), None)
+            .update_status(
+                id,
+                PayoutStatus::Processing,
+                PayoutStatus::Processing,
+                Some(posting.id),
+                None,
+            )
             .await
     }
 
@@ -812,7 +821,10 @@ mod tests {
                 .find(|p| p.id == id)
                 .ok_or(PayoutError::NotFound(id))?;
             if p.status != from {
-                return Err(PayoutError::InvalidStatusTransition { from: p.status, to: status });
+                return Err(PayoutError::InvalidStatusTransition {
+                    from: p.status,
+                    to: status,
+                });
             }
             p.status = status;
             if let Some(pid) = posting_id {

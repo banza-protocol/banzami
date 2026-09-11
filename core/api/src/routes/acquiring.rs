@@ -83,7 +83,9 @@ fn map_err(e: AcquiringError) -> ApiError {
             ApiError::internal(format!("unknown acquiring status: {s}"))
         }
         AcquiringError::Internal(msg) => ApiError::internal(msg),
-        AcquiringError::AmountMismatch { .. } => ApiError::unprocessable("AMOUNT_MISMATCH", e.to_string()),
+        AcquiringError::AmountMismatch { .. } => {
+            ApiError::unprocessable("AMOUNT_MISMATCH", e.to_string())
+        }
         AcquiringError::NotPending(_) => ApiError::conflict("PAYMENT_NOT_PENDING", e.to_string()),
     }
 }

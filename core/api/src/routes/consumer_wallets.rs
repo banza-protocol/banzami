@@ -1,9 +1,9 @@
+use super::credit_idempotency;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
-use super::credit_idempotency;
 use serde::{Deserialize, Serialize};
 
 use banzami_consumer_wallets::{
@@ -318,12 +318,21 @@ pub async fn test_credit(
     .ok_or_else(|| ApiError::not_found("no active wallet for consumer in that currency"))?;
 
     // Idempotency first: a replay succeeds even when the pilot cap is now full.
-    let idempotency_key =
-        credit_idempotency::ledger_key("admin-test-credit", &consumer_id.to_string(), body.idempotency_key.as_deref())?;
+    let idempotency_key = credit_idempotency::ledger_key(
+        "admin-test-credit",
+        &consumer_id.to_string(),
+        body.idempotency_key.as_deref(),
+    )?;
     if body.idempotency_key.is_some() {
         if let Some(prev) = credit_idempotency::posted(&state.pool, &idempotency_key).await? {
-            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency.code())?;
-            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            credit_idempotency::same_credit(
+                &prev,
+                available_account_id,
+                body.amount_minor,
+                currency.code(),
+            )?;
+            let new_balance =
+                credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
             return Ok(Json(TestCreditResponse {
                 consumer_id: body.consumer_id.clone(),
                 currency: currency_code.to_owned(),
@@ -384,8 +393,14 @@ pub async fn test_credit(
             let prev = credit_idempotency::posted(&state.pool, &idempotency_key)
                 .await?
                 .ok_or_else(|| ApiError::internal("duplicate credit key without its posting"))?;
-            credit_idempotency::same_credit(&prev, available_account_id, body.amount_minor, currency.code())?;
-            let new_balance = credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
+            credit_idempotency::same_credit(
+                &prev,
+                available_account_id,
+                body.amount_minor,
+                currency.code(),
+            )?;
+            let new_balance =
+                credit_idempotency::liability_balance(&state.pool, available_account_id).await?;
             return Ok(Json(TestCreditResponse {
                 consumer_id: body.consumer_id.clone(),
                 currency: currency_code.to_owned(),

@@ -30,7 +30,10 @@ pub trait ApplicationSettlementRepository: Send + Sync {
     /// two settlements drawing on one source account could both pass the
     /// balance check and overdraw it. Transitions now hold these locks — the
     /// source account's and the settlement's — and re-read inside them.
-    async fn lock_for_transition(&self, keys: &[Uuid]) -> Result<TransitionLock, ApplicationSettlementError>;
+    async fn lock_for_transition(
+        &self,
+        keys: &[Uuid],
+    ) -> Result<TransitionLock, ApplicationSettlementError>;
     async fn insert(
         &self,
         s: ApplicationSettlement,
@@ -108,13 +111,18 @@ const SELECT: &str = "SELECT id, owner_ref, application_id, source_account_id,
     FROM app_settlements";
 
 impl ApplicationSettlementRepository for PostgresApplicationSettlementRepository {
-    async fn lock_for_transition(&self, keys: &[Uuid]) -> Result<TransitionLock, ApplicationSettlementError> {
+    async fn lock_for_transition(
+        &self,
+        keys: &[Uuid],
+    ) -> Result<TransitionLock, ApplicationSettlementError> {
         let mut tx = self.pool.begin().await?;
         for k in keys {
-            sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended('app_settlement:' || $1::text, 0))")
-                .bind(k)
-                .execute(&mut *tx)
-                .await?;
+            sqlx::query(
+                "SELECT pg_advisory_xact_lock(hashtextextended('app_settlement:' || $1::text, 0))",
+            )
+            .bind(k)
+            .execute(&mut *tx)
+            .await?;
         }
         Ok(TransitionLock(Some(tx)))
     }

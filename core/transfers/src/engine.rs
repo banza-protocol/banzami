@@ -299,7 +299,11 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
             // answered exactly like a replay (or refused if it is not the same).
             if e.as_database_error().and_then(|d| d.code()).as_deref() == Some("23505") {
                 drop(db_tx);
-                if let Some(existing) = self.repo.get_by_idempotency_key(&req.idempotency_key).await? {
+                if let Some(existing) = self
+                    .repo
+                    .get_by_idempotency_key(&req.idempotency_key)
+                    .await?
+                {
                     return replay(existing, &req);
                 }
             }
@@ -347,6 +351,8 @@ fn replay(existing: Transfer, req: &SendTransferRequest) -> Result<Transfer, Tra
     {
         Ok(existing)
     } else {
-        Err(TransferError::DuplicateIdempotencyKey(req.idempotency_key.clone()))
+        Err(TransferError::DuplicateIdempotencyKey(
+            req.idempotency_key.clone(),
+        ))
     }
 }

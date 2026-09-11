@@ -1669,11 +1669,16 @@ async fn dispute_open_for_another_merchants_transaction_is_not_found(pool: PgPoo
         }),
     )
     .await
-    .err()
-    .expect("another merchant's transaction must not be disputable");
+    .expect_err("another merchant's transaction must not be disputable");
     assert_eq!(err.status, axum::http::StatusCode::NOT_FOUND);
-    let opened: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM disputes").fetch_one(&pool).await.unwrap();
-    assert_eq!(opened, 0, "a dispute was opened on another merchant's transaction");
+    let opened: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM disputes")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        opened, 0,
+        "a dispute was opened on another merchant's transaction"
+    );
 }
 
 // A merchant filter that does not parse is refused — it used to mean "every tenant".
@@ -1692,7 +1697,6 @@ async fn dispute_list_with_a_malformed_filter_is_refused(pool: PgPool) {
         }),
     )
     .await
-    .err()
-    .expect("a malformed merchant_id must not list every tenant");
+    .expect_err("a malformed merchant_id must not list every tenant");
     assert_eq!(err.status, axum::http::StatusCode::BAD_REQUEST);
 }

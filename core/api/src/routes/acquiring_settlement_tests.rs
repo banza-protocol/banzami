@@ -27,7 +27,9 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use banzami_acquiring::{AcquiringEngine, AcquiringPayment, AcquiringPaymentStatus, PaymentInstructions};
+use banzami_acquiring::{
+    AcquiringEngine, AcquiringPayment, AcquiringPaymentStatus, PaymentInstructions,
+};
 use banzami_types::{AccountId, Money};
 
 use crate::routes::acquiring::settle_confirmed_payment;
@@ -300,8 +302,7 @@ async fn an_invalid_named_account_does_not_fall_back_to_the_default(pool: PgPool
     // the link paid and emitted payment_link.paid over an empty ledger.
     let err = settle_confirmed_payment(&state, &payment)
         .await
-        .err()
-        .expect("an uncreditable payment must be reported as withheld, not as settled");
+        .expect_err("an uncreditable payment must be reported as withheld, not as settled");
     assert_eq!(err.code, "SETTLEMENT_WITHHELD");
 
     assert_eq!(
@@ -456,22 +457,48 @@ async fn a_callback_for_another_amount_confirms_nothing(pool: PgPool) {
         .acquiring
         .generate_test_callback(&paid.external_ref, 1_000, "AOA")
         .expect("the simulated provider signs test callbacks");
-    let err = state.acquiring.process_callback(&body, &sig).await.err().expect("a lower amount must not confirm");
-    assert!(matches!(err, banzami_acquiring::AcquiringError::AmountMismatch { .. }), "{err:?}");
-    let status: String = sqlx::query_scalar("SELECT status FROM acquiring_payments WHERE external_ref = $1")
-        .bind(&paid.external_ref)
-        .fetch_one(&pool)
+    let err = state
+        .acquiring
+        .process_callback(&body, &sig)
         .await
-        .unwrap();
-    assert_eq!(status, "PENDING", "a mismatched callback changed the payment");
+        .expect_err("a lower amount must not confirm");
+    assert!(
+        matches!(
+            err,
+            banzami_acquiring::AcquiringError::AmountMismatch { .. }
+        ),
+        "{err:?}"
+    );
+    let status: String =
+        sqlx::query_scalar("SELECT status FROM acquiring_payments WHERE external_ref = $1")
+            .bind(&paid.external_ref)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        status, "PENDING",
+        "a mismatched callback changed the payment"
+    );
 
-    let (body, sig) = state.acquiring.generate_test_callback(&paid.external_ref, 100_000, "AOA").unwrap();
-    let ok = state.acquiring.process_callback(&body, &sig).await.expect("the genuine callback confirms");
-    assert!(matches!(ok.status, AcquiringPaymentStatus::Confirmed));
-    let processed: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM acquiring_callbacks WHERE external_ref = $1 AND processed")
-        .bind(&paid.external_ref)
-        .fetch_one(&pool)
-        .await
+    let (body, sig) = state
+        .acquiring
+        .generate_test_callback(&paid.external_ref, 100_000, "AOA")
         .unwrap();
-    assert_eq!(processed, 1, "the confirming callback was not marked processed");
+    let ok = state
+        .acquiring
+        .process_callback(&body, &sig)
+        .await
+        .expect("the genuine callback confirms");
+    assert!(matches!(ok.status, AcquiringPaymentStatus::Confirmed));
+    let processed: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM acquiring_callbacks WHERE external_ref = $1 AND processed",
+    )
+    .bind(&paid.external_ref)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        processed, 1,
+        "the confirming callback was not marked processed"
+    );
 }

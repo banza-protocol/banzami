@@ -253,7 +253,9 @@ impl AcquiringEngine for PostgresAcquiringEngine {
             });
         }
         if matches!(payment.status, AcquiringPaymentStatus::Failed) {
-            return Err(AcquiringError::NotPending(payment.status.as_str().to_string()));
+            return Err(AcquiringError::NotPending(
+                payment.status.as_str().to_string(),
+            ));
         }
 
         let confirmed = self

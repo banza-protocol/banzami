@@ -243,19 +243,30 @@ fn sandbox_body(amount_minor: i64, key: Option<&str>) -> SandboxCreditBody {
 }
 
 async fn postings(pool: &PgPool) -> i64 {
-    sqlx::query_scalar("SELECT COUNT(*) FROM ledger_postings").fetch_one(pool).await.unwrap()
+    sqlx::query_scalar("SELECT COUNT(*) FROM ledger_postings")
+        .fetch_one(pool)
+        .await
+        .unwrap()
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn sandbox_credit_same_key_posts_once(pool: PgPool) {
     let wallet = seed_wallet(&pool).await;
     let state = build_state(pool.clone()).await;
-    let first = routes::sandbox_credit(State(state.clone()), Path(wallet.to_string()), Json(sandbox_body(7_000, Some("retry-key-0001"))))
-        .await
-        .expect("first credit");
-    let again = routes::sandbox_credit(State(state), Path(wallet.to_string()), Json(sandbox_body(7_000, Some("retry-key-0001"))))
-        .await
-        .expect("a replay answers like the original");
+    let first = routes::sandbox_credit(
+        State(state.clone()),
+        Path(wallet.to_string()),
+        Json(sandbox_body(7_000, Some("retry-key-0001"))),
+    )
+    .await
+    .expect("first credit");
+    let again = routes::sandbox_credit(
+        State(state),
+        Path(wallet.to_string()),
+        Json(sandbox_body(7_000, Some("retry-key-0001"))),
+    )
+    .await
+    .expect("a replay answers like the original");
     assert_eq!(postings(&pool).await, 1, "the same key posted twice");
     assert_eq!(first.0.new_balance, 7_000);
     assert_eq!(again.0.new_balance, 7_000, "the replay must not add money");
@@ -265,13 +276,21 @@ async fn sandbox_credit_same_key_posts_once(pool: PgPool) {
 async fn sandbox_credit_same_key_other_amount_is_refused(pool: PgPool) {
     let wallet = seed_wallet(&pool).await;
     let state = build_state(pool.clone()).await;
-    let _ = routes::sandbox_credit(State(state.clone()), Path(wallet.to_string()), Json(sandbox_body(7_000, Some("retry-key-0002"))))
-        .await
-        .expect("first credit");
-    let err = routes::sandbox_credit(State(state), Path(wallet.to_string()), Json(sandbox_body(9_000, Some("retry-key-0002"))))
-        .await
-        .err()
-        .expect("a changed amount under the same key must be refused");
+    let _ = routes::sandbox_credit(
+        State(state.clone()),
+        Path(wallet.to_string()),
+        Json(sandbox_body(7_000, Some("retry-key-0002"))),
+    )
+    .await
+    .expect("first credit");
+    let err = routes::sandbox_credit(
+        State(state),
+        Path(wallet.to_string()),
+        Json(sandbox_body(9_000, Some("retry-key-0002"))),
+    )
+    .await
+    .err()
+    .expect("a changed amount under the same key must be refused");
     assert_eq!(err.status, axum::http::StatusCode::CONFLICT);
     assert_eq!(err.code, "IDEMPOTENCY_KEY_REUSED");
     assert_eq!(postings(&pool).await, 1);
@@ -286,14 +305,27 @@ async fn sandbox_credit_concurrent_duplicates_post_once(pool: PgPool) {
         let st = state.clone();
         let w = wallet.to_string();
         handles.push(tokio::spawn(async move {
-            routes::sandbox_credit(State(st), Path(w), Json(sandbox_body(5_000, Some("race-key-00001")))).await
+            routes::sandbox_credit(
+                State(st),
+                Path(w),
+                Json(sandbox_body(5_000, Some("race-key-00001"))),
+            )
+            .await
         }));
     }
     for h in handles {
         let r = h.await.unwrap();
-        assert!(r.is_ok(), "every concurrent duplicate answers like the original: {:?}", r.err().map(|e| e.code));
+        assert!(
+            r.is_ok(),
+            "every concurrent duplicate answers like the original: {:?}",
+            r.err().map(|e| e.code)
+        );
     }
-    assert_eq!(postings(&pool).await, 1, "concurrent duplicates posted more than once");
+    assert_eq!(
+        postings(&pool).await,
+        1,
+        "concurrent duplicates posted more than once"
+    );
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -307,16 +339,28 @@ async fn admin_credit_same_key_posts_once_and_rejects_bad_keys(pool: PgPool) {
         idempotency_key: Some(key.to_string()),
     };
     for _ in 0..3 {
-        let _ = routes::admin_credit(State(state.clone()), Path(wallet.to_string()), Json(body("operator-click-01")))
-            .await
-            .expect("admin credit");
+        let _ = routes::admin_credit(
+            State(state.clone()),
+            Path(wallet.to_string()),
+            Json(body("operator-click-01")),
+        )
+        .await
+        .expect("admin credit");
     }
-    assert_eq!(postings(&pool).await, 1, "a repeated operator click posted more than once");
+    assert_eq!(
+        postings(&pool).await,
+        1,
+        "a repeated operator click posted more than once"
+    );
     for bad in ["short", "has space here", "ümlaut-key-000"] {
-        let err = routes::admin_credit(State(state.clone()), Path(wallet.to_string()), Json(body(bad)))
-            .await
-            .err()
-            .expect("a malformed key is refused");
+        let err = routes::admin_credit(
+            State(state.clone()),
+            Path(wallet.to_string()),
+            Json(body(bad)),
+        )
+        .await
+        .err()
+        .expect("a malformed key is refused");
         assert_eq!(err.status, axum::http::StatusCode::BAD_REQUEST, "{bad}");
     }
 }

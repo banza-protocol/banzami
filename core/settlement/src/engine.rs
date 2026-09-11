@@ -180,7 +180,13 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
 
         let updated = self
             .repo
-            .update_status(id, SettlementStatus::Settled, SettlementStatus::Settled, Some(posted.id), None)
+            .update_status(
+                id,
+                SettlementStatus::Settled,
+                SettlementStatus::Settled,
+                Some(posted.id),
+                None,
+            )
             .await?;
 
         tracing::info!(
@@ -382,7 +388,10 @@ mod tests {
                 .find(|s| s.id == id)
                 .ok_or(SettlementError::NotFound(id))?;
             if s.status != from {
-                return Err(SettlementError::InvalidStatusTransition { from: s.status, to: status });
+                return Err(SettlementError::InvalidStatusTransition {
+                    from: s.status,
+                    to: status,
+                });
             }
             s.status = status;
             if posting_id.is_some() {

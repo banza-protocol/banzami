@@ -28,7 +28,8 @@ pub fn ledger_key(prefix: &str, owner: &str, client: Option<&str>) -> ApiResult<
         None => Ok(format!("{prefix}-{owner}-{}", Uuid::new_v4())),
         Some(k) => {
             let ok = (8..=128).contains(&k.len())
-                && k.bytes().all(|b| b.is_ascii_alphanumeric() || b"._:-".contains(&b));
+                && k.bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b"._:-".contains(&b));
             if !ok {
                 return Err(ApiError::bad_request(
                     "idempotency_key must be 8 to 128 characters of A-Z a-z 0-9 . _ : -",
@@ -55,7 +56,12 @@ pub async fn posted(pool: &PgPool, key: &str) -> ApiResult<Option<(Uuid, i64, St
 }
 
 /// Same key, same economics: the same credit. Anything else is refused.
-pub fn same_credit(prev: &(Uuid, i64, String), account: Uuid, amount_minor: i64, currency: &str) -> ApiResult<()> {
+pub fn same_credit(
+    prev: &(Uuid, i64, String),
+    account: Uuid,
+    amount_minor: i64,
+    currency: &str,
+) -> ApiResult<()> {
     if prev.0 == account && prev.1 == amount_minor && prev.2 == currency {
         Ok(())
     } else {
