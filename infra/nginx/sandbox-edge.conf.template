@@ -84,8 +84,8 @@ set_real_ip_from 2c0f:f248::/32;
 # path, in the query, after a stray escape — or six hyphen-separated groups of
 # four (a reference without its prefix) is cut after at most its first group.
 # A 404 on a mistyped route (/V1/…, /R/…, /v1//…) carries the reference as
-# surely as the real route does. The Referer is dropped. Used by the servers
-# that carry references.
+# surely as the real route does. The Referer is dropped. Every server on this
+# edge logs with it (or not at all) — any host can be sent a reference.
 # Guard: tests/ops/nginx-proof-log-redaction.test.mjs.
 map $request $bz_request_redacted {
     "~*^(?<bz_head>\S+ .*?(?:bzm[^ ]{0,5}|(?=[0-9a-z%]{4}(?:-[0-9a-z%]{4}){5}))).*?(?<bz_tail>(?: HTTP/[0-9.]+)?)$" "${bz_head}...${bz_tail}";
@@ -107,6 +107,7 @@ server {
     listen 443 ssl;
     http2 on;
     server_name admin.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -243,6 +244,7 @@ server {
     listen 443 ssl;
     http2 on;
     server_name pay.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -274,6 +276,7 @@ server {
     listen 443 ssl;
     http2 on;
     server_name checkout.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -298,6 +301,7 @@ server {
     listen 443 ssl;
     http2 on;
     server_name sandbox-webhook.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -350,6 +354,7 @@ server {
     listen 443 ssl;
     http2 on;
     server_name developer-api.banzami.com;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -395,6 +400,7 @@ server {
 server {
     listen 443 ssl default_server;
     server_name _;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     ssl_certificate     /etc/nginx/certs/banzami-wildcard.pem;
     ssl_certificate_key /etc/nginx/certs/banzami-wildcard.key;
@@ -427,6 +433,7 @@ server {
 server {
     listen 127.0.0.1:8081;
     server_name _;
+    access_log /var/log/nginx/access.log bz_redacted;
 
     location = /edge-health {
         access_log off;

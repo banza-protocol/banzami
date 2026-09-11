@@ -19,7 +19,13 @@ const nextConfig = {
   // typechecked by `npx tsc -p tsconfig.json` and in CI.
   typescript: { tsconfigPath: './tsconfig.build.json' },
   async headers() {
-    return [{ source: '/(.*)', headers: securityHeaders }];
+    return [
+      { source: '/(.*)', headers: securityHeaders },
+      // A /r/ URL is the proof's bearer reference: no request made from the
+      // page — same-origin included — carries it as a Referer. Later rules win
+      // for the same key, so this one comes last.
+      { source: '/r/:path*', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }] },
+    ];
   },
   // NOTE: docs URL routing is intentionally NOT done here. next.config redirects
   // run before middleware and are host-agnostic, which would invert the canonical

@@ -57,3 +57,32 @@ test('both edges redact with the same rule', () => {
   const pick = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8').match(/map \$request \$bz_request_redacted \{[^}]+\}/)[0];
   assert.equal(pick('infra/nginx/website.conf'), pick('infra/nginx/sandbox-edge.conf.template'));
 });
+
+// The map only protects the servers that log through it. A server with no
+// access_log of its own inherits nginx.conf's "main" format — the request line
+// whole, and the Referer — and any host can be sent a reference (a default
+// server, a vhost for another product, a mistyped host). Until 2026-09-11 only
+// banzami.com and sandbox-api did.
+const EDGE_CONFIGS = [
+  'infra/nginx/website.conf', 'infra/nginx/website-developers.conf',
+  'infra/nginx/website-default-guard.conf', 'infra/nginx/sandbox-edge.conf.template',
+];
+for (const path of EDGE_CONFIGS) {
+  test(`${path}: every server logs redacted, or not at all`, () => {
+    const conf = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8')
+      .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');
+    const servers = conf.split(/^server \{/m).slice(1).map((b) => b.split(/^\}/m)[0]);
+    assert.ok(servers.length > 0, `${path}: no server block found`);
+    for (const body of servers) {
+      const name = (body.match(/^\s{4}server_name ([^;]+);/m) ?? [])[1] ?? '?';
+      const own = body.match(/^ {4}access_log ([^;]+);/gm) ?? [];
+      assert.ok(own.length > 0, `${path}: server ${name} has no access_log of its own, so it inherits the unredacted default`);
+    }
+    for (const [, args] of conf.matchAll(/access_log ([^;]+);/g)) {
+      assert.ok(args === 'off' || /\sbz_redacted$/.test(args), `${path}: access_log ${args} does not use bz_redacted`);
+    }
+    for (const [, name] of conf.matchAll(/log_format\s+(\S+)/g)) {
+      assert.equal(name, 'bz_redacted', `${path}: another log format (${name}) is defined`);
+    }
+  });
+}

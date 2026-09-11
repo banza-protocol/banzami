@@ -38,6 +38,8 @@ Visitor ──HTTPS:443──▶ Cloudflare (separate Banzami zone/account)
 |------|---------|
 | `/srv/banzami/docker-compose.yml` | `website-frontend` + `website-nginx` services (additive) |
 | `/srv/banzami/website-nginx/conf.d/website.conf` | website vhost (source: `infra/nginx/website.conf`) |
+| `/srv/banzami/website-nginx/conf.d/zz-developers.conf` | developers.banzami.com vhost (source: `infra/nginx/website-developers.conf`) |
+| `/srv/banzami/website-nginx/conf.d/zz-zz-default-maintenance.conf` | default server, 503 (source: `infra/nginx/website-default-guard.conf`) |
 | `/srv/banzami/website-nginx/certs/banzami-com.{pem,key}` | origin cert |
 | `/srv/banzami/src/apps/website/` | rsynced source for the image build |
 

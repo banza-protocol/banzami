@@ -24,10 +24,15 @@ retention (BACKUP_DR_RUNBOOK.md).
 - Rotated files are kept **14 days** (the host's local backup retention), then
   deleted by logrotate. Files are `root`-only, as Docker writes them.
 - Bearer values are never written whole: proof references (any route, any
-  spelling) keep their first group; API keys are replaced. Go:
+  spelling, any host) keep their first group; API keys are replaced; no
+  Referer is logged. Every nginx server block logs with `bz_redacted` or not
+  at all — a server without its own `access_log` would inherit nginx's `main`
+  format (request whole, Referer included). Go:
   `services/common/obs/redact.go`; nginx: `map $request $bz_request_redacted`
   (keys on the token, not the route). Guards:
   `services/common/obs/redact_test.go`, `tests/ops/nginx-proof-log-redaction.test.mjs`.
+- `/r/` pages send `Referrer-Policy: no-referrer`, so a proof URL is not
+  carried to any request the page makes (`apps/website/lib/proof-referrer.test.ts`).
 
 ## History
 
