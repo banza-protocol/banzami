@@ -131,8 +131,13 @@ zero on a clean database and moves for the defect it exists to catch
 | `sandbox-host-attestation.sh` | PASS 14 / FAIL 0 (after recording BANZADMIN's two containers — 8d5bd73b) |
 | `refund-settlement-matrix.sh`, `economic-model-smoke.sh` | stale — their settlement steps use the contract retired on 2026-09-05 (§8) |
 
-Harnesses that touch DOA's Project (fixture keys, campaign accounts, deliveries
-to doadoa.app) were deliberately not run.
+Harnesses that act inside DOA's Project were meant not to run. They did once:
+`fixture-hygiene-suite.sh` runs every stateful harness, and I took it for a
+read-only check. Effect, measured read-only: two empty CAMPAIGN sub-accounts
+added to DOA's wallet; no DOA ledger entry, payout, link or delivery; no
+application settlement anywhere. The suite now skips such harnesses by default
+(RA-093). Most of that sweep's harnesses failed on the Sandbox pilot funding cap
+(below), not on a defect.
 
 ## 5. SDK and contract drift
 
@@ -204,6 +209,10 @@ reporting.
 | D44 | P2 | SDK | Python/PHP payment requests on a withdrawn route | FIXED 21e0d0a7 |
 | D45 | P1 | logs | application capability ids written whole | FIXED 24c4eb05 (RA-092) |
 | D46 | P3 | deps | `x/crypto` v0.55.0 (unreachable ssh advisories) | FIXED dc3df868 |
+| D47 | P2 | SDK | `createApplicationSettlement` sent a retired body — always 400 | FIXED 28eba169 (deprecated, fails locally) |
+| D48 | P2 | ops | BANZADMIN containers missing from the host manifest — attestation failed | FIXED 8d5bd73b |
+| D49 | P1 | harness | the hygiene suite ran nine harnesses that write into DOA's tenant | FIXED 20c50249 (RA-093) |
+| D50 | P3 | API | a refused Sandbox top-up answered 500 | FIXED 20c50249 |
 
 ## 8. Residual and latent risks
 
@@ -217,6 +226,9 @@ reporting.
 | ~168 deploy bundle manifests deleted | receipts and git history still resolve commit → runtime |
 | Four historical real proof references remain in git history | not rewritten, by instruction |
 | `banzami-redis-1` legacy container | unused; owner decision |
+| Ten empty "Campanha A/B — demo" CAMPAIGN sub-accounts in DOA's wallet (two from this programme's sweep) | balance 0, no money; not closed — canonical @doa state is not mutated to clean fixtures. Owner decision |
+| Sandbox pilot overlay: synthetic funds cap (Kz 500 000) reached | new consumers start at zero and top-ups are refused (`PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED`) — the public Sandbox cannot fund a new wallet until the cap is raised or funds are retired. Product decision |
+| Nine harnesses use DOA's Project as their test tenant | skipped by default now; moving them onto a generic fixture Project is open |
 | Two Sandbox harnesses (`refund-settlement-matrix.sh`, `economic-model-smoke.sh`) still settle wallet-to-wallet, which the gateway retired on 2026-09-05 — their settlement steps fail (400) | not run in CI; the economics they assert are covered by the core real-DB suites (settlement, app-settlement, pricing). Rewriting them onto the account/@banza contract is open |
 
 ## 9. Boundaries (not claimed)
