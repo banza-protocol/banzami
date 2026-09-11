@@ -14,8 +14,11 @@ import 'merchant_push_registration.dart';
 // Session model
 // ---------------------------------------------------------------------------
 
-/// How the current session was authenticated.
-enum MerchantLoginMethod { apiKey, handlePin }
+/// How the current session was authenticated. The Business App signs in with
+/// @banza + PIN only: the old "credenciais de integração" path asked for a
+/// secret API key, and a secret key never lives in a mobile app (CLAUDE.md §6,
+/// §13). A device that still holds one is wiped on upgrade (see [initialize]).
+enum MerchantLoginMethod { handlePin }
 
 /// Which screen the Business App shows for the current session state.
 enum MerchantRoute {
@@ -34,12 +37,8 @@ enum MerchantRoute {
   signedIn,
 }
 
-/// Unified merchant session. The rest of the app uses this abstraction and
-/// never needs to know whether the JWT came from an API key or @handle + PIN.
-///
-/// Exactly one auth credential is held: [apiKey] (legacy integration login) OR
-/// [jwt] (+[jwtExpiresAt], from @handle + PIN login) with the rotating
-/// [refreshToken] that renews it.
+/// The Business session: [jwt] (+[jwtExpiresAt], from @handle + PIN login)
+/// with the rotating [refreshToken] that renews it.
 class MerchantSession {
   final String merchantId;
   final String merchantName;
@@ -49,8 +48,7 @@ class MerchantSession {
   final MerchantLoginMethod loginMethod;
   final String environment; // 'LIVE' | 'SANDBOX'
 
-  final String?   apiKey;           // set only for apiKey login
-  final String?   jwt;              // set only for handlePin login
+  final String?   jwt;
   final DateTime? jwtExpiresAt;
   final String?   refreshToken;     // handlePin login; single-use, rotates
   final DateTime? refreshExpiresAt;
@@ -66,7 +64,6 @@ class MerchantSession {
     required this.walletId,
     required this.loginMethod,
     required this.environment,
-    this.apiKey,
     this.jwt,
     this.jwtExpiresAt,
     this.refreshToken,
@@ -89,21 +86,18 @@ class MerchantSession {
   }
 
   /// The merchant's @banza payment address (e.g. "@doa"), or null when the
-  /// handle isn't known (legacy API-key sessions). This is the primary public
+  /// handle isn't known. This is the primary public
   /// identifier — the merchant UUID is internal and never the display identity.
   String? get banzaAddress =>
       (handle != null && handle!.trim().isNotEmpty) ? '@${handle!.trim()}' : null;
 
-  /// The credential in use — the API key (legacy) or the current JWT. Never
-  /// for display.
-  String get authIdentity => apiKey ?? jwt ?? '';
+  /// The credential in use — the current JWT. Never for display.
+  String get authIdentity => jwt ?? '';
 
   /// Decides whether a cached BanzamiClient can be reused: the same Business
   /// signed in the same way. Stable across access-token renewals — a renewal
   /// must not replace the client (and its single in-flight renewal) mid-burst.
-  String get clientKey => isHandleLogin
-      ? 'handle:$merchantId:$environment'
-      : 'api_key:${apiKey ?? ''}';
+  String get clientKey => 'handle:$merchantId:$environment';
 
   MerchantSession copyWith({
     bool? biometricsEnabled,
@@ -121,7 +115,6 @@ class MerchantSession {
         walletId:          walletId,
         loginMethod:       loginMethod,
         environment:       environment,
-        apiKey:            apiKey,
         jwt:               jwt          ?? this.jwt,
         jwtExpiresAt:      jwtExpiresAt ?? this.jwtExpiresAt,
         refreshToken:      clearRefreshToken ? null : (refreshToken ?? this.refreshToken),
@@ -154,13 +147,14 @@ class MerchantSessionService extends ChangeNotifier {
   static const _kMerchantName  = 'merchant_name';
   static const _kMerchantEmail = 'merchant_email';
   static const _kWalletId      = 'merchant_wallet_id';
-  static const _kApiKey        = 'merchant_api_key';
+  /// Legacy only: read once to wipe a device that still holds a secret key.
+  static const _kLegacyApiKey  = 'merchant_api_key';
   static const _kJwt           = 'merchant_jwt';
   static const _kJwtExpiry     = 'merchant_jwt_expiry';
   static const _kRefreshToken  = 'merchant_refresh_token';
   static const _kRefreshExpiry = 'merchant_refresh_expiry';
   static const _kHandle        = 'merchant_handle';
-  static const _kLoginMethod   = 'merchant_login_method'; // 'api_key' | 'handle_pin'
+  static const _kLoginMethod   = 'merchant_login_method'; // 'handle_pin'
   static const _kEnvironment   = 'merchant_environment';  // 'LIVE' | 'SANDBOX'
   static const _kPinHash       = 'merchant_pin_hash';
   static const _kBioEnabled    = 'merchant_bio_enabled';
@@ -224,11 +218,10 @@ class MerchantSessionService extends ChangeNotifier {
   }
 
   /// A handle-login ACCESS token that has expired, or will within [margin]. An
-  /// API-key session renews its own token and never reports expired here. An
   /// expired access token is not an ended session while [MerchantSession.canRenew].
   bool isTokenExpired({Duration margin = const Duration(minutes: 2)}) {
     final s = _session;
-    if (s == null || !s.isHandleLogin) return false;
+    if (s == null) return false;
     final exp = s.jwtExpiresAt;
     if (s.jwt == null || exp == null) return true;
     return !DateTime.now().add(margin).isBefore(exp);
@@ -261,7 +254,7 @@ class MerchantSessionService extends ChangeNotifier {
     final merchantName  = await _store.read(key: _kMerchantName);
     final merchantEmail = await _store.read(key: _kMerchantEmail);
     final walletId      = await _store.read(key: _kWalletId);
-    final apiKey        = await _store.read(key: _kApiKey);
+    final legacyApiKey  = await _store.read(key: _kLegacyApiKey);
     final jwt           = await _store.read(key: _kJwt);
     final jwtExpiry     = await _store.read(key: _kJwtExpiry);
     final refreshToken  = await _store.read(key: _kRefreshToken);
@@ -273,18 +266,26 @@ class MerchantSessionService extends ChangeNotifier {
     final verified      = await _store.read(key: _kVerified);
     final pinHash       = await _store.read(key: _kPinHash);
 
+    // Withdrawn API-key sessions: a device that stored a secret API key (or a
+    // session signed in any other way than @banza + PIN) keeps nothing of it.
+    // The whole account is wiped once, and the Business signs in with its
+    // @banza + PIN.
+    if (legacyApiKey != null || (merchantId != null && method != 'handle_pin')) {
+      _unregisterPush(merchantId);
+      try {
+        await _serial(_store.deleteAll);
+      } catch (e) {
+        debugPrint('[session] could not wipe a legacy API-key session: ${e.runtimeType}');
+      }
+      await _finishInitialize(started);
+      return;
+    }
+
     final hasIdentity = merchantId != null && merchantName != null &&
         merchantEmail != null && walletId != null;
-    // Backward compatible: sessions stored before this refactor have no method
-    // and only an API key → treat them as apiKey login.
-    final loginMethod = method == 'handle_pin'
-        ? MerchantLoginMethod.handlePin
-        : MerchantLoginMethod.apiKey;
-    final env = environment ??
-        ((apiKey != null && apiKey.startsWith('bz_test')) ? 'SANDBOX' : 'LIVE');
-    final hasAuth = loginMethod == MerchantLoginMethod.handlePin
-        ? jwt != null
-        : apiKey != null;
+    const loginMethod = MerchantLoginMethod.handlePin;
+    final env = environment ?? 'LIVE';
+    final hasAuth = jwt != null;
 
     if (hasIdentity && hasAuth) {
       _session = MerchantSession(
@@ -294,10 +295,9 @@ class MerchantSessionService extends ChangeNotifier {
         walletId:          walletId,
         loginMethod:       loginMethod,
         environment:       env,
-        apiKey:            loginMethod == MerchantLoginMethod.apiKey ? apiKey : null,
-        jwt:               loginMethod == MerchantLoginMethod.handlePin ? jwt : null,
+        jwt:               jwt,
         jwtExpiresAt:      jwtExpiry != null ? DateTime.tryParse(jwtExpiry) : null,
-        refreshToken:      loginMethod == MerchantLoginMethod.handlePin ? refreshToken : null,
+        refreshToken:      refreshToken,
         refreshExpiresAt:  refreshExpiry != null ? DateTime.tryParse(refreshExpiry) : null,
         handle:            handle,
         biometricsEnabled: bioEnabled == 'true',
@@ -315,7 +315,7 @@ class MerchantSessionService extends ChangeNotifier {
       _unregisterPush(s.merchantId);
       _enterSignIn(s.handle);
       await _wipeEndedSessionSafely();
-    } else if (s == null && loginMethod == MerchantLoginMethod.handlePin &&
+    } else if (s == null && method == 'handle_pin' &&
         handle != null && pinHash != null) {
       // A Business session that ended earlier (or whose wipe was interrupted:
       // then the Business it named is still stored, and is unsubscribed again).
@@ -324,6 +324,10 @@ class MerchantSessionService extends ChangeNotifier {
       await _wipeEndedSessionSafely();
     }
 
+    await _finishInitialize(started);
+  }
+
+  Future<void> _finishInitialize(DateTime started) async {
     // Keep the animated welcome (splash) up for at least the animation duration
     // (1200ms), matching the consumer app, so it plays fully and never flashes.
     final elapsed = DateTime.now().difference(started);
@@ -383,46 +387,8 @@ class MerchantSessionService extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Setup — both auth paths persist the SAME unified session
+  // Sign-in — @banza + PIN is the only way in
   // ---------------------------------------------------------------------------
-
-  /// API-key login (Merchant ID + API Key).
-  Future<void> createSession({
-    required String merchantId,
-    required String merchantName,
-    required String merchantEmail,
-    required String walletId,
-    required String apiKey,
-    required String pin,
-    bool verified = false,
-  }) async {
-    final env = apiKey.startsWith('bz_test') ? 'SANDBOX' : 'LIVE';
-    _retireOtherBusiness(merchantId);
-    await _serial(() async {
-      await _persistIdentity(merchantId, merchantName, merchantEmail, walletId, env, verified, pin);
-      await _store.write(key: _kLoginMethod, value: 'api_key');
-      await _store.write(key: _kApiKey, value: apiKey);
-      await _store.delete(key: _kRefreshToken);
-      await _store.delete(key: _kRefreshExpiry);
-      await _store.delete(key: _kJwt);
-      await _store.delete(key: _kJwtExpiry);
-      await _store.delete(key: _kHandle);
-    });
-    _session = MerchantSession(
-      merchantId:    merchantId,
-      merchantName:  merchantName,
-      merchantEmail: merchantEmail,
-      walletId:      walletId,
-      loginMethod:   MerchantLoginMethod.apiKey,
-      environment:   env,
-      apiKey:        apiKey,
-      verified:      verified,
-    );
-    _expired      = false;
-    _signInHandle = null;
-    _locked       = false;
-    notifyListeners();
-  }
 
   /// @handle + PIN login. The caller has already exchanged handle+PIN for
   /// tokens (BanzamiClient.loginMerchantHandlePin) and fetched the merchant +
@@ -448,7 +414,7 @@ class MerchantSessionService extends ChangeNotifier {
       await _store.write(key: _kLoginMethod, value: 'handle_pin');
       await _persistTokens(jwt, jwtExpiresAt, refreshToken, refreshExpiresAt);
       await _store.write(key: _kHandle, value: handle);
-      await _store.delete(key: _kApiKey);
+      await _store.delete(key: _kLegacyApiKey);
     });
     _session = MerchantSession(
       merchantId:       merchantId,
@@ -590,19 +556,10 @@ class MerchantSessionService extends ChangeNotifier {
   /// (identity, wallet, verification) are cleared at once, and the app shows
   /// sign-in for the @handle — never a profile that looks signed in over calls
   /// that can only fail. Balance and history live in the main screens, which
-  /// are left and disposed. (An API-key session is only locked: it has not
-  /// ended, so it keeps its notifications.)
+  /// are left and disposed.
   void markExpired() {
     final s = _session;
     if (s == null) return; // nothing signed in, or already ended
-    if (!s.isHandleLogin) {
-      // An API-key session re-exchanges its own key; a refusal locks it.
-      if (_expired && _locked) return;
-      _expired = true;
-      _locked  = true;
-      notifyListeners();
-      return;
-    }
     _unregisterPush(s.merchantId);
     _enterSignIn(s.handle);
     notifyListeners();
@@ -616,15 +573,10 @@ class MerchantSessionService extends ChangeNotifier {
   /// Signs out of this device ("Terminar sessão"). For a Business session the
   /// session ends exactly as [markExpired] does (payment notifications
   /// included), and the refresh token it
-  /// held is returned so the caller can revoke it server-side. An API-key
-  /// session has no server session: it is locked, as before.
+  /// held is returned so the caller can revoke it server-side.
   Future<String?> endSession() async {
     final s = _session;
     if (s == null) return null;
-    if (!s.isHandleLogin) {
-      lock();
-      return null;
-    }
     final refresh = s.refreshToken;
     markExpired();
     await settled;

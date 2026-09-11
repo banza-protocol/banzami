@@ -77,13 +77,6 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
       return;
     }
 
-    final s = svc.session;
-    // An API-key session renews its own token; the PIN only unlocks the device.
-    if (s != null && !s.isHandleLogin) {
-      svc.unlock();
-      return;
-    }
-
     // A live Business session: the PIN is a device lock and stays on the
     // device. An expired access token is renewed with the refresh token.
     if (svc.route == MerchantRoute.locked) {

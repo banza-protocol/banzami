@@ -81,7 +81,8 @@ BanzamiClient buildBusinessClient({
   late final BanzamiClient client;
   client = BanzamiClient(
     baseUrl:        baseUrl,
-    apiKey:         s?.apiKey ?? '',
+    // Never an API key: the Business App holds no secret key (see
+    // MerchantLoginMethod). The JWT from @banza + PIN is the only credential.
     jwt:            s?.jwt,
     jwtExpiresAt:   s?.jwtExpiresAt,
     httpClient:     httpClient,

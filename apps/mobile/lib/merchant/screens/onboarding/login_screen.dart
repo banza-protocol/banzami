@@ -6,7 +6,6 @@ import '../../../branding_assets.dart';
 import '../../../widgets/pin_pad.dart';
 import '../../services/merchant_session_service.dart';
 import '../../services/merchant_reauth.dart';
-import 'setup_screen.dart';
 
 enum _Step { handle, pin }
 
@@ -208,14 +207,6 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
               onPressed: _loading ? null : _continueToPin,
             ),
 
-            const SizedBox(height: BanzamiSpacing.md),
-            BanzamiGhostButton(
-              label:     'Entrar com credenciais de integração',
-              color:     BanzamiColors.gray600,
-              onPressed: () => Navigator.of(context).push(
-                BanzamiPageRoute(page: const MerchantSetupScreen()),
-              ),
-            ),
             const SizedBox(height: BanzamiSpacing.xxl),
           ],
         ),
