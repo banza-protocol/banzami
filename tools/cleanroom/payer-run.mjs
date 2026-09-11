@@ -229,11 +229,20 @@ if (a.error) {
   const paidEvents = (sinkAdmin(`requests?run=${CAP}`).requests || [])
     .map((q) => { try { return JSON.parse(q.raw_body); } catch { return null; } })
     .filter(Boolean);
-  const distinctEventIds = new Set(paidEvents.map((b) => b.id ?? b.event_id).filter(Boolean));
+  // One payment emits one event of EACH type the endpoint subscribes to — a
+  // session's link paid is payment_link.paid AND payment_session.paid. "No
+  // second event" is: at most one id per type, and the repeat delivered nothing.
+  const idsByType = new Map();
+  for (const b of paidEvents) {
+    const t = b.type ?? b.event_type ?? '?';
+    if (!idsByType.has(t)) idsByType.set(t, new Set());
+    idsByType.get(t).add(b.id ?? b.event_id);
+  }
+  const maxPerType = Math.max(0, ...[...idsByType.values()].map((v) => v.size));
   record('a repeated payer confirmation produces no second event',
-    distinctEventIds.size <= 1,
-    { note: `distinct event ids=${distinctEventIds.size} (deliveries ${beforeCount}→${afterCount}), second confirm http=${c2.status}`,
-      distinct_event_ids: distinctEventIds.size, second_confirm_status: c2.status });
+    maxPerType <= 1 && afterCount === beforeCount,
+    { note: `event ids per type=${JSON.stringify(Object.fromEntries([...idsByType].map(([k, v]) => [k, v.size])))} (deliveries ${beforeCount}→${afterCount}), second confirm http=${c2.status}`,
+      max_ids_per_type: maxPerType, second_confirm_status: c2.status });
 
   record('session status after payer confirmation', true,
     { note: `${beforeStatus} → ${await sessionStatus(a.session_id)}`,
@@ -271,7 +280,11 @@ if (d.error) {
 //    against — a second endpoint would be testing a different thing.
 const before = sinkAdmin(`requests?run=${CAP}`);
 const priorSlugs = new Set((before.requests || []).map((q) => parse(q)?.data?.slug).filter(Boolean));
-sinkAdmin(`configure?run=${CAP}`, { fail_first: 2, status: 500, then_status: 200 });
+// The sink counts refusals per capability, and one payment emits one event per
+// subscribed type, whose first attempts arrive together. Refuse two attempts OF
+// EACH so the event under test is refused twice, as the retry claim requires.
+const typesPerPayment = Math.max(1, new Set((before.requests || []).map((q) => parse(q)?.type).filter(Boolean)).size);
+sinkAdmin(`configure?run=${CAP}`, { fail_first: 2 * typesPerPayment, status: 500, then_status: 200 });
 
 const b = await journey('retry');
 if (b.error) {

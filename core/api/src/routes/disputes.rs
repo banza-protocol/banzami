@@ -417,15 +417,25 @@ pub async fn resolve(
         ));
     }
 
+    // One transaction, holding the dispute's row from the read to the write.
+    //
+    // The status used to be checked outside any transaction and both updates
+    // were unconditional, so two operators resolving at once both passed: a
+    // WON_BY_CONSUMER posted its restitution while a concurrent WON_BY_MERCHANT
+    // overwrote the outcome — the dispute read "merchant won" with the money
+    // given back, and two contradictory dispute.resolved events went out (A5-07).
+    // The second resolver now waits on the row lock, then finds it resolved.
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let mut tx = state.pool.begin().await.map_err(db)?;
     // Runtime query — reads the source-typed columns (0097).
     let d = sqlx::query(
         "SELECT merchant_id, consumer_id, amount_minor, currency, status, source_type, source_id
-         FROM disputes WHERE id = $1",
+         FROM disputes WHERE id = $1 FOR UPDATE",
     )
     .bind(dispute_id)
-    .fetch_optional(&state.pool)
+    .fetch_optional(&mut *tx)
     .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
+    .map_err(db)?
     .ok_or_else(|| ApiError::not_found("dispute not found"))?;
 
     let d_status: String = d.get("status");
@@ -451,11 +461,6 @@ pub async fn resolve(
         // Source-aware restitution through the SHARED ceiling (Banzami ADR-034).
         // A dispute restitutes only the remaining capped amount — 0 if prior
         // refunds already made the consumer whole. The consumer STILL WINS.
-        let mut tx = state
-            .pool
-            .begin()
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
         let result = restitution::apply_restitution(
             &mut tx,
             restitution::ApplyParams {
@@ -490,42 +495,35 @@ pub async fn resolve(
         } else {
             "FULL_RESTITUTION".to_string()
         });
-
-        sqlx::query(
-            "UPDATE disputes SET status = $1, resolution_notes = $2, resolved_by = $3,
-                resolved_at = $4, updated_at = $4,
-                restitution_amount_minor = $5, restitution_reason = $6
-             WHERE id = $7",
-        )
-        .bind(&body.outcome)
-        .bind(&body.resolution_notes)
-        .bind(resolved_by)
-        .bind(now)
-        .bind(restitution_amount)
-        .bind(&restitution_reason)
-        .bind(dispute_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
-
-        tx.commit()
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?;
-    } else {
-        // No restitution — status transition only.
-        sqlx::query(
-            "UPDATE disputes SET status = $1, resolution_notes = $2, resolved_by = $3,
-                resolved_at = $4, updated_at = $4 WHERE id = $5",
-        )
-        .bind(&body.outcome)
-        .bind(&body.resolution_notes)
-        .bind(resolved_by)
-        .bind(now)
-        .bind(dispute_id)
-        .execute(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
     }
+
+    // Conditioned on the dispute still being open, in the same transaction.
+    let updated = sqlx::query(
+        "UPDATE disputes SET status = $1, resolution_notes = $2, resolved_by = $3,
+            resolved_at = $4, updated_at = $4,
+            restitution_amount_minor = COALESCE($5, restitution_amount_minor),
+            restitution_reason = COALESCE($6, restitution_reason)
+         WHERE id = $7 AND status NOT IN ('WON_BY_CONSUMER','WON_BY_MERCHANT','CLOSED')",
+    )
+    .bind(&body.outcome)
+    .bind(&body.resolution_notes)
+    .bind(resolved_by)
+    .bind(now)
+    .bind(if body.outcome == "WON_BY_CONSUMER" { Some(restitution_amount) } else { None })
+    .bind(&restitution_reason)
+    .bind(dispute_id)
+    .execute(&mut *tx)
+    .await
+    .map_err(db)?
+    .rows_affected();
+    if updated != 1 {
+        let _ = tx.rollback().await;
+        return Err(ApiError::unprocessable(
+            "DISPUTE_ALREADY_RESOLVED",
+            "dispute is already resolved",
+        ));
+    }
+    tx.commit().await.map_err(db)?;
 
     // Proof correction (REVERSED only on full cumulative reversal) happened
     // inside apply_restitution's transaction.

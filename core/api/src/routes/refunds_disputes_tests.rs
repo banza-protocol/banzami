@@ -1754,3 +1754,63 @@ async fn a_fully_refunded_wallet_payment_proof_is_reversed(pool: PgPool) {
         .expect("refund of the rest");
     assert_eq!(proof_status(&pool, transfer).await, "REVERSED", "the fully refunded payment still verifies");
 }
+
+// A5-07: two operators resolving one dispute at once, in opposite directions.
+// The status was checked outside any transaction and both updates were
+// unconditional, so both succeeded: money restituted to the consumer while the
+// dispute could end reading "merchant won", with two dispute.resolved events.
+// Exactly one resolution now wins; the other is told it was already resolved.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_opposite_resolutions_have_one_winner(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 2_000).await;
+    let consumer = Uuid::new_v4();
+    let d = open_dispute(&state, seed.transaction_id, consumer).await;
+    let did = Uuid::parse_str(&d.id).unwrap();
+
+    let resolve = |outcome: &'static str| {
+        let state = state.clone();
+        let id = d.id.clone();
+        tokio::spawn(async move {
+            disputes::resolve(
+                State(state),
+                Path(id),
+                Json(disputes::ResolveDisputeBody {
+                    outcome: outcome.into(),
+                    resolution_notes: None,
+                    resolved_by: Uuid::new_v4().to_string(),
+                }),
+            )
+            .await
+            .map(|_| outcome)
+        })
+    };
+    let mut handles = Vec::new();
+    for i in 0..6 {
+        handles.push(resolve(if i % 2 == 0 { "WON_BY_CONSUMER" } else { "WON_BY_MERCHANT" }));
+    }
+    let mut winners = Vec::new();
+    for h in handles {
+        match h.await.unwrap() {
+            Ok(o) => winners.push(o),
+            Err(e) => assert_eq!(e.code, "DISPUTE_ALREADY_RESOLVED", "a loser must be told why"),
+        }
+    }
+    assert_eq!(winners.len(), 1, "{} resolutions succeeded for one dispute", winners.len());
+
+    let (status, restituted): (String, Option<i64>) = sqlx::query_as(
+        "SELECT status, restitution_amount_minor FROM disputes WHERE id = $1",
+    )
+    .bind(did)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(status, winners[0], "the recorded outcome is the winner's");
+    let posted = count_postings(&pool, &format!("dispute-refund-{did}")).await;
+    if status == "WON_BY_CONSUMER" {
+        assert_eq!(posted, 1);
+        assert_eq!(restituted, Some(2_000));
+    } else {
+        assert_eq!(posted, 0, "the merchant won and money was still given back");
+    }
+}

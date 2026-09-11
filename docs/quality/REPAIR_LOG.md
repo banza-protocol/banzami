@@ -3236,3 +3236,19 @@ from the Business App or the Console. Tests `TestAPIKeyToken_IsShortLivedAndMark
 `TestCreateApiKey_AKeyCannotMintKeys` (the previous code fails both). Residual: a PIN
 reset still ends app sessions only, not keys already minted from them (no "revoke all
 keys" on credential reset yet).
+
+## RA-117 — two operators could resolve one dispute both ways
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-07)
+- **Status:** FIXED (core)
+
+`resolve` read the dispute's status outside any transaction, and both of its updates
+were unconditional. Two operators resolving at once both passed the check: a
+WON_BY_CONSUMER posted its restitution while a concurrent WON_BY_MERCHANT (or CLOSED)
+overwrote the outcome — the dispute read "merchant won" with the money given back —
+and two contradictory `dispute.resolved` events went out. The resolution now runs in one
+transaction that locks the dispute's row, re-checks it is open, applies any
+restitution, and updates on the condition that it is still open; the second resolver
+waits on the lock and is told `DISPUTE_ALREADY_RESOLVED`. Test
+`concurrent_opposite_resolutions_have_one_winner` (six racing resolutions; the previous
+code lets several succeed).
