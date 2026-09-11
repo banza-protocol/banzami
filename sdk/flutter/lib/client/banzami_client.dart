@@ -8,6 +8,7 @@ import '../models/merchant.dart';
 import '../models/merchant_kyb.dart';
 import '../models/merchant_wallet_payment.dart';
 import '../models/payment_link.dart';
+import '../models/payout.dart';
 import '../models/project_link_code.dart';
 import '../models/collection.dart';
 import '../models/qr_code.dart';
@@ -817,6 +818,16 @@ class BanzamiClient {
           'account_holder_name': accountHolderName,
         },
         idempotencyKey: idempotencyKey);
+  }
+
+  /// The Business's recent withdrawals (`GET /v1/payouts`), newest first.
+  Future<List<Payout>> listPayouts({int limit = 20}) async {
+    final json = await _get('/v1/payouts?limit=$limit');
+    final data = (json['data'] as List<dynamic>? ?? const []);
+    return data
+        .map((e) => Payout.fromJson(e as Map<String, dynamic>))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
   }
 
   // ---------------------------------------------------------------------------
