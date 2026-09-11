@@ -109,7 +109,7 @@ describe('Developer Console OTP', () => {
 
   it('an invalid code shows an error, keeps the digits, and allows a retry', async () => {
     const { ApiError } = await import('@/lib/developer-api');
-    verifyMock.mockRejectedValueOnce(new ApiError('VALIDATION', 'bad', 400));
+    verifyMock.mockRejectedValueOnce(new ApiError('VALIDATION', 400, 'bad'));
     render(<Page />);
     typeAll('123456');
     await screen.findByText(/inválido|expirado/i);
@@ -151,7 +151,7 @@ describe('Developer Console OTP', () => {
     // What matters is that the component never WRITES a code anywhere persistent:
     // spy on the storage prototype and on history, and assert neither ever sees it.
     const writes: string[] = [];
-    const origSet = Storage?.prototype?.setItem;
+    const origSet = typeof Storage === 'undefined' ? undefined : Storage.prototype.setItem;
     if (origSet) {
       Storage.prototype.setItem = function (k: string, v: string) {
         writes.push(`${k}=${v}`);

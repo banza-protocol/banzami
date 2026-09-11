@@ -311,6 +311,36 @@ jobs:
         working-directory: apps/admin
         run: npm test
 
+  # ─── Public website (banzami.com, developers.banzami.com) ──────────────────
+  # /verificar and /r/<ref> — the public proof verifier — live here, as does
+  # the Developers Console. Neither was typechecked or tested in CI; two type
+  # errors sat in a test file unnoticed.
+  website:
+    name: Website — typecheck, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/website/package-lock.json
+
+      - name: Install dependencies
+        working-directory: apps/website
+        run: npm ci
+
+      - name: Type-check
+        working-directory: apps/website
+        run: npm run typecheck
+
+      - name: Run tests
+        working-directory: apps/website
+        run: npm test
+
   # ─── TypeScript SDK ─────────────────────────────────────────────────────────
   typescript:
     name: TypeScript SDK — typecheck, test
