@@ -88,8 +88,15 @@ for (const rel of cfg) {
   const p = join(MOBILE, rel);
   if (!existsSync(p)) continue;
   const src = readFileSync(p, 'utf-8');
-  if (!/FlutterSecureStorage|flutter_secure_storage/.test(src))
-    fail(`${rel}: session store does not use FlutterSecureStorage`);
+  // Secure storage reaches these services through BanzamiKeychain, which states
+  // the accessibility policy once (first_unlock_this_device, encrypted shared
+  // preferences, never synchronizable — RA-160). Constructing the plugin here
+  // instead is how the device id ended up in an encrypted backup, so the policy
+  // helper counts and a bare constructor does not.
+  if (!/BanzamiKeychain\b/.test(src))
+    fail(`${rel}: session store does not go through BanzamiKeychain`);
+  if (/(?<!\/\/.*)new FlutterSecureStorage\(|[^.\w]FlutterSecureStorage\(/.test(src))
+    fail(`${rel}: constructs FlutterSecureStorage directly — use BanzamiKeychain`);
   if (/SharedPreferences[\s\S]{0,120}(token|jwt|api_key)/i.test(src))
     fail(`${rel}: token/key may be written to SharedPreferences (use secure storage)`);
 }
