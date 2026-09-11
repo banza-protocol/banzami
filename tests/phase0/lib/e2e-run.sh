@@ -28,9 +28,16 @@
 #
 # RETIREMENT, NOT DELETION
 #
-# Keys are revoked, endpoints deactivated, links cancelled, projects disabled,
-# merchants suspended — each through the canonical operator route a person would
-# use. Nothing is deleted with SQL. The operator's domain model keeps history on
+# Keys are revoked, endpoints deactivated, sessions and links cancelled,
+# projects disabled, merchants and consumers suspended — each through the
+# canonical operator route a person would use. Nothing is deleted with SQL.
+#
+# The money a run was given goes back too. A merchant's segregated accounts and
+# its primary balance, and a consumer's balance, are retired to the Sandbox
+# funding source by a balanced posting (core /internal/v1/sandbox/retire-funds),
+# and the emptied segregated accounts are closed. Without that every run left
+# its funding behind, and the pilot funding cap filled up with value nobody
+# would ever spend (2026-09-11: 505 000 Kz against a 500 000 Kz cap). The operator's domain model keeps history on
 # purpose, and an audit needs to see that a credential existed and when it
 # stopped working.
 #
@@ -45,7 +52,8 @@
 #   ...create something...
 #   e2e_own fixture_key   "$KEY_ID"
 #   e2e_own webhook_endpoint "$EP_ID" "$MERCHANT_ID"
-#   e2e_own merchant      "$MERCHANT_ID"
+#   e2e_own merchant      "$MERCHANT_ID"         # funds retired, accounts closed, suspended
+#   e2e_own consumer      "$CONSUMER_ID"         # funds retired, suspended
 #   # cleanup happens on the way out, however the script exits
 #
 # Set E2E_NO_CLEANUP=1 to deliberately leak — used by the mutation test that
@@ -129,6 +137,33 @@ e2e_http() { # container port method path auth-header
     "http://localhost:$2$4" -H "$5" 2>/dev/null
 }
 
+# Core's operator routes, over Core's own loopback — the path the operator
+# uses, and the only one that needs no credential. Returns the HTTP status.
+e2e_core() { # method path json
+  printf '%s' "$3" | docker exec -i "$E2E_CORE" curl -s -o /dev/null -w '%{http_code}' -X "$1" \
+    -H 'Content-Type: application/json' --data @- "http://localhost:8081$2" 2>/dev/null
+}
+
+# Retire what a merchant holds: each segregated account's value, then the
+# account itself, then the primary balance. Returns the first failing status,
+# or 204. The @doa authority is never a fixture, whatever a manifest says.
+e2e_retire_merchant_funds() { # merchant
+  local m="$1" wa code why="e2e fixture $E2E_RUN_ID"
+  [ -n "$(e2e_sql "select 1 from handle_registry where owner_id = '$m' and handle = 'doa'")" ] && { echo 409; return; }
+  while read -r wa; do
+    [ -n "$wa" ] || continue
+    code=$(e2e_core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"WALLET_ACCOUNT\",\"owner_id\":\"$wa\",\"reason\":\"$why\",\"retired_by\":\"e2e-run\",\"idempotency_key\":\"e2e-$E2E_RUN_ID-wa-$wa\"}")
+    case "$code" in 2*) ;; *) echo "$code"; return ;; esac
+    code=$(e2e_core POST "/internal/v1/wallet-accounts/$wa/close" "{\"reason\":\"$why\",\"closed_by\":\"e2e-run\",\"merchant_id\":\"$m\"}")
+    case "$code" in 2*) ;; *) echo "$code"; return ;; esac
+  done < <(e2e_sql "select id from wallet_accounts where merchant_id = '$m' and purpose <> 'PRIMARY' and status <> 'CLOSED'")
+  if [ -n "$(e2e_sql "select 1 from wallets where merchant_id = '$m'")" ]; then
+    code=$(e2e_core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"MERCHANT\",\"owner_id\":\"$m\",\"reason\":\"$why\",\"retired_by\":\"e2e-run\",\"idempotency_key\":\"e2e-$E2E_RUN_ID-m-$m\"}")
+    case "$code" in 2*) ;; *) echo "$code"; return ;; esac
+  fi
+  echo 204
+}
+
 e2e_end() {
   trap - EXIT INT TERM
   # The harness's own tidying, run first: it touches local files, not operator
@@ -148,19 +183,19 @@ e2e_end() {
   # belong to a project or a merchant, and the merchant is retired last —
   # suspending it first would refuse every call that follows.
   local kind id owner code
-  for kind in payment_session payment_link webhook_endpoint merchant_key fixture_key fixture_project merchant; do
+  for kind in payment_session payment_link webhook_endpoint merchant_key fixture_key fixture_project merchant consumer; do
     while IFS=$'\t' read -r k id owner; do
       [ "$k" = "$kind" ] || continue
       case "$kind" in
         payment_session)
-          # An unpaid session leaves an ACTIVE payment link behind: a live URL
-          # anyone can pay into a fixture account, indefinitely — these links
-          # have no expiry. Paid ones are already USED and need nothing.
-          local lid
-          lid=$(e2e_sql "select l.id from payment_links l join payment_sessions s on s.payment_link_id = l.id where s.id = '$id' and l.status = 'ACTIVE'")
-          if [ -n "$lid" ]; then
-            code=$(e2e_http "$E2E_GW" 8080 DELETE "/v1/payment-links/$lid" "Authorization: Bearer $(e2e_jwt merchant_id "$owner")")
-          else code=204; fi ;;
+          # An unpaid session is a live link and QR anyone can pay into a
+          # fixture account, and an open session keeps its account from ever
+          # closing. It is cancelled as a whole — session, link and QR. A paid
+          # one needs nothing.
+          case "$(e2e_sql "select status from payment_sessions where id = '$id'")" in
+            PAID|PARTIALLY_PAID|CANCELLED|EXPIRED|FAILED) code=204 ;;
+            *) code=$(e2e_core POST "/internal/v1/payment-sessions/$id/cancel" "{\"merchant_id\":\"$owner\"}") ;;
+          esac ;;
         payment_link)
           # Only an ACTIVE link holds live authority. A USED one has already
           # been paid and cannot be expired — the API refuses with 422, which is
@@ -189,7 +224,17 @@ e2e_end() {
         fixture_project)
           code=$(e2e_http "$E2E_DEV" 8086 POST "/internal/v1/fixture-projects/$id/retire" "X-Internal-Key: $E2E_INTKEY") ;;
         merchant)
-          code=$(e2e_http "$E2E_GW" 8080 POST "/v1/merchants/$id/suspend" "Authorization: Bearer $(e2e_jwt merchant_id "$id")") ;;
+          # Its value first (an account that holds money cannot close), then
+          # the merchant. A merchant the run only suspended keeps nothing.
+          code=$(e2e_retire_merchant_funds "$id")
+          case "$code" in
+            2*) code=$(e2e_http "$E2E_GW" 8080 POST "/v1/merchants/$id/suspend" "Authorization: Bearer $(e2e_jwt merchant_id "$id")") ;;
+          esac ;;
+        consumer)
+          code=$(e2e_core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"CONSUMER\",\"owner_id\":\"$id\",\"reason\":\"e2e fixture $E2E_RUN_ID\",\"retired_by\":\"e2e-run\",\"idempotency_key\":\"e2e-$E2E_RUN_ID-c-$id\"}")
+          case "$code" in
+            2*) code=$(e2e_core POST "/internal/v1/consumers/$id/suspend" "{\"notes\":\"e2e fixture $E2E_RUN_ID\"}") ;;
+          esac ;;
       esac
       # 404 counts as retired: the object is not there to hold authority. Any
       # other non-2xx is a real failure and the manifest is kept for recovery.

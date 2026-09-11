@@ -17,6 +17,7 @@
 #   accounts         POST core /internal/v1/wallet-accounts/:id/close
 #   payouts          POST core /internal/v1/payouts/:id/fail        (the payout lifecycle reverses)
 #   links            DELETE gateway /v1/payment-links/:id           (as the owning merchant)
+#   sessions         POST core /internal/v1/payment-sessions/:id/cancel (session, link and QR)
 #   API keys         DELETE core /internal/v1/merchants/:m/api-keys/:id
 #   webhooks         DELETE gateway /v1/webhooks/endpoints/:id
 #   merchants        POST core /internal/v1/merchants/:id/suspend
@@ -103,6 +104,7 @@ inventory(){
   echo "  synthetic live API keys           $(q "SELECT count(*) FROM api_keys k JOIN merchants m ON m.id=k.merchant_id WHERE k.revoked_at IS NULL AND $M_SEL")"
   echo "  synthetic active webhooks         $(q "SELECT count(*) FROM webhook_endpoints h JOIN merchants m ON m.id=h.merchant_id WHERE h.active AND $M_SEL")"
   echo "  synthetic open payment links      $(q "SELECT count(*) FROM payment_links l JOIN merchants m ON m.id=l.merchant_id WHERE l.status='ACTIVE' AND $M_SEL")"
+  echo "  synthetic open payment sessions   $(q "SELECT count(*) FROM payment_sessions s JOIN merchants m ON m.id=s.merchant_id WHERE s.status IN ('CREATED','ACTIVE') AND $M_SEL")"
   echo "  synthetic pending payouts         $(q "SELECT count(*) FROM payouts po JOIN merchants m ON m.id=po.merchant_id WHERE po.status IN ('PENDING','PROCESSING','SENT') AND $M_SEL")"
   echo "  synthetic consumers active        $(q "SELECT count(*) FROM consumers c WHERE c.status='ACTIVE' AND $C_SEL")"
   echo "  synthetic consumer value (minor)  $(q "SELECT COALESCE(SUM($(printf "$bal" 'cw.available_account_id')),0) FROM consumer_wallets cw JOIN consumers c ON c.id=cw.consumer_id WHERE $C_SEL")"
@@ -158,19 +160,25 @@ while IFS='|' read -r id mid; do [ -n "$id" ] || continue
   tally link_cancel "$(gw DELETE "/v1/payment-links/$id" "$mid")" "$id"
 done < <(q "SELECT l.id, l.merchant_id FROM payment_links l JOIN merchants m ON m.id=l.merchant_id WHERE l.status='ACTIVE' AND $M_SEL")
 
-# 3. Segregated accounts: value retired, then the account closed.
+# 3. Open sessions of synthetic merchants end as a whole (session, link, QR) —
+#    an open session keeps its account from closing.
+while IFS='|' read -r sid mid; do [ -n "$sid" ] || continue
+  tally session_cancel "$(core POST "/internal/v1/payment-sessions/$sid/cancel" "{\"merchant_id\":\"$mid\"}")" "$sid"
+done < <(q "SELECT s.id, s.merchant_id FROM payment_sessions s JOIN merchants m ON m.id=s.merchant_id WHERE s.status IN ('CREATED','ACTIVE') AND $M_SEL")
+
+# 4. Segregated accounts: value retired, then the account closed.
 while IFS='|' read -r id mid; do [ -n "$id" ] || continue
   tally wa_funds "$(core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"WALLET_ACCOUNT\",\"owner_id\":\"$id\",\"reason\":\"$REASON\",\"retired_by\":\"retire-synthetic-residue\",\"idempotency_key\":\"$RUN-wa-$id\"}")" "$id"
   tally wa_close "$(core POST "/internal/v1/wallet-accounts/$id/close" "{\"reason\":\"$REASON\",\"closed_by\":\"retire-synthetic-residue\",\"merchant_id\":\"$mid\"}")" "$id"
 done < <(q "SELECT wa.id, wa.merchant_id FROM wallet_accounts wa JOIN merchants m ON m.id=wa.merchant_id WHERE wa.purpose<>'PRIMARY' AND wa.status<>'CLOSED' AND $M_SEL")
 
-# 4. The DOA demo accounts — exact ids, the same two steps, scoped to DOA.
+# 5. The DOA demo accounts — exact ids, the same two steps, scoped to DOA.
 while IFS='|' read -r id mid; do [ -n "$id" ] || continue
   tally doa_demo_funds "$(core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"WALLET_ACCOUNT\",\"owner_id\":\"$id\",\"reason\":\"synthetic demo account left by campaign-payment-segregation.sh — owner decision 2026-09-11\",\"retired_by\":\"retire-synthetic-residue\",\"idempotency_key\":\"$RUN-demo-$id\"}")" "$id"
   tally doa_demo_close "$(core POST "/internal/v1/wallet-accounts/$id/close" "{\"reason\":\"synthetic demo account left by campaign-payment-segregation.sh — owner decision 2026-09-11\",\"closed_by\":\"retire-synthetic-residue\",\"merchant_id\":\"$mid\"}")" "$id"
 done < <(q "SELECT wa.id, wa.merchant_id FROM wallet_accounts wa WHERE $DEMO_SEL AND wa.status<>'CLOSED'")
 
-# 5. Primary balances of synthetic merchants, then their credentials, then the merchant.
+# 6. Primary balances of synthetic merchants, then their credentials, then the merchant.
 while IFS='|' read -r mid; do [ -n "$mid" ] || continue
   tally merchant_funds "$(core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"MERCHANT\",\"owner_id\":\"$mid\",\"reason\":\"$REASON\",\"retired_by\":\"retire-synthetic-residue\",\"idempotency_key\":\"$RUN-m-$mid\"}")" "$mid"
 done < <(q "SELECT m.id FROM merchants m JOIN wallets w ON w.merchant_id=m.id WHERE $M_SEL AND $(printf "$bal" 'w.available_account_id') > 0")
@@ -187,7 +195,7 @@ while IFS='|' read -r mid; do [ -n "$mid" ] || continue
   tally merchant_suspend "$(core POST "/internal/v1/merchants/$mid/suspend" '{}')" "$mid"
 done < <(q "SELECT m.id FROM merchants m WHERE m.status='ACTIVE' AND $M_SEL")
 
-# 6. Synthetic consumers: value retired, then the consumer suspended.
+# 7. Synthetic consumers: value retired, then the consumer suspended.
 while IFS='|' read -r cid; do [ -n "$cid" ] || continue
   tally consumer_funds "$(core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"CONSUMER\",\"owner_id\":\"$cid\",\"reason\":\"$REASON\",\"retired_by\":\"retire-synthetic-residue\",\"idempotency_key\":\"$RUN-c-$cid\"}")" "$cid"
 done < <(q "SELECT c.id FROM consumers c JOIN consumer_wallets cw ON cw.consumer_id=c.id WHERE $C_SEL AND $(printf "$bal" 'cw.available_account_id') > 0")
@@ -196,7 +204,7 @@ while IFS='|' read -r cid; do [ -n "$cid" ] || continue
 done < <(q "SELECT c.id FROM consumers c WHERE c.status='ACTIVE' AND $C_SEL")
 
 echo; echo "results"
-for k in payout_fail link_cancel wa_funds wa_close doa_demo_funds doa_demo_close merchant_funds api_key_revoke webhook_off project_retire merchant_suspend consumer_funds consumer_suspend; do
+for k in payout_fail link_cancel session_cancel wa_funds wa_close doa_demo_funds doa_demo_close merchant_funds api_key_revoke webhook_off project_retire merchant_suspend consumer_funds consumer_suspend; do
   printf '  %-18s ok=%-5s failed=%s\n' "$k" "${OK[$k]:-0}" "${FAIL[$k]:-0}"
 done
 echo; echo "AFTER"; inventory
