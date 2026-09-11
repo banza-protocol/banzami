@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"strings"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -55,6 +56,14 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A suspended (or otherwise inactive) Business does not get a session. The
+	// status came back from core and was never read: a suspended merchant, or
+	// anyone holding its key, kept minting 24 h full-scope tokens.
+	if !strings.EqualFold(string(merchant.Status), string(service.MerchantStatusActive)) {
+		slog.WarnContext(r.Context(), "auth.token.merchant_not_active", "merchant_status", string(merchant.Status))
+		apierror.Respond(w, r, http.StatusForbidden, "MERCHANT_NOT_ACTIVE", "this Business Account is not active")
+		return
+	}
 	token, expiresAt, err := middleware.NewMerchantToken(
 		h.cfg.JWTSecret,
 		merchant.ID,

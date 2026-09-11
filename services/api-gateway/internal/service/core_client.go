@@ -514,9 +514,16 @@ func (s *CoreApiMerchantService) VerifyApiKey(ctx context.Context, rawKey string
 		}
 		return nil, "", ErrInvalidApiKey
 	}
-	env := ApiKeyEnvironmentLive
-	if resp.Environment == "SANDBOX" {
+	// The key's environment is what core says it is — LIVE or SANDBOX — and
+	// nothing else is guessed. Anything unrecognised used to become LIVE.
+	var env ApiKeyEnvironment
+	switch resp.Environment {
+	case "LIVE":
+		env = ApiKeyEnvironmentLive
+	case "SANDBOX":
 		env = ApiKeyEnvironmentSandbox
+	default:
+		return nil, "", ErrInvalidApiKey
 	}
 	return &MerchantRecord{
 		ID:     resp.MerchantID,
