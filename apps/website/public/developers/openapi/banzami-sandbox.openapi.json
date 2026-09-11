@@ -270,10 +270,22 @@
                   "created_at": "2026-07-11T11:45:00Z",
                   "interfaces": [
                     {
+                      "type": "PAYMENT_LINK",
+                      "value": "https://pay.banzami.com/pay/slug_xxx",
+                      "format": "URL",
+                      "expires_at": "2026-07-11T12:00:00Z"
+                    },
+                    {
+                      "type": "DEEP_LINK",
+                      "value": "banzami://pay/slug_xxx",
+                      "format": "URL",
+                      "expires_at": "2026-07-11T12:00:00Z"
+                    },
+                    {
                       "type": "DYNAMIC_QR",
-                      "value": "<qr-payload>",
+                      "value": "https://pay.banzami.com/pay/slug_xxx",
                       "format": "QR_PAYLOAD",
-                      "qr_url": "https://pay.banzami.com/…",
+                      "qr_url": "/v1/payment-sessions/payment_session_xxx/qr",
                       "expires_at": "2026-07-11T12:00:00Z"
                     }
                   ]
@@ -440,7 +452,7 @@
         ],
         "operationId": "getPaymentSessionQr",
         "summary": "Fetch the session QR (JSON value or rendered image)",
-        "description": "Without parameters, returns the encodable value as JSON. With ?format=png|svg|pdf, returns the rendered image.",
+        "description": "The session QR encodes the session's hosted pay URL (https://pay.banzami.com/pay/{slug}), for a fixed-amount session as for an open-amount one: any phone camera opens the pay page, where the payer pays. (A fixed-amount session used to encode a structured dynamic-QR payload that no route could pay; it is no longer returned.) Without parameters, returns the encodable value as JSON. With ?format=png|svg, returns the rendered image; ?format=pdf answers 415.",
         "parameters": [
           {
             "$ref": "#/components/parameters/SessionId"
@@ -484,7 +496,7 @@
                 },
                 "example": {
                   "type": "QR",
-                  "value": "<qr-payload>"
+                  "value": "https://pay.banzami.com/pay/slug_xxx"
                 }
               }
             }
@@ -2394,16 +2406,20 @@
           "type": {
             "type": "string",
             "enum": [
+              "PAYMENT_LINK",
+              "DEEP_LINK",
               "DYNAMIC_QR",
               "STATIC_QR"
             ]
           },
           "value": {
-            "type": "string"
+            "type": "string",
+            "description": "For the QR interfaces, the hosted pay URL the QR encodes (https://pay.banzami.com/pay/{slug})."
           },
           "format": {
             "type": "string",
             "enum": [
+              "URL",
               "QR_PAYLOAD"
             ]
           },
@@ -2420,7 +2436,8 @@
           "type",
           "value",
           "format"
-        ]
+        ],
+        "description": "One presentation of a payment session. Every interface resolves to the same session and credits the same wallet account. PAYMENT_LINK and DEEP_LINK carry URLs; DYNAMIC_QR (fixed amount) and STATIC_QR (open amount) carry the string to encode in the QR, which is the session's hosted pay URL. qr_url is the API path that renders that QR."
       },
       "PaymentSession": {
         "type": "object",

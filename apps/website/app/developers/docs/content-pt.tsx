@@ -171,8 +171,12 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
   "expires_at": "2026-07-11T12:00:00Z",
   "created_at": "2026-07-11T11:45:00Z",
   "interfaces": [
-    { "type": "DYNAMIC_QR", "value": "<payload>", "format": "QR_PAYLOAD",
-      "qr_url": "https://pay.banzami.com/…", "expires_at": "2026-07-11T12:00:00Z" }
+    { "type": "PAYMENT_LINK", "value": "https://pay.banzami.com/pay/slug_exemplo", "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z" },
+    { "type": "DEEP_LINK", "value": "banzami://pay/slug_exemplo", "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z" },
+    { "type": "DYNAMIC_QR", "value": "https://pay.banzami.com/pay/slug_exemplo", "format": "QR_PAYLOAD",
+      "qr_url": "/v1/payment-sessions/psess_exemplo/qr", "expires_at": "2026-07-11T12:00:00Z" }
   ]
 }`;
 
@@ -691,7 +695,7 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 o operador executa o pagamento e mantém a verdade financeira — a sua aplicação apenas cria a jornada e reage ao estado.
               </P>
               <UL>
-                <LI><strong>Testável no Sandbox:</strong> criar sessões/links, apresentar QR, confirmar pagamento e emitir comprovativo.</LI>
+                <LI><strong>Testável no Sandbox:</strong> criar sessões/links, apresentar QR, confirmar pagamento e emitir comprovativo. O QR da sessão codifica o URL da página de pagamento (<Code>pay.banzami.com/pay/{'{slug}'}</Code>): qualquer câmara de telemóvel abre a página de pagamento.</LI>
                 <LI><strong>Reservado à Produção:</strong> movimentação de dinheiro real — <em>Produção em preparação</em>.</LI>
               </UL>
 

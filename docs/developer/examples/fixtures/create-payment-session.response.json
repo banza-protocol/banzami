@@ -11,10 +11,22 @@
   "created_at": "2026-07-11T11:45:00Z",
   "interfaces": [
     {
+      "type": "PAYMENT_LINK",
+      "value": "https://pay.banzami.com/pay/slug_xxx",
+      "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z"
+    },
+    {
+      "type": "DEEP_LINK",
+      "value": "banzami://pay/slug_xxx",
+      "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z"
+    },
+    {
       "type": "DYNAMIC_QR",
-      "value": "<qr-payload>",
+      "value": "https://pay.banzami.com/pay/slug_xxx",
       "format": "QR_PAYLOAD",
-      "qr_url": "https://pay.banzami.com/…",
+      "qr_url": "/v1/payment-sessions/payment_session_xxx/qr",
       "expires_at": "2026-07-11T12:00:00Z"
     }
   ]

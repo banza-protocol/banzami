@@ -646,9 +646,12 @@ export interface CreateBusinessApplicationSettlementParams {
 export type PaymentSessionInterfaceType = 'PAYMENT_LINK' | 'DYNAMIC_QR' | 'STATIC_QR' | 'DEEP_LINK';
 
 /** One interface presenting a session (canonical ADR-043 shape). `value` is the
- *  presentable artifact — a URL (link/deep link) or a signed QR payload — and
- *  carries only an opaque session reference, never an account id. The app DISPLAYS
- *  it; it never builds a financial payload itself. */
+ *  presentable artifact and carries only an opaque session reference, never an
+ *  account id: a URL for PAYMENT_LINK / DEEP_LINK, and for the QR interfaces
+ *  (DYNAMIC_QR = fixed amount, STATIC_QR = open amount) the string the QR
+ *  encodes — the session's hosted pay URL (https://pay.banzami.com/pay/{slug}),
+ *  which any phone camera opens. The app DISPLAYS it; it never builds a
+ *  financial payload itself. */
 export interface PaymentSessionInterface {
   type: PaymentSessionInterfaceType;
   value: string;

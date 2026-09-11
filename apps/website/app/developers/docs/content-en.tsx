@@ -446,7 +446,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 the operator executes the payment and owns the financial truth — your application only creates the journey and reacts to state.
               </P>
               <UL>
-                <LI><strong>Testable in Sandbox:</strong> create sessions/links, present the QR, confirm the payment and issue the receipt.</LI>
+                <LI><strong>Testable in Sandbox:</strong> create sessions/links, present the QR, confirm the payment and issue the receipt. The session QR encodes the hosted pay URL (<Code>pay.banzami.com/pay/{'{slug}'}</Code>): any phone camera opens the pay page.</LI>
                 <LI><strong>Reserved for Production:</strong> real-money movement — <em>Production in preparation</em>.</LI>
               </UL>
 

@@ -893,7 +893,8 @@ export class BanzamiClient {
     );
   }
 
-  /** Find one interface kind on a session (e.g. the DYNAMIC_QR payload to show). */
+  /** Find one interface kind on a session (e.g. the DYNAMIC_QR value — the hosted
+   *  pay URL — to render as a QR). */
   paymentSessionInterface(
     session: PaymentSession,
     type: PaymentSessionInterface['type'],

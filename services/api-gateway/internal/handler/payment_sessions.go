@@ -84,16 +84,17 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 			map[string]any{"type": "DEEP_LINK", "value": "banzami://pay/" + *s.PaymentLinkSlug, "format": "URL", "expires_at": s.ExpiresAt},
 		)
 	}
-	if s.QrPayload != nil && *s.QrPayload != "" {
-		// Fixed-amount session: a dynamic QR carrying the signed payload.
+	// The QR encodes the session's hosted pay URL — for a fixed-amount session as
+	// much as for an open one (see sessionQRValue). The interface type still says
+	// which kind of session it is: DYNAMIC_QR for a fixed amount, STATIC_QR for an
+	// open amount.
+	if qrValue := h.sessionQRValue(r, s); qrValue != "" {
+		qrType := "STATIC_QR"
+		if s.QrPayload != nil && *s.QrPayload != "" {
+			qrType = "DYNAMIC_QR"
+		}
 		interfaces = append(interfaces, map[string]any{
-			"type": "DYNAMIC_QR", "value": *s.QrPayload, "format": "QR_PAYLOAD",
-			"qr_url": qrURL, "expires_at": s.ExpiresAt,
-		})
-	} else if s.PaymentLinkSlug != nil && *s.PaymentLinkSlug != "" {
-		// Open-amount session: a static QR rendering the link URL.
-		interfaces = append(interfaces, map[string]any{
-			"type": "STATIC_QR", "value": h.payURL(r, *s.PaymentLinkSlug), "format": "QR_PAYLOAD",
+			"type": qrType, "value": qrValue, "format": "QR_PAYLOAD",
 			"qr_url": qrURL, "expires_at": s.ExpiresAt,
 		})
 	}
@@ -305,21 +306,35 @@ func (h *PaymentSessionHandler) Link(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// sessionQRValue is the string a session's QR encodes: the hosted pay URL of the
+// payment link every session carries (pay.banzami.com/pay/{slug}).
+//
+// A fixed-amount session used to encode core's structured dynamic-QR payload
+// (BANZA-SBX:… / BANZA:…) instead. No route pays a structured QR — the gateway
+// QR-pay proxy was removed and the consumer QR-pay route does not exist yet
+// (docs/security/QR-PAY-AUTHORITY-CONTRACT.md, REPAIR_LOG RA-096) — so that QR
+// could be scanned but never paid (A4-01). The pay URL is scannable by any phone
+// camera and opens the hosted pay page, which settles to the same wallet account.
+// When the consumer QR-pay route exists this is the one place to revisit.
+//
+// An empty string means the session has no payable QR (no link slug).
+func (h *PaymentSessionHandler) sessionQRValue(r *http.Request, s *service.PaymentSession) string {
+	if s.PaymentLinkSlug == nil || *s.PaymentLinkSlug == "" {
+		return ""
+	}
+	return h.payURL(r, *s.PaymentLinkSlug)
+}
+
 // GET /v1/payment-sessions/{id}/qr?format=png|svg|pdf
-// The QR encodes the dynamic-QR payload when present (fixed amount), else the
-// session's public pay URL (open amount). The image is rendered server-side (U4);
-// without a format it returns the encodable value as JSON.
+// The QR encodes the session's hosted pay URL (sessionQRValue). The image is
+// rendered server-side (U4); without a format it returns the encodable value as
+// JSON.
 func (h *PaymentSessionHandler) Qr(w http.ResponseWriter, r *http.Request) {
 	sess, ok := h.load(w, r)
 	if !ok {
 		return
 	}
-	value := ""
-	if sess.QrPayload != nil && *sess.QrPayload != "" {
-		value = *sess.QrPayload
-	} else if sess.PaymentLinkSlug != nil && *sess.PaymentLinkSlug != "" {
-		value = h.payURL(r, *sess.PaymentLinkSlug)
-	}
+	value := h.sessionQRValue(r, sess)
 	if value == "" {
 		apierror.Respond(w, r, http.StatusNotFound, "NO_QR", "session has no QR interface")
 		return

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (operator) — the payment-session QR is the hosted pay URL
+
+A payment session's QR interface (`DYNAMIC_QR` for a fixed amount, `STATIC_QR`
+for an open amount) and `GET /v1/payment-sessions/{id}/qr` now carry the
+session's hosted pay URL (`https://pay.banzami.com/pay/{slug}`). A fixed-amount
+session used to carry a structured dynamic-QR payload that no route could pay.
+The shape is unchanged — no SDK code change; the type docs now say what
+`value` holds.
+
 ## [0.12.1] — 2026-09-11
 
 ### Deprecated — `createApplicationSettlement()`
