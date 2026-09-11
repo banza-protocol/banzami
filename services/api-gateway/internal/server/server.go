@@ -16,6 +16,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
@@ -113,6 +114,17 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 // because group middleware runs before chi's NotFound handler.
 func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	r := chi.NewRouter()
+
+	// The documented error shape holds for routing errors too. chi's defaults
+	// answered an unknown route with text/plain "404 page not found" and a
+	// wrong method with an empty 405 — the only non-JSON errors an SDK saw.
+	// Set before any subrouter is mounted, so every subrouter inherits them.
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "no such route")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		apierror.Respond(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed on this route")
+	})
 
 	// ---------------------------------------------------------------------------
 	// Global middleware — applied to every request

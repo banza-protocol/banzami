@@ -29,6 +29,14 @@ type Deps struct {
 // New builds the developer-api HTTP handler.
 func New(cfg *config.Config, deps Deps) http.Handler {
 	r := chi.NewRouter()
+	// Routing errors in this service's error envelope, not chi's text/plain 404
+	// and empty 405. Set before any subrouter so they inherit it.
+	r.NotFound(func(w http.ResponseWriter, _ *http.Request) {
+		httpx.Error(w, http.StatusNotFound, "NOT_FOUND", "no such route")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, _ *http.Request) {
+		httpx.Error(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed on this route")
+	})
 
 	r.Use(obs.Correlation)
 	r.Use(chimw.RealIP)

@@ -48,6 +48,14 @@ type Server struct {
 
 func New(cfg *config.Config, deps Dependencies) *Server {
 	r := chi.NewRouter()
+	// Routing errors in the documented error shape, not chi's text/plain 404
+	// and empty 405. Set before any subrouter so they inherit it.
+	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "no such route")
+	})
+	r.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		apierror.Respond(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "method not allowed on this route")
+	})
 
 	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
 	r.Use(chimiddleware.RealIP)
