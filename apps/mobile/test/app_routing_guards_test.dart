@@ -27,4 +27,12 @@ void main() {
       expect(app.contains('client.clearToken()'), isTrue);
     });
   });
+
+  test('a cold-start notification tap waits for the splash, like deep links', () {
+    final tap = body('void _handleNotificationTap(');
+    expect(tap.indexOf('if (!_splashComplete)'), greaterThan(-1));
+    expect(tap.indexOf('if (!_splashComplete)'), lessThan(tap.indexOf('!svc.hasSession')),
+        reason: 'parked before the session check — it has not loaded yet');
+    expect(body('void _processPendingDeepLink(').contains('_routeToNotification(msg)'), isTrue);
+  });
 }

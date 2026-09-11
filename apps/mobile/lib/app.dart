@@ -63,8 +63,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
   Uri?      _pendingDeepLinkUri;
 
   // ── Notification tap ───────────────────────────────────────────────────────
-  // When a push notification is tapped while the session is locked, we park
-  // the message here and process it after the user successfully unlocks.
+  // A tap is parked here while it cannot be routed yet: on a cold start until
+  // the splash has navigated (the same _splashComplete gate deep links use —
+  // routing earlier is replaced by the splash's pushReplacement, or dropped
+  // because the session has not loaded), and while the session is locked
+  // until the user unlocks.
   RemoteMessage? _pendingNotificationMsg;
 
   String _normalizeUri(Uri uri) {
@@ -109,6 +112,14 @@ class _BanzamiAppState extends State<BanzamiApp> {
   void _handleNotificationTap(RemoteMessage msg) {
     debugPrint('[FCM-ROUTE] tap received type=${msg.data["type"]} '
         'route=${msg.data["route"]} transfer_id=${msg.data["transfer_id"]}');
+
+    // Cold start (getInitialMessage): the session is still loading and the
+    // splash has yet to navigate. Park; _processPendingDeepLink routes it.
+    if (!_splashComplete) {
+      debugPrint('[FCM-ROUTE] splash not complete — parking tap');
+      _pendingNotificationMsg = msg;
+      return;
+    }
 
     final ctx        = _navigatorKey.currentContext;
     final guardState = _guardKey.currentState;
@@ -426,7 +437,20 @@ class _BanzamiAppState extends State<BanzamiApp> {
     final ctx = _navigatorKey.currentContext;
     if (ctx == null) return;
     final svc = ctx.read<SessionService>();
-    if (!svc.hasSession || svc.isLocked) return;
+    if (!svc.hasSession) {
+      // Signed out: a parked notification of whoever was here opens nothing.
+      _pendingNotificationMsg = null;
+      return;
+    }
+    if (svc.isLocked) return;
+
+    final msg = _pendingNotificationMsg;
+    if (msg != null) {
+      _pendingNotificationMsg = null;
+      debugPrint('[FCM-ROUTE] coldStart processing tap (post-splash)');
+      _routeToNotification(msg);
+      return;
+    }
 
     final slug = _pendingLinkSlug;
     if (slug != null) {
@@ -473,7 +497,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
             // Consumer); the initial unlocked case is kicked by onBootComplete.
             if (_splashComplete &&
                 !session.isLocked &&
-                (_pendingLinkSlug != null || _pendingRequestCode != null)) {
+                (_pendingLinkSlug != null ||
+                    _pendingRequestCode != null ||
+                    _pendingNotificationMsg != null)) {
               WidgetsBinding.instance.addPostFrameCallback((_) => _processPendingDeepLink());
             }
           }
