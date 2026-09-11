@@ -1540,6 +1540,12 @@ export interface AdminProof {
   payee_display_name?: string;
   payee_handle?:       string;
   method?:             string;
+  /** PAYMENT | P2P_TRANSFER — absent on a legacy proof (then `method` applies). */
+  operation_kind?:     string;
+  /** PAYMENT_LINK | QR | HANDLE. */
+  channel?:            string;
+  /** BANZAMI_BALANCE. */
+  funding_source?:     string;
   description?:        string;
   proof_hash?:         string;
   signature_key_id?:   string;

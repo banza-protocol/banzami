@@ -20,6 +20,12 @@ func NewProofAdminService(pool *pgxpool.Pool) *ProofAdminService {
 	return &ProofAdminService{pool: pool}
 }
 
+// AdminProof: OperationKind (PAYMENT | P2P_TRANSFER), Channel (PAYMENT_LINK |
+// QR | HANDLE) and FundingSource say what the operation was, how it started and
+// where the money came from — the same canonical semantics the public verifier
+// and the PDF show (migration 0125, api-gateway ReceiptSemantics). They are
+// empty on a legacy proof whose semantics were never completed; the operator
+// then reads Method, as the public does.
 type AdminProof struct {
 	ProofReference    string     `json:"proof_reference"`
 	TransactionID     string     `json:"transaction_id"`
@@ -32,6 +38,9 @@ type AdminProof struct {
 	PayeeDisplayName  string     `json:"payee_display_name,omitempty"`
 	PayeeHandle       string     `json:"payee_handle,omitempty"`
 	Method            string     `json:"method,omitempty"`
+	OperationKind     string     `json:"operation_kind,omitempty"`
+	Channel           string     `json:"channel,omitempty"`
+	FundingSource     string     `json:"funding_source,omitempty"`
 	Description       string     `json:"description,omitempty"`
 	ProofHash         string     `json:"proof_hash,omitempty"`
 	SignatureKeyID    string     `json:"signature_key_id,omitempty"`
@@ -52,14 +61,16 @@ type AdminProofVerification struct {
 const adminProofCols = `proof_reference, transaction_id, environment, status, amount_minor, currency,
 	COALESCE(payer_display_name,''), COALESCE(payer_handle,''), COALESCE(payee_display_name,''), COALESCE(payee_handle,''),
 	COALESCE(method,''), COALESCE(description,''), COALESCE(proof_hash,''), COALESCE(signature_key_id,''),
-	COALESCE(signature_algorithm,''), verification_count, issued_at, confirmed_at, reversed_at`
+	COALESCE(signature_algorithm,''), verification_count, issued_at, confirmed_at, reversed_at,
+	COALESCE(operation_kind,''), COALESCE(channel,''), COALESCE(funding_source,'')`
 
 func scanAdminProof(s interface{ Scan(...any) error }) (*AdminProof, error) {
 	var p AdminProof
 	if err := s.Scan(&p.ProofReference, &p.TransactionID, &p.Environment, &p.Status, &p.AmountMinor, &p.Currency,
 		&p.PayerDisplayName, &p.PayerHandle, &p.PayeeDisplayName, &p.PayeeHandle,
 		&p.Method, &p.Description, &p.ProofHash, &p.SignatureKeyID, &p.SignatureAlg,
-		&p.VerificationCount, &p.IssuedAt, &p.ConfirmedAt, &p.ReversedAt); err != nil {
+		&p.VerificationCount, &p.IssuedAt, &p.ConfirmedAt, &p.ReversedAt,
+		&p.OperationKind, &p.Channel, &p.FundingSource); err != nil {
 		return nil, err
 	}
 	p.PublicURL = "https://banzami.com/r/" + p.ProofReference

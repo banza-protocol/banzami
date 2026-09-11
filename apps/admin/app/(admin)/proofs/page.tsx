@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDate } from '@/lib/format';
 import { useAdminEnv, type Env } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
+import { confirmedTitle, operationRows, proofStatusLabel } from '@/lib/proof-view';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -90,7 +91,7 @@ export default function ProofsPage() {
                   </div>
                 </div>
                 <span className="text-sm font-extrabold text-[#2a2024]">{formatMoney(p.amount_minor, p.currency)}</span>
-                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>{p.status}</span>
+                <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[p.status] ?? 'bg-gray-100 text-gray-500'}`}>{proofStatusLabel(p.status)}</span>
               </button>
             ))}
           </div>
@@ -103,7 +104,10 @@ export default function ProofsPage() {
             <div className="mb-4 flex items-start justify-between">
               <div>
                 <div className="font-mono text-[18px] font-black text-[#9A1B22]">{selected.proof.proof_reference}</div>
-                <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[selected.proof.status] ?? 'bg-gray-100 text-gray-500'}`}>{selected.proof.status}</span>
+                {selected.proof.status === 'CONFIRMED' && (
+                  <div className="mt-1 text-[14px] font-extrabold text-[#166534]">{confirmedTitle(selected.proof.operation_kind)}</div>
+                )}
+                <span className={`mt-1 inline-block rounded-full px-2.5 py-1 text-xs font-bold ${STATUS[selected.proof.status] ?? 'bg-gray-100 text-gray-500'}`}>{proofStatusLabel(selected.proof.status)}</span>
               </div>
               <button onClick={() => copy(selected.proof.public_url)} className="inline-flex items-center gap-1.5 rounded-lg border border-[#eaddde] px-3 py-1.5 text-[13px] font-bold text-[#5a4a4e] hover:bg-[#FFF7F6]"><Copy size={14} /> Copiar URL pública</button>
             </div>
@@ -113,7 +117,7 @@ export default function ProofsPage() {
                 ['Moeda', selected.proof.currency],
                 ['De', selected.proof.payer_display_name || selected.proof.payer_handle],
                 ['Para', selected.proof.payee_display_name || selected.proof.payee_handle],
-                ['Método', selected.proof.method],
+                ...operationRows(selected.proof),
                 ['Transaction id', selected.proof.transaction_id],
                 ['Confirmado', selected.proof.confirmed_at ? formatDate(selected.proof.confirmed_at) : '—'],
                 ['Emitido', formatDate(selected.proof.issued_at)],
