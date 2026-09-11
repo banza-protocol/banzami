@@ -29,9 +29,23 @@ impl Environment {
     /// not know what it is must not quietly serve the Sandbox universe and let
     /// test money mix with real records. A Sandbox deployment says so explicitly.
     pub fn from_env() -> Self {
-        match std::env::var("ENVIRONMENT").as_deref() {
-            Ok(v) if v.eq_ignore_ascii_case("SANDBOX") => Environment::Sandbox,
-            _ => Environment::Live,
+        std::env::var("ENVIRONMENT")
+            .ok()
+            .and_then(|v| Self::parse(&v))
+            .unwrap_or(Environment::Live)
+    }
+
+    /// SANDBOX or LIVE — trimmed, any case — or nothing. A process must name
+    /// its universe; `core-api` refuses to boot on `None` (A2-15), so the Live
+    /// default of `from_env` is never what a running core is standing on.
+    pub fn parse(raw: &str) -> Option<Self> {
+        let v = raw.trim();
+        if v.eq_ignore_ascii_case("SANDBOX") {
+            Some(Environment::Sandbox)
+        } else if v.eq_ignore_ascii_case("LIVE") {
+            Some(Environment::Live)
+        } else {
+            None
         }
     }
 
@@ -51,6 +65,15 @@ impl Environment {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn only_the_two_universes_parse() {
+        assert_eq!(Environment::parse(" sandbox\n"), Some(Environment::Sandbox));
+        assert_eq!(Environment::parse("LIVE"), Some(Environment::Live));
+        for v in ["", "production", "development", "staging", "SANDBOXX"] {
+            assert_eq!(Environment::parse(v), None, "{v:?} must not name a universe");
+        }
+    }
 
     #[test]
     fn canonical_strings_match_the_column_vocabulary() {

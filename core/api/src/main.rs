@@ -29,24 +29,25 @@ async fn main() {
         )
         .init();
 
-    // Safety guard: refuse to boot with a simulated acquirer in production.
+    // The universe this core serves is declared, never inferred (A2-15). An
+    // unset or unrecognised ENVIRONMENT used to read as LIVE; it now stops the
+    // boot, so every guard below is keyed on a fact rather than a default.
+    let Some(declared_env) = env::var("ENVIRONMENT")
+        .ok()
+        .and_then(|v| CoreEnvironment::parse(&v))
+    else {
+        eprintln!("FATAL: ENVIRONMENT must be SANDBOX or LIVE.");
+        std::process::exit(1);
+    };
     let app_env = env::var("APP_ENV").unwrap_or_default();
     let acquiring_prov = env::var("ACQUIRING_PROVIDER").unwrap_or_default();
-    if app_env.eq_ignore_ascii_case("production") && !acquiring_prov.eq_ignore_ascii_case("EMIS") {
-        eprintln!(
-            "FATAL: APP_ENV=production requires ACQUIRING_PROVIDER=EMIS. \
-             Refusing to boot with simulated acquirer in production."
-        );
-        std::process::exit(1);
-    }
-    // Safety guard: refuse to boot approving identities with a simulated KYC
-    // provider in production.
     let kyc_prov = env::var("KYC_PROVIDER").unwrap_or_default();
-    if app_env.eq_ignore_ascii_case("production") && !kyc_prov.eq_ignore_ascii_case("EXTERNAL") {
-        eprintln!(
-            "FATAL: APP_ENV=production requires KYC_PROVIDER=EXTERNAL. \
-             Refusing to boot with simulated KYC provider in production."
-        );
+    // Safety guards: a Live core never runs a simulated acquirer or approves
+    // identities with a simulated KYC provider. These were keyed on
+    // APP_ENV=production, which nothing in infra/ sets — a Live core booted
+    // with both simulators and approved KYC up to Enhanced (A2-04).
+    if let Err(fatal) = live_provider_guard(declared_env, &acquiring_prov, &kyc_prov) {
+        eprintln!("FATAL: {fatal}");
         std::process::exit(1);
     }
     tracing::info!(
@@ -1040,5 +1041,42 @@ mod system_account_tests {
     #[should_panic(expected = "X is not a UUID")]
     fn a_malformed_id_stops_the_process() {
         system_account("X", Some("80a1a416-typo".into()));
+    }
+}
+
+/// The providers a core may run with in its environment. A Live core needs the
+/// real acquirer and the real KYC provider; a Sandbox core may simulate both.
+fn live_provider_guard(
+    environment: CoreEnvironment,
+    acquiring_provider: &str,
+    kyc_provider: &str,
+) -> Result<(), String> {
+    if !environment.is_live() {
+        return Ok(());
+    }
+    if !acquiring_provider.trim().eq_ignore_ascii_case("EMIS") {
+        return Err("a LIVE core requires ACQUIRING_PROVIDER=EMIS; refusing to boot with a simulated acquirer".into());
+    }
+    if !kyc_provider.trim().eq_ignore_ascii_case("EXTERNAL") {
+        return Err("a LIVE core requires KYC_PROVIDER=EXTERNAL; refusing to boot with simulated KYC".into());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod boot_guard_tests {
+    use super::*;
+
+    #[test]
+    fn a_live_core_refuses_simulated_providers() {
+        assert!(live_provider_guard(CoreEnvironment::Live, "", "").is_err());
+        assert!(live_provider_guard(CoreEnvironment::Live, "EMIS", "SIMULATED").is_err());
+        assert!(live_provider_guard(CoreEnvironment::Live, "SIMULATED", "EXTERNAL").is_err());
+        assert!(live_provider_guard(CoreEnvironment::Live, "EMIS", "EXTERNAL").is_ok());
+    }
+
+    #[test]
+    fn a_sandbox_core_may_simulate() {
+        assert!(live_provider_guard(CoreEnvironment::Sandbox, "", "").is_ok());
     }
 }

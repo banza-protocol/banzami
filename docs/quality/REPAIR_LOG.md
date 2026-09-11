@@ -3252,3 +3252,18 @@ restitution, and updates on the condition that it is still open; the second reso
 waits on the lock and is told `DISPUTE_ALREADY_RESOLVED`. Test
 `concurrent_opposite_resolutions_have_one_winner` (six racing resolutions; the previous
 code lets several succeed).
+
+## RA-118 — a core with no declared environment was Live, with simulators
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-04/A2-15)
+- **Status:** FIXED (core)
+
+Core read a missing or unrecognised `ENVIRONMENT` as LIVE (and did not trim it, unlike
+the Go services), and its refusals to run a simulated acquirer or a simulated KYC
+provider were keyed on `APP_ENV=production` — which nothing in `infra/` sets. A Live
+core would have booted with both simulators, the KYC one approving identities up to
+Enhanced. Core now refuses to boot unless `ENVIRONMENT` names SANDBOX or LIVE
+(trimmed, any case), and a LIVE core refuses unless `ACQUIRING_PROVIDER=EMIS` and
+`KYC_PROVIDER=EXTERNAL`. The deployed Sandbox core declares `ENVIRONMENT=sandbox`. Tests
+`only_the_two_universes_parse`, `boot_guard_tests::{a_live_core_refuses_simulated_providers,
+a_sandbox_core_may_simulate}` (a guard that always allows fails the first).
