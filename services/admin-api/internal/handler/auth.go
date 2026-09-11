@@ -10,6 +10,7 @@ import (
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 // LoginStore is the slice of AdminUserService the auth handler needs (interface
@@ -33,19 +34,11 @@ type AuditSink interface {
 	Write(ctx context.Context, e service.AuditEntry)
 }
 
-// clientIP extracts the caller IP (nginx sets X-Real-IP to cf-connecting-ip).
-func clientIP(r *http.Request) string {
-	if v := r.Header.Get("X-Real-IP"); v != "" {
-		return v
-	}
-	if v := r.Header.Get("X-Forwarded-For"); v != "" {
-		if i := strings.IndexByte(v, ','); i > 0 {
-			return strings.TrimSpace(v[:i])
-		}
-		return v
-	}
-	return r.RemoteAddr
-}
+// clientIP is the caller's address as clientip resolved it for this service
+// (RemoteAddr): the edge's X-Real-IP only when the peer is a trusted proxy. It
+// read the headers itself, from any peer, so a caller chose the address its
+// login attempts and audit rows recorded (A9-09).
+func clientIP(r *http.Request) string { return clientip.Host(r.RemoteAddr) }
 
 // AuthHandler implements operator login / me / logout. Errors are deliberately
 // generic (never reveal whether an email exists). Passwords and tokens are

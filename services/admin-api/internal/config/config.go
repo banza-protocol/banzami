@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/banzami/banzami/services/common/clientip"
 	banzamienv "github.com/banzami/banzami/services/common/env"
 )
 
@@ -98,6 +99,11 @@ type Config struct {
 	KycSandboxStorageRegion    string
 	KycSandboxStorageAccessKey string
 	KycSandboxStorageSecretKey string
+
+	// ClientIP decides who the client is for the per-IP auth limit, the audit
+	// log and login attempts: the edge's X-Real-IP, believed only from
+	// TRUSTED_PROXY_CIDRS (A9-09). Nil trusts no proxy — the direct peer.
+	ClientIP *clientip.Resolver
 }
 
 // Load reads config from environment variables.
@@ -170,7 +176,14 @@ func Load() (*Config, error) {
 	noreplyName := getenvDefault("EMAIL_NOREPLY_NAME", fromName)
 	noreplyAddress := getenvDefault("EMAIL_NOREPLY_ADDRESS", "noreply@banzami.com")
 
+	// A malformed trust list refuses to start rather than guess.
+	clientIP, err := clientip.LoadEdge()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
+		ClientIP:             clientIP,
 		Environment:          environment.String(),
 		WebhookEncryptionKey: webhookKey,
 		Port:                 port,

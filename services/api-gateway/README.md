@@ -233,13 +233,14 @@ go run cmd/gateway/main.go
 | CORE_API_URL | — | Yes | Base URL for the Rust core-api (e.g. `http://localhost:8081`) |
 | OTLP_ENDPOINT | — | No | OpenTelemetry collector endpoint; tracing disabled when empty |
 | FIREBASE_CREDENTIALS_JSON | — | No | Firebase service-account JSON (minified); push notifications disabled when empty |
+| TRUSTED_PROXY_CIDRS | — (trust none) | Behind the edge | CIDRs/addresses of the proxy whose `X-Real-IP` names the client (the Sandbox edge's address on the app network). Unset: the client is the direct peer, so behind a proxy every request shares the proxy's per-IP bucket. `0.0.0.0/0` / `::/0` and malformed lists refuse to start. See `services/common/clientip` |
 
 ## Middleware Stack
 
 Applied globally (every request):
 
 1. `CORS` — sets `Access-Control-Allow-*` headers for allowed origins
-2. `RealIP` — resolves client IP from `X-Forwarded-For`
+2. `clientip` — the client is the edge's `X-Real-IP`, believed only from a peer in `TRUSTED_PROXY_CIDRS`; otherwise the direct peer. Every per-IP limiter keys on it, IPv6 per /64 (A9-09, A9-04)
 3. `RequestID` — generates or propagates `X-Request-ID`
 4. `Logger` — structured log after response: method, path, status, duration, request_id
 5. `Recoverer` — converts panics to 500 without crashing the process

@@ -6,6 +6,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 type Config struct {
@@ -78,6 +80,11 @@ type Config struct {
 	KYBStorageSecretKey    string
 	KYBSignedURLTTLSeconds int
 	KYBMaxFileSizeBytes    int64
+
+	// ClientIP decides who the client is for every limiter and log line: the
+	// edge's X-Real-IP, believed only from TRUSTED_PROXY_CIDRS (A9-09). Nil
+	// trusts no proxy — the client is the direct peer.
+	ClientIP *clientip.Resolver
 }
 
 func Load() (*Config, error) {
@@ -190,6 +197,13 @@ func Load() (*Config, error) {
 	}
 
 	if err := validateJWTSecret(cfg.JWTSecret); err != nil {
+		return nil, err
+	}
+
+	// A malformed trust list refuses to start: which half was meant is not
+	// something to guess about a setting that decides whose limit is whose.
+	var err error
+	if cfg.ClientIP, err = clientip.LoadEdge(); err != nil {
 		return nil, err
 	}
 

@@ -31,7 +31,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 
 	r.Use(middleware.CORS)
 	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
-	r.Use(chimiddleware.RealIP)
+	// Who the client is: the edge's X-Real-IP, believed only from a trusted
+	// proxy (TRUSTED_PROXY_CIDRS). chi's RealIP believed True-Client-IP,
+	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
+	r.Use(cfg.ClientIP.Middleware)
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))

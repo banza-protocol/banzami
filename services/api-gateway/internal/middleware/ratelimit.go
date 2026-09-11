@@ -12,6 +12,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 // RateLimits configures per-window request ceilings.
@@ -34,7 +35,9 @@ var DefaultRateLimits = RateLimits{
 const CredentialPerMinute = 15
 
 // RateLimitPerIP returns a Redis-backed sliding-window limiter keyed purely by
-// client IP, under a dedicated key prefix and ceiling. Use it to throttle
+// client IP, under a dedicated key prefix and ceiling. The client is the one
+// clientip resolved (RemoteAddr); an IPv6 client is counted per /64, so
+// rotating through its own block buys nothing (A9-04). Use it to throttle
 // unauthenticated credential endpoints independently of the general anonymous
 // limit.
 //
@@ -55,7 +58,7 @@ func RateLimitPerIPWindow(rdb *redis.Client, limit int, window time.Duration, pr
 	local := newLocalWindow(limit, window)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			key := fmt.Sprintf("rl:%s:ip:%s", prefix, r.RemoteAddr)
+			key := fmt.Sprintf("rl:%s:ip:%s", prefix, clientip.LimiterKey(r.RemoteAddr))
 			var allowed bool
 			if rdb == nil {
 				allowed = local.allow(key)
@@ -110,7 +113,7 @@ func rateLimitKey(r *http.Request, limits RateLimits) (key string, limit int) {
 	if p, ok := GetPrincipal(r.Context()); ok && p.MerchantID != "" {
 		return fmt.Sprintf("rl:merchant:%s", p.MerchantID), limits.AuthenticatedPerMinute
 	}
-	return fmt.Sprintf("rl:ip:%s", r.RemoteAddr), limits.AnonymousPerMinute
+	return fmt.Sprintf("rl:ip:%s", clientip.LimiterKey(r.RemoteAddr)), limits.AnonymousPerMinute
 }
 
 // slidingWindowScript is an atomic Lua script that implements a sliding-window

@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/banzami/banzami/services/common/clientip"
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
 	"github.com/banzami/banzami/services/developer-api/internal/gatewayclient"
@@ -1081,30 +1082,6 @@ func keyViews(ks []APIKey) []map[string]any {
 	return out
 }
 
-// realIP prefers the left-most X-Forwarded-For, else RemoteAddr host.
-func realIP(r *http.Request) string {
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		for i := 0; i < len(xff); i++ {
-			if xff[i] == ',' {
-				return trim(xff[:i])
-			}
-		}
-		return trim(xff)
-	}
-	host := r.RemoteAddr
-	for i := len(host) - 1; i >= 0; i-- {
-		if host[i] == ':' {
-			return host[:i]
-		}
-	}
-	return host
-}
-func trim(s string) string {
-	for len(s) > 0 && (s[0] == ' ' || s[0] == '\t') {
-		s = s[1:]
-	}
-	for len(s) > 0 && (s[len(s)-1] == ' ' || s[len(s)-1] == '\t') {
-		s = s[:len(s)-1]
-	}
-	return s
-}
+// realIP is the client clientip resolved for this service (RemoteAddr), never
+// the caller's own X-Forwarded-For (A9-09).
+func realIP(r *http.Request) string { return clientip.Host(r.RemoteAddr) }

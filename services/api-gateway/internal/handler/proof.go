@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/common/clientip"
 	documents "github.com/banzami/banzami/services/common/documents"
 )
 
@@ -50,15 +50,10 @@ func (h *ProofHandler) hash(v string) string {
 	return hex.EncodeToString(sum[:])[:32]
 }
 
-// clientIP is the address chi's RealIP resolved from the edge's headers — the
-// same one the rate limiter uses — not the caller's own X-Forwarded-For.
-func clientIP(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return host
-}
+// clientIP is the address clientip resolved (trusted edge, or the website's
+// forwarded reader) — the same one the rate limiter uses — never the caller's
+// own X-Forwarded-For.
+func clientIP(r *http.Request) string { return clientip.Host(r.RemoteAddr) }
 
 // GET /v1/public/proofs/{proof_reference}
 func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {

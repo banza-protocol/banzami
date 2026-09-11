@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 // IPRateLimiter is a fixed-window per-IP limiter for the unauthenticated auth
@@ -59,10 +61,12 @@ func (l *IPRateLimiter) sweep(now time.Time) {
 	}
 }
 
-// Middleware enforces the limit, keyed on the real client IP.
+// Middleware enforces the limit, keyed on the client clientip resolved
+// (RemoteAddr) — per address, and per /64 for IPv6 so rotating through one's
+// own block buys nothing (A9-04).
 func (l *IPRateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ok, retry := l.allow(realIP(r))
+		ok, retry := l.allow(clientip.LimiterKey(r.RemoteAddr))
 		if !ok {
 			w.Header().Set("Retry-After", strconv.Itoa(retry))
 			deny(w, http.StatusTooManyRequests, "TOO_MANY_REQUESTS", "too many requests, please slow down")
@@ -72,19 +76,11 @@ func (l *IPRateLimiter) Middleware(next http.Handler) http.Handler {
 	})
 }
 
-// realIP mirrors the handler-level helper: nginx/Cloudflare set X-Real-IP.
-func realIP(r *http.Request) string {
-	if v := r.Header.Get("X-Real-IP"); v != "" {
-		return v
-	}
-	if v := r.Header.Get("X-Forwarded-For"); v != "" {
-		if i := indexByte(v, ','); i > 0 {
-			return v[:i]
-		}
-		return v
-	}
-	return r.RemoteAddr
-}
+// realIP is the client address clientip resolved at the edge of this service
+// (RemoteAddr). It read X-Real-IP and X-Forwarded-For itself, from any peer,
+// so a caller wrote its own address into the audit log and its own limiter
+// key (A9-09).
+func realIP(r *http.Request) string { return clientip.Host(r.RemoteAddr) }
 
 func indexByte(s string, b byte) int {
 	for i := 0; i < len(s); i++ {

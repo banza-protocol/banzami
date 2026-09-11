@@ -35,7 +35,11 @@ func TestAudit_RecordsMutation(t *testing.T) {
 	sink := &fakeAudit{}
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest("POST", "/admin/v1/operators/abc-123/suspend", nil)
-	r.Header.Set("X-Real-IP", "8.8.8.8")
+	// The client as the server's clientip middleware resolved it. A header the
+	// caller wrote is not the audited address (A9-09).
+	r.RemoteAddr = "8.8.8.8"
+	r.Header.Set("X-Real-IP", "6.6.6.6")
+	r.Header.Set("X-Forwarded-For", "6.6.6.6")
 	auditRouter(sink).ServeHTTP(w, r)
 
 	if len(sink.entries) != 1 {

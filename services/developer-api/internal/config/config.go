@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/banzami/banzami/services/common/clientip"
 	"github.com/banzami/banzami/services/common/env"
 	"os"
 	"strconv"
@@ -15,6 +16,11 @@ import (
 type Config struct {
 	Port        int
 	Environment string // "development" | "sandbox" | "production"
+
+	// ClientIP decides who the client is for the OTP limits and audit rows: the
+	// edge's X-Real-IP, believed only from TRUSTED_PROXY_CIDRS (A9-09). Nil
+	// trusts no proxy — the client is the direct peer.
+	ClientIP *clientip.Resolver
 
 	// WebhookEncryptionKey is the base64 32-byte key webhook signing secrets are
 	// encrypted with at rest (SEC-002). It MUST be the same value the gateway
@@ -227,6 +233,12 @@ func Load() (*Config, error) {
 	}
 	if os.Getenv("EMAIL_DRY_RUN") == "true" {
 		cfg.EmailDryRun = true
+	}
+
+	// A malformed trust list refuses to start rather than guess.
+	var err error
+	if cfg.ClientIP, err = clientip.LoadEdge(); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil

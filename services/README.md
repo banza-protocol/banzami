@@ -20,3 +20,4 @@ Go · PostgreSQL · Redis
 - API contracts must be documented in [`docs/api/`](../docs/api/) before exposure. Request schemas, response schemas, error responses, and examples are mandatory.
 - Authentication and authorization are enforced at the gateway. Downstream services trust verified principals from the gateway but enforce their own scope checks.
 - All external requests carry a request ID propagated through OpenTelemetry context.
+- **Who the client is** is decided by `common/clientip` alone: the edge's `X-Real-IP`, believed only when the direct peer is in `TRUSTED_PROXY_CIDRS` (unset = trust none, the client is the peer). No service reads `X-Forwarded-For`, `X-Real-IP`, `True-Client-IP` or `CF-Connecting-IP` itself, and no service uses chi's `RealIP`. Per-IP limiters key on `clientip.LimiterKey` (IPv4 per address, IPv6 per /64); audit rows record `clientip.Host`. Guard: `tests/ops/client-ip-trust.test.mjs` (A9-09, A9-04).

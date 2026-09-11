@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/banzami/banzami/services/common/clientip"
 )
 
 // Config holds all runtime configuration for the public-api service.
@@ -38,6 +40,11 @@ type Config struct {
 	InternalAPIKey     string
 	// CoreInternalKey authenticates this service to Core (X-Internal-Key).
 	CoreInternalKey string
+
+	// ClientIP decides who the client is for the per-IP limits and log lines:
+	// the edge's X-Real-IP, believed only from TRUSTED_PROXY_CIDRS (A9-09). Nil
+	// trusts no proxy — the client is the direct peer.
+	ClientIP *clientip.Resolver
 }
 
 // Load reads config from environment variables.
@@ -80,7 +87,14 @@ func Load() (*Config, error) {
 		env = "PRODUCTION"
 	}
 
+	// A malformed trust list refuses to start rather than guess.
+	clientIP, err := clientip.LoadEdge()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Config{
+		ClientIP:                clientIP,
 		FirebaseCredentialsJSON: os.Getenv("FIREBASE_CREDENTIALS_JSON"),
 		KycStorageProvider:      os.Getenv("KYC_STORAGE_PROVIDER"),
 		KycStorageBucket:        os.Getenv("KYC_STORAGE_BUCKET"),

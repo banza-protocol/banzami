@@ -66,7 +66,7 @@ website edge dies the sandbox routes are unaffected.
 
 ## 3. Two failure modes designed against
 
-**Startup fragility.** `infra/nginx/banzami.conf` records a `banzami.com` 522
+**Startup fragility.** The retired `infra/nginx/banzami.conf` (removed 2026-09-11; see git history) recorded a `banzami.com` 522
 incident whose root cause was that nginx resolves literal `proxy_pass` hostnames
 at *config load*, so one absent upstream stopped the whole proxy from starting.
 Every upstream here is held in a variable and resolved at *request* time via
@@ -141,6 +141,30 @@ deploy timestamp), so `SB_GATEWAY` / `SB_PUBLIC_API` / `SB_DEVELOPER_API` /
 `BZSB_APP_NET` must be refreshed in `.env` and the edge restarted. This drift is
 *detected*, not silent: `make assure-sandbox-runtime` proxies through the edge
 and fails when the upstream names go stale.
+
+### Client identity behind the edge (TRUSTED_PROXY_CIDRS)
+
+The edge decides the client address (Cloudflare's `CF-Connecting-IP`, believed
+only from Cloudflare's ranges) and overwrites `X-Real-IP` with it. The Go
+services believe that header **only from a peer in `TRUSTED_PROXY_CIDRS`**
+(`services/common/clientip`, A9-09). Unset, nothing is trusted: a header can
+never raise anyone's allowance, but every request then keys on the edge's own
+address and all clients share one per-IP bucket (15 sign-ins a minute for the
+whole Sandbox).
+
+Set on **api-gateway, public-api, admin-api and developer-api**:
+
+```bash
+# the edge's address on the rt04e sandbox app network, as a /32
+docker inspect bzsbedge-sandbox-edge \
+  -f '{{(index .NetworkSettings.Networks "<BZSB_APP_NET>").IPAddress}}'
+TRUSTED_PROXY_CIDRS=<that address>/32
+```
+
+The edge's address is assigned by Docker and can change when the edge is
+recreated; trusting the whole app-network subnet instead is simpler but trusts
+every container on it, which is the spoofing this closes. A malformed list, or
+`0.0.0.0/0`, refuses to start.
 
 ### Container health vs runtime assurance
 

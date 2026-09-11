@@ -1,6 +1,7 @@
 package accountidentity
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -156,7 +157,7 @@ func TestVerify_OneTimeUse(t *testing.T) {
 
 func TestRequestOTP_PerIPRateLimit(t *testing.T) {
 	h, _, _ := newH(t, ServiceConfig{PerIPLimit: 3, ResendCooldown: time.Nanosecond, RateWindow: time.Minute})
-	hdr := map[string]string{"Origin": testOrigin, "X-Forwarded-For": "203.0.113.9"}
+	hdr := map[string]string{"Origin": testOrigin}
 	// Different emails (no per-email cooldown collision) → exercises per-IP cap.
 	emails := []string{"a@x.co", "b@x.co", "c@x.co", "d@x.co"}
 	var codes []int
@@ -169,6 +170,50 @@ func TestRequestOTP_PerIPRateLimit(t *testing.T) {
 	if codes[3] != http.StatusTooManyRequests {
 		t.Fatalf("4th over per-IP limit: want 429, got %d", codes[3])
 	}
+}
+
+// A9-09: the per-IP cap keys on the client the service resolved (RemoteAddr),
+// not on an X-Forwarded-For the caller writes. Rotating it from one address
+// bought a fresh allowance per request.
+func TestRequestOTP_PerIPRateLimit_IgnoresForwardedFor(t *testing.T) {
+	h, _, _ := newH(t, ServiceConfig{PerIPLimit: 3, ResendCooldown: time.Nanosecond, RateWindow: time.Minute})
+	var codes []int
+	for i, e := range []string{"a@x.co", "b@x.co", "c@x.co", "d@x.co"} {
+		hdr := map[string]string{"Origin": testOrigin, "X-Forwarded-For": fmt.Sprintf("198.51.100.%d", i+1), "X-Real-IP": fmt.Sprintf("198.51.100.%d", i+1)}
+		codes = append(codes, doFrom("203.0.113.9:4000", h.RequestOTP, `{"email":"`+e+`"}`, hdr).Code)
+	}
+	if codes[3] != http.StatusTooManyRequests {
+		t.Fatalf("4th request from one address with a new X-Forwarded-For: want 429, got %v", codes)
+	}
+}
+
+// A9-04: an IPv6 client rotating through its own /64 is one client.
+func TestRequestOTP_PerIPRateLimit_IPv6Per64(t *testing.T) {
+	h, _, _ := newH(t, ServiceConfig{PerIPLimit: 3, ResendCooldown: time.Nanosecond, RateWindow: time.Minute})
+	var codes []int
+	for i, e := range []string{"a@x.co", "b@x.co", "c@x.co", "d@x.co"} {
+		codes = append(codes, doFrom(fmt.Sprintf("[2001:db8:44:1::%x]:443", i+1), h.RequestOTP, `{"email":"`+e+`"}`, origin()).Code)
+	}
+	if codes[3] != http.StatusTooManyRequests {
+		t.Fatalf("4th request from a fresh address in the same /64: want 429, got %v", codes)
+	}
+	if rr := doFrom("[2001:db8:44:2::1]:443", h.RequestOTP, `{"email":"e@x.co"}`, origin()); rr.Code != http.StatusOK {
+		t.Fatalf("the neighbouring /64 was limited: %d", rr.Code)
+	}
+}
+
+// doFrom is do with the client address the service's clientip middleware
+// would have left in RemoteAddr.
+func doFrom(remote string, h http.HandlerFunc, body string, headers map[string]string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest("POST", "/auth/request-otp", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.RemoteAddr = remote
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+	rr := httptest.NewRecorder()
+	h(rr, req)
+	return rr
 }
 
 func TestRequestOTP_ResendCooldown(t *testing.T) {

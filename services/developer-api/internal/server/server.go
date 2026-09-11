@@ -39,7 +39,10 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 	})
 
 	r.Use(obs.Correlation)
-	r.Use(chimw.RealIP)
+	// Who the client is: the edge's X-Real-IP, believed only from a trusted
+	// proxy (TRUSTED_PROXY_CIDRS). chi's RealIP believed True-Client-IP,
+	// X-Real-IP and X-Forwarded-For from any peer (A9-09).
+	r.Use(cfg.ClientIP.Middleware)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(30 * time.Second))
 	r.Use(cors(cfg.ConsoleOrigin))
