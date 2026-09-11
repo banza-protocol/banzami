@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { PROOF_REF_ALPHABET, isProofRef, parseProofInput } from './proof-ref';
+import { NOT_A_REFERENCE_PATH, PROOF_REF_ALPHABET, isProofRef, parseProofInput, proofPagePath } from './proof-ref';
 
 const C = 'BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0';
-const L = 'BZM-F993-38E2';
+const L = 'BZM-5EED-0A11';
 
 // Every other spelling of a real reference — none may be accepted as it.
 function aliases(c: string): Record<string, string> {
@@ -81,4 +81,25 @@ describe('isProofRef: the operator grammar', () => {
     expect(isProofRef(C.toLowerCase())).toBe(false);
     expect(isProofRef(` ${C}`)).toBe(false);
   });
+});
+
+describe('proofPagePath: one public URL per proof', () => {
+  it('keeps the canonical raw path', () => {
+    expect(proofPagePath(`/r/${C}`)).toBe(`/r/${C}`);
+    expect(proofPagePath(`/r/${L}`)).toBe(`/r/${L}`);
+  });
+
+  it('is not the proof page elsewhere', () => {
+    expect(proofPagePath('/verificar')).toBeNull();
+    expect(proofPagePath('/rr/x')).toBeNull();
+  });
+
+  for (const raw of [
+    `/r/${C.slice(0, -1)}%30`, `/r/${C.replace(/-/g, '%2D')}`, `/r/%42${C.slice(1)}`, `/r/${C}/`,
+    `/r/${C.toLowerCase()}`, `/r/${C.slice(0, -1)}O`, `/r/${C}%20`, `/r/${L.slice(0, -1)}%32`, '/r/', '/r/_',
+  ]) {
+    it(`renders ${raw.replace(C, 'REF')} as not a reference`, () => {
+      expect(proofPagePath(raw)).toBe(NOT_A_REFERENCE_PATH);
+    });
+  }
 });

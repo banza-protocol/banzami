@@ -12,6 +12,7 @@ import {
   cleanToInternal,
 } from '@/lib/console-routing';
 import { contentSecurityPolicy } from '@/lib/csp';
+import { NOT_A_REFERENCE_PATH, proofPagePath } from '@/lib/proof-ref';
 
 // Host-based routing for the Developer Console, plus the response security
 // headers for both hosts this app serves.
@@ -45,6 +46,19 @@ export function middleware(req: NextRequest): NextResponse {
   // what makes 'strict-dynamic' usable instead of 'unsafe-inline'.
   const reqHeaders = new Headers(req.headers);
   reqHeaders.set('x-nonce', nonce);
+
+  // The proof page answers only to its one spelling. The raw pathname (escapes
+  // intact — req.url, not the decoded route params) must be /r/ + a canonical
+  // reference; anything else renders the not-a-reference page, without a lookup
+  // and without a redirect. The edge (infra/nginx/website.conf) applies the same
+  // rule before Next, which is what stops Next's own trailing-slash redirect.
+  const proofPath = proofPagePath(new URL(req.url).pathname);
+  if (proofPath === NOT_A_REFERENCE_PATH) {
+    const dest = url.clone();
+    dest.pathname = NOT_A_REFERENCE_PATH;
+    dest.search = '';
+    return harden(NextResponse.rewrite(dest, { request: { headers: reqHeaders } }), nonce);
+  }
 
   // Console host: legacy /developers/* → clean (308); clean host-root → rewrite.
   if (host === CONSOLE_HOST) {

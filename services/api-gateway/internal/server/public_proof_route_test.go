@@ -70,7 +70,7 @@ func get(h http.Handler, path string) *httptest.ResponseRecorder {
 
 func TestPublicProofRoute_CanonicalReachesTheLookup(t *testing.T) {
 	h, dials := proofRoute(t)
-	for _, ref := range []string{"BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0", "BZM-F993-38E2"} {
+	for _, ref := range []string{"BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0", "BZM-5EED-0A11"} {
 		before := dials.Load()
 		w := get(h, ref)
 		if dials.Load() == before {
@@ -85,7 +85,7 @@ func TestPublicProofRoute_CanonicalReachesTheLookup(t *testing.T) {
 func TestPublicProofRoute_NoAliasReachesTheLookup(t *testing.T) {
 	h, dials := proofRoute(t)
 	const c = "BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0"
-	const l = "BZM-F993-38E2"
+	const l = "BZM-5EED-0A11"
 	esc := url.PathEscape
 	aliases := map[string]string{
 		// the reproduced defect
@@ -106,6 +106,9 @@ func TestPublicProofRoute_NoAliasReachesTheLookup(t *testing.T) {
 		"zwj": c + "%E2%80%8D", "bom": "%EF%BB%BF" + c,
 		// encoding is one layer, never repeated
 		"encoded O": c[:len(c)-1] + "%4F", "double-encoded 0": c[:len(c)-1] + "%2530",
+		// an escaped canonical character is another spelling of the URL, not the reference
+		"encoded 0": c[:len(c)-1] + "%30", "encoded hyphen": strings.ReplaceAll(c, "-", "%2D"),
+		"encoded B": "%42" + c[1:],
 		"encoded query": c + "%3Fx%3D1",
 		// structure
 		"23 symbols": c[:len(c)-1], "25 symbols": c + "0", "seven groups": c + "-0000",

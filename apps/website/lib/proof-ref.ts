@@ -45,3 +45,17 @@ export function parseProofInput(input: string): ProofInput {
   if (link && isProofRef(link[1])) return { ok: true, ref: link[1] };
   return { ok: false, reason: 'format' };
 }
+
+// The proof page has ONE public URL: /r/ followed by the reference exactly as
+// issued. Given the RAW pathname — percent-escapes intact, as the request line
+// carried it — proofPagePath returns null when this is not the proof page, the
+// pathname itself when its segment is a canonical reference, and
+// NOT_A_REFERENCE_PATH otherwise. /r/…%30 (an escaped 0) or /r/BZM%2D… is a
+// different spelling of the URL, not the reference: it is shown as invalid,
+// never decoded into a match and never redirected to the canonical page.
+export const NOT_A_REFERENCE_PATH = '/r/_';
+
+export function proofPagePath(rawPathname: string): string | null {
+  if (!rawPathname.startsWith('/r/')) return null;
+  return isProofRef(rawPathname.slice(3)) ? rawPathname : NOT_A_REFERENCE_PATH;
+}
