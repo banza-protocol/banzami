@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE acquiring_payments\n               SET status = 'CONFIRMED', confirmed_at = $2\n               WHERE id = $1\n               RETURNING id, payment_link_id, provider, external_ref, status,\n                         amount_minor, currency, instructions,\n                         confirmed_at, failed_at, failure_reason, expires_at, created_at",
+  "query": "UPDATE acquiring_payments\n               SET status = 'CONFIRMED', confirmed_at = COALESCE(confirmed_at, $2)\n               WHERE id = $1 AND status IN ('PENDING', 'CONFIRMED')\n               RETURNING id, payment_link_id, provider, external_ref, status,\n                         amount_minor, currency, instructions,\n                         confirmed_at, failed_at, failure_reason, expires_at, created_at",
   "describe": {
     "columns": [
       {
@@ -91,5 +91,5 @@
       false
     ]
   },
-  "hash": "b9e7555ea98a307a0cf1a37427502a637847ed40df3e729feab12e0e6f1154d1"
+  "hash": "aee1e2813dad195e4a26c33b590223e36f7e9712c9ff5685d4c97a4a303e1629"
 }

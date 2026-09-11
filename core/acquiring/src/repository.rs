@@ -35,6 +35,10 @@ pub trait AcquiringRepository: Send + Sync {
     ) -> Result<AcquiringPayment, AcquiringError>;
 
     async fn record_callback(&self, cb: &AcquiringCallback) -> Result<(), AcquiringError>;
+    /// The callback led to a confirmation. Nothing set this, so the duplicate
+    /// check never matched and reconciliation (which counts processed
+    /// callbacks) reconciled none.
+    async fn mark_callback_processed(&self, idempotency_key: &str) -> Result<(), AcquiringError>;
 
     async fn callback_already_processed(
         &self,
@@ -182,8 +186,8 @@ impl AcquiringRepository for PostgresAcquiringRepository {
         sqlx::query_as!(
             AcquiringPaymentRow,
             r#"UPDATE acquiring_payments
-               SET status = 'CONFIRMED', confirmed_at = $2
-               WHERE id = $1
+               SET status = 'CONFIRMED', confirmed_at = COALESCE(confirmed_at, $2)
+               WHERE id = $1 AND status IN ('PENDING', 'CONFIRMED')
                RETURNING id, payment_link_id, provider, external_ref, status,
                          amount_minor, currency, instructions,
                          confirmed_at, failed_at, failure_reason, expires_at, created_at"#,
@@ -220,6 +224,15 @@ impl AcquiringRepository for PostgresAcquiringRepository {
         .map_err(AcquiringError::Database)?
         .ok_or(AcquiringError::NotFound(id))
         .and_then(row_to_payment)
+    }
+
+    async fn mark_callback_processed(&self, idempotency_key: &str) -> Result<(), AcquiringError> {
+        sqlx::query("UPDATE acquiring_callbacks SET processed = true WHERE idempotency_key = $1")
+            .bind(idempotency_key)
+            .execute(&self.pool)
+            .await
+            .map_err(AcquiringError::Database)?;
+        Ok(())
     }
 
     async fn record_callback(&self, cb: &AcquiringCallback) -> Result<(), AcquiringError> {

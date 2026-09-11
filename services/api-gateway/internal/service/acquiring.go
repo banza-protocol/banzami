@@ -53,7 +53,9 @@ type AcquiringService interface {
 
 	// TestConfirm generates and processes a signed test callback (simulated
 	// provider only).  Returns ErrProviderError in production.
-	TestConfirm(ctx context.Context, externalRef string, currency string) (*AcquiringPayment, error)
+	// TestConfirm confirms the simulated payment `externalRef` of link
+	// `paymentLinkID` — core refuses a reference that is not that link's.
+	TestConfirm(ctx context.Context, externalRef, currency, paymentLinkID string) (*AcquiringPayment, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -125,14 +127,16 @@ func (s *CoreApiAcquiringService) TestConfirm(
 	ctx context.Context,
 	externalRef string,
 	currency string,
+	paymentLinkID string,
 ) (*AcquiringPayment, error) {
 	if currency == "" {
 		currency = "AOA"
 	}
 	path := fmt.Sprintf(
-		"/internal/v1/acquiring/test/confirm?external_ref=%s&currency=%s",
+		"/internal/v1/acquiring/test/confirm?external_ref=%s&currency=%s&payment_link_id=%s",
 		url.QueryEscape(externalRef),
 		url.QueryEscape(currency),
+		url.QueryEscape(paymentLinkID),
 	)
 	var payment AcquiringPayment
 	if err := s.client.post(ctx, path, nil, &payment); err != nil {

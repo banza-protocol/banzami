@@ -106,8 +106,15 @@ func (h *AcquiringHandler) EmisCallback(w http.ResponseWriter, r *http.Request) 
 
 	payment, err := h.svc.ProcessCallback(r.Context(), rawBody, signature)
 	if err != nil {
+		// Nothing is marked paid and no event goes out. The provider is told
+		// the reason class only — core's own text (which named amounts and
+		// statuses) is an internal detail, and this route is public.
 		slog.Error("acquiring: callback processing failed", "error", err)
-		apierror.Respond(w, r, http.StatusUnprocessableEntity, "CALLBACK_ERROR", err.Error())
+		code := "CALLBACK_REJECTED"
+		if ce, ok := service.AsCoreError(err); ok && ce.Code != "" {
+			code = ce.Code
+		}
+		apierror.Respond(w, r, http.StatusUnprocessableEntity, code, "the callback was not accepted")
 		return
 	}
 
@@ -150,7 +157,10 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payment, err := h.svc.TestConfirm(r.Context(), externalRef, link.Currency)
+	// The reference must be THIS link's payment. It was not checked: a caller
+	// on any public link could confirm any pending payment, and the link the
+	// payment actually belonged to was the one marked paid.
+	payment, err := h.svc.TestConfirm(r.Context(), externalRef, link.Currency, link.ID)
 	if err != nil {
 		// `ref` is caller-supplied. An unknown one is the caller's mistake, not this
 		// server failing, and it answered 500 INTERNAL_ERROR with err.Error() pasted
@@ -177,6 +187,10 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if payment.PaymentLinkID != link.ID {
+		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "no pending payment for that reference")
+		return
+	}
 	if usedLink, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
 		slog.Error("test-confirm: failed to mark payment link used",
 			"payment_link_id", payment.PaymentLinkID,

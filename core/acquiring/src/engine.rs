@@ -232,15 +232,36 @@ impl AcquiringEngine for PostgresAcquiringEngine {
         };
         self.repo.record_callback(&cb).await?;
 
-        // Resolve the internal payment record and confirm it.
+        // Resolve the internal payment record and confirm it — only for the
+        // amount it was created for, and only while it can still be confirmed.
         let payment = self
             .repo
             .get_payment_by_external_ref(&confirmation.external_ref)
             .await?;
+        if confirmation.amount_minor != payment.amount.amount_minor()
+            || confirmation.currency != payment.amount.currency.code()
+        {
+            tracing::error!(
+                payment_id = %payment.id,
+                "acquiring: callback amount/currency differs from the payment — not confirmed"
+            );
+            return Err(AcquiringError::AmountMismatch {
+                got_minor: confirmation.amount_minor,
+                got_currency: confirmation.currency.clone(),
+                want_minor: payment.amount.amount_minor(),
+                want_currency: payment.amount.currency.code().to_string(),
+            });
+        }
+        if matches!(payment.status, AcquiringPaymentStatus::Failed) {
+            return Err(AcquiringError::NotPending(payment.status.as_str().to_string()));
+        }
 
         let confirmed = self
             .repo
             .confirm_payment(payment.id, confirmation.confirmed_at)
+            .await?;
+        self.repo
+            .mark_callback_processed(&confirmation.idempotency_key)
             .await?;
 
         tracing::info!(

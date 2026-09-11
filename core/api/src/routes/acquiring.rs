@@ -83,6 +83,8 @@ fn map_err(e: AcquiringError) -> ApiError {
             ApiError::internal(format!("unknown acquiring status: {s}"))
         }
         AcquiringError::Internal(msg) => ApiError::internal(msg),
+        AcquiringError::AmountMismatch { .. } => ApiError::unprocessable("AMOUNT_MISMATCH", e.to_string()),
+        AcquiringError::NotPending(_) => ApiError::conflict("PAYMENT_NOT_PENDING", e.to_string()),
     }
 }
 
@@ -212,6 +214,20 @@ type SettlementDestinationRow = (
     Option<uuid::Uuid>,
 );
 
+/// The payment is CONFIRMED (the payer paid) but no credit could be posted: no
+/// active wallet, a frozen merchant, an invalid destination, no available
+/// account. This used to return Ok(()), so the caller answered success, the
+/// gateway marked the link paid and emitted payment_link.paid — the merchant
+/// was told "paid" and the ledger showed nothing. Refused now: the link stays
+/// unpaid, no event is emitted, the provider retries (settlement is idempotent
+/// by key), and the risk flags above tell the operator why.
+fn withheld() -> ApiError {
+    ApiError::unprocessable(
+        "SETTLEMENT_WITHHELD",
+        "the payment was confirmed but its settlement is withheld pending operator review",
+    )
+}
+
 pub async fn settle_confirmed_payment(
     state: &AppState,
     payment: &AcquiringPayment,
@@ -253,7 +269,7 @@ pub async fn settle_confirmed_payment(
             payment_id = %payment.id,
             "acquiring: no active wallet for this payment link — skipping settlement credit"
         );
-        return Ok(());
+        return Err(withheld());
     };
 
     // Refuse to credit a frozen merchant's wallet.
@@ -272,7 +288,7 @@ pub async fn settle_confirmed_payment(
             merchant_id  = %merchant_id_raw,
             "acquiring: merchant is frozen — skipping settlement credit"
         );
-        return Ok(());
+        return Err(withheld());
     }
 
     let destination_account_id = match (named_account, named_ledger) {
@@ -304,7 +320,7 @@ pub async fn settle_confirmed_payment(
                 "acquiring: named destination account failed ADR-042 validation — \
                  withholding settlement rather than crediting the wallet default"
             );
-            return Ok(());
+            return Err(withheld());
         }
     };
 
@@ -314,7 +330,7 @@ pub async fn settle_confirmed_payment(
             wallet_id  = %wallet_id_raw,
             "acquiring: wallet has no available account — skipping settlement credit"
         );
-        return Ok(());
+        return Err(withheld());
     };
 
     let wallet_id: WalletId = wallet_id_raw
@@ -357,7 +373,7 @@ pub async fn settle_confirmed_payment(
             payment_id = %payment.id,
             "acquiring: settlement already posted — replay credited nothing"
         );
-        return Ok(());
+        return Ok(()); // an earlier callback settled it: idempotent success
     };
 
     for (entry_type, account_id) in [
@@ -456,6 +472,9 @@ pub async fn settle_confirmed_payment(
 pub struct TestConfirmQuery {
     pub external_ref: String,
     pub currency: Option<String>,
+    /// The link the payer is on. The reference must be that link's payment —
+    /// a caller could otherwise confirm any pending payment from any link.
+    pub payment_link_id: Option<uuid::Uuid>,
 }
 
 pub async fn test_confirm(
@@ -477,6 +496,12 @@ pub async fn test_confirm(
         .get_payment_by_external_ref(&q.external_ref)
         .await
         .map_err(map_err)?;
+
+    if let Some(link) = q.payment_link_id {
+        if existing.payment_link_id.as_uuid() != link {
+            return Err(ApiError::not_found("no pending payment for that reference"));
+        }
+    }
 
     let amount_minor = existing.amount.amount_minor();
 

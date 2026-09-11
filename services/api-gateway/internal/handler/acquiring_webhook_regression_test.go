@@ -33,14 +33,15 @@ func (f *fakeAcquiring) InitiatePay(context.Context, string, int64, string) (*se
 func (f *fakeAcquiring) ProcessCallback(context.Context, []byte, string) (*service.AcquiringPayment, error) {
 	return &service.AcquiringPayment{ID: "ap-1", PaymentLinkID: f.linkID, ExternalRef: "ref-1", Status: "CONFIRMED", AmountMinor: 250000, Currency: "AOA"}, nil
 }
-func (f *fakeAcquiring) TestConfirm(context.Context, string, string) (*service.AcquiringPayment, error) {
+func (f *fakeAcquiring) TestConfirm(context.Context, string, string, string) (*service.AcquiringPayment, error) {
 	return &service.AcquiringPayment{ID: "ap-1", PaymentLinkID: f.linkID, ExternalRef: "ref-1", Status: "CONFIRMED", AmountMinor: 250000, Currency: "AOA"}, nil
 }
 
 func acquiringHandlerForTest() (*AcquiringHandler, *capturingWebhook) {
 	cw := &capturingWebhook{StubWebhookService: service.NewStubWebhookService()}
 	links := &fakeLinks{merchant: "m-owner"}
-	return NewAcquiringHandler(&fakeAcquiring{linkID: "pl-1"}, links, nil, cw), cw
+	// The payment belongs to the link the slug resolves to (fakeLinks).
+	return NewAcquiringHandler(&fakeAcquiring{linkID: "11111111-1111-4111-8111-111111111111"}, links, nil, cw), cw
 }
 
 // awaitDispatch waits briefly for the fire-and-forget dispatch goroutine.
@@ -97,9 +98,24 @@ func TestEmisCallback_DispatchesPaymentLinkPaid(t *testing.T) {
 // A nil webhook service must not panic the payment path: delivery is
 // best-effort, the payment is not.
 func TestPayerPaths_SurviveNilWebhookService(t *testing.T) {
-	h := NewAcquiringHandler(&fakeAcquiring{linkID: "pl-1"}, &fakeLinks{merchant: "m-owner"}, nil, nil)
+	h := NewAcquiringHandler(&fakeAcquiring{linkID: "11111111-1111-4111-8111-111111111111"}, &fakeLinks{merchant: "m-owner"}, nil, nil)
 	rec := routeWithSlug(h.TestConfirm, http.MethodPost, "/public/pay/abc123/x?ref=ref-1")
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200 — webhook wiring must never break settlement", rec.Code)
+	}
+}
+
+// test-confirm confirms only the payment of the link in the URL. A reference
+// from another link used to be confirmed, and THAT link marked paid.
+func TestTestConfirm_RefusesAnotherLinksPayment(t *testing.T) {
+	cw := &capturingWebhook{StubWebhookService: service.NewStubWebhookService()}
+	h := NewAcquiringHandler(&fakeAcquiring{linkID: "22222222-2222-4222-8222-222222222222"}, &fakeLinks{merchant: "m-owner"}, nil, cw)
+	rec := routeWithSlug(h.TestConfirm, http.MethodPost, "/public/pay/abc123/x?ref=ref-1")
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("another link's payment: status %d, want 404", rec.Code)
+	}
+	time.Sleep(150 * time.Millisecond)
+	if typ, _ := cw.captured(); typ != "" {
+		t.Fatalf("%s was dispatched for another link's payment", typ)
 	}
 }
