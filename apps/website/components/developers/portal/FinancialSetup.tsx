@@ -5,6 +5,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { developerApi, ApiError, type FinancialSetupState, type ProjectReadiness } from '@/lib/developer-api';
 import { ONBOARDING_LABEL, blockerText, onboardingViewOf } from '@/lib/financial-onboarding';
 import { Card } from './ui';
+import { accountStatusLabel, kybStatusLabel } from '@/lib/status-labels';
+
+const capitalised = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
@@ -168,8 +171,8 @@ export function FinancialReadinessPanel({
       </div>
       <div style={{ marginTop: 12 }}>
         <Row label="Identidade financeira" value={r.financial_identity.handle ?? '—'} />
-        <Row label="Verificação (KYB)" value={r.kyb.status ?? '—'} ok={r.kyb.status === 'APPROVED'} />
-        <Row label="Carteira" value={`${r.wallet.status ?? '—'} · ${r.wallet.currency}`} ok={r.wallet.ready} />
+        <Row label="Verificação (KYB)" value={r.kyb.status ? capitalised(kybStatusLabel(r.kyb.status)) : '—'} ok={r.kyb.status === 'APPROVED'} />
+        <Row label="Carteira" value={`${accountStatusLabel(r.wallet.status)} · ${r.wallet.currency}`} ok={r.wallet.ready} />
         <Row label="Preço atribuído" value={r.pricing.profile ?? 'Não atribuído'} ok={r.pricing.profile !== null} />
         <Row label="Taxa de liquidação · levantamento" value={`${bps(r.pricing.settlement_bps)} · ${bps(r.pricing.payout_bps)}`} />
         <Row

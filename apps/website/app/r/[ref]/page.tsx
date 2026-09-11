@@ -5,6 +5,7 @@ import { isProofRef } from '@/lib/proof-ref';
 import { BrandMark } from '@/components/site/BrandMark';
 import { MoneyAmount } from '@/components/MoneyAmount';
 import { confirmedTitle, proofRows } from '@/lib/proof-view';
+import { proofStatusLabel } from '@/lib/status-labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,18 +23,9 @@ function nowWAT(): string {
   });
 }
 
-// Technical status → localized label (ADR-033 §6). Internal states stay internal.
-function statusPT(status: string): string {
-  switch (status) {
-    case 'CONFIRMED': return 'Confirmado';
-    case 'PENDING':   return 'Pendente';
-    case 'REVERSED':  return 'Revertido';
-    case 'FAILED':    return 'Falhado';
-    case 'CANCELLED': return 'Cancelado';
-    case 'EXPIRED':   return 'Expirado';
-    default:          return status;
-  }
-}
+// Technical status → localized label (ADR-033 §6). Internal states stay internal:
+// an unknown code reads "Desconhecido", never the code itself.
+const statusPT = proofStatusLabel;
 
 // Display transforms: network is the protocol (BANZA), operator is title-cased.
 function netLabel(n?: string | null): string { return (n || '').trim() ? (n as string).toUpperCase() : '—'; }
@@ -63,7 +55,7 @@ function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; title: str
     case 'CONFIRMED': return { tone: 'green', title: confirmedTitle(p.operation_kind), sub: 'Esta transação existe no sistema oficial do Banzami.' };
     case 'PENDING': return { tone: 'yellow', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência pendente' : 'Pagamento pendente', sub: 'A transação existe mas ainda não foi confirmada.' };
     case 'REVERSED': return { tone: 'red', title: p.operation_kind === 'P2P_TRANSFER' ? 'Transferência revertida' : 'Pagamento revertido', sub: 'Esta transação foi revertida — não representa um pagamento válido.' };
-    default: return { tone: 'red', title: 'Comprovativo inválido', sub: `Estado: ${p.status}. Não representa um pagamento confirmado.` };
+    default: return { tone: 'red', title: 'Comprovativo inválido', sub: `Estado: ${statusPT(p.status)}. Não representa um pagamento confirmado.` };
   }
 }
 
