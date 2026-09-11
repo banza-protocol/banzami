@@ -105,6 +105,9 @@ func main() {
 		// Consumer KYC review. Storage (read URLs) is optional — without it the
 		// case detail simply omits evidence download links.
 		kycStore, kerr := kycstorage.NewFromConfig(kycstorage.Config{
+			// The primary pool's environment; the Sandbox store below names
+			// SANDBOX for itself (A2-12).
+			Environment:     cfg.Environment,
 			Provider:        cfg.KycStorageProvider,
 			Bucket:          cfg.KycStorageBucket,
 			Endpoint:        cfg.KycStorageEndpoint,
@@ -184,6 +187,7 @@ func main() {
 			// be configured, SANDBOX evidence downloads are disabled (503) but the
 			// rest of sandbox KYC review still works — we never fall back to live.
 			sandboxStore, sserr := kycstorage.NewFromConfig(kycstorage.Config{
+				Environment:     "SANDBOX",
 				Provider:        cfg.KycSandboxStorageProvider,
 				Bucket:          cfg.KycSandboxStorageBucket,
 				Endpoint:        cfg.KycSandboxStorageEndpoint,

@@ -71,6 +71,7 @@ func main() {
 	// Consumer KYC evidence storage (R2). Optional: a nil storage makes upload
 	// endpoints respond 503 — it never blocks startup.
 	kycStore, err := kycstorage.NewFromConfig(kycstorage.Config{
+		Environment:     cfg.Environment,
 		Provider:        cfg.KycStorageProvider,
 		Bucket:          cfg.KycStorageBucket,
 		Endpoint:        cfg.KycStorageEndpoint,

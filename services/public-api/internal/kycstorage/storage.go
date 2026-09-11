@@ -26,6 +26,27 @@ import (
 // HTTP layer responds 503 STORAGE_NOT_CONFIGURED — it never panics at startup.
 var ErrNotConfigured = errors.New("kyc storage not configured")
 
+// ErrBucketEnvironment: the bucket does not name this stack's environment. A
+// Sandbox stack must never read or write consumer KYC evidence in the Live
+// bucket, and the reverse is worse (A2-12, the RA-100 defect for consumers).
+var ErrBucketEnvironment = errors.New("kyc storage bucket does not belong to this environment")
+
+// BucketBelongsTo reports whether a bucket is the given environment's: it names
+// that environment and not the other ("banzami-kyc-sandbox" for SANDBOX,
+// "banzami-kyc-live" for LIVE). Positive, so a bucket named for neither — a
+// typo, a shared bucket — is refused rather than assumed to be fine.
+func BucketBelongsTo(bucket, environment string) bool {
+	b := strings.ToLower(bucket)
+	switch strings.ToUpper(strings.TrimSpace(environment)) {
+	case "SANDBOX":
+		return strings.Contains(b, "sandbox") && !strings.Contains(b, "live")
+	case "LIVE":
+		return strings.Contains(b, "live") && !strings.Contains(b, "sandbox")
+	default:
+		return false
+	}
+}
+
 // allowedSlots are the only object slots a KYC case may hold. The key is
 // deterministic per (case, slot) so re-uploading a side overwrites in place.
 var allowedSlots = map[string]bool{
@@ -82,6 +103,8 @@ type KycEvidenceStorage interface {
 
 // Config is the resolved KYC_STORAGE_* configuration.
 type Config struct {
+	// Environment this stack is: the bucket must name it (A2-12).
+	Environment     string
 	Provider        string // "r2" | "s3"
 	Bucket          string
 	Endpoint        string // https://<account>.r2.cloudflarestorage.com
@@ -102,6 +125,9 @@ func (c Config) IsConfigured() bool {
 func NewFromConfig(c Config) (KycEvidenceStorage, error) {
 	if !c.IsConfigured() {
 		return nil, ErrNotConfigured
+	}
+	if !BucketBelongsTo(c.Bucket, c.Environment) {
+		return nil, ErrBucketEnvironment
 	}
 	if c.Region == "" {
 		c.Region = "auto"
