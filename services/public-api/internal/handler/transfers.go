@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
+	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
 	"github.com/banzami/banzami/services/public-api/internal/notify"
@@ -248,19 +249,39 @@ func (h *TransferHandler) notifyRecipient(t *service.P2pTransferResponse) {
 
 	consumer, err := core.GetConsumerByHandle(ctx, recipient)
 	if err != nil {
-		slog.Warn("[FCM] notifyRecipient: could not resolve recipient handle",
-			"handle", t.Recipient, "error", err)
+		// Neither the handle nor the error text (which quotes the lookup path,
+		// handle included) is logged — only which way it failed (A6-14).
+		slog.Warn("[FCM] notifyRecipient: could not resolve the recipient",
+			"transfer_id", obs.MaskID(t.ID), "reason", recipientLookupFailure(err))
 		return
 	}
 
-	slog.Info("[FCM] event created",
-		"event", "payment_received",
-		"recipient_id", consumer.ID,
-		"sender", t.Sender,
-		"amount_minor", t.AmountMinor,
-	)
+	slog.Info("[FCM] event created", paymentReceivedLogAttrs(consumer.ID, t.ID)...)
 
 	h.fcm.SendPaymentReceived(ctx, consumer.ID, t.Sender, t.AmountMinor, t.Currency, t.ID)
+}
+
+// paymentReceivedLogAttrs is the payment-received push event as a log line.
+//
+// It used to carry the recipient's consumer id, the sender's @handle and the
+// amount for every P2P payment — a payment journal in the ordinary logs
+// (A6-14). The push itself needs them; the log does not. It keeps the event and
+// the two ids, masked, which is enough to find the transfer in the console.
+func paymentReceivedLogAttrs(recipientID, transferID string) []any {
+	return []any{
+		"event", "payment_received",
+		"recipient_id", obs.MaskID(recipientID),
+		"transfer_id", obs.MaskID(transferID),
+	}
+}
+
+// recipientLookupFailure names why the recipient could not be resolved without
+// the error's text.
+func recipientLookupFailure(err error) string {
+	if errors.Is(err, service.ErrConsumerNotFound) {
+		return "not_found"
+	}
+	return "lookup_failed"
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 )
 
 // Sender delivers transactional email through a pluggable transport (Resend HTTP
@@ -162,14 +163,48 @@ func (s *Sender) Deliver(m Message) { _ = s.DeliverErr(m) }
 // wrong channel for a result the caller has to act on.
 func (s *Sender) DeliverErr(m Message) error {
 	if !s.Enabled() && !s.dryRun {
-		slog.Warn("email not configured — skipping", "email", m.Purpose, "to", m.To)
+		slog.Warn("email not configured — skipping", "email", m.Purpose, "to", MaskAddress(m.To))
 		return ErrNotConfigured
 	}
 	if err := s.send(m); err != nil {
-		slog.Error("failed to send email", "email", m.Purpose, "error", err, "to", m.To)
+		slog.Error("failed to send email", "email", m.Purpose, "error", maskAddressIn(err.Error(), m.To), "to", MaskAddress(m.To))
 		return err
 	}
 	return nil
+}
+
+// MaskAddress is a recipient address as it may appear in a log: the domain
+// kept, the local part reduced to its first character. A log line is copied,
+// shipped and read by people who were never meant to hold the address (A6-14);
+// the domain is what an operator needs to tell a provider refusal from a
+// mailbox problem. Several addresses (comma-separated) are masked one by one.
+func MaskAddress(to string) string {
+	parts := strings.Split(to, ",")
+	for i, p := range parts {
+		p = strings.TrimSpace(p)
+		at := strings.LastIndexByte(p, '@')
+		switch {
+		case p == "":
+			parts[i] = ""
+		case at <= 0:
+			parts[i] = "***"
+		default:
+			first, _ := utf8.DecodeRuneInString(p)
+			parts[i] = string(first) + "***" + p[at:]
+		}
+	}
+	return strings.Join(parts, ",")
+}
+
+// maskAddressIn masks the recipient wherever a transport error quotes it (a
+// provider's "invalid `to`" message, an SMTP "550 <addr>: rejected").
+func maskAddressIn(text, to string) string {
+	for _, p := range strings.Split(to, ",") {
+		if p = strings.TrimSpace(p); p != "" {
+			text = strings.ReplaceAll(text, p, MaskAddress(p))
+		}
+	}
+	return text
 }
 
 // ErrNotConfigured: no transport, and dry-run off — nothing was sent.
@@ -178,7 +213,7 @@ var ErrNotConfigured = errors.New("email transport is not configured")
 func (s *Sender) send(m Message) error {
 	if s.dryRun {
 		slog.Info("email dry-run — not sending",
-			"provider", s.provider, "to", m.To, "subject", m.Subject,
+			"provider", s.provider, "to", MaskAddress(m.To), "subject", m.Subject,
 			"from", m.FromAddr, "purpose", m.Purpose)
 		return nil
 	}
