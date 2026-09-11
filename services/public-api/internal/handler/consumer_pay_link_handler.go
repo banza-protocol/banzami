@@ -11,6 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
+	"github.com/banzami/banzami/services/common/obs"
+
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
 	"github.com/banzami/banzami/services/public-api/internal/notify"
@@ -194,11 +196,10 @@ func (h *ConsumerPayLinkHandler) notifyPaymentRequestPaid(link *service.Consumer
 		transferID = *link.TransferID
 	}
 
+	// No payer handle and no amount in the journal; the id masked (A6-14).
 	slog.Info("[FCM] event created",
 		"event", "payment_request_paid",
-		"recipient_id", link.ReceiverConsumerID,
-		"sender", senderHandle,
-		"amount_minor", amountMinor,
+		"recipient_id", obs.MaskID(link.ReceiverConsumerID),
 	)
 
 	h.fcm.SendPaymentRequestPaid(ctx,

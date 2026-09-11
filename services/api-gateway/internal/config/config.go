@@ -30,6 +30,10 @@ type Config struct {
 	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
 	// When empty, push notifications are silently disabled.
 	FirebaseCredentialsJSON string
+	// PushTopicKey (PUSH_TOPIC_KEY) keys the FCM topic names (A6-06,
+	// services/common/pushtopic). public-api must hold the same value. When
+	// empty or shorter than 32 bytes, topic pushes are skipped.
+	PushTopicKey string
 
 	// WebhookEncryptionKey is a base64-encoded 32-byte key used to encrypt
 	// webhook signing secrets at rest (SEC-002). Empty → plaintext (dev only).
@@ -158,6 +162,7 @@ func Load() (*Config, error) {
 	if v := os.Getenv("FIREBASE_CREDENTIALS_JSON"); v != "" {
 		cfg.FirebaseCredentialsJSON = v
 	}
+	cfg.PushTopicKey = os.Getenv("PUSH_TOPIC_KEY")
 
 	// KYB document storage (Track 3) — all optional; absence disables storage.
 	if v := os.Getenv("KYB_STORAGE_PROVIDER"); v != "" {

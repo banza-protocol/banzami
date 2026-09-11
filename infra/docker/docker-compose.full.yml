@@ -143,6 +143,7 @@ services:
       LOG_LEVEL:                ${LOG_LEVEL:-info}
       OTLP_ENDPOINT:            ${OTLP_ENDPOINT:-}
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+      PUSH_TOPIC_KEY:            ${PUSH_TOPIC_KEY:-}
       WEBHOOK_ENCRYPTION_KEY:   ${WEBHOOK_ENCRYPTION_KEY:-}
     ports:
       - "127.0.0.1:8080:8080"
@@ -188,6 +189,7 @@ services:
       LOG_LEVEL:                 ${LOG_LEVEL:-info}
       OTLP_ENDPOINT:             ${OTLP_ENDPOINT:-}
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+      PUSH_TOPIC_KEY:            ${PUSH_TOPIC_KEY:-}
     ports:
       - "127.0.0.1:8083:8083"
     depends_on:
@@ -272,6 +274,7 @@ services:
       OTLP_ENDPOINT:             ${OTLP_ENDPOINT:-}
       ENVIRONMENT:               SANDBOX
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+      PUSH_TOPIC_KEY:            ${PUSH_TOPIC_KEY:-}
     ports:
       - "127.0.0.1:8085:8083"
     depends_on:

@@ -11,6 +11,7 @@ import (
 	chimw "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/common/pushtopic"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
@@ -86,6 +87,9 @@ type Dependencies struct {
 	// fail-closed default, rather than issuing an artifact whose payee could
 	// still move.
 	BindingSeal *service.BindingSealService
+	// PushTopics names a signed-in Business's FCM topic for
+	// GET /v1/merchant/push-topic (A6-06). Nil (no PUSH_TOPIC_KEY) answers null.
+	PushTopics *pushtopic.Namer
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -175,6 +179,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
 	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ProofSvc)
 	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
+	pushTopicHandler := handler.NewPushTopicHandler(deps.PushTopics)
 	// consumerWltHandler is intentionally not constructed — the
 	// /v1/consumer-wallets group is unmounted (RA-058).
 	_ = deps.ConsumerWalletSvc
@@ -372,6 +377,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 
 			// Merchant received wallet-native payments (canonical: wallet_payments).
 			r.Get("/merchant/wallet-payments", walletPaymentsHandler.List)
+			// The FCM topic this Business's payment notifications are published
+			// to — a keyed name only its own session learns (A6-06).
+			r.Get("/merchant/push-topic", pushTopicHandler.Merchant)
 			// Official merchant payment receipt (PDF) — Document Engine, real
 			// wallet_payments data.
 			r.Get("/merchant/transactions/{id}/receipt.pdf", receiptHandler.MerchantReceipt)

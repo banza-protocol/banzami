@@ -17,6 +17,7 @@ import (
 
 	"github.com/banzami/banzami/services/common/env"
 	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/common/pushtopic"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
@@ -61,7 +62,14 @@ func main() {
 	}
 	rdb := redis.NewClient(opt)
 
-	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment)
+	// The FCM topic names are keyed (A6-06). Without the key no topic is
+	// named: pushes are skipped and GET /v1/merchant/push-topic answers null.
+	pushTopics, topicErr := pushtopic.New(cfg.PushTopicKey, env.Parse(cfg.Environment).IsSandbox())
+	if topicErr != nil {
+		slog.Warn("[FCM] push topics disabled", "reason", topicErr.Error())
+	}
+
+	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment, pushTopics)
 	if err != nil {
 		slog.Error("[FCM] init error", "error", err)
 		os.Exit(1)
@@ -278,6 +286,7 @@ func main() {
 		MerchantProfileSvc:       service.NewCoreApiMerchantProfileService(coreClient),
 		ConsumerPayLinkSvc:       service.NewCoreApiConsumerPayLinkService(coreClient),
 		FCMSvc:                   fcmSvc,
+		PushTopics:               pushTopics,
 		TeamSvc:                  teamSvc,
 		MerchantCredSvc:          merchantCredSvc,
 		MerchantSessionSvc:       merchantSessionSvc,
