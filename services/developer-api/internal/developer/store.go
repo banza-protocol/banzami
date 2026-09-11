@@ -206,7 +206,9 @@ type Store interface {
 	InviteByTokenHash(ctx context.Context, tokenHash string) (*Invite, error)
 	// AcceptInvite marks the invite accepted and upserts the membership atomically.
 	AcceptInvite(ctx context.Context, inviteID, userID string) (Member, error)
-	RevokeInvite(ctx context.Context, inviteID string) error
+	// RevokeInvite revokes a pending invite of workspaceID. An invite of any
+	// other workspace is ErrNotFound: the id alone never names it.
+	RevokeInvite(ctx context.Context, workspaceID, inviteID string) error
 
 	// Projects
 	CreateProject(ctx context.Context, workspaceID, name, slug string) (Project, error)

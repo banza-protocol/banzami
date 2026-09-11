@@ -216,8 +216,11 @@ func (s *pgStore) AcceptInvite(ctx context.Context, inviteID, userID string) (Me
 	defer tx.Rollback(ctx)
 	var wsID, role string
 	if err = tx.QueryRow(ctx,
+		// Only a pending invite is accepted. The service checks the state first,
+		// but a revoke landing between that read and this write must win.
 		`UPDATE developer.dev_workspace_invites SET accepted_at = now(), updated_at = now()
-		  WHERE id = $1 RETURNING workspace_id, role`, inviteID).Scan(&wsID, &role); err != nil {
+		  WHERE id = $1 AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()
+		  RETURNING workspace_id, role`, inviteID).Scan(&wsID, &role); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return Member{}, ErrNotFound
 		}
@@ -236,10 +239,11 @@ func (s *pgStore) AcceptInvite(ctx context.Context, inviteID, userID string) (Me
 	return m, tx.Commit(ctx)
 }
 
-func (s *pgStore) RevokeInvite(ctx context.Context, inviteID string) error {
+func (s *pgStore) RevokeInvite(ctx context.Context, workspaceID, inviteID string) error {
 	ct, err := s.pool.Exec(ctx,
 		`UPDATE developer.dev_workspace_invites SET revoked_at = now(), updated_at = now()
-		  WHERE id = $1 AND accepted_at IS NULL AND revoked_at IS NULL`, inviteID)
+		  WHERE id = $1 AND workspace_id = $2 AND accepted_at IS NULL AND revoked_at IS NULL`,
+		inviteID, workspaceID)
 	if err != nil {
 		return err
 	}

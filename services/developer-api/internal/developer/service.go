@@ -213,6 +213,9 @@ func (s *Service) AcceptInvite(ctx context.Context, actor, actorEmail, rawToken,
 		return Member{}, ErrForbidden // invite is bound to a specific email
 	}
 	mem, err := s.store.AcceptInvite(ctx, inv.ID, actor)
+	if errors.Is(err, ErrNotFound) {
+		return Member{}, ErrInviteState // revoked, accepted or expired since the read above
+	}
 	if err != nil {
 		return Member{}, ErrUnavailable
 	}
@@ -225,7 +228,7 @@ func (s *Service) RevokeInvite(ctx context.Context, actor, wsID, inviteID, ip, r
 	if err != nil || !isManager(actorRole) {
 		return ErrForbidden
 	}
-	if err := s.store.RevokeInvite(ctx, inviteID); err != nil {
+	if err := s.store.RevokeInvite(ctx, wsID, inviteID); err != nil {
 		return ErrNotFound
 	}
 	s.audit(ctx, &actor, &wsID, nil, "invite.revoked", "INVITE:"+inviteID, ip, reqID, nil)

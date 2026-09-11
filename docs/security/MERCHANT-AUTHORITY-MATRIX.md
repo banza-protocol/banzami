@@ -36,7 +36,8 @@ No credentials, tokens or secrets appear here.
 | `/v1/payouts/{id}` | GET | path id | `core/api/src/routes/payouts.rs` — required `merchant_id`, foreign → 404 | **FIXED** (RA-056) |
 | `/v1/payouts` | GET | — | `list_for_merchant(principal)` | SAFE (derived) |
 | `/v1/transactions` | POST | `wallet_id` | `core/transactions/src/engine.rs` — same invariant | **FIXED** (RA-056) |
-| `/v1/transactions/{id}`, `/v1/transactions` | GET | — | scoped by `principal.MerchantID` + environment | SAFE (derived) |
+| `/v1/transactions/{id}` | GET | path id | `core/api/src/routes/transactions.rs` `get` — required `merchant_id`, foreign → 404; the gateway compares the owner too | **FIXED** (RA-104) |
+| `/v1/transactions` | GET | — | scoped by `principal.MerchantID` + environment | SAFE (derived) |
 | `/v1/refunds` | POST | `source_type`, `source_id` | `core/api/src/routes/restitution.rs:405` `WHERE id=$1 AND merchant_id=$2`; `:458` `wp_merchant != merchant_id` | SAFE |
 | `/v1/refunds/{id}`, `/v1/refunds` | GET | — | scoped by principal | SAFE (derived) |
 | `/v1/application-settlements` | POST | `source_wallet_id`, `source_wallet_account_id`, beneficiary/fee wallet ids | `handler/application_settlements.go:78-119` — every wallet resolved then `wal.MerchantID != principal.MerchantID`; `ApplicationID` bound (SEC-002) | SAFE |
@@ -54,6 +55,7 @@ No credentials, tokens or secrets appear here.
 | `/v1/wallets/{id}`, `/balance`, `/analytics` | GET | path id | core scopes to owner → 404 (**verified**: foreign → 404) | SAFE |
 | `/v1/wallets`, `POST /v1/wallets` | GET/POST | — | derived from principal | SAFE (derived) |
 | `/v1/merchants/{id}`, `/suspend`, `/api-keys` | ALL | path id | SEC-004 + core ownership → 404 (**verified**: foreign → 404 on read, key-create and suspend) | SAFE |
+| `/v1/merchants/{id}/api-keys/{keyID}` | DELETE | path key id | `core/merchants/src/repository.rs` `revoke` — `WHERE id AND merchant_id`, foreign key → 404 (the path merchant used to be bound and discarded) | **FIXED** (RA-104) |
 | `/v1/consumer-wallets/*` | ALL | `consumer_id`, path id | **none** | **FIXED** — unmounted (RA-058) |
 | `/v1/consumers/{id}` | GET | path id | none — any merchant may read any consumer's handle/status/created_at | **See note 1** |
 | `/v1/consumers/handle/{handle}` | GET | handle | none — by design: handle lookup is how a payer is addressed | SAFE (directory) |

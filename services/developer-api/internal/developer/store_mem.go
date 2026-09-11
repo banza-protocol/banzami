@@ -203,7 +203,7 @@ func (m *memStore) AcceptInvite(_ context.Context, inviteID, userID string) (Mem
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	inv, ok := m.invites[inviteID]
-	if !ok {
+	if !ok || inv.AcceptedAt != nil || inv.RevokedAt != nil || time.Now().After(inv.ExpiresAt) {
 		return Member{}, ErrNotFound
 	}
 	now := time.Now()
@@ -218,10 +218,10 @@ func (m *memStore) AcceptInvite(_ context.Context, inviteID, userID string) (Mem
 	return *mem, nil
 }
 
-func (m *memStore) RevokeInvite(_ context.Context, inviteID string) error {
+func (m *memStore) RevokeInvite(_ context.Context, workspaceID, inviteID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	if inv, ok := m.invites[inviteID]; ok {
+	if inv, ok := m.invites[inviteID]; ok && inv.WorkspaceID == workspaceID && inv.AcceptedAt == nil && inv.RevokedAt == nil {
 		now := time.Now()
 		inv.RevokedAt = &now
 		return nil

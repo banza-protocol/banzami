@@ -3020,3 +3020,18 @@ identifier could have reshaped — a second `?`, a repeated query key, a dot seg
 fragment or whitespace — before sending it, answering not-found. Tests
 `core_path_test.go` (reverting the escape and the guard together shows core scoped by
 the victim; either alone still holds).
+
+## RA-106 — a Console workspace could revoke another workspace's invite
+
+- **Found:** 2026-09-11 (full-system assurance, A1-03 / A9-10)
+- **Status:** FIXED (developer-api)
+
+`DELETE /workspaces/{ws}/invites/{invite}` checked that the caller managed `{ws}` and
+then revoked the invite by id alone — and anyone can create a workspace and own it. The
+revoke is now `WHERE id AND workspace_id`; another workspace's invite answers 404. The
+accept wrote `accepted_at` without re-reading the invite's state, so a revoke that
+landed between the service's check and that write lost; the accept now only takes a
+pending, unexpired invite, and a lost race answers "invite no longer valid". Tests
+`TestRevokeInvite_AnotherWorkspacesInviteIsNotFound` and the real-database
+`TestPgInvite_ScopedRevokeAndPendingOnlyAccept` (dropping the workspace scope or the
+accept's state check each fails it).
