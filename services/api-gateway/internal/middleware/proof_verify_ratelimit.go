@@ -42,13 +42,19 @@ const (
 // 429 depend on whether the proof exists, turning the limiter itself into the
 // existence oracle it is meant to deny.
 func ProofVerifyRateLimit(rdb *redis.Client, isLegacy func(ref string) bool) func(http.Handler) http.Handler {
+	// In-process buckets for when the shared store cannot answer. A legacy
+	// reference is ~32 bits; this limit is what keeps guessing one impractical,
+	// so it is never skipped — only counted here instead of in Redis (A2-13; the
+	// credential limiters have done this since RA-091).
+	localIP := newLocalWindow(LegacyProofPerIPPerMinute, time.Minute)
+	localGlobal := newLocalWindow(LegacyProofGlobalPerMinute, time.Minute)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Classified exactly as the handler will: a padded or re-cased legacy
 			// reference is not a legacy reference, it is invalid, and the handler
 			// refuses it without a lookup.
 			ref := chi.URLParam(r, "ref")
-			if rdb == nil || !isLegacy(ref) {
+			if !isLegacy(ref) {
 				// SECURE_V1 and unparseable references stay on the ordinary public
 				// policy applied further out. A legacy flood must not degrade
 				// SECURE_V1 verification, so they never share a bucket.
@@ -73,17 +79,22 @@ func ProofVerifyRateLimit(rdb *redis.Client, isLegacy func(ref string) bool) fun
 				key    string
 				limit  int
 				global bool
+				local  *localWindow
 			}{
-				{fmt.Sprintf("rl:proof_verify:legacy_v0:ip:%s", ip), LegacyProofPerIPPerMinute, false},
-				{"rl:proof_verify:legacy_v0:global", LegacyProofGlobalPerMinute, true},
+				{fmt.Sprintf("rl:proof_verify:legacy_v0:ip:%s", ip), LegacyProofPerIPPerMinute, false, localIP},
+				{"rl:proof_verify:legacy_v0:global", LegacyProofGlobalPerMinute, true, localGlobal},
 			} {
-				allowed, err := slidingWindowAllow(r.Context(), rdb, b.key, b.limit, time.Minute)
-				if err != nil {
-					// Consistent with every other limiter here: a degraded Redis
-					// must not take the public verifier down with it.
-					slog.WarnContext(r.Context(), "legacy proof rate limit check failed — failing open",
-						"error", err)
-					continue
+				var allowed bool
+				if rdb == nil {
+					allowed = b.local.allow(b.key)
+				} else {
+					var err error
+					allowed, err = slidingWindowAllow(r.Context(), rdb, b.key, b.limit, time.Minute)
+					if err != nil {
+						slog.WarnContext(r.Context(), "legacy proof rate limit store unavailable — counting in this process",
+							"error", err)
+						allowed = b.local.allow(b.key)
+					}
 				}
 				if !allowed {
 					deny(b.global)

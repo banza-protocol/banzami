@@ -3415,3 +3415,18 @@ verified a body that was never signed; `t` must now be digits. Tests
 `test_webhook_secret.py`, `WebhooksTest::{testRefusesAnEmptySecret,
 testRefusesATimestampThatIsNotDigits}` (each fails on the previous verifier). The fix
 reaches integrators with the next SDK releases (npm is the owner's step).
+
+## RA-128 — two small gateway defaults that lied: "LIVE" on every transaction, and a limit that vanished with Redis
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-13/A2-14)
+- **Status:** FIXED (gateway)
+
+Every transaction response was labelled `environment: "LIVE"` — including Sandbox
+`SimulatePayment` ones, which the SDK types as `'LIVE' | 'SANDBOX'`; it now carries the
+environment of the session that asked (the stack's). And the per-IP and global limits
+on legacy proof-reference lookups — the brake that makes guessing a ~32-bit reference
+impractical — were skipped whenever Redis erred (or was absent); they now count in the
+process instead, as the credential limiters have since RA-091. Tests
+`TestTransaction_CarriesTheSessionsEnvironment`,
+`TestLegacyProof_ABrokenRedisStillCountsInProcess` (replacing the test that asserted the
+fail-open; the previous limiter answers the seventh request with 200).

@@ -122,7 +122,11 @@ type coreTransactionResp struct {
 	UpdatedAt       time.Time     `json:"updated_at"`
 }
 
-func (r *coreTransactionResp) toTransaction() *Transaction {
+// toTransaction labels the record with the environment of the session that
+// asked — the stack's own. It used to say "LIVE" for every transaction,
+// including Sandbox SimulatePayment ones, which the SDK types as 'LIVE' |
+// 'SANDBOX' (A2-14).
+func (r *coreTransactionResp) toTransaction(environment string) *Transaction {
 	desc := ""
 	if r.Description != nil {
 		desc = *r.Description
@@ -135,7 +139,7 @@ func (r *coreTransactionResp) toTransaction() *Transaction {
 		MerchantID:     r.MerchantID,
 		IdempotencyKey: r.IdempotencyKey,
 		Description:    desc,
-		Environment:    "LIVE", // CoreApi always operates on live data
+		Environment:    environment,
 		CreatedAt:      r.CreatedAt,
 	}
 }
@@ -165,14 +169,14 @@ func (s *CoreApiTransactionService) Create(
 	if err := s.client.post(ctx, "/internal/v1/transactions", body, &resp); err != nil {
 		return nil, err
 	}
-	return resp.toTransaction(), nil
+	return resp.toTransaction(req.Environment), nil
 }
 
 func (s *CoreApiTransactionService) Get(
 	ctx context.Context,
 	merchantID string,
 	id string,
-	_ string, // environment enforced by the core via JWT — passed for interface compatibility
+	environment string,
 ) (*Transaction, error) {
 	// A1-01: the merchant used to be dropped here ("validated in the handler" —
 	// it was not), and core read any transaction by id alone. Core now requires
@@ -189,7 +193,7 @@ func (s *CoreApiTransactionService) Get(
 	if !strings.EqualFold(resp.MerchantID, merchantID) {
 		return nil, ErrTransactionNotFound
 	}
-	return resp.toTransaction(), nil
+	return resp.toTransaction(environment), nil
 }
 
 func (s *CoreApiTransactionService) List(
@@ -226,7 +230,7 @@ func (s *CoreApiTransactionService) List(
 
 	txs := make([]*Transaction, len(result.Data))
 	for i, r := range result.Data {
-		txs[i] = r.toTransaction()
+		txs[i] = r.toTransaction(req.Environment)
 	}
 
 	var nextCursor string

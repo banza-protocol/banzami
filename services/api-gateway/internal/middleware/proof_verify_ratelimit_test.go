@@ -160,12 +160,34 @@ func TestLegacyProof_LimitedResponseIsNotAnExistenceOracle(t *testing.T) {
 	}
 }
 
-// A degraded Redis must not take the public verifier down.
-func TestLegacyProof_FailsOpenOnRedisError(t *testing.T) {
-	dead := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1"})
+// A degraded Redis must not take the public verifier down — and must not take
+// the limit down either. A legacy reference is ~32 bits; this limit is what
+// makes guessing one impractical, and it used to vanish whenever Redis erred
+// (A2-13). The first request is served; the per-IP ceiling still holds,
+// counted in this process.
+func TestLegacyProof_ABrokenRedisStillCountsInProcess(t *testing.T) {
+	dead := redis.NewClient(&redis.Options{Addr: "127.0.0.1:1", MaxRetries: -1, DialTimeout: 50 * time.Millisecond})
 	defer dead.Close()
-	if rec := call(t, dead, legacyRef, "203.0.113.5"); rec.Code == http.StatusTooManyRequests {
-		t.Fatal("a broken Redis must fail open, not block verification")
+	h := ProofVerifyRateLimit(dead, isLegacyShape)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	router := chi.NewRouter()
+	router.Method(http.MethodGet, "/v1/public/proofs/{ref}", h)
+	hit := func() int {
+		req := httptest.NewRequest(http.MethodGet, "/v1/public/proofs/"+legacyRef, nil)
+		req.RemoteAddr = "203.0.113.5:40000"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		return rec.Code
+	}
+	if code := hit(); code == http.StatusTooManyRequests {
+		t.Fatal("a broken Redis blocked verification outright")
+	}
+	for i := 1; i < LegacyProofPerIPPerMinute; i++ {
+		hit()
+	}
+	if code := hit(); code != http.StatusTooManyRequests {
+		t.Fatalf("with Redis down, request %d was answered %d — the legacy limit failed open", LegacyProofPerIPPerMinute+1, code)
 	}
 }
 

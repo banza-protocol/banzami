@@ -131,3 +131,13 @@ func TestCorePath_RefusedBeforeAnyRequest(t *testing.T) {
 }
 
 func contains(s, sub string) bool { return strings.Contains(s, sub) }
+
+// A2-14: a Sandbox transaction is labelled SANDBOX, not the "LIVE" every
+// transaction used to carry.
+func TestTransaction_CarriesTheSessionsEnvironment(t *testing.T) {
+	client, _ := coreRecorder(t, `{"id":"t","merchant_id":"me","amount":{"amount_minor":1,"currency":"AOA"}}`)
+	tx, err := NewCoreApiTransactionService(client).Get(context.Background(), "me", "t", "SANDBOX")
+	if err != nil || tx.Environment != "SANDBOX" {
+		t.Fatalf("a Sandbox transaction is labelled %q (err %v)", tx.Environment, err)
+	}
+}
