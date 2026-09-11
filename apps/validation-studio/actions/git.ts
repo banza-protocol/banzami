@@ -25,8 +25,9 @@ export async function getMatrixDiff() {
 export async function commitMatrix(message: string): Promise<{ ok: boolean; output: string }> {
   try {
     gitStage(MATRIX_REPO_PATH)
-    const output = gitCommit(message)
-    return { ok: true, output }
+    // ok comes from git's exit status, not from the fact that it printed
+    // something: a refused commit is not a commit (A2-27).
+    return gitCommit(message)
   } catch (err) {
     return { ok: false, output: String(err) }
   }

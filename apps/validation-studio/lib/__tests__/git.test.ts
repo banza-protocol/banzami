@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { execFileSync, execSync } from 'child_process'
 import { mkdtempSync, existsSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
@@ -74,5 +74,46 @@ describe('git command construction', () => {
     }).trim()
     // Stored verbatim: not executed, and not mangled by escaping either.
     expect(subject).toBe(payload(marker))
+  })
+})
+
+/**
+ * A2-27. A commit git refused was reported as one that was made: the helper
+ * returned git's stderr through the same path as its output, and the caller
+ * answered "commit created". `gitCommit` now carries git's exit status.
+ */
+describe('gitCommit result', () => {
+  let repo: string
+
+  beforeEach(() => {
+    repo = mkdtempSync(join(tmpdir(), 'banzami-git-result-'))
+    const run = (...args: string[]) => execFileSync('git', args, { cwd: repo, stdio: 'pipe' })
+    run('init', '-q')
+    run('config', 'user.email', 'fidelrmonteiro@gmail.com')
+    run('config', 'user.name', 'fm65')
+    process.env.BANZAMI_VS_REPO_ROOT = repo
+  })
+
+  afterEach(() => {
+    delete process.env.BANZAMI_VS_REPO_ROOT
+    rmSync(repo, { recursive: true, force: true })
+  })
+
+  it('a refused commit is not reported as a commit', async () => {
+    vi.resetModules()
+    const { gitCommit } = await import('../git')
+    const result = gitCommit('validation(BM-001): nothing is staged')
+    expect(result.ok).toBe(false)
+    expect(execSync('git log --oneline || true', { cwd: repo, encoding: 'utf-8' })).not.toContain('nothing is staged')
+  })
+
+  it('a real commit is reported as one', async () => {
+    vi.resetModules()
+    const { gitCommit, gitStage } = await import('../git')
+    writeFileSync(join(repo, 'matrix.json'), '{}\n')
+    gitStage('matrix.json')
+    const result = gitCommit('validation(BM-001): a real change')
+    expect(result.ok).toBe(true)
+    expect(execSync('git log --oneline', { cwd: repo, encoding: 'utf-8' })).toContain('a real change')
   })
 })
