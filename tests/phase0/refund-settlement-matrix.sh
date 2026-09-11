@@ -17,6 +17,18 @@
 # the money to fund a refund is not there. The only acceptable answers are "fail
 # closed" or "draw on a canonical funding source"; the unacceptable ones are a
 # negative wallet, a debit against a sibling account, or an invented liability.
+#
+# THE CONTRACT THIS SPEAKS
+#
+# Settlements used to be requested with source_wallet_id / beneficiary_wallet_id /
+# application_fee_wallet_id, which /v1/application-settlements does not take:
+# every one answered 400, case 1 measured a settlement that never happened and
+# case 3 refunded against value that had never left. A settlement moves value out
+# of a segregated account the caller owns, to a @banza, with the fee to the
+# caller's own @banza. So a payment lands on the PRIMARY account (where a refund
+# draws from), what is to be settled is moved into a CAMPAIGN account with a
+# wallet-account transfer, and the settlement names that account and two @banza.
+# Everything a run was given is retired when it ends (tests/phase0/lib/e2e-run.sh).
 set -uo pipefail
 
 P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
@@ -49,6 +61,8 @@ mint(){ SECRET="$JWTSEC" M="$1" node -e 'const c=require("crypto");const b=o=>Bu
 
 wbal(){ q "SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END),0)
              FROM ledger_entries WHERE account_id=(SELECT available_account_id FROM wallets WHERE id='$1')"; }
+abal(){ q "SELECT COALESCE(SUM(CASE WHEN e.entry_type='CREDIT' THEN e.amount_minor ELSE -e.amount_minor END),0)
+             FROM ledger_entries e WHERE e.account_id=(SELECT account_id FROM wallet_accounts WHERE id='$1')"; }
 unbalanced(){ q "SELECT COUNT(*) FROM (SELECT p.id FROM ledger_postings p
                     JOIN ledger_entries e ON e.posting_id=p.id GROUP BY p.id
                    HAVING SUM(CASE e.entry_type WHEN 'DEBIT' THEN -e.amount_minor ELSE e.amount_minor END) <> 0) x"; }
@@ -61,7 +75,8 @@ R="${RANDOM}${RANDOM}"
 
 # An APPLICATION owner on the nonzero plan, with approved KYB — the shape that
 # may receive an application fee.
-mk(){ local mid wid
+mk(){ # $1 = profile -> prints merchant|wallet|campaign_account|@banza
+  local mid wid
   mid=$(q "INSERT INTO merchants (id, name, email, status, business_account_type)
            VALUES (gen_random_uuid(), 'refund-$R',
                    'refund-' || gen_random_uuid() || '@projects.banzami.test', 'ACTIVE', 'APPLICATION')
@@ -74,7 +89,14 @@ mk(){ local mid wid
   call "$CORE" 8081 PUT "/internal/v1/merchants/$mid/pricing-profile" "{\"profile_code\":\"$1\"}"
   call "$CORE" 8081 POST /internal/v1/wallets "{\"merchant_id\":\"$mid\",\"currency\":\"AOA\"}"
   wid=$(jget id)
-  printf '%s|%s' "$mid" "$wid"
+  # Nameable by @banza — as a beneficiary, and as its own fee destination.
+  local h
+  h=$(printf 'r%s' "$(printf '%s' "$mid" | tr -d '-' | cut -c1-11)" | tr 'A-Z' 'a-z')
+  q "INSERT INTO handle_registry (handle, owner_type, owner_id, created_at)
+     VALUES ('$h','MERCHANT','$mid', now()) ON CONFLICT (handle) DO NOTHING" >/dev/null
+  call "$GW" 8080 POST /v1/wallet-accounts \
+    "{\"wallet_id\":\"$wid\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"REFUND_MATRIX\",\"reference_id\":\"src-$mid\",\"label\":\"refund matrix source\"}" "$(mint "$mid")"
+  printf '%s|%s|%s|%s' "$mid" "$wid" "$(jget id)" "$h"
 }
 
 # A captured payment: the wallet ends up holding the full gross.
@@ -94,10 +116,18 @@ refund(){ # $1=merchant $2=tx $3=amount $4=idem
     "{\"source_type\":\"ACQUIRING_PAYMENT\",\"source_id\":\"$2\",\"amount_minor\":$3,\"currency\":\"AOA\",\"reason\":\"matrix $4\",\"idempotency_key\":\"rfd-$4-$R\"}" "$jwt"
 }
 
-settle(){ # $1=merchant $2=source $3=beneficiary $4=idem
+# Move value from the PRIMARY account into the CAMPAIGN account that settles.
+to_campaign(){ # $1=merchant $2=wallet $3=campaign_account $4=amount $5=idem
+  local primary
+  primary=$(q "SELECT id FROM wallet_accounts WHERE wallet_id='$2' AND purpose='PRIMARY'")
+  call "$GW" 8080 POST /v1/wallet-account-transfers \
+    "{\"source_wallet_account_id\":\"$primary\",\"destination_wallet_account_id\":\"$3\",\"amount_minor\":$4,\"currency\":\"AOA\",\"idempotency_key\":\"rft-$5-$R\",\"description\":\"refund matrix $R\"}" "$(mint "$1")"
+}
+
+settle(){ # $1=merchant $2=source_account $3=beneficiary_@banza $4=idem $5=own_@banza
   local jwt; jwt=$(mint "$1")
   call "$GW" 8080 POST /v1/application-settlements \
-    "{\"idempotency_key\":\"rfs-$4-$R\",\"owner_ref\":\"rf-$4-$R\",\"source_wallet_id\":\"$2\",\"beneficiary_wallet_id\":\"$3\",\"application_fee_wallet_id\":\"$2\"}" "$jwt"
+    "{\"idempotency_key\":\"rfs-$4-$R\",\"source_account_id\":\"$2\",\"beneficiary_banza_name\":\"$3\",\"fee_destination_banza_name\":\"$5\",\"reason\":\"REFUND_MATRIX\",\"reference_type\":\"REFUND_MATRIX\",\"reference_id\":\"rf-$4-$R\"}" "$jwt"
 }
 
 echo "### ledger before"
@@ -107,8 +137,8 @@ chk NO_NEGATIVE_WALLETS_BEFORE "$(negative_wallets)" "0"
 # ─── 1. refund before settlement ────────────────────────────────────────────
 echo
 echo "### 1 — refund 20 000 of 100 000, then settle the 80 000 that remain"
-IFS='|' read -r M1 W1 <<<"$(mk sandbox-reference)"
-IFS='|' read -r _ B1 <<<"$(mk sandbox-reference)"
+IFS='|' read -r M1 W1 A1 H1 <<<"$(mk sandbox-reference)"
+IFS='|' read -r _ B1 _ BH1 <<<"$(mk sandbox-reference)"
 TX1=$(pay "$M1" "$W1" 100000 a)
 chk ONE_WALLET_HAS_GROSS "$(wbal "$W1")" "100000"
 
@@ -118,7 +148,10 @@ chk ONE_WALLET_AFTER_REFUND "$(wbal "$W1")" "80000"
 # A refund is not a fee-bearing operation: it creates no operator fee row.
 chk ONE_REFUND_CHARGED_NOTHING "$(q "SELECT COUNT(*) FROM operator_fees WHERE transaction_id='$TX1'")" "0"
 
-settle "$M1" "$W1" "$B1" a
+# What remains is what is settled.
+to_campaign "$M1" "$W1" "$A1" 80000 a
+chk ONE_REMAINDER_SEGREGATED "$(abal "$A1")" "80000"
+settle "$M1" "$A1" "$BH1" a "$H1"
 chk ONE_SETTLEMENT_OK "$CODE" "201"
 S1=$(jget id)
 chk ONE_GROSS_IS_WHAT_REMAINED "$(q "SELECT gross_amount_minor FROM app_settlements WHERE id='$S1'")" "80000"
@@ -126,11 +159,12 @@ chk ONE_RATE "$(q "SELECT (pricing_snapshot_json->>'rate_bps') FROM app_settleme
 chk ONE_FEE_IS_1600 "$(q "SELECT application_fee_minor FROM app_settlements WHERE id='$S1'")" "1600"
 chk ONE_NET_IS_78400 "$(q "SELECT net_amount_minor FROM app_settlements WHERE id='$S1'")" "78400"
 chk ONE_BENEFICIARY_GETS_NET "$(wbal "$B1")" "78400"
+chk ONE_FEE_TO_OWN_ACCOUNT "$(wbal "$W1")" "1600"
 
 # ─── 2. refund beyond what remains ──────────────────────────────────────────
 echo
 echo "### 2 — a refund larger than the remaining refundable amount"
-IFS='|' read -r M2 W2 <<<"$(mk sandbox-reference)"
+IFS='|' read -r M2 W2 _ _ <<<"$(mk sandbox-reference)"
 TX2=$(pay "$M2" "$W2" 100000 b)
 refund "$M2" "$TX2" 60000 b
 chk TWO_FIRST_REFUND_OK "$CODE" "201"
@@ -143,23 +177,26 @@ chk TWO_WALLET_UNCHANGED "$(wbal "$W2")" "40000"
 # ─── 3. refund after the value has been settled away ────────────────────────
 echo
 echo "### 3 — refund attempted after a full settlement moved the value out"
-IFS='|' read -r M3 W3 <<<"$(mk sandbox-reference)"
-IFS='|' read -r _ B3 <<<"$(mk sandbox-reference)"
+IFS='|' read -r M3 W3 A3 H3 <<<"$(mk sandbox-reference)"
+IFS='|' read -r _ B3 _ BH3 <<<"$(mk sandbox-reference)"
 TX3=$(pay "$M3" "$W3" 100000 c)
-settle "$M3" "$W3" "$B3" c
+to_campaign "$M3" "$W3" "$A3" 100000 c
+settle "$M3" "$A3" "$BH3" c "$H3"
 chk THREE_SETTLEMENT_OK "$CODE" "201"
 S3=$(jget id)
 FEE3=$(q "SELECT application_fee_minor FROM app_settlements WHERE id='$S3'")
 chk THREE_FEE_CHARGED_ONCE "$FEE3" "2000"
-# The fee stayed in the settling owner's own wallet; the net left it.
+# The fee came back to the owner's own PRIMARY account; the net left.
 chk THREE_WALLET_AFTER_SETTLEMENT "$(wbal "$W3")" "$FEE3"
 chk THREE_BENEFICIARY_GOT_NET "$(wbal "$B3")" "98000"
+chk THREE_CAMPAIGN_EMPTIED "$(abal "$A3")" "0"
 
 BEN_BEFORE=$(wbal "$B3")
 refund "$M3" "$TX3" 100000 c
 chk_in THREE_REFUND_REFUSED "$CODE" "409 422"
 chk THREE_WALLET_NOT_DRAINED "$(wbal "$W3")" "$FEE3"
 chk THREE_BENEFICIARY_NOT_DEBITED "$(wbal "$B3")" "$BEN_BEFORE"
+chk THREE_CAMPAIGN_NOT_DEBITED "$(abal "$A3")" "0"
 
 # ─── invariants ─────────────────────────────────────────────────────────────
 echo
