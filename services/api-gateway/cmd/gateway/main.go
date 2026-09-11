@@ -133,6 +133,26 @@ func main() {
 		// synonym table inferred from it.
 		pgWebhook := service.NewPostgresWebhookService(dbPool, secretCipher, env.Parse(cfg.Environment))
 		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
+		// Secrets stored before the deployment had a key are rewritten under it,
+		// in the background and retried: the container's second network is
+		// attached after it starts (see admin-api's MFA seeds, same reason).
+		go func() {
+			for attempt := 1; attempt <= 30; attempt++ {
+				n, err := pgWebhook.EncryptStoredSecrets(ctx)
+				if err == nil {
+					if n > 0 {
+						slog.Info("[SEC-002] stored webhook secrets encrypted at rest", "count", n)
+					}
+					return
+				}
+				slog.Warn("[SEC-002] could not encrypt stored webhook secrets yet — retrying", "attempt", attempt, "error", err)
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(10 * time.Second):
+				}
+			}
+		}()
 		webhookSvc = pgWebhook
 		teamSvc = service.NewPostgresTeamService(dbPool)
 		credSvc := service.NewPostgresMerchantCredentialService(dbPool)

@@ -46,6 +46,47 @@ type PostgresWebhookService struct {
 	environment env.Environment
 }
 
+// EncryptStoredSecrets rewrites any endpoint signing secret still stored in
+// plaintext under the configured key, and returns how many it moved. The value
+// does not change — the integrator keeps verifying with the secret it holds —
+// only its storage: a secret written before the deployment had a key stayed
+// in the clear in every database dump (A6-10). Each row is replaced only while
+// it still holds the plaintext just read, so a concurrent rotation wins.
+func (s *PostgresWebhookService) EncryptStoredSecrets(ctx context.Context) (int, error) {
+	if s.cipher == nil {
+		return 0, nil
+	}
+	rows, err := s.pool.Query(ctx, `SELECT id::text, secret FROM webhook_endpoints WHERE secret NOT LIKE 'enc:v1:%'`)
+	if err != nil {
+		return 0, err
+	}
+	type plain struct{ id, secret string }
+	var todo []plain
+	for rows.Next() {
+		var p plain
+		if err := rows.Scan(&p.id, &p.secret); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		todo = append(todo, p)
+	}
+	rows.Close()
+	moved := 0
+	for _, p := range todo {
+		enc, err := s.cipher.Encrypt(p.secret)
+		if err != nil {
+			return moved, err
+		}
+		tag, err := s.pool.Exec(ctx,
+			`UPDATE webhook_endpoints SET secret = $2 WHERE id = $1 AND secret = $3`, p.id, enc, p.secret)
+		if err != nil {
+			return moved, err
+		}
+		moved += int(tag.RowsAffected())
+	}
+	return moved, nil
+}
+
 func NewPostgresWebhookService(pool *pgxpool.Pool, cipher *crypto.SecretCipher, environment env.Environment) *PostgresWebhookService {
 	return &PostgresWebhookService{
 		pool:        pool,

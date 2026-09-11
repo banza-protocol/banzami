@@ -3452,8 +3452,13 @@ encrypted. developer-api's cipher block is unconditional. Guard
 it). admin-api rewrites any TOTP seed still in plaintext under its key when it starts
 (`EncryptStoredSecrets`, conditioned on the row still holding the plaintext it read;
 test `TestEncryptStoredSecrets_MovesPlaintextSeedsUnderTheKey` — the seed is encrypted
-and still verifies). Residual: webhook signing secrets written before the key stay
-plaintext until rotated; A6-09 (every other secret still mounted into every stack
+and still verifies). The gateway likewise rewrites any stored webhook
+signing secret still in plaintext (same value — the integrator's verification is
+unchanged; test `TestEncryptStoredSecrets_KeepsTheSecretAndEncryptsItsStorage`), both
+in the background and retried, since a first attempt at boot meets the container's
+second network not yet attached. Deployed 6fb7418a: the keys reach the gateway,
+developer-api and admin-api only, and a webhook endpoint created on it is stored
+`enc:v1:`. Residual: A6-09 (every other secret still mounted into every stack
 service) is not yet scoped.
 
 ## RA-130 — a developer key forgave Unicode whitespace, and its limit vanished with Redis
