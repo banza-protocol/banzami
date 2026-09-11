@@ -44,8 +44,14 @@ function assertContains(relPath, needles, label) {
 //    copy) — so both halves are checked: the default arm itself, and that core
 //    still uses that one definition rather than a new one of its own.
 assertContains('core/types/src/environment.rs',
-  ['Ok(v) if v.eq_ignore_ascii_case("SANDBOX") => Environment::Sandbox,', '_ => Environment::Live,'],
+  ['.unwrap_or(Environment::Live)', 'pub fn parse(raw: &str) -> Option<Self>'],
   'core environment fail-closes to LIVE (canonical definition)');
+// …and since RA-118 a running core never stands on that default: it refuses to
+// boot unless ENVIRONMENT names SANDBOX or LIVE, and a LIVE core refuses the
+// simulated acquirer and KYC provider.
+assertContains('core/api/src/main.rs',
+  ['FATAL: ENVIRONMENT must be SANDBOX or LIVE.', 'fn live_provider_guard('],
+  'core refuses an undeclared environment and simulated providers in LIVE');
 assertContains('core/api/src/state.rs',
   ['pub type CoreEnvironment = banzami_types::Environment;', 'fn missing_env_defaults_to_live()', 'fn unknown_env_defaults_to_live()'],
   'core uses the canonical environment and tests its LIVE default');
