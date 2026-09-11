@@ -152,22 +152,42 @@ done
 #                                         operator console
 #
 # So the two are compared directly rather than reviewed.
-first_create_vars="$(grep -oE 'export [A-Z_]+=' "$SRC" | sed -E 's/export ([A-Z_]+)=/\1/' | sort -u)"
-redeploy_list="$(sed -n 's/.*local ep=.for s in \(.*\); do f=.*/\1/p' "$SRC")"
-missing=""
-for v in $first_create_vars; do
-  # DATABASE_URL and friends are exported by name in both places; the redeploy
-  # list names them after the colon.
-  case "$redeploy_list" in
-    *":$v "*|*":$v"*) : ;;
-    *) missing="$missing $v" ;;
-  esac
+# One mapping, both paths. The first create and the redeploy used to write their
+# own export lists, and a variable added to one was silently missing from the
+# other: admin-api came back from a redeploy with operator login disabled and no
+# mailer, healthy and unable to sign anyone in. Both now build the prologue from
+# secret_exports_for, and each service gets only what its code reads (A6-09).
+sed -n '/^secret_exports_for()/,/^}/p' "$SRC"  > "$WORK/map.sh"
+sed -n '/^secret_files_for()/p'          "$SRC" >> "$WORK/map.sh"
+# shellcheck disable=SC1090
+. "$WORK/map.sh"
+
+[ "$(grep -c 'secret_entrypoint "\$name" "\$bin"' "$SRC")" = 2 ] \
+  && grep -q 'secret_entrypoint admin-api admin-api' "$SRC" \
+  && ok "every container path builds its credential exports from the one mapping" \
+  || no "a container path writes its own export list — the two can drift apart"
+
+for svc in core-api-staging api-gateway-staging public-api-staging developer-api admin-api; do
+  [ -n "$(secret_exports_for "$svc")" ] || no "$svc is given no credentials at all"
 done
-if [ -z "$missing" ]; then
-  ok "every variable a first create exports is also in the redeploy entrypoint list"
-else
-  no "redeploy would drop:$missing"
-fi
+ok "every service that holds credentials has a mapping"
+
+gives() { secret_files_for "$1" | grep -qx "$2"; }
+
+gives api-gateway-staging webhook_encryption_key && gives developer-api webhook_encryption_key \
+  && ! gives public-api-staging webhook_encryption_key && ! gives core-api-staging webhook_encryption_key \
+  && ok "the webhook key is given only where webhook secrets are stored" \
+  || no "the webhook key is not scoped to the gateway and developer-api"
+
+gives api-gateway-staging push_topic_key && gives public-api-staging push_topic_key \
+  && ! gives developer-api push_topic_key && ! gives admin-api push_topic_key \
+  && ok "the push-topic key is given only to the two services that publish pushes" \
+  || no "the push-topic key is not scoped to the services that publish pushes"
+
+! gives public-api-staging session_secret && ! gives public-api-staging api_key_pepper \
+  && ! gives public-api-staging bzm_proof_signing_key && ! gives core-api-staging jwt_secret \
+  && ok "the consumer surface holds no Console, pepper or proof credential (A6-09)" \
+  || no "a service still holds a credential it never reads"
 
 # 8. The at-rest encryption keys (A5-04/A6-10). A rotation would orphan every
 #    secret encrypted under them, so BZSB_ROTATE_SECRETS must not touch them; a
@@ -186,15 +206,6 @@ BZSB_ROTATE_SECRETS=1 keep_or_mint_key32 "$K" test_key >/dev/null
 [ "$(cat "$K")" = "$before" ] \
   && ok "an encryption key survives a secret rotation" \
   || no "a rotation replaced an encryption key — every secret under it is now unreadable"
-grep -q 'api-gateway-staging|developer-api) key_args=(-v "$WEBHOOK_KEY_FILE' "$SRC" \
-  && grep -q 'api-gateway-staging|developer-api) kf="webhook_encryption_key"' "$SRC" \
-  && ok "the webhook key is mounted only where webhook secrets are stored" \
-  || no "the webhook key is not scoped to the gateway and developer-api"
-grep -q 'api-gateway-staging|public-api-staging) key_args+=(-v "$PUSH_TOPIC_KEY_FILE' "$SRC" \
-  && grep -q 'push_topic_key:PUSH_TOPIC_KEY' "$SRC" \
-  && [ "$(grep -c '/run/secrets/push_topic_key:ro' "$SRC")" = 2 ] \
-  && ok "the push-topic key reaches the gateway and public-api, on first create and on redeploy" \
-  || no "the push-topic key is not provisioned to exactly the two services that publish pushes"
 
 echo
 echo "  $pass passed, $fail failed"

@@ -530,6 +530,12 @@ jobs:
       - name: Sandbox client-IP deploy config
         run: bash tests/ops/sandbox-client-ip-config.test.sh
 
+      # A service gets the credentials its own code reads and nothing else
+      # (A6-09): the mapping in the deploy is compared with each service's
+      # source, in both directions.
+      - name: Sandbox secret scope
+        run: node --test tests/ops/sandbox-secret-scope.test.mjs
+
       # Generated evidence belongs outside the source tree: a harness that
       # writes into it makes every post-deploy verification dirty the revision
       # it just verified. Seven harnesses did, unnoticed, because this guard
