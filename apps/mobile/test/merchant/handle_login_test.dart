@@ -230,9 +230,9 @@ void main() {
       expect(login.contains('loginMerchantHandlePin'), isTrue);
       expect(login.contains('setJwt'), isTrue);
       expect(login.contains('createHandleSession'), isTrue);
-      expect(login.contains('PIN incorreto.'), isTrue);
+      expect(login.contains('PIN incorrecto.'), isTrue);
       expect(login.contains('Conta temporariamente bloqueada'), isTrue);
-      expect(login.contains('Não foi possível conectar'), isTrue);
+      expect(login.contains('businessSignInError(e)'), isTrue);
     });
 
     test('welcome opens the @handle login (not the API-key setup)', () {

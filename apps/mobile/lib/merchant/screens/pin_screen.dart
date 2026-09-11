@@ -113,12 +113,15 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
       switch (e.failure) {
         case ReauthFailure.offline:
           _notice = 'Sem ligação ao Banzami. Não foi possível entrar — tente novamente.';
+        case ReauthFailure.unavailable:
+          // An outage is not a refusal: nothing on this device is cleared.
+          _notice = 'O Banzami está temporariamente indisponível. Não foi possível entrar — tente novamente.';
         case ReauthFailure.locked:
           _notice = 'Conta temporariamente bloqueada. Tente novamente mais tarde.';
         case ReauthFailure.refused:
-          // The PIN matches this device but Banzami refused it: it was changed,
-          // or the account was suspended or reassigned. Nothing this device
-          // remembered is kept.
+          // A definitive 401: the PIN matches this device but Banzami refused
+          // it — it was changed, or the account was suspended or reassigned.
+          // Nothing this device remembered is kept.
           await svc.clearAccount();
           return;
       }

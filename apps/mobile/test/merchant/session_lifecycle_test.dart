@@ -25,6 +25,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:banzami_mobile/merchant/screens/dashboard_screen.dart';
 import 'package:banzami_mobile/merchant/screens/pin_screen.dart';
 import 'package:banzami_mobile/merchant/services/merchant_push_registration.dart';
+import 'package:banzami_mobile/merchant/screens/onboarding/login_screen.dart';
 import 'package:banzami_mobile/merchant/services/merchant_reauth.dart';
 import 'package:banzami_mobile/merchant/services/merchant_session_service.dart';
 import 'package:banzami_mobile/services/push_notification_service.dart';
@@ -540,6 +541,26 @@ void main() {
         throwsA(isA<ReauthException>().having((e) => e.failure, 'failure', ReauthFailure.refused)),
       );
       expectSignedOut(svc);
+    });
+
+    test('a 5xx during sign-in is an outage, never a refusal; nothing is cleared', () async {
+      final svc = await device(DateTime.now().subtract(const Duration(days: 1)), withRefresh: false);
+      await expectLater(
+        reauthenticateBusiness(
+          client: BanzamiClient(baseUrl: 'https://x', httpClient: _Banzami(tokenStatus: 503).client),
+          session: svc, pin: '123456'),
+        throwsA(isA<ReauthException>().having((e) => e.failure, 'failure', ReauthFailure.unavailable)),
+      );
+      expect(store['merchant_handle'], 'loja', reason: 'the account stays on the device');
+    });
+
+    test('the sign-in screen blames the PIN only for a 401', () {
+      BanzamiApiException api(int s) => BanzamiApiException(statusCode: s, code: 'X', message: 'x');
+      expect(businessSignInError(api(401)), 'PIN incorrecto.');
+      expect(businessSignInError(api(429)), contains('bloqueada'));
+      for (final e in <Object>[api(500), api(503), const BanzamiNetworkException('down')]) {
+        expect(businessSignInError(e), isNot(contains('PIN')), reason: '$e');
+      }
     });
 
     test('a lockout is reported as locked', () async {

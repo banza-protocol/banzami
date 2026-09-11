@@ -29,7 +29,20 @@ enum ReauthFailure {
 
   /// Banzami could not be reached. Nothing is known about the session.
   offline,
+
+  /// Banzami answered, but not with a decision about the credential — a 5xx,
+  /// a proxy page, an unexpected status. Nothing is known about the session,
+  /// and nothing on this device may be cleared because of it.
+  unavailable,
 }
+
+/// Only a 401 is Banzami refusing the handle + PIN; 429 is its lockout. Any
+/// other answer is an outage as far as the session is concerned.
+ReauthFailure reauthFailureFor(BanzamiApiException e) => switch (e.statusCode) {
+      401 => ReauthFailure.refused,
+      429 => ReauthFailure.locked,
+      _   => ReauthFailure.unavailable,
+    };
 
 class ReauthException implements Exception {
   final ReauthFailure failure;
@@ -168,7 +181,9 @@ Future<void> reauthenticateBusiness({
   try {
     auth = await client.loginMerchantHandlePin(handle: handle, pin: pin);
   } on BanzamiApiException catch (e) {
-    throw ReauthException(e.statusCode == 429 ? ReauthFailure.locked : ReauthFailure.refused);
+    // A 5xx during sign-in is not a refusal: treating it as one used to make
+    // the PIN screen clear the whole account from the device.
+    throw ReauthException(reauthFailureFor(e));
   } on BanzamiNetworkException {
     throw const ReauthException(ReauthFailure.offline);
   } on FormatException {
@@ -177,7 +192,8 @@ Future<void> reauthenticateBusiness({
   }
 
   final merchantId = claimFromJwt(auth.token, 'merchant_id');
-  if (merchantId == null) throw const ReauthException(ReauthFailure.refused);
+  // A token we cannot read is Banzami misbehaving, not refusing this PIN.
+  if (merchantId == null) throw const ReauthException(ReauthFailure.unavailable);
 
   try {
     client.setJwt(auth.token, expiresAt: auth.expiresAt);
@@ -197,8 +213,8 @@ Future<void> reauthenticateBusiness({
     );
   } on BanzamiNetworkException {
     throw const ReauthException(ReauthFailure.offline);
-  } on BanzamiApiException {
-    throw const ReauthException(ReauthFailure.refused);
+  } on BanzamiApiException catch (e) {
+    throw ReauthException(reauthFailureFor(e));
   }
 }
 
