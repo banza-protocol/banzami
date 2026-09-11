@@ -1,6 +1,6 @@
 module github.com/banzami/banzami/services/public-api
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/go-chi/chi/v5 v5.3.0
@@ -15,7 +15,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 )
 
 require github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e // indirect

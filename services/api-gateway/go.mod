@@ -1,6 +1,6 @@
 module github.com/banzami/banzami/services/api-gateway
 
-go 1.25.0
+go 1.26.0
 
 require (
 	firebase.google.com/go/v4 v4.20.0
@@ -17,7 +17,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.44.0
 	go.opentelemetry.io/otel/sdk/metric v1.44.0
 	go.opentelemetry.io/otel/trace v1.44.0
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	google.golang.org/api v0.279.0
 )
 

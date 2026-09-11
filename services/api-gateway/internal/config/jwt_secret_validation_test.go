@@ -38,7 +38,7 @@ func TestValidateJWTSecretFailsClosed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			err := validateJWTSecret(tc.secret)
 			if tc.wantErr && err == nil {
-				t.Fatalf("want error for %q-length secret, got nil", len(tc.secret))
+				t.Fatalf("want error for a %d-character secret, got nil", len(tc.secret))
 			}
 			if !tc.wantErr && err != nil {
 				t.Fatalf("want no error, got %v", err)
