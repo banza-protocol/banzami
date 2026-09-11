@@ -17,6 +17,9 @@ var (
 	ErrMemberNotFound  = errors.New("team member not found")
 	ErrDuplicateMember = errors.New("a team member with this email already exists")
 	ErrInvalidRole     = errors.New("role must be VIEWER or OPERATOR")
+	// ErrInvalidMemberEmail is the caller's mistake: named so the handler can
+	// say so without answering every other failure as one (A6-11).
+	ErrInvalidMemberEmail = errors.New("invalid email")
 )
 
 // TeamMember is a dashboard user attached to a merchant with a permission role.
@@ -89,7 +92,7 @@ func (s *PostgresTeamService) ListMembers(ctx context.Context, merchantID string
 func (s *PostgresTeamService) InviteMember(ctx context.Context, merchantID, email, role string) (*TeamMember, error) {
 	email = strings.TrimSpace(email)
 	if email == "" || !strings.Contains(email, "@") {
-		return nil, fmt.Errorf("invalid email")
+		return nil, ErrInvalidMemberEmail
 	}
 	if role == "" {
 		role = "VIEWER"

@@ -70,7 +70,7 @@ const BUSINESS = { name: 'Loja Kianda', handle: '@kianda', kyb_status: 'APPROVED
 /** The server's answer for a Project in `state`, as `role` sees it. */
 function setupFor(state: OnboardingState, role = 'OWNER', over: Partial<FinancialOnboarding> = {}): FinancialSetupState {
   const actor = role === 'OWNER' || role === 'ADMIN';
-  const bound = state === 'READY' || state === 'BLOCKED';
+  const bound = state === 'READY' || state === 'BLOCKED' || state === 'READINESS_UNKNOWN';
   const canAct = actor && (state === 'NOT_CONFIGURED' || state === 'REJECTED' || state === 'INFORMATION_REQUIRED');
   const application =
     state === 'NOT_CONFIGURED' || bound ? undefined
@@ -95,7 +95,8 @@ function setupFor(state: OnboardingState, role = 'OWNER', over: Partial<Financia
     can_configure: canAct,
     role,
     sealed: false,
-    readiness: bound ? READINESS : undefined,
+    readiness: bound && state !== 'READINESS_UNKNOWN' ? READINESS : undefined,
+    readiness_unavailable: state === 'READINESS_UNKNOWN' ? true : undefined,
     onboarding: {
       state,
       can_act: canAct,
@@ -272,6 +273,27 @@ describe('Configuração financeira — a Project that receives', () => {
     expect(screen.getAllByRole('list', { name: 'Bloqueios' })).toHaveLength(1);
   });
 
+  // A2-26 — a failed readiness read left no blockers, and "no blockers" was
+  // shown as "Pronto". Whether the Project can settle is not known.
+  it('READINESS_UNKNOWN shows the Business, says the readiness could not be read, and never "Pronto"', () => {
+    open(setupFor('READINESS_UNKNOWN'));
+    expect(container().getAttribute('data-state')).toBe('READINESS_UNKNOWN');
+    expect(heading()).toBe('Configuração financeira — Estado por confirmar');
+    expect(screen.getByTestId('business-card').textContent).toBe('Loja Kianda·@kianda·Verificado');
+    expect(document.body.textContent).toContain('Não foi possível ler a prontidão para liquidação agora.');
+    expect(document.body.textContent).not.toContain('Pronto');
+    expect(document.body.textContent).not.toContain('Este projeto recebe pagamentos no negócio abaixo.');
+  });
+
+  it('a server that still says READY next to readiness_unavailable is not shown as ready either', () => {
+    const setup = setupFor('READY');
+    setup.readiness = null;
+    setup.readiness_unavailable = true;
+    open(setup);
+    expect(container().getAttribute('data-state')).toBe('READINESS_UNKNOWN');
+    expect(document.body.textContent).not.toContain('Pronto');
+  });
+
   it('a sealed Project says its Business can no longer change', () => {
     const setup = setupFor('READY');
     setup.state = 'SEALED';
@@ -282,7 +304,7 @@ describe('Configuração financeira — a Project that receives', () => {
 });
 
 describe('who may act', () => {
-  const STATES: OnboardingState[] = ['NOT_CONFIGURED', 'IN_REVIEW', 'INFORMATION_REQUIRED', 'APPROVED_PROVISIONING', 'REJECTED', 'READY', 'BLOCKED'];
+  const STATES: OnboardingState[] = ['NOT_CONFIGURED', 'IN_REVIEW', 'INFORMATION_REQUIRED', 'APPROVED_PROVISIONING', 'REJECTED', 'READY', 'BLOCKED', 'READINESS_UNKNOWN'];
 
   // Refreshing the state is reading it, not acting on the Project.
   const READ_ONLY_CONTROLS = new Set(['Atualizar estado']);

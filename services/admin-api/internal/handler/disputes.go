@@ -42,7 +42,7 @@ func (h *DisputeHandler) List(w http.ResponseWriter, r *http.Request) {
 		limit,
 	)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -57,7 +57,7 @@ func (h *DisputeHandler) Get(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "dispute not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -183,7 +184,8 @@ func (h *DisputeHandler) SubmitEvidence(w http.ResponseWriter, r *http.Request) 
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "dispute not found")
 			return
 		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		slog.ErrorContext(r.Context(), "dispute.evidence.submit_failed", "dispute_id", disputeID, "error", err)
+		respondCoreError(w, r, err, "could not submit the evidence")
 		return
 	}
 	respond(w, http.StatusCreated, evidence)

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -69,8 +70,13 @@ func (h *TeamHandler) Invite(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusConflict, "DUPLICATE", "a team member with this email already exists")
 		case errors.Is(err, service.ErrInvalidRole):
 			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_ROLE", "role must be VIEWER or OPERATOR")
+		case errors.Is(err, service.ErrInvalidMemberEmail):
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_EMAIL", "a valid email is required")
 		default:
-			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_REQUEST", err.Error())
+			// A database failure is not the caller's mistake, and its text is
+			// not theirs to read (A6-11): logged, answered with a stable code.
+			slog.ErrorContext(r.Context(), "team.invite.failed", "error", err)
+			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not invite the team member")
 		}
 		return
 	}

@@ -25,11 +25,23 @@ func NewComplianceCasesHandler(live, sandbox *service.ComplianceService) *Compli
 	return &ComplianceCasesHandler{live: live, sandbox: sandbox}
 }
 
-func (h *ComplianceCasesHandler) pick(r *http.Request) (*service.ComplianceService, bool) {
-	if r.URL.Query().Get("environment") == "SANDBOX" {
-		return h.sandbox, h.sandbox != nil
+// It answers the request itself when it returns false: 400 for an environment
+// it does not recognise (requestedEnvironment, A2-22), 503 when the
+// environment has no compliance service.
+func (h *ComplianceCasesHandler) pick(w http.ResponseWriter, r *http.Request) (*service.ComplianceService, bool) {
+	e, ok := requestedEnvironment(w, r)
+	if !ok {
+		return nil, false
 	}
-	return h.live, h.live != nil
+	svc := h.live
+	if e.IsSandbox() {
+		svc = h.sandbox
+	}
+	if svc == nil {
+		h.unavailable(w)
+		return nil, false
+	}
+	return svc, true
 }
 
 func (h *ComplianceCasesHandler) fail(w http.ResponseWriter, err error) {
@@ -46,9 +58,8 @@ func (h *ComplianceCasesHandler) unavailable(w http.ResponseWriter) {
 
 // GET /admin/v1/compliance/cases — unified inbox (synced, filtered, paginated).
 func (h *ComplianceCasesHandler) List(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		h.unavailable(w)
 		return
 	}
 	// Sync is a best-effort refresh before listing: on failure we still serve the
@@ -78,9 +89,8 @@ func (h *ComplianceCasesHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/compliance/cases/{id}
 func (h *ComplianceCasesHandler) Get(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		h.unavailable(w)
 		return
 	}
 	c, err := svc.Get(r.Context(), chi.URLParam(r, "id"))
@@ -93,9 +103,8 @@ func (h *ComplianceCasesHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/compliance/cases/{id}/notes
 func (h *ComplianceCasesHandler) ListNotes(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		h.unavailable(w)
 		return
 	}
 	notes, err := svc.ListNotes(r.Context(), chi.URLParam(r, "id"))
@@ -108,9 +117,8 @@ func (h *ComplianceCasesHandler) ListNotes(w http.ResponseWriter, r *http.Reques
 
 // POST /admin/v1/compliance/cases/{id}/notes  {body}
 func (h *ComplianceCasesHandler) AddNote(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		h.unavailable(w)
 		return
 	}
 	var body struct {
@@ -135,9 +143,8 @@ func (h *ComplianceCasesHandler) AddNote(w http.ResponseWriter, r *http.Request)
 
 // action wires a status/assignment mutation + its audit.
 func (h *ComplianceCasesHandler) action(w http.ResponseWriter, r *http.Request, auditAction string, fn func(*service.ComplianceService, string) error) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		h.unavailable(w)
 		return
 	}
 	id := chi.URLParam(r, "id")

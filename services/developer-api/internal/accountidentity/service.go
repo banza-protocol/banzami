@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -58,11 +60,14 @@ type Service struct {
 	rl     RateLimiter
 	mailer OTPSender
 	cfg    ServiceConfig
+	// local counts in this process when rl (Redis) cannot answer, so a limit
+	// is never simply skipped during an outage (A2-23).
+	local RateLimiter
 }
 
 // NewService builds the Account Identity service.
 func NewService(store Store, rl RateLimiter, mailer OTPSender, cfg ServiceConfig) *Service {
-	return &Service{store: store, rl: rl, mailer: mailer, cfg: cfg.withDefaults()}
+	return &Service{store: store, rl: rl, mailer: mailer, cfg: cfg.withDefaults(), local: NewMemLimiter()}
 }
 
 var (
@@ -156,8 +161,19 @@ func (s *Service) VerifyOTP(ctx context.Context, email, code, ip, userAgent, req
 		return nil, ErrUnavailable
 	}
 	// Per-IP brute-force ceiling on top of the per-code attempt limit.
+	//
+	// It was skipped whenever Redis errored — an outage lifted the ceiling for
+	// every address at once. The count now falls back to this process's own
+	// window (as the gateway's limiters do): per instance rather than shared,
+	// but never absent (A2-23).
 	if ip != "" {
-		if ok, err := s.rl.Allow(ctx, "otp:vrf:ip:"+ip, s.cfg.PerIPLimit, s.cfg.RateWindow); err == nil && !ok {
+		key := "otp:vrf:ip:" + ip
+		ok, err := s.rl.Allow(ctx, key, s.cfg.PerIPLimit, s.cfg.RateWindow)
+		if err != nil {
+			slog.WarnContext(ctx, "auth.verify.rate_limit_store_unavailable — counting in this process", "error_kind", fmt.Sprintf("%T", err))
+			ok, _ = s.local.Allow(ctx, key, s.cfg.PerIPLimit, s.cfg.RateWindow)
+		}
+		if !ok {
 			return nil, ErrRateLimited
 		}
 	}
@@ -207,16 +223,23 @@ func (s *Service) ValidateSession(ctx context.Context, raw string) (User, error)
 	return user, nil
 }
 
-// Logout revokes the session server-side.
-func (s *Service) Logout(ctx context.Context, raw, ip, requestID string) {
+// Logout revokes the session server-side. It returns ErrUnavailable when the
+// revocation could not be written: the session is then still live, and saying
+// "signed out" would be false — whoever holds the token could keep using it
+// (A2-24).
+func (s *Service) Logout(ctx context.Context, raw, ip, requestID string) error {
 	if raw == "" || s.cfg.SessionSecret == "" {
-		return
+		return nil
 	}
 	hash := hashToken(raw, s.cfg.SessionSecret)
-	if sess, err := s.store.LiveSessionByHash(ctx, hash); err == nil {
+	sess, lookupErr := s.store.LiveSessionByHash(ctx, hash)
+	if err := s.store.RevokeSessionByHash(ctx, hash); err != nil {
+		return ErrUnavailable
+	}
+	if lookupErr == nil {
 		s.audit(ctx, &sess.UserID, "logout", "USER:"+sess.UserID, ip, requestID, nil)
 	}
-	_ = s.store.RevokeSessionByHash(ctx, hash)
+	return nil
 }
 
 // csrfFor derives the CSRF token bound to a session token (double-submit +

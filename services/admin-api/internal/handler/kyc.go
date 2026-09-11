@@ -10,6 +10,7 @@ import (
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/common/env"
 )
 
 // KycReviewHandler is the operator review surface for consumer KYC (ADR-020).
@@ -31,22 +32,38 @@ func NewKycReviewHandler(live, sandbox *service.KycReviewService) *KycReviewHand
 
 // pick returns the review service for the requested environment. SANDBOX selects
 // the staging service; ok=false when sandbox is requested but not configured.
-func (h *KycReviewHandler) pick(r *http.Request) (*service.KycReviewService, bool) {
-	if r.URL.Query().Get("environment") == "SANDBOX" {
-		return h.sandbox, h.sandbox != nil
+//
+// It answers the request itself when it returns false: 400 for an environment
+// it does not recognise (see requestedEnvironment), 503 when the environment
+// has no review service.
+func (h *KycReviewHandler) pick(w http.ResponseWriter, r *http.Request) (*service.KycReviewService, bool) {
+	e, ok := requestedEnvironment(w, r)
+	if !ok {
+		return nil, false
 	}
-	return h.live, h.live != nil
+	svc := h.live
+	if e.IsSandbox() {
+		svc = h.sandbox
+	}
+	if svc == nil {
+		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
+		return nil, false
+	}
+	return svc, true
 }
 
 // GET /admin/v1/kyc/cases?status=&environment=&limit=
 func (h *KycReviewHandler) List(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	cases, err := svc.ListCases(r.Context(), r.URL.Query().Get("status"), r.URL.Query().Get("environment"), limit)
+	envFilter := "" // absent: every case in the pool, as before
+	if r.URL.Query().Has("environment") {
+		envFilter = env.Parse(r.URL.Query().Get("environment")).String() // canonical; pick refused anything else
+	}
+	cases, err := svc.ListCases(r.Context(), r.URL.Query().Get("status"), envFilter, limit)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not list cases")
 		return
@@ -56,9 +73,8 @@ func (h *KycReviewHandler) List(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/kyc/cases/{id}
 func (h *KycReviewHandler) Get(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	d, err := svc.GetCase(r.Context(), chi.URLParam(r, "id"))
@@ -71,9 +87,8 @@ func (h *KycReviewHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // GET /admin/v1/kyc/cases/{id}/timeline
 func (h *KycReviewHandler) Timeline(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	ev, err := svc.Timeline(r.Context(), chi.URLParam(r, "id"))
@@ -90,9 +105,8 @@ func (h *KycReviewHandler) Timeline(w http.ResponseWriter, r *http.Request) {
 // operator and audited as an access event (VIEW/DOWNLOAD/COPY) but NEVER stored:
 // not in the audit row, not anywhere. storage_key is never exposed.
 func (h *KycReviewHandler) ReadURL(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	var body struct {
@@ -111,9 +125,8 @@ func (h *KycReviewHandler) ReadURL(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/kyc/cases/{id}/approve   body: {granted_level, notes}
 func (h *KycReviewHandler) Approve(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	var body struct {
@@ -135,9 +148,8 @@ func (h *KycReviewHandler) Approve(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/kyc/cases/{id}/reject   body: {reason_code, notes}
 func (h *KycReviewHandler) Reject(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	var body struct {
@@ -158,9 +170,8 @@ func (h *KycReviewHandler) Reject(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/kyc/cases/{id}/request-more-info   body: {reason_code, notes}
 func (h *KycReviewHandler) RequestMoreInfo(w http.ResponseWriter, r *http.Request) {
-	svc, ok := h.pick(r)
+	svc, ok := h.pick(w, r)
 	if !ok {
-		writeError(w, http.StatusServiceUnavailable, "UNAVAILABLE", "kyc review unavailable for this environment")
 		return
 	}
 	var body struct {

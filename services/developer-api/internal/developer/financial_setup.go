@@ -222,7 +222,7 @@ func (s *Service) ProjectFinancialSetup(ctx context.Context, actor, projectID st
 	} else if s.onboarding == nil {
 		out.State = FinancialUnavailable
 	}
-	out.Onboarding = s.onboardingView(ctx, p.ID, role, b, out.Readiness)
+	out.Onboarding = s.onboardingView(ctx, p.ID, role, b, out.Readiness, out.ReadinessUnavailable)
 	if out.Onboarding.State != OnboardingNotConfigured && out.Onboarding.State != OnboardingRejected &&
 		out.Onboarding.State != OnboardingInformationRequired {
 		out.CanConfigure = false

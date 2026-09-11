@@ -271,7 +271,7 @@ export function FinancialOnboardingPanel({
   const errorsWithoutRequest = app?.requirements.errors.filter((r) => r.code !== INFORMATION_REQUEST_CODE) ?? [];
   const blockers = onboarding?.blockers?.length ? onboarding.blockers : setup.readiness?.settlement.blockers ?? [];
 
-  const readinessBelow = view === 'READY' || view === 'BLOCKED'
+  const readinessBelow = view === 'READY' || view === 'BLOCKED' || view === 'READINESS_UNKNOWN'
     ? (
       <>
         <FinancialSetupStatus setup={setup} />
@@ -400,6 +400,19 @@ export function FinancialOnboardingPanel({
             precisa de fazer nada — este estado muda sozinho quando terminar.
           </p>
           {app && <ApplicationSummary app={app} />}
+          <button type="button" onClick={() => reload()} style={{ ...SECONDARY_BUTTON, marginTop: 18 }}>
+            Atualizar estado
+          </button>
+        </>
+      )}
+
+      {view === 'READINESS_UNKNOWN' && (
+        <>
+          <p style={P}>
+            Este projeto está ligado ao negócio abaixo. Não foi possível confirmar agora se já pode liquidar — isto não
+            significa que falte configuração. Tente novamente daqui a pouco.
+          </p>
+          {onboarding?.business && <BusinessCard business={onboarding.business} />}
           <button type="button" onClick={() => reload()} style={{ ...SECONDARY_BUTTON, marginTop: 18 }}>
             Atualizar estado
           </button>

@@ -66,6 +66,7 @@ const (
 	authResultRefused        = "refused"
 	authResultLocked         = "locked"
 	authResultOwnerMismatch  = "handle_owner_mismatch"
+	authResultUnavailable    = "unavailable" // the credential store could not answer (5xx, not a refusal)
 	authResultRefreshed      = "refreshed"
 	authResultRefreshRefused = "refresh_refused"
 	authResultRefreshReused  = "refresh_reused"

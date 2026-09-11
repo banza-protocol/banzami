@@ -3,10 +3,12 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/common/env"
 )
 
 // actorOf returns the authenticated operator's email for audit / reviewed_by.
@@ -38,12 +40,22 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 // its exact status code + `{error:{code,message}}` payload — a 400/401/403/404/
 // 409/422/429 stays itself, never masked as 500. Only genuine internal failures
 // (transport, decode, unexpected) become a 500.
+//
+// The TEXT of a failure is never forwarded (A6-11): a transport error names
+// core's internal address ("dial tcp …"), and a core 5xx message can be core's
+// own database error. Both are logged here and answered with a stable code and a
+// generic message. A core 4xx message is core's curated reason and still passes.
 func handleCoreErr(w http.ResponseWriter, err error) {
 	var ce *service.CoreError
 	if errors.As(err, &ce) {
 		code := ce.Code
 		if code == "" {
 			code = "ERROR"
+		}
+		if ce.Status >= http.StatusInternalServerError {
+			slog.Error("admin.core_call.upstream_failed", "status", ce.Status, "code", code, "error", err)
+			writeError(w, ce.Status, code, internalErrorMessage)
+			return
 		}
 		writeError(w, ce.Status, code, ce.Message)
 		return
@@ -53,8 +65,13 @@ func handleCoreErr(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "resource not found")
 		return
 	}
-	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+	slog.Error("admin.core_call.failed", "error", err)
+	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", internalErrorMessage)
 }
+
+// internalErrorMessage is the whole of what an operator is told about a failure
+// that is not a decision: the detail is in the log, under the same request.
+const internalErrorMessage = "the request could not be completed; try again"
 
 // actorIsSuperAdmin reports whether the calling operator is a SUPER_ADMIN.
 func actorIsSuperAdmin(r *http.Request) bool {
@@ -75,4 +92,26 @@ func mayActOnOperator(w http.ResponseWriter, r *http.Request, targetRole string)
 		return false
 	}
 	return true
+}
+
+// requestedEnvironment reads ?environment= strictly (A2-22).
+//
+//	absent          → Live (the console sends no parameter for Live)
+//	SANDBOX / LIVE  → that environment, in any case, trimmed (env.Parse)
+//	anything else   → 400 INVALID_ENVIRONMENT, and no pool is reached
+//
+// The review handlers compared the raw value with "SANDBOX" and sent anything
+// else — "sandbox", "SANDBOX ", "SANDBX" — to the primary (Live) pool: an
+// operator who asked for the Sandbox queue and mistyped it acted on Live.
+func requestedEnvironment(w http.ResponseWriter, r *http.Request) (env.Environment, bool) {
+	q := r.URL.Query()
+	if !q.Has("environment") {
+		return env.Live, true
+	}
+	e := env.Parse(q.Get("environment"))
+	if !e.IsKnown() {
+		writeError(w, http.StatusBadRequest, "INVALID_ENVIRONMENT", "environment must be LIVE or SANDBOX")
+		return env.Unknown, false
+	}
+	return e, true
 }

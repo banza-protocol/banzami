@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
@@ -754,7 +755,7 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 		                 response_body = $4, delivered_at = $5
 		           WHERE id = $1`
 		args = []any{d.id, attempt, statusCode, respBody, now}
-		logf = func() { slog.Info("webhook delivered", "delivery_id", d.id, "url", d.url, "attempt", attempt) }
+		logf = func() { slog.Info("webhook delivered", append(deliveryLogAttrs(d), "attempt", attempt)...) }
 	case attempt >= d.maxAttempts:
 		update = `UPDATE webhook_deliveries
 		             SET status = 'FAILED', attempt_count = $2, status_code = $3,
@@ -762,7 +763,7 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 		           WHERE id = $1`
 		args = []any{d.id, attempt, statusCode, respBody, errText(deliveryErr)}
 		logf = func() {
-			slog.Warn("webhook permanently failed", "delivery_id", d.id, "url", d.url, "attempts", attempt)
+			slog.Warn("webhook permanently failed", append(deliveryLogAttrs(d), "attempts", attempt)...)
 		}
 	default:
 		// Schedule next retry with exponential backoff.
@@ -778,7 +779,7 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 		args = []any{d.id, attempt, statusCode, respBody, errText(deliveryErr), nextAt}
 		logf = func() {
 			slog.Warn("webhook delivery failed, will retry",
-				"delivery_id", d.id, "url", d.url, "attempt", attempt, "next_at", nextAt)
+				append(deliveryLogAttrs(d), "attempt", attempt, "next_at", nextAt)...)
 		}
 	}
 	if err := s.recordAttempt(ctx, d.id, attempt, outcome, statusCode, durationMs, now, update, args); err != nil {
@@ -786,6 +787,27 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 		return
 	}
 	logf()
+}
+
+// deliveryLogAttrs names a delivery in a log line: its id, its endpoint's id and
+// the endpoint's host — never the URL. A merchant's webhook URL may carry a
+// query-string token or credentials in its userinfo (webhookprov.ValidateURL
+// accepts both), and a log line is copied and read by people who were never
+// meant to hold either (A6-13). The endpoint id finds the full URL in the
+// console for whoever may see it.
+func deliveryLogAttrs(d pendingDelivery) []any {
+	return []any{"delivery_id", d.id, "endpoint_id", d.endpointID, "host", webhookLogHost(d.url)}
+}
+
+// webhookLogHost is the host (and port, if any) of a webhook URL, without its
+// userinfo, path or query. An unparseable URL logs as a fixed marker rather
+// than as itself.
+func webhookLogHost(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return "(unparseable)"
+	}
+	return u.Host
 }
 
 // attemptOutcome is what one attempt amounted to, in the closed vocabulary of

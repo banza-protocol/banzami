@@ -36,9 +36,7 @@ func (h *WalletHandler) GetForMerchant(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": map[string]any{"code": "INTERNAL_ERROR", "message": err.Error()},
-		})
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -63,9 +61,7 @@ func (h *WalletHandler) ListAccounts(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": map[string]any{"code": "INTERNAL_ERROR", "message": err.Error()},
-		})
+		handleCoreErr(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -127,9 +123,7 @@ func (h *WalletHandler) AdminCredit(w http.ResponseWriter, r *http.Request) {
 			})
 			return
 		}
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error": map[string]any{"code": "BAD_REQUEST", "message": err.Error()},
-		})
+		handleCoreErr(w, err)
 		return
 	}
 	auditAfter(r, "wallet", walletID, map[string]any{

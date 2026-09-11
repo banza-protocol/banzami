@@ -23,7 +23,7 @@ const base: FinancialSetupState = {
 
 describe('onboardingViewOf', () => {
   it('is the server onboarding state when there is one', () => {
-    for (const s of ['NOT_CONFIGURED', 'IN_REVIEW', 'INFORMATION_REQUIRED', 'APPROVED_PROVISIONING', 'REJECTED', 'READY', 'BLOCKED'] as const) {
+    for (const s of ['NOT_CONFIGURED', 'IN_REVIEW', 'INFORMATION_REQUIRED', 'APPROVED_PROVISIONING', 'REJECTED', 'READY', 'BLOCKED', 'READINESS_UNKNOWN'] as const) {
       expect(onboardingViewOf({ ...base, onboarding: { state: s, can_act: false, blockers: [] } })).toBe(s);
     }
   });
@@ -36,6 +36,17 @@ describe('onboardingViewOf', () => {
   it('reads a server that predates onboarding from the setup state, never guessing', () => {
     expect(onboardingViewOf(base)).toBe('NOT_CONFIGURED');
     expect(onboardingViewOf({ ...base, state: 'READY' })).toBe('READY');
+  });
+
+  // A2-26 — a readiness read that failed is not "no blockers".
+  it('a failed readiness read is never READY', () => {
+    expect(onboardingViewOf({ ...base, state: 'READY', readiness: null, readiness_unavailable: true })).toBe('READINESS_UNKNOWN');
+    expect(onboardingViewOf({ ...base, state: 'SEALED', readiness: null, readiness_unavailable: true })).toBe('READINESS_UNKNOWN');
+    expect(onboardingViewOf({
+      ...base, state: 'READY', readiness: null, readiness_unavailable: true,
+      onboarding: { state: 'READY', can_act: false, blockers: [] },
+    })).toBe('READINESS_UNKNOWN');
+    expect(onboardingHeading('READINESS_UNKNOWN')).toBe('Configuração financeira — Estado por confirmar');
   });
 });
 
