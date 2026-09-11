@@ -35,7 +35,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _startNotifications() async {
-    final session = context.read<SessionService>().session!;
+    final svc     = context.read<SessionService>();
+    final session = svc.session!;
     final client  = context.read<ConsumerPublicClient>();
     _notifSvc = TransferNotificationService(client, consumerId: session.consumerId)
       ..startPolling();
@@ -61,7 +62,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       };
     }
 
-    await PushNotificationService.subscribeConsumer(session.consumerId);
+    // Skipped if the consumer signed out while APNs was still starting — a
+    // late subscription would undo the sign-out's unsubscription.
+    await PushNotificationService.subscribeConsumer(session.consumerId,
+        stillWanted: () => svc.isSignedInAs(session.consumerId));
     final token = await PushNotificationService.getToken();
     debugPrint('[FCM] token registered consumerId=${session.consumerId} hasToken=${token != null}');
   }

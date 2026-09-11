@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
+
+import 'push_notification_service.dart';
+import 'push_topic_registration.dart';
 
 // ---------------------------------------------------------------------------
 // Session model
@@ -72,6 +76,13 @@ class Session {
 // ---------------------------------------------------------------------------
 
 class SessionService extends ChangeNotifier {
+  /// [push] takes the device off the consumer's notification topics when it
+  /// signs out; Firebase unless a test passes its own.
+  SessionService({PushTopicRegistration? push})
+      : _push = push ?? const FirebasePushTopicRegistration();
+
+  final PushTopicRegistration _push;
+
   static const _store = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
@@ -271,7 +282,12 @@ class SessionService extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   /// Clears all stored credentials and returns to the welcome screen.
+  ///
+  /// The device leaves the account's notification topics FIRST, while the
+  /// consumer id is still known — otherwise the next account signed in on
+  /// this phone would receive this one's payment notifications.
   Future<void> logout() async {
+    _unregisterPush(_session?.consumerId ?? await _readConsumerIdSafely());
     await _store.deleteAll();
     _session = null;
     _locked  = true;
@@ -280,6 +296,29 @@ class SessionService extends ChangeNotifier {
 
   /// Alias for logout — kept for the "Remover conta" flow in the profile screen.
   Future<void> clearAccount() => logout();
+
+  /// Whether the device should (still) be subscribed to [consumerId]'s
+  /// notifications — checked right before a slow subscription completes.
+  bool isSignedInAs(String consumerId) => _session?.consumerId == consumerId;
+
+  Future<String?> _readConsumerIdSafely() async {
+    try {
+      return await _store.read(key: _kConsumerId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Best effort, never awaited: an unreachable FCM cannot keep the device
+  /// signed in, and the platform SDKs retry a topic operation.
+  void _unregisterPush(String? consumerId) {
+    if (consumerId == null || consumerId.isEmpty) return;
+    for (final topic in PushNotificationService.consumerTopics(consumerId)) {
+      unawaited(Future.sync(() => _push.unsubscribe(topic)).catchError((Object e) {
+        debugPrint('[session] could not unsubscribe from a consumer topic: ${e.runtimeType}');
+      }));
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // PIN hashing — SHA-256 with app-specific salt (for local lock screen)
