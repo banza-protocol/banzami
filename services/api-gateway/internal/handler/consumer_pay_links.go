@@ -38,5 +38,18 @@ func (h *ConsumerPayLinkHandler) GetPublic(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	respond(w, http.StatusOK, link)
+	respond(w, http.StatusOK, publicConsumerPayLink{ConsumerPayLink: link})
+}
+
+// publicConsumerPayLink is what anyone holding the code may see: the request,
+// and the receiver by @banza only. The receiver's internal id and private
+// display name were served to the open web (A6-07); on public surfaces a
+// consumer is shown by handle alone (ADR-024). The shadowing fields below share the
+// embedded ones' JSON names, win as the shallower field, and stay nil — so the
+// key is omitted.
+type publicConsumerPayLink struct {
+	*service.ConsumerPayLink
+	ID                  *struct{} `json:"id,omitempty"`
+	ReceiverConsumerID  *struct{} `json:"receiver_consumer_id,omitempty"`
+	ReceiverDisplayName *struct{} `json:"receiver_display_name,omitempty"`
 }

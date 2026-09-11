@@ -3333,3 +3333,23 @@ snapshot. All five answer 410 `ROUTE_RETIRED`: a Business is created by an appro
 application, keys are minted by the Business itself and shown to it once, and a
 Business is suspended, never deleted. The console's unused client methods are removed.
 Test `TestMerchantSetupRoutes_AreRetired`.
+
+## RA-123 — unauthenticated reads served internal ids and consumers' private names
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-07, authority audit A1-04)
+- **Status:** FIXED (public-api, gateway, Flutter models)
+
+Four public, unauthenticated reads returned more than paying needs:
+`GET /consumer/v1/payment-links/{slug}` carried the Business's merchant, wallet and
+wallet-account ids (for DOA's campaign links, the campaign's ledger account);
+`GET /consumer/v1/consumer-pay-links/{code}` and the gateway's
+`/public/consumer-pay-links/{code}` carried the receiver's and the payer's consumer ids,
+the transfer id and the receiver's private display name (ADR-024: a consumer is shown
+by @banza on public surfaces); `/public/profiles/{handle}` carried the Business's
+merchant and wallet ids. Nothing was directly exploitable, but these ids are exactly
+what id-selector defects (RA-104, RA-105) feed on. Each response is now a payer-safe
+projection; the Flutter models read the public shapes (an absent id falls back to the
+slug or code). Tests `TestPublicReads_CarryNoInternalIds`,
+`TestGatewayPublicReads_CarryNoInternalIds` (the previous handlers fail both),
+`public_link_projection_test.dart`. A build of the apps from before this change fails to
+decode these reads — rebuild the apps from main.

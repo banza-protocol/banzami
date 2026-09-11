@@ -1,7 +1,9 @@
 class ConsumerPayLink {
   final String id;
   final String linkCode;
-  final String receiverConsumerID;
+  /// Present on the receiver's own reads only; the public read shows the
+  /// receiver by @banza alone (A6-07).
+  final String? receiverConsumerID;
   final String receiverHandle;
   final String? receiverDisplayName;
   final int? amountMinor;
@@ -21,7 +23,7 @@ class ConsumerPayLink {
   const ConsumerPayLink({
     required this.id,
     required this.linkCode,
-    required this.receiverConsumerID,
+    this.receiverConsumerID,
     required this.receiverHandle,
     this.receiverDisplayName,
     this.amountMinor,
@@ -36,9 +38,9 @@ class ConsumerPayLink {
   });
 
   factory ConsumerPayLink.fromJson(Map<String, dynamic> j) => ConsumerPayLink(
-        id: j['id'] as String,
+        id: (j['id'] as String?) ?? j['link_code'] as String,
         linkCode: j['link_code'] as String,
-        receiverConsumerID: j['receiver_consumer_id'] as String,
+        receiverConsumerID: j['receiver_consumer_id'] as String?,
         receiverHandle: j['receiver_handle'] as String,
         receiverDisplayName: j['receiver_display_name'] as String?,
         amountMinor: j['amount_minor'] as int?,

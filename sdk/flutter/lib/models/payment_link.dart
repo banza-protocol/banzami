@@ -1,15 +1,22 @@
 import 'receipt.dart';
 
 class PaymentLink {
+  /// The link's id on the Business's own reads. The public payer read carries
+  /// no internal ids (A6-07), so there it is the slug — which is what paying
+  /// uses anyway.
   final String id;
   final String slug;
-  final String merchantId;
+
+  /// Present on the Business's own reads only; absent on the public payer read.
+  final String? merchantId;
 
   /// The payee's PUBLIC identity — the name the Business presents and the
   /// @handle it owns — never its account name or a Project's name.
   final String? merchantName;
   final String? merchantHandle;
-  final String walletId;
+
+  /// Present on the Business's own reads only; absent on the public payer read.
+  final String? walletId;
   final int? amountMinor;
   final String currency;
   final String? description;
@@ -31,10 +38,10 @@ class PaymentLink {
   const PaymentLink({
     required this.id,
     required this.slug,
-    required this.merchantId,
+    this.merchantId,
     this.merchantName,
     this.merchantHandle,
-    required this.walletId,
+    this.walletId,
     this.amountMinor,
     required this.currency,
     this.description,
@@ -48,12 +55,12 @@ class PaymentLink {
   });
 
   factory PaymentLink.fromJson(Map<String, dynamic> json) => PaymentLink(
-        id: json['id'] as String,
+        id: (json['id'] as String?) ?? json['slug'] as String,
         slug: json['slug'] as String,
-        merchantId: json['merchant_id'] as String,
+        merchantId: json['merchant_id'] as String?,
         merchantName: json['merchant_name'] as String?,
         merchantHandle: json['merchant_handle'] as String?,
-        walletId: json['wallet_id'] as String,
+        walletId: json['wallet_id'] as String?,
         amountMinor: json['amount_minor'] as int?,
         currency: json['currency'] as String,
         description: json['description'] as String?,

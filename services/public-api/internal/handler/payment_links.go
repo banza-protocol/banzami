@@ -22,6 +22,14 @@ import (
 // payee a payer is about to pay, named as every receipt will name it.
 type paymentLinkView struct {
 	*service.PaymentLink
+	// The link's internal ids stay inside: the payer pays by slug, and for a
+	// Business's campaign links the account id named the campaign's ledger
+	// account to anyone with the link (A6-07). These share the embedded fields'
+	// JSON names, win as the shallower field, and stay nil — so the key is omitted.
+	ID              *struct{} `json:"id,omitempty"`
+	MerchantID      *struct{} `json:"merchant_id,omitempty"`
+	WalletID        *struct{} `json:"wallet_id,omitempty"`
+	WalletAccountID *struct{} `json:"wallet_account_id,omitempty"`
 	// MerchantName / MerchantHandle are the Business's PUBLIC identity (the name
 	// it presents and the @handle it owns). They used to be the Business's
 	// account name, which for a Business created by the retired Console setup

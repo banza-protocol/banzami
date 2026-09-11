@@ -36,5 +36,14 @@ func (h *MerchantProfileHandler) GetPublic(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	respond(w, http.StatusOK, profile)
+	respond(w, http.StatusOK, publicMerchantProfile{MerchantProfile: profile})
+}
+
+// publicMerchantProfile is a Business's public page without the internal ids a
+// stranger has no use for — they are what id-selector defects need (A6-07).
+type publicMerchantProfile struct {
+	*service.MerchantProfile
+	ID         *struct{} `json:"id,omitempty"`
+	MerchantID *struct{} `json:"merchant_id,omitempty"`
+	WalletID   *struct{} `json:"wallet_id,omitempty"`
 }

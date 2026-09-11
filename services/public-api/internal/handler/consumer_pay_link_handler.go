@@ -52,7 +52,20 @@ func (h *ConsumerPayLinkHandler) GetByCode(w http.ResponseWriter, r *http.Reques
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch pay link")
 		return
 	}
-	respond(w, http.StatusOK, link)
+	respond(w, http.StatusOK, publicConsumerPayLink{ConsumerPayLink: link})
+}
+
+// publicConsumerPayLink is what anyone holding the code may see: the request,
+// and the receiver by @banza only — not the receiver's or the payer's internal
+// ids, not the transfer, not the receiver's private display name (A6-07;
+// ADR-024: a consumer is shown by handle on public surfaces).
+type publicConsumerPayLink struct {
+	*service.ConsumerPayLink
+	ID                  *struct{} `json:"id,omitempty"`
+	ReceiverConsumerID  *struct{} `json:"receiver_consumer_id,omitempty"`
+	ReceiverDisplayName *struct{} `json:"receiver_display_name,omitempty"`
+	PayerConsumerID     *struct{} `json:"payer_consumer_id,omitempty"`
+	TransferID          *struct{} `json:"transfer_id,omitempty"`
 }
 
 // POST /v1/consumer-pay-links
