@@ -178,7 +178,8 @@ class ConsumerPublicClient {
       final json = await _call(
         method: 'GET',
         path: '/v1/consumers/search?q=${Uri.encodeQueryComponent(q)}',
-        auth: false,
+        // Signed-in only (A6-08): the directory is not public.
+        auth: true,
       );
       final data = json['data'] as List<dynamic>? ?? [];
       return data

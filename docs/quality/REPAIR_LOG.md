@@ -3353,3 +3353,18 @@ slug or code). Tests `TestPublicReads_CarryNoInternalIds`,
 `TestGatewayPublicReads_CarryNoInternalIds` (the previous handlers fail both),
 `public_link_projection_test.dart`. A build of the apps from before this change fails to
 decode these reads — rebuild the apps from main.
+
+## RA-124 — anyone could page through the consumer directory, names included
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-08)
+- **Status:** FIXED (public-api + Flutter client)
+
+`GET /consumer/v1/consumers/search?q=` was public and unlimited, returned display names,
+and passed `%` and `_` into core's `ILIKE '%…%'` — `?q=%%` listed everyone, and two- or
+three-character queries paged through the rest. Search now requires a signed-in
+consumer (30 queries a minute each), treats `%` and `_` as literal characters, and
+returns @banza handles only; the app sends its token. Handle lookup
+(`/v1/consumers/{handle}`) stays public — it confirms one name the caller already has.
+Test `TestConsumerSearch_HandlesOnlyAndWildcardsAreLiteral` (the previous handler returns
+the name and forwards the wildcards). To verify on the deployed runtime: the search
+answers 401 without a consumer token.

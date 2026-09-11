@@ -20,9 +20,13 @@ func NewConsumerHandler(creds *service.CredentialStore, core *service.CorePublic
 	return &ConsumerHandler{creds: creds, core: core}
 }
 
-// GET /v1/consumers/search?q=prefix
-// Returns up to 5 active handles matching the query (case-insensitive substring).
-// No authentication required — only handle and display_name are returned.
+// GET /v1/consumers/search?q=prefix   (signed-in consumer, rate-limited)
+// Returns up to 5 active @banza handles matching the query — the handle only.
+//
+// It was public, unlimited, returned display names, and passed `%` and `_`
+// through to an ILIKE, so `?q=%%` listed everyone (A6-08). The wildcards are
+// now literal (a handle may contain `_`), and a person's name is not part of a
+// directory anyone can page through.
 func (h *ConsumerHandler) Search(w http.ResponseWriter, r *http.Request) {
 	q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
 	if len(q) < 2 {
@@ -30,13 +34,21 @@ func (h *ConsumerHandler) Search(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	suggestions, err := h.core.SearchConsumers(r.Context(), q, 5)
+	suggestions, err := h.core.SearchConsumers(r.Context(), escapeLike(q), 5)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "search failed")
 		return
 	}
+	out := make([]map[string]string, 0, len(suggestions))
+	for _, s := range suggestions {
+		out = append(out, map[string]string{"handle": s.Handle})
+	}
+	respond(w, http.StatusOK, map[string]any{"data": out})
+}
 
-	respond(w, http.StatusOK, map[string]any{"data": suggestions})
+// escapeLike makes a query literal inside core's ILIKE '%…%'.
+func escapeLike(q string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(q)
 }
 
 // GET /v1/consumers/{handle}

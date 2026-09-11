@@ -32,6 +32,10 @@ const transferRateWindow = time.Minute
 // gateway uses a Redis sliding window for its equivalent surface.
 const authRateLimit = 10
 
+// searchRateLimit: @banza suggestions per signed-in consumer per minute — enough
+// to type a name, not enough to page through the directory (A6-08).
+const searchRateLimit = 30
+
 // Dependencies groups all external dependencies for the server.
 type Dependencies struct {
 	CoreClient  *service.CorePublicClient
@@ -104,9 +108,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	r.Post("/v1/consumer/onboarding/verify-otp", onboardingH.VerifyOtp)
 	r.Post("/v1/consumer/onboarding/complete", onboardingH.Complete)
 
-	// Public consumer endpoints — no JWT required
-	// /search must be registered before /{handle} so chi matches it as a static segment
-	r.Get("/v1/consumers/search", consumerH.Search)
+	// Handle lookup — no JWT required. Search is NOT here: an unauthenticated,
+	// unlimited substring search let anyone page through the consumer directory,
+	// names included (A6-08). It lives in the authenticated group below.
 	r.Get("/v1/consumers/{handle}", consumerH.Lookup)
 
 	// Public payment link lookup — no JWT required
@@ -118,6 +122,20 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	// Authenticated consumer endpoints
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
+
+		// @banza suggestions for a signed-in consumer, limited per consumer. The
+		// static /search segment wins over the public /{handle} route in chi.
+		searchLimiter := handler.NewTransferRateLimiter(searchRateLimit, time.Minute)
+		r.With(func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				c, _ := middleware.GetConsumer(r.Context())
+				if c == nil || !searchLimiter.Allow(c.ID) {
+					apierror.Respond(w, r, http.StatusTooManyRequests, "RATE_LIMITED", "too many searches, slow down")
+					return
+				}
+				next.ServeHTTP(w, r)
+			})
+		}).Get("/v1/consumers/search", consumerH.Search)
 
 		// Profile
 		r.Get("/v1/me", meH.Profile)
