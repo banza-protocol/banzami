@@ -3466,3 +3466,19 @@ no-break or em space around it authenticated as the key. A credential has one sp
 only ASCII space and tab are trimmed now. The per-key limit (120/min) was skipped
 whenever Redis erred; it counts in the process instead. Test
 `TestExtractDevKey_TrimsOnlyASCIIWhitespace` (the previous trim accepts U+2003).
+
+## RA-131 — public-api's onboarding limits could be multiplied, and its memory filled
+
+- **Found:** 2026-09-11 (full-system assurance, token audit A3-06, auth audit A9-05)
+- **Status:** FIXED (public-api) — residual noted
+
+The OTP-verify limit was keyed on the raw `session_id`, while core parses it as a UUID
+in any case, braced or `urn:uuid:` — so each spelling of one session had its own ten
+guesses. The key could be any string: a megabyte of random "session id" was a new map
+entry, and neither limiter map was ever pruned; nothing capped the request body either
+(the edge allowed 10 MB). The session id is now parsed and canonical before anything
+counts it (a non-UUID is refused), expired buckets are pruned once a map grows, and
+request bodies are capped at 64 KB. Tests `TestCanonicalSessionID`,
+`TestOnboardingLimiter_OneAllowancePerSessionWhateverItsSpelling`. Residual (latent —
+there is no SMS provider, and the Sandbox OTP is chosen by the caller): core's
+`verify_otp` has no attempt counter of its own.

@@ -36,6 +36,15 @@ func (r *TransferRateLimiter) Allow(consumerID string) bool {
 	defer r.mu.Unlock()
 
 	now := time.Now()
+	// Expired windows are dropped once the map has grown; it was never pruned,
+	// so every distinct caller stayed for the life of the process (A9-05).
+	if len(r.windows) >= 4096 {
+		for k, w := range r.windows {
+			if now.After(w.resetAt) {
+				delete(r.windows, k)
+			}
+		}
+	}
 	c, ok := r.windows[consumerID]
 	if !ok || now.After(c.resetAt) {
 		r.windows[consumerID] = &windowCounter{

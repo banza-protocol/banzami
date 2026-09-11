@@ -66,6 +66,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
+	// Every body this API takes is a small JSON document. The edge allowed 10 MB
+	// and nothing here set a limit (A9-05).
+	r.Use(chimiddleware.RequestSize(64 << 10))
 	r.Use(middleware.RouteSpan)
 
 	// Infra — unauthenticated

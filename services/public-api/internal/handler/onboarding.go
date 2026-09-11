@@ -12,6 +12,8 @@ import (
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/service"
+
+	"github.com/google/uuid"
 )
 
 // OnboardingHandler implements the consumer wallet onboarding flow:
@@ -78,6 +80,35 @@ func (b *rateBucket) allow() bool {
 	return true
 }
 
+// canonicalSessionID is the one spelling of a session id: lower-case,
+// hyphenated, no braces or urn prefix. Anything that is not a UUID is refused
+// before it is counted or stored.
+func canonicalSessionID(raw string) (string, bool) {
+	if len(raw) > 64 {
+		return "", false
+	}
+	id, err := uuid.Parse(raw)
+	if err != nil {
+		return "", false
+	}
+	return id.String(), true
+}
+
+// prune drops buckets whose window has passed, once the map has grown. The map
+// was never pruned: every distinct key stayed for the life of the process
+// (A9-05).
+func (l *onboardingRateLimiter) prune() {
+	if len(l.buckets) < 4096 {
+		return
+	}
+	now := time.Now()
+	for k, b := range l.buckets {
+		if now.After(b.windowEnd) {
+			delete(l.buckets, k)
+		}
+	}
+}
+
 func newOnboardingRateLimiter() *onboardingRateLimiter {
 	return &onboardingRateLimiter{buckets: make(map[string]*rateBucket)}
 }
@@ -85,6 +116,7 @@ func newOnboardingRateLimiter() *onboardingRateLimiter {
 func (l *onboardingRateLimiter) allowStart(phone string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.prune()
 	key := "start:" + phone
 	b, ok := l.buckets[key]
 	if !ok {
@@ -97,6 +129,7 @@ func (l *onboardingRateLimiter) allowStart(phone string) bool {
 func (l *onboardingRateLimiter) allowVerify(phone string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.prune()
 	key := "verify:" + phone
 	b, ok := l.buckets[key]
 	if !ok {
@@ -109,6 +142,7 @@ func (l *onboardingRateLimiter) allowVerify(phone string) bool {
 func (l *onboardingRateLimiter) allowComplete(phone string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	l.prune()
 	key := "complete:" + phone
 	b, ok := l.buckets[key]
 	if !ok {
@@ -255,6 +289,18 @@ func (h *OnboardingHandler) VerifyOtp(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "session_id is required")
 		return
 	}
+	// One session, one spelling, one allowance. Core parses the id as a UUID
+	// and accepts upper, lower and mixed case, braces and urn:uuid:, while the
+	// limiter keyed on the raw string — so each spelling of one session had its
+	// own ten guesses (A3-06), and a 1 MB random "session id" was a new map
+	// entry that was never freed (A9-05). The id is canonical before anything
+	// counts it.
+	sid, ok := canonicalSessionID(body.SessionID)
+	if !ok {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "session_id must be a UUID")
+		return
+	}
+	body.SessionID = sid
 	if body.OtpCode == "" {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "otp_code is required")
 		return
@@ -315,6 +361,12 @@ func (h *OnboardingHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "session_id is required")
 		return
 	}
+	sid, ok := canonicalSessionID(body.SessionID)
+	if !ok {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD", "session_id must be a UUID")
+		return
+	}
+	body.SessionID = sid
 	if body.BanzaHandle == "" {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "banza_handle is required")
 		return
