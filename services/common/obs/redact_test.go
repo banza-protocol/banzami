@@ -41,3 +41,39 @@ func TestRedactPath_APIKeyAndQuery(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// An application id opens the applicant's status and KYB documents on the
+// public onboarding routes; a log keeps 8 characters of it, whatever spelling
+// the request used, and leaves literal segments alone.
+func TestRedactPath_ApplicationID(t *testing.T) {
+	id := "3f6c2a1e-9b7d-4c21-8e5f-0a1b2c3d4e5f" // synthetic
+	for _, p := range []string{
+		"/v1/merchant/applications/" + id,
+		"/v1/merchant/applications/" + id + "/documents",
+		"/v1/merchant/applications/" + id + "/documents/upload-url",
+		"/v1/merchant/applications/" + strings.ToUpper(id) + "/resubmit",
+		"/v1/merchant/applications/{" + id + "}",
+		"/v1/merchant/applications/%7B" + id + "%7D/documents",
+		"/v1/merchant/applications/urn:uuid:" + id,
+		"/V1/Merchant/Applications/" + id,
+	} {
+		got := RedactPath(p)
+		if strings.Contains(strings.ToLower(got), id[9:]) {
+			t.Errorf("%s logged too much: %s", p, got)
+		}
+		if !strings.Contains(strings.ToLower(got), id[:8]) {
+			t.Errorf("%s lost the readable prefix: %s", p, got)
+		}
+	}
+	for _, p := range []string{"/v1/merchant/applications/check-handle", "/v1/merchant/applications", "/v1/merchant/application-requirements"} {
+		if got := RedactPath(p); got != p {
+			t.Errorf("%s changed to %s", p, got)
+		}
+	}
+}
+
+func TestMaskID(t *testing.T) {
+	if got := MaskID("3f6c2a1e-9b7d-4c21-8e5f-0a1b2c3d4e5f"); got != "3f6c2a1e…" {
+		t.Fatalf("MaskID = %q", got)
+	}
+}

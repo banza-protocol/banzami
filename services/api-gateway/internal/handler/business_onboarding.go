@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/banzami/banzami/services/common/obs"
 	"log/slog"
 	"net/http"
 
@@ -111,7 +112,7 @@ func (h *BusinessOnboardingHandler) SubmitForProject(w http.ResponseWriter, r *h
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not submit application")
 	default:
 		observeApplication(appActionSubmit, appResultOK)
-		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", id, "origin", service.ApplicationOriginDeveloperProject)
+		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", obs.MaskID(id), "origin", service.ApplicationOriginDeveloperProject)
 		writeJSON(w, http.StatusCreated, map[string]any{"application_id": id, "status": "SUBMITTED"})
 	}
 }

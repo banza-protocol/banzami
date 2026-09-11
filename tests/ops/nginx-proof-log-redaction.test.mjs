@@ -86,3 +86,36 @@ for (const path of EDGE_CONFIGS) {
     }
   });
 }
+
+// Stage two: the application-id map runs over stage one's output and is what
+// the log format writes.
+function appRedactor(path) {
+  const conf = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+  const m = conf.match(/map \$bz_request_redacted \$bz_request_logged \{\s*"~(\*?)([^"]+)"\s+"([^"]+)";\s*default \$bz_request_redacted;/);
+  assert.ok(m, `${path}: the application-id map is missing or changed shape`);
+  assert.match(conf, /log_format bz_redacted '[^']*"\$bz_request_logged"/, `${path}: the log format does not write the second stage`);
+  const re = new RegExp(m[2].replace(/\(\?<(\w+)>/g, '(?<$1>'), m[1] ? 'i' : '');
+  return (line) => line.replace(re, m[3].replace(/\$\{(\w+)\}/g, '$<$1>'));
+}
+
+for (const path of ['infra/nginx/website.conf', 'infra/nginx/sandbox-edge.conf.template']) {
+  test(`${path}: an application id is logged by its first 8 characters only`, () => {
+    const redact = appRedactor(path);
+    const id = '3f6c2a1e-9b7d-4c21-8e5f-0a1b2c3d4e5f'; // synthetic
+    for (const seg of [id, id.toUpperCase(), `{${id}}`, `%7B${id}%7D`, `urn:uuid:${id}`]) {
+      for (const tail of ['', '/documents', '/documents/upload-url', '/resubmit', '?x=1']) {
+        const logged = redact(`GET /v1/merchant/applications/${seg}${tail} HTTP/2.0`);
+        assert.ok(!logged.toLowerCase().includes(id.slice(9)), `logged too much: ${logged}`);
+        assert.ok(logged.toLowerCase().includes(id.slice(0, 8)), `lost the prefix: ${logged}`);
+      }
+    }
+    for (const line of ['GET /v1/merchant/applications/check-handle HTTP/2.0', 'POST /v1/merchant/applications HTTP/2.0']) {
+      assert.equal(redact(line), line);
+    }
+  });
+}
+
+test('both edges mask application ids with the same rule', () => {
+  const pick = (p) => readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8').match(/map \$bz_request_redacted \$bz_request_logged \{[^}]+\}/)[0];
+  assert.equal(pick('infra/nginx/website.conf'), pick('infra/nginx/sandbox-edge.conf.template'));
+});

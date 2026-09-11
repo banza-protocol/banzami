@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/banzami/banzami/services/common/obs"
 	"github.com/jackc/pgx/v5/pgconn"
 	"log/slog"
 	"net/http"
@@ -194,7 +195,7 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not submit application")
 	default:
-		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", appID)
+		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", obs.MaskID(appID))
 
 		// Every application is reviewed by an operator — in the Sandbox too. It
 		// used to be approved here, on submit, before a single document had been

@@ -91,7 +91,15 @@ map $request $bz_request_redacted {
     "~*^(?<bz_head>\S+ .*?(?:bzm[^ ]{0,5}|(?=[0-9a-z%]{4}(?:-[0-9a-z%]{4}){5}))).*?(?<bz_tail>(?: HTTP/[0-9.]+)?)$" "${bz_head}...${bz_tail}";
     default $request;
 }
-log_format bz_redacted '$remote_addr [$time_local] "$bz_request_redacted" $status $body_bytes_sent "$http_user_agent"';
+# Second stage: a Business application id — the applicant's capability on the
+# public onboarding routes (/v1/merchant/applications/{id}/…: status, KYB
+# documents, resubmission) — keeps its first 8 hex digits, in any spelling a
+# UUID parser accepts. Same rule as obs.RedactPath in the Go services.
+map $bz_request_redacted $bz_request_logged {
+    "~*^(?<bz_app_head>\S+ .*?applications/(?:%7b|\{|urn(?::|%3a)uuid(?::|%3a))?[0-9a-f]{8})[^/ ?]*(?<bz_app_tail>.*)$" "${bz_app_head}...${bz_app_tail}";
+    default $bz_request_redacted;
+}
+log_format bz_redacted '$remote_addr [$time_local] "$bz_request_logged" $status $body_bytes_sent "$http_user_agent"';
 
 
 # ─── admin.banzami.com — BANZADMIN, the Sandbox operator control plane ───────

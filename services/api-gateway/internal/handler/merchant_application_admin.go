@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/banzami/banzami/services/common/obs"
 	"log/slog"
 	"net/http"
 	"time"
@@ -143,7 +144,7 @@ func (h *MerchantApplicationAdminHandler) Approve(w http.ResponseWriter, r *http
 	}
 	// merchant_id is safe to log; the activation token is NOT.
 	slog.InfoContext(r.Context(), "merchant.application.approved",
-		"application_id", res.ApplicationID, "merchant_id", res.MerchantID, "already_approved", res.AlreadyApproved)
+		"application_id", obs.MaskID(res.ApplicationID), "merchant_id", res.MerchantID, "already_approved", res.AlreadyApproved)
 	if res.AlreadyApproved {
 		observeApplication(appActionApprove, appResultReplayed)
 	} else {
@@ -169,7 +170,7 @@ func (h *MerchantApplicationAdminHandler) Reject(w http.ResponseWriter, r *http.
 		respondLifecycleError(w, r, err, "reject")
 		return
 	}
-	slog.InfoContext(r.Context(), "merchant.application.rejected", "application_id", res.ApplicationID)
+	slog.InfoContext(r.Context(), "merchant.application.rejected", "application_id", obs.MaskID(res.ApplicationID))
 	observeApplication(appActionReject, appResultOK)
 	writeJSON(w, http.StatusOK, res)
 }
@@ -189,7 +190,7 @@ func (h *MerchantApplicationAdminHandler) StartReview(w http.ResponseWriter, r *
 		respondLifecycleError(w, r, err, "start review of")
 		return
 	}
-	slog.InfoContext(r.Context(), "merchant.application.review_started", "application_id", app.ID)
+	slog.InfoContext(r.Context(), "merchant.application.review_started", "application_id", obs.MaskID(app.ID))
 	observeApplication(appActionStartReview, appResultOK)
 	writeJSON(w, http.StatusOK, app)
 }
@@ -222,7 +223,7 @@ func (h *MerchantApplicationAdminHandler) LinkExisting(w http.ResponseWriter, r 
 		return
 	}
 	slog.InfoContext(r.Context(), "merchant.application.linked_existing",
-		"application_id", res.ApplicationID, "merchant_id", res.MerchantID, "already_linked", res.AlreadyLinked)
+		"application_id", obs.MaskID(res.ApplicationID), "merchant_id", res.MerchantID, "already_linked", res.AlreadyLinked)
 	if res.AlreadyLinked {
 		observeApplication(appActionLink, appResultReplayed)
 	} else {
@@ -242,7 +243,7 @@ func (h *MerchantApplicationAdminHandler) ReissueActivation(w http.ResponseWrite
 		respondLifecycleError(w, r, err, "reissue activation for")
 		return
 	}
-	slog.InfoContext(r.Context(), "merchant.application.activation_reissued", "application_id", res.ApplicationID)
+	slog.InfoContext(r.Context(), "merchant.application.activation_reissued", "application_id", obs.MaskID(res.ApplicationID))
 	observeApplication(appActionReissueActivation, appResultOK)
 	writeJSON(w, http.StatusOK, res)
 }
@@ -292,7 +293,7 @@ func (h *MerchantApplicationAdminHandler) RequestInformation(w http.ResponseWrit
 		respondLifecycleError(w, r, err, "request information for")
 		return
 	}
-	slog.InfoContext(r.Context(), "merchant.application.information_requested", "application_id", app.ID)
+	slog.InfoContext(r.Context(), "merchant.application.information_requested", "application_id", obs.MaskID(app.ID))
 	observeApplication(appActionRequestInformation, appResultOK)
 	writeJSON(w, http.StatusOK, app)
 }

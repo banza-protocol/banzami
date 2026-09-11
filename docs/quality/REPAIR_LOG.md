@@ -2735,3 +2735,25 @@ probe: 20 admin logins/min per client → 429 with `Retry-After`, and rotating
 takes the client from `CF-Connecting-IP` for Cloudflare ranges only).
 Test: `TestRateLimitPerIP_WithoutRedisStillLimits` (no Redis / Redis down);
 the pass-through restored fails both.
+
+## RA-092 — a Business application's capability id was written whole to the logs
+
+- **Found:** 2026-09-11 (log privacy review)
+- **Status:** FIXED
+
+The public onboarding routes take the application id as the applicant's
+capability — "the unguessable capability token" (server.go):
+`/v1/merchant/applications/{id}` (status), `…/documents` (list),
+`…/documents/upload-url` (upload), `…/resubmit`. Whoever holds it can read the
+application's status and document list and add KYB documents. It was written
+whole by every nginx server (the redaction map knew only proof references and
+API keys), by the Go request loggers and the Developer API request log
+(`obs.RedactPath`), and as a structured field by nine gateway log lines.
+Now: `obs.RedactPath` keeps 8 characters of an application id in any UUID
+spelling (plain, upper case, `{…}`, `%7B…%7D`, `urn:uuid:`); a second nginx map
+stage does the same on both edges and is what the log format writes; the nine
+log fields go through `obs.MaskID`. Guards: `TestRedactPath_ApplicationID`,
+`TestMaskID`, `tests/ops/nginx-proof-log-redaction.test.mjs` (stage two, both
+edges equal, the log format writes it), `tests/ops/application-id-log-masking.test.mjs`
+(any unmasked `"application_id"` log field). Each mutation-proven. Probed live on
+the Sandbox edge with a synthetic id: prefix only.

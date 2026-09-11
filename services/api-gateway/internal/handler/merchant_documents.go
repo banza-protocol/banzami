@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/banzami/banzami/services/common/obs"
 	"log/slog"
 	"net/http"
 
@@ -111,7 +112,7 @@ func (h *MerchantDocumentHandler) RequestUploadURL(w http.ResponseWriter, r *htt
 	}
 	// Never log the signed URL — only the document id.
 	slog.InfoContext(r.Context(), "merchant.document.upload_url_issued",
-		"application_id", appID, "document_id", res.DocumentID, "document_type", body.DocumentType)
+		"application_id", obs.MaskID(appID), "document_id", res.DocumentID, "document_type", body.DocumentType)
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"document_id": res.DocumentID,
 		"upload_url":  res.Upload.URL,
@@ -134,7 +135,7 @@ func (h *MerchantDocumentHandler) ConfirmUpload(w http.ResponseWriter, r *http.R
 		h.mapErr(w, r, err)
 		return
 	}
-	slog.InfoContext(r.Context(), "merchant.document.confirmed", "application_id", appID, "document_id", docID)
+	slog.InfoContext(r.Context(), "merchant.document.confirmed", "application_id", obs.MaskID(appID), "document_id", docID)
 	writeJSON(w, http.StatusOK, view)
 }
 
@@ -183,7 +184,7 @@ func (h *MerchantDocumentHandler) AdminReadURL(w http.ResponseWriter, r *http.Re
 		return
 	}
 	// Log only that a read URL was minted — never the URL itself.
-	slog.InfoContext(r.Context(), "merchant.document.read_url_issued", "application_id", appID, "document_id", docID)
+	slog.InfoContext(r.Context(), "merchant.document.read_url_issued", "application_id", obs.MaskID(appID), "document_id", docID)
 	writeJSON(w, http.StatusOK, map[string]any{"read_url": res.URL, "expires_at": res.ExpiresAt})
 }
 
