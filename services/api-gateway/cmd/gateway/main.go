@@ -183,9 +183,16 @@ func main() {
 			AccessKeyID:     cfg.KYBStorageAccessKeyID,
 			SecretAccessKey: cfg.KYBStorageSecretKey,
 			SignedURLTTL:    time.Duration(cfg.KYBSignedURLTTLSeconds) * time.Second,
+			Environment:     env.Parse(cfg.Environment).String(),
 		})
 		if errors.Is(kerr, kybstorage.ErrNotConfigured) {
 			slog.Warn("[Track 3] KYB_STORAGE_* not set — document storage disabled (endpoints return 503)")
+			kybStore = nil
+		} else if errors.Is(kerr, kybstorage.ErrBucketEnvironment) {
+			// Disabled, not fatal: the documents endpoints answer 503 and nothing
+			// is written anywhere, while payments keep working.
+			slog.Error("[Track 3] KYB storage bucket belongs to another environment — document storage disabled",
+				"bucket", cfg.KYBStorageBucket, "environment", env.Parse(cfg.Environment).String())
 			kybStore = nil
 		} else if kerr != nil {
 			slog.Error("[Track 3] KYB storage init error", "error", kerr)

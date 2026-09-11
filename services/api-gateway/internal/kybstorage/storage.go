@@ -25,6 +25,13 @@ import (
 // HTTP layer responds 503 STORAGE_NOT_CONFIGURED — it never panics at startup.
 var ErrNotConfigured = errors.New("kyb storage not configured")
 
+// ErrBucketEnvironment is returned when the configured bucket does not belong to
+// the environment this gateway serves. Identity documents are the most sensitive
+// thing Banzami stores; a Sandbox gateway writing them to the Live bucket (or the
+// reverse) would mix a test upload with a real person's passport, and the only
+// thing keeping them apart was a value in a deployment file.
+var ErrBucketEnvironment = errors.New("kyb storage bucket does not belong to this environment")
+
 // UploadURL is a short-lived pre-signed PUT target for direct browser upload.
 type UploadURL struct {
 	URL       string
@@ -84,6 +91,9 @@ type Config struct {
 	AccessKeyID     string
 	SecretAccessKey string
 	SignedURLTTL    time.Duration
+	// Environment the gateway serves: "SANDBOX" or "LIVE". The bucket must name
+	// it and must not name the other.
+	Environment string
 }
 
 // IsConfigured reports whether the minimum required fields are present.
@@ -98,6 +108,9 @@ func NewFromConfig(c Config) (KybDocumentStorage, error) {
 	if !c.IsConfigured() {
 		return nil, ErrNotConfigured
 	}
+	if !BucketBelongsTo(c.Bucket, c.Environment) {
+		return nil, ErrBucketEnvironment
+	}
 	if c.Region == "" {
 		c.Region = "auto"
 	}
@@ -105,6 +118,22 @@ func NewFromConfig(c Config) (KybDocumentStorage, error) {
 		c.SignedURLTTL = 300 * time.Second
 	}
 	return newS3Storage(c)
+}
+
+// BucketBelongsTo reports whether a bucket is the given environment's: it names
+// that environment and not the other ("banzami-kyb-sandbox" for SANDBOX,
+// "banzami-kyb-live" for LIVE). Positive, so a bucket named for neither — a
+// typo, a shared bucket — is refused rather than assumed to be fine.
+func BucketBelongsTo(bucket, environment string) bool {
+	b := strings.ToLower(bucket)
+	switch strings.ToUpper(strings.TrimSpace(environment)) {
+	case "SANDBOX":
+		return strings.Contains(b, "sandbox") && !strings.Contains(b, "live")
+	case "LIVE":
+		return strings.Contains(b, "live") && !strings.Contains(b, "sandbox")
+	default:
+		return false
+	}
 }
 
 // buildKey is shared by every implementation so keys are uniform.

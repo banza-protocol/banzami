@@ -18,6 +18,7 @@ func testStorage(t *testing.T) *s3Storage {
 		AccessKeyID:     "AKIAEXAMPLE",
 		SecretAccessKey: "secretexample",
 		SignedURLTTL:    300 * time.Second,
+		Environment:     "SANDBOX",
 	})
 	if err != nil {
 		t.Fatalf("NewFromConfig: %v", err)
@@ -144,5 +145,34 @@ func TestFakeStorage(t *testing.T) {
 	}
 	if info, _ := f.HeadObject(context.Background(), key); info.Exists {
 		t.Fatal("object should be gone after delete")
+	}
+}
+
+// A gateway never stores identity documents in another environment's bucket.
+func TestBucketMustBelongToTheEnvironment(t *testing.T) {
+	base := Config{Provider: "r2", Endpoint: "https://acct123.r2.cloudflarestorage.com",
+		AccessKeyID: "AKIAEXAMPLE", SecretAccessKey: "secretexample"}
+	cases := []struct {
+		bucket, env string
+		ok          bool
+	}{
+		{"banzami-kyb-sandbox", "SANDBOX", true},
+		{"banzami-kyb-live", "LIVE", true},
+		{"banzami-kyb-live", "SANDBOX", false},
+		{"banzami-kyb-sandbox", "LIVE", false},
+		{"banzami-kyb", "SANDBOX", false},              // names neither
+		{"banzami-kyb-sandbox-live", "SANDBOX", false}, // names both
+		{"banzami-kyb-sandbox", "", false},             // environment unknown
+	}
+	for _, c := range cases {
+		cfg := base
+		cfg.Bucket, cfg.Environment = c.bucket, c.env
+		_, err := NewFromConfig(cfg)
+		if c.ok && err != nil {
+			t.Errorf("%s in %q refused: %v", c.bucket, c.env, err)
+		}
+		if !c.ok && err != ErrBucketEnvironment {
+			t.Errorf("%s in %q: want ErrBucketEnvironment, got %v", c.bucket, c.env, err)
+		}
 	}
 }

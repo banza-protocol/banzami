@@ -2920,3 +2920,16 @@ session as it is. `tests/phase0/lib/e2e-run.sh` and
 SDKs — an integrator-facing cancel, with its event, is a protocol question (BANZA
 ADR-043), not an operator one. Test `an_unpaid_session_cancels_with_its_interfaces`;
 dropping the owner scope or the link update fails it.
+
+## RA-100 — only a deployment value kept Sandbox KYB documents out of the Live bucket
+
+- **Found:** 2026-09-11 (closure phase, §11 KYB R2 boundary)
+- **Status:** FIXED (code)
+
+The gateway stored KYB documents in whatever `KYB_STORAGE_BUCKET` named. The Sandbox
+names `banzami-kyb-sandbox`, correctly — and nothing in the code would have noticed
+`banzami-kyb-live` there, or the reverse. `kybstorage.NewFromConfig` now takes the
+gateway's environment and refuses a bucket that does not name it, or names the other
+(`ErrBucketEnvironment`); positive, so a bucket named for neither is refused too. The
+gateway then runs with document storage disabled (the document endpoints answer 503)
+instead of writing anywhere. Test `TestBucketMustBelongToTheEnvironment` (seven cases).
