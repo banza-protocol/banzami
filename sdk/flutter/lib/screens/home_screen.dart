@@ -9,6 +9,7 @@ import '../utils/banzami_toast.dart';
 import '../widgets/banzami_sandbox_banner.dart';
 import '../utils/camera_permission.dart';
 import '../utils/date_formatter.dart';
+import '../utils/error_messages.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_components.dart';
 import 'receive_screen.dart';
@@ -121,17 +122,20 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
       final bal = await widget.client.getBalance();
       debugPrint(
           '[refresh] Home balance updated: ${bal.availableMinor} ${bal.currency}');
-      if (mounted)
+      if (mounted) {
         setState(() {
           _balance = bal;
+          _error = null; // a successful reload clears the old failure
           _loadingBalance = false;
         });
-    } catch (_) {
-      if (mounted)
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _error = 'Não foi possível carregar o saldo';
+          _error = banzamiErrorMessage(e);
           _loadingBalance = false;
         });
+      }
     }
   }
 
@@ -755,16 +759,8 @@ class _EmptyActivity extends StatelessWidget {
 // Sandbox fund panel — premium funding card
 // =============================================================================
 
-String _fmtKz(int kz) {
-  final s = kz.toString();
-  final buf = StringBuffer();
-  for (var i = 0; i < s.length; i++) {
-    if (i > 0 && (s.length - i) % 3 == 0) buf.writeCharCode(0x202F);
-    buf.write(s[i]);
-  }
-  buf.write(' Kz');
-  return buf.toString();
-}
+/// Whole kwanzas in the standard money format ("50 000 Kz").
+String _fmtKz(int kz) => formatMinor(kz * 100, 'AOA');
 
 class _SandboxFundPanel extends StatefulWidget {
   final ConsumerPublicClient client;
@@ -806,11 +802,13 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
       setState(() => _expanded = false);
       BanzamiToast.showSuccess(
         context,
-        '${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox',
+        '${formatMinor(result.creditedMinor, result.currency)} adicionados à carteira sandbox',
       );
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
-      BanzamiToast.showError(context, 'Erro ao adicionar fundos');
+      // e.g. PILOT_LIMIT_AGGREGATE_FUNDS_EXCEEDED: the pilot's test-funds cap
+      // was reached — say that, not a generic error.
+      BanzamiToast.showError(context, banzamiErrorMessage(e));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
