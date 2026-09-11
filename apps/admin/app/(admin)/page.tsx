@@ -8,7 +8,9 @@ import { AdminApi, type MerchantApplication } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader } from '@/components/ui/table';
 import { ActivityFeed } from '@/components/layout/activity-feed';
-import { formatKz, formatDate, initials, withAt } from '@/lib/format';
+import { formatDate, initials, withAt } from '@/lib/format';
+import { overviewFigures } from '@/lib/overview';
+import { PRODUCT_TZ_LABEL } from '@/lib/time';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -25,16 +27,16 @@ type Kpi = {
   color: string;
 };
 
-const isToday = (iso: string) => {
-  const d = new Date(iso);
-  const n = new Date();
-  return d.getFullYear() === n.getFullYear() && d.getMonth() === n.getMonth() && d.getDate() === n.getDate();
-};
+// A figure whose source failed to load is unknown — shown as "—" with a
+// "falhou ao carregar" chip, never as 0.
+const UNKNOWN_CHIP = 'falhou ao carregar';
+const UNKNOWN_STYLE = { bg: '#f1ebeb', color: '#7a6a6e' };
 
 export default function OverviewPage() {
   const [loading, setLoading] = useState(true);
   const [kpis, setKpis] = useState<Kpi[]>([]);
   const [queue, setQueue] = useState<MerchantApplication[]>([]);
+  const [queueFailed, setQueueFailed] = useState(false);
   const [activity, setActivity] = useState<{ text: string; time: string; dot: string }[]>([]);
 
   useEffect(() => {
@@ -54,36 +56,36 @@ export default function OverviewPage() {
 
       if (!alive) return;
 
-      const appList = apps.status === 'fulfilled' ? apps.value.applications : [];
-      const pending = appList.filter((a) => a.status === 'SUBMITTED');
-      const review = appList.filter((a) => a.status === 'UNDER_REVIEW');
-      const kycQueue = appList.filter((a) => a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW');
-
-      const openDisputes = disputes.status === 'fulfilled' ? disputes.value.data.length : null;
-      const pendingPayouts = payouts.status === 'fulfilled' ? payouts.value.data : null;
-      const payoutSum = pendingPayouts ? pendingPayouts.reduce((s, p) => s + (p.amount?.amount_minor ?? 0), 0) : 0;
+      const appList = apps.status === 'fulfilled' ? apps.value.applications : null;
       const reconDiv = recon.status === 'fulfilled' ? recon.value.data.filter((r) => (r.total_discrepancy_minor ?? 0) > 0) : null;
-      const settledToday = settlements.status === 'fulfilled' ? settlements.value.data.filter((s) => isToday(s.created_at)) : null;
-      const settledSum = settledToday ? settledToday.reduce((s, x) => s + (x.net_amount?.amount_minor ?? 0), 0) : 0;
+      const f = overviewFigures({
+        applications: appList,
+        openDisputes: disputes.status === 'fulfilled' ? disputes.value.data.length : null,
+        pendingPayouts: payouts.status === 'fulfilled' ? payouts.value.data : null,
+        settled: settlements.status === 'fulfilled' ? settlements.value.data : null,
+      });
 
-      const dash = (v: number | null) => (v == null ? '—' : String(v));
+      // Each KPI is either what its source said, or explicitly unknown.
+      const kpi = (k: Omit<Kpi, 'value' | 'chip'>, known: { value: string; chip: string } | null): Kpi =>
+        known ? { ...k, ...known } : { ...k, ...UNKNOWN_STYLE, value: '—', chip: UNKNOWN_CHIP };
 
       setKpis([
-        { key: 'vol', label: 'Volume liquidado hoje', value: settledToday ? formatKz(settledSum) : '—',
-          chip: settledToday ? `${settledToday.length} liquidações` : 'não disponível', Icon: Layers, bg: '#eafaf0', color: '#1f9d57' },
-        { key: 'kyc', label: 'KYC pendentes', value: dash(kycQueue.length),
-          chip: `${review.length} em análise`, Icon: Building2, bg: '#FBEFD8', color: '#b5790f' },
-        { key: 'apps', label: 'Candidaturas Business', value: dash(pending.length),
-          chip: 'a aguardar', Icon: FileText, bg: '#FFF1F0', color: '#B5101F' },
-        { key: 'disp', label: 'Disputas abertas', value: dash(openDisputes),
-          chip: openDisputes ? 'a resolver' : 'sem abertas', Icon: Scale, bg: '#fbe3e1', color: '#9A1B22' },
-        { key: 'recon', label: 'Reconciliações c/ divergência', value: dash(reconDiv ? reconDiv.length : null),
-          chip: reconDiv && reconDiv[0] ? formatDate(reconDiv[0].reconciliation_date) : '—', Icon: RefreshCw, bg: '#e9effb', color: '#3a5bd0' },
-        { key: 'pay', label: 'Levantamentos pendentes', value: dash(pendingPayouts ? pendingPayouts.length : null),
-          chip: pendingPayouts ? formatKz(payoutSum) : 'não disponível', Icon: CreditCard, bg: '#FFF1F0', color: '#7a6a6e' },
+        kpi({ key: 'vol', label: `Volume liquidado hoje (${PRODUCT_TZ_LABEL})`, Icon: Layers, bg: '#eafaf0', color: '#1f9d57' },
+          f.settledToday && { value: f.settledToday.volume, chip: `${f.settledToday.count} liquidações` }),
+        kpi({ key: 'kyb', label: 'Candidaturas Business por rever (KYB)', Icon: Building2, bg: '#FBEFD8', color: '#b5790f' },
+          f.applicationsToReview && { value: String(f.applicationsToReview.total), chip: `${f.applicationsToReview.underReview} em análise` }),
+        kpi({ key: 'apps', label: 'Candidaturas Business novas', Icon: FileText, bg: '#FFF1F0', color: '#B5101F' },
+          f.newApplications != null ? { value: String(f.newApplications), chip: 'por abrir' } : null),
+        kpi({ key: 'disp', label: 'Disputas abertas', Icon: Scale, bg: '#fbe3e1', color: '#9A1B22' },
+          f.openDisputes != null ? { value: String(f.openDisputes), chip: f.openDisputes ? 'a resolver' : 'sem abertas' } : null),
+        kpi({ key: 'recon', label: 'Reconciliações c/ divergência', Icon: RefreshCw, bg: '#e9effb', color: '#3a5bd0' },
+          reconDiv ? { value: String(reconDiv.length), chip: reconDiv[0] ? formatDate(reconDiv[0].reconciliation_date) : '—' } : null),
+        kpi({ key: 'pay', label: 'Levantamentos pendentes', Icon: CreditCard, bg: '#FFF1F0', color: '#7a6a6e' },
+          f.pendingPayouts && { value: String(f.pendingPayouts.count), chip: f.pendingPayouts.volume }),
       ]);
 
-      setQueue(kycQueue.slice(0, 5));
+      setQueueFailed(appList === null);
+      setQueue((appList ?? []).filter((a) => a.status === 'SUBMITTED' || a.status === 'UNDER_REVIEW').slice(0, 5));
 
       if (audit.status === 'fulfilled') {
         setActivity(
@@ -148,7 +150,7 @@ export default function OverviewPage() {
       <div className="grid grid-cols-[1.6fr_1fr] gap-4 max-[1040px]:grid-cols-1">
         <Card>
           <CardHeader
-            title="Fila de verificação KYC"
+            title="Fila de candidaturas Business (KYB)"
             action={
               <Link href="/merchants" className="text-[13px] font-extrabold text-[#B5101F]">
                 Ver todos →
@@ -158,6 +160,8 @@ export default function OverviewPage() {
           <div>
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => <div key={i} className="adm-skel mx-[22px] my-[14px] h-[38px] rounded-[11px]" />)
+            ) : queueFailed ? (
+              <div className="px-[22px] py-10 text-center text-[13.5px] font-semibold text-[#B5101F]">Não foi possível carregar as candidaturas.</div>
             ) : queue.length === 0 ? (
               <div className="px-[22px] py-10 text-center text-[13.5px] font-semibold text-[#9a8a8e]">Nenhuma candidatura por rever.</div>
             ) : (

@@ -25,6 +25,9 @@ export interface Settlement {
   transaction_count: number;
   period_start:      string;
   period_end:        string;
+  /** Set when the settlement was submitted / became SETTLED (core Settlement). */
+  submitted_at?:     string | null;
+  settled_at?:       string | null;
   created_at:        string;
   updated_at:        string;
 }
