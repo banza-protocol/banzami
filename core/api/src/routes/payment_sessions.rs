@@ -509,6 +509,67 @@ pub async fn get(
     Ok(Json(fetch_session(&state.pool, id).await?))
 }
 
+#[derive(Deserialize)]
+pub struct CancelBody {
+    /// The owner the caller acts for. A session of another owner is not found.
+    pub merchant_id: String,
+}
+
+/// POST /internal/v1/payment-sessions/:id/cancel — end an unpaid session.
+///
+/// CANCELLED was always a session state and nothing could reach it: an unpaid
+/// session stayed open for good, its link and QR payable, and the account it
+/// pays into could never be closed (a close refuses an open session). The
+/// session, its link and its QR end in one statement. A session that has been
+/// paid, even in part, is refused — money arrived against it. Cancelling a
+/// cancelled session answers with the session as it is.
+pub async fn cancel(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<CancelBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let id = Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("invalid id"))?;
+    let merchant = Uuid::parse_str(&body.merchant_id)
+        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let status: Option<String> = sqlx::query_scalar(
+        "SELECT status FROM payment_sessions WHERE id = $1 AND merchant_id = $2",
+    )
+    .bind(id)
+    .bind(merchant)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(db)?;
+    match status.as_deref() {
+        None => return Err(ApiError::not_found("payment session not found")),
+        Some("PAID") | Some("PARTIALLY_PAID") => {
+            return Err(ApiError::conflict(
+                "SESSION_PAID",
+                "money arrived against this session — it cannot be cancelled",
+            ))
+        }
+        _ => {}
+    }
+    sqlx::query(
+        "WITH s AS (
+            UPDATE payment_sessions SET status = 'CANCELLED', updated_at = now()
+             WHERE id = $1 AND merchant_id = $2 AND status IN ('CREATED','ACTIVE')
+         RETURNING payment_link_id, qr_code_id
+         ), link AS (
+            UPDATE payment_links SET status = 'CANCELLED', updated_at = now()
+             WHERE id IN (SELECT payment_link_id FROM s) AND status = 'ACTIVE'
+         )
+         UPDATE qr_codes SET status = 'EXPIRED'
+          WHERE id IN (SELECT qr_code_id FROM s) AND status = 'ACTIVE'",
+    )
+    .bind(id)
+    .bind(merchant)
+    .execute(&state.pool)
+    .await
+    .map_err(db)?;
+    Ok(Json(fetch_session(&state.pool, id).await?))
+}
+
 /// Resolve the session that owns a payment link or QR (for webhook enrichment).
 /// `kind` is "link" or "qr". Returns the session JSON or 404.
 pub async fn get_by_interface(

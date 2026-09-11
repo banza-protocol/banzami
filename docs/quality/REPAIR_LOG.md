@@ -2902,3 +2902,21 @@ Migration 0128 repairs the sessions paid before; no event is sent for them. Coun
 `a_session_paid_on_the_acquiring_rail_is_paid` and
 `a_retried_confirmation_pays_a_session_the_first_one_missed` — removing either call
 fails its test; `tests/ops/migration-0128-sessions-paid-on-hosted-rail.test.mjs`.
+
+## RA-099 — an unpaid Payment Session could never end
+
+- **Found:** 2026-09-11 (closure phase)
+- **Status:** FIXED (code)
+
+`CANCELLED` has been a session state since 0085 and nothing could reach it. An unpaid
+session stayed open for good: its link and its dynamic QR stayed payable into the
+account, and the account could never be closed, because a close refuses an open
+session. The harnesses "cleaned up" a session by cancelling its link, which left
+the session and its QR open. Core now has `POST /internal/v1/payment-sessions/:id/cancel`
+(owner-scoped, operator route): the session, its link and its QR end in one statement;
+a session paid even in part is refused (`SESSION_PAID`); repeating it answers with the
+session as it is. `tests/phase0/lib/e2e-run.sh` and
+`tools/ops/retire-synthetic-residue.sh` use it. Not exposed on the public API or the
+SDKs — an integrator-facing cancel, with its event, is a protocol question (BANZA
+ADR-043), not an operator one. Test `an_unpaid_session_cancels_with_its_interfaces`;
+dropping the owner scope or the link update fails it.

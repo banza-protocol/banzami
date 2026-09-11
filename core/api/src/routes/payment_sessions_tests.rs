@@ -243,3 +243,96 @@ async fn paying_a_session_retires_its_other_interface(pool: PgPool) {
         }
     }
 }
+
+// An unpaid session can be ended, and ending it ends its link and its QR. A
+// paid one cannot, and another owner's is not found.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn an_unpaid_session_cancels_with_its_interfaces(pool: PgPool) {
+    use crate::routes::payment_sessions::CancelBody;
+    use axum::extract::Path;
+
+    let (merchant, _wid, wa, _) = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+    let mk = |reference: &'static str| {
+        let state = state.clone();
+        async move {
+            let (_, Json(s)) = routes::create(
+                State(state),
+                Json(body(merchant, wa, Some(5_000), Some(reference))),
+            )
+            .await
+            .unwrap();
+            s
+        }
+    };
+    let open = mk("camp_cancel").await;
+    let sid = open["session_id"].as_str().unwrap().to_string();
+    let link = Uuid::parse_str(open["payment_link_id"].as_str().unwrap()).unwrap();
+    let qr = Uuid::parse_str(open["qr_code_id"].as_str().unwrap()).unwrap();
+
+    let other = routes::cancel(
+        State(state.clone()),
+        Path(sid.clone()),
+        Json(CancelBody {
+            merchant_id: Uuid::new_v4().to_string(),
+        }),
+    )
+    .await;
+    assert!(
+        other.is_err(),
+        "another owner's session must not be cancellable"
+    );
+
+    let Json(done) = routes::cancel(
+        State(state.clone()),
+        Path(sid.clone()),
+        Json(CancelBody {
+            merchant_id: merchant.to_string(),
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(done["status"], "CANCELLED");
+    let link_status: String = sqlx::query_scalar("SELECT status FROM payment_links WHERE id = $1")
+        .bind(link)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let qr_status: String = sqlx::query_scalar("SELECT status FROM qr_codes WHERE id = $1")
+        .bind(qr)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        link_status, "CANCELLED",
+        "a cancelled session left its link payable"
+    );
+    assert_eq!(
+        qr_status, "EXPIRED",
+        "a cancelled session left its QR payable"
+    );
+    // Again: the same answer, nothing else changes.
+    let Json(again) = routes::cancel(
+        State(state.clone()),
+        Path(sid),
+        Json(CancelBody {
+            merchant_id: merchant.to_string(),
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(again["status"], "CANCELLED");
+
+    let paid = mk("camp_paid_then_cancel").await;
+    let paid_link = Uuid::parse_str(paid["payment_link_id"].as_str().unwrap()).unwrap();
+    routes::settle_for_interface(&state, "link", paid_link, Uuid::new_v4(), 5_000, "TEST").await;
+    let refused = routes::cancel(
+        State(state),
+        Path(paid["session_id"].as_str().unwrap().to_string()),
+        Json(CancelBody {
+            merchant_id: merchant.to_string(),
+        }),
+    )
+    .await;
+    assert!(refused.is_err(), "a paid session must not be cancellable");
+}

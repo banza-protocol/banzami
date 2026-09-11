@@ -539,6 +539,10 @@ async fn main() {
             get(routes::payment_sessions::get),
         )
         .route(
+            "/internal/v1/payment-sessions/:id/cancel",
+            post(routes::payment_sessions::cancel),
+        )
+        .route(
             "/internal/v1/payment-sessions/by-interface/:kind/:ref_id",
             get(routes::payment_sessions::get_by_interface),
         )
