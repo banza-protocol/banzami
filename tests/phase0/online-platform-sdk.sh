@@ -41,7 +41,7 @@ onboard(){ SEQ=$((SEQ+1));local ph="+2449${RR}$(printf '%03d' $SEQ)";local h="k$
   call "$PUB" 8083 - POST /v1/consumer/onboarding/start "{\"phone_number\":\"$ph\",\"currency\":\"AOA\",\"otp_plaintext_for_test\":\"123456\"}" - - >/dev/null;local sid=$(jget session_id);
   call "$PUB" 8083 - POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$sid\",\"otp_code\":\"123456\"}" - - >/dev/null;
   call "$PUB" 8083 - POST /v1/consumer/onboarding/complete "{\"session_id\":\"$sid\",\"banza_handle\":\"$h\",\"pin\":\"1234\"}" - - >/dev/null;
-  OCID=$(jget consumer_id);OWID=$(jget wallet_id);}
+  OCID=$(jget consumer_id);OWID=$(jget wallet_id);e2e_own consumer "$OCID";}
 kyc(){ local j=$(mint customer_id "$1");call "$GW" 8080 - POST /v1/compliance/customers/verify "{\"full_name\":\"SYN\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"SY${RR}${SEQ}\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$j" >/dev/null;}
 fund(){ call "$CORE" 8081 - POST /internal/v1/consumer-wallets/test-credit "{\"consumer_id\":\"$1\",\"amount_minor\":$2,\"currency\":\"AOA\"}" - - >/dev/null;jget new_balance;}
 cbal(){ call "$CORE" 8081 - GET "/internal/v1/consumer-wallets/$1/balance" - - - >/dev/null;printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);process.stdout.write(String(j.available?.amount_minor??"0"))}catch(e){process.stdout.write("0")}})';}

@@ -54,6 +54,7 @@
 #   e2e_own webhook_endpoint "$EP_ID" "$MERCHANT_ID"
 #   e2e_own merchant      "$MERCHANT_ID"         # funds retired, accounts closed, suspended
 #   e2e_own consumer      "$CONSUMER_ID"         # funds retired, suspended
+#   e2e_own merchant_application "$APP_ID"       # rejected if still undecided
 #   # cleanup happens on the way out, however the script exits
 #
 # Set E2E_NO_CLEANUP=1 to deliberately leak — used by the mutation test that
@@ -86,6 +87,7 @@ e2e_discover() {
   E2E_DEV=$(docker ps --format '{{.Names}}' | grep developer-api       | head -1)
   E2E_INTKEY=$(docker exec "$E2E_DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null' 2>/dev/null)
   E2E_JWTSEC=$(docker exec "$E2E_GW"  sh -c 'cat /run/secrets/jwt_secret 2>/dev/null' 2>/dev/null)
+  E2E_GWKEY=$(docker exec "$E2E_GW" sh -c 'tr "\0" "\n" < /proc/1/environ | sed -n "s/^INTERNAL_API_KEY=//p"' 2>/dev/null)
 }
 
 # ── identity ────────────────────────────────────────────────────────────────
@@ -192,7 +194,7 @@ e2e_end() {
   # belong to a project or a merchant, and the merchant is retired last —
   # suspending it first would refuse every call that follows.
   local kind id owner code
-  for kind in payment_session payment_link webhook_endpoint merchant_key fixture_key fixture_project merchant consumer; do
+  for kind in payment_session payment_link webhook_endpoint merchant_key fixture_key fixture_project merchant consumer merchant_application; do
     while IFS=$'\t' read -r k id owner; do
       [ "$k" = "$kind" ] || continue
       case "$kind" in
@@ -238,6 +240,15 @@ e2e_end() {
           code=$(e2e_retire_merchant_funds "$id")
           case "$code" in
             2*) code=$(e2e_http "$E2E_GW" 8080 POST "/v1/merchants/$id/suspend" "Authorization: Bearer $(e2e_jwt merchant_id "$id")") ;;
+          esac ;;
+        merchant_application)
+          # An application nobody decided sits in the operator's queue for
+          # good. Rejected through the operator route; a decided one needs
+          # nothing.
+          case "$(e2e_sql "select status from merchant_applications where id = '$id'")" in
+            REJECTED|APPROVED|CANCELLED|"") code=204 ;;
+            *) code=$(printf '{"reviewed_by":"e2e-run","admin_notes":"e2e fixture %s","merchant_message":"Candidatura de teste encerrada."}' "$E2E_RUN_ID" \
+                 | docker exec -i -e IK="$E2E_GWKEY" "$E2E_GW" sh -c "curl -s -o /dev/null -w '%{http_code}' -X POST -H \"X-Internal-Key: \$IK\" -H 'Content-Type: application/json' --data @- 'http://localhost:8080/internal/v1/merchant-applications/$id/reject'" 2>/dev/null) ;;
           esac ;;
         consumer)
           code=$(e2e_core POST /internal/v1/sandbox/retire-funds "{\"owner_type\":\"CONSUMER\",\"owner_id\":\"$id\",\"reason\":\"e2e fixture $E2E_RUN_ID\",\"retired_by\":\"e2e-run\",\"idempotency_key\":\"e2e-$E2E_RUN_ID-c-$id\"}")

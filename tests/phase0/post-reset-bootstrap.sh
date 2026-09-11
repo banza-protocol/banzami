@@ -68,6 +68,7 @@ SID=$(jget session_id)
 call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
 call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
 PAYER=$(jget consumer_id)
+e2e_own consumer "$PAYER"   # its unspent funding is retired at the end
 chk PAYER_ONBOARDED "$([ -n "$PAYER" ] && echo yes)" yes
 CJWT=$(mint customer_id "$PAYER")
 call "$GW" 8080 POST /v1/compliance/customers/verify \
