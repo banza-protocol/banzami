@@ -118,6 +118,22 @@ zero on a clean database and moves for the defect it exists to catch
 | `/v1/public/pay/{slug}` (SDK path) | reaches the handler |
 | Unknown route / wrong method, three APIs | JSON error in each API's shape |
 
+### Sandbox harnesses (run against the deployed stack, 2026-09-11)
+
+| Harness | Result |
+|---|---|
+| `proof-lookup-assurance.sh` (every alias of every stored proof refused; synthetic register absent) | PASS 10 / FAIL 0 |
+| `receipt-assurance.sh` (payee, operation, reference and instant agree on proof, PDF, verifier, app) | PASS 25 / FAIL 0 |
+| `business-tenant-isolation.sh` | PASS 21 / FAIL 0 |
+| `ledger-reconciliation.sh` | PASS 6 / FAIL 0 |
+| `pay-frontend-lifecycle-e2e.sh` | PASS 7 / FAIL 0 |
+| `webhook-retry-cleanroom.sh` (a real retried delivery, judged by a verifier that never saw the signer) | PASS 16 / FAIL 0 |
+| `sandbox-host-attestation.sh` | PASS 14 / FAIL 0 (after recording BANZADMIN's two containers — 8d5bd73b) |
+| `refund-settlement-matrix.sh`, `economic-model-smoke.sh` | stale — their settlement steps use the contract retired on 2026-09-05 (§8) |
+
+Harnesses that touch DOA's Project (fixture keys, campaign accounts, deliveries
+to doadoa.app) were deliberately not run.
+
 ## 5. SDK and contract drift
 
 | Drift | Fix |
