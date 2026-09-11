@@ -457,9 +457,15 @@ export interface ListDisputesParams {
 }
 
 // ---------------------------------------------------------------------------
-// Payment requests
+// Payment requests — DEPRECATED (RA-057)
 // ---------------------------------------------------------------------------
+//
+// The payment-request methods were removed with their gateway routes (RA-057):
+// they let a caller name any requester and debit any payer. These types stayed
+// exported from a published package, so they remain for one more major version
+// to avoid breaking a compile, but nothing in this SDK uses them.
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method returns this. Removed in the next major version. */
 export type PaymentRequestStatus =
   | 'PENDING'
   | 'PAID'
@@ -467,6 +473,7 @@ export type PaymentRequestStatus =
   | 'CANCELLED'
   | 'EXPIRED';
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method returns this. Removed in the next major version. */
 export interface PaymentRequest {
   id:             string;
   requester_id:   string;
@@ -480,6 +487,7 @@ export interface PaymentRequest {
   updated_at:     string;
 }
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method accepts this. Removed in the next major version. */
 export interface CreatePaymentRequestParams {
   requester_id:     string;
   payer_handle?:    string;
@@ -490,6 +498,7 @@ export interface CreatePaymentRequestParams {
   idempotency_key?: string;
 }
 
+/** @deprecated Payment requests were withdrawn (RA-057); no method accepts this. Removed in the next major version. */
 export interface ListPaymentRequestsParams {
   status?: PaymentRequestStatus;
   limit?:  number;

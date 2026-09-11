@@ -2,7 +2,7 @@
 
 Official PHP SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings. All monetary values are in AOA (Kwanza), expressed as **integer minor units**.
+Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surface of this SDK is **payment links** (and the QR that encodes them) — not card forms or IBAN strings. All monetary values are **integer minor units**; for AOA the minor unit is the cêntimo, so **1 Kz = 100 minor units** (`'amount_minor' => 50000` is 500 Kz).
 
 > See [ADR-013](../../docs/adr/ADR-013-wallet-native-identity.md) and [ADR-014](../../docs/adr/ADR-014-angola-national-mission.md) for platform identity and market positioning.
 
@@ -42,34 +42,16 @@ $client = new BanzamiClient(
 );
 ```
 
-For sandbox testing, use `bz_sandbox_...` keys with `environment: 'sandbox'`. Sandbox and live environments are completely isolated — keys from one environment will be rejected by the other.
+For sandbox testing, use `bz_test_...` keys with `environment: 'sandbox'`. Sandbox and live environments are completely isolated — keys from one environment will be rejected by the other.
 
 ---
 
-## QR payments (Tier 1 — primary use case)
+## Being paid by QR
 
-QR is the canonical payment surface for Angolan merchants. A merchant displays a QR code; the consumer scans it; payment is instant.
-
-### Static QR (payer sets the amount)
-
-```php
-// Static QR — merchant prints once, consumers scan to pay any amount
-$qr = $client->createStaticQr($consumerId);
-echo $qr['payload'];       // banzami://pay/...
-echo $qr['qr_code']['type']; // "STATIC"
-```
-
-### Dynamic QR (fixed amount, time-limited)
-
-```php
-// Dynamic QR — merchant generates per-transaction, amount is pre-set
-$qr = $client->createDynamicQr([
-    'owner_id'     => $merchantConsumerId,
-    'amount_minor' => 12500,             // 12 500 Kz
-    'reference'    => 'Factura #42',
-    'expires_at'   => (new DateTime('+1 hour'))->format(DateTime::RFC3339),
-]);
-```
+To be paid by QR, create a **payment link** (below) and encode its pay URL
+(`https://pay.banzami.com/pay/{slug}`) into the QR image. Any phone camera opens
+the pay page. This SDK does not issue structured Banzami QR codes; no route pays
+one today.
 
 ---
 
@@ -82,13 +64,13 @@ Payment links are shareable URLs for remote commerce — the merchant shares a l
 $link = $client->createPaymentLink([
     'merchant_id'  => 'mch_...',
     'wallet_id'    => 'wlt_...',
-    'amount_minor' => 15000,             // 15 000 Kz
+    'amount_minor' => 15000,             // 150 Kz
     'description'  => 'Cabrito assado',
     'expires_at'   => (new DateTime('+24 hours'))->format(DateTime::RFC3339),
 ]);
 
 echo $link['slug'];   // e.g. "abc123"
-// Share: https://pay.banzami.com/abc123
+// Share: https://pay.banzami.com/pay/abc123
 
 // Open-amount link (consumer sets the amount)
 $link = $client->createPaymentLink([
@@ -100,28 +82,13 @@ $link = $client->createPaymentLink([
 
 ---
 
-## P2P transfers
-
-```php
-// Send money to another consumer by wallet ID
-$transfer = $client->sendTransfer([
-    'sender_id'    => 'cns_sender_id',
-    'recipient_id' => 'cns_recipient_id',
-    'amount_minor' => 5000,              // 5 000 Kz
-    'description'  => 'Almoço',
-]);
-echo $transfer['status']; // "COMPLETED"
-```
-
----
-
 ## Transactions
 
 ```php
 // Create a transaction against a merchant wallet
 $tx = $client->createTransaction([
     'idempotency_key' => 'order-12345',
-    'amount_minor'    => 25000,           // 25 000 Kz
+    'amount_minor'    => 25000,           // 250 Kz
     'currency'        => 'AOA',
     'description'     => 'Encomenda #12345',
     'wallet_id'       => 'wlt_...',
@@ -129,7 +96,7 @@ $tx = $client->createTransaction([
 echo $tx['status']; // "PENDING"
 
 // List with pagination
-$page = $client->listTransactions(['limit' => 50]);
+$page = $client->listTransactions(limit: 50);
 foreach ($page['data'] as $t) {
     echo $t['id'] . ' — ' . $t['amount_minor'] . " AOA\n";
 }
@@ -140,15 +107,18 @@ foreach ($page['data'] as $t) {
 ## Refunds
 
 ```php
-// Partial refund
+// Partial refund of a typed payment source
 $refund = $client->createRefund([
-    'transaction_id' => 'txn_...',
-    'amount_minor'   => 2500,            // 2 500 Kz
-    'reason'         => 'Produto devolvido',
+    'source_type'     => 'WALLET_PAYMENT',   // or ACQUIRING_PAYMENT
+    'source_id'       => 'wp_...',
+    'amount_minor'    => 2500,               // 25 Kz
+    'currency'        => 'AOA',
+    'reason'          => 'Produto devolvido',
+    'idempotency_key' => 'refund-order-12345', // required: a stable key for this refund
 ]);
 echo $refund['status']; // "PENDING"
 
-$page = $client->listRefunds(['transaction_id' => 'txn_...']);
+$page = $client->listRefunds(limit: 20, sourceId: 'wp_...');
 ```
 
 ---
@@ -158,11 +128,14 @@ $page = $client->listRefunds(['transaction_id' => 'txn_...']);
 ```php
 $dispute = $client->openDispute([
     'transaction_id' => 'txn_...',
+    'consumer_id'    => 'cns_...',
+    'amount_minor'   => 25000,           // 250 Kz
+    'currency'       => 'AOA',
     'reason'         => 'Serviço não prestado conforme acordado',
 ]);
 echo $dispute['status']; // "OPEN"
 
-$page = $client->listDisputes(['status' => 'OPEN']);
+$page = $client->listDisputes(status: 'OPEN');
 ```
 
 ---
@@ -177,16 +150,6 @@ echo "Reservado:  {$balance['reserved_minor']} AOA\n";
 
 ---
 
-## Payouts
-
-```php
-// Request a payout of 100 000 Kz to the merchant's bank account
-$payout = $client->createPayout('wlt_...', 100000);
-echo $payout['status']; // "PENDING"
-```
-
----
-
 ## Webhooks
 
 Banzami signs every webhook delivery. Always verify the signature before processing.
@@ -197,13 +160,13 @@ use Banzami\Exceptions\WebhookSignatureException;
 
 // In your webhook handler (raw request body required — do not parse first):
 $rawBody  = file_get_contents('php://input');
-$sigHeader = $_SERVER['HTTP_BANZAMI_SIGNATURE'] ?? '';
+$sigHeader = $_SERVER['HTTP_BANZA_SIGNATURE'] ?? '';  // the banza-signature header
 
 try {
     $event = Webhooks::constructEvent(
         rawBody:   $rawBody,
         signature: $sigHeader,
-        secret:    $_ENV['BANZAMI_WEBHOOK_SECRET'],
+        secret:    $_ENV['BANZA_WEBHOOK_SECRET'],
     );
 } catch (WebhookSignatureException $e) {
     http_response_code(400);
@@ -211,9 +174,9 @@ try {
 }
 
 match ($event['type']) {
+    'payment_link.paid'     => handleLinkPaid($event['data']),
     'transaction.completed' => handlePayment($event['data']),
     'payout.completed'      => handlePayout($event['data']),
-    'refund.created'        => handleRefund($event['data']),
     default                 => null,
 };
 ```
@@ -235,15 +198,15 @@ use Banzami\Exceptions\ApiException;
 use Banzami\Exceptions\BanzamiException;
 
 try {
-    $transfer = $client->sendTransfer([...]);
+    $link = $client->createPaymentLink([...]);
 } catch (ApiException $e) {
-    if ($e->isInsufficientFunds()) {
-        echo "Saldo insuficiente\n";
-    } elseif ($e->isWalletNotFound()) {
-        echo "Carteira não encontrada\n";
+    if ($e->isNotFound()) {
+        echo "Não encontrado\n";
+    } elseif ($e->getErrorCode() === 'LINK_NOT_ACTIVE') {
+        echo "Link já não está activo\n";
     } else {
-        echo "Erro API {$e->getCode()}: {$e->getMessage()}\n";
-        echo "HTTP status: {$e->getStatus()}\n";
+        echo "Erro API {$e->getErrorCode()}: {$e->getMessage()}\n";
+        echo "HTTP status: {$e->getStatusCode()}\n";
     }
 } catch (BanzamiException $e) {
     // Network or configuration errors
@@ -251,14 +214,13 @@ try {
 }
 ```
 
-| Exception method | Condition |
+| `ApiException` method | Meaning |
 |-----------------|-----------|
-| `isInsufficientFunds()` | Sender wallet has insufficient balance |
-| `isWalletNotFound()` | Wallet ID does not exist |
-| `isWalletNotActive()` | Wallet is suspended or closed |
-| `isHandleNotFound()` | No consumer with the given @banza |
-| `isHandleTaken()` | @banza is already registered |
-| `isLinkNotActive()` | Payment link is used, cancelled, or expired |
+| `getStatusCode()` | HTTP status |
+| `getErrorCode()` | Domain error code, e.g. `WALLET_NOT_FOUND`, `LINK_NOT_ACTIVE` |
+| `isNotFound()` | HTTP 404 |
+| `isUnauthorized()` | HTTP 401 |
+| `isRateLimited()` | HTTP 429 |
 
 ---
 
@@ -276,7 +238,7 @@ php artisan vendor:publish --provider="Banzami\Laravel\BanzamiServiceProvider"
 return [
     'api_key'        => env('BANZAMI_API_KEY'),
     'environment'    => env('BANZAMI_ENVIRONMENT', 'sandbox'),
-    'webhook_secret' => env('BANZAMI_WEBHOOK_SECRET'),
+    'webhook_secret' => env('BANZA_WEBHOOK_SECRET'),
 ];
 ```
 
@@ -289,12 +251,12 @@ use Banzami\Laravel\Facades\Banzami;
 $link = Banzami::createPaymentLink([
     'merchant_id'  => 'mch_...',
     'wallet_id'    => 'wlt_...',
-    'amount_minor' => 10000,
+    'amount_minor' => 10000,             // 100 Kz
     'description'  => 'Produto X',
 ]);
 
 // Verify a webhook
-$event = Banzami::webhooks()->constructEvent(
+$event = \Banzami\Webhooks::constructEvent(
     rawBody:   $rawBody,
     signature: $sigHeader,
     secret:    config('banzami.webhook_secret'),
@@ -305,14 +267,17 @@ $event = Banzami::webhooks()->constructEvent(
 
 ## Idempotency
 
-All POST operations accept an `Idempotency-Key` header. The SDK auto-generates one per request. If you need to supply your own (for safe retries after network failure):
+Every POST carries an `Idempotency-Key` header, generated by the SDK and reused across its retries. To make a transaction safe to retry after a network failure, supply your own key in the parameters:
 
 ```php
-$tx = $client->createTransaction(
-    params: ['amount_minor' => 25000, 'currency' => 'AOA', ...],
-    idempotencyKey: 'my-order-ref-12345',
-);
+$tx = $client->createTransaction([
+    'idempotency_key' => 'my-order-ref-12345',
+    'amount_minor'    => 25000,           // 250 Kz
+    'currency'        => 'AOA',
+]);
 ```
+
+A refund always needs an explicit `idempotency_key`; the SDK never generates one for it.
 
 Retrying with the same key returns the original response without creating a duplicate.
 

@@ -2,9 +2,11 @@
 
 Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings.
+Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **payment sessions**, **payment links** and their **QR codes** — not card forms or IBAN strings.
 
-All monetary values use **integer minor units** in AOA (Kwanza). No floating-point arithmetic.
+All monetary values use **integer minor units**: for AOA the minor unit is the
+cêntimo, so **1 Kz = 100 minor units** (`amountMinor: 50_000` is 500 Kz;
+`5_000_000` is 50 000 Kz). No floating-point arithmetic.
 
 Requires Node.js ≥ 18 (native `fetch`) or a browser environment.
 
@@ -129,30 +131,42 @@ if (consumer.status !== 'ACTIVE') {
 
 ---
 
+## Payment sessions (recommended)
+
+A payment session is one payment intent with every way to pay it: a payment
+link, a deep link and a QR — all crediting the same account.
+
+```typescript
+const session = await client.createPaymentSession({
+  purpose:       'ORDER',
+  referenceType: 'PEDIDO',
+  referenceId:   'pedido_123',
+  amountMinor:   25_000,        // 250 Kz
+  currency:      'AOA',
+  description:   'Pedido #123',
+});
+
+const link = client.paymentSessionInterface(session, 'PAYMENT_LINK');
+const qr   = client.paymentSessionInterface(session, 'DYNAMIC_QR');
+link?.value; // "https://pay.banzami.com/pay/{slug}" — send it to the payer
+qr?.value;   // the same pay URL — encode it into the QR you display
+```
+
+With a Developer Console key, omit `walletAccountId`: the payee comes from the
+Project's binding, and a client-supplied payee is refused.
+
+---
+
 ## QR codes
 
-### Static QR (payer sets amount)
+To be paid by QR, show the QR of a **payment session** (above) or a **payment
+link** (see [Payment QR](#payment-qr)). It encodes the hosted pay URL, which any
+phone camera opens.
 
-```typescript
-const qr = await client.createStaticQr(consumer.id);
-console.log(qr.payload);      // banzami://pay/...
-console.log(qr.qr_code.type); // "STATIC"
-```
-
-### Dynamic QR (fixed amount, expires in 1 hour)
-
-```typescript
-const qr = await client.createDynamicQr({
-  ownerId:     consumer.id,
-  amountMinor: 12500,          // 12 500 Kz
-  reference:   'Factura #42',
-  expiresAt:   new Date(Date.now() + 60 * 60 * 1000),
-});
-```
-
-A payer pays a QR from the Banzami app, which moves the money from the payer's
-own wallet under the payer's own authentication. A server key never pays on a
-person's behalf, so the SDK has no "send money from this consumer" call.
+`createStaticQr()` and `createDynamicQr()` issue structured Banzami QR codes.
+No route pays a structured QR today (the QR-pay route is being rebuilt on the
+consumer surface), so do not present them to payers. A server key never pays on
+a person's behalf, so the SDK has no "send money from this consumer" call.
 
 ---
 
@@ -163,7 +177,7 @@ person's behalf, so the SDK has no "send money from this consumer" call.
 ```typescript
 const tx = await client.createTransaction({
   idempotencyKey: 'order-12345',
-  amountMinor:    25_000,        // 25 000 Kz
+  amountMinor:    25_000,        // 250 Kz
   currency:       'AOA',
   description:    'Encomenda #12345',
   walletId:       'wlt_...',
@@ -198,7 +212,7 @@ console.log(`Reserved:  ${formatMinor(balance.reserved_minor,  balance.currency)
 ### Trigger a payout
 
 ```typescript
-const payout = await client.createPayout('wlt_...', 100_000); // 100 000 Kz
+const payout = await client.createPayout('wlt_...', 100_000); // 1 000 Kz
 console.log(payout.status); // "PENDING"
 ```
 
@@ -215,7 +229,7 @@ Payment links are shareable URLs for informal commerce — the merchant shares a
 const link = await client.createPaymentLink({
   merchantId:  'mch_...',
   walletId:    'wlt_...',
-  amountMinor: 15_000,
+  amountMinor: 15_000,         // 150 Kz
   description: 'Cabrito assado',
   expiresAt:   new Date(Date.now() + 24 * 60 * 60 * 1000),
 });
@@ -269,7 +283,7 @@ its format can evolve without every integration changing.
 ```typescript
 // You already hold the PaymentLink (e.g. from createPaymentLink) — derive
 // the QR payload with no extra network call:
-const link = await client.createPaymentLink({ merchantId, walletId, amountMinor: 150_000 });
+const link = await client.createPaymentLink({ merchantId, walletId, amountMinor: 150_000 }); // 1 500 Kz
 
 const qr = client.paymentLinkQr(link, {
   recipientHandle: '@fm65',         // optional — the gateway doesn't return it
@@ -296,16 +310,19 @@ only step that belongs to your app — the payload itself comes from the SDK.**
 ## Refunds
 
 ```typescript
-// Initiate a refund on a completed transaction
+// Refund a typed payment source (the id from the payment session's refund_source)
 const refund = await client.createRefund({
-  transactionId: 'txn_...',
-  amountMinor:   2500,        // partial refund — 2 500 Kz
-  reason:        'Produto devolvido',
+  source_type:     'WALLET_PAYMENT',
+  source_id:       'wp_...',
+  amount_minor:    2_500,       // partial refund — 25 Kz
+  currency:        'AOA',
+  reason:          'Produto devolvido',
+  idempotency_key: 'refund-order-12345', // required: a stable key for this refund
 });
 console.log(refund.status); // "PENDING"
 
-// Full list with pagination
-const page = await client.listRefunds({ transactionId: 'txn_...', limit: 20 });
+// List refunds, optionally for one source
+const page = await client.listRefunds({ sourceId: 'wp_...', limit: 20 });
 ```
 
 ---
@@ -315,8 +332,11 @@ const page = await client.listRefunds({ transactionId: 'txn_...', limit: 20 });
 ```typescript
 // Consumer opens a dispute on a transaction
 const dispute = await client.openDispute({
-  transactionId: 'txn_...',
-  reason:        'Serviço não prestado conforme acordado',
+  transaction_id: 'txn_...',
+  consumer_id:    'cns_...',
+  amount_minor:   25_000,       // 250 Kz
+  currency:       'AOA',
+  reason:         'Serviço não prestado conforme acordado',
 });
 console.log(dispute.status); // "OPEN"
 
@@ -361,7 +381,8 @@ await client.revokeApiKey('mch_...', keys[0].id);
 ```typescript
 import { formatMinor, addMinor, subtractMinor } from '@banzami/sdk/money';
 
-formatMinor(50_000, 'AOA');  // "50.000 Kz"
+formatMinor(5_000_000, 'AOA'); // "50 000 Kz"   (minor units are cêntimos)
+formatMinor(5_000_050, 'AOA'); // "50 000,50 Kz"
 formatMinor(1099,   'USD');  // "USD 10.99"
 
 addMinor(10_000, 5_000);     // 15000

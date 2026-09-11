@@ -41,3 +41,19 @@ def test_transactions_offer_no_unmounted_routes():
     assert not hasattr(TransactionsResource, "reverse")
     client = Banzami(api_key="bz_test_sk_x")
     assert not hasattr(client, "transfers")
+
+
+def test_withdrawn_payment_requests_are_not_exported():
+    # /v1/payment-requests was withdrawn by the operator (RA-057) and the
+    # resource removed; the models stayed exported, offering a feature with no
+    # route behind it (A4-06).
+    import importlib.util
+
+    import banzami
+    import banzami.models
+
+    for mod in (banzami, banzami.models):
+        assert not hasattr(mod, "PaymentRequest")
+        assert not hasattr(mod, "PaymentRequestStatus")
+        assert "PaymentRequest" not in mod.__all__
+    assert importlib.util.find_spec("banzami.models.payment_request") is None
