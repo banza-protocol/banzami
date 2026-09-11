@@ -1,6 +1,6 @@
 {
   "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox/Preview documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | documented_preview | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the CURRENT Sandbox/Preview scope only — it is not a Production contract and makes no production/live/external-provider availability claim.",
-  "version": "docs-2026-09-05",
+  "version": "docs-2026-09-11",
   "environment": "SANDBOX",
   "capabilities": {
     "console_auth_workspaces_projects_members_keys": {
@@ -52,6 +52,16 @@
       "state": "available_controlled_sandbox",
       "credential": "developer_key_scoped",
       "note": "POST /v1/wallet-account-transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
+    },
+    "wallet_accounts": {
+      "state": "documented_preview",
+      "credential": "developer_key_scoped_or_merchant",
+      "note": "POST /v1/wallet-accounts (wallet_accounts:create) and GET /v1/wallet-accounts, /{id} (wallet_accounts:read): segregated accounts inside the bound owner's wallet. PRIMARY is not creatable; another owner's account answers 404. Served on the deployed Sandbox; no released assurance capability records it on its own yet."
+    },
+    "application_settlements": {
+      "state": "documented_preview",
+      "credential": "developer_key_scoped_or_merchant",
+      "note": "POST /v1/application-settlements with the application_settlements:write scope settles a segregated account's whole available balance to a beneficiary @banza at the price Banzami assigned (the request carries no amount or rate). GET /v1/application-settlements/{id} is merchant-credential only — a project key receives 401. Served on the deployed Sandbox; no released assurance capability records it yet."
     },
     "production_live_rails": {
       "state": "not_available",
