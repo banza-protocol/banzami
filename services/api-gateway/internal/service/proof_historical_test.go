@@ -17,8 +17,8 @@ import (
 	"testing"
 )
 
-const histTransferID = "f99338e2-b4e5-4309-ba3e-d0a376ed94b5" // the reproducer
-const histExpectedRef = "BZM-F993-38E2"
+const histTransferID = "5eed0a11-b4e5-4309-ba3e-d0a376ed94b5" // synthetic: same derivation as the reproducer
+const histExpectedRef = "BZM-5EED-0A11"
 
 func histInput(txn, environment string) ProofInput {
 	in := proofInput(txn)

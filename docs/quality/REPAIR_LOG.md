@@ -2503,3 +2503,40 @@ historical lines into the tree and requires the gate to fail on each.
 non-authoritative** and has been regenerated: ledger reconciliation, the
 canonical binding proof, the fixture and canonical-authority prunes, the stale
 fixture audit, and the host inventory.
+
+## RA-082 — one proof answered to many spellings, and real proof references were published
+
+- **Found:** 2026-09-11 (the owner typed `…BYNO` — letter O — and got "Pagamento verificado" for `…BYN0`)
+- **Status:** FIXED (2026-09-11; 099bbf77 … and the one-URL/leak-guard follow-up)
+
+A proof reference is an exact identifier and a bearer capability. It had
+several spellings:
+
+- `/verificar` (226f63c2) read O as 0 and I/L as 1, upper-cased, trimmed,
+  re-hyphenated and fished a reference out of pasted text — the owner's case.
+- The gateway trimmed the reference before classifying it (`strings.TrimSpace`,
+  which strips Unicode space too): `/v1/public/proofs/<ref>%20`, a tab, a
+  newline or an NBSP answered with the proof.
+- `banzami.com/r/` accepted a percent-escaped canonical character (`%30`,
+  `%2D`), and Next redirected `/r/<ref>/` and `//r/<ref>` to the canonical page.
+- admin-api read a proof's verification history with `upper()=upper()`.
+- Both nginx edges masked a logged reference only when it began `BZM-`; any
+  other first character wrote it whole.
+
+Separately, three real Sandbox SECURE_V1 references and the historical legacy
+receipt's reference had been committed to tests and documentation of a public
+repository. They are replaced in source (synthetic references, checked absent
+from the Sandbox) and remain exposed in git history, which is not rewritten.
+
+Now: one grammar (`services/common/documents/proof_reference.go`, sharing the
+generator's alphabet constant); nothing trims, folds, decodes twice or repairs a
+look-alike, anywhere; the website edge and middleware give `/r/` one spelling;
+the history query is exact; the nginx mask cuts any segment to 8 characters.
+Guards, each mutation-proven: the gateway route test (every alias, zero database
+connections), Unicode-wide alphabet parity, the website parser and `getProof`
+(no request for an alias), `tests/ops/proof-url-one-spelling`,
+`tests/ops/nginx-proof-log-redaction`, and `tests/ops/proof-reference-literals`
+with its register `tools/assurance/synthetic-proof-references.txt` (any
+unregistered concrete reference in any case fails CI; the Sandbox harness proves
+the register holds no real proof). All `tests/ops` guards now run in CI — only
+four of twenty-five did.

@@ -5,7 +5,7 @@
  * behind it — two receipt generators, an operator receipt source, and two
  * payment-list display fields. Each looked locally reasonable. Together they
  * meant Banzami handed people references that answered "does not exist or may
- * have been forged", which is how BZM-F993-38E2 reached a user.
+ * have been forged", which is how BZM-F993-… reached a user.
  *
  * They were removed one at a time, and the audit that found the last of them was
  * a grep. This is that grep, kept.
@@ -14,6 +14,7 @@ import { execFileSync } from 'node:child_process';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 const REPO = join(import.meta.dirname, '../..');
 
@@ -73,21 +74,30 @@ describe('BZM- namespace', () => {
     // operator-issued document advertised a page nothing had ever backed. It must
     // look one up — and must NOT mint one, because an operator reading a document
     // is not the event that establishes public proof capability.
-    const src = execFileSync('git', ['show', 'HEAD:services/admin-api/internal/service/receipts.go'],
-      { cwd: REPO, encoding: 'utf8' });
-    assert.ok(
-      src.includes('existingProofReference'),
-      'admin receipt source no longer looks up an existing proof',
-    );
+    //
+    // Since the canonical receipt (docs/api/receipt-semantics.md) the operator
+    // renders the gateway's receipt and asks for it with issue:false: an existing
+    // proof is read, none is minted, and without one the receipt carries no
+    // reference to verify.
+    const src = readFileSync(join(REPO, 'services/admin-api/internal/service/receipts.go'), 'utf8');
+    const asks = src.match(/"issue":\s*(true|false)/g) || [];
+    assert.ok(asks.length >= 2 && asks.every((a) => a.endsWith('false')),
+      'admin receipt source must ask the gateway for both receipt kinds with issue:false');
     assert.ok(
       !/func receiptReference\(/.test(src),
       'admin receipt source has reintroduced a derived reference',
     );
-    // And an absent proof must produce no verification block at all.
-    assert.ok(
-      src.includes('verificationRefOrEmpty'),
-      'admin receipt source no longer guards the absent-proof case',
-    );
+    const sem = readFileSync(join(REPO, 'services/api-gateway/internal/service/receipt_semantics.go'), 'utf8');
+    const body = sem.slice(sem.indexOf('func (s *ReceiptSemantics) receipt('));
+    const fn = body.slice(0, body.indexOf('\n}\n'));
+    const ifIssueEnds = fn.indexOf('\n\t}\n');
+    const calls = [...fn.matchAll(/s\.proofs\.Ensure\(/g)].map((m) => m.index);
+    assert.ok(fn.includes('\tif issue {') && calls.length > 0 && calls.every((i) => i < ifIssueEnds),
+      'the gateway may issue a proof only inside `if issue { … }`');
+    // And an absent proof produces no verification link on the document.
+    const doc = readFileSync(join(REPO, 'services/common/documents/receipt_semantics.go'), 'utf8');
+    assert.ok(/if strings\.TrimSpace\(r\.ProofReference\) != "" \{\s*verify = /.test(doc),
+      'a receipt without a proof must carry no verification reference');
   });
 
 });

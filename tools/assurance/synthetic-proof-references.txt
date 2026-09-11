@@ -1,0 +1,40 @@
+# Synthetic proof references — the ONLY concrete proof references allowed in
+# this repository (source, tests, docs, evidence).
+#
+# A proof reference is a bearer capability: whoever holds it reads the proof
+# (amount, both @handles, the merchant's words). Real ones — from the Sandbox,
+# from an E2E run, from a screenshot — never belong in a public repository.
+# Three once did (see docs/quality/REPAIR_LOG.md RA-082); they are exposed and
+# stay in git history.
+#
+# To use a concrete reference in a test or a document:
+#   - prefer generating one at runtime (Go: service.secureReference());
+#   - otherwise pick a value, confirm it is absent from every environment's
+#     transaction_proofs, and add it here with what it is for.
+# tests/ops/proof-reference-literals.test.mjs fails CI on any SECURE_V1- or
+# LEGACY_V0-shaped token (any case) that is not listed here.
+# tests/phase0/proof-lookup-assurance.sh checks, on the Sandbox, that none of
+# these exists as a real proof.
+#
+# One reference per line; text after '#' is the reason.
+
+BZM-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX   # the documented format placeholder (X is in the alphabet)
+BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0   # canonicality tests: ends in 0, so the letter-O alias is testable
+BZM-Q7RT-CFAF-00ZT-ADSF-P4N7-FB0T   # receipt rendering tests (mobile, website, documents, admin-api)
+BZM-W3NH-5TQE-8GZC-RV2D-M6KA-X9PJ   # gateway access-log redaction test
+BZM-ABCD-2345-6789-JKMN-PQRS-TVWX   # classifier / rate-limit / legacy-live unit tests
+BZM-0000-0000-0000-0000-0000-0000   # classifier boundary
+BZM-TEST-0125-AAAA-BBBB-CCCC-DDDD   # migration 0125 test fixture
+BZM-TEST-0125-EEEE-FFFF-GGGG-HHHH   # migration 0125 test fixture
+BZM-5EED-0A11                       # legacy-shape tests; same derivation as the historical receipt
+BZM-0000-0000                       # legacy boundary
+BZM-FFFF-FFFF                       # legacy boundary
+BZM-0000-0001                       # legacy guessed-reference probes
+BZM-0000-00AA                       # legacy guessed-reference probes
+BZM-AAAA-1111                       # legacy fixtures (namespace guards)
+BZM-1111-2222                       # legacy fixtures (namespace guards)
+BZM-9F8E-7D6C                       # legacy-live refusal test
+BZM-A1B2-C3D4                       # legacy fixture
+BZM-D8F1-AB9B                       # legacy fixture
+BZM-DDDD-2222                       # legacy fixture
+BZM-E5F6-0789                       # legacy fixture

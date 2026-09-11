@@ -86,7 +86,7 @@ deliberately survives.
 
 ## What must be true afterwards
 
-- `BZM-F993-38E2` resolves to its own transfer, verified, with the amount and
+- `BZM-F993-…` resolves to its own transfer, verified, with the amount and
   both handles the PDF prints.
 - A newly issued receipt carries a 24-symbol SECURE_V1 reference that resolves.
 - No row in `payment_links`, `qr_codes`, `transfers`, `payouts`,

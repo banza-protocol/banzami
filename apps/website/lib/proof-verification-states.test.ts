@@ -44,7 +44,7 @@ async function getProof(ref: string) {
 describe('public proof verification states', () => {
   it('200 with a proof is VERIFIED', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { exists: true, status: 'CONFIRMED', amount: 1000000 }));
-    const r = await getProof('BZM-F993-38E2');
+    const r = await getProof('BZM-5EED-0A11');
     expect(r.exists).toBe(true);
     expect(r.status).toBe('CONFIRMED');
   });
@@ -59,7 +59,7 @@ describe('public proof verification states', () => {
   for (const status of [500, 502, 503, 504]) {
     it(`${status} is UNAVAILABLE, not invalid`, async () => {
       fetchMock.mockResolvedValue(jsonResponse(status, { exists: false, status: 'ERROR' }));
-      const r = await getProof('BZM-F993-38E2');
+      const r = await getProof('BZM-5EED-0A11');
       expect(r.status).toBe('UNAVAILABLE');
       expect(r.message).not.toMatch(/falsificad/i);
     });
@@ -68,7 +68,7 @@ describe('public proof verification states', () => {
   // The deployed failure: the fail-closed rail answered 503 with an HTML page.
   it('an unparseable body is UNAVAILABLE, not NOT_FOUND', async () => {
     fetchMock.mockResolvedValue(brokenBody(200));
-    const r = await getProof('BZM-F993-38E2');
+    const r = await getProof('BZM-5EED-0A11');
     expect(r.status).toBe('UNAVAILABLE');
     expect(r.unavailable_reason).toBe('unparseable_response');
     expect(r.message).not.toMatch(/falsificad/i);
@@ -76,13 +76,13 @@ describe('public proof verification states', () => {
 
   it('a body of the wrong shape is UNAVAILABLE', async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, { totally: 'unexpected' }));
-    const r = await getProof('BZM-F993-38E2');
+    const r = await getProof('BZM-5EED-0A11');
     expect(r.status).toBe('UNAVAILABLE');
   });
 
   it('a network failure is UNAVAILABLE', async () => {
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
-    const r = await getProof('BZM-F993-38E2');
+    const r = await getProof('BZM-5EED-0A11');
     expect(r.status).toBe('UNAVAILABLE');
     expect(r.unavailable_reason).toBe('network_error');
   });
@@ -91,7 +91,7 @@ describe('public proof verification states', () => {
     const cases = [brokenBody(200), jsonResponse(503, {}), jsonResponse(500, {})];
     for (const c of cases) {
       fetchMock.mockResolvedValue(c);
-      const r = await getProof('BZM-F993-38E2');
+      const r = await getProof('BZM-5EED-0A11');
       expect(r.message ?? '').not.toMatch(/falsificad|inválido/i);
     }
   });
@@ -107,7 +107,7 @@ describe('getProof: exact reference or nothing', () => {
   const C = 'BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0';
   const aliases = [
     C.slice(0, -1) + 'O', C.toLowerCase(), C + ' ', ' ' + C, C + '\u00A0', C + '\u200B',
-    C.replace(/-/g, '\u2013'), C.slice(0, -1) + '\u039F', C.slice(0, -1) + '%30', 'bzm-f993-38e2',
+    C.replace(/-/g, '\u2013'), C.slice(0, -1) + '\u039F', C.slice(0, -1) + '%30', 'bzm-5eed-0a11',
   ];
   for (const ref of aliases) {
     it(`refuses ${JSON.stringify(ref)} without a request`, async () => {

@@ -8,7 +8,7 @@ import (
 
 const (
 	canonicalSecure = "BZM-7K2M-9QXR-4TWZ-H3YJ-QY5R-BYN0"
-	canonicalLegacy = "BZM-F993-38E2"
+	canonicalLegacy = "BZM-5EED-0A11"
 )
 
 // The parser accepts, at every symbol position, exactly the runes the generator

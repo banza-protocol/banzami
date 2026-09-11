@@ -94,8 +94,8 @@ func (s *ProofAdminService) List(ctx context.Context, q string, limit int) ([]Ad
 func (s *ProofAdminService) Get(ctx context.Context, ref string) (*AdminProof, []AdminProofVerification, error) {
 	// Exact equality. A proof reference has one canonical spelling — upper-case,
 	// exact prefix, grouping and alphabet — and that rule is not weaker for an
-	// operator than for the public. Case-folding here would let bzm-f993-38e2 and
-	// BZM-F993-38E2 be the same proof on this surface and different ones on the
+	// operator than for the public. Case-folding here would let bzm-5eed-0a11 and
+	// BZM-5EED-0A11 be the same proof on this surface and different ones on the
 	// public surface, which is how two operators reading the same screen end up
 	// disagreeing about which reference they are looking at.
 	//

@@ -388,6 +388,14 @@ jobs:
       - name: Proof reference log redaction guard
         run: node --test tests/ops/nginx-proof-log-redaction.test.mjs
 
+      # Every operator guard in tests/ops — not only the ones named above. Only
+      # four of twenty-five were wired here, so the rest (migration contracts,
+      # the financial-assurance SQL, the proof namespace, the synthetic proof
+      # register, one URL per proof…) were local-only gates. A new guard is
+      # enforced the moment it lands.
+      - name: All operator guards (tests/ops)
+        run: node --test tests/ops/*.test.mjs
+
       # Where this operator is allowed to charge money.
       #
       # Exactly three operations resolve an operator fee, and each was audited

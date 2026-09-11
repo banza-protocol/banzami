@@ -8,7 +8,7 @@
  *
  * Nine writers omitted it. Every Sandbox transfer, payment link, QR code, payout
  * and webhook endpoint therefore claimed to be LIVE, and the Sandbox proof
- * lookup could not see records it had just created. That is BZM-F993-38E2's
+ * lookup could not see records it had just created. That is BZM-F993-…'s
  * second cause, and it produced 272 mislabelled rows.
  *
  * This is the grep that found them, kept. It is deliberately syntactic: it does

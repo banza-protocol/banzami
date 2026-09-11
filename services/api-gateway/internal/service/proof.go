@@ -362,7 +362,7 @@ var ErrHistoricalReferenceTaken = errors.New("the legacy reference for this reco
 // Between the receipt feature shipping and the proof service being wired, four
 // receipt generators printed a reference derived from the object id and never
 // minted anything behind it. Those PDFs are in people's hands and their QR codes
-// resolve to "does not exist or may have been forged" — BZM-F993-38E2 is one.
+// resolve to "does not exist or may have been forged" — BZM-F993-… is one.
 // Reconstructing the proof from the ledger is the only way those documents ever
 // become verifiable again; issuing them a fresh SECURE_V1 reference would leave
 // the printed one dead forever.
@@ -676,7 +676,7 @@ func nz(s string) any {
 // environment it belongs to. The environment decides whether the public lookup
 // can see the proof at all; it used to default to LIVE, so a caller that forgot
 // it minted a Sandbox receipt as real money — the fail-open that produced
-// BZM-F993-38E2's mislabelled rows, one layer down.
+// BZM-F993-…'s mislabelled rows, one layer down.
 var ErrProofEnvironmentRequired = errors.New("proof environment must be SANDBOX or LIVE")
 
 // proofEnvironment is the canonical spelling of an explicit environment.

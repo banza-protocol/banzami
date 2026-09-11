@@ -13,7 +13,7 @@
 #   - the non-canonical spelling of that reference is not a reference (404);
 #   - neither service nor either front door (edge, website nginx) logged the
 #     full reference;
-#   - BZM-F993-38E2 (the historical receipt) still verifies.
+#   - BZM-F993-… (the historical receipt) still verifies.
 #
 # Money: a synthetic consumer, funded with Sandbox test credit, pays another
 # synthetic consumer 1 000 Kz and a synthetic Business 2 000 Kz. Every Business,
@@ -111,8 +111,13 @@ chk merchant-one-reference-both-copies "$(same "$(docker exec "$PUB" sh -c "grep
 docker exec "$PUB" rm -f /tmp/ra-mp.pdf
 
 # ── the historical receipt ─────────────────────────────────────────────────
-H=$(curl -s "$PUBLIC_API/v1/public/proofs/BZM-F993-38E2")
-chk BZM-F993-38E2 "$(printf '%s' "$H" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(j.exists===true&&j.status==="CONFIRMED"?"VERIFIED":String(j.status))}catch{process.stdout.write("unparseable")}})')" VERIFIED
+# The historical legacy receipt (BZM-F993-…) is named by the SHA-256 of its
+# reference, never the reference itself: a proof reference is a bearer
+# capability and does not belong in source (tests/ops/proof-reference-literals).
+HIST_LEGACY_SHA256=505132856639559d32b935d6a3376c535344f1ff77a918b9001bcb34350a9d35
+HIST_LEGACY=$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE encode(sha256(proof_reference::bytea),'hex')='$HIST_LEGACY_SHA256'")
+H=$(curl -s "$PUBLIC_API/v1/public/proofs/$HIST_LEGACY")
+chk historical-legacy-receipt "$(printf '%s' "$H" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(j.exists===true&&j.status==="CONFIRMED"?"VERIFIED":String(j.status))}catch{process.stdout.write("unparseable")}})')" VERIFIED
 
 echo
 echo "RECEIPT_ASSURANCE: PASS=$PASS FAIL=$FAIL"

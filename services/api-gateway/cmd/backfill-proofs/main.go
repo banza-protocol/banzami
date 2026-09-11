@@ -3,7 +3,7 @@
 // Between the receipt feature shipping and the proof service being wired, four
 // receipt generators printed a public reference derived from an object id and
 // never minted anything behind it. The documents are in people's hands; their QR
-// codes resolve to "does not exist or may have been forged". BZM-F993-38E2 is
+// codes resolve to "does not exist or may have been forged". BZM-F993-… is
 // one of them.
 //
 // This reconstructs those proofs from the ledger-backed records, using the exact

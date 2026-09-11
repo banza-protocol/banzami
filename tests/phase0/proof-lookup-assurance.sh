@@ -10,7 +10,9 @@
 #   5. every stored proof still verifies: N/N, paced to the limits;
 #   6. no altered spelling of any stored proof verifies — the letter O for a 0,
 #      lower case, a trailing space, an en dash for a hyphen, I for 1 — each is
-#      refused as not found (a proof reference is an exact identifier).
+#      refused as not found (a proof reference is an exact identifier);
+#   7. no reference in tools/assurance/synthetic-proof-references.txt (copied
+#      next to this script) exists as a real proof.
 #
 # Each simulated client is a container on the gateway's network, alive for the
 # whole run so it keeps its own address — the limiter's own view of "a client",
@@ -49,7 +51,13 @@ fake(){ printf 'BZM-%04X-%04X\n' "$1" "$2"; }
 wait_window(){ echo "  (waiting ${1}s for the one-minute window)"; sleep "$1"; }
 
 pool_up 14
-REAL_LEGACY=BZM-F993-38E2
+# The historical legacy receipt (BZM-F993-…) is named by the SHA-256 of its
+# reference, never the reference itself: a proof reference is a bearer
+# capability and does not belong in source (tests/ops/proof-reference-literals).
+HIST_LEGACY_SHA256=505132856639559d32b935d6a3376c535344f1ff77a918b9001bcb34350a9d35
+HIST_LEGACY=$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE encode(sha256(proof_reference::bytea),'hex')='$HIST_LEGACY_SHA256'")
+REAL_LEGACY="$HIST_LEGACY"
+[ -n "$REAL_LEGACY" ] || { echo "  the historical legacy receipt is missing"; exit 1; }
 SECURE=$(psqlro "SELECT proof_reference FROM transaction_proofs WHERE length(proof_reference)=33 AND status='CONFIRMED' ORDER BY created_at LIMIT 1")
 
 echo "### 1+2 one client: 6 a minute, then the same 429 for a real and a guessed reference"
@@ -123,6 +131,16 @@ done
 chk no-altered-reference-verifies "$A200" 0
 chk every-altered-reference-not-found "$A404/${#ALIASES[@]}" "${#ALIASES[@]}/${#ALIASES[@]}"
 echo "  (${#ALIASES[@]} altered spellings of $N stored proofs; other statuses: $AOTHER)"
+
+echo "### 7 the synthetic register holds no real proof"
+REG="$(cd "$(dirname "$0")" && pwd)/synthetic-proof-references.txt"
+if [ -f "$REG" ]; then
+  VALS=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' "$REG" | grep -E '^BZM-[0-9A-Z-]+$' | sed "s/.*/('&')/" | paste -sd, -)
+  REAL=$(psqlro "SELECT count(*) FROM transaction_proofs p JOIN (VALUES $VALS) v(r) ON p.proof_reference = v.r")
+  chk synthetic-register-holds-no-real-proof "$REAL" 0
+else
+  chk synthetic-register-present missing present
+fi
 
 echo
 echo "PROOF_LOOKUP_ASSURANCE: PASS=$PASS FAIL=$FAIL"

@@ -64,7 +64,7 @@ func TestClassifyReference(t *testing.T) {
 		want ReferenceVersion
 	}{
 		// The receipt already in a user's hands.
-		{"BZM-F993-38E2", ReferenceLegacyV0},
+		{"BZM-5EED-0A11", ReferenceLegacyV0},
 		{"BZM-0000-0000", ReferenceLegacyV0},
 		{"BZM-FFFF-FFFF", ReferenceLegacyV0},
 
@@ -84,15 +84,15 @@ func TestClassifyReference(t *testing.T) {
 		{"BZM-ILOU-2345-6789-JKMN-PQRS-TVWX", ReferenceInvalid},
 
 		// Prefix, garbage, whitespace, case.
-		{"BZX-F993-38E2", ReferenceInvalid},
-		{"F993-38E2", ReferenceInvalid},
-		{"BZM-F993-38E2X", ReferenceInvalid},
-		{"XBZM-F993-38E2", ReferenceInvalid},
-		{" BZM-F993-38E2", ReferenceInvalid},
-		{"BZM-F993-38E2 ", ReferenceInvalid},
-		{"BZM-F993 38E2", ReferenceInvalid},
-		{"bzm-f993-38e2", ReferenceInvalid},
-		{"BZMF99338E2", ReferenceInvalid},
+		{"BZX-5EED-0A11", ReferenceInvalid},
+		{"5EED-0A11", ReferenceInvalid},
+		{"BZM-5EED-0A11X", ReferenceInvalid},
+		{"XBZM-5EED-0A11", ReferenceInvalid},
+		{" BZM-5EED-0A11", ReferenceInvalid},
+		{"BZM-5EED-0A11 ", ReferenceInvalid},
+		{"BZM-5EED 0A11", ReferenceInvalid},
+		{"bzm-5eed-0a11", ReferenceInvalid},
+		{"BZM5EED0A11", ReferenceInvalid},
 		{"", ReferenceInvalid},
 	} {
 		t.Run(tc.in, func(t *testing.T) {

@@ -43,7 +43,7 @@ func clearBuckets(t *testing.T, rdb *redis.Client, ips ...string) {
 }
 
 const (
-	legacyRef = "BZM-F993-38E2"
+	legacyRef = "BZM-5EED-0A11"
 	secureRef = "BZM-ABCD-2345-6789-JKMN-PQRS-TVWX"
 )
 
