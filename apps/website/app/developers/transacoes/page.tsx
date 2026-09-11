@@ -8,6 +8,7 @@ import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { FinancialSetupPointer, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/developer-api';
 import { RefundDialog } from '@/components/developers/portal/RefundDialog';
+import { merchantReference } from '@/lib/transaction-reference';
 
 // Transações — the money that moved under this project.
 //
@@ -217,7 +218,7 @@ function Transactions() {
                       </td>
                       <td style={{ padding: '12px 16px', fontWeight: 700 }}>{TYPE_LABEL[t.type] ?? t.type}</td>
                       <td style={{ padding: '12px 16px', fontFamily: mono, fontSize: 12, color: '#8a7a7e', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {t.reference_id || t.id}
+                        {merchantReference(t) ?? '—'}
                       </td>
                       <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, whiteSpace: 'nowrap' }}>
                         {money(t.amount_minor, t.currency)}
@@ -272,7 +273,7 @@ function Transactions() {
                           {refundable(t) && (
                             <button
                               onClick={() => setRefunding(t)}
-                              aria-label={`Reembolsar o pagamento ${t.reference_id || t.id}`}
+                              aria-label={`Reembolsar o pagamento ${merchantReference(t) ?? `de ${money(t.amount_minor, t.currency)}`}`}
                               style={{ padding: '7px 13px', border: '1.5px solid #EBDBD9', borderRadius: 9, background: '#fff', fontSize: 12.5, fontWeight: 800, color: '#B5101F', cursor: 'pointer', whiteSpace: 'nowrap' }}
                             >
                               Reembolsar

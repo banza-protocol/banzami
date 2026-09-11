@@ -6,6 +6,7 @@ import { useDeveloperData } from './DeveloperData';
 import { useToast } from './Toast';
 import { Card } from './ui';
 import { formatMoneyDisplay, formatMoneyInput, tryParseMoneyInput } from '@/lib/money';
+import { merchantReference } from '@/lib/transaction-reference';
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 
@@ -168,7 +169,7 @@ export function RefundDialog({
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13 }}>
             <span style={{ color: '#8a7a7e', fontWeight: 700 }}>Pagamento</span>
             <span style={{ fontFamily: mono, fontSize: 12, color: '#5a4a4e', wordBreak: 'break-all', textAlign: 'right' }}>
-              {payment.reference_id || payment.id}
+              {merchantReference(payment) ?? '—'}
             </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, marginTop: 6 }}>
