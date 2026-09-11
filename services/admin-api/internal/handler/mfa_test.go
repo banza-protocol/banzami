@@ -179,14 +179,10 @@ func TestMFA_ValidCodeIssuesASessionAndAWrongOneDoesNot(t *testing.T) {
 	if ok.Code != http.StatusOK {
 		t.Fatalf("a valid code did not produce a session: %d %s", ok.Code, ok.Body.String())
 	}
-	var out struct {
-		Token string `json:"token"`
+	if strings.Contains(ok.Body.String(), `"token"`) {
+		t.Fatalf("the session token reached the response body: %s", ok.Body.String())
 	}
-	_ = json.Unmarshal(ok.Body.Bytes(), &out)
-	p, err := auth.Parse(testSecret, out.Token)
-	if err != nil {
-		t.Fatalf("the issued token does not parse: %v", err)
-	}
+	p := sessionFrom(t, ok)
 	// The thing that matters: what comes out of a completed challenge IS a
 	// session, and what went in was not.
 	if p.Purpose != auth.PurposeSession {
@@ -245,11 +241,10 @@ func TestMFA_EnrolmentRevealsTheRecoveryCodesExactlyOnceAndThenASession(t *testi
 		t.Fatalf("acknowledgement failed: %d %s", done.Code, done.Body.String())
 	}
 	var fin struct {
-		Token         string   `json:"token"`
 		RecoveryCodes []string `json:"recovery_codes"`
 	}
 	_ = json.Unmarshal(done.Body.Bytes(), &fin)
-	sess, _ := auth.Parse(testSecret, fin.Token)
+	sess := sessionFrom(t, done)
 	if sess.Purpose != auth.PurposeSession {
 		t.Fatalf("acknowledgement issued a %q token", sess.Purpose)
 	}

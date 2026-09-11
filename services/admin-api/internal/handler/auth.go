@@ -264,12 +264,15 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession}
-	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, now)
+	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession, AuthTime: now}
+	token, exp, err := auth.IssueSession(h.jwtSecret, principal, now, h.ttl)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue session")
 		return
 	}
+	// The session goes into an HttpOnly cookie, never into the body: the
+	// console's script can use it but cannot read it (A6-12).
+	auth.SetSessionCookies(w, h.jwtSecret, principal, token, exp, now)
 	h.users.ResetLoginCountersAndTouch(ctx, u.ID)
 	h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, true, "")
 	h.writeAudit(ctx, service.AuditEntry{
@@ -279,11 +282,17 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	})
 	slog.InfoContext(ctx, "admin.login", "admin_user_id", u.ID, "role", u.Role) // no password/token
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"token":      token,
-		"expires_at": exp,
-		"user":       userDTO{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role},
-	})
+	writeJSON(w, http.StatusOK, sessionBody(u, exp))
+}
+
+// sessionBody is what a completed sign-in returns: who signed in and until
+// when the session is good without activity. Never the session itself.
+func sessionBody(u service.AdminUser, exp time.Time) map[string]any {
+	return map[string]any{
+		"expires_at":           exp,
+		"idle_timeout_seconds": int(auth.SessionIdleTimeout.Seconds()),
+		"user":                 userDTO{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role},
+	}
 }
 
 // POST /admin/v1/auth/terminate-sessions — the operator revokes all of their own
@@ -302,6 +311,7 @@ func (h *AuthHandler) TerminateSessions(w http.ResponseWriter, r *http.Request) 
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not terminate sessions")
 		return
 	}
+	auth.ClearSessionCookies(w)
 	slog.InfoContext(r.Context(), "admin.sessions_terminated", "admin_user_id", p.ID)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
@@ -318,9 +328,33 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// POST /admin/v1/auth/logout — stateless JWT, so this is a client-side clear;
-// the endpoint exists for symmetry and future server-side revocation.
+// POST /admin/v1/auth/logout — ends the session on the server, not only in the
+// browser (A5-08).
+//
+// It used to answer 204 and do nothing: the JWT stayed valid until its 12-hour
+// expiry, so "Sair" on a shared machine left a working session behind for
+// whoever copied it. Logout now increments token_version, the revocation
+// counter the middleware checks on every request.
+//
+// That counter is per operator, not per session, so signing out ends every
+// session this operator holds, on every device. A per-session revocation list
+// would need a table; for a console with a handful of operators, "sign out
+// means signed out everywhere" is the safer reading anyway.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// The browser drops its cookies whatever happens below.
+	auth.ClearSessionCookies(w)
+	p, ok := auth.FromContext(r.Context())
+	if !ok || h.users == nil {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	if err := h.users.BumpTokenVersion(r.Context(), p.ID); err != nil {
+		slog.ErrorContext(r.Context(), "admin.logout_revocation_failed", "admin_user_id", p.ID, "error", err)
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not end the session on the server")
+		return
+	}
+	// Audited as LOGOUT by the audit middleware, like every mutation here.
+	slog.InfoContext(r.Context(), "admin.logout", "admin_user_id", p.ID)
 	w.WriteHeader(http.StatusNoContent)
 }
 

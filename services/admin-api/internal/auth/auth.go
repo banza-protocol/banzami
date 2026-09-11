@@ -34,6 +34,14 @@ type Principal struct {
 	// Purpose is what the presented token was issued for. Normalised to
 	// PurposeSession when the token predates the claim.
 	Purpose string
+	// AuthTime is when the operator last proved both factors at sign-in. A
+	// session slides forward with activity but never past AuthTime plus the
+	// absolute lifetime (A5-08). Zero on the pre-session tokens.
+	AuthTime time.Time
+	// SteppedUpAt is when the operator last proved a fresh second factor
+	// inside this session. The highest-risk routes require it to be recent
+	// (A5-08). Zero means never.
+	SteppedUpAt time.Time
 }
 
 // Actor is the value stored in audit / reviewed_by fields.
@@ -97,6 +105,10 @@ type Claims struct {
 	// Empty means PurposeSession, so tokens issued before this existed keep
 	// working until they expire.
 	Purpose string `json:"purpose,omitempty"`
+	// AuthTime and SteppedUpAt are unix seconds; see Principal. Both are
+	// carried forward, unchanged, every time the session slides.
+	AuthTime    int64 `json:"auth_time,omitempty"`
+	SteppedUpAt int64 `json:"stepped_up_at,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -133,6 +145,8 @@ func Issue(secret string, p Principal, ttl time.Duration, now time.Time) (string
 		Role:         p.Role,
 		TokenVersion: p.TokenVersion,
 		Purpose:      purpose,
+		AuthTime:     unixOrZero(p.AuthTime),
+		SteppedUpAt:  unixOrZero(p.SteppedUpAt),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   p.ID,
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -165,5 +179,22 @@ func Parse(secret, token string) (Principal, error) {
 	if purpose == "" {
 		purpose = PurposeSession
 	}
-	return Principal{ID: claims.Subject, Email: claims.Email, Role: claims.Role, TokenVersion: claims.TokenVersion, Purpose: purpose}, nil
+	return Principal{
+		ID: claims.Subject, Email: claims.Email, Role: claims.Role, TokenVersion: claims.TokenVersion, Purpose: purpose,
+		AuthTime: timeOrZero(claims.AuthTime), SteppedUpAt: timeOrZero(claims.SteppedUpAt),
+	}, nil
+}
+
+func unixOrZero(t time.Time) int64 {
+	if t.IsZero() {
+		return 0
+	}
+	return t.Unix()
+}
+
+func timeOrZero(s int64) time.Time {
+	if s == 0 {
+		return time.Time{}
+	}
+	return time.Unix(s, 0)
 }

@@ -33,12 +33,15 @@ func TestAdminJWT_RefusesEveryTokenThatIsNotASession(t *testing.T) {
 	call := func(purpose string) int {
 		reached = false
 		p := auth.Principal{ID: u.ID, Email: u.Email, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: purpose}
+		// AuthTime is set, as a sign-in would, so the only thing that differs
+		// between the calls is the purpose.
+		p.AuthTime = time.Now()
 		tok, _, err := auth.Issue(secret, p, time.Hour, time.Now())
 		if err != nil {
 			t.Fatal(err)
 		}
 		req := httptest.NewRequest(http.MethodGet, "/admin/v1/merchants", nil)
-		req.Header.Set("Authorization", "Bearer "+tok)
+		req.AddCookie(&http.Cookie{Name: auth.SessionCookieName, Value: tok})
 		w := httptest.NewRecorder()
 		h.ServeHTTP(w, req)
 		return w.Code

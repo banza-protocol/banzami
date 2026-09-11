@@ -104,6 +104,7 @@ var auditActions = map[string]string{
 	"POST /admin/v1/auth/change-password":                                       "CHANGE_PASSWORD",
 	"POST /admin/v1/auth/logout":                                                "LOGOUT",
 	"POST /admin/v1/auth/terminate-sessions":                                    "TERMINATE_SESSIONS",
+	"POST /admin/v1/auth/step-up":                                               "MFA_STEP_UP",
 	"POST /admin/v1/operators":                                                  "CREATE_OPERATOR",
 	"PATCH /admin/v1/operators/{id}":                                            "UPDATE_OPERATOR",
 	"POST /admin/v1/operators/{id}/role":                                        "SET_OPERATOR_ROLE",

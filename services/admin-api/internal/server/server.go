@@ -80,10 +80,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		mfaStore = mfa
 		mfaGate = mfa
 	}
-	mfaH := handler.NewMFAHandler(mfaStore, loginStore, cfg.AdminJWTSecret, 12*time.Hour).WithAudit(auditSink(audit))
+	mfaH := handler.NewMFAHandler(mfaStore, loginStore, cfg.AdminJWTSecret, auth.SessionAbsoluteLifetime).WithAudit(auditSink(audit))
 
 	// Operator login — public (no token yet). Email + password → MFA challenge.
-	authH := handler.NewAuthHandler(loginStore, cfg.AdminJWTSecret, 12*time.Hour).WithAudit(audit).WithMFA(mfaGate)
+	authH := handler.NewAuthHandler(loginStore, cfg.AdminJWTSecret, auth.SessionAbsoluteLifetime).WithAudit(audit).WithMFA(mfaGate)
 	r.With(authLimit.Middleware).Post("/admin/v1/auth/login", authH.Login)
 	// The second factor. These are outside the session middleware by necessity:
 	// the caller has proven a password and does not have a session yet — that is
@@ -123,10 +123,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	}
 	attentionH := handler.NewAttentionHandler(attentionSources)
 
-	// All admin routes require an operator JWT (per-operator email/password).
-	// The legacy ADMIN_API_KEY no longer authenticates the portal. Every mutation
-	// is gated by a single capability middleware (RequireCapability) and recorded
-	// in the immutable audit log.
+	// All admin routes require an operator session: the HttpOnly __Host- cookie
+	// set when both factors are proven, idle-expiring, with a CSRF token on every
+	// mutation (A6-12, A5-08). The legacy ADMIN_API_KEY no longer authenticates
+	// the portal. Every mutation is gated by a single capability middleware
+	// (RequireCapability) and recorded in the immutable audit log.
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AdminJWT(cfg.AdminJWTSecret, jwtStore))
 		r.Use(middleware.Audit(auditSink(audit)))
@@ -136,6 +137,14 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 
 		// cap is a small alias so the route table reads as a permission matrix.
 		cap := middleware.RequireCapability
+		// stepUp marks the highest-risk routes (A5-08): on top of the capability,
+		// they want a second-factor code proven within the last five minutes, at
+		// POST /admin/v1/auth/step-up. A session alone — an unlocked laptop, a
+		// lifted cookie — cannot create or re-arm an operator, reset another
+		// operator's credentials, reprice a customer, move settlement or payout
+		// state, credit a wallet, freeze an account, mint a Business credential or
+		// flip the platform mode. Listed in TestStepUp_GuardsTheHighestRiskRoutes.
+		stepUp := middleware.RequireStepUp(auth.StepUpWindow)
 
 		// Self-service (any authenticated operator). change-password is rate
 		// limited too (brute force of the current password).
@@ -146,6 +155,9 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/auth/mfa/replace", mfaH.Replace)
 		r.With(authLimit.Middleware).Post("/admin/v1/auth/change-password", authH.ChangePassword)
 		r.Post("/admin/v1/auth/terminate-sessions", authH.TerminateSessions)
+		// Re-prove the second factor inside the session, for the stepUp routes.
+		// Same per-IP limit as the sign-in codes: this is a code-guessing surface.
+		r.With(authLimit.Middleware).Post("/admin/v1/auth/step-up", mfaH.StepUp)
 
 		// Official transaction receipt (PDF) — Document Engine, real sources
 		// (wallet_payments / transfers). Capability-gated + audited (in this group).
@@ -159,14 +171,14 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		opH := handler.NewOperatorHandler(opStore, mailer, cfg.AdminBaseURL, showResetLink)
 		r.With(cap(auth.CapOperatorRead)).Get("/admin/v1/operators", opH.List)
 		r.With(cap(auth.CapOperatorRead)).Get("/admin/v1/operators/{id}", opH.Get)
-		r.With(cap(auth.CapOperatorManage)).Post("/admin/v1/operators", opH.Create)
+		r.With(cap(auth.CapOperatorManage), stepUp).Post("/admin/v1/operators", opH.Create)
 		r.With(cap(auth.CapOperatorManage)).Patch("/admin/v1/operators/{id}", opH.Update)
-		r.With(cap(auth.CapOperatorManage)).Post("/admin/v1/operators/{id}/role", opH.SetRole)
-		r.With(cap(auth.CapOperatorManage)).Post("/admin/v1/operators/{id}/suspend", opH.Suspend)
-		r.With(cap(auth.CapOperatorManage)).Post("/admin/v1/operators/{id}/activate", opH.Activate)
-		r.With(cap(auth.CapOperatorReset)).Post("/admin/v1/operators/{id}/resend-invite", opH.ResendInvite)
-		r.With(cap(auth.CapOperatorReset)).Post("/admin/v1/operators/{id}/password-reset", resetH.Request)
-		r.With(cap(auth.CapOperatorReset)).Post("/admin/v1/operators/{id}/terminate-sessions", opH.TerminateSessions)
+		r.With(cap(auth.CapOperatorManage), stepUp).Post("/admin/v1/operators/{id}/role", opH.SetRole)
+		r.With(cap(auth.CapOperatorManage), stepUp).Post("/admin/v1/operators/{id}/suspend", opH.Suspend)
+		r.With(cap(auth.CapOperatorManage), stepUp).Post("/admin/v1/operators/{id}/activate", opH.Activate)
+		r.With(cap(auth.CapOperatorReset), stepUp).Post("/admin/v1/operators/{id}/resend-invite", opH.ResendInvite)
+		r.With(cap(auth.CapOperatorReset), stepUp).Post("/admin/v1/operators/{id}/password-reset", resetH.Request)
+		r.With(cap(auth.CapOperatorReset), stepUp).Post("/admin/v1/operators/{id}/terminate-sessions", opH.TerminateSessions)
 
 		complianceH := handler.NewComplianceHandler(core)
 		settlementH := handler.NewSettlementHandler(core)
@@ -209,12 +221,12 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// PATCH /admin/v1/merchants/{id}/verified is retired: "verified" is the
 		// KYB decision (migration 0122), made through application review, KYB
 		// document review or the compliance actions below — not a toggle.
-		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/business-account-type", merchantH.SetBusinessAccountType)
+		r.With(cap(auth.CapMerchantManage), stepUp).Patch("/admin/v1/merchants/{id}/business-account-type", merchantH.SetBusinessAccountType)
 		// What a customer is charged. Guarded by the pricing capability rather
 		// than merchant management: this is a commercial decision, and the people
 		// who edit a Business Account's details are not necessarily the people who
 		// price it.
-		r.With(cap(auth.CapPricingManage)).Put("/admin/v1/merchants/{id}/pricing-profile", merchantH.AssignPricingProfile)
+		r.With(cap(auth.CapPricingManage), stepUp).Put("/admin/v1/merchants/{id}/pricing-profile", merchantH.AssignPricingProfile)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/api-keys", handler.RetiredMerchantSetup)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/resend-credentials", handler.RetiredMerchantSetup)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/wallets", handler.RetiredMerchantSetup)
@@ -227,11 +239,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapApplicationProcess)).Post("/admin/v1/merchant-applications/{id}/start-review", applicationsH.StartReview)
 		r.With(cap(auth.CapApplicationProcess)).Post("/admin/v1/merchant-applications/{id}/request-information", applicationsH.RequestInformation)
 		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/link-existing", applicationsH.LinkExisting)
-		r.With(cap(auth.CapApplicationApprove)).Post("/admin/v1/merchant-applications/{id}/reissue-activation", applicationsH.ReissueActivation)
+		r.With(cap(auth.CapApplicationApprove), stepUp).Post("/admin/v1/merchant-applications/{id}/reissue-activation", applicationsH.ReissueActivation)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/link-candidates", applicationsH.LinkCandidates)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/business-state", applicationsH.BusinessState)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/businesses/{id}", applicationsH.BusinessByID)
-		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/businesses/{id}/app-pin-reset", applicationsH.ResetBusinessAppPin)
+		r.With(cap(auth.CapMerchantManage), stepUp).Post("/admin/v1/businesses/{id}/app-pin-reset", applicationsH.ResetBusinessAppPin)
 		// KYB documents (Track 3) — admin review.
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-applications/{id}/documents", applicationsH.ListDocuments)
 		r.With(cap(auth.CapApplicationView)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/read-url", applicationsH.DocumentReadURL)
@@ -271,7 +283,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// Wallets
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/wallets", walletH.GetForMerchant)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/wallets/{id}/accounts", walletH.ListAccounts)
-		r.With(cap(auth.CapWalletCredit)).Post("/admin/v1/wallets/{id}/credit", walletH.AdminCredit)
+		r.With(cap(auth.CapWalletCredit), stepUp).Post("/admin/v1/wallets/{id}/credit", walletH.AdminCredit)
 
 		// Consumers
 		r.With(cap(auth.CapConsumerView)).Get("/admin/v1/consumers", consumerH.List)
@@ -305,7 +317,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// change it (enforced in the handler) with a typed confirmation + reason.
 		platformH := handler.NewPlatformHandler(platform)
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/platform/mode", platformH.Get)
-		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/platform/mode", platformH.Set)
+		r.With(cap(auth.CapDashboardView), stepUp).Post("/admin/v1/platform/mode", platformH.Set)
 
 		// Transaction proofs — READ-ONLY operator view (ADR-040). Never edits/deletes.
 		proofsH := handler.NewProofsHandler(proofAdmin, proofAdminSandbox)
@@ -313,13 +325,13 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/proofs/{ref}", proofsH.Get)
 
 		// Settlements
-		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements", settlementH.CreateBatch)
+		r.With(cap(auth.CapSettlementManage), stepUp).Post("/admin/v1/settlements", settlementH.CreateBatch)
 		r.With(cap(auth.CapSettlementView)).Get("/admin/v1/settlements", settlementH.List)
 		r.With(cap(auth.CapSettlementView)).Get("/admin/v1/settlements/all", settlementH.ListAll)
 		r.With(cap(auth.CapSettlementView)).Get("/admin/v1/settlements/{id}", settlementH.Get)
-		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements/{id}/submit", settlementH.Submit)
-		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements/{id}/confirm", settlementH.Confirm)
-		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements/{id}/fail", settlementH.Fail)
+		r.With(cap(auth.CapSettlementManage), stepUp).Post("/admin/v1/settlements/{id}/submit", settlementH.Submit)
+		r.With(cap(auth.CapSettlementManage), stepUp).Post("/admin/v1/settlements/{id}/confirm", settlementH.Confirm)
+		r.With(cap(auth.CapSettlementManage), stepUp).Post("/admin/v1/settlements/{id}/fail", settlementH.Fail)
 
 		// Finance — Pricing Rules (Banzami ADR-021). View is broad; manage is
 		// SUPER_ADMIN-only (CapPricingManage is in no role matrix). Every mutation
@@ -328,11 +340,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapPricingView)).Get("/admin/v1/finance/pricing-rules", pricingH.List)
 		r.With(cap(auth.CapPricingView)).Get("/admin/v1/finance/pricing-rules/{id}", pricingH.Get)
 		r.With(cap(auth.CapPricingView)).Get("/admin/v1/finance/pricing-rules/{id}/versions", pricingH.Versions)
-		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules", pricingH.Create)
-		r.With(cap(auth.CapPricingManage)).Patch("/admin/v1/finance/pricing-rules/{id}", pricingH.Update)
-		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/disable", pricingH.Disable)
-		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/enable", pricingH.Enable)
-		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/duplicate", pricingH.Duplicate)
+		r.With(cap(auth.CapPricingManage), stepUp).Post("/admin/v1/finance/pricing-rules", pricingH.Create)
+		r.With(cap(auth.CapPricingManage), stepUp).Patch("/admin/v1/finance/pricing-rules/{id}", pricingH.Update)
+		r.With(cap(auth.CapPricingManage), stepUp).Post("/admin/v1/finance/pricing-rules/{id}/disable", pricingH.Disable)
+		r.With(cap(auth.CapPricingManage), stepUp).Post("/admin/v1/finance/pricing-rules/{id}/enable", pricingH.Enable)
+		r.With(cap(auth.CapPricingManage), stepUp).Post("/admin/v1/finance/pricing-rules/{id}/duplicate", pricingH.Duplicate)
 
 		// Finance — Pricing catalogs (profiles + fee policies; ADR-021). Read =
 		// pricing.view; mutations = pricing.manage (SUPER_ADMIN-only) + audited.
@@ -347,10 +359,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 			ch := cat.h
 			r.With(cap(auth.CapPricingView)).Get(base, ch.List)
 			r.With(cap(auth.CapPricingView)).Get(base+"/{id}", ch.Get)
-			r.With(cap(auth.CapPricingManage)).Post(base, ch.Create)
-			r.With(cap(auth.CapPricingManage)).Patch(base+"/{id}", ch.Update)
-			r.With(cap(auth.CapPricingManage)).Post(base+"/{id}/disable", ch.Disable)
-			r.With(cap(auth.CapPricingManage)).Post(base+"/{id}/enable", ch.Enable)
+			r.With(cap(auth.CapPricingManage), stepUp).Post(base, ch.Create)
+			r.With(cap(auth.CapPricingManage), stepUp).Patch(base+"/{id}", ch.Update)
+			r.With(cap(auth.CapPricingManage), stepUp).Post(base+"/{id}/disable", ch.Disable)
+			r.With(cap(auth.CapPricingManage), stepUp).Post(base+"/{id}/enable", ch.Enable)
 		}
 
 		// Finance — Operator Fees (read-only audit) + Application Settlements
@@ -362,27 +374,27 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/operator-fees/{id}", financeH.GetOperatorFee)
 		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/application-settlements", financeH.ListSettlements)
 		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/application-settlements/{id}", financeH.GetSettlement)
-		r.With(cap(auth.CapFinanceManage)).Post("/admin/v1/finance/application-settlements/{id}/cancel", financeH.CancelSettlement)
-		r.With(cap(auth.CapFinanceManage)).Post("/admin/v1/finance/application-settlements/{id}/fail", financeH.FailSettlement)
+		r.With(cap(auth.CapFinanceManage), stepUp).Post("/admin/v1/finance/application-settlements/{id}/cancel", financeH.CancelSettlement)
+		r.With(cap(auth.CapFinanceManage), stepUp).Post("/admin/v1/finance/application-settlements/{id}/fail", financeH.FailSettlement)
 
 		// Payouts
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts", payoutH.List)
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts/all", payoutH.ListAll)
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts/{id}", payoutH.Get)
-		r.With(cap(auth.CapPayoutManage)).Post("/admin/v1/payouts/{id}/process", payoutH.Process)
-		r.With(cap(auth.CapPayoutManage)).Post("/admin/v1/payouts/{id}/sent", payoutH.MarkSent)
-		r.With(cap(auth.CapPayoutManage)).Post("/admin/v1/payouts/{id}/confirm", payoutH.Confirm)
-		r.With(cap(auth.CapPayoutManage)).Post("/admin/v1/payouts/{id}/fail", payoutH.Fail)
-		r.With(cap(auth.CapPayoutManage)).Post("/admin/v1/payouts/{id}/returned", payoutH.MarkReturned)
+		r.With(cap(auth.CapPayoutManage), stepUp).Post("/admin/v1/payouts/{id}/process", payoutH.Process)
+		r.With(cap(auth.CapPayoutManage), stepUp).Post("/admin/v1/payouts/{id}/sent", payoutH.MarkSent)
+		r.With(cap(auth.CapPayoutManage), stepUp).Post("/admin/v1/payouts/{id}/confirm", payoutH.Confirm)
+		r.With(cap(auth.CapPayoutManage), stepUp).Post("/admin/v1/payouts/{id}/fail", payoutH.Fail)
+		r.With(cap(auth.CapPayoutManage), stepUp).Post("/admin/v1/payouts/{id}/returned", payoutH.MarkReturned)
 
 		// Reconciliation (settlement-level)
 		r.With(cap(auth.CapReconRun)).Post("/admin/v1/reconciliation/run", reconciliationH.Run)
 		r.With(cap(auth.CapReconView)).Get("/admin/v1/reconciliation/runs/{id}", reconciliationH.Get)
 
 		// Risk — freeze/unfreeze, risk flags, audit log, acquiring reconciliation
-		r.With(cap(auth.CapRiskFreeze)).Post("/admin/v1/risk/freeze", riskH.FreezeAccount)
-		r.With(cap(auth.CapWalletAccountClose)).Post("/admin/v1/wallet-accounts/{id}/close", walletAccountH.Close)
-		r.With(cap(auth.CapRiskFreeze)).Delete("/admin/v1/risk/freeze/{entity_type}/{entity_id}", riskH.UnfreezeAccount)
+		r.With(cap(auth.CapRiskFreeze), stepUp).Post("/admin/v1/risk/freeze", riskH.FreezeAccount)
+		r.With(cap(auth.CapWalletAccountClose), stepUp).Post("/admin/v1/wallet-accounts/{id}/close", walletAccountH.Close)
+		r.With(cap(auth.CapRiskFreeze), stepUp).Delete("/admin/v1/risk/freeze/{entity_type}/{entity_id}", riskH.UnfreezeAccount)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/flags", riskH.ListRiskFlags)
 		r.With(cap(auth.CapRiskResolve)).Post("/admin/v1/risk/flags/{id}/resolve", riskH.ResolveRiskFlag)
 		r.With(cap(auth.CapRiskView)).Get("/admin/v1/risk/audit-log", riskH.QueryAuditLog)
@@ -405,7 +417,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// Disputes — admin resolution
 		r.With(cap(auth.CapDisputeView)).Get("/admin/v1/disputes", disputeH.List)
 		r.With(cap(auth.CapDisputeView)).Get("/admin/v1/disputes/{id}", disputeH.Get)
-		r.With(cap(auth.CapDisputeResolve)).Post("/admin/v1/disputes/{id}/resolve", disputeH.Resolve)
+		r.With(cap(auth.CapDisputeResolve), stepUp).Post("/admin/v1/disputes/{id}/resolve", disputeH.Resolve)
 	})
 
 	// Wrap chi router with otelhttp: creates one span per request and records

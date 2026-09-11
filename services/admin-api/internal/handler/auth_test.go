@@ -98,8 +98,15 @@ func TestLogin_Success(t *testing.T) {
 		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, `"token"`) || !strings.Contains(body, `"full_name":"Op Silva"`) {
-		t.Fatalf("missing token/user: %s", body)
+	if !strings.Contains(body, `"full_name":"Op Silva"`) {
+		t.Fatalf("missing user: %s", body)
+	}
+	// The session is the HttpOnly cookie, never the body (A6-12).
+	if strings.Contains(body, `"token"`) {
+		t.Fatalf("the session token reached the response body: %s", body)
+	}
+	if p := sessionFromWith(t, w, "secret-xyz"); p.Purpose != auth.PurposeSession {
+		t.Fatalf("login set a %q cookie, want a session", p.Purpose)
 	}
 	if strings.Contains(body, "password") || strings.Contains(body, "PasswordHash") {
 		t.Fatalf("login response leaks password material: %s", body)
