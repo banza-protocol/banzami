@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+import 'banzami_keychain.dart';
 import 'pin_hasher.dart';
 import 'push_notification_service.dart';
 import 'push_topic_registration.dart';
@@ -84,17 +84,15 @@ class SessionService extends ChangeNotifier {
   final PushTopicRegistration _push;
 
   // This device only: the session never travels in an iCloud keychain or a
-  // device backup restored onto another phone.
-  static const _store = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
-  );
+  // device backup restored onto another phone. See [BanzamiKeychain].
+  static const _store = BanzamiKeychain.store;
   /// What older versions wrote with — still readable (reads ignore the
   /// accessibility), rewritten once by [_migrateKeychainOnce], and included
   /// when the account is wiped.
-  static const _legacyIOptions =
-      IOSOptions(accessibility: KeychainAccessibility.first_unlock);
-  static const _kKeychainV2 = 'keychain_this_device_v2';
+  static const _legacyIOptions = BanzamiKeychain.legacyIOptions;
+  /// Bumped when the list below grows: an install that already ran v2 has
+  /// items (the push topic) that v2 never moved, so the pass must run again.
+  static const _kKeychainV2 = 'keychain_this_device_v3';
   static const _legacyPinSalt = 'banzami:{pin}:ao';
   static final _bio = LocalAuthentication();
 
@@ -159,7 +157,7 @@ class SessionService extends ChangeNotifier {
     if (await _store.read(key: _kKeychainV2) != null) return;
     for (final k in const [
       _kConsumerId, _kWalletId, _kHandle, _kDisplayName, _kPinHash, _kToken,
-      _kBioEnabled, _kVerificationBadge,
+      _kBioEnabled, _kVerificationBadge, _kPushTopic,
     ]) {
       final v = await _store.read(key: k);
       if (v != null) await _store.write(key: k, value: v);
