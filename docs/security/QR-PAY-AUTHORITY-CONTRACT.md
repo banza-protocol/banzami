@@ -66,3 +66,19 @@ replaced, and it is the honest reason.
 | `banzami_flutter` `ConsumerPublicClient` | `POST /v1/qr/pay` | Route unmounted (RA-053) — rebuild per this contract |
 | `@banzami/sdk`, `banzami_flutter` | `/v1/consumer-wallets*` | Route unmounted (RA-058) — **withdraw the helpers**; the consumer surface already exposes `GET /v1/me/wallet` |
 | `banzami-python` `payment_requests` | `/v1/payment-requests*` with `requester_id`/`payer_id` | Route unmounted (RA-057) — the SDK encodes the broken model and must not be the reason to restore it |
+
+## The receipt of a QR payment (A7-59, 2026-09-12)
+
+Whoever builds this route must set the receipt's channel, not inherit it.
+
+`ReceiptSemantics.ForTransfer` — the derivation every wallet-rail receipt goes
+through — produces only two channels today: `HANDLE` and `PAYMENT_LINK`. The one
+place that produces `QR` (`ForWalletPayment`) is now reached only by the
+historical backfill. A payment settled through a consumer QR-pay route would
+therefore be a transfer like any other, and its receipt, PDF and verifier page
+would all say "Endereço @banza" for a payment the payer made by scanning.
+
+So the route's definition of done includes: the transfer carries what it was
+initiated by, `ForTransfer` derives `QR` from that, and
+`receipt-assurance.sh` covers a QR payment end to end. A receipt that names the
+wrong channel is not a display bug — the proof is signed with it.

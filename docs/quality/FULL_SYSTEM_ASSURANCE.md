@@ -312,3 +312,31 @@ Every stateful harness now builds a tenant of its own and gives all of it back �
 its funding included. The hygiene suite ran twice: every harness green, no
 authority leaked; the residue each pass surfaced (consumers three harnesses did not
 own) is fixed at the harness and retired.
+
+## 11. Second pass — the audit programme (A1…A9, 2026-09-11/12)
+
+Nine parallel audits over the whole deployed system (tenancy, fail-open, tokens,
+routes/contracts, operators, privacy, the seven surfaces, the two apps, auth)
+produced 176 findings. Every one was verified against the code as it stands, not
+as it was reported: the fixes below are RA-138…RA-160 in the repair log, and each
+carries a test that fails when the fix is reverted.
+
+| Domain | Found | Fixed | Open |
+|---|---|---|---|
+| A1 tenancy / authority | 6 | 6 | 0 |
+| A2 fail-open | 28 | 28 | 0 |
+| A3 tokens and identifiers | 8 | 8 | 0 |
+| A4 routes, contracts, SDKs | 13 | 13 | 0 |
+| A5 operators (BANZADMIN) | 12 | 12 | 0 |
+| A6 privacy and secrets | 15 | 15 | 0 |
+| A7 the seven surfaces | 62 | 62 | 0 |
+| A8 consumer and Business apps | 20 | 20 | 0 |
+| A9 auth and sessions | 12 | 12 | 0 |
+
+Three findings were closed as decisions rather than code, and stay visible here:
+
+| Residual | Why it is not a fix |
+|---|---|
+| A7-07 — cancelling a Collection leaves its share links payable (`core/collections`) | the apps no longer claim otherwise and keep polling, so a late payment is seen; retiring a share on cancellation is a BANZA Collections (ADR-016) question, not an operator-local one |
+| A7-25 — the Console's balances and transactions read the whole Business, so a second Project on one Business sees the first's payments | the labels now say "Business", which is the truth; scoping value to a Project is a product decision about what a Project is |
+| A7-59 — a future consumer QR-pay route would mint receipts that say "Endereço @banza" | recorded as part of that route's definition of done in `docs/security/QR-PAY-AUTHORITY-CONTRACT.md`; inventing the channel before the route exists would be guessing |
