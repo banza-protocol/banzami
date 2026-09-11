@@ -117,6 +117,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     debugPrint('[FCM-ROUTE] locked=${svc?.isLocked}');
 
+    // Signed out: a notification of the account that was here opens nothing —
+    // never its receipt for whoever holds the phone now.
+    if (svc != null && !svc.hasSession) {
+      debugPrint('[FCM-ROUTE] no session — tap dropped');
+      return;
+    }
+
     if (svc != null && svc.hasSession && svc.isLocked) {
       debugPrint('[FCM-ROUTE] pending=true — parking and triggering unlock');
       _pendingNotificationMsg = msg;
@@ -139,8 +146,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
     if (ctx == null || nav == null) return;
 
     final svc    = ctx.read<SessionService>();
+    // Re-checked here: the session may have ended while the tap was parked.
+    if (!svc.hasSession || svc.isLocked) {
+      debugPrint('[FCM-ROUTE] no unlocked session — tap dropped');
+      return;
+    }
     final client = ctx.read<ConsumerPublicClient>();
-    final handle = svc.session?.handle ?? '';
+    final handle = svc.session!.handle;
 
     BanzamiNotificationRouter.route(
       data:         msg.data.map((k, v) => MapEntry(k, v.toString())),
@@ -450,7 +462,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
       child: Consumer<SessionService>(
         builder: (context, session, _) {
           final client = context.read<ConsumerPublicClient>();
-          if (session.session != null) {
+          if (session.session == null) {
+            // Signed out: the previous account's token is never sent again.
+            client.clearToken();
+          } else {
             client.setToken(session.session!.token);
             // Cold-start deep link: only process AFTER the splash has navigated
             // (_splashComplete) and the session is unlocked — otherwise the

@@ -93,7 +93,11 @@ class ConsumerPublicClient {
   })  : _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
-  void setToken(String token) => _token = token;
+  /// Installs the session token. An empty token is no token.
+  void setToken(String token) => _token = token.isEmpty ? null : token;
+
+  /// Signed out: nothing authenticated may be sent with the old token.
+  void clearToken() => _token = null;
   String? get token => _token;
 
   // ---------------------------------------------------------------------------
