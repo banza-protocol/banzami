@@ -637,11 +637,11 @@ class _ActivityRow extends StatelessWidget {
     final isCredit = item.isIncoming;
     final amountFormatted =
         '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
-    final initial = item.displayTitle[0];
+    final initial = item.avatarInitial;
 
     return BanzamiActivityRow(
       title: item.displayTitle,
-      subtitle: item.typeLabel,
+      subtitle: item.displaySubtitle,
       amount: amountFormatted,
       time: _formatTime(item.createdAt),
       isCredit: isCredit,

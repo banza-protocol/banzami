@@ -36,9 +36,8 @@ class BanzamiTransferItem extends StatelessWidget {
       _ => (Icons.swap_horiz_rounded, item.typeLabel),
     };
 
-    final subtitle = item.counterpartyHandle != null
-        ? item.counterpartyDisplayName ?? item.counterpartyHandle!
-        : item.note;
+    // The @banza first; the display name only when there is no handle.
+    final subtitle = item.counterpartyAt ?? item.counterpartyDisplayName ?? item.note;
 
     return InkWell(
       onTap: onTap,

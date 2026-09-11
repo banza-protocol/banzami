@@ -55,7 +55,7 @@ void main() {
   });
 
   group('ActivityItem.displayTitle', () {
-    test('merchant payment shows the merchant name (e.g. Doa)', () {
+    test('merchant payment with no @banza shows the merchant name (e.g. Doa)', () {
       final doa = _item(
         itemType: 'MERCHANT_PAYMENT_SENT',
         counterpartyDisplayName: 'Doa',
@@ -76,13 +76,18 @@ void main() {
           '@fm65');
     });
 
-    test('display name wins over handle', () {
+    test('the @banza is the title; the display name is secondary', () {
       final i = _item(
         itemType: 'P2P_SENT',
         counterpartyHandle: 'fm65',
         counterpartyDisplayName: 'Fidel Monteiro',
       );
-      expect(i.displayTitle, 'Fidel Monteiro');
+      expect(i.displayTitle, '@fm65');
+      expect(i.displaySubtitle, 'Enviado · Fidel Monteiro');
+      expect(i.avatarInitial, 'F');
+      final bare = _item(itemType: 'P2P_RECEIVED', counterpartyHandle: 'ana');
+      expect(bare.displaySubtitle, 'Recebido');
+      expect(bare.avatarInitial, 'A', reason: 'never "@"');
     });
 
     test('funding with no counterparty falls back to Multicaixa', () {

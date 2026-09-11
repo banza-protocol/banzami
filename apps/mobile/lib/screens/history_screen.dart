@@ -744,9 +744,9 @@ class _HistoryRow extends StatelessWidget {
     final isCredit  = item.isIncoming;
     final amount    = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
     final title     = item.displayTitle;
-    final subtitle  = item.typeLabel;
+    final subtitle  = item.displaySubtitle;
     final time      = _formatTime(item.createdAt);
-    final initial   = item.displayTitle[0];
+    final initial   = item.avatarInitial;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
