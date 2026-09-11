@@ -169,6 +169,28 @@ else
   no "redeploy would drop:$missing"
 fi
 
+# 8. The at-rest encryption keys (A5-04/A6-10). A rotation would orphan every
+#    secret encrypted under them, so BZSB_ROTATE_SECRETS must not touch them; a
+#    minted key is 32 bytes of base64 (what services/common/webhookprov reads);
+#    and the webhook key reaches only the services that store webhook secrets.
+sed -n '/^keep_or_mint_key32() {/,/^}/p' "$SRC" > "$WORK/key32.sh"
+# shellcheck disable=SC1090
+. "$WORK/key32.sh"
+K="$WORK/key32"; rm -f "$K"
+keep_or_mint_key32 "$K" test_key >/dev/null
+[ "$(base64 -d < "$K" 2>/dev/null | wc -c | tr -d ' ')" = 32 ] \
+  && ok "a minted encryption key is 32 bytes of base64" \
+  || no "a minted encryption key is not 32 bytes of base64"
+before="$(cat "$K")"
+BZSB_ROTATE_SECRETS=1 keep_or_mint_key32 "$K" test_key >/dev/null
+[ "$(cat "$K")" = "$before" ] \
+  && ok "an encryption key survives a secret rotation" \
+  || no "a rotation replaced an encryption key — every secret under it is now unreadable"
+grep -q 'api-gateway-staging|developer-api) key_args=(-v "$WEBHOOK_KEY_FILE' "$SRC" \
+  && grep -q 'api-gateway-staging|developer-api) kf="webhook_encryption_key"' "$SRC" \
+  && ok "the webhook key is mounted only where webhook secrets are stored" \
+  || no "the webhook key is not scoped to the gateway and developer-api"
+
 echo
 echo "  $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

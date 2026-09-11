@@ -100,6 +100,9 @@ load_context() {
   # Operator console (Stage D). Signs BANZADMIN sessions; regenerating it signs
   # every operator out, so it is preserved across applies like the rest.
   ADMINJWT_FILE="$EVIDENCE_ROOT/admin_jwt_secret"
+  # At-rest encryption of recoverable secrets (webhook signing secrets): the
+  # gateway and developer-api share it because they share webhook_endpoints.
+  WEBHOOK_KEY_FILE="$EVIDENCE_ROOT/webhook_encryption_key"
 }
 svc_image() { docker image ls --filter "label=com.banzami.blueprint.service-lab.service=$1" --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | head -1; }
 
@@ -158,6 +161,19 @@ keep_or_mint() { # <file> <label>
   echo "  $label minted"
 }
 
+# keep_or_mint_key32 — a 32-byte AES key, base64, for services/common/webhookprov.
+#
+# Unlike the credentials above it is NEVER rotated by BZSB_ROTATE_SECRETS:
+# values encrypted under it (webhook signing secrets, operator TOTP seeds) would
+# become unreadable. A key change needs re-encryption, not a redeploy. Until one
+# existed, the Sandbox stored all of them in plaintext (A5-04/A6-10).
+keep_or_mint_key32() { # <file> <label>
+  local f="$1" label="$2"
+  if [ -s "$f" ]; then chmod 0644 "$f"; echo "  $label kept (never rotated)"; return 0; fi
+  head -c 32 /dev/urandom | base64 | tr -d '\n' > "$f"; chmod 0644 "$f"
+  echo "  $label minted"
+}
+
 # assert_secret_modes — every mounted secret must be readable by the service user.
 #
 # All five services run non-root. A bind mount preserves the host's permissions,
@@ -210,6 +226,7 @@ write_devkey_secrets() {
   keep_or_mint "$PAYEEVAL_FILE"      core_payee_validation_key
   keep_or_mint "$SESSION_FILE"       session_secret
   keep_or_mint "$OTP_FILE"           otp_pepper
+  keep_or_mint_key32 "$WEBHOOK_KEY_FILE" webhook_encryption_key
 }
 
 # ensure_proof_signing_key — the operator key that makes a public proof an
@@ -247,6 +264,10 @@ deploy_one() { # <name> <port> <binary> <tag>
   # The gateway resolves the Developer API by its canonical in-cluster host
   # `developer-api` (SSRF-guarded allowlist); give that container the alias.
   local alias_args=(); [ "$name" = "developer-api" ] && alias_args=(--network-alias developer-api)
+  # The webhook encryption key goes only where webhook secrets are written and
+  # read — not to every service on the stack (A6-09).
+  local key_args=()
+  case "$name" in api-gateway-staging|developer-api) key_args=(-v "$WEBHOOK_KEY_FILE:/run/secrets/webhook_encryption_key:ro") ;; esac
   # synthetic NON-secret config; secrets are file-only + exported in-process (never -e)
   # `docker create` + attach + `start`, never `docker run -d` followed by a
   # `network connect`. Attaching the second network to an ALREADY-RUNNING
@@ -270,6 +291,7 @@ deploy_one() { # <name> <port> <binary> <tag>
     -v "$PAYEEVAL_FILE:/run/secrets/core_payee_validation_key:ro" \
     -v "$SESSION_FILE:/run/secrets/session_secret:ro" \
     -v "$OTP_FILE:/run/secrets/otp_pepper:ro" \
+    "${key_args[@]}" \
     -e "CORE_API_PORT=$port" -e "PORT=$port" -e "ENVIRONMENT=sandbox" \
     -e "BANZAMI_PILOT_LIMITS=1" \
     -e "CORE_API_URL=http://${BZSB_PROJECT}-core-api-staging:8081" \
@@ -277,7 +299,7 @@ deploy_one() { # <name> <port> <binary> <tag>
     -e "DEVELOPER_KEY_AUTH_ENABLED=true" -e "PAYMENT_CAPABILITY_RELEASED=true" \
     -e "REDIS_URL=redis://redis:6379" -e "REDIS_ADDR=redis:6379" \
     -e "TRANSIT_ACCOUNT_ID=$(uuid)" -e "BANK_ACCOUNT_ID=$(uuid)" -e "OPERATOR_FEE_REVENUE_ACCOUNT_ID=$(uuid)" \
-    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; export CORE_INTERNAL_KEY="$(cat /run/secrets/core_internal_key)"; export CORE_REFUND_KEY="$CORE_INTERNAL_KEY"; export API_KEY_PEPPER="$(cat /run/secrets/api_key_pepper)"; export DEVELOPER_INTERNAL_KEY="$(cat /run/secrets/developer_internal_key)"; export CORE_PAYEE_VALIDATION_KEY="$(cat /run/secrets/core_payee_validation_key)"; export SESSION_SECRET="$(cat /run/secrets/session_secret)"; export OTP_PEPPER="$(cat /run/secrets/otp_pepper)"; exec '"$bin" >/dev/null 2>&1 || return 1
+    --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export JWT_SECRET="$(cat /run/secrets/jwt_secret)"; export CORE_INTERNAL_KEY="$(cat /run/secrets/core_internal_key)"; export CORE_REFUND_KEY="$CORE_INTERNAL_KEY"; export API_KEY_PEPPER="$(cat /run/secrets/api_key_pepper)"; export DEVELOPER_INTERNAL_KEY="$(cat /run/secrets/developer_internal_key)"; export CORE_PAYEE_VALIDATION_KEY="$(cat /run/secrets/core_payee_validation_key)"; export SESSION_SECRET="$(cat /run/secrets/session_secret)"; export OTP_PEPPER="$(cat /run/secrets/otp_pepper)"; [ -s /run/secrets/webhook_encryption_key ] && export WEBHOOK_ENCRYPTION_KEY="$(cat /run/secrets/webhook_encryption_key)"; exec '"$bin" >/dev/null 2>&1 || return 1
   docker network connect "$BZSB_APP_NET" "$cname" >/dev/null 2>&1 || true
   docker start "$cname" >/dev/null 2>&1 || return 1
   # health AFTER deployment (docker HEALTHCHECK from the image)
@@ -517,6 +539,10 @@ cmd_deploy_one() {
       # would do it silently at the next deploy.
       assert_secret_modes "$secret_dir"
       keep_or_mint "$ADMINJWT_FILE" admin_jwt_secret
+      # Operator TOTP seeds are encrypted at rest under a key of admin-api's own
+      # (the variable is admin-api's WEBHOOK_ENCRYPTION_KEY, its only use there).
+      ADMIN_MFA_KEY_FILE="$secret_dir/admin_mfa_encryption_key"
+      keep_or_mint_key32 "$ADMIN_MFA_KEY_FILE" admin_mfa_encryption_key
       echo "  $name first create on $datanet + $appnet (file-only credentials)"
       docker create --name "$cname" --network "$datanet" \
         --security-opt "no-new-privileges:true" \
@@ -525,6 +551,7 @@ cmd_deploy_one() {
         -v "$CIK_FILE:/run/secrets/core_internal_key:ro" \
         -v "$ADMINJWT_FILE:/run/secrets/admin_jwt_secret:ro" \
         -v "$RESEND_FILE:/run/secrets/resend_api_key:ro" \
+        -v "$ADMIN_MFA_KEY_FILE:/run/secrets/admin_mfa_encryption_key:ro" \
         -e "ADMIN_API_PORT=$port" \
         -e "ENVIRONMENT=SANDBOX" \
         -e "EMAIL_PROVIDER=resend" \
@@ -537,7 +564,7 @@ cmd_deploy_one() {
         -e "ADMIN_BASE_URL=https://admin.banzami.com" \
         -e "CORE_API_URL=http://${proj}-core-api-staging:8081" \
         -e "GATEWAY_STAGING_INTERNAL_URL=http://${proj}-api-gateway-staging:8080" \
-        --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export INTERNAL_API_KEY="$(cat /run/secrets/core_internal_key)"; export STAGING_INTERNAL_API_KEY="$INTERNAL_API_KEY"; export ADMIN_JWT_SECRET="$(cat /run/secrets/admin_jwt_secret)"; [ -s /run/secrets/resend_api_key ] && export RESEND_API_KEY="$(cat /run/secrets/resend_api_key)"; exec admin-api' >/dev/null 2>&1 \
+        --entrypoint sh "$tag" -c 'export DATABASE_URL="$(cat /run/secrets/db_url)"; export INTERNAL_API_KEY="$(cat /run/secrets/core_internal_key)"; export STAGING_INTERNAL_API_KEY="$INTERNAL_API_KEY"; export ADMIN_JWT_SECRET="$(cat /run/secrets/admin_jwt_secret)"; [ -s /run/secrets/resend_api_key ] && export RESEND_API_KEY="$(cat /run/secrets/resend_api_key)"; export WEBHOOK_ENCRYPTION_KEY="$(cat /run/secrets/admin_mfa_encryption_key)"; exec admin-api' >/dev/null 2>&1 \
         || { echo "  $name first create FAIL"; return 1; }
       docker network connect "$appnet" "$cname" >/dev/null 2>&1 || true
       # Outbound internet. The data and application networks are both internal:
@@ -629,6 +656,23 @@ cmd_deploy_one() {
       printf '%s\n' "${run[@]}" | grep -q "/run/secrets/$ks" || run+=(-v "$sd/$ks:/run/secrets/$ks:ro")
     done
   fi
+  # At-rest encryption keys (A5-04/A6-10) — a new secret, so it cannot arrive by
+  # cloning. The webhook key to the two services that store webhook signing
+  # secrets; admin-api's own key for operator TOTP seeds. Minted once, never
+  # rotated (keep_or_mint_key32). Values already stored in plaintext keep
+  # reading (services/common/webhookprov passes an unprefixed value through);
+  # new ones are encrypted.
+  if [ -n "$sd" ] && [ -d "$sd" ]; then
+    local kf=""
+    case "$name" in
+      api-gateway-staging|developer-api) kf="webhook_encryption_key" ;;
+      admin-api) kf="admin_mfa_encryption_key" ;;
+    esac
+    if [ -n "$kf" ]; then
+      keep_or_mint_key32 "$sd/$kf" "$kf"
+      printf '%s\n' "${run[@]}" | grep -q "/run/secrets/$kf" || run+=(-v "$sd/$kf:/run/secrets/$kf:ro")
+    fi
+  fi
   # Clone the previous container's env EXCEPT anything the new image is the
   # authority on. BANZAMI_BUILD_COMMIT is baked into each image by the build
   # (ARG -> ENV); re-applying the previous container's value as an explicit -e
@@ -678,7 +722,7 @@ cmd_deploy_one() {
   # One value on both sides, named for what it authorises at each end: the
   # Gateway reads INTERNAL_API_KEY to decide whether to accept an internal call,
   # admin-api reads STAGING_INTERNAL_API_KEY to decide what to send.
-  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY kyb_storage_endpoint:KYB_STORAGE_ENDPOINT kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
+  local ep='for s in db_url:DATABASE_URL jwt_secret:JWT_SECRET core_internal_key:CORE_INTERNAL_KEY core_internal_key:CORE_REFUND_KEY api_key_pepper:API_KEY_PEPPER developer_internal_key:DEVELOPER_INTERNAL_KEY core_payee_validation_key:CORE_PAYEE_VALIDATION_KEY session_secret:SESSION_SECRET otp_pepper:OTP_PEPPER admin_jwt_secret:ADMIN_JWT_SECRET resend_api_key:RESEND_API_KEY core_internal_key:INTERNAL_API_KEY core_internal_key:STAGING_INTERNAL_API_KEY bzm_proof_signing_key:BZM_PROOF_SIGNING_KEY kyb_storage_endpoint:KYB_STORAGE_ENDPOINT kyb_storage_access_key_id:KYB_STORAGE_ACCESS_KEY_ID kyb_storage_secret_access_key:KYB_STORAGE_SECRET_ACCESS_KEY webhook_encryption_key:WEBHOOK_ENCRYPTION_KEY admin_mfa_encryption_key:WEBHOOK_ENCRYPTION_KEY; do f="/run/secrets/${s%%:*}"; v="${s##*:}"; [ -f "$f" ] && export "$v"="$(cat "$f")"; done; exec '"$bin"
   docker rm -f "$cname" >/dev/null 2>&1 || true   # single-service swap (nothing else pruned)
   "${run[@]}" --entrypoint sh "$tag" -c "$ep" >/dev/null 2>&1 || { echo "  $name docker run FAIL"; return 1; }
   local i; for i in "${nets[@]:1}"; do docker network connect "$i" "$cname" >/dev/null 2>&1 || true; done

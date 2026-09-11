@@ -3430,3 +3430,25 @@ process instead, as the credential limiters have since RA-091. Tests
 `TestTransaction_CarriesTheSessionsEnvironment`,
 `TestLegacyProof_ABrokenRedisStillCountsInProcess` (replacing the test that asserted the
 fail-open; the previous limiter answers the seventh request with 200).
+
+## RA-129 — the Sandbox stored every webhook signing secret and operator TOTP seed in plaintext
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-04, privacy A6-10, fail-open A2-10)
+- **Status:** FIXED in the deploy (applied at the next deploy of gateway, developer-api and admin-api)
+
+No Sandbox service had `WEBHOOK_ENCRYPTION_KEY`: the services warned "plaintext
+(sandbox only)" and stored the webhook signing secrets (gateway, developer-api) and the
+BANZADMIN operators' TOTP seeds (admin-api) in the clear, in a database every service
+can read — a dump would hand over the operators' second factor. developer-api's cipher
+setup, and its refusal to run without a key outside the Sandbox, also sat inside the
+branch for an unrelated credential (the refund key), so without that key neither ran.
+The deploy now mints a 32-byte key (never rotated by `BZSB_ROTATE_SECRETS` — a rotation
+would orphan everything encrypted under it) and mounts it only into the gateway and
+developer-api; admin-api gets a key of its own for TOTP seeds. The first create and the
+clone-based redeploy both provision and export them. Values already stored in plaintext
+keep reading (an unprefixed value passes through `webhookprov`); new ones are
+encrypted. developer-api's cipher block is unconditional. Guard
+`tests/ops/sandbox-secret-preservation.test.sh` (22 checks; a key that rotates fails
+it). Residual: existing plaintext rows stay plaintext until rewritten — a re-encryption
+pass is owed; A6-09 (every other secret still mounted into every stack service) is not
+yet scoped.
