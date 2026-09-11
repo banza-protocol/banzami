@@ -298,10 +298,11 @@ class _ProfileHeader extends StatelessWidget {
                 color: BanzamiColors.white.withValues(alpha: 0.35),
               ),
               const SizedBox(width: 6),
+              // The badge is granted by the Banzami team (verification_badge),
+              // not the KYC decision — so it says who vouched, not that an
+              // identity check passed.
               Text(
-                session.verificationBadge == VerificationBadgeType.merchant
-                    ? 'Conta de comerciante verificada'
-                    : 'Identidade financeira verificada',
+                verificationBadgeCaption(session.verificationBadge!),
                 style: BanzamiTextStyles.bodySm.copyWith(
                   color: BanzamiColors.white.withValues(alpha: 0.35),
                 ),
@@ -537,3 +538,11 @@ class _RowChevron extends StatelessWidget {
     );
   }
 }
+
+/// What the profile says under a verification badge. The badge is an operator
+/// mark (the consumer's `verification_badge`, set by the Banzami team) — it is
+/// not the KYC result, so it never claims "identidade verificada".
+String verificationBadgeCaption(VerificationBadgeType type) =>
+    type == VerificationBadgeType.merchant
+        ? 'Comerciante verificado pelo Banzami'
+        : 'Verificado pelo Banzami';
