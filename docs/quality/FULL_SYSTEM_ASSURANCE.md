@@ -252,8 +252,8 @@ reporting.
 | `docker logs --tail` on the stack PostgreSQL and legacy Redis hangs until their next restart | `--since` works; they were deliberately not restarted |
 | ~168 deploy bundle manifests deleted | receipts and git history still resolve commit → runtime |
 | Four historical real proof references remain in git history | not rewritten, by instruction |
-| Four @doa CAMPAIGN accounts (19 900 Kz) behind campaigns DOA's live datastore still shows | closed only after DOA ends those campaigns (owner: DOA's reset), then `retire-stale-doa-tenant-state.sh --apply --doa-campaigns-ended` |
-| DOA's datastores still hold test campaigns and donations | only DOA's sanctioned reset removes them; it refuses while campaigns belong to a non-internal account — owner action |
+| ~~Four @doa CAMPAIGN accounts behind DOA's test campaigns~~ | CLOSED after DOA's reset: all 20 @doa CAMPAIGN accounts CLOSED, value 0; @doa keeps only its PRIMARY |
+| ~~DOA's public datastore held test campaigns and donations~~ | CLOSED: the owner ran DOA's sanctioned `launch-reset.mjs` (6 campaigns, 11 intents, 42 events removed; guard re-enabled; Vault preserved; the reset recorded in `audit_log`). It first had to learn to ask the CLI for JSON (doa 05ee2d7). DOA's fixture store (`acthheggrdbrckfemhyh`) is not reset yet — owner's choice |
 | Three rotated container-log copies from the forced rotation (webhook sink, PostgreSQL, stack Redis) | not named in the early-deletion authorisation; the retention job removes them on 2026-09-25. The two edge copies holding pre-redaction references are deleted |
 | Two small synthetic PDFs in `banzami-kyb-sandbox`, attached to rejected synthetic applications | no route deletes a decided application's documents, by design |
 | Handles of retired Businesses stay registered to the suspended Business | a handle is a routing entry with no release lifecycle; a suspended Business neither logs in nor receives |
@@ -297,6 +297,8 @@ postings, all balanced; reconciliation 6/6; every assurance counter 0).
 | other @doa fixture accounts | 6 open | 0 |
 | DOA stale: old project / its Business / first Business | ACTIVE | ARCHIVED / SUSPENDED / SUSPENDED |
 | DOA test keys on Doa-Sandbox | 2 | 0 (runtime web + admin kept) |
+| @doa CAMPAIGN accounts behind DOA's test campaigns | 4 open, 19 900 Kz | 0 (after DOA's reset; @doa: PRIMARY only) |
+| DOA public datastore: campaigns / donations / events | 6 / 11 / 42 | 0 / 0 / 0 (DOA's own reset, run by the owner) |
 | DOA fixture-store admins (`@e2e.local`) | 9 | 0 (demoted, barred) |
 | kept E2E manifests on the host | 9 | 0 |
 | orphan containers | 1 | 0 |
