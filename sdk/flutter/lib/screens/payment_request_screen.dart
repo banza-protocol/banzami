@@ -6,6 +6,7 @@ import '../client/consumer_public_client.dart';
 import '../models/receipt.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/error_messages.dart';
 import '../utils/idempotency_intent.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_amount_input.dart';
@@ -220,20 +221,12 @@ class _BanzamiPaymentRequestScreenState
       HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
-        _error = switch (e.code) {
-          'INSUFFICIENT_FUNDS' => 'Saldo insuficiente para esta transferência.',
-          'LINK_NOT_ACTIVE' => 'Este pedido de pagamento já não está activo.',
-          'ACCOUNT_FROZEN' => 'A sua conta está suspensa. Contacte o suporte.',
-          'SELF_TRANSFER_NOT_ALLOWED' => 'Não pode pagar o seu próprio pedido.',
-          'RECIPIENT_NOT_FOUND' => '@${widget.recipientHandle} não encontrado.',
-          'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa.',
-          'SELF_TRANSFER' => 'Não pode enviar para si mesmo.',
-          'WALLET_NOT_FOUND' => 'Carteira de destino não encontrada.',
-          'NO_WALLET' => 'Não tem carteira activa para esta moeda.',
-          _ => e.message.isNotEmpty
-              ? e.message
-              : 'Erro de envio. Tente novamente.',
-        };
+        _error = banzamiErrorMessage(e, codes: {
+          'LINK_NOT_ACTIVE': 'Este pedido de pagamento já não está activo.',
+          'SELF_TRANSFER_NOT_ALLOWED': 'Não pode pagar o seu próprio pedido.',
+          if (widget.recipientIsHandle)
+            'RECIPIENT_NOT_FOUND': '@${widget.recipientHandle} não existe.',
+        });
       });
     } catch (_) {
       if (!mounted) return;

@@ -155,10 +155,8 @@ class _KycScreenState extends State<KycScreen> {
         _docType = c.documentType;
       }
       setState(() { _case = c; _step = _Step.capture; });
-    } on BanzamiApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Não foi possível iniciar a verificação.');
+    } catch (e) {
+      if (mounted) setState(() => _error = banzamiErrorMessage(e));
     }
   }
 
@@ -201,11 +199,11 @@ class _KycScreenState extends State<KycScreen> {
       _captures.clear();
       setState(() { _case = submitted; _step = _Step.status; });
     } on BanzamiApiException catch (e) {
-      final msg = e.code == 'EVIDENCE_INCOMPLETE'
-          ? 'Faltam documentos. Capture todos antes de enviar.'
-          : e.code == 'STORAGE_NOT_CONFIGURED'
-              ? 'Serviço de verificação temporariamente indisponível. Tente mais tarde.'
-              : e.message;
+      final msg = banzamiErrorMessage(e, codes: const {
+        'EVIDENCE_INCOMPLETE': 'Faltam documentos. Capture todos antes de enviar.',
+        'STORAGE_NOT_CONFIGURED':
+            'Serviço de verificação temporariamente indisponível. Tente mais tarde.',
+      });
       if (mounted) setState(() { _error = msg; _step = _Step.review; });
     } on _MissingEvidence {
       if (mounted) setState(() { _error = 'Faltam documentos. Capture todos antes de enviar.'; _step = _Step.review; });

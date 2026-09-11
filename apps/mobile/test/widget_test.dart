@@ -200,7 +200,7 @@ void main() {
           _confirmScreen(client: _apiErrorClient('RECIPIENT_NOT_FOUND'))));
       await tester.tap(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('@joao não encontrado'), findsOneWidget);
+      expect(find.textContaining('@joao não existe'), findsOneWidget);
     });
 
     testWidgets('network failure shows connection error message',

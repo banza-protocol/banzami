@@ -93,17 +93,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         (_) => false,
       );
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
+      // Only a definitive 401 is a wrong @banza/PIN; an outage says so.
       setState(() {
-        _error   = e.code == 'INVALID_CREDENTIALS'
-            ? '@banza ou PIN incorrecto.'
-            : e.message;
-        _loading = false;
-        _pin     = '';
-      });
-    } catch (_) {
-      setState(() {
-        _error   = 'Erro de ligação. Verifique a internet e tente novamente.';
+        _error   = banzamiErrorMessage(e, codes: const {
+          'INVALID_CREDENTIALS': '@banza ou PIN incorrectos.',
+        });
         _loading = false;
         _pin     = '';
       });

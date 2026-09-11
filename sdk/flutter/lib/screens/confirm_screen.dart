@@ -5,6 +5,7 @@ import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
+import '../utils/error_messages.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_components.dart';
 import 'receipt_screen.dart';
@@ -125,16 +126,10 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
-        _error = switch (e.code) {
-          'INSUFFICIENT_FUNDS' => 'Saldo insuficiente para esta transferência.',
-          'RECIPIENT_NOT_FOUND' => '@${widget.recipientHandle} não encontrado.',
-          'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa.',
-          'SELF_TRANSFER' => 'Não pode enviar para si mesmo.',
-          'INVALID_AMOUNT' => 'Montante inválido.',
-          _ => e.message.isNotEmpty
-              ? e.message
-              : 'Erro de envio. Tente novamente.',
-        };
+        _error = banzamiErrorMessage(e, codes: {
+          'INSUFFICIENT_FUNDS': 'Saldo insuficiente para esta transferência.',
+          'RECIPIENT_NOT_FOUND': '@${widget.recipientHandle} não existe.',
+        });
       });
     } catch (_) {
       if (!mounted) return;

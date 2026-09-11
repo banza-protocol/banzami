@@ -77,6 +77,7 @@ export 'theme/banzami_theme.dart';
 export 'utils/banzami_toast.dart';
 export 'utils/camera_permission.dart';
 export 'utils/date_formatter.dart';
+export 'utils/error_messages.dart';
 export 'utils/idempotency_intent.dart';
 export 'utils/money_format.dart';
 export 'utils/qr_logo_utils.dart';

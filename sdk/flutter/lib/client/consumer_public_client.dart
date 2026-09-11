@@ -612,9 +612,18 @@ class ConsumerPublicClient {
     try {
       decoded = jsonDecode(resp.body) as Map<String, dynamic>;
     } catch (_) {
-      // Non-JSON body (e.g. nginx 404 text). Wrap it so callers get a readable message.
-      final err = BanzamiNetworkException(
-          'HTTP ${resp.statusCode}: ${resp.body.trim()}');
+      // A non-JSON body — a proxy's 502/503/429 page, an nginx 404. An error
+      // status is still an answer from the server side, not a missing network:
+      // keep its status so the app can say "serviço indisponível" / "demasiadas
+      // tentativas" instead of "sem ligação".
+      final Exception err = resp.statusCode >= 400
+          ? BanzamiApiException(
+              statusCode: resp.statusCode,
+              code: 'UNKNOWN',
+              message: 'HTTP ${resp.statusCode} (non-JSON body)',
+            )
+          : BanzamiNetworkException(
+              'HTTP ${resp.statusCode}: malformed response body');
       onError?.call(method, path, err);
       throw err;
     }
