@@ -147,6 +147,13 @@ func main() {
 			slog.Warn("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set — operator MFA secrets stored in plaintext (sandbox only)")
 		}
 		mfa = service.NewMFAService(pool, mfaCipher)
+		// Seeds stored before the deployment had a key are rewritten under it
+		// (A5-04). Refusing to start over this would lock every operator out.
+		if n, err := mfa.EncryptStoredSecrets(context.Background()); err != nil {
+			slog.Error("[SEC-002] could not encrypt stored MFA secrets", "error", err)
+		} else if n > 0 {
+			slog.Info("[SEC-002] stored MFA secrets encrypted at rest", "count", n)
+		}
 		proofAdmin = service.NewProofAdminService(pool)
 
 		// Optional sandbox KYC review: a second pool to banzami_staging lets the

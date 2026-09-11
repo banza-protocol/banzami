@@ -3449,6 +3449,9 @@ clone-based redeploy both provision and export them. Values already stored in pl
 keep reading (an unprefixed value passes through `webhookprov`); new ones are
 encrypted. developer-api's cipher block is unconditional. Guard
 `tests/ops/sandbox-secret-preservation.test.sh` (22 checks; a key that rotates fails
-it). Residual: existing plaintext rows stay plaintext until rewritten — a re-encryption
-pass is owed; A6-09 (every other secret still mounted into every stack service) is not
-yet scoped.
+it). admin-api rewrites any TOTP seed still in plaintext under its key when it starts
+(`EncryptStoredSecrets`, conditioned on the row still holding the plaintext it read;
+test `TestEncryptStoredSecrets_MovesPlaintextSeedsUnderTheKey` — the seed is encrypted
+and still verifies). Residual: webhook signing secrets written before the key stay
+plaintext until rotated; A6-09 (every other secret still mounted into every stack
+service) is not yet scoped.

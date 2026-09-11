@@ -308,6 +308,52 @@ func (s *MFAService) RegenerateRecoveryCodes(ctx context.Context, adminUserID st
 	return s.regenerateRecoveryCodes(ctx, adminUserID)
 }
 
+// EncryptStoredSecrets rewrites any TOTP seed still stored in plaintext under
+// the configured key, and returns how many it moved. A seed written before the
+// deployment had a key stays readable (an unprefixed value passes through the
+// cipher) — but it also stays in the clear in every database dump until
+// something rewrites it. Each row is replaced only while it still holds the
+// plaintext just read, so a concurrent enrolment is never overwritten.
+func (s *MFAService) EncryptStoredSecrets(ctx context.Context) (int, error) {
+	if s.cipher == nil {
+		return 0, nil
+	}
+	moved := 0
+	for _, col := range []string{"secret_encrypted", "pending_secret_encrypted"} {
+		rows, err := s.pool.Query(ctx,
+			`SELECT admin_user_id::text, `+col+` FROM admin_mfa
+			  WHERE `+col+` IS NOT NULL AND `+col+` NOT LIKE 'enc:v1:%'`)
+		if err != nil {
+			return moved, err
+		}
+		type plain struct{ id, value string }
+		var todo []plain
+		for rows.Next() {
+			var p plain
+			if err := rows.Scan(&p.id, &p.value); err != nil {
+				rows.Close()
+				return moved, err
+			}
+			todo = append(todo, p)
+		}
+		rows.Close()
+		for _, p := range todo {
+			enc, err := s.cipher.Encrypt(p.value)
+			if err != nil {
+				return moved, err
+			}
+			tag, err := s.pool.Exec(ctx,
+				`UPDATE admin_mfa SET `+col+` = $2, updated_at = now()
+				  WHERE admin_user_id = $1 AND `+col+` = $3`, p.id, enc, p.value)
+			if err != nil {
+				return moved, err
+			}
+			moved += int(tag.RowsAffected())
+		}
+	}
+	return moved, nil
+}
+
 // ── internals ───────────────────────────────────────────────────────────────
 
 func (s *MFAService) load(ctx context.Context, adminUserID string) (secret string, lastStep *int64, err error) {
