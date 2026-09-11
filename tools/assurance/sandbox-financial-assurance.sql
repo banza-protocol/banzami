@@ -164,6 +164,13 @@ SELECT 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE', count(*) FROM payment_sessions 
 SELECT 'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', count(*) FROM payment_sessions s
   JOIN payment_links l ON l.id = s.payment_link_id
  WHERE l.status = 'USED' AND s.status IN ('CREATED','ACTIVE');
+-- A payment refunded in full does not verify as paid (A7-01, 0131).
+SELECT 'PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS', count(*) FROM transaction_proofs tp
+  JOIN wallet_payments wp
+    ON tp.transaction_id IN (wp.transfer_id::text, wp.id::text) AND tp.environment = wp.environment
+ WHERE tp.status = 'CONFIRMED'
+   AND (SELECT COALESCE(sum(ra.amount_minor), 0) FROM restitution_allocations ra
+         WHERE ra.source_type = 'WALLET_PAYMENT' AND ra.source_id = wp.id) >= wp.amount_minor;
 -- Every consumer's @banza routes to that consumer through the one namespace (0129).
 SELECT 'CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE', count(*) FROM consumers c
  WHERE c.handle IS NOT NULL

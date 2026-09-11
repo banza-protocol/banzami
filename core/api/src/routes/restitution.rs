@@ -185,6 +185,11 @@ struct Resolved {
     consumer_id: Option<Uuid>,
     transaction_id: Option<Uuid>,
     captured_amount: i64,
+    /// What the source's proof is keyed on. For an acquiring source that is its
+    /// transaction. A wallet payment has no transaction — its operation is the
+    /// transfer, and its one proof is keyed on the transfer id (older proofs
+    /// were keyed on the wallet payment itself, so both are named).
+    proof_keys: Vec<Uuid>,
 }
 
 /// Apply a restitution for a typed source, atomically, under a source-scoped lock.
@@ -444,8 +449,11 @@ pub async fn apply_restitution(
 
     let cumulative_after = already + effective;
     if cumulative_after == r.captured_amount {
-        if let Some(tid) = r.transaction_id {
-            mark_proof_fully_reversed(conn, tid, &p.environment).await?;
+        // A7-01: this used to read `r.transaction_id`, which a wallet payment
+        // never has — so a fully refunded wallet payment kept a CONFIRMED proof
+        // and still verified as "Pagamento verificado".
+        for key in &r.proof_keys {
+            mark_proof_fully_reversed(conn, *key, &p.environment).await?;
         }
     }
     Ok(RestitutionResult {
@@ -506,6 +514,7 @@ async fn resolve_transaction(
         consumer_id: None,
         transaction_id: Some(transaction_id),
         captured_amount: row.get("amount_minor"),
+        proof_keys: vec![transaction_id],
     })
 }
 
@@ -516,7 +525,7 @@ async fn resolve_wallet_payment(
     wallet_payment_id: Uuid,
 ) -> Result<Resolved, RestitutionError> {
     let row = sqlx::query(
-        "SELECT merchant_id, consumer_id, amount_minor, currency, status, wallet_account_id
+        "SELECT merchant_id, consumer_id, amount_minor, currency, status, wallet_account_id, transfer_id
          FROM wallet_payments WHERE id = $1",
     )
     .bind(wallet_payment_id)
@@ -600,5 +609,6 @@ async fn resolve_wallet_payment(
         consumer_id: Some(consumer_id),
         transaction_id: None,
         captured_amount: row.get("amount_minor"),
+        proof_keys: vec![row.get::<Uuid, _>("transfer_id"), wallet_payment_id],
     })
 }

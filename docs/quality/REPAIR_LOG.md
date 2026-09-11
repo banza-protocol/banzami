@@ -3072,3 +3072,23 @@ operator hundreds of milliseconds to abort. Core records these actions as "ADMIN
 the audit row is the only record of who acted. The write is now detached from the
 request (bounded at five seconds). Test `TestAuditWrite_SurvivesTheClientGoingAway`
 (real DB; with the request's context it records nothing).
+
+## RA-109 — a fully refunded wallet payment still verified as paid
+
+- **Found:** 2026-09-11 (full-system assurance, surfaces audit A7-01)
+- **Status:** FIXED (core + migration 0131)
+
+A full refund reverses the source's proof (RA-088) — but it looked the proof up by the
+source's transaction id, and a wallet payment has none: its operation is the transfer,
+and since one proof per operation its proof is keyed on the transfer id (older proofs
+on the wallet payment itself). Every fully refunded wallet payment kept a CONFIRMED
+proof, and `/r/`, the PDF and the app's comprovativo kept saying "Pagamento verificado"
+for money that had been given back — four in the Sandbox, 8 000 Kz. The refund now
+reverses both keys when the allocations reach the amount; migration 0131 moves the
+proofs it missed (status only, forward only, dated by the refund that completed them).
+Counter `PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS`. Tests
+`a_fully_refunded_wallet_payment_proof_is_reversed` (real DB; with no proof keys it
+fails at the full refund, and a partial refund leaves the proof standing),
+`tests/ops/migration-0131-refunded-wallet-payment-proofs.test.mjs`, and the counter's
+case in `financial-assurance-sql.test.mjs` (counting any refund, not a full one, fails
+it).

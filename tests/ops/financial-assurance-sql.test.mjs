@@ -36,6 +36,7 @@ const ZERO = [
   'DEPOSITS_CONFIRMED_WITHOUT_POSTING', 'RESTITUTIONS_WITHOUT_POSTING', 'PAID_LINKS_WITHOUT_PAYMENT',
   'PAID_SESSIONS_WITHOUT_PAYMENT', 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE',
   'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', 'CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE',
+  'PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS',
 ];
 
 describe('financial assurance counters', () => {
@@ -168,6 +169,21 @@ describe('financial assurance counters', () => {
     const before = counts().CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE;
     psql(`INSERT INTO consumers (id, handle, status, created_at, updated_at) VALUES ('d0000000-0000-4000-8000-0000000000c9','fora_do_registo','ACTIVE',now(),now())`);
     assert.equal(counts().CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE - before, 1);
+  });
+
+  it('a fully refunded wallet payment that still verifies is caught — and a partial refund is not', () => {
+    const before = counts().PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS;
+    psql(`INSERT INTO wallet_payments (id, transfer_id, merchant_id, consumer_id, amount_minor, currency, status, trace_id, environment)
+            VALUES ('f0000000-0000-4000-8000-0000000000a1','f0000000-0000-4000-8000-0000000000a2','d0000000-0000-4000-8000-0000000000e1','d0000000-0000-4000-8000-0000000000c9',1000,'AOA','COMPLETED','t','SANDBOX'),
+                   ('f0000000-0000-4000-8000-0000000000b1','f0000000-0000-4000-8000-0000000000b2','d0000000-0000-4000-8000-0000000000e1','d0000000-0000-4000-8000-0000000000c9',1000,'AOA','COMPLETED','t','SANDBOX');
+          INSERT INTO transaction_proofs (proof_reference, transaction_id, environment, amount_minor, currency, status) VALUES
+            ('BZM-A7-01-full','f0000000-0000-4000-8000-0000000000a2','SANDBOX',1000,'AOA','CONFIRMED'),
+            ('BZM-A7-01-part','f0000000-0000-4000-8000-0000000000b2','SANDBOX',1000,'AOA','CONFIRMED');
+          INSERT INTO restitution_allocations (source_type, source_id, origin, origin_id, amount_minor, currency, idempotency_key, posting_id) VALUES
+            ('WALLET_PAYMENT','f0000000-0000-4000-8000-0000000000a1','REFUND',gen_random_uuid(),400,'AOA','a',gen_random_uuid()),
+            ('WALLET_PAYMENT','f0000000-0000-4000-8000-0000000000a1','REFUND',gen_random_uuid(),600,'AOA','b',gen_random_uuid()),
+            ('WALLET_PAYMENT','f0000000-0000-4000-8000-0000000000b1','REFUND',gen_random_uuid(),999,'AOA','c',gen_random_uuid())`);
+    assert.equal(counts().PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS - before, 1);
   });
 
   it('a login that does not own its handle is caught', () => {

@@ -1727,3 +1727,30 @@ async fn a_full_refund_whose_proof_cannot_be_reversed_does_not_happen(pool: PgPo
     );
     assert_eq!(proof_status(&pool, seed.transaction_id).await, "CONFIRMED");
 }
+
+// A7-01: a fully refunded wallet payment's proof is reversed. The proof of a
+// wallet payment is keyed on its transfer (one operation, one proof), and the
+// reversal used to look only at a transaction id — which a wallet payment never
+// has — so the proof stayed CONFIRMED and the verifier kept answering
+// "Pagamento verificado" for money that had been given back.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_fully_refunded_wallet_payment_proof_is_reversed(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let s = seed_wallet_payment(&pool, 1_000).await;
+    let transfer: Uuid = sqlx::query_scalar("SELECT transfer_id FROM wallet_payments WHERE id = $1")
+        .bind(s.wallet_payment_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    seed_proof(&pool, transfer).await;
+
+    refunds::create(State(state.clone()), Json(wp_refund_body(&s, 400, "wp-part")))
+        .await
+        .expect("partial refund");
+    assert_eq!(proof_status(&pool, transfer).await, "CONFIRMED", "a partial refund leaves the payment standing");
+
+    refunds::create(State(state), Json(wp_refund_body(&s, 600, "wp-rest")))
+        .await
+        .expect("refund of the rest");
+    assert_eq!(proof_status(&pool, transfer).await, "REVERSED", "the fully refunded payment still verifies");
+}
