@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { schemeFor } from '@/lib/deep-link';
+import { serverEnvironment } from '@/lib/server-environment';
 import { getMerchantProfile } from '@/lib/api';
 import type { Metadata } from 'next';
 import ProfilePayCard from './profile-pay-card';
@@ -72,7 +74,7 @@ export default async function MerchantProfilePage({ params }: Props) {
           )}
 
           {/* Static QR + pay + share */}
-          <ProfilePayCard handle={profile.handle} displayName={profile.display_name} />
+          <ProfilePayCard handle={profile.handle} displayName={profile.display_name} appScheme={schemeFor(serverEnvironment())} />
 
           {/* Social links */}
           {profile.social_links.length > 0 && (

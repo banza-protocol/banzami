@@ -1,4 +1,8 @@
+import { deepLink } from '@/lib/deep-link';
 export default function NotFound() {
+  // The app link of this deployment; null when the environment is unknown, and
+  // then no button rather than one the app refuses (A8-11).
+  const appLink = deepLink('open');
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -9,12 +13,14 @@ export default function NotFound() {
         </div>
         <h1 className="text-xl font-bold text-gray-900">Pedido inválido</h1>
         <p className="mt-2 text-sm text-gray-400">Esta ligação não existe ou expirou.</p>
-        <a
-          href="banzami://open"
-          className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
-        >
-          Abrir Banzami
-        </a>
+        {appLink !== null && (
+          <a
+            href={appLink}
+            className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
+          >
+            Abrir Banzami
+          </a>
+        )}
       </div>
     </main>
   );

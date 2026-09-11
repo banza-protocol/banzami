@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../config.dart';
+import '../branding_assets.dart';
+import '../services/session_service.dart';
 import '../widgets/app_screen_header.dart';
 
 enum _HistoryFilter { all, received, sent }
@@ -17,11 +20,11 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen>
     with SingleTickerProviderStateMixin {
   final List<ActivityItem> _items = [];
-  String?        _cursor;
-  bool           _loading = false;
-  bool           _hasMore = true;
-  String?        _error;
-  _HistoryFilter _filter  = _HistoryFilter.all;
+  String? _cursor;
+  bool _loading = false;
+  bool _hasMore = true;
+  String? _error;
+  _HistoryFilter _filter = _HistoryFilter.all;
 
   /// Bumped whenever the list is started over (filter switch, refresh). An
   /// answer that belongs to an older generation is dropped — switching the
@@ -29,7 +32,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   int _generation = 0;
 
   late AnimationController _fadeCtrl;
-  late Animation<double>   _fadeAnim;
+  late Animation<double> _fadeAnim;
 
   static const int _pageSize = 50;
 
@@ -37,7 +40,7 @@ class _HistoryScreenState extends State<HistoryScreen>
   void initState() {
     super.initState();
     _fadeCtrl = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: const Duration(milliseconds: 320),
     );
     _fadeAnim = CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOut);
@@ -50,7 +53,7 @@ class _HistoryScreenState extends State<HistoryScreen>
     super.dispose();
   }
 
-  Future<void> _load({ bool refresh = false }) async {
+  Future<void> _load({bool refresh = false}) async {
     if (refresh) {
       // Start over: whatever is in flight now belongs to the past.
       _generation++;
@@ -60,10 +63,13 @@ class _HistoryScreenState extends State<HistoryScreen>
     if (!_hasMore && !refresh) return;
 
     final generation = _generation;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     if (refresh) {
       _items.clear();
-      _cursor  = null;
+      _cursor = null;
       _hasMore = true;
       _fadeCtrl.reset();
     }
@@ -72,18 +78,18 @@ class _HistoryScreenState extends State<HistoryScreen>
 
     try {
       final page = await client.getActivity(
-        limit:           _pageSize,
-        cursor:          _cursor,
+        limit: _pageSize,
+        cursor: _cursor,
         directionFilter: switch (_filter) {
           _HistoryFilter.received => 'INCOMING',
-          _HistoryFilter.sent     => 'OUTGOING',
-          _HistoryFilter.all      => null,
+          _HistoryFilter.sent => 'OUTGOING',
+          _HistoryFilter.all => null,
         },
       );
       if (!mounted || generation != _generation) return; // stale answer
       setState(() {
         _items.addAll(page.items);
-        _cursor  = page.nextCursor;
+        _cursor = page.nextCursor;
         _hasMore = page.hasMore;
       });
       _fadeCtrl.forward();
@@ -105,12 +111,15 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   List<dynamic> _grouped(List<ActivityItem> items) {
-    final grouped   = <dynamic>[];
+    final grouped = <dynamic>[];
     String? lastKey;
 
     for (final item in items) {
       final key = BanzamiDateFormatter.formatDayHeader(item.createdAt);
-      if (key != lastKey) { grouped.add(key); lastKey = key; }
+      if (key != lastKey) {
+        grouped.add(key);
+        lastKey = key;
+      }
       grouped.add(item);
     }
     return grouped;
@@ -125,13 +134,17 @@ class _HistoryScreenState extends State<HistoryScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppScreenHeader(
-              title:    'Histórico',
+              title: 'Histórico',
               subtitle: 'As suas movimentações',
-              trailing: _items.isEmpty ? null : _CountBadge(count: _items.length),
+              trailing:
+                  _items.isEmpty ? null : _CountBadge(count: _items.length),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.lg,
+                BanzamiSpacing.xl,
+                0,
+                BanzamiSpacing.xl,
+                BanzamiSpacing.lg,
               ),
               child: _HistoryFilterBar(
                 selected: _filter,
@@ -140,12 +153,12 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
             Expanded(
               child: RefreshIndicator(
-                color:           BanzamiColors.primary,
+                color: BanzamiColors.primary,
                 backgroundColor: BanzamiColors.white,
-                strokeWidth:     2.5,
-                displacement:    40,
-                onRefresh:       () => _load(refresh: true),
-                child:           _buildBody(),
+                strokeWidth: 2.5,
+                displacement: 40,
+                onRefresh: () => _load(refresh: true),
+                child: _buildBody(),
               ),
             ),
           ],
@@ -162,8 +175,10 @@ class _HistoryScreenState extends State<HistoryScreen>
     if (_error != null && _items.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(
-          BanzamiSpacing.xl, BanzamiSpacing.section,
-          BanzamiSpacing.xl, BanzamiSpacing.page,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.section,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.page,
         ),
         children: [
           _ErrorCard(message: _error!, onRetry: _load),
@@ -174,8 +189,10 @@ class _HistoryScreenState extends State<HistoryScreen>
     if (_items.isEmpty) {
       return ListView(
         padding: const EdgeInsets.fromLTRB(
-          BanzamiSpacing.xl, BanzamiSpacing.section,
-          BanzamiSpacing.xl, BanzamiSpacing.page,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.section,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.page,
         ),
         children: [
           _EmptyStateCard(filter: _filter),
@@ -189,7 +206,10 @@ class _HistoryScreenState extends State<HistoryScreen>
       opacity: _fadeAnim,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(
-          BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.page,
+          BanzamiSpacing.xl,
+          0,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.page,
         ),
         itemCount: grouped.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, i) {
@@ -202,9 +222,11 @@ class _HistoryScreenState extends State<HistoryScreen>
                 child: Column(children: [
                   Text(_error!,
                       textAlign: TextAlign.center,
-                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                      style: BanzamiTextStyles.bodySm
+                          .copyWith(color: BanzamiColors.gray400)),
                   const SizedBox(height: BanzamiSpacing.sm),
-                  BanzamiGhostButton(label: 'Tentar novamente', onPressed: _load),
+                  BanzamiGhostButton(
+                      label: 'Tentar novamente', onPressed: _load),
                 ]),
               );
             }
@@ -215,12 +237,13 @@ class _HistoryScreenState extends State<HistoryScreen>
             }
             return const Padding(
               padding: EdgeInsets.all(BanzamiSpacing.xl),
-              child:   Center(
+              child: Center(
                 child: SizedBox(
-                  width:  22,
+                  width: 22,
                   height: 22,
-                  child:  CircularProgressIndicator(
-                    color: BanzamiColors.primary, strokeWidth: 2,
+                  child: CircularProgressIndicator(
+                    color: BanzamiColors.primary,
+                    strokeWidth: 2,
                   ),
                 ),
               ),
@@ -232,25 +255,28 @@ class _HistoryScreenState extends State<HistoryScreen>
           if (row is String) {
             return Padding(
               padding: const EdgeInsets.fromLTRB(
-                BanzamiSpacing.xs, BanzamiSpacing.xl, BanzamiSpacing.xs, BanzamiSpacing.sm,
+                BanzamiSpacing.xs,
+                BanzamiSpacing.xl,
+                BanzamiSpacing.xs,
+                BanzamiSpacing.sm,
               ),
               child: Text(
                 row,
                 style: BanzamiTextStyles.label.copyWith(
-                  color:         BanzamiColors.gray400,
-                  fontSize:      11,
+                  color: BanzamiColors.gray400,
+                  fontSize: 11,
                   letterSpacing: 0.6,
-                  fontWeight:    FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             );
           }
 
-          final item    = row as ActivityItem;
-          final prev    = i > 0 ? grouped[i - 1] : null;
-          final next    = i < grouped.length - 1 ? grouped[i + 1] : null;
+          final item = row as ActivityItem;
+          final prev = i > 0 ? grouped[i - 1] : null;
+          final next = i < grouped.length - 1 ? grouped[i + 1] : null;
           final isFirst = prev == null || prev is String;
-          final isLast  = next == null || next is String;
+          final isLast = next == null || next is String;
 
           return _ActivityCard(item: item, isFirst: isFirst, isLast: isLast);
         },
@@ -272,15 +298,15 @@ class _CountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color:        BanzamiColors.primary.withValues(alpha: 0.08),
+        color: BanzamiColors.primary.withValues(alpha: 0.08),
         borderRadius: BanzamiRadius.fullAll,
       ),
       child: Text(
         '$count',
         style: BanzamiTextStyles.label.copyWith(
-          color:      BanzamiColors.primary,
+          color: BanzamiColors.primary,
           fontWeight: FontWeight.w700,
-          fontSize:   11,
+          fontSize: 11,
         ),
       ),
     );
@@ -292,15 +318,15 @@ class _CountBadge extends StatelessWidget {
 // =============================================================================
 
 class _HistoryFilterBar extends StatelessWidget {
-  final _HistoryFilter               selected;
+  final _HistoryFilter selected;
   final ValueChanged<_HistoryFilter> onSelect;
 
   const _HistoryFilterBar({required this.selected, required this.onSelect});
 
   static const _chips = [
-    (_HistoryFilter.all,      'Todas'),
+    (_HistoryFilter.all, 'Todas'),
     (_HistoryFilter.received, 'Recebidas'),
-    (_HistoryFilter.sent,     'Enviadas'),
+    (_HistoryFilter.sent, 'Enviadas'),
   ];
 
   @override
@@ -311,9 +337,9 @@ class _HistoryFilterBar extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.only(right: BanzamiSpacing.sm),
           child: _FilterChip(
-            label:    label,
+            label: label,
             selected: selected == filter,
-            onTap:    () => onSelect(filter),
+            onTap: () => onSelect(filter),
           ),
         );
       }).toList(),
@@ -322,8 +348,8 @@ class _HistoryFilterBar extends StatelessWidget {
 }
 
 class _FilterChip extends StatelessWidget {
-  final String       label;
-  final bool         selected;
+  final String label;
+  final bool selected;
   final VoidCallback onTap;
 
   const _FilterChip({
@@ -338,31 +364,31 @@ class _FilterChip extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        curve:    Curves.easeInOut,
-        padding:  const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+        curve: Curves.easeInOut,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
         decoration: selected
             ? BoxDecoration(
-                gradient:     BanzamiGradients.primary,
+                gradient: BanzamiGradients.primary,
                 borderRadius: BanzamiRadius.fullAll,
                 boxShadow: [
                   BoxShadow(
-                    color:        BanzamiColors.primary.withValues(alpha: 0.28),
-                    blurRadius:   12,
+                    color: BanzamiColors.primary.withValues(alpha: 0.28),
+                    blurRadius: 12,
                     spreadRadius: -2,
-                    offset:       const Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               )
             : BoxDecoration(
-                color:        BanzamiColors.white,
+                color: BanzamiColors.white,
                 borderRadius: BanzamiRadius.fullAll,
-                border:       Border.all(color: BanzamiColors.gray200),
-                boxShadow:    BanzamiShadows.card,
+                border: Border.all(color: BanzamiColors.gray200),
+                boxShadow: BanzamiShadows.card,
               ),
         child: Text(
           label,
           style: BanzamiTextStyles.label.copyWith(
-            color:      selected ? BanzamiColors.white : BanzamiColors.gray600,
+            color: selected ? BanzamiColors.white : BanzamiColors.gray600,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
@@ -385,13 +411,13 @@ class _HistorySkeletonLoader extends StatefulWidget {
 class _HistorySkeletonLoaderState extends State<_HistorySkeletonLoader>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  late Animation<double>   _anim;
+  late Animation<double> _anim;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-      vsync:    this,
+      vsync: this,
       duration: const Duration(milliseconds: 850),
     )..repeat(reverse: true);
     _anim = Tween<double>(begin: 0.35, end: 1.0).animate(
@@ -411,8 +437,10 @@ class _HistorySkeletonLoaderState extends State<_HistorySkeletonLoader>
       animation: _anim,
       builder: (_, __) => ListView(
         padding: const EdgeInsets.fromLTRB(
-          BanzamiSpacing.xl, BanzamiSpacing.xs,
-          BanzamiSpacing.xl, BanzamiSpacing.page,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.xs,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.page,
         ),
         physics: const NeverScrollableScrollPhysics(),
         children: [
@@ -433,85 +461,87 @@ class _HistorySkeletonLoaderState extends State<_HistorySkeletonLoader>
       Opacity(
         opacity: _anim.value,
         child: Container(
-          width:  width,
+          width: width,
           height: height,
           decoration: BoxDecoration(
-            color:        BanzamiColors.gray200,
+            color: BanzamiColors.gray200,
             borderRadius: BorderRadius.circular(radius),
           ),
         ),
       );
 
   Widget _dateLabel() => Padding(
-    padding: const EdgeInsets.fromLTRB(4, BanzamiSpacing.lg, 4, BanzamiSpacing.sm),
-    child: _block(width: 56, height: 9, radius: 5),
-  );
+        padding: const EdgeInsets.fromLTRB(
+            4, BanzamiSpacing.lg, 4, BanzamiSpacing.sm),
+        child: _block(width: 56, height: 9, radius: 5),
+      );
 
   Widget _row() => Padding(
-    padding: const EdgeInsets.symmetric(
-      horizontal: BanzamiSpacing.lg,
-      vertical:   BanzamiSpacing.md + 2,
-    ),
-    child: Row(
-      children: [
-        Opacity(
-          opacity: _anim.value,
-          child: const SizedBox(
-            width:  44,
-            height: 44,
-            child:  DecoratedBox(
-              decoration: BoxDecoration(
-                color: BanzamiColors.gray200,
-                shape: BoxShape.circle,
+        padding: const EdgeInsets.symmetric(
+          horizontal: BanzamiSpacing.lg,
+          vertical: BanzamiSpacing.md + 2,
+        ),
+        child: Row(
+          children: [
+            Opacity(
+              opacity: _anim.value,
+              child: const SizedBox(
+                width: 44,
+                height: 44,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: BanzamiColors.gray200,
+                    shape: BoxShape.circle,
+                  ),
+                ),
               ),
             ),
-          ),
-        ),
-        const SizedBox(width: BanzamiSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _block(width: 110, height: 12),
-              const SizedBox(height: 7),
-              _block(width: 68, height: 10),
-            ],
-          ),
-        ),
-        const SizedBox(width: BanzamiSpacing.md),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _block(width: 60, height: 12),
-            const SizedBox(height: 7),
-            _block(width: 32, height: 10),
+            const SizedBox(width: BanzamiSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _block(width: 110, height: 12),
+                  const SizedBox(height: 7),
+                  _block(width: 68, height: 10),
+                ],
+              ),
+            ),
+            const SizedBox(width: BanzamiSpacing.md),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _block(width: 60, height: 12),
+                const SizedBox(height: 7),
+                _block(width: 32, height: 10),
+              ],
+            ),
           ],
         ),
-      ],
-    ),
-  );
+      );
 
   Widget _cardGroup(int count) => Container(
-    decoration: const BoxDecoration(
-      color:        BanzamiColors.white,
-      borderRadius: BanzamiRadius.xlAll,
-      boxShadow:    BanzamiShadows.card,
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(count, (i) {
-        final isLast = i == count - 1;
-        return Column(
+        decoration: const BoxDecoration(
+          color: BanzamiColors.white,
+          borderRadius: BanzamiRadius.xlAll,
+          boxShadow: BanzamiShadows.card,
+        ),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _row(),
-            if (!isLast)
-              const Divider(height: 1, indent: 72, color: BanzamiColors.gray100),
-          ],
-        );
-      }),
-    ),
-  );
+          children: List.generate(count, (i) {
+            final isLast = i == count - 1;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _row(),
+                if (!isLast)
+                  const Divider(
+                      height: 1, indent: 72, color: BanzamiColors.gray100),
+              ],
+            );
+          }),
+        ),
+      );
 }
 
 // =============================================================================
@@ -525,44 +555,44 @@ class _EmptyStateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = switch (filter) {
-      _HistoryFilter.all      => 'Nenhuma transacção ainda',
+      _HistoryFilter.all => 'Nenhuma transacção ainda',
       _HistoryFilter.received => 'Nenhum pagamento recebido',
-      _HistoryFilter.sent     => 'Nenhum pagamento enviado',
+      _HistoryFilter.sent => 'Nenhum pagamento enviado',
     };
 
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.xxl),
       decoration: BoxDecoration(
-        color:        BanzamiColors.white,
+        color: BanzamiColors.white,
         borderRadius: BorderRadius.circular(BanzamiRadius.xxl),
-        boxShadow:    BanzamiShadows.cardElevated,
+        boxShadow: BanzamiShadows.cardElevated,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Layered icon — outer glow ring → inner soft circle → icon
           Container(
-            width:  88,
+            width: 88,
             height: 88,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                begin:  Alignment.topLeft,
-                end:    Alignment.bottomRight,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
                 colors: [Color(0xFFFCF6F5), Color(0xFFF5EEED)],
               ),
-              shape:     BoxShape.circle,
+              shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:        BanzamiColors.primary.withValues(alpha: 0.08),
-                  blurRadius:   20,
+                  color: BanzamiColors.primary.withValues(alpha: 0.08),
+                  blurRadius: 20,
                   spreadRadius: 0,
-                  offset:       const Offset(0, 6),
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
             child: Center(
               child: Container(
-                width:  56,
+                width: 56,
                 height: 56,
                 decoration: const BoxDecoration(
                   color: BanzamiColors.gray100,
@@ -570,7 +600,7 @@ class _EmptyStateCard extends StatelessWidget {
                 ),
                 child: const Icon(
                   Icons.receipt_long_outlined,
-                  size:  26,
+                  size: 26,
                   color: BanzamiColors.gray400,
                 ),
               ),
@@ -581,14 +611,15 @@ class _EmptyStateCard extends StatelessWidget {
 
           Text(
             title,
-            style: BanzamiTextStyles.headingMd.copyWith(fontWeight: FontWeight.w700),
+            style: BanzamiTextStyles.headingMd
+                .copyWith(fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
             'As suas actividades aparecerão aqui assim que\ncomeçar a usar a sua carteira.',
             style: BanzamiTextStyles.bodyMd.copyWith(
-              color:  BanzamiColors.gray400,
+              color: BanzamiColors.gray400,
               height: 1.65,
             ),
             textAlign: TextAlign.center,
@@ -599,9 +630,9 @@ class _EmptyStateCard extends StatelessWidget {
           // Decorative divider line
           Container(
             height: 1,
-            width:  48,
+            width: 48,
             decoration: const BoxDecoration(
-              color:        BanzamiColors.gray200,
+              color: BanzamiColors.gray200,
               borderRadius: BanzamiRadius.fullAll,
             ),
           ),
@@ -611,7 +642,7 @@ class _EmptyStateCard extends StatelessWidget {
           Text(
             'Envie ou receba pagamentos para começar.',
             style: BanzamiTextStyles.bodySm.copyWith(
-              color:  BanzamiColors.gray400,
+              color: BanzamiColors.gray400,
               height: 1.5,
             ),
             textAlign: TextAlign.center,
@@ -627,7 +658,7 @@ class _EmptyStateCard extends StatelessWidget {
 // =============================================================================
 
 class _ErrorCard extends StatelessWidget {
-  final String       message;
+  final String message;
   final VoidCallback onRetry;
 
   const _ErrorCard({required this.message, required this.onRetry});
@@ -637,15 +668,15 @@ class _ErrorCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.xxl),
       decoration: BoxDecoration(
-        color:        BanzamiColors.white,
+        color: BanzamiColors.white,
         borderRadius: BorderRadius.circular(BanzamiRadius.xxl),
-        boxShadow:    BanzamiShadows.cardElevated,
+        boxShadow: BanzamiShadows.cardElevated,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width:  72,
+            width: 72,
             height: 72,
             decoration: const BoxDecoration(
               color: BanzamiColors.errorBg,
@@ -654,20 +685,21 @@ class _ErrorCard extends StatelessWidget {
             child: const Icon(
               Icons.error_outline_rounded,
               color: BanzamiColors.error,
-              size:  32,
+              size: 32,
             ),
           ),
           const SizedBox(height: BanzamiSpacing.xl),
           Text(
             'Algo correu mal',
-            style: BanzamiTextStyles.headingMd.copyWith(fontWeight: FontWeight.w700),
+            style: BanzamiTextStyles.headingMd
+                .copyWith(fontWeight: FontWeight.w700),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
             message,
             style: BanzamiTextStyles.bodyMd.copyWith(
-              color:  BanzamiColors.gray400,
+              color: BanzamiColors.gray400,
               height: 1.6,
             ),
             textAlign: TextAlign.center,
@@ -676,17 +708,17 @@ class _ErrorCard extends StatelessWidget {
           GestureDetector(
             onTap: onRetry,
             child: Container(
-              width:  double.infinity,
+              width: double.infinity,
               height: 52,
               decoration: BoxDecoration(
-                gradient:     BanzamiGradients.primary,
+                gradient: BanzamiGradients.primary,
                 borderRadius: BanzamiRadius.fieldAll,
                 boxShadow: [
                   BoxShadow(
-                    color:        BanzamiColors.primary.withValues(alpha: 0.30),
-                    blurRadius:   16,
+                    color: BanzamiColors.primary.withValues(alpha: 0.30),
+                    blurRadius: 16,
                     spreadRadius: -2,
-                    offset:       const Offset(0, 4),
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
@@ -694,10 +726,10 @@ class _ErrorCard extends StatelessWidget {
                 child: Text(
                   'Tentar novamente',
                   style: TextStyle(
-                    fontFamily:    'Inter',
-                    fontSize:      15,
-                    fontWeight:    FontWeight.w600,
-                    color:         BanzamiColors.white,
+                    fontFamily: 'Inter',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: BanzamiColors.white,
                     letterSpacing: 0.1,
                   ),
                 ),
@@ -716,8 +748,8 @@ class _ErrorCard extends StatelessWidget {
 
 class _ActivityCard extends StatelessWidget {
   final ActivityItem item;
-  final bool         isFirst;
-  final bool         isLast;
+  final bool isFirst;
+  final bool isLast;
 
   const _ActivityCard({
     required this.item,
@@ -731,8 +763,8 @@ class _ActivityCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: BanzamiColors.white,
         borderRadius: BorderRadius.vertical(
-          top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0.0),
-          bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0.0),
+          top: Radius.circular(isFirst ? BanzamiRadius.xl : 0.0),
+          bottom: Radius.circular(isLast ? BanzamiRadius.xl : 0.0),
         ),
         boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
       ),
@@ -752,73 +784,127 @@ class _ActivityCard extends StatelessWidget {
 // History row
 // =============================================================================
 
+/// Opens the comprovativo of a past movement.
+///
+/// Every row in Histórico was inert: a consumer who wanted yesterday's receipt
+/// could only find it through the notification that announced it, and once that
+/// was gone the receipt was unreachable (A7-42). A row backed by a transfer now
+/// opens the same receipt screen the payment itself ends on — the document is
+/// fetched from the server, so it is the canonical one, not a replay of what
+/// this list happens to hold.
+Future<void> _openReceipt(BuildContext context, ActivityItem item) async {
+  final transferId = item.transferId;
+  if (transferId == null || transferId.isEmpty) return;
+
+  final client = context.read<ConsumerPublicClient>();
+  final ownHandle = context.read<SessionService>().session?.handle ?? '';
+  final counterparty = (item.counterpartyHandle ?? '').replaceFirst('@', '');
+
+  final transfer = Transfer(
+    transferId: transferId,
+    sender: item.isIncoming ? counterparty : ownHandle,
+    recipient: item.isIncoming ? ownHandle : counterparty,
+    amountMinor: item.amountMinor,
+    currency: item.currency,
+    status: 'COMPLETED',
+    note: item.note,
+    createdAt: item.createdAt,
+    completedAt: item.completedAt,
+  );
+
+  await Navigator.of(context).push(MaterialPageRoute(
+    builder: (_) => BanzamiReceiptScreen(
+      transfer: transfer,
+      ownHandle: ownHandle,
+      incoming: item.isIncoming,
+      recipientIsHandle: !item.isMerchantPayment,
+      onDone: (_) {},
+      isSandbox: AppConfig.isSandbox,
+      logoAssetPath: BrandingAssets.icon,
+      fetchReceiptPdf: () => client.fetchReceiptPdf(transferId),
+      fetchReceipt: () => client.fetchReceipt(transferId),
+    ),
+  ));
+}
+
 class _HistoryRow extends StatelessWidget {
   final ActivityItem item;
   const _HistoryRow({required this.item});
 
   @override
   Widget build(BuildContext context) {
-    final isCredit  = item.isIncoming;
-    final amount    = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
-    final title     = item.displayTitle;
-    final subtitle  = item.displaySubtitle;
-    final time      = _formatTime(item.createdAt);
-    final initial   = item.avatarInitial;
+    final isCredit = item.isIncoming;
+    final amount =
+        '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
+    final title = item.displayTitle;
+    final subtitle = item.displaySubtitle;
+    final time = _formatTime(item.createdAt);
+    final initial = item.avatarInitial;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.lg,
-        vertical:   BanzamiSpacing.md + 2,
-      ),
-      child: Row(
-        children: [
-          _Avatar(type: item.itemType, initial: initial, isCredit: isCredit),
-          const SizedBox(width: BanzamiSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize:       MainAxisSize.min,
+    final hasReceipt = item.hasReceipt;
+
+    return InkWell(
+      // Only a movement with a transfer has a comprovativo; a top-up, a refund
+      // or a restitution has none, and a row that did nothing when tapped would
+      // be worse than one that plainly is not tappable.
+      onTap: hasReceipt ? () => _openReceipt(context, item) : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: BanzamiSpacing.lg,
+          vertical: BanzamiSpacing.md + 2,
+        ),
+        child: Row(
+          children: [
+            _Avatar(type: item.itemType, initial: initial, isCredit: isCredit),
+            const SizedBox(width: BanzamiSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: BanzamiColors.gray900,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: BanzamiTextStyles.bodySm
+                        .copyWith(color: BanzamiColors.gray400),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: BanzamiSpacing.md),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  title,
+                  amount,
                   style: BanzamiTextStyles.bodyMd.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color:      BanzamiColors.gray900,
+                    color: isCredit
+                        ? BanzamiColors.success
+                        : BanzamiColors.gray900,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  subtitle,
-                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                  time,
+                  style: BanzamiTextStyles.bodySm
+                      .copyWith(color: BanzamiColors.gray400),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: BanzamiSpacing.md),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisSize:       MainAxisSize.min,
-            children: [
-              Text(
-                amount,
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: isCredit
-                      ? BanzamiColors.success
-                      : BanzamiColors.gray900,
-                  fontWeight:   FontWeight.w700,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                time,
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -836,15 +922,16 @@ class _HistoryRow extends StatelessWidget {
 class _Avatar extends StatelessWidget {
   final String type;
   final String initial;
-  final bool   isCredit;
+  final bool isCredit;
 
-  const _Avatar({required this.type, required this.initial, required this.isCredit});
+  const _Avatar(
+      {required this.type, required this.initial, required this.isCredit});
 
   @override
   Widget build(BuildContext context) {
     if (type == 'WALLET_FUNDED' || type == 'WALLET_REVERSED') {
       return Container(
-        width:  44,
+        width: 44,
         height: 44,
         decoration: const BoxDecoration(
           color: BanzamiColors.successBg,
@@ -853,23 +940,23 @@ class _Avatar extends StatelessWidget {
         child: const Icon(
           Icons.account_balance_rounded,
           color: BanzamiColors.success,
-          size:  20,
+          size: 20,
         ),
       );
     }
 
     return Container(
-      width:  44,
+      width: 44,
       height: 44,
       decoration: const BoxDecoration(
         gradient: BanzamiGradients.primary,
-        shape:    BoxShape.circle,
+        shape: BoxShape.circle,
       ),
       child: Center(
         child: Text(
           initial.toUpperCase(),
           style: BanzamiTextStyles.headingSm.copyWith(
-            color:      BanzamiColors.white,
+            color: BanzamiColors.white,
             fontWeight: FontWeight.w700,
           ),
         ),

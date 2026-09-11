@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { schemeFor } from '@/lib/deep-link';
+import { serverEnvironment } from '@/lib/server-environment';
 import PayRequestClient from './PayRequestClient';
 
 interface Props {
@@ -19,5 +21,7 @@ export function generateMetadata(): Metadata {
 // owned by PayRequestClient via a same-origin API route fetch.
 export default async function PaymentRequestPage({ params, searchParams }: Props) {
   const [{ code }, { sandbox }] = await Promise.all([params, searchParams]);
-  return <PayRequestClient code={code} sandbox={sandbox === '1'} />;
+  // The app-scheme comes from the server: a page cannot decide its own
+  // environment from the URL (A2-28), and the app refuses the other one (A8-11).
+  return <PayRequestClient code={code} sandbox={sandbox === '1'} appScheme={schemeFor(serverEnvironment())} />;
 }

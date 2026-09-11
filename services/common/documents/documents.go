@@ -85,9 +85,15 @@ type ReceiptData struct {
 
 // receiptView is the flat struct the template consumes.
 type receiptView struct {
-	DocLabel, HeroBadge                    string
-	AmountCaption, HeroLine, FooterLine    string
-	Reference, IssuedDate                  string
+	DocLabel, HeroBadge                 string
+	AmountCaption, HeroLine, FooterLine string
+	Reference, IssuedDate               string
+	// Verifiable: this receipt carries a proof reference, so it may show the
+	// number, the QR and the "confirme em …" line. Without one it showed an
+	// empty Nº, an empty QR box still captioned "Digitalize para verificar",
+	// and "confirme em ." — a document inviting a verification that cannot
+	// exist (A7-56).
+	Verifiable                             bool
 	AmountText, AmountWords                string
 	FromName, FromHandle, ToName, ToHandle string
 	DateTime, Description, State           string
@@ -372,6 +378,7 @@ func toView(d ReceiptData) receiptView {
 		StateConfirmed:    normalState(d.Status) == stateConfirmed,
 		VerifyShort:       verify,
 		VerifyURL:         qrURL,
+		Verifiable:        qrURL != "" && verify != "",
 		QRSVG: func() template.HTML {
 			if qrURL == "" {
 				return ""

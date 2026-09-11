@@ -12,6 +12,8 @@
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="banzami" android:host="pay"/>
+                <!-- The Sandbox build is opened by banzami-sandbox:// links (A8-11). -->
+                <data android:scheme="banzami-sandbox" android:host="pay"/>
             </intent-filter>
             <!-- Android App Links: https://pay.banzami.com/pay/* /r/* /u/*
                  (.com is the canonical Banzami payment host; .org is reserved

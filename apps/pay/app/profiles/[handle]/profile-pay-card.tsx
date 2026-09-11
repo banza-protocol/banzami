@@ -8,7 +8,8 @@ import { useState } from 'react';
  *
  *  • Shows a scannable static QR encoding `banza:@{handle}` — any Banzami app
  *    resolves it to a handle payment (QR-004 "QR estático exibido").
- *  • "Pagar agora" deep-links into the app via `banzami://pay/u/{handle}`,
+ *  • "Pagar agora" deep-links into the app via `<scheme>://pay/u/{handle}`,
+ *    where the scheme is this deployment's (see lib/deep-link.ts),
  *    the format the in-app scanner/router understands.
  *  • Share uses the Web Share API (WhatsApp / Instagram / etc.) with a plain
  *    link fallback.
@@ -16,16 +17,20 @@ import { useState } from 'react';
 export default function ProfilePayCard({
   handle,
   displayName,
+  appScheme,
 }: {
   handle: string;
   displayName: string;
+  // This deployment's app scheme, decided on the server; null when unknown, and
+  // then no app link is offered rather than one the app refuses (A8-11).
+  appScheme: string | null;
 }) {
   const [copied, setCopied] = useState(false);
 
   // banza:@handle — the Banzami-native scan-to-pay token the app understands.
   const qrValue = `banza:@${handle}`;
   // Same-device tap → opens the app on the pay-this-handle screen.
-  const deepLink = `banzami://pay/u/${handle}`;
+  const deepLink = appScheme === null ? null : `${appScheme}://pay/u/${handle}`;
   const shareUrl =
     typeof window !== 'undefined' ? window.location.href : `https://pay.banzami.com/profiles/${handle}`;
 
@@ -72,7 +77,9 @@ export default function ProfilePayCard({
         </p>
       </div>
 
-      {/* Pay button (same device) */}
+      {/* Pay button (same device). Absent when this deployment cannot name its
+          own app scheme — the app refuses the other environment's link. */}
+      {deepLink !== null && (
       <a
         href={deepLink}
         className="flex items-center justify-center gap-2 h-14 bg-banzami text-white rounded-2xl text-base font-semibold shadow-md hover:bg-banzami/90 transition-colors"
@@ -85,6 +92,7 @@ export default function ProfilePayCard({
         </svg>
         Pagar agora
       </a>
+      )}
 
       {/* Share */}
       <button

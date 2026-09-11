@@ -91,6 +91,12 @@
 				<key>CFBundleURLSchemes</key>
 				<array>
 					<string>banzami</string>
+					<!-- The Sandbox build is opened by banzami-sandbox:// links: the
+					     app already reads all four schemes (lib/app.dart), but the OS
+					     routed only this one, so a Sandbox page's "Abrir no Banzami"
+					     reached nothing (A8-11). The app still refuses a payload of
+					     the other environment. -->
+					<string>banzami-sandbox</string>
 				</array>
 				<key>CFBundleURLName</key>
 				<string>org.banzami.app</string>

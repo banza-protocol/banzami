@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { deepLink as deepLinkFor } from '@/lib/deep-link';
 import { getPaymentLink, getPlatformMode, formatAmount, linkIsPaid } from '@/lib/api';
 import { paidToLabel } from '@/lib/payee';
 import PayClient from './pay-client';
@@ -64,7 +65,8 @@ export default async function PayPage({ params }: Props) {
     ? formatAmount(link.amount_minor, link.currency)
     : null;
 
-  const deepLink = `banzami://pay/link/${link.slug}`;
+  // This deployment's scheme; the app refuses one of the other environment (A8-11).
+  const deepLink = deepLinkFor(`pay/link/${link.slug}`);
 
   // External acquiring rails are a separate governance decision and are not
   // approved. Offering the button while the platform is in SANDBOX would
@@ -84,6 +86,7 @@ export default async function PayPage({ params }: Props) {
       currency={link.currency}
       description={link.description}
       deepLink={deepLink}
+      payUrl={`https://pay.banzami.com/pay/${link.slug}`}
       expiresAt={link.expires_at}
     />
   );

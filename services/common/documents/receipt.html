@@ -55,7 +55,7 @@
         </div>
         <div style="text-align:right">
           <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#b09a9e">{{.DocLabel}}</div>
-          <div class="mono" style="font-size:13px;font-weight:700;color:#7a6a6e;margin-top:5px">Nº <a href="{{.VerifyURL}}">{{.Reference}}</a></div>
+          {{if .Verifiable}}<div class="mono" style="font-size:13px;font-weight:700;color:#7a6a6e;margin-top:5px">Nº <a href="{{.VerifyURL}}">{{.Reference}}</a></div>{{end}}
           <div style="font-size:12.5px;font-weight:600;color:#9a8a8e;margin-top:2px">Emitido a {{.IssuedDate}}</div>
         </div>
       </div>
@@ -68,11 +68,11 @@
           <div class="amount">{{.AmountText}}</div>
           <div style="font-size:13.5px;font-weight:600;color:#7a6a6e;margin-top:10px">{{if .AmountWords}}{{.AmountWords}} · {{end}}{{.HeroLine}}</div>
         </div>
-        <div class="verify">
+        {{if .Verifiable}}<div class="verify">
           <a href="{{.VerifyURL}}" style="display:block;width:82px;height:82px">{{.QRSVG}}</a>
           <div style="font-size:8.5px;font-weight:700;color:#9a8a8e;line-height:1.25">Digitalize para verificar</div>
           <div style="font-size:8.5px;font-weight:800;color:#9A1B22;line-height:1.25;word-break:break-all"><a href="{{.VerifyURL}}">{{.VerifyShort}}</a></div>
-        </div>
+        </div>{{end}}
       </div>
 
       <!-- PARTIES -->
@@ -105,7 +105,7 @@
       <!-- VERIFICATION NOTE -->
       <div class="note">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#9A1B22" stroke-width="1.7" stroke-linejoin="round"></path><path d="M9 11.5l2 2 4-4" stroke="#9A1B22" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e"><strong style="color:#9A1B22">Este documento não é a fonte da verdade.</strong> Digitalize o código QR para verificar a autenticidade deste comprovativo. Não confie apenas em PDFs ou capturas de ecrã. Registado no ledger de dupla entrada do Banzami (imutável e auditável); confirme em <a class="mono" style="font-weight:800;color:#9A1B22" href="{{.VerifyURL}}">{{.VerifyShort}}</a>.</div>
+        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e"><strong style="color:#9A1B22">Este documento não é a fonte da verdade.</strong> {{if .Verifiable}}Digitalize o código QR para verificar a autenticidade deste comprovativo. Não confie apenas em PDFs ou capturas de ecrã. Registado no ledger de dupla entrada do Banzami (imutável e auditável); confirme em <a class="mono" style="font-weight:800;color:#9A1B22" href="{{.VerifyURL}}">{{.VerifyShort}}</a>.{{else}}Não confie apenas em PDFs ou capturas de ecrã. O movimento está registado no ledger de dupla entrada do Banzami (imutável e auditável). Este comprovativo não tem referência de verificação: peça-a ao Banzami se precisar de a confirmar.{{end}}</div>
       </div>
 
       <div style="flex:1"></div>

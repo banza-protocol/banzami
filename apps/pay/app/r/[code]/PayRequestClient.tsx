@@ -37,7 +37,7 @@ function LoadingUI() {
   );
 }
 
-function NotFoundUI({ sandbox }: { sandbox: boolean }) {
+function NotFoundUI({ sandbox, appScheme }: { sandbox: boolean; appScheme: string | null }) {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -57,12 +57,14 @@ function NotFoundUI({ sandbox }: { sandbox: boolean }) {
             <SandboxBadge extra="Dinheiro de teste" />
           </div>
         )}
-        <a
-          href="banzami://open"
-          className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
-        >
-          Abrir Banzami
-        </a>
+        {appScheme !== null && (
+          <a
+            href={`${appScheme}://open`}
+            className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
+          >
+            Abrir Banzami
+          </a>
+        )}
       </div>
     </main>
   );
@@ -169,7 +171,18 @@ function TerminalUI({
 
 type OpenPhase = 'idle' | 'opening' | 'app_opened' | 'not_installed';
 
-export default function PayRequestClient({ code, sandbox }: { code: string; sandbox: boolean }) {
+export default function PayRequestClient({
+  code,
+  sandbox,
+  appScheme,
+}: {
+  code: string;
+  sandbox: boolean;
+  // The custom scheme of THIS deployment ('banzami' or 'banzami-sandbox'),
+  // decided on the server. Null when the environment is unknown: then no app
+  // link is offered rather than one the app will refuse (A8-11).
+  appScheme: string | null;
+}) {
   const [phase, setPhase] = useState<Phase>('loading');
   const [link,  setLink]  = useState<ConsumerPayLink | null>(null);
   const [openPhase, setOpenPhase] = useState<OpenPhase>('idle');
@@ -259,7 +272,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
   if (phase === 'network_error')
     return <ErrorUI sandbox={sandbox} title="Erro de ligação" body="Não foi possível carregar o pedido." />;
 
-  if (phase === 'not_found' || !link) return <NotFoundUI sandbox={sandbox} />;
+  if (phase === 'not_found' || !link) return <NotFoundUI sandbox={sandbox} appScheme={appScheme} />;
 
   // Terminal states — use environment from the API response (server-injected,
   // definitively reflects which backend was queried, not inferred from URL).
@@ -274,7 +287,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
   const displayName = link.receiver_display_name;
   const amtDisplay  = link.amount_minor != null ? formatAmt(link.amount_minor, link.currency) : null;
   const initial     = (displayName ?? handle)[0]?.toUpperCase() ?? 'B';
-  const deepLink    = `banzami://pay?request=${code}${sandbox ? '&sandbox=1' : ''}`;
+  const deepLink    = appScheme === null ? null : `${appScheme}://pay?request=${code}`;
 
   return (
     <main className="min-h-screen bg-off-white flex flex-col items-center justify-center p-4">
@@ -318,7 +331,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
           <div className="px-6 py-6 flex flex-col gap-3">
 
             {/* ── idle: show premium button ── */}
-            {openPhase === 'idle' && (
+            {openPhase === 'idle' && deepLink !== null && (
               <>
                 <a
                   href={deepLink}
@@ -363,7 +376,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
             )}
 
             {/* ── app_opened: waiting in app, or returned to browser ── */}
-            {openPhase === 'app_opened' && (
+            {openPhase === 'app_opened' && deepLink !== null && (
               returnedToBrowser ? (
                 // User is back in the browser — show the full button again
                 <a
@@ -404,7 +417,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                   </div>
                   <button
                     type="button"
-                    onClick={() => { window.location.href = deepLink; openApp(); }}
+                    onClick={() => { if (deepLink !== null) { window.location.href = deepLink; openApp(); } }}
                     className="text-sm font-medium text-banzami underline"
                   >
                     Abrir Banzami novamente
@@ -421,7 +434,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                 </p>
                 <button
                   type="button"
-                  onClick={() => { window.location.href = deepLink; openApp(); }}
+                  onClick={() => { if (deepLink !== null) { window.location.href = deepLink; openApp(); } }}
                   className="w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
                 >
                   Tentar novamente

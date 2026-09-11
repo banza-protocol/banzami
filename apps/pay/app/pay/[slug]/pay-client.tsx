@@ -14,7 +14,14 @@ interface Props {
   amountMinor:   number | null;
   currency:      string;
   description:   string | null;
-  deepLink:      string;
+  /**
+   * The app link of THIS deployment ('banzami://…' or 'banzami-sandbox://…'),
+   * or null when the environment is unknown — then no app button is offered,
+   * because the app refuses a link of the other environment (A8-11).
+   */
+  deepLink:      string | null;
+  /** The page's own URL: what the QR encodes, so any camera can open it. */
+  payUrl:        string;
   expiresAt:     string | null;
   /** Whether the external acquiring rail may be offered (LIVE only). */
   externalRailAvailable: boolean;
@@ -38,6 +45,7 @@ export default function PayClient({
   currency,
   description,
   deepLink,
+  payUrl,
   expiresAt,
   externalRailAvailable,
 }: Props) {
@@ -216,7 +224,7 @@ export default function PayClient({
             <div className="bz-qr-frame animate-float">
               {/* Canonical Banzami QR Engine — ECC H, red finders, centre logo. */}
               <img
-                src={banzamiQrSvgDataUri(deepLink)}
+                src={banzamiQrSvgDataUri(deepLink ?? payUrl)}
                 width={172}
                 height={172}
                 alt="QR de pagamento Banzami"
@@ -229,10 +237,13 @@ export default function PayClient({
             Abra a app Banzami e digitalize o código QR
           </p>
 
-          {/* Open app — primary CTA */}
-          <a href={deepLink} className="bz-btn-primary">
-            Abrir app Banzami
-          </a>
+          {/* Open app — primary CTA. Absent when this deployment cannot name
+              its own app scheme: a button that opens nothing is worse. */}
+          {deepLink !== null && (
+            <a href={deepLink} className="bz-btn-primary">
+              Abrir app Banzami
+            </a>
+          )}
 
           {/* Divider + external rail — LIVE only. */}
           {externalRailAvailable && (

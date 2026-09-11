@@ -41,6 +41,11 @@ class ActivityItem {
   /// Doa donation), as opposed to a true peer-to-peer transfer.
   bool get isMerchantPayment => itemType == 'MERCHANT_PAYMENT_SENT';
 
+  /// Whether this movement has a comprovativo to open: only one backed by a
+  /// transfer does. A top-up, a refund or a restitution has none, and a row
+  /// that opened nothing would be worse than one that is plainly not tappable.
+  bool get hasReceipt => (transferId ?? '').trim().isNotEmpty;
+
   /// User-facing category label in Portuguese.
   ///
   /// Single source of truth for activity labels — raw technical codes

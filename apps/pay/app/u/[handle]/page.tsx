@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { deepLink as deepLinkFor } from '@/lib/deep-link';
 import { formatAmount } from '@/lib/api';
 
 interface Props {
@@ -23,9 +24,12 @@ export default async function UserPayPage({ params, searchParams }: Props) {
   const amountMinor   = rawAmount != null && !isNaN(rawAmount) ? rawAmount : null;
   const amountDisplay = amountMinor != null ? formatAmount(amountMinor, currency) : null;
 
+  // The scheme is this deployment's: a Sandbox page must never hand the app a
+  // link the app would read as real money, and a link of the other environment
+  // is refused by the app, so the button did nothing at all (A8-11).
   const deepLink = amountMinor != null
-    ? `banzami://pay/u/${handle}?amount=${amountMinor}&currency=${currency}`
-    : `banzami://pay/u/${handle}`;
+    ? deepLinkFor(`pay/u/${handle}?amount=${amountMinor}&currency=${currency}`)
+    : deepLinkFor(`pay/u/${handle}`);
 
   const initial = handle[0]?.toUpperCase() ?? 'B';
 
@@ -52,8 +56,11 @@ export default async function UserPayPage({ params, searchParams }: Props) {
             )}
           </div>
 
-          {/* CTA */}
+          {/* CTA — absent when this deployment cannot name its own app scheme:
+              the app refuses a link of the other environment, so the button
+              would do nothing at all (A8-11). */}
           <div className="px-6 py-6 flex flex-col gap-3">
+            {deepLink !== null && (
             <a
               href={deepLink}
               className="flex items-center justify-center gap-2 w-full h-14 bg-banzami text-white rounded-2xl text-base font-semibold shadow-sm active:bg-banzami/90 transition-colors"
@@ -66,6 +73,7 @@ export default async function UserPayPage({ params, searchParams }: Props) {
               </svg>
               Pagar com Banzami
             </a>
+            )}
 
             <p className="text-center text-xs text-gray-400 leading-relaxed">
               Precisa de ter a app Banzami instalada.
