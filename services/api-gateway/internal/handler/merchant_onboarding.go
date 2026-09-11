@@ -167,6 +167,8 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_RESERVED", "this handle is reserved")
 	case errors.Is(err, service.ErrMerchantHandleTaken):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "this handle is no longer available")
+	case errors.Is(err, service.ErrApplicationKeyReused):
+		apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "this idempotency key was used for a different application")
 	case errors.Is(err, service.ErrHandleOwnedByBusiness):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_OWNED_BY_BUSINESS",
 			"a Business Account already uses this handle; if it is yours, apply to regularise it")

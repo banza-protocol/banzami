@@ -107,6 +107,8 @@ func (h *BusinessOnboardingHandler) SubmitForProject(w http.ResponseWriter, r *h
 			"a Business Account already uses this handle; connect it with the Business's consent instead")
 	case errors.Is(err, service.ErrMerchantHandleTaken):
 		apierror.Respond(w, r, http.StatusConflict, "HANDLE_TAKEN", "this handle is no longer available")
+	case errors.Is(err, service.ErrApplicationKeyReused):
+		apierror.Respond(w, r, http.StatusConflict, "IDEMPOTENCY_KEY_REUSED", "this idempotency key was used for a different application")
 	case err != nil:
 		slog.ErrorContext(r.Context(), "merchant.application.project_submit_failed", "error_kind", fmt.Sprintf("%T", err))
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not submit application")

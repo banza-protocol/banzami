@@ -3482,3 +3482,18 @@ request bodies are capped at 64 KB. Tests `TestCanonicalSessionID`,
 `TestOnboardingLimiter_OneAllowancePerSessionWhateverItsSpelling`. Residual (latent —
 there is no SMS provider, and the Sandbox OTP is chosen by the caller): core's
 `verify_otp` has no attempt counter of its own.
+
+## RA-132 — replaying someone's application key returned their application's capability
+
+- **Found:** 2026-09-11 (full-system assurance, token audit A3-05)
+- **Status:** FIXED (gateway)
+
+A Business application's idempotency key was trimmed, hashed and looked up globally — not
+scoped to origin, Project or applicant — and a replay returned the existing
+`application_id`, which is the bearer capability for that applicant's public status,
+KYB documents and resubmission. Whoever sent another applicant's key (padded with
+spaces or not) received it. The key is taken exactly as sent, and a replay returns the
+existing application only for the same submission (same origin, Project, email and
+desired handle); anything else answers 409 `IDEMPOTENCY_KEY_REUSED`. Test
+`TestSubmit_AReplayAnswersOnlyTheSameSubmission` (real DB; the previous code hands the
+id to a different email).

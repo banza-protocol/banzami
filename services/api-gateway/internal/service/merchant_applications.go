@@ -91,6 +91,11 @@ var (
 	// ErrProjectHasOpenApplication: a Project has at most one application in
 	// progress.
 	ErrProjectHasOpenApplication = errors.New("this Project already has an application in progress")
+	// ErrApplicationKeyReused: the idempotency key names a different submission.
+	// The application id is the applicant's bearer capability (status, KYB
+	// documents, resubmission), so a replay returns it only to the same
+	// submission (A3-05).
+	ErrApplicationKeyReused = errors.New("this idempotency key was used for a different application")
 )
 
 type MerchantApplicationService interface {
@@ -194,13 +199,24 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 	envName := parsed.String()
 
 	var keyHash any
-	if k := strings.TrimSpace(in.IdempotencyKey); k != "" {
+	if k := in.IdempotencyKey; k != "" {
+		// The key exactly as sent — not trimmed: " <key> " is another key.
 		sum := sha256.Sum256([]byte(k))
 		keyHash = hex.EncodeToString(sum[:])
-		var existing string
+		var existing, email, desired, origin string
+		var project *string
 		err := s.pool.QueryRow(ctx,
-			`SELECT id::text FROM merchant_applications WHERE submit_idempotency_key = $1`, keyHash).Scan(&existing)
+			`SELECT id::text, email, desired_handle, origin, project_id::text
+			   FROM merchant_applications WHERE submit_idempotency_key = $1`, keyHash).
+			Scan(&existing, &email, &desired, &origin, &project)
 		if err == nil {
+			// A replay is the same submission, or it is refused: the id is a
+			// capability, and a global key used to hand it to whoever sent it.
+			same := strings.EqualFold(email, in.Email) && desired == handle && origin == in.Origin &&
+				((project == nil && in.ProjectID == "") || (project != nil && *project == in.ProjectID))
+			if !same {
+				return "", ErrApplicationKeyReused
+			}
 			return existing, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
