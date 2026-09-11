@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# REFERENCE_APPLICATION_DOA — an integration test OF DOA, the reference application:
+# it acts in DOA's real tenant on purpose, so it runs only when asked
+# (BANZAMI_ALLOW_DOA_TENANT_WRITES=1). A generic harness never names DOA —
+# it builds a tenant of its own (tests/phase0/lib/synthetic-tenant.sh).
+#
 # DOA's project is bound to @doa, and that binding is sealed.
 #
 # The binding is what decides who gets paid. A payment session created with

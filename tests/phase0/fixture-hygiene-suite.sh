@@ -23,7 +23,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # harness that names DOA's Project or DOA's site is now skipped unless the
 # caller says, explicitly, that writing into DOA's tenant is intended.
 # Detected from the harness itself, so a new one is covered the day it lands.
-touches_doa_tenant() { grep -qE 'DOA_PROJECT|doadoa\.app|@doa' "$HERE/$1"; }
+# A harness that tests DOA itself says so (REFERENCE_APPLICATION_DOA); one that
+# names DOA's tenant without saying so is held back too, so an unlabelled one
+# cannot slip in — and tests/ops/fixture-suite-doa-tenant.test.mjs fails on it.
+touches_doa_tenant() { grep -qE 'REFERENCE_APPLICATION_DOA|DOA_PROJECT|doadoa\.app|@doa' "$HERE/$1"; }
 ALLOW_DOA="${BANZAMI_ALLOW_DOA_TENANT_WRITES:-0}"
 
 inventory() {
@@ -69,7 +72,7 @@ done
 # --list: what would run, and what is held back — without touching the Sandbox.
 if [ "${1:-}" = "--list" ]; then
   for h in $SELECTED; do echo "run $h"; done
-  for h in $SKIPPED_DOA; do echo "skip-doa-tenant $h"; done
+  for h in $SKIPPED_DOA; do echo "skip-reference-application-doa $h"; done
   exit 0
 fi
 HARNESSES="$SELECTED"

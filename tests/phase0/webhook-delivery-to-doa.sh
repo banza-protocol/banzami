@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# REFERENCE_APPLICATION_DOA — an integration test OF DOA, the reference application:
+# it acts in DOA's real tenant on purpose, so it runs only when asked
+# (BANZAMI_ALLOW_DOA_TENANT_WRITES=1). A generic harness never names DOA —
+# it builds a tenant of its own (tests/phase0/lib/synthetic-tenant.sh).
+#
 # A real operator event, delivered to production DOA (ADR-051 / CAP-WEBHOOK).
 #
 # Everything before this proved pieces: that DOA verifies a signature we

@@ -140,13 +140,13 @@ chk SURVIVING_KEY_IS_THE_SURVIVOR "$(psql "SELECT status FROM developer.dev_api_
 chk TENANT_PROJECT_ACTIVE "$(psql "SELECT status FROM developer.dev_projects WHERE id='$ST_PROJECT'")" "ACTIVE"
 chk TENANT_MERCHANT_ACTIVE "$(psql "SELECT status FROM merchants WHERE id='$ST_MERCHANT'")" "ACTIVE"
 
-# REFERENCE_APPLICATION_DOA: rewritten above, not dropped —
+# Formerly about DOA's tenant — rewritten above, not dropped —
 # CANONICAL_KEYS_STILL_ACTIVE (DOA's Project held exactly its three keys) is now
 # SURVIVING_KEYS_STILL_ACTIVE on the tenant's Project, and
 # CANONICAL_PROJECT_ACTIVE / CANONICAL_MERCHANT_ACTIVE are now the tenant's
 # Project and Business, looked up by id rather than by DOA's names.
 #
-# REFERENCE_APPLICATION_DOA: removed from here — each was a claim about the
+# Formerly about DOA's tenant — removed from here — each was a claim about the
 # whole Sandbox population with DOA's tenant as the one allowed survivor, not a
 # property of a revocation or a suspension, and none can hold while this run
 # holds a live synthetic tenant (or while any other tenant exists):

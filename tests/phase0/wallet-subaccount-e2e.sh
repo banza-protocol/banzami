@@ -18,7 +18,7 @@
 # owner selection refused, child selection verified — belongs to the Developer
 # Platform, and a tenant nothing else uses is the stronger proof of it.
 #
-# REFERENCE_APPLICATION_DOA: what this harness no longer asserts is that DOA's
+# Formerly about DOA's tenant — what this harness no longer asserts is that DOA's
 # own Console-created project, specifically, passes these checks. That is a
 # claim about one integration and belongs to DOA's integration evidence; no
 # assertion below was removed for it — each one now runs against the synthetic
