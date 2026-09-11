@@ -248,49 +248,75 @@ pub async fn mark_used(
     let id = id
         .parse::<PaymentLinkId>()
         .map_err(|_| ApiError::bad_request("invalid id"))?;
-    let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
+    let transfer_id = body
+        .and_then(|Json(b)| b.transfer_id)
+        .map(|t| Uuid::parse_str(&t).map_err(|_| ApiError::bad_request("invalid transfer_id")))
+        .transpose()?;
 
-    // Record the refundable financial object for a PLAIN link payment.
+    // Without the settling transfer this is only the status move (a Business
+    // closing its own link), and the engine says precisely why it cannot happen.
+    let Some(transfer_id) = transfer_id else {
+        let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
+        return Ok(Json(link_response_with_refund_source(&state.pool, link).await));
+    };
+
+    // With it, the link's payment completes in ONE transaction: the link is
+    // claimed (ACTIVE and unexpired, in the UPDATE itself), the refundable wallet
+    // payment is recorded, and the Payment Session the link belongs to — if any —
+    // is paid with its event in the outbox.
     //
-    // RA-061 fixed this for sessions, and the same hole remained one level out:
-    // a link created directly (merchant_id + wallet_id, no session) settled the
-    // transfer, marked itself used, and recorded nothing. The money arrived, and
-    // the object a refund names never existed — so the payment was unrefundable
-    // and never appeared on the merchant's receipts. Found by a deployed E2E
-    // whose receipt assertion returned an empty list while the balances moved.
-    //
-    // Best-effort and idempotent (ON CONFLICT (transfer_id) DO NOTHING), so a
-    // link that IS part of a session records once, from whichever path runs
-    // first, and a failure here can never fail a payment that already settled.
-    if let Some(Json(b)) = body {
-        if let Some(tid) = b
-            .transfer_id
-            .as_deref()
-            .and_then(|t| Uuid::parse_str(t).ok())
-        {
-            let merchant_id = Uuid::parse_str(&link.merchant_id.to_string()).ok();
-            let link_id = Uuid::parse_str(&link.id.to_string()).ok();
-            if let (Some(m), Some(l)) = (merchant_id, link_id) {
-                let credited = link
-                    .wallet_account_id
-                    .as_ref()
-                    .and_then(|w| Uuid::parse_str(&w.to_string()).ok());
-                let _ = super::wallet_payments::record_merchant_interface_payment(
-                    &state.pool,
-                    m,
-                    tid,
-                    Some(l),
-                    None,
-                    credited,
-                    link.amount_minor.unwrap_or(0),
-                    link.currency.as_str(),
-                    &l.to_string(),
-                    state.environment.as_str(),
-                )
-                .await;
-            }
-        }
-    }
+    // These were separate best-effort calls. The record was `let _ =` (and an
+    // open-amount link recorded amount 0, which the table refuses — A7-38); the
+    // session settle turned a database error into "no session" and answered 204.
+    // Any of them failing left the payer debited and the link USED, with no
+    // refundable object, a session still ACTIVE and no payment_session.paid —
+    // and nothing would ever retry (A2-06). Now a failure rolls all of it back and
+    // answers 5xx; the payer's retry replays the same transfer (its idempotency
+    // key names the link) and completes it here.
+    let db = |e: sqlx::Error| ApiError::internal(e.to_string());
+    let mut tx = state.pool.begin().await.map_err(db)?;
+    let claimed: Option<(Uuid, Uuid, Option<Uuid>)> = sqlx::query_as(
+        "UPDATE payment_links
+            SET status = 'USED', paid_at = now(), updated_at = now()
+          WHERE id = $1 AND status = 'ACTIVE' AND (expires_at IS NULL OR expires_at > now())
+         RETURNING id, merchant_id, wallet_account_id",
+    )
+    .bind(id.as_uuid())
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(db)?;
+    let Some((link_id, merchant_id, credited)) = claimed else {
+        let _ = tx.rollback().await;
+        // Not claimable: the engine reads the link and names the reason
+        // (already used, cancelled, expired, or not found).
+        let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
+        return Ok(Json(link_response_with_refund_source(&state.pool, link).await));
+    };
+    super::wallet_payments::record_merchant_interface_payment(
+        &mut tx,
+        merchant_id,
+        transfer_id,
+        Some(link_id),
+        None,
+        credited,
+        &link_id.to_string(),
+        state.environment.as_str(),
+    )
+    .await
+    .map_err(db)?;
+    super::payment_sessions::settle_for_interface_in(
+        &mut tx,
+        state.environment.as_str(),
+        "link",
+        link_id,
+        transfer_id,
+        "PAYMENT_LINK",
+    )
+    .await
+    .map_err(db)?;
+    tx.commit().await.map_err(db)?;
+
+    let link = state.payment_links.get(id).await.map_err(map_err)?;
 
     // Carry refund_source so the gateway's payment_link.paid webhook includes it.
     Ok(Json(

@@ -189,21 +189,21 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	// Best-effort + idempotent; a plain link payment is a no-op.
 	h.core.SettleCollectionSurface(r.Context(), "LINK", link.ID, transfer.ID)
 
-	// Payment Session (BANZA ADR-015): if this link is the PAYMENT_LINK interface of
-	// a session, mark the session PAID and emit payment_session.paid. Best-effort +
-	// idempotent; a plain link payment is a no-op in core.
-	h.core.SettlePaymentSessionInterface(r.Context(), "link", link.ID, transfer.ID, "PAYMENT_LINK", *amountMinor)
-
-	// Mark the link as used — idempotent if the transfer already occurred.
+	// Complete the payment: core claims the link, records the refundable wallet
+	// payment and — if the link belongs to a Payment Session — pays the session
+	// with its payment_session.paid event, all in one transaction (A2-06). The
+	// session used to be settled by a separate best-effort call whose failure
+	// nobody saw and nothing retried.
 	updated, err := h.core.MarkPaymentLinkUsed(r.Context(), link.ID, transfer.ID)
-	if err != nil {
-		// Transfer succeeded but mark-used failed; the link will be reconciled
-		// by the expiry worker. We still return success to the consumer.
-		if !errors.Is(err, service.ErrPaymentLinkNotActive) {
-			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
-				"payment processed but link status could not be updated")
-			return
-		}
+	if err != nil && !errors.Is(err, service.ErrPaymentLinkNotActive) {
+		// The transfer is committed and the completion rolled back as a whole.
+		// Retrying this call replays the same transfer (its key names the link)
+		// and completes the payment; nothing is taken twice.
+		slog.ErrorContext(r.Context(), "payment_link.completion_failed",
+			"payment_link_id", link.ID, "transfer_id", transfer.ID, "error", err)
+		apierror.Respond(w, r, http.StatusBadGateway, "PAYMENT_NOT_CONFIRMED",
+			"the payment was taken but not yet confirmed — retry to complete it; you will not be charged twice")
+		return
 	}
 
 	final := link

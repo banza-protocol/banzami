@@ -67,6 +67,8 @@ pub mod settlements;
 pub mod splits;
 pub mod transactions;
 #[cfg(test)]
+mod link_completion_tests;
+#[cfg(test)]
 mod tenant_scoping_tests;
 pub mod transfers;
 #[cfg(test)]

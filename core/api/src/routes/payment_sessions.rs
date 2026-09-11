@@ -312,64 +312,57 @@ pub async fn create(
 
 /// Settle the Payment Session that owns a paid interface (ADR-043 lifecycle).
 ///
-/// Called best-effort + idempotent from the link/QR pay paths once the settling
-/// Transfer is COMPLETED. Resolves the session by its link/QR id, transitions it
-/// CREATED|ACTIVE → PAID atomically (a replay updates nothing), and emits
-/// `payment_session.paid` carrying the session id, transfer, the interface used,
-/// the destination account and the app reference. A plain link/QR with no backing
-/// session is a no-op. The payment has already settled, so this never fails it.
-pub async fn settle_for_interface(
-    state: &AppState,
+/// Called from the link/QR pay paths once the settling Transfer is COMPLETED.
+/// Resolves the session by its link/QR id, transitions it CREATED|ACTIVE → PAID
+/// (a replay updates nothing), records the refundable wallet payment and writes
+/// `payment_session.paid` — carrying the session id, transfer, interface,
+/// destination account and app reference — all in ONE transaction on `conn`.
+/// A plain link/QR with no backing session is a no-op.
+///
+/// It used to be best-effort: a database error read as "no session", the record
+/// and the event were `let _ =`, and the route answered 204 regardless. A
+/// transient failure left the payer debited, the link USED and the session
+/// ACTIVE, with no event for the integrator — DOA's payment signal — and nothing
+/// that would ever retry (A2-06). Now the caller's transaction carries all of it,
+/// and an error is returned so the caller can roll back and be retried.
+pub async fn settle_for_interface_in(
+    conn: &mut sqlx::PgConnection,
+    environment: &str,
     kind: &str,
     ref_id: Uuid,
     transfer_id: Uuid,
-    amount_minor: i64,
     interface: &str,
-) {
+) -> Result<(), sqlx::Error> {
     let Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id)) =
-        mark_paid(state, kind, ref_id).await
+        mark_paid_in(&mut *conn, kind, ref_id).await?
     else {
-        return; // not found, already terminal, or a transient error — no-op
+        return Ok(()); // no session, or it is already paid: nothing to do
     };
 
-    // Record the refundable financial object BEFORE resolving it.
-    //
-    // This used to resolve straight to `None`. The only writer of
-    // `wallet_payments` was the QR-pay route, withdrawn for security (RA-053), so
-    // nothing recorded a payment settled through a link or a session — the money
-    // moved, the session flipped to PAID, and the object a refund names never
-    // existed. Every payment on the canonical rail was silently unrefundable.
-    //
-    // Best-effort and idempotent: the payment has already settled, so a failure
-    // here must never fail it. A missing row degrades to the previous behaviour
-    // (no refund source) rather than losing money.
+    // The refundable object, BEFORE the event names it (RA-061: the session
+    // knows which child account it credited, so a refund reverses that one).
     let interface_link_id = if kind == "link" { Some(ref_id) } else { None };
     let interface_qr_id = if kind == "qr" { Some(ref_id) } else { None };
-    let _ = super::wallet_payments::record_merchant_interface_payment(
-        &state.pool,
+    let recorded = super::wallet_payments::record_merchant_interface_payment(
+        &mut *conn,
         merchant_id,
         transfer_id,
         interface_link_id,
         interface_qr_id,
-        // The session knows which child account it credited; recording it is
-        // what lets a later refund reverse THAT account rather than the wallet
-        // default (RA-061).
         Some(wallet_account_id),
-        amount_minor,
-        "AOA",
         &session_id.to_string(),
-        state.environment.as_str(),
+        environment,
     )
-    .await;
+    .await?;
+    let amount_minor: i64 = sqlx::query_scalar("SELECT amount_minor FROM transfers WHERE id = $1")
+        .bind(transfer_id)
+        .fetch_optional(&mut *conn)
+        .await?
+        .unwrap_or(0);
+    let refund_source = recorded.map(|id| super::refund_source::wallet_payment_source(id));
 
-    // Additive merchant-safe refund source, resolved from the settling transfer
-    // (the most precise anchor). Delivered only to this merchant's own signed
-    // webhook subscription.
-    let refund_source =
-        super::refund_source::resolve_by_transfer(&state.pool, merchant_id, transfer_id).await;
-
-    let _ = super::webhooks::emit(
-        &state.pool,
+    super::webhooks::emit(
+        &mut *conn,
         merchant_id,
         "payment_session.paid",
         &format!("payment_session.paid:{session_id}"),
@@ -384,7 +377,21 @@ pub async fn settle_for_interface(
             "refund_source": refund_source,
         }),
     )
-    .await;
+    .await
+}
+
+/// `settle_for_interface_in` in a transaction of its own.
+pub async fn settle_for_interface(
+    state: &AppState,
+    kind: &str,
+    ref_id: Uuid,
+    transfer_id: Uuid,
+    interface: &str,
+) -> Result<(), sqlx::Error> {
+    let mut tx = state.pool.begin().await?;
+    settle_for_interface_in(&mut tx, state.environment.as_str(), kind, ref_id, transfer_id, interface)
+        .await?;
+    tx.commit().await
 }
 
 /// The session a paid interface belongs to, moved CREATED|ACTIVE → PAID in one
@@ -393,11 +400,15 @@ pub async fn settle_for_interface(
 /// event) happens once however many callers race.
 type PaidSession = (Uuid, Uuid, Uuid, Option<String>, Option<String>);
 
-async fn mark_paid(state: &AppState, kind: &str, ref_id: Uuid) -> Option<PaidSession> {
+async fn mark_paid_in(
+    conn: &mut sqlx::PgConnection,
+    kind: &str,
+    ref_id: Uuid,
+) -> Result<Option<PaidSession>, sqlx::Error> {
     let column = match kind {
         "link" => "payment_link_id",
         "qr" => "qr_code_id",
-        _ => return None,
+        _ => return Ok(None),
     };
     // Atomic transition: only CREATED/ACTIVE flips to PAID; RETURNING tells us
     // whether THIS call performed it (so the event fires exactly once).
@@ -429,10 +440,8 @@ async fn mark_paid(state: &AppState, kind: &str, ref_id: Uuid) -> Option<PaidSes
          SELECT id, merchant_id, wallet_account_id, reference_type, reference_id FROM s",
     ))
     .bind(ref_id)
-    .fetch_optional(&state.pool)
+    .fetch_optional(&mut *conn)
     .await
-    .ok()
-    .flatten()
 }
 
 /// Settle the Payment Session whose link was paid on the hosted acquiring rail
@@ -445,19 +454,24 @@ async fn mark_paid(state: &AppState, kind: &str, ref_id: Uuid) -> Option<PaidSes
 /// the wallet rail; the event names the acquiring payment instead of a transfer.
 /// No wallet payment is recorded — nothing was paid from a wallet — and the event
 /// says so rather than naming a refund source this rail does not produce.
+///
+/// The transition and its event commit together, and an error is returned: the
+/// acquiring callback answers 5xx so the provider retries, and the retry's
+/// replay branch settles the session again.
 pub async fn settle_for_acquired_link(
     state: &AppState,
     link_id: Uuid,
     acquiring_payment_id: Uuid,
     amount_minor: i64,
-) {
+) -> Result<(), sqlx::Error> {
+    let mut tx = state.pool.begin().await?;
     let Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id)) =
-        mark_paid(state, "link", link_id).await
+        mark_paid_in(&mut tx, "link", link_id).await?
     else {
-        return;
+        return Ok(());
     };
-    let _ = super::webhooks::emit(
-        &state.pool,
+    super::webhooks::emit(
+        &mut *tx,
         merchant_id,
         "payment_session.paid",
         &format!("payment_session.paid:{session_id}"),
@@ -472,7 +486,8 @@ pub async fn settle_for_acquired_link(
             "refund_source": serde_json::Value::Null,
         }),
     )
-    .await;
+    .await?;
+    tx.commit().await
 }
 
 #[derive(Deserialize)]
@@ -497,7 +512,10 @@ pub async fn settle_by_interface(
         "link" => "PAYMENT_LINK",
         _ => "DYNAMIC_QR",
     });
-    settle_for_interface(&state, &kind, rid, tid, body.amount_minor, interface).await;
+    let _ = body.amount_minor; // the transfer's own amount is what is recorded
+    settle_for_interface(&state, &kind, rid, tid, interface)
+        .await
+        .map_err(|e| ApiError::internal(format!("session settlement failed: {e}")))?;
     Ok(StatusCode::NO_CONTENT)
 }
 

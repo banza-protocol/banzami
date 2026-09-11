@@ -544,15 +544,20 @@ pub async fn pay(
             QrCodeType::Dynamic => "DYNAMIC_QR",
             QrCodeType::Static => "STATIC_QR",
         };
-        super::payment_sessions::settle_for_interface(
+        if let Err(e) = super::payment_sessions::settle_for_interface(
             &state,
             "qr",
             qr_id.as_uuid(),
             transfer.id.as_uuid(),
-            amount_minor,
             interface,
         )
-        .await;
+        .await
+        {
+            // The transfer is committed; the session settlement is idempotent and
+            // can be completed by a retry of this payment.
+            tracing::error!(qr_id = %qr_id, error = %e, "payment session settlement failed after QR payment");
+            return Err(ApiError::internal("payment recorded; session settlement failed — retry"));
+        }
     }
 
     Ok((

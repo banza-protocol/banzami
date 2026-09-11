@@ -36,7 +36,7 @@ const ZERO = [
   'DEPOSITS_CONFIRMED_WITHOUT_POSTING', 'RESTITUTIONS_WITHOUT_POSTING', 'PAID_LINKS_WITHOUT_PAYMENT',
   'PAID_SESSIONS_WITHOUT_PAYMENT', 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE',
   'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', 'CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE',
-  'PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS',
+  'PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS', 'LINK_PAYMENTS_TAKEN_BUT_NOT_COMPLETED',
 ];
 
 describe('financial assurance counters', () => {
@@ -184,6 +184,17 @@ describe('financial assurance counters', () => {
             ('WALLET_PAYMENT','f0000000-0000-4000-8000-0000000000a1','REFUND',gen_random_uuid(),600,'AOA','b',gen_random_uuid()),
             ('WALLET_PAYMENT','f0000000-0000-4000-8000-0000000000b1','REFUND',gen_random_uuid(),999,'AOA','c',gen_random_uuid())`);
     assert.equal(counts().PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS - before, 1);
+  });
+
+  it('a link payment taken but never completed is caught', () => {
+    const before = counts().LINK_PAYMENTS_TAKEN_BUT_NOT_COMPLETED;
+    psql(`INSERT INTO payment_links (id, merchant_id, wallet_id, slug, amount_minor, currency, status, environment)
+            VALUES ('b0000000-0000-4000-8000-0000000000a9','d0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','sa9',100,'AOA','ACTIVE','SANDBOX');
+          INSERT INTO transfers (id, idempotency_key, sender_id, recipient_id, amount_minor, currency, status, environment)
+            VALUES (gen_random_uuid(),'pl-pay-b0000000-0000-4000-8000-0000000000a9','d0000000-0000-4000-8000-0000000000c9','e0000000-0000-4000-8000-0000000000e1',100,'AOA','COMPLETED','SANDBOX')`);
+    assert.equal(counts().LINK_PAYMENTS_TAKEN_BUT_NOT_COMPLETED - before, 1);
+    psql(`UPDATE payment_links SET status = 'USED' WHERE id = 'b0000000-0000-4000-8000-0000000000a9'`);
+    assert.equal(counts().LINK_PAYMENTS_TAKEN_BUT_NOT_COMPLETED - before, 0);
   });
 
   it('a login that does not own its handle is caught', () => {

@@ -386,7 +386,8 @@ pub async fn settle_confirmed_payment(
             payment.id.as_uuid(),
             amt,
         )
-        .await;
+        .await
+        .map_err(|e| ApiError::internal(format!("session settlement failed: {e}")))?;
         return Ok(()); // an earlier callback settled it: idempotent success
     };
 
@@ -418,13 +419,16 @@ pub async fn settle_confirmed_payment(
     // A link that belongs to a Payment Session pays the session: PAID, its QR
     // retired, payment_session.paid emitted. Idempotent, and a no-op for a
     // plain link.
+    // An error answers 5xx: the provider retries, and the retry's replay branch
+    // above settles the session (A2-06/A2-07: this used to be dropped).
     super::payment_sessions::settle_for_acquired_link(
         state,
         payment.payment_link_id.as_uuid(),
         payment.id.as_uuid(),
         amt,
     )
-    .await;
+    .await
+    .map_err(|e| ApiError::internal(format!("session settlement failed: {e}")))?;
 
     // Velocity counters (fire-and-forget).
     let hour_start = now

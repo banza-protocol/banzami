@@ -164,6 +164,12 @@ SELECT 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE', count(*) FROM payment_sessions 
 SELECT 'SESSIONS_OPEN_AFTER_THEIR_LINK_WAS_PAID', count(*) FROM payment_sessions s
   JOIN payment_links l ON l.id = s.payment_link_id
  WHERE l.status = 'USED' AND s.status IN ('CREATED','ACTIVE');
+-- A link paid from a wallet is completed: the transfer that paid it and the
+-- link's USED state exist together (A2-06). A committed transfer whose link is
+-- still open is a payment taken and never completed — the payer's retry heals it.
+SELECT 'LINK_PAYMENTS_TAKEN_BUT_NOT_COMPLETED', count(*) FROM transfers t
+  JOIN payment_links l ON t.idempotency_key = 'pl-pay-' || l.id::text
+ WHERE t.status = 'COMPLETED' AND l.status <> 'USED';
 -- A payment refunded in full does not verify as paid (A7-01, 0131).
 SELECT 'PROOFS_CONFIRMED_FOR_FULLY_REFUNDED_WALLET_PAYMENTS', count(*) FROM transaction_proofs tp
   JOIN wallet_payments wp

@@ -13,19 +13,24 @@
 //! replay re-emits the same (idempotent) event, so an event is not lost.
 
 use chrono::Utc;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Writes one merchant webhook event to the outbox. Idempotent on
 /// `idempotency_key`. `data` is the event-specific body; it is wrapped in the
 /// standard `{id,type,created_at,data}` envelope the delivery worker sends.
-pub async fn emit(
-    pool: &PgPool,
+pub async fn emit<'e, E>(
+    pool: E,
     merchant_id: Uuid,
     event_type: &str,
     idempotency_key: &str,
     data: serde_json::Value,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), sqlx::Error>
+where
+    // A pool, or the connection of a transaction the event must commit with:
+    // `webhook_events` is the outbox, so an event written in the settlement's
+    // transaction exists exactly when the settlement does.
+    E: sqlx::PgExecutor<'e>,
+{
     let event_id = Uuid::new_v4();
     let now = Utc::now();
     let envelope = serde_json::json!({
@@ -55,7 +60,7 @@ pub async fn emit(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::Row;
+    use sqlx::{PgPool, Row};
 
     #[sqlx::test(migrations = "../../db/migrations")]
     async fn emit_is_idempotent_on_key(pool: PgPool) {

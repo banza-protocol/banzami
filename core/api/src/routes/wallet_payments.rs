@@ -54,39 +54,41 @@ pub struct WalletPayment {
 /// refund names never existed. Every payment taken on the canonical rail was
 /// unrefundable, silently, including every DOA donation.
 ///
-/// The payer is derived from the settling transfer rather than passed in: the
-/// transfer is the financial fact, and taking the payer from anywhere else would
-/// let the two disagree.
+/// The payer, the amount and the currency are derived from the settling
+/// transfer rather than passed in: the transfer is the financial fact, and
+/// taking any of them from elsewhere lets the two disagree. The amount used to
+/// come from the link, and an open-amount link has none — it was recorded as 0,
+/// the table's CHECK refused it, the error was dropped, and every such payment
+/// was unrefundable and receiptless (A7-38).
 ///
-/// Idempotent on `transfer_id`, exactly like its QR sibling: a replayed
-/// settlement returns the existing row.
+/// Runs on the caller's connection so it commits or rolls back with the rest of
+/// the settlement. Idempotent on `transfer_id`, exactly like its QR sibling: a
+/// replayed settlement returns the existing row.
 #[allow(clippy::too_many_arguments)]
 pub async fn record_merchant_interface_payment(
-    pool: &PgPool,
+    conn: &mut sqlx::PgConnection,
     merchant_id: Uuid,
     transfer_id: Uuid,
     payment_link_id: Option<Uuid>,
     qr_code_id: Option<Uuid>,
     credited_wallet_account_id: Option<Uuid>,
-    amount_minor: i64,
-    currency: &str,
     trace_id: &str,
     environment: &str,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     // The payer is whoever the transfer debited. A transfer whose sender is not a
     // consumer wallet is not a wallet-native merchant payment, so nothing is
     // recorded — the same rule the QR path applies to P2P.
-    let payer: Option<Uuid> = sqlx::query_scalar(
-        "SELECT cw.consumer_id
+    let settled: Option<(Uuid, i64, String)> = sqlx::query_as(
+        "SELECT cw.consumer_id, t.amount_minor, t.currency
            FROM transfers t
            JOIN consumer_wallets cw ON cw.consumer_id = t.sender_id
           WHERE t.id = $1
           LIMIT 1",
     )
     .bind(transfer_id)
-    .fetch_optional(pool)
+    .fetch_optional(&mut *conn)
     .await?;
-    let Some(payer_consumer_id) = payer else {
+    let Some((payer_consumer_id, amount_minor, currency)) = settled else {
         return Ok(None);
     };
 
@@ -105,10 +107,10 @@ pub async fn record_merchant_interface_payment(
     .bind(qr_code_id)
     .bind(credited_wallet_account_id)
     .bind(amount_minor)
-    .bind(currency)
+    .bind(&currency)
     .bind(trace_id)
     .bind(environment)
-    .fetch_optional(pool)
+    .fetch_optional(&mut *conn)
     .await?;
 
     match inserted {
@@ -116,7 +118,7 @@ pub async fn record_merchant_interface_payment(
         None => Ok(
             sqlx::query_scalar("SELECT id FROM wallet_payments WHERE transfer_id = $1")
                 .bind(transfer_id)
-                .fetch_optional(pool)
+                .fetch_optional(&mut *conn)
                 .await?,
         ),
     }

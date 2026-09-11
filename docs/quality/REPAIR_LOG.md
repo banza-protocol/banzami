@@ -3107,3 +3107,30 @@ and the green mark; a reversed operation says it moved and was returned; anythin
 says it did not complete, and an unknown status reads "Por confirmar". Test
 `TestReceiptView_ClaimsOnlyWhatItsStatusAllows` (the old default and copy fail five of
 its cases).
+
+## RA-111 — a paid link could leave its Payment Session unpaid, silently and for good
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-06/A2-07, surfaces A7-38)
+- **Status:** FIXED (core + public-api)
+
+After the transfer that pays a link commits, three things had to follow: the link
+USED, the refundable wallet payment recorded, and the Payment Session the link belongs
+to paid with `payment_session.paid` — DOA's payment signal. They were separate,
+best-effort calls: public-api discarded the session call's result, core turned a
+database error into "no session" and answered 204, and the record and the event were
+`let _ =`. A transient fault left the payer debited and the link USED, with the session
+ACTIVE, no event, no refundable object — and a retry was refused as LINK_NOT_ACTIVE, so
+nothing ever healed it. An open-amount link recorded amount 0, which the table refuses,
+so none of those payments could be refunded. On the acquiring rail a failed session
+settle after the credit was dropped while the provider got 200. Now core's mark-used,
+given the paying transfer, does all of it in ONE transaction (claim, record with the
+transfer's own amount, session paid, event in the outbox); any failure rolls it back and
+answers 5xx, and public-api tells the payer the payment was taken but not confirmed —
+the retry replays the same transfer (its key names the link) and completes it. The
+session settle and the acquiring settle return errors; the acquiring callback answers
+5xx so the provider retries into the replay branch. Counter
+`LINK_PAYMENTS_TAKEN_BUT_NOT_COMPLETED` (0 on the Sandbox). Tests
+`link_completion_tests::{a_session_link_payment_completes_whole,
+a_failed_completion_leaves_nothing_half_done_and_a_retry_completes_it,
+an_open_amount_link_records_what_was_paid}` (real DB; swallowing the settle error or
+recording 0 fails them), `TestPayLink_AFailedCompletionAsksForARetryAndIsOneCall`.

@@ -48,6 +48,12 @@ fn to_json(source_type: &str, source_id: Uuid) -> serde_json::Value {
     serde_json::json!({ "source_type": source_type, "source_id": source_id })
 }
 
+/// The refund source a recorded wallet payment is, for a caller that already
+/// holds its id (inside the settlement that recorded it).
+pub fn wallet_payment_source(wallet_payment_id: Uuid) -> serde_json::Value {
+    to_json(WALLET_PAYMENT, wallet_payment_id)
+}
+
 /// Resolve the refund source for a paid Payment Session / Payment Link by the
 /// interface ids it settled through. Merchant-scoped and COMPLETED-only, so a
 /// cross-tenant or unpaid interface yields `None`.
@@ -85,6 +91,9 @@ pub async fn resolve_by_interface(
 /// Resolve the refund source from the settling Transfer id — the most precise
 /// anchor, used on the paid-webhook path where the transfer is known.
 /// `wallet_payments.transfer_id` is UNIQUE, so this is exact. Merchant-scoped.
+// Settlements that just recorded the wallet payment name it directly
+// (`wallet_payment_source`); this lookup is kept for reading one back.
+#[allow(dead_code)]
 pub async fn resolve_by_transfer(
     pool: &PgPool,
     merchant_id: Uuid,
