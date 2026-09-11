@@ -59,6 +59,10 @@ banzami-webhook-sink	banzami-sandbox/webhook-sink	sink	no	unless-stopped	running
 # a database that shared the name of the real Sandbox one, on a network the
 # Sandbox stack could not reach. Its only effect was that every migration check
 # comparing the NAME passed for both. Container, data and compose definition gone.
-banzami-redis-1	redis	legacy	no	unless-stopped	running
+# banzami-redis-1 — REMOVED 2026-09-11. The old stack's Redis, orphaned when the
+# Sandbox stack got its own: 0 keys, no client but its own healthcheck, and the
+# only compose service naming it (the legacy developer-api) not running. The
+# container is gone; its compose service sits behind the "retired" profile so no
+# `compose up` starts it again; /srv/banzami/data/redis is kept.
 banzami-website-frontend-1	banzami/website-frontend	legacy	no	unless-stopped	running
 banzami-website-nginx-1	nginx	legacy	no	unless-stopped	running
