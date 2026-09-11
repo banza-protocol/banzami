@@ -67,6 +67,15 @@ func (l *memLimiter) Allow(_ context.Context, key string, limit int, w time.Dura
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := time.Now()
+	// It is also the fallback while Redis is unreachable (Service.local), so it
+	// must not grow without bound over a long outage.
+	if len(l.counts) > 10000 {
+		for k, c := range l.counts {
+			if now.After(c.resetAt) {
+				delete(l.counts, k)
+			}
+		}
+	}
 	cur := l.counts[key]
 	if cur == nil || now.After(cur.resetAt) {
 		cur = &window{resetAt: now.Add(w)}

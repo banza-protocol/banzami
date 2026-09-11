@@ -169,7 +169,14 @@ func (h *Handlers) Logout(w http.ResponseWriter, r *http.Request) {
 			httpx.Error(w, http.StatusForbidden, "CSRF", "missing or invalid CSRF token")
 			return
 		}
-		h.svc.Logout(r.Context(), raw, realIP(r), obs.RequestID(r.Context()))
+		if err := h.svc.Logout(r.Context(), raw, realIP(r), obs.RequestID(r.Context())); err != nil {
+			// The session is still live server-side. The cookie is kept, so the
+			// person can sign out again; clearing it would leave a working token
+			// behind a Console that says "signed out" (A2-24).
+			slog.ErrorContext(r.Context(), "auth.logout.revoke_failed", "request_id", obs.RequestID(r.Context()))
+			httpx.Error(w, http.StatusServiceUnavailable, "UNAVAILABLE", "could not sign out; try again")
+			return
+		}
 	}
 	h.clearSessionCookie(w)
 	httpx.JSON(w, http.StatusOK, map[string]any{"ok": true})
