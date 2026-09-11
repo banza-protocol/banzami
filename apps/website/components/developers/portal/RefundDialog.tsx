@@ -5,13 +5,34 @@ import { developerApi, ApiError, type DeveloperTransaction } from '@/lib/develop
 import { useDeveloperData } from './DeveloperData';
 import { useToast } from './Toast';
 import { Card } from './ui';
-import { formatMoneyDisplay } from '@/lib/money';
+import { formatMoneyDisplay, formatMoneyInput, tryParseMoneyInput } from '@/lib/money';
 
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 
-// The canonical Money Engine; an open-amount session has no figure to show.
+// The canonical Money Engine; an amount the Console does not know is not a figure.
 const money = (minor: number | null, currency: string) =>
-  minor === null || minor === undefined ? 'Em aberto' : formatMoneyDisplay(minor, currency);
+  minor === null || minor === undefined ? 'Não indicado' : formatMoneyDisplay(minor, currency);
+
+/**
+ * What this payment actually received, in minor units — the refund ceiling.
+ *
+ * Not the requested amount. An externally acquired payment reports what arrived
+ * (acquiring.amount_minor); a session paid in full reports its own amount. An
+ * open-amount session paid from a wallet has no received figure here, so there
+ * is no ceiling to apply client-side — the server still enforces the real one.
+ */
+export function receivedMinor(p: DeveloperTransaction): number | null {
+  if (p.acquiring?.state === 'PAID' && p.acquiring.amount_minor != null) return p.acquiring.amount_minor;
+  if (p.amount_minor != null && p.amount_minor > 0) return p.amount_minor;
+  return null;
+}
+
+/** Minor units as the amount field shows them: 10 050 → "100,50", 300 000 → "3 000". */
+export function minorToInput(minor: number): string {
+  const major = Math.trunc(minor / 100);
+  const frac = minor % 100;
+  return formatMoneyInput(frac === 0 ? String(major) : `${major},${String(frac).padStart(2, '0')}`);
+}
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
 /** A refund key is minted once per dialog and reused by every attempt within it.
@@ -73,8 +94,11 @@ export function RefundDialog({
   // Minted once, when the dialog mounts.
   const idempotencyKey = useMemo(newIdempotencyKey, []);
 
-  const full = payment.amount_minor ?? 0;
-  const [amount, setAmount] = useState(full > 0 ? String(Math.round(full / 100)) : '');
+  // The ceiling is what was received, to the cêntimo. The default is exactly that
+  // figure: rounding it to whole kwanzas made 100,50 Kz default to "101" (over
+  // the ceiling) and 100,49 Kz default to "100" (a silent partial refund).
+  const received = receivedMinor(payment);
+  const [amount, setAmount] = useState(received !== null ? minorToInput(received) : '');
   const [reason, setReason] = useState('');
   const [phase, setPhase] = useState<Phase>({ k: 'form' });
   const firstField = useRef<HTMLInputElement>(null);
@@ -86,8 +110,11 @@ export function RefundDialog({
     return () => window.removeEventListener('keydown', esc);
   }, [onClose, phase.k]);
 
-  const minor = Math.round(Number(amount.replace(/\s/g, '')) * 100);
-  const amountValid = Number.isFinite(minor) && minor > 0 && (full === 0 || minor <= full);
+  // Parsed by the Money Engine: "100,50" is 10 050 minor, "1 000" is 100 000.
+  // Number(x) * 100 read "100,50" as NaN and "1.000" as one kwanza.
+  const parsed = tryParseMoneyInput(amount);
+  const minor = parsed ?? 0;
+  const amountValid = parsed !== null && minor > 0 && (received === null || minor <= received);
   const reasonValid = reason.trim().length >= 3;
   const canSubmit = amountValid && reasonValid && phase.k !== 'sending';
 
@@ -146,7 +173,7 @@ export function RefundDialog({
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 13, marginTop: 6 }}>
             <span style={{ color: '#8a7a7e', fontWeight: 700 }}>Montante recebido</span>
-            <span style={{ fontWeight: 800 }}>{money(payment.amount_minor, payment.currency)}</span>
+            <span style={{ fontWeight: 800 }}>{money(received, payment.currency)}</span>
           </div>
         </div>
 
@@ -172,16 +199,16 @@ export function RefundDialog({
               <input
                 id="refund-amount"
                 ref={firstField}
-                inputMode="numeric"
+                inputMode="decimal"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount(formatMoneyInput(e.target.value))}
                 aria-describedby="refund-amount-help"
                 style={input}
               />
               <p id="refund-amount-help" style={{ margin: '6px 0 0', fontSize: 12, color: '#8a7a7e', fontWeight: 600 }}>
-                {full > 0
-                  ? `Pode devolver a totalidade ou uma parte, até ${money(full, payment.currency)}.`
-                  : 'Este pagamento foi aberto sem montante fixo — indique quanto devolver.'}
+                {received !== null
+                  ? `Pode devolver a totalidade ou uma parte, até ${money(received, payment.currency)}. Use vírgula para os cêntimos.`
+                  : 'Este pagamento foi aberto sem montante fixo — indique quanto devolver. O limite é o que foi recebido.'}
               </p>
             </div>
 
