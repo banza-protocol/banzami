@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:banzami_flutter/banzami_flutter.dart';
@@ -146,5 +147,32 @@ void main() {
     await _submitAndConfirm(t);
     expect(keys, hasLength(3));
     expect(keys[2], isNot(keys[0]), reason: 'another amount is another request');
+  });
+
+  testWidgets('a withdrawal in flight cannot be backed out of', (t) async {
+    final svc = await _session();
+    final answer = Completer<http.Response>();
+    await _open(t, svc, (_) => answer.future);
+
+    await _fill(t, '1 000');
+    // Submit, but never answer: the request is on its way to Banzami.
+    await t.ensureVisible(
+        find.widgetWithText(BanzamiPrimaryButton, 'Pedir levantamento'));
+    await t.tap(find.widgetWithText(BanzamiPrimaryButton, 'Pedir levantamento'));
+    await t.pumpAndSettle();
+    await t.tap(find.text('Confirmar'));
+    await t.pump();
+    await t.pump(const Duration(milliseconds: 50));
+
+    // Leaving now would lose the answer to a request that may already have
+    // moved money — there is no way back, and no back button offering one.
+    expect(t.widget<PopScope>(find.byType(PopScope)).canPop, isFalse);
+    expect(find.byType(BackButton), findsNothing);
+
+    answer.complete(http.Response(
+        jsonEncode({'id': 'po_1', 'status': 'PENDING', 'amount_minor': 100000}),
+        201));
+    await t.pumpAndSettle();
+    expect(t.widget<PopScope>(find.byType(PopScope)).canPop, isTrue);
   });
 }

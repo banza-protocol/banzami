@@ -131,13 +131,19 @@ class _PayoutScreenState extends State<PayoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BanzamiScaffold(
-      backgroundColor: BanzamiColors.white,
-      appBar: const BanzamiAppBar(
-        title:           'Pedir levantamento',
+    // No way back while the withdrawal is in flight: leaving would lose its
+    // answer, and the only safe next step is the same request again.
+    return PopScope(
+      canPop: !_loading,
+      child: BanzamiScaffold(
         backgroundColor: BanzamiColors.white,
+        appBar: BanzamiAppBar(
+          title:           'Pedir levantamento',
+          backgroundColor: BanzamiColors.white,
+          showBack:        !_loading,
+        ),
+        body: _success ? _buildSuccess() : _buildForm(),
       ),
-      body: _success ? _buildSuccess() : _buildForm(),
     );
   }
 

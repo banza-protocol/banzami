@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:banzami_flutter/banzami_flutter.dart' show MerchantAuthTokens, RenewedSession;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 
+import '../../services/banzami_keychain.dart';
 import '../../services/pin_hasher.dart';
 import '../../services/push_notification_service.dart';
 import 'merchant_push_registration.dart';
@@ -138,15 +138,13 @@ class MerchantSessionService extends ChangeNotifier {
 
   // This device only: the Business session never travels in an iCloud
   // keychain or a device backup restored onto another phone.
-  static const _store = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device),
-  );
+  static const _store = BanzamiKeychain.store;
   /// What older versions wrote with — still readable, rewritten once by
   /// [_migrateKeychainOnce], and included when the account is wiped.
-  static const _legacyIOptions =
-      IOSOptions(accessibility: KeychainAccessibility.first_unlock);
-  static const _kKeychainV2   = 'merchant_keychain_this_device_v2';
+  static const _legacyIOptions = BanzamiKeychain.legacyIOptions;
+  /// Bumped when the list below grows: an install that already ran v2 has
+  /// items (the push topic) that v2 never moved, so the pass must run again.
+  static const _kKeychainV2   = 'merchant_keychain_this_device_v3';
   static const _legacyPinSalt = 'banzami:merchant:{pin}:ao';
   static final _bio = LocalAuthentication();
 
@@ -271,6 +269,7 @@ class MerchantSessionService extends ChangeNotifier {
         _kMerchantId, _kMerchantName, _kMerchantEmail, _kWalletId, _kJwt,
         _kJwtExpiry, _kRefreshToken, _kRefreshExpiry, _kHandle, _kLoginMethod,
         _kEnvironment, _kPinHash, _kBioEnabled, _kVerified, _kNotifSound,
+        _kPushTopic,
       ]) {
         final v = await _store.read(key: k);
         if (v != null) await _store.write(key: k, value: v);
