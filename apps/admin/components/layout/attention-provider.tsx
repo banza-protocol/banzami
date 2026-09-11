@@ -35,7 +35,8 @@ const AttentionContext = createContext<AttentionState>({ summary: null, environm
 const defaultFetcher: Fetcher = (env) => {
   const s = getSession();
   if (!s) return Promise.reject(new Error('no session'));
-  return new AdminApi(s.token).getAttentionSummary(env);
+  // Passive: the badges poll on a timer, which is not the operator being active.
+  return new AdminApi({ passive: true }).getAttentionSummary(env);
 };
 
 export function AttentionProvider({

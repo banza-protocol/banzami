@@ -37,7 +37,7 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError('');
     try {
-      await new AdminApi(session.token).changePassword(current, next);
+      await new AdminApi().changePassword(current, next);
       toast('success', 'Palavra-passe alterada com sucesso.');
       setCurrent('');
       setNext('');

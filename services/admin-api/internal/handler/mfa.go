@@ -212,7 +212,9 @@ func (h *MFAHandler) AcknowledgeRecovery(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	h.writeAudit(r, p, "MFA_RECOVERY_CODES_ACKNOWLEDGED", nil)
-	h.issueSession(w, r, p, "MFA_ENROLLED", nil)
+	// Not stepped up: the code was proven at /enrol/confirm, up to minutes ago.
+	// The first high-risk action asks for a fresh one.
+	h.issueSession(w, r, p, "MFA_ENROLLED", nil, false)
 }
 
 func itoa(n int) string {
@@ -273,7 +275,10 @@ func (h *MFAHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.writeAudit(r, p, "MFA_VERIFIED", nil)
-	h.issueSession(w, r, p, "MFA_VERIFIED", nil)
+	// A code was proven this instant, and it is now spent; asking for another
+	// one for the first high-risk action would only make the operator wait for
+	// the next step of the authenticator.
+	h.issueSession(w, r, p, "MFA_VERIFIED", nil, true)
 }
 
 // reauthenticate re-proves the operator, in a session, before an operation that
@@ -397,8 +402,87 @@ func (h *MFAHandler) RegenerateRecoveryCodes(w http.ResponseWriter, r *http.Requ
 	writeJSON(w, http.StatusOK, map[string]any{"recovery_codes": codes})
 }
 
-// issueSession mints the real session once both factors are proven.
-func (h *MFAHandler) issueSession(w http.ResponseWriter, r *http.Request, p auth.Principal, how string, recoveryCodes []string) {
+// POST /admin/v1/auth/step-up   (session)  {code}
+//
+// Re-proves the second factor inside a session, for the highest-risk routes
+// (middleware.RequireStepUp, A5-08). A stolen session cookie — an unlocked
+// laptop, a lifted cookie — is not enough to create an operator, change a role,
+// reset someone else's password, reprice a customer, move settlement or payout
+// state, or freeze an account: those want a code from the authenticator within
+// the last five minutes.
+//
+// The same verification as sign-in, with the same rules: the code is spent when
+// it is accepted (a TOTP step is recorded, a recovery code is consumed), wrong
+// codes count towards the account lock, and when the lock engages every session
+// the account holds ends — this one included.
+func (h *MFAHandler) StepUp(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) {
+		return
+	}
+	p, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
+		return
+	}
+	var body struct {
+		Code string `json:"code"`
+	}
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body)
+	if strings.TrimSpace(body.Code) == "" {
+		writeError(w, http.StatusBadRequest, "CODE_REQUIRED", "a code from your authenticator is required")
+		return
+	}
+	u, err := h.users.GetByID(r.Context(), p.ID)
+	if err != nil || !service.CanHoldSession(u.Status) || u.TokenVersion != p.TokenVersion {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
+		return
+	}
+	now := time.Now()
+	if u.IsLocked(now) {
+		h.writeAudit(r, p, "MFA_STEP_UP_FAILED", map[string]string{"reason": "LOCKED"})
+		writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
+		return
+	}
+	if err := h.mfa.Verify(r.Context(), p.ID, strings.TrimSpace(body.Code)); err != nil {
+		lockedUntil, _ := h.users.RecordFailedLogin(r.Context(), p.ID)
+		if lockedUntil != nil && lockedUntil.After(now) {
+			_ = h.users.BumpTokenVersion(r.Context(), p.ID)
+			auth.ClearSessionCookies(w)
+			h.writeAudit(r, p, "MFA_STEP_UP_FAILED", map[string]string{"reason": "CODE_REJECTED_ACCOUNT_LOCKED"})
+			writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
+			return
+		}
+		h.writeAudit(r, p, "MFA_STEP_UP_FAILED", map[string]string{"reason": "CODE_REJECTED"})
+		// 403, not 401: the session is fine, the code is not. A 401 reads as a
+		// dead session to the console, which would sign the operator out.
+		writeError(w, http.StatusForbidden, "MFA_CODE_REJECTED", "that code did not verify")
+		return
+	}
+	// The failure counter is NOT reset here: that would also stamp
+	// last_login_at, and a step-up is not a sign-in. Wrong codes keep counting
+	// until the next successful sign-in clears them.
+
+	stepped := p
+	stepped.TokenVersion = u.TokenVersion
+	stepped.SteppedUpAt = now
+	token, exp, err := auth.IssueSession(h.jwtSecret, stepped, now, auth.SessionAbsoluteLifetime)
+	if err != nil {
+		auth.ClearSessionCookies(w)
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "session expired, please sign in again")
+		return
+	}
+	auth.SetSessionCookies(w, h.jwtSecret, stepped, token, exp, now)
+	slog.InfoContext(r.Context(), "admin.mfa.stepped_up", "admin_user_id", p.ID) // never the code
+	writeJSON(w, http.StatusOK, map[string]any{
+		"stepped_up_until": now.Add(auth.StepUpWindow),
+		"expires_at":       exp,
+	})
+}
+
+// issueSession mints the real session once both factors are proven, as the
+// HttpOnly session cookie plus its CSRF cookie. The body carries who signed in,
+// never the session itself (A6-12).
+func (h *MFAHandler) issueSession(w http.ResponseWriter, r *http.Request, p auth.Principal, how string, recoveryCodes []string, steppedUp bool) {
 	ctx := r.Context()
 	u, err := h.users.GetByID(ctx, p.ID)
 	if err != nil {
@@ -412,19 +496,20 @@ func (h *MFAHandler) issueSession(w http.ResponseWriter, r *http.Request, p auth
 		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "invalid or expired token")
 		return
 	}
-	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession}
-	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, time.Now())
+	now := time.Now()
+	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion, Purpose: auth.PurposeSession, AuthTime: now}
+	if steppedUp {
+		principal.SteppedUpAt = now
+	}
+	token, exp, err := auth.IssueSession(h.jwtSecret, principal, now, h.ttl)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue session")
 		return
 	}
+	auth.SetSessionCookies(w, h.jwtSecret, principal, token, exp, now)
 	h.users.ResetLoginCountersAndTouch(ctx, u.ID)
 	h.users.RecordLoginAttempt(ctx, u.Email, &u.ID, clientIP(r), r.UserAgent(), true, how)
-	out := map[string]any{
-		"token":      token,
-		"expires_at": exp,
-		"user":       userDTO{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role},
-	}
+	out := sessionBody(u, exp)
 	if len(recoveryCodes) > 0 {
 		// Shown exactly once, at enrolment. Never stored in the clear and never
 		// returned again — regenerating is the only way to get a new set.

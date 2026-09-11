@@ -21,7 +21,7 @@ export default function BusinessPage() {
   const { id } = useParams<{ id: string }>();
   const [api] = useState<AdminApi | null>(() => {
     const s = getSession();
-    return s ? new AdminApi(s.token) : null;
+    return s ? new AdminApi() : null;
   });
   const [state, setState] = useState<ApplicationBusinessState | null | undefined>(undefined);
 

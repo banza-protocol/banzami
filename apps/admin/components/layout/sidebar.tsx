@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { LogOut } from 'lucide-react';
-import { destroySession } from '@/lib/session';
+import { signOut } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
 import { attentionHref, attentionLabel, attentionPhrase, badgeText, countFor } from '@/lib/attention';
 import { useAttention } from '@/components/layout/attention-provider';
@@ -65,8 +65,9 @@ export function Sidebar() {
   const router = useRouter();
   const { summary } = useAttention();
 
-  function logout() {
-    destroySession();
+  // Sign out on the server too (admin-api revokes the session), then leave.
+  async function logout() {
+    await signOut();
     router.replace('/login');
   }
 

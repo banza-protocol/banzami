@@ -10,7 +10,7 @@ import { formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 const CONFIRM: Record<'SANDBOX' | 'LIVE', string> = {

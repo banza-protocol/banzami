@@ -13,7 +13,7 @@ import { confirmedTitle, operationRows, proofStatusLabel } from '@/lib/proof-vie
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 

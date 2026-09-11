@@ -106,7 +106,7 @@ export function useAdminEnv(): {
       setReady(true);
       return;
     }
-    new AdminApi(s.token)
+    new AdminApi()
       .getPlatformMode()
       .then((m) => {
         if (!active) return;

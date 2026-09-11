@@ -1,4 +1,5 @@
 import type { AttentionSummary } from '@/lib/attention';
+import { destroySession, readCsrfToken } from '@/lib/session';
 
 export class AdminApiError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
@@ -401,12 +402,24 @@ export interface AuthedUser {
  * type has no `token` on the challenge branch: there is nothing to save.
  */
 export type LoginResult =
-  | { kind: 'session'; token: string; expires_at: string; user: AuthedUser }
+  | { kind: 'session'; expires_at: string; user: AuthedUser }
   | { kind: 'mfa'; enrolled: boolean; challenge_token: string; expires_at: string };
+
+/**
+ * What a completed sign-in returns. The session is NOT in it: admin-api set it
+ * as an HttpOnly cookie on the same response, which this code cannot read and
+ * does not need to (A6-12).
+ */
+export interface SignedIn {
+  expires_at:            string;
+  idle_timeout_seconds?: number;
+  user:                  AuthedUser;
+}
 
 export async function adminLoginStep1(email: string, password: string): Promise<LoginResult> {
   const res = await fetch(`${ADMIN_API_BASE}/admin/v1/auth/login`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
@@ -423,7 +436,7 @@ export async function adminLoginStep1(email: string, password: string): Promise<
       expires_at: String(j.expires_at),
     };
   }
-  return { kind: 'session', token: String(j.token), expires_at: String(j.expires_at), user: j.user as AuthedUser };
+  return { kind: 'session', expires_at: String(j.expires_at), user: j.user as AuthedUser };
 }
 
 /** Begin TOTP enrolment. The secret and its URI are returned once. */
@@ -448,7 +461,7 @@ export async function adminMfaConfirm(
 /** Acknowledge the recovery codes. This is what completes the login. */
 export async function adminMfaAcknowledge(
   acknowledgeToken: string,
-): Promise<{ token: string; expires_at: string; user: AuthedUser }> {
+): Promise<SignedIn> {
   return mfaCall('/admin/v1/auth/mfa/enrol/acknowledge', acknowledgeToken, undefined);
 }
 
@@ -456,13 +469,18 @@ export async function adminMfaAcknowledge(
 export async function adminMfaVerify(
   challengeToken: string,
   code: string,
-): Promise<{ token: string; expires_at: string; user: AuthedUser }> {
+): Promise<SignedIn> {
   return mfaCall('/admin/v1/auth/mfa/verify', challengeToken, { code });
 }
 
+// The challenge, enrolment and acknowledgement tokens are NOT sessions: each is
+// good for minutes and for one step of the sign-in, and is held in the login
+// page's memory only. The step that completes sign-in answers with the session
+// cookie, which `credentials: 'include'` lets the browser keep.
 async function mfaCall<T>(path: string, challengeToken: string, body: unknown): Promise<T> {
   const res = await fetch(`${ADMIN_API_BASE}${path}`, {
     method: 'POST',
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${challengeToken}` },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
@@ -471,22 +489,6 @@ async function mfaCall<T>(path: string, challengeToken: string, body: unknown): 
     throw new AdminApiError(res.status, j.error?.code ?? 'MFA_FAILED', j.error?.message ?? 'the code did not verify');
   }
   return j as T;
-}
-
-export async function adminLogin(
-  email: string,
-  password: string,
-): Promise<{ token: string; expires_at: string; user: AuthedUser }> {
-  const res = await fetch(`${ADMIN_API_BASE}/admin/v1/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  if (!res.ok) {
-    const b = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
-    throw new AdminApiError(res.status, b.error?.code ?? 'UNAUTHORIZED', b.error?.message ?? 'invalid credentials');
-  }
-  return res.json();
 }
 
 /** Validate a password-reset token (public — the operator has no session). */
@@ -522,13 +524,67 @@ function notifyAttentionMutation() {
   try { window.dispatchEvent(new Event(ATTENTION_MUTATION_EVENT)); } catch { /* ignore */ }
 }
 
+// ---------------------------------------------------------------------------
+// Step-up (A5-08)
+// ---------------------------------------------------------------------------
+
+/**
+ * Asks the operator for a code from their authenticator. Resolves with what
+ * they typed, or null when they cancel. `error` is shown when the previous
+ * code did not verify. Registered by <StepUpProvider> in the console layout.
+ */
+export type StepUpPrompt = (opts: { error?: string }) => Promise<string | null>;
+
+let stepUpPrompt: StepUpPrompt | null = null;
+let stepUpInFlight: Promise<boolean> | null = null;
+
+export function setStepUpPrompt(p: StepUpPrompt | null): void {
+  stepUpPrompt = p;
+}
+
+/** Text shown in the step-up dialog when a code is refused. */
+export const STEP_UP_CODE_REJECTED = 'Esse código não confere. Use o código atual da app autenticadora.';
+
+/**
+ * Sign out: the server ends the session (admin-api revokes it — every session
+ * of this operator), then the local profile goes. The local part happens
+ * whatever the server answers.
+ */
+export async function signOut(): Promise<void> {
+  try { await new AdminApi().logout(); } catch { /* signed out locally regardless */ }
+  destroySession();
+}
+
+type Envelope = { code?: string; message?: string; error?: string | { code?: string; message?: string } };
+
+async function readError(res: Response): Promise<{ code: string; message: string }> {
+  let code = 'UNKNOWN', message = res.statusText;
+  try {
+    // Both envelopes: admin-api's own {error:{code,message}}, and the flat
+    // {code,message} a forwarded gateway refusal carries — which is the one
+    // that says WHY (DOCUMENTS_REQUIRED, LINK_REQUIRED, …).
+    const b = await res.json() as Envelope;
+    const nested = typeof b.error === 'object' ? b.error : undefined;
+    code    = nested?.code    ?? b.code    ?? code;
+    message = nested?.message ?? b.message ?? (typeof b.error === 'string' ? b.error : message);
+  } catch { /* ignore */ }
+  return { code, message };
+}
+
 export class AdminApi {
   private readonly base: string;
-  private readonly token: string;
+  private readonly passive: boolean;
 
-  constructor(token: string) {
+  /**
+   * No token: the session is the HttpOnly cookie the browser sends by itself.
+   *
+   * `passive` marks background work (badge and feed polling). admin-api serves
+   * it normally but does not count it as the operator being active, so an open
+   * tab still idles out after 30 minutes without the operator doing anything.
+   */
+  constructor(opts: { passive?: boolean } = {}) {
     this.base = ADMIN_API_BASE;
-    this.token = token;
+    this.passive = !!opts.passive;
   }
 
   // Operator session
@@ -537,6 +593,10 @@ export class AdminApi {
   }
   logout(): Promise<void> {
     return this.req('/admin/v1/auth/logout', { method: 'POST' });
+  }
+  /** Re-prove the second factor for the next five minutes of high-risk actions. */
+  stepUp(code: string): Promise<{ stepped_up_until: string; expires_at: string }> {
+    return this.req('/admin/v1/auth/step-up', { method: 'POST', body: JSON.stringify({ code }) }, { noStepUp: true });
   }
   // Operator changes their own password. A wrong current password is a 400
   // (code INVALID_CURRENT_PASSWORD), so it does NOT trip the 401 auto-logout.
@@ -547,15 +607,53 @@ export class AdminApi {
     });
   }
 
-  private async req<T>(path: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(`${this.base}${path}`, {
+  /** One request, as the browser should send it: the cookie, and the CSRF token on a mutation. */
+  private send(path: string, init?: RequestInit): Promise<Response> {
+    const method = (init?.method ?? 'GET').toUpperCase();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (method !== 'GET' && method !== 'HEAD') {
+      const csrf = readCsrfToken();
+      if (csrf) headers['X-CSRF-Token'] = csrf;
+    }
+    if (this.passive) headers['X-Banzadmin-Activity'] = 'passive';
+    return fetch(`${this.base}${path}`, {
       ...init,
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${this.token}`,
-        ...(init?.headers ?? {}),
-      },
+      credentials: 'include',
+      headers: { ...headers, ...((init?.headers as Record<string, string> | undefined) ?? {}) },
     });
+  }
+
+  /**
+   * The operator proves a fresh code, once, for whichever requests are waiting
+   * on it. Resolves true when the step-up succeeded and the request should be
+   * retried, false when there is no prompt or the operator cancelled.
+   */
+  private stepUpInteractively(): Promise<boolean> {
+    if (!stepUpPrompt) return Promise.resolve(false);
+    if (stepUpInFlight) return stepUpInFlight;
+    const prompt = stepUpPrompt;
+    stepUpInFlight = (async () => {
+      let error: string | undefined;
+      for (;;) {
+        const code = await prompt({ error });
+        if (code === null) return false;
+        try {
+          await this.stepUp(code.trim());
+          return true;
+        } catch (e) {
+          if (e instanceof AdminApiError && e.code === 'MFA_CODE_REJECTED') {
+            error = STEP_UP_CODE_REJECTED;
+            continue;
+          }
+          throw e;
+        }
+      }
+    })().finally(() => { stepUpInFlight = null; });
+    return stepUpInFlight;
+  }
+
+  private async req<T>(path: string, init?: RequestInit, opts: { noStepUp?: boolean } = {}): Promise<T> {
+    const res = await this.send(path, init);
     if (!res.ok) {
       // A 401 must only end the session when the session is ACTUALLY dead — not
       // because one (possibly misconfigured/degraded) endpoint returned 401. A
@@ -564,32 +662,34 @@ export class AdminApi {
       // session-check endpoint itself, trust the 401 and log out; for any other
       // endpoint, re-validate the token via /auth/me first and only log out if
       // THAT also returns 401. Network errors never force a logout.
+      //
+      // The session idles out after 30 minutes without operator activity, so
+      // this is also how an unattended console signs itself out: the next
+      // background poll gets 401 and the operator lands on /login.
       if (res.status === 401 && typeof window !== 'undefined') {
         const logout = () => {
-          try { localStorage.removeItem('banzami_admin_session'); } catch { /* ignore */ }
+          destroySession();
           if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
         };
         if (path.startsWith('/admin/v1/auth/me')) {
           logout();
         } else {
           try {
+            // Passive: checking whether the session is alive must not keep it alive.
             const check = await fetch(`${this.base}/admin/v1/auth/me`, {
-              headers: { 'Authorization': `Bearer ${this.token}` },
+              credentials: 'include',
+              headers: { 'X-Banzadmin-Activity': 'passive' },
             });
             if (check.status === 401) logout();
           } catch { /* network hiccup — keep the session */ }
         }
       }
-      let code = 'UNKNOWN', message = res.statusText;
-      try {
-        // Both envelopes: admin-api's own {error:{code,message}}, and the flat
-        // {code,message} a forwarded gateway refusal carries — which is the one
-        // that says WHY (DOCUMENTS_REQUIRED, LINK_REQUIRED, …).
-        const b = await res.json() as { code?: string; message?: string; error?: string | { code?: string; message?: string } };
-        const nested = typeof b.error === 'object' ? b.error : undefined;
-        code    = nested?.code    ?? b.code    ?? code;
-        message = nested?.message ?? b.message ?? (typeof b.error === 'string' ? b.error : message);
-      } catch { /* ignore */ }
+      const { code, message } = await readError(res);
+      // A high-risk action wants a fresh code (A5-08): ask for it, then send
+      // the same request once more. Cancelling surfaces the refusal as usual.
+      if (res.status === 403 && code === 'STEP_UP_REQUIRED' && !opts.noStepUp) {
+        if (await this.stepUpInteractively()) return this.req<T>(path, init, { noStepUp: true });
+      }
       throw new AdminApiError(res.status, code, message);
     }
     // A successful change may have changed what waits for an operator: the
@@ -917,10 +1017,10 @@ export class AdminApi {
     return this.req(`/admin/v1/wallet-payments?${q.toString()}`);
   }
 
-  /** Fetches the official transaction receipt PDF (auth Bearer) as a Blob. */
+  /** Fetches the official transaction receipt PDF (session cookie) as a Blob. */
   async fetchReceiptPdf(id: string): Promise<Blob> {
     const res = await fetch(`${this.base}/admin/v1/transactions/${id}/receipt.pdf`, {
-      headers: { 'Authorization': `Bearer ${this.token}` },
+      credentials: 'include',
     });
     if (!res.ok) {
       throw new AdminApiError(res.status, 'RECEIPT_ERROR', 'Não foi possível obter o comprovativo.');

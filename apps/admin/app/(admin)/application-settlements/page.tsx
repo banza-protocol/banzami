@@ -21,7 +21,7 @@ const CURRENCIES = ['AOA', 'USD', 'EUR'];
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 const selClass = 'rounded-[11px] border border-[#f1e3e3] bg-white px-[12px] py-[8px] text-[13px] font-semibold text-[#3a2e32] outline-none focus:border-[#B5101F]';

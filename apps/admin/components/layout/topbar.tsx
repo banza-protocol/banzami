@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { AlertCircle, ChevronDown, KeyRound, LogOut, ShieldOff } from 'lucide-react';
 import { type AdminUser, destroySession, getSession } from '@/lib/session';
-import { AdminApi } from '@/lib/admin-api';
+import { AdminApi, signOut } from '@/lib/admin-api';
 import { initials } from '@/lib/format';
 import { ChangePasswordModal } from '@/components/ui/change-password-modal';
 import { NotificationBell } from '@/components/layout/notification-bell';
@@ -40,7 +40,8 @@ export function Topbar({ user }: { user: AdminUser }) {
     const s = getSession();
     if (!s) return;
     try {
-      setPlatformMode((await new AdminApi(s.token).getPlatformMode()).mode);
+      // Passive: polled every 60s; it must not keep an idle console signed in.
+      setPlatformMode((await new AdminApi({ passive: true }).getPlatformMode()).mode);
     } catch {
       // Fail-safe to SANDBOX when the mode is still unknown (matches website/pay):
       // never operate as if in production just because the read failed. A previously
@@ -54,8 +55,9 @@ export function Topbar({ user }: { user: AdminUser }) {
     return () => clearInterval(t);
   }, [refreshMode]);
 
-  function logout() {
-    destroySession();
+  // Sign out on the server too (admin-api revokes the session), then leave.
+  async function logout() {
+    await signOut();
     router.replace('/login');
   }
 
@@ -69,14 +71,16 @@ export function Topbar({ user }: { user: AdminUser }) {
     });
     if (!okGo) return;
     const session = getSession();
-    if (!session) { logout(); return; }
+    if (!session) { void logout(); return; }
     try {
-      await new AdminApi(session.token).terminateMySessions();
+      await new AdminApi().terminateMySessions();
     } catch {
-      // The current token is revoked server-side either way; fall through to logout.
+      // The current session is revoked server-side either way; fall through.
     }
     toast('success', 'Sessões terminadas.');
-    logout();
+    // Already revoked on the server; only the local profile is left to clear.
+    destroySession();
+    router.replace('/login');
   }
 
   return (

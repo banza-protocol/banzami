@@ -7,9 +7,10 @@ import { AdminApi, type AdminNotification } from '@/lib/admin-api';
 import { Card, CardHeader, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { timeAgo } from '@/lib/format';
 
+// Passive: the feed polls every 60s, which is not the operator being active.
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi({ passive: true }) : null;
 }
 
 const SEV_DOT: Record<string, string> = {

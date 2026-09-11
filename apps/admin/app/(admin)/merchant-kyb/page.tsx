@@ -13,7 +13,7 @@ import { AttentionChip } from '@/components/ui/attention-chip';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 // Entity-level badge derived from the document aggregates — describes the whole

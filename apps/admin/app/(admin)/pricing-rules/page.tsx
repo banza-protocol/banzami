@@ -24,7 +24,7 @@ const ROUNDINGS = ['HALF_UP', 'HALF_EVEN', 'FLOOR', 'CEIL'] as const;
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.token) : null;
+  return s ? new AdminApi() : null;
 }
 
 /** A rule's flat fee in the rule's currency; a rule for "any" currency charges
