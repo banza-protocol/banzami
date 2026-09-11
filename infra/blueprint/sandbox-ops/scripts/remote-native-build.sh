@@ -67,7 +67,11 @@ else echo "  arch_amd64 FAIL (got $ARCH)" | tee -a "$RECEIPT"; exit 3; fi
 MIN_FREE_GIB="${BANZAMI_NATIVE_BUILD_MIN_FREE_GIB:-12}"
 free_gib() { df -Pk / | awk 'NR==2{printf "%d", $4/1048576}'; }
 reclaim() {
-  docker builder prune -f --filter until=24h >/dev/null 2>&1 || true
+  # BuildKit cache not used in the last hour — about one build's worth stays
+  # warm. --all is needed: plain prune keeps the non-dangling parents (each
+  # `go mod download` layer, ~750 MB, one per build), which is how 79 GB of
+  # cache survived a 24 h filter.
+  docker builder prune --all -f --filter "until=${BANZAMI_RECLAIM_CACHE_AGE:-1h}" >/dev/null 2>&1 || true
   local inuse repo img
   inuse="$(docker ps --format '{{.Image}}' | sort -u)"
   for repo in $(docker images --format '{{.Repository}}' | grep '^banzami-sandbox/' | sort -u); do

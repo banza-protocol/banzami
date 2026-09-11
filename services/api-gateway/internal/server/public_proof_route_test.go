@@ -108,7 +108,7 @@ func TestPublicProofRoute_NoAliasReachesTheLookup(t *testing.T) {
 		"encoded O": c[:len(c)-1] + "%4F", "double-encoded 0": c[:len(c)-1] + "%2530",
 		// an escaped canonical character is another spelling of the URL, not the reference
 		"encoded 0": c[:len(c)-1] + "%30", "encoded hyphen": strings.ReplaceAll(c, "-", "%2D"),
-		"encoded B": "%42" + c[1:],
+		"encoded B":     "%42" + c[1:],
 		"encoded query": c + "%3Fx%3D1",
 		// structure
 		"23 symbols": c[:len(c)-1], "25 symbols": c + "0", "seven groups": c + "-0000",

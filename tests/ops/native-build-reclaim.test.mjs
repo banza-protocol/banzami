@@ -24,8 +24,12 @@ test('reclaim exists and the capacity gate runs before any build', () => {
 });
 
 test('reclaim never touches provenance, data, volumes or running images', () => {
-  for (const forbidden of [/manifest/i, /\.sha256/, /receipt/i, /volume/i, /system prune/, /postgres|pgdata|\/var\/lib\/postgresql/i, /\/run\/secrets/, /--all\b|-a\b.*prune|prune -a/]) {
+  for (const forbidden of [/manifest/i, /\.sha256/, /receipt/i, /volume/i, /system prune/, /postgres|pgdata|\/var\/lib\/postgresql/i, /\/run\/secrets/, /image prune|container prune|network prune/]) {
     assert.ok(!forbidden.test(body), `reclaim() must not reference ${forbidden}`);
+  }
+  // the only prune is BuildKit cache, and only by age
+  for (const line of body.split('\n').filter((l) => /prune/.test(l))) {
+    assert.ok(/docker builder prune (--all )?-f --filter "until=/.test(line), `a prune other than aged build cache: ${line.trim()}`);
   }
   // every find … -delete is restricted to bundle archives
   for (const line of body.split('\n').filter((l) => /-delete/.test(l))) {
