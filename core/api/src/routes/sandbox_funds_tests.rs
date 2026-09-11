@@ -136,3 +136,54 @@ async fn retiring_is_refused_in_live(pool: PgPool) {
     assert_eq!(err, Some(axum::http::StatusCode::FORBIDDEN));
     assert_eq!(balance(&pool, avail).await, 5_000);
 }
+
+// A segregated (non-primary) account's synthetic balance can be retired too; the
+// primary account is retired only as the MERCHANT's.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_wallet_accounts_balance_can_be_retired(pool: PgPool) {
+    let (st, transit) = state(pool.clone(), CoreEnvironment::Sandbox).await;
+    let (m, _) = funded_merchant(&pool, transit, 1).await;
+    let wallet: Uuid = sqlx::query_scalar("SELECT id FROM wallets WHERE merchant_id = $1")
+        .bind(m)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let acct = account(&pool, "LIABILITY").await;
+    let wa = Uuid::new_v4();
+    sqlx::query("INSERT INTO wallet_accounts (id,wallet_id,account_id,merchant_id,currency,purpose,status,label) VALUES ($1,$2,$3,$4,'AOA','CAMPAIGN','ACTIVE','c')")
+        .bind(wa).bind(wallet).bind(acct).bind(m).execute(&pool).await.unwrap();
+    let p = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO ledger_postings (id,description,idempotency_key) VALUES ($1,'fund',$2)",
+    )
+    .bind(p)
+    .bind(format!("fund-wa-{wa}"))
+    .execute(&pool)
+    .await
+    .unwrap();
+    for (a, t) in [(transit, "DEBIT"), (acct, "CREDIT")] {
+        sqlx::query("INSERT INTO ledger_entries (id,posting_id,account_id,entry_type,amount_minor,currency) VALUES ($1,$2,$3,$4,25000,'AOA')")
+            .bind(Uuid::new_v4()).bind(p).bind(a).bind(t).execute(&pool).await.unwrap();
+    }
+    let mut b = body(wa, "wa-1");
+    b.owner_type = "WALLET_ACCOUNT".into();
+    let Json(r) = sandbox_funds::retire(State(st.clone()), Json(b))
+        .await
+        .unwrap();
+    assert_eq!(r["retired_minor"], 25_000);
+    assert_eq!(balance(&pool, acct).await, 0);
+
+    let primary: Uuid = sqlx::query_scalar(
+        "SELECT id FROM wallet_accounts WHERE wallet_id = $1 AND purpose = 'PRIMARY'",
+    )
+    .bind(wallet)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let mut p2 = body(primary, "wa-2");
+    p2.owner_type = "WALLET_ACCOUNT".into();
+    assert!(
+        sandbox_funds::retire(State(st), Json(p2)).await.is_err(),
+        "the primary account is not a WALLET_ACCOUNT owner"
+    );
+}

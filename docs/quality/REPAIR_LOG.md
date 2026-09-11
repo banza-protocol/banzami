@@ -2838,3 +2838,19 @@ completion; restitution checks the receiving consumer. Runbook updated. Tests:
 (balances unchanged, the lift restores the payment); disabling the engine check
 fails both.
 
+
+## RA-096 — a paid Payment Session kept a payable QR for 89 days
+
+- **Found:** 2026-09-11 (latent L01 of the full-system assurance; closed in the closure phase)
+- **Status:** FIXED (code + migration 0127)
+
+A fixed-amount session provisions a payment link and a dynamic QR. When one paid it,
+the session became PAID and the other interface stayed ACTIVE: all 56 PAID sessions
+on the Sandbox still held a live dynamic QR (89-day expiry). No route pays a dynamic
+QR today (core `qr::pay` has no public caller since RA-053), so nothing was paid
+twice — the day one exists, every one of them could have been. The statement that
+marks a session PAID now retires the other interface in the same SQL (QR → EXPIRED,
+link → CANCELLED); the interface that paid is untouched. Migration 0127 repairs the
+sessions paid before. Counter `PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE` (0 on a clean
+database, moves for an injected one). Test `paying_a_session_retires_its_other_interface`
+(both directions); dropping the sibling update fails it.

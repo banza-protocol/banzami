@@ -179,3 +179,67 @@ async fn rejects_foreign_wallet_account(pool: PgPool) {
         "a wallet_account not owned by the caller is rejected"
     );
 }
+
+// A session is paid once: when one interface pays it, the other stops being
+// payable in the same step, and the interface that paid is left alone.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn paying_a_session_retires_its_other_interface(pool: PgPool) {
+    let (merchant, _wid, wa, _) = seed(&pool).await;
+    let state = build_state(pool.clone()).await;
+    for (kind, reference) in [("link", "camp_link_paid"), ("qr", "camp_qr_paid")] {
+        let (_, Json(s)) = routes::create(
+            State(state.clone()),
+            Json(body(merchant, wa, Some(50_000), Some(reference))),
+        )
+        .await
+        .unwrap();
+        let link = Uuid::parse_str(s["payment_link_id"].as_str().unwrap()).unwrap();
+        let qr = Uuid::parse_str(s["qr_code_id"].as_str().unwrap()).unwrap();
+        let session: Uuid =
+            sqlx::query_scalar("SELECT id FROM payment_sessions WHERE payment_link_id = $1")
+                .bind(link)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        let paying = if kind == "link" { link } else { qr };
+        routes::settle_for_interface(&state, kind, paying, Uuid::new_v4(), 50_000, "TEST").await;
+
+        let status: String =
+            sqlx::query_scalar("SELECT status FROM payment_sessions WHERE id = $1")
+                .bind(session)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        let qr_status: String = sqlx::query_scalar("SELECT status FROM qr_codes WHERE id = $1")
+            .bind(qr)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        let link_status: String =
+            sqlx::query_scalar("SELECT status FROM payment_links WHERE id = $1")
+                .bind(link)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(status, "PAID", "{kind}");
+        if kind == "link" {
+            assert_eq!(
+                qr_status, "EXPIRED",
+                "the QR of a session paid by link must stop being payable"
+            );
+            assert_eq!(
+                link_status, "ACTIVE",
+                "the paying link is left to its own lifecycle"
+            );
+        } else {
+            assert_eq!(
+                link_status, "CANCELLED",
+                "the link of a session paid by QR must stop being payable"
+            );
+            assert_eq!(
+                qr_status, "ACTIVE",
+                "the paying QR is left to its own lifecycle"
+            );
+        }
+    }
+}

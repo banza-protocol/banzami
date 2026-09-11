@@ -23,7 +23,8 @@ use crate::{
 
 #[derive(Deserialize)]
 pub struct RetireBody {
-    /// "CONSUMER" or "MERCHANT".
+    /// "CONSUMER", "MERCHANT" (its wallet's primary account) or
+    /// "WALLET_ACCOUNT" (a non-primary segregated account, by its id).
     pub owner_type: String,
     pub owner_id: String,
     pub reason: String,
@@ -58,7 +59,14 @@ pub async fn retire(
         "CONSUMER" => {
             "SELECT id, available_account_id FROM consumer_wallets WHERE consumer_id = $1 AND currency = 'AOA' FOR UPDATE"
         }
-        _ => return Err(ApiError::bad_request("owner_type must be CONSUMER or MERCHANT")),
+        "WALLET_ACCOUNT" => {
+            "SELECT wallet_id, account_id FROM wallet_accounts WHERE id = $1 AND purpose <> 'PRIMARY' AND currency = 'AOA' FOR UPDATE"
+        }
+        _ => {
+            return Err(ApiError::bad_request(
+                "owner_type must be CONSUMER, MERCHANT or WALLET_ACCOUNT",
+            ))
+        }
     };
     let db = |e: sqlx::Error| ApiError::internal(e.to_string());
     let ledger_key = format!("sandbox-retire:{key}");

@@ -155,3 +155,8 @@ SELECT 'PAID_SESSIONS_WITHOUT_PAYMENT', count(*) FROM payment_sessions s
 SELECT 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', count(*)
   FROM wallet_payments w LEFT JOIN transfers t ON t.id = w.transfer_id
   WHERE t.id IS NULL OR t.status <> 'COMPLETED';
+-- A paid session leaves nothing payable: its link and its QR are both terminal.
+SELECT 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE', count(*) FROM payment_sessions s
+  LEFT JOIN qr_codes q ON q.id = s.qr_code_id
+  LEFT JOIN payment_links l ON l.id = s.payment_link_id
+ WHERE s.status = 'PAID' AND (q.status = 'ACTIVE' OR l.status = 'ACTIVE');

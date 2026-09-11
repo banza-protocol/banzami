@@ -333,11 +333,32 @@ pub async fn settle_for_interface(
     };
     // Atomic transition: only CREATED/ACTIVE flips to PAID; RETURNING tells us
     // whether THIS call performed it (so the event fires exactly once).
+    //
+    // A session is paid once, through whichever interface paid it; the OTHER
+    // interface stops being payable in the same statement — the dynamic QR
+    // expires when the link paid, the link is cancelled when the QR paid. It
+    // used to stay ACTIVE for its whole 89-day life beside a PAID session, so the
+    // session could have been paid a second time the day a QR payment route
+    // exists (the interface that paid is never touched here).
+    let sibling = match kind {
+        "link" => {
+            "UPDATE qr_codes SET status = 'EXPIRED'
+              WHERE id IN (SELECT qr_code_id FROM s) AND status = 'ACTIVE'"
+        }
+        _ => {
+            "UPDATE payment_links SET status = 'CANCELLED', updated_at = now()
+              WHERE id IN (SELECT payment_link_id FROM s) AND status = 'ACTIVE'"
+        }
+    };
     let row = sqlx::query_as::<_, (Uuid, Uuid, Uuid, Option<String>, Option<String>)>(&format!(
-        "UPDATE payment_sessions
-            SET status = 'PAID', updated_at = now()
-          WHERE {column} = $1 AND status IN ('CREATED','ACTIVE')
-        RETURNING id, merchant_id, wallet_account_id, reference_type, reference_id",
+        "WITH s AS (
+            UPDATE payment_sessions
+               SET status = 'PAID', updated_at = now()
+             WHERE {column} = $1 AND status IN ('CREATED','ACTIVE')
+         RETURNING id, merchant_id, wallet_account_id, reference_type, reference_id,
+                   qr_code_id, payment_link_id
+         ), retired AS ({sibling})
+         SELECT id, merchant_id, wallet_account_id, reference_type, reference_id FROM s",
     ))
     .bind(ref_id)
     .fetch_optional(&state.pool)

@@ -34,7 +34,7 @@ const ZERO = [
   'LEDGER_ENTRIES_WITHOUT_POSTING', 'POSTINGS_CLAIMED_BY_TWO_OBJECTS', 'OBJECT_POSTINGS_THAT_DO_NOT_EXIST',
   'PAYOUTS_PROCESSED_WITHOUT_POSTING', 'SETTLEMENTS_SETTLED_WITHOUT_POSTING', 'APP_SETTLEMENTS_COMPLETED_WITHOUT_POSTING',
   'DEPOSITS_CONFIRMED_WITHOUT_POSTING', 'RESTITUTIONS_WITHOUT_POSTING', 'PAID_LINKS_WITHOUT_PAYMENT',
-  'PAID_SESSIONS_WITHOUT_PAYMENT', 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER',
+  'PAID_SESSIONS_WITHOUT_PAYMENT', 'WALLET_PAYMENTS_WITHOUT_COMPLETED_TRANSFER', 'PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE',
 ];
 
 describe('financial assurance counters', () => {
@@ -135,6 +135,23 @@ describe('financial assurance counters', () => {
     const last = counts();
     assert.equal(last.POSTINGS_CLAIMED_BY_TWO_OBJECTS - before.POSTINGS_CLAIMED_BY_TWO_OBJECTS, 1);
     assert.equal(last.PAYOUTS_PROCESSED_WITHOUT_POSTING - before.PAYOUTS_PROCESSED_WITHOUT_POSTING, 0);
+  });
+
+  it('a paid session with a payable interface is caught', () => {
+    const before = counts().PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE;
+    psql(`INSERT INTO merchants (id, name, email, status) VALUES ('d0000000-0000-4000-8000-0000000000e1','S','se1@x.test','ACTIVE');
+          INSERT INTO ledger_accounts (id, account_type, name, currency) VALUES
+            ('a0000000-0000-4000-8000-0000000000e1','LIABILITY','s1','AOA'), ('a0000000-0000-4000-8000-0000000000e2','LIABILITY','s2','AOA'),
+            ('a0000000-0000-4000-8000-0000000000e3','LIABILITY','s3','AOA');
+          INSERT INTO wallets (id, merchant_id, currency, available_account_id, reserved_account_id)
+            VALUES ('e0000000-0000-4000-8000-0000000000e1','d0000000-0000-4000-8000-0000000000e1','AOA','a0000000-0000-4000-8000-0000000000e1','a0000000-0000-4000-8000-0000000000e2');
+          INSERT INTO wallet_accounts (id, wallet_id, account_id, merchant_id, currency, purpose, status, label)
+            VALUES ('c0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','a0000000-0000-4000-8000-0000000000e3','d0000000-0000-4000-8000-0000000000e1','AOA','CAMPAIGN','ACTIVE','c');
+          INSERT INTO qr_codes (id, owner_id, owner_type, qr_type, currency, amount_minor, status, expires_at, environment, wallet_account_id)
+            VALUES ('b0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','MERCHANT','DYNAMIC','AOA',100,'ACTIVE',now()+interval '1 day','SANDBOX','c0000000-0000-4000-8000-0000000000e1');
+          INSERT INTO payment_sessions (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose, status, qr_code_id)
+            VALUES ('b0000000-0000-4000-8000-0000000000e2','d0000000-0000-4000-8000-0000000000e1','e0000000-0000-4000-8000-0000000000e1','c0000000-0000-4000-8000-0000000000e1','AOA',100,'DONATION','PAID','b0000000-0000-4000-8000-0000000000e1')`);
+    assert.equal(counts().PAID_SESSIONS_WITH_A_PAYABLE_INTERFACE - before, 1);
   });
 
   it('a login that does not own its handle is caught', () => {
