@@ -60,25 +60,3 @@ async def test_list_transactions_paginates():
     assert len(all_txs) == 2
     assert all_txs[0].id == "tx_completed"
     assert all_txs[1].id == "tx_002"
-
-
-async def test_capture_transaction():
-    captured_tx = {**COMPLETED_TX, "status": "REFUNDED"}
-    with respx.mock(base_url=BASE) as mock:
-        mock.post("/v1/transactions/tx_completed/capture").mock(
-            return_value=httpx.Response(200, json=captured_tx)
-        )
-        async with Banzami(api_key="bz_test", base_url=BASE) as c:
-            tx = await c.transactions.capture("tx_completed")
-    assert tx.status == TransactionStatus.REFUNDED
-
-
-async def test_reverse_transaction():
-    reversed_tx = {**COMPLETED_TX, "status": "REFUNDED"}
-    with respx.mock(base_url=BASE) as mock:
-        mock.post("/v1/transactions/tx_completed/reverse").mock(
-            return_value=httpx.Response(200, json=reversed_tx)
-        )
-        async with Banzami(api_key="bz_test", base_url=BASE) as c:
-            tx = await c.transactions.reverse("tx_completed")
-    assert tx.status == TransactionStatus.REFUNDED

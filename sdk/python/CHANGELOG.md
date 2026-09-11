@@ -7,6 +7,29 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed — hosts and routes
+
+- The default gateway was `https://api.banzami.ao`, which is not Banzami's. The
+  key's prefix now picks it: `bz_test_…` → `https://sandbox-api.banzami.com`,
+  anything else → `https://api.banzami.com` (`base_url=` still overrides).
+- `PaymentLink.checkout_url` built `https://pay.banzami.co/<slug>` — not
+  Banzami's either. It is now `https://pay.banzami.com/pay/<slug>`, the hosted
+  payer page.
+
+### Removed — `transactions.capture`, `transactions.reverse`
+
+They called `POST /v1/transactions/{id}/capture` and `/reverse`, which the
+gateway does not mount (transactions are create, list and get). Every call
+answered 404. Give money back with `client.refunds`.
+
+### Documentation
+
+- The README documented `client.transfers.send`, removed with the merchant
+  transfer surface; that section is gone.
+- `pip install banzami` named a package that is not published (and this
+  distribution is `banzami-python`); the README now installs from the
+  repository.
+
 ### Removed — `payment_requests`
 
 `client.payment_requests` called `/v1/payment-requests`, which the operator

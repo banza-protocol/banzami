@@ -1,7 +1,7 @@
 """FastAPI example — payment link creation and webhook reception.
 
 Run:
-    pip install fastapi uvicorn banzami
+    pip install fastapi uvicorn ./   # from sdk/python: banzami-python is not on PyPI
     uvicorn examples.fastapi.main:app --reload
 """
 
