@@ -5,7 +5,7 @@ scope: sandbox_preview
 production_contract: false
 regulatory_approval: false
 live_rails: false
-public_sdk_packages_published: false
+public_sdk_packages_published: true
 -->
 
 > **PT** · Âmbito Sandbox/Preview apenas — nunca há dinheiro real, não há trilhos

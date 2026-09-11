@@ -3,7 +3,7 @@
   "production_contract": false,
   "regulatory_approval": false,
   "live_rails": false,
-  "public_sdk_packages_published": false,
+  "public_sdk_packages_published": true,
   "name": "Banzami SDK Preview Onboarding",
   "note": {
     "pt": "O preview SDK da Banzami é controlado. Não é um registo público self-service, não publica pacotes em registries públicos e não ativa trilhos de Produção.",
@@ -120,8 +120,8 @@
         "en": "SDK available to the approved project."
       },
       "not_included": {
-        "pt": "Publicação pública de pacotes.",
-        "en": "Public package publication."
+        "pt": "Publicação dos pacotes Python, PHP e Go (@banzami/sdk e banzami_client já estão publicados).",
+        "en": "Publication of the Python, PHP and Go packages (@banzami/sdk and banzami_client are already published)."
       }
     },
     {

@@ -62,7 +62,7 @@
       "recommended_integration_path": true,
       "url": "/developers/artifacts/sdk-contract.json",
       "path": "/developers/artifacts/sdk-contract.json",
-      "description": "EXPECTED SDK contract and controlled-preview status — SDKs are the recommended integration path; no public package or install command exists yet."
+      "description": "EXPECTED SDK contract and publication status — SDKs are the recommended integration path; @banzami/sdk (npm) and banzami_client (pub.dev) are published, the Python and PHP packages are not."
     },
     {
       "name": "SDK preview example (TypeScript)",
