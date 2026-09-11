@@ -8,7 +8,8 @@
 # via the gated per-service deploy (reusing the Sandbox's file-only secrets + config).
 #
 # It NEVER runs a database migration, NEVER resets the VM and NEVER prunes unrelated
-# Docker resources. Output is sanitised.
+# Docker resources. The only things it reclaims (reclaim(), below) are this
+# pipeline's own regenerable build products. Output is sanitised.
 #
 # Usage: remote-native-build.sh --release <dir> --root <dir> --commit <short> \
 #          --services <csv> --mode <build-only|deploy-only|build-and-deploy>
@@ -56,6 +57,46 @@ ARCH="$(uname -m)"
 if [ "$ARCH" = "x86_64" ] || [ "$ARCH" = "amd64" ]; then echo "  arch_amd64 PASS" | tee -a "$RECEIPT"
 else echo "  arch_amd64 FAIL (got $ARCH)" | tee -a "$RECEIPT"; exit 3; fi
 
+# ── Capacity: fail before the build, never inside it ─────────────────────────
+# On 2026-09-11 a deploy died compiling with 32 MB free on / (RA-083): nothing
+# ever reclaimed BuildKit cache, superseded deploy image tags or unpacked
+# releases, and the disk — the database's disk — filled. reclaim() removes ONLY
+# regenerable products of this pipeline. It never touches a bundle manifest, a
+# checksum file, a receipt (the bundle → source SHA → runtime chain), a
+# database, a volume, a secret, or an image a container is running.
+MIN_FREE_GIB="${BANZAMI_NATIVE_BUILD_MIN_FREE_GIB:-12}"
+free_gib() { df -Pk / | awk 'NR==2{printf "%d", $4/1048576}'; }
+reclaim() {
+  docker builder prune -f --filter until=24h >/dev/null 2>&1 || true
+  local inuse repo img
+  inuse="$(docker ps --format '{{.Image}}' | sort -u)"
+  for repo in $(docker images --format '{{.Repository}}' | grep '^banzami-sandbox/' | sort -u); do
+    # the two newest tags of each service stay: the running one and its rollback
+    docker images "$repo" --format '{{.CreatedAt}}|{{.Repository}}:{{.Tag}}' | sort -r | awk -F'|' 'NR>2{print $2}' |
+      while read -r img; do printf '%s\n' "$inuse" | grep -qxF "$img" || docker rmi "$img" >/dev/null 2>&1 || true; done
+  done
+  # unpacked releases beyond the three newest — never this one, never a
+  # current/previous target
+  local keep; keep="$(readlink -f "$ROOT/current" "$ROOT/previous" 2>/dev/null || true)"
+  ls -dt "$ROOT"/releases/*/ 2>/dev/null | awk 'NR>3' | while read -r d; do
+    d="${d%/}"; [ "$d" = "${REL%/}" ] && continue; printf '%s\n' "$keep" | grep -qxF "$(readlink -f "$d")" && continue
+    rm -rf -- "$d"
+  done
+  # bundle archives older than a day; their .manifest.json and .sha256 stay
+  find "$ROOT/staging" -maxdepth 1 -type f -name '*.tar.gz' -mmin +1440 -delete 2>/dev/null || true
+}
+if [ "$MODE" != "deploy-only" ]; then
+  FREE="$(free_gib)"
+  if [ "$FREE" -lt "$MIN_FREE_GIB" ]; then
+    echo "  capacity ${FREE}GiB free < ${MIN_FREE_GIB}GiB — reclaiming regenerable build products" | tee -a "$RECEIPT"
+    reclaim; FREE="$(free_gib)"
+  fi
+  if [ "$FREE" -lt "$MIN_FREE_GIB" ]; then
+    echo "  capacity FAIL (${FREE}GiB free, need ${MIN_FREE_GIB}GiB) — nothing built" | tee -a "$RECEIPT"; exit 9
+  fi
+  echo "  capacity PASS (${FREE}GiB free)" | tee -a "$RECEIPT"
+fi
+
 export DOCKER_BUILDKIT=1
 declare -a BUILT_SVC BUILT_TAG
 for svc in "${SERVICES[@]}"; do
@@ -97,3 +138,5 @@ for svc in "${BUILT_SVC[@]}"; do
   fi
 done
 echo "REMOTE_NATIVE_BUILD: DEPLOY OK ($COMMIT)" | tee -a "$RECEIPT"
+# Steady state: every successful deploy leaves the disk as it found it.
+reclaim; echo "  post-deploy reclaim: $(free_gib)GiB free" | tee -a "$RECEIPT"

@@ -2540,3 +2540,35 @@ with its register `tools/assurance/synthetic-proof-references.txt` (any
 unregistered concrete reference in any case fails CI; the Sandbox harness proves
 the register holds no real proof). All `tests/ops` guards now run in CI — only
 four of twenty-five did.
+
+## RA-083 — the Sandbox disk filled during a deploy, and a hand cleanup deleted provenance
+
+- **Found:** 2026-09-11 (public-api build: `no space left on device`, 32 MB free on `/`)
+- **Status:** FIXED (capacity gate + reclaim in the deploy); provenance loss is permanent
+
+Four full deploys in one day filled the Sandbox root filesystem — the same disk
+PostgreSQL writes to. The native build (`remote-native-build.sh`) had no
+capacity check (the documented capacity gate covers only the local release
+package), and nothing ever reclaimed BuildKit cache (83 GB, none active),
+superseded deploy image tags (76) or unpacked releases (23).
+
+Recovering space by hand, I deleted every file older than 24 h in
+`banzami-source-deploy/staging/` — 506 files. That directory holds each
+bundle's `.manifest.json` and `.sha256` beside the archive, and the release
+runbook says manifests are **never** deleted. About 168 bundle manifests went
+with the archives; none were in the local store (which keeps only recent ones).
+What remains: the 167 server deploy receipts (commit short SHA → image id →
+health) and git history, so commit → runtime still resolves; the bundle
+checksums of those older deploys are lost. The same happened in the earlier
+cleanup of this session. Nothing else was touched: no database, volume,
+secret, running image or receipt.
+
+Now the native build gates capacity **before** building (≥ 12 GiB free, after
+one reclaim) and reclaims **after** every successful deploy, through one
+function that may only remove BuildKit cache older than 24 h, deploy image
+tags beyond the two newest per service that no container runs, unpacked
+releases beyond the three newest (never the current deploy or a
+current/previous target), and bundle **archives** older than a day — never a
+manifest, checksum or receipt. `tests/ops/native-build-reclaim.test.mjs`
+checks every deletion in that function and the gate's position; both
+mutation-proven.
