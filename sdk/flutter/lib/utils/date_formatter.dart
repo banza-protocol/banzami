@@ -66,6 +66,9 @@ class BanzamiDateFormatter {
     return DateFormat('d MMM yyyy', 'pt_PT').format(toLocalDate(dt));
   }
 
+  /// Time of day only: "20:30" — rows already under a day header.
+  static String formatTime(DateTime dt) => _hm(dt.toLocal());
+
   /// A calendar date: "25/05/2026" (validity dates, documents).
   static String formatDate(DateTime dt) =>
       DateFormat('dd/MM/yyyy').format(dt.toLocal());

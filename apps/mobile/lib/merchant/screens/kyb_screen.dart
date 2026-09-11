@@ -339,8 +339,7 @@ class _OverallView {
       _ => (label: 'Em falta', color: BanzamiColors.gray400),
     };
 
-String _fmtDate(DateTime? d) =>
-    d == null ? '' : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+String _fmtDate(DateTime? d) => d == null ? '' : BanzamiDateFormatter.formatDate(d);
 
 // ── Cards ────────────────────────────────────────────────────────────────────
 

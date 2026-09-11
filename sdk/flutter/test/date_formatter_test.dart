@@ -31,6 +31,13 @@ void main() {
       expect(BanzamiDateFormatter.formatActivityTime(twoDays, now: now), '9/9');
     });
 
+    test('formatTime converts a UTC server time to local HH:mm', () {
+      final utc = DateTime.utc(2026, 9, 11, 19, 5);
+      final local = utc.toLocal();
+      expect(BanzamiDateFormatter.formatTime(utc),
+          '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}');
+    });
+
     test('formatDate is a plain local calendar date', () {
       expect(BanzamiDateFormatter.formatDate(DateTime(2027, 1, 5, 12)), '05/01/2027');
     });

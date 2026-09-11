@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -88,16 +87,9 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
 // Shared date-grouping helpers
 // =============================================================================
 
-String _dateHeader(DateTime dt) {
-  final now       = DateTime.now();
-  final today     = DateUtils.dateOnly(now);
-  final yesterday = today.subtract(const Duration(days: 1));
-  final date      = DateUtils.dateOnly(dt);
-
-  if (date == today)     return 'Hoje';
-  if (date == yesterday) return 'Ontem';
-  return DateFormat('d MMM yyyy', 'pt_PT').format(date);
-}
+// Server timestamps are UTC: every date shown here goes through the shared
+// formatter, which converts to local time before comparing calendar days.
+String _dateHeader(DateTime dt) => BanzamiDateFormatter.formatDayHeader(dt);
 
 Widget _emptyState({required IconData icon, required String label}) {
   return Center(
@@ -199,7 +191,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
     final items = <dynamic>[];
     String? lastKey;
     for (final tx in _txs) {
-      final key = _dateHeader(tx.createdAt.toLocal());
+      final key = _dateHeader(tx.createdAt);
       if (key != lastKey) { items.add(key); lastKey = key; }
       items.add(tx);
     }
@@ -346,8 +338,8 @@ class _TransactionTile extends StatelessWidget {
     final label = tx.title;
     final sign  = tx.amountSign;
 
-    final local   = tx.createdAt.toLocal();
-    final timeStr = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
+    // Rows sit under a day header: the time of day is enough.
+    final timeStr = BanzamiDateFormatter.formatTime(tx.createdAt);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -707,7 +699,8 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${formatMinor(p.amountMinor, p.currency)} · ${_dateHeader(p.createdAt)}',
+                      '${formatMinor(p.amountMinor, p.currency)} · '
+                      '${BanzamiDateFormatter.formatActivityTime(p.createdAt)}',
                       style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                     ),
                   ],

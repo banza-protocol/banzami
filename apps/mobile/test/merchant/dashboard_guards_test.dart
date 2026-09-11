@@ -79,4 +79,15 @@ void main() {
       });
     }
   });
+
+  test('Business history and KYB dates go through the shared formatter', () {
+    for (final f in [
+      'lib/merchant/screens/history_screen.dart',
+      'lib/merchant/screens/kyb_screen.dart',
+    ]) {
+      final src = _read(f);
+      expect(src.contains("padLeft(2, '0')"), isFalse, reason: '$f hand-formats a date');
+      expect(src.contains('DateFormat('), isFalse, reason: '$f formats outside the formatter');
+    }
+  });
 }
