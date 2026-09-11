@@ -164,7 +164,7 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <LI>Create a <strong>test key</strong>.</LI>
                 <LI>Save the <strong>secret</strong> key when it appears — it is shown exactly once.</LI>
                 <LI><strong>Verify the key</strong> against the Sandbox API with <Code>curl</Code>: <Code>GET /v1/me</Code> returns the key’s environment, project, scopes and status. This is your first successful call — <strong>no SDK required</strong>.</LI>
-                <LI>To implement, use the <strong>approved SDK preview</strong> (recommended path). Until public packages are published, use <Code>curl</Code>/HTTP only to validate the protocol, diagnose Sandbox behaviour, or audit low-level calls.</LI>
+                <LI>Install the SDK — <Code>npm install @banzami/sdk</Code> — and create the client with your key and <Code>environment: &apos;sandbox&apos;</Code>. That is the implementation path; the <Code>curl</Code> above only confirmed the key.</LI>
                 <LI>Create a <strong>payment session</strong> and present the link/QR.</LI>
                 <LI>Track the confirmation and issue the receipt.</LI>
                 <LI>Validate signed webhooks where applicable.</LI>
@@ -181,8 +181,8 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 <strong>published</strong> and is the recommended path — install it with{' '}
                 <Code>npm install @banzami/sdk</Code>. The curl examples are{' '}
                 <strong>reference/diagnostic</strong> material for the protocol, not the implementation path.
-                The Python, PHP, Dart and Go SDKs are <strong>not yet published</strong> to PyPI,
-                Packagist or pub.dev — see{' '}
+                The Dart client SDK <Code>banzami_client</Code> is also published, on pub.dev. The Python, PHP
+                and Go SDKs are <strong>not yet published</strong> to PyPI, Packagist or a module proxy — see{' '}
                 <a href="/docs/en/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
               </P>
 
@@ -252,8 +252,8 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
               </P>
               <P>
                 This documentation describes the expected SDK contract: authentication, session creation, idempotency,
-                response validation, errors, webhooks and availability limits. It does not provide public installation
-                commands because the packages are not yet published to npm, PyPI, Packagist or pub.dev.
+                response validation, errors, webhooks and availability limits. It gives no installation command for
+                the Python and PHP packages, because they are not yet published to PyPI or Packagist.
               </P>
 
               <H3 id="sdk-contract">Expected SDK contract</H3>

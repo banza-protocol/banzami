@@ -392,8 +392,9 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <strong>publicado</strong> e é o caminho recomendado — instale com{' '}
                 <Code>npm install @banzami/sdk</Code>. Os exemplos curl existem como{' '}
                 <strong>referência/diagnóstico</strong> do protocolo, não como caminho de implementação.
-                Os SDKs para Python, PHP, Dart e Go ainda <strong>não estão publicados</strong> em
-                PyPI, Packagist ou pub.dev — ver{' '}
+                O SDK cliente Dart <Code>banzami_client</Code> também está publicado, no pub.dev. Os SDKs para
+                Python, PHP e Go ainda <strong>não estão publicados</strong> em PyPI, Packagist ou num proxy de
+                módulos — ver{' '}
                 <a href="/docs/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
               </P>
 
