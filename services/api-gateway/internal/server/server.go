@@ -759,14 +759,24 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// The Rust core validates the HMAC before processing.
 	r.Post("/v1/callbacks/emis", acquiringHandler.EmisCallback)
 
-	// Public endpoints — no auth, no rate limiting.
-	// Consumed by the apps/pay Next.js app.
-	r.Route("/public/pay", func(r chi.Router) {
+	// Public payment-link endpoints — no auth. Consumed by the apps/pay Next.js
+	// app at /public/pay, and by @banzami/sdk (getPublicPaymentLink,
+	// getPaymentLinkStatus) at /v1/public/pay — which was never mounted, so the
+	// SDK's two calls always answered 404. One set of handlers, both prefixes.
+	//
+	// The POSTs create acquiring payments for anyone, so they are limited per
+	// payer IP (the pay page sends them from the browser). The GETs are not: the
+	// pay page fetches the link server-side, from one container address shared
+	// by every payer.
+	publicPayInitiate := middleware.RateLimitPerIP(deps.Redis, 20, "public-pay-initiate")
+	publicPay := func(r chi.Router) {
 		r.Get("/{slug}", paymentLinkHandler.GetPublic)
 		r.Get("/{slug}/status", paymentLinkHandler.Status)
-		r.Post("/{slug}/pay", acquiringHandler.InitiatePay)
-		r.Post("/{slug}/test-confirm", acquiringHandler.TestConfirm) // dev only
-	})
+		r.With(publicPayInitiate).Post("/{slug}/pay", acquiringHandler.InitiatePay)
+		r.With(publicPayInitiate).Post("/{slug}/test-confirm", acquiringHandler.TestConfirm) // dev only
+	}
+	r.Route("/public/pay", publicPay)
+	r.Route("/v1/public/pay", publicPay)
 	r.Route("/public/profiles", func(r chi.Router) {
 		r.Get("/{handle}", profileHandler.GetPublic)
 	})
