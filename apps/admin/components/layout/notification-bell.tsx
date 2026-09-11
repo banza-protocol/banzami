@@ -9,6 +9,12 @@ import { timeAgo } from '@/lib/format';
 import { badgeText } from '@/lib/attention';
 import { useAttention } from '@/components/layout/attention-provider';
 
+/** Roles holding application.process — the capability the server requires to
+ *  mark read or dismiss a (global) notification. A hint for the controls only. */
+export function canTriageNotifications(role: string | null | undefined): boolean {
+  return role === 'SUPER_ADMIN' || role === 'OPERATIONS' || role === 'COMPLIANCE';
+}
+
 function getApi(): AdminApi | null {
   const s = getSession();
   return s ? new AdminApi(s.token) : null;
@@ -55,26 +61,37 @@ export function NotificationBell() {
     if (next) void loadList();
   }
 
+  // Notifications are global: reading or dismissing one does it for every
+  // operator. Only the desk roles may (server: application.process — see
+  // services/admin-api server.go); observers see the list without the
+  // controls. The server decides either way, and the list changes only when it
+  // said yes — a refused dismiss no longer vanishes on this screen alone.
+  const canTriage = canTriageNotifications(getSession()?.user.role);
+
   async function markRead(n: AdminNotification) {
-    if (n.status === 'UNREAD') {
-      const api = getApi();
-      if (api) { try { await api.markNotificationRead(n.id, environment); } catch { /* ignore */ } }
-      setItems((cur) => cur?.map((x) => x.id === n.id ? { ...x, status: 'READ' } : x) ?? cur);
-    }
+    if (!canTriage || n.status !== 'UNREAD') return;
+    const api = getApi();
+    if (!api) return;
+    try { await api.markNotificationRead(n.id, environment); } catch { return; }
+    setItems((cur) => cur?.map((x) => x.id === n.id ? { ...x, status: 'READ' } : x) ?? cur);
   }
 
   async function dismiss(n: AdminNotification, e: React.MouseEvent) {
     e.stopPropagation();
     const api = getApi();
-    if (api) { try { await api.dismissNotification(n.id, environment); } catch { /* ignore */ } }
+    if (!canTriage || !api) return;
+    try { await api.dismissNotification(n.id, environment); } catch { return; }
     setItems((cur) => cur?.filter((x) => x.id !== n.id) ?? cur);
   }
 
   async function markAllRead() {
     const api = getApi();
+    if (!canTriage || !api) return;
     const unreadItems = (items ?? []).filter((x) => x.status === 'UNREAD');
-    setItems((cur) => cur?.map((x) => ({ ...x, status: 'READ' as const })) ?? cur);
-    if (api) await Promise.all(unreadItems.map((x) => api.markNotificationRead(x.id, environment).catch(() => {})));
+    const results = await Promise.all(unreadItems.map((x) =>
+      api.markNotificationRead(x.id, environment).then(() => x.id, () => null)));
+    const done = new Set(results.filter((id): id is string => id !== null));
+    setItems((cur) => cur?.map((x) => (done.has(x.id) ? { ...x, status: 'READ' as const } : x)) ?? cur);
   }
 
   function openItem(n: AdminNotification) {
@@ -103,7 +120,7 @@ export function NotificationBell() {
           <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-[380px] max-w-[92vw] overflow-hidden rounded-[16px] border border-[#f1e3e3] bg-white shadow-[0_24px_60px_-24px_rgba(0,0,0,0.3)]">
             <div className="flex items-center justify-between border-b border-[#f6eded] px-4 py-3">
               <span className="text-[14px] font-black text-[#2a2024]">Notificações</span>
-              {(items?.some((x) => x.status === 'UNREAD')) && (
+              {canTriage && (items?.some((x) => x.status === 'UNREAD')) && (
                 <button onClick={markAllRead} className="inline-flex items-center gap-1 text-[12px] font-bold text-[#B5101F] hover:underline">
                   <CheckCheck size={14} /> Marcar todas como lidas
                 </button>
@@ -139,7 +156,7 @@ export function NotificationBell() {
                           {n.message && <span className="mt-0.5 block truncate text-[12.5px] font-semibold text-[#7a6a6e]">{n.message}</span>}
                           <span className="mt-0.5 block text-[11px] font-semibold text-[#9a8a8e]">{timeAgo(n.created_at)}</span>
                         </span>
-                        <span className="flex flex-none items-center gap-1">
+                        {canTriage && <span className="flex flex-none items-center gap-1">
                           {n.status === 'UNREAD' && (
                             <span onClick={(e) => { e.stopPropagation(); void markRead(n); }} title="Marcar como lida" className="rounded p-1 text-[#9a8a8e] hover:bg-[#f3e9e9] hover:text-[#2a2024]">
                               <Check size={14} />
@@ -148,7 +165,7 @@ export function NotificationBell() {
                           <span onClick={(e) => dismiss(n, e)} title="Dispensar" className="rounded p-1 text-[#9a8a8e] hover:bg-[#f3e9e9] hover:text-[#B5101F]">
                             <X size={14} />
                           </span>
-                        </span>
+                        </span>}
                       </button>
                     </li>
                   ))}

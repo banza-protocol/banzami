@@ -249,8 +249,8 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/attention-summary", attentionH.Summary)
 		notificationsH := handler.NewNotificationsHandler(notif, notifSandbox)
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/notifications", notificationsH.List)
-		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/notifications/{id}/read", notificationsH.MarkRead)
-		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/notifications/{id}/dismiss", notificationsH.Dismiss)
+		r.With(cap(auth.CapApplicationProcess)).Post("/admin/v1/notifications/{id}/read", notificationsH.MarkRead)
+		r.With(cap(auth.CapApplicationProcess)).Post("/admin/v1/notifications/{id}/dismiss", notificationsH.Dismiss)
 
 		// Consumer KYC review (ADR-020). View reuses consumer.view; decisions
 		// reuse compliance.review (the operator decides the granted level).
