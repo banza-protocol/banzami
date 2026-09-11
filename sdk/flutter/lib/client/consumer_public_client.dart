@@ -516,18 +516,18 @@ class ConsumerPublicClient {
     );
   }
 
-  /// Sends a test FCM push to the authenticated consumer.
-  /// Only works in sandbox — throws [BanzamiApiException] with code `FORBIDDEN` in production.
+  /// Sends a test FCM push to the authenticated consumer's own devices (topic
+  /// delivery — the full subscription path). Only works in sandbox — throws
+  /// [BanzamiApiException] with code `FORBIDDEN` in production.
   ///
-  /// - [fcmToken]: if provided, delivers directly to the token (bypasses topic fanout).
-  ///   Pass `PushNotificationService.fcmToken` for direct-token testing.
-  ///   Omit to use topic delivery (tests the full subscription path).
+  /// There is no direct-token mode: the server cannot tell a caller's own
+  /// device token from anyone else's, and a named token let any Sandbox
+  /// consumer send Banzami's push to any device.
   ///
   /// Returns `{delivery_mode, target, firebase_message_id}`.
-  Future<Map<String, dynamic>> sendDebugPush({String? fcmToken}) => _call(
+  Future<Map<String, dynamic>> sendDebugPush() => _call(
         method: 'POST',
         path: '/v1/debug/push-test',
-        body: fcmToken != null ? {'fcm_token': fcmToken} : null,
       );
 
   /// The canonical receipt of [transactionId] — what the comprovativo screen,

@@ -53,13 +53,12 @@ func (h *DebugPushHandler) PushTest(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if body.FCMToken != "" {
-		msgID, err = h.fcm.SendDebugPushToToken(r.Context(), body.FCMToken)
-		deliveryMode = "token"
-		cutoff := len(body.FCMToken)
-		if cutoff > 12 {
-			cutoff = 12
-		}
-		target = body.FCMToken[:cutoff] + "…"
+		// A caller-named device token let any Sandbox consumer send Banzami's
+		// push, from Banzami's Firebase sender, to any device whose token it
+		// had. The debug push goes to the caller's own devices only.
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_FIELD",
+			"fcm_token is not accepted: the debug push goes to your own devices")
+		return
 	} else {
 		var topic string
 		msgID, topic, err = h.fcm.SendDebugPush(r.Context(), consumer.ID)
@@ -68,7 +67,7 @@ func (h *DebugPushHandler) PushTest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "FCM_ERROR", err.Error())
+		apierror.Respond(w, r, http.StatusBadGateway, "FCM_ERROR", "the push could not be sent")
 		return
 	}
 
