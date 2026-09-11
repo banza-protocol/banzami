@@ -4,16 +4,32 @@
 # Proves the authority split that ADR-050 rests on:
 #   owner selection is refused, child selection is verified.
 #
-# It uses the CANONICAL DOA Sandbox project — the one a real Console login
-# created — rather than a synthetic fixture project, because the claim being
-# tested is that DOA can run as a pure Developer Platform consumer. A fixture
-# project would prove the code path and not the integration.
+# The project under test is a tenant of the run's own
+# (tests/phase0/lib/synthetic-tenant.sh): a Project, its key, and a Business
+# with a @banza and a wallet, bound through the same internal routes Console
+# Financial Setup uses — so it is configured the way a real integrator's is,
+# not a bare fixture. Its owner is still read back from the binding, never
+# assumed from what the harness created.
+#
+# It used to use DOA's canonical Sandbox project instead, on the argument that
+# the claim under test was that DOA can run as a pure Developer Platform
+# consumer. That made a real tenant the fixture: every run opened two CAMPAIGN
+# accounts and two unpaid sessions in DOA's wallet. The property asserted here —
+# owner selection refused, child selection verified — belongs to the Developer
+# Platform, and a tenant nothing else uses is the stronger proof of it.
+#
+# REFERENCE_APPLICATION_DOA: what this harness no longer asserts is that DOA's
+# own Console-created project, specifically, passes these checks. That is a
+# claim about one integration and belongs to DOA's integration evidence; no
+# assertion below was removed for it — each one now runs against the synthetic
+# tenant with its meaning unchanged.
+#
+# Needs no Sandbox funding: sessions are opened, never paid.
 #
 # Secrets (internal key, DB password, the minted API key) are read into memory
 # only and NEVER printed. No key, token, IP or hostname is emitted.
 set -uo pipefail
 
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 GW=$(docker ps --format '{{.Names}}'  | grep api-gateway-staging | head -1)
@@ -46,29 +62,31 @@ call(){ local ct="$1" port="$2" m="$3" p="$4" bd="$5" au="$6" hdr="${7:-Authoriz
 jget(){ printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write(String(j["'"$1"'"]??""))}catch(e){}})'; }
 
 R="${RANDOM}${RANDOM}"
-
-echo "### binding (the owner the project is bound to)"
-# The column is `state`, not `status`. An earlier run of this harness filtered on
-# a column that does not exist, got an empty string back, and every comparison
-# against it "passed" as an empty-vs-empty match or failed for the wrong reason.
-BOUND_WALLET=$(psqlro "SELECT wallet_id FROM developer.dev_project_sandbox_binding WHERE project_id='$DOA_PROJECT' AND state='ACTIVE'")
-BOUND_MERCHANT=$(psqlro "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$DOA_PROJECT' AND state='ACTIVE'")
-chk "BINDING_ACTIVE" "$([ -n "$BOUND_WALLET" ] && echo yes)" "yes"
-[ -n "$BOUND_WALLET" ] || { echo "no binding — the rest would compare against empty strings"; exit 1; }
-
-echo "### keys (canonical project, and a second project for cross-project checks)"
 SCOPES='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create"]'
 
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits — a failed assertion used to
 # skip cleanup entirely, which is precisely when residue was left behind.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
-  "{\"name\":\"wa-e2e-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret)
-e2e_own fixture_key "$(jget id)"
+echo "### the project under test — a tenant of the run's own"
+# The tenant's key carries exactly the scopes above. sandbox-default gives its
+# Business a pricing decision, as Financial Setup would.
+synthetic_tenant wa "$SCOPES" sandbox-default || { echo "  synthetic tenant not built — the rest would be vacuous"; exit 1; }
+PROJECT="$ST_PROJECT"; KEY="$ST_KEY"
+
+echo "### binding (the owner the project is bound to)"
+# The column is `state`, not `status`. An earlier run of this harness filtered on
+# a column that does not exist, got an empty string back, and every comparison
+# against it "passed" as an empty-vs-empty match or failed for the wrong reason.
+BOUND_WALLET=$(psqlro "SELECT wallet_id FROM developer.dev_project_sandbox_binding WHERE project_id='$PROJECT' AND state='ACTIVE'")
+BOUND_MERCHANT=$(psqlro "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$PROJECT' AND state='ACTIVE'")
+chk "BINDING_ACTIVE" "$([ -n "$BOUND_WALLET" ] && echo yes)" "yes"
+[ -n "$BOUND_WALLET" ] || { echo "no binding — the rest would compare against empty strings"; exit 1; }
+
+echo "### keys (the tenant's, and a second project for cross-project checks)"
 chk "KEY_ISSUED" "$([ -n "$KEY" ] && echo yes)" "yes"
 
 # The second project must be BOUND to a different owner. An unbound project is
@@ -110,7 +128,7 @@ chk "UNBOUND_PROJECT_403" "$CODE" "403"
 
 echo "### campaign segregation — two campaigns, two accounts, one owner"
 mkacct(){ call "$GW" 8080 POST /v1/wallet-accounts \
-  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"$1\",\"label\":\"$2\"}" "$3"; }
+  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"CAMPAIGN\",\"reference_id\":\"$1\",\"label\":\"$2\"}" "$3"; }
 
 mkacct "camp-a-$R" "Campaign A" "$KEY"; A_CODE="$CODE"; A_ID=$(jget id); A_WALLET=$(jget wallet_id)
 mkacct "camp-b-$R" "Campaign B" "$KEY"; B_CODE="$CODE"; B_ID=$(jget id); B_WALLET=$(jget wallet_id)
@@ -126,7 +144,7 @@ chk "A_IDEMPOTENT" "$A2_ID" "$A_ID"
 
 echo "### owner selection stays refused"
 call "$GW" 8080 POST /v1/wallet-accounts \
-  "{\"wallet_id\":\"$BOUND_WALLET\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"camp-x-$R\"}" "$KEY"
+  "{\"wallet_id\":\"$BOUND_WALLET\",\"purpose\":\"CAMPAIGN\",\"reference_type\":\"CAMPAIGN\",\"reference_id\":\"camp-x-$R\"}" "$KEY"
 # Refused even though the wallet id is the caller's OWN: a field that is
 # sometimes honoured teaches integrators it is meaningful.
 chk "OWN_WALLET_ID_REFUSED" "$([ "$CODE" -ge 400 ] && echo refused)" "refused"
@@ -148,7 +166,7 @@ chk "LIST_IGNORES_SUPPLIED_WALLET" "$FOREIGN_IN_LIST" "clean"
 
 echo "### payments land in the campaign's own account"
 sess(){ call "$GW" 8080 POST /v1/payment-sessions \
-  "{\"wallet_account_id\":\"$1\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"don-$2-$R\",\"amount_minor\":250000,\"currency\":\"AOA\"}" "$KEY"; }
+  "{\"wallet_account_id\":\"$1\",\"purpose\":\"DONATION\",\"reference_type\":\"DONATION\",\"reference_id\":\"don-$2-$R\",\"amount_minor\":250000,\"currency\":\"AOA\"}" "$KEY"; }
 sess "$A_ID" a; SA_CODE="$CODE"; SA=$(jget session_id); e2e_own payment_session "$SA" "$BOUND_MERCHANT"
 sess "$B_ID" b; SB_CODE="$CODE"; SB=$(jget session_id); e2e_own payment_session "$SB" "$BOUND_MERCHANT"
 chk   "SESSION_A_OPENED" "$SA_CODE" "201"

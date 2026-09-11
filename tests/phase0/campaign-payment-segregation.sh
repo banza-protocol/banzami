@@ -9,16 +9,32 @@
 # scanning the session's QR — and reads the balances back from the API. No row is
 # written by hand; a test that moves money by UPDATE proves only that UPDATE works.
 #
+# WHOSE ACCOUNTS
+#
+# The two campaigns are opened in a tenant of the run's own
+# (tests/phase0/lib/synthetic-tenant.sh): a Project, its key, and a Business with
+# a wallet, bound the way Console Financial Setup binds them. This harness used
+# to borrow DOA's Project and open its campaigns in DOA's wallet — and it never
+# closed them, so every run left two more demo CAMPAIGN accounts, holding the
+# money it had paid in, in a real tenant's name (28 of them by 2026-09-11).
+# Segregation is a property of the Developer Platform, not of DOA; it is proven
+# at least as well on a tenant nothing else uses.
+#
+# Everything is owned by the run and retired on the way out: the sessions it
+# opens, the payer it onboards (its leftover funding retired, then suspended),
+# and the tenant itself (key revoked, project retired, the campaigns' value
+# retired and the accounts closed, the Business suspended).
+#
+# NEEDS SANDBOX FUNDING: the payer is funded through /v1/sandbox/fund, which
+# counts against the pilot funds cap until cleanup retires it.
+#
 # Secrets are read into memory and never printed.
 set -uo pipefail
 
-# The DOA project id used to be a hard-coded default here, and it stopped
-# existing at the last Sandbox reset — so the harness failed at KEY_ISSUED with
-# an empty secret and said nothing about why. Resolved by name below instead,
-# after the containers are located; an explicit DOA_PROJECT still wins.
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
 ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
@@ -31,16 +47,6 @@ PG=$(docker ps  --format '{{.Names}}' | grep postgres | grep bzsandbox | head -1
 DEVINT=$(docker exec "$DEV" sh -c 'cat /run/secrets/developer_internal_key 2>/dev/null')
 JWTSEC=$(docker exec "$GW" sh -c 'cat /run/secrets/jwt_secret 2>/dev/null')
 PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url 2>/dev/null' | sed -E 's#.*://[^:]+:([^@]+)@.*#\1#')
-
-# The DOA Sandbox project, by name. A resolved id survives a Sandbox reset; a
-# literal one does not, and the failure it produces points at the wrong thing.
-if [ -z "${DOA_PROJECT:-}" ]; then
-  DOA_PROJECT=$(docker exec -e PGPASSWORD="$PW" "$PG" psql -q -U bl_app_runtime -d banzami_staging -At -c \
-    "SELECT p.id FROM developer.dev_projects p
-       JOIN developer.dev_workspaces w ON w.id = p.workspace_id
-      WHERE w.name = 'DOA' ORDER BY p.created_at DESC LIMIT 1" 2>/dev/null | tr -d '\r\n')
-fi
-[ -n "${DOA_PROJECT:-}" ] || { echo "  no DOA project found — pass DOA_PROJECT=<id>"; exit 1; }
 [ -n "$DEVINT" ] && [ -n "$JWTSEC" ] || { echo "NO_SECRET"; exit 1; }
 
 psqlro(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1" 2>/dev/null; }
@@ -65,16 +71,18 @@ R="${RANDOM}${RANDOM}"; SEQ=0
 bal(){ call "$GW" 8080 GET "/v1/wallet-accounts/$1" - "$KEY"
   printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const v=j.available_balance_minor;process.stdout.write(v===undefined?"?":String(v))}catch(e){process.stdout.write("?")}})'; }
 
-echo "### project key"
+echo "### project key — on a tenant of the run's own"
 SCOPES='["identity:read","payment_sessions:read","payment_sessions:write","wallet_accounts:read","wallet_accounts:create"]'
-call "$DEV" 8086 POST "/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
-  "{\"name\":\"seg-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" "$DEVINT" "X-Internal-Key:"
-KEY=$(jget secret); e2e_own fixture_key "$(jget id)"; chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
+# sandbox-default: a Business with no pricing decision cannot capture, and this
+# one charges nothing on a payment, so a campaign is credited the full amount.
+synthetic_tenant seg "$SCOPES" sandbox-default || { echo "  synthetic tenant not built — the rest would be vacuous"; exit 1; }
+KEY="$ST_KEY"; TENANT_MERCHANT="$ST_MERCHANT"
+chk KEY_ISSUED "$([ -n "$KEY" ] && echo yes)" yes
 [ -n "$KEY" ] || exit 1
 
 echo "### two campaigns"
 mk(){ call "$GW" 8080 POST /v1/wallet-accounts \
-  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"DOA_CAMPAIGN\",\"reference_id\":\"seg-$1-$R\",\"label\":\"$2\"}" "$KEY"; jget id; }
+  "{\"purpose\":\"CAMPAIGN\",\"reference_type\":\"CAMPAIGN\",\"reference_id\":\"seg-$1-$R\",\"label\":\"$2\"}" "$KEY"; jget id; }
 A=$(mk a "Campanha A — demo"); B=$(mk b "Campanha B — demo")
 chk A_OPENED "$([ -n "$A" ] && echo yes)" yes
 chk B_OPENED "$([ -n "$B" ] && echo yes)" yes
@@ -104,6 +112,9 @@ SID=$(jget session_id)
 call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID\",\"otp_code\":\"123456\"}" -
 call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
 PAYER=$(jget consumer_id)
+# Owned the moment it exists: whatever of its funding it does not spend below is
+# retired to the Sandbox funding source, and the consumer suspended.
+e2e_own consumer "$PAYER"
 chk PAYER_FOUND "$([ -n "$PAYER" ] && echo yes)" yes
 [ -n "$PAYER" ] || { echo "payer onboarding failed"; exit 1; }
 CJWT=$(mint customer_id "$PAYER")
@@ -124,7 +135,10 @@ chk PAYER_FUNDED "$([ "${PAYER_BAL:-0}" -ge 400000 ] && echo yes)" yes
 # The authority belongs with the payer, which is where this route puts it.
 pay(){ local acct="$1" amt="$2" ref="$3"
   call "$GW" 8080 POST /v1/payment-sessions \
-    "{\"wallet_account_id\":\"$acct\",\"purpose\":\"DONATION\",\"reference_type\":\"DOA_DONATION\",\"reference_id\":\"$ref\",\"amount_minor\":$amt,\"currency\":\"AOA\"}" "$KEY"
+    "{\"wallet_account_id\":\"$acct\",\"purpose\":\"DONATION\",\"reference_type\":\"DONATION\",\"reference_id\":\"$ref\",\"amount_minor\":$amt,\"currency\":\"AOA\"}" "$KEY"
+  # Owned before it is paid: a session whose payment fails is a live link and
+  # QR into a fixture account, and it would keep that account from closing.
+  e2e_own payment_session "$(jget session_id)" "$TENANT_MERCHANT"
   local slug
   slug=$(printf '%s' "$LAST" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const i=(j.interfaces||[]).find(x=>x.type==="PAYMENT_LINK")||(j.interfaces||[]).find(x=>x.type==="DEEP_LINK");process.stdout.write(i?String(i.value).split("/").filter(Boolean).pop():"")}catch(e){}})')
   [ -n "$slug" ] || { echo "  (no PAYMENT_LINK interface on the session)"; return 1; }

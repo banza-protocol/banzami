@@ -12,15 +12,25 @@
 #   - the public endpoint https://sandbox-api.banzami.com
 #   - a project API key and nothing else — no merchant id, no wallet id
 #
+# The key belongs to a tenant of the run's own (tests/phase0/lib/synthetic-tenant.sh):
+# a Project and a Business with a wallet, bound the way Console Financial Setup
+# binds them. It used to be a key on DOA's Project, so every run opened two
+# CAMPAIGN accounts and three unpaid sessions in DOA's wallet. What the SDK is
+# proving here is the public Developer Platform path, which is not DOA's to
+# lend; a tenant nothing else uses proves it without touching anyone's money.
+# The whole tenant is retired when the run ends.
+#
+# Needs no Sandbox funding: sessions are opened, never paid.
+#
 # It runs the SDK inside a throwaway node container so the install is genuinely
 # clean. The key is passed by environment and never printed, written to disk, or
 # baked into an image.
 set -uo pipefail
 
-SDK_VERSION="${SDK_VERSION:-0.6.0}"
+# The version an integrator installs today. It was 0.6.0 long after 0.6.0 stopped
+# matching the server: the proof kept testing a client nobody should install.
+SDK_VERSION="${SDK_VERSION:-0.12.0}"
 BASE_URL="${BASE_URL:-https://sandbox-api.banzami.com}"
-DOA_PROJECT="${DOA_PROJECT:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
-ACTOR="${ACTOR:-11111111-2222-4333-8444-555555555555}"
 
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
 [ -n "$DEV" ] || { echo "DEVELOPER_API_NOT_FOUND"; exit 1; }
@@ -32,14 +42,13 @@ SCOPES='["identity:read","payment_sessions:read","payment_sessions:write","walle
 # Ownership and cleanup. Everything this run creates is recorded by id and
 # retired on the way out, however the script exits.
 . "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+. "$(cd "$(dirname "$0")" && pwd)/lib/synthetic-tenant.sh"
 e2e_begin
 
-MINTED=$(printf '%s' "{\"name\":\"sdk-public-$R\",\"scopes\":$SCOPES,\"created_by\":\"$ACTOR\"}" \
-  | docker exec -i "$DEV" curl -s -X POST "http://localhost:8086/internal/v1/projects/$DOA_PROJECT/fixture-keys" \
-      -H "X-Internal-Key: $DEVINT" -H "Content-Type: application/json" --data @- \
-  | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);process.stdout.write((j.secret||"")+" "+(j.id||""))}catch(e){}})')
-KEY=${MINTED%% *}
-e2e_own fixture_key "${MINTED##* }"
+# The tenant's key carries exactly the scopes above. sandbox-default gives its
+# Business a pricing decision, as Financial Setup would.
+synthetic_tenant sdk-public "$SCOPES" sandbox-default || { echo "KEY_MINT_FAILED"; exit 1; }
+KEY="$ST_KEY"; TENANT_MERCHANT="$ST_MERCHANT"
 [ -n "$KEY" ] || { echo "KEY_MINT_FAILED"; exit 1; }
 
 WORK=$(mktemp -d)
@@ -72,7 +81,7 @@ const banzami = new BanzamiClient({
 console.log(`### sdk ${process.env.SDK_VERSION} against ${process.env.BANZAMI_BASE_URL}`);
 
 const openCampaign = (id, label) => banzami.createWalletAccount({
-  purpose: 'CAMPAIGN', referenceType: 'DOA_CAMPAIGN', referenceId: id, label,
+  purpose: 'CAMPAIGN', referenceType: 'CAMPAIGN', referenceId: id, label,
 });
 
 console.log('### two campaigns, two accounts');
@@ -93,11 +102,11 @@ chk('LIST_CONTAINS_B', ids.includes(b.id), true);
 
 console.log('### each campaign collects into its own account');
 const sa = await banzami.createPaymentSession({
-  walletAccountId: a.id, purpose: 'DONATION', referenceType: 'DOA_DONATION',
+  walletAccountId: a.id, purpose: 'DONATION', referenceType: 'DONATION',
   referenceId: `sdk-don-a-${run}`, amountMinor: 250_000, currency: 'AOA',
 });
 const sb = await banzami.createPaymentSession({
-  walletAccountId: b.id, purpose: 'DONATION', referenceType: 'DOA_DONATION',
+  walletAccountId: b.id, purpose: 'DONATION', referenceType: 'DONATION',
   referenceId: `sdk-don-b-${run}`, amountMinor: 150_000, currency: 'AOA',
 });
 chkne('SESSIONS_DISTINCT', sa.session_id, sb.session_id);
@@ -151,8 +160,7 @@ printf '%s\n' "$OUT"
 # The sessions the clean room opened, recorded so the run can retire the payment
 # links they leave behind. Parsed from the proof's own output because the SDK
 # runs inside a throwaway container that shares nothing else with this shell.
-BOUND_MERCHANT=$(e2e_sql "SELECT merchant_id FROM developer.dev_project_sandbox_binding WHERE project_id='$DOA_PROJECT' AND state='ACTIVE'")
 for sid in $(printf '%s\n' "$OUT" | sed -n 's/^OWNS_SESSIONS //p'); do
-  e2e_own payment_session "$sid" "$BOUND_MERCHANT"
+  e2e_own payment_session "$sid" "$TENANT_MERCHANT"
 done
 exit $RC
