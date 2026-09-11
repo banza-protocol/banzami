@@ -152,7 +152,7 @@ export function ActivarFlow() {
           Abrir Banzami Business
         </button>
         <p className="mx-auto mt-4 max-w-[420px] text-[13px] leading-relaxed text-ink-secondary">
-          Se a app não abrir, abra manualmente a Banzami Business e entre com o seu @negócio.
+          Se a app não abrir, abra manualmente a app Banzami Business e entre com o seu @negócio.
         </p>
       </div>
     );
