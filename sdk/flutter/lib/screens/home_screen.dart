@@ -142,16 +142,18 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
   Future<void> _loadActivity() async {
     try {
       final page = await widget.client.getActivity(limit: 10);
-      if (mounted)
+      if (mounted) {
         setState(() {
           _activity = page.items;
           _loadingActivity = false;
         });
+      }
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loadingActivity = false;
         });
+      }
     }
   }
 
@@ -300,7 +302,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                   ),
 
                 // ── Section header ────────────────────────────────────────
-                SliverToBoxAdapter(
+                const SliverToBoxAdapter(
                   child: BanzamiSectionTitle(
                     title: 'Actividade recente',
                     action: 'Ver tudo',
@@ -436,7 +438,7 @@ class _TopBar extends StatelessWidget {
             child: Container(
               width: 40,
               height: 40,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: BanzamiColors.white,
                 shape: BoxShape.circle,
                 boxShadow: BanzamiShadows.card,
@@ -675,7 +677,7 @@ class _ActivityIcon extends StatelessWidget {
       return Container(
         width: 44,
         height: 44,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: BanzamiColors.successBg,
           shape: BoxShape.circle,
         ),
@@ -741,7 +743,7 @@ class _EmptyActivity extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: BanzamiSpacing.xs),
-            Text(
+            const Text(
               'As suas actividades aparecerão aqui',
               style: BanzamiTextStyles.bodySm,
               textAlign: TextAlign.center,

@@ -307,8 +307,9 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400)
+    if (resp.statusCode >= 400) {
       throw BanzamiApiException.fromJson(resp.statusCode, body);
+    }
     return (
       exists: body['exists'] as bool? ?? false,
       canLogin: body['can_login'] as bool? ?? false,
@@ -747,8 +748,9 @@ class BanzamiClient {
     DateTime? since,
   }) async {
     var path = '/v1/transactions?limit=$limit';
-    if (since != null)
+    if (since != null) {
       path += '&since=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
+    }
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     final json = await _get(path);
     return MerchantTransactionPage.fromJson(json);
@@ -851,8 +853,9 @@ class BanzamiClient {
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 400)
+    if (resp.statusCode >= 400) {
       throw BanzamiApiException.fromJson(resp.statusCode, body);
+    }
     return PaymentLink.fromJson(body);
   }
 

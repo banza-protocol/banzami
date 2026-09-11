@@ -50,11 +50,12 @@ class _AmountNoteSheetState extends State<_AmountNoteSheet> {
       );
       if (mounted) Navigator.pop(context, link);
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           _loading = false;
           _error = 'Não foi possível criar o link.';
         });
+      }
     }
   }
 
@@ -314,7 +315,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                                   horizontal: BanzamiSpacing.lg,
                                   vertical: BanzamiSpacing.sm,
                                 ),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color: BanzamiColors.gray100,
                                   borderRadius: BanzamiRadius.fullAll,
                                 ),

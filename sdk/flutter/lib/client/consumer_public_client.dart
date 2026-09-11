@@ -254,10 +254,12 @@ class ConsumerPublicClient {
   }) async {
     var path = '/v1/me/activity?limit=$limit';
     if (cursor != null) path += '&cursor=${Uri.encodeQueryComponent(cursor)}';
-    if (typeFilter != null)
+    if (typeFilter != null) {
       path += '&type=${Uri.encodeQueryComponent(typeFilter)}';
-    if (directionFilter != null)
+    }
+    if (directionFilter != null) {
       path += '&direction=${Uri.encodeQueryComponent(directionFilter)}';
+    }
     final json = await _call(method: 'GET', path: path);
     return ActivityPage.fromJson(json);
   }
@@ -288,8 +290,9 @@ class ConsumerPublicClient {
     final body = <String, dynamic>{
       'idempotency_key': idempotencyKey ?? _uuid.v4(),
     };
-    if (amountMinor != null && amountMinor > 0)
+    if (amountMinor != null && amountMinor > 0) {
       body['amount_minor'] = amountMinor;
+    }
     final json = await _call(
       method: 'POST',
       path: '/v1/payment-links/${_seg(slug)}/pay',
@@ -646,8 +649,9 @@ class ConsumerPublicClient {
 
     final exception = BanzamiApiException.fromJson(resp.statusCode, decoded);
     onError?.call(method, path, exception);
-    if (resp.statusCode == 401 && auth && _token != null)
+    if (resp.statusCode == 401 && auth && _token != null) {
       onUnauthorized?.call();
+    }
     throw exception;
   }
 }

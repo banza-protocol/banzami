@@ -35,8 +35,9 @@ void main() {
       for (var i = 0; i < lines.length; i++) {
         if (forbidding.hasMatch(lines[i])) continue;
         for (final p in teaching) {
-          if (p.hasMatch(lines[i]))
+          if (p.hasMatch(lines[i])) {
             offenders.add('${f.path}:${i + 1} → ${lines[i].trim()}');
+          }
         }
       }
     }

@@ -104,11 +104,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     switch (parsed) {
       case BanzamiQrInvalid(:final reason):
         debugPrint('[QR-SCAN] error=$reason');
-        if (mounted)
+        if (mounted) {
           setState(() {
             _error = reason;
             _step = _ScanStep.error;
           });
+        }
 
       case BanzamiQrPaymentRequest(:final code, :final isSandbox):
         debugPrint(
@@ -189,11 +190,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     final msg = environmentMismatchMessage(fromSandbox: qrIsSandbox);
     debugPrint('[QR-SCAN] error=sandboxMismatch '
         'qrSandbox=$qrIsSandbox appSandbox=${widget.isSandbox}');
-    if (mounted)
+    if (mounted) {
       setState(() {
         _error = msg;
         _step = _ScanStep.error;
       });
+    }
     return true;
   }
 
@@ -243,11 +245,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       final msg = e.isNotFound
           ? 'Pedido de pagamento não encontrado.'
           : 'Não foi possível verificar o QR. Tente novamente.';
-      if (mounted)
+      if (mounted) {
         setState(() {
           _error = msg;
           _step = _ScanStep.error;
         });
+      }
     } catch (e) {
       debugPrint('[QR-SCAN] error=$e');
       if (mounted) {

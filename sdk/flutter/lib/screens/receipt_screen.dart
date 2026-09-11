@@ -333,9 +333,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         sharePositionOrigin: origin,
       );
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         BanzamiToast.showError(
             context, 'Não foi possível obter o comprovativo.');
+      }
     } finally {
       // Never accumulate PDFs — delete the temp file after sharing.
       if (file != null) {
