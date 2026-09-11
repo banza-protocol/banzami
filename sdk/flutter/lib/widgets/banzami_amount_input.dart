@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import '../money/money_engine.dart';
 import '../theme/banzami_theme.dart';
+import 'money_input.dart';
 
 /// Large-format monetary amount input.
 ///
 /// Displays the amount in major units while internally tracking minor units.
 /// The user types "500" and sees "500 Kz"; the widget exposes 50000 minor units.
+/// Parsing and formatting go through the Money Engine — integer minor units
+/// only, never a double ("50 000,50" → 5000050).
 ///
 /// Designed to sit prominently at the top of payment initiation screens.
 class BanzamiAmountInput extends StatefulWidget {
@@ -36,7 +39,9 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
   void initState() {
     super.initState();
     final initial = widget.initialAmountMinor != null
-        ? (widget.initialAmountMinor! / 100).toStringAsFixed(0)
+        ? formatMoneyInput(
+            fromMinorUnits(widget.initialAmountMinor!, currency: widget.currency),
+            currency: widget.currency)
         : '';
     _controller = TextEditingController(text: initial);
   }
@@ -47,12 +52,7 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
     super.dispose();
   }
 
-  String get _symbol => switch (widget.currency) {
-        'AOA' => 'Kz',
-        'USD' => 'USD',
-        'EUR' => '€',
-        _ => widget.currency,
-      };
+  String get _symbol => currencyOf(widget.currency).symbol;
 
   @override
   Widget build(BuildContext context) {
@@ -79,10 +79,9 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
                   controller: _controller,
                   enabled: widget.enabled,
                   keyboardType:
-                      const TextInputType.numberWithOptions(decimal: false),
+                      const TextInputType.numberWithOptions(decimal: true),
                   inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    _ThousandsSeparatorFormatter(),
+                    MoneyInputFormatter(currency: widget.currency),
                   ],
                   style: BanzamiTextStyles.monoLg.copyWith(
                     color: BanzamiColors.gray900,
@@ -98,11 +97,8 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
                     fillColor: Colors.transparent,
                     filled: true,
                   ),
-                  onChanged: (raw) {
-                    final digits = raw.replaceAll(RegExp(r'[^\d]'), '');
-                    final major = int.tryParse(digits) ?? 0;
-                    widget.onChanged(major * 100);
-                  },
+                  onChanged: (raw) => widget.onChanged(
+                      tryParseMoneyInput(raw, currency: widget.currency) ?? 0),
                 ),
               ),
               const SizedBox(width: BanzamiSpacing.sm),
@@ -127,29 +123,6 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
           ),
         ],
       ],
-    );
-  }
-}
-
-/// Inserts a space separator every 3 digits (e.g. 1000000 → 1 000 000).
-class _ThousandsSeparatorFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (digits.isEmpty) return newValue.copyWith(text: '');
-
-    final buffer = StringBuffer();
-    for (var i = 0; i < digits.length; i++) {
-      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write(' ');
-      buffer.write(digits[i]);
-    }
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }
