@@ -224,3 +224,39 @@ async fn fail_from_pending_leaves_no_ledger_entry(pool: PgPool) -> sqlx::Result<
 
     Ok(())
 }
+
+// A confirm racing a fail: exactly one wins, and the ledger agrees with it —
+// never a FAILED batch with the confirmation posted, or SETTLED without it.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_confirm_racing_a_fail_leaves_ledger_and_status_agreeing(pool: PgPool) -> sqlx::Result<()> {
+    let fix = setup(pool).await;
+    let mut settled_net = 0i64;
+    for round in 0..8 {
+        let batch = fix
+            .engine
+            .create_batch(CreateSettlementBatchRequest {
+                idempotency_key: format!("settle-race-{round}"),
+                merchant_id: fix.merchant_id,
+                wallet_id: fix.wallet_id,
+                gross_amount: kz(1_000_000),
+                fee_amount: kz(30_000),
+                transaction_count: 1,
+                period_start: Utc::now() - chrono::Duration::days(1),
+                period_end: Utc::now(),
+            })
+            .await
+            .unwrap();
+        fix.engine.submit(batch.id).await.unwrap();
+        let (c, f) = tokio::join!(fix.engine.confirm(batch.id), fix.engine.fail(batch.id, "acquirer rejected".into()));
+        assert_eq!(c.is_ok() as u8 + f.is_ok() as u8, 1, "round {round}: exactly one may win");
+        let status = fix.engine.get(batch.id).await.unwrap().status;
+        if status == SettlementStatus::Settled {
+            settled_net += 970_000;
+        } else {
+            assert_eq!(status, SettlementStatus::Failed, "round {round}");
+        }
+        let bank = fix.ledger.balance(fix.bank_id).await.unwrap();
+        assert_eq!(bank.amount_minor(), settled_net, "round {round}: the ledger disagrees with the batch status");
+    }
+    Ok(())
+}

@@ -134,7 +134,7 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
 
         let updated = self
             .repo
-            .update_status(id, SettlementStatus::Submitted, None, None)
+            .update_status(id, s.status, SettlementStatus::Submitted, None, None)
             .await?;
 
         tracing::info!(settlement_id = %id, "settlement submitted to acquirer");
@@ -162,11 +162,25 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
             })
         })?;
 
-        let posted = self.ledger.post(posting).await?;
+        // Claim SETTLED before posting: a fail that won the race makes this
+        // claim fail and nothing is posted; a ledger failure reverts the claim.
+        self.repo
+            .update_status(id, s.status, SettlementStatus::Settled, None, None)
+            .await?;
+        let posted = match self.ledger.post(posting).await {
+            Ok(p) => p,
+            Err(e) => {
+                let _ = self
+                    .repo
+                    .update_status(id, SettlementStatus::Settled, s.status, None, None)
+                    .await;
+                return Err(e.into());
+            }
+        };
 
         let updated = self
             .repo
-            .update_status(id, SettlementStatus::Settled, Some(posted.id), None)
+            .update_status(id, SettlementStatus::Settled, SettlementStatus::Settled, Some(posted.id), None)
             .await?;
 
         tracing::info!(
@@ -184,7 +198,7 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
 
         let updated = self
             .repo
-            .update_status(id, SettlementStatus::Failed, None, Some(&reason))
+            .update_status(id, s.status, SettlementStatus::Failed, None, Some(&reason))
             .await?;
 
         tracing::warn!(settlement_id = %id, reason = %reason, "settlement failed");
@@ -357,6 +371,7 @@ mod tests {
         async fn update_status(
             &self,
             id: SettlementId,
+            from: SettlementStatus,
             status: SettlementStatus,
             posting_id: Option<banzami_types::LedgerPostingId>,
             failure_reason: Option<&str>,
@@ -366,9 +381,16 @@ mod tests {
                 .iter_mut()
                 .find(|s| s.id == id)
                 .ok_or(SettlementError::NotFound(id))?;
+            if s.status != from {
+                return Err(SettlementError::InvalidStatusTransition { from: s.status, to: status });
+            }
             s.status = status;
-            s.ledger_posting_id = posting_id;
-            s.failure_reason = failure_reason.map(str::to_owned);
+            if posting_id.is_some() {
+                s.ledger_posting_id = posting_id;
+            }
+            if failure_reason.is_some() {
+                s.failure_reason = failure_reason.map(str::to_owned);
+            }
             if status == SettlementStatus::Submitted {
                 s.submitted_at = Some(Utc::now());
             }

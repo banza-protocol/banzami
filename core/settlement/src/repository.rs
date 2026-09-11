@@ -23,9 +23,14 @@ pub trait SettlementRepository: Send + Sync {
         limit: i64,
         status: Option<&str>,
     ) -> Result<Vec<Settlement>, SettlementError>;
+    /// Moves a settlement from `from` to `status` — only if it is still
+    /// `from` (compare-and-set). The engine claims a transition here before
+    /// posting to the ledger, so a confirm and a fail racing each other cannot
+    /// both act; losing the race is `InvalidStatusTransition`.
     async fn update_status(
         &self,
         id: SettlementId,
+        from: SettlementStatus,
         status: SettlementStatus,
         posting_id: Option<LedgerPostingId>,
         failure_reason: Option<&str>,
@@ -167,6 +172,7 @@ impl SettlementRepository for PostgresSettlementRepository {
     async fn update_status(
         &self,
         id: SettlementId,
+        from: SettlementStatus,
         status: SettlementStatus,
         posting_id: Option<LedgerPostingId>,
         failure_reason: Option<&str>,
@@ -183,13 +189,15 @@ impl SettlementRepository for PostgresSettlementRepository {
             None
         };
 
-        sqlx::query(
+        // ledger_posting_id is kept, never overwritten with NULL.
+        let done = sqlx::query(
             "UPDATE settlements
-             SET status = $1, ledger_posting_id = $2, failure_reason = $3,
+             SET status = $1, ledger_posting_id = COALESCE($2, ledger_posting_id),
+                 failure_reason = COALESCE($3, failure_reason),
                  submitted_at = COALESCE(submitted_at, $4),
                  settled_at   = COALESCE(settled_at, $5),
                  updated_at   = $6
-             WHERE id = $7",
+             WHERE id = $7 AND status = $8",
         )
         .bind(status.as_str())
         .bind(posting_id.map(|p| p.as_uuid()))
@@ -198,9 +206,14 @@ impl SettlementRepository for PostgresSettlementRepository {
         .bind(settled_at)
         .bind(now)
         .bind(id.as_uuid())
+        .bind(from.as_str())
         .execute(&self.pool)
         .await
         .map_err(SettlementError::Database)?;
+        if done.rows_affected() != 1 {
+            let current = self.get(id).await?;
+            return Err(SettlementError::InvalidStatusTransition { from: current.status, to: status });
+        }
 
         self.get(id).await
     }

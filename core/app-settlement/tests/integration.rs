@@ -800,3 +800,54 @@ async fn list_filtered_by_owner_status_currency(pool: PgPool) -> sqlx::Result<()
     );
     Ok(())
 }
+
+// ─── Races: transitions are serialised, and a source is never overdrawn ─────
+//
+// complete() checked the balance, posted, then marked COMPLETED unconditionally.
+// A cancel in between left a CANCELLED settlement whose money had moved, and two
+// settlements on one source could both pass the balance check.
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn complete_racing_cancel_leaves_money_and_status_agreeing(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
+    for round in 0..8 {
+        let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+        let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+        let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
+        fund(&fx, source, 10_000).await;
+        let s = fx
+            .engine
+            .create(req(&format!("race-cc-{round}"), source, beneficiary, Some(app_fee), 10_000, Some(PROFILE)))
+            .await
+            .unwrap();
+        let (c, x) = tokio::join!(fx.engine.complete(s.id), fx.engine.cancel(s.id));
+        assert_eq!(c.is_ok() as u8 + x.is_ok() as u8, 1, "round {round}: exactly one of complete/cancel may win");
+        let status = fx.engine.get(s.id).await.unwrap().status;
+        let left = net_credit(&fx.pool, source).await;
+        match status {
+            ApplicationSettlementStatus::Completed => assert_eq!(left, 0, "round {round}: COMPLETED but the source was not debited"),
+            ApplicationSettlementStatus::Cancelled => assert_eq!(left, 10_000, "round {round}: CANCELLED but money moved"),
+            other => panic!("round {round}: unexpected {other:?}"),
+        }
+    }
+    Ok(())
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn two_settlements_never_overdraw_one_source(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", 500).await;
+    for round in 0..6 {
+        let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+        let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+        let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
+        fund(&fx, source, 10_000).await;
+        let a = fx.engine.create(req(&format!("race-od-a-{round}"), source, beneficiary, Some(app_fee), 6_000, Some(PROFILE))).await.unwrap();
+        let b = fx.engine.create(req(&format!("race-od-b-{round}"), source, beneficiary, Some(app_fee), 6_000, Some(PROFILE))).await.unwrap();
+        let (ra, rb) = tokio::join!(fx.engine.complete(a.id), fx.engine.complete(b.id));
+        assert_eq!(ra.is_ok() as u8 + rb.is_ok() as u8, 1, "round {round}: only one 6 000 settlement fits in 10 000");
+        assert!(net_credit(&fx.pool, source).await >= 0, "round {round}: the source was overdrawn");
+    }
+    Ok(())
+}

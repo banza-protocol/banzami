@@ -310,6 +310,13 @@ where
         &self,
         id: ApplicationSettlementId,
     ) -> Result<ApplicationSettlement, ApplicationSettlementError> {
+        let peek = self.repo.get(id).await?;
+        // Source account first, then the settlement — every path takes them in
+        // this order. Held until this function returns.
+        let _lock = self
+            .repo
+            .lock_for_transition(&[peek.source_account_id.as_uuid(), id.as_uuid()])
+            .await?;
         let s = self.repo.get(id).await?;
         // Idempotent: a completed settlement is immutable and returned as-is.
         if s.status == ApplicationSettlementStatus::Completed {
@@ -390,6 +397,11 @@ where
         &self,
         id: ApplicationSettlementId,
     ) -> Result<ApplicationSettlement, ApplicationSettlementError> {
+        let peek = self.repo.get(id).await?;
+        let _lock = self
+            .repo
+            .lock_for_transition(&[peek.source_account_id.as_uuid(), id.as_uuid()])
+            .await?;
         let s = self.repo.get(id).await?;
         if s.status == ApplicationSettlementStatus::Cancelled {
             return Ok(s);
@@ -421,6 +433,11 @@ where
         id: ApplicationSettlementId,
         reason: String,
     ) -> Result<ApplicationSettlement, ApplicationSettlementError> {
+        let peek = self.repo.get(id).await?;
+        let _lock = self
+            .repo
+            .lock_for_transition(&[peek.source_account_id.as_uuid(), id.as_uuid()])
+            .await?;
         let s = self.repo.get(id).await?;
         self.guard_transition(&s, ApplicationSettlementStatus::Failed)?;
         let now = Utc::now();

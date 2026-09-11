@@ -15,8 +15,22 @@ use banzami_types::{
 use crate::domain::{ApplicationSettlement, ApplicationSettlementStatus};
 use crate::ApplicationSettlementError;
 
+/// Held while a settlement transition runs. The advisory locks are
+/// transaction-scoped, so dropping the guard (its transaction rolls back)
+/// releases them.
+pub struct TransitionLock(#[allow(dead_code)] Option<sqlx::Transaction<'static, sqlx::Postgres>>);
+
 #[allow(async_fn_in_trait)]
 pub trait ApplicationSettlementRepository: Send + Sync {
+    /// Serialises settlement transitions on `keys`, taken in the order given.
+    ///
+    /// complete() checked the source balance, posted, and then marked the
+    /// settlement COMPLETED unconditionally. A cancel or fail arriving in
+    /// between left a CANCELLED/FAILED settlement whose money had moved, and
+    /// two settlements drawing on one source account could both pass the
+    /// balance check and overdraw it. Transitions now hold these locks — the
+    /// source account's and the settlement's — and re-read inside them.
+    async fn lock_for_transition(&self, keys: &[Uuid]) -> Result<TransitionLock, ApplicationSettlementError>;
     async fn insert(
         &self,
         s: ApplicationSettlement,
@@ -94,6 +108,17 @@ const SELECT: &str = "SELECT id, owner_ref, application_id, source_account_id,
     FROM app_settlements";
 
 impl ApplicationSettlementRepository for PostgresApplicationSettlementRepository {
+    async fn lock_for_transition(&self, keys: &[Uuid]) -> Result<TransitionLock, ApplicationSettlementError> {
+        let mut tx = self.pool.begin().await?;
+        for k in keys {
+            sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended('app_settlement:' || $1::text, 0))")
+                .bind(k)
+                .execute(&mut *tx)
+                .await?;
+        }
+        Ok(TransitionLock(Some(tx)))
+    }
+
     async fn insert(
         &self,
         s: ApplicationSettlement,
