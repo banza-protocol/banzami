@@ -325,47 +325,9 @@ class BanzamiClient
         return $this->request('GET', '/disputes' . $this->qs(['limit' => $limit, 'status' => $status]));
     }
 
-    // -------------------------------------------------------------------------
-    // Payment requests
-    // -------------------------------------------------------------------------
-
-    public function createPaymentRequest(array $params): array
-    {
-        return $this->request('POST', '/payment-requests', [
-            'requester_id'   => $params['requester_id'],
-            'payer_handle'   => $params['payer_handle'] ?? null,
-            'amount_minor'   => $params['amount_minor'],
-            'currency'       => $params['currency'] ?? 'AOA',
-            'description'    => $params['description'] ?? null,
-            'expires_at'     => $params['expires_at'] ?? null,
-            'idempotency_key'=> $params['idempotency_key'] ?? $this->generateIdempotencyKey(),
-        ]);
-    }
-
-    public function getPaymentRequest(string $id): array
-    {
-        return $this->request('GET', "/payment-requests/{$id}");
-    }
-
-    public function listPaymentRequests(int $limit = 20, ?string $status = null): array
-    {
-        return $this->request('GET', '/payment-requests' . $this->qs(['limit' => $limit, 'status' => $status]));
-    }
-
-    public function payPaymentRequest(string $id, string $payerId): array
-    {
-        return $this->request('POST', "/payment-requests/{$id}/pay", ['payer_id' => $payerId]);
-    }
-
-    public function declinePaymentRequest(string $id, string $payerId): array
-    {
-        return $this->request('POST', "/payment-requests/{$id}/decline", ['payer_id' => $payerId]);
-    }
-
-    public function cancelPaymentRequest(string $id, string $requesterId): array
-    {
-        return $this->request('POST', "/payment-requests/{$id}/cancel", ['requester_id' => $requesterId]);
-    }
+    // Payment requests are not here: /v1/payment-requests was withdrawn by the
+    // operator (RA-057) — it let a Business credential name any requester and
+    // debit any payer — and every call answered 404.
 
     // -------------------------------------------------------------------------
     // Webhooks

@@ -20,7 +20,6 @@ from .resources import (
     DisputesResource,
     MerchantsResource,
     PaymentLinksResource,
-    PaymentRequestsResource,
     PayoutsResource,
     QrPaymentsResource,
     RefundsResource,
@@ -132,7 +131,6 @@ class BanzamiClient:
         self.payment_links   = PaymentLinksResource(self)
         self.refunds         = RefundsResource(self)
         self.disputes        = DisputesResource(self)
-        self.payment_requests = PaymentRequestsResource(self)
 
     # ------------------------------------------------------------------
     # Context manager support

@@ -203,28 +203,6 @@ dispute = await client.disputes.add_evidence(
 page = await client.disputes.list(status=DisputeStatus.OPEN)
 ```
 
-## Payment requests (pedido de pagamento)
-
-```python
-from banzami import PaymentRequestStatus
-
-# Request money from a specific @banzami handle
-req = await client.payment_requests.create(
-    requester_id="con_001",
-    amount=30000,           # 300 Kz
-    payer_handle="@ana",
-    description="Jantar de ontem",
-)
-
-# Payer pays the request
-req = await client.payment_requests.pay(req.id)
-assert req.status == PaymentRequestStatus.PAID
-
-# Or decline / cancel
-await client.payment_requests.decline(req.id)
-await client.payment_requests.cancel(req.id)
-```
-
 ## Framework examples
 
 See the `examples/` directory for working integrations with:

@@ -167,31 +167,6 @@ $page = $client->listDisputes(['status' => 'OPEN']);
 
 ---
 
-## Payment requests
-
-Payment requests allow a merchant to push a payment demand to a specific consumer.
-
-```php
-$request = $client->createPaymentRequest([
-    'merchant_id'  => 'mch_...',
-    'consumer_id'  => 'cns_...',
-    'amount_minor' => 15000,             // 15 000 Kz
-    'description'  => 'Encomenda #87 — entrega domiciliária',
-    'expires_at'   => (new DateTime('+24 hours'))->format(DateTime::RFC3339),
-]);
-
-// Consumer pays
-$client->payPaymentRequest($request['id'], 'cns_wallet_id');
-
-// Consumer declines
-$client->declinePaymentRequest($request['id']);
-
-// Merchant cancels
-$client->cancelPaymentRequest($request['id']);
-```
-
----
-
 ## Wallet balance
 
 ```php

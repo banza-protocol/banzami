@@ -5,6 +5,15 @@ All notable changes to the Banzami Python SDK are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Removed — `payment_requests`
+
+`client.payment_requests` called `/v1/payment-requests`, which the operator
+withdrew (RA-057): it let a Business credential name any requester and debit
+any payer. Every call answered 404. Consumer-to-consumer requests belong to the
+consumer app, not a server SDK.
+
 ## [0.1.0] — 2026-05-15
 
 ### Added
