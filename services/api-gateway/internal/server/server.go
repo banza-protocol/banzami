@@ -214,12 +214,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// safe fields only. The QR/short link on every receipt resolves here.
 	// The legacy limiter runs INSIDE the generic one and before the handler, so a
 	// 429 is decided without ever asking whether the proof exists.
-	r.With(
-		middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits),
-		middleware.ProofVerifyRateLimit(deps.Redis, func(ref string) bool {
-			return service.ClassifyReference(ref) == service.ReferenceLegacyV0
-		}),
-	).Get("/v1/public/proofs/{ref}", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Verify)
+	mountPublicProofVerify(r, deps.Redis, deps.ProofSvc, deps.ProofHashSalt)
 
 	// Public Business onboarding — no JWT required, so rate-limited per IP: a
 	// handle check is an availability oracle and a submission reserves a name
@@ -752,4 +747,17 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	})
 
 	return r
+}
+
+// mountPublicProofVerify is the ONE public route that resolves a proof by its
+// reference. It is a function so the canonicality test (public_proof_route_test.go)
+// drives exactly the production chain — both limiters, the handler, the service —
+// rather than a copy of it.
+func mountPublicProofVerify(r chi.Router, rdb *redis.Client, proofs *service.ProofService, salt string) {
+	r.With(
+		middleware.RateLimit(rdb, middleware.DefaultRateLimits),
+		middleware.ProofVerifyRateLimit(rdb, func(ref string) bool {
+			return service.ClassifyReference(ref) == service.ReferenceLegacyV0
+		}),
+	).Get("/v1/public/proofs/{ref}", handler.NewProofHandler(proofs, salt).Verify)
 }

@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"time"
 
@@ -143,9 +142,11 @@ type Proof struct {
 	ReversedAt        *time.Time
 }
 
-// The public reference alphabet: Crockford-ish base32 with I, L, O and U removed,
-// so a reference read aloud or copied off paper cannot become a different one.
-const refAlphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+// The public reference alphabet: digits and upper-case letters with I, L, O and
+// U removed. It is the shared grammar's constant (documents.ProofRefAlphabet),
+// so the generator emits exactly what the parser accepts — and nothing reads a
+// look-alike letter as the digit it resembles: an O is simply not a symbol.
+const refAlphabet = documents.ProofRefAlphabet
 
 // SECURE_V1 is 24 symbols in six groups: 24 x log2(32) = 120 bits.
 //
@@ -191,41 +192,32 @@ func secureReference() (string, error) {
 
 // ReferenceVersion classifies a public proof reference. The two generations are
 // structurally distinguishable by length alone, so no stored column is needed.
-type ReferenceVersion int
+// The grammar itself lives in services/common/documents (proof_reference.go) so
+// the gateway, admin-api and every future reader share one parser.
+type ReferenceVersion = documents.ProofRefVersion
 
 const (
-	ReferenceInvalid ReferenceVersion = iota
+	ReferenceInvalid = documents.ProofRefInvalid
 	// ReferenceLegacyV0 is BZM-XXXX-XXXX: 8 symbols derived from the first 32 bits
 	// of an object UUID by a receipt generator that no longer exists. Compatibility
 	// only, for artifacts already in people's hands, and Sandbox only.
-	ReferenceLegacyV0
+	ReferenceLegacyV0 = documents.ProofRefLegacyV0
 	// ReferenceSecureV1 is BZM + six groups of four: 120 random bits.
-	ReferenceSecureV1
-)
-
-var (
-	legacyRefPattern = regexp.MustCompile(`^BZM(?:-[0-9A-F]{4}){2}$`)
-	secureRefPattern = regexp.MustCompile(`^BZM(?:-[0-9A-HJKMNP-TV-Z]{4}){6}$`)
+	ReferenceSecureV1 = documents.ProofRefSecureV1
 )
 
 // ClassifyReference is the ONE parser. Every service and surface that needs to
-// know what kind of reference it is holding calls this, so a second, subtly
-// different regex cannot drift into existence somewhere else.
+// know what kind of reference it is holding calls this, on the input exactly as
+// received, so a second, subtly different rule cannot drift into existence
+// somewhere else.
 //
-// Legacy is hex-only because that is what a UUID prefix can produce; the secure
-// alphabet is wider. Nothing is lower-cased or stripped here: the canonical form
-// is upper-case and hyphenated, and quietly accepting other spellings would mean
-// one proof had several spellings, which is exactly how a rate limit keyed on the
-// reference gets bypassed.
+// Nothing is lower-cased, upper-cased, trimmed or repaired — here or before the
+// call. The canonical form is what the generator emits; quietly accepting other
+// spellings would mean one proof had several spellings, which is how an altered
+// reference ends up "verifying" and how a rate limit keyed on the reference gets
+// bypassed.
 func ClassifyReference(ref string) ReferenceVersion {
-	switch {
-	case secureRefPattern.MatchString(ref):
-		return ReferenceSecureV1
-	case legacyRefPattern.MatchString(ref):
-		return ReferenceLegacyV0
-	default:
-		return ReferenceInvalid
-	}
+	return documents.ClassifyProofReference(ref)
 }
 
 // canonicalPayload is the deterministic, ordered byte string that is hashed and
@@ -513,11 +505,10 @@ func (s *ProofService) getByTxn(ctx context.Context, txnID, env string) (*Proof,
 // Two gates run BEFORE the query, because both are lookup-authority decisions
 // and every caller must get them:
 //
-//  1. The reference must be canonically spelled. The SQL matches case-
-//     insensitively, so without this a single proof would answer to many
-//     spellings — and a rate limit keyed on the reference could be evaded by
-//     rotating case. A non-canonical spelling is not a different identity for
-//     the same proof; it is not a reference at all.
+//  1. The reference must be canonically spelled, exactly as received. A
+//     non-canonical spelling — another case, a look-alike letter, surrounding
+//     whitespace, a different dash — is not another name for the same proof; it
+//     is not a reference at all, and it never reaches the database.
 //
 //  2. LEGACY_HEX_V0 carries roughly 32 bits of guessing resistance and exists
 //     only as compatibility for Sandbox receipts already in people's hands. It

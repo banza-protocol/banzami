@@ -116,3 +116,41 @@ func TestGeneratorNeverEmitsLegacyFormat(t *testing.T) {
 		}
 	}
 }
+
+// SECURE_REFERENCE_CANONICALITY_PROPERTY: every reference the generator emits is
+// accepted exactly as emitted — none needs normalizing — and every one-symbol
+// mutation to something the generator cannot emit, and every structural
+// mutation, is refused. Ten thousand draws cover every symbol in every position.
+func TestSecureReference_CanonicalityProperty(t *testing.T) {
+	outside := []string{"I", "L", "O", "U", " ", "_", "\u039F", "\u041E", "\uFF10", "\u00A0", "\u200B"}
+	for i := 0; i < 10000; i++ {
+		ref, err := secureReference()
+		if err != nil {
+			t.Fatalf("generate: %v", err)
+		}
+		if ClassifyReference(ref) != ReferenceSecureV1 {
+			t.Fatalf("generated reference refused as emitted: %q", ref)
+		}
+		pos := 4 + (i % 29) // any payload index; hyphen positions included
+		if pos%5 == 3 {
+			pos++ // 8, 13, … are hyphens — mutate a symbol
+		}
+		sym := ref[pos : pos+1]
+		mutants := map[string]string{
+			"lower":     ref[:pos] + strings.ToLower(sym) + ref[pos+1:],
+			"outside":   ref[:pos] + outside[i%len(outside)] + ref[pos+1:],
+			"no hyphen": strings.Replace(ref, "-", "", 1),
+			"longer":    ref + ref[len(ref)-1:],
+			"shorter":   ref[:len(ref)-1],
+			"padded":    ref + " ",
+		}
+		if strings.ToLower(sym) == sym {
+			delete(mutants, "lower") // a digit has no case
+		}
+		for name, m := range mutants {
+			if ClassifyReference(m) != ReferenceInvalid {
+				t.Fatalf("%s mutation of %q accepted: %q", name, ref, m)
+			}
+		}
+	}
+}

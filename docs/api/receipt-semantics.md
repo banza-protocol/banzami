@@ -8,7 +8,7 @@ on its own.
 ## Why
 
 A 2,000 Kz payment-link payment from @fm65 to @doa (proof
-`BZM-BMJN-CFAF-00ZT-ADSF-P4N7-FB0T`) was:
+`BZM-BMJN-…-FB0T`) was:
 
 | Surface | Said | Truth |
 |---------|------|-------|
@@ -76,6 +76,31 @@ only, never a payment.
 | PDF (Business) | `GET /v1/merchant/transactions/{id}/receipt.pdf` |
 | BANZADMIN | admin-api → `POST /internal/v1/receipts/{transfer,wallet-payment}` with `issue:false` (never issues a proof) |
 | Verifier | `GET /v1/public/proofs/{ref}` — the proof's snapshot, public disclosure |
+
+## The reference is exact
+
+A proof reference is an opaque identifier and a bearer capability. It has one
+spelling, the one the generator emitted, and identity is textual identity:
+
+- SECURE_V1 `BZM` + six groups of four symbols from
+  `0123456789ABCDEFGHJKMNPQRSTVWXYZ` (no I, L, O, U); LEGACY_V0 `BZM` + two
+  groups of four upper-case hex digits, Sandbox only.
+- One grammar, `services/common/documents/proof_reference.go`
+  (`ClassifyProofReference`). The generator draws from the same alphabet
+  constant, so the parser accepts exactly what can be emitted.
+- Nothing is corrected, anywhere: no trimming, no case change, no look-alike
+  repair (an `O` is not a `0`), no dash or Unicode normalization, no repeated
+  percent-decoding. A non-canonical spelling is not another name for the proof;
+  it is refused (`404`, the same non-disclosing answer as an unknown reference)
+  before any database lookup.
+- The website's `/verificar` accepts the reference, or the canonical link
+  `https://banzami.com/r/<reference>`, exactly as written, and says so when it
+  is not; `/r/<x>` never asks the operator about a non-canonical `x`.
+
+Guards: `public_proof_route_test.go` (gateway: every alias through the
+production route, zero database connections), `proof_reference_test.go`
+(alphabet parity over all of Unicode), `lib/proof-ref.test.ts` and
+`lib/proof-verification-states.test.ts` (website: no request for an alias).
 
 ## A Business's own words
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	documents "github.com/banzami/banzami/services/common/documents"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -100,6 +102,13 @@ func (s *ProofAdminService) Get(ctx context.Context, ref string) (*AdminProof, [
 	// List() below still searches with ILIKE. That is substring SEARCH, not
 	// identity resolution, and it establishes nothing about which proof a
 	// reference denotes.
+	//
+	// The shared grammar decides first, on the reference exactly as received: a
+	// non-canonical spelling is not a reference and is answered "not found"
+	// without a query.
+	if documents.ClassifyProofReference(ref) == documents.ProofRefInvalid {
+		return nil, nil, pgx.ErrNoRows
+	}
 	p, err := scanAdminProof(s.pool.QueryRow(ctx,
 		`SELECT `+adminProofCols+` FROM transaction_proofs WHERE proof_reference=$1`, ref))
 	if err != nil {
@@ -109,7 +118,7 @@ func (s *ProofAdminService) Get(ctx context.Context, ref string) (*AdminProof, [
 		`SELECT v.verified_at, COALESCE(v.country,''), v.result
 		   FROM transaction_proof_verifications v
 		   JOIN transaction_proofs tp ON tp.id = v.proof_id
-		  WHERE upper(tp.proof_reference)=upper($1)
+		  WHERE tp.proof_reference=$1
 		  ORDER BY v.verified_at DESC LIMIT 100`, ref)
 	if err != nil {
 		return p, nil, err

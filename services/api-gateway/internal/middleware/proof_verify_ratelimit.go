@@ -5,7 +5,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -45,7 +44,10 @@ const (
 func ProofVerifyRateLimit(rdb *redis.Client, isLegacy func(ref string) bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ref := strings.TrimSpace(chi.URLParam(r, "ref"))
+			// Classified exactly as the handler will: a padded or re-cased legacy
+			// reference is not a legacy reference, it is invalid, and the handler
+			// refuses it without a lookup.
+			ref := chi.URLParam(r, "ref")
 			if rdb == nil || !isLegacy(ref) {
 				// SECURE_V1 and unparseable references stay on the ordinary public
 				// policy applied further out. A legacy flood must not degrade

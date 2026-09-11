@@ -9,7 +9,6 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -68,7 +67,12 @@ func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"exists": false, "status": "UNAVAILABLE", "message": "verificação temporariamente indisponível"})
 		return
 	}
-	ref := strings.TrimSpace(chi.URLParam(r, "ref"))
+	// Exactly as routed — one URL-decoding layer (net/http), nothing more. No
+	// trimming, no case folding, no look-alike repair: a reference with a stray
+	// space, a lower-case letter or an O where the proof has a 0 is not the proof's
+	// reference, and must not resolve to it. GetByReference refuses anything that
+	// is not canonical before it touches the database.
+	ref := chi.URLParam(r, "ref")
 	refClass := middleware.RefClassInvalid
 	switch service.ClassifyReference(ref) {
 	case service.ReferenceLegacyV0:
