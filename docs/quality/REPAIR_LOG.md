@@ -3267,3 +3267,18 @@ Enhanced. Core now refuses to boot unless `ENVIRONMENT` names SANDBOX or LIVE
 `KYC_PROVIDER=EXTERNAL`. The deployed Sandbox core declares `ENVIRONMENT=sandbox`. Tests
 `only_the_two_universes_parse`, `boot_guard_tests::{a_live_core_refuses_simulated_providers,
 a_sandbox_core_may_simulate}` (a guard that always allows fails the first).
+
+## RA-119 — a KYB document could be accepted without ever being uploaded
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-05)
+- **Status:** FIXED (gateway)
+
+The console disabled "Aceitar" for a document still PENDING_UPLOAD; the server did
+not. Accept and reject were unconditional updates, so accepting a document whose file
+never arrived counted it as present and approval then provisioned the Business with no
+file in storage; a decided application's documents could be flipped afterwards. A
+decision now needs an uploaded file (UPLOADED, ACCEPTED or REJECTED) of an application
+still under review, in the UPDATE itself; otherwise it answers `DOCUMENT_NOT_UPLOADED`
+or `APPLICATION_CLOSED` and changes nothing. Test
+`TestDocumentDecision_NeedsAFileAndAnOpenApplication` (real DB; the previous code
+accepts the never-uploaded document).

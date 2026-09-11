@@ -34,6 +34,9 @@ var (
 	// ErrApplicationClosed: documents are part of a review; a decided
 	// application takes no more.
 	ErrApplicationClosed = errors.New("this application is no longer accepting documents")
+	// ErrDocumentNotUploaded: a review decides on a file; a document whose file
+	// never arrived has nothing to accept or reject.
+	ErrDocumentNotUploaded = errors.New("the document has no uploaded file to review")
 )
 
 // Allowed document types (v1). Three required company documents plus an
@@ -375,32 +378,52 @@ func (s *PostgresMerchantDocumentService) CreateReadURL(ctx context.Context, app
 	return ReadURLResult{URL: r.URL, ExpiresAt: r.ExpiresAt}, nil
 }
 
+// Accept and Reject decide on an uploaded file, of an application still under
+// review — in the UPDATE itself, not only in the console. They were
+// unconditional: accepting a document whose upload never happened counted it
+// as present, and approval then provisioned the Business with no file in
+// storage; a decided application's documents could be flipped afterwards
+// (A5-05).
 func (s *PostgresMerchantDocumentService) Accept(ctx context.Context, appID, documentID, reviewedBy string) (AdminDocumentView, error) {
-	tag, err := s.pool.Exec(ctx,
-		`UPDATE merchant_application_documents
-		    SET status='ACCEPTED', reviewed_by=$3, reviewed_at=now(), rejection_reason=NULL, updated_at=now()
-		  WHERE id=$1 AND application_id=$2 AND deleted_at IS NULL`,
-		documentID, appID, nullStr(reviewedBy))
-	if err != nil {
-		return AdminDocumentView{}, err
-	}
-	if tag.RowsAffected() == 0 {
-		return AdminDocumentView{}, ErrDocumentNotFound
-	}
-	return s.getAdmin(ctx, appID, documentID)
+	return s.decide(ctx, appID, documentID, "ACCEPTED", reviewedBy, "")
 }
 
 func (s *PostgresMerchantDocumentService) Reject(ctx context.Context, appID, documentID, reviewedBy, reason string) (AdminDocumentView, error) {
+	return s.decide(ctx, appID, documentID, "REJECTED", reviewedBy, reason)
+}
+
+func (s *PostgresMerchantDocumentService) decide(ctx context.Context, appID, documentID, status, reviewedBy, reason string) (AdminDocumentView, error) {
 	tag, err := s.pool.Exec(ctx,
-		`UPDATE merchant_application_documents
-		    SET status='REJECTED', reviewed_by=$3, reviewed_at=now(), rejection_reason=$4, updated_at=now()
-		  WHERE id=$1 AND application_id=$2 AND deleted_at IS NULL`,
-		documentID, appID, nullStr(reviewedBy), nullStr(reason))
+		`UPDATE merchant_application_documents d
+		    SET status=$3, reviewed_by=$4, reviewed_at=now(), rejection_reason=$5, updated_at=now()
+		   FROM merchant_applications a
+		  WHERE d.id=$1 AND d.application_id=$2 AND d.deleted_at IS NULL
+		    AND a.id = d.application_id
+		    AND d.status IN ('UPLOADED','ACCEPTED','REJECTED')
+		    AND a.status IN ('SUBMITTED','UNDER_REVIEW','INFORMATION_REQUIRED','PROVISIONING_FAILED')`,
+		documentID, appID, status, nullStr(reviewedBy), nullStr(reason))
 	if err != nil {
 		return AdminDocumentView{}, err
 	}
 	if tag.RowsAffected() == 0 {
-		return AdminDocumentView{}, ErrDocumentNotFound
+		// Say why: no such document, a file that never arrived, or a decided
+		// application.
+		var docStatus, appStatus string
+		err := s.pool.QueryRow(ctx,
+			`SELECT d.status, a.status FROM merchant_application_documents d
+			   JOIN merchant_applications a ON a.id = d.application_id
+			  WHERE d.id=$1 AND d.application_id=$2 AND d.deleted_at IS NULL`,
+			documentID, appID).Scan(&docStatus, &appStatus)
+		switch {
+		case errors.Is(err, pgx.ErrNoRows):
+			return AdminDocumentView{}, ErrDocumentNotFound
+		case err != nil:
+			return AdminDocumentView{}, err
+		case !documentsOpen(appStatus):
+			return AdminDocumentView{}, ErrApplicationClosed
+		default:
+			return AdminDocumentView{}, ErrDocumentNotUploaded
+		}
 	}
 	return s.getAdmin(ctx, appID, documentID)
 }

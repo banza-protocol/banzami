@@ -79,6 +79,8 @@ func (h *MerchantDocumentHandler) mapErr(w http.ResponseWriter, r *http.Request,
 		apierror.Respond(w, r, http.StatusUnprocessableEntity, "CONTENT_MISMATCH", "the file is not a valid PDF, JPEG or PNG of the declared type")
 	case errors.Is(err, service.ErrApplicationClosed):
 		apierror.Respond(w, r, http.StatusConflict, "APPLICATION_CLOSED", "this application is no longer accepting documents")
+	case errors.Is(err, service.ErrDocumentNotUploaded):
+		apierror.Respond(w, r, http.StatusConflict, "DOCUMENT_NOT_UPLOADED", "the document has no uploaded file to review")
 	default:
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not process document request")
 	}
