@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use banzami_consumer_wallets::{ConsumerWalletEngine, ConsumerWalletError, RoutingStatus};
 use banzami_transfers::{SendTransferRequest, TransferEngine, TransferError};
-use banzami_types::{Currency, TransferId};
+use banzami_types::{ConsumerId, Currency, TransferId};
 
 use crate::{
     error::{ApiError, ApiResult},
@@ -37,6 +37,10 @@ pub struct ListTransfersQuery {
     pub limit: Option<i64>,
     pub before_created_at: Option<chrono::DateTime<chrono::Utc>>,
     pub before_id: Option<String>,
+    /// The `next_cursor` public-api hands out: the id of the last transfer on
+    /// the previous page. Resolved to its keyset position within this
+    /// consumer's own history, so a foreign or unknown id is refused.
+    pub cursor: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -143,22 +147,40 @@ pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ListTransfersQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let consumer_id = q
+    let consumer_id: ConsumerId = q
         .consumer_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid consumer_id"))?;
 
     let limit = q.limit.unwrap_or(20).clamp(1, 100);
 
-    let before_id = q
+    let mut before_id = q
         .before_id
         .map(|s| s.parse::<TransferId>())
         .transpose()
         .map_err(|_| ApiError::bad_request("invalid before_id"))?;
+    let mut before_created_at = q.before_created_at;
+
+    if let Some(raw) = q.cursor.as_deref().filter(|c| !c.is_empty()) {
+        let id: uuid::Uuid = raw
+            .parse()
+            .map_err(|_| ApiError::bad_request("invalid cursor"))?;
+        let at: Option<chrono::DateTime<chrono::Utc>> = sqlx::query_scalar(
+            "SELECT created_at FROM transfers WHERE id = $1 AND (sender_id = $2 OR recipient_id = $2)",
+        )
+        .bind(id)
+        .bind(consumer_id.as_uuid())
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+        let at = at.ok_or_else(|| ApiError::bad_request("invalid cursor"))?;
+        before_created_at = Some(at);
+        before_id = Some(TransferId::from_uuid(id));
+    }
 
     let mut transfers = state
         .transfer
-        .list(consumer_id, limit + 1, q.before_created_at, before_id)
+        .list(consumer_id, limit + 1, before_created_at, before_id)
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 

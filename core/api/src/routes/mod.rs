@@ -43,6 +43,8 @@ mod payment_sessions_tests;
 pub mod payouts;
 pub mod pricing_rules;
 pub mod qr;
+#[cfg(test)]
+mod qr_wallet_account_tests;
 pub mod reconciliation;
 pub mod refund_source;
 #[cfg(test)]
@@ -69,6 +71,8 @@ pub mod splits;
 mod tenant_scoping_tests;
 pub mod transactions;
 pub mod transfers;
+#[cfg(test)]
+mod transfers_cursor_tests;
 #[cfg(test)]
 mod transfers_routing_tests;
 pub mod wallet_account_transfers;
