@@ -10,6 +10,7 @@ import 'screens/splash_screen.dart';
 import 'screens/pin_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
+import 'widgets/merchant_privacy_shield.dart';
 
 /// The session a cached BanzamiClient was built for (MerchantSession.clientKey).
 final _clientKeys = Expando<String>('business client session');
@@ -53,6 +54,8 @@ class BanzamiMerchantApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme:                      _buildTheme(),
         home:                       const _MerchantBoot(),
+        // The app-switcher snapshot never shows the Business's data.
+        builder: (_, child) => MerchantPrivacyShield(child: child!),
       ),
     );
   }

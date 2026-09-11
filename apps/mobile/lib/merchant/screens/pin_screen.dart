@@ -27,6 +27,19 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
   bool   _checking    = false;
   int    _padResetKey = 0;
 
+  // The device lock over a live session is checked on the device, so it has
+  // its own attempt limit (as in the consumer app): after [kPinMaxAttempts]
+  // wrong PINs the pad waits [kPinLockout] before trying again.
+  static const int      kPinMaxAttempts = 5;
+  static const Duration kPinLockout     = Duration(seconds: 30);
+  int       _failedAttempts = 0;
+  DateTime? _lockoutUntil;
+
+  bool get _isLockedOut {
+    final until = _lockoutUntil;
+    return until != null && DateTime.now().isBefore(until);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -65,6 +78,14 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
 
   Future<void> _onPinComplete() async {
     if (_pin.length < kPinLength || _checking) return;
+    if (_isLockedOut) {
+      final secs = _lockoutUntil!.difference(DateTime.now()).inSeconds + 1;
+      setState(() {
+        _notice = 'Demasiadas tentativas. Tente novamente em $secs segundos.';
+        _pin = ''; _padResetKey += 1;
+      });
+      return;
+    }
     setState(() { _checking = true; _error = false; _notice = null; });
 
     final svc = context.read<MerchantSessionService>();
@@ -73,9 +94,16 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     final ok  = await svc.verifyPin(_pin);
     if (!mounted) return;
     if (!ok) {
+      _failedAttempts += 1;
+      if (_failedAttempts >= kPinMaxAttempts) {
+        _failedAttempts = 0;
+        _lockoutUntil   = DateTime.now().add(kPinLockout);
+      }
       setState(() { _error = true; _checking = false; _pin = ''; _padResetKey += 1; });
       return;
     }
+    _failedAttempts = 0;
+    _lockoutUntil   = null;
 
     // A live Business session: the PIN is a device lock and stays on the
     // device. An expired access token is renewed with the refresh token.

@@ -635,6 +635,21 @@ void main() {
       expect(find.text('PIN incorrecto. Tente novamente.'), findsOneWidget);
     });
 
+    testWidgets('five wrong PINs lock the pad for a while; even the right PIN waits', (t) async {
+      tallScreen(t);
+      final svc = (await t.runAsync(() => device(DateTime.now().subtract(const Duration(days: 40)), withRefresh: false)))!;
+      final b = _Banzami();
+      await t.pumpWidget(pinApp(svc, BanzamiClient(baseUrl: 'https://x', httpClient: b.client)));
+      await t.pump();
+      for (var i = 0; i < 5; i++) {
+        await typePin(t, '999999');
+      }
+      await typePin(t, '123456');
+      expect(find.textContaining('Demasiadas tentativas'), findsOneWidget);
+      expect(b.tokenCalls, 0, reason: 'locked out: not even the right PIN goes to Banzami');
+      expect(svc.isLocked, isTrue);
+    });
+
     testWidgets('a PIN Banzami now refuses ends the session on this device', (t) async {
       tallScreen(t);
       final svc = (await t.runAsync(() => device(DateTime.now().subtract(const Duration(days: 40)), withRefresh: false)))!;
