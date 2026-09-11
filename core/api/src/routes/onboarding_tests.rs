@@ -28,6 +28,7 @@ async fn state(pool: PgPool, env: CoreEnvironment) -> AppState {
     let transit = account(&pool, "ASSET").await;
     let bank = account(&pool, "ASSET").await;
     let fee = account(&pool, "REVENUE").await;
+    crate::state::configure_live_secrets_for_tests();
     AppState::new(pool, AccountId::from_uuid(transit), AccountId::from_uuid(bank), AccountId::from_uuid(fee), env)
 }
 

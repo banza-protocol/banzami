@@ -278,9 +278,14 @@ impl AppState {
         let transfer = Arc::new(PostgresTransferEngine::new(pool.clone(), transfer_repo));
 
         // --- QR engine ---
-        let qr_signing_key = std::env::var("QR_SIGNING_KEY")
-            .map(|s| s.into_bytes())
-            .unwrap_or_else(|_| b"banzami-dev-qr-key-change-in-production".to_vec());
+        // LIVE: configured, or the process does not start — a default in the
+        // source is a key everyone has. Non-LIVE keeps its stable development
+        // key: a dynamic QR is verified against its DATABASE record (owner,
+        // amount, currency, expiry), so a payload signed with a known key can
+        // only pay an existing QR its real amount to its real owner, and
+        // changing the key would void every unexpired Sandbox QR (111 today).
+        let qr_signing_key =
+            qr_signing_key(std::env::var("QR_SIGNING_KEY").ok(), environment.is_live());
         let qr_repo = PostgresQrRepository::new(pool.clone());
         let qr = Arc::new(PostgresQrEngine::new(qr_repo, qr_signing_key));
 
@@ -291,9 +296,20 @@ impl AppState {
         // --- Acquiring engine ---
         // Selects provider based on ACQUIRING_PROVIDER env var (default: SIMULATED).
         // For production, set ACQUIRING_PROVIDER=EMIS and the EMIS_* env vars.
-        let webhook_secret = std::env::var("ACQUIRING_WEBHOOK_SECRET")
-            .unwrap_or_else(|_| "change-in-production".into())
-            .into_bytes();
+        // The acquiring callback secret. It defaulted to the public string
+        // "change-in-production", and the Sandbox never set it: anyone could
+        // sign a callback to the public POST /v1/callbacks/emis and confirm any
+        // pending payment — crediting the merchant, marking the link paid and
+        // emitting payment_link.paid to its integration.
+        //
+        // LIVE: configured, or the process does not start. Non-LIVE without
+        // one: a random secret for this process. The simulated rail signs and
+        // verifies its callbacks inside core, in one request (test_confirm), so
+        // nothing outside ever needs it — and nothing outside can forge it.
+        let webhook_secret = acquiring_callback_secret(
+            std::env::var("ACQUIRING_WEBHOOK_SECRET").ok(),
+            environment.is_live(),
+        );
         let provider = match std::env::var("ACQUIRING_PROVIDER").as_deref() {
             Ok("EMIS") => AcquirerKind::Emis(
                 EMISProvider::from_env()
@@ -353,5 +369,83 @@ impl AppState {
             operator_fee_read,
             catalog,
         }
+    }
+}
+
+/// The QR signing key (see AppState::new): configured, or — outside LIVE only —
+/// the stable development key.
+fn qr_signing_key(configured: Option<String>, live: bool) -> Vec<u8> {
+    match configured {
+        Some(k) if !k.is_empty() => k.into_bytes(),
+        _ if live => panic!("QR_SIGNING_KEY is required in LIVE"),
+        _ => b"banzami-dev-qr-key-change-in-production".to_vec(),
+    }
+}
+
+/// The acquiring callback secret (see AppState::new): configured, or — outside
+/// LIVE only — random for this process. The old source default is never a
+/// secret, whatever is configured.
+fn acquiring_callback_secret(configured: Option<String>, live: bool) -> Vec<u8> {
+    match configured {
+        Some(s) if !s.is_empty() && s != "change-in-production" => s.into_bytes(),
+        _ if live => panic!("ACQUIRING_WEBHOOK_SECRET is required in LIVE"),
+        _ => [uuid::Uuid::new_v4().into_bytes(), uuid::Uuid::new_v4().into_bytes()].concat(),
+    }
+}
+
+/// A LIVE AppState in a test needs the keys LIVE requires; the values are
+/// test-only and the same for the whole test process.
+#[cfg(test)]
+pub(crate) fn configure_live_secrets_for_tests() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        std::env::set_var("ACQUIRING_WEBHOOK_SECRET", "test-only-acquiring-callback-secret");
+        std::env::set_var("QR_SIGNING_KEY", "test-only-qr-signing-key");
+    });
+}
+
+#[cfg(test)]
+mod secret_tests {
+    use super::*;
+
+    #[test]
+    fn a_configured_callback_secret_is_used() {
+        assert_eq!(acquiring_callback_secret(Some("k".into()), true), b"k");
+        assert_eq!(acquiring_callback_secret(Some("k".into()), false), b"k");
+    }
+
+    #[test]
+    fn outside_live_an_unset_callback_secret_is_random_never_the_old_default() {
+        for unset in [None, Some(String::new()), Some("change-in-production".into())] {
+            let a = acquiring_callback_secret(unset.clone(), false);
+            let b = acquiring_callback_secret(unset, false);
+            assert_ne!(a, b"change-in-production");
+            assert_eq!(a.len(), 32);
+            assert_ne!(a, b, "each process draws its own");
+        }
+    }
+
+    #[test]
+    #[should_panic(expected = "ACQUIRING_WEBHOOK_SECRET is required in LIVE")]
+    fn live_refuses_to_start_without_a_callback_secret() {
+        acquiring_callback_secret(None, true);
+    }
+
+    #[test]
+    #[should_panic(expected = "ACQUIRING_WEBHOOK_SECRET is required in LIVE")]
+    fn live_refuses_the_old_default_callback_secret() {
+        acquiring_callback_secret(Some("change-in-production".into()), true);
+    }
+
+    #[test]
+    #[should_panic(expected = "QR_SIGNING_KEY is required in LIVE")]
+    fn live_refuses_to_start_without_a_qr_key() {
+        qr_signing_key(Some(String::new()), true);
+    }
+
+    #[test]
+    fn outside_live_the_qr_key_stays_stable() {
+        assert_eq!(qr_signing_key(None, false), qr_signing_key(None, false));
+        assert_eq!(qr_signing_key(Some("q".into()), true), b"q");
     }
 }

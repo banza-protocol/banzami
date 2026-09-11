@@ -75,9 +75,10 @@ impl AcquirerProvider for SimulatedProvider {
         raw_body: &[u8],
         signature: &str,
     ) -> Result<PaymentConfirmation, AcquirerError> {
-        let expected = self.sign(raw_body);
-        if signature != expected {
-            tracing::warn!(received = %signature, expected = %expected, "simulated: invalid callback signature");
+        // Never log the expected signature: it is a valid signature for this
+        // body, handed to whoever reads the logs.
+        if !super::signature_is_valid(&self.webhook_secret, raw_body, signature) {
+            tracing::warn!("simulated: invalid callback signature");
             return Err(AcquirerError::InvalidSignature);
         }
 

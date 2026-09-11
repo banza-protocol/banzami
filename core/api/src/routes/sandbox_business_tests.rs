@@ -34,6 +34,7 @@ async fn state_for(pool: PgPool, env: CoreEnvironment) -> AppState {
         }
     };
     let (t, b, f) = (acct("t").await, acct("b").await, acct("f").await);
+    crate::state::configure_live_secrets_for_tests();
     AppState::new(
         pool,
         AccountId::from_uuid(t),

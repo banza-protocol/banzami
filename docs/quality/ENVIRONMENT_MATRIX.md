@@ -45,8 +45,10 @@ discipline only — hardening candidates).
 
 1. Staging/sandbox email: enforce `EMAIL_DRY_RUN=true` (or a dedicated sandbox
    Resend key) in staging compose; deploy gate should fail otherwise. (RA-016)
-2. `ACQUIRING_WEBHOOK_SECRET` must be distinct per environment — add a boot
-   guard or deploy check. (RA-017)
+2. `ACQUIRING_WEBHOOK_SECRET` must be distinct per environment. LIVE core now
+   refuses to boot without one (or with the old source default); an unset
+   Sandbox secret is random per process, so it cannot equal LIVE's. (RA-017,
+   RA-084)
 3. Platform-mode propagation drift: add startup/periodic consistency check
    between banzami and banzami_staging platform_settings. (RA-018)
 4. Deployed E2E proving a staging payment link resolves and pays through

@@ -957,6 +957,10 @@ Disposition: fixed / blocked(owner+decision) / accepted-justified / open.
   replay once rails activate.
 - **Disposition:** open — add boot/deploy guard (Phase 6/7). Not exploitable
   today (rails stubbed, fail-closed).
+- **Update 2026-09-11 (RA-084):** LIVE core refuses to boot without the secret;
+  an unset Sandbox secret is random per process and never exported, so the two
+  environments cannot share it. A configured Sandbox value is not yet compared
+  with LIVE's (no deploy check reads both) — that part stays open.
 
 ## RA-018 — Platform-mode propagation drift unmonitored
 
@@ -2572,3 +2576,33 @@ current/previous target), and bundle **archives** older than a day — never a
 manifest, checksum or receipt. `tests/ops/native-build-reclaim.test.mjs`
 checks every deletion in that function and the gate's position; both
 mutation-proven.
+
+## RA-084 — anyone could confirm a Sandbox payment: the callback secret was a public default
+
+- **Found:** 2026-09-11 (full-system assurance, environment/secret domain)
+- **Status:** FIXED
+
+`AppState::new` read `ACQUIRING_WEBHOOK_SECRET` with a fallback to the literal
+`change-in-production`, and the Sandbox core never set it (verified on the
+running container: unset). The simulated acquirer verifies callbacks to the
+public `POST /v1/callbacks/emis` with that secret, so anyone who read the
+source could sign a callback for any pending acquiring payment and confirm it:
+merchant wallet credited, payment link marked paid, `payment_link.paid` sent to
+the integration — DOA included. The callback's own amount had to match since
+dc8d2f40, which bounded the value but not the forgery. The same code logged the
+**expected** signature on every mismatch (a valid signature for that body, in
+the logs) and compared with a byte-wise `!=`. `QR_SIGNING_KEY` fell back to a
+development key the same way; impact is low because a dynamic QR is verified
+against its database record (owner, amount, currency, expiry), not the
+signature alone.
+
+Now: LIVE core refuses to boot without either key (and refuses the old default
+as the callback secret). An unset Sandbox callback secret is 32 random bytes
+drawn at boot and never exported — the simulated rail signs and verifies inside
+one core request, so nothing outside needs it. The Sandbox QR key stays stable
+on purpose (changing it would void every unexpired Sandbox QR). `EMISProvider::
+from_env` no longer invents a secret. Both providers verify through
+`signature_is_valid` (constant-time `Mac::verify_slice`) and log no signature.
+Tests: `state::secret_tests` (six) and `providers::tests::
+only_the_secret_signs_a_callback`; mutations restoring the default (three
+fail) and accepting any 32-byte tag (fails) are caught.

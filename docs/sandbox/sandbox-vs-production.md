@@ -8,7 +8,8 @@ Banza maintains strict environment isolation. Mixing sandbox and production is a
 |-----------------------|--------------------------|-------------------------|
 | `APP_ENV`             | `development` (default)  | `production`            |
 | `ACQUIRING_PROVIDER`  | (unset = SIMULATED)      | `EMIS`                  |
-| `ACQUIRING_WEBHOOK_SECRET` | dev secret          | EMIS-issued HMAC secret |
+| `ACQUIRING_WEBHOOK_SECRET` | unset = random per core process (RA-084) | EMIS-issued HMAC secret — required, core refuses to boot without it |
+| `QR_SIGNING_KEY`      | unset = stable dev key (QR verified against its DB record) | required — core refuses to boot without it |
 | `EMIS_API_URL`        | not needed               | EMIS production URL     |
 | `EMIS_API_KEY`        | not needed               | EMIS API key            |
 | `EMIS_ENTITY`         | not needed               | EMIS entity number      |
@@ -25,7 +26,9 @@ This prevents accidentally deploying simulated payments to production.
 
 ### SimulatedProvider (sandbox/development)
 - Generates realistic 9-digit Multicaixa reference numbers
-- Signs callbacks with HMAC using `ACQUIRING_WEBHOOK_SECRET`
+- Signs callbacks with HMAC using `ACQUIRING_WEBHOOK_SECRET` — or, when it is
+  unset, a secret drawn at boot and never exported: callbacks are generated and
+  verified inside core (`test-confirm`), so nothing outside can forge one
 - No external HTTP calls — fully deterministic
 - Supports `test-confirm` endpoints for instant settlement simulation
 - Can be triggered from admin tools / Postman

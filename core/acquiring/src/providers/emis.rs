@@ -18,15 +18,11 @@
 //! contract and sandbox credentials are available.
 
 use chrono::Utc;
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
 
 use crate::provider::{
     AcquirerError, AcquirerProvider, ExternalPaymentRef, InitiatePaymentRequest,
     PaymentConfirmation,
 };
-
-type HmacSha256 = Hmac<Sha256>;
 
 #[allow(dead_code)]
 pub struct EMISProvider {
@@ -49,13 +45,6 @@ impl EMISProvider {
             entity: entity.into(),
             webhook_secret: webhook_secret.into(),
         }
-    }
-
-    fn sign(&self, body: &[u8]) -> String {
-        let mut mac =
-            HmacSha256::new_from_slice(&self.webhook_secret).expect("HMAC accepts any key length");
-        mac.update(body);
-        format!("sha256={}", hex::encode(mac.finalize().into_bytes()))
     }
 }
 
@@ -92,9 +81,8 @@ impl AcquirerProvider for EMISProvider {
         signature: &str,
     ) -> Result<PaymentConfirmation, AcquirerError> {
         // HMAC-SHA256 validation — same as SimulatedProvider.
-        let expected = self.sign(raw_body);
-        if signature != expected {
-            tracing::warn!(received = %signature, "EMIS: invalid callback signature");
+        if !super::signature_is_valid(&self.webhook_secret, raw_body, signature) {
+            tracing::warn!("EMIS: invalid callback signature");
             return Err(AcquirerError::InvalidSignature);
         }
 
@@ -134,8 +122,11 @@ impl EMISProvider {
         let api_url = std::env::var("EMIS_API_URL").ok()?;
         let api_key = std::env::var("EMIS_API_KEY").ok()?;
         let entity = std::env::var("EMIS_ENTITY").ok()?;
+        // The provider's shared secret, and never a default: a default in the
+        // source is a secret everyone has.
         let webhook_secret = std::env::var("ACQUIRING_WEBHOOK_SECRET")
-            .unwrap_or_else(|_| "change-in-production".into())
+            .ok()
+            .filter(|s| !s.is_empty() && s != "change-in-production")?
             .into_bytes();
         Some(Self::new(api_url, api_key, entity, webhook_secret))
     }
