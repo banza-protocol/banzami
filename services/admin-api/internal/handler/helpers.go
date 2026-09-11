@@ -55,3 +55,24 @@ func handleCoreErr(w http.ResponseWriter, err error) {
 	}
 	writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 }
+
+// actorIsSuperAdmin reports whether the calling operator is a SUPER_ADMIN.
+func actorIsSuperAdmin(r *http.Request) bool {
+	p, ok := auth.FromContext(r.Context())
+	return ok && p.Role == "SUPER_ADMIN"
+}
+
+// mayActOnOperator guards account-recovery actions (password reset, invite
+// resend, session termination) held by the help desk (operator.reset).
+//
+// SUPPORT held operator.reset on ANY target, and with e-mail in dry-run the
+// reset or invite link came back in the response — so SUPPORT could set the
+// password of an invited SUPER_ADMIN, enrol its own MFA and hold the account.
+// A recovery action on a SUPER_ADMIN account is itself a SUPER_ADMIN action.
+func mayActOnOperator(w http.ResponseWriter, r *http.Request, targetRole string) bool {
+	if targetRole == "SUPER_ADMIN" && !actorIsSuperAdmin(r) {
+		writeError(w, http.StatusForbidden, "FORBIDDEN", "only a SUPER_ADMIN may act on a SUPER_ADMIN account")
+		return false
+	}
+	return true
+}

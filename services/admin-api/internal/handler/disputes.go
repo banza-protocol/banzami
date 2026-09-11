@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -75,19 +76,34 @@ func (h *DisputeHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if body.Outcome == "" {
-		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "outcome is required")
+	switch body.Outcome {
+	case "WON_BY_CONSUMER", "WON_BY_MERCHANT", "CLOSED":
+	default:
+		writeError(w, http.StatusBadRequest, "INVALID_OUTCOME", "outcome must be WON_BY_CONSUMER, WON_BY_MERCHANT or CLOSED")
+		return
+	}
+	p, ok := auth.FromContext(r.Context())
+	if !ok || p.ID == "" {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "operator session required")
 		return
 	}
 
 	// Attribution from the authenticated operator (ignores any client value).
-	result, err := h.core.ResolveDispute(r.Context(), id, body.Outcome, body.ResolutionNotes, actorOf(r))
+	// disputes.resolved_by is the operator's admin user id (a UUID). This sent
+	// the e-mail, core refused to parse it, and every resolution failed as a
+	// 500 — no dispute could ever be resolved from BANZADMIN.
+	result, err := h.core.ResolveDispute(r.Context(), id, body.Outcome, body.ResolutionNotes, p.ID)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "dispute not found")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		var ce *service.CoreError
+		if errors.As(err, &ce) && ce.Status >= 400 && ce.Status < 500 {
+			writeError(w, ce.Status, ce.Code, ce.Message)
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "the dispute could not be resolved")
 		return
 	}
 	auditAfter(r, "dispute", id, map[string]any{

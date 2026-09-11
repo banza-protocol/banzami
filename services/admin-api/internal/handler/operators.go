@@ -175,6 +175,9 @@ func (h *OperatorHandler) ResendInvite(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	if !mayActOnOperator(w, r, o.Role) {
+		return
+	}
 	// Only operators who haven't activated (still INVITED / no password) can be
 	// re-invited; an active operator uses the password-reset flow instead.
 	if o.Status != "INVITED" && o.PasswordSet {
@@ -188,7 +191,7 @@ func (h *OperatorHandler) ResendInvite(w http.ResponseWriter, r *http.Request) {
 	}
 	auditAfter(r, "admin_user", o.ID, map[string]any{"action": "RESEND_INVITE", "email": o.Email})
 	out := map[string]any{"ok": true, "email_sent_to": o.Email, "expires_at": exp}
-	if h.showLink {
+	if h.showLink && actorIsSuperAdmin(r) {
 		out["invite_url"] = inviteURL
 	}
 	writeJSON(w, http.StatusOK, out)
@@ -304,8 +307,12 @@ func (h *OperatorHandler) TerminateSessions(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	id := chi.URLParam(r, "id")
-	if _, err := h.ops.GetOperator(r.Context(), id); err != nil {
+	target, err := h.ops.GetOperator(r.Context(), id)
+	if err != nil {
 		h.opErr(w, err)
+		return
+	}
+	if !mayActOnOperator(w, r, target.Role) {
 		return
 	}
 	if err := h.ops.BumpTokenVersion(r.Context(), id); err != nil {

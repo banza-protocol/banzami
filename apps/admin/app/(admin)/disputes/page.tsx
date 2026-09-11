@@ -54,7 +54,7 @@ export default function DisputesPage() {
     const outcome = await dialog.prompt({
       title: 'Resolver disputa',
       label: 'Resultado',
-      placeholder: 'Ex.: MERCHANT_FAVOR ou CONSUMER_FAVOR',
+      placeholder: 'WON_BY_CONSUMER, WON_BY_MERCHANT ou CLOSED',
       confirmLabel: 'Continuar',
       required: true,
     });

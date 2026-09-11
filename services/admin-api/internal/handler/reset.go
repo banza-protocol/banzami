@@ -71,6 +71,9 @@ func (h *ResetHandler) Request(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !mayActOnOperator(w, r, op.Role) {
+		return
+	}
 	createdBy := ""
 	if p, ok := auth.FromContext(r.Context()); ok {
 		createdBy = p.ID
@@ -90,9 +93,10 @@ func (h *ResetHandler) Request(w http.ResponseWriter, r *http.Request) {
 	auditAfter(r, "admin_user", id, map[string]any{"action": "RESET_PASSWORD_ISSUED", "email": op.Email})
 
 	out := map[string]any{"ok": true, "expires_at": exp, "email_sent_to": op.Email}
-	if h.showLink {
+	if h.showLink && actorIsSuperAdmin(r) {
 		// SMTP not configured / dry-run: hand the link to the SUPER_ADMIN over
-		// the authenticated HTTPS response so they can deliver it.
+		// the authenticated HTTPS response so they can deliver it. Only to a
+		// SUPER_ADMIN — anyone else holding it holds the account.
 		out["reset_url"] = resetURL
 	}
 	writeJSON(w, http.StatusOK, out)
