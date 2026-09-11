@@ -422,10 +422,38 @@ void main() {
   group('payment notifications follow the session', () {
     const topics = ['merchant_m-old', 'sandbox_merchant_m-old'];
 
-    test('the topics are the ones the gateway publishes to', () {
-      expect(PushNotificationService.merchantTopics('m-old'), topics);
-      expect(PushNotificationService.merchantTopic('m-old', sandbox: true), 'sandbox_merchant_m-old');
-      expect(PushNotificationService.merchantTopic('m-old', sandbox: false), 'merchant_m-old');
+    test('the legacy id-derived topics are always left', () {
+      expect(PushNotificationService.legacyMerchantTopics('m-old'), topics);
+    });
+
+    // A6-06: the topic the gateway named for the session is left too.
+    test('ending the session leaves the topic the gateway named', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      svc.unlock();
+      await svc.rememberPushTopic('m-old', 'sandbox_m_9db3b08df4b8f6f166e9052ffb76810f');
+      await signOutBusiness(client: clientFor(svc, _Banzami()), session: svc);
+      expect(push.unsubscribed, [...topics, 'sandbox_m_9db3b08df4b8f6f166e9052ffb76810f']);
+      expect(store.containsKey('merchant_push_topic'), isFalse);
+    });
+
+    test('the named topic survives a restart and is left at the next ending', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      await svc.rememberPushTopic('m-old', 'sandbox_m_abc');
+      final restarted = MerchantSessionService(push: push);
+      await restarted.initialize();
+      restarted.unlock();
+      restarted.markExpired();
+      await restarted.settled;
+      expect(push.unsubscribed, [...topics, 'sandbox_m_abc']);
+    });
+
+    test('a topic named for another Business is not recorded', () async {
+      final push = _Push(store);
+      final svc = await device(fresh, push: push);
+      await svc.rememberPushTopic('m-other', 'm_other');
+      expect(store.containsKey('merchant_push_topic'), isFalse);
     });
 
     test('a refused renewal unsubscribes before the identity is cleared', () async {

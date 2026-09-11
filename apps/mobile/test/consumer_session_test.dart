@@ -70,6 +70,27 @@ void main() {
       expect(push.unsubscribed, containsAll(['consumer_c-A', 'sandbox_consumer_c-A']));
     });
 
+    // A6-06: the topic the server named for the session is left too.
+    test('logout leaves the topic the server named, even after a restart', () async {
+      final push = _FakePush();
+      final svc = await signedIn(push);
+      await svc.rememberPushTopic('c-A', 'c_60fb69fab79d6d3c7a3ac844cc4712f7');
+      expect(store['push_topic'], 'c_60fb69fab79d6d3c7a3ac844cc4712f7');
+
+      final restarted = SessionService(push: push);
+      await restarted.initialize();
+      await restarted.logout();
+      expect(push.unsubscribed,
+          ['consumer_c-A', 'sandbox_consumer_c-A', 'c_60fb69fab79d6d3c7a3ac844cc4712f7']);
+      expect(store, isEmpty);
+    });
+
+    test('a topic named for another account is not recorded', () async {
+      final svc = await signedIn(_FakePush());
+      await svc.rememberPushTopic('c-B', 'c_other');
+      expect(store.containsKey('push_topic'), isFalse);
+    });
+
     test('a late subscription is skipped once the account signed out', () async {
       final svc = await signedIn(_FakePush());
       expect(svc.isSignedInAs('c-A'), isTrue);

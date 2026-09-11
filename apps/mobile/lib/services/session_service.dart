@@ -106,8 +106,12 @@ class SessionService extends ChangeNotifier {
   static const _kToken              = 'token';
   static const _kBioEnabled         = 'biometrics_enabled';
   static const _kVerificationBadge  = 'verification_badge';
+  /// The FCM topic the server named for this account (A6-06), so signing out
+  /// leaves it even before the app has asked the server again.
+  static const _kPushTopic          = 'push_topic';
 
   Session? _session;
+  String?  _pushTopic;
   bool     _locked      = true;
   bool     _initialized = false;
 
@@ -173,6 +177,7 @@ class SessionService extends ChangeNotifier {
     final bioEnabled  = await _store.read(key: _kBioEnabled);
     final badgeRaw    = await _store.read(key: _kVerificationBadge);
     final pinHash     = await _store.read(key: _kPinHash);
+    _pushTopic        = await _store.read(key: _kPushTopic);
 
     // A token the server rejected was dropped ([expireToken]); the account is
     // still this device's and opens locked — the PIN signs in again.
@@ -340,7 +345,9 @@ class SessionService extends ChangeNotifier {
   /// consumer id is still known — otherwise the next account signed in on
   /// this phone would receive this one's payment notifications.
   Future<void> logout() async {
-    _unregisterPush(_session?.consumerId ?? await _readConsumerIdSafely());
+    _unregisterPush(_session?.consumerId ?? await _readConsumerIdSafely(),
+        _pushTopic ?? await _readSafely(_kPushTopic));
+    _pushTopic = null;
     await _store.deleteAll();
     // deleteAll only matches items of its own accessibility: also remove
     // anything an older version wrote.
@@ -357,19 +364,39 @@ class SessionService extends ChangeNotifier {
   /// notifications — checked right before a slow subscription completes.
   bool isSignedInAs(String consumerId) => _session?.consumerId == consumerId;
 
-  Future<String?> _readConsumerIdSafely() async {
+  /// Records the FCM topic the server named for [consumerId] (A6-06) —
+  /// before the device subscribes — so a sign-out leaves it. Ignored once
+  /// that consumer is no longer the one signed in here.
+  Future<void> rememberPushTopic(String consumerId, String topic) async {
+    if (!isSignedInAs(consumerId) || topic.isEmpty) return;
+    _pushTopic = topic;
     try {
-      return await _store.read(key: _kConsumerId);
+      await _store.write(key: _kPushTopic, value: topic);
+    } catch (e) {
+      debugPrint('[session] could not store the push topic: ${e.runtimeType}');
+    }
+  }
+
+  Future<String?> _readConsumerIdSafely() => _readSafely(_kConsumerId);
+
+  Future<String?> _readSafely(String key) async {
+    try {
+      return await _store.read(key: key);
     } catch (_) {
       return null;
     }
   }
 
   /// Best effort, never awaited: an unreachable FCM cannot keep the device
-  /// signed in, and the platform SDKs retry a topic operation.
-  void _unregisterPush(String? consumerId) {
-    if (consumerId == null || consumerId.isEmpty) return;
-    for (final topic in PushNotificationService.consumerTopics(consumerId)) {
+  /// signed in, and the platform SDKs retry a topic operation. Leaves the
+  /// topic the server named ([serverTopic]) and the legacy id-derived ones.
+  void _unregisterPush(String? consumerId, String? serverTopic) {
+    final topics = [
+      if (consumerId != null && consumerId.isNotEmpty)
+        ...PushNotificationService.legacyConsumerTopics(consumerId),
+      if (serverTopic != null && serverTopic.isNotEmpty) serverTopic,
+    ];
+    for (final topic in topics) {
       unawaited(Future.sync(() => _push.unsubscribe(topic)).catchError((Object e) {
         debugPrint('[session] could not unsubscribe from a consumer topic: ${e.runtimeType}');
       }));

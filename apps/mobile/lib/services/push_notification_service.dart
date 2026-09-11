@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
@@ -161,72 +163,79 @@ class PushNotificationService {
   }
 
   // ── Topic subscription ─────────────────────────────────────────────────────
+  //
+  // A6-06. FCM does not check who subscribes to a topic, and Banzami's Firebase
+  // client configuration is public. An account's topic is therefore named by
+  // the server — a keyed hash of the account id — and disclosed only to the
+  // account's own session (consumer: public-api GET /v1/me/push-topic;
+  // Business: gateway GET /v1/merchant/push-topic). This app subscribes to
+  // exactly the name it is given and never derives a topic from an id.
+  //
+  // The id-derived names below are the LEGACY topics (anyone who knew the id
+  // could subscribe to them). The server no longer publishes to them; the
+  // device only ever leaves them.
 
-  /// The FCM topic a consumer's notifications are published to.
-  static String consumerTopic(String consumerId, {required bool sandbox}) =>
-      sandbox ? 'sandbox_consumer_$consumerId' : 'consumer_$consumerId';
-
-  /// Every topic a consumer's notifications could reach this device on — both
-  /// environments, so signing out leaves neither behind.
-  static List<String> consumerTopics(String consumerId) => [
-        consumerTopic(consumerId, sandbox: false),
-        consumerTopic(consumerId, sandbox: true),
+  /// The legacy topics a consumer's notifications went to before A6-06, in
+  /// both environments. Left, never joined.
+  static List<String> legacyConsumerTopics(String consumerId) => [
+        'consumer_$consumerId',
+        'sandbox_consumer_$consumerId',
       ];
 
-  /// Subscribes to a consumer topic with sandbox isolation.
-  /// Use this for the logged-in consumer: topic = consumer_<id> or sandbox_consumer_<id>.
-  static Future<void> subscribeConsumer(String consumerId,
-      {bool Function()? stillWanted}) async {
-    final topic = consumerTopic(consumerId, sandbox: AppConfig.isSandbox);
-    _fcmDiagSnapshot['consumer_id']     = consumerId;
-    _fcmDiagSnapshot['subscribed_topic'] = topic;
-    _fcmDiagSnapshot['environment']     = AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION';
-    debugPrint('[FCM] AppConfig.isSandbox=${AppConfig.isSandbox} consumerId=$consumerId');
-    debugPrint('[FCM] subscribing topic=$topic');
-    await _subscribeTopic(topic, stillWanted: stillWanted);
-  }
-
-  /// The FCM topic a Business's payment notifications are published to, as
-  /// the gateway names it (services/api-gateway notify/fcm.go
-  /// topicForMerchant): `sandbox_merchant_<id>` on the Sandbox stack,
-  /// `merchant_<id>` on Live.
-  static String merchantTopic(String merchantId, {required bool sandbox}) =>
-      sandbox ? 'sandbox_merchant_$merchantId' : 'merchant_$merchantId';
-
-  /// Every topic a Business's notifications could reach this device on —
-  /// both environments, so ending a session leaves neither behind whatever
-  /// environment the build subscribed with.
-  static List<String> merchantTopics(String merchantId) => [
-        merchantTopic(merchantId, sandbox: false),
-        merchantTopic(merchantId, sandbox: true),
+  /// The legacy topics a Business's notifications went to before A6-06, in
+  /// both environments. Left, never joined.
+  static List<String> legacyMerchantTopics(String merchantId) => [
+        'merchant_$merchantId',
+        'sandbox_merchant_$merchantId',
       ];
 
-  /// Subscribes to the topic of the environment the Business signed in to.
+  /// Joins the signed-in account's topic, exactly as the server names it
+  /// ([fetchTopic] asks the account's own session), and leaves [legacyTopics].
   ///
-  /// [environment] is the session's ('SANDBOX' | 'LIVE'), from the gateway's
-  /// token — not the build's setting. One build can sign in to either stack
-  /// (ADR-025), and the gateway publishes to the topic of the environment the
-  /// payment happened in; a build-time guess subscribed a Sandbox Business to
-  /// the Live topic whenever the build had no ENVIRONMENT set.
+  /// No topic from the server (not configured there, or the request failed):
+  /// the device joins nothing — push stays off rather than falling back to a
+  /// guessable name. [remember] is called with the topic BEFORE subscribing,
+  /// so a sign-out that happens meanwhile knows what to leave. [stillWanted]
+  /// is checked before subscribing (and again after the APNs wait): a session
+  /// that ended meanwhile has already left, and subscribing would undo that.
   ///
-  /// [stillWanted] is checked right before subscribing — after the wait for
-  /// the APNs token, which can take up to 30 s. A session that ended meanwhile
-  /// has already unsubscribed this device; subscribing afterwards would undo
-  /// that, so it is skipped.
-  static Future<void> subscribeMerchant(String merchantId,
-      {required String environment, bool Function()? stillWanted}) async {
-    final topic = merchantTopicForSession(merchantId, environment);
-    await _subscribeTopic(topic, stillWanted: stillWanted);
+  /// Returns the topic joined, or null.
+  static Future<String?> joinServerTopic({
+    required Future<String?> Function() fetchTopic,
+    required List<String> legacyTopics,
+    FutureOr<void> Function(String topic)? remember,
+    bool Function()? stillWanted,
+    PushTopicOps ops = const FirebasePushTopicOps(),
+  }) async {
+    for (final legacy in legacyTopics) {
+      unawaited(Future.sync(() => ops.unsubscribe(legacy)).catchError((Object e) {
+        debugPrint('[FCM] could not leave a legacy topic: ${e.runtimeType}');
+      }));
+    }
+
+    String? topic;
+    try {
+      topic = await fetchTopic();
+    } catch (e) {
+      debugPrint('[FCM] could not fetch the push topic: ${e.runtimeType}');
+    }
+    if (topic == null || topic.isEmpty || legacyTopics.contains(topic)) {
+      debugPrint('[FCM] no push topic from the server — not subscribing');
+      _fcmDiagSnapshot['subscribed_topic'] = '— (none from the server)';
+      return null;
+    }
+    if (stillWanted != null && !stillWanted()) return null;
+
+    await remember?.call(topic);
+    _fcmDiagSnapshot['subscribed_topic'] = _masked(topic);
+    await ops.subscribe(topic, stillWanted: stillWanted);
+    return topic;
   }
 
-  /// The topic for a Business session's environment. Anything but 'LIVE'
-  /// is the Sandbox topic: a malformed environment must never land a
-  /// Sandbox device on a Live topic.
-  static String merchantTopicForSession(String merchantId, String environment) =>
-      merchantTopic(merchantId, sandbox: environment.toUpperCase() != 'LIVE');
-
-  /// Generic topic subscription — still exposed for backward compatibility.
-  static Future<void> subscribeToTopic(String topic) => _subscribeTopic(topic);
+  /// A topic as it may appear in a log or the debug panel: enough to tell
+  /// two apart, not enough to subscribe with.
+  static String _masked(String topic) =>
+      topic.length <= 12 ? '…' : '${topic.substring(0, 12)}…';
 
   static Future<void> unsubscribeFromTopic(String topic) =>
       _messaging.unsubscribeFromTopic(topic);
@@ -234,7 +243,7 @@ class PushNotificationService {
   static Future<void> _subscribeTopic(String topic, {bool Function()? stillWanted}) async {
     final apns = await _getApnsToken();
     if (apns == null) {
-      debugPrint('[FCM] APNs unavailable — skipping subscribeToTopic($topic)');
+      debugPrint('[FCM] APNs unavailable — skipping subscribeToTopic');
       _fcmDiagSnapshot['subscribe_success'] = 'false (APNs unavailable)';
       return;
     }
@@ -245,10 +254,10 @@ class PushNotificationService {
     try {
       await _messaging.subscribeToTopic(topic);
       _fcmDiagSnapshot['subscribe_success'] = 'true';
-      debugPrint('[FCM] subscribe success=true topic=$topic');
+      debugPrint('[FCM] subscribe success=true topic=${_masked(topic)}');
     } catch (e) {
       _fcmDiagSnapshot['subscribe_success'] = 'false ($e)';
-      debugPrint('[FCM] subscribe success=false topic=$topic error=$e');
+      debugPrint('[FCM] subscribe success=false topic=${_masked(topic)} error=${e.runtimeType}');
     }
   }
 
@@ -262,8 +271,7 @@ class PushNotificationService {
     final status   = settings.authorizationStatus;
     return {
       'permission':        status.toString().replaceAll('AuthorizationStatus.', ''),
-      'environment':       _fcmDiagSnapshot['environment']      ?? (AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION'),
-      'consumer_id':       _fcmDiagSnapshot['consumer_id']      ?? '—',
+      'environment':       AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION',
       'subscribed_topic':  _fcmDiagSnapshot['subscribed_topic'] ?? '—',
       'apns_token':        _fcmDiagSnapshot['apns_token']       ?? '—',
       'fcm_token':         _fcmDiagSnapshot['fcm_token']        ?? '—',
@@ -317,5 +325,29 @@ class PushNotificationService {
         ),
       ),
     );
+  }
+}
+
+/// The FCM topic operations [PushNotificationService.joinServerTopic] makes;
+/// a test passes its own to see what the device would join and leave.
+abstract interface class PushTopicOps {
+  Future<void> subscribe(String topic, {bool Function()? stillWanted});
+  Future<void> unsubscribe(String topic);
+}
+
+/// Firebase Cloud Messaging.
+class FirebasePushTopicOps implements PushTopicOps {
+  const FirebasePushTopicOps();
+
+  @override
+  Future<void> subscribe(String topic, {bool Function()? stillWanted}) async {
+    if (Firebase.apps.isEmpty) return; // Firebase never started
+    await PushNotificationService._subscribeTopic(topic, stillWanted: stillWanted);
+  }
+
+  @override
+  Future<void> unsubscribe(String topic) async {
+    if (Firebase.apps.isEmpty) return;
+    await PushNotificationService.unsubscribeFromTopic(topic);
   }
 }

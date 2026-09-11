@@ -14,6 +14,7 @@ import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
 import 'banzami_environment.dart';
+import 'push_topic.dart';
 
 /// Result of a sandbox wallet top-up via [ConsumerPublicClient.sandboxFund].
 class SandboxFundResult {
@@ -524,6 +525,17 @@ class ConsumerPublicClient {
         method: 'POST',
         path: '/v1/debug/push-test',
       );
+
+  /// The FCM topic this consumer's notifications are published to, exactly as
+  /// the server names it, or null when push topics are not configured there.
+  ///
+  /// The name is a keyed hash of the consumer id, disclosed only to the
+  /// consumer's own session (A6-06): subscribe to exactly this, and never
+  /// derive a topic from the id.
+  Future<String?> getPushTopic() async {
+    final json = await _call(method: 'GET', path: '/v1/me/push-topic');
+    return banzamiPushTopicFrom(json);
+  }
 
   /// The canonical receipt of [transactionId] — what the comprovativo screen,
   /// "Partilhar" and "Copiar detalhes" show. Establishes the operation's proof
