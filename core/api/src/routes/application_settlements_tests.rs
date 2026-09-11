@@ -4,7 +4,7 @@
 #![allow(clippy::inconsistent_digit_grouping)]
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
 use sqlx::PgPool;
@@ -150,12 +150,14 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     let state = build_state(pool.clone()).await;
 
     // create — references only, never a fee
+    let app_id = Uuid::new_v4().to_string();
     let (status, Json(created)) = routes::create(
         State(state.clone()),
         Json(
             serde_json::from_value(serde_json::json!({
                 "idempotency_key": "as-route-1",
                 "owner_ref": "campaign_1",
+                "application_id": app_id.clone(),
                 "source_account_id": source.to_string(),
                 "beneficiary_account_id": beneficiary.to_string(),
                 "application_fee_account_id": app_fee.to_string(),
@@ -195,6 +197,9 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     let Json(by_key) = routes::get_by_idempotency_key(
         State(build_state(pool.clone()).await),
         Path("as-route-1".to_string()),
+        Query(routes::SettlementOwnerQuery {
+            application_id: Some(app_id.clone()),
+        }),
     )
     .await
     .unwrap();
@@ -203,9 +208,27 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     assert!(routes::get_by_idempotency_key(
         State(build_state(pool.clone()).await),
         Path("never-used".to_string()),
+        Query(routes::SettlementOwnerQuery {
+            application_id: Some(app_id.clone())
+        }),
     )
     .await
     .is_err());
+
+    // A1-06: another Business naming the same key finds nothing — the key is
+    // its owner's, and this route used to hand over whatever it named.
+    assert!(
+        routes::get_by_idempotency_key(
+            State(build_state(pool.clone()).await),
+            Path("as-route-1".to_string()),
+            Query(routes::SettlementOwnerQuery {
+                application_id: Some(Uuid::new_v4().to_string())
+            }),
+        )
+        .await
+        .is_err(),
+        "another Business read this settlement by its key"
+    );
     Ok(())
 }
 

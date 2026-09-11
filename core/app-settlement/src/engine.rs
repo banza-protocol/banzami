@@ -199,7 +199,7 @@ where
     ) -> Result<ApplicationSettlement, ApplicationSettlementError> {
         if let Some(existing) = self
             .repo
-            .get_by_idempotency_key(&req.idempotency_key)
+            .get_by_idempotency_key(req.application_id.as_deref(), &req.idempotency_key)
             .await?
         {
             // The same request is the same settlement. A different owner,

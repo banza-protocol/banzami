@@ -62,7 +62,7 @@ func (f *fakeSettlements) Complete(ctx context.Context, id string) (*service.App
 func (f *fakeSettlements) Get(ctx context.Context, id string) (*service.ApplicationSettlement, error) {
 	return &service.ApplicationSettlement{ID: id, Status: "COMPLETED"}, nil
 }
-func (f *fakeSettlements) ByIdempotencyKey(ctx context.Context, key string) (*service.ApplicationSettlement, error) {
+func (f *fakeSettlements) ByIdempotencyKey(ctx context.Context, _, key string) (*service.ApplicationSettlement, error) {
 	if s, ok := f.byKey[key]; ok {
 		return s, nil
 	}

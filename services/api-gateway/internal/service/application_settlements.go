@@ -83,7 +83,7 @@ type ApplicationSettlementService interface {
 	Complete(ctx context.Context, id string) (*ApplicationSettlement, error)
 	Get(ctx context.Context, id string) (*ApplicationSettlement, error)
 	// ByIdempotencyKey is the settlement a key already produced, or ErrNotFound.
-	ByIdempotencyKey(ctx context.Context, key string) (*ApplicationSettlement, error)
+	ByIdempotencyKey(ctx context.Context, applicationID, key string) (*ApplicationSettlement, error)
 }
 
 // coreSettlementResp mirrors the core settlement JSON (Money is nested).
@@ -190,9 +190,14 @@ func (s *CoreApiApplicationSettlementService) Get(ctx context.Context, id string
 	return resp.toSafe(), nil
 }
 
-func (s *CoreApiApplicationSettlementService) ByIdempotencyKey(ctx context.Context, key string) (*ApplicationSettlement, error) {
+// ByIdempotencyKey answers with the caller's OWN settlement under that key.
+// A key belongs to the Business that chose it (A1-06): another Business's key
+// is not found here, and its settlement is never handed over.
+func (s *CoreApiApplicationSettlementService) ByIdempotencyKey(ctx context.Context, applicationID, key string) (*ApplicationSettlement, error) {
 	var resp coreSettlementResp
-	if err := s.client.get(ctx, "/internal/v1/application-settlements/by-idempotency-key/"+url.PathEscape(key), &resp); err != nil {
+	path := "/internal/v1/application-settlements/by-idempotency-key/" + url.PathEscape(key) +
+		"?application_id=" + url.QueryEscape(applicationID)
+	if err := s.client.get(ctx, path, &resp); err != nil {
 		return nil, err
 	}
 	return resp.toSafe(), nil

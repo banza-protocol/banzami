@@ -475,19 +475,30 @@ pub async fn get(
     Ok(Json(serde_json::to_value(&s).unwrap()))
 }
 
+/// The Business whose key is being looked up (A1-06).
+#[derive(Deserialize)]
+pub struct SettlementOwnerQuery {
+    pub application_id: Option<String>,
+}
+
 /// GET /internal/v1/application-settlements/by-idempotency-key/:key
 ///
 /// The settlement a key already produced, or 404. A settlement request names no
 /// amount — the gross is the source account's balance when it runs — so a retry
 /// after a completed settlement asks for 0 and could never match the original
 /// in `create`. The gateway reads the key here first and answers a retry with
-/// the settlement it already made.
+/// the settlement it already made. The Business that owns the key must be
+/// named: a key is its owner's (A1-06).
 pub async fn get_by_idempotency_key(
     State(state): State<AppState>,
     Path(key): Path<String>,
+    Query(owner): Query<SettlementOwnerQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    // A key belongs to the Business that chose it (A1-06): without naming the
+    // owner this route said whether ANY tenant had used a key, and handed back
+    // its settlement.
     let found = PostgresApplicationSettlementRepository::new(state.pool.clone())
-        .get_by_idempotency_key(&key)
+        .get_by_idempotency_key(owner.application_id.as_deref(), &key)
         .await
         .map_err(map_err)?
         .ok_or_else(|| ApiError::not_found("no settlement for this idempotency key"))?;

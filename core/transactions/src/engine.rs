@@ -95,7 +95,7 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
         // Idempotency: return existing transaction if the key was already used.
         if let Some(existing) = self
             .repo
-            .get_by_idempotency_key(&req.idempotency_key)
+            .get_by_idempotency_key(req.merchant_id, &req.idempotency_key)
             .await?
         {
             // Only the same request is the same transaction: another merchant
@@ -426,6 +426,7 @@ mod tests {
 
         async fn get_by_idempotency_key(
             &self,
+            merchant_id: MerchantId,
             key: &str,
         ) -> Result<Option<Transaction>, TransactionError> {
             Ok(self
@@ -433,7 +434,7 @@ mod tests {
                 .lock()
                 .unwrap()
                 .iter()
-                .find(|r| r.idempotency_key == key)
+                .find(|r| r.idempotency_key == key && r.merchant_id == merchant_id)
                 .cloned())
         }
 

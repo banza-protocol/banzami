@@ -384,7 +384,7 @@ func (h *ApplicationSettlementHandler) CreateBusiness(w http.ResponseWriter, r *
 	// had failed when it had not. The same caller, source and beneficiary under
 	// the same key is the same settlement; anything else under that key is a
 	// conflict, and says nothing about the settlement that owns it.
-	prior, perr := h.settlements.ByIdempotencyKey(r.Context(), body.IdempotencyKey)
+	prior, perr := h.settlements.ByIdempotencyKey(r.Context(), callerMerchantID, body.IdempotencyKey)
 	switch {
 	case perr == nil && prior != nil:
 		if prior.ApplicationID != callerMerchantID || prior.SourceAccountID != coreSource || prior.BeneficiaryAccountID != ben.AvailableAccountID {

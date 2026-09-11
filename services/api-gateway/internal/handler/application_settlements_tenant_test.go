@@ -107,6 +107,6 @@ func TestApplicationSettlementCreate_BindsToAuthenticatedMerchant(t *testing.T) 
 	}
 }
 
-func (f *boundSettlements) ByIdempotencyKey(ctx context.Context, key string) (*service.ApplicationSettlement, error) {
+func (f *boundSettlements) ByIdempotencyKey(ctx context.Context, _, key string) (*service.ApplicationSettlement, error) {
 	return nil, service.ErrNotFound
 }

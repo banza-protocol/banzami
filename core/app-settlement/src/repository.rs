@@ -42,8 +42,10 @@ pub trait ApplicationSettlementRepository: Send + Sync {
         &self,
         id: ApplicationSettlementId,
     ) -> Result<ApplicationSettlement, ApplicationSettlementError>;
+    /// A key belongs to the owner that chose it (A1-06).
     async fn get_by_idempotency_key(
         &self,
+        application_id: Option<&str>,
         key: &str,
     ) -> Result<Option<ApplicationSettlement>, ApplicationSettlementError>;
     /// Stamp a non-failure terminal/intermediate status (PENDING/COMPLETED/
@@ -182,9 +184,13 @@ impl ApplicationSettlementRepository for PostgresApplicationSettlementRepository
 
     async fn get_by_idempotency_key(
         &self,
+        application_id: Option<&str>,
         key: &str,
     ) -> Result<Option<ApplicationSettlement>, ApplicationSettlementError> {
-        sqlx::query(&format!("{SELECT} WHERE idempotency_key = $1"))
+        sqlx::query(&format!(
+            "{SELECT} WHERE COALESCE(application_id, '') = COALESCE($1, '') AND idempotency_key = $2"
+        ))
+        .bind(application_id)
             .bind(key)
             .fetch_optional(&self.pool)
             .await?

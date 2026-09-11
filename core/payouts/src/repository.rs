@@ -36,7 +36,12 @@ pub trait PayoutRepository: Send + Sync {
         net_minor: i64,
     ) -> Result<(), PayoutError>;
     async fn get(&self, id: PayoutId) -> Result<Payout, PayoutError>;
-    async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Payout>, PayoutError>;
+    /// A key belongs to the owner that chose it (A1-06).
+    async fn get_by_idempotency_key(
+        &self,
+        merchant_id: MerchantId,
+        key: &str,
+    ) -> Result<Option<Payout>, PayoutError>;
     async fn list_for_merchant(
         &self,
         merchant_id: MerchantId,
@@ -197,13 +202,19 @@ impl PayoutRepository for PostgresPayoutRepository {
         row_to_payout(row)
     }
 
-    async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Payout>, PayoutError> {
+    async fn get_by_idempotency_key(
+        &self,
+        merchant_id: MerchantId,
+        key: &str,
+    ) -> Result<Option<Payout>, PayoutError> {
         let row = sqlx::query_as!(
             PayoutRow,
             "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,
                     amount_minor, currency, bank_account_number, bank_code,
                     account_holder_name, ledger_posting_id, failure_reason,
-                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE idempotency_key = $1",
+                    created_at, sent_at, confirmed_at, returned_at, failed_at
+               FROM payouts WHERE merchant_id = $1 AND idempotency_key = $2",
+            merchant_id.as_uuid(),
             key
         )
         .fetch_optional(&self.pool)

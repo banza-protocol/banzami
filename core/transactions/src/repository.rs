@@ -37,8 +37,11 @@ pub struct OperatorFeeInsert {
 pub trait TransactionRepository: Send + Sync {
     async fn create(&self, tx: Transaction) -> Result<Transaction, TransactionError>;
     async fn get(&self, id: TransactionId) -> Result<Transaction, TransactionError>;
+    /// A key belongs to the owner that chose it (A1-06): the same text from
+    /// another merchant is another operation, not this one.
     async fn get_by_idempotency_key(
         &self,
+        merchant_id: MerchantId,
         key: &str,
     ) -> Result<Option<Transaction>, TransactionError>;
     async fn update_status(
@@ -193,14 +196,17 @@ impl TransactionRepository for PostgresTransactionRepository {
 
     async fn get_by_idempotency_key(
         &self,
+        merchant_id: MerchantId,
         key: &str,
     ) -> Result<Option<Transaction>, TransactionError> {
-        let row =
-            sqlx::query_as::<_, TransactionRow>(&format!("{SELECT} WHERE idempotency_key = $1"))
-                .bind(key)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(TransactionError::Database)?;
+        let row = sqlx::query_as::<_, TransactionRow>(&format!(
+            "{SELECT} WHERE merchant_id = $1 AND idempotency_key = $2"
+        ))
+        .bind(merchant_id.as_uuid())
+        .bind(key)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(TransactionError::Database)?;
 
         row.map(tx_from_row).transpose()
     }

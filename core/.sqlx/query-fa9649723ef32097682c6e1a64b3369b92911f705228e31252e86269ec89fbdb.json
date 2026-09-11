@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,\n                    amount_minor, currency, bank_account_number, bank_code,\n                    account_holder_name, ledger_posting_id, failure_reason,\n                    created_at, sent_at, confirmed_at, returned_at, failed_at FROM payouts WHERE idempotency_key = $1",
+  "query": "SELECT id, merchant_id, wallet_id, idempotency_key, status, environment,\n                    amount_minor, currency, bank_account_number, bank_code,\n                    account_holder_name, ledger_posting_id, failure_reason,\n                    created_at, sent_at, confirmed_at, returned_at, failed_at\n               FROM payouts WHERE merchant_id = $1 AND idempotency_key = $2",
   "describe": {
     "columns": [
       {
@@ -96,6 +96,7 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Text"
       ]
     },
@@ -120,5 +121,5 @@
       true
     ]
   },
-  "hash": "87ce7bf0fe844107e9a6743f5a507d3578fc444f68bff68a640e99b8de7e1a52"
+  "hash": "fa9649723ef32097682c6e1a64b3369b92911f705228e31252e86269ec89fbdb"
 }

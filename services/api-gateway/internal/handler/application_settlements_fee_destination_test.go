@@ -205,6 +205,6 @@ func TestApplicationSettlement_AResolverOutageIsNotAnUnknownHandle(t *testing.T)
 	}
 }
 
-func (f *rejectingSettlements) ByIdempotencyKey(ctx context.Context, key string) (*service.ApplicationSettlement, error) {
+func (f *rejectingSettlements) ByIdempotencyKey(ctx context.Context, _, key string) (*service.ApplicationSettlement, error) {
 	return nil, service.ErrNotFound
 }

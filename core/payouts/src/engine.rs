@@ -330,7 +330,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         // payout back, bank account included, and theirs was never created.
         if let Some(existing) = self
             .repo
-            .get_by_idempotency_key(&req.idempotency_key)
+            .get_by_idempotency_key(req.merchant_id, &req.idempotency_key)
             .await?
         {
             let d = &existing.destination;
@@ -802,13 +802,17 @@ mod tests {
                 .cloned()
                 .ok_or(PayoutError::NotFound(id))
         }
-        async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Payout>, PayoutError> {
+        async fn get_by_idempotency_key(
+            &self,
+            merchant_id: MerchantId,
+            key: &str,
+        ) -> Result<Option<Payout>, PayoutError> {
             Ok(self
                 .payouts
                 .lock()
                 .unwrap()
                 .iter()
-                .find(|p| p.idempotency_key == key)
+                .find(|p| p.idempotency_key == key && p.merchant_id == merchant_id)
                 .cloned())
         }
         async fn list_for_merchant(
