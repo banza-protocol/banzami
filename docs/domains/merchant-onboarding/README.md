@@ -126,8 +126,12 @@ ways — it is never sent to the public form:
 
 The Console renders the onboarding state developer-api reports
 (`NOT_CONFIGURED`, `IN_REVIEW`, `INFORMATION_REQUIRED`, `APPROVED_PROVISIONING`,
-`REJECTED`, `READY`, `BLOCKED`) and decides nothing; only OWNER and ADMIN are
-offered actions. The one-click Sandbox setup (`POST /projects/{id}/financial-setup`)
+`REJECTED`, `READY`, `BLOCKED`, `READINESS_UNKNOWN`) and decides nothing; only OWNER and ADMIN are
+offered actions. `READINESS_UNKNOWN` is a bound Project whose settlement
+readiness could not be read just now — never shown as `READY` (A2-26). Connecting
+an existing Business is refused `503 ONBOARDING_UNAVAILABLE` when the Project's
+own application cannot be read, rather than skipping the "application in
+progress" check (A2-25). The one-click Sandbox setup (`POST /projects/{id}/financial-setup`)
 that created a synthetic, self-approved Business is retired — the server answers
 `410 FINANCIAL_SETUP_BY_REVIEW` and no Console code calls it (guarded by
 `apps/website/app/developers/financial-onboarding-guard.test.ts`).
