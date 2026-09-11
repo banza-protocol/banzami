@@ -3585,3 +3585,161 @@ against the latest list; without the two additions it names them), and
 `tests/ops/audit-action-list-only-grows.test.mjs` — the first draft of 0134 copied 0117's
 list and would have dropped 0126's two actions; the guard now refuses any redefinition
 that loses one.
+
+## RA-138 — CI on main was red; two DB-backed jobs had no database
+
+- **Found:** 2026-09-11 (full-system assurance, CI gate after RA-115..RA-137)
+- **Status:** FIXED (CI, formatting, lint, secret scan)
+
+The CI and economic-gate runs for the RA-115..RA-137 commits failed on five counts:
+public-api's PIN-lockout race test and developer-api's invite-scope test are DB-backed
+and their jobs had no Postgres; rustfmt and gofmt had not been run; clippy `-D warnings`
+refused unused `Json` results in two test files; and gitleaks flagged the synthetic
+64-hex bearer in the nginx query-redaction test. The public-api and developer-api jobs
+now provision Postgres and apply the migrations (as the gateway and admin jobs do), so
+those tests run instead of failing to connect; the fixture is made at run time.
+
+## RA-139 — core served withdrawn features to any holder of the internal key
+
+- **Found:** 2026-09-11 (full-system assurance, route audit A4-13)
+- **Status:** FIXED (core, api-gateway, admin-api)
+
+Core kept routes for features whose public surfaces were removed: payment requests
+(RA-057), paying a structured QR (RA-053), consumer deposits, wallet
+reserve/release/commit, settle-by-interface (retired by RA-112), handle resolution,
+merchant-profile by-merchant and social links, and `PATCH merchants/:id/verified`
+(RA-122). No Go service called them; several took their authority from the body (the
+payer of a payment request, the payer handle of a QR payment). The routes, handlers and
+the gateway/admin-api dead callers are removed; `withdrawn_routes_tests` keeps them
+unmounted (re-mounting `/internal/v1/qr/pay` fails it). This also retires A2-19 (payment
+request pay without a transaction) and A2-20 (deposit callback ignoring ledger errors):
+the code is gone.
+
+## RA-140 — a dynamic QR could never bind its owner's wallet account
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit, functional note)
+- **Status:** FIXED (core)
+
+The ADR-042 check compared `wallet_accounts.wallet_id` with the QR's owner id, a
+merchant id, so every QR carrying a `wallet_account_id` was refused 422 — the owner's own
+account included. It now matches the account's merchant, and a consumer-owned QR binds
+no merchant account. `qr_wallet_account_tests` (own account refused before the fix;
+another merchant's and a consumer QR refused after).
+
+## RA-141 — a consumer's transfer history repeated its first page for ever
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit, functional note)
+- **Status:** FIXED (core)
+
+public-api hands out `next_cursor` (the last transfer's id) and sends it back as `cursor`;
+core ignored `cursor`, so every next page was page one. Core resolves the cursor to its
+keyset position inside the consumer's own history; a foreign or malformed cursor is 400.
+`transfers_cursor_tests` fail with the cursor ignored ("page two repeated page one").
+
+## RA-142 — a dispute named whatever consumer the caller asserted
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit A1-05)
+- **Status:** FIXED (migration 0135, core, api-gateway, SDKs, BANZADMIN)
+
+`POST /v1/disputes` required a `consumer_id`; core stored it, made it filterable and sent
+it in `dispute.*` webhooks as fact. Disputes are opened on acquiring transactions, which
+have no Banzami consumer, and restitution already follows the typed source. Migration
+0135 lets the column be NULL; core stores none; the gateway neither requires nor forwards
+it; the TS/Python SDKs type it nullable and stop sending it (PHP too); BANZADMIN's
+disputes page renders a dispute with no consumer (it crashed on null — found while
+fixing). Earlier rows keep their asserted value; nothing reads it as authority. Tests
+fail without the fix in core, gateway, SDKs and the admin page.
+
+## RA-143 — internal error text in responses; URLs and PII in logs; outages answered 401
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-11/A6-13/A6-14, app audit A8-09, fail-open audit A2-22..A2-26)
+- **Status:** FIXED (api-gateway, admin-api, public-api, developer-api, common/email, website Console)
+
+- A6-11: handlers wrote `err.Error()` into responses, leaking core's internal address and
+  its database errors — including on the anonymous `POST /v1/public/pay/{slug}/pay`.
+  Gateway handlers use `respondCoreError`; admin-api's `handleCoreErr` never passes on
+  transport or 5xx text. `internal_error_text_test.go` in both services drive real
+  clients against a dead core and a core answering 500 with database text.
+- A6-13: webhook deliveries logged the full merchant URL (query tokens, userinfo); they
+  log delivery id, endpoint id and host.
+- A6-14 (Go): recipient emails are masked (`f***@domain`, also inside provider error
+  text); the P2P push event names masked ids only.
+- A8-09: a credential-store failure at Business sign-in, or in the transfer's sender
+  lookup, was answered 401, which the apps treat as "signed out"; it is 503. (The apps'
+  own outage handling was already correct.)
+- A2-22: admin review handlers sent any environment other than exactly "SANDBOX" to the
+  Live pool; the parameter is parsed strictly and an unknown one is 400.
+- A2-23/24: developer-api's per-IP code-verification limit counts in-process when Redis
+  fails; a failed session revocation is 503, not a sign-out.
+- A2-25/26: connecting a Business fails closed when the application cannot be read, and
+  a failed readiness read shows "Estado por confirmar", never "Pronto".
+
+Every fix has a test that fails with the fix reverted.
+
+## RA-144 — push-notification topics anyone could subscribe to
+
+- **Found:** 2026-09-11 (full-system assurance, privacy audit A6-06; copy audit A7-10/A7-11)
+- **Status:** FIXED (common/pushtopic, api-gateway, public-api, apps/mobile, sdk/flutter, deploy)
+
+Topics were `consumer_<id>` / `merchant_<id>` and the apps subscribed themselves; FCM does
+not authenticate subscribers and the Firebase client configs are public, so anyone who
+learned an id received that account's payment pushes. A topic is now a keyed HMAC of the
+id (`PUSH_TOPIC_KEY`, minted once by the Sandbox deploy, mounted in the gateway and
+public-api only); only the account's own session learns it (`GET /v1/me/push-topic`,
+`GET /v1/merchant/push-topic`); the apps subscribe to exactly that and leave the old
+topics; without the key nothing is sent. Push copy: transfers read "Transferência
+recebida", amounts use the canonical "2 000 Kz", the payer is "@handle". A fixture of
+every error code public-api sends, re-derived from the handlers, fails any code without
+Portuguese copy (it caught SERVICE_UNAVAILABLE from RA-143 during the merge). FCM is not
+configured on the Sandbox stack today, so no push is sent there either way; installed
+app builds keep polling until updated.
+
+## RA-145 — any peer could choose its client address; IPv6 rotation beat every limiter
+
+- **Found:** 2026-09-11 (full-system assurance, auth audit A9-09/A9-04/A9-08)
+- **Status:** FIXED (common/clientip, the four Go services, website edge, deploy)
+
+The services took the client address from `X-Forwarded-For`/`X-Real-IP`/`True-Client-IP`
+sent by any peer, so any container on the Sandbox network chose its own rate-limit
+bucket and could write any IP into the operator audit log; an IPv6 client rotated
+through its /64 for a fresh bucket each time; and `/r/{ref}`, server-rendered, shared one
+60/min bucket among all readers. `services/common/clientip` believes `X-Real-IP` only
+from `TRUSTED_PROXY_CIDRS` and keys limiters on the /64 for IPv6; the website edge uses
+`real_ip` with Cloudflare's ranges and limits `/r/` and `/verificar` per client; the
+gateway believes the website's `X-Banzami-Reader-IP` only on the proof route and only
+from `PROOF_READER_FORWARDER_CIDRS`. The deploy sets the edge's own app-network /32 (never
+the subnet) and the host's public address, re-derived on every deploy
+(`tests/ops/sandbox-client-ip-config.test.sh`). The retired `banzami.conf` and
+`zz-developer-api.conf`, which forwarded the raw CF header, are deleted.
+
+## RA-146 — docs, manifest and SDK helpers that said what was not so
+
+- **Found:** 2026-09-11 (full-system assurance, route audit A4-01/02/04/05/06/09/10/11, fail-open audit A2-17/A2-28)
+- **Status:** FIXED (api-gateway, assurance manifest, SDKs, website, pay)
+
+- A4-01: a fixed-amount session's QR carried core's structured payload, which no route
+  pays; every session QR now encodes the hosted pay URL, which any camera opens.
+- A4-02/09: CAP-PAY-003 (QR payments) was "released" on the webhook suite's evidence; it
+  is blocked with empty evidence and an issuance-only surface, stale `api_surface`
+  entries are corrected, and a declared surface must be a route its service mounts
+  exactly (prefix matching let `/v1/qr` and `/v1/transfers` pass).
+- A4-04/05/06: the READMEs documented calls that do not exist; Python exported removed
+  models. The TypeScript `formatMinor` and Python money helpers read AOA minor units as
+  kwanzas — 100× off — and are corrected (a behaviour change noted under Unreleased).
+- A4-10/A4-11: the guide said published packages were unpublished; the gateway README
+  route table is now held to the router by a `chi.Walk` test.
+- The trust summary said pay.banzami.com answers 503; it serves the Sandbox payer page.
+- A2-17: the public proof names its own environment, and an unreadable platform mode is
+  "unavailable", never a guessed SANDBOX.
+- A2-28: the pay app's payment-request route took its environment from `?sandbox=1`; it
+  comes from server configuration.
+
+## RA-147 — seven E2E harnesses wrote evidence into the source tree
+
+- **Found:** 2026-09-11 (full-system assurance, hygiene)
+- **Status:** FIXED (tools/e2e, CI)
+
+The Business and Console harnesses added on 2026-09-10 defaulted their output to
+`evidence/assurance/` inside the worktree, so a post-deploy run dirtied the revision it
+verified. They use `assuranceDir()` now. The guard that catches this was not run
+anywhere and failed on main; it runs in CI.
