@@ -58,3 +58,19 @@ to the **id-based** gateway surface (`/v1/transfers`, merchant-key principal,
 plus a sender-KYC compliance gate) — a different outer surface that funnels into
 the **same** `TransferEngine.send`. Both are Sandbox-validated at the engine
 level; the public documentation should describe the wallet-native model.
+
+## Proof references are exact (`security/proof-reference-canonicality.mjs`)
+
+Read-only. Given one real SECURE_V1 reference (ending in `0` or `1`) in
+`PROOF_REF`, asks the public API and `banzami.com/r/` about it and about ~30
+altered spellings — the letter O for a 0, lower case, look-alike Unicode, other
+dashes, whitespace and invisible characters, percent-encoding tricks, broken
+structure. Only the exact reference may verify; no alias may redirect; request
+order must not change a verdict. The reference is printed masked.
+
+```bash
+PROOF_REF=BZM-… node tools/e2e/security/proof-reference-canonicality.mjs
+```
+
+Its server-side twin, section 6 of `tests/phase0/proof-lookup-assurance.sh`,
+alters every stored proof's reference the same way from inside the Sandbox.

@@ -7,7 +7,10 @@
 #      (status, body without its request id, Retry-After) — no existence oracle;
 #   3. all clients together get 60 legacy lookups a minute, then 429;
 #   4. while legacy is exhausted, SECURE_V1 lookups are unaffected;
-#   5. every stored proof still verifies: N/N, paced to the limits.
+#   5. every stored proof still verifies: N/N, paced to the limits;
+#   6. no altered spelling of any stored proof verifies — the letter O for a 0,
+#      lower case, a trailing space, an en dash for a hyphen, I for 1 — each is
+#      refused as not found (a proof reference is an exact identifier).
 #
 # Each simulated client is a container on the gateway's network, alive for the
 # whole run so it keeps its own address — the limiter's own view of "a client",
@@ -91,6 +94,35 @@ done
 for code in $(client 13 "${SEC[@]}"); do [ "$code" = 200 ] && V=$((V+1)); done
 chk historical-proofs-verify "$V/$N" "$N/$N"
 echo "  (legacy ${#LEG[@]}, SECURE_V1 ${#SEC[@]})"
+
+wait_window 62
+echo "### 6 no altered spelling of any stored proof verifies"
+# Built here from the stored references and never printed. None of these may
+# answer 200; every one must be the ordinary non-disclosing 404. None is a legacy
+# reference, so the legacy budget is untouched; they are spread over the pool
+# to stay inside each client's anonymous minute.
+ALIASES=()
+for r in "${SEC[@]}"; do
+  ALIASES+=("${r%?}O")                               # last symbol -> letter O
+  ALIASES+=("$(printf '%s' "$r" | tr 'A-Z' 'a-z')")  # lower case
+  ALIASES+=("${r}%20")                               # trailing space
+  ALIASES+=("${r/-/%E2%80%93}")                      # first hyphen -> en dash
+  case "$r" in *0*) ALIASES+=("${r/0/O}");; *1*) ALIASES+=("${r/1/I}");; esac  # look-alike
+done
+for r in "${LEG[@]}"; do
+  ALIASES+=("$(printf '%s' "$r" | tr 'A-Z' 'a-z')" "${r}%20" "${r%?}O")
+done
+A200=0; A404=0; AOTHER=0; i=0; c=0
+while [ $i -lt ${#ALIASES[@]} ]; do
+  for code in $(client "$c" "${ALIASES[@]:$i:50}"); do
+    case "$code" in 200) A200=$((A200+1));; 404) A404=$((A404+1));; *) AOTHER=$((AOTHER+1));; esac
+  done
+  i=$((i+50)); c=$(( (c+1) % 14 ))
+  if [ $c -eq 0 ] && [ $i -lt ${#ALIASES[@]} ]; then wait_window 62; fi
+done
+chk no-altered-reference-verifies "$A200" 0
+chk every-altered-reference-not-found "$A404/${#ALIASES[@]}" "${#ALIASES[@]}/${#ALIASES[@]}"
+echo "  (${#ALIASES[@]} altered spellings of $N stored proofs; other statuses: $AOTHER)"
 
 echo
 echo "PROOF_LOOKUP_ASSURANCE: PASS=$PASS FAIL=$FAIL"
