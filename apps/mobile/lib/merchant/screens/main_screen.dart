@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../services/merchant_notification_router.dart';
 import '../services/merchant_session_service.dart';
 import '../services/payment_notification_service.dart';
 import '../../services/push_notification_service.dart';
@@ -26,11 +27,28 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   DateTime? _pausedAt;
   PaymentNotificationService? _notifSvc;
 
+  static const int _kHistoryTab = 1;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startNotifications());
+    MerchantNotificationRouter.pendingTap.addListener(_consumePendingTap);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startNotifications();
+      _consumePendingTap(); // a tap that arrived before this screen showed
+    });
+  }
+
+  /// A tapped Business notification opens the history (where the payment and
+  /// its receipt are) — only for this session's environment.
+  void _consumePendingTap() {
+    final data = MerchantNotificationRouter.pendingTap.value;
+    if (data == null || !mounted) return;
+    MerchantNotificationRouter.pendingTap.value = null;
+    final env = context.read<MerchantSessionService>().session?.environment;
+    if (env == null || !MerchantNotificationRouter.opensHistory(data, env)) return;
+    setState(() => _tab = _kHistoryTab);
   }
 
   Future<void> _startNotifications() async {
@@ -44,12 +62,19 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     bool stillThisBusiness() => svc.session?.merchantId == merchantId;
     _notifSvc = PaymentNotificationService(client)..startPolling();
 
-    // Foreground payment push: play the configurable confirmation sound.
+    // Foreground payment push — payment_received AND payment_link_paid: the
+    // configurable confirmation sound, and a tappable banner to the history.
     PushNotificationService.onForegroundMessage = (msg) async {
-      if (msg.data['type'] != 'payment_received') return;
+      if (!MerchantNotificationRouter.opensHistory(msg.data, environment)) return;
       if (await MerchantSessionService.isNotifSoundEnabled()) {
         await SystemSound.play(SystemSoundType.alert);
         await HapticFeedback.mediumImpact();
+      }
+      final text = msg.notification?.body ?? msg.notification?.title ?? '';
+      if (text.isNotEmpty && mounted) {
+        BanzamiToast.showInfoTappable(context, text, onTap: () {
+          if (mounted) setState(() => _tab = _kHistoryTab);
+        });
       }
     };
 
@@ -63,6 +88,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
 
   @override
   void dispose() {
+    MerchantNotificationRouter.pendingTap.removeListener(_consumePendingTap);
     _notifSvc?.stopPolling();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();

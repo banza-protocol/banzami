@@ -8,12 +8,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'merchant/app.dart';
+import 'merchant/services/merchant_notification_router.dart';
 import 'merchant/services/payment_notification_service.dart';
 import 'services/push_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt', null);
+
+  // Business notification taps (including the cold-start one Firebase
+  // delivers during initialisation) are parked for the main screen.
+  PushNotificationService.onTap = (msg) => MerchantNotificationRouter.handleTap(msg.data);
 
   // Slow services run in the background — they must NEVER block runApp.
   // iOS holds the native launch screen until Flutter paints its first frame,
