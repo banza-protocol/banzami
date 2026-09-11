@@ -3743,3 +3743,50 @@ The Business and Console harnesses added on 2026-09-10 defaulted their output to
 `evidence/assurance/` inside the worktree, so a post-deploy run dirtied the revision it
 verified. They use `assuranceDir()` now. The guard that catches this was not run
 anywhere and failed on main; it runs in CI.
+
+## RA-148 — money that entered a consumer's wallet without a transfer left no history row
+
+- **Found:** 2026-09-11 (full-system assurance, UX audit A7-09)
+- **Status:** FIXED (core activity feed, consumer app)
+
+The feed read only transfers and deposits in `SETTLED`. A Business's refund, a dispute
+decided for the consumer, a Sandbox top-up (a ledger posting with no deposit row) — and
+every real deposit, which is `COMPLETED` — moved the balance with nothing in the history.
+They are read now: `REFUND_RECEIVED` and `RESTITUTION_RECEIVED` name the Business by its
+public identity; a Sandbox top-up is a `WALLET_FUNDED` row titled "Carregamento de
+teste", never Multicaixa; `COMPLETED` deposits are included. The app labels the new types
+"Reembolso" and "Restituição"; installed builds show them as incoming payments, never a
+raw code. `every_credit_to_the_wallet_has_a_history_row` found an empty feed before.
+
+## RA-149 — a consumer session could not end
+
+- **Found:** 2026-09-11 (full-system assurance, auth audit A9 revocation row)
+- **Status:** FIXED (migration 0137, public-api, SDK, consumer app, ADR-010)
+
+A 24-hour consumer token had no logout and no version; the right PIN opened a session for
+a suspended consumer, and tokens already issued outlived the suspension. Tokens carry the
+session version; every authenticated request checks the consumer is ACTIVE and on that
+version (an unreadable store is 503); `POST /v1/auth/logout` ends every session
+("Terminar sessão em todos os dispositivos"); a suspended consumer's right PIN is 403
+ACCOUNT_SUSPENDED. Tokens issued before the change read version 0 and stay good until
+the first sign-out. Tests fail with each part removed.
+
+## RA-150 — an onboarding OTP could be guessed without limit
+
+- **Found:** 2026-09-11 (full-system assurance, token audit A3)
+- **Status:** FIXED (migration 0136, core, public-api)
+
+Core compared every submitted code for as long as the session lived; public-api's own
+comment claimed core enforced five attempts. Each verification now claims an attempt with
+a conditional update before comparing; the sixth is 429 TOO_MANY_ATTEMPTS, relayed as
+such (it was a 500). Five wrong guesses then the right code, and 20 concurrent guesses,
+fail without the guard.
+
+## RA-151 — small truths: pricing audit fields, a README the scanner read as a secret
+
+- **Found:** 2026-09-11 (full-system assurance, BANZADMIN audit; CI)
+- **Status:** FIXED
+
+The audit record of a pricing-rule change now names the operation (SETTLEMENT/PAYOUT) and
+country it prices. The PHP README's idempotency examples use a key derived from the
+order, not a literal gitleaks read as a credential (it failed `make security-check`).
