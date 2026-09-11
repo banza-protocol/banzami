@@ -54,3 +54,28 @@ func TestClient_RefusalsOutagesAndAbsence(t *testing.T) {
 		t.Fatal("an unconfigured client must be nil")
 	}
 }
+
+// A Business's public identity comes from the Gateway's internal route, with the
+// internal credential; an outage is an outage.
+func TestClient_BusinessPublicIdentity(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Internal-Key") != "k-internal" {
+			w.WriteHeader(401)
+			return
+		}
+		if r.URL.Path == "/internal/v1/businesses/m-1/public-identity" {
+			_, _ = w.Write([]byte(`{"display_name":"Doa","handle":"doa"}`))
+			return
+		}
+		w.WriteHeader(500)
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "k-internal")
+	b, err := c.BusinessPublicIdentity(context.Background(), "m-1")
+	if err != nil || b.DisplayName != "Doa" || b.Handle != "doa" {
+		t.Fatalf("identity: %+v %v", b, err)
+	}
+	if _, err := c.BusinessPublicIdentity(context.Background(), "m-2"); !errors.Is(err, ErrUnavailable) {
+		t.Fatalf("5xx: %v", err)
+	}
+}

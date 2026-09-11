@@ -63,6 +63,43 @@ type BusinessNamer interface {
 	MerchantName(ctx context.Context, merchantID string) (string, error)
 }
 
+// BusinessIdentities reads a Business's PUBLIC identity — the name it presents
+// and the @banza it owns (the Gateway's business_public_identities). The
+// Gateway onboarding client implements it.
+type BusinessIdentities interface {
+	BusinessPublicIdentity(ctx context.Context, merchantID string) (*gatewayclient.BusinessIdentity, error)
+}
+
+// businessPublicIdentity is the Business a Project receives into, as the Console
+// names it. The Business's public identity, not merchants.name: for a Business
+// made by the retired Console setup the account name is "Sandbox · <Project>",
+// and the card under "Este projeto recebe pagamentos no negócio abaixo" showed
+// exactly that. Only when no identity source is wired does the account name
+// stand in; a failed lookup names nobody.
+func (s *Service) businessPublicIdentity(ctx context.Context, merchantID string) (gatewayclient.BusinessIdentity, bool) {
+	if ids, ok := s.onboarding.(BusinessIdentities); ok && ids != nil {
+		b, err := ids.BusinessPublicIdentity(ctx, merchantID)
+		if err != nil || b == nil {
+			slog.WarnContext(ctx, "developer.financial_onboarding.business_identity_unavailable", "err", errString(err))
+			return gatewayclient.BusinessIdentity{}, false
+		}
+		return *b, true
+	}
+	if s.namer != nil {
+		if n, err := s.namer.MerchantName(ctx, merchantID); err == nil {
+			return gatewayclient.BusinessIdentity{DisplayName: n}, true
+		}
+	}
+	return gatewayclient.BusinessIdentity{}, false
+}
+
+func errString(err error) string {
+	if err == nil {
+		return "no identity"
+	}
+	return err.Error()
+}
+
 // SetBusinessOnboarding wires the Gateway's onboarding domain.
 func (s *Service) SetBusinessOnboarding(o BusinessOnboarding) { s.onboarding = o }
 
@@ -97,13 +134,15 @@ func (s *Service) onboardingView(ctx context.Context, projectID, role string, b 
 	if b != nil && b.MerchantID != "" {
 		v.CanAct = false
 		bus := &OnboardingBusiness{}
-		if s.namer != nil {
-			if n, err := s.namer.MerchantName(ctx, b.MerchantID); err == nil {
-				bus.Name = n
+		identity, known := s.businessPublicIdentity(ctx, b.MerchantID)
+		if known {
+			bus.Name = identity.DisplayName
+			if h := strings.TrimPrefix(identity.Handle, "@"); h != "" {
+				bus.Handle = "@" + h
 			}
 		}
 		if r != nil {
-			if r.FinancialIdentity.Handle != nil {
+			if bus.Handle == "" && r.FinancialIdentity.Handle != nil {
 				bus.Handle = *r.FinancialIdentity.Handle
 			}
 			if r.Kyb.Status != nil {
@@ -212,5 +251,15 @@ func (s *Service) LinkExistingBusiness(ctx context.Context, actor, projectID, co
 	}
 	s.audit(ctx, &actor, &p.WorkspaceID, &projectID, "project.business_linked",
 		"PROJECT:"+projectID, ip, reqID, map[string]any{"merchant_id": t.MerchantID, "handle": t.Handle})
-	return &OnboardingBusiness{Name: t.BusinessName, Handle: "@" + t.Handle, KybStatus: t.KybStatus, Verified: t.KybStatus == "APPROVED"}, nil
+	// Named by its public identity, as the Project's card will name it on every
+	// later read; the redeem answer carries the account name.
+	name := t.BusinessName
+	if _, ok := s.onboarding.(BusinessIdentities); ok {
+		identity, known := s.businessPublicIdentity(ctx, t.MerchantID)
+		name = identity.DisplayName
+		if !known {
+			name = ""
+		}
+	}
+	return &OnboardingBusiness{Name: name, Handle: "@" + strings.TrimPrefix(t.Handle, "@"), KybStatus: t.KybStatus, Verified: t.KybStatus == "APPROVED"}, nil
 }

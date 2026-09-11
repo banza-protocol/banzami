@@ -187,3 +187,20 @@ func (c *Client) RedeemLinkCode(ctx context.Context, code, projectID string) (*L
 	}
 	return &out, nil
 }
+
+// BusinessIdentity is a Business's public identity as receipts, proofs and the
+// payer's screens name it (the Gateway's business_public_identities): the name it
+// presents and the @banza it owns (without "@"). Never its account name.
+type BusinessIdentity struct {
+	DisplayName string `json:"display_name"`
+	Handle      string `json:"handle,omitempty"`
+}
+
+// BusinessPublicIdentity reads a Business's public identity from the Gateway.
+func (c *Client) BusinessPublicIdentity(ctx context.Context, merchantID string) (*BusinessIdentity, error) {
+	var out BusinessIdentity
+	if err := c.do(ctx, http.MethodGet, "/internal/v1/businesses/"+url.PathEscape(merchantID)+"/public-identity", nil, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
