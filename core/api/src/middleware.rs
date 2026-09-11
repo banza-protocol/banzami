@@ -410,4 +410,3 @@ pub fn current_operator() -> Option<String> {
 pub async fn with_operator<F: std::future::Future>(op: Option<String>, f: F) -> F::Output {
     OPERATOR.scope(op, f).await
 }
-

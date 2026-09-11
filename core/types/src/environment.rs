@@ -71,7 +71,11 @@ mod tests {
         assert_eq!(Environment::parse(" sandbox\n"), Some(Environment::Sandbox));
         assert_eq!(Environment::parse("LIVE"), Some(Environment::Live));
         for v in ["", "production", "development", "staging", "SANDBOXX"] {
-            assert_eq!(Environment::parse(v), None, "{v:?} must not name a universe");
+            assert_eq!(
+                Environment::parse(v),
+                None,
+                "{v:?} must not name a universe"
+            );
         }
     }
 

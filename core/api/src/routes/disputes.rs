@@ -509,7 +509,11 @@ pub async fn resolve(
     .bind(&body.resolution_notes)
     .bind(resolved_by)
     .bind(now)
-    .bind(if body.outcome == "WON_BY_CONSUMER" { Some(restitution_amount) } else { None })
+    .bind(if body.outcome == "WON_BY_CONSUMER" {
+        Some(restitution_amount)
+    } else {
+        None
+    })
     .bind(&restitution_reason)
     .bind(dispute_id)
     .execute(&mut *tx)

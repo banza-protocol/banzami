@@ -7,6 +7,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
 
 function stages(path) {
   const conf = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
@@ -24,7 +25,9 @@ function stages(path) {
   return (line) => chain.reduce((l, f) => f(l), line);
 }
 
-const TOKEN = '9f3a7c2e51b04d68a1e0c7f5d3b29e84c6a1f0e7d5c3b2a1908f7e6d5c4b3a29';
+// A bearer-shaped value, made at run time so no credential-shaped literal is
+// committed (the secret scanner rightly flags one).
+const TOKEN = randomBytes(32).toString('hex');
 const APP = 'f99338e2-b4e5-4309-ba3e-d0a376ed94b5';
 
 for (const path of ['infra/nginx/website.conf', 'infra/nginx/sandbox-edge.conf.template']) {

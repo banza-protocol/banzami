@@ -202,7 +202,9 @@ async fn paying_a_session_retires_its_other_interface(pool: PgPool) {
                 .await
                 .unwrap();
         let paying = if kind == "link" { link } else { qr };
-        routes::settle_for_interface(&state, kind, paying, Uuid::new_v4(), "TEST").await.unwrap();
+        routes::settle_for_interface(&state, kind, paying, Uuid::new_v4(), "TEST")
+            .await
+            .unwrap();
 
         let status: String =
             sqlx::query_scalar("SELECT status FROM payment_sessions WHERE id = $1")
@@ -325,7 +327,9 @@ async fn an_unpaid_session_cancels_with_its_interfaces(pool: PgPool) {
 
     let paid = mk("camp_paid_then_cancel").await;
     let paid_link = Uuid::parse_str(paid["payment_link_id"].as_str().unwrap()).unwrap();
-    routes::settle_for_interface(&state, "link", paid_link, Uuid::new_v4(), "TEST").await.unwrap();
+    routes::settle_for_interface(&state, "link", paid_link, Uuid::new_v4(), "TEST")
+        .await
+        .unwrap();
     let refused = routes::cancel(
         State(state),
         Path(paid["session_id"].as_str().unwrap().to_string()),
@@ -344,8 +348,11 @@ async fn a_foreign_account_is_not_found(pool: PgPool) {
     let (_owner, _wid, wa, _acct) = seed(&pool).await;
     let state = build_state(pool.clone()).await;
     let stranger = Uuid::new_v4();
-    let err = routes::create(State(state), Json(body(stranger, wa, Some(1_000), Some("x"))))
-        .await
-        .expect_err("a foreign account was accepted");
+    let err = routes::create(
+        State(state),
+        Json(body(stranger, wa, Some(1_000), Some("x"))),
+    )
+    .await
+    .expect_err("a foreign account was accepted");
     assert_eq!(err.status.as_u16(), 404);
 }

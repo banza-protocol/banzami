@@ -296,7 +296,8 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        self.decide(merchant_id, MerchantDecision::Reject(notes)).await
+        self.decide(merchant_id, MerchantDecision::Reject(notes))
+            .await
     }
 
     async fn suspend_merchant(
@@ -304,7 +305,8 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        self.decide(merchant_id, MerchantDecision::Suspend(notes)).await
+        self.decide(merchant_id, MerchantDecision::Suspend(notes))
+            .await
     }
 
     async fn flag_merchant_for_aml_review(
@@ -312,7 +314,8 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
-        self.decide(merchant_id, MerchantDecision::FlagAml(notes)).await
+        self.decide(merchant_id, MerchantDecision::FlagAml(notes))
+            .await
     }
 
     async fn get_or_create_customer(

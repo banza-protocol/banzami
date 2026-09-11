@@ -71,7 +71,12 @@ async fn seed(pool: &PgPool) -> Seed {
     let c_res = account(pool, "LIABILITY").await;
     sqlx::query("INSERT INTO consumer_wallets (id, consumer_id, currency, status, available_account_id, reserved_account_id) VALUES (gen_random_uuid(),$1,'AOA','ACTIVE',$2,$3)")
         .bind(payer).bind(c_avail).bind(c_res).execute(pool).await.unwrap();
-    Seed { merchant, wallet, account: wa, payer }
+    Seed {
+        merchant,
+        wallet,
+        account: wa,
+        payer,
+    }
 }
 
 /// The transfer that paid `link` — COMPLETED, from the payer's wallet.
@@ -117,7 +122,9 @@ async fn complete(state: &AppState, link: Uuid, transfer: Uuid) -> Result<(), u1
     payment_links::mark_used(
         State(state.clone()),
         Path(link.to_string()),
-        Some(Json(MarkUsedBody { transfer_id: Some(transfer.to_string()) })),
+        Some(Json(MarkUsedBody {
+            transfer_id: Some(transfer.to_string()),
+        })),
     )
     .await
     .map(|_| ())
@@ -125,11 +132,19 @@ async fn complete(state: &AppState, link: Uuid, transfer: Uuid) -> Result<(), u1
 }
 
 async fn scalar_text(pool: &PgPool, sql: &str, id: Uuid) -> String {
-    sqlx::query_scalar(sql).bind(id).fetch_one(pool).await.unwrap()
+    sqlx::query_scalar(sql)
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
 }
 
 async fn count(pool: &PgPool, sql: &str, id: Uuid) -> i64 {
-    sqlx::query_scalar(sql).bind(id).fetch_one(pool).await.unwrap()
+    sqlx::query_scalar(sql)
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .unwrap()
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -141,10 +156,31 @@ async fn a_session_link_payment_completes_whole(pool: PgPool) {
 
     complete(&state, link, transfer).await.expect("completion");
 
-    assert_eq!(scalar_text(&pool, "SELECT status FROM payment_links WHERE id = $1", link).await, "USED");
-    assert_eq!(scalar_text(&pool, "SELECT status FROM payment_sessions WHERE id = $1", session_id).await, "PAID");
     assert_eq!(
-        count(&pool, "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1 AND amount_minor = 2000", transfer).await,
+        scalar_text(
+            &pool,
+            "SELECT status FROM payment_links WHERE id = $1",
+            link
+        )
+        .await,
+        "USED"
+    );
+    assert_eq!(
+        scalar_text(
+            &pool,
+            "SELECT status FROM payment_sessions WHERE id = $1",
+            session_id
+        )
+        .await,
+        "PAID"
+    );
+    assert_eq!(
+        count(
+            &pool,
+            "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1 AND amount_minor = 2000",
+            transfer
+        )
+        .await,
         1
     );
     assert_eq!(
@@ -177,19 +213,68 @@ async fn a_failed_completion_leaves_nothing_half_done_and_a_retry_completes_it(p
     .await
     .unwrap();
 
-    assert_eq!(complete(&state, link, transfer).await.unwrap_err(), 500, "a failed completion was reported as done");
+    assert_eq!(
+        complete(&state, link, transfer).await.unwrap_err(),
+        500,
+        "a failed completion was reported as done"
+    );
     // Nothing half-done: the link is still payable by this same transfer's
     // replay, the session is open, and no refundable object claims the money.
-    assert_eq!(scalar_text(&pool, "SELECT status FROM payment_links WHERE id = $1", link).await, "ACTIVE");
-    assert_eq!(scalar_text(&pool, "SELECT status FROM payment_sessions WHERE id = $1", session_id).await, "ACTIVE");
-    assert_eq!(count(&pool, "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1", transfer).await, 0);
+    assert_eq!(
+        scalar_text(
+            &pool,
+            "SELECT status FROM payment_links WHERE id = $1",
+            link
+        )
+        .await,
+        "ACTIVE"
+    );
+    assert_eq!(
+        scalar_text(
+            &pool,
+            "SELECT status FROM payment_sessions WHERE id = $1",
+            session_id
+        )
+        .await,
+        "ACTIVE"
+    );
+    assert_eq!(
+        count(
+            &pool,
+            "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1",
+            transfer
+        )
+        .await,
+        0
+    );
 
-    sqlx::query("DROP TRIGGER test_refuse_event ON webhook_events").execute(&pool).await.unwrap();
+    sqlx::query("DROP TRIGGER test_refuse_event ON webhook_events")
+        .execute(&pool)
+        .await
+        .unwrap();
 
     // The payer's retry replays the transfer and completes the payment here.
-    complete(&state, link, transfer).await.expect("the retry completes it");
-    assert_eq!(scalar_text(&pool, "SELECT status FROM payment_sessions WHERE id = $1", session_id).await, "PAID");
-    assert_eq!(count(&pool, "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1", transfer).await, 1);
+    complete(&state, link, transfer)
+        .await
+        .expect("the retry completes it");
+    assert_eq!(
+        scalar_text(
+            &pool,
+            "SELECT status FROM payment_sessions WHERE id = $1",
+            session_id
+        )
+        .await,
+        "PAID"
+    );
+    assert_eq!(
+        count(
+            &pool,
+            "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1",
+            transfer
+        )
+        .await,
+        1
+    );
     assert_eq!(
         count(&pool, "SELECT count(*) FROM webhook_events WHERE event_type = 'payment_session.paid' AND payload->'data'->>'payment_session_id' = $1::text", session_id).await,
         1
@@ -219,7 +304,12 @@ async fn an_open_amount_link_records_what_was_paid(pool: PgPool) {
 
     complete(&state, link, transfer).await.expect("completion");
     assert_eq!(
-        count(&pool, "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1 AND amount_minor = 7500", transfer).await,
+        count(
+            &pool,
+            "SELECT count(*) FROM wallet_payments WHERE transfer_id = $1 AND amount_minor = 7500",
+            transfer
+        )
+        .await,
         1,
         "an open-amount link payment is refundable for what was paid"
     );
@@ -238,5 +328,9 @@ async fn an_open_amount_link_records_what_was_paid(pool: PgPool) {
     .fetch_one(&pool)
     .await
     .unwrap();
-    assert_eq!(event_source, Some(wp.to_string()), "payment_link.paid is missing or names no refund source");
+    assert_eq!(
+        event_source,
+        Some(wp.to_string()),
+        "payment_link.paid is missing or names no refund source"
+    );
 }

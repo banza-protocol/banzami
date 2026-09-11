@@ -105,12 +105,17 @@ async fn a_merchant_reads_its_own_transaction_and_not_anothers(pool: PgPool) {
     let tx = transaction_of(&pool, owner).await;
     let state = build_state(pool).await;
 
-    let own = read(&state, tx, owner).await.expect("owner reads its transaction");
+    let own = read(&state, tx, owner)
+        .await
+        .expect("owner reads its transaction");
     assert_eq!(own["id"], tx.to_string());
 
     assert_eq!(read(&state, tx, stranger).await.unwrap_err(), 404);
     // Indistinguishable from an id nobody holds.
-    assert_eq!(read(&state, Uuid::new_v4(), stranger).await.unwrap_err(), 404);
+    assert_eq!(
+        read(&state, Uuid::new_v4(), stranger).await.unwrap_err(),
+        404
+    );
 }
 
 async fn issue_key(state: &AppState, merchant: Uuid) -> String {
@@ -154,9 +159,14 @@ async fn a_merchant_cannot_revoke_another_merchants_key(pool: PgPool) {
 
     // The stranger names the key under its own path: refused, and the key lives.
     assert_eq!(revoke(&state, stranger, &key).await.unwrap_err(), 404);
-    assert!(revoked_at(&pool, &key).await.is_none(), "another Business's key was revoked");
+    assert!(
+        revoked_at(&pool, &key).await.is_none(),
+        "another Business's key was revoked"
+    );
 
     // Its owner can.
-    revoke(&state, owner, &key).await.expect("owner revokes its key");
+    revoke(&state, owner, &key)
+        .await
+        .expect("owner revokes its key");
     assert!(revoked_at(&pool, &key).await.is_some());
 }

@@ -690,11 +690,19 @@ async fn the_link_is_paid_with_its_event_in_the_credits_transaction(pool: PgPool
     let payment = confirmed_payment(&pool, f.link, 3_000).await;
 
     settle_confirmed_payment(&state, &payment).await.unwrap();
-    assert_eq!(link_status(&pool, f.link).await, "USED", "the first confirmation left the link payable");
+    assert_eq!(
+        link_status(&pool, f.link).await,
+        "USED",
+        "the first confirmation left the link payable"
+    );
     assert_eq!(link_paid_events(&pool, f.link).await, 1);
 
     settle_confirmed_payment(&state, &payment).await.unwrap(); // provider retry
-    assert_eq!(link_paid_events(&pool, f.link).await, 1, "a retry emitted the event again");
+    assert_eq!(
+        link_paid_events(&pool, f.link).await,
+        1,
+        "a retry emitted the event again"
+    );
 }
 
 // The payer started before the link expired and the provider confirmed the
@@ -737,9 +745,15 @@ async fn a_failed_completion_rolls_back_the_credit_and_a_retry_settles_it(pool: 
     .await
     .unwrap();
 
-    let err = settle_confirmed_payment(&state, &payment).await.unwrap_err();
+    let err = settle_confirmed_payment(&state, &payment)
+        .await
+        .unwrap_err();
     assert_eq!(err.status.as_u16(), 500);
-    assert_eq!(balance(&pool, f.default_account).await, 0, "credited without its completion");
+    assert_eq!(
+        balance(&pool, f.default_account).await,
+        0,
+        "credited without its completion"
+    );
     assert_eq!(link_status(&pool, f.link).await, "ACTIVE");
 
     sqlx::query("DROP TRIGGER test_refuse_event ON webhook_events")

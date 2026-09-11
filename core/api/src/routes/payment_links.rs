@@ -295,7 +295,9 @@ pub async fn mark_used(
     // closing its own link), and the engine says precisely why it cannot happen.
     let Some(transfer_id) = transfer_id else {
         let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
-        return Ok(Json(link_response_with_refund_source(&state.pool, link).await));
+        return Ok(Json(
+            link_response_with_refund_source(&state.pool, link).await,
+        ));
     };
 
     // With it, the link's payment completes in ONE transaction: the link is
@@ -328,7 +330,9 @@ pub async fn mark_used(
         // Not claimable: the engine reads the link and names the reason
         // (already used, cancelled, expired, or not found).
         let link = state.payment_links.mark_used(id).await.map_err(map_err)?;
-        return Ok(Json(link_response_with_refund_source(&state.pool, link).await));
+        return Ok(Json(
+            link_response_with_refund_source(&state.pool, link).await,
+        ));
     };
     let recorded = super::wallet_payments::record_merchant_interface_payment(
         &mut tx,

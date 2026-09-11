@@ -7,8 +7,8 @@ import (
 
 	"github.com/google/uuid"
 
-	crypto "github.com/banzami/banzami/services/common/webhookprov"
 	"github.com/banzami/banzami/services/common/env"
+	crypto "github.com/banzami/banzami/services/common/webhookprov"
 )
 
 // A6-10. A signing secret stored before the deployment had a key is rewritten

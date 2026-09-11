@@ -288,13 +288,27 @@ mod tests {
         assert!(validate_handle(&normalize_handle("@@doa")).is_err());
         for alias in ["\u{212A}ilo", "\u{130}vo"] {
             let n = normalize_handle(alias);
-            assert!(validate_handle(&n).is_err(), "{alias:?} normalised to a valid handle {n:?}");
+            assert!(
+                validate_handle(&n).is_err(),
+                "{alias:?} normalised to a valid handle {n:?}"
+            );
         }
     }
 
     #[test]
     fn the_registry_names_are_reserved_here_too() {
-        for n in ["administrator", "merchant", "business", "pay", "payment", "wallet", "test", "sandbox", "bna", "emis"] {
+        for n in [
+            "administrator",
+            "merchant",
+            "business",
+            "pay",
+            "payment",
+            "wallet",
+            "test",
+            "sandbox",
+            "bna",
+            "emis",
+        ] {
             assert!(validate_handle(n).is_err(), "{n} is not reserved");
         }
     }

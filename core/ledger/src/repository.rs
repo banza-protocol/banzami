@@ -301,7 +301,9 @@ impl LedgerEngine for PostgresLedgerRepository {
                 .fetch_optional(&self.pool)
                 .await?;
         match id {
-            Some(id) => Ok(Some(self.get_posting(LedgerPostingId::from_uuid(id)).await?)),
+            Some(id) => Ok(Some(
+                self.get_posting(LedgerPostingId::from_uuid(id)).await?,
+            )),
             None => Ok(None),
         }
     }

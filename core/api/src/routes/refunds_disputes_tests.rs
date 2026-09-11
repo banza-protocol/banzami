@@ -1737,22 +1737,34 @@ async fn a_full_refund_whose_proof_cannot_be_reversed_does_not_happen(pool: PgPo
 async fn a_fully_refunded_wallet_payment_proof_is_reversed(pool: PgPool) {
     let state = build_state(pool.clone()).await;
     let s = seed_wallet_payment(&pool, 1_000).await;
-    let transfer: Uuid = sqlx::query_scalar("SELECT transfer_id FROM wallet_payments WHERE id = $1")
-        .bind(s.wallet_payment_id)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
+    let transfer: Uuid =
+        sqlx::query_scalar("SELECT transfer_id FROM wallet_payments WHERE id = $1")
+            .bind(s.wallet_payment_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     seed_proof(&pool, transfer).await;
 
-    refunds::create(State(state.clone()), Json(wp_refund_body(&s, 400, "wp-part")))
-        .await
-        .expect("partial refund");
-    assert_eq!(proof_status(&pool, transfer).await, "CONFIRMED", "a partial refund leaves the payment standing");
+    let _ = refunds::create(
+        State(state.clone()),
+        Json(wp_refund_body(&s, 400, "wp-part")),
+    )
+    .await
+    .expect("partial refund");
+    assert_eq!(
+        proof_status(&pool, transfer).await,
+        "CONFIRMED",
+        "a partial refund leaves the payment standing"
+    );
 
-    refunds::create(State(state), Json(wp_refund_body(&s, 600, "wp-rest")))
+    let _ = refunds::create(State(state), Json(wp_refund_body(&s, 600, "wp-rest")))
         .await
         .expect("refund of the rest");
-    assert_eq!(proof_status(&pool, transfer).await, "REVERSED", "the fully refunded payment still verifies");
+    assert_eq!(
+        proof_status(&pool, transfer).await,
+        "REVERSED",
+        "the fully refunded payment still verifies"
+    );
 }
 
 // A5-07: two operators resolving one dispute at once, in opposite directions.
@@ -1787,24 +1799,35 @@ async fn concurrent_opposite_resolutions_have_one_winner(pool: PgPool) {
     };
     let mut handles = Vec::new();
     for i in 0..6 {
-        handles.push(resolve(if i % 2 == 0 { "WON_BY_CONSUMER" } else { "WON_BY_MERCHANT" }));
+        handles.push(resolve(if i % 2 == 0 {
+            "WON_BY_CONSUMER"
+        } else {
+            "WON_BY_MERCHANT"
+        }));
     }
     let mut winners = Vec::new();
     for h in handles {
         match h.await.unwrap() {
             Ok(o) => winners.push(o),
-            Err(e) => assert_eq!(e.code, "DISPUTE_ALREADY_RESOLVED", "a loser must be told why"),
+            Err(e) => assert_eq!(
+                e.code, "DISPUTE_ALREADY_RESOLVED",
+                "a loser must be told why"
+            ),
         }
     }
-    assert_eq!(winners.len(), 1, "{} resolutions succeeded for one dispute", winners.len());
+    assert_eq!(
+        winners.len(),
+        1,
+        "{} resolutions succeeded for one dispute",
+        winners.len()
+    );
 
-    let (status, restituted): (String, Option<i64>) = sqlx::query_as(
-        "SELECT status, restitution_amount_minor FROM disputes WHERE id = $1",
-    )
-    .bind(did)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+    let (status, restituted): (String, Option<i64>) =
+        sqlx::query_as("SELECT status, restitution_amount_minor FROM disputes WHERE id = $1")
+            .bind(did)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
     assert_eq!(status, winners[0], "the recorded outcome is the winner's");
     let posted = count_postings(&pool, &format!("dispute-refund-{did}")).await;
     if status == "WON_BY_CONSUMER" {

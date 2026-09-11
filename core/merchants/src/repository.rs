@@ -360,9 +360,9 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         .bind(id.as_uuid())
         .bind(merchant_id.as_uuid())
         .execute(&self.pool)
-                .await
-                .map_err(MerchantError::Database)?
-                .rows_affected();
+        .await
+        .map_err(MerchantError::Database)?
+        .rows_affected();
 
         if affected == 0 {
             return Err(MerchantError::ApiKeyNotFound(id));

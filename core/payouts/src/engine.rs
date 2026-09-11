@@ -1693,17 +1693,38 @@ mod tests {
             .unwrap();
         *engine.ledger.refuse_suffix.lock().unwrap() = Some(":process:fee");
 
-        assert!(engine.process(payout.id).await.is_err(), "the fee posting was refused");
+        assert!(
+            engine.process(payout.id).await.is_err(),
+            "the fee posting was refused"
+        );
         let after_process = engine.repo.get(payout.id).await.unwrap();
         assert_eq!(after_process.status, PayoutStatus::Pending);
         assert!(after_process.ledger_posting_id.is_none());
-        let debited = engine.ledger.balance(avail).await.unwrap().negate().amount_minor();
-        assert!(debited < 100_000, "the net posting did commit before the fee failed");
+        let debited = engine
+            .ledger
+            .balance(avail)
+            .await
+            .unwrap()
+            .negate()
+            .amount_minor();
+        assert!(
+            debited < 100_000,
+            "the net posting did commit before the fee failed"
+        );
 
         *engine.ledger.refuse_suffix.lock().unwrap() = None;
-        engine.fail(payout.id, "bank rejected".into()).await.unwrap();
+        engine
+            .fail(payout.id, "bank rejected".into())
+            .await
+            .unwrap();
         assert_eq!(
-            engine.ledger.balance(avail).await.unwrap().negate().amount_minor(),
+            engine
+                .ledger
+                .balance(avail)
+                .await
+                .unwrap()
+                .negate()
+                .amount_minor(),
             100_000,
             "failing the payout must give back what moved — no more, no less"
         );
@@ -1735,11 +1756,18 @@ mod tests {
             }
         }
 
-        assert!(engine.mark_sent(payout.id).await.is_err(), "sent with no recorded posting");
+        assert!(
+            engine.mark_sent(payout.id).await.is_err(),
+            "sent with no recorded posting"
+        );
         let resumed = engine.process(payout.id).await.unwrap();
         assert_eq!(resumed.status, PayoutStatus::Processing);
         assert!(resumed.ledger_posting_id.is_some());
-        assert_eq!(engine.ledger.postings.lock().unwrap().len(), postings, "resuming posted again");
+        assert_eq!(
+            engine.ledger.postings.lock().unwrap().len(),
+            postings,
+            "resuming posted again"
+        );
         assert_eq!(engine.ledger.balance(avail).await.unwrap(), balance_after);
         engine.mark_sent(payout.id).await.unwrap();
     }

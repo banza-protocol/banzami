@@ -117,20 +117,33 @@ async fn approval_does_not_lift_a_suspension_or_clear_an_aml_flag(pool: PgPool) 
         .execute(&pool)
         .await
         .unwrap();
-    compliance::suspend_merchant(State(state.clone()), Path(suspended.to_string()), notes("fraude"))
-        .await
-        .unwrap();
+    let _ = compliance::suspend_merchant(
+        State(state.clone()),
+        Path(suspended.to_string()),
+        notes("fraude"),
+    )
+    .await
+    .unwrap();
     assert!(
-        compliance::approve_merchant(State(state.clone()), Path(suspended.to_string())).await.is_err(),
+        compliance::approve_merchant(State(state.clone()), Path(suspended.to_string()))
+            .await
+            .is_err(),
         "approval lifted a suspension"
     );
-    assert_eq!(statuses(&pool, suspended).await, ("SUSPENDED".into(), "SUSPENDED".into()));
+    assert_eq!(
+        statuses(&pool, suspended).await,
+        ("SUSPENDED".into(), "SUSPENDED".into())
+    );
 
     let flagged = Uuid::new_v4();
-    compliance::flag_aml(State(state.clone()), Path(flagged.to_string()), notes("padrão suspeito"))
-        .await
-        .unwrap();
-    compliance::approve_merchant(State(state.clone()), Path(flagged.to_string()))
+    let _ = compliance::flag_aml(
+        State(state.clone()),
+        Path(flagged.to_string()),
+        notes("padrão suspeito"),
+    )
+    .await
+    .unwrap();
+    let _ = compliance::approve_merchant(State(state.clone()), Path(flagged.to_string()))
         .await
         .unwrap();
     assert_eq!(
@@ -149,11 +162,18 @@ async fn concurrent_decisions_on_different_columns_both_stand(pool: PgPool) {
         let m = Uuid::new_v4();
         let _ = compliance::get_merchant(State(state.clone()), Path(m.to_string())).await;
         let (a, b) = tokio::join!(
-            compliance::reject_merchant(State(state.clone()), Path(m.to_string()), notes("documentos")),
+            compliance::reject_merchant(
+                State(state.clone()),
+                Path(m.to_string()),
+                notes("documentos")
+            ),
             compliance::flag_aml(State(state.clone()), Path(m.to_string()), notes("padrão")),
         );
-        a.unwrap();
-        b.unwrap();
-        assert_eq!(statuses(&pool, m).await, ("REJECTED".into(), "UNDER_REVIEW".into()));
+        let _ = a.unwrap();
+        let _ = b.unwrap();
+        assert_eq!(
+            statuses(&pool, m).await,
+            ("REJECTED".into(), "UNDER_REVIEW".into())
+        );
     }
 }

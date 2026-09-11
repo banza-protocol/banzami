@@ -91,7 +91,7 @@ type receiptView struct {
 	AmountText, AmountWords                string
 	FromName, FromHandle, ToName, ToHandle string
 	DateTime, Description, State           string
-	StateConfirmed                         bool // the green "done" mark is only for a confirmed operation
+	StateConfirmed                         bool   // the green "done" mark is only for a confirmed operation
 	Operation, Funding                     string // "Pagamento · Link de pagamento", "Saldo Banzami"
 	Method                                 string // legacy documents only
 	MerchantReference, DisplayContext      string
