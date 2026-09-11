@@ -62,22 +62,25 @@ async fn main() {
         .parse::<u16>()
         .expect("CORE_API_PORT must be a valid port number");
 
-    let transit_account_id = env::var("TRANSIT_ACCOUNT_ID")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or_default();
-
-    let bank_account_id = env::var("BANK_ACCOUNT_ID")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or_default();
-
+    // The system ledger accounts. Required and exact: a missing or malformed id
+    // used to fall back to AccountId::default() — a NEW random account on every
+    // boot — so the counterpart of every wallet movement silently moved to a
+    // fresh account per restart.
+    let transit_account_id =
+        system_account("TRANSIT_ACCOUNT_ID", env::var("TRANSIT_ACCOUNT_ID").ok());
+    let bank_account_id = system_account("BANK_ACCOUNT_ID", env::var("BANK_ACCOUNT_ID").ok());
     // Operator-fee REVENUE account (Banzami ADR-021). Internal operator account
     // the per-payment operator fee is credited to — never a merchant wallet.
-    let operator_fee_account_id = env::var("OPERATOR_FEE_REVENUE_ACCOUNT_ID")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or_default();
+    let operator_fee_account_id = system_account(
+        "OPERATOR_FEE_REVENUE_ACCOUNT_ID",
+        env::var("OPERATOR_FEE_REVENUE_ACCOUNT_ID").ok(),
+    );
+    assert!(
+        transit_account_id != bank_account_id
+            && transit_account_id != operator_fee_account_id
+            && bank_account_id != operator_fee_account_id,
+        "TRANSIT_ACCOUNT_ID, BANK_ACCOUNT_ID and OPERATOR_FEE_REVENUE_ACCOUNT_ID must be three different accounts"
+    );
 
     // Connect with a short bounded retry rather than panicking on the first
     // attempt. A freshly created container can run its first instruction before
@@ -966,4 +969,37 @@ async fn connect_with_retry(database_url: &str) -> sqlx::Pool<sqlx::Postgres> {
         "failed to connect to PostgreSQL after {ATTEMPTS} attempts: {}",
         last_err.expect("at least one attempt was made")
     );
+}
+
+/// A system ledger account id from the environment: set, and a UUID — or the
+/// process does not start.
+fn system_account(name: &str, value: Option<String>) -> banzami_types::AccountId {
+    let raw =
+        value.unwrap_or_else(|| panic!("{name} must be set (a fixed system ledger account id)"));
+    raw.trim()
+        .parse()
+        .unwrap_or_else(|_| panic!("{name} is not a UUID"))
+}
+
+#[cfg(test)]
+mod system_account_tests {
+    use super::system_account;
+
+    #[test]
+    fn a_set_uuid_is_used_as_is() {
+        let id = "80a1a416-0000-4000-8000-000000000001";
+        assert_eq!(system_account("X", Some(id.into())).to_string(), id);
+    }
+
+    #[test]
+    #[should_panic(expected = "X must be set")]
+    fn an_unset_id_stops_the_process() {
+        system_account("X", None);
+    }
+
+    #[test]
+    #[should_panic(expected = "X is not a UUID")]
+    fn a_malformed_id_stops_the_process() {
+        system_account("X", Some("80a1a416-typo".into()));
+    }
 }
