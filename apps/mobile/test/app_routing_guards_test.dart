@@ -41,4 +41,13 @@ void main() {
     expect(scheme.contains('segs.length == 1 && BanzamiQrParser.isPaymentSlug(segs[0])'), isTrue);
     expect(scheme.contains('_openPaymentLink(segs[0])'), isTrue);
   });
+
+  test('request and @banza deep links are checked against the environment, like the scanner', () {
+    final universal = body('void _handleUniversalLink(');
+    final scheme = body('void _handleBanzamiScheme(');
+    expect(RegExp(r'_refuseOtherEnvironment\(uri\)').allMatches(universal).length, 2);
+    expect(RegExp(r'_refuseOtherEnvironment\(uri\)').allMatches(scheme).length, 2);
+    expect(app.contains("uri.queryParameters['sandbox'] == '1'"), isTrue);
+    expect(app.contains("uri.scheme.endsWith('-sandbox')"), isTrue);
+  });
 }

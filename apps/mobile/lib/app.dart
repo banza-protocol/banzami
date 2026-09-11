@@ -216,9 +216,38 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
-    // ── Custom scheme: banzami://pay/... ─────────────────────────────────────
-    if (uri.scheme != 'banzami' || uri.host != 'pay') return;
+    // ── Custom scheme: banzami://pay/... (+ banzami-sandbox, legacy banza) ──
+    if (!_isBanzamiScheme(uri)) return;
     _handleBanzamiScheme(uri);
+  }
+
+  static const _schemes = {
+    BanzamiQrScheme.live, BanzamiQrScheme.sandbox,
+    BanzamiQrScheme.legacyLive, BanzamiQrScheme.legacySandbox,
+  };
+
+  bool _isBanzamiScheme(Uri uri) => _schemes.contains(uri.scheme) && uri.host == 'pay';
+
+  /// Whether the link says it belongs to the Sandbox — the same markers the
+  /// scanner reads: `?sandbox=1` on the web form, a `-sandbox` scheme.
+  bool _linkIsSandbox(Uri uri) => uri.scheme == 'https'
+      ? uri.queryParameters['sandbox'] == '1'
+      : uri.scheme.endsWith('-sandbox');
+
+  /// A request or @banza link from the other environment never opens a
+  /// payment here: a Sandbox link must not pay with real money, nor the
+  /// reverse. (Payment links carry no marker: the slug only resolves on the
+  /// stack that issued it.) Returns true when the link was refused.
+  bool _refuseOtherEnvironment(Uri uri) {
+    final linkSandbox = _linkIsSandbox(uri);
+    if (linkSandbox == AppConfig.isSandbox) return false;
+    debugPrint('[deep-link] environment mismatch linkSandbox=$linkSandbox '
+        'appSandbox=${AppConfig.isSandbox} — refused');
+    final ctx = _navigatorKey.currentContext;
+    if (ctx != null) {
+      BanzamiToast.showWarning(ctx, environmentMismatchMessage(fromSandbox: linkSandbox));
+    }
+    return true;
   }
 
   // Called by the guard after successful unlock when a deep link was pending.
@@ -230,7 +259,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.com') {
       _handleUniversalLink(uri);
-    } else if (uri.scheme == 'banzami' && uri.host == 'pay') {
+    } else if (_isBanzamiScheme(uri)) {
       _handleBanzamiScheme(uri);
     }
   }
@@ -245,11 +274,15 @@ class _BanzamiAppState extends State<BanzamiApp> {
     switch (segs[0]) {
       case 'r':
         // Payment-request link — maps 1:1 to banzami://pay?request={code}
-        if (segs.length >= 2) _openPaymentRequest(segs[1]);
+        if (segs.length >= 2 && !_refuseOtherEnvironment(uri)) {
+          _openPaymentRequest(segs[1]);
+        }
 
       case 'u':
         // Handle-based pay link — maps to banzami://pay/u/{handle}
-        if (segs.length >= 2) _openHandlePay(uri, segs[1]);
+        if (segs.length >= 2 && !_refuseOtherEnvironment(uri)) {
+          _openHandlePay(uri, segs[1]);
+        }
 
       case 'pay':
         // Payment link — https://pay.banzami.com/pay/{slug}; same target as
@@ -316,7 +349,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     // banzami://pay/u/{handle}?amount={minor}&currency={currency}
     if (segs.isNotEmpty && segs[0] == 'u' && segs.length >= 2) {
-      _openHandlePay(uri, segs[1]);
+      if (!_refuseOtherEnvironment(uri)) _openHandlePay(uri, segs[1]);
       return;
     }
 
@@ -331,7 +364,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
     // banzami://pay?request={code}
     if (segs.isEmpty) {
       final code = uri.queryParameters['request'];
-      if (code != null && code.isNotEmpty) _openPaymentRequest(code);
+      if (code != null && code.isNotEmpty && !_refuseOtherEnvironment(uri)) {
+        _openPaymentRequest(code);
+      }
     }
   }
 
