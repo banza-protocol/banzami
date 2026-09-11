@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { getProof, type ProofResult } from '@/lib/api';
 import { isProofRef } from '@/lib/proof-ref';
+import { readerIpFrom } from '@/lib/proof-reader';
 import { MoneyAmount } from '@/components/MoneyAmount';
 import { confirmedTitle, fmtWAT, proofRows, proofDefinitivelyAbsent } from '@/lib/proof-view';
 import { proofStatusLabel } from '@/lib/status-labels';
@@ -73,7 +75,8 @@ function Row({ label, value, mono }: { label: string; value?: string | null; mon
 
 export default async function ProofPage({ params }: { params: Promise<{ ref: string }> }) {
   const { ref } = await params;
-  const p = await getProof(ref);
+  // Looked up on the reader's behalf: the gateway limits per reader (A9-08).
+  const p = await getProof(ref, readerIpFrom(await headers()));
   // A definitive "no such proof" is a 404, not a 200 page that says so. An
   // unavailable verifier is never a 404 — it stays the amber answer below.
   if (proofDefinitivelyAbsent(p)) notFound();

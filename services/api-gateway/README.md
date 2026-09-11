@@ -234,6 +234,7 @@ go run cmd/gateway/main.go
 | OTLP_ENDPOINT | — | No | OpenTelemetry collector endpoint; tracing disabled when empty |
 | FIREBASE_CREDENTIALS_JSON | — | No | Firebase service-account JSON (minified); push notifications disabled when empty |
 | TRUSTED_PROXY_CIDRS | — (trust none) | Behind the edge | CIDRs/addresses of the proxy whose `X-Real-IP` names the client (the Sandbox edge's address on the app network). Unset: the client is the direct peer, so behind a proxy every request shares the proxy's per-IP bucket. `0.0.0.0/0` / `::/0` and malformed lists refuse to start. See `services/common/clientip` |
+| PROOF_READER_FORWARDER_CIDRS | — (trust none) | For banzami.com/r/ | The website's egress address(es): only from these (as the edge resolved the caller) is `X-Banzami-Reader-IP` believed on `GET /v1/public/proofs/{ref}`, so proof lookups are limited per reader, not per website (A9-08) |
 
 ## Middleware Stack
 

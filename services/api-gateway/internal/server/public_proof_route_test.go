@@ -55,7 +55,7 @@ func proofRoute(t *testing.T) (http.Handler, *atomic.Int64) {
 
 	r := chi.NewRouter()
 	svc := service.NewProofService(pool, "k", "op-hmac-v1", "banzami", "banza", "https://banzami.com/r/")
-	mountPublicProofVerify(r, rdb, svc, "salt")
+	mountPublicProofVerify(r, rdb, svc, "salt", nil)
 	return r, &dials
 }
 

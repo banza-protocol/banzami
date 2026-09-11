@@ -10,6 +10,17 @@ import (
 	"github.com/banzami/banzami/services/common/clientip"
 )
 
+// EnvProofReaderForwarders lists the addresses allowed to name the reader of a
+// public proof lookup (ProofReaderHeader). It is the website's egress address:
+// banzami.com/r/{ref} is rendered on the website's server, so without this
+// every reader shares the website's one per-IP allowance (A9-08).
+const EnvProofReaderForwarders = "PROOF_READER_FORWARDER_CIDRS"
+
+// ProofReaderHeader carries the reader's address on the website's server-side
+// proof lookup. It is a header of its own because the edge overwrites X-Real-IP
+// with the website's address, which is exactly what it should do.
+const ProofReaderHeader = "X-Banzami-Reader-IP"
+
 type Config struct {
 	Port        int
 	Environment string
@@ -85,6 +96,9 @@ type Config struct {
 	// edge's X-Real-IP, believed only from TRUSTED_PROXY_CIDRS (A9-09). Nil
 	// trusts no proxy — the client is the direct peer.
 	ClientIP *clientip.Resolver
+	// ProofReaders believes ProofReaderHeader on the public proof route only,
+	// and only from PROOF_READER_FORWARDER_CIDRS (A9-08). Nil trusts nobody.
+	ProofReaders *clientip.Resolver
 }
 
 func Load() (*Config, error) {
@@ -204,6 +218,9 @@ func Load() (*Config, error) {
 	// something to guess about a setting that decides whose limit is whose.
 	var err error
 	if cfg.ClientIP, err = clientip.LoadEdge(); err != nil {
+		return nil, err
+	}
+	if cfg.ProofReaders, err = clientip.Load(EnvProofReaderForwarders, ProofReaderHeader); err != nil {
 		return nil, err
 	}
 

@@ -17,6 +17,9 @@
 //   3. no Go service believes a client-address header by itself;
 //   4. the retired edge configs that forwarded the raw $http_cf_connecting_ip
 //      (banzami.conf, zz-developer-api.conf) stay retired.
+//
+// And, for receipt verification (A9-08): the website edge limits /r/ and
+// /verificar per client — per /64 for IPv6 (A9-04).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -183,4 +186,45 @@ test('no Go service takes the client address from a request header itself', () =
     }
   }
   assert.deepEqual(offenders, [], 'read the client through services/common/clientip (RemoteAddr after its middleware)');
+});
+
+// ─── receipt verification: a per-client allowance at the website edge ───────
+test('the website edge limits /r/ and /verificar per client', () => {
+  const top = parse(read('infra/nginx/website.conf'));
+  const zones = Object.fromEntries(directives(top, 'limit_req_zone').map((d) => [/zone=([^:]+)/.exec(d.args.join(' '))[1], d.args[0]]));
+  const server = directives(top, 'server').find((s) => directives(s.children, 'server_name')[0]?.args.includes('banzami.com'));
+  for (const spec of ['~ ^/r/', '= /verificar']) {
+    const loc = directives(server.children, 'location').find((l) => l.args.join(' ') === spec);
+    assert.ok(loc, `banzami.com has no "location ${spec}"`);
+    const lim = directives(loc.children, 'limit_req')[0];
+    assert.ok(lim, `location ${spec} is not rate-limited`);
+    const zone = /zone=(\S+)/.exec(lim.args.join(' '))[1];
+    assert.equal(zones[zone], '$bz_client_key', `location ${spec}: zone ${zone} must key on the client ($bz_client_key)`);
+    assert.deepEqual(directives(loc.children, 'limit_req_status')[0]?.args, ['429'], `location ${spec}: a limit is a 429, not nginx's default 503`);
+  }
+});
+
+// The key map, run as nginx runs it (first matching regex wins) over addresses
+// as nginx prints them.
+test('the website limiter key is the address for IPv4 and the /64 for IPv6', () => {
+  const map = directives(parse(read('infra/nginx/website.conf')), 'map').find((m) => m.args[1] === '$bz_client_key');
+  assert.ok(map && map.args[0] === '$remote_addr', 'map $remote_addr $bz_client_key is missing');
+  const rules = map.children.filter((d) => d.name.startsWith('~')).map((d) => ({
+    re: new RegExp(d.name.slice(1).replace(/\\\\/g, '\\')),
+    out: d.args[0],
+  }));
+  const key = (addr) => {
+    for (const r of rules) {
+      const m = r.re.exec(addr);
+      if (m) return r.out.replace(/\$\{(\w+)\}/g, (_, g) => m.groups[g]);
+    }
+    return addr;
+  };
+  assert.equal(key('198.51.100.7'), '198.51.100.7');
+  const same64 = ['2001:db8:1:2::1', '2001:db8:1:2:ffff:ffff:ffff:ffff', '2001:db8:1:2:a:b:c:d'];
+  assert.equal(new Set(same64.map(key)).size, 1, `one /64, several keys: ${same64.map(key)}`);
+  assert.notEqual(key('2001:db8:1:2::1'), key('2001:db8:1:3::1'));
+  // A prefix with zero groups prints compressed; its rotations are still one key.
+  const compressed = ['2001:db8::1:2:3:4', '2001:db8::5:6:7:8', '2001:db8::9'];
+  assert.equal(new Set(compressed.map(key)).size, 1, `compressed /64, several keys: ${compressed.map(key)}`);
 });

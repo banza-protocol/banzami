@@ -166,6 +166,12 @@ recreated; trusting the whole app-network subnet instead is simpler but trusts
 every container on it, which is the spoofing this closes. A malformed list, or
 `0.0.0.0/0`, refuses to start.
 
+On **api-gateway** only, `PROOF_READER_FORWARDER_CIDRS=<website egress address>/32`
+(the host's public IPv4 as Cloudflare sees it) lets banzami.com/r/{ref} name
+its reader in `X-Banzami-Reader-IP`, so proof lookups are limited per reader
+rather than per website (A9-08). It is honoured on that one route, and only
+when the edge-resolved caller is that address.
+
 ### Container health vs runtime assurance
 
 The container healthcheck answers only *"is nginx up and serving THIS config"*,
