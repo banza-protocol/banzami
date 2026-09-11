@@ -1,3 +1,5 @@
+import 'package:banzami_flutter/banzami_flutter.dart';
+import 'package:banzami_mobile/screens/pin_screen.dart';
 import 'package:banzami_mobile/services/push_topic_registration.dart';
 import 'package:banzami_mobile/services/session_service.dart';
 import 'package:flutter/services.dart';
@@ -72,6 +74,47 @@ void main() {
       expect(svc.isSignedInAs('c-A'), isTrue);
       await svc.logout();
       expect(svc.isSignedInAs('c-A'), isFalse);
+    });
+  });
+
+  group('a refused token is not a refused account', () {
+    test('expireToken drops the token, keeps the account, and locks', () async {
+      final push = _FakePush();
+      final svc = await signedIn(push);
+      await svc.expireToken();
+      expect(svc.hasSession, isTrue);
+      expect(svc.isLocked, isTrue);
+      expect(svc.isTokenExpired, isTrue, reason: 'biometrics cannot stand in: the PIN signs in');
+      expect(store.containsKey('token'), isFalse);
+      expect(store['handle'], 'ana');
+      expect(push.unsubscribed, isEmpty, reason: 'still this account on this phone');
+
+      // A restart opens the same account, locked, for the PIN.
+      final again = SessionService(push: push);
+      await again.initialize();
+      expect(again.hasSession, isTrue);
+      expect(again.isLocked, isTrue);
+      expect(again.session!.handle, 'ana');
+    });
+  });
+
+  group('consumerUnlockDecision — a PIN that matched on this device', () {
+    BanzamiApiException api(int s) => BanzamiApiException(statusCode: s, code: 'X', message: 'x');
+
+    test('signed in again → unlock', () {
+      expect(consumerUnlockDecision(loginError: null, tokenExpired: true), ConsumerUnlock.unlock);
+    });
+    test('a definitive 401 ends the session', () {
+      expect(consumerUnlockDecision(loginError: api(401), tokenExpired: false), ConsumerUnlock.signOut);
+    });
+    test('a lockout keeps the PIN screen', () {
+      expect(consumerUnlockDecision(loginError: api(429), tokenExpired: false), ConsumerUnlock.stayLocked);
+    });
+    test('an outage opens only a still-valid session, flagged as degraded', () {
+      for (final e in <Object>[api(503), const BanzamiNetworkException('down')]) {
+        expect(consumerUnlockDecision(loginError: e, tokenExpired: false), ConsumerUnlock.unlockDegraded);
+        expect(consumerUnlockDecision(loginError: e, tokenExpired: true), ConsumerUnlock.stayLocked);
+      }
     });
   });
 }

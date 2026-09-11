@@ -15,7 +15,6 @@ import 'services/session_service.dart';
 import 'services/wallet_refresh_bus.dart';
 import 'branding_assets.dart';
 import 'screens/splash_screen.dart';
-import 'screens/onboarding/welcome_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 final _guardKey     = GlobalKey<SecureAppLifecycleGuardState>();
@@ -478,13 +477,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
               WidgetsBinding.instance.addPostFrameCallback((_) => _processPendingDeepLink());
             }
           }
-          // Auto-logout on 401: clear session and return to WelcomeScreen.
+          // A 401 on an authenticated call: the TOKEN was refused (expired or
+          // revoked) — not the account. Drop the token and lock; the PIN signs
+          // in again. Only a 401 to the @banza + PIN itself (PinScreen) ends
+          // the session and wipes the device.
           client.onUnauthorized = () {
-            context.read<SessionService>().logout();
-            _navigatorKey.currentState?.pushAndRemoveUntil(
-              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-              (_) => false,
-            );
+            context.read<SessionService>().expireToken();
+            _guardKey.currentState?.triggerUnlock(() {});
           };
           return MaterialApp(
             title:                      'Banzami',

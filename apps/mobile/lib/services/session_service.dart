@@ -147,14 +147,18 @@ class SessionService extends ChangeNotifier {
     final token       = await _store.read(key: _kToken);
     final bioEnabled  = await _store.read(key: _kBioEnabled);
     final badgeRaw    = await _store.read(key: _kVerificationBadge);
+    final pinHash     = await _store.read(key: _kPinHash);
 
-    if (consumerId != null && walletId != null && handle != null && token != null) {
+    // A token the server rejected was dropped ([expireToken]); the account is
+    // still this device's and opens locked — the PIN signs in again.
+    if (consumerId != null && walletId != null && handle != null &&
+        (token != null || pinHash != null)) {
       _session = Session(
         consumerId:        consumerId,
         walletId:          walletId,
         handle:            handle,
         displayName:       displayName,
-        token:             token,
+        token:             token ?? '',
         biometricsEnabled: bioEnabled == 'true',
         verificationBadge: _parseBadge(badgeRaw),
       );
@@ -223,6 +227,23 @@ class SessionService extends ChangeNotifier {
       _session = _session!.copyWith(token: token);
       notifyListeners();
     }
+  }
+
+  /// The server refused this device's token (a 401 on an authenticated call)
+  /// — it expired or was revoked. That is not the account going away: the
+  /// token is dropped and the app locks, and the PIN signs in again. Only a
+  /// definitive refusal of the @banza + PIN itself ends the session ([logout]).
+  Future<void> expireToken() async {
+    final s = _session;
+    if (s == null) return;
+    try {
+      await _store.delete(key: _kToken);
+    } catch (e) {
+      debugPrint('[session] could not drop the rejected token: ${e.runtimeType}');
+    }
+    _session = s.copyWith(token: '');
+    _locked  = true;
+    notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
