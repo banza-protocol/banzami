@@ -1,5 +1,15 @@
-import { PaymentLink, formatAmount } from './api';
+import { formatAmount } from './api';
 import { BanzamiQrScheme } from './qrScheme';
+
+/** What the modal shows: a link the merchant's server created, and display text. */
+export interface ModalLink {
+  slug:        string;
+  /** The hosted payment page (https://pay.banzami.com/pay/<slug>). */
+  pageUrl:     string;
+  amountMinor: number | null;
+  currency:    string;
+  description: string | null;
+}
 
 declare const QRCode: any; // loaded from CDN in browser context
 
@@ -73,7 +83,7 @@ function loadQrScript(cb: () => void): void {
 }
 
 export interface ModalCallbacks {
-  onSuccess: (link: PaymentLink) => void;
+  onSuccess: () => void;
   onCancel:  () => void;
 }
 
@@ -81,13 +91,13 @@ export class CheckoutModal {
   private overlay: HTMLElement | null = null;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
 
-  open(link: PaymentLink, callbacks: ModalCallbacks, pollFn: () => Promise<{ paid: boolean }>): void {
+  open(link: ModalLink, callbacks: ModalCallbacks, checkPaid?: () => Promise<boolean>): void {
     injectStyle();
     this.cleanup();
 
     const deepLink  = BanzamiQrScheme.payLink(link.slug);
-    const amountTxt = link.amount_minor != null
-      ? formatAmount(link.amount_minor, link.currency)
+    const amountTxt = link.amountMinor != null
+      ? formatAmount(link.amountMinor, link.currency)
       : 'Valor livre';
 
     const overlay = document.createElement('div');
@@ -95,15 +105,18 @@ export class CheckoutModal {
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
 
+    // Static structure only; every value is set as text or an attribute below,
+    // so a description can never become markup.
     overlay.innerHTML = `
       <div id="bz-checkout-box" style="position:relative">
         <button id="bz-checkout-close" aria-label="Fechar">&#x2715;</button>
         <div id="bz-checkout-header">
-          <p id="bz-checkout-label">${link.description ?? 'Valor a pagar'}</p>
-          <p id="bz-checkout-amount">${amountTxt}</p>
+          <p id="bz-checkout-label"></p>
+          <p id="bz-checkout-amount"></p>
         </div>
         <div id="bz-checkout-qr"><canvas id="bz-qr-canvas"></canvas></div>
-        <a id="bz-checkout-btn" href="${deepLink}">Abrir app Banzami</a>
+        <a id="bz-checkout-btn">Abrir app Banzami</a>
+        <a id="bz-checkout-page" target="_blank" rel="noopener" style="display:block;font-size:13px;color:${BANZAMI_RED};margin:0 0 10px">Pagar na página Banzami</a>
         <p id="bz-checkout-waiting">A aguardar confirmação de pagamento…</p>
         <div id="bz-checkout-success">
           <div id="bz-checkout-success-icon">✓</div>
@@ -112,6 +125,13 @@ export class CheckoutModal {
         </div>
       </div>
     `;
+    overlay.querySelector('#bz-checkout-label')!.textContent = link.description ?? 'Valor a pagar';
+    overlay.querySelector('#bz-checkout-amount')!.textContent = amountTxt;
+    overlay.querySelector('#bz-checkout-btn')!.setAttribute('href', deepLink);
+    overlay.querySelector('#bz-checkout-page')!.setAttribute('href', link.pageUrl);
+    if (!checkPaid) {
+      overlay.querySelector<HTMLElement>('#bz-checkout-waiting')!.style.display = 'none';
+    }
 
     overlay.querySelector('#bz-checkout-close')!.addEventListener('click', () => {
       this.close();
@@ -142,14 +162,17 @@ export class CheckoutModal {
       });
     });
 
+    // Whether it was paid is the merchant server's answer, not the gateway's:
+    // a merchant page's origin cannot call the gateway, and should not hold
+    // anything that could.
+    if (!checkPaid) return;
     this.pollTimer = setInterval(async () => {
       try {
-        const { paid } = await pollFn();
-        if (paid) {
+        if (await checkPaid()) {
           this.showSuccess();
           setTimeout(() => {
             this.close();
-            callbacks.onSuccess(link);
+            callbacks.onSuccess();
           }, 1800);
         }
       } catch { /* keep polling */ }
@@ -162,6 +185,7 @@ export class CheckoutModal {
     this.overlay.querySelector<HTMLElement>('#bz-checkout-waiting')!.style.display = 'none';
     this.overlay.querySelector<HTMLElement>('#bz-checkout-qr')!.style.display = 'none';
     this.overlay.querySelector<HTMLElement>('#bz-checkout-btn')!.style.display = 'none';
+    this.overlay.querySelector<HTMLElement>('#bz-checkout-page')!.style.display = 'none';
     const success = this.overlay.querySelector<HTMLElement>('#bz-checkout-success')!;
     success.classList.add('bz-visible');
   }

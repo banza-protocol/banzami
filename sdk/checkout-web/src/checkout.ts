@@ -1,80 +1,90 @@
-import { CheckoutApi, BanzamiApiError } from './api';
-import type { CreateLinkOptions, PaymentLink } from './api';
+import { BanzamiCheckoutError, DEFAULT_PAY_URL, assertNoCredential, paymentLinkSlug, payPageUrl } from './api';
 import { CheckoutModal } from './modal';
 
 export interface BanzamiCheckoutConfig {
-  /** Base URL of the Banzami API gateway. */
-  gatewayUrl: string;
-  /** Merchant API key (bz_live_... or bz_test_...). */
-  apiKey:     string;
-  /** Merchant ID — all payment links are created under this merchant. */
-  merchantId: string;
-  /** Wallet ID that receives the payments. */
-  walletId:   string;
+  /** Origin of the hosted payer page. Defaults to https://pay.banzami.com. */
+  payUrl?: string;
 }
 
 export interface OpenOptions {
-  /** Payment amount in minor units (integer kwanzas for AOA). Omit for open-amount links. */
-  amountMinor?: number;
-  currency:     string;
+  /**
+   * The payment link YOUR SERVER created with the server SDK — its slug, or its
+   * pay.banzami.com URL. The browser never creates one.
+   */
+  link:         string;
+  /** What to show while the payer decides. Display only — the link fixes the amount. */
+  amountMinor?: number | null;
+  currency?:    string;
   description?: string;
-  /** Link expiry. Defaults to 30 minutes from now. */
-  expiresAt?:   Date;
-  onSuccess?:   (link: PaymentLink) => void;
-  onError?:     (err: BanzamiApiError | Error) => void;
+  /**
+   * Ask YOUR server whether the link has been paid (it knows from the
+   * payment_link.paid webhook or the server SDK). Polled every 3 s while the
+   * modal is open. Without it the modal shows the link and waits for the payer.
+   */
+  checkPaid?:   () => Promise<boolean>;
+  onSuccess?:   () => void;
+  onError?:     (err: Error) => void;
   onCancel?:    () => void;
 }
 
 export class BanzamiCheckout {
-  private readonly api:   CheckoutApi;
-  private readonly modal: CheckoutModal;
-  private readonly cfg:   BanzamiCheckoutConfig;
+  private readonly modal = new CheckoutModal();
+  private readonly payUrl: string;
 
-  constructor(config: BanzamiCheckoutConfig) {
-    this.cfg   = config;
-    this.api   = new CheckoutApi(config.gatewayUrl, config.apiKey);
-    this.modal = new CheckoutModal();
+  constructor(config: BanzamiCheckoutConfig = {}) {
+    assertNoCredential(config);
+    this.payUrl = config.payUrl ?? DEFAULT_PAY_URL;
   }
 
   /**
-   * Create a payment link and open the checkout modal.
-   *
-   * Returns a Promise that resolves once the link is created and the modal
-   * is open. Payment completion is signalled via `onSuccess`.
+   * Show a payment link your server created: its QR, "Abrir app Banzami", and
+   * the hosted payment page. Throws (and calls onError) for a value that is not
+   * a Banzami payment link.
    */
-  async open(opts: OpenOptions): Promise<PaymentLink> {
-    const expiresAt = opts.expiresAt ?? new Date(Date.now() + 30 * 60 * 1000);
-
-    let link: PaymentLink;
+  open(opts: OpenOptions): void {
+    let slug: string;
     try {
-      link = await this.api.createPaymentLink({
-        merchantId:   this.cfg.merchantId,
-        walletId:     this.cfg.walletId,
-        amountMinor:  opts.amountMinor,
-        currency:     opts.currency,
-        description:  opts.description,
-        expiresAt,
-      } satisfies CreateLinkOptions);
+      slug = paymentLinkSlug(opts.link, this.payUrl);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
+      const error = err instanceof Error ? err : new BanzamiCheckoutError(String(err));
       opts.onError?.(error);
       throw error;
     }
-
     this.modal.open(
-      link,
       {
-        onSuccess: (l) => opts.onSuccess?.(l),
+        slug,
+        pageUrl:     payPageUrl(slug, this.payUrl),
+        amountMinor: opts.amountMinor ?? null,
+        currency:    opts.currency ?? 'AOA',
+        description: opts.description ?? null,
+      },
+      {
+        onSuccess: () => opts.onSuccess?.(),
         onCancel:  () => opts.onCancel?.(),
       },
-      () => this.api.getStatus(link.slug),
+      opts.checkPaid,
     );
+  }
 
-    return link;
+  /** Send the payer to the hosted payment page for a link your server created. */
+  redirect(link: string): void {
+    window.location.assign(payPageUrl(link, this.payUrl));
   }
 
   /** Programmatically close the checkout modal. */
   close(): void {
     this.modal.close();
   }
+}
+
+/** Script-tag convenience: `BanzamiCheckout.openCheckout({ link })`. */
+export function openCheckout(opts: OpenOptions, config: BanzamiCheckoutConfig = {}): BanzamiCheckout {
+  const checkout = new BanzamiCheckout(config);
+  checkout.open(opts);
+  return checkout;
+}
+
+/** Script-tag convenience: `BanzamiCheckout.redirectToPayment(link)`. */
+export function redirectToPayment(link: string, config: BanzamiCheckoutConfig = {}): void {
+  new BanzamiCheckout(config).redirect(link);
 }

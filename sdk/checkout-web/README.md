@@ -1,84 +1,98 @@
 # @banzami/checkout
 
-Embeddable payment checkout for any website. Opens a QR + deep-link modal that lets customers pay via the Banzami mobile app.
+Show a Banzami payment link on any website: a modal with the link's QR, an
+"Abrir app Banzami" button and the hosted payment page — or a redirect straight
+to pay.banzami.com.
 
-## Quick start (NPM)
+**This package holds no credential and never calls the Banzami API.** A secret
+key in a web page is a secret key handed to every visitor, so the link is
+created where the key lives — on your server — and the browser only shows it.
 
-```bash
-npm install @banzami/checkout
-```
+> Not published to npm. Build it from this repository (`npm run build` →
+> `dist/checkout.mjs`, `dist/checkout.cjs`, `dist/checkout.iife.js`) and serve
+> the bundle yourself.
+
+## How it fits together
+
+1. **Your server** creates the payment link with the server SDK and its secret
+   key (see `@banzami/sdk`), and gives the page the link's slug — or its
+   `https://pay.banzami.com/pay/<slug>` URL.
+2. **The page** opens it with this package.
+3. **Your server** learns the link was paid from the `payment_link.paid`
+   webhook (or the server SDK's status call). The modal can ask your server
+   through `checkPaid`.
+
+## Modal
 
 ```ts
 import { BanzamiCheckout } from '@banzami/checkout';
 
-const checkout = new BanzamiCheckout({
-  gatewayUrl: 'https://api.banzami.com',
-  apiKey:     'bz_live_...',
-  merchantId: 'your-merchant-id',
-  walletId:   'your-wallet-id',
-});
+const checkout = new BanzamiCheckout();
 
-document.getElementById('pay-btn').addEventListener('click', () => {
+document.getElementById('pay-btn')!.addEventListener('click', async () => {
+  // Your own endpoint, which creates the link server-side.
+  const { slug } = await fetch('/checkout/link', { method: 'POST' }).then((r) => r.json());
+
   checkout.open({
-    amountMinor: 50000,     // 50 000 Kz
+    link:        slug,             // or 'https://pay.banzami.com/pay/<slug>'
+    amountMinor: 5_000_000,        // display only: 50 000 Kz
     currency:    'AOA',
     description: 'Pedido #123',
-    onSuccess: (link) => console.log('Paid! Link ID:', link.id),
-    onCancel:  () => console.log('Cancelled'),
-    onError:   (err) => console.error(err),
+    // Ask YOUR server whether it was paid; polled every 3 s while open.
+    checkPaid:   () => fetch(`/checkout/link/${slug}/paid`).then((r) => r.json()).then((j) => j.paid),
+    onSuccess:   () => console.log('Pago'),
+    onCancel:    () => console.log('Fechado'),
+    onError:     (err) => console.error(err),
   });
 });
 ```
 
-## Script tag (CDN)
-
-```html
-<script src="https://cdn.banzami.com/checkout/0.1.0/checkout.iife.js"></script>
-<script>
-  const checkout = new BanzamiCheckout({
-    gatewayUrl: 'https://api.banzami.com',
-    apiKey:     'bz_live_...',
-    merchantId: '...',
-    walletId:   '...',
-  });
-
-  checkout.open({ amountMinor: 50000, currency: 'AOA' });
-</script>
-```
-
-## Open-amount links
-
-Omit `amountMinor` to create a link where the customer sets the amount in the app:
+## Redirect
 
 ```ts
-checkout.open({ currency: 'AOA', description: 'Donativo' });
+checkout.redirect(slug); // → https://pay.banzami.com/pay/<slug>
+```
+
+## Script tag
+
+The IIFE bundle defines one global, `BanzamiCheckout`:
+
+```html
+<script src="/assets/checkout.iife.js"></script>
+<script>
+  BanzamiCheckout.openCheckout({ link: '<slug from your server>', currency: 'AOA' });
+  // or: BanzamiCheckout.redirectToPayment('<slug from your server>');
+</script>
 ```
 
 ## API
 
-### `new BanzamiCheckout(config)`
+### `new BanzamiCheckout(config?)`
 
-| Field        | Type     | Description                        |
-|--------------|----------|------------------------------------|
-| `gatewayUrl` | `string` | Banzami API base URL               |
-| `apiKey`     | `string` | Merchant API key (`bz_live_...`)   |
-| `merchantId` | `string` | Merchant UUID                      |
-| `walletId`   | `string` | Destination wallet UUID            |
+| Field    | Type      | Description                                                    |
+|----------|-----------|----------------------------------------------------------------|
+| `payUrl` | `string?` | Hosted payer page origin. Defaults to `https://pay.banzami.com` |
+
+A configuration carrying a key (`apiKey`, `secretKey`, …) is refused with a
+`BanzamiCheckoutError` before anything renders.
 
 ### `checkout.open(opts)`
 
-| Field          | Type                    | Description                             |
-|----------------|-------------------------|-----------------------------------------|
-| `amountMinor`  | `number?`               | Amount in minor units (AOA = kwanzas)   |
-| `currency`     | `string`                | `"AOA"` or `"USD"`                      |
-| `description`  | `string?`               | Shown in the modal header               |
-| `expiresAt`    | `Date?`                 | Defaults to 30 minutes from now         |
-| `onSuccess`    | `(link) => void`        | Called after payment confirmed          |
-| `onError`      | `(err) => void`         | Called if link creation fails           |
-| `onCancel`     | `() => void`            | Called when user closes the modal       |
+| Field          | Type                      | Description                                                |
+|----------------|---------------------------|------------------------------------------------------------|
+| `link`         | `string`                  | Slug, or pay.banzami.com URL, of a link your server created |
+| `amountMinor`  | `number?`                 | Shown in the modal (integer minor units); omit for open amount |
+| `currency`     | `string?`                 | Defaults to `"AOA"`                                        |
+| `description`  | `string?`                 | Shown in the modal header                                  |
+| `checkPaid`    | `() => Promise<boolean>`? | Your server's answer to "has it been paid?"                |
+| `onSuccess`    | `() => void`              | After `checkPaid` answers true                             |
+| `onError`      | `(err) => void`           | The value was not a Banzami payment link                   |
+| `onCancel`     | `() => void`              | The payer closed the modal                                 |
 
-Returns `Promise<PaymentLink>` — resolves once the modal is open.
+### `checkout.redirect(link)` · `checkout.close()`
 
-### `checkout.close()`
+Send the payer to the hosted page; close the modal.
 
-Programmatically close the modal (e.g. after a timeout on your side).
+### Helpers
+
+`paymentLinkSlug(link)`, `payPageUrl(link)`, `formatAmount(minor, currency)`.
