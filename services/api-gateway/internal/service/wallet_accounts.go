@@ -90,7 +90,7 @@ func (s *CoreApiWalletAccountService) ListForWallet(ctx context.Context, walletI
 	var resp struct {
 		Data []coreWalletAccountResp `json:"data"`
 	}
-	if err := s.client.get(ctx, "/internal/v1/wallets/"+walletID+"/accounts", &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/wallets/"+url.PathEscape(walletID)+"/accounts", &resp); err != nil {
 		return nil, err
 	}
 	out := make([]*WalletAccount, len(resp.Data))
@@ -102,7 +102,7 @@ func (s *CoreApiWalletAccountService) ListForWallet(ctx context.Context, walletI
 
 func (s *CoreApiWalletAccountService) Get(ctx context.Context, id string) (*WalletAccount, error) {
 	var r coreWalletAccountResp
-	if err := s.client.get(ctx, "/internal/v1/wallet-accounts/"+id, &r); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/wallet-accounts/"+url.PathEscape(id), &r); err != nil {
 		return nil, err
 	}
 	return r.toSafe(), nil
@@ -127,7 +127,7 @@ func (s *CoreApiWalletAccountService) Resolve(ctx context.Context, walletID, pur
 
 func (s *CoreApiWalletAccountService) CoreAccountID(ctx context.Context, walletAccountID string) (string, error) {
 	var r coreWalletAccountResp
-	if err := s.client.get(ctx, "/internal/v1/wallet-accounts/"+walletAccountID, &r); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/wallet-accounts/"+url.PathEscape(walletAccountID), &r); err != nil {
 		return "", err
 	}
 	return r.AccountID, nil

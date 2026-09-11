@@ -114,7 +114,7 @@ func (s *CoreApiPaymentSessionService) Create(ctx context.Context, in CreatePaym
 
 func (s *CoreApiPaymentSessionService) Get(ctx context.Context, id string) (*PaymentSession, error) {
 	var sess PaymentSession
-	if err := s.client.get(ctx, "/internal/v1/payment-sessions/"+id, &sess); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/payment-sessions/"+url.PathEscape(id), &sess); err != nil {
 		return nil, err
 	}
 	return &sess, nil
@@ -141,7 +141,7 @@ func (s *CoreApiPaymentSessionService) List(ctx context.Context, merchantID, sta
 
 func (s *CoreApiPaymentSessionService) GetByInterface(ctx context.Context, kind, refID string) (*PaymentSession, error) {
 	var sess PaymentSession
-	if err := s.client.get(ctx, "/internal/v1/payment-sessions/by-interface/"+kind+"/"+refID, &sess); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/payment-sessions/by-interface/"+url.PathEscape(kind)+"/"+url.PathEscape(refID), &sess); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, nil
 		}

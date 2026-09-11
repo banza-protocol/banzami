@@ -127,18 +127,37 @@ pub async fn create(
     ))
 }
 
+#[derive(Deserialize)]
+pub struct OwnerQuery {
+    pub merchant_id: String,
+}
+
+/// GET /internal/v1/transactions/:id?merchant_id=
+///
+/// A transaction is read by its owner. The id alone used to be enough, and the
+/// gateway passed a merchant's request straight through — so any merchant who
+/// held another's transaction id read it. Another merchant's transaction now
+/// answers exactly like one that does not exist.
 pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    Query(owner): Query<OwnerQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let tx_id: TransactionId = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid transaction id"))?;
+    let merchant_id: MerchantId = owner
+        .merchant_id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
 
     let tx = state.tx_engine.get(tx_id).await.map_err(|e| match e {
         TransactionError::NotFound(_) => ApiError::not_found("transaction not found"),
         other => ApiError::internal(other.to_string()),
     })?;
+    if tx.merchant_id != merchant_id {
+        return Err(ApiError::not_found("transaction not found"));
+    }
 
     Ok(Json(serde_json::to_value(&tx).unwrap()))
 }

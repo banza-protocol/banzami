@@ -176,7 +176,7 @@ func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in Cre
 
 func (s *CoreApiApplicationSettlementService) Complete(ctx context.Context, id string) (*ApplicationSettlement, error) {
 	var resp coreSettlementResp
-	if err := s.client.post(ctx, "/internal/v1/application-settlements/"+id+"/complete", nil, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/application-settlements/"+url.PathEscape(id)+"/complete", nil, &resp); err != nil {
 		return nil, err
 	}
 	return resp.toSafe(), nil
@@ -184,7 +184,7 @@ func (s *CoreApiApplicationSettlementService) Complete(ctx context.Context, id s
 
 func (s *CoreApiApplicationSettlementService) Get(ctx context.Context, id string) (*ApplicationSettlement, error) {
 	var resp coreSettlementResp
-	if err := s.client.get(ctx, "/internal/v1/application-settlements/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/application-settlements/"+url.PathEscape(id), &resp); err != nil {
 		return nil, err
 	}
 	return resp.toSafe(), nil

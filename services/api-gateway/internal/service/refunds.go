@@ -123,7 +123,7 @@ func (s *CoreApiRefundService) Get(ctx context.Context, id, merchantID string) (
 	// and forwarded to Core, which returns the identical not-found for a
 	// non-existent or cross-tenant refund.
 	var resp Refund
-	path := "/internal/v1/refunds/" + id + "?merchant_id=" + url.QueryEscape(merchantID)
+	path := "/internal/v1/refunds/" + url.PathEscape(id) + "?merchant_id=" + url.QueryEscape(merchantID)
 	if err := s.client.get(ctx, path, &resp, s.client.internalAuth()); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrRefundNotFound
@@ -139,10 +139,10 @@ func (s *CoreApiRefundService) List(ctx context.Context, sourceID, merchantID st
 	}
 	path := fmt.Sprintf("/internal/v1/refunds?limit=%d", limit)
 	if sourceID != "" {
-		path += "&source_id=" + sourceID
+		path += "&source_id=" + url.QueryEscape(sourceID)
 	}
 	if merchantID != "" {
-		path += "&merchant_id=" + merchantID
+		path += "&merchant_id=" + url.QueryEscape(merchantID)
 	}
 	var resp RefundPage
 	if err := s.client.get(ctx, path, &resp, s.client.internalAuth()); err != nil {

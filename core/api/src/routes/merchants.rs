@@ -238,17 +238,24 @@ pub async fn list_api_keys(
     Ok(Json(serde_json::to_value(&keys).unwrap()))
 }
 
+/// DELETE /internal/v1/merchants/:id/api-keys/:key_id
+///
+/// The merchant in the path is the key's owner, not decoration: a key that is
+/// not `:id`'s answers 404 exactly like one that does not exist.
 pub async fn revoke_api_key(
     State(state): State<AppState>,
-    Path((_, key_id)): Path<(String, String)>,
+    Path((merchant_id, key_id)): Path<(String, String)>,
 ) -> ApiResult<Json<serde_json::Value>> {
+    let merchant_id: MerchantId = merchant_id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
     let key_id: ApiKeyId = key_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid api key id"))?;
 
     let key = state
         .merchant
-        .revoke_api_key(key_id)
+        .revoke_api_key(merchant_id, key_id)
         .await
         .map_err(|e| match e {
             MerchantError::ApiKeyNotFound(_) => ApiError::not_found("API key not found"),

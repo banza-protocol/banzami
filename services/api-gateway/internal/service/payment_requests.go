@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -93,7 +94,7 @@ func (s *CoreApiPaymentRequestService) Create(ctx context.Context, req CreatePay
 
 func (s *CoreApiPaymentRequestService) Get(ctx context.Context, id string) (*PaymentRequest, error) {
 	var resp PaymentRequest
-	if err := s.client.get(ctx, "/internal/v1/payment-requests/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/payment-requests/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentRequestNotFound
 		}
@@ -129,7 +130,7 @@ func (s *CoreApiPaymentRequestService) Pay(ctx context.Context, req PayPaymentRe
 		"idempotency_key": req.IdempotencyKey,
 	}
 	var resp PaymentRequest
-	if err := s.client.post(ctx, "/internal/v1/payment-requests/"+req.RequestID+"/pay", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/payment-requests/"+url.PathEscape(req.RequestID)+"/pay", body, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -138,7 +139,7 @@ func (s *CoreApiPaymentRequestService) Pay(ctx context.Context, req PayPaymentRe
 func (s *CoreApiPaymentRequestService) Decline(ctx context.Context, requestID, payerID string) (*PaymentRequest, error) {
 	body := map[string]any{"payer_id": payerID}
 	var resp PaymentRequest
-	if err := s.client.post(ctx, "/internal/v1/payment-requests/"+requestID+"/decline", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/payment-requests/"+url.PathEscape(requestID)+"/decline", body, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentRequestNotFound
 		}
@@ -150,7 +151,7 @@ func (s *CoreApiPaymentRequestService) Decline(ctx context.Context, requestID, p
 func (s *CoreApiPaymentRequestService) Cancel(ctx context.Context, requestID, requesterID string) (*PaymentRequest, error) {
 	body := map[string]any{"requester_id": requesterID}
 	var resp PaymentRequest
-	if err := s.client.post(ctx, "/internal/v1/payment-requests/"+requestID+"/cancel", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/payment-requests/"+url.PathEscape(requestID)+"/cancel", body, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentRequestNotFound
 		}

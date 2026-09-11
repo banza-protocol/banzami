@@ -30,7 +30,11 @@ pub trait MerchantEngine: Send + Sync {
     ) -> Result<ApiKeySecret, MerchantError>;
 
     async fn list_api_keys(&self, merchant_id: MerchantId) -> Result<Vec<ApiKey>, MerchantError>;
-    async fn revoke_api_key(&self, key_id: ApiKeyId) -> Result<ApiKey, MerchantError>;
+    async fn revoke_api_key(
+        &self,
+        merchant_id: MerchantId,
+        key_id: ApiKeyId,
+    ) -> Result<ApiKey, MerchantError>;
 
     async fn set_verified(&self, id: MerchantId, verified: bool)
         -> Result<Merchant, MerchantError>;
@@ -169,8 +173,12 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
         self.api_key_repo.list_for_merchant(merchant_id).await
     }
 
-    async fn revoke_api_key(&self, key_id: ApiKeyId) -> Result<ApiKey, MerchantError> {
-        self.api_key_repo.revoke(key_id).await
+    async fn revoke_api_key(
+        &self,
+        merchant_id: MerchantId,
+        key_id: ApiKeyId,
+    ) -> Result<ApiKey, MerchantError> {
+        self.api_key_repo.revoke(merchant_id, key_id).await
     }
 
     async fn verify_api_key(&self, raw_key: &str) -> Result<(ApiKey, Merchant), MerchantError> {
@@ -382,11 +390,15 @@ mod tests {
                 .cloned())
         }
 
-        async fn revoke(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError> {
+        async fn revoke(
+            &self,
+            merchant_id: MerchantId,
+            id: ApiKeyId,
+        ) -> Result<ApiKey, MerchantError> {
             let mut rows = self.rows.lock().unwrap();
             let k = rows
                 .iter_mut()
-                .find(|k| k.id == id)
+                .find(|k| k.id == id && k.merchant_id == merchant_id)
                 .ok_or(MerchantError::ApiKeyNotFound(id))?;
             if k.revoked_at.is_none() {
                 k.revoked_at = Some(Utc::now());
@@ -514,7 +526,7 @@ mod tests {
             .await
             .unwrap();
 
-        engine.revoke_api_key(issued.key.id).await.unwrap();
+        engine.revoke_api_key(m.id, issued.key.id).await.unwrap();
 
         let result = engine.verify_api_key(&issued.secret).await;
         assert!(matches!(result, Err(MerchantError::RevokedApiKey(_))));

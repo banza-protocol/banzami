@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"net/url"
 	"time"
 )
 
@@ -44,7 +45,7 @@ func NewCoreApiMerchantProfileService(client *CoreApiClient) *CoreApiMerchantPro
 
 func (s *CoreApiMerchantProfileService) GetByHandle(ctx context.Context, handle string) (*MerchantProfile, error) {
 	var profile MerchantProfile
-	if err := s.client.get(ctx, "/internal/v1/merchant-profiles/by-handle/"+handle, &profile); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/merchant-profiles/by-handle/"+url.PathEscape(handle), &profile); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrMerchantProfileNotFound
 		}

@@ -66,6 +66,8 @@ mod settlement_readiness_tests;
 pub mod settlements;
 pub mod splits;
 pub mod transactions;
+#[cfg(test)]
+mod tenant_scoping_tests;
 pub mod transfers;
 #[cfg(test)]
 mod transfers_routing_tests;

@@ -2985,3 +2985,38 @@ consumer behind. Migration 0129 registers the consumers it missed (only names no
 holds; none collided). Counter `CONSUMER_HANDLES_OUTSIDE_THE_NAMESPACE`. Tests
 `created_consumer_is_in_the_handle_registry`, `a_name_a_business_holds_is_refused_and_nothing_is_written`
 (dropping the registry insert fails both), `tests/ops/migration-0129-consumer-handles-registered.test.mjs`.
+
+## RA-104 — a Business could read another's transaction and revoke another's API key
+
+- **Found:** 2026-09-11 (full-system assurance, authority audit A1-01/A1-02)
+- **Status:** FIXED (core + gateway)
+
+`GET /v1/transactions/{id}` passed the id to core's `GET /internal/v1/transactions/:id`,
+which read by id alone; the gateway's comment said the merchant was "validated in the
+handler" and nothing compared it. Any merchant JWT or bound developer key holding
+another Business's transaction id read it. `DELETE /v1/merchants/{self}/api-keys/{key}`
+reached core's revoke with the caller's own merchant in the path, and core bound that
+segment and threw it away (`Path((_, key_id))`): naming another Business's key id
+switched off its integration. Core now requires the owner on the transaction read and
+revokes `WHERE id AND merchant_id`; both answer 404 for another Business's resource,
+the same answer as for none, and the gateway compares the transaction's owner as well.
+Tests `tenant_scoping_tests::{a_merchant_reads_its_own_transaction_and_not_anothers,
+a_merchant_cannot_revoke_another_merchants_key}` (real DB; removing either guard fails
+its test at the cross-tenant assertion) and `TestTransactionGet_IsScopedToTheCaller`.
+
+## RA-105 — an identifier pasted into a core path could rewrite the request's scope
+
+- **Found:** 2026-09-11 (full-system assurance, token canonicality audit A3-01/A3-02)
+- **Status:** FIXED (gateway)
+
+The router hands a path parameter over already decoded, and ~50 gateway call sites
+pasted it into core's URL unescaped. A refund id written `<victim>%3Fmerchant_id=<victim
+business>&x=` arrived with a literal `?`, was pasted in front of `?merchant_id=<caller>`,
+and core — which scopes the refund by that query value — returned the victim's refund
+(reproduced through the real handler). `source_id` was appended to the list query raw;
+`/public/profiles/%2564oa` was decoded twice and answered for @doa. Every segment and
+query value is now escaped at its call site, and the core client refuses any path an
+identifier could have reshaped — a second `?`, a repeated query key, a dot segment, a
+fragment or whitespace — before sending it, answering not-found. Tests
+`core_path_test.go` (reverting the escape and the guard together shows core scoped by
+the victim; either alone still holds).

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -106,7 +107,7 @@ func (s *CoreApiDisputeService) Open(ctx context.Context, req OpenDisputeRequest
 
 func (s *CoreApiDisputeService) Get(ctx context.Context, id string) (*Dispute, error) {
 	var resp Dispute
-	if err := s.client.get(ctx, "/internal/v1/disputes/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/disputes/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrDisputeNotFound
 		}
@@ -144,7 +145,7 @@ func (s *CoreApiDisputeService) SubmitEvidence(ctx context.Context, req SubmitEv
 		"file_url":     req.FileURL,
 	}
 	var resp DisputeEvidence
-	if err := s.client.post(ctx, "/internal/v1/disputes/"+req.DisputeID+"/evidence", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/disputes/"+url.PathEscape(req.DisputeID)+"/evidence", body, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -152,7 +153,7 @@ func (s *CoreApiDisputeService) SubmitEvidence(ctx context.Context, req SubmitEv
 
 func (s *CoreApiDisputeService) ListEvidence(ctx context.Context, disputeID string) (*DisputeEvidencePage, error) {
 	var resp DisputeEvidencePage
-	if err := s.client.get(ctx, "/internal/v1/disputes/"+disputeID+"/evidence", &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/disputes/"+url.PathEscape(disputeID)+"/evidence", &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrDisputeNotFound
 		}

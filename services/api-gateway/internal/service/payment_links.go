@@ -101,7 +101,7 @@ func (s *CoreApiPaymentLinkService) Create(ctx context.Context, req CreatePaymen
 
 func (s *CoreApiPaymentLinkService) Get(ctx context.Context, id string) (*PaymentLink, error) {
 	var link PaymentLink
-	if err := s.client.get(ctx, fmt.Sprintf("/internal/v1/payment-links/%s", id), &link); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/payment-links/"+url.PathEscape(id), &link); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentLinkNotFound
 		}
@@ -132,7 +132,7 @@ func (s *CoreApiPaymentLinkService) GetBySlug(ctx context.Context, slug string) 
 }
 
 func (s *CoreApiPaymentLinkService) List(ctx context.Context, req ListPaymentLinksRequest) (*PaymentLinkListPage, error) {
-	path := fmt.Sprintf("/internal/v1/payment-links?merchant_id=%s&limit=%d", req.MerchantID, req.Limit)
+	path := fmt.Sprintf("/internal/v1/payment-links?merchant_id=%s&limit=%d", url.QueryEscape(req.MerchantID), req.Limit)
 	if req.Cursor != "" {
 		path += "&cursor=" + req.Cursor
 	}
@@ -160,7 +160,7 @@ func mapPaymentLinkCoreError(err error) error {
 
 func (s *CoreApiPaymentLinkService) Cancel(ctx context.Context, id string) (*PaymentLink, error) {
 	var link PaymentLink
-	if err := s.client.post(ctx, fmt.Sprintf("/internal/v1/payment-links/%s/cancel", id), nil, &link); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/payment-links/"+url.PathEscape(id)+"/cancel", nil, &link); err != nil {
 		return nil, mapPaymentLinkCoreError(err)
 	}
 	return &link, nil
@@ -168,7 +168,7 @@ func (s *CoreApiPaymentLinkService) Cancel(ctx context.Context, id string) (*Pay
 
 func (s *CoreApiPaymentLinkService) MarkUsed(ctx context.Context, id string) (*PaymentLink, error) {
 	var link PaymentLink
-	if err := s.client.post(ctx, fmt.Sprintf("/internal/v1/payment-links/%s/mark-used", id), nil, &link); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/payment-links/"+url.PathEscape(id)+"/mark-used", nil, &link); err != nil {
 		return nil, mapPaymentLinkCoreError(err)
 	}
 	return &link, nil

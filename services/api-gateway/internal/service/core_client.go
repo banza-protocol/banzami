@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -168,16 +169,24 @@ func (s *CoreApiTransactionService) Create(
 
 func (s *CoreApiTransactionService) Get(
 	ctx context.Context,
-	_ string, // merchantID validated in the handler
+	merchantID string,
 	id string,
 	_ string, // environment enforced by the core via JWT — passed for interface compatibility
 ) (*Transaction, error) {
+	// A1-01: the merchant used to be dropped here ("validated in the handler" —
+	// it was not), and core read any transaction by id alone. Core now requires
+	// the owner and answers 404 for anyone else's; the comparison below keeps
+	// that true even against a core that forgot.
 	var resp coreTransactionResp
-	if err := s.client.get(ctx, "/internal/v1/transactions/"+id, &resp); err != nil {
+	path := "/internal/v1/transactions/" + url.PathEscape(id) + "?merchant_id=" + url.QueryEscape(merchantID)
+	if err := s.client.get(ctx, path, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrTransactionNotFound
 		}
 		return nil, err
+	}
+	if !strings.EqualFold(resp.MerchantID, merchantID) {
+		return nil, ErrTransactionNotFound
 	}
 	return resp.toTransaction(), nil
 }
@@ -192,7 +201,7 @@ func (s *CoreApiTransactionService) List(
 	}
 
 	path := fmt.Sprintf("/internal/v1/transactions?merchant_id=%s&limit=%d",
-		req.MerchantID, limit)
+		url.QueryEscape(req.MerchantID), limit)
 
 	if req.Since != nil {
 		path += "&since_created_at=" + req.Since.UTC().Format(time.RFC3339)
@@ -296,7 +305,7 @@ func (s *CoreApiWalletService) Create(ctx context.Context, merchantID, currency 
 
 func (s *CoreApiWalletService) Get(ctx context.Context, id string) (*WalletRecord, error) {
 	var resp coreWalletResp
-	if err := s.client.get(ctx, "/internal/v1/wallets/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/wallets/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrWalletNotFound
 		}
@@ -307,7 +316,7 @@ func (s *CoreApiWalletService) Get(ctx context.Context, id string) (*WalletRecor
 
 func (s *CoreApiWalletService) Balance(ctx context.Context, id string) (*WalletBalance, error) {
 	var resp coreWalletBalanceResp
-	if err := s.client.get(ctx, "/internal/v1/wallets/"+id+"/balance", &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/wallets/"+url.PathEscape(id)+"/balance", &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrWalletNotFound
 		}
@@ -325,7 +334,7 @@ func (s *CoreApiWalletService) Balance(ctx context.Context, id string) (*WalletB
 }
 
 func (s *CoreApiWalletService) Analytics(ctx context.Context, walletID, from, to string) (json.RawMessage, error) {
-	path := "/internal/v1/wallets/" + walletID + "/analytics"
+	path := "/internal/v1/wallets/" + url.PathEscape(walletID) + "/analytics"
 	sep := "?"
 	if from != "" {
 		path += sep + "from=" + url.QueryEscape(from)
@@ -345,7 +354,7 @@ func (s *CoreApiWalletService) Analytics(ctx context.Context, walletID, from, to
 }
 
 func (s *CoreApiWalletService) GetForMerchant(ctx context.Context, merchantID, currency string) (*WalletRecord, error) {
-	path := fmt.Sprintf("/internal/v1/wallets?merchant_id=%s&currency=%s", merchantID, currency)
+	path := fmt.Sprintf("/internal/v1/wallets?merchant_id=%s&currency=%s", url.QueryEscape(merchantID), url.QueryEscape(currency))
 	var resp coreWalletResp
 	if err := s.client.get(ctx, path, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -370,7 +379,7 @@ func (s *CoreApiWalletService) SandboxFund(ctx context.Context, walletID string,
 		AmountMinor int64  `json:"amount_minor"`
 		NewBalance  int64  `json:"new_balance"`
 	}
-	if err := s.client.post(ctx, "/internal/v1/wallets/"+walletID+"/sandbox-credit", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/wallets/"+url.PathEscape(walletID)+"/sandbox-credit", body, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrWalletNotFound
 		}
@@ -461,7 +470,7 @@ func (s *CoreApiMerchantService) Create(ctx context.Context, req CreateMerchantR
 
 func (s *CoreApiMerchantService) Get(ctx context.Context, id string) (*MerchantRecord, error) {
 	var resp coreMerchantResp
-	if err := s.client.get(ctx, "/internal/v1/merchants/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/merchants/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrMerchantNotFound
 		}
@@ -472,7 +481,7 @@ func (s *CoreApiMerchantService) Get(ctx context.Context, id string) (*MerchantR
 
 func (s *CoreApiMerchantService) Suspend(ctx context.Context, id string) (*MerchantRecord, error) {
 	var resp coreMerchantResp
-	if err := s.client.post(ctx, "/internal/v1/merchants/"+id+"/suspend", nil, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/merchants/"+url.PathEscape(id)+"/suspend", nil, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrMerchantNotFound
 		}
@@ -487,7 +496,7 @@ func (s *CoreApiMerchantService) CreateApiKey(ctx context.Context, merchantID, n
 		Key    coreApiKeyResp `json:"key"`
 		Secret string         `json:"secret"`
 	}
-	if err := s.client.post(ctx, "/internal/v1/merchants/"+merchantID+"/api-keys", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/merchants/"+url.PathEscape(merchantID)+"/api-keys", body, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrMerchantNotFound
 		}
@@ -501,7 +510,7 @@ func (s *CoreApiMerchantService) CreateApiKey(ctx context.Context, merchantID, n
 
 func (s *CoreApiMerchantService) ListApiKeys(ctx context.Context, merchantID string) ([]*ApiKeyRecord, error) {
 	var raw []coreApiKeyResp
-	if err := s.client.get(ctx, "/internal/v1/merchants/"+merchantID+"/api-keys", &raw); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/merchants/"+url.PathEscape(merchantID)+"/api-keys", &raw); err != nil {
 		return nil, err
 	}
 	keys := make([]*ApiKeyRecord, len(raw))
@@ -513,7 +522,7 @@ func (s *CoreApiMerchantService) ListApiKeys(ctx context.Context, merchantID str
 }
 
 func (s *CoreApiMerchantService) RevokeApiKey(ctx context.Context, merchantID, keyID string) error {
-	path := fmt.Sprintf("/internal/v1/merchants/%s/api-keys/%s", merchantID, keyID)
+	path := fmt.Sprintf("/internal/v1/merchants/%s/api-keys/%s", url.PathEscape(merchantID), url.PathEscape(keyID))
 	if err := s.client.delete(ctx, path); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return ErrApiKeyNotFound
@@ -656,7 +665,7 @@ func (s *CoreApiPayoutService) List(
 	merchantID string,
 	limit int,
 ) ([]*Payout, error) {
-	path := fmt.Sprintf("/internal/v1/payouts?merchant_id=%s&limit=%d", merchantID, limit)
+	path := fmt.Sprintf("/internal/v1/payouts?merchant_id=%s&limit=%d", url.QueryEscape(merchantID), limit)
 	var result struct {
 		Data []*corePayoutResp `json:"data"`
 	}
@@ -717,7 +726,7 @@ func (s *CoreApiConsumerService) Create(
 
 func (s *CoreApiConsumerService) Get(ctx context.Context, id string) (*ConsumerRecord, error) {
 	var resp coreConsumerResp
-	if err := s.client.get(ctx, "/internal/v1/consumers/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/consumers/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerNotFound
 		}
@@ -728,7 +737,7 @@ func (s *CoreApiConsumerService) Get(ctx context.Context, id string) (*ConsumerR
 
 func (s *CoreApiConsumerService) GetByHandle(ctx context.Context, handle string) (*ConsumerRecord, error) {
 	var resp coreConsumerResp
-	if err := s.client.get(ctx, "/internal/v1/consumers/handle/"+handle, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/consumers/handle/"+url.PathEscape(handle), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrHandleNotFound
 		}
@@ -739,7 +748,7 @@ func (s *CoreApiConsumerService) GetByHandle(ctx context.Context, handle string)
 
 func (s *CoreApiConsumerService) Suspend(ctx context.Context, id string) (*ConsumerRecord, error) {
 	var resp coreConsumerResp
-	if err := s.client.post(ctx, "/internal/v1/consumers/"+id+"/suspend", nil, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/consumers/"+url.PathEscape(id)+"/suspend", nil, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerNotFound
 		}
@@ -750,7 +759,7 @@ func (s *CoreApiConsumerService) Suspend(ctx context.Context, id string) (*Consu
 
 func (s *CoreApiConsumerService) Close(ctx context.Context, id string) (*ConsumerRecord, error) {
 	var resp coreConsumerResp
-	if err := s.client.post(ctx, "/internal/v1/consumers/"+id+"/close", nil, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/consumers/"+url.PathEscape(id)+"/close", nil, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerNotFound
 		}
@@ -817,7 +826,7 @@ func (s *CoreApiConsumerWalletService) GetOrCreate(
 
 func (s *CoreApiConsumerWalletService) Get(ctx context.Context, id string) (*ConsumerWalletRecord, error) {
 	var resp coreConsumerWalletResp
-	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerWalletNotFound
 		}
@@ -828,7 +837,7 @@ func (s *CoreApiConsumerWalletService) Get(ctx context.Context, id string) (*Con
 
 func (s *CoreApiConsumerWalletService) Balance(ctx context.Context, id string) (*ConsumerWalletBalance, error) {
 	var resp coreConsumerWalletBalanceResp
-	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+id+"/balance", &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+url.PathEscape(id)+"/balance", &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerWalletNotFound
 		}
@@ -849,7 +858,7 @@ func (s *CoreApiConsumerWalletService) GetForConsumer(
 	ctx context.Context,
 	consumerID, currency string,
 ) (*ConsumerWalletRecord, error) {
-	path := fmt.Sprintf("/internal/v1/consumer-wallets?consumer_id=%s&currency=%s", consumerID, currency)
+	path := fmt.Sprintf("/internal/v1/consumer-wallets?consumer_id=%s&currency=%s", url.QueryEscape(consumerID), url.QueryEscape(currency))
 	var resp coreConsumerWalletResp
 	if err := s.client.get(ctx, path, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -928,7 +937,7 @@ func (s *CoreApiTransferService) Send(
 
 func (s *CoreApiTransferService) Get(ctx context.Context, id string) (*Transfer, error) {
 	var resp coreTransferResp
-	if err := s.client.get(ctx, "/internal/v1/transfers/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/transfers/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrTransferNotFound
 		}
@@ -946,7 +955,7 @@ func (s *CoreApiTransferService) List(
 	if limit <= 0 {
 		limit = 20
 	}
-	path := fmt.Sprintf("/internal/v1/transfers?consumer_id=%s&limit=%d", consumerID, limit)
+	path := fmt.Sprintf("/internal/v1/transfers?consumer_id=%s&limit=%d", url.QueryEscape(consumerID), limit)
 	if cursor != "" {
 		ts, id, err := decodeCursor(cursor)
 		if err == nil {
@@ -1084,7 +1093,7 @@ func (s *CoreApiQrService) CreateDynamic(
 
 func (s *CoreApiQrService) Get(ctx context.Context, id string) (*QrResponse, error) {
 	var resp coreQrResponseResp
-	if err := s.client.get(ctx, "/internal/v1/qr/"+id, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/qr/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrQrNotFound
 		}
@@ -1110,7 +1119,7 @@ func (s *CoreApiQrService) Decode(ctx context.Context, payload string) (*ParsedQ
 
 func (s *CoreApiQrService) MarkUsed(ctx context.Context, id string) (*QrCodeRecord, error) {
 	var resp coreQrCodeResp
-	if err := s.client.post(ctx, "/internal/v1/qr/"+id+"/use", nil, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/qr/"+url.PathEscape(id)+"/use", nil, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrQrNotFound
 		}
@@ -1160,7 +1169,7 @@ func NewCoreApiComplianceService(client *CoreApiClient) *CoreApiComplianceServic
 
 func (s *CoreApiComplianceService) VerifyCustomer(ctx context.Context, customerID string, body json.RawMessage) (json.RawMessage, error) {
 	var resp json.RawMessage
-	if err := s.client.post(ctx, "/internal/v1/compliance/customers/"+customerID+"/verify", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/compliance/customers/"+url.PathEscape(customerID)+"/verify", body, &resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -1168,7 +1177,7 @@ func (s *CoreApiComplianceService) VerifyCustomer(ctx context.Context, customerI
 
 func (s *CoreApiComplianceService) VerifyMerchant(ctx context.Context, merchantID string, body json.RawMessage) (json.RawMessage, error) {
 	var resp json.RawMessage
-	if err := s.client.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/verify", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID)+"/verify", body, &resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -1176,7 +1185,7 @@ func (s *CoreApiComplianceService) VerifyMerchant(ctx context.Context, merchantI
 
 func (s *CoreApiComplianceService) GetCustomerStatus(ctx context.Context, customerID string) (json.RawMessage, error) {
 	var resp json.RawMessage
-	if err := s.client.get(ctx, "/internal/v1/compliance/customers/"+customerID, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/compliance/customers/"+url.PathEscape(customerID), &resp); err != nil {
 		return nil, err
 	}
 	return resp, nil
@@ -1189,7 +1198,7 @@ func (s *CoreApiComplianceService) AuthorizeOperation(ctx context.Context, custo
 		"daily_volume_minor": dailyVolumeMinor,
 	}
 	var resp Authorization
-	if err := s.client.post(ctx, "/internal/v1/compliance/customers/"+customerID+"/authorize", body, &resp); err != nil {
+	if err := s.client.post(ctx, "/internal/v1/compliance/customers/"+url.PathEscape(customerID)+"/authorize", body, &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
@@ -1197,10 +1206,60 @@ func (s *CoreApiComplianceService) AuthorizeOperation(ctx context.Context, custo
 
 func (s *CoreApiComplianceService) GetMerchantStatus(ctx context.Context, merchantID string) (*MerchantComplianceStatus, error) {
 	var resp MerchantComplianceStatus
-	if err := s.client.get(ctx, "/internal/v1/compliance/merchants/"+merchantID, &resp); err != nil {
+	if err := s.client.get(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID), &resp); err != nil {
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// corePathIsWellFormed is the one invariant every path sent to core keeps: one
+// path, one query, each query key once, no dot segments, no fragment.
+//
+// Call sites build these paths by concatenation, and a path parameter reaches
+// them already decoded by the router. A refund id written as
+// "<victim>%3Fmerchant_id=<victim-merchant>&x=" arrived as
+// "<victim>?merchant_id=<victim-merchant>&x=", was pasted in front of
+// "?merchant_id=<caller>", and core — which scopes by that query value — read the
+// victim's refund to the caller (A3-01). Every call site now escapes what it
+// pastes; this refuses anything that would still change the request's shape, so
+// a site that forgets fails closed instead of answering for someone else.
+func corePathIsWellFormed(path string) bool {
+	if strings.ContainsAny(path, "#\x00\r\n\t ") || strings.Count(path, "?") > 1 {
+		return false
+	}
+	p, q, _ := strings.Cut(path, "?")
+	for _, seg := range strings.Split(p, "/") {
+		if seg == "." || seg == ".." {
+			return false
+		}
+		if u, err := url.PathUnescape(seg); err != nil || u == "." || u == ".." {
+			return false
+		}
+	}
+	if q == "" {
+		return true
+	}
+	seen := map[string]bool{}
+	for _, pair := range strings.Split(q, "&") {
+		k, _, _ := strings.Cut(pair, "=")
+		key, err := url.QueryUnescape(k)
+		if err != nil || seen[key] {
+			return false
+		}
+		seen[key] = true
+	}
+	return true
+}
+
+// newCoreRequest builds a request to core, refusing a malformed path. A path
+// that is not well formed names no resource core holds, so the caller is told
+// exactly that: ErrNotFound.
+func (c *CoreApiClient) newCoreRequest(ctx context.Context, method, path string, body io.Reader) (*http.Request, error) {
+	if !corePathIsWellFormed(path) {
+		slog.WarnContext(ctx, "core_path.refused", "method", method)
+		return nil, ErrNotFound
+	}
+	return http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
 }
 
 // postRaw sends a POST and returns the core's HTTP status code and raw body
@@ -1213,7 +1272,10 @@ func (c *CoreApiClient) postRaw(ctx context.Context, path string, body any, opts
 	if err != nil {
 		return 0, nil, fmt.Errorf("core-api marshal: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(data))
+	req, err := c.newCoreRequest(ctx, http.MethodPost, path, bytes.NewReader(data))
+	if errors.Is(err, ErrNotFound) {
+		return http.StatusNotFound, nil, nil
+	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("core-api request: %w", err)
 	}
@@ -1243,7 +1305,10 @@ func (c *CoreApiClient) requestRaw(ctx context.Context, method, path string, bod
 		}
 		reader = bytes.NewReader(data)
 	}
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reader)
+	req, err := c.newCoreRequest(ctx, method, path, reader)
+	if errors.Is(err, ErrNotFound) {
+		return http.StatusNotFound, nil, nil
+	}
 	if err != nil {
 		return 0, nil, fmt.Errorf("core-api request: %w", err)
 	}
@@ -1269,7 +1334,10 @@ func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any
 		bodyReader = bytes.NewReader(data)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bodyReader)
+	req, err := c.newCoreRequest(ctx, http.MethodPost, path, bodyReader)
+	if errors.Is(err, ErrNotFound) {
+		return err
+	}
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
 	}
@@ -1280,7 +1348,10 @@ func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any
 }
 
 func (c *CoreApiClient) get(ctx context.Context, path string, out any, opts ...coreReqOption) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
+	req, err := c.newCoreRequest(ctx, http.MethodGet, path, nil)
+	if errors.Is(err, ErrNotFound) {
+		return err
+	}
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
 	}
@@ -1291,7 +1362,10 @@ func (c *CoreApiClient) get(ctx context.Context, path string, out any, opts ...c
 }
 
 func (c *CoreApiClient) delete(ctx context.Context, path string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+path, nil)
+	req, err := c.newCoreRequest(ctx, http.MethodDelete, path, nil)
+	if errors.Is(err, ErrNotFound) {
+		return err
+	}
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
 	}

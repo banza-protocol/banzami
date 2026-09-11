@@ -49,7 +49,9 @@ pub trait ApiKeyRepository: Send + Sync {
     ) -> Result<Vec<ApiKey>, MerchantError>;
     async fn get(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError>;
     async fn find_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>, MerchantError>;
-    async fn revoke(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError>;
+    /// Revoke `id` only if it belongs to `merchant_id`. Another Business's key
+    /// is indistinguishable from a key that does not exist.
+    async fn revoke(&self, merchant_id: MerchantId, id: ApiKeyId) -> Result<ApiKey, MerchantError>;
     async fn record_usage(&self, id: ApiKeyId) -> Result<(), MerchantError>;
 }
 
@@ -346,13 +348,18 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
         row.map(api_key_from_row).transpose()
     }
 
-    async fn revoke(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError> {
+    async fn revoke(&self, merchant_id: MerchantId, id: ApiKeyId) -> Result<ApiKey, MerchantError> {
         let now = chrono::Utc::now();
-        let affected =
-            sqlx::query("UPDATE api_keys SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL")
-                .bind(now)
-                .bind(id.as_uuid())
-                .execute(&self.pool)
+        // The owner is part of the key's address. Without it, any Business could
+        // revoke any other Business's key by naming its id under its own path.
+        let affected = sqlx::query(
+            "UPDATE api_keys SET revoked_at = $1
+             WHERE id = $2 AND merchant_id = $3 AND revoked_at IS NULL",
+        )
+        .bind(now)
+        .bind(id.as_uuid())
+        .bind(merchant_id.as_uuid())
+        .execute(&self.pool)
                 .await
                 .map_err(MerchantError::Database)?
                 .rows_affected();

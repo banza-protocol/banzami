@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"net/url"
 )
 
 // Core provisioning calls used by the merchant-application approval flow. These
@@ -51,7 +52,7 @@ func (c *CoreApiClient) CreateWallet(ctx context.Context, merchantID, currency s
 // is the primary login).
 func (c *CoreApiClient) CreateApiKey(ctx context.Context, merchantID, name, environment string) (string, error) {
 	var out map[string]any
-	if err := c.post(ctx, "/internal/v1/merchants/"+merchantID+"/api-keys",
+	if err := c.post(ctx, "/internal/v1/merchants/"+url.PathEscape(merchantID)+"/api-keys",
 		map[string]string{"name": name, "environment": environment}, &out); err != nil {
 		return "", err
 	}
@@ -67,14 +68,14 @@ func (c *CoreApiClient) CreateApiKey(ctx context.Context, merchantID, name, envi
 // application approval IS the KYB decision.
 func (c *CoreApiClient) ApproveCompliance(ctx context.Context, merchantID string) error {
 	var out map[string]any
-	return c.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/approve", nil, &out)
+	return c.post(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID)+"/approve", nil, &out)
 }
 
 // AssignPricingProfile records which operator-governed pricing profile prices a
 // merchant. An assignment, not a creation: repeating it is harmless, so a
 // resumed approval can call it on every attempt.
 func (c *CoreApiClient) AssignPricingProfile(ctx context.Context, merchantID, profileCode string) error {
-	status, raw, err := c.requestRaw(ctx, "PUT", "/internal/v1/merchants/"+merchantID+"/pricing-profile",
+	status, raw, err := c.requestRaw(ctx, "PUT", "/internal/v1/merchants/"+url.PathEscape(merchantID)+"/pricing-profile",
 		map[string]string{"profile_code": profileCode})
 	if err != nil {
 		return err
