@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -35,8 +36,13 @@ const CredentialPerMinute = 15
 // RateLimitPerIP returns a Redis-backed sliding-window limiter keyed purely by
 // client IP, under a dedicated key prefix and ceiling. Use it to throttle
 // unauthenticated credential endpoints independently of the general anonymous
-// limit. Fails open on Redis error; passes through when Redis is unavailable
-// (the public-api uses an in-memory per-instance limiter for the same surface).
+// limit.
+//
+// Without Redis — unconfigured, or erroring — it falls back to the same limit
+// counted in this process. It used to pass everything through, so a Redis
+// outage removed the brute-force ceiling from every credential route at once.
+// A per-process count is weaker than a shared one (each instance counts on its
+// own), never absent.
 func RateLimitPerIP(rdb *redis.Client, perMinute int, prefix string) func(http.Handler) http.Handler {
 	return RateLimitPerIPWindow(rdb, perMinute, time.Minute, prefix)
 }
@@ -46,19 +52,21 @@ func RateLimitPerIP(rdb *redis.Client, perMinute int, prefix string) func(http.H
 // still lets one address hold tens of thousands of names a day.
 func RateLimitPerIPWindow(rdb *redis.Client, limit int, window time.Duration, prefix string) func(http.Handler) http.Handler {
 	retryAfter := fmt.Sprintf("%d", int(window.Seconds()))
+	local := newLocalWindow(limit, window)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if rdb == nil {
-				next.ServeHTTP(w, r)
-				return
-			}
 			key := fmt.Sprintf("rl:%s:ip:%s", prefix, r.RemoteAddr)
-			allowed, err := slidingWindowAllow(r.Context(), rdb, key, limit, window)
-			if err != nil {
-				slog.WarnContext(r.Context(), "credential rate limit check failed — failing open",
-					"error", err, "key", key)
-				next.ServeHTTP(w, r)
-				return
+			var allowed bool
+			if rdb == nil {
+				allowed = local.allow(key)
+			} else {
+				var err error
+				allowed, err = slidingWindowAllow(r.Context(), rdb, key, limit, window)
+				if err != nil {
+					slog.WarnContext(r.Context(), "rate limit store unavailable — counting in this process",
+						"error", err, "prefix", prefix)
+					allowed = local.allow(key)
+				}
 			}
 			if !allowed {
 				w.Header().Set("Retry-After", retryAfter)
@@ -153,4 +161,46 @@ func slidingWindowAllow(
 		return false, fmt.Errorf("sliding window script: %w", err)
 	}
 	return result == 1, nil
+}
+
+// localWindow is the in-process fallback for RateLimitPerIPWindow: a fixed
+// window per key, pruned as it goes.
+type localWindow struct {
+	mu     sync.Mutex
+	limit  int
+	window time.Duration
+	now    func() time.Time
+	hits   map[string]*localCount
+}
+
+type localCount struct {
+	n     int
+	reset time.Time
+}
+
+func newLocalWindow(limit int, window time.Duration) *localWindow {
+	return &localWindow{limit: limit, window: window, now: time.Now, hits: map[string]*localCount{}}
+}
+
+func (l *localWindow) allow(key string) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	now := l.now()
+	if len(l.hits) > 10000 {
+		for k, c := range l.hits {
+			if now.After(c.reset) {
+				delete(l.hits, k)
+			}
+		}
+	}
+	c, ok := l.hits[key]
+	if !ok || now.After(c.reset) {
+		l.hits[key] = &localCount{n: 1, reset: now.Add(l.window)}
+		return true
+	}
+	if c.n >= l.limit {
+		return false
+	}
+	c.n++
+	return true
 }

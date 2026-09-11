@@ -2717,3 +2717,21 @@ and roll back with `ErrLastSuperAdmin` (409 `LAST_SUPER_ADMIN`) if it took the
 count from one or more to zero. Test:
 `TestLastSuperAdmin_ConcurrentSuspensionsLeaveOne` (10 rounds); removing the
 recount, or only the lock, each fail it.
+
+## RA-091 — a Redis outage removed every per-IP credential limit on the gateway
+
+- **Found:** 2026-09-11 (fail-open review)
+- **Status:** FIXED
+
+`RateLimitPerIP` / `RateLimitPerIPWindow` — the limits on `/v1/auth/token`,
+merchant sign-in, handle lookup, refresh, public onboarding, application
+submission and developer-key introspection — passed every request through when
+Redis was unconfigured or erroring. One Redis failure lifted the brute-force
+ceiling from all of them at once. They now fall back to the same limit counted
+in the process (per instance, weaker than a shared count, never absent). The
+general traffic limiter still fails open, by design, for availability. Live
+probe: 20 admin logins/min per client → 429 with `Retry-After`, and rotating
+`X-Forwarded-For` / `X-Real-IP` / `True-Client-IP` does not reset it (the edge
+takes the client from `CF-Connecting-IP` for Cloudflare ranges only).
+Test: `TestRateLimitPerIP_WithoutRedisStillLimits` (no Redis / Redis down);
+the pass-through restored fails both.
