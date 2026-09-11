@@ -20,6 +20,7 @@ Where everything lives. This is the only meta-document — start here.
 | **SDKs & integration guides** | [docs/integrations/](integrations/) · [docs/developer/](developer/) |
 | **Sandbox** | [docs/sandbox/](sandbox/) |
 | **Operations & runbooks** | [BANZAMI_OPERATIONS.md](../BANZAMI_OPERATIONS.md) · [docs/runbooks/](runbooks/) · [docs/playbooks/](playbooks/) · [docs/incident-management/](incident-management/) |
+| **Full-system assurance (coverage matrix, defect ledger, residuals)** | [docs/quality/FULL_SYSTEM_ASSURANCE.md](quality/FULL_SYSTEM_ASSURANCE.md) |
 | **Log retention & bearer-value redaction (Sandbox host)** | [docs/operations/LOG_RETENTION.md](operations/LOG_RETENTION.md) |
 | **Deployment** | [BANZAMI_DEPLOYMENT.md](../BANZAMI_DEPLOYMENT.md) |
 | **Security** | [BANZAMI_SECURITY.md](../BANZAMI_SECURITY.md) · [docs/security/](security/) |
