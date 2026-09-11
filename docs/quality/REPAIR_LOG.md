@@ -3890,3 +3890,64 @@ operator's token version; and 37 high-risk routes (operators, pricing, settlemen
 payouts, freeze, credentials) require a TOTP proof from the last 5 minutes, the code spent
 on use and failures feeding the lockout. No migration. Deploying admin-api and
 admin-frontend together signs every operator out once, by design.
+
+## RA-160 — the Business App had no deadline, and the device id travelled in a backup
+
+- **Found:** 2026-09-12 (full-system assurance, app audit A8-10 and privacy audit A6-15, on re-verification)
+- **Status:** FIXED (sdk/flutter, apps/mobile)
+
+Most of both findings was already fixed; the residue was not. `BanzamiClient` set no
+request timeout — `connectionTimeout` bounds only opening the socket — so a Business
+whose withdrawal request went silent waited for ever on a screen that could not say what
+had happened to the money, and the withdrawal screen could be backed out of mid-request.
+A 30-second deadline now applies at every request site and surfaces as an unknown
+outcome, so the retry replays the same idempotency key, and `PopScope` refuses the back
+gesture while a payout is in flight.
+
+`DeviceIdentity` built a bare `FlutterSecureStorage`, taking the plugin default, so the
+RSK-001 device signal travelled in an encrypted backup and a restored phone was seen as a
+known device; the FCM topic key was in neither session service's accessibility migration.
+`BanzamiKeychain` states the policy once (`first_unlock_this_device`, encrypted shared
+preferences, never synchronizable), the device id is rewritten under it once, and a build
+guard fails on any new bare `FlutterSecureStorage(` in `lib/`.
+
+## RA-161 — a receipt promised a verification it did not have; a history row opened nothing; an app link named the wrong environment
+
+- **Found:** 2026-09-12 (full-system assurance, surface audit A7-56/A7-42, app audit A8-11)
+- **Status:** FIXED (services/common/documents, apps/mobile, sdk/flutter, apps/pay)
+
+A receipt with no proof reference still printed an empty "Nº", an empty QR box captioned
+"Digitalize para verificar" and "confirme em ." — a document inviting a verification that
+cannot exist, which is the trust failure the proof contract exists to prevent. It now
+shows the number, QR and link only when there is a reference, and otherwise says it has
+none.
+
+Every row in Histórico was inert, so a consumer could reach an old comprovativo only from
+the notification that announced it. A row backed by a transfer opens the receipt, fetched
+from the server; a top-up, refund or restitution row is plainly not tappable.
+
+The payer surface emitted `banzami://` whatever stack it served. The app refuses a link of
+the other environment, so "Abrir no Banzami" did nothing on the Sandbox — and on a Live
+build a Sandbox page's button would have opened a real-money payment prefilled from test
+data. Every app link now takes its scheme from the deployment's environment, an unknown
+environment offers no app button, and iOS and the consumer Android manifest register
+`banzami-sandbox`, which the app already read but the OS never routed.
+
+## RA-162 — residue that no user could reach yet
+
+- **Found:** 2026-09-12 (full-system assurance, surface audit A7-60/A7-61/A7-62, fail-open A2-27)
+- **Status:** FIXED (api-gateway, admin-api, apps/dashboard, apps/validation-studio, tests/phase0)
+
+The proof backfill minted proofs carrying "Transferência Banzami · @banza" and no
+operation, channel or funding source, leaving a second pass to repair records that are
+signed when written; it now derives each proof's semantics through the same authority the
+live path uses, and mints nothing it cannot derive. admin-api's payment-receipt and
+merchant-welcome emails had no trigger, claimed "a liquidação é instantânea" and printed
+"Kz 25.000,00"; they are deleted with their previews and tests. The stopped merchant
+dashboard read a typed 50 000 as minor units, so a withdrawal would have asked for 500 Kz.
+The Validation Studio reported "commit created" for a commit git refused.
+
+`proof-lookup-assurance.sh` sent all SECURE_V1 references from one client, which was fine
+until the store grew past sixty: the tail came back 429 and the harness read it as proofs
+that do not verify (16 of 156). It pages them across its client pool, and the run is
+156/156.
