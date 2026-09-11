@@ -64,8 +64,11 @@ function mountedRoutes(src: string, opts: { dualAuthOnly?: boolean } = {}): Set<
     if (verb && (!window || (i >= window[0] && i <= window[1]))) {
       const path = stack.map((s) => s.prefix).join('') + (verb[2] === '/' ? '' : verb[2]);
       // The SDK's request() composes `${base}/v1${path}`, so its paths are
-      // version-relative. Compare like with like.
-      out.add(path.replace(/^\/v1/, '').replace(/\{[^}]+\}/g, '{p}'));
+      // version-relative: only a route mounted UNDER /v1 can answer one. This
+      // stripped /v1 from whatever had it and kept everything else, so the
+      // root-level /public/pay "matched" the SDK's /v1/public/pay — and
+      // getPublicPaymentLink shipped answering 404.
+      if (/^\/v1(\/|$)/.test(path)) out.add(path.replace(/^\/v1/, '').replace(/\{[^}]+\}/g, '{p}'));
     }
 
     const opens = (line.match(/\{/g) ?? []).length;

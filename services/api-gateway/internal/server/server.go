@@ -768,15 +768,23 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	// payer IP (the pay page sends them from the browser). The GETs are not: the
 	// pay page fetches the link server-side, from one container address shared
 	// by every payer.
+	//
+	// Written out twice rather than through a shared func so the SDK's route
+	// drift guard (sdk/typescript/src/route-drift.test.ts), which reads this
+	// file, sees both; TestPublicPayIsMountedUnderBothPrefixes keeps them equal.
 	publicPayInitiate := middleware.RateLimitPerIP(deps.Redis, 20, "public-pay-initiate")
-	publicPay := func(r chi.Router) {
+	r.Route("/public/pay", func(r chi.Router) {
 		r.Get("/{slug}", paymentLinkHandler.GetPublic)
 		r.Get("/{slug}/status", paymentLinkHandler.Status)
 		r.With(publicPayInitiate).Post("/{slug}/pay", acquiringHandler.InitiatePay)
 		r.With(publicPayInitiate).Post("/{slug}/test-confirm", acquiringHandler.TestConfirm) // dev only
-	}
-	r.Route("/public/pay", publicPay)
-	r.Route("/v1/public/pay", publicPay)
+	})
+	r.Route("/v1/public/pay", func(r chi.Router) {
+		r.Get("/{slug}", paymentLinkHandler.GetPublic)
+		r.Get("/{slug}/status", paymentLinkHandler.Status)
+		r.With(publicPayInitiate).Post("/{slug}/pay", acquiringHandler.InitiatePay)
+		r.With(publicPayInitiate).Post("/{slug}/test-confirm", acquiringHandler.TestConfirm) // dev only
+	})
 	r.Route("/public/profiles", func(r chi.Router) {
 		r.Get("/{handle}", profileHandler.GetPublic)
 	})
