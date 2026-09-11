@@ -166,10 +166,20 @@ func (s *MFAService) Verify(ctx context.Context, adminUserID, code string) error
 		if lastStep != nil && step <= *lastStep {
 			return ErrMFACodeRejected // already used inside its window
 		}
-		_, err = s.pool.Exec(ctx,
-			`UPDATE admin_mfa SET last_step = $2, updated_at = now() WHERE admin_user_id = $1`,
+		// The step is claimed, not just written: two logins racing with the same
+		// code both passed the read above, and an unconditional UPDATE let both
+		// in. Only the one whose UPDATE moves last_step forward wins.
+		tag, err := s.pool.Exec(ctx,
+			`UPDATE admin_mfa SET last_step = $2, updated_at = now()
+			  WHERE admin_user_id = $1 AND (last_step IS NULL OR last_step < $2)`,
 			adminUserID, step)
-		return err
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() != 1 {
+			return ErrMFACodeRejected
+		}
+		return nil
 	}
 	return s.consumeRecoveryCode(ctx, adminUserID, code)
 }

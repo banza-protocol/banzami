@@ -2686,3 +2686,18 @@ cumulative restitution reaches the captured amount: both happen or neither.
 Test: `a_full_refund_whose_proof_cannot_be_reversed_does_not_happen` (a
 trigger refuses the proof write → the refund fails, nothing is restituted, the
 proof is unchanged); the original post-commit write fails it.
+
+## RA-089 — one BANZADMIN TOTP code could open several sessions at once
+
+- **Found:** 2026-09-11 (operator auth review)
+- **Status:** FIXED
+
+`MFAService.Verify` read `last_step`, refused a step at or below it, then
+wrote the new step unconditionally. Logins racing with the same code all read
+the same `last_step` and all passed: in the test, 5 of 12 concurrent logins
+were accepted on one code. The step is now claimed by a conditional UPDATE
+(`last_step IS NULL OR last_step < $step`); only the login that moves it
+forward is admitted. Test: `TestMFAVerify_OneCodeOneLoginUnderConcurrency`
+(DB-backed; the admin-api CI job now has a database so it runs there).
+Logout remains a client-side clear by design — server revocation is the
+audited "Terminar as minhas sessões" (token_version).
