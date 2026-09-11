@@ -93,3 +93,7 @@ replace github.com/banzami/banzami/services/common/obs => ../common/obs
 require github.com/banzami/banzami/services/common/env v0.0.0
 
 replace github.com/banzami/banzami/services/common/env => ../common/env
+
+require github.com/banzami/banzami/services/common/corepath v0.0.0
+
+replace github.com/banzami/banzami/services/common/corepath => ../common/corepath

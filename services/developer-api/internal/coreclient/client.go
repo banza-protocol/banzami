@@ -26,6 +26,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/banzami/banzami/services/common/corepath"
 )
 
 // ErrUnavailable means Core could not be reached or did not usably answer — the
@@ -154,7 +156,7 @@ var ErrNoRefundSource = errors.New("payment has no refundable source")
 // established by being able to read it — the caller must compare MerchantID
 // against the merchant its own authority chain produced.
 func (c *RefundClient) PaymentSession(ctx context.Context, id string) (*PaymentSource, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/internal/v1/payment-sessions/"+id, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+"/internal/v1/payment-sessions/"+url.PathEscape(id), nil)
 	if err != nil {
 		return nil, ErrUnavailable
 	}
@@ -341,6 +343,9 @@ type SandboxOwner struct {
 }
 
 func (c *ProvisionClient) post(ctx context.Context, path string, body any, out any) error {
+	if !corepath.WellFormed(path) {
+		return ErrNotFound // a path an identifier could have reshaped names nothing (A3-01)
+	}
 	b, _ := json.Marshal(body)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(b))
 	if err != nil {
@@ -573,6 +578,9 @@ func (c *ProvisionClient) findWallet(ctx context.Context, merchantID string) (st
 // get is the read half of this client. A 404 is reported as ErrNotFound so a
 // caller can tell "there is none" from "the call did not work".
 func (c *ProvisionClient) get(ctx context.Context, path string, out any) error {
+	if !corepath.WellFormed(path) {
+		return ErrNotFound
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return ErrUnavailable

@@ -16,6 +16,8 @@ import (
 	"github.com/banzami/banzami/services/common/obs"
 	"strings"
 	"time"
+
+	"github.com/banzami/banzami/services/common/corepath"
 )
 
 // CoreAdminClient is a thin HTTP client wrapping the Rust core-api.
@@ -69,29 +71,29 @@ func (t coreKeyTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 
 func (c *CoreAdminClient) GetMerchantCompliance(ctx context.Context, merchantID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/compliance/merchants/"+merchantID, &out)
+	return out, c.get(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID), &out)
 }
 
 func (c *CoreAdminClient) ApproveMerchant(ctx context.Context, merchantID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/approve", nil, &out)
+	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID)+"/approve", nil, &out)
 }
 
 func (c *CoreAdminClient) RejectMerchant(ctx context.Context, merchantID, notes string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/reject",
+	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID)+"/reject",
 		map[string]string{"notes": notes}, &out)
 }
 
 func (c *CoreAdminClient) SuspendMerchant(ctx context.Context, merchantID, notes string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/suspend",
+	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID)+"/suspend",
 		map[string]string{"notes": notes}, &out)
 }
 
 func (c *CoreAdminClient) FlagMerchantAML(ctx context.Context, merchantID, notes string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/flag-aml",
+	return out, c.post(ctx, "/internal/v1/compliance/merchants/"+url.PathEscape(merchantID)+"/flag-aml",
 		map[string]string{"notes": notes}, &out)
 }
 
@@ -106,7 +108,7 @@ func (c *CoreAdminClient) CreateSettlementBatch(ctx context.Context, body map[st
 
 func (c *CoreAdminClient) GetSettlement(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/settlements/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/settlements/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) ListSettlements(ctx context.Context, merchantID string) (map[string]any, error) {
@@ -125,17 +127,17 @@ func (c *CoreAdminClient) ListAllSettlements(ctx context.Context, status string)
 
 func (c *CoreAdminClient) SubmitSettlement(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/settlements/"+id+"/submit", nil, &out)
+	return out, c.post(ctx, "/internal/v1/settlements/"+url.PathEscape(id)+"/submit", nil, &out)
 }
 
 func (c *CoreAdminClient) ConfirmSettlement(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/settlements/"+id+"/confirm", nil, &out)
+	return out, c.post(ctx, "/internal/v1/settlements/"+url.PathEscape(id)+"/confirm", nil, &out)
 }
 
 func (c *CoreAdminClient) FailSettlement(ctx context.Context, id, reason string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/settlements/"+id+"/fail",
+	return out, c.post(ctx, "/internal/v1/settlements/"+url.PathEscape(id)+"/fail",
 		map[string]string{"reason": reason}, &out)
 }
 
@@ -145,7 +147,7 @@ func (c *CoreAdminClient) FailSettlement(ctx context.Context, id, reason string)
 
 func (c *CoreAdminClient) GetPayout(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/payouts/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/payouts/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) ListPayouts(ctx context.Context, merchantID string) (map[string]any, error) {
@@ -164,28 +166,28 @@ func (c *CoreAdminClient) ListAllPayouts(ctx context.Context, status string) (ma
 
 func (c *CoreAdminClient) ProcessPayout(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+id+"/process", nil, &out)
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/process", nil, &out)
 }
 
 func (c *CoreAdminClient) MarkPayoutSent(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+id+"/sent", nil, &out)
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/sent", nil, &out)
 }
 
 func (c *CoreAdminClient) ConfirmPayout(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+id+"/confirm", nil, &out)
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/confirm", nil, &out)
 }
 
 func (c *CoreAdminClient) FailPayout(ctx context.Context, id, reason string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+id+"/fail",
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/fail",
 		map[string]string{"reason": reason}, &out)
 }
 
 func (c *CoreAdminClient) MarkPayoutReturned(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/payouts/"+id+"/returned", nil, &out)
+	return out, c.post(ctx, "/internal/v1/payouts/"+url.PathEscape(id)+"/returned", nil, &out)
 }
 
 // ---------------------------------------------------------------------------
@@ -216,7 +218,7 @@ func (c *CoreAdminClient) FreezeAccount(ctx context.Context, entityType, entityI
 func (c *CoreAdminClient) UnfreezeAccount(ctx context.Context, entityType, entityID, reason, liftedBy string) (map[string]any, error) {
 	var out map[string]any
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
-		c.baseURL+"/internal/v1/admin/freeze/"+entityType+"/"+entityID, nil)
+		c.baseURL+"/internal/v1/admin/freeze/"+url.PathEscape(entityType)+"/"+url.PathEscape(entityID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("core-api request: %w", err)
 	}
@@ -239,7 +241,7 @@ func (c *CoreAdminClient) ListRiskFlags(ctx context.Context, resolved bool) ([]m
 // recording who resolved it for the audit trail (RSK-002).
 func (c *CoreAdminClient) ResolveRiskFlag(ctx context.Context, id, resolution, resolvedBy string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/admin/risk-flags/"+id+"/resolve", map[string]any{
+	return out, c.post(ctx, "/internal/v1/admin/risk-flags/"+url.PathEscape(id)+"/resolve", map[string]any{
 		"resolution":  resolution,
 		"resolved_by": resolvedBy,
 	}, &out)
@@ -280,7 +282,7 @@ func (c *CoreAdminClient) ListAcquiringReconciliationRuns(ctx context.Context) (
 
 func (c *CoreAdminClient) GetAcquiringReconciliationRun(ctx context.Context, runID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/admin/acquiring-recon/"+runID, &out)
+	return out, c.get(ctx, "/internal/v1/admin/acquiring-recon/"+url.PathEscape(runID), &out)
 }
 
 // ---------------------------------------------------------------------------
@@ -294,7 +296,7 @@ func (c *CoreAdminClient) RunReconciliation(ctx context.Context, body map[string
 
 func (c *CoreAdminClient) GetReconciliationRun(ctx context.Context, runID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/reconciliation/runs/"+runID, &out)
+	return out, c.get(ctx, "/internal/v1/reconciliation/runs/"+url.PathEscape(runID), &out)
 }
 
 // ---------------------------------------------------------------------------
@@ -312,12 +314,12 @@ func (c *CoreAdminClient) ListMerchants(ctx context.Context, search string) ([]m
 
 func (c *CoreAdminClient) GetMerchant(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/merchants/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/merchants/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) SetMerchantVerified(ctx context.Context, id string, verified bool) (map[string]any, error) {
 	var out map[string]any
-	return out, c.patch(ctx, "/internal/v1/merchants/"+id+"/verified",
+	return out, c.patch(ctx, "/internal/v1/merchants/"+url.PathEscape(id)+"/verified",
 		map[string]any{"verified": verified}, &out)
 }
 
@@ -325,7 +327,7 @@ func (c *CoreAdminClient) SetMerchantVerified(ctx context.Context, id string, ve
 // (ADR-028) — e.g. mark @doa APPLICATION. Core validates the value.
 func (c *CoreAdminClient) SetMerchantBusinessAccountType(ctx context.Context, id, accountType string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.patch(ctx, "/internal/v1/merchants/"+id+"/business-account-type",
+	return out, c.patch(ctx, "/internal/v1/merchants/"+url.PathEscape(id)+"/business-account-type",
 		map[string]any{"business_account_type": accountType}, &out)
 }
 
@@ -338,12 +340,12 @@ func (c *CoreAdminClient) SetMerchantBusinessAccountType(ctx context.Context, id
 // disabled profile, and refuses any LIVE profile outright.
 func (c *CoreAdminClient) AssignMerchantPricingProfile(ctx context.Context, id, profileCode string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.put(ctx, "/internal/v1/merchants/"+id+"/pricing-profile",
+	return out, c.put(ctx, "/internal/v1/merchants/"+url.PathEscape(id)+"/pricing-profile",
 		map[string]any{"profile_code": profileCode}, &out)
 }
 
 func (c *CoreAdminClient) DeleteMerchant(ctx context.Context, id string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/internal/v1/merchants/"+id, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/internal/v1/merchants/"+url.PathEscape(id), nil)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
 	}
@@ -358,7 +360,7 @@ func (c *CoreAdminClient) CreateMerchant(ctx context.Context, name, email string
 
 func (c *CoreAdminClient) CreateApiKey(ctx context.Context, merchantID, keyName, environment string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/merchants/"+merchantID+"/api-keys",
+	return out, c.post(ctx, "/internal/v1/merchants/"+url.PathEscape(merchantID)+"/api-keys",
 		map[string]string{"name": keyName, "environment": environment}, &out)
 }
 
@@ -377,7 +379,7 @@ func (c *CoreAdminClient) GetWallet(ctx context.Context, merchantID, currency st
 // read-only for operator visibility (BANZADMIN).
 func (c *CoreAdminClient) ListWalletAccounts(ctx context.Context, walletID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/wallets/"+walletID+"/accounts", &out)
+	return out, c.get(ctx, "/internal/v1/wallets/"+url.PathEscape(walletID)+"/accounts", &out)
 }
 
 // AdminCreditWallet posts one operator credit per idempotencyKey: core turns
@@ -385,7 +387,7 @@ func (c *CoreAdminClient) ListWalletAccounts(ctx context.Context, walletID strin
 // original result, and refuses the same key for different economics (409).
 func (c *CoreAdminClient) AdminCreditWallet(ctx context.Context, walletID string, amountMinor int64, currency, reason, idempotencyKey string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/wallets/"+walletID+"/admin-credit",
+	return out, c.post(ctx, "/internal/v1/wallets/"+url.PathEscape(walletID)+"/admin-credit",
 		map[string]any{"amount_minor": amountMinor, "currency": currency, "reason": reason, "idempotency_key": idempotencyKey}, &out)
 }
 
@@ -396,12 +398,12 @@ func (c *CoreAdminClient) CreateTransaction(ctx context.Context, body map[string
 
 func (c *CoreAdminClient) AuthorizeTransaction(ctx context.Context, txID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/transactions/"+txID+"/authorize", nil, &out)
+	return out, c.post(ctx, "/internal/v1/transactions/"+url.PathEscape(txID)+"/authorize", nil, &out)
 }
 
 func (c *CoreAdminClient) CaptureTransaction(ctx context.Context, txID string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/transactions/"+txID+"/capture", nil, &out)
+	return out, c.post(ctx, "/internal/v1/transactions/"+url.PathEscape(txID)+"/capture", nil, &out)
 }
 
 // ---------------------------------------------------------------------------
@@ -419,7 +421,7 @@ func (c *CoreAdminClient) ListConsumers(ctx context.Context, handle string) (map
 
 func (c *CoreAdminClient) GetConsumer(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/consumers/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/consumers/"+url.PathEscape(id), &out)
 }
 
 // SetConsumerBadge assigns or removes a verification badge on a consumer.
@@ -430,7 +432,7 @@ func (c *CoreAdminClient) SuspendConsumer(ctx context.Context, id, notes string)
 	if notes != "" {
 		body["notes"] = notes
 	}
-	return out, c.post(ctx, "/internal/v1/consumers/"+id+"/suspend", body, &out)
+	return out, c.post(ctx, "/internal/v1/consumers/"+url.PathEscape(id)+"/suspend", body, &out)
 }
 
 func (c *CoreAdminClient) SetConsumerBadge(ctx context.Context, id, badge string) (map[string]any, error) {
@@ -439,7 +441,7 @@ func (c *CoreAdminClient) SetConsumerBadge(ctx context.Context, id, badge string
 		badgeVal = badge
 	}
 	var out map[string]any
-	return out, c.patch(ctx, "/internal/v1/consumers/"+id+"/badge",
+	return out, c.patch(ctx, "/internal/v1/consumers/"+url.PathEscape(id)+"/badge",
 		map[string]any{"badge": badgeVal}, &out)
 }
 
@@ -464,12 +466,12 @@ func (c *CoreAdminClient) ListDisputes(ctx context.Context, merchantID, consumer
 
 func (c *CoreAdminClient) GetDispute(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/disputes/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/disputes/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) ResolveDispute(ctx context.Context, id, outcome, notes, resolvedBy string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/disputes/"+id+"/resolve", map[string]any{
+	return out, c.post(ctx, "/internal/v1/disputes/"+url.PathEscape(id)+"/resolve", map[string]any{
 		"outcome":          outcome,
 		"resolution_notes": notes,
 		"resolved_by":      resolvedBy,
@@ -493,12 +495,12 @@ func (c *CoreAdminClient) ListPricingRules(ctx context.Context, query string) (m
 
 func (c *CoreAdminClient) GetPricingRule(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/pricing-rules/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/pricing-rules/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) GetPricingRuleVersions(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/pricing-rules/"+id+"/versions", &out)
+	return out, c.get(ctx, "/internal/v1/pricing-rules/"+url.PathEscape(id)+"/versions", &out)
 }
 
 func (c *CoreAdminClient) CreatePricingRule(ctx context.Context, body any) (map[string]any, error) {
@@ -508,22 +510,22 @@ func (c *CoreAdminClient) CreatePricingRule(ctx context.Context, body any) (map[
 
 func (c *CoreAdminClient) UpdatePricingRule(ctx context.Context, id string, body any) (map[string]any, error) {
 	var out map[string]any
-	return out, c.patch(ctx, "/internal/v1/pricing-rules/"+id, body, &out)
+	return out, c.patch(ctx, "/internal/v1/pricing-rules/"+url.PathEscape(id), body, &out)
 }
 
 func (c *CoreAdminClient) DisablePricingRule(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/pricing-rules/"+id+"/disable", nil, &out)
+	return out, c.post(ctx, "/internal/v1/pricing-rules/"+url.PathEscape(id)+"/disable", nil, &out)
 }
 
 func (c *CoreAdminClient) EnablePricingRule(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/pricing-rules/"+id+"/enable", nil, &out)
+	return out, c.post(ctx, "/internal/v1/pricing-rules/"+url.PathEscape(id)+"/enable", nil, &out)
 }
 
 func (c *CoreAdminClient) DuplicatePricingRule(ctx context.Context, id string, body any) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/pricing-rules/"+id+"/duplicate", body, &out)
+	return out, c.post(ctx, "/internal/v1/pricing-rules/"+url.PathEscape(id)+"/duplicate", body, &out)
 }
 
 // ---------------------------------------------------------------------------
@@ -535,7 +537,7 @@ func (c *CoreAdminClient) DuplicatePricingRule(ctx context.Context, id string, b
 // Pricing catalogs (pricing-profiles / fee-policies). `resource` is one of the
 // two fixed path segments; never caller-derived.
 func (c *CoreAdminClient) ListCatalog(ctx context.Context, resource, query string) (map[string]any, error) {
-	path := "/internal/v1/" + resource
+	path := "/internal/v1/" + url.PathEscape(resource)
 	if query != "" {
 		path += "?" + query
 	}
@@ -545,17 +547,17 @@ func (c *CoreAdminClient) ListCatalog(ctx context.Context, resource, query strin
 
 func (c *CoreAdminClient) GetCatalog(ctx context.Context, resource, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/"+resource+"/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/"+url.PathEscape(resource)+"/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) CreateCatalog(ctx context.Context, resource string, body any) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/"+resource, body, &out)
+	return out, c.post(ctx, "/internal/v1/"+url.PathEscape(resource), body, &out)
 }
 
 func (c *CoreAdminClient) UpdateCatalog(ctx context.Context, resource, id string, body any) (map[string]any, error) {
 	var out map[string]any
-	return out, c.patch(ctx, "/internal/v1/"+resource+"/"+id, body, &out)
+	return out, c.patch(ctx, "/internal/v1/"+url.PathEscape(resource)+"/"+url.PathEscape(id), body, &out)
 }
 
 func (c *CoreAdminClient) SetCatalogEnabled(ctx context.Context, resource, id string, enabled bool) (map[string]any, error) {
@@ -564,7 +566,7 @@ func (c *CoreAdminClient) SetCatalogEnabled(ctx context.Context, resource, id st
 		action = "enable"
 	}
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/"+resource+"/"+id+"/"+action, nil, &out)
+	return out, c.post(ctx, "/internal/v1/"+url.PathEscape(resource)+"/"+url.PathEscape(id)+"/"+url.PathEscape(action), nil, &out)
 }
 
 func (c *CoreAdminClient) GetFinanceDashboard(ctx context.Context, query string) (map[string]any, error) {
@@ -587,7 +589,7 @@ func (c *CoreAdminClient) ListOperatorFees(ctx context.Context, query string) (m
 
 func (c *CoreAdminClient) GetOperatorFee(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/operator-fees/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/operator-fees/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) ListApplicationSettlements(ctx context.Context, query string) (map[string]any, error) {
@@ -601,17 +603,17 @@ func (c *CoreAdminClient) ListApplicationSettlements(ctx context.Context, query 
 
 func (c *CoreAdminClient) GetApplicationSettlement(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.get(ctx, "/internal/v1/application-settlements/"+id, &out)
+	return out, c.get(ctx, "/internal/v1/application-settlements/"+url.PathEscape(id), &out)
 }
 
 func (c *CoreAdminClient) CancelApplicationSettlement(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/application-settlements/"+id+"/cancel", nil, &out)
+	return out, c.post(ctx, "/internal/v1/application-settlements/"+url.PathEscape(id)+"/cancel", nil, &out)
 }
 
 func (c *CoreAdminClient) FailApplicationSettlement(ctx context.Context, id string, body any) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/application-settlements/"+id+"/fail", body, &out)
+	return out, c.post(ctx, "/internal/v1/application-settlements/"+url.PathEscape(id)+"/fail", body, &out)
 }
 
 // ---------------------------------------------------------------------------
@@ -619,6 +621,10 @@ func (c *CoreAdminClient) FailApplicationSettlement(ctx context.Context, id stri
 // ---------------------------------------------------------------------------
 
 var ErrNotFound = errors.New("not found")
+
+// ErrMalformedPath: a path an identifier could have reshaped (A3-01) is never
+// sent. It names no resource, so it is not-found.
+var ErrMalformedPath = fmt.Errorf("%w: malformed path", ErrNotFound)
 
 // CoreError preserves the HTTP status code and the `{error:{code,message}}`
 // payload returned by core-api, so the admin-api can forward them verbatim
@@ -703,6 +709,9 @@ func (c *CoreAdminClient) post(ctx context.Context, path string, body any, out a
 		bodyReader = bytes.NewReader(data)
 	}
 
+	if !corepath.WellFormed(path) {
+		return ErrMalformedPath
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bodyReader)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
@@ -723,6 +732,9 @@ func (c *CoreAdminClient) patch(ctx context.Context, path string, body any, out 
 		bodyReader = bytes.NewReader(data)
 	}
 
+	if !corepath.WellFormed(path) {
+		return ErrMalformedPath
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.baseURL+path, bodyReader)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
@@ -743,6 +755,9 @@ func (c *CoreAdminClient) put(ctx context.Context, path string, body any, out an
 		bodyReader = bytes.NewReader(data)
 	}
 
+	if !corepath.WellFormed(path) {
+		return ErrMalformedPath
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.baseURL+path, bodyReader)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
@@ -754,6 +769,9 @@ func (c *CoreAdminClient) put(ctx context.Context, path string, body any, out an
 }
 
 func (c *CoreAdminClient) get(ctx context.Context, path string, out any) error {
+	if !corepath.WellFormed(path) {
+		return ErrMalformedPath
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)

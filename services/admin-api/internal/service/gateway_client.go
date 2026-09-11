@@ -11,6 +11,8 @@ import (
 	"github.com/banzami/banzami/services/common/obs"
 	"net/url"
 	"time"
+
+	"github.com/banzami/banzami/services/common/corepath"
 )
 
 // GatewayClient calls the api-gateway INTERNAL merchant-application endpoints
@@ -61,6 +63,9 @@ func (c *GatewayClient) do(ctx context.Context, method, path string, body, out a
 		}
 		r = bytes.NewReader(b)
 	}
+	if !corepath.WellFormed(path) {
+		return 0, ErrMalformedPath
+	}
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, r)
 	if err != nil {
 		return 0, err
@@ -106,20 +111,20 @@ func (c *GatewayClient) ListApplicationsRaw(ctx context.Context, status, environ
 
 func (c *GatewayClient) GetApplicationRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
 	var raw json.RawMessage
-	code, err := c.do(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id, nil, &raw)
+	code, err := c.do(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+url.PathEscape(id), nil, &raw)
 	return raw, code, err
 }
 
 func (c *GatewayClient) ApproveApplication(ctx context.Context, id, reviewedBy string) (ApprovalResult, int, error) {
 	var out ApprovalResult
-	code, err := c.do(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/approve",
+	code, err := c.do(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/approve",
 		map[string]string{"reviewed_by": reviewedBy}, &out)
 	return out, code, err
 }
 
 func (c *GatewayClient) RejectApplication(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (RejectionResult, int, error) {
 	var out RejectionResult
-	code, err := c.do(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/reject",
+	code, err := c.do(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/reject",
 		map[string]string{"reviewed_by": reviewedBy, "admin_notes": adminNotes, "merchant_message": merchantMessage}, &out)
 	return out, code, err
 }
@@ -129,51 +134,51 @@ func (c *GatewayClient) RejectApplication(ctx context.Context, id, reviewedBy, a
 // HANDLE_OWNED_BY_BUSINESS …) instead of a generic failure.
 
 func (c *GatewayClient) ApproveApplicationRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/approve",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/approve",
 		map[string]string{"reviewed_by": reviewedBy})
 }
 
 func (c *GatewayClient) RejectApplicationRaw(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/reject",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/reject",
 		map[string]string{"reviewed_by": reviewedBy, "admin_notes": adminNotes, "merchant_message": merchantMessage})
 }
 
 func (c *GatewayClient) StartApplicationReviewRaw(ctx context.Context, id, reviewedBy string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/start-review",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/start-review",
 		map[string]string{"reviewed_by": reviewedBy})
 }
 
 func (c *GatewayClient) RequestApplicationInformationRaw(ctx context.Context, id, reviewedBy, message string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/request-information",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/request-information",
 		map[string]string{"reviewed_by": reviewedBy, "message": message})
 }
 
 func (c *GatewayClient) LinkApplicationRaw(ctx context.Context, id, merchantID, confirmationHandle, reviewedBy, reason string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/link-existing",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/link-existing",
 		map[string]string{"merchant_id": merchantID, "confirmation_handle": confirmationHandle,
 			"reviewed_by": reviewedBy, "reason": reason})
 }
 
 func (c *GatewayClient) ReissueActivationRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/reissue-activation", nil)
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/reissue-activation", nil)
 }
 
 func (c *GatewayClient) LinkCandidatesRaw(ctx context.Context, id, handle string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/link-candidates?handle="+url.QueryEscape(handle), nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/link-candidates?handle="+url.QueryEscape(handle), nil)
 }
 
 // ResetBusinessAppPinRaw asks the gateway for a fresh activation token for an
 // activated Business login (operator PIN reset). The token comes back once.
 func (c *GatewayClient) ResetBusinessAppPinRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/businesses/"+merchantID+"/app-pin-reset", nil)
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/businesses/"+url.PathEscape(merchantID)+"/app-pin-reset", nil)
 }
 
 func (c *GatewayClient) BusinessStateRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/businesses/"+merchantID+"/state", nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/businesses/"+url.PathEscape(merchantID)+"/state", nil)
 }
 
 func (c *GatewayClient) ApplicationBusinessStateRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/business-state", nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/business-state", nil)
 }
 
 // -------------------------------------------------------------------------
@@ -190,6 +195,9 @@ func (c *GatewayClient) doRaw(ctx context.Context, method, path string, body any
 			return nil, 0, err
 		}
 		r = bytes.NewReader(b)
+	}
+	if !corepath.WellFormed(path) {
+		return nil, http.StatusNotFound, ErrMalformedPath
 	}
 	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, r)
 	if err != nil {
@@ -209,20 +217,20 @@ func (c *GatewayClient) doRaw(ctx context.Context, method, path string, body any
 }
 
 func (c *GatewayClient) ListApplicationDocumentsRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/documents", nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/documents", nil)
 }
 
 func (c *GatewayClient) CreateDocumentReadURLRaw(ctx context.Context, id, documentID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/read-url", nil)
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/documents/"+documentID+"/read-url", nil)
 }
 
 func (c *GatewayClient) AcceptDocumentRaw(ctx context.Context, id, documentID, reviewedBy string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/accept",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/documents/"+documentID+"/accept",
 		map[string]string{"reviewed_by": reviewedBy})
 }
 
 func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, reviewedBy, reason string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/reject",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+url.PathEscape(id)+"/documents/"+documentID+"/reject",
 		map[string]string{"reviewed_by": reviewedBy, "reason": reason})
 }
 
@@ -255,12 +263,12 @@ func (c *GatewayClient) ListMerchantKybDocumentsRaw(ctx context.Context, status,
 }
 
 func (c *GatewayClient) ApproveMerchantKybDocumentRaw(ctx context.Context, documentID, actor, validUntil, notes string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/approve",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+url.PathEscape(documentID)+"/approve",
 		map[string]string{"actor": actor, "valid_until": validUntil, "notes": notes})
 }
 
 func (c *GatewayClient) RejectMerchantKybDocumentRaw(ctx context.Context, documentID, actor, reason, notes string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/reject",
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+url.PathEscape(documentID)+"/reject",
 		map[string]string{"actor": actor, "rejection_reason": reason, "notes": notes})
 }
 
@@ -273,17 +281,17 @@ func (c *GatewayClient) ListMerchantKybMerchantsRaw(ctx context.Context, limit s
 }
 
 func (c *GatewayClient) MerchantKybMerchantDocumentsRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/documents", nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+url.PathEscape(merchantID)+"/documents", nil)
 }
 
 func (c *GatewayClient) MerchantKybContextRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/context", nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+url.PathEscape(merchantID)+"/context", nil)
 }
 
 func (c *GatewayClient) MerchantKybTimelineRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/timeline", nil)
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+url.PathEscape(merchantID)+"/timeline", nil)
 }
 
 func (c *GatewayClient) MerchantKybReadURLRaw(ctx context.Context, documentID string) (json.RawMessage, int, error) {
-	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/read-url", nil)
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+url.PathEscape(documentID)+"/read-url", nil)
 }

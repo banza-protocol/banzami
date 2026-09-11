@@ -17,6 +17,8 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+
+	"github.com/banzami/banzami/services/common/corepath"
 )
 
 // ErrNotFound is returned when the requested resource does not exist in the core.
@@ -187,7 +189,7 @@ func (c *CorePublicClient) CreateConsumer(ctx context.Context, handle string, di
 
 func (c *CorePublicClient) GetConsumer(ctx context.Context, id string) (*ConsumerRecord, error) {
 	var out ConsumerRecord
-	if err := c.get(ctx, "/internal/v1/consumers/"+id, &out); err != nil {
+	if err := c.get(ctx, "/internal/v1/consumers/"+url.PathEscape(id), &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerNotFound
 		}
@@ -198,7 +200,7 @@ func (c *CorePublicClient) GetConsumer(ctx context.Context, id string) (*Consume
 
 func (c *CorePublicClient) GetConsumerByHandle(ctx context.Context, handle string) (*ConsumerRecord, error) {
 	var out ConsumerRecord
-	if err := c.get(ctx, "/internal/v1/consumers/handle/"+handle, &out); err != nil {
+	if err := c.get(ctx, "/internal/v1/consumers/handle/"+url.PathEscape(handle), &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerNotFound
 		}
@@ -264,7 +266,7 @@ func (c *CorePublicClient) GetWalletBalance(ctx context.Context, walletID string
 		Total      moneyResp `json:"total"`
 		ComputedAt time.Time `json:"computed_at"`
 	}
-	if err := c.get(ctx, "/internal/v1/consumer-wallets/"+walletID+"/balance", &resp); err != nil {
+	if err := c.get(ctx, "/internal/v1/consumer-wallets/"+url.PathEscape(walletID)+"/balance", &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrConsumerWalletNotFound
 		}
@@ -282,7 +284,7 @@ func (c *CorePublicClient) GetWalletBalance(ctx context.Context, walletID string
 }
 
 func (c *CorePublicClient) GetWalletForConsumer(ctx context.Context, consumerID, currency string) (*ConsumerWalletRecord, error) {
-	path := fmt.Sprintf("/internal/v1/consumer-wallets?consumer_id=%s&currency=%s", consumerID, currency)
+	path := fmt.Sprintf("/internal/v1/consumer-wallets?consumer_id=%s&currency=%s", url.QueryEscape(consumerID), url.QueryEscape(currency))
 	var out ConsumerWalletRecord
 	if err := c.get(ctx, path, &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -346,7 +348,7 @@ func (c *CorePublicClient) SettleCollectionSurface(ctx context.Context, surface,
 
 func (c *CorePublicClient) GetTransfer(ctx context.Context, id string) (*Transfer, error) {
 	var resp coreTransferResp
-	if err := c.get(ctx, "/internal/v1/transfers/"+id, &resp); err != nil {
+	if err := c.get(ctx, "/internal/v1/transfers/"+url.PathEscape(id), &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrTransferNotFound
 		}
@@ -359,9 +361,9 @@ func (c *CorePublicClient) ListTransfers(ctx context.Context, consumerID string,
 	if limit <= 0 {
 		limit = 20
 	}
-	path := fmt.Sprintf("/internal/v1/transfers?consumer_id=%s&limit=%d", consumerID, limit)
+	path := fmt.Sprintf("/internal/v1/transfers?consumer_id=%s&limit=%d", url.QueryEscape(consumerID), limit)
 	if cursor != "" {
-		path += "&cursor=" + cursor
+		path += "&cursor=" + url.QueryEscape(cursor)
 	}
 
 	var result struct {
@@ -497,7 +499,7 @@ type MerchantRecord struct {
 
 func (c *CorePublicClient) GetMerchant(ctx context.Context, id string) (*MerchantRecord, error) {
 	var out MerchantRecord
-	if err := c.get(ctx, "/internal/v1/merchants/"+id, &out); err != nil {
+	if err := c.get(ctx, "/internal/v1/merchants/"+url.PathEscape(id), &out); err != nil {
 		return nil, err
 	}
 	return &out, nil
@@ -535,7 +537,7 @@ func (c *CorePublicClient) MarkPaymentLinkUsed(ctx context.Context, id, transfer
 	if transferID != "" {
 		body["transfer_id"] = transferID
 	}
-	if err := c.post(ctx, "/internal/v1/payment-links/"+id+"/mark-used", body, &out); err != nil {
+	if err := c.post(ctx, "/internal/v1/payment-links/"+url.PathEscape(id)+"/mark-used", body, &out); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPaymentLinkNotFound
 		}
@@ -895,6 +897,9 @@ func (c *CorePublicClient) post(ctx context.Context, path string, body any, out 
 		bodyReader = bytes.NewReader(data)
 	}
 
+	if !corepath.WellFormed(path) {
+		return ErrNotFound // a path an identifier could have reshaped names nothing (A3-01)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bodyReader)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
@@ -906,6 +911,9 @@ func (c *CorePublicClient) post(ctx context.Context, path string, body any, out 
 }
 
 func (c *CorePublicClient) get(ctx context.Context, path string, out any) error {
+	if !corepath.WellFormed(path) {
+		return ErrNotFound
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)

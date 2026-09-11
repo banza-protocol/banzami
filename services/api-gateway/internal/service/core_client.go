@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/banzami/banzami/services/common/corepath"
 	"github.com/banzami/banzami/services/common/obs"
 )
 
@@ -1212,44 +1213,8 @@ func (s *CoreApiComplianceService) GetMerchantStatus(ctx context.Context, mercha
 	return &resp, nil
 }
 
-// corePathIsWellFormed is the one invariant every path sent to core keeps: one
-// path, one query, each query key once, no dot segments, no fragment.
-//
-// Call sites build these paths by concatenation, and a path parameter reaches
-// them already decoded by the router. A refund id written as
-// "<victim>%3Fmerchant_id=<victim-merchant>&x=" arrived as
-// "<victim>?merchant_id=<victim-merchant>&x=", was pasted in front of
-// "?merchant_id=<caller>", and core — which scopes by that query value — read the
-// victim's refund to the caller (A3-01). Every call site now escapes what it
-// pastes; this refuses anything that would still change the request's shape, so
-// a site that forgets fails closed instead of answering for someone else.
-func corePathIsWellFormed(path string) bool {
-	if strings.ContainsAny(path, "#\x00\r\n\t ") || strings.Count(path, "?") > 1 {
-		return false
-	}
-	p, q, _ := strings.Cut(path, "?")
-	for _, seg := range strings.Split(p, "/") {
-		if seg == "." || seg == ".." {
-			return false
-		}
-		if u, err := url.PathUnescape(seg); err != nil || u == "." || u == ".." {
-			return false
-		}
-	}
-	if q == "" {
-		return true
-	}
-	seen := map[string]bool{}
-	for _, pair := range strings.Split(q, "&") {
-		k, _, _ := strings.Cut(pair, "=")
-		key, err := url.QueryUnescape(k)
-		if err != nil || seen[key] {
-			return false
-		}
-		seen[key] = true
-	}
-	return true
-}
+// corePathIsWellFormed: see services/common/corepath (A3-01).
+func corePathIsWellFormed(path string) bool { return corepath.WellFormed(path) }
 
 // newCoreRequest builds a request to core, refusing a malformed path. A path
 // that is not well formed names no resource core holds, so the caller is told

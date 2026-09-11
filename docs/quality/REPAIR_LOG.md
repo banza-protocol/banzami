@@ -3299,3 +3299,20 @@ reason, recorded in the audit. Tests
 `approval_does_not_lift_a_suspension_or_clear_an_aml_flag`,
 `concurrent_decisions_on_different_columns_both_stand` (real DB; the previous engine
 fails both), `TestApproveMerchant_RequiresAReason`.
+
+## RA-121 — every service could let an identifier reshape its call to core
+
+- **Found:** 2026-09-11 (full-system assurance, extending A3-01 beyond the gateway)
+- **Status:** FIXED (admin-api, public-api, developer-api; gateway moved to the shared guard)
+
+RA-105 closed identifier injection into core paths in the gateway. The same
+concatenation sat in admin-api (~67 call sites, including every operator action — an
+id carrying `/../` reached a different core route than the operator's capability
+names), public-api (including the transfer `cursor`, pasted raw) and developer-api. The
+guard now lives in one shared module, `services/common/corepath` (one path, one query,
+each key once, no dot segment, no fragment), used by every service's core and gateway
+client; every pasted segment and query value is escaped. S3 signing code, which builds
+`/bucket/key` for a signature and must not be re-encoded, is deliberately untouched.
+Tests `corepath.TestWellFormed`, `TestCoreAdminClient_AnIdentifierCannotChooseTheRoute`
+(unescaped and unguarded, the operator id reaches `/risk/freeze`), and the gateway's
+`core_path_test.go`.
