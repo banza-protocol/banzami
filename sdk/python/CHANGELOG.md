@@ -7,6 +7,16 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed — a dispute names no consumer
+`Dispute.consumer_id` is `str | None` and `disputes.open(consumer_id=…)` is
+deprecated and no longer sent: a dispute is opened on an acquiring transaction,
+which has no Banzami consumer (A1-05).
+
+### Changed — money is decimal, never binary floating point
+`to_minor` accepts `Decimal | int | str | float` and reads a float through its
+decimal spelling, so `to_minor(1.15)` is 115 minor units and not 114;
+`from_minor` returns an exact `Decimal` instead of a float.
+
 ### Fixed — hosts and routes
 
 - The default gateway was `https://api.banzami.ao`, which is not Banzami's. The

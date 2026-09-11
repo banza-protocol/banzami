@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+### Changed — `openDispute` no longer sends `consumer_id`
+A dispute is opened on an acquiring transaction, which has no Banzami consumer;
+the operator ignores the field and answers `consumer_id: null` (A1-05).
+
 ### Removed — Laravel facade: payment-request methods
 
 The facade docblock declared six payment-request methods that `BanzamiClient`

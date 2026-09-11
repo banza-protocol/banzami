@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed — a dispute names no consumer
+`Dispute.consumer_id` is `string | null`: a dispute is opened on an acquiring
+transaction, which has no Banzami consumer, so the API answers null for every
+dispute opened from now on (A1-05). `OpenDisputeParams.consumer_id` is optional
+and deprecated — it is no longer sent, and the API ignores it.
+
+### Changed — webhook replay
+`replayWebhookDelivery` answers 409 `DELIVERY_ALREADY_SUCCEEDED` for a delivery
+that was already received. Replay is for one that failed.
+
 ### Fixed — `formatMinor` printed AOA amounts 100 times too large
 
 `formatMinor` (`@banzami/sdk/money`) treated one AOA minor unit as one kwanza.

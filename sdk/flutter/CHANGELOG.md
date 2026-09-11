@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — `ConsumerPublicClient.signOutEverywhere()`
+`POST /v1/auth/logout`: ends every session the consumer holds, on every device,
+and forgets the token locally. A consumer session could not be ended before
+(RA-149). A suspended consumer is now refused at sign-in with
+`ACCOUNT_SUSPENDED`, and every error code public-api sends has Portuguese copy.
+
 ### Added
 - `ConsumerPublicClient.getPushTopic()` (`GET /v1/me/push-topic`) and
   `BanzamiClient.getMerchantPushTopic()` (`GET /v1/merchant/push-topic`): the
