@@ -242,7 +242,9 @@ export type OnboardingState =
   | 'APPROVED_PROVISIONING'
   | 'REJECTED'
   | 'READY'
-  | 'BLOCKED';
+  | 'BLOCKED'
+  /** Bound to a Business, but whether it can settle could not be read just now. Never READY. */
+  | 'READINESS_UNKNOWN';
 
 /** One issue from the Gateway's Business requirements policy. */
 export type OnboardingRequirement = {

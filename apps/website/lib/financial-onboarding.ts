@@ -28,6 +28,7 @@ export type OnboardingView = OnboardingState | 'UNAVAILABLE';
 
 const ONBOARDING_STATES: OnboardingState[] = [
   'NOT_CONFIGURED', 'IN_REVIEW', 'INFORMATION_REQUIRED', 'APPROVED_PROVISIONING', 'REJECTED', 'READY', 'BLOCKED',
+  'READINESS_UNKNOWN',
 ];
 
 /**
@@ -38,12 +39,19 @@ const ONBOARDING_STATES: OnboardingState[] = [
  * that, whatever the role allows — "you may not" and "nobody can here" lead to
  * different places. And a server that predates onboarding is read from the
  * financial setup state it does send, never guessed at.
+ *
+ * A failed readiness read is never READY (A2-26): with no readiness there are
+ * no blockers, and "no blockers" read as "Pronto". The server now says
+ * READINESS_UNKNOWN; a server that predates that, and still says READY next to
+ * readiness_unavailable, is read the same way.
  */
 export function onboardingViewOf(setup: FinancialSetupState): OnboardingView {
   if (setup.state === 'UNAVAILABLE') return 'UNAVAILABLE';
   const s = setup.onboarding?.state;
+  if (s === 'READY' && setup.readiness_unavailable) return 'READINESS_UNKNOWN';
   if (s && ONBOARDING_STATES.includes(s)) return s;
   if (setup.state === 'READY' || setup.state === 'SEALED') {
+    if (setup.readiness_unavailable) return 'READINESS_UNKNOWN';
     return (setup.readiness?.settlement.blockers.length ?? 0) > 0 ? 'BLOCKED' : 'READY';
   }
   return 'NOT_CONFIGURED';
@@ -58,6 +66,7 @@ export const ONBOARDING_LABEL: Record<OnboardingView, string> = {
   REJECTED: 'Candidatura recusada',
   READY: 'Pronto',
   BLOCKED: 'Bloqueado',
+  READINESS_UNKNOWN: 'Estado por confirmar',
   UNAVAILABLE: 'Indisponível',
 };
 
