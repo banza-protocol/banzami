@@ -3536,3 +3536,17 @@ the id existed. Both now answer 404, exactly as for an id nobody holds. Tests
 Residual: idempotency keys on application settlements, transactions and payouts are
 still unique globally, so a key another owner used answers 409 — a weaker oracle, and
 per-owner uniqueness needs a migration of three unique indexes.
+
+## RA-135 — an unused SUPER_ADMIN invite let the only real one step down
+
+- **Found:** 2026-09-11 (full-system assurance, operator audit A5-11)
+- **Status:** FIXED (admin-api)
+
+The "last SUPER_ADMIN" guard counted every SUPER_ADMIN not suspended, including an
+INVITED one who never set a password. With one real SUPER_ADMIN and one unused invite,
+the real one could demote or suspend themselves; once the invite expired, only a
+SUPER_ADMIN could resend it — recovery meant the bootstrap tool or the database. The
+guard now counts SUPER_ADMINs who have set a password (one part-way through enrolling a
+factor still counts: they can finish it themselves). Test
+`TestLastSuperAdmin_AnUnusedInviteDoesNotCount` (the previous count lets the demotion
+through); the concurrency test's operators now have passwords.

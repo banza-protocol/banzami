@@ -124,7 +124,7 @@ func (s *AdminUserService) execOperatorKeepingASuperAdmin(ctx context.Context, s
 	}
 	count := func() (int, error) {
 		var n int
-		err := tx.QueryRow(ctx, `SELECT count(*) FROM admin_users WHERE role = 'SUPER_ADMIN' AND status <> 'SUSPENDED'`).Scan(&n)
+		err := tx.QueryRow(ctx, `SELECT count(*) FROM admin_users WHERE `+superAdminWhoCanAdminister).Scan(&n)
 		return n, err
 	}
 	before, err := count()
@@ -169,8 +169,14 @@ func (s *AdminUserService) execOperator(ctx context.Context, sql, id string, arg
 // console. They are still the super admin; they simply cannot sign in yet.
 func (s *AdminUserService) CountActiveSuperAdmins(ctx context.Context) (int, error) {
 	var n int
-	err := s.pool.QueryRow(ctx,
-		`SELECT count(*) FROM admin_users
-		  WHERE role = 'SUPER_ADMIN' AND status <> 'SUSPENDED'`).Scan(&n)
+	err := s.pool.QueryRow(ctx, `SELECT count(*) FROM admin_users WHERE `+superAdminWhoCanAdminister).Scan(&n)
 	return n, err
 }
+
+// superAdminWhoCanAdminister: a SUPER_ADMIN who is not suspended and has set a
+// password. An INVITED SUPER_ADMIN with no password was counted, so the only
+// real one could demote themselves while an unused invite existed — and once
+// that invite expired, only a SUPER_ADMIN could resend it (A5-11). Someone
+// part-way through enrolling a factor still counts: they have a password and
+// finish enrolling themselves.
+const superAdminWhoCanAdminister = `role = 'SUPER_ADMIN' AND status <> 'SUSPENDED' AND COALESCE(password_hash, '') <> ''`

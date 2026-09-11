@@ -38,7 +38,7 @@ func TestLastSuperAdmin_ConcurrentSuspensionsLeaveOne(t *testing.T) {
 	for round := 0; round < 10; round++ {
 		a, b := uuid.NewString(), uuid.NewString()
 		for _, id := range []string{a, b} {
-			if _, err := pool.Exec(ctx, `INSERT INTO admin_users (id, email, full_name, role, status) VALUES ($1, $2, 'SA race', 'SUPER_ADMIN', 'ACTIVE')`, id, id+"@test"); err != nil {
+			if _, err := pool.Exec(ctx, `INSERT INTO admin_users (id, email, full_name, role, status, password_hash) VALUES ($1, $2, 'SA race', 'SUPER_ADMIN', 'ACTIVE', 'x')`, id, id+"@test"); err != nil {
 				t.Fatalf("seed: %v", err)
 			}
 		}
@@ -70,5 +70,40 @@ func TestLastSuperAdmin_ConcurrentSuspensionsLeaveOne(t *testing.T) {
 		if refused != 1 {
 			t.Fatalf("round %d: want exactly one ErrLastSuperAdmin, got %v, %v", round, errs[0], errs[1])
 		}
+	}
+}
+
+// A5-11: an INVITED SUPER_ADMIN who never set a password does not keep the
+// console administered. With one real SUPER_ADMIN and one unused invite, the
+// real one cannot demote themselves.
+func TestLastSuperAdmin_AnUnusedInviteDoesNotCount(t *testing.T) {
+	ctx := context.Background()
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("DATABASE_URL not set — skipping DB-backed operator test")
+	}
+	pool, err := pgxpool.New(ctx, dbURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var others int
+	_ = pool.QueryRow(ctx, `SELECT count(*) FROM admin_users WHERE `+superAdminWhoCanAdminister).Scan(&others)
+	if others != 0 {
+		t.Skipf("%d other SUPER_ADMIN(s) here — the guard cannot be at its edge", others)
+	}
+	real, invited := uuid.NewString(), uuid.NewString()
+	if _, err := pool.Exec(ctx, `INSERT INTO admin_users (id, email, full_name, role, status, password_hash) VALUES ($1,$2,'real','SUPER_ADMIN','ACTIVE','x')`, real, real+"@test"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO admin_users (id, email, full_name, role, status) VALUES ($1,$2,'invited','SUPER_ADMIN','INVITED')`, invited, invited+"@test"); err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Exec(ctx, `DELETE FROM admin_users WHERE id IN ($1,$2)`, real, invited) //nolint:errcheck
+
+	err = NewAdminUserService(pool).execOperatorKeepingASuperAdmin(ctx,
+		`UPDATE admin_users SET role = 'OPERATIONS' WHERE id = $1`, real)
+	if !errors.Is(err, ErrLastSuperAdmin) {
+		t.Fatalf("the only SUPER_ADMIN demoted themselves beside an unused invite (err %v)", err)
 	}
 }
