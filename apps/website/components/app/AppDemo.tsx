@@ -355,8 +355,8 @@ export function AppDemo({ className = '' }: { className?: string }) {
                 <ReceiptRow label="De" value={uHandle} mono border />
                 <ReceiptRow label="Para" value={pagPara} mono border />
                 <ReceiptRow label="Nota" value={pagNota} border />
-                <ReceiptRow label="Ref" value="0FC11CCE" mono border />
-                <ReceiptRow label="Método" value="Saldo Banzami" />
+                <ReceiptRow label="Referência" value="BZM-DEMO-0000-0000" mono border />
+                <ReceiptRow label="Fonte" value="Saldo Banzami" />
               </div>
               <div onClick={go('inicio')} className="cursor-pointer flex w-full items-center justify-center" style={{ margin: '11px 0 0', gap: 8, background: '#fff', color: '#9A1B22', borderRadius: 24, padding: 12, fontWeight: 800, fontSize: 14 }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#9A1B22" strokeWidth="1.9" /><path d="M8 12l2.6 2.6L16 9" stroke="#9A1B22" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>Concluído

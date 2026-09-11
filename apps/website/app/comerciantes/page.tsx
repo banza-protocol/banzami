@@ -157,7 +157,7 @@ const ADVANTAGES: {
     ),
   },
   {
-    title: 'Liquidação na rede',
+    title: 'Creditado na hora',
     body: 'Creditado no momento da confirmação, dentro da rede.',
     delay: 100,
     icon: (
