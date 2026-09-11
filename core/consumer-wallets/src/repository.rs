@@ -44,6 +44,15 @@ pub trait OnboardingRepository: Send + Sync {
         id: Uuid,
     ) -> Result<Option<OnboardingSession>, ConsumerWalletError>;
 
+    /// Claims one OTP attempt for a session still waiting for its code.
+    /// Returns false once `max` attempts have been claimed — atomically, so
+    /// concurrent guesses cannot all slip under the limit.
+    async fn claim_otp_attempt(
+        &self,
+        session_id: Uuid,
+        max: i32,
+    ) -> Result<bool, ConsumerWalletError>;
+
     async fn advance_to_pending_pin(
         &self,
         session_id: Uuid,
@@ -278,6 +287,25 @@ impl OnboardingRepository for PostgresOnboardingRepository {
                 .map_err(ConsumerWalletError::Database)?;
 
         row.map(onboarding_from_row).transpose()
+    }
+
+    async fn claim_otp_attempt(
+        &self,
+        session_id: Uuid,
+        max: i32,
+    ) -> Result<bool, ConsumerWalletError> {
+        let claimed: Option<Uuid> = sqlx::query_scalar(
+            "UPDATE consumer_onboarding
+                SET otp_attempts = otp_attempts + 1
+              WHERE id = $1 AND status = 'PENDING_OTP' AND otp_attempts < $2
+              RETURNING id",
+        )
+        .bind(session_id)
+        .bind(max)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+        Ok(claimed.is_some())
     }
 
     async fn advance_to_pending_pin(

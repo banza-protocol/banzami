@@ -44,13 +44,16 @@ var (
 	ErrPaymentLinkNotActive = errors.New("payment link is no longer active")
 
 	// Onboarding domain errors
-	ErrOtpInvalid         = errors.New("OTP is invalid or expired")
-	ErrOtpExpired         = errors.New("onboarding session has expired")
-	ErrOnboardingNotFound = errors.New("onboarding session not found")
-	ErrInvalidHandle      = errors.New("handle format is invalid")
-	ErrDuplicateWallet    = errors.New("consumer already has an active wallet in this currency")
-	ErrPinPolicyFailed    = errors.New("PIN does not meet policy requirements")
-	ErrInvalidLifecycle   = errors.New("invalid lifecycle state transition")
+	ErrOtpInvalid = errors.New("OTP is invalid or expired")
+	ErrOtpExpired = errors.New("onboarding session has expired")
+	// ErrOtpAttemptsExhausted: core spent this session's code after five
+	// guesses; the person starts again for a new one.
+	ErrOtpAttemptsExhausted = errors.New("too many attempts for this code")
+	ErrOnboardingNotFound   = errors.New("onboarding session not found")
+	ErrInvalidHandle        = errors.New("handle format is invalid")
+	ErrDuplicateWallet      = errors.New("consumer already has an active wallet in this currency")
+	ErrPinPolicyFailed      = errors.New("PIN does not meet policy requirements")
+	ErrInvalidLifecycle     = errors.New("invalid lifecycle state transition")
 )
 
 // CorePublicClient is a thin HTTP client over the Rust core-api internal endpoints.
@@ -628,6 +631,8 @@ func mapOnboardingError(err error) error {
 		return ErrOtpInvalid
 	case contains(msg, "OTP_EXPIRED"):
 		return ErrOtpExpired
+	case contains(msg, "TOO_MANY_ATTEMPTS"):
+		return ErrOtpAttemptsExhausted
 	case contains(msg, "ONBOARDING_NOT_FOUND") || (contains(msg, "404") && contains(msg, "onboarding")):
 		return ErrOnboardingNotFound
 	case contains(msg, "HANDLE_TAKEN"):

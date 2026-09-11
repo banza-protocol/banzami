@@ -105,6 +105,11 @@ pub enum ConsumerWalletError {
     #[error("OTP is invalid or expired")]
     OtpInvalid,
 
+    /// The session's code has taken its allowance of guesses and is spent; a
+    /// new session (and code) is needed.
+    #[error("too many OTP attempts")]
+    OtpAttemptsExhausted,
+
     #[error("onboarding session {0} has expired")]
     OnboardingExpiredSession(Uuid),
 

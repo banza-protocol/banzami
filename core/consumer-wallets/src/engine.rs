@@ -35,6 +35,9 @@ const OTP_TTL_MINUTES: i64 = 5;
 /// Default PENDING_PIN session lifetime in minutes.
 const ONBOARDING_PIN_TTL_MINUTES: i64 = 30;
 
+/// Guesses one onboarding code may take before it is spent.
+const MAX_OTP_ATTEMPTS: i32 = 5;
+
 // ---------------------------------------------------------------------------
 // Trait
 // ---------------------------------------------------------------------------
@@ -341,6 +344,17 @@ where
         }
         if session.otp_is_expired() {
             return Err(ConsumerWalletError::OtpInvalid);
+        }
+
+        // Every comparison costs an attempt, claimed before it is made. The code
+        // used to be compared for as long as the session lived, with only the
+        // per-IP limits in front of core to slow a caller down.
+        if !self
+            .onboard
+            .claim_otp_attempt(session.id, MAX_OTP_ATTEMPTS)
+            .await?
+        {
+            return Err(ConsumerWalletError::OtpAttemptsExhausted);
         }
 
         // Verify OTP: compare SHA-256(submitted) against stored hash.
@@ -1249,6 +1263,7 @@ mod tests {
     #[derive(Default)]
     struct MockOnboardingRepo {
         sessions: Mutex<HashMap<Uuid, OnboardingSession>>,
+        otp_attempts: Mutex<HashMap<Uuid, i32>>,
     }
 
     impl OnboardingRepository for MockOnboardingRepo {
@@ -1298,6 +1313,20 @@ mod tests {
             id: Uuid,
         ) -> Result<Option<OnboardingSession>, ConsumerWalletError> {
             Ok(self.sessions.lock().unwrap().get(&id).cloned())
+        }
+
+        async fn claim_otp_attempt(
+            &self,
+            session_id: Uuid,
+            max: i32,
+        ) -> Result<bool, ConsumerWalletError> {
+            let mut attempts = self.otp_attempts.lock().unwrap();
+            let n = attempts.entry(session_id).or_insert(0);
+            if *n >= max {
+                return Ok(false);
+            }
+            *n += 1;
+            Ok(true)
         }
 
         async fn advance_to_pending_pin(

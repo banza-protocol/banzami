@@ -210,6 +210,10 @@ fn map_onboarding_error(e: ConsumerWalletError) -> ApiError {
         ConsumerWalletError::OtpInvalid => {
             ApiError::unprocessable("OTP_INVALID", "OTP is invalid or expired")
         }
+        ConsumerWalletError::OtpAttemptsExhausted => ApiError::too_many_requests(
+            "TOO_MANY_ATTEMPTS",
+            "this code has had too many attempts — start again for a new one",
+        ),
         ConsumerWalletError::OnboardingExpiredSession(_) => {
             ApiError::unprocessable("OTP_EXPIRED", "onboarding session has expired")
         }

@@ -73,6 +73,15 @@ impl ApiError {
             message: msg.into(),
         }
     }
+
+    /// 429 — an allowance of attempts is used up.
+    pub fn too_many_requests(code: &'static str, msg: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::TOO_MANY_REQUESTS,
+            code,
+            message: msg.into(),
+        }
+    }
 }
 
 impl IntoResponse for ApiError {

@@ -832,3 +832,74 @@ async fn cannot_release_already_released_reservation(pool: PgPool) -> sqlx::Resu
 
     Ok(())
 }
+
+// A code guessed wrong five times is spent: the right code is refused too, so
+// an OTP can't be walked by anyone who can spread guesses across addresses
+// (the per-IP limits in front of core are all it had).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn an_otp_takes_five_guesses_then_is_spent(pool: PgPool) -> sqlx::Result<()> {
+    let eng = engine(pool);
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000077".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("135790".into()),
+        })
+        .await
+        .unwrap();
+    for guess in ["000001", "000002", "000003", "000004", "000005"] {
+        let err = eng
+            .verify_otp(VerifyOtpRequest {
+                session_id: session.id,
+                otp_code: guess.into(),
+            })
+            .await
+            .expect_err("a wrong code was accepted");
+        assert!(matches!(err, ConsumerWalletError::OtpInvalid), "{err:?}");
+    }
+    let spent = eng
+        .verify_otp(VerifyOtpRequest {
+            session_id: session.id,
+            otp_code: "135790".into(),
+        })
+        .await;
+    assert!(
+        matches!(spent, Err(ConsumerWalletError::OtpAttemptsExhausted)),
+        "the right code still worked after five wrong guesses: {spent:?}"
+    );
+    Ok(())
+}
+
+// Concurrent guesses cannot all slip under the limit: each claims an attempt
+// atomically before it is compared.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_otp_guesses_claim_at_most_five_attempts(pool: PgPool) -> sqlx::Result<()> {
+    let eng = engine(pool.clone());
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000078".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("246801".into()),
+        })
+        .await
+        .unwrap();
+    let guesses = (0..20).map(|i| {
+        eng.verify_otp(VerifyOtpRequest {
+            session_id: session.id,
+            otp_code: format!("9{i:05}"),
+        })
+    });
+    let compared = futures::future::join_all(guesses)
+        .await
+        .into_iter()
+        .filter(|r| matches!(r, Err(ConsumerWalletError::OtpInvalid)))
+        .count();
+    assert_eq!(compared, 5, "{compared} guesses were compared, not 5");
+    let attempts: i32 =
+        sqlx::query_scalar("SELECT otp_attempts FROM consumer_onboarding WHERE id = $1")
+            .bind(session.id)
+            .fetch_one(&pool)
+            .await?;
+    assert_eq!(attempts, 5);
+    Ok(())
+}

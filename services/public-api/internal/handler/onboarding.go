@@ -323,6 +323,8 @@ func (h *OnboardingHandler) VerifyOtp(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "OTP_INVALID", "OTP is invalid")
 		case errors.Is(err, service.ErrOtpExpired):
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "OTP_EXPIRED", "OTP has expired — start a new onboarding session")
+		case errors.Is(err, service.ErrOtpAttemptsExhausted):
+			apierror.Respond(w, r, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts for this code — start a new onboarding session")
 		case errors.Is(err, service.ErrOnboardingNotFound):
 			apierror.Respond(w, r, http.StatusNotFound, "ONBOARDING_NOT_FOUND", "onboarding session not found")
 		default:
