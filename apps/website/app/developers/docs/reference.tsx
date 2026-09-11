@@ -444,7 +444,6 @@ export const ENDPOINTS: EndpointSpec[] = [
 
 // Compact rows for surfaces that exist but are NOT public-key callable today.
 export const RESTRICTED_ROWS: { path: string; status: Bi }[] = [
-  { path: 'POST/GET /v1/webhooks/endpoints · /{id} · /health · /v1/webhooks/events · /deliveries · /replay', status: { pt: 'Caminho legado de merchant. Uma chave de projeto usa /v1/webhooks/*, documentado acima.', en: 'Legacy merchant path. A project key uses /v1/webhooks/*, documented above.' } },
   { path: 'POST/GET /v1/transfers', status: { pt: 'Superfície de consumidor apenas — o remetente deriva do token do consumidor; não disponível a credenciais de merchant', en: 'Consumer surface only — the sender derives from the consumer token; not available to merchant credentials' } },
 ];
 

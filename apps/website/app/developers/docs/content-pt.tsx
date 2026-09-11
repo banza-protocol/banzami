@@ -877,7 +877,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
                       ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
                       ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
-                      ['Registo de endpoints de webhooks (POST /v1/webhooks)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
+                      ['Registo de endpoints de webhooks (POST /v1/webhooks/endpoints)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
                       ['Entrega outbound de webhooks', '—', 'Verificada em Sandbox — assinatura confirmada de forma independente e entrega aceite por um recetor público'],
                       ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
                       ['Transferências (POST /v1/wallet-account-transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
