@@ -28,6 +28,14 @@
 {P}-public-api-staging	banzami-sandbox/public-api-staging	app,data	yes	no	running
 {P}-developer-api	banzami-sandbox/developer-api	app,data,egress	yes	no	running
 
+# BANZADMIN (Stage D, 2026-09-08) — the operator control plane, deployed by
+# ./deploy.sh like the rest. Missing from this list until 2026-09-11, so every
+# attestation since has failed on them. admin-api holds operator credentials
+# (database, core internal key, admin session key, proof key, mail key) and
+# reaches Resend; the console holds none and sits on the app plane only.
+{P}-admin-api	banzami-sandbox/admin-api	app,data,egress	yes	no	running
+{P}-admin-frontend	banzami-sandbox/admin-frontend	app	no	no	running
+
 # The payer surface. No secret, no database, no Core credential — app plane only
 # (ADR-052). It restarts on its own because it holds no financial authority and
 # an outage is visible to every payer.
