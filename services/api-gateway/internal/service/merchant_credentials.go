@@ -178,24 +178,40 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		return "", "", ErrMerchantLocked
 	}
 
+	// Claim the attempt BEFORE comparing the PIN, in a statement that refuses a
+	// locked credential. The lock used to be read above, the PIN compared, and
+	// the failure counted afterwards: concurrent guesses all read "unlocked" and
+	// were all compared — 300 of 300 in a race, where five was the limit (A9-03).
+	// The counter write's error was discarded too, so a failed write was a free
+	// guess (A2-18); a claim that cannot be written refuses the attempt.
+	var claimed int
+	err = s.pool.QueryRow(ctx,
+		`UPDATE merchant_app_credentials
+		    SET failed_attempts = failed_attempts + 1,
+		        locked_until = CASE WHEN failed_attempts + 1 >= $2
+		                            THEN now() + ($3)::interval
+		                            ELSE locked_until END,
+		        updated_at = now()
+		  WHERE handle = $1 AND (locked_until IS NULL OR locked_until <= now())
+		  RETURNING 1`, handle, maxPinAttempts, lockoutInterval).Scan(&claimed)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", "", ErrMerchantLocked
+	}
+	if err != nil {
+		return "", "", err
+	}
+
 	if bcrypt.CompareHashAndPassword([]byte(*pinHash), []byte(pin)) != nil {
-		// Increment failures; lock once the threshold is reached.
-		_, _ = s.pool.Exec(ctx,
-			`UPDATE merchant_app_credentials
-			    SET failed_attempts = failed_attempts + 1,
-			        locked_until = CASE WHEN failed_attempts + 1 >= $2
-			                            THEN now() + ($3)::interval
-			                            ELSE locked_until END,
-			        updated_at = now()
-			  WHERE handle = $1`, handle, maxPinAttempts, lockoutInterval)
 		return "", "", ErrMerchantCredsInvalid
 	}
 
-	// Success → reset the lockout counters.
-	_, _ = s.pool.Exec(ctx,
+	// Success → clear the count the claim added.
+	if _, err := s.pool.Exec(ctx,
 		`UPDATE merchant_app_credentials
 		    SET failed_attempts = 0, locked_until = NULL, updated_at = now()
-		  WHERE handle = $1`, handle)
+		  WHERE handle = $1`, handle); err != nil {
+		return "", "", err
+	}
 	return merchantID, environment, nil
 }
 

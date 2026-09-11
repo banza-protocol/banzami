@@ -88,25 +88,60 @@ func (s *CredentialStore) Exists(ctx context.Context, handle string) (bool, erro
 	return found, nil
 }
 
+// ErrCredentialsLocked: too many wrong PINs for this handle; wait for the lock.
+var ErrCredentialsLocked = errors.New("too many attempts")
+
+// Login attempt limits per account (A9-01). Five tries, then fifteen minutes.
+const (
+	maxLoginAttempts = 5
+	loginLockout     = 15 * time.Minute
+)
+
+// dummyPinHash is spent on an unknown handle so that a miss costs what a
+// comparison costs. It matches no PIN.
+var dummyPinHash, _ = bcrypt.GenerateFromPassword([]byte("no-such-credential"), bcrypt.DefaultCost)
+
 // Verify checks handle+PIN and returns the consumer ID on success.
-// Returns ErrInvalidCredentials on mismatch.
+//
+// The attempt is CLAIMED on the account before the PIN is compared, in one
+// statement that refuses a locked account: concurrent guesses each take a
+// number, and after the fifth the rest find the lock. Reading the lock, then
+// comparing, then counting would let every racing guess through (the defect
+// the Business login had, A9-03). A correct PIN clears the count.
 func (s *CredentialStore) Verify(ctx context.Context, handle, rawPin string) (string, error) {
 	var row credentialRow
 	err := s.pool.QueryRow(ctx,
-		`SELECT consumer_id, handle, pin_hash FROM public_api_credentials WHERE handle = $1`,
-		handle,
+		`UPDATE public_api_credentials
+		    SET failed_attempts = failed_attempts + 1,
+		        locked_until = CASE WHEN failed_attempts + 1 >= $2
+		                            THEN now() + make_interval(mins => $3)
+		                            ELSE locked_until END
+		  WHERE handle = $1 AND (locked_until IS NULL OR locked_until <= now())
+		  RETURNING consumer_id, handle, pin_hash`,
+		handle, maxLoginAttempts, int(loginLockout.Minutes()),
 	).Scan(&row.ConsumerID, &row.Handle, &row.PinHash)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return "", ErrInvalidCredentials
+	if errors.Is(err, pgx.ErrNoRows) {
+		var exists bool
+		if qerr := s.pool.QueryRow(ctx,
+			`SELECT EXISTS(SELECT 1 FROM public_api_credentials WHERE handle = $1)`, handle,
+		).Scan(&exists); qerr == nil && exists {
+			return "", ErrCredentialsLocked
 		}
+		_ = bcrypt.CompareHashAndPassword(dummyPinHash, []byte(rawPin))
+		return "", ErrInvalidCredentials
+	}
+	if err != nil {
 		return "", fmt.Errorf("credential lookup: %w", err)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(row.PinHash), []byte(rawPin)); err != nil {
 		return "", ErrInvalidCredentials
 	}
-
+	if _, err := s.pool.Exec(ctx,
+		`UPDATE public_api_credentials SET failed_attempts = 0, locked_until = NULL WHERE consumer_id = $1`,
+		row.ConsumerID); err != nil {
+		return "", fmt.Errorf("credential reset: %w", err)
+	}
 	return row.ConsumerID, nil
 }
 

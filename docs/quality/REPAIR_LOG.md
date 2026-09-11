@@ -3198,3 +3198,24 @@ the stack's environment and refuses when the stack has none; every mapping parse
 environment and refuses one it cannot name. Tests `TestLoad_RefusesToStartWithoutAnEnvironment`,
 `TestSubmit_RefusesAnUndeclaredEnvironment`, `TestSubmitApplication_TheEnvironmentIsTheStacksNeverTheBodys`
 (each fails on the previous code).
+
+## RA-115 — PIN logins: no account limit for consumers, a raceable one for Businesses
+
+- **Found:** 2026-09-11 (full-system assurance, auth audit A9-01/A9-03, A2-18)
+- **Status:** FIXED (public-api + gateway + migration 0132)
+
+A consumer's PIN login had no per-account limit at all — only 10 attempts a minute
+per IP, per public-api instance — and the token it issues moves money
+(`POST /v1/transfers` asks for no PIN); rotating addresses spends a per-IP limit, not an
+account's. The Business App login had a limit, but read it, compared the PIN and only
+then counted the failure: concurrent guesses all read "unlocked" (33 of 40 compared in
+a race, where five was the limit), and the counter write's error was discarded, making
+a failed write a free guess. Both now claim the attempt on the account before the PIN
+is compared, in one statement that refuses a locked credential: five attempts, then
+fifteen minutes, cleared by a correct PIN; a claim that cannot be written refuses the
+attempt; an unknown consumer handle costs a bcrypt comparison like a real one.
+Migration 0132 adds the consumer counter (additive). Tests
+`TestVerify_WrongPinsLockTheAccountEvenUnderConcurrency` (50 racing guesses; without
+the lock condition all 50 are compared) and
+`TestVerifyHandlePin_ConcurrentGuessesCannotPassTheLimit` (the previous code compares
+33 of 40).

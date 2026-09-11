@@ -139,6 +139,11 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid handle or PIN")
 			return
 		}
+		if errors.Is(err, service.ErrCredentialsLocked) {
+			apierror.Respond(w, r, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS",
+				"too many wrong PINs — try again in 15 minutes")
+			return
+		}
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "authentication failed")
 		return
 	}
