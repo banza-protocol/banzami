@@ -614,20 +614,40 @@ func (s *PostgresWebhookService) processOutbox(ctx context.Context) {
 }
 
 func (s *PostgresWebhookService) processPendingDeliveries(ctx context.Context) {
+	deliveries := s.claimDueDeliveries(ctx)
+	for _, d := range deliveries {
+		go s.attemptDelivery(ctx, d)
+	}
+}
+
+// claimDueDeliveries leases up to 50 due deliveries to this worker (see the
+// query) and returns them.
+func (s *PostgresWebhookService) claimDueDeliveries(ctx context.Context) []pendingDelivery {
+
+	// Claim, don't just select. FOR UPDATE SKIP LOCKED in an autocommit query
+	// releases its locks the moment the query returns, so a delivery whose
+	// attempt was still in flight (HTTP timeout 30 s) was selected again on the
+	// next 5 s tick: a slow endpoint received the same signed event up to six
+	// times. The claim is a lease — scheduled_at pushed past the attempt's
+	// lifetime in the same statement — so no tick re-selects it, and a worker
+	// that dies mid-attempt leaves a delivery that simply becomes due again.
 	rows, err := s.pool.Query(ctx,
-		`SELECT d.id, d.event_id, d.endpoint_id, d.attempt_count, d.max_attempts,
-		        e.payload, ep.url, ep.secret
-		 FROM webhook_deliveries d
-		 JOIN webhook_events   e  ON e.id  = d.event_id
-		 JOIN webhook_endpoints ep ON ep.id = d.endpoint_id
-		 WHERE d.status = 'PENDING' AND d.scheduled_at <= NOW()
-		 ORDER BY d.scheduled_at
-		 LIMIT 50
-		 FOR UPDATE OF d SKIP LOCKED`,
+		`WITH due AS (
+		   SELECT id FROM webhook_deliveries
+		    WHERE status = 'PENDING' AND scheduled_at <= NOW()
+		    ORDER BY scheduled_at
+		    LIMIT 50
+		    FOR UPDATE SKIP LOCKED)
+		 UPDATE webhook_deliveries d
+		    SET scheduled_at = NOW() + interval '2 minutes'
+		   FROM due, webhook_events e, webhook_endpoints ep
+		  WHERE d.id = due.id AND e.id = d.event_id AND ep.id = d.endpoint_id
+		 RETURNING d.id, d.event_id, d.endpoint_id, d.attempt_count, d.max_attempts,
+		           e.payload, ep.url, ep.secret`,
 	)
 	if err != nil {
 		slog.Error("webhook worker: query failed", "error", err)
-		return
+		return nil
 	}
 	defer rows.Close()
 
@@ -645,10 +665,10 @@ func (s *PostgresWebhookService) processPendingDeliveries(ctx context.Context) {
 	}
 	rows.Close()
 
-	for _, d := range deliveries {
-		go s.attemptDelivery(ctx, d)
-	}
+	return deliveries
 }
+
+var errSigningSecretUnavailable = errors.New("signing secret unavailable")
 
 func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingDelivery) {
 	now := time.Now().UTC()
@@ -657,11 +677,21 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 	// Decrypt the at-rest signing secret to sign this delivery (SEC-002).
 	// Legacy plaintext secrets pass through unchanged.
 	secret, err := s.cipher.Decrypt(d.secret)
+	var (
+		statusCode  int
+		respBody    string
+		deliveryErr error
+	)
 	if err != nil {
-		slog.Error("[webhook] could not decrypt signing secret", "delivery_id", d.id, "error", err)
-		secret = d.secret
+		// Not sent. This used to fall back to signing with the stored
+		// ciphertext — a key derived from database-visible data, sent to the
+		// receiver as if it were the endpoint's secret. The attempt is recorded
+		// as failed and retried on the normal schedule once the key is back.
+		slog.Error("[webhook] could not decrypt signing secret — not sent", "delivery_id", d.id, "error", err)
+		deliveryErr = errSigningSecretUnavailable
+	} else {
+		statusCode, respBody, deliveryErr = s.httpPost(d.url, secret, now, d.payload)
 	}
-	statusCode, respBody, deliveryErr := s.httpPost(d.url, secret, now, d.payload)
 	durationMs := int(time.Since(now).Milliseconds())
 
 	outcome := classifyAttempt(statusCode, deliveryErr)
