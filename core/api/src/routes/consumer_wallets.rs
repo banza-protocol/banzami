@@ -6,11 +6,8 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use banzami_consumer_wallets::{
-    CommitReservedRequest, ConsumerWalletEngine, ConsumerWalletError, ReleaseRequest,
-    ReserveRequest,
-};
-use banzami_types::{AccountId, Currency, LedgerEntryId, LedgerPostingId, Money};
+use banzami_consumer_wallets::{ConsumerWalletEngine, ConsumerWalletError};
+use banzami_types::{Currency, LedgerEntryId, LedgerPostingId, Money};
 
 use crate::{
     error::{ApiError, ApiResult},
@@ -146,132 +143,6 @@ pub async fn get_for_consumer(
 // ---------------------------------------------------------------------------
 // Reserve / release / commit — WAL-002 balance engine
 // ---------------------------------------------------------------------------
-
-#[derive(Deserialize)]
-pub struct ReserveBody {
-    pub amount_minor: i64,
-    pub currency: Option<String>,
-    pub reason: String,
-    pub idempotency_key: String,
-}
-
-#[derive(Deserialize)]
-pub struct ReleaseBody {
-    pub reserve_id: uuid::Uuid,
-}
-
-#[derive(Deserialize)]
-pub struct CommitBody {
-    pub reserve_id: uuid::Uuid,
-    pub target_account_id: String,
-}
-
-/// POST /internal/v1/consumer-wallets/:id/reserve
-pub async fn reserve(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(body): Json<ReserveBody>,
-) -> ApiResult<Json<serde_json::Value>> {
-    if body.amount_minor <= 0 {
-        return Err(ApiError::bad_request("amount_minor must be positive"));
-    }
-    let wallet_id = id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
-    let currency_code = body.currency.as_deref().unwrap_or("AOA");
-    let currency = Currency::from_code(currency_code)
-        .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {currency_code}")))?;
-
-    let reservation = state
-        .consumer_wallet
-        .reserve(ReserveRequest {
-            wallet_id,
-            amount: Money::new(body.amount_minor, currency),
-            reason: body.reason,
-            idempotency_key: body.idempotency_key,
-        })
-        .await
-        .map_err(|e| match e {
-            ConsumerWalletError::NotFound(_) => ApiError::not_found("wallet not found"),
-            ConsumerWalletError::NotActive(_) => ApiError::bad_request("wallet is not active"),
-            ConsumerWalletError::InsufficientFunds { .. } => {
-                ApiError::bad_request("insufficient available balance")
-            }
-            ConsumerWalletError::CurrencyMismatch { .. } => {
-                ApiError::bad_request("currency mismatch")
-            }
-            other => ApiError::internal(other.to_string()),
-        })?;
-
-    Ok(Json(serde_json::to_value(&reservation).unwrap()))
-}
-
-/// POST /internal/v1/consumer-wallets/:id/release
-pub async fn release(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(body): Json<ReleaseBody>,
-) -> ApiResult<StatusCode> {
-    let wallet_id = id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
-
-    state
-        .consumer_wallet
-        .release(ReleaseRequest {
-            wallet_id,
-            reserve_id: body.reserve_id,
-        })
-        .await
-        .map_err(|e| match e {
-            ConsumerWalletError::NotFound(_) => ApiError::not_found("wallet not found"),
-            ConsumerWalletError::ReservationNotFound(_) => {
-                ApiError::not_found("reservation not found")
-            }
-            ConsumerWalletError::ReservationNotActive(_) => {
-                ApiError::bad_request("reservation is not active")
-            }
-            other => ApiError::internal(other.to_string()),
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-/// POST /internal/v1/consumer-wallets/:id/commit-reserved
-pub async fn commit_reserved(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(body): Json<CommitBody>,
-) -> ApiResult<StatusCode> {
-    let wallet_id = id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
-    let target_account_id: AccountId = body
-        .target_account_id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid target_account_id"))?;
-
-    state
-        .consumer_wallet
-        .commit_reserved(CommitReservedRequest {
-            wallet_id,
-            reserve_id: body.reserve_id,
-            target_account_id,
-        })
-        .await
-        .map_err(|e| match e {
-            ConsumerWalletError::NotFound(_) => ApiError::not_found("wallet not found"),
-            ConsumerWalletError::ReservationNotFound(_) => {
-                ApiError::not_found("reservation not found")
-            }
-            ConsumerWalletError::ReservationNotActive(_) => {
-                ApiError::bad_request("reservation is not active")
-            }
-            other => ApiError::internal(other.to_string()),
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
 
 /// POST /internal/v1/consumer-wallets/test-credit
 ///

@@ -42,10 +42,6 @@ func (f *ownedQrService) MarkUsed(_ context.Context, id string) (*service.QrCode
 	f.markedUsed++
 	return &service.QrCodeRecord{ID: id, Status: "USED"}, nil
 }
-func (f *ownedQrService) Pay(context.Context, service.PayQrRequest) (int, json.RawMessage, error) {
-	return 200, nil, nil
-}
-
 func qrReq(method, path, qrID, callerMerchant string) *http.Request {
 	req := httptest.NewRequest(method, path, nil)
 	rctx := chi.NewRouteContext()

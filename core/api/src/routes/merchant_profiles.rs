@@ -234,26 +234,6 @@ pub async fn get_by_handle(
 // GET /internal/v1/merchant-profiles/by-merchant/:merchant_id
 // ---------------------------------------------------------------------------
 
-pub async fn get_by_merchant(
-    State(state): State<AppState>,
-    Path(merchant_id): Path<String>,
-) -> ApiResult<Json<ProfileResponse>> {
-    let merchant_id: Uuid = merchant_id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
-
-    let row = sqlx::query!(
-        "SELECT id FROM merchant_profiles WHERE merchant_id = $1",
-        merchant_id,
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| ApiError::not_found("merchant profile not found"))?;
-
-    Ok(Json(fetch_profile(&state.pool, row.id).await?))
-}
-
 // ---------------------------------------------------------------------------
 // GET /internal/v1/merchant-profiles?category=&limit=
 // ---------------------------------------------------------------------------
@@ -314,57 +294,6 @@ pub async fn list(
 // ---------------------------------------------------------------------------
 // POST /internal/v1/merchant-profiles/:id/social-links
 // ---------------------------------------------------------------------------
-
-#[derive(Deserialize)]
-pub struct AddSocialLinkBody {
-    pub platform: String,
-    pub url: String,
-}
-
-pub async fn add_social_link(
-    State(state): State<AppState>,
-    Path(id): Path<String>,
-    Json(body): Json<AddSocialLinkBody>,
-) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
-    let profile_id: Uuid = id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid profile id"))?;
-
-    let allowed = ["WEBSITE", "INSTAGRAM", "FACEBOOK", "WHATSAPP", "TIKTOK"];
-    if !allowed.contains(&body.platform.as_str()) {
-        return Err(ApiError::bad_request(
-            "platform must be one of: WEBSITE, INSTAGRAM, FACEBOOK, WHATSAPP, TIKTOK",
-        ));
-    }
-    if body.url.trim().is_empty() {
-        return Err(ApiError::bad_request("url is required"));
-    }
-
-    let link_id = Uuid::new_v4();
-    sqlx::query!(
-        r#"
-        INSERT INTO merchant_social_links (id, profile_id, platform, url)
-        VALUES ($1, $2, $3, $4)
-        ON CONFLICT (profile_id, platform) DO UPDATE SET url = EXCLUDED.url
-        "#,
-        link_id,
-        profile_id,
-        body.platform,
-        body.url.trim(),
-    )
-    .execute(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
-
-    Ok((
-        StatusCode::OK,
-        Json(serde_json::json!({
-            "profile_id": profile_id,
-            "platform":   body.platform,
-            "url":        body.url,
-        })),
-    ))
-}
 
 // ---------------------------------------------------------------------------
 // Helpers

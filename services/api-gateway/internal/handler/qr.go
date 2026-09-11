@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"cmp"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -249,61 +248,6 @@ func (h *QrHandler) Decode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond(w, http.StatusOK, parsed)
-}
-
-// POST /v1/qr/pay
-//
-// Scan-to-pay. The body carries the payer's @banza handle, the scanned QR
-// payload, and (for static QR only) the amount. The core resolves and
-// integrity-verifies the QR, runs the Progressive-KYC gate, atomically claims a
-// dynamic code, and settles the wallet transfer. The core's status + body are
-// forwarded verbatim so the app sees the exact outcome code.
-func (h *QrHandler) Pay(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		IdempotencyKey string `json:"idempotency_key"`
-		Payer          string `json:"payer"`
-		Payload        string `json:"payload"`
-		AmountMinor    *int64 `json:"amount_minor"`
-		Note           string `json:"note"`
-		DeviceID       string `json:"device_id"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
-		return
-	}
-	switch {
-	case body.IdempotencyKey == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "idempotency_key is required")
-		return
-	case body.Payer == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "payer is required")
-		return
-	case body.Payload == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "payload is required")
-		return
-	}
-
-	status, raw, err := h.svc.Pay(r.Context(), service.PayQrRequest{
-		IdempotencyKey: body.IdempotencyKey,
-		Payer:          body.Payer,
-		Payload:        body.Payload,
-		AmountMinor:    body.AmountMinor,
-		Note:           body.Note,
-		// Device id from the body, falling back to the X-Device-Id header.
-		DeviceID: cmp.Or(body.DeviceID, r.Header.Get("X-Device-Id")),
-	})
-	if err != nil {
-		slog.WarnContext(r.Context(), "qr.pay.failed", "idempotency_key", body.IdempotencyKey, "error", err)
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "payment could not be processed")
-		return
-	}
-
-	// Flow log — operational ids only, no payer PII (correlation_id added by obs).
-	slog.InfoContext(r.Context(), "qr.pay", "http_status", status, "idempotency_key", body.IdempotencyKey)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_, _ = w.Write(raw)
 }
 
 // POST /v1/qr/{id}/use

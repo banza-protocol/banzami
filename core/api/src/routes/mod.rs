@@ -13,7 +13,6 @@ pub mod collections;
 pub mod compliance;
 #[cfg(test)]
 mod compliance_tests;
-pub mod consumer_deposits;
 pub mod consumer_pay_links;
 pub mod consumer_wallets;
 pub mod consumers;
@@ -28,6 +27,8 @@ mod freeze_tests;
 #[cfg(test)]
 mod handle_namespace_tests;
 pub mod kyc_data;
+#[cfg(test)]
+mod link_completion_tests;
 pub mod merchant_profiles;
 pub mod merchants;
 pub mod onboarding;
@@ -36,7 +37,6 @@ mod onboarding_tests;
 pub mod operator_fees;
 pub mod parties;
 pub mod payment_links;
-pub mod payment_requests;
 pub mod payment_sessions;
 #[cfg(test)]
 mod payment_sessions_tests;
@@ -65,11 +65,9 @@ pub mod settlement_readiness;
 mod settlement_readiness_tests;
 pub mod settlements;
 pub mod splits;
-pub mod transactions;
-#[cfg(test)]
-mod link_completion_tests;
 #[cfg(test)]
 mod tenant_scoping_tests;
+pub mod transactions;
 pub mod transfers;
 #[cfg(test)]
 mod transfers_routing_tests;
@@ -80,3 +78,5 @@ mod wallet_accounts_tests;
 pub mod wallet_payments;
 pub mod wallets;
 pub mod webhooks;
+#[cfg(test)]
+mod withdrawn_routes_tests;

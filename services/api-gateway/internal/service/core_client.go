@@ -774,107 +774,6 @@ func (s *CoreApiConsumerService) Close(ctx context.Context, id string) (*Consume
 }
 
 // ---------------------------------------------------------------------------
-// CoreApiConsumerWalletService — implements ConsumerWalletService via the Rust core
-// ---------------------------------------------------------------------------
-
-type CoreApiConsumerWalletService struct {
-	client *CoreApiClient
-}
-
-func NewCoreApiConsumerWalletService(client *CoreApiClient) *CoreApiConsumerWalletService {
-	return &CoreApiConsumerWalletService{client: client}
-}
-
-type coreConsumerWalletResp struct {
-	ID                 string    `json:"id"`
-	ConsumerID         string    `json:"consumer_id"`
-	Currency           string    `json:"currency"`
-	Status             string    `json:"status"`
-	AvailableAccountID string    `json:"available_account_id"`
-	ReservedAccountID  string    `json:"reserved_account_id"`
-	CreatedAt          time.Time `json:"created_at"`
-}
-
-func (r *coreConsumerWalletResp) toRecord() *ConsumerWalletRecord {
-	return &ConsumerWalletRecord{
-		ID:                 r.ID,
-		ConsumerID:         r.ConsumerID,
-		Currency:           r.Currency,
-		Status:             r.Status,
-		AvailableAccountID: r.AvailableAccountID,
-		ReservedAccountID:  r.ReservedAccountID,
-		CreatedAt:          r.CreatedAt,
-	}
-}
-
-type coreConsumerWalletBalanceResp struct {
-	WalletID   string        `json:"wallet_id"`
-	ConsumerID string        `json:"consumer_id"`
-	Currency   string        `json:"currency"`
-	Available  coreMoneyResp `json:"available"`
-	Reserved   coreMoneyResp `json:"reserved"`
-	Total      coreMoneyResp `json:"total"`
-	ComputedAt time.Time     `json:"computed_at"`
-}
-
-func (s *CoreApiConsumerWalletService) GetOrCreate(
-	ctx context.Context,
-	consumerID, currency string,
-) (*ConsumerWalletRecord, error) {
-	body := map[string]string{"consumer_id": consumerID, "currency": currency}
-	var resp coreConsumerWalletResp
-	if err := s.client.post(ctx, "/internal/v1/consumer-wallets", body, &resp); err != nil {
-		return nil, err
-	}
-	return resp.toRecord(), nil
-}
-
-func (s *CoreApiConsumerWalletService) Get(ctx context.Context, id string) (*ConsumerWalletRecord, error) {
-	var resp coreConsumerWalletResp
-	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+url.PathEscape(id), &resp); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrConsumerWalletNotFound
-		}
-		return nil, err
-	}
-	return resp.toRecord(), nil
-}
-
-func (s *CoreApiConsumerWalletService) Balance(ctx context.Context, id string) (*ConsumerWalletBalance, error) {
-	var resp coreConsumerWalletBalanceResp
-	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+url.PathEscape(id)+"/balance", &resp); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrConsumerWalletNotFound
-		}
-		return nil, err
-	}
-	return &ConsumerWalletBalance{
-		WalletID:       resp.WalletID,
-		ConsumerID:     resp.ConsumerID,
-		Currency:       resp.Currency,
-		AvailableMinor: resp.Available.AmountMinor,
-		ReservedMinor:  resp.Reserved.AmountMinor,
-		TotalMinor:     resp.Total.AmountMinor,
-		ComputedAt:     resp.ComputedAt,
-	}, nil
-}
-
-func (s *CoreApiConsumerWalletService) GetForConsumer(
-	ctx context.Context,
-	consumerID, currency string,
-) (*ConsumerWalletRecord, error) {
-	path := fmt.Sprintf("/internal/v1/consumer-wallets?consumer_id=%s&currency=%s", url.QueryEscape(consumerID), url.QueryEscape(currency))
-	var resp coreConsumerWalletResp
-	if err := s.client.get(ctx, path, &resp); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, ErrNoWalletForConsumer
-		}
-		return nil, err
-	}
-	return resp.toRecord(), nil
-}
-
-// ---------------------------------------------------------------------------
 // CoreApiTransferService — implements TransferService via the Rust core
 // ---------------------------------------------------------------------------
 
@@ -1136,25 +1035,6 @@ func (s *CoreApiQrService) MarkUsed(ctx context.Context, id string) (*QrCodeReco
 // Split Sessions (P2P-002) is SUPERSEDED by Collections (ADR-036). The former
 // CoreApiSplitService proxy is removed: the gateway answers /v1/splits* at the
 // edge with a 410 and never calls Core for it (see handler.SplitsSuperseded).
-
-func (s *CoreApiQrService) Pay(ctx context.Context, req PayQrRequest) (int, json.RawMessage, error) {
-	body := map[string]any{
-		"idempotency_key": req.IdempotencyKey,
-		"payer":           req.Payer,
-		"payload":         req.Payload,
-		"note":            req.Note,
-	}
-	if req.AmountMinor != nil {
-		body["amount_minor"] = *req.AmountMinor
-	}
-	if req.DeviceID != "" {
-		body["device_id"] = req.DeviceID
-	}
-	// The core owns the QR resolution, compliance gate, atomic claim and
-	// settlement; forward its status + body verbatim so the app sees the exact
-	// outcome code.
-	return s.client.postRaw(ctx, "/internal/v1/qr/pay", body)
-}
 
 // ---------------------------------------------------------------------------
 // Low-level HTTP helpers

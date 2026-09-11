@@ -114,7 +114,6 @@ var auditActions = map[string]string{
 	"POST /admin/v1/operators/{id}/terminate-sessions":                          "TERMINATE_OPERATOR_SESSIONS",
 	"POST /admin/v1/merchants":                                                  "CREATE_MERCHANT",
 	"DELETE /admin/v1/merchants/{id}":                                           "DELETE_MERCHANT",
-	"PATCH /admin/v1/merchants/{id}/verified":                                   "SET_MERCHANT_VERIFIED",
 	"POST /admin/v1/merchants/{id}/api-keys":                                    "CREATE_API_KEY",
 	"POST /admin/v1/merchants/{id}/resend-credentials":                          "RESEND_CREDENTIALS",
 	"POST /admin/v1/merchants/{id}/wallets":                                     "CREATE_WALLET",

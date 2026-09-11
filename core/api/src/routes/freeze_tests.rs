@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use banzami_types::AccountId;
 
-use crate::routes::{admin, payouts, qr, risk, transfers, wallet_account_transfers};
+use crate::routes::{admin, payouts, risk, transfers, wallet_account_transfers};
 use crate::state::{AppState, CoreEnvironment};
 
 async fn account(pool: &PgPool, ty: &str) -> Uuid {
@@ -252,45 +252,6 @@ async fn a_frozen_merchant_moves_nothing_between_its_accounts(pool: PgPool) {
 
     lift(&state, "MERCHANT", m).await;
     let r = wallet_account_transfers::create(State(state.clone()), Json(body())).await;
-    assert_ne!(code(&r), Some("ACCOUNT_FROZEN"));
-}
-
-#[sqlx::test(migrations = "../../db/migrations")]
-async fn a_frozen_consumer_pays_no_qr(pool: PgPool) {
-    let state = build_state(pool.clone()).await;
-    let (c, payer, avail) = consumer(&pool, 100_000).await;
-    let (owner, _, owner_avail) = consumer(&pool, 0).await;
-    let (_, Json(created)) = qr::create_static(
-        State(state.clone()),
-        Json(qr::CreateStaticQrBody {
-            owner_id: owner.to_string(),
-            owner_type: "CONSUMER".into(),
-            currency: "AOA".into(),
-            amount_minor: None,
-        }),
-    )
-    .await
-    .map_err(|e| e.message)
-    .expect("static QR");
-    let payload = created["payload"].as_str().expect("payload").to_string();
-    let body = || qr::PayQrBody {
-        idempotency_key: "frz-qr-1".into(),
-        payer: payer.clone(),
-        payload: payload.clone(),
-        amount_minor: Some(10_000),
-        note: None,
-        device_id: None,
-    };
-
-    freeze(&state, "CONSUMER", c).await;
-    let r = qr::pay(State(state.clone()), Json(body())).await;
-    assert_eq!(code(&r), Some("ACCOUNT_FROZEN"));
-    assert_eq!(balance(&pool, avail).await, 100_000);
-    assert_eq!(balance(&pool, owner_avail).await, 0);
-
-    // The next gate (KYC) now answers instead: the freeze no longer refuses.
-    lift(&state, "CONSUMER", c).await;
-    let r = qr::pay(State(state.clone()), Json(body())).await;
     assert_ne!(code(&r), Some("ACCOUNT_FROZEN"));
 }
 

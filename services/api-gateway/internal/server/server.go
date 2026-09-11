@@ -46,14 +46,12 @@ type Dependencies struct {
 	PaymentSessionSvc        service.PaymentSessionService
 	PayoutSvc                service.PayoutService
 	ConsumerSvc              service.ConsumerService
-	ConsumerWalletSvc        service.ConsumerWalletService
 	QrSvc                    service.QrService
 	PaymentLinkSvc           service.PaymentLinkService
 	CollectionSvc            service.CollectionService
 	AcquiringSvc             service.AcquiringService
 	RefundSvc                service.RefundService
 	DisputeSvc               service.DisputeService
-	PaymentRequestSvc        service.PaymentRequestService
 	MerchantProfileSvc       service.MerchantProfileService
 	ConsumerPayLinkSvc       service.ConsumerPayLinkService
 	FCMSvc                   *notify.FCMService
@@ -175,9 +173,7 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
 	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ProofSvc)
 	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
-	// consumerWltHandler is intentionally not constructed — the
-	// /v1/consumer-wallets group is unmounted (RA-058).
-	_ = deps.ConsumerWalletSvc
+	// /v1/consumer-wallets is unmounted (RA-058) and its handler deleted (A4-13).
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
 	// Split Sessions is SUPERSEDED by Collections (ADR-036) — answered at the edge, never proxied.
 	splitsSuperseded := handler.SplitsSuperseded()
@@ -191,11 +187,9 @@ func newRouter(cfg *config.Config, deps Dependencies) chi.Router {
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
 	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)
-	// paymentReqHandler is intentionally not constructed — the
-	// /v1/payment-requests group is unmounted (RA-057). The handler type is kept
-	// so the consumer-side surface can be built from it once the payer is derived
-	// from an authenticated consumer token.
-	_ = deps.PaymentRequestSvc
+	// /v1/payment-requests is unmounted (RA-057) and its handler deleted (A4-13):
+	// a consumer-side surface would be built fresh, with the payer taken from
+	// the consumer's token.
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc, deps.BusinessSelfSvc)

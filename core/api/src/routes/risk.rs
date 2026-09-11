@@ -2,7 +2,6 @@
 ///
 /// These are thin wrappers over direct SQL so they stay lightweight and
 /// can be called from any route handler without pulling in an engine trait.
-use chrono::Timelike;
 use sqlx::PgPool;
 
 /// Whether the entity has an active account freeze. An error is an error, not
@@ -182,58 +181,6 @@ pub async fn increment_velocity(
     .await;
 }
 
-/// Returns the current hourly and daily velocity counters for the entity.
-/// Returns (hourly_count, hourly_amount, daily_count, daily_amount).
-pub async fn get_velocity(
-    pool: &PgPool,
-    entity_type: &str,
-    entity_id: uuid::Uuid,
-) -> (i64, i64, i64, i64) {
-    let now = chrono::Utc::now();
-    let hour_start = now
-        .date_naive()
-        .and_hms_opt(now.time().hour(), 0, 0)
-        .map(|dt| dt.and_utc())
-        .unwrap_or(now);
-    let day_start = now
-        .date_naive()
-        .and_hms_opt(0, 0, 0)
-        .map(|dt| dt.and_utc())
-        .unwrap_or(now);
-
-    let hourly = sqlx::query_as::<_, (i64, i64)>(
-        "SELECT COALESCE(tx_count, 0), COALESCE(amount_minor_total, 0)
-         FROM velocity_counters
-         WHERE entity_type = $1 AND entity_id = $2
-           AND time_window = 'HOURLY' AND window_start = $3",
-    )
-    .bind(entity_type)
-    .bind(entity_id)
-    .bind(hour_start)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten()
-    .unwrap_or((0, 0));
-
-    let daily = sqlx::query_as::<_, (i64, i64)>(
-        "SELECT COALESCE(tx_count, 0), COALESCE(amount_minor_total, 0)
-         FROM velocity_counters
-         WHERE entity_type = $1 AND entity_id = $2
-           AND time_window = 'DAILY' AND window_start = $3",
-    )
-    .bind(entity_type)
-    .bind(entity_id)
-    .bind(day_start)
-    .fetch_optional(pool)
-    .await
-    .ok()
-    .flatten()
-    .unwrap_or((0, 0));
-
-    (hourly.0, hourly.1, daily.0, daily.1)
-}
-
 #[cfg(test)]
 mod attribution_tests {
     use sqlx::PgPool;
@@ -244,16 +191,39 @@ mod attribution_tests {
     async fn an_operator_action_names_the_operator(pool: PgPool) {
         let op = "5f0e1d2c-2222-4b3a-8c9d-0e1f2a3b4c5d".to_string();
         crate::middleware::with_operator(Some(op.clone()), async {
-            super::audit(&pool, "ADMIN", "ACCOUNT_FROZEN", "merchant:x", serde_json::json!({}), None).await;
+            super::audit(
+                &pool,
+                "ADMIN",
+                "ACCOUNT_FROZEN",
+                "merchant:x",
+                serde_json::json!({}),
+                None,
+            )
+            .await;
         })
         .await;
-        super::audit(&pool, "ADMIN", "ACCOUNT_FROZEN", "merchant:y", serde_json::json!({}), None).await;
-        let rows: Vec<(String, String)> =
-            sqlx::query_as("SELECT subject, actor FROM audit_log WHERE action = 'ACCOUNT_FROZEN' ORDER BY subject")
-                .fetch_all(&pool)
-                .await
-                .unwrap();
-        assert_eq!(rows, vec![("merchant:x".into(), format!("ADMIN:{op}")), ("merchant:y".into(), "ADMIN".into())]);
+        super::audit(
+            &pool,
+            "ADMIN",
+            "ACCOUNT_FROZEN",
+            "merchant:y",
+            serde_json::json!({}),
+            None,
+        )
+        .await;
+        let rows: Vec<(String, String)> = sqlx::query_as(
+            "SELECT subject, actor FROM audit_log WHERE action = 'ACCOUNT_FROZEN' ORDER BY subject",
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            rows,
+            vec![
+                ("merchant:x".into(), format!("ADMIN:{op}")),
+                ("merchant:y".into(), "ADMIN".into())
+            ]
+        );
     }
 }
 
@@ -264,8 +234,12 @@ mod action_list_tests {
     // record was refused, silently (0134).
     #[test]
     fn every_audited_action_is_accepted_by_the_log() {
-        let migrations = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../db/migrations");
-        let mut files: Vec<_> = std::fs::read_dir(&migrations).unwrap().map(|e| e.unwrap().path()).collect();
+        let migrations =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../db/migrations");
+        let mut files: Vec<_> = std::fs::read_dir(&migrations)
+            .unwrap()
+            .map(|e| e.unwrap().path())
+            .collect();
         files.sort();
         let latest = files
             .iter()
@@ -273,7 +247,9 @@ mod action_list_tests {
             .map(|p| std::fs::read_to_string(p).unwrap())
             .find(|s| s.contains("ADD CONSTRAINT audit_log_action_check"))
             .expect("no migration defines audit_log_action_check");
-        let list = &latest[latest.find("ADD CONSTRAINT audit_log_action_check").unwrap()..];
+        let list = &latest[latest
+            .find("ADD CONSTRAINT audit_log_action_check")
+            .unwrap()..];
         let list = &list[..list.find(';').unwrap()];
         let src_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/routes");
         let mut missing = Vec::new();
@@ -286,7 +262,8 @@ mod action_list_tests {
                 if let [_, action] = lits[..] {
                     // The actor vocabulary is not an action (a call whose actor is
                     // a variable shifts the literals by one).
-                    let actor = ["ADMIN", "SYSTEM", "CONSUMER", "MERCHANT", "ACQUIRING"].contains(&action);
+                    let actor =
+                        ["ADMIN", "SYSTEM", "CONSUMER", "MERCHANT", "ACQUIRING"].contains(&action);
                     if !actor
                         && action.chars().all(|c| c.is_ascii_uppercase() || c == '_')
                         && action.len() > 3
@@ -299,7 +276,9 @@ mod action_list_tests {
         }
         missing.sort();
         missing.dedup();
-        assert!(missing.is_empty(), "audited actions the log refuses: {missing:?}");
+        assert!(
+            missing.is_empty(),
+            "audited actions the log refuses: {missing:?}"
+        );
     }
 }
-

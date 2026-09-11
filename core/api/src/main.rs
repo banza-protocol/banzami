@@ -285,10 +285,6 @@ async fn main() {
             axum::routing::delete(routes::merchants::revoke_api_key),
         )
         .route(
-            "/internal/v1/merchants/:id/verified",
-            axum::routing::patch(routes::merchants::set_verified),
-        )
-        .route(
             "/internal/v1/merchants/:id/business-account-type",
             axum::routing::patch(routes::merchants::set_business_account_type),
         )
@@ -551,10 +547,6 @@ async fn main() {
             "/internal/v1/payment-sessions/by-interface/:kind/:ref_id",
             get(routes::payment_sessions::get_by_interface),
         )
-        .route(
-            "/internal/v1/payment-sessions/settle-by-interface/:kind/:ref_id",
-            post(routes::payment_sessions::settle_by_interface),
-        )
         // Payouts
         .route("/internal/v1/payouts", post(routes::payouts::initiate))
         .route(
@@ -649,10 +641,6 @@ async fn main() {
             get(routes::consumers::get_by_handle),
         )
         // Handle routing — deterministic @banza → active wallet resolution (HDL-002)
-        .route(
-            "/internal/v1/identity/resolve/:handle",
-            get(routes::consumers::resolve_handle),
-        )
         // Consumer wallets
         .route(
             "/internal/v1/consumer-wallets",
@@ -673,18 +661,6 @@ async fn main() {
         .route(
             "/internal/v1/consumer-wallets/:id/balance",
             get(routes::consumer_wallets::balance),
-        )
-        .route(
-            "/internal/v1/consumer-wallets/:id/reserve",
-            post(routes::consumer_wallets::reserve),
-        )
-        .route(
-            "/internal/v1/consumer-wallets/:id/release",
-            post(routes::consumer_wallets::release),
-        )
-        .route(
-            "/internal/v1/consumer-wallets/:id/commit-reserved",
-            post(routes::consumer_wallets::commit_reserved),
         )
         // Consumer onboarding (phone → OTP → PIN → ACTIVE wallet)
         .route(
@@ -721,7 +697,6 @@ async fn main() {
         .route("/internal/v1/qr/static", post(routes::qr::create_static))
         .route("/internal/v1/qr/dynamic", post(routes::qr::create_dynamic))
         .route("/internal/v1/qr/decode", post(routes::qr::decode))
-        .route("/internal/v1/qr/pay", post(routes::qr::pay))
         // Split Sessions is SUPERSEDED by Collections (ADR-036). The legacy
         // routes are retired: every method + nested path under /internal/v1/splits
         // returns a deliberate 410 SPLIT_SESSIONS_SUPERSEDED without touching the
@@ -846,23 +821,6 @@ async fn main() {
             "/internal/v1/admin/acquiring-recon/:run_id",
             get(routes::admin::get_acquiring_reconciliation_run),
         )
-        // Consumer deposits — top-up consumer wallets via acquiring provider
-        .route(
-            "/internal/v1/consumer-deposits",
-            post(routes::consumer_deposits::initiate),
-        )
-        .route(
-            "/internal/v1/consumer-deposits/:id",
-            get(routes::consumer_deposits::get),
-        )
-        .route(
-            "/internal/v1/consumer-deposits/callback",
-            post(routes::consumer_deposits::callback),
-        )
-        .route(
-            "/internal/v1/consumer-deposits/test-confirm",
-            post(routes::consumer_deposits::test_confirm),
-        )
         // Refunds are registered separately (refund_routes, service-authed) and
         // merged below — see the CORE_INTERNAL_KEY gate above.
         // Disputes — consumer-initiated chargebacks with evidence and admin resolution
@@ -889,38 +847,13 @@ async fn main() {
             get(routes::merchant_profiles::get_by_handle),
         )
         .route(
-            "/internal/v1/merchant-profiles/by-merchant/:merchant_id",
-            get(routes::merchant_profiles::get_by_merchant),
-        )
-        .route(
             "/internal/v1/merchant-profiles/:id",
             get(routes::merchant_profiles::get).patch(routes::merchant_profiles::update),
         )
-        .route(
-            "/internal/v1/merchant-profiles/:id/social-links",
-            post(routes::merchant_profiles::add_social_link),
-        )
-        // Payment requests — receiver-initiated pull payments (P2P "request money")
-        .route(
-            "/internal/v1/payment-requests",
-            post(routes::payment_requests::create).get(routes::payment_requests::list),
-        )
-        .route(
-            "/internal/v1/payment-requests/:id",
-            get(routes::payment_requests::get),
-        )
-        .route(
-            "/internal/v1/payment-requests/:id/pay",
-            post(routes::payment_requests::pay),
-        )
-        .route(
-            "/internal/v1/payment-requests/:id/decline",
-            post(routes::payment_requests::decline),
-        )
-        .route(
-            "/internal/v1/payment-requests/:id/cancel",
-            post(routes::payment_requests::cancel),
-        )
+        // Withdrawn features have no route here: payment requests (RA-057),
+        // consumer deposits, paying a structured QR (RA-053), the verified flag
+        // (RA-122) and wallet reserve/commit. Nothing called them, and each took
+        // its authority from the request body (A4-13). See withdrawn_routes_tests.
         // Consumer pay links — open shareable payment links (receiver unknown payer)
         .route(
             "/internal/v1/consumer-pay-links",
@@ -1059,7 +992,10 @@ fn live_provider_guard(
         return Err("a LIVE core requires ACQUIRING_PROVIDER=EMIS; refusing to boot with a simulated acquirer".into());
     }
     if !kyc_provider.trim().eq_ignore_ascii_case("EXTERNAL") {
-        return Err("a LIVE core requires KYC_PROVIDER=EXTERNAL; refusing to boot with simulated KYC".into());
+        return Err(
+            "a LIVE core requires KYC_PROVIDER=EXTERNAL; refusing to boot with simulated KYC"
+                .into(),
+        );
     }
     Ok(())
 }

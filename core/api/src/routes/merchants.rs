@@ -265,25 +265,6 @@ pub async fn revoke_api_key(
     Ok(Json(serde_json::to_value(&key).unwrap()))
 }
 
-/// PATCH /internal/v1/merchants/:id/verified — retired.
-///
-/// "Verified" used to be a flag anyone with this route could set, beside the
-/// KYB decision every gate actually reads (`merchant_compliance.kyb_status`).
-/// The two disagreed. Migration 0122 made `merchants.verified` a projection the
-/// database keeps from the KYB decision, so a write here would be silently
-/// overruled; answering 409 says so instead. Verification changes through a
-/// KYB decision: an application approved or linked in BANZADMIN, a completed
-/// document review, or an operator's compliance action.
-pub async fn set_verified(
-    Path(_id): Path<String>,
-    Json(_body): Json<serde_json::Value>,
-) -> ApiResult<Json<serde_json::Value>> {
-    Err(ApiError::conflict(
-        "VERIFICATION_IS_THE_KYB_DECISION",
-        "verified follows the KYB decision; decide KYB instead",
-    ))
-}
-
 /// ADR-028: re-tag a Business Account's operator type (e.g. mark @doa APPLICATION).
 pub async fn set_business_account_type(
     State(state): State<AppState>,

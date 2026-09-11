@@ -318,12 +318,6 @@ func (c *CoreAdminClient) GetMerchant(ctx context.Context, id string) (map[strin
 	return out, c.get(ctx, "/internal/v1/merchants/"+url.PathEscape(id), &out)
 }
 
-func (c *CoreAdminClient) SetMerchantVerified(ctx context.Context, id string, verified bool) (map[string]any, error) {
-	var out map[string]any
-	return out, c.patch(ctx, "/internal/v1/merchants/"+url.PathEscape(id)+"/verified",
-		map[string]any{"verified": verified}, &out)
-}
-
 // SetMerchantBusinessAccountType re-tags a Business Account's operator type
 // (ADR-028) — e.g. mark @doa APPLICATION. Core validates the value.
 func (c *CoreAdminClient) SetMerchantBusinessAccountType(ctx context.Context, id, accountType string) (map[string]any, error) {

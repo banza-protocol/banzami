@@ -359,7 +359,7 @@ pub async fn settle_for_interface_in(
         .fetch_optional(&mut *conn)
         .await?
         .unwrap_or(0);
-    let refund_source = recorded.map(|id| super::refund_source::wallet_payment_source(id));
+    let refund_source = recorded.map(super::refund_source::wallet_payment_source);
 
     super::webhooks::emit(
         &mut *conn,
@@ -380,7 +380,8 @@ pub async fn settle_for_interface_in(
     .await
 }
 
-/// `settle_for_interface_in` in a transaction of its own.
+/// `settle_for_interface_in` in a transaction of its own (tests drive it).
+#[cfg(test)]
 pub async fn settle_for_interface(
     state: &AppState,
     kind: &str,
@@ -389,8 +390,15 @@ pub async fn settle_for_interface(
     interface: &str,
 ) -> Result<(), sqlx::Error> {
     let mut tx = state.pool.begin().await?;
-    settle_for_interface_in(&mut tx, state.environment.as_str(), kind, ref_id, transfer_id, interface)
-        .await?;
+    settle_for_interface_in(
+        &mut tx,
+        state.environment.as_str(),
+        kind,
+        ref_id,
+        transfer_id,
+        interface,
+    )
+    .await?;
     tx.commit().await
 }
 
@@ -485,35 +493,6 @@ pub async fn settle_for_acquired_link_in(
         }),
     )
     .await
-}
-
-#[derive(Deserialize)]
-pub struct SettleByInterfaceBody {
-    pub transfer_id: String,
-    pub amount_minor: i64,
-    pub interface: Option<String>,
-}
-
-/// POST /internal/v1/payment-sessions/settle-by-interface/:kind/:ref_id
-/// Settle the session owning a link/QR after its payment completed (link path
-/// calls this from the public API; the QR path settles in-process).
-pub async fn settle_by_interface(
-    State(state): State<AppState>,
-    Path((kind, ref_id)): Path<(String, String)>,
-    Json(body): Json<SettleByInterfaceBody>,
-) -> ApiResult<StatusCode> {
-    let rid = Uuid::parse_str(&ref_id).map_err(|_| ApiError::bad_request("invalid id"))?;
-    let tid = Uuid::parse_str(&body.transfer_id)
-        .map_err(|_| ApiError::bad_request("invalid transfer_id"))?;
-    let interface = body.interface.as_deref().unwrap_or(match kind.as_str() {
-        "link" => "PAYMENT_LINK",
-        _ => "DYNAMIC_QR",
-    });
-    let _ = body.amount_minor; // the transfer's own amount is what is recorded
-    settle_for_interface(&state, &kind, rid, tid, interface)
-        .await
-        .map_err(|e| ApiError::internal(format!("session settlement failed: {e}")))?;
-    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn get(

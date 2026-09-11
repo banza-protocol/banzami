@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 )
@@ -63,17 +62,6 @@ type CreateDynamicQrRequest struct {
 	WalletAccountID string
 }
 
-// PayQrRequest is a scan-to-pay request. AmountMinor is required for static QR
-// (the payer enters it) and ignored for dynamic QR (the amount is fixed).
-type PayQrRequest struct {
-	IdempotencyKey string
-	Payer          string
-	Payload        string
-	AmountMinor    *int64
-	Note           string
-	DeviceID       string
-}
-
 // ---------------------------------------------------------------------------
 // Interface
 // ---------------------------------------------------------------------------
@@ -84,8 +72,4 @@ type QrService interface {
 	Get(ctx context.Context, id string) (*QrResponse, error)
 	Decode(ctx context.Context, payload string) (*ParsedQr, error)
 	MarkUsed(ctx context.Context, id string) (*QrCodeRecord, error)
-	// Pay settles a scan-to-pay request. It returns the core's HTTP status and
-	// raw JSON body verbatim so structured outcomes (KYC_REQUIRED,
-	// INSUFFICIENT_FUNDS, QR_ALREADY_USED, …) are forwarded faithfully.
-	Pay(ctx context.Context, req PayQrRequest) (int, json.RawMessage, error)
 }
