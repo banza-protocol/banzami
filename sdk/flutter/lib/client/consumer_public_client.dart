@@ -82,6 +82,12 @@ class ConsumerPublicClient {
   /// the risk layer can recognise a known device vs a new one (RSK-001).
   final String? deviceId;
 
+  /// How long one request may take end to end. The HTTP client only bounds
+  /// the connection; without this a payment whose answer never came would
+  /// spin forever. On expiry a [BanzamiTimeoutException] is thrown — the
+  /// outcome is then unknown, and the screens retry with the same key.
+  final Duration requestTimeout;
+
   ConsumerPublicClient({
     required this.baseUrl,
     this.environment = BanzamiEnvironment.production,
@@ -90,6 +96,7 @@ class ConsumerPublicClient {
     this.onResponse,
     this.onError,
     this.deviceId,
+    this.requestTimeout = const Duration(seconds: 30),
   })  : _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
@@ -526,8 +533,11 @@ class ConsumerPublicClient {
   Future<List<int>> fetchReceiptPdf(String transactionId) async {
     final path = '/v1/consumer/transactions/${_seg(transactionId)}/receipt.pdf';
     onRequest?.call('GET', path);
-    final resp =
-        await _http.get(Uri.parse('$baseUrl$path'), headers: _headers());
+    final resp = await _http
+        .get(Uri.parse('$baseUrl$path'), headers: _headers())
+        .timeout(requestTimeout,
+            onTimeout: () => throw BanzamiTimeoutException(
+                'GET $path took longer than ${requestTimeout.inSeconds}s'));
     if (resp.statusCode != 200) {
       Map<String, dynamic>? j;
       try {
@@ -581,13 +591,16 @@ class ConsumerPublicClient {
 
     late http.Response resp;
     try {
-      resp = switch (method) {
-        'GET' => await _http.get(uri, headers: headers),
-        'POST' => await _http.post(uri,
+      final Future<http.Response> request = switch (method) {
+        'GET' => _http.get(uri, headers: headers),
+        'POST' => _http.post(uri,
             headers: headers, body: body != null ? jsonEncode(body) : null),
-        'DELETE' => await _http.delete(uri, headers: headers),
+        'DELETE' => _http.delete(uri, headers: headers),
         _ => throw ArgumentError('Unsupported method: $method'),
       };
+      resp = await request.timeout(requestTimeout,
+          onTimeout: () => throw BanzamiTimeoutException(
+              '$method $path took longer than ${requestTimeout.inSeconds}s'));
     } catch (e) {
       final err = e is BanzamiNetworkException
           ? e

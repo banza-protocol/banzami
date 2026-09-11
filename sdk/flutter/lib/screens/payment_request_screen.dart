@@ -83,6 +83,12 @@ class _BanzamiPaymentRequestScreenState
   String? _amountError;
   bool _sending = false;
   String? _error;
+
+  /// The last attempt got no answer, or the server said the payment is still
+  /// being confirmed (PAYMENT_NOT_CONFIRMED). The button then repeats the SAME
+  /// request — same key, same slug, same amount — which completes it or
+  /// returns the original outcome; it never pays twice.
+  bool _retrySame = false;
   bool _entered = false;
 
   late final AnimationController _pulseCtrl;
@@ -216,28 +222,29 @@ class _BanzamiPaymentRequestScreenState
           fetchReceipt: () => widget.client.fetchReceipt(transfer.transferId),
         ),
       ));
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
+      final notConfirmed =
+          e is BanzamiApiException && e.code == 'PAYMENT_NOT_CONFIRMED';
       setState(() {
         _sending = false;
-        _error = banzamiErrorMessage(e, codes: {
-          'LINK_NOT_ACTIVE': 'Este pedido de pagamento já não está activo.',
-          'SELF_TRANSFER_NOT_ALLOWED': 'Não pode pagar o seu próprio pedido.',
-          if (widget.recipientIsHandle)
-            'RECIPIENT_NOT_FOUND': '@${widget.recipientHandle} não existe.',
-        });
-      });
-    } catch (_) {
-      if (!mounted) return;
-      _pulseCtrl.stop();
-      _pulseCtrl.reset();
-      HapticFeedback.heavyImpact();
-      setState(() {
-        _sending = false;
-        _error = 'Erro de ligação. Tente novamente.';
+        _retrySame = notConfirmed || isOutcomeUnknown(e);
+        _error = notConfirmed
+            ? kPaymentNotConfirmedMessage
+            : isOutcomeUnknown(e)
+                ? kPaymentOutcomeUnknownMessage
+                : banzamiErrorMessage(e, codes: {
+                    'LINK_NOT_ACTIVE':
+                        'Este pedido de pagamento já não está activo.',
+                    'SELF_TRANSFER_NOT_ALLOWED':
+                        'Não pode pagar o seu próprio pedido.',
+                    if (widget.recipientIsHandle)
+                      'RECIPIENT_NOT_FOUND':
+                          '@${widget.recipientHandle} não existe.',
+                  });
       });
     }
   }
@@ -408,6 +415,9 @@ class _BanzamiPaymentRequestScreenState
                     else ...[
                       BanzamiAmountInput(
                         initialAmountMinor: widget.amountMinor,
+                        // Editing is only possible when nothing is pending:
+                        // a changed amount is a new intent (new key).
+                        enabled: !_retrySame,
                         onChanged: (v) => setState(() {
                           _amountMinor = v;
                           _amountError = null;
@@ -460,7 +470,11 @@ class _BanzamiPaymentRequestScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   BanzamiPrimaryButton(
-                    label: buttonLabel,
+                    label: _retrySame
+                        ? (_error == kPaymentNotConfirmedMessage
+                            ? 'Tentar novamente'
+                            : 'Verificar')
+                        : buttonLabel,
                     isLoading: false,
                     height: 58,
                     onPressed: _pay,
@@ -567,15 +581,20 @@ class _BanzamiPaymentRequestScreenState
 
   @override
   Widget build(BuildContext context) {
-    return BanzamiScaffold(
-      appBar: _sending
-          ? null
-          : const BanzamiAppBar(title: 'Confirmar pagamento', showBack: true),
-      body: Stack(
-        children: [
-          if (!_sending) SafeArea(child: _buildReviewUI()),
-          if (_sending) _buildProgressOverlay(),
-        ],
+    // No way back while the payment is in flight: leaving would lose its
+    // answer, and the only safe next step is the same request again.
+    return PopScope(
+      canPop: !_sending,
+      child: BanzamiScaffold(
+        appBar: _sending
+            ? null
+            : const BanzamiAppBar(title: 'Confirmar pagamento', showBack: true),
+        body: Stack(
+          children: [
+            if (!_sending) SafeArea(child: _buildReviewUI()),
+            if (_sending) _buildProgressOverlay(),
+          ],
+        ),
       ),
     );
   }

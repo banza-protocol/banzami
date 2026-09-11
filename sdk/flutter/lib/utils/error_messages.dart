@@ -28,7 +28,9 @@ String banzamiErrorMessage(
     if (byStatus != null) return byStatus;
     return _byStatus(error.statusCode);
   }
-  if (error is TimeoutException) return kBanzamiTimeoutMessage;
+  if (error is TimeoutException || error is BanzamiTimeoutException) {
+    return kBanzamiTimeoutMessage;
+  }
   if (error is BanzamiNetworkException) return kBanzamiOfflineMessage;
   return kBanzamiGenericErrorMessage;
 }
@@ -43,6 +45,16 @@ const String kBanzamiTimeoutMessage =
 
 const String kBanzamiGenericErrorMessage =
     'Não foi possível concluir. Tente novamente.';
+
+const String kPaymentNotConfirmedMessage =
+    'Pagamento em confirmação — toque em Tentar novamente para concluir; '
+    'não será cobrado duas vezes.';
+
+/// A payment whose answer never arrived. The retry repeats the SAME request
+/// (same idempotency key), which the server answers with the original outcome.
+const String kPaymentOutcomeUnknownMessage =
+    'Não foi possível confirmar se o pagamento foi concluído. Toque em '
+    'Verificar: o mesmo pedido é repetido e nunca é cobrado duas vezes.';
 
 const String kBanzamiSessionEndedMessage =
     'A sua sessão terminou. Entre novamente.';
@@ -118,6 +130,10 @@ String? _byCode(String code) {
       return 'Este link de pagamento expirou.';
     case 'LINK_ALREADY_PAID':
       return 'Este link já foi pago. Confirme na sua actividade.';
+    case 'PAYMENT_NOT_CONFIRMED':
+      // The transfer was taken but the link's completion rolled back; the
+      // same pay call completes it (link-scoped key — nothing charged twice).
+      return kPaymentNotConfirmedMessage;
     case 'QR_EXPIRED':
       return 'Este QR expirou.';
     case 'QR_ALREADY_USED':

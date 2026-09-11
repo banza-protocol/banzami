@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
@@ -55,6 +54,12 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     with SingleTickerProviderStateMixin {
   bool _sending = false;
   String? _error;
+
+  /// The last attempt got no answer (network, timeout, 5xx): the transfer may
+  /// have been made. The button then repeats the SAME request with the same
+  /// idempotency key — the server answers with the original outcome, never a
+  /// second transfer.
+  bool _outcomeUnknown = false;
   bool _entered = false;
 
   // Orb pulse animation — replaces the old flat white overlay animation.
@@ -119,26 +124,21 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
           fetchReceipt: () => widget.client.fetchReceipt(transfer.transferId),
         ),
       ));
-    } on BanzamiApiException catch (e) {
+    } catch (e) {
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
-        _error = banzamiErrorMessage(e, codes: {
-          'INSUFFICIENT_FUNDS': 'Saldo insuficiente para esta transferência.',
-          'RECIPIENT_NOT_FOUND': '@${widget.recipientHandle} não existe.',
-        });
-      });
-    } catch (_) {
-      if (!mounted) return;
-      _pulseCtrl.stop();
-      _pulseCtrl.reset();
-      HapticFeedback.heavyImpact();
-      setState(() {
-        _sending = false;
-        _error = 'Erro de ligação. Tente novamente.';
+        _outcomeUnknown = isOutcomeUnknown(e);
+        _error = _outcomeUnknown
+            ? kPaymentOutcomeUnknownMessage
+            : banzamiErrorMessage(e, codes: {
+                'INSUFFICIENT_FUNDS':
+                    'Saldo insuficiente para esta transferência.',
+                'RECIPIENT_NOT_FOUND': '@${widget.recipientHandle} não existe.',
+              });
       });
     }
   }
@@ -392,90 +392,99 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   Widget build(BuildContext context) {
     final displayName = widget.recipientDisplayName;
     final handle = widget.recipientHandle;
-    final initial = (displayName ?? handle)[0].toUpperCase();
+    final nameForInitial = (displayName ?? handle).trim();
+    final initial =
+        nameForInitial.isEmpty ? '·' : nameForInitial[0].toUpperCase();
     final amount = formatMinor(widget.amountMinor, widget.currency);
 
-    return BanzamiScaffold(
-      // Hide the AppBar while sending — the overlay fills full-screen.
-      appBar: _sending
-          ? null
-          : const BanzamiAppBar(title: 'Confirmar envio', showBack: true),
-      body: Stack(
-        children: [
-          // ── Review UI ──────────────────────────────────────────────────────
-          if (!_sending)
-            SafeArea(
-              child: AnimatedOpacity(
-                opacity: _entered ? 1.0 : 0.0,
-                duration: BanzamiMotion.slow,
-                curve: Curves.easeOut,
-                child: AnimatedSlide(
-                  offset: _entered ? Offset.zero : const Offset(0, 0.025),
+    // No way back while the transfer is in flight: leaving would lose its
+    // answer, and the only safe next step is the same request again.
+    return PopScope(
+      canPop: !_sending,
+      child: BanzamiScaffold(
+        // Hide the AppBar while sending — the overlay fills full-screen.
+        appBar: _sending
+            ? null
+            : const BanzamiAppBar(title: 'Confirmar envio', showBack: true),
+        body: Stack(
+          children: [
+            // ── Review UI ──────────────────────────────────────────────────────
+            if (!_sending)
+              SafeArea(
+                child: AnimatedOpacity(
+                  opacity: _entered ? 1.0 : 0.0,
                   duration: BanzamiMotion.slow,
-                  curve: BanzamiMotion.decelerate,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: SingleChildScrollView(
+                  curve: Curves.easeOut,
+                  child: AnimatedSlide(
+                    offset: _entered ? Offset.zero : const Offset(0, 0.025),
+                    duration: BanzamiMotion.slow,
+                    curve: BanzamiMotion.decelerate,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(
+                              BanzamiSpacing.xl,
+                              32,
+                              BanzamiSpacing.xl,
+                              BanzamiSpacing.xl,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _recipientCard(initial, displayName, handle),
+                                const SizedBox(height: 16),
+                                _amountCard(amount, widget.note),
+                                const SizedBox(height: 16),
+                                const BanzamiWarningBanner(
+                                  message:
+                                      'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
+                                ),
+                                if (_error != null) ...[
+                                  const SizedBox(height: BanzamiSpacing.md),
+                                  BanzamiErrorBanner(message: _error!),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                        Padding(
                           padding: const EdgeInsets.fromLTRB(
                             BanzamiSpacing.xl,
-                            32,
+                            8,
                             BanzamiSpacing.xl,
                             BanzamiSpacing.xl,
                           ),
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              _recipientCard(initial, displayName, handle),
-                              const SizedBox(height: 16),
-                              _amountCard(amount, widget.note),
-                              const SizedBox(height: 16),
-                              const BanzamiWarningBanner(
-                                message:
-                                    'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
+                              BanzamiPrimaryButton(
+                                label: _outcomeUnknown
+                                    ? 'Verificar'
+                                    : 'Confirmar envio',
+                                isLoading: false,
+                                height: 58,
+                                onPressed: _confirm,
                               ),
-                              if (_error != null) ...[
-                                const SizedBox(height: BanzamiSpacing.md),
-                                BanzamiErrorBanner(message: _error!),
-                              ],
+                              const SizedBox(height: BanzamiSpacing.md),
+                              BanzamiGhostButton(
+                                label: 'Cancelar',
+                                onPressed: () => Navigator.of(context).pop(),
+                              ),
                             ],
                           ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          BanzamiSpacing.xl,
-                          8,
-                          BanzamiSpacing.xl,
-                          BanzamiSpacing.xl,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BanzamiPrimaryButton(
-                              label: 'Confirmar envio',
-                              isLoading: false,
-                              height: 58,
-                              onPressed: _confirm,
-                            ),
-                            const SizedBox(height: BanzamiSpacing.md),
-                            BanzamiGhostButton(
-                              label: 'Cancelar',
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-          // ── Premium transfer-progress overlay ──────────────────────────────
-          if (_sending) _buildProgressOverlay(amount, handle),
-        ],
+            // ── Premium transfer-progress overlay ──────────────────────────────
+            if (_sending) _buildProgressOverlay(amount, handle),
+          ],
+        ),
       ),
     );
   }

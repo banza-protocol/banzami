@@ -203,13 +203,42 @@ void main() {
       expect(find.textContaining('@joao não existe'), findsOneWidget);
     });
 
-    testWidgets('network failure shows connection error message',
+    testWidgets('a lost answer is an unknown outcome: "Verificar" repeats the same request',
         (tester) async {
       await tester
           .pumpWidget(_wrap(_confirmScreen(client: _networkErrorClient())));
       await tester.tap(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
-      expect(find.textContaining('ligação'), findsOneWidget);
+      // Not "Erro de ligação. Tente novamente." — the transfer may have gone.
+      expect(find.text(kPaymentOutcomeUnknownMessage), findsOneWidget);
+      expect(find.widgetWithText(BanzamiPrimaryButton, 'Verificar'), findsOneWidget);
+    });
+
+    testWidgets('back is blocked while the transfer is in flight', (tester) async {
+      final completer = Completer<http.StreamedResponse>();
+      final c = _clientWith(_ManualHttpClient(completer.future, onCall: () {}));
+      await tester.pumpWidget(MaterialApp(
+        home: Builder(builder: (ctx) => TextButton(
+          onPressed: () => Navigator.of(ctx).push(
+              MaterialPageRoute(builder: (_) => _confirmScreen(client: c))),
+          child: const Text('open'),
+        )),
+      ));
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      tester.widget<BanzamiPrimaryButton>(find.byType(BanzamiPrimaryButton)).onPressed!();
+      await tester.pump();
+
+      final popped = await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(popped, isTrue); // handled — by refusing
+      expect(find.text('open'), findsNothing, reason: 'still on the confirm screen');
+
+      completer.complete(http.StreamedResponse(
+        Stream.value(utf8.encode('{"code":"INSUFFICIENT_FUNDS","message":"x"}')), 422,
+        headers: {'content-type': 'application/json'},
+      ));
+      await tester.pumpAndSettle();
     });
   });
 

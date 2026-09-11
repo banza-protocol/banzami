@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -48,7 +49,8 @@ void main() {
       await t.pump(const Duration(milliseconds: 600));
 
       for (var i = 0; i < 2; i++) {
-        await t.tap(find.textContaining('Pagar'));
+        // "Pagar …" first; "Verificar" once the answer was lost (a 500).
+        await t.tap(find.byType(BanzamiPrimaryButton));
         await t.pump();
         await t.pump(const Duration(milliseconds: 100));
         await t.pumpAndSettle(const Duration(milliseconds: 100));
@@ -56,6 +58,62 @@ void main() {
 
       expect(keys, hasLength(2));
       expect(keys[0], keys[1]);
+    });
+  });
+
+  group('lost answers and PAYMENT_NOT_CONFIRMED', () {
+    testWidgets('PAYMENT_NOT_CONFIRMED offers a retry of the very same link payment',
+        (t) async {
+      final bodies = <Map<String, dynamic>>[];
+      final paths = <String>[];
+      final client = ConsumerPublicClient(
+        baseUrl: 'https://api.test',
+        httpClient: MockClient((req) async {
+          paths.add(req.url.path);
+          bodies.add(jsonDecode(req.body) as Map<String, dynamic>);
+          return http.Response(
+              jsonEncode({'code': 'PAYMENT_NOT_CONFIRMED', 'message': 'x'}), 502);
+        }),
+      );
+      await t.pumpWidget(MaterialApp(
+        home: BanzamiPaymentRequestScreen(
+          client: client,
+          recipientHandle: 'doa',
+          recipientDisplayName: 'Doa',
+          recipientIsHandle: false,
+          paymentLinkSlug: 'abcdef123456',
+          amountMinor: 200000,
+          onSuccess: (_) {},
+        ),
+      ));
+      await t.pump(const Duration(milliseconds: 600));
+
+      await t.tap(find.textContaining('Pagar'));
+      await t.pumpAndSettle();
+      expect(find.text(kPaymentNotConfirmedMessage), findsOneWidget);
+      expect(find.text('Tentar novamente'), findsOneWidget);
+
+      await t.tap(find.text('Tentar novamente'));
+      await t.pumpAndSettle();
+      expect(paths, hasLength(2));
+      expect(paths[0], paths[1], reason: 'same slug');
+      expect(bodies[1], bodies[0], reason: 'same amount, same key');
+    });
+
+    test('a request that never answers times out as an unknown outcome', () async {
+      final client = ConsumerPublicClient(
+        baseUrl: 'https://api.test',
+        requestTimeout: const Duration(milliseconds: 50),
+        httpClient: MockClient((_) => Completer<http.Response>().future),
+      )..setToken('t');
+      try {
+        await client.sendByHandle(recipientHandle: 'ana', amountMinor: 1, idempotencyKey: 'k');
+        fail('expected a timeout');
+      } catch (e) {
+        expect(e, isA<BanzamiTimeoutException>());
+        expect(isOutcomeUnknown(e), isTrue);
+        expect(banzamiErrorMessage(e), kBanzamiTimeoutMessage);
+      }
     });
   });
 }
