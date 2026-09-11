@@ -71,6 +71,7 @@ export default async function PayPage({ params }: Props) {
       externalRailAvailable={mode === 'LIVE'}
       slug={link.slug}
       merchantName={link.merchant_name}
+      merchantHandle={link.merchant_handle}
       amountDisplay={amountDisplay}
       amountMinor={link.amount_minor}
       currency={link.currency}

@@ -30,7 +30,10 @@ const SERVER_GATEWAY_URL  = process.env.GATEWAY_INTERNAL_URL ?? GATEWAY_URL;
  */
 export interface PaymentLink {
   slug:          string;
+  /** The Business's public name (business_public_identities), never its account name. */
   merchant_name: string;
+  /** The @banza the Business owns, without the "@"; null when it has none. */
+  merchant_handle: string | null;
   amount_minor:  number | null;
   currency:      string;
   description:   string | null;

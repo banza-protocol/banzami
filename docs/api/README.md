@@ -716,7 +716,29 @@ These endpoints are used by the `pay.banzami.com` pay page JavaScript.
 
 #### GET /public/pay/{slug}
 
-Get payment link details for the pay page (same as `/v1/payment-links/by-slug/{slug}` but no auth).
+The payer-safe view of a payment link for the pay page. It carries no internal
+identifier (no link, merchant, wallet or wallet-account id, no refund source).
+The payee is the Business's public identity (`business_public_identities`): the
+name it presents and the @banza it owns — never the account name a Project gave
+it.
+
+**Response 200:**
+```json
+{
+  "slug":            "3f9a1c2b7d4e",
+  "amount_minor":    500000,
+  "currency":        "AOA",
+  "description":     "Donativo",
+  "status":          "ACTIVE",
+  "expires_at":      null,
+  "paid_at":         null,
+  "merchant_name":   "Doa",
+  "merchant_handle": "doa"
+}
+```
+`merchant_handle` is `null` for a Business with no @banza.
+
+**Errors:** `404 NOT_FOUND` — no link has that exact slug. `500 INTERNAL_ERROR` — the link could not be read.
 
 #### GET /public/pay/{slug}/status
 

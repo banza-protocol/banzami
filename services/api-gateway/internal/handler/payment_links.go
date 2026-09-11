@@ -23,6 +23,7 @@ type PaymentLinkHandler struct {
 	svc         service.PaymentLinkService
 	merchantSvc service.MerchantService
 	webhookSvc  service.WebhookService
+	identities  businessIdentityLookup
 }
 
 // WithWallets gives the handler what it needs to check that a Business's link
@@ -383,27 +384,31 @@ func dispatchPaymentLinkPaid(webhookSvc service.WebhookService, link *service.Pa
 // Public endpoints — no authentication required
 // ---------------------------------------------------------------------------
 
-// publicPaymentLink is the response shape for GET /public/pay/{slug}.
-// It extends PaymentLink with the merchant name so the checkout page can
-// show "Paying: <Merchant Name>" without a separate API call.
 // publicPaymentLink is the payer-safe view of a payment link (RT03 §4). It
 // exposes ONLY what an unauthenticated payer needs and never leaks internal
 // database identifiers (link/merchant/wallet UUIDs), the wallet account, or the
 // operator refund_source. The payer POST derives merchant/wallet from the slug
 // server-side, so these ids are not needed client-side.
+//
+// The payee is the Business's PUBLIC identity (business_public_identities): the
+// name it presents and the @banza it owns. It used to be merchants.name — for a
+// Business made by the retired Console setup that is "Sandbox · <Project>", the
+// name of a Project that created the link, which is what pay.banzami.com showed
+// the payer ("Sandbox · Doa-Sandbox", and no @doa).
 type publicPaymentLink struct {
-	Slug         string     `json:"slug"`
-	AmountMinor  *int64     `json:"amount_minor"`
-	Currency     string     `json:"currency"`
-	Description  *string    `json:"description"`
-	Status       string     `json:"status"`
-	ExpiresAt    *time.Time `json:"expires_at"`
-	PaidAt       *time.Time `json:"paid_at"`
-	MerchantName string     `json:"merchant_name"`
+	Slug           string     `json:"slug"`
+	AmountMinor    *int64     `json:"amount_minor"`
+	Currency       string     `json:"currency"`
+	Description    *string    `json:"description"`
+	Status         string     `json:"status"`
+	ExpiresAt      *time.Time `json:"expires_at"`
+	PaidAt         *time.Time `json:"paid_at"`
+	MerchantName   string     `json:"merchant_name"`
+	MerchantHandle *string    `json:"merchant_handle"`
 }
 
-func toPublicPaymentLink(link *service.PaymentLink, merchantName string) publicPaymentLink {
-	return publicPaymentLink{
+func toPublicPaymentLink(link *service.PaymentLink, payee service.BusinessIdentity) publicPaymentLink {
+	view := publicPaymentLink{
 		Slug:         link.Slug,
 		AmountMinor:  link.AmountMinor,
 		Currency:     link.Currency,
@@ -411,8 +416,48 @@ func toPublicPaymentLink(link *service.PaymentLink, merchantName string) publicP
 		Status:       link.Status,
 		ExpiresAt:    link.ExpiresAt,
 		PaidAt:       link.PaidAt,
-		MerchantName: merchantName,
+		MerchantName: payee.DisplayName,
 	}
+	if payee.Handle != "" {
+		handle := payee.Handle
+		view.MerchantHandle = &handle
+	}
+	return view
+}
+
+// businessIdentityLookup reads a Business's public identity.
+type businessIdentityLookup func(ctx context.Context, merchantID string) (service.BusinessIdentity, error)
+
+// WithBusinessIdentities gives the public payer view the Business's canonical
+// public identity (business_public_identities, in the proofs database). Without
+// it the view falls back to the account name — the defect this exists to
+// remove — so wire it wherever the handler is built.
+func (h *PaymentLinkHandler) WithBusinessIdentities(proofs *service.ProofService) *PaymentLinkHandler {
+	if proofs == nil || proofs.Pool() == nil {
+		return h
+	}
+	pool := proofs.Pool()
+	h.identities = func(ctx context.Context, merchantID string) (service.BusinessIdentity, error) {
+		return service.LookupBusinessIdentity(ctx, pool, merchantID)
+	}
+	return h
+}
+
+// publicPayee is the payee as the payer sees it. With the identity lookup wired
+// a failed lookup names nobody, rather than falling back to the account name.
+func (h *PaymentLinkHandler) publicPayee(ctx context.Context, merchantID string) (service.BusinessIdentity, error) {
+	if h.identities != nil {
+		b, err := h.identities(ctx, merchantID)
+		if err != nil {
+			return service.BusinessIdentity{}, nil
+		}
+		return b, nil
+	}
+	merchant, err := h.merchantSvc.Get(ctx, merchantID)
+	if err != nil {
+		return service.BusinessIdentity{}, err
+	}
+	return service.BusinessIdentity{DisplayName: merchant.Name}, nil
 }
 
 // GET /public/pay/{slug}
@@ -428,13 +473,13 @@ func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	merchant, err := h.merchantSvc.Get(r.Context(), link.MerchantID)
+	payee, err := h.publicPayee(r.Context(), link.MerchantID)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch merchant")
 		return
 	}
 
-	respond(w, http.StatusOK, toPublicPaymentLink(link, merchant.Name))
+	respond(w, http.StatusOK, toPublicPaymentLink(link, payee))
 }
 
 // GET /public/pay/{slug}/status
