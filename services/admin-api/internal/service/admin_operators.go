@@ -86,20 +86,66 @@ func (s *AdminUserService) UpdateOperatorName(ctx context.Context, id, fullName,
 }
 
 func (s *AdminUserService) SetOperatorRole(ctx context.Context, id, role, updatedBy string) error {
-	return s.execOperator(ctx, `UPDATE admin_users SET role=$2, updated_by=$3, updated_at=now() WHERE id=$1`, id, role, nullStr(updatedBy))
+	return s.execOperatorKeepingASuperAdmin(ctx, `UPDATE admin_users SET role=$2, updated_by=$3, updated_at=now() WHERE id=$1`, id, role, nullStr(updatedBy))
 }
 
 // SetOperatorStatus also clears the lock when re-activating and increments
 // token_version so a suspend (or re-activate) immediately revokes any sessions
 // the operator still holds.
 func (s *AdminUserService) SetOperatorStatus(ctx context.Context, id, status, updatedBy string) error {
-	return s.execOperator(ctx,
+	return s.execOperatorKeepingASuperAdmin(ctx,
 		`UPDATE admin_users
 		    SET status=$2, updated_by=$3, updated_at=now(),
 		        token_version = token_version + 1,
 		        failed_login_attempts = CASE WHEN $2='ACTIVE' THEN 0 ELSE failed_login_attempts END,
 		        locked_until = CASE WHEN $2='ACTIVE' THEN NULL ELSE locked_until END
 		  WHERE id=$1`, id, status, nullStr(updatedBy))
+}
+
+// ErrLastSuperAdmin: the change would leave no SUPER_ADMIN who is not suspended.
+var ErrLastSuperAdmin = errors.New("the last active SUPER_ADMIN cannot be demoted or suspended")
+
+// execOperatorKeepingASuperAdmin applies a role or status change and refuses it
+// if it took the number of non-suspended SUPER_ADMINs from one or more to zero.
+//
+// The handlers count first and change second, in separate statements: two
+// SUPER_ADMINs suspending each other at the same moment both counted two and
+// both succeeded, leaving nobody who can administer the console. Here the
+// change and the recount run in one transaction, and one such transaction at a
+// time.
+func (s *AdminUserService) execOperatorKeepingASuperAdmin(ctx context.Context, sql, id string, args ...any) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('admin_users:super_admin_guard', 0))`); err != nil {
+		return err
+	}
+	count := func() (int, error) {
+		var n int
+		err := tx.QueryRow(ctx, `SELECT count(*) FROM admin_users WHERE role = 'SUPER_ADMIN' AND status <> 'SUSPENDED'`).Scan(&n)
+		return n, err
+	}
+	before, err := count()
+	if err != nil {
+		return err
+	}
+	tag, err := tx.Exec(ctx, sql, append([]any{id}, args...)...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrAdminUserNotFound
+	}
+	after, err := count()
+	if err != nil {
+		return err
+	}
+	if before > 0 && after == 0 {
+		return ErrLastSuperAdmin
+	}
+	return tx.Commit(ctx)
 }
 
 func (s *AdminUserService) execOperator(ctx context.Context, sql, id string, args ...any) error {

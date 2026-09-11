@@ -2701,3 +2701,19 @@ forward is admitted. Test: `TestMFAVerify_OneCodeOneLoginUnderConcurrency`
 (DB-backed; the admin-api CI job now has a database so it runs there).
 Logout remains a client-side clear by design — server revocation is the
 audited "Terminar as minhas sessões" (token_version).
+
+## RA-090 — two SUPER_ADMINs could suspend each other and leave none
+
+- **Found:** 2026-09-11 (operator control plane review)
+- **Status:** FIXED
+
+The "last SUPER_ADMIN" guard counted non-suspended SUPER_ADMINs and then, in a
+separate statement, applied the demotion or suspension. Two SUPER_ADMINs
+acting on each other at the same moment both counted two and both succeeded:
+the console was left with nobody who could administer it (reproduced in the
+test on the first rounds). `SetOperatorRole` and `SetOperatorStatus` now apply
+the change and recount inside one transaction, serialised by an advisory lock,
+and roll back with `ErrLastSuperAdmin` (409 `LAST_SUPER_ADMIN`) if it took the
+count from one or more to zero. Test:
+`TestLastSuperAdmin_ConcurrentSuspensionsLeaveOne` (10 rounds); removing the
+recount, or only the lock, each fail it.

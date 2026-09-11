@@ -88,6 +88,8 @@ func (h *OperatorHandler) opErr(w http.ResponseWriter, err error) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "operator not found")
 	case errors.Is(err, service.ErrAdminUserExists):
 		writeError(w, http.StatusConflict, "EMAIL_EXISTS", "an operator with that email already exists")
+	case errors.Is(err, service.ErrLastSuperAdmin):
+		writeError(w, http.StatusConflict, "LAST_SUPER_ADMIN", "cannot demote or suspend the last active SUPER_ADMIN")
 	default:
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "operator operation failed")
 	}
