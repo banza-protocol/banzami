@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Deprecated — `createApplicationSettlement()`
+
+It sent a wallet-to-wallet settlement (`source_wallet_id`,
+`beneficiary_wallet_id`), which the operator retired on 2026-09-05:
+`POST /v1/application-settlements` settles a segregated account, with the
+beneficiary named by @banza. Every call was refused with
+`400 MISSING_FIELD source_account_id`. It now rejects locally with
+`410 METHOD_RETIRED`, without a request. Use
+`createBusinessApplicationSettlement({ sourceAccountId, beneficiaryBanzaName, idempotencyKey })`.
+
 ### Fixed — QR creation and public payment-link reads reach the operator
 
 `createStaticQr()` sent only `owner_id` and `createDynamicQr()` omitted

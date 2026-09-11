@@ -379,6 +379,17 @@ describe('QR creation sends what the operator requires', () => {
   });
 });
 
+describe('createApplicationSettlement (retired by the operator)', () => {
+  it('fails without a request and names the method to use', async () => {
+    const before = (global.fetch as unknown as { mock?: { calls: unknown[] } }).mock?.calls.length ?? 0;
+    await expect(client.createApplicationSettlement({
+      idempotencyKey: 'k', ownerRef: 'o', sourceWalletId: 'w1', beneficiaryWalletId: 'w2',
+    })).rejects.toMatchObject({ status: 410, code: 'METHOD_RETIRED' });
+    const after = (global.fetch as unknown as { mock?: { calls: unknown[] } }).mock?.calls.length ?? 0;
+    expect(after).toBe(before);
+  });
+});
+
 describe('getPaymentLinkStatus', () => {
   it('GETs /v1/public/pay/{slug}/status', async () => {
     mockFetch(200, { paid: true });
@@ -705,11 +716,11 @@ describe('app-defined application settlement', () => {
   });
 
   it('createApplicationSettlement cannot be made to send a pricing selector', async () => {
-    mockFetch(201, settled);
     // A JavaScript caller has no types. These three used to be accepted here
-    // and forwarded, and each one is a rule-matching dimension in the
-    // operator's pricing engine — so sending them was choosing a tariff.
-    await client.createApplicationSettlement({
+    // and forwarded — each a rule-matching dimension in the operator's pricing
+    // engine. The method is retired now and sends nothing at all.
+    const before = (global.fetch as unknown as { mock?: { calls: unknown[] } }).mock?.calls.length ?? 0;
+    await expect(client.createApplicationSettlement({
       idempotencyKey:      'as-selector',
       ownerRef:            'campaign_42',
       sourceWalletId:      'w-1',
@@ -717,11 +728,9 @@ describe('app-defined application settlement', () => {
       businessCategory:    'DONATION',
       pricingProfile:      'sandbox-reference',
       feePolicyRef:        'pol_donation_standard',
-    } as Parameters<typeof client.createApplicationSettlement>[0]);
-    const body = JSON.parse(lastFetchCall().init.body as string);
-    expect('business_category' in body).toBe(false);
-    expect('pricing_profile' in body).toBe(false);
-    expect('fee_policy_ref' in body).toBe(false);
+    } as Parameters<typeof client.createApplicationSettlement>[0])).rejects.toMatchObject({ code: 'METHOD_RETIRED' });
+    const after = (global.fetch as unknown as { mock?: { calls: unknown[] } }).mock?.calls.length ?? 0;
+    expect(after).toBe(before);
   });
 });
 

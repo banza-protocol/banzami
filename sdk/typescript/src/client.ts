@@ -660,18 +660,20 @@ export class BanzamiClient {
    * so a caller supplying them was choosing between tariffs — see the 0.9.0
    * entry in CHANGELOG.md, which removed them from `createTransaction` for the
    * same reason and left them here.
+   *
+   * @deprecated The operator retired this wallet-to-wallet request on
+   * 2026-09-05: `POST /v1/application-settlements` settles a segregated
+   * account, with the beneficiary named by @banza. Every call of this method
+   * was refused (`400 MISSING_FIELD source_account_id`). It now fails here,
+   * without a request, and says what to call instead. Use
+   * {@link createBusinessApplicationSettlement}.
    */
-  createApplicationSettlement(p: CreateApplicationSettlementParams): Promise<ApplicationSettlement> {
-    return this.request<ApplicationSettlement>('/application-settlements', {
-      method: 'POST',
-      body:   JSON.stringify({
-        idempotency_key:           p.idempotencyKey,
-        owner_ref:                 p.ownerRef,
-        source_wallet_id:          p.sourceWalletId,
-        beneficiary_wallet_id:     p.beneficiaryWalletId,
-        application_fee_wallet_id: p.applicationFeeWalletId,
-      }),
-    });
+  createApplicationSettlement(_p: CreateApplicationSettlementParams): Promise<ApplicationSettlement> {
+    return Promise.reject(new BanzamiApiError(
+      410,
+      'METHOD_RETIRED',
+      'createApplicationSettlement settled wallet to wallet, which the operator no longer accepts — use createBusinessApplicationSettlement({ sourceAccountId, beneficiaryBanzaName, idempotencyKey })',
+    ));
   }
 
   getApplicationSettlement(id: string): Promise<ApplicationSettlement> {

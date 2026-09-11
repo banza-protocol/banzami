@@ -125,6 +125,7 @@ zero on a clean database and moves for the defect it exists to catch
 | `getPublicPaymentLink` / `getPaymentLinkStatus` called an unmounted `/v1/public/pay` — always 404; the drift guard passed because it compared version-less paths | gateway serves both prefixes (6e4f238e); guard counts only routes under `/v1` and fails on exactly these two without the mount (eff8c3e1) |
 | `createStaticQr` / `createDynamicQr` omitted `owner_type` (static: currency) — always 400 | gateway fills the only accepted values; SDK sends them (091e7896) |
 | Python and PHP SDKs offered payment requests on a withdrawn route (RA-057) | removed (21e0d0a7) |
+| `createApplicationSettlement` sent the wallet-to-wallet body retired on 2026-09-05 — refused on every call (a body shape, which a path-only drift check cannot see) | deprecated; rejects locally with `METHOD_RETIRED` and names `createBusinessApplicationSettlement` |
 | developer-api and `services/common` not tested in CI; website not in CI | CI jobs added (2496e7b3, 091e7896) |
 
 A recorded run of every TypeScript SDK method against the gateway's route
@@ -200,6 +201,7 @@ reporting.
 | ~168 deploy bundle manifests deleted | receipts and git history still resolve commit → runtime |
 | Four historical real proof references remain in git history | not rewritten, by instruction |
 | `banzami-redis-1` legacy container | unused; owner decision |
+| Two Sandbox harnesses (`refund-settlement-matrix.sh`, `economic-model-smoke.sh`) still settle wallet-to-wallet, which the gateway retired on 2026-09-05 — their settlement steps fail (400) | not run in CI; the economics they assert are covered by the core real-DB suites (settlement, app-settlement, pricing). Rewriting them onto the account/@banza contract is open |
 
 ## 9. Boundaries (not claimed)
 
