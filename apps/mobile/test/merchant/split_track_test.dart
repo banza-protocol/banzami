@@ -95,4 +95,62 @@ void main() {
     // Leave: stop the poll timer.
     await t.pumpWidget(const SizedBox());
   });
+
+  testWidgets('after cancelling, the copy promises nothing it cannot verify and the poll goes on',
+      (t) async {
+    var cancelled = false;
+    var sharePolls = 0;
+    var paidAfterCancel = false;
+    final client = BanzamiClient(
+      apiKey: 'bz_test_key',
+      baseUrl: 'https://api.test',
+      httpClient: MockClient((req) async {
+        final p = req.url.path;
+        Object body;
+        if (p.endsWith('/auth/token')) {
+          body = {'token': 't', 'expires_at': DateTime.now().add(const Duration(hours: 1)).toIso8601String()};
+        } else if (p == '/v1/collections/c1/cancel') {
+          cancelled = true;
+          body = _collection('CANCELLED');
+        } else if (p == '/v1/collections/c1') {
+          body = {
+            'collection': _collection(cancelled ? 'CANCELLED' : 'OPEN'),
+            'collected_amount_minor': paidAfterCancel ? 100000 : 0,
+            'remaining_amount_minor': paidAfterCancel ? 100000 : 200000,
+          };
+        } else if (p == '/v1/collections/c1/shares') {
+          if (cancelled) sharePolls++;
+          body = {'data': [_share('s1', paidAfterCancel ? 'PAID' : 'LINK_CREATED')]};
+        } else {
+          return http.Response('{"code":"NOT_FOUND"}', 404);
+        }
+        return http.Response(jsonEncode(body), 200);
+      }),
+    );
+
+    await t.binding.setSurfaceSize(const Size(430, 1400));
+    addTearDown(() => t.binding.setSurfaceSize(null));
+    await t.pumpWidget(Provider<BanzamiClient>.value(
+      value: client,
+      child: const MaterialApp(home: SplitTrackScreen(collectionId: 'c1')),
+    ));
+    await t.pumpAndSettle();
+
+    await t.tap(find.byTooltip('Cancelar cobrança'));
+    await t.pumpAndSettle();
+    expect(find.text(kSplitCancelExplanation), findsOneWidget);
+    expect(find.textContaining('deixam de poder ser pagas'), findsNothing);
+    await t.tap(find.widgetWithText(BanzamiPrimaryButton, 'Cancelar cobrança'));
+    await t.pumpAndSettle();
+    expect(cancelled, isTrue);
+
+    // A share link paid after the cancel still shows up here.
+    paidAfterCancel = true;
+    await t.pump(const Duration(seconds: 5));
+    await t.pumpAndSettle();
+    expect(sharePolls, greaterThan(0), reason: 'polling continued after cancel');
+    expect(find.text('Pago'), findsOneWidget);
+
+    await t.pumpWidget(const SizedBox());
+  });
 }

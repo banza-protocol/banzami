@@ -9,6 +9,12 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../branding_assets.dart';
 import '../config.dart';
 
+/// What cancelling does, in words that stay true whatever happens to the
+/// share links afterwards: only what this screen can verify is promised.
+const String kSplitCancelExplanation =
+    'A cobrança fica cancelada; as partes já pagas mantêm-se. Este ecrã '
+    'continua a mostrar qualquer pagamento que ainda chegue.';
+
 /// Acompanha uma cobrança dividida (BANZA ADR-036 Collection).
 ///
 /// Mostra o total, quanto já foi pago e quanto falta; lista cada parte (share)
@@ -83,11 +89,13 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
     }
   }
 
-  // Silent refresh used by the poller — never toggles the loading spinner and
-  // stops once the collection reaches a terminal state.
+  // Silent refresh used by the poller — never toggles the loading spinner.
+  // It stops only once every share is paid. A CANCELLED collection keeps being
+  // watched: cancelling changes the collection's status, and this screen cannot
+  // know that no share link will still be paid — so a later payment shows up.
   Future<void> _refresh() async {
     final c = _collection;
-    if (c != null && c.isTerminal) {
+    if (c != null && c.isCompleted) {
       _poll?.cancel();
       return;
     }
@@ -153,8 +161,7 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
           const Text('Cancelar cobrança?', style: BanzamiTextStyles.headingSm),
           const SizedBox(height: BanzamiSpacing.sm),
           Text(
-            'As partes ainda não pagas deixam de poder ser pagas. As partes já '
-            'pagas não são afetadas.',
+            kSplitCancelExplanation,
             textAlign: TextAlign.center,
             style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
           ),
@@ -176,7 +183,7 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
     try {
       final c = await _client.cancelCollection(widget.collectionId);
       if (mounted) setState(() { _collection = c; _cancelling = false; });
-      _poll?.cancel();
+      // The poll keeps running: a payment that still arrives is shown here.
     } catch (e) {
       if (mounted) {
         setState(() => _cancelling = false);
