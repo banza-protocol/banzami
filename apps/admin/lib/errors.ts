@@ -24,6 +24,12 @@ export function failureReasonPt(err: unknown): string {
   return 'Ocorreu um erro inesperado.';
 }
 
+/** The service did not answer the question (5xx, or no response at all) — as
+ *  opposed to answering "no". A login that fails this way is not a wrong password. */
+export function isServiceUnavailable(err: unknown): boolean {
+  return !(err instanceof AdminApiError) || err.status >= 500;
+}
+
 /** "<what failed>. <why>" — e.g. "Não foi possível guardar a regra. Não tem permissão para esta ação." */
 export function actionErrorPt(err: unknown, what: string): string {
   return `${what} ${failureReasonPt(err)}`;

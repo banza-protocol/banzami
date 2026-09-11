@@ -6,7 +6,7 @@ import { getSession } from '@/lib/session';
 import { AdminApi, type AdminProof, type ProofVerification } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatMoney, formatDate } from '@/lib/format';
+import { formatMoney, formatDate, formatDateTime } from '@/lib/format';
 import { useAdminEnv, type Env } from '@/lib/admin-env';
 import { EnvToggle } from '@/components/layout/env-toggle';
 import { confirmedTitle, operationRows, proofStatusLabel } from '@/lib/proof-view';
@@ -119,8 +119,8 @@ export default function ProofsPage() {
                 ['Para', selected.proof.payee_display_name || selected.proof.payee_handle],
                 ...operationRows(selected.proof),
                 ['Transaction id', selected.proof.transaction_id],
-                ['Confirmado', selected.proof.confirmed_at ? formatDate(selected.proof.confirmed_at) : '—'],
-                ['Emitido', formatDate(selected.proof.issued_at)],
+                ['Confirmado', selected.proof.confirmed_at ? formatDateTime(selected.proof.confirmed_at) : '—'],
+                ['Emitido', formatDateTime(selected.proof.issued_at)],
                 ['Hash', selected.proof.proof_hash?.slice(0, 24)],
                 ['Assinatura', `${selected.proof.signature_algorithm ?? ''} · ${selected.proof.signature_key_id ?? ''}`],
                 ['Verificações', String(selected.proof.verification_count)],
@@ -139,7 +139,7 @@ export default function ProofsPage() {
               <ul className="space-y-1.5">
                 {selected.verifications.map((v, i) => (
                   <li key={i} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-[12.5px]">
-                    <span className="font-semibold text-[#2a2024]">{formatDate(v.verified_at)}</span>
+                    <span className="font-semibold text-[#2a2024]">{formatDateTime(v.verified_at)}</span>
                     <span className="font-bold text-green-700">{v.result}</span>
                   </li>
                 ))}

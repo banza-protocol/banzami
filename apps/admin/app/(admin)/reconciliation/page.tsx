@@ -8,6 +8,7 @@ import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader, Th, Td, EmptyMsg } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { formatKz, formatDate } from '@/lib/format';
+import { actionErrorPt } from '@/lib/errors';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -49,8 +50,8 @@ export default function ReconciliationPage() {
       const div = (result.amount_mismatch ?? 0) + (result.missing_posting ?? 0);
       toast(div > 0 ? 'warning' : 'success', div > 0 ? `Reconciliação concluída — ${div} divergências.` : 'Reconciliação concluída — sem divergências.');
       await load();
-    } catch {
-      toast('danger', 'Não foi possível executar a reconciliação.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível executar a reconciliação.'));
     } finally {
       setRunning(false);
     }

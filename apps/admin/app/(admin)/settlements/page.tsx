@@ -11,6 +11,7 @@ import { formatMoney, formatDate } from '@/lib/format';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
 import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
 import { filterByStates } from '@/lib/attention';
+import { actionErrorPt } from '@/lib/errors';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -59,8 +60,8 @@ export default function SettlementsPage() {
         toast('success', 'Liquidação confirmada.');
       }
       await load();
-    } catch {
-      toast('danger', 'Não foi possível avançar a liquidação.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível avançar a liquidação.'));
     } finally {
       setBusy(null);
     }

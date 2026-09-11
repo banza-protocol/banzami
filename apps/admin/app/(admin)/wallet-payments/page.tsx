@@ -7,6 +7,7 @@ import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { businessLabel, formatMoney, formatDate } from '@/lib/format';
+import { actionErrorPt } from '@/lib/errors';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -61,8 +62,8 @@ export default function WalletPaymentsPage() {
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank', 'noopener');
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    } catch {
-      toast('danger', 'Não foi possível obter o comprovativo.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível obter o comprovativo.'));
     } finally {
       setBusy(null);
     }
@@ -79,10 +80,7 @@ export default function WalletPaymentsPage() {
             className="rounded-[10px] border border-[#f1e6e6] bg-white px-3 py-2 text-[13px] font-bold text-[#5a4a4e]"
           >
             <option value="">Todos os estados</option>
-            <option value="COMPLETED">Confirmado</option>
-            <option value="PENDING">Pendente</option>
-            <option value="FAILED">Falhado</option>
-            <option value="REVERSED">Revertido</option>
+            {['COMPLETED', 'PENDING', 'FAILED', 'REVERSED'].map((s) => <option key={s} value={s}>{statusLabelPt(s)}</option>)}
           </select>
           <select
             value={environment}

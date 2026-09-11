@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Plus, Power, Pencil, X } from 'lucide-react';
 import { getSession } from '@/lib/session';
-import { AdminApi, type CatalogEntry, type CatalogInput, type CatalogFilters } from '@/lib/admin-api';
+import { AdminApi, AdminApiError, type CatalogEntry, type CatalogInput, type CatalogFilters } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { formatDate } from '@/lib/format';
+import { actionErrorPt } from '@/lib/errors';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -98,7 +99,9 @@ export function CatalogManager({ kind, title, intro, codePlaceholder, withMetada
       setMode({ kind: 'none' });
       await load(filters);
     } catch (e) {
-      toast('danger', e instanceof Error ? e.message : 'Falha ao guardar.');
+      toast('danger', e instanceof AdminApiError && e.status === 409
+        ? 'Não foi possível guardar. Já existe uma entrada com este código neste ambiente.'
+        : actionErrorPt(e, 'Não foi possível guardar.'));
     } finally {
       setSaving(false);
     }
@@ -119,8 +122,8 @@ export function CatalogManager({ kind, title, intro, codePlaceholder, withMetada
       await setEnabled(e.id, !off);
       toast('success', off ? 'Desativado.' : 'Ativado.');
       await load(filters);
-    } catch {
-      toast('danger', 'Não foi possível alterar o estado.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível alterar o estado.'));
     } finally {
       setBusy(null);
     }

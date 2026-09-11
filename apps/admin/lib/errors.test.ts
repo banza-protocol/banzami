@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { AdminApiError } from '@/lib/admin-api';
-import { actionErrorPt, failureReasonPt } from './errors';
+import { actionErrorPt, failureReasonPt, isServiceUnavailable } from './errors';
+
+describe('isServiceUnavailable — no answer is not a "no"', () => {
+  it('5xx and network failures are unavailability; 4xx are answers', () => {
+    expect(isServiceUnavailable(new AdminApiError(500, 'X', ''))).toBe(true);
+    expect(isServiceUnavailable(new AdminApiError(503, 'MFA_UNAVAILABLE', ''))).toBe(true);
+    expect(isServiceUnavailable(new TypeError('Failed to fetch'))).toBe(true);
+    expect(isServiceUnavailable(new AdminApiError(401, 'UNAUTHORIZED', ''))).toBe(false);
+    expect(isServiceUnavailable(new AdminApiError(429, 'RATE', ''))).toBe(false);
+  });
+});
 
 describe('failureReasonPt — one Portuguese reason per failure class', () => {
   it.each([

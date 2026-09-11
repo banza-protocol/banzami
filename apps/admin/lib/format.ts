@@ -1,6 +1,8 @@
 // Banzami Admin formatting helpers (Kwanza). Global rule: space-grouped
 // thousands, currency word at the END, no dot/comma, no cêntimos: "4 250 000 Kz".
-// Datas DD/MM/YYYY; IDs/valores em mono.
+// Datas DD/MM/YYYY no dia de Luanda (WAT); IDs/valores em mono.
+
+import { PRODUCT_TZ, PRODUCT_TZ_LABEL, watDayKey } from '@/lib/time';
 
 /** Group an integer's thousands with a regular space: 4250000 → "4 250 000". */
 function groupThousands(n: number): string {
@@ -76,15 +78,31 @@ export function formatKzMajor(major: number | null | undefined): string {
   return formatKz(Math.round(major * 100));
 }
 
-/** Format an ISO timestamp / Date as DD/MM/YYYY. Returns '—' on invalid. */
+/**
+ * An instant's Luanda (WAT) calendar date as DD/MM/YYYY — the same day for
+ * every operator, whatever their browser's zone. '—' on invalid.
+ */
 export function formatDate(value: string | Date | null | undefined): string {
-  if (!value) return '—';
-  const d = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(d.getTime())) return '—';
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const yyyy = d.getFullYear();
+  const key = watDayKey(value ?? null); // "YYYY-MM-DD" in Africa/Luanda
+  if (!key) return '—';
+  const [yyyy, mm, dd] = key.split('-');
   return `${dd}/${mm}/${yyyy}`;
+}
+
+const wallClockFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: PRODUCT_TZ, hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
+/**
+ * An official instant with its clock and zone said: "11/09/2026, 11:00 (WAT)"
+ * — the format the PDF and the public verifier print, so a reader comparing
+ * them sees the same time. '—' on invalid.
+ */
+export function formatDateTime(value: string | Date | null | undefined): string {
+  const day = formatDate(value);
+  if (day === '—') return day;
+  const d = value instanceof Date ? value : new Date(value as string);
+  return `${day}, ${wallClockFmt.format(d)} (${PRODUCT_TZ_LABEL})`;
 }
 
 /** Relative time in Portuguese: "agora", "há 5 min", "há 3 h", "há 2 d", else date. */

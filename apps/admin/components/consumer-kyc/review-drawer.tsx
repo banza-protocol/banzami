@@ -12,6 +12,7 @@ import {
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format';
 import { KYC_STATUS, KYC_DOC_LABEL } from '@/components/consumer-kyc/labels';
+import { actionErrorPt } from '@/lib/errors';
 
 type Env = 'LIVE' | 'SANDBOX';
 
@@ -377,8 +378,8 @@ function ApproveModal({
       await api.approveKycCase(c.id, level, notes.trim() || undefined, envParam(env));
       toast('success', 'KYC aprovado.');
       onDone();
-    } catch {
-      toast('danger', 'Não foi possível aprovar o caso.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível aprovar o caso.'));
       setBusy(false);
     }
   }
@@ -434,8 +435,8 @@ function ReasonModal({
       else await api.requestKycMoreInfo(c.id, reason, notes.trim() || undefined, envParam(env));
       toast('success', reject ? 'KYC rejeitado.' : 'Pedido de mais informação enviado.');
       onDone();
-    } catch {
-      toast('danger', reject ? 'Não foi possível rejeitar o caso.' : 'Não foi possível enviar o pedido.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, reject ? 'Não foi possível rejeitar o caso.' : 'Não foi possível enviar o pedido.'));
       setBusy(false);
     }
   }

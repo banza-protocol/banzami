@@ -13,6 +13,7 @@ import { KybDocumentsSection } from '@/components/applications/KybDocumentsSecti
 import { ApplicationActions, ApplicationOrigin, BusinessStatePanel, RequirementsPanel } from '@/components/applications/ApplicationLifecycle';
 import { formatDate, initials, withAt } from '@/lib/format';
 import { takeReason } from '@/lib/reason';
+import { actionErrorPt } from '@/lib/errors';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -63,8 +64,8 @@ export default function MerchantDetailPage() {
     try {
       await api.flagAML(approvedMerchant, notes);
       toast('warning', 'Comerciante sinalizado para AML.');
-    } catch {
-      toast('danger', 'Não foi possível sinalizar AML.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível sinalizar AML.'));
     } finally {
       setBusy(null);
     }
@@ -79,8 +80,8 @@ export default function MerchantDetailPage() {
     try {
       await api.suspendMerchant(approvedMerchant, notes);
       toast('info', 'Conta suspensa.');
-    } catch {
-      toast('danger', 'Não foi possível suspender a conta.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível suspender a conta.'));
     } finally {
       setBusy(null);
     }

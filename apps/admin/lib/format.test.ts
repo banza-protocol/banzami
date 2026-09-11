@@ -1,5 +1,29 @@
 import { describe, expect, it } from 'vitest';
-import { formatAmountMinor, formatKz, formatMoney, formatTotals, totalsByCurrency } from './format';
+import { businessLabel, formatAmountMinor, formatDate, formatDateTime, formatKz, formatMoney, formatTotals, totalsByCurrency } from './format';
+
+describe('dates — the Luanda (WAT) calendar, labelled where it is a timestamp', () => {
+  it('a date is the Luanda day, not the browser’s', () => {
+    expect(formatDate('2026-09-10T23:30:00Z')).toBe('11/09/2026'); // 00:30 WAT
+    expect(formatDate('2026-09-10T22:30:00Z')).toBe('10/09/2026'); // 23:30 WAT
+    expect(formatDate(null)).toBe('—');
+    expect(formatDate('nope')).toBe('—');
+  });
+
+  it('a timestamp carries its clock and says WAT', () => {
+    expect(formatDateTime('2026-09-10T23:05:00Z')).toBe('11/09/2026, 00:05 (WAT)');
+    expect(formatDateTime('2026-09-11T10:00:00Z')).toBe('11/09/2026, 11:00 (WAT)');
+    expect(formatDateTime(undefined)).toBe('—');
+  });
+});
+
+describe('businessLabel', () => {
+  it('"@handle · name", either part alone, else the fallback', () => {
+    expect(businessLabel('doa', 'Doa')).toBe('@doa · Doa');
+    expect(businessLabel('', 'Doa')).toBe('Doa');
+    expect(businessLabel('doa', '')).toBe('@doa');
+    expect(businessLabel(null, null, 'abc123')).toBe('abc123');
+  });
+});
 
 describe('money — the currency written once, in its own unit', () => {
   it('kwanza reads "50 000 Kz"', () => {

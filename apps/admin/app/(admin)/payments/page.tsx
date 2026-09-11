@@ -13,6 +13,7 @@ import { takeReason } from '@/lib/reason';
 import { AttentionFilterBar } from '@/components/ui/attention-chip';
 import { useAttentionCategory, useAttentionView } from '@/components/layout/attention-provider';
 import { filterByStates } from '@/lib/attention';
+import { actionErrorPt } from '@/lib/errors';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -109,8 +110,8 @@ export default function PaymentsPage() {
         fail:    'Levantamento marcado como falhado.',
       }[action]);
       await load();
-    } catch {
-      toast('danger', 'Não foi possível atualizar o levantamento. Recarregue para ver o estado atual.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível atualizar o levantamento.'));
     } finally {
       setBusy(null);
     }

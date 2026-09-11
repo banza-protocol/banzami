@@ -11,6 +11,7 @@ import {
 } from '@/lib/admin-api';
 import { useToast } from '@/components/ui/toast';
 import { formatDate } from '@/lib/format';
+import { actionErrorPt } from '@/lib/errors';
 
 type Env = 'LIVE' | 'SANDBOX';
 
@@ -128,8 +129,8 @@ export function MerchantKybDrawer({
       } else {
         window.open(download_url, '_blank', 'noopener,noreferrer');
       }
-    } catch {
-      toast('danger', 'Não foi possível abrir o documento.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível abrir o documento.'));
     } finally {
       setAccessBusy(null);
     }
@@ -374,8 +375,8 @@ function ApproveModal({
       await api.approveMerchantKybDocument(doc.id, { validUntil, notes: notes.trim() || undefined }, envParam(env));
       toast('success', 'Documento aprovado.');
       onDone();
-    } catch {
-      toast('danger', 'Não foi possível aprovar o documento.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível aprovar o documento.'));
       setBusy(false);
     }
   }
@@ -418,8 +419,8 @@ function RejectModal({
       await api.rejectMerchantKybDocument(doc.id, reason, { notes: notes.trim() || undefined }, envParam(env));
       toast('success', 'Documento rejeitado.');
       onDone();
-    } catch {
-      toast('danger', 'Não foi possível rejeitar o documento.');
+    } catch (e) {
+      toast('danger', actionErrorPt(e, 'Não foi possível rejeitar o documento.'));
       setBusy(false);
     }
   }

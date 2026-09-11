@@ -6,6 +6,7 @@ import { getSession } from '@/lib/session';
 import { AdminApi, type FinanceDashboard, type FinanceDashboardFilters, type FeeBucket } from '@/lib/admin-api';
 import { Card, CardHeader, ErrorState, EmptyMsg } from '@/components/ui/table';
 import { formatMoney } from '@/lib/format';
+import { watDayBoundary, watDayFromBoundary } from '@/lib/time';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -79,8 +80,10 @@ export default function FinanceDashboardPage() {
           <option value="">Todas as moedas</option>
           {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <input className={selClass} type="date" value={filters.from?.slice(0, 10) ?? ''} onChange={(e) => set('from', e.target.value ? `${e.target.value}T00:00:00Z` : '')} />
-        <input className={selClass} type="date" value={filters.to?.slice(0, 10) ?? ''} onChange={(e) => set('to', e.target.value ? `${e.target.value}T23:59:59Z` : '')} />
+        {/* A picked day is a Luanda day: from its 00:00 WAT to its 23:59:59.999 WAT. */}
+        <input className={selClass} type="date" aria-label="Desde (dia WAT)" title="Dia em hora de Luanda (WAT)" value={watDayFromBoundary(filters.from)} onChange={(e) => set('from', e.target.value ? watDayBoundary(e.target.value, 'start') : '')} />
+        <input className={selClass} type="date" aria-label="Até (dia WAT)" title="Dia em hora de Luanda (WAT)" value={watDayFromBoundary(filters.to)} onChange={(e) => set('to', e.target.value ? watDayBoundary(e.target.value, 'end') : '')} />
+        <span className="text-[12px] font-bold text-[#9a8a8e]">Datas em hora de Luanda (WAT)</span>
       </div>
 
       {loading ? (
@@ -90,9 +93,12 @@ export default function FinanceDashboardPage() {
       ) : !data ? null : (
         <>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-            <Kpi icon={Coins} bg="#fff1f0" color="#B5101F" label="Taxas hoje" big={String(sumCount(data.operator_fees.today))} sub={moneyByCurrency(data.operator_fees.today)} />
-            <Kpi icon={CalendarDays} bg="#eef4ff" color="#2657c9" label="Taxas no mês" big={String(sumCount(data.operator_fees.month))} sub={moneyByCurrency(data.operator_fees.month)} />
-            <Kpi icon={HandCoins} bg="#eafaf0" color="#1f9d57" label="Liquidações hoje" big={String(data.application_settlements.today_count)} sub="aplicações" />
+            {/* Core cuts "today", "this month" and the day buckets on the
+                UTC calendar (core/api/src/routes/finance_dashboard.rs), so
+                they are labelled UTC — not passed off as the Luanda day. */}
+            <Kpi icon={Coins} bg="#fff1f0" color="#B5101F" label="Taxas hoje (dia UTC)" big={String(sumCount(data.operator_fees.today))} sub={moneyByCurrency(data.operator_fees.today)} />
+            <Kpi icon={CalendarDays} bg="#eef4ff" color="#2657c9" label="Taxas no mês (UTC)" big={String(sumCount(data.operator_fees.month))} sub={moneyByCurrency(data.operator_fees.month)} />
+            <Kpi icon={HandCoins} bg="#eafaf0" color="#1f9d57" label="Liquidações hoje (dia UTC)" big={String(data.application_settlements.today_count)} sub="aplicações" />
             <Kpi icon={Clock} bg="#fff7e8" color="#b07d18" label="Pendentes" big={String(data.application_settlements.pending_count)} sub="por concluir" />
             <Kpi icon={AlertTriangle} bg="#fdeef0" color="#c0392b" label="Falhadas" big={String(data.application_settlements.failed_count)} sub="requerem atenção" />
           </div>
@@ -105,7 +111,7 @@ export default function FinanceDashboardPage() {
           </div>
 
           <Card>
-            <CardHeader title={cur ? 'Taxas por dia (janela do filtro)' : 'Número de taxas por dia (janela do filtro)'} />
+            <CardHeader title={cur ? 'Taxas por dia UTC (janela do filtro)' : 'Número de taxas por dia UTC (janela do filtro)'} />
             <div className="p-[18px]">
               {!cur && <p className="m-0 mb-3 text-[12.5px] font-semibold text-[#9a8a8e]">{MIXED_HINT}</p>}
               {data.operator_fees.by_day.length === 0
