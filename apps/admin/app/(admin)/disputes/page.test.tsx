@@ -4,7 +4,8 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 
 const resolveDispute = vi.fn(async () => ({}));
 const dispute = (id: string, status: string) => ({
-  id, transaction_id: `tx-${id}`, merchant_id: 'merchant-1', consumer_id: 'consumer-1',
+  // Disputes opened since A1-05 name no consumer; the page must render them.
+  id, transaction_id: `tx-${id}`, merchant_id: 'merchant-1', consumer_id: id === 'open' ? null : 'consumer-1',
   amount_minor: 250_000, currency: 'AOA', reason: `Motivo ${id}`, status,
   evidence_deadline: null, resolution_notes: null, created_at: '2026-09-01T10:00:00Z',
   updated_at: '2026-09-01T10:00:00Z', resolved_at: null,

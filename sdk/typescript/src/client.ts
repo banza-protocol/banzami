@@ -1106,7 +1106,6 @@ export class BanzamiClient {
       method: 'POST',
       body:   JSON.stringify({
         transaction_id:    params.transaction_id,
-        consumer_id:       params.consumer_id,
         amount_minor:      params.amount_minor,
         currency:          params.currency,
         reason:            params.reason,

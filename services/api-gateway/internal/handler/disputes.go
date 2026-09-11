@@ -64,8 +64,9 @@ func (h *DisputeHandler) Open(w http.ResponseWriter, r *http.Request) {
 	}
 	var body struct {
 		TransactionID string `json:"transaction_id"`
-		ConsumerID    string `json:"consumer_id"`
-		Reason        string `json:"reason"`
+		// No consumer_id: a dispute names no consumer the caller asserts (A1-05).
+		// A body that still sends one is accepted and the value ignored.
+		Reason string `json:"reason"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -76,9 +77,6 @@ func (h *DisputeHandler) Open(w http.ResponseWriter, r *http.Request) {
 	case body.TransactionID == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "transaction_id is required")
 		return
-	case body.ConsumerID == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "consumer_id is required")
-		return
 	case body.Reason == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "reason is required")
 		return
@@ -86,7 +84,6 @@ func (h *DisputeHandler) Open(w http.ResponseWriter, r *http.Request) {
 
 	dispute, err := h.svc.Open(r.Context(), service.OpenDisputeRequest{
 		TransactionID: body.TransactionID,
-		ConsumerID:    body.ConsumerID,
 		Reason:        body.Reason,
 		MerchantID:    mid,
 	})

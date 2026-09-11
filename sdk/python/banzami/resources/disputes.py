@@ -16,7 +16,7 @@ class DisputesResource(AsyncResource):
         self,
         *,
         transaction_id:   str,
-        consumer_id:      str,
+        consumer_id:      str | None = None,
         amount:           int,
         currency:         str = "AOA",
         reason:           str,
@@ -30,7 +30,8 @@ class DisputesResource(AsyncResource):
         transaction_id:
             ID of the transaction being disputed.
         consumer_id:
-            ID of the disputing consumer.
+            Deprecated and ignored — not sent. A dispute names no consumer the
+            caller asserts; the disputed payment has none.
         amount:
             Disputed amount in minor units (Kz).
         reason:
@@ -44,7 +45,6 @@ class DisputesResource(AsyncResource):
             "/disputes",
             {
                 "transaction_id":    transaction_id,
-                "consumer_id":       consumer_id,
                 "amount_minor":      amount,
                 "currency":          currency,
                 "reason":            reason,

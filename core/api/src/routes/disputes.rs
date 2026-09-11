@@ -23,7 +23,9 @@ pub struct DisputeResponse {
     pub id: String,
     pub transaction_id: String,
     pub merchant_id: String,
-    pub consumer_id: String,
+    /// The Banzami consumer who paid, when the disputed payment has one. An
+    /// acquiring transaction has none, so disputes opened today name none (A1-05).
+    pub consumer_id: Option<String>,
     pub amount_minor: i64,
     pub currency: String,
     pub reason: String,
@@ -53,7 +55,8 @@ pub struct EvidenceResponse {
 #[derive(Deserialize)]
 pub struct OpenDisputeBody {
     pub transaction_id: String,
-    pub consumer_id: String,
+    // No consumer_id: it was taken from the caller and stored as fact (A1-05).
+    // A body that still sends one parses; the value is ignored.
     pub reason: String,
     /// The Business opening it (merchant surface). When present, the
     /// transaction must be that merchant's — a dispute on someone else's
@@ -74,13 +77,11 @@ pub async fn open(
         .transaction_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid transaction_id"))?;
-    let consumer_id: Uuid = body
-        .consumer_id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid consumer_id"))?;
+    // An acquiring transaction has no Banzami consumer, so the dispute names
+    // none. It used to name whoever the caller asserted (A1-05).
+    let consumer_id: Option<Uuid> = None;
 
     // Fetch transaction — must be CAPTURED or SETTLED
-    // Note: transactions have no consumer_id; ownership is asserted by the caller.
     let tx = sqlx::query!(
         r#"
         SELECT id, merchant_id, amount_minor, currency, status
@@ -447,7 +448,7 @@ pub async fn resolve(
     }
 
     let merchant_id: Uuid = d.get("merchant_id");
-    let consumer_id: Uuid = d.get("consumer_id");
+    let consumer_id: Option<Uuid> = d.get("consumer_id");
     let claim_amount: i64 = d.get("amount_minor");
     let currency: String = d.get("currency");
     let source_type: String = d.get("source_type");
@@ -668,7 +669,7 @@ async fn fetch_dispute(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<DisputeRespon
         id: r.id.to_string(),
         transaction_id: r.transaction_id.to_string(),
         merchant_id: r.merchant_id.to_string(),
-        consumer_id: r.consumer_id.to_string(),
+        consumer_id: r.consumer_id.map(|c| c.to_string()),
         amount_minor: r.amount_minor,
         currency: r.currency,
         reason: r.reason,

@@ -15,10 +15,12 @@ var ErrDisputeNotFound = errors.New("dispute not found")
 // ---------------------------------------------------------------------------
 
 type Dispute struct {
-	ID               string     `json:"id"`
-	TransactionID    string     `json:"transaction_id"`
-	MerchantID       string     `json:"merchant_id"`
-	ConsumerID       string     `json:"consumer_id"`
+	ID            string `json:"id"`
+	TransactionID string `json:"transaction_id"`
+	MerchantID    string `json:"merchant_id"`
+	// ConsumerID is null for every dispute opened since A1-05: the disputed
+	// payment is an acquiring transaction, which has no Banzami consumer.
+	ConsumerID       *string    `json:"consumer_id"`
 	AmountMinor      int64      `json:"amount_minor"`
 	Currency         string     `json:"currency"`
 	Reason           string     `json:"reason"`
@@ -50,7 +52,6 @@ type DisputeEvidencePage struct {
 
 type OpenDisputeRequest struct {
 	TransactionID string
-	ConsumerID    string
 	Reason        string
 	// MerchantID is the calling Business; core refuses (not found) a
 	// transaction that is not its own.
@@ -92,7 +93,6 @@ func NewCoreApiDisputeService(client *CoreApiClient) *CoreApiDisputeService {
 func (s *CoreApiDisputeService) Open(ctx context.Context, req OpenDisputeRequest) (*Dispute, error) {
 	body := map[string]any{
 		"transaction_id": req.TransactionID,
-		"consumer_id":    req.ConsumerID,
 		"reason":         req.Reason,
 	}
 	if req.MerchantID != "" {
@@ -122,13 +122,13 @@ func (s *CoreApiDisputeService) List(ctx context.Context, merchantID, consumerID
 	}
 	path := fmt.Sprintf("/internal/v1/disputes?limit=%d", limit)
 	if merchantID != "" {
-		path += "&merchant_id=" + merchantID
+		path += "&merchant_id=" + url.QueryEscape(merchantID)
 	}
 	if consumerID != "" {
-		path += "&consumer_id=" + consumerID
+		path += "&consumer_id=" + url.QueryEscape(consumerID)
 	}
 	if status != "" {
-		path += "&status=" + status
+		path += "&status=" + url.QueryEscape(status)
 	}
 	var resp DisputePage
 	if err := s.client.get(ctx, path, &resp); err != nil {

@@ -20,7 +20,8 @@ class Dispute(BaseModel):
     id:                str
     transaction_id:    str
     merchant_id:       str
-    consumer_id:       str
+    # None for disputes opened today: the disputed payment has no Banzami consumer.
+    consumer_id:       str | None = None
     amount_minor:      int
     currency:          str
     reason:            str

@@ -634,12 +634,11 @@ async fn entry_on_account(pool: &PgPool, key: &str, etype: &str, account: Uuid) 
 
 // ═══════════════════════════ REF-002 — disputes ═══════════════════════════
 
-async fn open_dispute(state: &AppState, tx: Uuid, consumer: Uuid) -> disputes::DisputeResponse {
+async fn open_dispute(state: &AppState, tx: Uuid, _consumer: Uuid) -> disputes::DisputeResponse {
     let (_, Json(d)) = disputes::open(
         State(state.clone()),
         Json(disputes::OpenDisputeBody {
             transaction_id: tx.to_string(),
-            consumer_id: consumer.to_string(),
             reason: "item not received".into(),
             merchant_id: None,
         }),
@@ -707,7 +706,6 @@ async fn duplicate_open_dispute_rejected(pool: PgPool) {
         State(state),
         Json(disputes::OpenDisputeBody {
             transaction_id: seed.transaction_id.to_string(),
-            consumer_id: consumer.to_string(),
             reason: "again".into(),
             merchant_id: None,
         }),
@@ -1663,7 +1661,6 @@ async fn dispute_open_for_another_merchants_transaction_is_not_found(pool: PgPoo
         State(state.clone()),
         Json(disputes::OpenDisputeBody {
             transaction_id: seed.transaction_id.to_string(),
-            consumer_id: Uuid::new_v4().to_string(),
             reason: "not mine".into(),
             merchant_id: Some(Uuid::new_v4().to_string()),
         }),
@@ -1836,4 +1833,47 @@ async fn concurrent_opposite_resolutions_have_one_winner(pool: PgPool) {
     } else {
         assert_eq!(posted, 0, "the merchant won and money was still given back");
     }
+}
+
+// A1-05. A dispute's consumer was whatever the caller asserted: stored,
+// filterable, and sent to the Business in dispute.* webhooks as if it were a
+// fact. The disputed payment is an acquiring transaction, which has no Banzami
+// consumer, so the dispute names none — whatever the body says.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn a_dispute_names_no_consumer_the_caller_asserted(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 2_000).await;
+    let asserted = Uuid::new_v4();
+    let body: disputes::OpenDisputeBody = serde_json::from_value(serde_json::json!({
+        "transaction_id": seed.transaction_id.to_string(),
+        "consumer_id": asserted.to_string(),
+        "reason": "item not received",
+    }))
+    .expect("a body naming a consumer still parses");
+    let (_, Json(d)) = disputes::open(State(state.clone()), Json(body))
+        .await
+        .expect("open");
+    assert_eq!(
+        d.consumer_id, None,
+        "the response names the asserted consumer"
+    );
+
+    let did = Uuid::parse_str(&d.id).unwrap();
+    let stored: Option<Uuid> = sqlx::query_scalar("SELECT consumer_id FROM disputes WHERE id = $1")
+        .bind(did)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(stored, None, "the asserted consumer was stored");
+    let emitted: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM webhook_events WHERE event_type = 'dispute.opened' AND payload::text LIKE '%' || $1 || '%'",
+    )
+    .bind(asserted.to_string())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        emitted, 0,
+        "the asserted consumer went out in dispute.opened"
+    );
 }

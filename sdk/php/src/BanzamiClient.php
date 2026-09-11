@@ -307,7 +307,8 @@ class BanzamiClient
     {
         return $this->request('POST', '/disputes', [
             'transaction_id'    => $params['transaction_id'],
-            'consumer_id'       => $params['consumer_id'],
+            // consumer_id is no longer sent: a dispute names no consumer the
+            // caller asserts (the disputed payment has none).
             'amount_minor'      => $params['amount_minor'],
             'currency'          => $params['currency'] ?? 'AOA',
             'reason'            => $params['reason'],

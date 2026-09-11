@@ -107,7 +107,9 @@ export default function DisputesPage() {
               </Td>
               <Td>
                 <div className="text-[14px] font-bold">{d.merchant_id.slice(0, 8)}…</div>
-                <div className="font-mono text-[12px] font-semibold text-[#9a8a8e]">{d.consumer_id.slice(0, 8)}…</div>
+                {d.consumer_id && (
+                  <div className="font-mono text-[12px] font-semibold text-[#9a8a8e]">{d.consumer_id.slice(0, 8)}…</div>
+                )}
               </Td>
               <Td className="font-semibold text-[#5a4a4e]">{d.reason || '—'}</Td>
               <Td right mono className="font-extrabold">{formatMoney(d.amount_minor, d.currency)}</Td>

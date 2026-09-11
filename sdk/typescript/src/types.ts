@@ -430,7 +430,8 @@ export interface Dispute {
   id:                string;
   transaction_id:    string;
   merchant_id:       string;
-  consumer_id:       string;
+  /** Null for disputes opened today: the disputed payment has no Banzami consumer. */
+  consumer_id:       string | null;
   amount_minor:      number;
   currency:          string;
   reason:            string;
@@ -444,7 +445,11 @@ export interface Dispute {
 
 export interface OpenDisputeParams {
   transaction_id:   string;
-  consumer_id:      string;
+  /**
+   * @deprecated Ignored and no longer sent. A dispute names no consumer the
+   * caller asserts; the disputed payment has none.
+   */
+  consumer_id?:     string;
   amount_minor:     number;
   currency:         string;
   reason:           string;

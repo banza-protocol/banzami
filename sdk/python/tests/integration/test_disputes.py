@@ -103,3 +103,23 @@ async def test_dispute_resolved():
     assert dispute.status == DisputeStatus.WON_BY_MERCHANT
     assert dispute.resolution_notes == "Entrega confirmada pelo courier"
     assert dispute.resolved_at is not None
+
+
+async def test_open_dispute_sends_no_consumer_and_reads_a_null_one():
+    # A1-05: a dispute names no consumer the caller asserts, and the API
+    # answers consumer_id null for disputes opened today.
+    import json
+
+    answered = {**DISPUTE, "consumer_id": None}
+    with respx.mock(base_url=BASE) as mock:
+        route = mock.post("/v1/disputes").mock(return_value=httpx.Response(200, json=answered))
+        async with Banzami(api_key="bz_test", base_url=BASE) as c:
+            dispute = await c.disputes.open(
+                transaction_id="tx_001",
+                consumer_id="con_001",
+                amount=50000,
+                reason="Produto não recebido",
+            )
+    sent = json.loads(route.calls.last.request.content)
+    assert "consumer_id" not in sent
+    assert dispute.consumer_id is None

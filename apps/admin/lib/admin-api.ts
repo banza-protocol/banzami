@@ -362,7 +362,8 @@ export interface AdminDispute {
   id:                string;
   transaction_id:    string;
   merchant_id:       string;
-  consumer_id:       string;
+  /** Null for disputes opened since A1-05: the disputed payment has no Banzami consumer. */
+  consumer_id:       string | null;
   amount_minor:      number;
   currency:          string;
   reason:            string;

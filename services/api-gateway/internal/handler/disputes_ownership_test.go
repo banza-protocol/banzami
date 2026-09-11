@@ -2,6 +2,7 @@ package handler_test
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +43,7 @@ func (s *disputeSpy) ListEvidence(_ context.Context, id string) (*service.Disput
 }
 
 func ownedDispute() *disputeSpy {
-	return &disputeSpy{d: &service.Dispute{ID: linkID, MerchantID: ownerID, ConsumerID: "c-1", AmountMinor: 5000}}
+	return &disputeSpy{d: &service.Dispute{ID: linkID, MerchantID: ownerID, AmountMinor: 5000}}
 }
 
 func TestDisputes_AnotherMerchantSeesAndTouchesNothing(t *testing.T) {
@@ -109,5 +110,29 @@ func TestDisputes_NoMerchantPrincipalIsRefused(t *testing.T) {
 	h.List(w, withConsumer(httptest.NewRequest(http.MethodGet, "/v1/disputes", nil)))
 	if w.Code != http.StatusUnauthorized || len(spy.listedFor) != 0 {
 		t.Fatalf("a consumer token listed disputes: %d", w.Code)
+	}
+}
+
+// A1-05. A Business opening a dispute had to name a consumer_id, which core
+// stored and sent back in dispute.* webhooks as if it were a fact. The dispute
+// names no consumer now; a body without one is accepted and nothing the caller
+// sends as consumer_id is forwarded.
+func TestDisputes_OpenNeitherNeedsNorForwardsAConsumer(t *testing.T) {
+	spy := ownedDispute()
+	h := handler.NewDisputeHandler(spy)
+	w := httptest.NewRecorder()
+	h.Open(w, withMerchant(httptest.NewRequest(http.MethodPost, "/v1/disputes",
+		strings.NewReader(`{"transaction_id":"t","reason":"r"}`)), ownerID))
+	if w.Code != http.StatusCreated || len(spy.opened) != 1 {
+		t.Fatalf("a dispute without a consumer_id was refused: %d %s", w.Code, w.Body.String())
+	}
+	w = httptest.NewRecorder()
+	h.Open(w, withMerchant(httptest.NewRequest(http.MethodPost, "/v1/disputes",
+		strings.NewReader(`{"transaction_id":"t","consumer_id":"someone-else","reason":"r"}`)), ownerID))
+	if w.Code != http.StatusCreated || len(spy.opened) != 2 {
+		t.Fatalf("a body still sending consumer_id was refused: %d", w.Code)
+	}
+	if got := fmt.Sprintf("%+v", spy.opened[1]); strings.Contains(got, "someone-else") {
+		t.Fatalf("the asserted consumer was forwarded to core: %s", got)
 	}
 }
