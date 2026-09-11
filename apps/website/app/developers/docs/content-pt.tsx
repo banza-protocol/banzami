@@ -407,7 +407,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
               <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
 <H3 id="sdk-first">Modelo de integração SDK-first</H3>
               <P>
-                A filosofia de integração da Banzami é <strong>SDK-first</strong>. Os SDKs Banzami devem ser o caminho
+                A filosofia de integração do Banzami é <strong>SDK-first</strong>. Os SDKs Banzami devem ser o caminho
                 recomendado para integrar pagamentos, criar sessões, validar respostas, tratar erros, gerir idempotência e
                 consumir webhooks.
               </P>
@@ -530,7 +530,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
 
               <H3 id="onboarding-preview">Onboarding do preview SDK</H3>
               <P>
-                O preview SDK da Banzami é controlado. Não é um registo público self-service, não publica pacotes em
+                O preview SDK do Banzami é controlado. Não é um registo público self-service, não publica pacotes em
                 registries públicos e não ativa trilhos de Produção.
               </P>
               <P>
@@ -585,7 +585,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 <LI>Validar idempotência, tratamento de erros e webhooks; respeitar os limites de disponibilidade/capacidade.</LI>
               </UL>
 
-              <H3 id="resp-banzami">Responsabilidades da Banzami no preview</H3>
+              <H3 id="resp-banzami">Responsabilidades do Banzami no preview</H3>
               <UL>
                 <LI>Fornecer acesso controlado onde aprovado; manter a documentação Sandbox/Preview e os artefactos de referência do protocolo.</LI>
                 <LI>Documentar limitações conhecidas; manter o estado dos SDKs honesto; atualizar as matrizes de disponibilidade.</LI>
@@ -843,7 +843,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
     <>
 <Section id="api-reference">
               <H2>API Reference</H2>
-              <PageLede>Camada de <strong>referência do protocolo</strong> (API/OpenAPI). <strong>Não é o caminho de implementação recomendado</strong> — a Banzami é SDK-first; use esta referência para diagnóstico, auditoria e integradores avançados.</PageLede>
+              <PageLede>Camada de <strong>referência do protocolo</strong> (API/OpenAPI). <strong>Não é o caminho de implementação recomendado</strong> — o Banzami é SDK-first; use esta referência para diagnóstico, auditoria e integradores avançados.</PageLede>
               <NextSteps label="A seguir:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/guides', text: 'Guias' }, { href: '/docs/sdk', text: 'SDKs' }]} />
               <P>A referência separa-se em duas áreas: o que gere na <strong>Console</strong> e o que a sua aplicação chama na <strong>camada de integração</strong>.</P>
 
@@ -877,7 +877,7 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox controlado'],
                       ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
                       ['Payment links', 'Chave developer (scope payment_links, projeto com binding ativo) ou credencial de merchant', 'Disponível em Sandbox controlado'],
-                      ['Registo de endpoints de webhooks (POST /v1/webhooks)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
+                      ['Registo de endpoints de webhooks (POST /v1/webhooks/endpoints)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
                       ['Entrega outbound de webhooks', '—', 'Verificada em Sandbox — assinatura confirmada de forma independente e entrega aceite por um recetor público'],
                       ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write) ou credencial de merchant', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
                       ['Transferências (POST /v1/wallet-account-transfers)', 'Chave de projeto (transfers:write)', 'Disponível em Sandbox — entre contas do mesmo titular do projeto'],
@@ -1038,7 +1038,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
               <NextSteps label="Relacionado:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/changelog', text: 'Changelog' }]} />
 <H3 id="confianca">Confiança técnica e prontidão</H3>
               <P>
-                Esta secção resume o estado técnico da documentação Developers da Banzami para parceiros aprovados. O objetivo
+                Esta secção resume o estado técnico da documentação Developers do Banzami para parceiros aprovados. O objetivo
                 é separar claramente o que está disponível em Sandbox/Preview, o que está simulado, o que está pendente, o que
                 não está disponível e o que não deve ser interpretado como aprovação de Produção, ativação de trilhos live ou
                 autorização regulatória.
@@ -1227,7 +1227,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
               <P>
                 A mesma superfície documentada existe em formato <strong>machine-readable</strong> — <strong>artefactos de
                 referência do protocolo</strong>, publicados como ficheiros estáticos. <strong>Não são a recomendação principal
-                de integração</strong> (a Banzami é SDK-first), descrevem apenas o âmbito Sandbox/Pré-visualização atual,
+                de integração</strong> (o Banzami é SDK-first), descrevem apenas o âmbito Sandbox/Pré-visualização atual,
                 <strong> não são contratos de Produção</strong>, não são trilhos live, não são aprovação regulatória e não
                 substituem os SDKs:
               </P>

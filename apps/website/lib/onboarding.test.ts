@@ -184,6 +184,21 @@ describe('CandidaturaForm — the reviewed lifecycle', () => {
   it('shows the application reference on success', () => {
     expect(FORM).toMatch(/data-testid="application-reference"/);
   });
+  // The status page looks an application up by its full id only; eight
+  // characters of it were shown, which the status page cannot find.
+  it('shows the whole reference the status page accepts, not a prefix', () => {
+    expect(FORM).not.toMatch(/applicationId\.slice\(/);
+    expect(FORM).toMatch(/>\s*\{applicationId\}\s*</);
+  });
+  // Submitting sends no email (the gateway's Submit notifies nobody), so no
+  // page may promise the reference arrived by one.
+  it('promises no submission email', () => {
+    const STATUS = readFileSync(join(process.cwd(), 'app/comerciantes/candidatura/estado/ApplicationStatusView.tsx'), 'utf8');
+    for (const src of [FORM, STATUS]) {
+      expect(src).not.toMatch(/recebeu por email/);
+      expect(src).not.toMatch(/email de confirmação/i);
+    }
+  });
   it('a request the browser never completes ends the submission instead of hanging', () => {
     expect(FORM).toMatch(/submitApplication\(input, idempotencyKey\)\.catch\(/);
     expect(FORM).toMatch(/r\.status === 0/);

@@ -8,6 +8,7 @@ import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
 import { FinancialReadinessPanel, FinancialSetupPointer, useFinancialSetup } from '@/components/developers/portal/FinancialSetup';
 import { WalletAccountForm } from '@/components/developers/portal/WalletAccountForm';
 import { developerApi, ApiError, type WalletAccount } from '@/lib/developer-api';
+import { accountPurposeLabel, accountStatusLabel } from '@/lib/status-labels';
 
 // Saldos — the wallet accounts of the financial owner this project is bound to.
 //
@@ -121,7 +122,7 @@ function Balances() {
         <Card style={{ padding: 26, marginBottom: 16 }}>
           <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não criou nenhuma conta.</p>
           <p style={{ margin: '8px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
-            Uma conta mantém dinheiro separado do resto do projeto — uma por campanha, por vendedor, por
+            Uma conta mantém dinheiro separado do resto do negócio ligado a este projeto — uma por campanha, por vendedor, por
             evento, ou pelo que a sua aplicação precisar de manter à parte. Pode criá-la aqui ou pela API.
           </p>
         </Card>
@@ -135,7 +136,9 @@ function Balances() {
       {readiness}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
         <p style={{ margin: 0, fontSize: 13, color: '#8a7a7e', fontWeight: 700 }}>
-          {state.accounts.length} conta{state.accounts.length === 1 ? '' : 's'} neste projeto
+          {/* The accounts are the Business's, read for the whole Business the
+              Project receives into — not the Project's own. */}
+          {state.accounts.length} conta{state.accounts.length === 1 ? '' : 's'} do negócio ligado a este projeto
         </p>
         <WalletAccountForm onCreated={reload} />
       </div>
@@ -158,7 +161,7 @@ function Balances() {
                     {a.label || a.id}
                   </td>
                   <td style={{ padding: '12px 16px', fontWeight: 700 }}>
-                    {a.purpose}
+                    {accountPurposeLabel(a.purpose)}
                     {a.purpose === 'PRIMARY' ? (
                       // Say whose account this is. It is in the list because it
                       // holds money and hiding it would be worse — a developer
@@ -179,7 +182,7 @@ function Balances() {
                     {money(a.balance_minor, a.currency)}
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <Pill kind={a.status === 'ACTIVE' ? 'success' : 'neutral'}>{a.status}</Pill>
+                    <Pill kind={a.status === 'ACTIVE' ? 'success' : 'neutral'}>{accountStatusLabel(a.status)}</Pill>
                   </td>
                 </tr>
               ))}

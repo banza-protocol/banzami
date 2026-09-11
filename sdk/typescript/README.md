@@ -118,54 +118,12 @@ the `identity:read` scope.
 
 ## Consumer flows
 
-### Create a consumer and provision a wallet
-
-```typescript
-const consumer = await client.createConsumer('joao', 'João Silva');
-const wallet   = await client.getOrCreateConsumerWallet(consumer.id);
-
-const balance  = await client.getConsumerWalletBalance(wallet.id);
-console.log(balance.available_minor); // e.g. 25000 (Kz)
-```
-
 ### Look up a consumer by @banza
 
 ```typescript
 const consumer = await client.getConsumerByHandle('joao');
 if (consumer.status !== 'ACTIVE') {
   throw new Error('Consumer is not active');
-}
-```
-
----
-
-## P2P transfers
-
-```typescript
-import { BanzamiClient, BanzamiApiError, formatMinor } from '@banzami/sdk';
-
-const transfer = await client.sendTransfer({
-  senderId:    'cns_sender_id',
-  recipientId: 'cns_recipient_id',
-  amountMinor: 5000,       // 5 000 Kz
-  description: 'Almoço',
-});
-
-console.log(`Sent ${formatMinor(transfer.amount.amount_minor, transfer.amount.currency)}`);
-// → "Sent 5.000 Kz"
-```
-
-### Error handling
-
-```typescript
-try {
-  await client.sendTransfer({ ... });
-} catch (err) {
-  if (err instanceof BanzamiApiError) {
-    if (err.isInsufficientFunds)  console.error('Saldo insuficiente');
-    if (err.isWalletNotFound)     console.error('Carteira não encontrada');
-    if (err.isWalletNotActive)    console.error('Carteira suspensa');
-  }
 }
 ```
 
@@ -192,32 +150,9 @@ const qr = await client.createDynamicQr({
 });
 ```
 
-### Scan and pay
-
-```typescript
-// Decode a scanned payload
-const parsed = await client.decodeQrPayload(scannedString);
-
-if (parsed.is_dynamic && parsed.qr_code_id) {
-  const qrDetails = await client.getQrCode(parsed.qr_code_id);
-  const amount    = qrDetails.qr_code.amount_minor!;
-
-  await client.sendTransfer({
-    senderId:    payerConsumerId,
-    recipientId: qrDetails.qr_code.owner_id,
-    amountMinor: amount,
-  });
-
-  await client.markQrUsed(qrDetails.qr_code.id);
-} else {
-  // Static QR — user enters amount
-  await client.sendTransfer({
-    senderId:    payerConsumerId,
-    recipientId: parsed.owner_id!,
-    amountMinor: userEnteredAmount,
-  });
-}
-```
+A payer pays a QR from the Banzami app, which moves the money from the payer's
+own wallet under the payer's own authentication. A server key never pays on a
+person's behalf, so the SDK has no "send money from this consumer" call.
 
 ---
 
@@ -391,32 +326,6 @@ const page = await client.listDisputes({ status: 'OPEN', limit: 20 });
 
 ---
 
-## Payment requests
-
-Payment requests allow a merchant to send a payment demand to a specific consumer, who can pay or decline.
-
-```typescript
-// Merchant sends a payment request to a consumer
-const request = await client.createPaymentRequest({
-  merchantId:  'mch_...',
-  consumerId:  'cns_...',
-  amountMinor: 15_000,        // 15 000 Kz
-  description: 'Encomenda #87 — entrega domiciliária',
-  expiresAt:   new Date(Date.now() + 24 * 60 * 60 * 1000),
-});
-
-// Consumer pays the request
-await client.payPaymentRequest(request.id, 'cns_wallet_id');
-
-// Consumer declines
-await client.declinePaymentRequest(request.id);
-
-// Merchant cancels before consumer acts
-await client.cancelPaymentRequest(request.id);
-```
-
----
-
 ## Webhooks
 
 ```typescript
@@ -488,6 +397,20 @@ export default {
 | `LINK_NOT_ACTIVE`     | Payment link is already used, cancelled, or expired |
 
 All errors are instances of `BanzamiApiError` with `.status` (HTTP) and `.code` (domain) properties.
+
+```typescript
+import { BanzamiApiError } from '@banzami/sdk';
+
+try {
+  await client.createPayout('wlt_...', 100_000);
+} catch (err) {
+  if (err instanceof BanzamiApiError) {
+    if (err.isInsufficientFunds) console.error('Saldo insuficiente');
+    if (err.isWalletNotFound)    console.error('Carteira não encontrada');
+    if (err.isWalletNotActive)   console.error('Carteira suspensa');
+  }
+}
+```
 
 ---
 

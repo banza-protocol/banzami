@@ -588,7 +588,7 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in controlled Sandbox'],
                       ['Payment sessions', 'Developer key (payment_sessions scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
                       ['Payment links', 'Developer key (payment_links scope, project with an ACTIVE binding) or merchant credential', 'Available in controlled Sandbox'],
-                      ['Webhook endpoint registration (POST /v1/webhooks)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
+                      ['Webhook endpoint registration (POST /v1/webhooks/endpoints)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
                       ['Outbound webhook delivery', '—', 'Verified in Sandbox — signature confirmed independently and delivery accepted by a public receiver'],
                       ['Refunds (POST /v1/refunds)', 'Project key (refunds:write) or merchant credential', 'Available in Sandbox — the refund debits the account that received the payment'],
                       ['Transfers (POST /v1/wallet-account-transfers)', 'Project key (transfers:write)', 'Available in Sandbox — between accounts of the project’s own owner'],

@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { banzamiQrSvgDataUri } from '@/lib/banzami-qr';
 import { AcquiringPayment, getPaymentLinkStatus, initiatePay } from '@/lib/api';
+import { formatWatTime } from '@/lib/money';
+import { paidToLabel, payeeDisplay, type Payee } from '@/lib/payee';
 
 interface Props {
   slug:          string;
   merchantName:  string;
+  merchantHandle: string | null;
   amountDisplay: string | null;
   amountMinor:   number | null;
   currency:      string;
@@ -29,6 +32,7 @@ const POLL_INTERVAL = 3000;
 export default function PayClient({
   slug,
   merchantName,
+  merchantHandle,
   amountDisplay,
   amountMinor,
   currency,
@@ -80,8 +84,11 @@ export default function PayClient({
     } catch {}
   }, []);
 
+  const payee = payeeDisplay(merchantName, merchantHandle);
+
   // ── Confirmed ─────────────────────────────────────────────────────────────
   if (step.type === 'confirmed') {
+    const paidTo = paidToLabel(merchantName, merchantHandle);
     return (
       <main className="bz-page">
         <div className="bz-card animate-fade-up max-w-sm text-center">
@@ -91,9 +98,9 @@ export default function PayClient({
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-900">Pagamento confirmado!</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            {merchantName} recebeu o pagamento com sucesso.
-          </p>
+          {paidTo && (
+            <p className="mt-2 text-sm text-gray-600">{paidTo}</p>
+          )}
         </div>
       </main>
     );
@@ -103,14 +110,14 @@ export default function PayClient({
   if (step.type === 'instructions') {
     const { instructions, expires_at } = step.payment;
     const expiryLabel = expires_at
-      ? new Date(expires_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })
+      ? formatWatTime(expires_at)
       : null;
 
     return (
       <main className="bz-page">
         <div className="w-full max-w-sm space-y-4 animate-fade-up">
           <HeroCard
-            merchantName={merchantName}
+            payee={payee}
             amountDisplay={amountDisplay}
             description={description}
           />
@@ -159,7 +166,7 @@ export default function PayClient({
 
         {/* Hero card */}
         <HeroCard
-          merchantName={merchantName}
+          payee={payee}
           amountDisplay={amountDisplay}
           description={description}
         />
@@ -272,11 +279,11 @@ export default function PayClient({
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
 function HeroCard({
-  merchantName,
+  payee,
   amountDisplay,
   description,
 }: {
-  merchantName:  string;
+  payee:         Payee;
   amountDisplay: string | null;
   description:   string | null;
 }) {
@@ -306,10 +313,17 @@ function HeroCard({
           </span>
         </div>
 
-        {/* Merchant name */}
-        <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-white/55">
-          {merchantName}
-        </p>
+        {/* Payee: the Business's public name, its @banza under it. */}
+        {payee.primary && (
+          <p className="mt-4 text-sm font-semibold text-white/80">
+            {payee.primary}
+          </p>
+        )}
+        {payee.secondary && (
+          <p className="text-xs font-medium text-white/55">
+            {payee.secondary}
+          </p>
+        )}
 
         {/* Amount */}
         {amountDisplay ? (

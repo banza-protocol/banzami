@@ -2,8 +2,8 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Banzami Sandbox API",
-    "version": "docs-2026-09-10",
-    "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Only endpoints already verified end to end against the deployed Sandbox are included. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
+    "version": "docs-2026-09-11",
+    "description": "Machine-readable description of the CURRENTLY DOCUMENTED Banzami Sandbox API surface (Sandbox/Preview documentation scope only). PT docs: developers.banzami.com/docs · EN docs: developers.banzami.com/docs/en. This document describes the Sandbox integration surface verified in evidence — it is NOT a production contract, and Production/live rails are not available (Production in preparation). Every operation described is served by the deployed Sandbox gateway on the developer-key surface; an operation a developer key cannot call says so and names the refusal it answers. POST /v1/payment-links/{id}/mark-used is retired (410 ROUTE_RETIRED) and is not described. All example values are obvious placeholders (bz_test_sk_XXXX, idem_xxx, payment_session_xxx) — never real credentials."
   },
   "servers": [
     {
@@ -28,6 +28,22 @@
     {
       "name": "payment-links",
       "description": "Payment links — Sandbox, gated by scope + project binding"
+    },
+    {
+      "name": "application-settlements",
+      "description": "Application settlements — close out a segregated account to a beneficiary @banza, priced by Banzami"
+    },
+    {
+      "name": "refunds",
+      "description": "Refunds of your own payments — Sandbox, gated by scope + project binding"
+    },
+    {
+      "name": "webhooks",
+      "description": "Webhook endpoints, events and deliveries of your project's owner"
+    },
+    {
+      "name": "handles",
+      "description": "@banza lookup — confirm a destination exists before naming it"
     }
   ],
   "paths": {
@@ -877,6 +893,63 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "listWebhookEndpoints",
+        "summary": "List your webhook endpoints",
+        "description": "Lists every endpoint registered under the owner your project is bound to, newest first, including deactivated ones (active: false). The signing secret is never included. Credential: developer key with webhooks:read, or a merchant credential. No pagination.",
+        "responses": {
+          "200": {
+            "description": "Webhook endpoints",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookEndpoint"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "whep_xxx",
+                      "url": "https://your-server.example/webhooks/banzami",
+                      "events": [
+                        "payment_session.paid"
+                      ],
+                      "active": true,
+                      "created_at": "2026-07-11T11:45:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:read) or PAYMENTS_UNAVAILABLE (project not provisioned — an unbound project has no webhooks)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/refunds": {
@@ -937,6 +1010,1164 @@
           },
           "404": {
             "description": "Refund source not found, or belonging to another project",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "refunds"
+        ],
+        "operationId": "listRefunds",
+        "summary": "List your refunds",
+        "description": "Lists the refunds of the owner your project is bound to, newest first. The owner comes from the credential; no parameter selects another. Credential: developer key with refunds:read on a project bound to a financial owner, or a merchant credential. There is no cursor: at most limit refunds are returned.",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "example": "wallet_payment_xxx",
+            "description": "Only the refunds of this payment. Must be the payment's id; a value that is not a UUID is ignored rather than refused, and the unfiltered list is returned."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refunds",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Refund"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "refund_xxx",
+                      "source_type": "WALLET_PAYMENT",
+                      "source_id": "wallet_payment_xxx",
+                      "amount_minor": 50000,
+                      "currency": "AOA",
+                      "status": "SUCCEEDED",
+                      "reason": null,
+                      "created_at": "2026-07-11T11:45:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_PARAM — limit is not an integer between 1 and 100",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing refunds:read) or PAYMENTS_UNAVAILABLE (project not provisioned to hold funds)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/application-settlements": {
+      "post": {
+        "tags": [
+          "application-settlements"
+        ],
+        "operationId": "createApplicationSettlement",
+        "summary": "Settle one of your segregated accounts to a beneficiary",
+        "description": "Closes out a segregated wallet account (for example a CAMPAIGN account) of the owner your project is bound to. Banzami reads the account's available balance as the gross, prices it with the pricing profile Banzami assigned to your business, credits any application fee to the fee destination you name and the net to the beneficiary @banza, and returns the completed settlement. The request carries no amount and no rate: a body carrying any pricing field is refused with PRICING_FIELD_NOT_ACCEPTED. The source must not be the PRIMARY account; a fee destination, when named, must be your own business account, and is required only when your pricing resolves a fee. Credential: developer key with application_settlements:write on a project with an ACTIVE binding, or a merchant credential. An unknown source account answers 404; a source account belonging to another owner answers 403 FORBIDDEN. Replaying the same idempotency_key for the same source and beneficiary returns the settlement it already made, with 200.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationSettlementRequest"
+              },
+              "example": {
+                "source_account_id": "wacc_xxx",
+                "beneficiary_banza_name": "@beneficiary_xxx",
+                "fee_destination_banza_name": "@my-business",
+                "reference_id": "campaign_xxx",
+                "reason": "Campaign closed",
+                "idempotency_key": "idem_xxx"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Settlement executed (ledger posted). The response carries amounts and status only — never ledger account ids.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSettlement"
+                },
+                "example": {
+                  "id": "application_settlement_xxx",
+                  "owner_ref": "campaign_xxx",
+                  "status": "COMPLETED",
+                  "gross_amount_minor": 1000000,
+                  "application_fee_minor": 0,
+                  "net_amount_minor": 1000000,
+                  "currency": "AOA",
+                  "environment": "SANDBOX",
+                  "pricing": {
+                    "profile": "sandbox-default",
+                    "applied_bps": 0,
+                    "flat_minor": 0
+                  },
+                  "created_at": "2026-07-11T11:45:00Z",
+                  "completed_at": "2026-07-11T11:45:01Z",
+                  "failure_reason": null
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Idempotent replay: the settlement this idempotency_key already produced for the same source and beneficiary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSettlement"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_BODY (not JSON, or over 64 KB), MISSING_FIELD (idempotency_key, source_account_id or beneficiary_banza_name), PRICING_FIELD_NOT_ACCEPTED (the body names a rate, profile, category or fee amount), or BAD_REQUEST forwarded from core",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing application_settlements:write), PAYMENTS_UNAVAILABLE (project not provisioned to settle), FORBIDDEN (the source account belongs to another owner) or FEE_DESTINATION_NOT_OWNED (the fee destination is not your own business account)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Source account not found (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "IDEMPOTENCY_CONFLICT (the idempotency_key was already used for a different settlement), IDEMPOTENCY_KEY_REUSED, PRICING_NOT_CONFIGURED (Banzami has not assigned your business a pricing profile), PRICING_CONFIGURATION_ERROR, INVALID_STATUS; also IDEMPOTENCY_CONFLICT / IDEMPOTENCY_KEY_REUSED for the Idempotency-Key header",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "SOURCE_NOT_SEGREGATED (source is the PRIMARY account), BENEFICIARY_NOT_FOUND (no active wallet in this currency), NOTHING_TO_SETTLE (zero available balance), FEE_DESTINATION_NOT_FOUND, FEE_DESTINATION_REQUIRED (your pricing resolves a fee and no destination was named), FEE_DESTINATION_NOT_ACTIVE, FEE_DESTINATION_KYB_NOT_APPROVED, FEE_DESTINATION_WALLET_UNAVAILABLE, FEE_DESTINATION_TYPE_NOT_ALLOWED, FEE_DESTINATION_NOT_BUSINESS_ACCOUNT, FEE_EXCEEDS_GROSS, INSUFFICIENT_FUNDS, SETTLEMENT_NOT_COMPLETED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "UPSTREAM_ERROR — the source account or pricing could not be resolved, or core failed; the request may have been valid, retry with the same idempotency_key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE — the beneficiary, the fee destination or a prior settlement could not be checked right now; retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/application-settlements/{id}": {
+      "get": {
+        "tags": [
+          "application-settlements"
+        ],
+        "operationId": "getApplicationSettlement",
+        "summary": "Fetch an application settlement (merchant credential only)",
+        "description": "Returns a settlement to the Business Account that created it; any other settlement, including one with no recorded creator, answers 404. Credential: merchant credential ONLY. The route sits on the dual-credential surface, but its handler reads only a merchant session, so a developer key is answered 401 UNAUTHORIZED — and there is no application_settlements:read scope. A project keeps the settlement returned by POST /v1/application-settlements.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "application_settlement_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application settlement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationSettlement"
+                },
+                "example": {
+                  "id": "application_settlement_xxx",
+                  "owner_ref": "campaign_xxx",
+                  "status": "COMPLETED",
+                  "gross_amount_minor": 1000000,
+                  "application_fee_minor": 0,
+                  "net_amount_minor": 1000000,
+                  "currency": "AOA",
+                  "environment": "SANDBOX",
+                  "pricing": {
+                    "profile": "sandbox-default",
+                    "applied_bps": 0,
+                    "flat_minor": 0
+                  },
+                  "created_at": "2026-07-11T11:45:00Z",
+                  "completed_at": "2026-07-11T11:45:01Z",
+                  "failure_reason": null
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED — no merchant session. Every developer key is answered this way.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown settlement, or one created by another Business Account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/payment-links/{id}": {
+      "get": {
+        "tags": [
+          "payment-links"
+        ],
+        "operationId": "getPaymentLink",
+        "summary": "Retrieve one of your payment links",
+        "description": "Returns a payment link by its id — the id returned at creation, not the public slug (a slug, or any id that is not a UUID, answers 404). Credential: developer key with payment_links:read on a project with an ACTIVE binding, or a merchant credential. Another project's link answers 404, indistinguishable from one that does not exist. refund_source is returned only to the owning merchant session, never to a developer key.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "payment_link_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLinkRecord"
+                },
+                "example": {
+                  "id": "payment_link_xxx",
+                  "slug": "slug_xxx",
+                  "wallet_id": "wallet_xxx",
+                  "wallet_account_id": "wacc_xxx",
+                  "amount_minor": 25000,
+                  "currency": "AOA",
+                  "description": "Order #123",
+                  "status": "ACTIVE",
+                  "expires_at": null,
+                  "paid_at": null,
+                  "created_at": "2026-07-11T11:45:00Z",
+                  "updated_at": "2026-07-11T11:45:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing payment_links:read) or PAYMENTS_UNAVAILABLE (project not provisioned to accept payments)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or malformed id, or a link belonging to another project (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "payment-links"
+        ],
+        "operationId": "cancelPaymentLink",
+        "summary": "Cancel one of your payment links",
+        "description": "Cancels an ACTIVE payment link so it can no longer be paid, and returns it with status CANCELLED. A link is marked paid only by a payment; to close an unpaid link, DELETE /v1/payment-links/{id}. Credential: developer key with payment_links:write on a project with an ACTIVE binding, or a merchant credential. Ownership is checked before anything changes: another project's link answers 404, indistinguishable from one that does not exist. A link that is no longer ACTIVE (USED, EXPIRED or CANCELLED) answers 422 LINK_NOT_ACTIVE.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "payment_link_xxx"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment link cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentLinkRecord"
+                },
+                "example": {
+                  "id": "payment_link_xxx",
+                  "slug": "slug_xxx",
+                  "wallet_id": "wallet_xxx",
+                  "wallet_account_id": "wacc_xxx",
+                  "amount_minor": 25000,
+                  "currency": "AOA",
+                  "description": "Order #123",
+                  "status": "CANCELLED",
+                  "expires_at": null,
+                  "paid_at": null,
+                  "created_at": "2026-07-11T11:45:00Z",
+                  "updated_at": "2026-07-11T12:10:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing payment_links:write — a read-only key cannot cancel) or PAYMENTS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown or malformed id, or a link belonging to another project (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key header: IDEMPOTENCY_CONFLICT (a request with this key is still in flight) or IDEMPOTENCY_KEY_REUSED (the key was already used for a different request body)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LINK_NOT_ACTIVE — the link was already used, expired or cancelled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/refunds/{id}": {
+      "get": {
+        "tags": [
+          "refunds"
+        ],
+        "operationId": "getRefund",
+        "summary": "Retrieve one of your refunds",
+        "description": "Returns a refund of the owner your project is bound to. The read is scoped to that owner in Core: another project's refund, an unknown id and a malformed id all answer the same 404. Credential: developer key with refunds:read, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "refund_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Refund",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Refund"
+                },
+                "example": {
+                  "id": "refund_xxx",
+                  "source_type": "WALLET_PAYMENT",
+                  "source_id": "wallet_payment_xxx",
+                  "amount_minor": 50000,
+                  "currency": "AOA",
+                  "status": "SUCCEEDED",
+                  "reason": null,
+                  "created_at": "2026-07-11T11:45:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing refunds:read) or PAYMENTS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown refund, or one belonging to another project (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/integration": {
+      "get": {
+        "tags": [
+          "identity"
+        ],
+        "operationId": "getIntegration",
+        "summary": "Business self-profile — refuses project keys",
+        "description": "The consolidated profile of the Business Account behind a merchant session. It names that account's wallet and account ids, which a Project key must never learn, so a developer key is always refused with 403 USE_FINANCIAL_SETUP, whatever its scopes. A project reads the same readiness from GET /v1/financial-setup, which names none of them.",
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "USE_FINANCIAL_SETUP — returned to every developer key; call GET /v1/financial-setup",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "UNAVAILABLE — the business profile service is not available",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/consumers/handle/{handle}": {
+      "get": {
+        "tags": [
+          "handles"
+        ],
+        "operationId": "resolveHandle",
+        "summary": "Confirm a consumer @banza exists",
+        "description": "Resolves a consumer @banza to its handle and display name — enough to confirm a destination exists before naming it, and nothing more: no id, no wallet, no balance, no status. The lookup is exact after normalisation (a leading @ and upper case are accepted). Only consumer handles resolve here; a Business @banza answers 404. Credential: developer key with customers:read (no project binding required), or a merchant credential.",
+        "parameters": [
+          {
+            "name": "handle",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "handle_xxx",
+            "description": "The @banza, with or without the leading @"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The handle exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandleResolution"
+                },
+                "example": {
+                  "handle": "handle_xxx",
+                  "display_name": "Example Customer"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE — missing customers:read",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No consumer holds this handle (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/{id}": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "getWebhookEndpoint",
+        "summary": "Retrieve one of your webhook endpoints",
+        "description": "Returns an endpoint of your project's owner, without its secret. Another project's endpoint answers 404, indistinguishable from one that does not exist. Credential: developer key with webhooks:read, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whep_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook endpoint (no secret)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpoint"
+                },
+                "example": {
+                  "id": "whep_xxx",
+                  "url": "https://your-server.example/webhooks/banzami",
+                  "events": [
+                    "payment_session.paid"
+                  ],
+                  "active": true,
+                  "created_at": "2026-07-11T11:45:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:read) or PAYMENTS_UNAVAILABLE (project not provisioned — an unbound project has no webhooks)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown endpoint, or another project's endpoint (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "deactivateWebhookEndpoint",
+        "summary": "Deactivate one of your webhook endpoints",
+        "description": "Stops an endpoint receiving events. It is deactivated, not erased: it is retained for audit and still listed with active: false. Deactivating an already inactive endpoint answers 204 again. Another project's endpoint answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whep_xxx"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Endpoint deactivated — no body"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:write — a read-only key cannot change webhooks) or PAYMENTS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown endpoint, or another project's endpoint (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key header: IDEMPOTENCY_CONFLICT (a request with this key is still in flight) or IDEMPOTENCY_KEY_REUSED (the key was already used for a different request body)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/{id}/health": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "getWebhookEndpointHealth",
+        "summary": "Delivery health of one of your endpoints (last 24 hours)",
+        "description": "Counts the endpoint's deliveries created in the last 24 hours by outcome. Another project's endpoint answers 404. Credential: developer key with webhooks:read, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whep_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Endpoint health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointHealth"
+                },
+                "example": {
+                  "endpoint_id": "whep_xxx",
+                  "total_last_24h": 12,
+                  "success_last_24h": 11,
+                  "failed_last_24h": 1,
+                  "success_rate_pct": 91.66666666666666,
+                  "last_delivered_at": "2026-07-11T11:50:01Z",
+                  "last_failed_at": "2026-07-11T09:12:00Z"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:read) or PAYMENTS_UNAVAILABLE (project not provisioned — an unbound project has no webhooks)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown endpoint, or another project's endpoint (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/endpoints/{id}/rotate-secret": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "rotateWebhookEndpointSecret",
+        "summary": "Rotate an endpoint's signing secret",
+        "description": "Issues a new signing secret and returns it exactly once, in this response, as registration does. The cutover is immediate: the next delivery is signed with the new secret, while deliveries already queued keep their signature — update your receiver before rotating. No request body. Another project's endpoint answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whep_xxx"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New secret issued. It appears here and nowhere else.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpoint"
+                },
+                "example": {
+                  "id": "whep_xxx",
+                  "url": "https://your-server.example/webhooks/banzami",
+                  "events": [
+                    "payment_session.paid"
+                  ],
+                  "active": true,
+                  "created_at": "2026-07-11T11:45:00Z",
+                  "secret": "<returned only in this response>"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:write — a read-only key cannot change webhooks) or PAYMENTS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown endpoint, or another project's endpoint (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key header: IDEMPOTENCY_CONFLICT (a request with this key is still in flight) or IDEMPOTENCY_KEY_REUSED (the key was already used for a different request body)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/events": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "listWebhookEvents",
+        "summary": "List your recent webhook events",
+        "description": "Lists the events emitted for the owner your project is bound to, newest first, whether or not an endpoint received them. Credential: developer key with webhooks:read, or a merchant credential. There is no cursor: at most limit events are returned.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookEvent"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "whevt_xxx",
+                      "event_type": "payment_session.paid",
+                      "payload": {
+                        "id": "whevt_xxx",
+                        "type": "payment_session.paid",
+                        "created_at": "2026-07-11T11:50:00Z",
+                        "data": {
+                          "session_id": "payment_session_xxx",
+                          "amount_minor": 25000,
+                          "currency": "AOA"
+                        }
+                      },
+                      "created_at": "2026-07-11T11:50:00Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_PARAM — limit is not an integer between 1 and 100",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:read) or PAYMENTS_UNAVAILABLE (project not provisioned — an unbound project has no webhooks)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/events/{id}/deliveries": {
+      "get": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "listWebhookDeliveries",
+        "summary": "Delivery history of one of your events",
+        "description": "One delivery per endpoint the event was sent to, each with every attempt made (oldest first). Another project's event answers 404 — not an empty list. Credential: developer key with webhooks:read, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whevt_xxx"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deliveries of the event",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/WebhookDelivery"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ]
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "whdel_xxx",
+                      "event_id": "whevt_xxx",
+                      "endpoint_id": "whep_xxx",
+                      "attempt_number": 1,
+                      "status": "SUCCESS",
+                      "status_code": 200,
+                      "response_body": "ok",
+                      "delivered_at": "2026-07-11T11:50:01Z",
+                      "created_at": "2026-07-11T11:50:00Z",
+                      "attempts": [
+                        {
+                          "attempt_number": 1,
+                          "outcome": "SUCCESS",
+                          "status_code": 200,
+                          "error_class": null,
+                          "duration_ms": 184,
+                          "attempted_at": "2026-07-11T11:50:01Z"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:read) or PAYMENTS_UNAVAILABLE (project not provisioned — an unbound project has no webhooks)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown event, or another project's event (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/webhooks/deliveries/{id}/replay": {
+      "post": {
+        "tags": [
+          "webhooks"
+        ],
+        "operationId": "replayWebhookDelivery",
+        "summary": "Re-send one of your deliveries",
+        "description": "Puts an existing delivery back in the queue as PENDING, keeping its id — one delivery per event per endpoint, so a replay is a further attempt, never a second delivery. For recovery after an endpoint outage. No request body. Another project's delivery answers 404. Credential: developer key with webhooks:write, or a merchant credential.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "whdel_xxx"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Delivery re-queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDelivery"
+                },
+                "example": {
+                  "id": "whdel_xxx",
+                  "event_id": "whevt_xxx",
+                  "endpoint_id": "whep_xxx",
+                  "attempt_number": 5,
+                  "status": "PENDING",
+                  "created_at": "2026-07-11T12:30:00Z",
+                  "attempts": null
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "INSUFFICIENT_SCOPE (missing webhooks:write — a read-only key cannot change webhooks) or PAYMENTS_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown delivery, or another project's delivery (NOT_FOUND)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency-Key header: IDEMPOTENCY_CONFLICT (a request with this key is still in flight) or IDEMPOTENCY_KEY_REUSED (the key was already used for a different request body)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1845,6 +3076,382 @@
           "pricing",
           "fee_destination",
           "settlement"
+        ]
+      },
+      "CreateApplicationSettlementRequest": {
+        "type": "object",
+        "description": "Names what to settle and who receives it — never how much, and never the rate. A body carrying any pricing field is refused.",
+        "required": [
+          "source_account_id",
+          "beneficiary_banza_name",
+          "idempotency_key"
+        ],
+        "properties": {
+          "source_account_id": {
+            "type": "string",
+            "description": "A segregated wallet account of your own owner (for example a CAMPAIGN account) — not the PRIMARY account. Its whole available balance is settled."
+          },
+          "beneficiary_banza_name": {
+            "type": "string",
+            "example": "@beneficiary_xxx",
+            "description": "The @banza that receives the net, with or without the leading @. Must have an active wallet in the source currency."
+          },
+          "fee_destination_banza_name": {
+            "type": "string",
+            "example": "@my-business",
+            "description": "Your own business @banza that receives an application fee. Required only when the pricing Banzami assigned you resolves a fee."
+          },
+          "reference_id": {
+            "type": "string",
+            "description": "Your reference for the settlement; returned as owner_ref."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Free text; used as owner_ref when reference_id is absent."
+          },
+          "reference_type": {
+            "type": "string",
+            "description": "Accepted and currently not stored or returned."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "description": "Required. The same key for the same source and beneficiary returns the settlement it already made; the same key for anything else is IDEMPOTENCY_CONFLICT."
+          }
+        }
+      },
+      "ApplicationSettlement": {
+        "type": "object",
+        "description": "The app-facing view of a settlement: amounts and status only. Ledger account ids, the source and the beneficiary account are never included.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "owner_ref": {
+            "type": "string",
+            "description": "Your reference_id, or reason when no reference_id was sent"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "PENDING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "gross_amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The source account's available balance when the settlement ran"
+          },
+          "application_fee_minor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "net_amount_minor": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currency": {
+            "type": "string",
+            "example": "AOA"
+          },
+          "environment": {
+            "type": "string",
+            "example": "SANDBOX"
+          },
+          "pricing": {
+            "type": "object",
+            "nullable": true,
+            "description": "The operator's pricing as applied to THIS settlement, from the snapshot stored with it — repricing a profile later does not change it.",
+            "properties": {
+              "profile": {
+                "type": "string"
+              },
+              "applied_bps": {
+                "type": "integer"
+              },
+              "flat_minor": {
+                "type": "integer",
+                "format": "int64"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "failure_reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "gross_amount_minor",
+          "application_fee_minor",
+          "net_amount_minor",
+          "currency",
+          "created_at"
+        ]
+      },
+      "PaymentLinkRecord": {
+        "type": "object",
+        "description": "A payment link as its owner reads it (GET and DELETE /v1/payment-links/{id}). The owner's id is never included for a developer key.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The link's id — use it with /v1/payment-links/{id}"
+          },
+          "slug": {
+            "type": "string",
+            "description": "The public slug (pay.banzami.com/pay/{slug})"
+          },
+          "wallet_id": {
+            "type": "string"
+          },
+          "wallet_account_id": {
+            "type": "string",
+            "description": "The account the link credits; empty when none was set"
+          },
+          "amount_minor": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "null for an open-amount link"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "USED",
+              "EXPIRED",
+              "CANCELLED"
+            ]
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "currency",
+          "status",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "HandleResolution": {
+        "type": "object",
+        "description": "Confirms a @banza exists. Nothing else about the account is disclosed.",
+        "properties": {
+          "handle": {
+            "type": "string",
+            "description": "The handle as registered (lower case, no leading @)"
+          },
+          "display_name": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "handle",
+          "display_name"
+        ]
+      },
+      "WebhookEndpointHealth": {
+        "type": "object",
+        "description": "Deliveries to one endpoint created in the last 24 hours.",
+        "properties": {
+          "endpoint_id": {
+            "type": "string"
+          },
+          "total_last_24h": {
+            "type": "integer"
+          },
+          "success_last_24h": {
+            "type": "integer"
+          },
+          "failed_last_24h": {
+            "type": "integer"
+          },
+          "success_rate_pct": {
+            "type": "number",
+            "description": "0–100; 0 when there were no deliveries"
+          },
+          "last_delivered_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Omitted when nothing was delivered in the window"
+          },
+          "last_failed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Omitted when nothing failed in the window"
+          }
+        },
+        "required": [
+          "endpoint_id",
+          "total_last_24h",
+          "success_last_24h",
+          "failed_last_24h",
+          "success_rate_pct"
+        ]
+      },
+      "WebhookEvent": {
+        "type": "object",
+        "description": "An emitted event. payload is the event envelope {id, type, created_at, data} as it is delivered, except that the owner's id is removed for a developer key.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string",
+            "example": "payment_session.paid"
+          },
+          "payload": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "event_type",
+          "payload",
+          "created_at"
+        ]
+      },
+      "WebhookDeliveryAttempt": {
+        "type": "object",
+        "properties": {
+          "attempt_number": {
+            "type": "integer"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "SUCCESS",
+              "FAILED"
+            ]
+          },
+          "status_code": {
+            "type": "integer",
+            "nullable": true,
+            "description": "null when no HTTP response arrived"
+          },
+          "error_class": {
+            "type": "string",
+            "nullable": true,
+            "description": "http_status, timeout, connection, tls, dns or other"
+          },
+          "duration_ms": {
+            "type": "integer"
+          },
+          "attempted_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "attempt_number",
+          "outcome",
+          "status_code",
+          "error_class",
+          "attempted_at"
+        ]
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "description": "One event's delivery to one endpoint. Retries are its attempts, not further deliveries.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "event_id": {
+            "type": "string"
+          },
+          "endpoint_id": {
+            "type": "string"
+          },
+          "attempt_number": {
+            "type": "integer",
+            "description": "How many attempts have been made so far"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "SUCCESS",
+              "FAILED"
+            ]
+          },
+          "status_code": {
+            "type": "integer",
+            "description": "The receiver's last HTTP status; omitted before any response"
+          },
+          "response_body": {
+            "type": "string",
+            "description": "The receiver's last response body; omitted when empty"
+          },
+          "delivered_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Omitted until delivered"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attempts": {
+            "type": "array",
+            "nullable": true,
+            "items": {
+              "$ref": "#/components/schemas/WebhookDeliveryAttempt"
+            },
+            "description": "Every recorded attempt, oldest first. Attempts made before attempt history existed are counted in attempt_number but not listed. null on the replay response."
+          }
+        },
+        "required": [
+          "id",
+          "event_id",
+          "endpoint_id",
+          "attempt_number",
+          "status",
+          "created_at"
         ]
       }
     }

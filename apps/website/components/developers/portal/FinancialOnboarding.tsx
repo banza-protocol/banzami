@@ -4,6 +4,7 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import type { FinancialSetupState, OnboardingApplication, OnboardingBusiness, OnboardingRequirement } from '@/lib/developer-api';
 import { resubmitApplication } from '@/lib/api';
 import { ROLE_LABELS } from '@/lib/developer-roles';
+import { kybStatusLabel } from '@/lib/status-labels';
 import {
   INFORMATION_REQUEST_CODE,
   applicationReference,
@@ -148,7 +149,7 @@ export function BusinessCard({ business }: { business: OnboardingBusiness }) {
       <span style={{ fontSize: 14, fontWeight: 800, color: '#6a5a5e' }}>{business.handle || '—'}</span>
       <span aria-hidden="true" style={{ color: '#b8a4a6' }}>·</span>
       <span style={{ fontSize: 13, fontWeight: 800, color: verified ? '#1E6B34' : '#B5101F' }}>
-        {verified ? 'Verificado' : `Verificação: ${business.kyb_status || 'pendente'}`}
+        {verified ? 'Verificado' : `Verificação: ${kybStatusLabel(business.kyb_status)}`}
       </span>
     </div>
   );

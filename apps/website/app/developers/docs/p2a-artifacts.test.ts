@@ -37,7 +37,25 @@ const ALLOWED_PATHS = [
   '/v1/wallet-account-transfers',
   '/v1/refunds',
   '/v1/webhooks/endpoints',
+  // Mounted on the dual-credential group and served today; documented from
+  // their handlers (A4-08). Two of them refuse a developer key and say so
+  // (GET /v1/application-settlements/{id}, GET /v1/integration).
+  '/v1/application-settlements',
+  '/v1/application-settlements/{id}',
+  '/v1/payment-links/{id}',
+  '/v1/refunds/{id}',
+  '/v1/integration',
+  '/v1/consumers/handle/{handle}',
+  '/v1/webhooks/endpoints/{id}',
+  '/v1/webhooks/endpoints/{id}/health',
+  '/v1/webhooks/endpoints/{id}/rotate-secret',
+  '/v1/webhooks/events',
+  '/v1/webhooks/events/{id}/deliveries',
+  '/v1/webhooks/deliveries/{id}/replay',
 ];
+
+// Retired routes are never described as operations (410 ROUTE_RETIRED).
+const RETIRED_PATHS = ['/v1/payment-links/{id}/mark-used'];
 // Surfaces the public Sandbox spec must not document. `/v1/refunds` used to be
 // on this list because it was the merchant-JWT twin of the project-scoped route
 // — documenting it would have pointed developers at a path their credential
@@ -59,6 +77,18 @@ describe('P2A — OpenAPI spec', () => {
   });
   it('contains ONLY the allowed, verified endpoints', () => {
     expect(Object.keys(OPENAPI.paths).sort()).toEqual([...ALLOWED_PATHS].sort());
+  });
+  it('describes no retired route', () => {
+    for (const p of RETIRED_PATHS) expect(OPENAPI.paths[p], p).toBeUndefined();
+    expect(JSON.stringify(OPENAPI.paths)).not.toContain('mark-used');
+  });
+  it('every operation names its credential and at least one failure response', () => {
+    for (const [path, ops] of Object.entries(OPENAPI.paths as Record<string, Record<string, { description?: string; responses: Record<string, unknown> }>>)) {
+      for (const [method, op] of Object.entries(ops)) {
+        const failures = Object.keys(op.responses).filter((c) => /^[45]/.test(c));
+        expect(failures.length, `${method.toUpperCase()} ${path} documents no failure`).toBeGreaterThan(0);
+      }
+    }
   });
   it('contains no production/live/pay/checkout/internal/provider surface', () => {
     // Surfaces = paths + servers. Honesty DESCRIPTIONS may name bz_live_ only to
@@ -154,7 +184,7 @@ describe('P2A — machine-readable availability matrix', () => {
   const ALLOWED_STATES = ['available_controlled_sandbox', 'documented_preview', 'pending_e2e', 'simulated', 'not_public', 'not_available', 'not_approved'];
   it('exists with all required capabilities and only conservative states', () => {
     const caps = MATRIX.capabilities;
-    for (const key of ['console_visual_pages', 'developer_api_key', 'sandbox_api_identity', 'payment_sessions', 'payment_links', 'webhook_configuration', 'webhook_outbound_delivery', 'refunds', 'transfers', 'production_live_rails', 'pay_checkout_live_rails', 'external_provider_rails']) {
+    for (const key of ['console_visual_pages', 'developer_api_key', 'sandbox_api_identity', 'payment_sessions', 'payment_links', 'webhook_configuration', 'webhook_outbound_delivery', 'refunds', 'transfers', 'wallet_accounts', 'application_settlements', 'production_live_rails', 'pay_checkout_live_rails', 'external_provider_rails']) {
       expect(caps[key], `missing capability: ${key}`).toBeTruthy();
       expect(ALLOWED_STATES).toContain(caps[key].state);
     }

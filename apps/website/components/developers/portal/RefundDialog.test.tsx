@@ -43,7 +43,7 @@ const submit = () => button('Reembolsar');
 describe('RefundDialog', () => {
   it('defaults to the full amount, in kwanzas', () => {
     open();
-    expect((screen.getByLabelText(/Montante a devolver/) as HTMLInputElement).value).toBe('3000');
+    expect((screen.getByLabelText(/Montante a devolver/) as HTMLInputElement).value).toBe('3 000');
     // The received amount is shown as the operator formats money everywhere:
     // space-grouped, unit last, no cents.
     expect(screen.getByText('3 000 Kz')).not.toBeNull();
@@ -147,6 +147,62 @@ describe('RefundDialog', () => {
     expect(screen.getAllByText((_t, el) => el?.textContent === 'Reembolso de 1 000 Kz registado.').length)
       .toBeGreaterThan(0);
     expect(onRefunded).toHaveBeenCalledTimes(1);
+  });
+
+  // The default is the received amount to the cêntimo. Rounded to kwanzas,
+  // 100,50 Kz defaulted to "101" (over the ceiling) and 100,49 to "100" (a
+  // silent partial refund).
+  it('defaults to the exact received amount, cêntimos included', async () => {
+    for (const [minorAmount, shown] of [[10050, '100,50'], [10049, '100,49']] as const) {
+      open({ payment: { ...payment, amount_minor: minorAmount } });
+      expect((screen.getByLabelText(/Montante a devolver/) as HTMLInputElement).value).toBe(shown);
+      fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'duplicado' } });
+      expect(submit().disabled).toBe(false);
+      fireEvent.click(submit());
+      await waitFor(() => expect(refundPayment).toHaveBeenCalled());
+      expect(refundPayment.mock.calls.at(-1)![2].amount_minor).toBe(minorAmount);
+      cleanup();
+    }
+  });
+
+  // Number(x) * 100 read "100,50" as NaN and "1.000" as one kwanza.
+  it('reads amounts as the Money Engine does', async () => {
+    open();
+    const field = screen.getByLabelText(/Montante a devolver/) as HTMLInputElement;
+    fireEvent.change(field, { target: { value: '1.000' } });
+    expect(field.value).toBe('1 000');
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'duplicado' } });
+    fireEvent.click(submit());
+    await waitFor(() => expect(refundPayment).toHaveBeenCalled());
+    expect(refundPayment.mock.calls[0][2].amount_minor).toBe(100000);
+    cleanup();
+
+    refundPayment.mockClear();
+    open();
+    fireEvent.change(screen.getByLabelText(/Montante a devolver/), { target: { value: '100,50' } });
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'duplicado' } });
+    fireEvent.click(submit());
+    await waitFor(() => expect(refundPayment).toHaveBeenCalled());
+    expect(refundPayment.mock.calls[0][2].amount_minor).toBe(10050);
+  });
+
+  // "Montante recebido" is what arrived — for an open-amount session paid on the
+  // acquiring rail, the acquiring amount — and it is the ceiling.
+  it('shows and caps at the amount actually received', () => {
+    open({
+      payment: {
+        ...payment, amount_minor: null, status: 'ACTIVE',
+        acquiring: { state: 'PAID', amount_minor: 250000, paid_at: '2026-09-06T10:00:00Z', credited_wallet_account_id: 'wa_1', interface: 'PAYMENT_LINK' },
+      },
+    });
+    expect(screen.getAllByText('2 500 Kz').length).toBeGreaterThan(0);
+    const field = screen.getByLabelText(/Montante a devolver/) as HTMLInputElement;
+    expect(field.value).toBe('2 500');
+    fireEvent.change(screen.getByLabelText('Motivo'), { target: { value: 'duplicado' } });
+    fireEvent.change(field, { target: { value: '2 600' } });
+    expect(submit().disabled).toBe(true);
+    fireEvent.change(field, { target: { value: '2 500' } });
+    expect(submit().disabled).toBe(false);
   });
 
   it('is a modal dialog with an accessible name', () => {

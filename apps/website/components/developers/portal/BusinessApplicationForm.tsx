@@ -11,7 +11,7 @@ import {
   type KybDocumentType,
 } from '@/lib/api';
 import { PROVINCIAS, municipiosDe } from '@/lib/angola';
-import { CATEGORIES, OUTROS, VOLUME_FAIXAS, subcategoriasDe } from '@/lib/business-categories';
+import { CATEGORIES, OUTROS, VOLUME_FAIXAS, subcategoriasDe, volumeFaixaLabel } from '@/lib/business-categories';
 import {
   DOCUMENT_ACCEPT,
   DOCUMENT_SLOTS,
@@ -154,10 +154,12 @@ function TextField({
 }
 
 function SelectField({
-  id, label, required, value, onChange, options, error, hint, disabled,
+  id, label, required, value, onChange, options, error, hint, disabled, labelFor,
 }: {
   id: string; label: string; required: boolean; value: string; onChange: (v: string) => void;
   options: string[]; error?: string | null; hint?: string; disabled?: boolean;
+  /** What a person reads for a value; the value submitted stays as it is. */
+  labelFor?: (value: string) => string;
 }) {
   return (
     <div>
@@ -174,7 +176,7 @@ function SelectField({
         style={FIELD_INPUT}
       >
         <option value="">Selecione…</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+        {options.map((o) => <option key={o} value={o}>{labelFor ? labelFor(o) : o}</option>)}
       </select>
       <FieldFoot id={id} error={error} hint={hint} />
     </div>
@@ -514,7 +516,7 @@ export function BusinessApplicationForm({
           </Section>
           <Section title="Atividade">
             <TextField id="fo-business-activity" label="Atividade do negócio" required={need('business_activity')} value={f.business_activity} onChange={(v) => set('business_activity', v)} error={show('business_activity')} multiline hint="O que o negócio vende ou faz, em poucas palavras." />
-            <SelectField id="fo-estimated-volume" label="Volume mensal estimado" required={need('estimated_volume')} value={f.estimated_volume} onChange={(v) => set('estimated_volume', v)} options={VOLUME_FAIXAS} />
+            <SelectField id="fo-estimated-volume" label="Volume mensal estimado" required={need('estimated_volume')} value={f.estimated_volume} onChange={(v) => set('estimated_volume', v)} options={VOLUME_FAIXAS} labelFor={volumeFaixaLabel} />
           </Section>
           <Section title="Contacto">
             <TextField id="fo-email" label="Email do negócio" required={need('email')} value={f.email} onChange={(v) => set('email', v)} error={show('email')} type="email" inputMode="email" autoComplete="email" />

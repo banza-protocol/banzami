@@ -44,7 +44,7 @@ async def test_create_fixed_payment_link():
     assert link.id == "pl_001"
     assert link.amount_minor == 75000
     assert link.status == PaymentLinkStatus.ACTIVE
-    assert link.checkout_url == "https://pay.banzami.co/pagamento-loja"
+    assert link.checkout_url == "https://pay.banzami.com/pay/pagamento-loja"
 
 
 async def test_create_open_payment_link():

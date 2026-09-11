@@ -24,7 +24,7 @@ const ART_MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));
 describe('P2B — SDK-first wording in PT and EN', () => {
   it('PT contains the SDK-first model with the required wording', () => {
     expect(PT).toContain('Modelo de integração SDK-first');
-    expect(PT).toContain('A filosofia de integração da Banzami é');
+    expect(PT).toContain('A filosofia de integração do Banzami é');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(PT).toContain('pré-visualização controlada até publicação oficial');
   });
@@ -89,23 +89,38 @@ describe('P2B — sdk-first manifest', () => {
     // The TypeScript SDK is published, so the machine-readable artifact must
     // say so too — a public manifest that still reads "nothing is published"
     // is a false claim in the place integrators automate against.
-    expect(SDK_MANIFEST.public_sdk_packages_published).toBe(true);
+    expect(SDK_MANIFEST.public_sdk_packages_published).toBe(PUBLISHED_PACKAGES.length > 0);
     expect(SDK_MANIFEST.public_install_commands_available).toBe(true);
     expect(SDK_MANIFEST.scope).toBe('sandbox_preview');
     expect(SDK_MANIFEST.production_contract).toBe(false);
   });
   it('each family carries its real publication state', () => {
     expect(SDK_MANIFEST.sdk_families.length).toBeGreaterThanOrEqual(4);
-    const ts = SDK_MANIFEST.sdk_families.find((f: { name: string }) => f.name === '@banzami/sdk');
-    expect(ts, '@banzami/sdk family must be listed').toBeTruthy();
-    expect(ts.status).toBe('published');
-    expect(ts.registry).toContain('published');
-    expect(ts.install).toBe('npm install @banzami/sdk');
-    // Everything else is still an unpublished controlled preview.
-    for (const f of SDK_MANIFEST.sdk_families.filter((x: { name: string }) => x.name !== '@banzami/sdk')) {
+    // Every published package is listed as published, with its real install.
+    for (const pkg of PUBLISHED_PACKAGES) {
+      const f = SDK_MANIFEST.sdk_families.find((x: { name: string }) => x.name === pkg.name);
+      expect(f, `${pkg.name} family must be listed`).toBeTruthy();
+      expect(f.status).toBe('published');
+      expect(f.registry).toContain('published');
+      expect(f.install).toBe(pkg.install);
+    }
+    // Everything else is an unpublished controlled preview, with no install.
+    const published = new Set(PUBLISHED_PACKAGES.map((p) => p.name));
+    for (const f of SDK_MANIFEST.sdk_families.filter((x: { name: string }) => !published.has(x.name))) {
       expect(f.status, `${f.name} must still be unpublished`).toContain('not_published');
       expect(f.registry).toContain('not published');
+      expect(f.install, `${f.name} has no install command`).toBeUndefined();
     }
+  });
+  it('names each package as its registry does, and no stale version', () => {
+    const names = SDK_MANIFEST.sdk_families.map((f: { name: string }) => f.name);
+    expect(names).toContain('banzami/sdk-php');
+    expect(names).not.toContain('banzami/sdk');
+    // banzami_flutter is the internal framework (ADR-053); the client SDK is banzami_client.
+    expect(names).not.toContain('banzami_flutter');
+    for (const f of SDK_MANIFEST.sdk_families) expect(f.version, f.name).toBeUndefined();
+    // The note must not say nothing is published.
+    expect(SDK_MANIFEST.note).not.toMatch(/No SDK package is publicly published/);
   });
 });
 

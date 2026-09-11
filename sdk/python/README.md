@@ -9,9 +9,25 @@ Official async Python SDK for the [Banzami](https://banzami.com) payments platfo
 
 ## Installation
 
+The distribution is `banzami-python` (imported as `banzami`). It is **not
+published on PyPI** — a `pip install` of a registry name would fetch nothing, or
+someone else's package. Install it from this repository:
+
 ```bash
-pip install banzami
+pip install ./sdk/python
 ```
+
+## Environments
+
+The key's prefix picks the gateway, as in every Banzami SDK:
+
+| Key | Gateway |
+|-----|---------|
+| `bz_test_…` | `https://sandbox-api.banzami.com` (Sandbox) |
+| `bz_live_…` | `https://api.banzami.com` (Live — not enabled by default) |
+
+The client adds the `/v1` prefix itself. Pass `base_url=` only to point at
+another deployment (a local gateway, for instance).
 
 ## Quick start
 
@@ -45,16 +61,10 @@ print(qr.payload)          # raw QR payload to encode into an image
 print(qr.qr_code.status)  # ACTIVE
 ```
 
-## Instant transfer
-
-```python
-transfer = await client.transfers.send(
-    sender_id="consumer_wallet_A",
-    recipient_id="consumer_wallet_B",
-    amount=10000,
-)
-print(transfer.status)  # COMPLETED
-```
+A payer pays a QR from the Banzami app, under their own authentication. A server
+key never moves a person's money, so this SDK has no transfer call: the
+id-based merchant transfer surface was retired, and consumer-to-consumer
+transfers belong to the consumer app.
 
 ## Webhook verification
 
@@ -153,7 +163,7 @@ link = await client.payment_links.create(
     amount=75000,           # 750 Kz
     description="Compra online",
 )
-print(link.checkout_url)   # https://pay.banzami.co/{slug}
+print(link.checkout_url)   # https://pay.banzami.com/pay/{slug}
 
 # Open-amount link (payer enters the amount)
 link = await client.payment_links.create(

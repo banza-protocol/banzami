@@ -114,9 +114,9 @@ export const navMenus: NavItem[] = [
     ctaHref: mailto(),
     visualCaption: 'equipa banzami',
     links: [
-      { label: 'A Banzami', href: '/sobre', desc: 'A empresa e a visão do produto.' },
+      { label: 'O Banzami', href: '/sobre', desc: 'A empresa e a visão do produto.' },
       { label: 'Missão', href: '/sobre', desc: 'Pagamentos simples, claros e acessíveis.' },
-      { label: 'Equipa fundadora', href: '/sobre', desc: 'As pessoas por trás da Banzami.' },
+      { label: 'Equipa fundadora', href: '/sobre', desc: 'As pessoas por trás do Banzami.' },
       { label: 'Roadmap', href: '/sobre', desc: 'O caminho de desenvolvimento.' },
       { label: 'Contacto', href: mailto(), desc: 'Fale connosco.' },
       { label: 'Carreiras', href: mailto('Carreiras'), desc: 'Construir connosco.' },

@@ -21,6 +21,11 @@ export function subcategoriasDe(categoria: string): string[] {
 }
 
 // Volume mensal estimado (faixas em Kz) — usado para risco/limites no MVP.
+//
+// These strings are the SUBMITTED values (estimated_volume), stored as-is on
+// every application already reviewed, so they stay exactly as they are. What a
+// person reads is volumeFaixaLabel(v): the Money Engine's space grouping
+// ("100 000 Kz"), never the dot grouping of the stored value.
 export const VOLUME_FAIXAS: string[] = [
   'Menos de 100.000 Kz',
   '100.000 – 500.000 Kz',
@@ -28,3 +33,8 @@ export const VOLUME_FAIXAS: string[] = [
   '2.000.000 – 10.000.000 Kz',
   'Mais de 10.000.000 Kz',
 ];
+
+/** A volume band as a person reads it: "100.000 – 500.000 Kz" → "100 000 – 500 000 Kz". */
+export function volumeFaixaLabel(value: string): string {
+  return value.replace(/(\d)\.(?=\d{3}(?!\d))/g, '$1 ');
+}

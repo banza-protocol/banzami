@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
-import { FAKE_INSTALL_COMMANDS } from './published-packages';
+import { FAKE_INSTALL_COMMANDS, PUBLISHED_PACKAGES } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -66,17 +66,30 @@ describe('P2C — sdk-contract.json', () => {
     expect(CONTRACT.name).toBe('Banzami SDK Contract');
     expect(CONTRACT.scope).toBe('sandbox_preview');
     expect(CONTRACT.integration_model).toBe('sdk_first');
-    expect(CONTRACT.public_sdk_packages_published).toBe(false);
-    expect(CONTRACT.public_install_commands_available).toBe(false);
+    // Derived from what is genuinely published (published-packages.ts), in
+    // both directions: this said false while two packages were on public
+    // registries — a false claim in the file partners' tooling reads.
+    expect(CONTRACT.public_sdk_packages_published).toBe(PUBLISHED_PACKAGES.length > 0);
+    expect(CONTRACT.public_install_commands_available).toBe(PUBLISHED_PACKAGES.length > 0);
     expect(CONTRACT.production_contract).toBe(false);
     expect(CONTRACT.http_role).toBe('protocol_reference_secondary');
   });
-  it('every family has null public package and null install command', () => {
+  it('a family names a public package and install command exactly when it is published', () => {
     expect(CONTRACT.sdk_families.length).toBeGreaterThanOrEqual(4);
     for (const f of CONTRACT.sdk_families) {
-      expect(f.public_package).toBeNull();
-      expect(f.install_command).toBeNull();
-      expect(f.status).toContain('not_published');
+      const published = PUBLISHED_PACKAGES.find((p) => p.name === f.public_package);
+      if (published) {
+        expect(f.status, f.name).toBe('published');
+        expect(f.install_command, f.name).toBe(published.install);
+      } else {
+        expect(f.public_package, f.name).toBeNull();
+        expect(f.install_command, f.name).toBeNull();
+        expect(f.status, f.name).toContain('not_published');
+      }
+    }
+    // Every published package is listed.
+    for (const p of PUBLISHED_PACKAGES) {
+      expect(CONTRACT.sdk_families.some((f: { public_package: string | null }) => f.public_package === p.name), p.name).toBe(true);
     }
   });
   it('responsibilities stay expected/never — nothing claims live rails or key issuance', () => {

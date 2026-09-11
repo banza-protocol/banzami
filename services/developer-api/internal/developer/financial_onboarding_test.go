@@ -212,3 +212,61 @@ func TestOnboarding_ConnectingIsRefusedWhileAnApplicationIsInProgressOrTheCodeIs
 		t.Fatalf("a DEVELOPER connected a Business: %v", err)
 	}
 }
+
+// identityOnboarding is the Gateway onboarding client as deployed: it also reads
+// a Business's public identity.
+type identityOnboarding struct {
+	fakeOnboarding
+	identity *gatewayclient.BusinessIdentity
+	err      error
+}
+
+func (o *identityOnboarding) BusinessPublicIdentity(context.Context, string) (*gatewayclient.BusinessIdentity, error) {
+	return o.identity, o.err
+}
+
+// The card under "Este projeto recebe pagamentos no negócio abaixo" names the
+// Business by its public identity — never the account name a Project gave it
+// ("Sandbox · Doa-Sandbox"). A failed lookup names nobody.
+func TestOnboarding_TheBusinessCardIsThePublicIdentityNotTheAccountName(t *testing.T) {
+	s, _, pid := setupSvc(t)
+	o := &identityOnboarding{identity: &gatewayclient.BusinessIdentity{DisplayName: "Doa", Handle: "doa"}}
+	s.SetBusinessOnboarding(o)
+	s.SetBusinessNamer(namer("Sandbox · Doa-Sandbox"))
+	if _, err := configureForTest(s, "u_owner", pid); err != nil {
+		t.Fatal(err)
+	}
+	r := &ProjectReadiness{}
+	k := "APPROVED"
+	r.Kyb.Status = &k
+	s.SetReadinessReader(&fakeReadinessReader{out: r})
+
+	st, err := s.ProjectFinancialSetup(bg, "u_owner", pid)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b := st.Onboarding.Business; b == nil || b.Name != "Doa" || b.Handle != "@doa" {
+		t.Fatalf("business %+v", st.Onboarding.Business)
+	}
+
+	o.identity, o.err = nil, errors.New("gateway down")
+	st, _ = s.ProjectFinancialSetup(bg, "u_owner", pid)
+	if b := st.Onboarding.Business; b == nil || b.Name != "" {
+		t.Fatalf("a failed lookup fell back to the account name: %+v", st.Onboarding.Business)
+	}
+}
+
+func TestOnboarding_AConnectedBusinessIsNamedByItsPublicIdentity(t *testing.T) {
+	s, _, pid := setupSvc(t)
+	o := &identityOnboarding{identity: &gatewayclient.BusinessIdentity{DisplayName: "Doa", Handle: "doa"}}
+	o.target = &gatewayclient.LinkTarget{MerchantID: "m-existing", WalletID: "w-existing", WalletAccountID: "wa-existing",
+		Handle: "doa", BusinessName: "Sandbox · Doa-Sandbox", KybStatus: "APPROVED", Environment: "SANDBOX"}
+	s.SetBusinessOnboarding(o)
+	b, err := s.LinkExistingBusiness(bg, "u_owner", pid, "ABCD-EFGH-JKMN", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Name != "Doa" || b.Handle != "@doa" {
+		t.Fatalf("connected business %+v", b)
+	}
+}

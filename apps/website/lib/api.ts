@@ -90,6 +90,14 @@ export interface ProofResult {
   network?: string;
   operator?: string;
   message?: string;
+  /**
+   * The environment the proof lives in. The verifier's public payload carries no
+   * environment field today, so this is the environment of the stack that
+   * answered — each stack has its own proofs, so a proof read from the Sandbox
+   * stack is a Sandbox proof. Preferred from the payload if it ever carries one.
+   * Absent for a reference refused before any stack was asked.
+   */
+  environment?: 'LIVE' | 'SANDBOX';
 }
 
 // Public transaction-proof verification (BANZA ADR-023). The receipt is not the
@@ -120,11 +128,13 @@ export async function getProof(ref: string): Promise<ProofResult> {
       message: 'Referência inválida. A referência tem de estar escrita exatamente como aparece no comprovativo.',
     };
   }
+  let asked: 'LIVE' | 'SANDBOX' | undefined;
   const unavailable = (why: string): ProofResult => ({
     exists: false,
     status: 'UNAVAILABLE',
     message: 'Não foi possível verificar este comprovativo neste momento.',
     unavailable_reason: why,
+    environment: asked,
   });
   try {
     // The stack that matches Platform Mode, not API_BASE. Pinned to API_BASE
@@ -132,7 +142,8 @@ export async function getProof(ref: string): Promise<ProofResult> {
     // HTML page — json() threw, and the page told the reader their genuine
     // Sandbox proof "does not exist or may have been forged". A verification
     // feature that calls a real record a forgery is worse than one that errors.
-    const { base } = await platformTarget();
+    const { base, env } = await platformTarget();
+    asked = env;
     const res = await fetch(`${base}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
 
     // 5xx and 503 are OUR failure, never the receipt's.
@@ -143,12 +154,16 @@ export async function getProof(ref: string): Promise<ProofResult> {
     // A body we cannot read is an unknown, not a verdict.
     if (!j || typeof j.exists !== 'boolean') return unavailable('unparseable_response');
 
+    // The proof's environment is the stack it was read from — not the build's
+    // API_BASE, which named LIVE while the proof came from the Sandbox stack.
+    const environment = j.environment === 'LIVE' || j.environment === 'SANDBOX' ? j.environment : env;
+
     // A definitive 404 is the one case that may say "invalid".
     if (res.status === 404) {
-      return { ...j, exists: false, status: j.status || 'NOT_FOUND' };
+      return { ...j, exists: false, status: j.status || 'NOT_FOUND', environment };
     }
     if (res.status !== 200) return unavailable(`unexpected_status_${res.status}`);
-    return j;
+    return { ...j, environment };
   } catch {
     // Network failure, DNS, TLS, timeout — all unknowns.
     return unavailable('network_error');
@@ -450,11 +465,25 @@ export async function resubmitApplication(applicationId: string): Promise<Resubm
 
 export type ActivationStatus = {
   valid: boolean;
-  reason: string; // VALID | INVALID | EXPIRED | USED
+  /**
+   * VALID | INVALID | EXPIRED | USED — the gateway's answer about the link.
+   * RATE_LIMITED | UNAVAILABLE — no answer about the link at all: the gateway
+   * refused to answer now (429) or failed (5xx, unreadable body).
+   */
+  reason: string;
   business_name?: string;
   handle?: string;
 };
 
+/**
+ * Ask the gateway whether an activation link is good.
+ *
+ * This used to return res.json() whatever the status, so a 503 or a 429 — a
+ * body with no `valid` — read as `valid: false`, and the page told the owner
+ * "Este link de ativação é inválido" about a link that was fine. Only a 2xx
+ * answer, or a 4xx refusal of the link itself, is a verdict about the link.
+ * A network failure still throws, and the page reports it as such.
+ */
 export async function validateActivation(token: string): Promise<ActivationStatus> {
   const { base } = await onboardingTarget();
   const res = await fetch(`${base}/v1/merchant/activation/validate`, {
@@ -462,7 +491,17 @@ export async function validateActivation(token: string): Promise<ActivationStatu
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
   });
-  return res.json();
+  if (res.status === 429) return { valid: false, reason: 'RATE_LIMITED' };
+  if (res.status >= 500) return { valid: false, reason: 'UNAVAILABLE' };
+  if (!res.ok) {
+    // A definitive refusal of this link (400 VALIDATION_ERROR and its kind).
+    return res.status >= 400 && res.status < 500
+      ? { valid: false, reason: 'INVALID' }
+      : { valid: false, reason: 'UNAVAILABLE' };
+  }
+  const j = (await res.json().catch(() => null)) as ActivationStatus | null;
+  if (!j || typeof j.valid !== 'boolean') return { valid: false, reason: 'UNAVAILABLE' };
+  return j;
 }
 
 export type CompleteResult = { ok: boolean; status: number; error?: string };

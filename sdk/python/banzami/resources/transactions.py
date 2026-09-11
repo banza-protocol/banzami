@@ -71,28 +71,7 @@ class TransactionsResource(AsyncResource):
         data = await self._get("/transactions", params=params)
         return Page[Transaction].model_validate(data)
 
-    async def capture(
-        self,
-        transaction_id: str,
-        *,
-        idempotency_key: str | None = None,
-    ) -> Transaction:
-        """Capture a pre-authorised transaction."""
-        data = await self._post(
-            f"/transactions/{transaction_id}/capture",
-            idempotency_key=idempotency_key or new_idempotency_key(),
-        )
-        return Transaction.model_validate(data)
-
-    async def reverse(
-        self,
-        transaction_id: str,
-        *,
-        idempotency_key: str | None = None,
-    ) -> Transaction:
-        """Reverse (refund) a completed transaction."""
-        data = await self._post(
-            f"/transactions/{transaction_id}/reverse",
-            idempotency_key=idempotency_key or new_idempotency_key(),
-        )
-        return Transaction.model_validate(data)
+    # capture / reverse: REMOVED. They called POST /v1/transactions/{id}/capture
+    # and /reverse, which the gateway does not mount (it serves create, list and
+    # get only) — every call answered 404. Money goes back to a payer through
+    # client.refunds, which the gateway does serve.

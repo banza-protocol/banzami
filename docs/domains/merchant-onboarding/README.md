@@ -170,15 +170,28 @@ Prohibited:
 
 ---
 
-## API Endpoints (internal)
+## API Endpoints
+
+The routes the gateway actually mounts (`services/api-gateway/internal/server/server.go`;
+the full table is in `services/api-gateway/README.md`). There is no
+`PUT /v1/merchants/{id}` and no `/v1/merchants/{id}/kyc` route — they were listed
+here and never mounted. A Business is created through a reviewed application
+(ADR-058), not by a merchant-session POST.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/v1/merchants` | Register a new merchant |
-| `GET` | `/v1/merchants/{id}` | Get merchant by ID |
-| `PUT` | `/v1/merchants/{id}` | Update merchant details |
-| `POST` | `/v1/merchants/{id}/kyc` | Submit KYC documents |
-| `GET` | `/v1/merchants/{id}/kyc/status` | KYC review status |
+| `POST` | `/v1/merchant/applications/check-handle` | Is this @banza available? (public) |
+| `POST` | `/v1/merchant/applications` | Submit a Business application (public) |
+| `GET` | `/v1/merchant/applications/{id}` | The applicant's status view, by full application id (public) |
+| `POST` | `/v1/merchant/applications/{id}/resubmit` | Answer a request for information (public) |
+| `POST` | `/v1/merchant/applications/{id}/documents/upload-url` · `/{document_id}/confirm` | Application documents (public) |
+| `POST` | `/v1/merchant/activation/validate` · `/complete` | Activation link → Business app PIN (public) |
+| `POST` | `/v1/merchants` | Create merchant — **Sandbox fixture route only**, not mounted on LIVE (merchant JWT) |
+| `GET` | `/v1/merchants/{id}` | Get merchant by ID (merchant JWT) |
+| `POST` | `/v1/merchants/{id}/suspend` | Suspend merchant (merchant JWT) |
+| `GET` | `/v1/merchant/kyb/status` · `/documents` · `/documents/{id}` | KYB state and documents (merchant JWT) |
+| `POST` | `/v1/merchant/kyb/documents/{id}/upload-url` · `/complete` | KYB document upload, `{id}` = document type (merchant JWT) |
+| `POST` · `GET` | `/v1/compliance/merchants/verify` · `/status` | Business KYB verification (merchant JWT) |
 | `GET` | `/internal/v1/merchant-profiles/by-handle/{handle}` | Public profile lookup (core-api internal) |
 | `GET` | `/public/profiles/{handle}` | Public merchant profile (api-gateway, no auth) |
 

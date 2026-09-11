@@ -4,23 +4,23 @@
   "regulatory_approval": false,
   "live_rails": false,
   "real_money": false,
-  "public_sdk_packages_published": false,
+  "public_sdk_packages_published": true,
   "self_service_access": false,
   "name": "Banzami Risk and Limitation Matrix",
   "rows": [
     {
       "risk": {
-        "pt": "Pacotes SDK não publicados publicamente",
-        "en": "SDK packages not publicly published"
+        "pt": "Só dois pacotes SDK estão publicados: @banzami/sdk (npm) e banzami_client (pub.dev); Python, PHP e Go não",
+        "en": "Only two SDK packages are published: @banzami/sdk (npm) and banzami_client (pub.dev); Python, PHP and Go are not"
       },
-      "status": "not_public",
+      "status": "partially_public",
       "partner_implication": {
-        "pt": "Não instalar de registries públicos; usar apenas acesso aprovado.",
-        "en": "Do not install from public registries; use approved access only."
+        "pt": "Instalar @banzami/sdk e banzami_client dos registos públicos; os restantes apenas por código-fonte ou acesso aprovado.",
+        "en": "Install @banzami/sdk and banzami_client from the public registries; the others only from source or approved access."
       },
       "mitigation": {
-        "pt": "Acesso controlado por onboarding; publicação oficial futura.",
-        "en": "Controlled access via onboarding; official publication later."
+        "pt": "Instalação limpa a partir do registo comprovada para os dois pacotes publicados; publicação dos restantes por decidir.",
+        "en": "Clean-room registry install proven for the two published packages; publication of the others is undecided."
       }
     },
     {

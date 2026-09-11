@@ -8,7 +8,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
-import { FAKE_INSTALL_COMMANDS } from './published-packages';
+import { FAKE_INSTALL_COMMANDS, PUBLISHED_PACKAGES } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -81,10 +81,10 @@ describe('P2E — public trust artifacts', () => {
       expect(data.regulatory_approval, file).toBe(false);
       expect(data.live_rails, file).toBe(false);
       expect(data.real_money, file).toBe(false);
-      expect(data.public_sdk_packages_published, file).toBe(false);
+      expect(data.public_sdk_packages_published, file).toBe(PUBLISHED_PACKAGES.length > 0);
       expect(data.self_service_access, file).toBe(false);
     }
-    for (const f of ['scope: sandbox_preview', 'production_contract: false', 'regulatory_approval: false', 'live_rails: false', 'real_money: false', 'public_sdk_packages_published: false', 'self_service_access: false']) {
+    for (const f of ['scope: sandbox_preview', 'production_contract: false', 'regulatory_approval: false', 'live_rails: false', 'real_money: false', `public_sdk_packages_published: ${PUBLISHED_PACKAGES.length > 0}`, 'self_service_access: false']) {
       expect(SUMMARY_MD.includes(f), `summary missing flag: ${f}`).toBe(true);
     }
   });

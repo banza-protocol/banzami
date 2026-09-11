@@ -161,3 +161,21 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
     }
   });
 });
+
+// A4-07: the reference contradicted itself — it documented /v1/webhooks/endpoints
+// as the project-key surface and then listed the same path as a "legacy merchant
+// path" a project key cannot call. The runtime accepts project keys there (the
+// dual-credential group). And "POST /v1/webhooks" is a 404: registration is
+// POST /v1/webhooks/endpoints.
+describe('A4-07 — webhook endpoints are one canonical, project-key path', () => {
+  it('no restricted row names /v1/webhooks', async () => {
+    const { RESTRICTED_ROWS } = await import('./reference');
+    for (const r of RESTRICTED_ROWS) expect(r.path).not.toMatch(/\/v1\/webhooks/);
+  });
+  it('registration is POST /v1/webhooks/endpoints in both languages', () => {
+    for (const src of [PT, EN]) {
+      expect(src).not.toMatch(/POST \/v1\/webhooks\)/);
+      expect(src).toContain('POST /v1/webhooks/endpoints');
+    }
+  });
+});

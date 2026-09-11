@@ -4,7 +4,7 @@
   "regulatory_approval": false,
   "live_rails": false,
   "real_money": false,
-  "public_sdk_packages_published": false,
+  "public_sdk_packages_published": true,
   "self_service_access": false,
   "name": "Banzami Sandbox Evidence Map",
   "evidence": [

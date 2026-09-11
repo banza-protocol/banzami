@@ -7,7 +7,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CARD_CAPABILITIES, isReleased } from './assurance-manifest';
-import { FAKE_INSTALL_COMMANDS } from './published-packages';
+import { FAKE_INSTALL_COMMANDS, PUBLISHED_PACKAGES } from './published-packages';
 
 const REPO = join(process.cwd(), '..', '..');
 const read = (p: string) => readFileSync(join(REPO, p), 'utf8');
@@ -24,7 +24,7 @@ const TEMPLATE = read(`${OB}/preview-issue-report-template.md`);
 
 describe('P2D — onboarding sections exist in PT and EN', () => {
   it('PT sections', () => {
-    for (const t of ['Onboarding do preview SDK', 'Jornada de integração em Sandbox', 'Responsabilidades do parceiro no preview', 'Responsabilidades da Banzami no preview', 'Como reportar problemas no preview', 'Checklist de validação Sandbox', 'Critérios de revisão de prontidão']) {
+    for (const t of ['Onboarding do preview SDK', 'Jornada de integração em Sandbox', 'Responsabilidades do parceiro no preview', 'Responsabilidades do Banzami no preview', 'Como reportar problemas no preview', 'Checklist de validação Sandbox', 'Critérios de revisão de prontidão']) {
       expect(PT.includes(t), `PT missing: ${t}`).toBe(true);
     }
     expect(PT).toContain('Não é um registo público self-service');
@@ -60,10 +60,10 @@ describe('P2D — onboarding artifacts', () => {
       expect(d.production_contract).toBe(false);
       expect(d.regulatory_approval).toBe(false);
       expect(d.live_rails).toBe(false);
-      expect(d.public_sdk_packages_published).toBe(false);
+      expect(d.public_sdk_packages_published).toBe(PUBLISHED_PACKAGES.length > 0);
     }
     // markdown template carries the flags in its comment block
-    for (const f of ['scope: sandbox_preview', 'production_contract: false', 'regulatory_approval: false', 'live_rails: false', 'public_sdk_packages_published: false']) {
+    for (const f of ['scope: sandbox_preview', 'production_contract: false', 'regulatory_approval: false', 'live_rails: false', `public_sdk_packages_published: ${PUBLISHED_PACKAGES.length > 0}`]) {
       expect(TEMPLATE.includes(f), `template missing flag: ${f}`).toBe(true);
     }
   });

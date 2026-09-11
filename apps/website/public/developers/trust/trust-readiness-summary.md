@@ -6,7 +6,7 @@ production_contract: false
 regulatory_approval: false
 live_rails: false
 real_money: false
-public_sdk_packages_published: false
+public_sdk_packages_published: true
 self_service_access: false
 -->
 
@@ -43,10 +43,13 @@ self_service_access: false
 
 ## O que é controlado / What is controlled
 
-- **PT** · O acesso aos SDKs (pré-visualização controlada, pacotes não
-  publicados) e o onboarding de parceiros (elegibilidade → aprovação → revisão).
-- **EN** · SDK access (controlled preview, packages not published) and partner
-  onboarding (eligibility → approval → review).
+- **PT** · O acesso aos SDKs ainda não publicados (Python, PHP, Go — por
+  código-fonte ou acesso aprovado; `@banzami/sdk` no npm e `banzami_client` no
+  pub.dev estão publicados) e o onboarding de parceiros (elegibilidade →
+  aprovação → revisão).
+- **EN** · Access to the SDKs not yet published (Python, PHP, Go — from source
+  or approved access; `@banzami/sdk` on npm and `banzami_client` on pub.dev are
+  published) and partner onboarding (eligibility → approval → review).
 
 ## O que já não é simulado / What is no longer simulated
 
@@ -65,11 +68,13 @@ self_service_access: false
 
 - **PT** · Trilhos de Produção/live, pay/checkout públicos (não implantados —
   pay.banzami.com responde 503), fornecedores externos, emissão de chaves live,
-  SDK Flutter (não publicado no pub.dev), dashboard da Consola (pré-visualização
+  a framework Flutter interna `banzami_flutter` (nunca publicada — o SDK
+  cliente publicado é `banzami_client`), dashboard da Consola (pré-visualização
   demo), Stage C (não implementado/não aprovado).
 - **EN** · Production/live rails, public pay/checkout (not deployed —
   pay.banzami.com answers 503), external providers, live key issuance, the
-  Flutter SDK (not published on pub.dev), the Console dashboard (demo preview),
+  internal `banzami_flutter` framework (never published — the published client
+  SDK is `banzami_client`), the Console dashboard (demo preview),
   Stage C (not implemented/not approved).
 
 ## Como a honestidade é mantida / How honesty is enforced

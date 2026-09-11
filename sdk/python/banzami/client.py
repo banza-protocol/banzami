@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from .auth import APIKeyAuth
-from .config import BanzamiConfig
+from .config import BanzamiConfig, default_base_url
 from .exceptions import (
     BanzamiTimeoutError,
     BanzamiNetworkError,
@@ -87,9 +87,10 @@ class BanzamiClient:
         hooks: BanzamiHooks | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
-        overrides: dict[str, Any] = {}
-        if base_url is not None:
-            overrides["base_url"] = base_url.rstrip("/")
+        overrides: dict[str, Any] = {
+            # The gateway the key belongs to, unless the caller names one.
+            "base_url": (base_url or default_base_url(api_key)).rstrip("/"),
+        }
         if timeout is not None:
             overrides["timeout"] = timeout
         if max_retries is not None:

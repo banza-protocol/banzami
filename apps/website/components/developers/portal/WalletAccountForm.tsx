@@ -116,7 +116,7 @@ export function WalletAccountForm({ onCreated }: { onCreated: () => void }) {
     <Card style={{ padding: 22, maxWidth: 560 }}>
       <h3 style={{ margin: '0 0 4px', fontSize: 15.5, fontWeight: 900 }}>Nova conta</h3>
       <p style={{ margin: '0 0 18px', fontSize: 13, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.55 }}>
-        Uma conta mantém dinheiro separado do resto do projeto. Crie uma por cada coisa que precisa de
+        Uma conta mantém dinheiro separado do resto do negócio ligado a este projeto. Crie uma por cada coisa que precisa de
         contabilidade própria — uma campanha, um vendedor, um evento.
       </p>
 

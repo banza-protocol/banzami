@@ -58,7 +58,7 @@ const CATEGORIES: Category[] = [
     title: 'Produtos',
     items: [
       {
-        q: 'O que é a Banzami Wallet?',
+        q: 'O que é o Banzami Wallet?',
         a: 'A sua carteira digital em Kwanza: saldo, pagamentos, comprovativos e histórico, tudo num só lugar.',
       },
       {

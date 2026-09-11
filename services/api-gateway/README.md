@@ -40,11 +40,13 @@ internal/
     wallets.go              — wallet read + balance
     payouts.go              — payout create + list + get
     merchants.go            — merchant CRUD, API key management
-    consumers.go            — consumer identity CRUD
-    consumer_wallets.go     — consumer wallet read + balance
-    transfers.go            — P2P transfer create + list + get
+    consumers.go            — consumer identity; @banza resolution for a project key
+    consumer_wallets.go     — handler kept, routes unmounted (RA-058)
     qr.go                   — QR code create, decode, mark-used
-    payment_links.go        — payment link lifecycle
+    payment_sessions.go     — payment sessions (merchant JWT or project key)
+    payment_links.go        — payment link lifecycle + the public payer view
+    wallet_accounts.go      — segregated wallet accounts
+    refunds.go              — typed-source refunds
     webhooks.go             — webhook endpoint + event management
     acquiring.go            — EMIS callback + pay-page initiate/confirm
     sandbox.go              — sandbox utilities (fund, simulate, instruments, status)
@@ -57,60 +59,150 @@ internal/
 
 ## Route Table
 
-| Method | Path | Auth | Description |
-|--------|------|------|-------------|
-| GET | /health | No | Liveness — always 200 |
-| GET | /readyz | No | Readiness — checks DB + Redis |
-| GET | /metrics | No | Prometheus metrics |
-| POST | /v1/auth/token | No | Exchange API key for JWT |
-| POST | /v1/transactions | JWT | Create transaction |
-| GET | /v1/transactions | JWT | List transactions |
-| GET | /v1/transactions/{id} | JWT | Get transaction |
-| POST | /v1/webhooks/endpoints | JWT | Register webhook endpoint |
-| GET | /v1/webhooks/endpoints | JWT | List endpoints |
-| GET | /v1/webhooks/endpoints/{id} | JWT | Get endpoint |
-| DELETE | /v1/webhooks/endpoints/{id} | JWT | Deactivate endpoint |
-| GET | /v1/webhooks/events | JWT | List webhook events |
-| GET | /v1/webhooks/events/{id}/deliveries | JWT | List deliveries |
-| POST | /v1/merchants | JWT | Create merchant — **Sandbox fixture route only**; not mounted on LIVE (a Business is created through an approved application, ADR-058) |
-| GET | /v1/merchants/{id} | JWT | Get merchant |
-| POST | /v1/merchants/{id}/suspend | JWT | Suspend merchant |
-| POST | /v1/merchants/{id}/api-keys | JWT | Create API key |
-| GET | /v1/merchants/{id}/api-keys | JWT | List API keys |
-| DELETE | /v1/merchants/{id}/api-keys/{keyID} | JWT | Revoke API key |
-| POST | /v1/wallets | JWT | Create wallet |
-| GET | /v1/wallets | JWT | Get merchant's wallet |
-| GET | /v1/wallets/{id} | JWT | Get wallet by ID |
-| GET | /v1/wallets/{id}/balance | JWT | Get wallet balance |
-| POST | /v1/payouts | JWT | Create payout |
-| GET | /v1/payouts | JWT | List payouts |
-| GET | /v1/payouts/{id} | JWT | Get payout |
-| POST | /v1/consumers | JWT | Create consumer |
-| GET | /v1/consumers/handle/{handle} | JWT | Lookup consumer by handle |
-| GET | /v1/consumers/{id} | JWT | Get consumer |
-| POST | /v1/consumer-wallets | JWT | Create consumer wallet |
-| GET | /v1/consumer-wallets | JWT | Get consumer's wallet |
-| GET | /v1/consumer-wallets/{id} | JWT | Get consumer wallet by ID |
-| GET | /v1/consumer-wallets/{id}/balance | JWT | Get consumer wallet balance |
-| POST | /v1/qr/static | JWT | Create static QR |
-| POST | /v1/qr/dynamic | JWT | Create dynamic QR |
-| POST | /v1/qr/decode | JWT | Decode QR payload |
-| GET | /v1/qr/{id} | JWT | Get QR code |
-| POST | /v1/qr/{id}/use | JWT | Mark QR used |
-| POST | /v1/payment-links | JWT | Create payment link |
-| GET | /v1/payment-links | JWT | List payment links |
-| GET | /v1/payment-links/{id} | JWT | Get payment link |
-| DELETE | /v1/payment-links/{id} | JWT | Cancel payment link |
-| POST | /v1/payment-links/{id}/mark-used | JWT | Mark payment link used |
-| GET | /v1/sandbox/status | JWT (sandbox) | Confirm sandbox mode |
-| GET | /v1/sandbox/instruments | JWT (sandbox) | List test instruments |
-| POST | /v1/sandbox/fund | JWT (sandbox) | Credit sandbox wallet via ledger |
-| POST | /v1/sandbox/simulate/payment | JWT (sandbox) | Inject synthetic transaction |
-| POST | /v1/callbacks/emis | HMAC | EMIS acquiring callback |
-| GET | /public/pay/{slug} | No | Pay-page: get payment link |
-| GET | /public/pay/{slug}/status | No | Pay-page: poll payment status |
-| POST | /public/pay/{slug}/pay | No | Pay-page: initiate payment |
-| POST | /public/pay/{slug}/test-confirm | No | Pay-page: dev test confirm |
+Read from `internal/server/server.go` — the router is the source of truth; this
+table is kept in step with it. Routes that are not listed are not mounted (an
+unknown path answers `404 NOT_FOUND` in the error envelope). Notably **not
+mounted**: `/v1/transfers` (SEC-015 / RA-053), `/v1/payment-requests`
+(RA-057) and `/v1/consumer-wallets` (RA-058).
+
+### Public (no credential)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /health | Liveness — always 200 |
+| GET | /readyz | Readiness — checks DB + Redis |
+| GET | /metrics | Prometheus metrics |
+| GET | /v1/platform-mode | Platform Mode (LIVE / SANDBOX, ADR-025) |
+| GET | /v1/public/proofs/{ref} | Public proof verification (exact reference; rate-limited) |
+| GET | /public/pay/{slug} · /v1/public/pay/{slug} | Payer-safe payment-link view (no internal ids) |
+| GET | /public/pay/{slug}/status · /v1/public/pay/{slug}/status | Has the link's payment been made? |
+| POST | /public/pay/{slug}/pay · /v1/public/pay/{slug}/pay | Initiate an acquiring payment (per-IP limited) |
+| POST | /public/pay/{slug}/test-confirm · /v1/public/pay/{slug}/test-confirm | Dev-only simulated confirmation |
+| GET | /public/profiles/{handle} | Public Business profile |
+| GET | /public/consumer-pay-links/{code} | Public P2P pay-request view |
+| POST | /v1/callbacks/emis | EMIS acquiring callback (HMAC-signed body, verified in core) |
+
+### Credential exchange (per-IP limited)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/auth/token | Exchange a merchant API key for a JWT |
+| POST | /v1/merchant/auth/token · /lookup · /refresh · /logout | Business app sign-in (@negócio + PIN) |
+
+### Business onboarding (public, per-IP limited)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/merchant/applications/check-handle | Is this @banza available? |
+| POST | /v1/merchant/applications | Submit a Business application (30/day per IP) |
+| GET | /v1/merchant/application-requirements | The requirements policy |
+| GET | /v1/merchant/applications/{id} | The applicant's status view, by full application id |
+| POST | /v1/merchant/applications/{id}/resubmit | Answer a request for information |
+| POST | /v1/merchant/applications/{id}/documents/upload-url | Presigned document upload |
+| POST | /v1/merchant/applications/{id}/documents/{document_id}/confirm | Confirm an upload |
+| GET | /v1/merchant/applications/{id}/documents | List the application's documents |
+| POST | /v1/merchant/activation/validate | Is this activation link good? |
+| POST | /v1/merchant/activation/complete | Set the Business app PIN |
+
+### Project key only (mounted when developer-key auth is active)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | /v1/me | The key's own identity (CAP-DEV-002) |
+| GET | /v1/financial-setup | The Project's financial readiness |
+
+### Merchant JWT or project key (dual-credential, ADR-047)
+
+A project key's payee comes only from its Project binding, and owner
+identifiers are redacted from what it reads (ADR-057). Idempotency applies.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST · GET | /v1/payment-sessions | Create · list payment sessions |
+| GET | /v1/payment-sessions/{id} · /{id}/link · /{id}/qr | Read a session and its interfaces |
+| POST | /v1/application-settlements | Settle a wallet account's funds out |
+| GET | /v1/application-settlements/{id} | Read a settlement |
+| GET | /v1/integration | The integration's resolved state |
+| POST · GET | /v1/wallet-accounts | Open · list wallet accounts |
+| GET | /v1/wallet-accounts/{id} | Read a wallet account |
+| POST | /v1/wallet-account-transfers | Move money between two accounts of the same owner |
+| GET | /v1/consumers/handle/{handle} | Resolve a @banza (handle + display name only) |
+| POST · GET | /v1/refunds | Refund a typed source · list refunds |
+| GET | /v1/refunds/{id} | Read a refund |
+| POST · GET | /v1/webhooks/endpoints | Register · list endpoints |
+| GET · DELETE | /v1/webhooks/endpoints/{id} | Read · deactivate an endpoint |
+| GET | /v1/webhooks/endpoints/{id}/health | Delivery health |
+| POST | /v1/webhooks/endpoints/{id}/rotate-secret | Rotate the signing secret |
+| GET | /v1/webhooks/events | List events |
+| GET | /v1/webhooks/events/{id}/deliveries | An event's deliveries |
+| POST | /v1/webhooks/deliveries/{id}/replay | Replay a delivery |
+| POST · GET | /v1/payment-links | Create · list payment links |
+| GET · DELETE | /v1/payment-links/{id} | Read · cancel a payment link |
+| POST | /v1/payment-links/{id}/mark-used | **Retired — 410 `ROUTE_RETIRED` for every caller.** A link is marked paid only by a payment; to close an unpaid link, `DELETE /v1/payment-links/{id}` |
+
+### Merchant JWT (a consumer token is refused)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /v1/merchant/auth/claim | Claim a merchant session |
+| POST | /v1/merchant/project-link-codes | Issue a consent code for a Project (ADR-055) |
+| POST · GET | /v1/transactions | Create · list transactions |
+| GET | /v1/transactions/{id} | Read a transaction |
+| GET | /v1/merchant/wallet-payments | Wallet payments received |
+| GET | /v1/merchant/transactions/{id}/receipt.pdf | Receipt PDF |
+| POST | /v1/merchants | Create merchant — **Sandbox fixture route only**; not mounted on LIVE (ADR-058) |
+| GET | /v1/merchants/{id} | Read merchant |
+| POST | /v1/merchants/{id}/suspend | Suspend merchant |
+| POST · GET | /v1/merchants/{id}/api-keys | Create · list API keys |
+| DELETE | /v1/merchants/{id}/api-keys/{keyID} | Revoke an API key |
+| POST · GET | /v1/compliance/customers/verify · /status | Consumer KYC (the one route a consumer token may use) |
+| POST · GET | /v1/compliance/merchants/verify · /status | Business KYB |
+| GET | /v1/merchant/kyb/status · /documents · /documents/{id} | KYB state and documents |
+| POST | /v1/merchant/kyb/documents/{id}/upload-url · /complete | KYB upload ({id} = document type) |
+| GET · POST | /v1/team/members | List · invite team members |
+| DELETE | /v1/team/members/{id} | Remove a member |
+| GET | /v1/team/access-log | Team access log |
+| POST · GET | /v1/wallets | Create · read the merchant's wallet |
+| GET | /v1/wallets/{id} · /{id}/balance · /{id}/analytics | Wallet, balance, analytics |
+| POST · GET | /v1/payouts | Create · list payouts |
+| GET | /v1/payouts/{id} | Read a payout |
+| POST | /v1/consumers | Create consumer |
+| GET | /v1/consumers/{id} | Read consumer |
+| POST | /v1/qr/static · /dynamic · /decode | Create · decode QR |
+| GET | /v1/qr/{id} | Read a QR code |
+| POST | /v1/qr/{id}/use | Mark a QR used |
+| ANY | /v1/splits · /v1/splits/* | 410 — superseded by Collections (ADR-036) |
+| POST · GET | /v1/collections | Create · list collections |
+| GET · PATCH | /v1/collections/{id} | Read · update |
+| POST | /v1/collections/{id}/close · /cancel | Close · cancel |
+| GET | /v1/collections/{id}/events | Collection events |
+| POST · GET | /v1/collections/{id}/shares | Create · list shares |
+| POST | /v1/collection-shares/{id}/surface | Surface a share |
+| POST · GET | /v1/disputes | Open · list disputes |
+| GET | /v1/disputes/{id} | Read a dispute |
+| POST · GET | /v1/disputes/{id}/evidence | Submit · list evidence |
+| GET | /v1/sandbox/status · /instruments | Sandbox status and test instruments (SANDBOX only) |
+| POST | /v1/sandbox/fund · /simulate/payment | Credit a Sandbox wallet · simulate a payment (SANDBOX only) |
+
+### Internal (X-Internal-Key — admin-api, public-api, developer-api)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /internal/v1/proofs/ensure · /internal/v1/proofs/reverse | Mint · reverse a proof |
+| POST | /internal/v1/receipts/transfer · /wallet-payment | Canonical receipts |
+| GET | /internal/v1/businesses/{id}/public-identity | A Business's public name and @banza |
+| GET | /internal/v1/businesses/{merchantID}/state | Business state |
+| POST | /internal/v1/businesses/{merchantID}/app-pin-reset | Fresh activation link (when configured) |
+| POST | /internal/v1/business-link-codes/redeem | Spend a Business consent code for a Project |
+| GET | /internal/v1/merchant-applications · /{id} | Review queue |
+| POST | /internal/v1/merchant-applications/{id}/approve · /reject · /start-review · /request-information | Review decisions |
+| POST · GET | /internal/v1/merchant-applications/for-project · /for-project/{projectID} | Project applications |
+| POST | /internal/v1/merchant-applications/{id}/link-existing · /reissue-activation | Provisioning steps |
+| GET | /internal/v1/merchant-applications/{id}/link-candidates · /business-state · /documents | Review context |
+| POST | /internal/v1/merchant-applications/{id}/documents/{document_id}/read-url · /accept · /reject | Document review |
+| GET | /internal/v1/merchant-kyb/documents · /merchants · /merchants/{id}/documents · /merchants/{id}/context · /merchants/{id}/timeline | KYB review |
+| POST | /internal/v1/merchant-kyb/documents/{id}/approve · /reject · /read-url | KYB decisions |
+| GET | /internal/v1/attention-summary | BANZADMIN attention badges |
 
 ## Running locally
 

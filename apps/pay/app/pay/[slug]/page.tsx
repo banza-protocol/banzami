@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getPaymentLink, getPlatformMode, formatAmount } from '@/lib/api';
+import { getPaymentLink, getPlatformMode, formatAmount, linkIsPaid } from '@/lib/api';
+import { paidToLabel } from '@/lib/payee';
 import PayClient from './pay-client';
 
 interface Props {
@@ -19,7 +20,12 @@ export default async function PayPage({ params }: Props) {
   const link = await getPaymentLink(slug);
   if (!link) notFound();
 
-  if (link.status === 'USED') {
+  // Paid is the gateway's answer to "has the payment this link asked for been
+  // made?" — true for a used link AND for a link retired because its Payment
+  // Session was paid by QR. That second link is CANCELLED, and used to be shown
+  // to the payer as "Link inválido · Este link foi cancelado".
+  if (linkIsPaid(link)) {
+    const paidTo = paidToLabel(link.merchant_name, link.merchant_handle);
     return (
       <main className="flex min-h-screen items-center justify-center p-4">
         <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -28,8 +34,9 @@ export default async function PayPage({ params }: Props) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="text-xl font-bold text-gray-900">Pagamento recebido</h1>
-          <p className="mt-2 text-sm text-gray-400">Este link de pagamento já foi utilizado.</p>
+          <h1 className="text-xl font-bold text-gray-900">Pagamento já feito</h1>
+          <p className="mt-2 text-sm text-gray-400">Este pagamento já foi feito.</p>
+          {paidTo && <p className="mt-1 text-sm text-gray-600">{paidTo}</p>}
         </div>
       </main>
     );
@@ -71,6 +78,7 @@ export default async function PayPage({ params }: Props) {
       externalRailAvailable={mode === 'LIVE'}
       slug={link.slug}
       merchantName={link.merchant_name}
+      merchantHandle={link.merchant_handle}
       amountDisplay={amountDisplay}
       amountMinor={link.amount_minor}
       currency={link.currency}

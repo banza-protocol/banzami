@@ -38,7 +38,7 @@ developers.banzami.com/docs
 ├── 2. Guias
 │   ├── 2.1 Autenticação e chaves       ← NEW: tipos de chave, troca chave→token (mostrada), rotação, revelação única
 │   ├── 2.2 Sessões de pagamento        ← NEW guia de tarefa (+link, +QR da sessão)
-│   ├── 2.3 Payment links               ← NEW (criação, slug público, estados, mark-used)
+│   ├── 2.3 Payment links               ← NEW (criação, slug público, estados, cancelar com DELETE — mark-used foi retirado: 410)
 │   ├── 2.4 QR Banzami                  ← NEW (estático/dinâmico/decode/pay)
 │   ├── 2.5 Transferências              ← rewrite (credencial correta, idempotência mostrada, COMPLETED síncrono)
 │   ├── 2.6 Reembolsos                  ← rewrite (typed-source ADR-030, cap acumulado, replay idempotente)

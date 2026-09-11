@@ -1,7 +1,7 @@
 """Flask example — payment and webhook integration.
 
 Run:
-    pip install flask banzami
+    pip install flask ./             # from sdk/python: banzami-python is not on PyPI
     BANZAMI_API_KEY=bz_live_... flask --app examples.flask.app run
 """
 

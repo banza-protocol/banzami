@@ -5,6 +5,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
+from banzami.config import PAY_BASE_URL
+
 
 class PaymentLinkStatus(StrEnum):
     ACTIVE    = "ACTIVE"
@@ -29,4 +31,7 @@ class PaymentLink(BaseModel):
 
     @property
     def checkout_url(self) -> str:
-        return f"https://pay.banzami.co/{self.slug}"
+        """The page a payer opens: pay.banzami.com/pay/<slug> (the canonical path;
+        the bare pay.banzami.com/<slug> only redirects there). It used to build
+        https://pay.banzami.co/<slug> — a domain that is not Banzami's."""
+        return f"{PAY_BASE_URL}/pay/{self.slug}"
