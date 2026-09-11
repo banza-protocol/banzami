@@ -1,6 +1,8 @@
+import { formatMoneyDisplay } from './money';
+
 // The origin the BROWSER calls. Baked into client bundles at build time, and the
 // value the CSP connect-src is derived from.
-const GATEWAY_URL         = process.env.NEXT_PUBLIC_GATEWAY_URL  ?? 'http://localhost:8080';
+const GATEWAY_URL        = process.env.NEXT_PUBLIC_GATEWAY_URL  ?? 'http://localhost:8080';
 // Server-only — read at runtime, not baked at build time.
 const STAGING_GATEWAY_URL = process.env.STAGING_GATEWAY_URL ?? 'http://public-api-staging:8083';
 
@@ -190,10 +192,10 @@ export async function getConsumerPayLink(code: string, sandbox = false): Promise
   return res.json();
 }
 
+/**
+ * Money Engine display: "50 000 Kz", "10,50 Kz". It used to divide into a float
+ * and let toLocaleString drop the trailing zero — 1 050 minor showed "10,5 Kz".
+ */
 export function formatAmount(amountMinor: number, currency: string): string {
-  const major = amountMinor / 100;
-  if (currency.toUpperCase() === 'AOA') {
-    return `${major.toLocaleString('pt-AO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Kz`;
-  }
-  return new Intl.NumberFormat('pt-AO', { style: 'currency', currency, minimumFractionDigits: 2 }).format(major);
+  return formatMoneyDisplay(amountMinor, currency);
 }

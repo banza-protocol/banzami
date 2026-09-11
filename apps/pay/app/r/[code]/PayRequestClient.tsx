@@ -2,16 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ConsumerPayLink } from '@/lib/api';
+import { formatMoneyDisplay as formatAmt } from '@/lib/money';
 
 type Phase = 'loading' | 'success' | 'not_found' | 'network_error' | 'timeout';
-
-function formatAmt(amountMinor: number, currency: string): string {
-  const major = amountMinor / 100;
-  if (currency.toUpperCase() === 'AOA') {
-    return `${major.toLocaleString('pt-AO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Kz`;
-  }
-  return new Intl.NumberFormat('pt-AO', { style: 'currency', currency, minimumFractionDigits: 2 }).format(major);
-}
 
 // ── Environment badges ──────────────────────────────────────────────────────
 

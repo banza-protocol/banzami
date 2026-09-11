@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { banzamiQrSvgDataUri } from '@/lib/banzami-qr';
 import { AcquiringPayment, getPaymentLinkStatus, initiatePay } from '@/lib/api';
+import { formatWatTime } from '@/lib/money';
 import { paidToLabel, payeeDisplay, type Payee } from '@/lib/payee';
 
 interface Props {
@@ -109,7 +110,7 @@ export default function PayClient({
   if (step.type === 'instructions') {
     const { instructions, expires_at } = step.payment;
     const expiryLabel = expires_at
-      ? new Date(expires_at).toLocaleTimeString('pt-AO', { hour: '2-digit', minute: '2-digit' })
+      ? formatWatTime(expires_at)
       : null;
 
     return (
