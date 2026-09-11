@@ -49,6 +49,16 @@ pub trait LedgerEngine: Send + Sync {
     /// Fetch a posting and all its entries by ID.
     async fn get_posting(&self, posting_id: LedgerPostingId) -> Result<LedgerPosting, LedgerError>;
 
+    /// The posting written under `idempotency_key`, if one was. A caller that
+    /// posts under fixed keys can find what actually moved even when it never
+    /// recorded the posting's id — the only way to reverse a partial operation
+    /// exactly (never by re-deriving amounts, which can reverse money that did
+    /// not move).
+    async fn find_posting_by_key(
+        &self,
+        idempotency_key: &str,
+    ) -> Result<Option<LedgerPosting>, LedgerError>;
+
     /// Derive the current balance of an account from its ledger entries.
     ///
     /// Returns `Money::zero(currency)` for accounts with no entries.

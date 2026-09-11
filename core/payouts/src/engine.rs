@@ -266,64 +266,51 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         Ok(posted)
     }
 
-    /// Reverse a processed payout — BOTH the net posting and (if any) the fee
-    /// posting. The net posting is reversed exactly via `ledger.reverse`. The fee
-    /// is derived from the actual posted amounts (fee = gross − net) — never
-    /// re-resolved — so a rule change between process and reversal can never
-    /// unbalance it, and nothing strands on the fee account. Idempotent on the
-    /// reversal keys (a second call re-posts nothing).
+    /// Reverse what a payout's processing actually posted — the net posting and
+    /// the fee posting, each exactly, via `ledger.reverse`.
+    ///
+    /// Both are found by the fixed keys `process` posts under (the net one by its
+    /// recorded id when there is one). This used to start from
+    /// `payout.ledger_posting_id` and return Ok when it was absent — but
+    /// `process` could commit the net posting and then fail on the fee posting or
+    /// on recording the id, leave the payout PENDING with no id, and a later fail
+    /// reversed nothing: the merchant's money stayed debited for good (A2-08).
+    /// The fee used to be re-derived as gross − net, which would "give back" a fee
+    /// that was never taken when its posting is the one that failed; reversing
+    /// the posting itself returns exactly what moved. Idempotent on the reversal
+    /// keys (a second call re-posts nothing).
     async fn post_reversal(&self, payout: &Payout, reason: &str) -> Result<(), PayoutError> {
-        let Some(posting_id) = payout.ledger_posting_id else {
-            return Ok(()); // never processed — nothing to reverse
+        let net_posting = match payout.ledger_posting_id {
+            Some(id) => Some(self.ledger.get_posting(id).await?),
+            None => {
+                self.ledger
+                    .find_posting_by_key(&format!("{}:process", payout.idempotency_key))
+                    .await?
+            }
         };
-        let net_posting = self.ledger.get_posting(posting_id).await?;
-
-        // Reverse the net posting exactly (flips DR available / CR bank).
-        self.ledger
-            .reverse(
-                &net_posting,
-                format!("Payout {} — {} reversal (net)", payout.id, reason),
-                // One reversal per payout, whatever the reason: a fail and a
-                // return racing each other must not both give the money back.
-                format!("{}:reverse", payout.idempotency_key),
-            )
-            .await?;
-
-        // Derive the fee from what was actually posted: net = the credit leg of
-        // the net posting; fee = gross − net. Reverse the fee posting if any.
-        let net_minor: i64 = net_posting
-            .entries
-            .iter()
-            .find(|e| e.entry_type == banzami_ledger::EntryType::Credit)
-            .map(|e| e.amount.amount_minor())
-            .unwrap_or(payout.amount.amount_minor());
-        let available_account_id = net_posting
-            .entries
-            .iter()
-            .find(|e| e.entry_type == banzami_ledger::EntryType::Debit)
-            .map(|e| e.account_id);
-        let fee_minor = payout.amount.amount_minor() - net_minor;
-
-        if fee_minor > 0 {
-            if let Some(available_account_id) = available_account_id {
-                let fee = Money::new(fee_minor, payout.amount.currency);
-                // Reverse of (DR available fee / CR operator_fee fee).
-                let fee_reversal = PostingBuilder::new(
+        if let Some(net) = &net_posting {
+            self.ledger
+                .reverse(
+                    net,
+                    format!("Payout {} — {} reversal (net)", payout.id, reason),
+                    // One reversal per payout, whatever the reason: a fail and a
+                    // return racing each other must not both give the money back.
+                    format!("{}:reverse", payout.idempotency_key),
+                )
+                .await?;
+        }
+        if let Some(fee) = self
+            .ledger
+            .find_posting_by_key(&format!("{}:process:fee", payout.idempotency_key))
+            .await?
+        {
+            self.ledger
+                .reverse(
+                    &fee,
                     format!("Payout {} — {} reversal (fee)", payout.id, reason),
                     format!("{}:reverse:fee", payout.idempotency_key),
                 )
-                .debit(self.operator_fee_account_id, fee) // REVENUE ↓ give the fee back
-                .credit(available_account_id, fee) // LIABILITY ↑ restore to merchant
-                .build()
-                .map_err(|_| {
-                    PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
-                        debits_minor: fee_minor,
-                        credits_minor: fee_minor,
-                        currency: payout.amount.currency,
-                    })
-                })?;
-                self.ledger.post(fee_reversal).await?;
-            }
+                .await?;
         }
         Ok(())
     }
@@ -414,7 +401,13 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
 
     async fn process(&self, id: PayoutId) -> Result<Payout, PayoutError> {
         let payout = self.repo.get(id).await?;
-        if !payout.status.can_transition_to(PayoutStatus::Processing) {
+        // A PROCESSING payout with no recorded posting stopped between moving
+        // money and recording it. Processing it again completes it: every posting
+        // is idempotent on its fixed key, so nothing moves twice, and the id is
+        // recorded at last.
+        let resuming =
+            payout.status == PayoutStatus::Processing && payout.ledger_posting_id.is_none();
+        if !resuming && !payout.status.can_transition_to(PayoutStatus::Processing) {
             return Err(PayoutError::InvalidStatusTransition {
                 from: payout.status,
                 to: PayoutStatus::Processing,
@@ -428,19 +421,27 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .map_err(|e| PayoutError::Wallet(e.to_string()))?;
 
         // Claim first; move money only while holding the transition.
-        self.repo
-            .update_status(id, payout.status, PayoutStatus::Processing, None, None)
-            .await?;
+        if !resuming {
+            self.repo
+                .update_status(id, payout.status, PayoutStatus::Processing, None, None)
+                .await?;
+        }
         let posting = match self
             .post_initiation(&payout, wallet.available_account_id)
             .await
         {
             Ok(p) => p,
             Err(e) => {
-                let _ = self
-                    .repo
-                    .update_status(id, PayoutStatus::Processing, payout.status, None, None)
-                    .await;
+                // Part of the money may have moved (the net posting commits on
+                // its own). Going back to PENDING is safe: a retry re-posts
+                // nothing twice, and a fail reverses whatever was posted, found by
+                // key (post_reversal).
+                if !resuming {
+                    let _ = self
+                        .repo
+                        .update_status(id, PayoutStatus::Processing, payout.status, None, None)
+                        .await;
+                }
                 return Err(e);
             }
         };
@@ -458,7 +459,11 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
 
     async fn mark_sent(&self, id: PayoutId) -> Result<Payout, PayoutError> {
         let payout = self.repo.get(id).await?;
-        if !payout.status.can_transition_to(PayoutStatus::Sent) {
+        // A payout whose posting was never recorded has not finished moving its
+        // money; it cannot be declared sent to the bank. Process it again first.
+        if !payout.status.can_transition_to(PayoutStatus::Sent)
+            || payout.ledger_posting_id.is_none()
+        {
             return Err(PayoutError::InvalidStatusTransition {
                 from: payout.status,
                 to: PayoutStatus::Sent,
@@ -497,15 +502,15 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
             .repo
             .update_status(id, payout.status, PayoutStatus::Failed, None, Some(reason))
             .await?;
-        // Reverse the ledger posting if it was already made (i.e., we reached Processing/Sent).
-        if payout.ledger_posting_id.is_some() {
-            if let Err(e) = self.post_reversal(&payout, "fail").await {
-                let _ = self
-                    .repo
-                    .update_status(id, PayoutStatus::Failed, payout.status, None, None)
-                    .await;
-                return Err(e);
-            }
+        // Give back whatever processing posted — found by key, so a payout that
+        // moved money without recording its posting is reversed too. A payout
+        // that never reached processing finds nothing and reverses nothing.
+        if let Err(e) = self.post_reversal(&payout, "fail").await {
+            let _ = self
+                .repo
+                .update_status(id, PayoutStatus::Failed, payout.status, None, None)
+                .await;
+            return Err(e);
         }
         Ok(failed)
     }
@@ -582,6 +587,8 @@ mod tests {
         accounts: Mutex<Vec<Account>>,
         entries: Mutex<Vec<LedgerEntry>>,
         postings: Mutex<Vec<LedgerPosting>>,
+        /// A key suffix whose postings fail — a transient ledger fault mid-operation.
+        refuse_suffix: Mutex<Option<&'static str>>,
     }
 
     impl MockLedger {
@@ -590,6 +597,7 @@ mod tests {
                 accounts: Mutex::new(vec![account]),
                 entries: Mutex::new(vec![]),
                 postings: Mutex::new(vec![]),
+                refuse_suffix: Mutex::new(None),
             }
         }
     }
@@ -618,6 +626,11 @@ mod tests {
                 .count();
             if debits > 1 || credits > 1 {
                 return Err(banzami_ledger::LedgerError::InsufficientEntries);
+            }
+            if let Some(sfx) = *self.refuse_suffix.lock().unwrap() {
+                if p.idempotency_key.ends_with(sfx) {
+                    return Err(banzami_ledger::LedgerError::InsufficientEntries);
+                }
             }
             // Idempotent on idempotency_key, mirroring the real ledger: a replay
             // returns the existing posting and never double-applies entries.
@@ -663,6 +676,18 @@ mod tests {
                 .find(|p| p.id == posting_id)
                 .cloned()
                 .ok_or(banzami_ledger::LedgerError::PostingNotFound(posting_id))
+        }
+        async fn find_posting_by_key(
+            &self,
+            idempotency_key: &str,
+        ) -> Result<Option<LedgerPosting>, banzami_ledger::LedgerError> {
+            Ok(self
+                .postings
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|p| p.idempotency_key == idempotency_key)
+                .cloned())
         }
         async fn balance(
             &self,
@@ -1646,5 +1671,76 @@ mod tests {
 
         assert_eq!(payout.status, PayoutStatus::Pending);
         assert_eq!(payout.merchant_id, owner());
+    }
+
+    // A2-08. The net posting commits on its own; the fee posting (or recording
+    // the posting id) can fail after it. The payout went back to PENDING with no
+    // id, and failing it reversed nothing — the merchant's net stayed debited
+    // for good. The reversal now finds what moved by its fixed keys, and reverses
+    // exactly that: no phantom fee comes back when the fee was never taken.
+    #[tokio::test]
+    async fn failing_a_half_processed_payout_returns_exactly_what_moved() {
+        let (engine, wallet_id, avail) = make_engine(100_000);
+        let payout = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "half-1".into(),
+                merchant_id: owner(),
+                wallet_id,
+                amount: kz(40_000),
+                destination: dest(),
+            })
+            .await
+            .unwrap();
+        *engine.ledger.refuse_suffix.lock().unwrap() = Some(":process:fee");
+
+        assert!(engine.process(payout.id).await.is_err(), "the fee posting was refused");
+        let after_process = engine.repo.get(payout.id).await.unwrap();
+        assert_eq!(after_process.status, PayoutStatus::Pending);
+        assert!(after_process.ledger_posting_id.is_none());
+        let debited = engine.ledger.balance(avail).await.unwrap().negate().amount_minor();
+        assert!(debited < 100_000, "the net posting did commit before the fee failed");
+
+        *engine.ledger.refuse_suffix.lock().unwrap() = None;
+        engine.fail(payout.id, "bank rejected".into()).await.unwrap();
+        assert_eq!(
+            engine.ledger.balance(avail).await.unwrap().negate().amount_minor(),
+            100_000,
+            "failing the payout must give back what moved — no more, no less"
+        );
+    }
+
+    // Processing stopped after the postings but before the id was recorded:
+    // the payout cannot be declared sent, and processing it again completes it
+    // without moving anything twice.
+    #[tokio::test]
+    async fn a_payout_without_its_posting_recorded_is_resumed_not_sent() {
+        let (engine, wallet_id, avail) = make_engine(100_000);
+        let payout = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "resume-1".into(),
+                merchant_id: owner(),
+                wallet_id,
+                amount: kz(40_000),
+                destination: dest(),
+            })
+            .await
+            .unwrap();
+        engine.process(payout.id).await.unwrap();
+        let balance_after = engine.ledger.balance(avail).await.unwrap();
+        let postings = engine.ledger.postings.lock().unwrap().len();
+        // The id update is what failed.
+        for p in engine.repo.payouts.lock().unwrap().iter_mut() {
+            if p.id == payout.id {
+                p.ledger_posting_id = None;
+            }
+        }
+
+        assert!(engine.mark_sent(payout.id).await.is_err(), "sent with no recorded posting");
+        let resumed = engine.process(payout.id).await.unwrap();
+        assert_eq!(resumed.status, PayoutStatus::Processing);
+        assert!(resumed.ledger_posting_id.is_some());
+        assert_eq!(engine.ledger.postings.lock().unwrap().len(), postings, "resuming posted again");
+        assert_eq!(engine.ledger.balance(avail).await.unwrap(), balance_after);
+        engine.mark_sent(payout.id).await.unwrap();
     }
 }

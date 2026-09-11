@@ -1236,6 +1236,12 @@ mod tests {
         ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
             unimplemented!("MockLedger::get_posting not needed for consumer-wallet unit tests")
         }
+        async fn find_posting_by_key(
+            &self,
+            _idempotency_key: &str,
+        ) -> Result<Option<LedgerPosting>, banzami_ledger::LedgerError> {
+            unimplemented!("find_posting_by_key not needed in consumer-wallet unit tests")
+        }
     }
 
     // ── Mock onboarding repository ──────────────────────────────────────────

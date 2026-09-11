@@ -291,6 +291,21 @@ impl LedgerEngine for PostgresLedgerRepository {
         })
     }
 
+    async fn find_posting_by_key(
+        &self,
+        idempotency_key: &str,
+    ) -> Result<Option<LedgerPosting>, LedgerError> {
+        let id: Option<Uuid> =
+            sqlx::query_scalar("SELECT id FROM ledger_postings WHERE idempotency_key = $1")
+                .bind(idempotency_key)
+                .fetch_optional(&self.pool)
+                .await?;
+        match id {
+            Some(id) => Ok(Some(self.get_posting(LedgerPostingId::from_uuid(id)).await?)),
+            None => Ok(None),
+        }
+    }
+
     async fn balance(&self, account_id: AccountId) -> Result<Money, LedgerError> {
         // Balance is derived from ledger entries — never stored directly.
         // The COALESCE handles accounts with zero entries (LEFT JOIN → all nulls).

@@ -318,6 +318,12 @@ mod tests {
         ) -> Result<LedgerPosting, LedgerError> {
             unimplemented!("get_posting not needed in settlement unit tests")
         }
+        async fn find_posting_by_key(
+            &self,
+            _idempotency_key: &str,
+        ) -> Result<Option<LedgerPosting>, LedgerError> {
+            unimplemented!("find_posting_by_key not needed in settlement unit tests")
+        }
     }
 
     // -----------------------------------------------------------------------

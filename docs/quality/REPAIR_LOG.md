@@ -3162,3 +3162,21 @@ completion or the EXPIRED claim fails them), the refund-source assertion in
 `an_open_amount_link_records_what_was_paid`, `TestPayerPaths_LeaveTheLinkAndItsEventToCore`,
 `TestEmisCallback_AnUnfinishedSettlementAsksForARetry`,
 `TestPaymentLink_MarkUsedIsRetiredForEveryone`, `TestPaymentLink_RetiredMarkUsedEmitsNothing`.
+
+## RA-113 — a payout that moved money without recording it could be failed without giving it back
+
+- **Found:** 2026-09-11 (full-system assurance, fail-open audit A2-08)
+- **Status:** FIXED (core/payouts + core/ledger)
+
+`process` posts the net amount, then the fee, then records the net posting's id. The
+net posting commits on its own, so a fault on the fee posting or on the id update sent
+the payout back to PENDING with no posting id — money gone from the merchant's balance.
+A later `fail` (or `return`) reversed only when that id was set, so it reversed nothing,
+for good. And the reversal re-derived the fee as gross − net: had it run for a payout
+whose fee posting was the one that failed, it would have "given back" a fee that was
+never taken. The reversal now finds what moved by the payout's fixed keys
+(`{key}:process`, `{key}:process:fee` — new `LedgerEngine::find_posting_by_key`) and
+reverses each posting exactly; a PROCESSING payout with no recorded posting cannot be
+marked SENT, and processing it again completes it without posting twice. Tests
+`failing_a_half_processed_payout_returns_exactly_what_moved` (the id-only reversal
+leaves the net debited) and `a_payout_without_its_posting_recorded_is_resumed_not_sent`.

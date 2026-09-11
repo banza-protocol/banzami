@@ -373,6 +373,12 @@ mod tests {
         ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
             unimplemented!("get_posting not needed in wallet unit tests")
         }
+        async fn find_posting_by_key(
+            &self,
+            _idempotency_key: &str,
+        ) -> Result<Option<LedgerPosting>, banzami_ledger::LedgerError> {
+            unimplemented!("find_posting_by_key not needed in wallet unit tests")
+        }
     }
 
     // -----------------------------------------------------------------------
