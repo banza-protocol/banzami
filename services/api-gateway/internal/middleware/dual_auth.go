@@ -55,7 +55,7 @@ func DualAuth(cfg *config.Config, devClient devKeyAuthorizer) func(http.Handler)
 			}
 			principal, err := verifyJWT(raw, cfg.JWTSecret)
 			if err != nil {
-				slog.WarnContext(r.Context(), "auth.invalid_token", "path", r.URL.Path, "reason", err.Error())
+				slog.WarnContext(r.Context(), "auth.invalid_token", "path", LoggedPath(r.URL.Path), "reason", err.Error())
 				apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_TOKEN", "token is invalid or expired")
 				return
 			}

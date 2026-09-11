@@ -40,7 +40,7 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 			if err != nil {
 				slog.WarnContext(r.Context(), "auth.missing_token",
 					"ip", r.RemoteAddr,
-					"path", r.URL.Path,
+					"path", LoggedPath(r.URL.Path),
 					"user_agent", r.Header.Get("User-Agent"),
 				)
 				apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", err.Error())
@@ -51,7 +51,7 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 			if err != nil {
 				slog.WarnContext(r.Context(), "auth.invalid_token",
 					"ip", r.RemoteAddr,
-					"path", r.URL.Path,
+					"path", LoggedPath(r.URL.Path),
 					"reason", err.Error(),
 				)
 				apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_TOKEN",
@@ -62,7 +62,7 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 			slog.DebugContext(r.Context(), "auth.ok",
 				"merchant_id", principal.MerchantID,
 				"customer_id", principal.CustomerID,
-				"path", r.URL.Path,
+				"path", LoggedPath(r.URL.Path),
 			)
 
 			ctx := context.WithValue(r.Context(), principalKey{}, principal)
@@ -225,7 +225,7 @@ func RequireMerchant(next http.Handler) http.Handler {
 		}
 		if p.MerchantID == "" {
 			slog.WarnContext(r.Context(), "auth.non_merchant_principal_on_merchant_surface",
-				"path", r.URL.Path, "has_customer_id", p.CustomerID != "")
+				"path", LoggedPath(r.URL.Path), "has_customer_id", p.CustomerID != "")
 			apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant credentials required")
 			return
 		}

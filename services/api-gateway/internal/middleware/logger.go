@@ -3,8 +3,9 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
+
+	"github.com/banzami/banzami/services/common/obs"
 )
 
 // Logger emits a structured log line for every request after it completes.
@@ -42,21 +43,9 @@ func (sw *statusWriter) WriteHeader(code int) {
 	sw.ResponseWriter.WriteHeader(code)
 }
 
-// publicProofPrefix is the public proof lookup. Its last segment is the proof
-// reference, and a SECURE_V1 reference is a bearer capability: whoever holds
-// it can read the payment. The access log wrote it whole on every lookup.
-const publicProofPrefix = "/v1/public/proofs/"
-
-// LoggedPath is the request path as it may appear in a log: a proof reference
-// keeps its first two groups (enough to tell requests apart and to tell the
-// reference class) and loses the rest.
-func LoggedPath(path string) string {
-	if !strings.HasPrefix(path, publicProofPrefix) {
-		return path
-	}
-	ref := strings.TrimPrefix(path, publicProofPrefix)
-	if len(ref) > 8 {
-		ref = ref[:8] + "…"
-	}
-	return publicProofPrefix + ref
-}
+// LoggedPath is the request path as it may appear in a log: bearer values
+// (proof references on ANY route, API keys) are cut — see obs.RedactPath.
+//
+// It used to mask only paths starting /v1/public/proofs/, so a mistyped route
+// (/V1/…, //v1/…) wrote the full reference to the log.
+func LoggedPath(path string) string { return obs.RedactPath(path) }

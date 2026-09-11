@@ -22,8 +22,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"regexp"
-	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -54,22 +52,11 @@ func AttributeRequest(ctx context.Context, p *DeveloperPrincipal) {
 	a.projectID, a.keyID, a.environment = p.ProjectID, p.KeyID, p.Environment
 }
 
-// credentialInPath matches a Banzami key shape anywhere in a URL path. Auth
-// reads keys from headers, so a key in the path means a caller put it there —
-// and a log that then stored it would have turned their mistake into ours.
-var credentialInPath = regexp.MustCompile(`bz_(test|live)_(sk|pk)_[A-Za-z0-9_-]+`)
-
-// sanitisePath strips the query string and redacts anything key-shaped.
-func sanitisePath(p string) string {
-	if i := strings.IndexByte(p, '?'); i >= 0 {
-		p = p[:i]
-	}
-	p = credentialInPath.ReplaceAllString(p, "[REDACTED]")
-	if len(p) > 512 {
-		p = p[:512]
-	}
-	return p
-}
+// sanitisePath strips the query string and redacts bearer values: anything
+// key-shaped (auth reads keys from headers, so a key in the path means a caller
+// put it there — and a log that then stored it would have turned their mistake
+// into ours) and proof references. See obs.RedactPath.
+func sanitisePath(p string) string { return obs.RedactPath(p) }
 
 // APIRequestLog records one row per Developer-API request that authenticated
 // with a project credential. sink may be nil (logging disabled).
