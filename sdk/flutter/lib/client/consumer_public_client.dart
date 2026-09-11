@@ -396,6 +396,12 @@ class ConsumerPublicClient {
         'document_type': documentType.wire,
         if (country != null && country.isNotEmpty) 'country': country,
       },
+      // The server reads the key from the header (public-api kyc.go); it used
+      // to be accepted here and never sent.
+      headers: {
+        if (idempotencyKey != null && idempotencyKey.isNotEmpty)
+          'Idempotency-Key': idempotencyKey,
+      },
     );
     return KycCase.fromJson(json);
   }
@@ -582,9 +588,10 @@ class ConsumerPublicClient {
     required String path,
     Map<String, dynamic>? body,
     bool auth = true,
+    Map<String, String> headers = const {},
   }) async {
     final uri = Uri.parse('$baseUrl$path');
-    final headers = _headers(auth: auth);
+    final allHeaders = {..._headers(auth: auth), ...headers};
     final start = DateTime.now();
 
     onRequest?.call(method, path);
@@ -592,10 +599,10 @@ class ConsumerPublicClient {
     late http.Response resp;
     try {
       final Future<http.Response> request = switch (method) {
-        'GET' => _http.get(uri, headers: headers),
+        'GET' => _http.get(uri, headers: allHeaders),
         'POST' => _http.post(uri,
-            headers: headers, body: body != null ? jsonEncode(body) : null),
-        'DELETE' => _http.delete(uri, headers: headers),
+            headers: allHeaders, body: body != null ? jsonEncode(body) : null),
+        'DELETE' => _http.delete(uri, headers: allHeaders),
         _ => throw ArgumentError('Unsupported method: $method'),
       };
       resp = await request.timeout(requestTimeout,

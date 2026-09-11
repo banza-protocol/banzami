@@ -61,4 +61,20 @@ void main() {
       expect(paths.length, 3, reason: '".." is refused before any request');
     });
   });
+
+  test('createKycCase sends its idempotency key as the Idempotency-Key header', () async {
+    String? key;
+    final client = ConsumerPublicClient(
+      baseUrl: 'https://api.test',
+      httpClient: MockClient((req) async {
+        key = req.headers['Idempotency-Key'];
+        return http.Response('{"code":"X","message":"x"}', 400);
+      }),
+    )..setToken('t');
+    try {
+      await client.createKycCase(
+          documentType: KycDocumentType.values.first, idempotencyKey: 'kyc-1');
+    } catch (_) {}
+    expect(key, 'kyc-1');
+  });
 }

@@ -37,6 +37,9 @@ class _Capture {
 
 class _KycScreenState extends State<KycScreen> {
   final _picker = ImagePicker();
+  // One key per "start verification with this document": a retry after a
+  // lost answer resumes the same case instead of opening another.
+  final _startIntent = IdempotencyIntent();
 
   _Step _step = _Step.loading;
   KycCase? _case;
@@ -146,7 +149,8 @@ class _KycScreenState extends State<KycScreen> {
   Future<void> _startWithDocument(KycDocumentType type) async {
     setState(() { _error = null; _docType = type; });
     try {
-      final c = await _client.createKycCase(documentType: type, country: 'AO');
+      final c = await _client.createKycCase(
+          documentType: type, country: 'AO', idempotencyKey: _startIntent.keyFor(type));
       if (!mounted) return;
       // A different document was already in progress server-side: keep that case
       // and drop any local captures that no longer apply.
