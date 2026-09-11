@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Download, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type OperatorFee, type OperatorFeeFilters } from '@/lib/admin-api';
-import { Badge } from '@/components/ui/badge';
+import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { formatMoney, formatDate } from '@/lib/format';
@@ -131,7 +131,7 @@ export default function OperatorFeesPage() {
                       <Td right mono>{formatMoney(r.gross_minor, r.currency)}</Td>
                       <Td right mono className="font-extrabold text-[#B5101F]">{formatMoney(r.fee_minor, r.currency)}</Td>
                       <Td right mono>{formatMoney(r.net_minor, r.currency)}</Td>
-                      <Td><Badge label={r.status} variant="success" /></Td>
+                      <Td><Badge label={statusLabelPt(r.status)} variant="success" /></Td>
                     </tr>
                   ))}
                 </tbody>

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { X, ChevronDown, ChevronRight, Ban, AlertTriangle } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type ApplicationSettlement, type AppSettlementFilters } from '@/lib/admin-api';
-import { Badge } from '@/components/ui/badge';
+import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
@@ -134,7 +134,7 @@ export default function ApplicationSettlementsPage() {
         <input className={selClass} placeholder="owner_ref" value={filters.owner_ref ?? ''} onChange={(e) => set('owner_ref', e.target.value)} />
         <select className={selClass} value={filters.status ?? ''} onChange={(e) => set('status', e.target.value)}>
           <option value="">Todos os estados</option>
-          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+          {STATUSES.map((s) => <option key={s} value={s}>{statusLabelPt(s)}</option>)}
         </select>
         <select className={selClass} value={filters.business_category ?? ''} onChange={(e) => set('business_category', e.target.value)}>
           <option value="">Todas as categorias</option>
@@ -183,7 +183,7 @@ export default function ApplicationSettlementsPage() {
                       <Td right mono>{formatMoney(r.gross_amount.amount_minor, r.gross_amount.currency || r.currency)}</Td>
                       <Td right mono className="text-[#B5101F]">{formatMoney(r.application_fee.amount_minor, r.application_fee.currency || r.currency)}</Td>
                       <Td right mono className="font-extrabold">{formatMoney(r.net_amount.amount_minor, r.net_amount.currency || r.currency)}</Td>
-                      <Td><Badge label={r.status} variant={statusVariant(r.status)} /></Td>
+                      <Td><Badge label={statusLabelPt(r.status)} variant={statusVariant(r.status)} /></Td>
                     </tr>
                   ))}
                 </tbody>
@@ -198,7 +198,7 @@ export default function ApplicationSettlementsPage() {
             <div className="flex flex-col gap-[2px] p-[18px]">
               <div className="mb-2 flex items-center justify-between">
                 <span className="text-[15px] font-black">{selected.owner_ref}</span>
-                <Badge label={selected.status} variant={statusVariant(selected.status)} />
+                <Badge label={statusLabelPt(selected.status)} variant={statusVariant(selected.status)} />
               </div>
               <Row label="Bruto" value={formatMoney(selected.gross_amount.amount_minor, selected.gross_amount.currency || selected.currency)} />
               <Row label="Taxa da app" value={formatMoney(selected.application_fee.amount_minor, selected.application_fee.currency || selected.currency)} strong />

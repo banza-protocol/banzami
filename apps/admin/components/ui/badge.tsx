@@ -16,22 +16,26 @@ const STYLE: Record<Variant, { bg: string; color: string }> = {
 const VARIANT: Record<string, Variant> = {
   // success
   ACTIVE: 'success', APPROVED: 'success', SETTLED: 'success', CONFIRMED: 'success',
-  RESOLVED: 'success', CONCILIADO: 'success', COMPLETED: 'success', ACCEPTED: 'success',
-  ATIVO: 'success', LIQUIDADO: 'success', CONFIRMADO: 'success', RESOLVIDA: 'success',
+  RESOLVED: 'success', CONCILIADO: 'success', COMPLETED: 'success', ACCEPTED: 'success', APPLIED: 'success',
+  ATIVO: 'success', LIQUIDADO: 'success', CONFIRMADO: 'success', RESOLVIDA: 'success', RESOLVIDO: 'success',
+  APROVADO: 'success', 'CONCLUÍDO': 'success', ACEITE: 'success', APLICADA: 'success',
   // warning
   PENDING: 'warning', UNDER_REVIEW: 'warning', INFORMATION_REQUIRED: 'warning', 'INFORMAÇÃO PEDIDA': 'warning', PROCESSING: 'warning', PENDING_UPLOAD: 'warning',
-  PENDENTE: 'warning', 'EM ANÁLISE': 'warning', 'EM ANALISE': 'warning',
+  PENDENTE: 'warning', 'EM ANÁLISE': 'warning', 'EM ANALISE': 'warning', 'EM PROCESSAMENTO': 'warning',
+  'A AGUARDAR ENVIO': 'warning', CREATED: 'warning', CRIADO: 'warning', RUNNING: 'warning', 'EM CURSO': 'warning',
   // danger
   REJECTED: 'danger', FAILED: 'danger', PROVISIONING_FAILED: 'danger', RETURNED: 'danger', OPEN: 'danger', BLOCKED: 'danger',
-  CANCELLED: 'danger', REJEITADO: 'danger', REJEITADA: 'danger', FALHADO: 'danger',
-  DEVOLVIDO: 'danger', ABERTA: 'danger', BLOQUEADO: 'danger',
+  CANCELLED: 'danger', REJEITADO: 'danger', REJEITADA: 'danger', FALHADO: 'danger', REVERSED: 'danger', REVERTIDO: 'danger',
+  DEVOLVIDO: 'danger', ABERTA: 'danger', ABERTO: 'danger', BLOQUEADO: 'danger', CANCELADO: 'danger',
+  'FALHA NO APROVISIONAMENTO': 'danger',
   // maroon (AML)
   FLAGGED: 'maroon', SINALIZADO: 'maroon',
   // info
-  SUBMITTED: 'info', SENT: 'info', UPLOADED: 'info', SUBMETIDO: 'info', ENVIADO: 'info',
+  SUBMITTED: 'info', SENT: 'info', UPLOADED: 'info', SUBMETIDO: 'info', SUBMETIDA: 'info', ENVIADO: 'info',
   INVITED: 'info', CONVIDADO: 'info',
   // neutral
-  SUSPENDED: 'neutral', SUSPENSO: 'neutral', DELETED: 'neutral',
+  SUSPENDED: 'neutral', SUSPENSO: 'neutral', DELETED: 'neutral', ELIMINADO: 'neutral',
+  CLOSED: 'neutral', ENCERRADO: 'neutral', EXPIRED: 'neutral', EXPIRADO: 'neutral', DRAFT: 'neutral', RASCUNHO: 'neutral',
 };
 
 export function Badge({ label, variant }: { label: string | null | undefined; variant?: Variant }) {
@@ -48,22 +52,52 @@ export function Badge({ label, variant }: { label: string | null | undefined; va
   );
 }
 
-// Translate common merchant-application / merchant statuses to PT display labels.
+// Every status code the console shows → its Portuguese label. One table, so a
+// state reads the same on every page. SUBMITTED is NOT "Pendente": an
+// application the applicant has submitted and a payout nobody has touched are
+// different facts, and an operator filtering by one must not see the other's
+// word. Unknown codes fall through unchanged (visible, never hidden).
+export const STATUS_LABEL_PT: Record<string, string> = {
+  // Business applications
+  DRAFT: 'Rascunho',
+  SUBMITTED: 'Submetida',
+  UNDER_REVIEW: 'Em análise',
+  INFORMATION_REQUIRED: 'Informação pedida',
+  APPROVED: 'Aprovado',
+  REJECTED: 'Rejeitado',
+  CANCELLED: 'Cancelado',
+  PROVISIONING_FAILED: 'Falha no aprovisionamento',
+  // Accounts, consumers, operators
+  ACTIVE: 'Ativo',
+  SUSPENDED: 'Suspenso',
+  CLOSED: 'Encerrado',
+  INVITED: 'Convidado',
+  BLOCKED: 'Bloqueado',
+  FLAGGED: 'Sinalizado',
+  // Money in motion (payouts, settlements, wallet payments, app settlements)
+  CREATED: 'Criado',
+  PENDING: 'Pendente',
+  PROCESSING: 'Em processamento',
+  SENT: 'Enviado',
+  CONFIRMED: 'Confirmado',
+  SETTLED: 'Liquidado',
+  COMPLETED: 'Concluído',
+  FAILED: 'Falhado',
+  RETURNED: 'Devolvido',
+  REVERSED: 'Revertido',
+  EXPIRED: 'Expirado',
+  APPLIED: 'Aplicada',
+  // Runs, cases, documents
+  RUNNING: 'Em curso',
+  OPEN: 'Aberto',
+  RESOLVED: 'Resolvido',
+  PENDING_UPLOAD: 'A aguardar envio',
+  UPLOADED: 'Enviado',
+  ACCEPTED: 'Aceite',
+  DELETED: 'Eliminado',
+};
+
 export function statusLabelPt(code: string | null | undefined): string {
   if (!code) return '—';
-  const map: Record<string, string> = {
-    SUBMITTED: 'Pendente',
-    UNDER_REVIEW: 'Em análise',
-    INFORMATION_REQUIRED: 'Informação pedida',
-    APPROVED: 'Aprovado',
-    REJECTED: 'Rejeitado',
-    CANCELLED: 'Cancelado',
-    PROVISIONING_FAILED: 'Falha no aprovisionamento',
-    DRAFT: 'Rascunho',
-    ACTIVE: 'Ativo',
-    SUSPENDED: 'Suspenso',
-    PENDING: 'Pendente',
-    INVITED: 'Convidado',
-  };
-  return map[code.toUpperCase()] ?? code;
+  return STATUS_LABEL_PT[code.toUpperCase()] ?? code;
 }

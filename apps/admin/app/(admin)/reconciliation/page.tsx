@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type AcquiringReconRun } from '@/lib/admin-api';
-import { Badge } from '@/components/ui/badge';
+import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader, Th, Td, EmptyMsg } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { formatKz, formatDate } from '@/lib/format';
@@ -135,7 +135,7 @@ export default function ReconciliationPage() {
                     <Td className="font-extrabold" >
                       <span style={{ color: div > 0 ? '#B5101F' : '#1f9d57' }}>{div}</span>
                     </Td>
-                    <Td><Badge label={r.status} variant={r.status === 'COMPLETED' ? 'success' : r.status === 'FAILED' ? 'danger' : 'warning'} /></Td>
+                    <Td><Badge label={statusLabelPt(r.status)} variant={r.status === 'COMPLETED' ? 'success' : r.status === 'FAILED' ? 'danger' : 'warning'} /></Td>
                   </tr>
                 );
               })}

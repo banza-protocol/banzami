@@ -21,7 +21,7 @@ function getApi(): AdminApi | null {
 // real merchant-applications API (rich business data + KYC workflow).
 const CHIPS: { label: string; value: string }[] = [
   { label: 'Todos', value: '' },
-  { label: 'Pendente', value: 'SUBMITTED' },
+  { label: 'Submetida', value: 'SUBMITTED' },
   { label: 'Em análise', value: 'UNDER_REVIEW' },
   { label: 'Informação pedida', value: 'INFORMATION_REQUIRED' },
   { label: 'Aprovado', value: 'APPROVED' },
