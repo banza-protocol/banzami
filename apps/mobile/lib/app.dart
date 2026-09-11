@@ -306,7 +306,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _handleBanzamiScheme(Uri uri) {
-    final segs = uri.pathSegments;
+    final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
 
     // banzami://pay/link/{slug}
     if (segs.isNotEmpty && segs[0] == 'link' && segs.length >= 2) {
@@ -320,6 +320,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
+    // banzami://pay/{slug} — a Payment Session's DEEP_LINK interface (gateway
+    // payment_sessions.go). Only a slug-shaped segment: a deep link is
+    // attacker-reachable.
+    if (segs.length == 1 && BanzamiQrParser.isPaymentSlug(segs[0])) {
+      _openPaymentLink(segs[0]);
+      return;
+    }
 
     // banzami://pay?request={code}
     if (segs.isEmpty) {

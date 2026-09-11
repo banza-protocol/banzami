@@ -35,4 +35,10 @@ void main() {
         reason: 'parked before the session check — it has not loaded yet');
     expect(body('void _processPendingDeepLink(').contains('_routeToNotification(msg)'), isTrue);
   });
+
+  test('banzami://pay/{slug} (Payment Session DEEP_LINK) opens the payment link', () {
+    final scheme = body('void _handleBanzamiScheme(');
+    expect(scheme.contains('segs.length == 1 && BanzamiQrParser.isPaymentSlug(segs[0])'), isTrue);
+    expect(scheme.contains('_openPaymentLink(segs[0])'), isTrue);
+  });
 }
