@@ -148,12 +148,24 @@ func main() {
 		}
 		mfa = service.NewMFAService(pool, mfaCipher)
 		// Seeds stored before the deployment had a key are rewritten under it
-		// (A5-04). Refusing to start over this would lock every operator out.
-		if n, err := mfa.EncryptStoredSecrets(context.Background()); err != nil {
-			slog.Error("[SEC-002] could not encrypt stored MFA secrets", "error", err)
-		} else if n > 0 {
-			slog.Info("[SEC-002] stored MFA secrets encrypted at rest", "count", n)
-		}
+		// (A5-04). In the background, retried: the deploy attaches this
+		// container's second network after it starts, and a first attempt at boot
+		// met "lookup postgres … server misbehaving". Refusing to start over this
+		// would lock every operator out, so it never blocks the service.
+		go func() {
+			for attempt := 1; attempt <= 30; attempt++ {
+				n, err := mfa.EncryptStoredSecrets(context.Background())
+				if err == nil {
+					if n > 0 {
+						slog.Info("[SEC-002] stored MFA secrets encrypted at rest", "count", n)
+					}
+					return
+				}
+				slog.Warn("[SEC-002] could not encrypt stored MFA secrets yet — retrying", "attempt", attempt, "error", err)
+				time.Sleep(10 * time.Second)
+			}
+			slog.Error("[SEC-002] stored MFA secrets were NOT encrypted — they remain in plaintext until the next start")
+		}()
 		proofAdmin = service.NewProofAdminService(pool)
 
 		// Optional sandbox KYC review: a second pool to banzami_staging lets the
