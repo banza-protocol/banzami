@@ -3092,3 +3092,18 @@ fails at the full refund, and a partial refund leaves the proof standing),
 `tests/ops/migration-0131-refunded-wallet-payment-proofs.test.mjs`, and the counter's
 case in `financial-assurance-sql.test.mjs` (counting any refund, not a full one, fails
 it).
+
+## RA-110 — the official PDF said "Confirmado" for operations that were not
+
+- **Found:** 2026-09-11 (full-system assurance, surfaces audit A7-33)
+- **Status:** FIXED (services/common/documents)
+
+`statePT` turned CANCELLED, EXPIRED and every status it did not know into
+"Confirmado", and the badge, hero line and footer always said the operation was
+"confirmado… debitado e creditado", whatever the status. With RA-109 a refunded
+payment's proof now really reads REVERSED, and its PDF would still have carried the
+confirmed wording beside "Revertido". Only a confirmed status earns the confirmed copy
+and the green mark; a reversed operation says it moved and was returned; anything else
+says it did not complete, and an unknown status reads "Por confirmar". Test
+`TestReceiptView_ClaimsOnlyWhatItsStatusAllows` (the old default and copy fail five of
+its cases).

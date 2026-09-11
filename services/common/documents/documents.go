@@ -91,6 +91,7 @@ type receiptView struct {
 	AmountText, AmountWords                string
 	FromName, FromHandle, ToName, ToHandle string
 	DateTime, Description, State           string
+	StateConfirmed                         bool // the green "done" mark is only for a confirmed operation
 	Operation, Funding                     string // "Pagamento · Link de pagamento", "Saldo Banzami"
 	Method                                 string // legacy documents only
 	MerchantReference, DisplayContext      string
@@ -150,19 +151,64 @@ func fmtDateTimePT(t time.Time) string {
 	return fmt.Sprintf("%d %s %d, %02d:%02d (WAT)", t.Day(), ptMonths[int(t.Month())-1], t.Year(), t.Hour(), t.Minute())
 }
 
+// statePT names the status in Portuguese. Only a status that means the money
+// moved is "Confirmado"; anything this function does not recognise says so
+// rather than defaulting to the one word a comprovativo must never say falsely
+// (A7-33: CANCELLED, EXPIRED and unknown statuses used to read "Confirmado").
 func statePT(s string) string {
-	switch strings.ToUpper(strings.TrimSpace(s)) {
-	case "COMPLETED", "CONFIRMED", "CAPTURED", "SUCCEEDED":
+	switch normalState(s) {
+	case stateConfirmed:
 		return "Confirmado"
+	case stateReversed:
+		return "Revertido"
+	}
+	switch strings.ToUpper(strings.TrimSpace(s)) {
 	case "PENDING", "AUTHORIZED":
 		return "Pendente"
 	case "FAILED":
 		return "Falhado"
-	case "REVERSED", "REFUNDED":
-		return "Revertido"
+	case "CANCELLED":
+		return "Cancelado"
+	case "EXPIRED":
+		return "Expirado"
 	default:
-		return "Confirmado"
+		return "Por confirmar"
 	}
+}
+
+const (
+	stateConfirmed = "confirmed"
+	stateReversed  = "reversed"
+	stateNotDone   = "not-done"
+)
+
+func normalState(s string) string {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "COMPLETED", "CONFIRMED", "CAPTURED", "SUCCEEDED":
+		return stateConfirmed
+	case "REVERSED", "REFUNDED":
+		return stateReversed
+	default:
+		return stateNotDone
+	}
+}
+
+// forState adjusts the document's claims to what the status allows. The copy
+// of copyFor says "confirmado… debitado e creditado" — true of a confirmed
+// operation only. A reversed one moved and came back; anything else did not
+// complete, and its document must not read as proof of payment.
+func (c operationCopy) forState(status string) operationCopy {
+	switch normalState(status) {
+	case stateReversed:
+		c.heroBadge = "Operação revertida"
+		c.heroLine = "Revertida na rede Banzami — o valor foi devolvido"
+		c.footerLine = "A operação descrita foi registada dentro da rede Banzami e depois revertida: o valor foi devolvido ao pagador."
+	case stateNotDone:
+		c.heroBadge = "Não concluída"
+		c.heroLine = "Operação não concluída na rede Banzami"
+		c.footerLine = "A operação descrita não foi concluída: nenhum valor foi transferido."
+	}
+	return c
 }
 
 func atHandle(h string) string {
@@ -244,7 +290,7 @@ func copyFor(kind string, perspective Perspective) operationCopy {
 }
 
 func toView(d ReceiptData) receiptView {
-	c := copyFor(d.OperationKind, d.Perspective)
+	c := copyFor(d.OperationKind, d.Perspective).forState(d.Status)
 
 	to := d.RecipientName
 	toHandle := d.RecipientHandle
@@ -323,6 +369,7 @@ func toView(d ReceiptData) receiptView {
 		Method:            method,
 		Description:       desc,
 		State:             statePT(d.Status),
+		StateConfirmed:    normalState(d.Status) == stateConfirmed,
 		VerifyShort:       verify,
 		VerifyURL:         qrURL,
 		QRSVG: func() template.HTML {

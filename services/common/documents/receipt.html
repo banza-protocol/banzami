@@ -99,7 +99,7 @@
         {{if .MerchantReference}}<div class="drow"><span class="dlabel">Referência do comerciante</span><span class="dvalue mono">{{.MerchantReference}}</span></div>{{end}}
         {{if .DisplayContext}}<div class="drow"><span class="dlabel">Finalidade</span><span class="dvalue">{{.DisplayContext}}</span></div>{{end}}
         {{if .Description}}<div class="drow"><span class="dlabel">Descrição</span><span class="dvalue">{{.Description}}</span></div>{{end}}
-        <div class="drow"><span class="dlabel">Estado</span><span class="dvalue" style="display:inline-flex;align-items:center;gap:7px;color:#1a7a3e"><span style="width:8px;height:8px;border-radius:50%;background:#22a35a"></span>{{.State}}</span></div>
+        <div class="drow"><span class="dlabel">Estado</span>{{if .StateConfirmed}}<span class="dvalue" style="display:inline-flex;align-items:center;gap:7px;color:#1a7a3e"><span style="width:8px;height:8px;border-radius:50%;background:#22a35a"></span>{{.State}}</span>{{else}}<span class="dvalue" style="display:inline-flex;align-items:center;gap:7px;color:#9A1B22"><span style="width:8px;height:8px;border-radius:50%;background:#B5101F"></span>{{.State}}</span>{{end}}</div>
       </div>
 
       <!-- VERIFICATION NOTE -->
