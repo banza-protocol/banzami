@@ -37,6 +37,10 @@ const (
 	OnboardingRejected             = "REJECTED"
 	OnboardingReady                = "READY"
 	OnboardingBlocked              = "BLOCKED"
+	// OnboardingReadinessUnknown: the Project is bound to a Business, but
+	// whether it can settle could not be read just now. Never shown as READY:
+	// a failed read is not an answer (A2-26).
+	OnboardingReadinessUnknown = "READINESS_UNKNOWN"
 )
 
 var (
@@ -128,8 +132,9 @@ type FinancialOnboarding struct {
 }
 
 // onboardingView derives the Project's onboarding state. Called with the
-// Project's binding (nil when unbound) and its readiness when bound.
-func (s *Service) onboardingView(ctx context.Context, projectID, role string, b *SandboxBinding, r *ProjectReadiness) *FinancialOnboarding {
+// Project's binding (nil when unbound), its readiness when bound, and whether
+// the readiness read failed.
+func (s *Service) onboardingView(ctx context.Context, projectID, role string, b *SandboxBinding, r *ProjectReadiness, readinessUnavailable bool) *FinancialOnboarding {
 	v := &FinancialOnboarding{State: OnboardingNotConfigured, CanAct: canConfigureFinancialSandbox(role), Blockers: []string{}}
 	if b != nil && b.MerchantID != "" {
 		v.CanAct = false
@@ -152,6 +157,12 @@ func (s *Service) onboardingView(ctx context.Context, projectID, role string, b 
 			v.Blockers = append(v.Blockers, r.Settlement.Blockers...)
 		}
 		v.Business = bus
+		if readinessUnavailable {
+			// No readiness, no blockers — which read as READY. Whether this
+			// Project can settle is simply not known right now (A2-26).
+			v.State = OnboardingReadinessUnknown
+			return v
+		}
 		v.State = OnboardingReady
 		if len(v.Blockers) > 0 {
 			v.State = OnboardingBlocked
@@ -233,7 +244,16 @@ func (s *Service) LinkExistingBusiness(ctx context.Context, actor, projectID, co
 	} else if b != nil {
 		return nil, ErrProjectAlreadyReceiving
 	}
-	if app, err := s.onboarding.LatestForProject(ctx, p.ID); err == nil && app != nil {
+	// The guard below is the only thing that stops a Project from being bound
+	// here while its own application would provision a second Business. It was
+	// skipped whenever the Gateway could not answer; a guard that cannot be
+	// checked now refuses (A2-25).
+	app, err := s.onboarding.LatestForProject(ctx, p.ID)
+	if err != nil {
+		slog.WarnContext(ctx, "developer.financial_onboarding.application_unavailable", "project", projectID, "err", err.Error())
+		return nil, ErrOnboardingUnavailable
+	}
+	if app != nil {
 		switch app.Status {
 		case "SUBMITTED", "UNDER_REVIEW", "INFORMATION_REQUIRED", "PROVISIONING_FAILED", "APPROVED":
 			// An application in progress would provision a second Business for
