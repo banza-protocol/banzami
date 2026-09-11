@@ -171,22 +171,29 @@ func (p *DeveloperPrincipal) HasScope(s string) bool {
 }
 
 // DeveloperKeyRateLimit rate-limits the developer-key surface on the resolved,
-// NON-SECRET key id (never the raw key). Must run AFTER DeveloperKeyAuth. Fails
-// open if Redis is unavailable (availability over strictness for a diagnostic).
+// NON-SECRET key id (never the raw key). Must run AFTER DeveloperKeyAuth. When
+// Redis cannot answer it counts in this process rather than letting every
+// request through (the limit used to vanish with Redis).
 func DeveloperKeyRateLimit(rdb *redis.Client) func(http.Handler) http.Handler {
 	const perMinute = 120
+	local := newLocalWindow(perMinute, time.Minute)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			p, ok := GetDeveloperPrincipal(r.Context())
-			if rdb == nil || !ok {
+			if !ok {
 				next.ServeHTTP(w, r)
 				return
 			}
 			key := fmt.Sprintf("rl:devkey:%s", p.KeyID)
-			allowed, err := slidingWindowAllow(r.Context(), rdb, key, perMinute, time.Minute)
-			if err != nil {
-				next.ServeHTTP(w, r) // fail open
-				return
+			var allowed bool
+			if rdb == nil {
+				allowed = local.allow(key)
+			} else {
+				var err error
+				allowed, err = slidingWindowAllow(r.Context(), rdb, key, perMinute, time.Minute)
+				if err != nil {
+					allowed = local.allow(key)
+				}
 			}
 			if !allowed {
 				w.Header().Set("Retry-After", "60")
@@ -199,9 +206,14 @@ func DeveloperKeyRateLimit(rdb *redis.Client) func(http.Handler) http.Handler {
 }
 
 // extractDevKey reads the key from Authorization: Bearer <key> or X-API-Key.
+//
+// Only ASCII space and tab are trimmed. strings.TrimSpace is Unicode-aware, so
+// "bz_test_sk_…\u00A0" (a no-break space pasted from a document) authenticated
+// as the key: a credential has one spelling, and a byte that is not part of it
+// is not whitespace to forgive (A3-08).
 func extractDevKey(r *http.Request) string {
 	if h := r.Header.Get("Authorization"); strings.HasPrefix(h, "Bearer ") {
-		return strings.TrimSpace(strings.TrimPrefix(h, "Bearer "))
+		return strings.Trim(strings.TrimPrefix(h, "Bearer "), " \t")
 	}
-	return strings.TrimSpace(r.Header.Get("X-API-Key"))
+	return strings.Trim(r.Header.Get("X-API-Key"), " \t")
 }

@@ -3455,3 +3455,14 @@ test `TestEncryptStoredSecrets_MovesPlaintextSeedsUnderTheKey` — the seed is e
 and still verifies). Residual: webhook signing secrets written before the key stay
 plaintext until rotated; A6-09 (every other secret still mounted into every stack
 service) is not yet scoped.
+
+## RA-130 — a developer key forgave Unicode whitespace, and its limit vanished with Redis
+
+- **Found:** 2026-09-11 (full-system assurance, token audit A3-08; auth audit rate-limit inventory)
+- **Status:** FIXED (gateway)
+
+`extractDevKey` trimmed with `strings.TrimSpace`, which is Unicode-aware: a key with a
+no-break or em space around it authenticated as the key. A credential has one spelling;
+only ASCII space and tab are trimmed now. The per-key limit (120/min) was skipped
+whenever Redis erred; it counts in the process instead. Test
+`TestExtractDevKey_TrimsOnlyASCIIWhitespace` (the previous trim accepts U+2003).
