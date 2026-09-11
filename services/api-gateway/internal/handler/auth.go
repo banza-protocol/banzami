@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"strings"
 	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"

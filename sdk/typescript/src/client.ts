@@ -521,7 +521,10 @@ export class BanzamiClient {
   createStaticQr(ownerId: string): Promise<QrResponse> {
     return this.request<QrResponse>('/qr/static', {
       method: 'POST',
-      body:   JSON.stringify({ owner_id: ownerId }),
+      // A Business creates QR codes owned by itself, in Kwanza — the only owner
+      // and currency the operator accepts on this surface. They were not sent,
+      // and an operator that required them refused every call.
+      body:   JSON.stringify({ owner_id: ownerId, owner_type: 'MERCHANT', currency: 'AOA' }),
     });
   }
 
@@ -536,6 +539,7 @@ export class BanzamiClient {
       method: 'POST',
       body:   JSON.stringify({
         owner_id:     params.ownerId,
+        owner_type:   'MERCHANT',
         amount_minor: params.amountMinor,
         currency:     params.currency ?? 'AOA',
         reference:    params.reference ?? null,

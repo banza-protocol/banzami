@@ -245,7 +245,7 @@ func TestPaymentReceiptSaysPayment(t *testing.T) {
 		"Comprovativo de transferência", "liquidado", "liquidação", "Liquidação",
 		"Transferência Banzami · @banza", "Método", "Payment link:", "Sandbox · Doa-Sandbox",
 		"0056ead5", "0056EAD5", // the operation id is not a receipt reference
-		">Doa<",                // a Business is paid at its @handle
+		">Doa<", // a Business is paid at its @handle
 		"Kz 2.000,00",
 	} {
 		if strings.Contains(html, bad) {

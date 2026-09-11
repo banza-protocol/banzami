@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed — QR creation and public payment-link reads reach the operator
+
+`createStaticQr()` sent only `owner_id` and `createDynamicQr()` omitted
+`owner_type`; the operator required both (and a currency), so every call was
+refused with `400 MISSING_FIELD`. Both now send `owner_type: 'MERCHANT'` — a
+Business creates QR codes owned by itself — and `createStaticQr()` sends
+`currency: 'AOA'`. `getPublicPaymentLink()` and `getPaymentLinkStatus()` call
+`/v1/public/pay/{slug}`, which the operator did not serve until 2026-09-11; no
+SDK change was needed for those. The operator also accepts the old request
+shapes, so earlier versions work against it now.
+
 ## [0.12.0] — 2026-09-10
 
 ### Added — `getFinancialSetup()`

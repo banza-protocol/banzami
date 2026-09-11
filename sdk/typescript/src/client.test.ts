@@ -363,6 +363,22 @@ describe('getPublicPaymentLink', () => {
   });
 });
 
+describe('QR creation sends what the operator requires', () => {
+  it('createStaticQr names the Business as owner, in Kwanza', async () => {
+    mockFetch(201, { qr_code: {}, payload: 'p' });
+    await client.createStaticQr('m-1');
+    expect(lastFetchCall().url).toBe('https://api.test.ao/v1/qr/static');
+    expect(JSON.parse(lastFetchCall().init.body as string)).toEqual({ owner_id: 'm-1', owner_type: 'MERCHANT', currency: 'AOA' });
+  });
+  it('createDynamicQr names the Business as owner', async () => {
+    mockFetch(201, { qr_code: {}, payload: 'p' });
+    await client.createDynamicQr({ ownerId: 'm-1', amountMinor: 5000, expiresAt: new Date(Date.now() + 3_600_000) });
+    const body = JSON.parse(lastFetchCall().init.body as string);
+    expect(body.owner_type).toBe('MERCHANT');
+    expect(body.currency).toBe('AOA');
+  });
+});
+
 describe('getPaymentLinkStatus', () => {
   it('GETs /v1/public/pay/{slug}/status', async () => {
     mockFetch(200, { paid: true });

@@ -41,6 +41,22 @@ func NewQrHandler(svc service.QrService) *QrHandler {
 // consumer's QR. The CONSUMER branch used to pass unchecked — so a Business
 // could mint a QR owned by any consumer id it named. A consumer's QR is made
 // on the consumer surface (public-api), under the consumer's own token.
+// qrDefaults fills what a Business QR request may leave out. This surface
+// accepts one owner type — MERCHANT, the authenticated Business itself (see
+// requireOwnQrOwner) — and the operator settles in Kwanza, so neither is a
+// choice. @banzami/sdk's createStaticQr and createDynamicQr never sent
+// owner_type (nor, for static, currency), and every call was refused as
+// "owner_type is required". An explicit value is still checked as before.
+func qrDefaults(ownerType, currency string) (string, string) {
+	if ownerType == "" {
+		ownerType = "MERCHANT"
+	}
+	if currency == "" {
+		currency = "AOA"
+	}
+	return ownerType, currency
+}
+
 func requireOwnQrOwner(w http.ResponseWriter, r *http.Request, ownerType, ownerID string) bool {
 	if !strings.EqualFold(ownerType, "MERCHANT") {
 		businessTenantDenials.WithLabelValues(tenantSurfaceQr).Inc()
@@ -93,15 +109,9 @@ func (h *QrHandler) CreateStatic(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
 		return
 	}
-	switch {
-	case body.OwnerID == "":
+	body.OwnerType, body.Currency = qrDefaults(body.OwnerType, body.Currency)
+	if body.OwnerID == "" {
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "owner_id is required")
-		return
-	case body.OwnerType == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "owner_type is required (CONSUMER or MERCHANT)")
-		return
-	case body.Currency == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "currency is required")
 		return
 	}
 
@@ -137,15 +147,10 @@ func (h *QrHandler) CreateDynamic(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
 		return
 	}
+	body.OwnerType, body.Currency = qrDefaults(body.OwnerType, body.Currency)
 	switch {
 	case body.OwnerID == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "owner_id is required")
-		return
-	case body.OwnerType == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "owner_type is required")
-		return
-	case body.Currency == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "currency is required")
 		return
 	case body.AmountMinor <= 0:
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_AMOUNT", "amount_minor must be positive")

@@ -248,6 +248,43 @@ jobs:
         working-directory: services/admin-api
         run: go test -race -count=1 ./...
 
+  # ─── Go developer-api + shared modules ─────────────────────────────────────
+  # developer-api was only compiled here, never vetted or tested, and the shared
+  # modules under services/common (proof references, log redaction, the
+  # canonical environment, webhook signing, documents) were tested nowhere.
+  # The gofmt check covers every Go file under services/.
+  go-developer-common:
+    name: Go developer-api + services/common — fmt, vet, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Set up Go
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5.6.0
+        with:
+          go-version-file: services/developer-api/go.mod
+          cache-dependency-path: |
+            services/developer-api/go.sum
+            services/common/*/go.sum
+
+      - name: gofmt (every Go file under services/)
+        run: |
+          unformatted="$(gofmt -l services)"
+          if [ -n "$unformatted" ]; then
+            echo "::error::gofmt found unformatted files:"; echo "$unformatted"; exit 1
+          fi
+
+      - name: go vet + go test
+        run: |
+          set -e
+          for d in services/developer-api services/common/*/; do
+            [ -f "$d/go.mod" ] || continue
+            echo "::group::$d"
+            (cd "$d" && go vet ./... && go test -race -count=1 ./...)
+            echo "::endgroup::"
+          done
+
   # ─── Go public-api ──────────────────────────────────────────────────────────
   go-public:
     name: Go public-api — vet, test

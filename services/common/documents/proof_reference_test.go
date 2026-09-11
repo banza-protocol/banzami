@@ -68,7 +68,7 @@ func aliasCorpus(c string) map[string]string {
 	m := map[string]string{
 		// look-alikes of the last symbol
 		"O for 0": c[:len(c)-1] + "O", "I for 1": c[:len(c)-1] + "I", "L for 1": c[:len(c)-1] + "L",
-		"U": c[:len(c)-1] + "U",
+		"U":             c[:len(c)-1] + "U",
 		"Greek omicron": c[:len(c)-1] + "\u039F", "Cyrillic O": c[:len(c)-1] + "\u041E",
 		"fullwidth 0": c[:len(c)-1] + "\uFF10", "fullwidth O": c[:len(c)-1] + "\uFF2F",
 		"math bold 0": c[:len(c)-1] + "\U0001D7CE", "math sans O": c[:len(c)-1] + "\U0001D5AE",
@@ -79,7 +79,7 @@ func aliasCorpus(c string) map[string]string {
 		"no hyphens": strings.ReplaceAll(c, "-", ""), "missing one hyphen": strings.Replace(c, "-", "", 1),
 		"extra hyphen": c + "-", "double hyphen": strings.Replace(c, "-", "--", 1),
 		"moved hyphen": "BZM" + c[4:5] + "-" + c[5:],
-		"underscore": strings.ReplaceAll(c, "-", "_"), "space sep": strings.ReplaceAll(c, "-", " "),
+		"underscore":   strings.ReplaceAll(c, "-", "_"), "space sep": strings.ReplaceAll(c, "-", " "),
 		"en dash": strings.ReplaceAll(c, "-", "\u2013"), "em dash": strings.ReplaceAll(c, "-", "\u2014"),
 		"nb hyphen": strings.ReplaceAll(c, "-", "\u2011"), "minus": strings.ReplaceAll(c, "-", "\u2212"),
 		"fullwidth hyphen": strings.ReplaceAll(c, "-", "\uFF0D"), "hyphen U+2010": strings.ReplaceAll(c, "-", "\u2010"),

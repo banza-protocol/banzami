@@ -48,15 +48,15 @@ func (l QRLogo) dataURI() string {
 // it appears — see docs/architecture/qr-engine.md.
 //
 // Spec (never diverge per-surface):
-//   • Error correction: H (30%) — mandatory, because a centre logo occludes the
+//   - Error correction: H (30%) — mandatory, because a centre logo occludes the
 //     matrix. Never L/M.
-//   • Quiet zone: 4 modules.
-//   • Data modules: #111111 (near-black, max contrast/scan).
-//   • Finder "eyes": Banzami Hero Red #B5101F.
-//   • Background: #FFFFFF.
-//   • Centre logo: the official Banzami mark, on a white padded box, occupying a
+//   - Quiet zone: 4 modules.
+//   - Data modules: #111111 (near-black, max contrast/scan).
+//   - Finder "eyes": Banzami Hero Red #B5101F.
+//   - Background: #FFFFFF.
+//   - Centre logo: the official Banzami mark, on a white padded box, occupying a
 //     small fraction of the symbol (well within the H budget).
-//   • SVG is the official format (infinite scale, perfect print/PDF). PNG is a
+//   - SVG is the official format (infinite scale, perfect print/PDF). PNG is a
 //     raster fallback only.
 const (
 	QRColorData   = "#111111"
