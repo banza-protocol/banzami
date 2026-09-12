@@ -166,9 +166,12 @@ curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
 # that can create a second effect. Always reuse the original key.`;
 
 // Verified event catalogue (same closed set as the PT page and its tests).
+// Every event the operator actually emits, and only those — see the PT note.
 const EVENTS: string[] = [
+  'payment_session.created',
   'payment_session.paid',
   'payment_link.paid',
+  'refund.completed',
   'application_settlement.completed',
   'application_settlement.cancelled',
   'application_settlement.failed',

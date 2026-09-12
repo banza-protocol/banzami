@@ -40,9 +40,16 @@ beforeEach(() => {
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 // The verified closed catalogue (mirrors the /docs EVENTS list).
+//
+// Seven, not five: payment_session.created and refund.completed are emitted by
+// core and registrable at the gateway, and the docs had never listed them — an
+// integrator building refunds could not learn that refund.completed exists.
+// tools/check-webhook-event-catalogue.mjs now fails if the two drift again.
 const VERIFIED_EVENTS = [
+  'payment_session.created',
   'payment_session.paid',
   'payment_link.paid',
+  'refund.completed',
   'application_settlement.completed',
   'application_settlement.cancelled',
   'application_settlement.failed',

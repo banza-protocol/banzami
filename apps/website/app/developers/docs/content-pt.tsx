@@ -91,12 +91,20 @@ const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: st
 ];
 
 // -- Real operator webhook events (verified emitted names) ----------------------
-// Public catalogue — only events whose emission + contract are verified in the
-// current Sandbox. Others (payment.completed, transfer.completed, wallet.credit,
-// …) are intentionally NOT listed until independently verified.
+// Public catalogue — every event the operator actually EMITS, and only those.
+//
+// The rule is emission, not registrability. The gateway also accepts
+// subscriptions to payment.completed and payout.sent, which nothing emits yet;
+// listing those would hand an integrator an endpoint that never fires, which is
+// worse than not mentioning them. Names nothing emits and nothing accepts
+// (transfer.completed, wallet.credit, …) are not here either.
+//
+// Kept in step with core's emitters by tools/check-webhook-event-catalogue.mjs.
 const EVENTS: string[] = [
+  'payment_session.created',
   'payment_session.paid',
   'payment_link.paid',
+  'refund.completed',
   'application_settlement.completed',
   'application_settlement.cancelled',
   'application_settlement.failed',
