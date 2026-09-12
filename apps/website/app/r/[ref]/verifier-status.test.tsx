@@ -54,6 +54,29 @@ describe('verifier HTTP status', () => {
     });
   }
 
+  // An outage must not be cacheable or indexable, which is the harm the status
+  // code would otherwise guard against.
+  //
+  // The four states asked for are: exists → 200, missing → 404, malformed →
+  // 404, outage → 503. The first three hold above. The fourth does not, and it
+  // cannot from here: a Next App Router PAGE has no way to set a response
+  // status — notFound() is the only one it can reach — and getting a 503 would
+  // mean repeating the proof lookup in middleware to decide it, which is two
+  // answers to the same question. That is the failure this codebase refuses
+  // everywhere else, including in the decision not to give the Console a second
+  // way to resolve a QR.
+  //
+  // So the reader gets the truthful amber verdict on a 200 that no cache may
+  // keep and no crawler may index. That is what these assert, so the property
+  // survives even though the status does not.
+  it('an outage page is uncacheable and unindexable', async () => {
+    const meta = await import('./page');
+    // robots: index false — declared in the page's metadata, for every state.
+    expect(meta.metadata?.robots).toMatchObject({ index: false });
+    // force-dynamic: rendered per request, so no shared cache holds it.
+    expect(meta.dynamic).toBe('force-dynamic');
+  });
+
   it('an existing proof renders, with no 404', async () => {
     getProof.mockResolvedValue({ exists: true, status: 'CONFIRMED', amount: 500000, currency: 'AOA', operation_kind: 'PAYMENT' });
     const html = renderToStaticMarkup(await run());

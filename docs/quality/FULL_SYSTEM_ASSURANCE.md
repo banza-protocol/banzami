@@ -450,6 +450,33 @@ as protection and is not.
 
 With the exclusion working, every residue counter reads 0.
 
+### `/r/` — the four states
+
+| Asked | Observed |
+|---|---|
+| a reference that exists → 200 | **200**, "Pagamento verificado" with the operation's details |
+| a valid reference that does not exist → 404 | **404**, the Portuguese invalid-proof page |
+| a malformed reference → 404 | **404**, same page, and no lookup is sent |
+| an outage → 503 | **200** with the amber "Verificação indisponível" |
+
+`PUBLIC_PROOF_PAGE_SOFT_404 = 0`: a missing proof is a real 404, not a 200 that
+says so.
+
+The fourth is a stated deviation, not an oversight. A Next App Router *page* has
+no way to set a response status — `notFound()` is the only one it can reach — and
+obtaining a 503 would mean repeating the proof lookup in middleware to decide it,
+which is two answers to the same question. That is the failure this codebase
+refuses elsewhere, including in the decision not to give the Console a second way
+to resolve a QR.
+
+What the status code would have protected is protected directly instead: the
+outage response is `private, no-cache, no-store, must-revalidate`, the page
+declares `robots: index false`, and it is `force-dynamic`, so no cache keeps it
+and no crawler indexes it. A guard now asserts both, so the property survives
+even though the status does not. The reader is told the truth — not verified, and
+not verifiable right now — which is the half that decides whether someone accepts
+a receipt.
+
 ### Human boundaries
 
 | # | Boundary | Why it cannot be crossed here |

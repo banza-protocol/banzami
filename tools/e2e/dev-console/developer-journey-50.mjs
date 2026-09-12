@@ -42,7 +42,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { registerCleanup, cleanupRun } from '../console/lib/run-cleanup.mjs';
@@ -73,12 +73,6 @@ const REMOTE = process.env.BANZAMI_REMOTE ?? 'root@217.160.9.248';
  * any address that is not synthetic precisely so this can never be quietly swapped
  * for the canonical journey.
  */
-const DEVIATION =
-  'Sign-in used the genuine /auth/request-otp + /auth/verify path; the 6-digit code was ' +
-  'recovered server-side (tools/e2e/dev-console/otp-retrieve.sh) because no mailbox exists ' +
-  'for a @banzami-e2e.test address. Email DELIVERY is therefore not proven by this run; ' +
-  'every step after sign-in is the product’s own path.';
-
 // ── run identity ─────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2);
 const argOf = (flag) => {
@@ -88,25 +82,97 @@ const argOf = (flag) => {
 const HEADED = argv.includes('--headed');
 const STAMP = process.env.E2E_TS || String(Math.floor(Date.now() / 1000));
 
-const EMAIL_OWNER = `dpjourney-${STAMP}@banzami-e2e.test`;
+// The journey's own identity by default. `--owner-email` runs it on a REAL
+// account instead — which is the only way to prove the thing a synthetic
+// address cannot: that the sign-in email is actually delivered. A real address
+// has a real mailbox, `otp-retrieve.sh` refuses it on purpose, and the code is
+// therefore supplied out of band by the person who received it (see waitForOTP).
+const EMAIL_OWNER = argOf('--owner-email') ?? `dpjourney-${STAMP}@banzami-e2e.test`;
+const OWNER_IS_SYNTHETIC = EMAIL_OWNER.endsWith('@banzami-e2e.test');
+
+/**
+ * What this run did NOT prove, stated by the run rather than by whoever reports
+ * it — and it depends on which mailbox signed in.
+ *
+ * On a synthetic address there is no mailbox, so the code is recovered from the
+ * operator's own store: that proves the verify path and proves delivery of
+ * nothing. On a real address the code is typed into the UI by the person who
+ * received the email, so delivery is part of what the run observed and there is
+ * no deviation left to declare.
+ *
+ * It was a single hardcoded sentence, which meant a real-mailbox run filed
+ * evidence claiming a deviation it did not have — evidence that understates
+ * itself is still wrong.
+ */
+const DEVIATION = OWNER_IS_SYNTHETIC
+  ? 'Sign-in used the genuine /auth/request-otp + /auth/verify path; the 6-digit code was '
+    + 'recovered server-side (tools/e2e/dev-console/otp-retrieve.sh) because no mailbox exists '
+    + 'for a @banzami-e2e.test address. Email DELIVERY is therefore not proven by this run; '
+    + 'every step after sign-in is the product’s own path.'
+  : `None. Sign-in used the product's own screens end to end: the code was delivered by email to `
+    + `${EMAIL_OWNER}, read by the person who received it, and typed into the verify screen. `
+    + 'Email delivery is part of what this run observed.';
 const EMAIL_MEMBER = `dpmember-${STAMP}@banzami-e2e.test`;
 // Every artefact carries the stamp in its name, so the residue check can find
 // what this run made without depending on the accounts still existing.
 const TAG = `dpj-${STAMP}`;
 // Initials that cannot be confused with the ones an email would produce: the
 // address starts "dp", so a name starting D or P would make step 6 unfalsifiable.
-const OWNER_NAME = 'Quirina Zeferino';
-const OWNER_INITIALS = 'QZ';
+// On a real account the name must be the person's own: writing a fixture name
+// into somebody's profile is a change to their identity, not a test. The
+// synthetic default is chosen so its initials cannot be confused with the ones
+// the address would produce — "dp…" would make step 6 unfalsifiable.
+const OWNER_NAME = argOf('--owner-name') ?? 'Quirina Zeferino';
+const OWNER_INITIALS = OWNER_NAME.trim().split(/\s+/).length > 1
+  ? (OWNER_NAME.trim().split(/\s+/)[0][0] + OWNER_NAME.trim().split(/\s+/).slice(-1)[0][0]).toUpperCase()
+  : OWNER_NAME.trim().slice(0, 2).toUpperCase();
 
 // Give the authority back — accounts, their sessions, their workspaces, the
 // projects and keys inside them. A leftover console account that can still sign
 // in is not a leftover, it is a way in. Registered as handlers so the failure
 // paths, which are when leaks actually happen, are covered too.
-registerCleanup({ emailPattern: EMAIL_OWNER, namePattern: `%${TAG}%` });
+// A real account is NOT cleaned up: it belongs to a person and existed before
+// this run. What the run made inside it — the workspace and project carrying
+// TAG — is still retired, by the journey's own archive steps and by the residue
+// check at the end. Deleting somebody's account to tidy up after a test would
+// be the worst kind of cleanup.
+if (OWNER_IS_SYNTHETIC) registerCleanup({ emailPattern: EMAIL_OWNER, namePattern: `%${TAG}%` });
 registerCleanup({ emailPattern: EMAIL_MEMBER, namePattern: `%${TAG}%` });
 
 const getOTP = (email) =>
   execFileSync('bash', [resolve(HERE, 'otp-retrieve.sh'), email], { encoding: 'utf8' }).trim();
+
+/**
+ * The code for a REAL mailbox, supplied by the person who received it.
+ *
+ * `otp-retrieve.sh` recovers a code from the operator's own store, which proves
+ * delivery of nothing — and it refuses any address that is not synthetic, for
+ * exactly that reason. So for a real account the code has to come from outside
+ * this process: the run requests it, says so, and waits for the six digits to
+ * appear in a file.
+ *
+ * The file is read and then emptied. A code is single-use and short-lived, and
+ * leaving it on disk after it has been spent serves nothing.
+ */
+async function waitForOTP(email, file, timeoutMs = 8 * 60 * 1000) {
+  const path = resolve(file);
+  console.log(`\n  waiting for the code delivered to ${email} — write the six digits to ${path}`);
+  const end = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      const raw = readFileSync(path, 'utf8').replace(/\D/g, '');
+      if (/^\d{6}$/.test(raw)) {
+        writeFileSync(path, '');
+        console.log('  code received\n');
+        return raw;
+      }
+    } catch {
+      /* not written yet */
+    }
+    if (Date.now() > end) throw new Error(`no code appeared in ${path} within ${Math.round(timeoutMs / 60000)} minutes`);
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
 
 // The authority nine of these steps are waiting on. Named once so every blocked
 // step says the same thing, and so changing it is one edit rather than nine.
@@ -267,7 +333,9 @@ async function signInViaUI(page, email) {
   await page.locator('input[type="email"]').first().fill(email);
   await page.getByRole('button', { name: 'Continuar' }).click();
   await page.waitForURL(/\/verify/, { timeout: 20000 });
-  const code = getOTP(email);
+  const code = email.endsWith('@banzami-e2e.test')
+    ? getOTP(email)
+    : await waitForOTP(email, argOf('--owner-otp-file') ?? '/tmp/bz-journey-otp.txt');
   if (!/^\d{6}$/.test(code)) throw new Error('otp not recovered');
   const digits = page.locator('input[inputmode="numeric"], input[maxlength="1"]');
   const n = await digits.count();
@@ -362,9 +430,12 @@ const startedAt = new Date().toISOString();
 const J = {
   wsId: null,
   wsSlug: null,
-  wsName: `${TAG} workspace`,
+  // Overridable so an acceptance run can use the names the acceptance asks for.
+  // The stamp is appended either way: two runs that share a name cannot both be
+  // a cleanroom, and the residue check finds what a run made by its stamp.
+  wsName: `${argOf('--workspace-name') ?? `${TAG} workspace`}${argOf('--workspace-name') ? ` ${STAMP}` : ''}`,
   projectId: null,
-  projectName: `${TAG} projeto`,
+  projectName: `${argOf('--project-name') ?? `${TAG} projeto`}${argOf('--project-name') ? ` ${STAMP}` : ''}`,
   blockerProjectName: `${TAG} bloqueador`,
   inviteToken: null,
   memberUserId: null,
