@@ -66,6 +66,23 @@ const ORIGIN = { Origin: CONSOLE, 'Content-Type': 'application/json' };
 const REMOTE = process.env.BANZAMI_REMOTE ?? 'root@217.160.9.248';
 
 /**
+ * A mutating Console API call, made as the signed-in person.
+ *
+ * The Console sends a CSRF token with every non-GET, and the API refuses one
+ * without it — correctly, and with a 403 that looks exactly like "you may not
+ * do this". Steps that drive the UI never meet this; steps that call the API
+ * directly have to do what the browser does.
+ */
+async function mutate(ctx, method, url, data) {
+  const me = await ctx.request.get(`${API}/auth/me`, { headers: { Origin: CONSOLE } });
+  const csrf = (await me.json().catch(() => ({})))?.csrf_token ?? '';
+  return ctx.request[method](url, {
+    headers: { Origin: CONSOLE, 'Content-Type': 'application/json', 'x-csrf-token': csrf },
+    data: data ?? {},
+  });
+}
+
+/**
  * The one disclosed deviation, verbatim, in the evidence and on the console.
  *
  * A `.test` address has no mailbox and must not have one: provisioning real
@@ -1347,17 +1364,24 @@ try {
     // What the Console showed at creation, and what can be read back afterwards.
     // The secret is asserted on SHAPE only; the value never reaches stdout or
     // the evidence file.
-    const shownRaw = await page.locator('[data-testid="webhook-secret"], code, pre').allInnerTexts().catch(() => []);
-    const shown = shownRaw.map(norm).find((t) => /^whsec_[A-Za-z0-9_-]{16,}$/.test(t));
-    const shape = shown ? `whsec_ + ${shown.length - 6} chars` : 'not found on screen';
+    // The same dialog contract the API-key reveal uses (step 23): a labelled
+    // dialog carrying the secret in a labelled <code>. Read on SHAPE only — the
+    // value never reaches stdout or the evidence file.
+    const dialog = page.locator('div[role="dialog"][aria-label="Guarde o segredo de assinatura"]');
+    const shown = norm(await dialog.locator('code[aria-label="Segredo de assinatura"]').innerText().catch(() => ''));
+    const shape = shown ? `${shown.length} chars` : 'not found in the reveal dialog';
+    J._webhookSecretShown = shown;
 
-    // Nothing may return it again: not the list, not the endpoint detail, not a
-    // reload of the page that showed it.
+    // Acknowledge and dismiss, so what follows measures whether it is
+    // RECOVERABLE rather than whether it is still on the screen that revealed it.
+    await dialog.getByRole('button').last().click().catch(() => {});
+    await settle(page, 600);
+
+    // Nothing may return it again: not the list, not a reload of the page.
     const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
-    const listBody = await list.text();
-    const inList = /whsec_[A-Za-z0-9_-]{16,}/.test(listBody);
+    const inList = shown ? (await list.text()).includes(shown) : false;
     await open(page, '/webhooks', 1200);
-    const afterReload = /whsec_[A-Za-z0-9_-]{16,}/.test(await bodyText(page));
+    const afterReload = shown ? (await bodyText(page)).includes(shown) : false;
 
     const ok = !!shown && !inList && !afterReload;
     return {
@@ -1388,10 +1412,8 @@ try {
     // by design (step 21), so this opens a short-lived key that can charge, uses
     // it once through the public Gateway exactly as an integrator would, and
     // gives it back immediately.
-    const mk = await ctxA.request.post(`${API}/projects/${J.projectId}/keys`, {
-      headers: ORIGIN,
-      data: { name: `${TAG}-event`, scopes: ['payment_sessions:write', 'payment_sessions:read'] },
-    });
+    const mk = await mutate(ctxA, 'post', `${API}/projects/${J.projectId}/keys`,
+      { kind: 'SECRET', name: `${TAG}-event`, scopes: ['payment_sessions:write', 'payment_sessions:read'] });
     if (!mk.ok()) return { ok: false, observed: `could not create a writing key: ${mk.status()}` };
     const made = await mk.json();
     const secret = made.secret ?? made.key ?? made.plaintext;
@@ -1409,7 +1431,7 @@ try {
       caused = { status: sess.status(), ok: sess.ok() };
     } finally {
       // The key existed to cause one event. It does not outlive that.
-      if (keyId) await ctxA.request.delete(`${API}/projects/${J.projectId}/keys/${keyId}`, { headers: ORIGIN }).catch(() => {});
+      if (keyId) await mutate(ctxA, 'delete', `${API}/projects/${J.projectId}/keys/${keyId}`).catch(() => {});
     }
     if (!caused.ok) return { ok: false, observed: `the payment session was refused: http ${caused.status}` };
 
@@ -1464,7 +1486,7 @@ try {
       return { ok: true, observed: `no failed delivery to retry — ${(J._deliveries ?? []).length} delivery record(s), none in a failed state; the surface answered, so this is an assertion rather than an absence` };
     }
     const before = failed[0];
-    const r = await ctxA.request.post(`${API}/projects/${J.projectId}/webhooks/deliveries/${before.id}/replay`, { headers: ORIGIN, data: {} });
+    const r = await mutate(ctxA, 'post', `${API}/projects/${J.projectId}/webhooks/deliveries/${before.id}/replay`);
     if (!r.ok()) return { ok: false, observed: `replay refused: ${r.status()}` };
     await settle(page, 1500);
     const after = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
@@ -1482,17 +1504,18 @@ try {
     if (!J._webhookEndpointId) {
       return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint to rotate (step 28)' };
     }
-    const r = await ctxA.request.post(`${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}/rotate-secret`, { headers: ORIGIN, data: {} });
+    const r = await mutate(ctxA, 'post', `${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}/rotate-secret`);
     if (!r.ok()) return { ok: false, observed: `rotate refused: ${r.status()}` };
-    const body = await r.text();
-    const m = body.match(/whsec_[A-Za-z0-9_-]{16,}/);
+    const successor = (await r.json().catch(() => ({})))?.secret ?? '';
+    const differs = !!successor && successor !== J._webhookSecretShown;
     // The successor is revealed in THIS response and nowhere else.
     const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
-    const inList = /whsec_[A-Za-z0-9_-]{16,}/.test(await list.text());
+    const listBody = await list.text();
+    const inList = !!successor && listBody.includes(successor);
     return {
-      ok: !!m && !inList,
-      observed: m
-        ? `a successor secret was returned once (whsec_ + ${m[0].length - 6} chars); the endpoint list still returns none`
+      ok: differs && !inList,
+      observed: successor
+        ? `a successor secret was returned once (${successor.length} chars), different from the original=${differs}; the endpoint list returns none`
         : 'rotate returned no secret',
     };
   });
@@ -1502,7 +1525,7 @@ try {
     if (!J._webhookEndpointId) {
       return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint to disable (step 28)' };
     }
-    const r = await ctxA.request.patch(`${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}`, { headers: ORIGIN, data: { active: false } });
+    const r = await mutate(ctxA, 'patch', `${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}`, { active: false });
     if (!r.ok()) return { ok: false, observed: `disable refused: ${r.status()}` };
     const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
     const ep = ((await list.json()).endpoints ?? []).find((e) => e.id === J._webhookEndpointId);
@@ -1519,7 +1542,7 @@ try {
     if (!J._webhookEndpointId) {
       return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint to re-enable (step 28)' };
     }
-    const r = await ctxA.request.patch(`${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}`, { headers: ORIGIN, data: { active: true } });
+    const r = await mutate(ctxA, 'patch', `${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}`, { active: true });
     if (!r.ok()) return { ok: false, observed: `enable refused: ${r.status()}` };
     const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
     const ep = ((await list.json()).endpoints ?? []).find((e) => e.id === J._webhookEndpointId);
