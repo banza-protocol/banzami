@@ -160,6 +160,7 @@ Remediation implemented in this phase:
 5. **Go SDK scaffold** created at `sdk/go/` — webhook verification matches canonical Go signer exactly
 6. **Cross-SDK certification suite** created at `sdk-certification/` with golden test vectors that all SDKs must pass
 7. **Dashboard** `apps/dashboard/lib/api.ts` migrated to use `@banza/sdk` `BanzaClient` internally
+   *(the merchant dashboard was retired on 2026-09-12 — CAP-APP-002; this step is history)*
 
 ---
 

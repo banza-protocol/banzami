@@ -115,7 +115,7 @@ log "Applying migrations..."
 make -C "$REPO_ROOT" db-migrate
 
 # ─── npm install (if node_modules missing) ────────────────────────────────────
-for app in dashboard admin pay; do
+for app in admin pay; do
   app_dir="$REPO_ROOT/apps/$app"
   if [[ -f "$app_dir/package.json" && ! -d "$app_dir/node_modules" ]]; then
     log "Installing npm dependencies for apps/$app..."
@@ -164,12 +164,10 @@ ADMIN=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
 tmux split-window -t "${ADMIN}" -v -p 50
 PUBLIC=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
 
-# ── Windows 1-3: Next.js apps ────────────────────────────────────────────────
-tmux new-window -t "$SESSION:1" -n "dashboard" \
-  "cd '$REPO_ROOT/apps/dashboard' && npm run dev; exec $SHELL"
-tmux new-window -t "$SESSION:2" -n "admin-app" \
+# ── Windows 1-2: Next.js apps ────────────────────────────────────────────────
+tmux new-window -t "$SESSION:1" -n "admin-app" \
   "cd '$REPO_ROOT/apps/admin' && npm run dev; exec $SHELL"
-tmux new-window -t "$SESSION:3" -n "pay" \
+tmux new-window -t "$SESSION:2" -n "pay" \
   "cd '$REPO_ROOT/apps/pay' && npm run dev; exec $SHELL"
 
 # Go back to main window before starting services
@@ -209,14 +207,13 @@ cat > "$STATUS_FILE" << 'EOF'
   admin-api    →  http://localhost:8082
   public-api   →  http://localhost:8083
 
-  Apps (windows 1-3)
-  dashboard    →  http://localhost:3010
+  Apps (windows 1-2)
   admin-app    →  http://localhost:3002
   pay          →  http://localhost:3003
 
   Navigate
   Ctrl-b 0       this window
-  Ctrl-b 1/2/3   dashboard / admin / pay
+  Ctrl-b 1/2     admin / pay
   Ctrl-b ← →     switch panes
   Ctrl-b d       detach (keeps running)
   ./dev.sh stop  kill everything

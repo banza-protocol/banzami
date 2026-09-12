@@ -927,33 +927,44 @@ capabilities:
     disposition: quarantined
     status: blocked
 
+  # Retired 2026-09-12. The merchant dashboard app was deleted rather than left
+  # quarantined:
+  # it was unrouted (NXDOMAIN), ran in no container, was named by no CI job and
+  # imported by nothing, and implemented no capability that lives only there —
+  # QR, refunds and payouts are all core/gateway/SDK, and it only drew UI over
+  # them. What settled it is that it kept a SECRET API key in localStorage and
+  # called the Gateway from the browser, which §13 forbids outright; in a public
+  # repository that is a worked example of the thing the security guide tells
+  # developers never to do. The merchant surface, when it returns, starts from
+  # the Console's session model, not from this.
   - id: CAP-APP-002
-    name: Merchant dashboard (Banzami Business)
+    name: Merchant dashboard (Banzami Business) — retired
     owner: web
-    public_status: preview-disabled
+    public_status: not-exposed
     environments:
       sandbox: false
       live: false
     authority: internal
     authority_ref: operator product
     implementation:
-      - apps/dashboard
+      - none (the app was removed; its history is in git)
     api_surface:
-      - none (not routed; dashboard.banzami.com is NXDOMAIN)
+      - none (never routed; dashboard.banzami.com is NXDOMAIN)
     threat_category: tenant-data
     tests:
       unit: []
       integration: []
       e2e_sandbox: []
       negative_security: []
-    deployment_gate: sandbox-e2e-required
-    cleanup_disposition: active-needs-remediation
+    deployment_gate: none-docs-only
+    cleanup_disposition: removed
     launch_scope: excluded
     evidence:
       - docs/quality/REPAIR_LOG.md#RA-003
+      - docs/quality/PUBLIC_LAUNCH_CLOSURE_2026_09_12.md
     surface: none
-    disposition: quarantined
-    status: blocked
+    disposition: removed
+    status: removed
 
   - id: CAP-APP-003
     name: Admin portal (BANZADMIN)

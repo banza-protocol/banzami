@@ -13,8 +13,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| blocked | 5 |
+| blocked | 4 |
 | in-audit | 1 |
+| removed | 1 |
 | verified | 18 |
 | **total** | **24** |
 
@@ -42,7 +43,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-SDK-002 | Public Banzami client SDK (banzami_client, Dart/Flutter) | developer-platform | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-APP-001 | Consumer mobile app (Flutter, com.banzami.consumer) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
 | CAP-APP-005 | Merchant mobile app (Flutter, com.banzami.merchant) | mobile | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
-| CAP-APP-002 | Merchant dashboard (Banzami Business) | web | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-APP-002 | Merchant dashboard (Banzami Business) — retired | web | none | **removed** | — | 🔒 no | none-docs-only | removed |
 | CAP-APP-003 | Admin portal (BANZADMIN) | web | internal | **internal_only** | ✅ | ⚠️ yes | sandbox-e2e-required | in-audit |
 | CAP-APP-004 | Pay page + checkout | web | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-LIVE-001 | Live payments / EMIS / Multicaixa rails | operator-payments | none | **quarantined** | — | 🔒 no | sandbox-e2e-required | blocked |
@@ -52,8 +53,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| quarantined | 5 |
+| quarantined | 4 |
 | released | 18 |
+| removed | 1 |
 
 Public surfaces released: **17/17**. Full external launch requires 17/17.
 
@@ -379,21 +381,21 @@ Public surfaces released: **17/17**. Full external launch requires 17/17.
 - **Launch scope:** excluded
 - **Status:** **blocked**
 
-### CAP-APP-002 — Merchant dashboard (Banzami Business)
+### CAP-APP-002 — Merchant dashboard (Banzami Business) — retired
 
 - **Owner:** web
-- **Public status:** preview-disabled · **Sandbox:** false · **Live:** false
+- **Public status:** not-exposed · **Sandbox:** false · **Live:** false
 - **Authority:** internal — operator product
 - **Threat category:** tenant-data
-- **Implementation:** apps/dashboard
-- **API/UI surface:** none (not routed; dashboard.banzami.com is NXDOMAIN)
-- **Deployment gate:** sandbox-e2e-required
+- **Implementation:** none (the app was removed; its history is in git)
+- **API/UI surface:** none (never routed; dashboard.banzami.com is NXDOMAIN)
+- **Deployment gate:** none-docs-only
 - **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
-- **Evidence:** docs/quality/REPAIR_LOG.md#RA-003
-- **Cleanup disposition:** active-needs-remediation
-- **External surface:** none · **Disposition:** **quarantined**
+- **Evidence:** docs/quality/REPAIR_LOG.md#RA-003, docs/quality/PUBLIC_LAUNCH_CLOSURE_2026_09_12.md
+- **Cleanup disposition:** removed
+- **External surface:** none · **Disposition:** **removed**
 - **Launch scope:** excluded
-- **Status:** **blocked**
+- **Status:** **removed**
 
 ### CAP-APP-003 — Admin portal (BANZADMIN)
 

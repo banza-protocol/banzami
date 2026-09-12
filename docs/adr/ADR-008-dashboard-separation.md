@@ -1,7 +1,22 @@
 # ADR-008 — Merchant Dashboard vs Admin Dashboard Separation
 
-**Status:** Accepted  
+**Status:** Superseded (merchant half) — 2026-09-12  
 **Date:** 2026-05-13
+
+> The separation decided here still holds for the operator side: `apps/admin` is
+> BANZADMIN and is deployed. The merchant half is gone. `apps/dashboard` was
+> **retired and deleted on 2026-09-12** (CAP-APP-002): it was never routed,
+> `dashboard.banzami.com` has never resolved, it ran in no container, no CI job
+> named it, nothing imported it, and it implemented no capability that lived only
+> there. What settled it is the authentication model this ADR did not anticipate
+> — it kept a **secret API key in `localStorage`** and called the Gateway from
+> the browser, which CLAUDE.md §13 forbids outright.
+>
+> What merchants and developers actually use is the Developers Console in
+> `apps/website/app/developers`, which has a real server-side session. When a
+> merchant surface returns, it starts from that session model, not from this one.
+> The text below is the 2026-05-13 decision, kept as the record of what was
+> decided then.
 
 ---
 

@@ -56,10 +56,10 @@ code. **Trust code, not assumptions. Nothing was implemented.**
 | `BM-001` Merchant mobile app | PLANNED | `apps/merchant/` (Flutter, screens) exists; coverage partial | 50 |
 | `BM-002` Real-time payment notifications | PLANNED | `internal/notify/fcm.go` (FCM) exists; end-to-end partial | 50 |
 | `BM-003` QR generation in mobile | PLANNED | QR backend exists; mobile UI partial | 40 |
-| `BW-001` Web dashboard | PLANNED | `apps/dashboard/` (Next.js pages) exists; coverage partial | 55 |
-| `BW-002` Analytics & reports | PLANNED | dashboard exists; analytics depth partial | 40 |
-| `BW-003` API key management | PLANNED | `apps/dashboard/.../settings` + `public_api_credentials` exist; partial | 50 |
-| `BW-004` Team & permissions | PLANNED | not strongly evidenced; partial | 40 |
+| `BW-001` Web dashboard | **RETIRED 2026-09-12** | `apps/dashboard/` was deleted (CAP-APP-002); what merchants and developers use is the Developers Console in `apps/website/app/developers` | — |
+| `BW-002` Analytics & reports | **RETIRED 2026-09-12** | the dashboard that presented them was deleted; `core/api/src/routes/analytics.rs` remains and has no released public surface | — |
+| `BW-003` API key management | **SUPERSEDED 2026-09-12** | now the Developers Console (`/api-keys`): scopes, reveal-once, rotation, revocation, last-used — all swept and released | — |
+| `BW-004` Team & permissions | **SUPERSEDED 2026-09-12** | now Console workspace members and roles, proven by the RBAC matrix sweep (22/22) | — |
 | `SDK-002` PHP SDK | PLANNED | `sdk/php/src/` (client, webhooks, exceptions); resource coverage partial | 55 |
 | `SDK-004` Go SDK | PLANNED | `sdk/go/banzami/` (client, webhook, types + tests); coverage partial | 55 |
 | `RSK-002` Suspicious-tx review & alerts | PLANNED | `services/admin-api/.../risk.go` (freeze/flags/audit) exists; alerting partial | 50 |

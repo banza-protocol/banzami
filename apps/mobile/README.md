@@ -293,7 +293,6 @@ The same palette is applied to all three web apps via Tailwind CSS:
 
 | App | Config |
 |---|---|
-| `apps/dashboard` | `tailwind.config.ts` → `wine`, `off-white`, warm grays |
 | `apps/admin` | same palette + `info` colour token |
 | `apps/pay` | same palette |
 

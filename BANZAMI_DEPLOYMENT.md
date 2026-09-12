@@ -32,7 +32,6 @@ All deployments go through `./deploy.sh` at the repository root.
 | `api-gateway` | Go merchant-facing API |
 | `public-api` | Go consumer-facing API |
 | `admin-api` | Go internal operator API |
-| `dashboard-frontend` | Next.js merchant dashboard |
 | `admin-frontend` | Next.js admin portal |
 | `pay-frontend` | Next.js consumer pay page |
 | `checkout-frontend` | Next.js hosted checkout |
@@ -86,7 +85,6 @@ For routine application deployments (bug fixes, feature additions), staging is r
 | `api-gateway` | `services/api-gateway/Dockerfile` |
 | `public-api` | `services/public-api/Dockerfile` |
 | `admin-api` | `services/admin-api/Dockerfile` |
-| `dashboard-frontend` | `apps/dashboard/Dockerfile` |
 | `admin-frontend` | `apps/admin/Dockerfile` |
 | `pay-frontend` | `apps/pay/Dockerfile` |
 | `checkout-frontend` | `apps/checkout/Dockerfile` |
@@ -106,7 +104,6 @@ Local service URLs:
 - `http://localhost:8081` — core-api (Rust)
 - `http://localhost:8080` — api-gateway (Go)
 - `http://localhost:8083` — public-api (Go)
-- `http://localhost:3000` — dashboard-frontend (Next.js)
 - `http://localhost:3003` — pay-frontend (Next.js)
 
 Docker Compose configuration: `infra/docker/docker-compose.yml`

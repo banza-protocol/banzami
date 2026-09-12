@@ -203,8 +203,12 @@ gate checks, rather than comparing tags.
 - **Financial LIVE does not exist** and fails closed. The site-wide SANDBOX
   disclosure is present from the first byte and is withdrawn only on a confirmed
   LIVE.
-- **`apps/dashboard` is quarantined** and not routed (`dashboard.banzami.com` is
-  NXDOMAIN). It is excluded from launch scope and was not swept.
+- **`apps/dashboard` was retired and deleted** on 2026-09-12, after this report
+  was first written. It was never routed, ran in no container, was named by no CI
+  job, was imported by nothing, and implemented no capability that lived only
+  there — and it kept a **secret API key in `localStorage`** and called the
+  Gateway from the browser, which §13 forbids. `make check-retired-surfaces`
+  keeps it gone, and CAP-APP-002 records why.
 - **Two abandoned DOA donation intents remain.** A donor who started and did not
   finish is product data, not residue; deleting them would delete the record of
   something that happened.

@@ -12,7 +12,7 @@
 #
 # Every other service name is recognised but FAILS CLOSED: live core-api /
 # api-gateway / public-api (payment rails), pay/checkout (payment surfaces),
-# admin/dashboard (Stage D), sandbox-operator (pending Stage C execution
+# admin (Stage D), sandbox-operator (pending Stage C execution
 # approval), the legacy `staging` compose path and the legacy compose-based
 # developer-api path are NOT approved for restore/deploy in the current
 # architecture. Stage C will use the rt04e project + a dedicated sandbox-edge
@@ -52,7 +52,7 @@ case "$(git -C "$REPO_ROOT" remote get-url origin 2>/dev/null || true)" in
   *) _ssot_die ;;
 esac
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend dashboard-frontend pay-frontend website-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend pay-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -114,8 +114,6 @@ _authority_gate() {
         # for it to reach, and the live payment rails below still fail closed.
         # Revoke by restoring _deny_unapproved for these two services.
         : ;;
-      dashboard-frontend)
-        _deny_unapproved "$svc" "merchant surface: Stage D covers the operator console only; this needs its own approval and runbook" ;;
       sandbox-operator)
         _deny_unapproved "$svc" "rebuild pending explicit Stage C execution approval (Decision 5)" ;;
       developer-api)

@@ -376,6 +376,10 @@ check-openapi-drift:
 check-deploy-parity:
 	node tools/check-deploy-parity.mjs
 
+.PHONY: check-retired-surfaces
+check-retired-surfaces:
+	node tools/check-retired-surfaces.mjs
+
 check-sdk-payment-boundary:
 	node tools/check-sdk-payment-boundary.mjs
 
@@ -385,7 +389,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────

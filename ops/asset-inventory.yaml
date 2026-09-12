@@ -87,7 +87,6 @@ containers_vm_ionos_main:
     - { id: banzami-redis-1, image: redis:7-alpine, purpose: cache/rate-limit/idempotency, lifecycle: active-required }
     - { id: banzami-admin-api-1, image: banzami/admin-api:latest, port: 8082, lifecycle: active-required }
     - { id: banzami-admin-frontend-1, image: banzami/admin-frontend:latest, port: 3002, lifecycle: active-required }
-    - { id: banzami-dashboard-frontend-1, image: banzami/dashboard-frontend:latest, port: 3001, lifecycle: active-needs-remediation, note: "STOPPED 2026-07-04 (RA-003): unrouted (NXDOMAIN), pre-existing build break (file: SDK dep not in build context). Excluded from sandbox launch (CAP-APP-002). Reversible: docker start after deploy-pipeline fix." }
     - { id: banzami-checkout-frontend-1, image: banzami/checkout-frontend:latest, port: 3003, lifecycle: active-required }
     - { id: banzami-pay-frontend-1, image: banzami/pay-frontend:latest, port: 3002, lifecycle: active-required }
     - { id: banzami-website-frontend-1, image: banzami/website-frontend:latest, port: 3000, lifecycle: active-required }

@@ -45,7 +45,6 @@ This security policy covers:
 - Reconciliation accuracy
 
 **Applications:**
-- `apps/dashboard` — merchant dashboard
 - `apps/admin` — admin portal
 - `apps/pay` — pay page
 - `apps/checkout` — checkout page

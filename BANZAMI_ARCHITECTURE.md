@@ -44,7 +44,6 @@ Internet
   │
   ├─ pay.banzami.com          → apps/pay/          (Next.js 14, port 3003)
   ├─ pay.banzami.com/{slug}   → apps/checkout/     (Next.js 14, port 3004)
-  ├─ dashboard.banzami.com    → apps/dashboard/    (Next.js 14, port 3000)
   │
   ├─ api.banzami.com          → api-gateway        (Go, port 8080)  ← merchants
   └─ consumer.banzami.com     → public-api         (Go, port 8083)  ← consumers
@@ -248,7 +247,6 @@ Ambos os workers usam `tokio::time::interval` com `MissedTickBehavior::Skip`.
 
 ```
 apps/pay          → api-gateway (public endpoints, sem auth)
-apps/dashboard    → api-gateway (merchant JWT)
 public-api        → core-api (loopback HTTP)
 public-api        → PostgreSQL (credentials table only)
 api-gateway       → core-api (loopback HTTP)

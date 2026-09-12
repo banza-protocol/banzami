@@ -49,7 +49,7 @@ academic.
 The middleware-bypass class is the one that deserves care, because when
 middleware is what enforces a session, bypassing it is an authentication bypass.
 
-Three apps ship a middleware: `apps/website`, `apps/pay`, `apps/dashboard`.
+Three apps shipped a middleware when this was written: `apps/website`, `apps/pay`, `apps/dashboard` (the last was retired on 2026-09-12 — CAP-APP-002).
 **None of them authenticates or authorises.** `website` does host-based console
 routing and 308 redirects; `pay` and `dashboard` mint a CSP nonce and set
 `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options` and

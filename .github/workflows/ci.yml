@@ -517,6 +517,12 @@ jobs:
       - name: OpenAPI route drift gate
         run: node tools/check-openapi-route-drift.mjs
 
+      # A retired application is easy to half-delete: the directory goes and a
+      # deploy entry, a CI job or a doc page stays, and the next reader takes that
+      # residue for a product. It can also come back by accident.
+      - name: Retired-surface gate
+        run: node tools/check-retired-surfaces.mjs
+
       # BANZA is the protocol; Banzami is the operator. On the hosted checkout
       # the wordmark said BANZA — the protocol's name, on the one page whose
       # reader is a person about to pay.

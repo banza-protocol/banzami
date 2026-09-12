@@ -897,6 +897,6 @@ node tools/check-repository-layout.mjs
 ```
 
 Server: `root@217.160.9.248`  
-Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `staging`
+Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `pay-frontend`, `staging`
 
 Deploy note: changes are not done until pushed to `origin/main` AND deployed via `./deploy.sh`.

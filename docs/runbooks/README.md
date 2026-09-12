@@ -54,7 +54,7 @@ Always deploy in this order to avoid breaking in-flight requests:
 1. Run database migrations (RB-002) **before** deploying services.
 2. Deploy `core-api` first (other services call it).
 3. Deploy `api-gateway`, `public-api`, `admin-api` in any order.
-4. Deploy `apps/pay`, `apps/dashboard` last.
+4. Deploy `apps/pay` last.
 
 ### Verify after deploy
 

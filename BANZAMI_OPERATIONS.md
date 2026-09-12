@@ -20,7 +20,6 @@ The Banzami reference operator runs the following services in production:
 | `api-gateway` | Go | 8080 | Merchant-facing public API |
 | `public-api` | Go | 8083 | Consumer-facing API (mobile) |
 | `admin-api` | Go | 8082 | Internal operator API (internal network only) |
-| `dashboard-frontend` | Next.js | 3000 | Merchant dashboard |
 | `admin-frontend` | Next.js | 3001 | Operator admin portal |
 | `pay-frontend` | Next.js | 3003 | Consumer pay page |
 | `checkout-frontend` | Next.js | 3004 | Hosted checkout page |

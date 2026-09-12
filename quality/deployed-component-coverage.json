@@ -1027,27 +1027,6 @@
       "risk": "P2"
     },
     {
-      "id": "dashboard-legacy",
-      "kind": "not-deployed",
-      "runtime": "apps/dashboard — superseded by the Console in apps/website/app/developers; not in the host manifest",
-      "entry_points": [],
-      "actors": [],
-      "authentication": "n/a",
-      "authorization": "n/a",
-      "sensitive_data": [],
-      "financial_authority": "none",
-      "environment": "n/a",
-      "critical_actions": [],
-      "dependencies": [],
-      "capabilities": [
-        "CAP-APP-002"
-      ],
-      "tests": [],
-      "deployed_e2e": [],
-      "gaps": [],
-      "risk": "P2"
-    },
-    {
       "id": "validation-studio",
       "kind": "not-deployed",
       "runtime": "apps/validation-studio — local governance tool",
@@ -1230,7 +1209,6 @@
   ],
   "source_map": {
     "apps/admin": "admin-frontend",
-    "apps/dashboard": "dashboard-legacy",
     "apps/mobile": "mobile-app-package",
     "apps/pay": "pay-frontend",
     "apps/validation-studio": "validation-studio",

@@ -49,11 +49,12 @@ Internet
   ├─ pay.banzami.com          → apps/pay/          (Next.js 15, port 3003)  ← hosted checkout
   ├─ developers.banzami.com   → apps/website/      (Next.js 15)             ← Developer Console
   │
-  │  dashboard.banzami.com is NOT routed and does not resolve. apps/dashboard
-  │  builds and passes its tests, and is deliberately not released:
-  │  CAP-APP-002 in quality/operator-assurance-manifest.yaml carries
-  │  launch_scope: excluded, surface: none, and ./deploy.sh dashboard-frontend
-  │  fails closed against the service authority matrix.
+  │  dashboard.banzami.com does not resolve and never did. The merchant
+  │  dashboard was RETIRED on 2026-09-12 (CAP-APP-002): unrouted, in no
+  │  container, named by no CI job, imported by nothing, and implementing no
+  │  capability that lived only there. It kept a secret API key in localStorage
+  │  and called the Gateway from the browser, which §13 forbids — so it was
+  │  deleted rather than archived in the active tree. Its history is in git.
   │
   ├─ api.banzami.com          → api-gateway        (Go, port 8080)  ← merchants
   └─ consumer.banzami.com     → public-api         (Go, port 8083)  ← consumers
@@ -235,7 +236,6 @@ Both workers use `tokio::time::interval` with `MissedTickBehavior::Skip` — if 
 
 ```
 apps/pay          → api-gateway (public endpoints, no auth)
-apps/dashboard    → api-gateway (merchant JWT)
 public-api        → core-api (loopback HTTP)
 public-api        → PostgreSQL (credentials table only)
 api-gateway       → core-api (loopback HTTP)

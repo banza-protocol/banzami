@@ -9,7 +9,7 @@ Banza operates two completely isolated environments:
 | API key prefix | `bz_test_…` | `bz_live_…` |
 | Base URL | `https://sandbox-api.banzami.com` | `https://api.banzami.com` |
 | Developer Console | `https://developers.banzami.com` | `https://developers.banzami.com` |
-| Merchant dashboard | *not released* — `dashboard.banzami.com` does not resolve (CAP-APP-002, `launch_scope: excluded`) | *not released* |
+| Merchant dashboard | *retired 2026-09-12* — the application was removed; `dashboard.banzami.com` does not resolve (CAP-APP-002) | *retired* |
 | Checkout | `https://sandbox-checkout.banzami.com` | `https://checkout.banzami.com` |
 | Money | Virtual — no real funds | Real Angolan Kwanza |
 | Database | Completely separate | Completely separate |

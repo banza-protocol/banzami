@@ -82,8 +82,22 @@ for svc in admin-api admin-frontend; do
   fi
 done
 
-# The merchant dashboard is NOT covered by Stage D and still fails closed.
-deny_check "dashboard-frontend" "dashboard-frontend" "Stage D covers the operator console only"
+# The merchant dashboard was RETIRED on 2026-09-12: apps/dashboard is deleted and
+# nothing in this repository builds the image. It is no longer a deny entry, which
+# would imply a service that could be approved — it is not a service at all, and
+# the script rejects the name outright. That is the stronger answer, so it is what
+# this asserts.
+retired_check() {  # $1 = service name
+  local out rc
+  out="$( ./deploy.sh "$1" 2>&1 )"; rc=$?
+  if [ "$rc" -ne 0 ] && echo "$out" | grep -q "Unknown service" \
+     && ! echo "$out" | grep -q "Valid:.*$1"; then
+    ok "$1 is not a deployable service at all (retired)"
+  else
+    no "$1 is still reachable as a service (rc=$rc)"
+  fi
+}
+retired_check "dashboard-frontend"
 
 # 4. sandbox-operator pending Stage C execution approval.
 deny_check "sandbox-operator" "sandbox-operator" "Stage C execution approval"
