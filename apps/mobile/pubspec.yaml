@@ -1,7 +1,7 @@
 name: banzami_mobile
 description: Banzami — pagamentos instantâneos para Angola
 publish_to: 'none'
-version: 1.0.0+7
+version: 1.0.0+8
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
