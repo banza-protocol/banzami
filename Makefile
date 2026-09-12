@@ -368,6 +368,10 @@ check-assurance-release:
 
 # Enforce that the Flutter SDK is the single source of truth for payment flows
 # (docs/adr/SDK_PAYMENT_SOURCE_OF_TRUTH.md).
+.PHONY: check-openapi-drift
+check-openapi-drift:
+	node tools/check-openapi-route-drift.mjs
+
 check-sdk-payment-boundary:
 	node tools/check-sdk-payment-boundary.mjs
 
@@ -377,7 +381,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────

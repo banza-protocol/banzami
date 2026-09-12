@@ -510,6 +510,13 @@ jobs:
       - name: Repository layout gate
         run: node tools/check-repository-layout.mjs
 
+      # The published OpenAPI and the routes a developer key can actually reach
+      # must be the same set. A documented route that is not mounted 404s the
+      # integrator who wrote it; a reachable route that is not published has no
+      # contract, no versioning promise and no deprecation path.
+      - name: OpenAPI route drift gate
+        run: node tools/check-openapi-route-drift.mjs
+
       # BANZA is the protocol; Banzami is the operator. On the hosted checkout
       # the wordmark said BANZA — the protocol's name, on the one page whose
       # reader is a person about to pay.
