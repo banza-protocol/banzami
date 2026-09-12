@@ -188,3 +188,28 @@ func (s *Service) SetProjectWebhookEndpointActive(
 	}
 	return s.store.SetWebhookEndpointActive(ctx, merchant, endpointID, active)
 }
+
+// DeleteProjectWebhookEndpoint removes an endpoint that never delivered.
+//
+// Deleting and disabling answer different questions. Disabling stops deliveries
+// to an endpoint that is real; deleting is for one that should not be in the
+// list at all — a URL typed wrong, a service that no longer exists — and a list
+// a developer cannot tidy stops being read.
+//
+// An endpoint that HAS delivered is refused, because its deliveries reference it
+// and that history is not the endpoint's to take with it. That endpoint is
+// disabled instead.
+func (s *Service) DeleteProjectWebhookEndpoint(ctx context.Context, actor, projectID, endpointID string) error {
+	_, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return err
+	}
+	if !canManageWebhooks(role) {
+		return ErrForbidden
+	}
+	merchant, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return err
+	}
+	return s.store.DeleteWebhookEndpoint(ctx, merchant, endpointID)
+}

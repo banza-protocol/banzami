@@ -253,10 +253,18 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/webhooks/events", h.listWebhookEvents)
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
 	r.Get("/projects/{projID}/logs", h.listAPIRequestLogs)
+	r.Get("/projects/{projID}/footprint", h.projectFootprint)
 
 	r.Group(func(r chi.Router) {
 		r.Use(csrf)
 		r.Post("/workspaces", h.createWorkspace)
+		r.Patch("/workspaces/{wsID}", h.renameWorkspace)
+		r.Delete("/workspaces/{wsID}", h.archiveWorkspace)
+		r.Post("/workspaces/{wsID}/leave", h.leaveWorkspace)
+		r.Patch("/projects/{projID}", h.renameProject)
+		r.Delete("/projects/{projID}", h.deleteProject)
+		r.Post("/projects/{projID}/archive", h.archiveProjectByOwner)
+		r.Delete("/projects/{projID}/webhooks/endpoints/{epID}", h.deleteWebhookEndpoint)
 		r.Post("/workspaces/{wsID}/members", h.inviteMember)
 		r.Patch("/workspaces/{wsID}/members/{userID}", h.setMemberRole)
 		r.Delete("/workspaces/{wsID}/members/{userID}", h.removeMember)
@@ -667,6 +675,26 @@ func (h *Handlers) setWebhookEndpointActive(w http.ResponseWriter, r *http.Reque
 	httpx.JSON(w, http.StatusOK, ep)
 }
 
+func (h *Handlers) deleteWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	err := h.svc.DeleteProjectWebhookEndpoint(r.Context(), u.ID,
+		chi.URLParam(r, "projID"), chi.URLParam(r, "epID"))
+	if err == ErrConflict {
+		httpx.Error(w, http.StatusConflict, "ENDPOINT_HAS_DELIVERIES",
+			"this endpoint has delivery history — disable it instead of deleting it")
+		return
+	}
+	if err != nil {
+		mapWebhookErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // mapWebhookErr keeps the two rejections a developer can act on distinguishable
 // from the generic ones. "Your URL is not allowed" and "that event does not
 // exist" are fixable at the keyboard; collapsing them into 400 INVALID_BODY
@@ -853,6 +881,66 @@ func (h *Handlers) getWorkspace(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, workspaceView(ws))
 }
 
+func (h *Handlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !body(r, &in) {
+		mapErr(w, ErrValidation)
+		return
+	}
+	ip, rid := reqMeta(r)
+	ws, err := h.svc.RenameWorkspace(r.Context(), u.ID, chi.URLParam(r, "wsID"), in.Name, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, workspaceView(ws))
+}
+
+// DELETE /workspaces/{wsID} — archive.
+//
+// The body must repeat the workspace's own name. A destructive action reached by
+// a single verb on a single id is one stray request away from happening by
+// accident; requiring the caller to reproduce something they had to look up
+// first makes that impossible.
+func (h *Handlers) archiveWorkspace(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !body(r, &in) {
+		mapErr(w, ErrValidation)
+		return
+	}
+	ip, rid := reqMeta(r)
+	blockers, err := h.svc.ArchiveWorkspace(r.Context(), u.ID, chi.URLParam(r, "wsID"), in.Name, ip, rid)
+	if err == ErrConflict {
+		// Named, not generic: the Console must be able to say "2 projectos
+		// activos" without guessing why the call failed.
+		httpx.ErrorWithDetails(w, http.StatusConflict, "WORKSPACE_NOT_EMPTY",
+			"archive or delete this workspace's active projects first",
+			map[string]any{"active_projects": blockers.ActiveProjects})
+		return
+	}
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"status": "ARCHIVED"})
+}
+
+func (h *Handlers) leaveWorkspace(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	ip, rid := reqMeta(r)
+	if err := h.svc.LeaveWorkspace(r.Context(), u.ID, chi.URLParam(r, "wsID"), ip, rid); err != nil {
+		mapErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // ── members / invites ────────────────────────────────────────────────────────
 
 func (h *Handlers) listMembers(w http.ResponseWriter, r *http.Request) {
@@ -948,7 +1036,10 @@ func (h *Handlers) revokeInvite(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handlers) listProjects(w http.ResponseWriter, r *http.Request) {
 	u, _ := actor(r)
-	ps, err := h.svc.ListProjects(r.Context(), u.ID, chi.URLParam(r, "wsID"))
+	// Archived projects are excluded unless asked for. The Console's selector
+	// asks for the default; its "Mostrar arquivados" affordance asks for both.
+	includeArchived := r.URL.Query().Get("include_archived") == "true"
+	ps, err := h.svc.ListProjects(r.Context(), u.ID, chi.URLParam(r, "wsID"), includeArchived)
 	if err != nil {
 		mapErr(w, err)
 		return
@@ -982,6 +1073,89 @@ func (h *Handlers) getProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httpx.JSON(w, http.StatusOK, projectView(p))
+}
+
+func (h *Handlers) renameProject(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !body(r, &in) {
+		mapErr(w, ErrValidation)
+		return
+	}
+	ip, rid := reqMeta(r)
+	p, err := h.svc.RenameProject(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Name, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, projectView(p))
+}
+
+// GET /projects/{projID}/footprint — what the project holds, and therefore
+// whether it can be deleted or only archived. The Console asks this before it
+// offers either, so the dialog states the consequence instead of discovering it.
+func (h *Handlers) projectFootprint(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	f, err := h.svc.ProjectFootprintFor(r.Context(), u.ID, chi.URLParam(r, "projID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"keys": f.Keys, "request_logs": f.RequestLogs, "bindings": f.Bindings,
+		"deletable": f.Empty(), "blockers": f.Blockers(),
+	})
+}
+
+// DELETE /projects/{projID} — delete an empty project, refuse anything else.
+func (h *Handlers) deleteProject(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !body(r, &in) {
+		mapErr(w, ErrValidation)
+		return
+	}
+	ip, rid := reqMeta(r)
+	f, err := h.svc.DeleteProject(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Name, ip, rid)
+	if err == ErrConflict {
+		httpx.ErrorWithDetails(w, http.StatusConflict, "PROJECT_NOT_EMPTY",
+			"this project has history and can be archived, not deleted",
+			map[string]any{
+				"keys": f.Keys, "request_logs": f.RequestLogs, "bindings": f.Bindings,
+				"blockers": f.Blockers(),
+			})
+		return
+	}
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// POST /projects/{projID}/archive — the developer-facing counterpart of the
+// internal retire route. Revokes every active key and disables an unsealed
+// binding, so an archived project holds no authority.
+func (h *Handlers) archiveProjectByOwner(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !body(r, &in) {
+		mapErr(w, ErrValidation)
+		return
+	}
+	ip, rid := reqMeta(r)
+	revoked, err := h.svc.ArchiveProject(r.Context(), u.ID, chi.URLParam(r, "projID"), in.Name, ip, rid)
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"status": "ARCHIVED", "keys_revoked": revoked})
 }
 
 // ── api keys ─────────────────────────────────────────────────────────────────

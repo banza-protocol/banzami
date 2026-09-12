@@ -31,3 +31,18 @@ func Error(w http.ResponseWriter, status int, code, message string) {
 	b.Error.Message = message
 	JSON(w, status, b)
 }
+
+// ErrorWithDetails is Error plus machine-readable specifics under
+// `error.details` — the counts and names a refusal turns on, so a caller can say
+// WHAT is in the way instead of restating the message.
+//
+// Details are facts about the caller's own resources, never anything they could
+// not already read: it is the same authority boundary as the rest of the reply.
+func ErrorWithDetails(w http.ResponseWriter, status int, code, message string, details map[string]any) {
+	body := map[string]any{"error": map[string]any{
+		"code":    code,
+		"message": message,
+		"details": details,
+	}}
+	JSON(w, status, body)
+}

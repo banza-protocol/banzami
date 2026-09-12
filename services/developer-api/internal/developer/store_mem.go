@@ -99,6 +99,42 @@ func (m *memStore) Workspace(_ context.Context, id string) (Workspace, error) {
 	return Workspace{}, ErrNotFound
 }
 
+func (m *memStore) RenameWorkspace(_ context.Context, id, name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w, ok := m.workspaces[id]
+	if !ok || w.Status != "ACTIVE" {
+		return ErrNotFound
+	}
+	w.Name = name
+	w.UpdatedAt = time.Now().UTC()
+	return nil
+}
+
+func (m *memStore) ArchiveWorkspace(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	w, ok := m.workspaces[id]
+	if !ok || w.Status != "ACTIVE" {
+		return ErrNotFound
+	}
+	w.Status = "ARCHIVED"
+	w.UpdatedAt = time.Now().UTC()
+	return nil
+}
+
+func (m *memStore) CountActiveProjects(_ context.Context, workspaceID string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	for _, p := range m.projects {
+		if p.WorkspaceID == workspaceID && p.Status == "ACTIVE" {
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (m *memStore) memberRef(workspaceID, userID string) *Member {
 	for _, mem := range m.members {
 		if mem.WorkspaceID == workspaceID && mem.UserID == userID {
@@ -252,16 +288,73 @@ func (m *memStore) CreateProject(_ context.Context, workspaceID, name, slug stri
 	return *p, nil
 }
 
-func (m *memStore) ProjectsForWorkspace(_ context.Context, workspaceID string) ([]Project, error) {
+func (m *memStore) ProjectsForWorkspace(_ context.Context, workspaceID string, includeArchived bool) ([]Project, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	var out []Project
 	for _, p := range m.projects {
-		if p.WorkspaceID == workspaceID {
-			out = append(out, *p)
+		if p.WorkspaceID != workspaceID {
+			continue
+		}
+		if !includeArchived && p.Status == "ARCHIVED" {
+			continue
+		}
+		out = append(out, *p)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt) })
+	return out, nil
+}
+
+func (m *memStore) RenameProject(_ context.Context, id, name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p, ok := m.projects[id]
+	if !ok || p.Status != "ACTIVE" {
+		return ErrNotFound
+	}
+	p.Name = name
+	p.UpdatedAt = time.Now().UTC()
+	return nil
+}
+
+func (m *memStore) ProjectFootprint(_ context.Context, id string) (ProjectFootprint, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	p, ok := m.projects[id]
+	if !ok {
+		return ProjectFootprint{}, ErrNotFound
+	}
+	f := ProjectFootprint{Archived: p.Status == "ARCHIVED"}
+	for _, k := range m.apiKeys {
+		if k.ProjectID == id {
+			f.Keys++
 		}
 	}
-	return out, nil
+	for _, l := range m.requestLogs {
+		if l.projectID == id {
+			f.RequestLogs++
+		}
+	}
+	for _, b := range m.bindings {
+		if b.ProjectID == id {
+			f.Bindings++
+		}
+	}
+	return f, nil
+}
+
+func (m *memStore) DeleteProject(ctx context.Context, id string) error {
+	f, err := m.ProjectFootprint(ctx, id)
+	if err != nil {
+		return err
+	}
+	if !f.Empty() {
+		return ErrConflict
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	delete(m.projects, id)
+	return nil
 }
 
 func (m *memStore) Project(_ context.Context, id string) (*Project, error) {
@@ -571,6 +664,17 @@ func (m *memStore) SetWebhookEndpointActive(_ context.Context, merchantID, endpo
 	e.view.Active = active
 	v := e.view
 	return &v, nil
+}
+
+func (m *memStore) DeleteWebhookEndpoint(_ context.Context, merchantID, endpointID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e, ok := m.webhookEndpoints[endpointID]
+	if !ok || e.merchantID != merchantID {
+		return ErrNotFound
+	}
+	delete(m.webhookEndpoints, endpointID)
+	return nil
 }
 
 // APIRequestLogs — the in-memory store keeps request logs so authority and

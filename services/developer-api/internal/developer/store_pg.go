@@ -33,6 +33,14 @@ func isUnique(err error) bool {
 	return errors.As(err, &pg) && pg.Code == "23505"
 }
 
+// isForeignKey reports a 23503 foreign_key_violation — something still points at
+// the row. Used to turn a delete the schema refuses into a refusal the caller
+// can act on, rather than a 500 that reads like the service is broken.
+func isForeignKey(err error) bool {
+	var pg *pgconn.PgError
+	return errors.As(err, &pg) && pg.Code == "23503"
+}
+
 // ── workspaces ───────────────────────────────────────────────────────────────
 
 func (s *pgStore) CreateWorkspace(ctx context.Context, name, slug, owner string) (Workspace, error) {
@@ -253,6 +261,42 @@ func (s *pgStore) RevokeInvite(ctx context.Context, workspaceID, inviteID string
 	return nil
 }
 
+func (s *pgStore) RenameWorkspace(ctx context.Context, id, name string) error {
+	// ACTIVE only. Renaming an archived workspace would be editing something the
+	// owner already closed.
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE developer.dev_workspaces SET name = $2, updated_at = now()
+		  WHERE id = $1 AND status = 'ACTIVE'`, id, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *pgStore) ArchiveWorkspace(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE developer.dev_workspaces SET status = 'ARCHIVED', updated_at = now()
+		  WHERE id = $1 AND status = 'ACTIVE'`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *pgStore) CountActiveProjects(ctx context.Context, workspaceID string) (int, error) {
+	var n int
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*) FROM developer.dev_projects
+		  WHERE workspace_id = $1 AND status = 'ACTIVE'`, workspaceID).Scan(&n)
+	return n, err
+}
+
 // ── projects ─────────────────────────────────────────────────────────────────
 
 func (s *pgStore) CreateProject(ctx context.Context, workspaceID, name, slug string) (Project, error) {
@@ -333,10 +377,12 @@ func (s *pgStore) ArchiveProject(ctx context.Context, id string) (int, error) {
 	return int(keys.RowsAffected()), nil
 }
 
-func (s *pgStore) ProjectsForWorkspace(ctx context.Context, workspaceID string) ([]Project, error) {
+func (s *pgStore) ProjectsForWorkspace(ctx context.Context, workspaceID string, includeArchived bool) ([]Project, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT id, workspace_id, name, slug, status, created_at, updated_at
-		   FROM developer.dev_projects WHERE workspace_id = $1 ORDER BY created_at`, workspaceID)
+		   FROM developer.dev_projects
+		  WHERE workspace_id = $1 AND ($2 OR status <> 'ARCHIVED')
+		  ORDER BY created_at`, workspaceID, includeArchived)
 	if err != nil {
 		return nil, err
 	}
@@ -365,6 +411,60 @@ func (s *pgStore) Project(ctx context.Context, id string) (*Project, error) {
 		return nil, err
 	}
 	return &p, nil
+}
+
+func (s *pgStore) RenameProject(ctx context.Context, id, name string) error {
+	// The slug is untouched on purpose — it is the Project ID a developer has
+	// already put in a config file, and a rename must never invalidate it.
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE developer.dev_projects SET name = $2, updated_at = now()
+		  WHERE id = $1 AND status = 'ACTIVE'`, id, name)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (s *pgStore) ProjectFootprint(ctx context.Context, id string) (ProjectFootprint, error) {
+	var f ProjectFootprint
+	var status string
+	err := s.pool.QueryRow(ctx,
+		`SELECT
+		   (SELECT count(*) FROM developer.dev_api_keys            WHERE project_id = $1),
+		   (SELECT count(*) FROM developer.dev_api_request_logs    WHERE project_id = $1),
+		   (SELECT count(*) FROM developer.dev_project_sandbox_binding WHERE project_id = $1),
+		   (SELECT status  FROM developer.dev_projects             WHERE id = $1)`, id).
+		Scan(&f.Keys, &f.RequestLogs, &f.Bindings, &status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return f, ErrNotFound
+	}
+	if err != nil {
+		return f, err
+	}
+	f.Archived = status == "ARCHIVED"
+	return f, nil
+}
+
+func (s *pgStore) DeleteProject(ctx context.Context, id string) error {
+	// Re-checked here and not only in the service: this statement is the last
+	// thing standing between a DELETE and a project that holds credentials, and
+	// a guard that lives only in a caller is a guard the next caller forgets.
+	tag, err := s.pool.Exec(ctx,
+		`DELETE FROM developer.dev_projects p
+		  WHERE p.id = $1
+		    AND NOT EXISTS (SELECT 1 FROM developer.dev_api_keys            WHERE project_id = p.id)
+		    AND NOT EXISTS (SELECT 1 FROM developer.dev_api_request_logs    WHERE project_id = p.id)
+		    AND NOT EXISTS (SELECT 1 FROM developer.dev_project_sandbox_binding WHERE project_id = p.id)`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrConflict
+	}
+	return nil
 }
 
 // ── api keys ─────────────────────────────────────────────────────────────────
@@ -944,6 +1044,26 @@ func (s *pgStore) SetWebhookEndpointActive(ctx context.Context, merchantID, endp
 		return nil, ErrNotFound
 	}
 	return &v, nil
+}
+
+func (s *pgStore) DeleteWebhookEndpoint(ctx context.Context, merchantID, endpointID string) error {
+	// Scoped by merchant inside the statement, like every other write here:
+	// holding an endpoint id is not authority over it.
+	tag, err := s.pool.Exec(ctx,
+		`DELETE FROM webhook_endpoints WHERE id = $2 AND merchant_id = $1`, merchantID, endpointID)
+	if isForeignKey(err) {
+		// Deliveries reference the endpoint and are not cascaded: what was sent
+		// to this URL is history, and history is not a property of the endpoint
+		// row. An endpoint that has delivered can be disabled, never deleted.
+		return ErrConflict
+	}
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func (s *pgStore) WebhookEventsForMerchant(ctx context.Context, merchantID string, limit int) ([]WebhookEventView, error) {

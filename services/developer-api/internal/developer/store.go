@@ -174,6 +174,46 @@ type InviteInsert struct {
 	ExpiresAt   time.Time
 }
 
+// ProjectFootprint is what a project still holds, and therefore what stands
+// between it and being deleted.
+//
+// A project that never got past being created — no key ever issued, no financial
+// owner, no request logged — is a mistake, and the product should let a
+// developer take a mistake back. Anything else has a history, and history is
+// archived rather than destroyed. The distinction is made from what the project
+// HAS, never from how old it looks.
+//
+// Every count is "ever", not "currently": a revoked key is still a credential
+// that once existed and once authorised requests, so a project that has issued
+// one is no longer empty.
+type ProjectFootprint struct {
+	Keys        int  `json:"keys"`
+	RequestLogs int  `json:"request_logs"`
+	Bindings    int  `json:"bindings"`
+	Archived    bool `json:"-"`
+}
+
+// Empty reports whether the project can be deleted outright.
+func (f ProjectFootprint) Empty() bool {
+	return f.Keys == 0 && f.RequestLogs == 0 && f.Bindings == 0
+}
+
+// Blockers names, in a stable order, what stops this project being deleted.
+// Used verbatim in the API refusal so the Console never has to invent a reason.
+func (f ProjectFootprint) Blockers() []string {
+	var out []string
+	if f.Bindings > 0 {
+		out = append(out, "FINANCIAL_SETUP")
+	}
+	if f.Keys > 0 {
+		out = append(out, "API_KEYS")
+	}
+	if f.RequestLogs > 0 {
+		out = append(out, "API_REQUESTS")
+	}
+	return out
+}
+
 // AuditEvent is a context-owned developer.audit_events record. Never carries raw
 // secrets (API key material, invite tokens).
 type AuditEvent struct {
@@ -194,6 +234,17 @@ type Store interface {
 	CreateWorkspace(ctx context.Context, name, slug, ownerUserID string) (Workspace, error)
 	WorkspacesForUser(ctx context.Context, userID string) ([]Workspace, error)
 	Workspace(ctx context.Context, id string) (Workspace, error)
+	// RenameWorkspace changes only the display name. The slug is the workspace's
+	// stable identity and never moves with it: a rename that rewrote the slug
+	// would break every reference anybody had written down.
+	RenameWorkspace(ctx context.Context, id, name string) error
+	// ArchiveWorkspace moves an ACTIVE workspace to ARCHIVED. Nothing cascades —
+	// see CountActiveProjects: a workspace that still holds an active project is
+	// refused before this is called, so archiving never silently retires work the
+	// owner did not name.
+	ArchiveWorkspace(ctx context.Context, id string) error
+	// CountActiveProjects is the blocker count for closing a workspace.
+	CountActiveProjects(ctx context.Context, workspaceID string) (int, error)
 
 	Membership(ctx context.Context, workspaceID, userID string) (*Member, error)
 	Members(ctx context.Context, workspaceID string) ([]Member, error)
@@ -212,8 +263,24 @@ type Store interface {
 
 	// Projects
 	CreateProject(ctx context.Context, workspaceID, name, slug string) (Project, error)
-	ProjectsForWorkspace(ctx context.Context, workspaceID string) ([]Project, error)
+	// ProjectsForWorkspace lists a workspace's projects. Archived ones are left
+	// out unless asked for: an archived project is finished work, and mixing it
+	// into the selector is how a developer creates a key on a project nothing is
+	// watching any more.
+	ProjectsForWorkspace(ctx context.Context, workspaceID string, includeArchived bool) ([]Project, error)
 	Project(ctx context.Context, id string) (*Project, error)
+	// RenameProject changes only the display name. The slug — the Project ID a
+	// developer puts in their configuration — is immutable, so renaming a project
+	// never invalidates anything already deployed against it.
+	RenameProject(ctx context.Context, id, name string) error
+	// ProjectFootprint counts what a project still holds. It is the difference
+	// between a project that can be deleted outright and one that can only be
+	// archived, and it is what the refusal names back to the caller.
+	ProjectFootprint(ctx context.Context, id string) (ProjectFootprint, error)
+	// DeleteProject removes a project row outright. Only ever called for a
+	// project whose footprint is empty; developer.audit_events keeps no foreign
+	// key to it, so the record of its existence survives the row.
+	DeleteProject(ctx context.Context, id string) error
 	// ArchiveProject retires a project and revokes every key still ACTIVE on it,
 	// in one transaction. Retiring a project while its credentials stay live
 	// would leave authority pointing at something nothing is watching any more.
@@ -310,6 +377,11 @@ type Store interface {
 	CreateWebhookEndpoint(ctx context.Context, merchantID, url string, events []string, storedSecret string) (*WebhookEndpointView, error)
 	RotateWebhookEndpointSecret(ctx context.Context, merchantID, endpointID, storedSecret string) (*WebhookEndpointView, error)
 	SetWebhookEndpointActive(ctx context.Context, merchantID, endpointID string, active bool) (*WebhookEndpointView, error)
+	// DeleteWebhookEndpoint removes an endpoint the merchant owns. Disabling
+	// stops deliveries; deleting is for an endpoint that should not be in the
+	// list at all — a typo'd URL, a service that no longer exists. Delivery
+	// history is not the endpoint and is not removed with it.
+	DeleteWebhookEndpoint(ctx context.Context, merchantID, endpointID string) error
 
 	// APIRequestLogs returns the project's own Developer API request log. The
 	// project id is applied inside the query, so a filter can narrow the result

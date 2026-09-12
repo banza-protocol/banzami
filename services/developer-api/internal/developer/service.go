@@ -157,6 +157,106 @@ func (s *Service) GetWorkspace(ctx context.Context, actor, wsID string) (Workspa
 	return ws, nil
 }
 
+// RenameWorkspace changes a workspace's display name. Managers only: a name is
+// what every member sees in their switcher, so it is not a developer-level edit.
+func (s *Service) RenameWorkspace(ctx context.Context, actor, wsID, name, ip, reqID string) (Workspace, error) {
+	role, err := s.roleOf(ctx, wsID, actor)
+	if err != nil || !isManager(role) {
+		return Workspace{}, ErrForbidden
+	}
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 80 {
+		return Workspace{}, ErrValidation
+	}
+	if err := s.store.RenameWorkspace(ctx, wsID, name); err != nil {
+		if err == ErrNotFound {
+			return Workspace{}, ErrNotFound
+		}
+		return Workspace{}, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &wsID, nil, "workspace.renamed", "WORKSPACE:"+wsID, ip, reqID, map[string]any{"name": name})
+	ws, err := s.store.Workspace(ctx, wsID)
+	if err != nil {
+		return Workspace{}, ErrUnavailable
+	}
+	return ws, nil
+}
+
+// WorkspaceCloseBlockers is why a workspace cannot be closed yet.
+type WorkspaceCloseBlockers struct {
+	ActiveProjects int `json:"active_projects"`
+}
+
+// ArchiveWorkspace closes a workspace. OWNER only, and only when nothing active
+// is left inside it.
+//
+// It archives rather than deletes, and it does not cascade. A close that
+// silently archived the workspace's projects would retire API keys and financial
+// bindings the owner never named — the developer asked to put a container away,
+// not to revoke credentials that may still be serving traffic. So an active
+// project is a blocker, reported back by count, and the owner archives each
+// project deliberately first.
+//
+// confirmName must equal the workspace's own name. That is not decoration: this
+// is the one Console action with no undo, and requiring the caller to reproduce
+// the name makes it impossible to trigger by a mis-click or a replayed request.
+func (s *Service) ArchiveWorkspace(ctx context.Context, actor, wsID, confirmName, ip, reqID string) (WorkspaceCloseBlockers, error) {
+	var blockers WorkspaceCloseBlockers
+	role, err := s.roleOf(ctx, wsID, actor)
+	if err != nil {
+		return blockers, ErrForbidden
+	}
+	if role != RoleOwner {
+		return blockers, ErrForbidden
+	}
+	ws, err := s.store.Workspace(ctx, wsID)
+	if err != nil {
+		return blockers, ErrNotFound
+	}
+	if strings.TrimSpace(confirmName) != ws.Name {
+		return blockers, ErrValidation
+	}
+	n, err := s.store.CountActiveProjects(ctx, wsID)
+	if err != nil {
+		return blockers, ErrUnavailable
+	}
+	if n > 0 {
+		blockers.ActiveProjects = n
+		return blockers, ErrConflict
+	}
+	if err := s.store.ArchiveWorkspace(ctx, wsID); err != nil {
+		if err == ErrNotFound {
+			return blockers, ErrNotFound
+		}
+		return blockers, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &wsID, nil, "workspace.archived", "WORKSPACE:"+wsID, ip, reqID, nil)
+	return blockers, nil
+}
+
+// LeaveWorkspace removes the caller's own membership.
+//
+// Distinct from RemoveMember, which is a manager acting on somebody else and is
+// refused to everyone below ADMIN. Leaving is a member's own decision and needs
+// no privilege — except the last-owner rule, which is not about privilege: a
+// workspace with no owner can never be administered again.
+func (s *Service) LeaveWorkspace(ctx context.Context, actor, wsID, ip, reqID string) error {
+	role, err := s.roleOf(ctx, wsID, actor)
+	if err != nil {
+		return ErrForbidden
+	}
+	if role == RoleOwner {
+		if n, _ := s.store.CountOwners(ctx, wsID); n <= 1 {
+			return ErrLastOwner
+		}
+	}
+	if err := s.store.RemoveMember(ctx, wsID, actor); err != nil {
+		return ErrUnavailable
+	}
+	s.audit(ctx, &actor, &wsID, nil, "member.left", "USER:"+actor, ip, reqID, nil)
+	return nil
+}
+
 func (s *Service) ListMembers(ctx context.Context, actor, wsID string) ([]Member, error) {
 	if _, err := s.roleOf(ctx, wsID, actor); err != nil {
 		return nil, ErrForbidden
@@ -322,11 +422,134 @@ func (s *Service) CreateProject(ctx context.Context, actor, wsID, name, ip, reqI
 	return Project{}, ErrConflict
 }
 
-func (s *Service) ListProjects(ctx context.Context, actor, wsID string) ([]Project, error) {
+// ListProjects lists a workspace's projects. Archived ones are left out unless
+// the caller asks for them: the selector is for work in progress, and an
+// archived project in it is an invitation to build against something that has
+// no keys and no financial authority left.
+func (s *Service) ListProjects(ctx context.Context, actor, wsID string, includeArchived bool) ([]Project, error) {
 	if _, err := s.roleOf(ctx, wsID, actor); err != nil {
 		return nil, ErrForbidden
 	}
-	return s.store.ProjectsForWorkspace(ctx, wsID)
+	return s.store.ProjectsForWorkspace(ctx, wsID, includeArchived)
+}
+
+// RenameProject changes a project's display name and nothing else.
+//
+// The Project ID (the slug) does not move. A developer has that value in a
+// config file, an environment variable, a deployed container; renaming the
+// project in the Console must never invalidate any of them.
+func (s *Service) RenameProject(ctx context.Context, actor, projectID, name, ip, reqID string) (Project, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return Project{}, err
+	}
+	if !canBuild(role) {
+		return Project{}, ErrForbidden
+	}
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 80 {
+		return Project{}, ErrValidation
+	}
+	if err := s.store.RenameProject(ctx, p.ID, name); err != nil {
+		if err == ErrNotFound {
+			return Project{}, ErrNotFound
+		}
+		return Project{}, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.renamed", "PROJECT:"+p.ID, ip, reqID, map[string]any{"name": name})
+	out, err := s.store.Project(ctx, p.ID)
+	if err != nil || out == nil {
+		return Project{}, ErrUnavailable
+	}
+	return *out, nil
+}
+
+// ProjectFootprintFor authorises the actor and reports what the project holds,
+// so the Console can say what will happen before the developer commits to it.
+func (s *Service) ProjectFootprintFor(ctx context.Context, actor, projectID string) (ProjectFootprint, error) {
+	p, _, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return ProjectFootprint{}, err
+	}
+	f, err := s.store.ProjectFootprint(ctx, p.ID)
+	if err != nil {
+		return ProjectFootprint{}, ErrUnavailable
+	}
+	return f, nil
+}
+
+// DeleteProject removes a project that never became anything.
+//
+// A project with no key ever issued, no financial owner and no request logged is
+// a typo, and a product that cannot take a typo back accumulates them for ever.
+// Anything with a history is refused here — with its footprint named, so the
+// Console can say exactly what is in the way — and archived instead, which keeps
+// the history and retires the authority.
+//
+// Managers only. Deleting is not a build action.
+func (s *Service) DeleteProject(ctx context.Context, actor, projectID, confirmName, ip, reqID string) (ProjectFootprint, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return ProjectFootprint{}, err
+	}
+	if !isManager(role) {
+		return ProjectFootprint{}, ErrForbidden
+	}
+	if strings.TrimSpace(confirmName) != p.Name {
+		return ProjectFootprint{}, ErrValidation
+	}
+	f, err := s.store.ProjectFootprint(ctx, p.ID)
+	if err != nil {
+		return ProjectFootprint{}, ErrUnavailable
+	}
+	if !f.Empty() {
+		return f, ErrConflict
+	}
+	if err := s.store.DeleteProject(ctx, p.ID); err != nil {
+		if err == ErrConflict {
+			// The statement re-checked and disagreed: something was written
+			// between the read and the delete. Refuse, do not retry.
+			return f, ErrConflict
+		}
+		return f, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.deleted", "PROJECT:"+p.ID, ip, reqID, map[string]any{"name": p.Name})
+	return f, nil
+}
+
+// ArchiveProject retires a project the developer owns, revoking every key still
+// active on it and disabling an unsealed binding — the same convergence the
+// operator-authority path performs, reached by the project's own workspace
+// managers rather than by an internal caller.
+//
+// The developer-facing archive is the counterpart of DeleteProject: a project
+// that HAS a history cannot be deleted, and this is what it can do instead.
+func (s *Service) ArchiveProject(ctx context.Context, actor, projectID, confirmName, ip, reqID string) (int, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return 0, err
+	}
+	if !isManager(role) {
+		return 0, ErrForbidden
+	}
+	if strings.TrimSpace(confirmName) != p.Name {
+		return 0, ErrValidation
+	}
+	if p.Status == "ARCHIVED" {
+		// Already where the caller is asking it to be. Converge rather than
+		// refuse, exactly as the store does.
+		return 0, nil
+	}
+	revoked, err := s.store.ArchiveProject(ctx, p.ID)
+	if err != nil {
+		if err == ErrNotFound {
+			return 0, ErrNotFound
+		}
+		return 0, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "project.archived", "PROJECT:"+p.ID, ip, reqID,
+		map[string]any{"keys_revoked": revoked})
+	return revoked, nil
 }
 
 // projectAuthz resolves a project and the actor's role in its workspace.
