@@ -292,10 +292,10 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
               <div id="estado-atual" style={{ scrollMarginTop: 72, margin: '0 0 18px', borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '16px 18px', maxWidth: 660 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>Estado atual desta documentação</span>
-                  <Badge tone="prep">Sandbox / Pré-visualização</Badge>
+                  <Badge tone="prep">Sandbox</Badge>
                 </div>
                 <UL>
-                  <LI>Esta é documentação <strong>Sandbox / Pré-visualização</strong>. A capacidade Sandbox está limitada a fluxos de teste controlados.</LI>
+                  <LI>Isto documenta o <strong>Sandbox</strong>, que é o único ambiente que existe. Os SDKs instalam-se a partir de registos públicos e a Consola é operacional; o que falta é dinheiro real, não capacidade.</LI>
                   <LI><strong>Produção e trilhos de dinheiro real não estão disponíveis.</strong> Pay/checkout públicos, trilhos live e fornecedores externos não estão disponíveis.</LI>
                   <LI>A Consola é <strong>operacional em Sandbox</strong>. A Visão geral, os Webhooks e os Registos derivam do tráfego real do seu projeto — nenhuma página da Consola apresenta dados ilustrativos. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
                 </UL>
@@ -409,7 +409,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
 <Section id="sdks">
               <H2>SDKs</H2>
               <PageLede>Modelo <strong>SDK-first</strong>, dois SDKs publicados em registos públicos, contrato do SDK, estado por família e exemplos de ergonomia.</PageLede>
-              <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
+              <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/trust', text: 'Segurança' }]} />
 <H3 id="sdk-first">Modelo de integração SDK-first</H3>
               <P>
                 A filosofia de integração do Banzami é <strong>SDK-first</strong>. Os SDKs Banzami devem ser o caminho
@@ -462,6 +462,8 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 gerar QR, resolver <Code>@banza</Code>, validar webhooks e solicitar liquidação — sem chamadas HTTP diretas.
               </P>
 
+              {/* The anchor keeps its old id so links written when this section was
+   called "SDK preview" still land on it. The section is not a preview. */}
               <H3 id="sdk-preview">Publicação dos SDKs</H3>
               <P>
                 O <Code>@banzami/sdk</Code> (npm) e o <Code>banzami_client</Code> (pub.dev) estão publicados e são o caminho
@@ -522,124 +524,47 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 {' '}·{' '}
                 <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
                 Exemplos SDK-style (ergonomia prevista):{' '}
-                <a href="/developers/examples/sdk-preview/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
+                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
                 {' '}·{' '}
-                <a href="/developers/examples/sdk-preview/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
+                <a href="/developers/examples/sdk/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
                 {' '}·{' '}
-                <a href="/developers/examples/sdk-preview/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
+                <a href="/developers/examples/sdk/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
               </P>
               <Callout>
-                Os exemplos SDK-style são exemplos de ergonomia prevista. Não são instruções de instalação nem prova de
-                publicação pública dos pacotes.
+                Os exemplos abaixo mostram a ergonomia que cada SDK oferece. Para
+                TypeScript e Dart são instruções reais: os pacotes estão publicados
+                e instalam-se com os comandos indicados acima. Para Python e PHP são
+                exemplos da ergonomia prevista — sem comando de instalação, porque
+                ainda não há pacote em registo público para instalar.
               </Callout>
 
-              <H3 id="onboarding-preview">Onboarding do preview SDK</H3>
+              <H3 id="antes-de-integrar">Antes de pôr a integração a sério</H3>
               <P>
-                O preview SDK do Banzami é controlado. Não é um registo público self-service, não publica pacotes em
-                registries públicos e não ativa trilhos de Produção.
+                Não é um processo de aprovação: não há convite, não há elegibilidade e
+                não há contacto comercial entre si e o Sandbox. É a lista do que vale a
+                pena ter testado antes de haver utilizadores do outro lado.
               </P>
-              <P>
-                O objetivo do onboarding é permitir que parceiros aprovados validem a integração SDK-first em Sandbox, com
-                limites claros, artefactos técnicos verificáveis, feedback estruturado e revisão antes de qualquer avanço
-                regulatório ou operacional.
-              </P>
+              <UL>
+                <LI>Identidade e autenticação: <Code>GET /v1/me</Code> responde com a chave que a sua aplicação vai usar em produção do seu lado.</LI>
+                <LI>Prontidão financeira: <Code>GET /v1/financial-setup</Code> devolve o estado do seu Projeto, e a sua aplicação sabe o que mostrar quando ainda não está pronto.</LI>
+                <LI>Criação e consulta do recurso de pagamento que vai usar — sessão ou link — mais o payload QR, se apresentar QR.</LI>
+                <LI>Idempotência: um retry com a <strong>mesma</strong> <Code>Idempotency-Key</Code> testado, e o que acontece a pedidos concorrentes compreendido.</LI>
+                <LI>Erros: um <Code>422</Code> de validação e um <Code>401</Code> testados, com o <Code>request_id</Code> a aparecer nos seus logs.</LI>
+                <LI>Webhooks: assinatura verificada com o método do SDK, entregas duplicadas tratadas como o mesmo evento, e o segredo guardado onde os segredos vivem.</LI>
+                <LI>Segredos: a chave secreta apenas no servidor — nunca no browser, nunca numa app móvel, nunca no repositório.</LI>
+              </UL>
 
-              <H3 id="jornada-sandbox">Jornada de integração em Sandbox</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      {['Etapa', 'Objetivo', 'Parceiro', 'Banzami', 'Resultado', 'Não inclui'].map((h) => (
-                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['1. Elegibilidade', 'Confirmar que o caso de uso cabe no âmbito Sandbox/Preview.', 'Descrever o caso de uso.', 'Avaliar o enquadramento.', 'Decisão de elegibilidade.', 'Acesso a SDKs ou credenciais.'],
-                      ['2. Aprovação para preview', 'Formalizar o acesso controlado.', 'Aceitar os limites do preview.', 'Aprovar e definir o âmbito.', 'Aprovação registada.', 'Aprovação de Produção.'],
-                      ['3. Preparação técnica', 'Preparar ambiente e equipa.', 'Workspace/projeto Sandbox, chave de teste.', 'Documentação atualizada.', 'Primeira chamada de identidade validada.', 'Dados reais ou de clientes.'],
-                      ['4. Acesso controlado ao SDK', 'Disponibilizar o SDK em pré-visualização.', 'Usar apenas o canal aprovado.', 'Fornecer acesso controlado onde aprovado.', 'SDK disponível ao projeto.', 'Publicação pública de pacotes.'],
-                      ['5. Integração Sandbox', 'Implementar o fluxo SDK-first.', 'Sessões, idempotência, erros, webhooks.', 'Manter o Sandbox e os limites.', 'Integração funcional em Sandbox.', 'Dinheiro real ou clientes públicos.'],
-                      ['6. Validação técnica', 'Percorrer o checklist de validação.', 'Executar e registar evidência (request_id).', 'Critérios e checklist claros.', 'Checklist preenchido.', 'Ativação de trilhos live.'],
-                      ['7. Feedback e correções', 'Reportar problemas e corrigir.', 'Relatórios estruturados.', 'Rever o feedback.', 'Issues resolvidas ou registadas.', 'Compromissos de SLA.'],
-                      ['8. Revisão de prontidão', 'Rever a evidência contra os critérios.', 'Submeter a evidência.', 'Rever e comunicar o resultado.', 'Parecer de prontidão.', 'Aprovação de Produção ou regulatória.'],
-                    ] as string[][]).map((row) => (
-                      <tr key={row[0]}>
-                        {row.map((cell, i) => (
-                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <H3 id="reportar-problema">Encontrou um problema?</H3>
+              <P>
+                Envie o <Code>request_id</Code> da resposta, o carimbo temporal, o ambiente
+                (<Code>SANDBOX</Code>), a operação que tentou e a versão do SDK. Com o{' '}
+                <Code>request_id</Code> conseguimos seguir o pedido exacto no nosso lado.
+              </P>
               <Callout tone="warn">
-                A aprovação de preview não significa aprovação de Produção. A validação em Sandbox não significa ativação de
-                trilhos live. O acesso ao preview SDK não significa publicação pública do SDK. A prontidão técnica não
-                significa autorização regulatória.
+                Nunca envie a chave secreta, o segredo do webhook, um código OTP ou um token
+                de sessão — em nenhum canal de suporte. Nada do que precisamos para ajudar
+                é um segredo.
               </Callout>
-
-              <H3 id="resp-parceiro">Responsabilidades do parceiro no preview</H3>
-              <UL>
-                <LI>Proteger credenciais e artefactos de preview; nunca expor chaves secretas em browsers/apps móveis.</LI>
-                <LI>Usar apenas ambientes Sandbox aprovados; manter dados de teste não sensíveis.</LI>
-                <LI>Reportar bugs com <Code>request_id</Code> e timestamp.</LI>
-                <LI>Não processar dinheiro real; não fazer onboarding de clientes públicos.</LI>
-                <LI>Não promover o acesso de preview como disponibilidade live; não reivindicar aprovação/admissão do BNA com base no preview.</LI>
-                <LI>Validar idempotência, tratamento de erros e webhooks; respeitar os limites de disponibilidade/capacidade.</LI>
-              </UL>
-
-              <H3 id="resp-banzami">Responsabilidades do Banzami no preview</H3>
-              <UL>
-                <LI>Fornecer acesso controlado onde aprovado; manter a documentação Sandbox/Preview e os artefactos de referência do protocolo.</LI>
-                <LI>Documentar limitações conhecidas; manter o estado dos SDKs honesto; atualizar as matrizes de disponibilidade.</LI>
-                <LI>Rever o feedback de integração; manter os testes de claim-safety; evitar overclaims de produção/live.</LI>
-                <LI>Disponibilizar critérios de prontidão claros. Sem promessas de SLA, suporte 24/7 ou go-live de Produção.</LI>
-              </UL>
-
-              <H3 id="reportar-preview">Como reportar problemas no preview</H3>
-              <P>Reporte através do canal de suporte de preview aprovado durante o onboarding. Cada report deve incluir:</P>
-              <UL>
-                <LI>Ambiente (<Code>Sandbox/Preview</Code>), família SDK e versão de preview, se aplicável.</LI>
-                <LI><Code>request_id</Code>, timestamp, endpoint ou método SDK, e <Code>Idempotency-Key</Code> se relevante.</LI>
-                <LI>Resultado esperado vs observado; excerto sanitizado de pedido/resposta (placeholders apenas).</LI>
-                <LI>Passos de reprodução e severidade.</LI>
-              </UL>
-
-              <H3 id="checklist-sandbox">Checklist de validação Sandbox</H3>
-              <UL>
-                <LI>Identidade/autenticação, criação e consulta de sessões, payment link e payload QR (quando aplicável) validados.</LI>
-                <LI>Retry de idempotência testado; pedidos duplicados/concorrentes compreendidos.</LI>
-                <LI>Erros de validação e <Code>unauthorized/forbidden</Code> testados; <Code>request_id</Code> capturado nos logs.</LI>
-                <LI>Verificação de assinatura de webhooks revista; limitação outbound compreendida; limitação de reembolsos/transferências compreendida.</LI>
-                <LI>SDK não usado a partir de registry público; nenhum dinheiro real; nenhum cliente público; nenhum claim de produção/live.</LI>
-              </UL>
-
-              <H3 id="prontidao">Critérios de revisão de prontidão</H3>
-              <UL>
-                <LI>Evidência Sandbox recolhida; logging de <Code>request_id</Code> presente.</LI>
-                <LI>Estratégias de idempotência, erros e webhooks documentadas; gestão de secrets revista, sem exposição no cliente.</LI>
-                <LI>Sem dependência de capacidades não suportadas, sem pressuposto de dinheiro real, sem claim de produção/live, sem pressuposto de aprovação regulatória; limitações conhecidas aceites.</LI>
-              </UL>
-              <Callout tone="warn">
-                A revisão de prontidão não é aprovação de Produção, não é autorização regulatória e não é ativação de trilhos live.
-              </Callout>
-
-              <P>
-                Artefactos de onboarding:{' '}
-                <a href="/developers/onboarding/sdk-preview-onboarding.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>onboarding</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/sandbox-validation-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>checklist de validação</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/partner-responsibilities.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>responsabilidades do parceiro</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/preview-issue-report-template.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>template de report</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/readiness-review-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>revisão de prontidão</a>.
-                {' '}Estes artefactos apoiam o onboarding de preview em Sandbox. Não são contratos de Produção, não ativam
-                trilhos live e não representam aprovação regulatória.
-              </P>
 
               </Section>
     </>
@@ -777,11 +702,12 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 entrega o recibo ao doador. A reentrega do mesmo evento foi <strong>deduplicada</strong> (sem efeito duplicado).
                 Nunca há dinheiro real — <em>Produção em preparação</em>.
               </Callout>
-              <Callout tone="warn">
-                <strong>Âmbito honesto.</strong> No conjunto E2E público da plataforma (Phase 0), a entrega outbound para um
-                sink HTTPS público externo foi <strong>simulada</strong> — a emissão, a assinatura HMAC e o contrato de retry
-                foram verificados; a jornada DOA acima é o percurso de entrega verificado. <strong>Não reivindicamos a entrega
-                de webhooks como disponibilidade pública de Produção.</strong>
+              <Callout>
+                <strong>Âmbito honesto.</strong> A entrega outbound é real e foi verificada de ponta a ponta: o Banzami emite{' '}
+                <Code>payment_session.paid</Code> porque dinheiro se moveu, a sua outbox entrega sobre a internet pública ao
+                endpoint HTTPS registado, e o DOA aceita-o. Esta secção dizia que a entrega para um sink externo permanecia
+                simulada — era verdade quando foi escrita e deixou de o ser. O que continua a não existir é <strong>Produção</strong>:
+                isto é o Sandbox, e nunca há dinheiro real.
               </Callout>
               <H3>Como funciona</H3>
               <UL>
@@ -1013,8 +939,8 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
     <>
 <Section id="testing">
               <H2>Testar no Sandbox</H2>
-              <PageLede>Como validar a integração no Sandbox e os seus limites. <strong>Nunca há dinheiro real</strong> e <strong>não é permitido onboarding de clientes públicos</strong> no preview.</PageLede>
-              <NextSteps label="A seguir:" links={[{ href: '/docs/trust', text: 'Confiança e prontidão' }, { href: '/docs/guides', text: 'Guias' }]} />
+              <PageLede>Como validar a integração no Sandbox, e o que o Sandbox garante. <strong>Nunca há dinheiro real.</strong></PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/guides', text: 'Guias' }, { href: '/docs/trust', text: 'Segurança' }]} />
               <P><strong>O que o Sandbox é:</strong> um ambiente completo de integração com contas, sessões, links, QR e webhooks de teste — os fluxos comportam-se como os reais, mas <strong>nunca há dinheiro real</strong>.</P>
               <P><strong>O que o Sandbox não é:</strong> não há trilhos live, não há fornecedores externos ativados, não há emissão de chaves de Produção. Todas as credenciais de teste destes exemplos são placeholders.</P>
               <UL>
@@ -1025,10 +951,16 @@ export function PtTesting({ copy }: { copy: CopyFn }) {
                 <LI><strong>5. Interpretar resultados:</strong> qualquer resposta com o envelope de erro (ver <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>) é acionável pelo <Code>code</Code>.</LI>
               </UL>
               <Callout tone="warn">
-                Utilitários internos de fundos/simulação do Sandbox existem mas são <strong>internos — não públicos</strong>; não fazem
-                parte da superfície documentada. A entrega outbound de webhooks para sinks externos permanece <strong>simulada</strong> no
-                conjunto E2E público — ver <a href="/docs/guides#webhooks" style={{ color: '#B8770A', fontWeight: 800, textDecoration: 'none' }}>Webhooks</a>.
+                Utilitários internos de fundos/simulação do Sandbox existem mas são <strong>internos — não públicos</strong>; não
+                fazem parte da superfície documentada.
               </Callout>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                A entrega de webhooks é real, não simulada: o Banzami entrega sobre a internet
+                pública ao endpoint HTTPS que registou, assinada, com reentrega em caso de falha
+                — ver <a href="/docs/guides#webhooks" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Webhooks</a>.
+                Esta página dizia que a entrega outbound permanecia simulada; deixou de ser
+                verdade quando a aplicação de referência passou a receber eventos reais.
+              </P>
             </Section>
     </>
   );
@@ -1038,196 +970,117 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="trust">
-              <H2>Confiança e prontidão</H2>
-              <PageLede>Prontidão, evidências, riscos e portões de decisão para parceiros aprovados. <strong>Não representa aprovação de Produção nem autorização regulatória.</strong></PageLede>
-              <NextSteps label="Relacionado:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/changelog', text: 'Changelog' }]} />
-<H3 id="confianca">Confiança técnica e prontidão</H3>
-              <P>
-                Esta secção resume o estado técnico da documentação Developers do Banzami para parceiros aprovados. O objetivo
-                é separar claramente o que está disponível em Sandbox/Preview, o que está simulado, o que está pendente, o que
-                não está disponível e o que não deve ser interpretado como aprovação de Produção, ativação de trilhos live ou
-                autorização regulatória.
-              </P>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                <strong>Vocabulário de estados.</strong> <Code>available_controlled_sandbox</Code> — verificado no Sandbox
-                implantado, com evidência; <Code>documented_preview</Code> — documentado, ainda não verificado ponta a ponta;
-                {' '}<Code>pending_e2e</Code> — implementado, à espera de verificação no ambiente implantado;
-                {' '}<Code>simulated</Code> — exercitado apenas contra um duplo de teste; <Code>not_public</Code> — existe, mas
-                não é acessível publicamente; <Code>not_available</Code> — não existe hoje; <Code>not_approved</Code> — depende
-                de uma decisão que ainda não foi tomada. Um estado só muda quando a evidência muda.
-              </P>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capacidade</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['Modelo de integração SDK-first', 'documented_preview'],
-                      ['SDKs publicados (npm, pub.dev)', 'available_controlled_sandbox'],
-                      ['SDKs Python e PHP (código-fonte)', 'not_public'],
-                      ['HTTP/OpenAPI (referência do protocolo)', 'documented_preview'],
-                      ['Rotas da API Sandbox', 'available_controlled_sandbox'],
-                      ['Sessões de pagamento', 'available_controlled_sandbox'],
-                      ['Payment links', 'available_controlled_sandbox'],
-                      ['Payload QR', 'available_controlled_sandbox'],
-                      ['Assinatura/referência de webhooks', 'available_controlled_sandbox'],
-                      ['Entrega outbound de webhooks', 'available_controlled_sandbox'],
-                      ['Reembolsos (chave de projeto)', 'available_controlled_sandbox'],
-                      ['Transferências (chave de projeto)', 'available_controlled_sandbox'],
-                      ['Developer Console (Sandbox, dados reais)', 'available_controlled_sandbox'],
-                      ['Registo self-service por email + OTP', 'available_controlled_sandbox'],
-                      ['Trilhos de Produção/live', 'not_available'],
-                      ['Pay/checkout/trilhos live', 'not_approved'],
-                      ['Trilhos de fornecedores externos', 'not_approved'],
-                    ] as [string, string][]).map(([cap, st]) => (
-                      <tr key={cap}>
-                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
-                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{st}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <H2>Segurança</H2>
+              <PageLede>Onde as credenciais vivem, o que nunca sai do seu servidor, e o que o Sandbox garante.</PageLede>
+              <NextSteps label="Relacionado:" links={[{ href: '/docs/testing', text: 'Testar no Sandbox' }, { href: '/docs/reference#autenticacao', text: 'Autenticação' }, { href: '/docs/guides#webhooks', text: 'Webhooks' }]} />
 
-              <H3 id="evidencias">Mapa de evidências Sandbox</H3>
-              <P>Artefactos públicos e de repositório que suportam esta documentação:</P>
+              <H3 id="chaves">A chave secreta é do servidor, e só dele</H3>
+              <P>
+                Uma chave <Code>bz_test_sk_…</Code> autoriza tudo o que o seu Projeto pode fazer.
+                Quem a tiver pode criar cobranças, mover dinheiro entre as suas contas e pedir
+                reembolsos. Por isso vive no servidor e em mais lado nenhum.
+              </P>
               <UL>
-                <LI>OpenAPI e coleção Postman Sandbox; matriz de disponibilidade; manifesto SDK-first; contrato de SDK.</LI>
-                <LI>Artefactos de onboarding; exemplos e fixtures (curl, pedidos/respostas, envelopes de erro e webhook).</LI>
-                <LI>Testes de claim-safety da documentação — suites P0/P1/P2A/P2B/P2C/P2D.</LI>
+                <LI><strong>Nunca no browser.</strong> Nem em JavaScript, nem em <Code>localStorage</Code>, nem numa variável <Code>NEXT_PUBLIC_*</Code> — tudo isso é código que o utilizador descarrega e pode ler.</LI>
+                <LI><strong>Nunca numa aplicação móvel.</strong> Um binário distribuído é legível; uma chave dentro dele é uma chave publicada.</LI>
+                <LI><strong>Nunca no repositório.</strong> Nem num commit, nem num ficheiro de configuração, nem num <Code>.env</Code> versionado. O histórico do git não esquece.</LI>
+                <LI><strong>Nunca numa captura de ecrã</strong>, num ticket, num chat ou num email.</LI>
+              </UL>
+              <P>
+                O sítio certo é uma variável de ambiente do processo servidor, lida no arranque,
+                fornecida pelo gestor de segredos da sua plataforma.
+              </P>
+
+              <H3 id="reveal-once">Revelada uma vez</H3>
+              <P>
+                Quando cria uma chave na Consola, o valor completo aparece <strong>uma única vez</strong>,
+                nesse diálogo. Depois disso a Consola mostra apenas o prefixo e uma máscara: o
+                valor não é recuperável a partir do ecrã, do código-fonte da página, da rede ou
+                do armazenamento do browser. Se a perder, revogue-a e crie outra — é mais rápido
+                do que procurar, e deixa um registo de porquê.
+              </P>
+
+              <H3 id="menor-privilegio">Peça só os scopes de que precisa</H3>
+              <P>
+                Os scopes são escolhidos na criação da chave e não mudam depois. Uma chave que só
+                lê nunca poderá escrever, mesmo que o código que a usa tenha um bug — e é isso que
+                torna o menor privilégio útil e não apenas arrumado.
+              </P>
+              <UL>
+                <LI>Uma chave por sistema que integra, não uma chave para tudo.</LI>
+                <LI>Se a aplicação só consulta o estado de pagamentos, não peça <Code>:write</Code>.</LI>
+                <LI>Uma chave comprometida revoga-se sozinha, sem parar os outros sistemas.</LI>
+              </UL>
+
+              <H3 id="rotacao">Rotação e revogação</H3>
+              <P>
+                Rodar uma chave cria a sucessora e revoga a anterior no mesmo passo, para que não
+                haja um intervalo sem credencial válida. A anterior deixa de autenticar
+                imediatamente: uma chamada com ela responde <Code>401</Code>, e a falha é da chave,
+                não do pedido.
+              </P>
+              <UL>
+                <LI><strong>Rode</strong> quando alguém que teve acesso sai, quando muda de fornecedor de alojamento, ou periodicamente se a sua política o exigir.</LI>
+                <LI><strong>Revogue imediatamente</strong> se a chave apareceu algures onde não devia estar — um log, um ecrã partilhado, um repositório público. Revogar é gratuito; assumir que ninguém reparou não é.</LI>
+                <LI>A lista de chaves mostra a última utilização, que é como se descobre qual já ninguém usa.</LI>
+              </UL>
+
+              <H3 id="segredo-webhook">O segredo do webhook</H3>
+              <P>
+                O segredo de assinatura é revelado uma vez, tal como a chave, e guarda-se da mesma
+                maneira. É com ele que verifica que um <Code>POST</Code> ao seu endpoint veio do
+                Banzami e não de alguém que descobriu o URL.
+              </P>
+              <UL>
+                <LI>Verifique a assinatura <strong>antes</strong> de fazer o que quer que seja com o corpo do evento.</LI>
+                <LI>Verifique sobre o <strong>corpo em bruto</strong>, exactamente como chegou — reserializar o JSON muda os bytes e a assinatura deixa de bater certo.</LI>
+                <LI>Use o verificador do SDK quando existir: a comparação é feita em tempo constante e a janela de repetição já lá está.</LI>
+                <LI>Rode o segredo pela Consola se suspeitar dele; o endpoint continua o mesmo.</LI>
+              </UL>
+
+              <H3 id="sandbox-garante">O que o Sandbox garante</H3>
+              <P>
+                O Sandbox é um ambiente completo: contas, cobranças, links, QR, webhooks, reembolsos
+                e liquidações comportam-se como se comportariam com dinheiro real, e a entrega de
+                webhooks para o seu endpoint é entrega a sério, sobre a internet pública.
+              </P>
+              <UL>
+                <LI><strong>Nunca há dinheiro real.</strong> Os saldos são Kwanzas fictícios; nenhum valor sai de nenhum banco.</LI>
+                <LI><strong>Não existe ambiente financeiro Live.</strong> Não é que esteja desligado à espera de um pedido: não existe, e as chaves <Code>bz_live_…</Code> não são emitidas por ninguém.</LI>
+                <LI><strong>Os dados são reais o suficiente para doer.</strong> Trate os dados de teste como trataria os de um cliente: não ponha lá dados pessoais de gente verdadeira.</LI>
+                <LI><strong>A superfície pública é a do documento OpenAPI, e mais nenhuma.</strong> Não existem rotas públicas adicionais à espera de serem descobertas: o que não está no documento não está montado, e responde <Code>404</Code>.</LI>
               </UL>
               <Callout tone="warn">
-                Documentação suportada por evidência não significa disponibilidade de produção live. Artefactos de repositório
-                não significam autorização regulatória. Passar os testes de documentação não ativa trilhos de pagamento.
+                Se um SDK, um exemplo ou uma página lhe pedir uma chave <Code>bz_live_…</Code>,
+                está a olhar para documentação desactualizada ou para algo que não é nosso. Não
+                existem chaves Live.
               </Callout>
 
-              <H3 id="riscos">Matriz de riscos e limitações</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      {['Risco / limitação', 'Estado', 'Implicação para o parceiro', 'Tratamento esperado'].map((h) => (
-                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['Pacotes Python e PHP ainda não publicados', 'not_public', 'Consumir por código-fonte; npm e pub.dev já estão disponíveis.', 'Publicação por fazer; instalação limpa provada antes de cada anúncio.'],
-                      ['HTTP/OpenAPI é referência, não caminho recomendado', 'documented_preview', 'HTTP direto só para diagnóstico/auditoria.', 'SDK-first; artefactos marcados protocol_reference.'],
-                      ['Entrega outbound verificada apenas em Sandbox', 'available_controlled_sandbox', 'Verificada contra um recetor público; a Produção não está coberta.', 'Assinatura confirmada de forma independente, rejeição de adulteração, retries e isolamento de falhas.'],
-                      ['Reembolsos/transferências apenas em Sandbox', 'available_controlled_sandbox', 'Disponíveis a chaves de projeto em Sandbox; nunca em trilhos live.', 'E2E no ambiente implantado, incluindo as recusas: chave de leitura e recursos de outro projeto.'],
-                      ['Console e registos cobrem apenas Sandbox', 'available_controlled_sandbox', 'A telemetria mostra tráfego real de Sandbox; a Produção não está coberta.', 'Correlação por request_id provada contra o ambiente implantado.'],
-                      ['Trilhos de Produção/live indisponíveis', 'not_available', 'Nenhum dinheiro real; nenhuma chave live.', 'bz_live_ recusado fail-closed.'],
-                      ['Trilhos de fornecedores externos inativos', 'not_approved', 'Não assumir integrações externas.', 'Decisão de governance separada.'],
-                      ['Stage C não implementado/não aprovado', 'not_approved', 'Rotas públicas adicionais não existem ainda.', 'Portões de decisão e aprovações explícitas.'],
-                      ['Aprovação regulatória não reivindicada', 'not_approved', 'Não basear claims regulatórios no preview.', 'Wording e testes de claim-safety.'],
-                      ['Pagamentos com dinheiro real indisponíveis', 'not_available', 'Apenas fluxos de teste controlados.', 'Sandbox-only em toda a documentação.'],
-                      ['Onboarding de clientes públicos proibido no preview', 'not_approved', 'Não expor o preview a clientes finais.', 'Responsabilidades do parceiro; revisão de prontidão.'],
-                    ] as string[][]).map((row) => (
-                      <tr key={row[0]}>
-                        {row.map((cell, i) => (
-                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : i === 1 ? '#9A1B22' : '#5a4a4e', fontWeight: i === 0 ? 700 : 500, fontFamily: i === 1 ? mono : undefined, fontSize: i === 1 ? 11.5 : undefined }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <H3 id="pacote-prontidao">Pacote de prontidão para parceiros aprovados</H3>
-              <P>
-                O pacote reúne: onboarding do preview SDK, checklist de validação Sandbox, responsabilidades do parceiro,
-                template de report, checklist de revisão de prontidão, contrato de SDK, matriz de disponibilidade e as
-                referências do protocolo (OpenAPI e Postman).
-              </P>
-              <Callout tone="warn">
-                O pacote de prontidão é apenas Sandbox/Preview. Não é aprovação de Produção, não é autorização regulatória,
-                não ativa trilhos live e não concede acesso público a pacotes SDK.
-              </Callout>
-
-              <H3 id="portoes">Portões de decisão antes de qualquer avanço</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      {['Portão', 'Propósito', 'Evidência exigida', 'Condição de passagem', 'Não autoriza'].map((h) => (
-                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['1. Honestidade da documentação', 'Documentação reflete evidência.', 'Suites de testes de claims a passar.', 'Todos os testes verdes.', 'Publicação de pacotes ou live.'],
-                      ['2. Acesso ao preview SDK', 'Acesso controlado aprovado.', 'Aprovação de preview registada.', 'Acesso concedido ao projeto.', 'Publicação pública do SDK.'],
-                      ['3. Validação Sandbox', 'Integração validada em Sandbox.', 'Checklist com evidência.', 'Checklist completo.', 'Ativação de trilhos live.'],
-                      ['4. Segurança/gestão de secrets', 'Gestão de credenciais revista.', 'Revisão de secrets documentada.', 'Sem exposição no cliente.', 'Certificação de produção.'],
-                      ['5. Erros/idempotência', 'Tratamento correto confirmado.', 'Estratégias documentadas e testadas.', 'Retries seguros demonstrados.', 'Garantias de produção.'],
-                      ['6. Desenho de webhooks', 'Verificação e deduplicação revistas.', 'Desenho documentado.', 'Assinatura + idempotência revistas.', 'Entrega pública garantida.'],
-                      ['7. Aceitação de limitações', 'Limites documentados aceites.', 'Limitações reconhecidas por escrito.', 'Aceitação registada.', 'Levantamento das limitações.'],
-                      ['8. Revisão de prontidão operacional', 'Evidência completa revista.', 'Pacote de prontidão submetido.', 'Parecer de prontidão emitido.', 'Aprovação de Produção.'],
-                      ['9. Revisão regulatória/legal', 'Enquadramento antes de fase supervisionada.', 'Revisão regulatória/legal própria.', 'Fora do âmbito desta documentação.', 'Autorização regulatória.'],
-                      ['10. Aprovação explícita para fase live/Produção', 'Decisão explícita e separada.', 'Aprovação formal registada.', 'Decisão futura, não incluída aqui.', 'Nada nesta documentação a concede.'],
-                    ] as string[][]).map((row) => (
-                      <tr key={row[0]}>
-                        {row.map((cell, i) => (
-                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Callout tone="warn">
-                Nenhum portão nesta documentação autoriza trilhos live, pagamentos com dinheiro real, lançamento público,
-                emissão de chaves de Produção ou aprovação regulatória.
-              </Callout>
-
-              <H3 id="postura-seguranca">Resumo de postura de segurança do preview</H3>
+              <H3 id="suporte">O que enviar ao suporte — e o que nunca enviar</H3>
+              <P>Para investigarmos um pedido precisamos disto, e só disto:</P>
               <UL>
-                <LI>Chaves secretas nunca em browsers/apps móveis; artefactos de preview com placeholders apenas; dados de teste não sensíveis.</LI>
-                <LI><Code>request_id</Code> capturado para debugging; idempotência em operações mutantes; assinaturas de webhooks verificadas antes de confiar em eventos.</LI>
-                <LI>Parceiro protege credenciais e artefactos; limites de disponibilidade respeitados; pacotes SDK não públicos; trilhos live não ativos.</LI>
+                <LI>O <Code>request_id</Code> da resposta.</LI>
+                <LI>O carimbo temporal, com fuso.</LI>
+                <LI>O ambiente (<Code>SANDBOX</Code>) e a operação que tentou.</LI>
+                <LI>A versão do SDK, se usou um.</LI>
+                <LI>O corpo do pedido <strong>sem credenciais</strong>, se for relevante.</LI>
               </UL>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Este resumo cobre apenas o âmbito Sandbox/Preview suportado pela documentação — sem claims de certificação,
-                auditoria externa ou uptime.
-              </P>
-
-              <P>
-                Artefactos de confiança/prontidão:{' '}
-                <a href="/developers/trust/developer-trust-summary.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>resumo</a>
-                {' '}·{' '}
-                <a href="/developers/trust/sandbox-evidence-map.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>mapa de evidências</a>
-                {' '}·{' '}
-                <a href="/developers/trust/risk-limitations-matrix.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>matriz de riscos</a>
-                {' '}·{' '}
-                <a href="/developers/trust/partner-readiness-package.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>pacote de prontidão</a>
-                {' '}·{' '}
-                <a href="/developers/trust/decision-gates.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>portões de decisão</a>
-                {' '}·{' '}
-                <a href="/developers/trust/preview-security-posture.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>postura de segurança</a>
-                {' '}·{' '}
-                <a href="/developers/trust/trust-readiness-summary.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>resumo (MD)</a>.
-                {' '}Estes artefactos apoiam a avaliação técnica de parceiros aprovados em Sandbox/Preview. Não são contratos
-                de Produção, não ativam trilhos live, não autorizam dinheiro real e não representam aprovação regulatória.
-              </P>
+              <Callout tone="warn">
+                Nunca envie uma chave de API, um segredo de webhook, um código OTP ou um token de
+                sessão — em nenhum canal, a ninguém, incluindo a nós. Nada do que precisamos para
+                ajudar é um segredo, e um segredo enviado é um segredo a rodar.
+              </Callout>
             </Section>
     </>
   );
 }
-
 export function PtArtifacts({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="artefactos-page">
               <H2>Artefactos</H2>
-              <PageLede>Artefactos públicos de <strong>referência Sandbox/Preview</strong> — OpenAPI, Postman, matriz de disponibilidade, manifests e exemplos. Não são contratos de Produção.</PageLede>
-              <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/trust', text: 'Confiança e prontidão' }, { href: '/docs/changelog', text: 'Changelog' }]} />
+              <PageLede>Artefactos públicos do <strong>Sandbox</strong> — OpenAPI, Postman, matriz de disponibilidade, manifests e exemplos. Não há contrato de Produção porque não há Produção.</PageLede>
+              <NextSteps label="Relacionado:" links={[{ href: '/docs/reference', text: 'Referência API' }, { href: '/docs/trust', text: 'Segurança' }, { href: '/docs/changelog', text: 'Changelog' }]} />
 <H3 id="artefactos">Artefactos técnicos de referência</H3>
               <P>
                 A mesma superfície documentada existe em formato <strong>machine-readable</strong> — <strong>artefactos de
@@ -1246,8 +1099,8 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
 
                             <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 O <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifesto de artefactos</a> indexa
-                todos os artefactos públicos — incluindo os de <a href="/docs/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>onboarding do preview SDK</a> e
-                os de <a href="/docs/trust" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>confiança/prontidão</a> — todos Sandbox/Preview, nenhum contrato de Produção.
+                todos os artefactos públicos — OpenAPI, Postman, a matriz de disponibilidade e os
+                exemplos. Descrevem o Sandbox, que é o único ambiente que existe.
               </P>
 </Section>
     </>
@@ -1260,7 +1113,7 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
 <Section id="changelog">
               <H2>Changelog</H2>
               <PageLede>Registo de mudanças de documentação, contrato de API e Sandbox. Não há histórico de lançamentos de produto.</PageLede>
-              <NextSteps label="A seguir:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/trust', text: 'Confiança e prontidão' }]} />
+              <NextSteps label="A seguir:" links={[{ href: '/docs/artifacts', text: 'Artefactos' }, { href: '/docs/trust', text: 'Segurança' }]} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Entradas datadas por categoria: <Code>[Docs]</Code> (só documentação), <Code>[API]</Code> (contrato da API),{' '}
                 <Code>[Sandbox]</Code> (plataforma Sandbox). Mudanças incompatíveis serão marcadas <Code>[Breaking]</Code>.

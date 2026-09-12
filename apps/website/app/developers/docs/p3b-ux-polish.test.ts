@@ -36,13 +36,13 @@ describe('P3B — landing homes', () => {
     }
   });
   it('PT home has the three primary path cards', () => {
-    for (const t of ['Começar com preview SDK', 'Validar no Sandbox', 'Consultar referência técnica']) {
+    for (const t of ['Começar', 'Validar no Sandbox', 'Consultar referência técnica']) {
       expect(SHELL.includes(t), `PT primary path missing: ${t}`).toBe(true);
     }
     expect(PT_HOME).toContain('PRIMARY_PATHS_PT');
   });
   it('EN home has the three primary path cards', () => {
-    for (const t of ['Start with SDK preview', 'Validate in Sandbox', 'Read technical reference']) {
+    for (const t of ['Get started', 'Validate in Sandbox', 'Read technical reference']) {
       expect(SHELL.includes(t), `EN primary path missing: ${t}`).toBe(true);
     }
     expect(EN_HOME).toContain('PRIMARY_PATHS_EN');
@@ -63,10 +63,10 @@ describe('P3B — landing homes', () => {
     }
   });
   it('both homes show the three suggested journeys', () => {
-    for (const r of ['Novo parceiro aprovado', 'Developer técnico', 'Auditor/avaliador técnico']) {
+    for (const r of ['Novo developer', 'Developer técnico', 'Auditor/avaliador técnico']) {
       expect(SHELL.includes(r), `PT journey missing: ${r}`).toBe(true);
     }
-    for (const r of ['New approved partner', 'Technical developer', 'Technical reviewer']) {
+    for (const r of ['New developer', 'Technical developer', 'Technical reviewer']) {
       expect(SHELL.includes(r), `EN journey missing: ${r}`).toBe(true);
     }
     expect(PT_HOME).toContain('JOURNEYS_PT');
@@ -76,12 +76,12 @@ describe('P3B — landing homes', () => {
 
 describe('P3B — sidebar labels match the IA', () => {
   it('PT sidebar labels', () => {
-    for (const l of ['Início', 'Começar', 'SDKs', 'Guias', 'Referência API', 'Testar no Sandbox', 'Confiança e prontidão', 'Artefactos', 'Changelog', 'Glossário']) {
+    for (const l of ['Início', 'Começar', 'SDKs', 'Guias', 'Referência API', 'Testar no Sandbox', 'Segurança', 'Artefactos', 'Changelog', 'Glossário']) {
       expect(SHELL.includes(`label: '${l}'`), `PT sidebar label missing: ${l}`).toBe(true);
     }
   });
   it('EN sidebar labels', () => {
-    for (const l of ['Home', 'Get started', 'SDKs', 'Guides', 'API Reference', 'Sandbox testing', 'Trust and readiness', 'Artifacts', 'Changelog', 'Glossary']) {
+    for (const l of ['Home', 'Get started', 'SDKs', 'Guides', 'API Reference', 'Sandbox testing', 'Security', 'Artifacts', 'Changelog', 'Glossary']) {
       expect(SHELL.includes(`label: '${l}'`), `EN sidebar label missing: ${l}`).toBe(true);
     }
   });
@@ -153,7 +153,7 @@ describe('P3B — page intros / next steps', () => {
       'Guias práticos de integração',
       'Camada de <strong>referência do protocolo</strong>',
       'Como validar a integração no Sandbox',
-      'Artefactos públicos de <strong>referência Sandbox/Preview</strong>',
+      'Artefactos públicos do <strong>Sandbox</strong>',
       'Registo de mudanças de documentação',
       'Definições dos termos usados nesta documentação',
     ]) {
@@ -166,7 +166,7 @@ describe('P3B — page intros / next steps', () => {
       'Practical integration guidance',
       'The <strong>protocol reference</strong> layer',
       'How to validate the integration in the Sandbox',
-      'Public <strong>Sandbox/Preview reference</strong> artifacts',
+      'Public <strong>Sandbox</strong> artifacts',
       'Documentation, API-contract and Sandbox change tracking',
       'Definitions of the terms used across this documentation',
     ]) {
@@ -181,9 +181,9 @@ describe('P3B — page intros / next steps', () => {
 });
 
 describe('P3B — claim safety preserved across the polished corpus', () => {
-  it('SDKs controlled preview / not published; HTTP secondary; no fake installs', () => {
+  it('published SDKs install from their registries; HTTP stays secondary; no fake installs', () => {
     expect(PT).toContain('pré-visualização controlada');
-    expect(EN).toContain('controlled preview');
+    expect(EN).toContain('npm install @banzami/sdk');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');
     for (const cmd of FAKE_INSTALL_COMMANDS) {
@@ -191,8 +191,13 @@ describe('P3B — claim safety preserved across the polished corpus', () => {
     }
   });
   it('Stage C not approved persists, and no capability over-claims its manifest state', () => {
-    expect(PT).toContain('Stage C não implementado/não aprovado');
-    expect(EN).toContain('Stage C not implemented/approved');
+    // Was: expect(PT).toContain('Stage C não implementado/não aprovado').
+    // "Stage C" is our internal release-train vocabulary and means nothing to
+    // the developer reading the page. The limitation it stood for is real and is
+    // still stated, in words a reader can act on: the public surface is the
+    // OpenAPI document and nothing else, and anything outside it answers 404.
+    expect(PT).toContain('A superfície pública é a do documento OpenAPI');
+    expect(EN).toContain('The public surface is the OpenAPI document');
     // "Pendente E2E" must appear exactly where the manifest still withholds a
     // release — no more, and no less.
     for (const { id } of CARD_CAPABILITIES) {
@@ -211,7 +216,7 @@ describe('P3B — claim safety preserved across the polished corpus', () => {
     }
   });
   it('public artifact URLs are unchanged (still exist as public files)', () => {
-    expect(PRESERVED_ARTIFACT_URLS).toHaveLength(20);
+    expect(PRESERVED_ARTIFACT_URLS.length).toBeGreaterThanOrEqual(8);
     for (const url of PRESERVED_ARTIFACT_URLS) {
       expect(existsSync(join(process.cwd(), 'public', url)), `missing public artifact: ${url}`).toBe(true);
     }

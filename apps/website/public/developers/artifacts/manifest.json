@@ -1,22 +1,22 @@
 {
   "name": "Banzami Developers — public artifact manifest",
-  "version": "docs-2026-07-11",
-  "scope": "sandbox_preview",
+  "version": "docs-2026-09-12",
+  "scope": "sandbox",
   "production_contract": false,
-  "note": "Public, static Sandbox/Preview artifacts for the Banzami Developers documentation (PT: /docs · EN: /docs/en). Banzami is SDK-first: these HTTP-level artifacts are the technical PROTOCOL REFERENCE layer, not the recommended integration path (the SDK contract artifact carries the recommended-path guidance), not Production contracts, not live rails, and not regulatory approval. All values inside are obvious placeholders.",
+  "note": "Public, static Sandbox artifacts for the Banzami Developers documentation (PT: /docs · EN: /docs/en). Banzami is SDK-first: these HTTP-level artifacts are the technical PROTOCOL REFERENCE layer, not the recommended integration path (the SDK contract artifact carries the recommended-path guidance), not Production contracts, not live rails, and not regulatory approval. The controlled-preview onboarding and partner-readiness artifacts were retired on 2026-09-12 with the programme they described: @banzami/sdk is on npm and banzami_client is on pub.dev, so there is nothing to be admitted to. All values inside are obvious placeholders.",
   "artifacts": [
     {
       "path": "/developers/openapi/banzami-sandbox.openapi.json",
       "role": "protocol_reference",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
-      "description": "OpenAPI 3.0.3 for the verified Sandbox endpoints only (refunds/transfers absent while Pending E2E for developer keys)."
+      "description": "OpenAPI 3.0.3 for the Sandbox endpoints a developer key can reach. Refunds and wallet-account transfers are in it: both were released after this description was first written."
     },
     {
       "path": "/developers/postman/banzami-sandbox.postman_collection.json",
       "role": "protocol_reference",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
       "description": "Postman collection generated from the same verified endpoint set; placeholder variables only."
@@ -24,15 +24,15 @@
     {
       "path": "/developers/availability/banzami-developers-availability.json",
       "role": "integration_guidance",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
-      "description": "Machine-readable availability/capability matrix (conservative states; refunds/transfers pending_e2e; webhook outbound simulated; live rails not available)."
+      "description": "Machine-readable availability/capability matrix (conservative states; refunds and transfers released; webhook outbound delivery verified against a public HTTPS receiver; live rails not available)."
     },
     {
       "path": "/developers/artifacts/sdk-first-manifest.json",
       "role": "integration_guidance",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
       "description": "Machine-readable statement of the SDK-first integration model (SDKs recommended; HTTP secondary; no public SDK packages published yet)."
@@ -40,7 +40,7 @@
     {
       "path": "/developers/examples/curl/get-me.sh",
       "role": "protocol_reference",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
       "description": "Diagnostic / protocol reference example (first Sandbox call). Not the recommended implementation path."
@@ -48,7 +48,7 @@
     {
       "path": "/developers/examples/curl/create-payment-session.sh",
       "role": "protocol_reference",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
       "description": "Diagnostic / protocol reference example (payment session with Idempotency-Key). Not the recommended implementation path."
@@ -57,7 +57,7 @@
       "name": "Banzami SDK Contract",
       "type": "sdk_contract",
       "role": "integration_guidance",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": true,
       "url": "/developers/artifacts/sdk-contract.json",
@@ -68,163 +68,31 @@
       "name": "SDK preview example (TypeScript)",
       "type": "sdk_preview_example",
       "role": "integration_guidance",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
-      "path": "/developers/examples/sdk-preview/typescript-payment-session.example.ts",
+      "path": "/developers/examples/sdk/typescript-payment-session.example.ts",
       "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
     },
     {
       "name": "SDK preview example (Python)",
       "type": "sdk_preview_example",
       "role": "integration_guidance",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
-      "path": "/developers/examples/sdk-preview/python-payment-session.example.py",
+      "path": "/developers/examples/sdk/python-payment-session.example.py",
       "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
     },
     {
       "name": "SDK preview example (PHP)",
       "type": "sdk_preview_example",
       "role": "integration_guidance",
-      "scope": "sandbox_preview",
+      "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
-      "path": "/developers/examples/sdk-preview/php-payment-session.example.php",
+      "path": "/developers/examples/sdk/php-payment-session.example.php",
       "description": "SDK-style intended ergonomics (controlled preview) — not installation instructions, does not prove public package publication."
-    },
-    {
-      "name": "Banzami SDK Preview Onboarding",
-      "type": "preview_onboarding",
-      "role": "preview_onboarding",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/onboarding/sdk-preview-onboarding.json",
-      "url": "/developers/onboarding/sdk-preview-onboarding.json",
-      "description": "Controlled SDK preview onboarding journey (8 stages, PT/EN) with hard non-approval statements."
-    },
-    {
-      "name": "Banzami Sandbox Validation Checklist",
-      "type": "preview_onboarding",
-      "role": "preview_onboarding",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/onboarding/sandbox-validation-checklist.json",
-      "url": "/developers/onboarding/sandbox-validation-checklist.json",
-      "description": "Sandbox validation checklist (17 items, PT/EN)."
-    },
-    {
-      "name": "Banzami Preview Partner Responsibilities",
-      "type": "preview_onboarding",
-      "role": "preview_onboarding",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/onboarding/partner-responsibilities.json",
-      "url": "/developers/onboarding/partner-responsibilities.json",
-      "description": "Partner responsibilities during the controlled preview (PT/EN)."
-    },
-    {
-      "name": "Banzami Preview Issue Report Template",
-      "type": "preview_onboarding",
-      "role": "preview_onboarding",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/onboarding/preview-issue-report-template.md",
-      "url": "/developers/onboarding/preview-issue-report-template.md",
-      "description": "Structured, sanitized issue report template for preview partners (PT/EN)."
-    },
-    {
-      "name": "Banzami Readiness Review Checklist",
-      "type": "preview_onboarding",
-      "role": "preview_onboarding",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/onboarding/readiness-review-checklist.json",
-      "url": "/developers/onboarding/readiness-review-checklist.json",
-      "description": "Readiness review criteria (PT/EN) — explicitly NOT Production approval, regulatory authorization or live rails activation."
-    },
-    {
-      "name": "Banzami Developer Trust Summary",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/developer-trust-summary.json",
-      "url": "/developers/trust/developer-trust-summary.json",
-      "description": "Availability summary for approved partners (15 capabilities, conservative states, PT/EN)."
-    },
-    {
-      "name": "Banzami Sandbox Evidence Map",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/sandbox-evidence-map.json",
-      "url": "/developers/trust/sandbox-evidence-map.json",
-      "description": "Which public/repo artifacts support the documentation — with explicit non-authorization caveats."
-    },
-    {
-      "name": "Banzami Risk and Limitation Matrix",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/risk-limitations-matrix.json",
-      "url": "/developers/trust/risk-limitations-matrix.json",
-      "description": "12 risks/limitations with status, partner implication and expected handling (PT/EN)."
-    },
-    {
-      "name": "Banzami Partner Readiness Package",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/partner-readiness-package.json",
-      "url": "/developers/trust/partner-readiness-package.json",
-      "description": "Index of the readiness package artifacts with its 5 explicit is-not caveats."
-    },
-    {
-      "name": "Banzami Decision Gates",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/decision-gates.json",
-      "url": "/developers/trust/decision-gates.json",
-      "description": "10 decision gates (purpose, evidence, pass condition, what it does NOT authorize) + hard non-authorization statement."
-    },
-    {
-      "name": "Banzami Preview Security Posture",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/preview-security-posture.json",
-      "url": "/developers/trust/preview-security-posture.json",
-      "description": "Conservative, documentation-supported security posture — no certification/audit/uptime claims."
-    },
-    {
-      "name": "Banzami Trust & Readiness Summary",
-      "type": "trust_readiness",
-      "role": "trust_readiness",
-      "scope": "sandbox_preview",
-      "production_contract": false,
-      "recommended_integration_path": false,
-      "path": "/developers/trust/trust-readiness-summary.md",
-      "url": "/developers/trust/trust-readiness-summary.md",
-      "description": "Human-readable PT/EN summary of the trust and readiness package."
     }
   ]
 }

@@ -103,7 +103,13 @@ describe('a revealed key secret cannot be recovered — Console side', () => {
   it('web storage is used only for the two opaque UI preferences', () => {
     // The single module allowed to touch storage, and the only keys it writes:
     // which workspace and project the console reopens on. Both are opaque ids.
-    const writers = SOURCES.filter((f) => /localStorage|sessionStorage/.test(f.src)).map((f) => f.path);
+    // An ACCESS, not the word. The security guide tells developers never to put a
+    // key in localStorage, and naming the thing you are forbidding is not using
+    // it — matching the bare word made the documentation look like a storage
+    // writer.
+    const writers = SOURCES
+      .filter((f) => /\b(?:window\.)?(?:localStorage|sessionStorage)\s*[.[]/.test(f.src))
+      .map((f) => f.path);
     expect(writers).toEqual(['lib/developer-prefs.ts']);
     const prefs = code(read('lib/developer-prefs.ts'));
     expect(prefs).toContain("const WS_KEY = 'bz_dev_active_ws'");

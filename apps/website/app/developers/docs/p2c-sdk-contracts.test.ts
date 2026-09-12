@@ -19,9 +19,9 @@ const PT = read('apps/website/app/developers/docs/content-pt.tsx') + read('apps/
 const EN = read('apps/website/app/developers/docs/content-en.tsx') + read('apps/website/app/developers/docs/en/page.tsx');
 const CONTRACT = JSON.parse(read(`${PUB}/artifacts/sdk-contract.json`));
 const MANIFEST = JSON.parse(read(`${PUB}/artifacts/manifest.json`));
-const TS_EX = read(`${PUB}/examples/sdk-preview/typescript-payment-session.example.ts`);
-const PY_EX = read(`${PUB}/examples/sdk-preview/python-payment-session.example.py`);
-const PHP_EX = read(`${PUB}/examples/sdk-preview/php-payment-session.example.php`);
+const TS_EX = read(`${PUB}/examples/sdk/typescript-payment-session.example.ts`);
+const PY_EX = read(`${PUB}/examples/sdk/python-payment-session.example.py`);
+const PHP_EX = read(`${PUB}/examples/sdk/php-payment-session.example.php`);
 
 // Was "controlled preview sections". The preview is now the exception, not the
 // rule: two packages are on public registries with clean-room install evidence,
@@ -35,17 +35,18 @@ describe('P2C — SDK publication sections (PT/EN)', () => {
     expect(PT).toContain('npm install @banzami/sdk');
     expect(PT).toContain('dart pub add banzami_client');
     expect(PT).toContain('Contrato esperado do SDK');
-    expect(PT).toContain('Os exemplos SDK-style são exemplos de ergonomia prevista');
-    // The preview language survives only where it is still true.
-    expect(PT).toContain('pré-visualização controlada até publicação oficial');
+    // The callout says which examples are real instructions and which are not,
+    // instead of disclaiming all of them.
+    expect(PT).toContain('Para\n                TypeScript e Dart são instruções reais');
+    expect(PT).toContain('ainda não há pacote em registo público para instalar');
   });
   it('EN names the published packages and keeps the contract section', () => {
     expect(EN).toContain('SDK publication');
     expect(EN).toContain('npm install @banzami/sdk');
     expect(EN).toContain('dart pub add banzami_client');
     expect(EN).toContain('Expected SDK contract');
-    expect(EN).toContain('The SDK-style examples describe intended ergonomics');
-    expect(EN).toContain('controlled preview until official publication');
+    expect(EN).toContain('For TypeScript\n                and Dart they are real instructions');
+    expect(EN).toContain('no install command for them');
   });
   it('the SDK family table distinguishes published from source-only, and forbids the blanket warning', () => {
     for (const [src, published, sourceOnly, banned] of [
@@ -64,7 +65,8 @@ describe('P2C — SDK publication sections (PT/EN)', () => {
 describe('P2C — sdk-contract.json', () => {
   it('has the required conservative shape', () => {
     expect(CONTRACT.name).toBe('Banzami SDK Contract');
-    expect(CONTRACT.scope).toBe('sandbox_preview');
+    // 'sandbox_preview' became 'sandbox': there is no preview, only the Sandbox.
+    expect(CONTRACT.scope).toBe('sandbox');
     expect(CONTRACT.integration_model).toBe('sdk_first');
     // Derived from what is genuinely published (published-packages.ts), in
     // both directions: this said false while two packages were on public

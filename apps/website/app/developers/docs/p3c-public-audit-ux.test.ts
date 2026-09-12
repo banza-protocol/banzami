@@ -33,8 +33,8 @@ describe('P3C — audit evidence + routes', () => {
     }
     expect(existsSync(join(process.cwd(), `${D}/fr`))).toBe(false);
   });
-  it('public artifact URLs unchanged (20 files present)', () => {
-    expect(PRESERVED_ARTIFACT_URLS).toHaveLength(20);
+  it('every preserved artifact URL exists as a public file', () => {
+    expect(PRESERVED_ARTIFACT_URLS.length).toBeGreaterThanOrEqual(8);
     for (const url of PRESERVED_ARTIFACT_URLS) {
       expect(existsSync(join(process.cwd(), 'public', url)), `missing: ${url}`).toBe(true);
     }
@@ -46,8 +46,8 @@ describe('P3C — consistent heading hierarchy', () => {
     // sdk/trust content now carry a top-level H2 title.
     expect(PT).toContain('<Section id="sdks">\n              <H2>SDKs</H2>');
     expect(EN).toContain('<Section id="sdks">\n              <H2>SDKs</H2>');
-    expect(PT).toContain('<Section id="trust">\n              <H2>Confiança e prontidão</H2>');
-    expect(EN).toContain('<Section id="trust-page">\n              <H2>Trust and readiness</H2>');
+    expect(PT).toContain('<Section id="trust">\n              <H2>Segurança</H2>');
+    expect(EN).toContain('<Section id="trust-page">\n              <H2>Security</H2>');
     // the stray mid-page H2 "SDKs" was demoted to an H3 subsection.
     expect(PT).toContain('Matriz de maturidade dos SDKs');
     expect(EN).toContain('SDK maturity matrix');
@@ -97,11 +97,11 @@ describe('P3C — next-step navigation on every area page', () => {
 });
 
 describe('P3C — claim safety preserved', () => {
-  it('SDK-first, controlled preview, HTTP secondary, curl diagnostic-only', () => {
+  it('SDK-first, published packages, HTTP secondary, curl diagnostic-only', () => {
     expect(PT).toContain('Caminho recomendado: o SDK TypeScript');
     expect(EN).toContain('Recommended path: the TypeScript SDK');
     expect(PT).toContain('pré-visualização controlada');
-    expect(EN).toContain('controlled preview');
+    expect(EN).toContain('npm install @banzami/sdk');
     expect(PT).toContain('camada de referência técnica do protocolo');
     expect(EN).toContain('technical protocol reference layer');
     for (const bad of ['official http integration path', 'recommended direct http', 'caminho oficial é http']) {
@@ -109,8 +109,13 @@ describe('P3C — claim safety preserved', () => {
     }
   });
   it('Stage C not approved persists, and pending wording tracks the manifest', () => {
-    expect(PT).toContain('Stage C não implementado/não aprovado');
-    expect(EN).toContain('Stage C not implemented/approved');
+    // Was: expect(PT).toContain('Stage C não implementado/não aprovado').
+    // "Stage C" is our internal release-train vocabulary and means nothing to
+    // the developer reading the page. The limitation it stood for is real and is
+    // still stated, in words a reader can act on: the public surface is the
+    // OpenAPI document and nothing else, and anything outside it answers 404.
+    expect(PT).toContain('A superfície pública é a do documento OpenAPI');
+    expect(EN).toContain('The public surface is the OpenAPI document');
     for (const { id } of CARD_CAPABILITIES) {
       if (isReleased(id)) continue;
       expect(PT).toContain('Pendente E2E');

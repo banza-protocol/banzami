@@ -18,7 +18,7 @@ export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
   { slug: 'guides', label: 'Guias', desc: 'Cobranças, transferências, reembolsos e webhooks.' },
   { slug: 'reference', label: 'Referência API', desc: 'Credenciais, endpoints, erros e idempotência.' },
   { slug: 'testing', label: 'Testar no Sandbox', desc: 'O que o Sandbox é, validação e limites.' },
-  { slug: 'trust', label: 'Confiança e prontidão', desc: 'Disponibilidade, riscos, portões e postura.' },
+  { slug: 'trust', label: 'Segurança', desc: 'Credenciais, segredos de webhook, e o que o Sandbox garante.' },
   { slug: 'artifacts', label: 'Artefactos', desc: 'OpenAPI, Postman, manifests e exemplos.' },
   { slug: 'changelog', label: 'Changelog', desc: 'Mudanças datadas por categoria.' },
   { slug: 'glossary', label: 'Glossário', desc: 'Conceitos usados nesta documentação.' },
@@ -27,11 +27,11 @@ export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
 export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
   { slug: '', label: 'Home', desc: 'Documentation home page.' },
   { slug: 'get-started', label: 'Get started', desc: 'Overview, current status and quickstart.' },
-  { slug: 'sdk', label: 'SDKs', desc: 'SDK-first model, controlled preview and onboarding.' },
+  { slug: 'sdk', label: 'SDKs', desc: 'SDK-first model, published packages, and what each SDK handles.' },
   { slug: 'guides', label: 'Guides', desc: 'Payments, webhooks and task guides.' },
   { slug: 'reference', label: 'API Reference', desc: 'Credentials, endpoints, errors and idempotency.' },
   { slug: 'testing', label: 'Sandbox testing', desc: 'What Sandbox means, validation and limits.' },
-  { slug: 'trust', label: 'Trust and readiness', desc: 'Availability, risks, gates and posture.' },
+  { slug: 'trust', label: 'Security', desc: 'Credentials, webhook secrets, and what the Sandbox guarantees.' },
   { slug: 'artifacts', label: 'Artifacts', desc: 'OpenAPI, Postman, manifests and examples.' },
   { slug: 'changelog', label: 'Changelog', desc: 'Dated changes by category.' },
   { slug: 'glossary', label: 'Glossary', desc: 'Concepts used across this documentation.' },
@@ -41,25 +41,25 @@ export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
 // three developer-journey trails. Data only; rendered with existing card/link
 // styles on the home pages (no new visual system).
 export const PRIMARY_PATHS_PT: { slug: string; title: string; desc: string }[] = [
-  { slug: 'get-started', title: 'Começar com preview SDK', desc: 'Orientação para um parceiro/developer aprovado — SDK-first, curl só para validação do protocolo.' },
+  { slug: 'get-started', title: 'Começar', desc: 'Da primeira chamada ao primeiro pagamento — SDK-first, curl para inspeccionar o protocolo.' },
   { slug: 'testing', title: 'Validar no Sandbox', desc: 'Checklist de validação, limites e o que o Sandbox não é. Nunca há dinheiro real.' },
   { slug: 'reference', title: 'Consultar referência técnica', desc: 'Camada de referência do protocolo (API/OpenAPI) — não é o caminho de implementação recomendado.' },
 ];
 export const PRIMARY_PATHS_EN: { slug: string; title: string; desc: string }[] = [
-  { slug: 'get-started', title: 'Start with SDK preview', desc: 'Orientation for an approved partner/developer — SDK-first, curl only for protocol validation.' },
+  { slug: 'get-started', title: 'Get started', desc: 'From the first call to the first payment — SDK-first, curl to inspect the protocol.' },
   { slug: 'testing', title: 'Validate in Sandbox', desc: 'Validation checklist, limits and what the Sandbox is not. No real money ever moves.' },
   { slug: 'reference', title: 'Read technical reference', desc: 'Protocol reference layer (API/OpenAPI) — not the recommended implementation path.' },
 ];
 
 export const JOURNEYS_PT: { role: string; steps: { slug: string; label: string }[] }[] = [
-  { role: 'Novo parceiro aprovado', steps: [{ slug: '', label: 'Início' }, { slug: 'get-started', label: 'Começar' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'testing', label: 'Testar no Sandbox' }, { slug: 'trust', label: 'Confiança e prontidão' }] },
+  { role: 'Novo developer', steps: [{ slug: '', label: 'Início' }, { slug: 'get-started', label: 'Começar' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'testing', label: 'Testar no Sandbox' }, { slug: 'trust', label: 'Segurança' }] },
   { role: 'Developer técnico', steps: [{ slug: '', label: 'Início' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'guides', label: 'Guias' }, { slug: 'reference', label: 'Referência API' }, { slug: 'artifacts', label: 'Artefactos' }] },
-  { role: 'Auditor/avaliador técnico', steps: [{ slug: '', label: 'Início' }, { slug: 'trust', label: 'Confiança e prontidão' }, { slug: 'artifacts', label: 'Artefactos' }, { slug: 'changelog', label: 'Changelog' }] },
+  { role: 'Auditor/avaliador técnico', steps: [{ slug: '', label: 'Início' }, { slug: 'trust', label: 'Segurança' }, { slug: 'artifacts', label: 'Artefactos' }, { slug: 'changelog', label: 'Changelog' }] },
 ];
 export const JOURNEYS_EN: { role: string; steps: { slug: string; label: string }[] }[] = [
-  { role: 'New approved partner', steps: [{ slug: '', label: 'Home' }, { slug: 'get-started', label: 'Get started' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'testing', label: 'Sandbox testing' }, { slug: 'trust', label: 'Trust and readiness' }] },
+  { role: 'New developer', steps: [{ slug: '', label: 'Home' }, { slug: 'get-started', label: 'Get started' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'testing', label: 'Sandbox testing' }, { slug: 'trust', label: 'Security' }] },
   { role: 'Technical developer', steps: [{ slug: '', label: 'Home' }, { slug: 'sdk', label: 'SDKs' }, { slug: 'guides', label: 'Guides' }, { slug: 'reference', label: 'API Reference' }, { slug: 'artifacts', label: 'Artifacts' }] },
-  { role: 'Technical reviewer', steps: [{ slug: '', label: 'Home' }, { slug: 'trust', label: 'Trust and readiness' }, { slug: 'artifacts', label: 'Artifacts' }, { slug: 'changelog', label: 'Changelog' }] },
+  { role: 'Technical reviewer', steps: [{ slug: '', label: 'Home' }, { slug: 'trust', label: 'Security' }, { slug: 'artifacts', label: 'Artifacts' }, { slug: 'changelog', label: 'Changelog' }] },
 ];
 
 const base = (lang: 'pt' | 'en') => (lang === 'pt' ? '/docs' : '/docs/en');

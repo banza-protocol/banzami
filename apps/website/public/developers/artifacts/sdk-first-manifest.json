@@ -4,9 +4,9 @@
   "http_role": "protocol_reference_secondary",
   "public_sdk_packages_published": true,
   "public_install_commands_available": true,
-  "scope": "sandbox_preview",
+  "scope": "sandbox",
   "production_contract": false,
-  "note": "Banzami's integration philosophy is SDK-first: Banzami SDKs are the recommended path for integrating payments, creating sessions, validating responses, handling errors, managing idempotency and consuming webhooks. The HTTP API and OpenAPI exist as the technical protocol reference layer; direct HTTP is secondary (diagnostics, audits, controlled testing, advanced integrators). Two packages are published, each with a clean-room registry install on record: @banzami/sdk on npm (server-side, secret key) and banzami_client on pub.dev (client-side, publishable key only). The Python (banzami-python), PHP (banzami/sdk-php) and Go packages and the browser checkout (@banzami/checkout) are not published and carry no install command; the internal Flutter application framework (banzami_flutter) is never published (Banzami ADR-053). This manifest describes the Sandbox/Preview documentation scope only and is not a Production contract.",
+  "note": "Banzami's integration philosophy is SDK-first: Banzami SDKs are the recommended path for integrating payments, creating sessions, validating responses, handling errors, managing idempotency and consuming webhooks. The HTTP API and OpenAPI exist as the technical protocol reference layer; direct HTTP is secondary (diagnostics, audits, controlled testing, advanced integrators). Two packages are published, each with a clean-room registry install on record: @banzami/sdk on npm (server-side, secret key) and banzami_client on pub.dev (client-side, publishable key only). The Python (banzami-python), PHP (banzami/sdk-php) and Go packages and the browser checkout (@banzami/checkout) are not published and carry no install command; the internal Flutter application framework (banzami_flutter) is never published (Banzami ADR-053). This manifest describes the Sandbox documentation scope only and is not a Production contract.",
   "sdk_families": [
     {
       "family": "javascript_typescript",
@@ -46,5 +46,6 @@
       "status": "partial_controlled_preview_not_published",
       "registry": "module proxy (not published)"
     }
-  ]
+  ],
+  "version": "docs-2026-09-12"
 }

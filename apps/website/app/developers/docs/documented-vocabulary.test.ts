@@ -40,8 +40,8 @@ const SURFACES = [
   'apps/website/public/developers/postman/banzami-sandbox.postman_collection.json',
   'docs/developer/openapi/banzami-sandbox.openapi.json',
   'docs/developer/postman/banzami-sandbox.postman_collection.json',
-  ...readdirSync(join(ROOT, 'apps/website/public/developers/examples/sdk-preview'))
-    .map((f) => `apps/website/public/developers/examples/sdk-preview/${f}`),
+  ...readdirSync(join(ROOT, 'apps/website/public/developers/examples/sdk'))
+    .map((f) => `apps/website/public/developers/examples/sdk/${f}`),
   ...readdirSync(join(ROOT, 'docs/developer/examples/fixtures'))
     .filter((f) => f.endsWith('.json'))
     .map((f) => `docs/developer/examples/fixtures/${f}`),

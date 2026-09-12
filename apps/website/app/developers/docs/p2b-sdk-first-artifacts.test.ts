@@ -31,7 +31,10 @@ describe('P2B — SDK-first wording in PT and EN', () => {
   it('EN contains the SDK-first integration model with the required wording', () => {
     expect(EN).toContain('SDK-first integration model');
     expect(EN).toContain('technical protocol reference layer');
-    expect(EN).toContain('controlled preview until official publication');
+    // Was: 'controlled preview until official publication'. Python and PHP are
+    // still unpublished, but nothing about them is controlled — they are simply
+    // consumed from source, and the docs say why there is no install command.
+    expect(EN).toContain('no install command for them');
   });
   it('docs never call direct HTTP the official/recommended integration path', () => {
     for (const [name, src] of Object.entries({ PT, EN, README })) {
@@ -101,7 +104,7 @@ describe('P2B — sdk-first manifest', () => {
     // is a false claim in the place integrators automate against.
     expect(SDK_MANIFEST.public_sdk_packages_published).toBe(PUBLISHED_PACKAGES.length > 0);
     expect(SDK_MANIFEST.public_install_commands_available).toBe(true);
-    expect(SDK_MANIFEST.scope).toBe('sandbox_preview');
+    expect(SDK_MANIFEST.scope).toBe('sandbox');
     expect(SDK_MANIFEST.production_contract).toBe(false);
   });
   it('each family carries its real publication state', () => {
@@ -136,11 +139,11 @@ describe('P2B — sdk-first manifest', () => {
 
 describe('P2B — public artifact manifest and parity', () => {
   it('manifest covers every artifact with conservative flags', () => {
-    expect(ART_MANIFEST.scope).toBe('sandbox_preview');
+    expect(ART_MANIFEST.scope).toBe('sandbox');
     expect(ART_MANIFEST.production_contract).toBe(false);
     expect(ART_MANIFEST.artifacts.length).toBeGreaterThanOrEqual(6);
     for (const a of ART_MANIFEST.artifacts) {
-      expect(a.scope).toBe('sandbox_preview');
+      expect(a.scope).toBe('sandbox');
       expect(a.production_contract).toBe(false);
       // Only the SDK contract (recommended-path guidance) may be flagged true;
       // every HTTP-level artifact stays secondary protocol reference.
@@ -188,7 +191,7 @@ describe('P2B — public artifact manifest and parity', () => {
 
 describe('P2B — previous honesty preserved', () => {
   it('claim safety holds: no Production webhook claim, pending wording tracks the manifest', () => {
-    expect(EN).toContain('We do not claim webhook delivery as public Production');
+    expect(EN).toContain('Outbound delivery is real and verified end to end');
     // "Pendente E2E" wording belongs on the page only while the manifest still
     // withholds a release. Asserting it unconditionally would pin a claim the
     // evidence has since overtaken.

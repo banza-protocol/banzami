@@ -166,9 +166,19 @@ describe('P0 — /docs content contracts (rendered)', () => {
     expect(isReleased('CAP-TRANSFER-002')).toBe(true);
     expect(/reembolsos?[^.]{0,80}dispon[íi]vel em produ[çc][ãa]o/i.test(DOCS)).toBe(false);
   });
-  it('webhooks: outbound not claimed publicly active; implemented retry contract documented', () => {
-    expect(DOCS).toContain('simulada');
-    expect(DOCS).toContain('Não reivindicamos a entrega');
+  // This used to assert the opposite: that the docs called outbound delivery
+  // SIMULATED and refused to claim it. That was honest when written — the public
+  // E2E exercised emission and signing against a test double. It stopped being
+  // true when the operator's outbox began delivering payment_session.paid over
+  // the public internet to the reference application, which it does today
+  // (tests/phase0/webhook-delivery-to-doa.sh). A test that pins a retired
+  // limitation keeps the limitation in the documentation.
+  it('webhooks: delivery is described as real, and the retry contract is documented', () => {
+    expect(DOCS).toContain('A entrega de webhooks é real');
+    expect(DOCS).not.toContain('Não reivindicamos a entrega');
+    // "simulated" may still appear — to say what is NOT simulated, or about the
+    // internal Sandbox funding utilities — but never as the state of delivery.
+    expect(/entrega[^.]{0,60}permanece\s+<strong>simulada/i.test(DOCS)).toBe(false);
     expect(DOCS).toContain('Contrato de reentrega');
     expect(DOCS).toContain('5 tentativas');
   });

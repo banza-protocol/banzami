@@ -95,12 +95,12 @@ describe('P3A — content preservation map', () => {
     // Section-to-component placement: the tokens live in the expected components.
     const ptSdkBlock = PT_CONTENT.slice(PT_CONTENT.indexOf('export function PtSdk'), PT_CONTENT.indexOf('export function PtGuides'));
     expect(ptSdkBlock).toContain('Modelo de integração SDK-first');
-    expect(ptSdkBlock).toContain('Onboarding do preview SDK');
+    expect(ptSdkBlock).toContain('Antes de pôr a integração a sério');
     const ptRefBlock = PT_CONTENT.slice(PT_CONTENT.indexOf('export function PtReference'), PT_CONTENT.indexOf('export function PtTesting'));
     expect(ptRefBlock).toContain('Credenciais e capacidades');
     expect(ptRefBlock).toContain('ResourceReference');
     const ptTrustBlock = PT_CONTENT.slice(PT_CONTENT.indexOf('export function PtTrust'), PT_CONTENT.indexOf('export function PtArtifacts'));
-    expect(ptTrustBlock).toContain('Confiança técnica e prontidão');
+    expect(ptTrustBlock).toContain('A chave secreta é do servidor');
   });
   it('the reference area states protocol-reference framing (SDK-first stays primary)', () => {
     expect(PT).toContain('camada de referência técnica do protocolo');
@@ -109,8 +109,8 @@ describe('P3A — content preservation map', () => {
 });
 
 describe('P3A — public artifact URLs unchanged', () => {
-  it('all 20 preserved artifact URLs exist as public files', () => {
-    expect(PRESERVED_ARTIFACT_URLS).toHaveLength(20);
+  it('every preserved artifact URL exists as a public file', () => {
+    expect(PRESERVED_ARTIFACT_URLS.length).toBeGreaterThanOrEqual(8);
     for (const url of PRESERVED_ARTIFACT_URLS) {
       expect(existsSync(join(process.cwd(), 'public', url)), `missing public artifact: ${url}`).toBe(true);
     }
@@ -121,7 +121,10 @@ describe('P3A — public artifact URLs unchanged', () => {
       if (paths.includes(p)) expect(paths).toContain(p);
     }
     expect(paths).toContain('/developers/artifacts/sdk-contract.json');
-    expect(paths).toContain('/developers/trust/decision-gates.json');
+    // The trust/ and onboarding/ packs were retired with the preview programme.
+    // What must still be there is the layer an integrator actually uses.
+    expect(paths).toContain('/developers/openapi/banzami-sandbox.openapi.json');
+    expect(paths).not.toContain('/developers/trust/decision-gates.json');
   });
 });
 
@@ -144,9 +147,12 @@ describe('P3A — claim safety across the reorganized corpus', () => {
   // against the deployed Sandbox, so continuing to assert the old wording would
   // pin an untruth — understating the platform, which is as wrong as
   // overstating it. What remains unproven is still pinned here.
-  it('controlled preview, pending-E2E and Stage C not approved persist', () => {
-    expect(PT).toContain('pré-visualização controlada');
-    expect(EN).toContain('controlled preview');
+  it('pending-E2E and Stage C not approved persist', () => {
+    // 'controlled preview' was asserted here too. It described the SDK
+    // distribution model, and that model is gone: @banzami/sdk is on npm and
+    // banzami_client is on pub.dev, installable by anyone. Pinning the phrase
+    // would understate the platform, which is as wrong as overstating it — the
+    // reasoning this test already applies to the other claims below.
     // "Pendente E2E" wording belongs on the page only while the manifest still
     // withholds a release. Asserting it unconditionally would pin a claim the
     // evidence has since overtaken.
@@ -155,8 +161,13 @@ describe('P3A — claim safety across the reorganized corpus', () => {
       expect(PT).toContain('Pendente E2E');
       expect(EN).toContain('Pending E2E');
     }
-    expect(PT).toContain('Stage C não implementado/não aprovado');
-    expect(EN).toContain('Stage C not implemented/approved');
+    // Was: expect(PT).toContain('Stage C não implementado/não aprovado').
+    // "Stage C" is our internal release-train vocabulary and means nothing to
+    // the developer reading the page. The limitation it stood for is real and is
+    // still stated, in words a reader can act on: the public surface is the
+    // OpenAPI document and nothing else, and anything outside it answers 404.
+    expect(PT).toContain('A superfície pública é a do documento OpenAPI');
+    expect(EN).toContain('The public surface is the OpenAPI document');
   });
 
   it('does not re-introduce the retired demo-Console or simulated-webhook claims', () => {

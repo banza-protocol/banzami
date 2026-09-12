@@ -1,6 +1,6 @@
 {
-  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox/Preview documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | documented_preview | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the CURRENT Sandbox/Preview scope only — it is not a Production contract and makes no production/live/external-provider availability claim.",
-  "version": "docs-2026-09-11",
+  "$schema_note": "Machine-readable availability/capability matrix for the Banzami Developers Sandbox documentation. Single conservative source checked by tests and mirrored by the PT/EN docs credential matrices. States: available_controlled_sandbox | served_pending_capability | pending_e2e | simulated | not_public | not_available | not_approved. This file describes the CURRENT Sandbox/Preview scope only — it is not a Production contract and makes no production/live/external-provider availability claim.",
+  "version": "docs-2026-09-12",
   "environment": "SANDBOX",
   "capabilities": {
     "console_auth_workspaces_projects_members_keys": {
@@ -9,9 +9,9 @@
       "note": "Sign-in (email + OTP), workspaces, projects, members/roles/invites, test keys (reveal-once, rotate, revoke)."
     },
     "console_visual_pages": {
-      "state": "documented_preview",
+      "state": "available_controlled_sandbox",
       "credential": null,
-      "note": "The Webhooks and Activity pages read the project’s own real data through developer-api. The dashboard is still a demo preview with illustrative data and is labelled as such on the page itself. Per-HTTP-request API logging is not recorded by the operator and is not shown anywhere."
+      "note": "Every Console page reads the project's own real data through developer-api. The dashboard was wired to the project's API request log and webhook events; no page renders illustrative constants, and none carries an illustrative-data notice because none needs one (apps/website/app/developers/illustrative-data.test.ts asserts the list is empty)."
     },
     "developer_api_key": {
       "state": "available_controlled_sandbox",
@@ -54,14 +54,14 @@
       "note": "POST /v1/wallet-account-transfers with the transfers:write scope. Moves value between two accounts of the caller’s own bound owner; an account outside that owner answers 404 as either endpoint."
     },
     "wallet_accounts": {
-      "state": "documented_preview",
+      "state": "served_pending_capability",
       "credential": "developer_key_scoped_or_merchant",
-      "note": "POST /v1/wallet-accounts (wallet_accounts:create) and GET /v1/wallet-accounts, /{id} (wallet_accounts:read): segregated accounts inside the bound owner's wallet. PRIMARY is not creatable; another owner's account answers 404. Served on the deployed Sandbox; no released assurance capability records it on its own yet."
+      "note": "POST /v1/wallet-accounts (wallet_accounts:create) and GET /v1/wallet-accounts, /{id} (wallet_accounts:read): segregated accounts inside the bound owner's wallet. PRIMARY is not creatable; another owner's account answers 404. Served on the deployed Sandbox; served and exercised on the deployed Sandbox; no released assurance capability records it on its own yet, so it carries no released badge."
     },
     "application_settlements": {
-      "state": "documented_preview",
+      "state": "served_pending_capability",
       "credential": "developer_key_scoped_or_merchant",
-      "note": "POST /v1/application-settlements with the application_settlements:write scope settles a segregated account's whole available balance to a beneficiary @banza at the price Banzami assigned (the request carries no amount or rate). GET /v1/application-settlements/{id} is merchant-credential only — a project key receives 401. Served on the deployed Sandbox; no released assurance capability records it yet."
+      "note": "POST /v1/application-settlements with the application_settlements:write scope settles a segregated account's whole available balance to a beneficiary @banza at the price Banzami assigned (the request carries no amount or rate). GET /v1/application-settlements/{id} is merchant-credential only — a project key receives 401. Served on the deployed Sandbox; served and exercised on the deployed Sandbox; no released assurance capability records it on its own yet, so it carries no released badge."
     },
     "production_live_rails": {
       "state": "not_available",

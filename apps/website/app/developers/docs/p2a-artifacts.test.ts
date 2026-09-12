@@ -213,7 +213,11 @@ describe('P2A — Postman collection', () => {
 });
 
 describe('P2A — machine-readable availability matrix', () => {
-  const ALLOWED_STATES = ['available_controlled_sandbox', 'documented_preview', 'pending_e2e', 'simulated', 'not_public', 'not_available', 'not_approved'];
+  // 'documented_preview' became 'served_pending_capability': the surfaces it
+  // described are served and working, and the old name read as though they were
+  // hypothetical. What it still withholds is the released badge, which only a
+  // released assurance capability may grant.
+  const ALLOWED_STATES = ['available_controlled_sandbox', 'served_pending_capability', 'pending_e2e', 'simulated', 'not_public', 'not_available', 'not_approved'];
   it('exists with all required capabilities and only conservative states', () => {
     const caps = MATRIX.capabilities;
     for (const key of ['console_visual_pages', 'developer_api_key', 'sandbox_api_identity', 'payment_sessions', 'payment_links', 'webhook_configuration', 'webhook_outbound_delivery', 'refunds', 'transfers', 'wallet_accounts', 'application_settlements', 'production_live_rails', 'pay_checkout_live_rails', 'external_provider_rails']) {
@@ -235,7 +239,9 @@ describe('P2A — machine-readable availability matrix', () => {
     expect(MATRIX.capabilities.production_live_rails.state).toBe('not_available');
     expect(MATRIX.capabilities.pay_checkout_live_rails.state).toBe('not_approved');
     expect(MATRIX.capabilities.external_provider_rails.state).toBe('not_approved');
-    expect(MATRIX.capabilities.console_visual_pages.state).toBe('documented_preview');
+    // Every Console page now reads the project's own data; illustrative-data.test.ts
+    // asserts the list of pages with invented constants is empty.
+    expect(MATRIX.capabilities.console_visual_pages.state).toBe('available_controlled_sandbox');
   });
 });
 

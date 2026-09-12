@@ -88,7 +88,7 @@ const EVENTS: string[] = [
 ];
 
 const SDKS: { name: string; lang: string; state: string }[] = [
-  { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Complete (source code)' },
+  { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Published — npm, server SDK, recommended path' },
   { name: 'banzami-python', lang: 'Python', state: 'Complete (source code)' },
   { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Complete (source code)' },
   { name: 'banzami_client', lang: 'Dart / Flutter (client)', state: 'Published — public client SDK, publishable key' },
@@ -115,10 +115,10 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
               <div id="current-status" style={{ scrollMarginTop: 72, margin: '0 0 18px', borderRadius: 16, border: '1px solid #F7DAD7', background: '#FFF7F6', padding: '16px 18px', maxWidth: 660 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>Current status of this documentation</span>
-                  <Badge tone="prep">Sandbox / Preview</Badge>
+                  <Badge tone="prep">Sandbox</Badge>
                 </div>
                 <UL>
-                  <LI>This is <strong>Sandbox / Preview</strong> documentation. Sandbox capability is limited to controlled test flows.</LI>
+                  <LI>This documents the <strong>Sandbox</strong>, which is the only environment that exists. The SDKs install from public registries and the Console is operational; what is missing is real money, not capability.</LI>
                   <LI><strong>Production and real-money rails are not available.</strong> Public pay/checkout, live rails and external providers are not available.</LI>
                   <LI>The Console is <strong>operational in Sandbox</strong>: email + OTP sign-in, sessions, workspaces, projects, members and the full API-key lifecycle are exercised end to end against the deployed environment, including cross-tenant isolation. The Overview, Balances, Transactions, Webhooks and Logs derive from the project&rsquo;s own data — no Console page renders illustrative data, and nothing is shown that the platform cannot answer for.</LI>
                 </UL>
@@ -197,7 +197,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
 <Section id="sdks">
               <H2>SDKs</H2>
               <PageLede><strong>SDK-first</strong> model, two SDKs published to public registries, the SDK contract, per-family status and ergonomics examples.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/trust', text: 'Trust and readiness' }]} />
+              <NextSteps label="Next:" links={[{ href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/trust', text: 'Security' }]} />
 <H3 id="sdk-first">SDK-first integration model</H3>
               <P>
                 Banzami&rsquo;s integration philosophy is <strong>SDK-first</strong>. Banzami SDKs should be the recommended
@@ -211,8 +211,9 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
               <P>
                 Two SDKs are published to public registries and install with no commercial contact:{' '}
                 <Code>npm install @banzami/sdk</Code> (server) and <Code>dart pub add banzami_client</Code> (client).
-                The Python and PHP packages are not published yet and are consumed from source; for those, and only
-                those, access remains a controlled preview until official publication.
+                The Python and PHP packages are not published yet and are consumed from source. This
+                documentation gives no install command for them, because a command pointing at a package
+                no registry has returns an error that looks like the reader's mistake.
               </P>
 
               <H3 id="sdk-maturity">SDK maturity matrix</H3>
@@ -245,6 +246,8 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 </table>
               </div>
 
+              {/* The anchor keeps its old id so links written when this section was
+   called "SDK preview" still land on it. The section is not a preview. */}
               <H3 id="sdk-preview">SDK publication</H3>
               <P>
                 <Code>@banzami/sdk</Code> (npm) and <Code>banzami_client</Code> (pub.dev) are published and are the
@@ -305,125 +308,49 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 {' '}·{' '}
                 <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a>.
                 SDK-style examples (intended ergonomics):{' '}
-                <a href="/developers/examples/sdk-preview/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
+                <a href="/developers/examples/sdk/typescript-payment-session.example.ts" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>TypeScript</a>
                 {' '}·{' '}
-                <a href="/developers/examples/sdk-preview/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
+                <a href="/developers/examples/sdk/python-payment-session.example.py" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Python</a>
                 {' '}·{' '}
-                <a href="/developers/examples/sdk-preview/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
+                <a href="/developers/examples/sdk/php-payment-session.example.php" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>PHP</a>.
               </P>
               <Callout>
-                The SDK-style examples describe intended ergonomics. They are not installation instructions and do not
-                prove public package publication.
+                The examples below show the ergonomics each SDK offers. For TypeScript
+                and Dart they are real instructions: the packages are published and
+                install with the commands given above. For Python and PHP they show the
+                intended ergonomics — with no install command, because there is not yet
+                a package in a public registry to install.
               </Callout>
 
-              <H3 id="preview-onboarding">SDK preview onboarding</H3>
+              <H3 id="before-you-integrate">Before you put the integration in front of anyone</H3>
               <P>
-                The Banzami SDK preview is controlled. It is not a public self-service signup, does not publish packages to
-                public registries, and does not activate Production rails.
+                This is not an approval process: there is no invitation, no eligibility
+                step and no sales conversation between you and the Sandbox. It is the
+                list of things worth having tested before there are users on the other
+                side.
               </P>
-              <P>
-                The goal of onboarding is to allow approved partners to validate the SDK-first integration in Sandbox, with
-                clear limits, verifiable technical artifacts, structured feedback, and review before any regulatory or
-                operational step forward.
-              </P>
+              <UL>
+                <LI>Identity and authentication: <Code>GET /v1/me</Code> answers for the key your application will actually run with.</LI>
+                <LI>Financial readiness: <Code>GET /v1/financial-setup</Code> returns your Project&apos;s state, and your application knows what to show while it is not ready.</LI>
+                <LI>Creating and reading the payment resource you will use — session or link — plus the QR payload, if you present a QR.</LI>
+                <LI>Idempotency: a retry with the <strong>same</strong> <Code>Idempotency-Key</Code> tested, and concurrent requests understood.</LI>
+                <LI>Errors: a validation <Code>422</Code> and a <Code>401</Code> tested, with the <Code>request_id</Code> reaching your logs.</LI>
+                <LI>Webhooks: signature verified with the SDK&apos;s own method, duplicate deliveries treated as the same event, and the secret stored where secrets live.</LI>
+                <LI>Secrets: the secret key on the server only — never in a browser, never in a mobile app, never in the repository.</LI>
+              </UL>
 
-              <H3 id="sandbox-journey">Sandbox integration journey</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      {['Stage', 'Objective', 'Partner', 'Banzami', 'Output', 'Not included'].map((h) => (
-                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['1. Eligibility', 'Confirm the use case fits the Sandbox/Preview scope.', 'Describe the use case.', 'Assess the fit.', 'Eligibility decision.', 'SDK or credential access.'],
-                      ['2. Preview approval', 'Formalise controlled access.', 'Accept the preview limits.', 'Approve and define the scope.', 'Recorded approval.', 'Production approval.'],
-                      ['3. Technical preparation', 'Prepare environment and team.', 'Sandbox workspace/project, test key.', 'Up-to-date documentation.', 'First identity call validated.', 'Real or customer data.'],
-                      ['4. Controlled SDK access', 'Provide the SDK as controlled preview.', 'Use only the approved channel.', 'Provide controlled access where approved.', 'SDK available to the project.', 'Public package publication.'],
-                      ['5. Sandbox integration', 'Implement the SDK-first flow.', 'Sessions, idempotency, errors, webhooks.', 'Maintain the Sandbox and limits.', 'Working Sandbox integration.', 'Real money or public customers.'],
-                      ['6. Technical validation', 'Complete the validation checklist.', 'Run and record evidence (request_id).', 'Clear criteria and checklist.', 'Checklist completed.', 'Live rails activation.'],
-                      ['7. Feedback and fixes', 'Report issues and fix.', 'Structured reports.', 'Review the feedback.', 'Issues resolved or recorded.', 'SLA commitments.'],
-                      ['8. Readiness review', 'Review evidence against the criteria.', 'Submit the evidence.', 'Review and communicate the outcome.', 'Readiness assessment.', 'Production approval or regulatory authorization.'],
-                    ] as string[][]).map((row) => (
-                      <tr key={row[0]}>
-                        {row.map((cell, i) => (
-                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <H3 id="report-a-problem">Found a problem?</H3>
+              <P>
+                Send the <Code>request_id</Code> from the response, the timestamp, the
+                environment (<Code>SANDBOX</Code>), the operation you attempted and the SDK
+                version. The <Code>request_id</Code> is what lets us follow the exact
+                request on our side.
+              </P>
               <Callout tone="warn">
-                Preview approval does not mean Production approval. Sandbox validation does not mean live rails activation.
-                SDK preview access does not mean public SDK publication. Technical readiness does not mean regulatory
-                authorization.
+                Never send the secret key, the webhook secret, an OTP code or a session
+                token — through any support channel. Nothing we need in order to help is
+                a secret.
               </Callout>
-
-              <H3 id="partner-resp">Partner responsibilities during preview</H3>
-              <UL>
-                <LI>Protect preview credentials and artifacts; never expose secret keys in browsers/mobile apps.</LI>
-                <LI>Use only approved Sandbox environments; keep test data non-sensitive.</LI>
-                <LI>Report bugs with <Code>request_id</Code> and timestamp.</LI>
-                <LI>Do not process real money; do not onboard public customers.</LI>
-                <LI>Do not market preview access as live availability; do not claim BNA approval/admission based on preview.</LI>
-                <LI>Validate idempotency, error handling and webhook handling; respect availability/capability limits.</LI>
-              </UL>
-
-              <H3 id="banzami-resp">Banzami responsibilities during preview</H3>
-              <UL>
-                <LI>Provide controlled access where approved; maintain the Sandbox/Preview documentation and the protocol reference artifacts.</LI>
-                <LI>Document known limitations; keep SDK status honest; update the availability matrices.</LI>
-                <LI>Review integration feedback; maintain the claim-safety tests; avoid production/live overclaims.</LI>
-                <LI>Provide clear readiness criteria. No SLA promises, no 24/7 support promise, no Production go-live promise.</LI>
-              </UL>
-
-              <H3 id="report-preview">How to report preview issues</H3>
-              <P>Report through the approved preview support channel provided during onboarding. Every report should include:</P>
-              <UL>
-                <LI>Environment (<Code>Sandbox/Preview</Code>), SDK family and preview version, if applicable.</LI>
-                <LI><Code>request_id</Code>, timestamp, endpoint or SDK method, and the <Code>Idempotency-Key</Code> if relevant.</LI>
-                <LI>Expected vs observed result; sanitized request/response excerpt (placeholders only).</LI>
-                <LI>Reproduction steps and severity.</LI>
-              </UL>
-
-              <H3 id="sandbox-checklist">Sandbox validation checklist</H3>
-              <UL>
-                <LI>Identity/authentication, payment session creation/retrieval, payment link and QR payload retrieval (where applicable) validated.</LI>
-                <LI>Idempotency retry tested; duplicate/concurrent request handling understood.</LI>
-                <LI>Validation errors and <Code>unauthorized/forbidden</Code> handling tested; <Code>request_id</Code> captured in logs.</LI>
-                <LI>Webhook signature verification design reviewed; outbound limitation understood; refunds/transfers limitation understood.</LI>
-                <LI>SDK not used from a public registry; no real money used; no public customers onboarded; no production/live claims made.</LI>
-              </UL>
-
-              <H3 id="readiness">Readiness review criteria</H3>
-              <UL>
-                <LI>Sandbox integration evidence collected; <Code>request_id</Code> logging present.</LI>
-                <LI>Idempotency, error-handling and webhook-handling strategies documented; secrets management reviewed with no client-side exposure.</LI>
-                <LI>No unsupported capability dependency, no real-money assumption, no production/live claim, no regulatory approval assumption; known limitations accepted.</LI>
-              </UL>
-              <Callout tone="warn">
-                Readiness review is not Production approval. Readiness review is not regulatory authorization. Readiness
-                review is not live rails activation.
-              </Callout>
-
-              <P>
-                Onboarding artifacts:{' '}
-                <a href="/developers/onboarding/sdk-preview-onboarding.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>onboarding</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/sandbox-validation-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>validation checklist</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/partner-responsibilities.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>partner responsibilities</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/preview-issue-report-template.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>issue report template</a>
-                {' '}·{' '}
-                <a href="/developers/onboarding/readiness-review-checklist.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>readiness review</a>.
-                {' '}These artifacts support Sandbox preview onboarding. They are not Production contracts, do not activate
-                live rails, and do not represent regulatory approval.
-              </P>
 
               </Section>
     </>
@@ -509,11 +436,12 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 Use webhooks to confirm events on your server without relying on the browser or polling alone. Banzami signs
                 every event; your endpoint verifies the signature and reacts idempotently.
               </P>
-              <Callout tone="warn">
-                <strong>Honest scope.</strong> In the platform’s public E2E suite (Phase 0), outbound delivery to an external
-                public HTTPS sink was <strong>simulated</strong> — emission, HMAC signing and the retry contract were verified;
-                the DOA journey is the verified delivery path. <strong>We do not claim webhook delivery as public Production
-                availability.</strong>
+              <Callout>
+                <strong>Honest scope.</strong> Outbound delivery is real and verified end to end: Banzami emits{' '}
+                <Code>payment_session.paid</Code> because money moved, its outbox delivers over the public internet to the
+                registered HTTPS endpoint, and the reference application accepts it. This section used to say delivery to an
+                external sink remained simulated — true when written, and no longer. What still does not exist is{' '}
+                <strong>Production</strong>: this is the Sandbox, and no real money ever moves.
               </Callout>
               <H3>How it works</H3>
               <UL>
@@ -697,8 +625,8 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
     <>
 <Section id="testing">
               <H2>Sandbox testing</H2>
-              <PageLede>How to validate the integration in the Sandbox, and its limits. <strong>No real money ever moves</strong> and <strong>public customer onboarding is not allowed</strong> in preview.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/trust', text: 'Trust and readiness' }, { href: '/docs/en/guides', text: 'Guides' }]} />
+              <PageLede>How to validate the integration in the Sandbox, and what the Sandbox guarantees. <strong>No real money ever moves.</strong></PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/trust', text: 'Security' }, { href: '/docs/en/guides', text: 'Guides' }]} />
               <P><strong>What the Sandbox is:</strong> a complete integration environment with test accounts, sessions, links, QR and webhooks — flows behave like the real ones, but <strong>no real money ever moves</strong>.</P>
               <P><strong>What the Sandbox is not:</strong> there are no live rails, no external providers activated, and no Production key issuance. All test credentials in these examples are placeholders.</P>
               <UL>
@@ -710,9 +638,15 @@ export function EnTesting({ copy }: { copy: CopyFn }) {
               </UL>
               <Callout tone="warn">
                 Internal Sandbox funding/simulation utilities exist but are <strong>internal — not public</strong>; they are
-                not part of the documented surface. Outbound webhook delivery to external sinks remains <strong>simulated</strong>{' '}
-                in the public E2E suite — see <a href="/docs/en/guides#webhooks" style={{ color: '#B8770A', fontWeight: 800, textDecoration: 'none' }}>Webhooks</a>.
+                not part of the documented surface.
               </Callout>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Webhook delivery is real, not simulated: Banzami delivers over the public internet to the HTTPS endpoint you
+                registered, signed, with redelivery on failure — see{' '}
+                <a href="/docs/en/guides#webhooks" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Webhooks</a>.
+                This page said outbound delivery remained simulated; that stopped being true when the reference application
+                began receiving real events.
+              </P>
             </Section>
     </>
   );
@@ -722,185 +656,106 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
   return (
     <>
 <Section id="trust-page">
-              <H2>Trust and readiness</H2>
-              <PageLede>Readiness, evidence, risks and decision gates for approved partners. <strong>It does not represent Production approval or regulatory authorization.</strong></PageLede>
-              <NextSteps label="Related:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
-<H3 id="trust">Technical trust and readiness</H3>
-              <P>
-                This section summarizes the technical state of Banzami Developers documentation for approved partners. The
-                goal is to clearly separate what is available in Sandbox/Preview, what is simulated, what is pending, what is
-                not available, and what must not be interpreted as Production approval, live rails activation, or regulatory
-                authorization.
-              </P>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                <strong>State vocabulary.</strong> <Code>available_controlled_sandbox</Code> — verified on the deployed
-                Sandbox, with evidence; <Code>documented_preview</Code> — documented, not yet verified end to end;
-                {' '}<Code>pending_e2e</Code> — implemented, awaiting verification on the deployed environment;
-                {' '}<Code>simulated</Code> — exercised only against a test double; <Code>not_public</Code> — exists, but is not
-                publicly reachable; <Code>not_available</Code> — does not exist today; <Code>not_approved</Code> — waits on a
-                decision that has not been taken. A state changes only when the evidence changes.
-              </P>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>Capability</th>
-                      <th style={{ padding: '8px 10px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>State</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['SDK-first integration model', 'documented_preview'],
-                      ['Published SDKs (npm, pub.dev)', 'available_controlled_sandbox'],
-                      ['Python and PHP SDKs (source)', 'not_public'],
-                      ['HTTP/OpenAPI protocol reference', 'documented_preview'],
-                      ['Sandbox API routes', 'available_controlled_sandbox'],
-                      ['Payment sessions', 'available_controlled_sandbox'],
-                      ['Payment links', 'available_controlled_sandbox'],
-                      ['QR payload', 'available_controlled_sandbox'],
-                      ['Webhook signature/reference', 'available_controlled_sandbox'],
-                      ['Webhook outbound delivery', 'available_controlled_sandbox'],
-                      ['Refunds (project key)', 'available_controlled_sandbox'],
-                      ['Transfers (project key)', 'available_controlled_sandbox'],
-                      ['Console — Webhooks and Activity', 'available_controlled_sandbox'],
-                      ['Console — dashboard', 'documented_preview'],
-                      ['Production/live rails', 'not_available'],
-                      ['Pay/checkout/live rails', 'not_approved'],
-                      ['External provider rails', 'not_approved'],
-                    ] as [string, string][]).map(([cap, st]) => (
-                      <tr key={cap}>
-                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontWeight: 700, color: INK }}>{cap}</td>
-                        <td style={{ padding: '8px 10px', borderBottom: '1px solid #F5E9E7', fontFamily: mono, fontSize: 12, color: '#9A1B22' }}>{st}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <H2>Security</H2>
+              <PageLede>Where credentials live, what never leaves your server, and what the Sandbox guarantees.</PageLede>
+              <NextSteps label="Related:" links={[{ href: '/docs/en/testing', text: 'Sandbox testing' }, { href: '/docs/en/reference#authentication', text: 'Authentication' }, { href: '/docs/en/guides#webhooks', text: 'Webhooks' }]} />
 
-              <H3 id="evidence-map">Sandbox evidence map</H3>
-              <P>Public/repository artifacts that support this documentation:</P>
+              <H3 id="keys">The secret key belongs to the server, and only there</H3>
+              <P>
+                A <Code>bz_test_sk_…</Code> key authorises everything your Project can do.
+                Whoever holds it can create charges, move money between your accounts and
+                issue refunds. So it lives on the server and nowhere else.
+              </P>
               <UL>
-                <LI>OpenAPI and Postman Sandbox references; availability matrix; SDK-first manifest; SDK contract.</LI>
-                <LI>Onboarding artifacts; examples and fixtures (curl, requests/responses, error and webhook envelopes).</LI>
-                <LI>Documentation claim-safety tests — the P0/P1/P2A/P2B/P2C/P2D suites.</LI>
+                <LI><strong>Never in the browser.</strong> Not in JavaScript, not in <Code>localStorage</Code>, not in a <Code>NEXT_PUBLIC_*</Code> variable — all of that is code the user downloads and can read.</LI>
+                <LI><strong>Never in a mobile app.</strong> A distributed binary is readable; a key inside one is a published key.</LI>
+                <LI><strong>Never in the repository.</strong> Not in a commit, not in a config file, not in a versioned <Code>.env</Code>. Git history does not forget.</LI>
+                <LI><strong>Never in a screenshot</strong>, a ticket, a chat message or an email.</LI>
+              </UL>
+              <P>
+                The right place is a server-process environment variable, read at start-up,
+                supplied by your platform&apos;s secret manager.
+              </P>
+
+              <H3 id="reveal-once">Revealed once</H3>
+              <P>
+                When you create a key in the Console the full value appears <strong>exactly
+                once</strong>, in that dialog. After that the Console shows only the prefix
+                and a mask: the value is not recoverable from the screen, the page source,
+                the network or browser storage. If you lose it, revoke it and create
+                another — that is faster than looking for it, and it leaves a record of why.
+              </P>
+
+              <H3 id="least-privilege">Ask only for the scopes you need</H3>
+              <P>
+                Scopes are chosen when the key is created and do not change afterwards. A
+                key that can only read will never write, even if the code using it has a
+                bug — which is what makes least privilege useful rather than merely tidy.
+              </P>
+              <UL>
+                <LI>One key per integrating system, not one key for everything.</LI>
+                <LI>If the application only reads payment state, do not ask for <Code>:write</Code>.</LI>
+                <LI>A compromised key can be revoked on its own, without stopping the other systems.</LI>
+              </UL>
+
+              <H3 id="rotation">Rotation and revocation</H3>
+              <P>
+                Rotating a key creates the successor and revokes the predecessor in the same
+                step, so there is no window without a valid credential. The predecessor stops
+                authenticating immediately: a call with it answers <Code>401</Code>, and the
+                failure belongs to the key, not to the request.
+              </P>
+              <UL>
+                <LI><strong>Rotate</strong> when someone with access leaves, when you change hosting provider, or on a schedule if your policy requires one.</LI>
+                <LI><strong>Revoke immediately</strong> if the key has appeared somewhere it should not be — a log, a shared screen, a public repository. Revoking is free; assuming nobody noticed is not.</LI>
+                <LI>The key list shows last use, which is how you find the one nobody uses any more.</LI>
+              </UL>
+
+              <H3 id="webhook-secret">The webhook secret</H3>
+              <P>
+                The signing secret is revealed once, like the key, and is stored the same
+                way. It is how you verify that a <Code>POST</Code> to your endpoint came
+                from Banzami and not from someone who found the URL.
+              </P>
+              <UL>
+                <LI>Verify the signature <strong>before</strong> doing anything at all with the event body.</LI>
+                <LI>Verify over the <strong>raw body</strong>, exactly as it arrived — re-serialising the JSON changes the bytes and the signature stops matching.</LI>
+                <LI>Use the SDK&apos;s verifier where one exists: the comparison is constant-time and the replay window is already handled.</LI>
+                <LI>Rotate the secret from the Console if you suspect it; the endpoint stays the same.</LI>
+              </UL>
+
+              <H3 id="sandbox-guarantees">What the Sandbox guarantees</H3>
+              <P>
+                The Sandbox is a complete environment: accounts, charges, links, QR,
+                webhooks, refunds and settlements behave as they would with real money, and
+                webhook delivery to your endpoint is real delivery, over the public internet.
+              </P>
+              <UL>
+                <LI><strong>No real money, ever.</strong> Balances are fictitious Kwanza; no value leaves any bank.</LI>
+                <LI><strong>There is no financial Live environment.</strong> It is not switched off awaiting a request: it does not exist, and <Code>bz_live_…</Code> keys are issued to nobody.</LI>
+                <LI><strong>The data is real enough to hurt.</strong> Treat test data as you would a customer&apos;s: do not put real people&apos;s personal details in it.</LI>
+                <LI><strong>The public surface is the OpenAPI document, and nothing else.</strong> There are no additional public routes waiting to be discovered: what is not in the document is not mounted, and answers <Code>404</Code>.</LI>
               </UL>
               <Callout tone="warn">
-                Evidence-backed documentation does not mean live production availability. Repository artifacts do not mean
-                regulatory authorization. Passing documentation tests does not activate payment rails.
+                If an SDK, an example or a page asks you for a <Code>bz_live_…</Code> key,
+                you are looking at stale documentation or at something that is not ours.
+                There are no Live keys.
               </Callout>
 
-              <H3 id="risk-matrix">Risk and limitation matrix</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      {['Risk / limitation', 'Status', 'Partner implication', 'Expected handling'].map((h) => (
-                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['Python and PHP packages not published yet', 'not_public', 'Consume from source; npm and pub.dev are already available.', 'Publication pending; clean-room install proven before every announcement.'],
-                      ['HTTP/OpenAPI is reference, not recommended path', 'documented_preview', 'Direct HTTP for diagnostics/audits only.', 'SDK-first; artifacts labelled protocol_reference.'],
-                      ['Outbound delivery is verified in Sandbox only', 'available_controlled_sandbox', 'Verified against a public receiver; Production is not covered.', 'Independently verified signature, tamper rejection, retry and failure isolation.'],
-                      ['Refunds/transfers are Sandbox-only', 'available_controlled_sandbox', 'Released to project keys in Sandbox; never on live rails.', 'Deployed E2E including the refusals: read-only keys and foreign resources.'],
-                      ['Console and logs cover Sandbox only', 'available_controlled_sandbox', 'Telemetry shows real Sandbox traffic; Production is not covered.', 'request_id correlation proven against the deployed environment.'],
-                      ['Production/live rails not available', 'not_available', 'No real money; no live keys.', 'bz_live_ rejected fail-closed.'],
-                      ['External provider rails not active', 'not_approved', 'Do not assume external integrations.', 'Separate governance decision.'],
-                      ['Stage C not implemented/approved', 'not_approved', 'Additional public routes do not exist yet.', 'Decision gates and explicit approvals.'],
-                      ['Regulatory approval not claimed', 'not_approved', 'No regulatory claims based on the preview.', 'Claim-safety wording and tests.'],
-                      ['Real-money payments not available', 'not_available', 'Controlled test flows only.', 'Sandbox-only across the documentation.'],
-                      ['Public customer onboarding not allowed in preview', 'not_approved', 'Do not expose the preview to end customers.', 'Partner responsibilities; readiness review.'],
-                    ] as string[][]).map((row) => (
-                      <tr key={row[0]}>
-                        {row.map((cell, i) => (
-                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : i === 1 ? '#9A1B22' : '#5a4a4e', fontWeight: i === 0 ? 700 : 500, fontFamily: i === 1 ? mono : undefined, fontSize: i === 1 ? 11.5 : undefined }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <H3 id="readiness-package">Readiness package for approved partners</H3>
-              <P>
-                The package gathers: SDK preview onboarding, Sandbox validation checklist, partner responsibilities, the
-                issue report template, the readiness review checklist, the SDK contract, the availability matrix and the
-                protocol references (OpenAPI and Postman).
-              </P>
-              <Callout tone="warn">
-                The readiness package is Sandbox/Preview only. It is not Production approval, not regulatory authorization,
-                does not activate live rails, and does not grant public SDK package access.
-              </Callout>
-
-              <H3 id="decision-gates">Decision gates before any next phase</H3>
-              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
-                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640, fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                      {['Gate', 'Purpose', 'Required evidence', 'Pass condition', 'Does not authorize'].map((h) => (
-                        <th key={h} style={{ padding: '8px 8px', fontWeight: 800, borderBottom: '1px solid #F2E2E0' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {([
-                      ['1. Documentation honesty', 'Documentation reflects evidence.', 'Claim-safety test suites passing.', 'All documentation tests green.', 'Package publication or live availability.'],
-                      ['2. SDK preview access', 'Approved controlled access.', 'Recorded preview approval.', 'Access granted to the project.', 'Public SDK publication.'],
-                      ['3. Sandbox validation', 'Integration validated in Sandbox.', 'Validation checklist with evidence.', 'Checklist complete.', 'Live rails activation.'],
-                      ['4. Security/secrets handling', 'Credential management reviewed.', 'Documented secrets review.', 'No client-side exposure.', 'Production security certification.'],
-                      ['5. Error/idempotency handling', 'Correct handling confirmed.', 'Documented, tested strategies.', 'Safe retries demonstrated.', 'Production guarantees.'],
-                      ['6. Webhook handling design', 'Verification and dedupe reviewed.', 'Documented design.', 'Signature + idempotency reviewed.', 'Guaranteed public delivery.'],
-                      ['7. Capability limitation acceptance', 'Documented limits accepted.', 'Limitations acknowledged in writing.', 'Recorded acceptance.', 'Lifting of the limitations.'],
-                      ['8. Operational readiness review', 'Complete evidence reviewed.', 'Readiness package submitted.', 'Readiness assessment issued.', 'Production approval.'],
-                      ['9. Regulatory/legal review', 'Framing before any supervised phase.', 'Own regulatory/legal review.', 'Outside this documentation\u2019s scope.', 'Regulatory authorization.'],
-                      ['10. Explicit approval for any future live/Production phase', 'Explicit, separate decision.', 'Recorded formal approval.', 'Future decision, not included here.', 'Nothing in this documentation grants it.'],
-                    ] as string[][]).map((row) => (
-                      <tr key={row[0]}>
-                        {row.map((cell, i) => (
-                          <td key={i} style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: i === 0 ? INK : '#5a4a4e', fontWeight: i === 0 ? 700 : 500 }}>{cell}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <Callout tone="warn">
-                No gate in this documentation authorizes live rails, real-money payments, public launch, production key
-                issuance, or regulatory approval.
-              </Callout>
-
-              <H3 id="security-posture">Preview security posture summary</H3>
+              <H3 id="support">What to send support — and what never to send</H3>
+              <P>To investigate a request we need this, and only this:</P>
               <UL>
-                <LI>Secret keys never in browser/mobile clients; preview artifacts use placeholders only; test data must be non-sensitive.</LI>
-                <LI><Code>request_id</Code> captured for debugging; idempotency used for mutating operations; webhook signatures verified before trusting events.</LI>
-                <LI>Partner protects preview credentials and artifacts; availability limits respected; SDK packages are not public; live rails are not active.</LI>
+                <LI>The <Code>request_id</Code> from the response.</LI>
+                <LI>The timestamp, with timezone.</LI>
+                <LI>The environment (<Code>SANDBOX</Code>) and the operation you attempted.</LI>
+                <LI>The SDK version, if you used one.</LI>
+                <LI>The request body <strong>with credentials removed</strong>, if it is relevant.</LI>
               </UL>
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                This summary covers only the Sandbox/Preview scope supported by the documentation — no certification,
-                external audit or uptime claims.
-              </P>
-
-              <P>
-                Trust/readiness artifacts:{' '}
-                <a href="/developers/trust/developer-trust-summary.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>trust summary</a>
-                {' '}·{' '}
-                <a href="/developers/trust/sandbox-evidence-map.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>evidence map</a>
-                {' '}·{' '}
-                <a href="/developers/trust/risk-limitations-matrix.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>risk matrix</a>
-                {' '}·{' '}
-                <a href="/developers/trust/partner-readiness-package.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>readiness package</a>
-                {' '}·{' '}
-                <a href="/developers/trust/decision-gates.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>decision gates</a>
-                {' '}·{' '}
-                <a href="/developers/trust/preview-security-posture.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>security posture</a>
-                {' '}·{' '}
-                <a href="/developers/trust/trust-readiness-summary.md" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>summary (MD)</a>.
-                {' '}These artifacts support technical assessment for approved partners in Sandbox/Preview. They are not
-                Production contracts, do not activate live rails, do not authorize real money, and do not represent
-                regulatory approval.
-              </P>
+              <Callout tone="warn">
+                Never send an API key, a webhook secret, an OTP code or a session token —
+                through any channel, to anyone, including us. Nothing we need in order to
+                help is a secret, and a secret that has been sent is a secret to rotate.
+              </Callout>
             </Section>
     </>
   );
@@ -911,13 +766,13 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
     <>
 <Section id="artifacts-page">
               <H2>Artifacts</H2>
-              <PageLede>Public <strong>Sandbox/Preview reference</strong> artifacts — OpenAPI, Postman, availability matrix, manifests and examples. Not Production contracts.</PageLede>
-              <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/trust', text: 'Trust and readiness' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
+              <PageLede>Public <strong>Sandbox</strong> artifacts — OpenAPI, Postman, availability matrix, manifests and examples. There is no Production contract because there is no Production.</PageLede>
+              <NextSteps label="Related:" links={[{ href: '/docs/en/reference', text: 'API Reference' }, { href: '/docs/en/trust', text: 'Security' }, { href: '/docs/en/changelog', text: 'Changelog' }]} />
 <H3 id="artifacts">Technical reference artifacts</H3>
               <P>
                 The same documented surface exists in <strong>machine-readable</strong> form — <strong>protocol reference
                 artifacts</strong>, published as static files. They are <strong>not the primary integration recommendation</strong>{' '}
-                (Banzami is SDK-first), describe only the current Sandbox/Preview scope, are{' '}
+                (Banzami is SDK-first), describe only the current Sandbox scope, are{' '}
                 <strong>not Production contracts</strong>, not live rails, not regulatory approval, and not a replacement for
                 the SDKs:
               </P>
@@ -930,8 +785,9 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
               </UL>
                           <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 The <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>artifact manifest</a> indexes every
-                public artifact — including the <a href="/docs/en/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDK preview onboarding</a> and
-                the <a href="/docs/en/trust" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>trust/readiness</a> sets — all Sandbox/Preview, none a Production contract.
+                public artifact — the OpenAPI document, the Postman collection, the availability
+                matrix and the examples. They describe the Sandbox, which is the only
+                environment that exists.
               </P>
 </Section>
     </>
@@ -944,7 +800,7 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
 <Section id="changelog">
               <H2>Changelog</H2>
               <PageLede>Documentation, API-contract and Sandbox change tracking. There is no invented product release history.</PageLede>
-              <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/trust', text: 'Trust and readiness' }]} />
+              <NextSteps label="Next:" links={[{ href: '/docs/en/artifacts', text: 'Artifacts' }, { href: '/docs/en/trust', text: 'Security' }]} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Dated entries by category: <Code>[Docs]</Code> (documentation only), <Code>[API]</Code> (API contract),{' '}
                 <Code>[Sandbox]</Code> (Sandbox platform). Incompatible changes will be marked <Code>[Breaking]</Code>.

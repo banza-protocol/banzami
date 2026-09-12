@@ -1,17 +1,37 @@
 {
   "name": "Banzami SDK Contract",
-  "scope": "sandbox_preview",
+  "scope": "sandbox",
   "integration_model": "sdk_first",
   "public_sdk_packages_published": true,
   "public_install_commands_available": true,
   "production_contract": false,
   "http_role": "protocol_reference_secondary",
-  "note": "EXPECTED SDK contract: what official Banzami SDKs are expected to handle for integrators. Two packages are published, each with a clean-room registry install on record: @banzami/sdk on npm (server-side, secret key) and banzami_client on pub.dev (client-side, publishable key only). The Python and PHP packages are not published — source only, until official publication — and have no install command. The internal Flutter application framework (banzami_flutter) is never published. The SDK-style examples under /developers/examples/sdk-preview/ describe intended ergonomics only; they are not installation instructions. Sandbox/Preview documentation scope only; not a Production contract; no production key issuance; no live rails.",
+  "note": "EXPECTED SDK contract: what official Banzami SDKs are expected to handle for integrators. Two packages are published, each with a clean-room registry install on record: @banzami/sdk on npm (server-side, secret key) and banzami_client on pub.dev (client-side, publishable key only). The Python and PHP packages are not published — source only, until official publication — and have no install command. The internal Flutter application framework (banzami_flutter) is never published. The SDK-style examples under /developers/examples/sdk/ describe intended ergonomics only; they are not installation instructions. Sandbox documentation scope only; not a Production contract; no production key issuance; no live rails.",
   "sdk_families": [
-    { "name": "JavaScript/TypeScript", "status": "published", "public_package": "@banzami/sdk", "install_command": "npm install @banzami/sdk" },
-    { "name": "Dart/Flutter (client)", "status": "published", "public_package": "banzami_client", "install_command": "dart pub add banzami_client" },
-    { "name": "Python", "status": "controlled_preview_not_published", "public_package": null, "install_command": null },
-    { "name": "PHP", "status": "controlled_preview_not_published", "public_package": null, "install_command": null }
+    {
+      "name": "JavaScript/TypeScript",
+      "status": "published",
+      "public_package": "@banzami/sdk",
+      "install_command": "npm install @banzami/sdk"
+    },
+    {
+      "name": "Dart/Flutter (client)",
+      "status": "published",
+      "public_package": "banzami_client",
+      "install_command": "dart pub add banzami_client"
+    },
+    {
+      "name": "Python",
+      "status": "controlled_preview_not_published",
+      "public_package": null,
+      "install_command": null
+    },
+    {
+      "name": "PHP",
+      "status": "controlled_preview_not_published",
+      "public_package": null,
+      "install_command": null
+    }
   ],
   "responsibilities": {
     "authentication": "expected",
@@ -30,5 +50,6 @@
     "automatic_live_rails_activation": "never",
     "production_key_issuance": "not_available",
     "production_live_rails": "not_available"
-  }
+  },
+  "version": "docs-2026-09-12"
 }

@@ -36,7 +36,7 @@ describe('Public Developer Docs — P3A landing + area routes', () => {
       ['Guias', '/docs/guides'],
       ['Referência API', '/docs/reference'],
       ['Testar no Sandbox', '/docs/testing'],
-      ['Confiança e prontidão', '/docs/trust'],
+      ['Segurança', '/docs/trust'],
       ['Artefactos', '/docs/artifacts'],
       ['Changelog', '/docs/changelog'],
       ['Glossário', '/docs/glossary'],

@@ -29,7 +29,7 @@ const navOf = (name: RegExp) => screen.getByRole('navigation', { name });
 describe('Chapter navigation — PT', () => {
   it('order matches the canonical AREAS_PT sequence', () => {
     expect(AREAS_PT.map((a) => a.label)).toEqual([
-      'Início', 'Começar', 'SDKs', 'Guias', 'Referência API', 'Testar no Sandbox', 'Confiança e prontidão', 'Artefactos', 'Changelog', 'Glossário',
+      'Início', 'Começar', 'SDKs', 'Guias', 'Referência API', 'Testar no Sandbox', 'Segurança', 'Artefactos', 'Changelog', 'Glossário',
     ]);
   });
   it('home (first) shows only Próximo capítulo → Começar', () => {
@@ -67,7 +67,7 @@ describe('Chapter navigation — PT', () => {
 describe('Chapter navigation — EN', () => {
   it('order matches the canonical AREAS_EN sequence and mirrors PT by index', () => {
     expect(AREAS_EN.map((a) => a.label)).toEqual([
-      'Home', 'Get started', 'SDKs', 'Guides', 'API Reference', 'Sandbox testing', 'Trust and readiness', 'Artifacts', 'Changelog', 'Glossary',
+      'Home', 'Get started', 'SDKs', 'Guides', 'API Reference', 'Sandbox testing', 'Security', 'Artifacts', 'Changelog', 'Glossary',
     ]);
     expect(AREAS_EN.map((a) => a.slug)).toEqual(AREAS_PT.map((a) => a.slug));
   });

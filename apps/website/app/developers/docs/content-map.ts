@@ -29,11 +29,25 @@ export const CONTENT_MAP: ContentGroup[] = [
   { group: 'glossary', ptRoute: '/docs/glossary', enRoute: '/docs/en/glossary', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Conceitos', enToken: 'Concepts' },
   { group: 'technical-artifacts', ptRoute: '/docs/artifacts', enRoute: '/docs/en/artifacts', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Artefactos técnicos de referência', enToken: 'Technical reference artifacts' },
   { group: 'sdk-contracts', ptRoute: '/docs/sdk', enRoute: '/docs/en/sdk', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Contrato esperado do SDK', enToken: 'Expected SDK contract' },
-  { group: 'sdk-preview-onboarding', ptRoute: '/docs/sdk', enRoute: '/docs/en/sdk', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Onboarding do preview SDK', enToken: 'SDK preview onboarding' },
-  { group: 'trust-readiness-package', ptRoute: '/docs/trust', enRoute: '/docs/en/trust', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Confiança técnica e prontidão', enToken: 'Technical trust and readiness' },
+  // Was 'sdk-preview-onboarding'. The controlled-preview programme is retired —
+  // the packages are on public registries — and what survived it is the
+  // pre-integration checklist, without the approval gate in front of it.
+  { group: 'pre-integration-checklist', ptRoute: '/docs/sdk', enRoute: '/docs/en/sdk', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'Antes de pôr a integração a sério', enToken: 'Before you put the integration in front of anyone' },
+  // Was 'trust-readiness-package', a partner-assessment artifact for a programme
+  // that no longer exists. /docs/trust is now the security guide.
+  { group: 'security', ptRoute: '/docs/trust', enRoute: '/docs/en/trust', ptSource: 'content-pt.tsx', enSource: 'content-en.tsx', ptToken: 'A chave secreta é do servidor', enToken: 'The secret key belongs to the server' },
 ];
 
-/** Public artifact URLs that must never change across the reorganization. */
+/**
+ * Public artifact URLs that must not move.
+ *
+ * Thirteen entries were removed on 2026-09-12, not renamed: the controlled-preview
+ * onboarding pack and the partner-readiness pack described a programme that no
+ * longer exists, and a stable URL for a retired programme is a museum with a
+ * permanent address. What remains is the protocol layer — OpenAPI, Postman, the
+ * availability matrix, the manifests and the examples — which an integrator can
+ * still act on.
+ */
 export const PRESERVED_ARTIFACT_URLS: string[] = [
   '/developers/openapi/banzami-sandbox.openapi.json',
   '/developers/postman/banzami-sandbox.postman_collection.json',
@@ -43,16 +57,4 @@ export const PRESERVED_ARTIFACT_URLS: string[] = [
   '/developers/artifacts/sdk-contract.json',
   '/developers/examples/curl/get-me.sh',
   '/developers/examples/curl/create-payment-session.sh',
-  '/developers/onboarding/sdk-preview-onboarding.json',
-  '/developers/onboarding/sandbox-validation-checklist.json',
-  '/developers/onboarding/partner-responsibilities.json',
-  '/developers/onboarding/preview-issue-report-template.md',
-  '/developers/onboarding/readiness-review-checklist.json',
-  '/developers/trust/developer-trust-summary.json',
-  '/developers/trust/sandbox-evidence-map.json',
-  '/developers/trust/risk-limitations-matrix.json',
-  '/developers/trust/partner-readiness-package.json',
-  '/developers/trust/decision-gates.json',
-  '/developers/trust/preview-security-posture.json',
-  '/developers/trust/trust-readiness-summary.md',
 ];

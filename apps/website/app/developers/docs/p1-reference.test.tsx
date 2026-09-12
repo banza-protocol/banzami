@@ -146,8 +146,14 @@ describe('P1 — claim safety holds in EN and the shared reference', () => {
       expect(EN).toContain('Pending E2E for developer keys');
     }
   });
-  it('webhooks outbound stays simulated / not claimed publicly active in EN', () => {
-    expect(EN).toContain('We do not claim webhook delivery as public Production');
+  // Inverted, for the same reason as its PT counterpart in p0-accuracy: outbound
+  // delivery IS real now, verified end to end against the reference application.
+  // What must never appear is a claim that PRODUCTION is available, which is a
+  // different sentence and is checked immediately below.
+  it('EN describes webhook delivery as real, without claiming Production', () => {
+    expect(EN).toContain('Outbound delivery is real and verified end to end');
+    expect(EN).not.toContain('We do not claim webhook delivery as public Production');
+    expect(EN).toMatch(/no real money ever moves/i);
   });
   it('no production/live/real-money availability claims in EN', () => {
     for (const bad of ['Production is available', 'live payments are available', 'real money is enabled', 'production ready', 'BNA approved']) {
