@@ -197,9 +197,12 @@ async function sweepPage(page, origin, route, surface) {
   // so it can be matched against the Banzami Console — is not residue. A UUID
   // that simply arrived on screen is. The difference is whether anything nearby
   // calls it an identifier.
+  // The label does not have to end in "id" — "Conta da campanha (id da conta
+  // Banzami)" announces it just as well — so this asks whether the words leading
+  // up to the value contain one, not whether they end with one.
   const announced = (v) => {
     const at = body.indexOf(v);
-    return at > 0 && /\b(id|ids|identificador|refer[eê]ncia|ref)\b[^a-z0-9]{0,4}$/i.test(body.slice(Math.max(0, at - 40), at));
+    return at > 0 && /\b(id|ids|identificador|refer[eê]ncia|ref)\b/i.test(body.slice(Math.max(0, at - 60), at));
   };
   const rawId = [
     ...paired.filter((f) => UUID.test(f.value) && !/\b(id|identificador|refer[eê]ncia)\b/i.test(f.label)),
