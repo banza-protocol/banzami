@@ -303,73 +303,139 @@ async function fillAndSubmitApplication(page, ctx) {
     if (tag === 'select') await el.selectOption({ label: value }).catch(async () => { await el.selectOption(value).catch(() => {}); });
     else await el.fill(value);
   };
-  const firstOption = async (sel) => {
+  /**
+   * Choose the first REAL option of a select — by index, not by label. Matching
+   * on the visible text is what silently does nothing when a label carries an
+   * ellipsis or a non-breaking space, and a select left on its "Selecione…"
+   * placeholder fails validation with no visible cause.
+   */
+  const chooseFirst = async (sel) => {
     const el = page.locator(sel).first();
     if ((await el.count()) === 0) return null;
-    const opts = await el.locator('option').allTextContents();
-    return opts.find((o) => o && !/^—|^Selecion|^$/i.test(o.trim())) ?? null;
+    if (await el.isDisabled().catch(() => false)) return null;
+    const values = await el.locator('option').evaluateAll((os) => os.map((o) => o.value));
+    const real = values.find((v) => v && v.trim());
+    if (!real) return null;
+    await el.selectOption(real);
+    const got = await el.inputValue();
+    if (got !== real) throw new Error(`${sel} would not take a value (wanted ${real}, reads "${got}")`);
+    return got;
   };
-  const cont = async () => { await page.getByRole('button', { name: 'Continuar' }).first().click(); await settle(page, 700); };
+  // Which wizard step the form is showing, from the product's own indicator.
+  const currentStep = async () => {
+    const t = norm(await page.locator('[data-testid="business-application"] li[aria-current="step"]').first().innerText().catch(() => ''));
+    const m = t.match(/^(\d+)\./);
+    return m ? Number(m[1]) - 1 : -1;
+  };
+  /**
+   * Advance one wizard step, and REFUSE to continue silently if it did not move.
+   *
+   * The form validates per step and simply stays put when a field is wrong, so a
+   * blind click sequence ends on step 1 and reports "not submitted" with nothing
+   * to act on. This says which field, in the product's own words.
+   */
+  const cont = async (label = '') => {
+    const from = await currentStep();
+    await page.getByRole('button', { name: 'Continuar' }).first().click();
+    await settle(page, 900);
+    const to = await currentStep();
+    if (to > from) return;
+    const invalid = await page.locator('[data-testid="business-application"] [aria-invalid="true"]').evaluateAll(
+      (els) => els.map((e) => e.id || e.getAttribute('name') || e.tagName.toLowerCase()),
+    ).catch(() => []);
+    const messages = (await page.locator('[data-testid="business-application"] p').allInnerTexts().catch(() => []))
+      .map(norm).filter((t) => /obrigat|inválid|Escolha|Tem de|indispon|verificar/i.test(t));
+    throw new Error(
+      `the application form would not leave step ${from + 1}${label ? ` (${label})` : ''}: `
+      + `invalid=[${invalid.join(', ')}] said=[${[...new Set(messages)].slice(0, 4).join(' | ')}]`,
+    );
+  };
 
   // 1 — Negócio
   const BUSINESS_NAME = `Acceptance ${TAG}`;
   await setIf('#fo-business-name', BUSINESS_NAME);
   await setIf('#fo-nif', '5417' + STAMP.slice(-6));
-  const cat = await firstOption('#fo-category');
-  if (cat) await setIf('#fo-category', cat);
-  await settle(page, 400);
-  const sub = await firstOption('#fo-subcategory');
-  if (sub) await setIf('#fo-subcategory', sub);
+  await chooseFirst('#fo-category');
+  await settle(page, 500);
+  await chooseFirst('#fo-subcategory');
   await setIf('#fo-category-other', 'Serviços digitais');
   await setIf('#fo-business-activity', 'Integração de pagamentos para aceitação do Banzami Public Sandbox.');
-  const vol = await firstOption('#fo-estimated-volume');
-  if (vol) await setIf('#fo-estimated-volume', vol);
+  await chooseFirst('#fo-estimated-volume');
   await setIf('#fo-email', `negocio-${TAG}@banzami-e2e.test`);
   await setIf('#fo-phone', '923456789');
-  const prov = await firstOption('#fo-province');
-  if (prov) await setIf('#fo-province', prov);
-  await settle(page, 400);
-  const mun = await firstOption('#fo-municipality');
-  if (mun) await setIf('#fo-municipality', mun);
+  await chooseFirst('#fo-province');
+  await settle(page, 600);
+  await chooseFirst('#fo-municipality');
   await setIf('#fo-city', 'Maianga');
   await setIf('#fo-address', 'Rua da Missão 12');
   await setIf('#fo-address-reference', 'Junto ao Largo');
-  await cont();
+  await cont('Negócio');
 
   // 2 — Responsável
   await setIf('#fo-legal-representative', OWNER_NAME);
-  const role = await firstOption('#fo-representative-role');
-  if (role) await setIf('#fo-representative-role', role);
+  await chooseFirst('#fo-representative-role');
   await setIf('#fo-representative-email', EMAIL_OWNER);
   await setIf('#fo-representative-phone', '923456780');
-  await cont();
+  await cont('Responsável');
 
   // 3 — Documentos, uploaded by the Console through its own signed-URL path.
   await page.locator('#fo-doc-business_registration').setInputFiles(pdf).catch(() => {});
   await page.locator('#fo-doc-representative_id').setInputFiles(idDoc).catch(() => {});
   await settle(page, 1500);
-  await cont();
+  await cont('Documentos');
 
   // 4 — @banza, checked for availability by the product itself.
   const HANDLE = `acc${STAMP}`.slice(0, 30);
   await setIf('#fo-desired-handle', HANDLE);
-  // Give the availability check time to answer before moving on.
-  await settle(page, 2500);
-  await cont();
+  // The form will not advance while the availability check is still running or
+  // has come back taken — the handle field stays invalid. Wait for the product's
+  // own answer instead of guessing at a delay.
+  for (let i = 0; i < 20; i++) {
+    await settle(page, 700);
+    const t = await bodyText(page);
+    if (t.includes(`@${HANDLE} está disponível`)) break;
+    if (/já está em uso|indisponível/i.test(t)) throw new Error(`the @banza ${HANDLE} was refused as unavailable`);
+  }
+  await cont('@banza');
 
   // 5 — Revisão: accept the terms and send for verification.
   const terms = page.locator('#fo-terms');
-  if ((await terms.count()) > 0) await terms.check().catch(async () => { await terms.click().catch(() => {}); });
+  if ((await terms.count()) > 0) {
+    await terms.check().catch(async () => { await terms.click().catch(() => {}); });
+    if (!(await terms.isChecked().catch(() => false))) throw new Error('the terms box would not tick');
+  }
+  const lastStep = await currentStep();
   await page.getByRole('button', { name: /Enviar para verifica/ }).first().click();
-  await settle(page, 4000);
+  await settle(page, 5000);
+
+  // submit() re-validates EVERY step and, on the first invalid one, silently
+  // jumps back to it and returns. A run that does not notice reports "not
+  // submitted" with nothing to act on, so notice.
+  const landed = await currentStep();
+  if (landed !== lastStep && landed >= 0) {
+    const invalid = await page.locator('[data-testid="business-application"] [aria-invalid="true"]').evaluateAll(
+      (els) => els.map((e) => e.id || e.getAttribute('name') || e.tagName.toLowerCase()),
+    ).catch(() => []);
+    const messages = (await page.locator('[data-testid="business-application"] p').allInnerTexts().catch(() => []))
+      .map(norm).filter((t) => /obrigat|inválid|Escolha|Tem de|indispon|Indique|Selecione|Descreva/i.test(t));
+    return {
+      ok: false,
+      observed: `the form bounced back from Revisão to step ${landed + 1}: invalid=[${invalid.join(', ')}] `
+        + `said=[${[...new Set(messages)].slice(0, 4).join(' | ')}]`,
+    };
+  }
 
   const r = await ctx.request.get(`${API}/projects/${J.projectId}/financial-setup`, { headers: { Origin: CONSOLE } });
   const fs = r.ok() ? await r.json() : {};
   const reference = fs.application?.reference ?? fs.application?.id ?? null;
   const inReview = ['IN_REVIEW', 'APPROVED_PROVISIONING', 'READY', 'SEALED', 'INFORMATION_REQUIRED'].includes(fs.state);
   if (!inReview) {
-    const err = norm(await page.locator('[data-testid="business-application"] p[role="alert"]').first().innerText().catch(() => ''));
-    return { ok: false, observed: `application not submitted — state=${fs.state}${err ? `, the form said "${err}"` : ''}` };
+    const alerts = (await page.locator('[data-testid="business-application"] [role="alert"], [data-testid="business-application"] p').allInnerTexts().catch(() => []))
+      .map(norm).filter(Boolean).filter((t) => t.length > 8).slice(0, 6);
+    return {
+      ok: false,
+      observed: `application not submitted — financial setup still ${fs.state}; the form said: ${alerts.join(' | ') || '(nothing)'}`,
+    };
   }
   J._applicationRef = reference;
   J._applicationBusiness = { name: BUSINESS_NAME, handle: HANDLE };
