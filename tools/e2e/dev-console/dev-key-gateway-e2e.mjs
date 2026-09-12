@@ -74,14 +74,38 @@ try {
   {
     const r = await fetch(`${GW}/v1/me`, { headers: { Authorization: `Bearer ${kA.secret}` } });
     const body = await r.json().catch(() => ({}));
-    projectSlugA = body.project;
-    const okCtx = r.status === 200 && body.environment === 'SANDBOX' && typeof body.project === 'string' && body.project.length > 0 && body.key_status === 'active' && Array.isArray(body.scopes) && body.scopes.includes('identity:read');
-    rec('RT02.gateway-accepts-console-key', okCtx, `/v1/me → ${r.status}, project=${body.project}, status=${body.key_status}`);
-    rec('RT02.resolves-project-safe-identity', typeof body.project === 'string' && body.project.length > 0);
-    // Hardened contract: MUST NOT leak internal Core/DB ids, workspace, key uuid, PII, topology.
+    // `project` is an OBJECT — {id, name, ref} — and its id is the Project's own,
+    // deliberately. This used to require a bare string and to treat any UUID in
+    // the body as a leak, which was right while `project` was a slug.
+    //
+    // The slug is what a developer typed and can retype; a derived id matched
+    // nothing they could see anywhere else. Neither let an integration check
+    // WHICH Project its key belongs to. The Project's id is stable across
+    // renames, is what the Console addresses it by, and is the developer's to
+    // know — so returning it to the holder of that Project's own key discloses
+    // nothing they do not already have.
+    //
+    // The rule that still bites is about everything BEHIND the Project: the
+    // workspace, the key's own id, and the financial owner, wallet and account
+    // its binding resolves to. Those are the operator's. Asserted by name, so a
+    // future field cannot arrive unnoticed.
+    projectSlugA = body.project?.id;
+    const okCtx = r.status === 200 && body.environment === 'SANDBOX'
+      && body.project && typeof body.project.id === 'string' && body.project.id.length > 0
+      && typeof body.project.ref === 'string' && body.project.ref.length > 0
+      && body.key_status === 'active' && Array.isArray(body.scopes) && body.scopes.includes('identity:read');
+    rec('RT02.gateway-accepts-console-key', okCtx, `/v1/me → ${r.status}, project.ref=${body.project?.ref}, status=${body.key_status}`);
+    rec('RT02.resolves-project-safe-identity',
+      typeof body.project?.id === 'string' && typeof body.project?.name === 'string' && typeof body.project?.ref === 'string',
+      'project carries {id, name, ref}');
     const txt = JSON.stringify(body);
-    const leaks = /workspace_id|project_id|key_id|"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}/i.test(txt);
-    rec('RT02.me-no-internal-ids-leak', !leaks, leaks ? `LEAK: ${txt}` : 'only {environment, project, scopes, key_status}');
+    // Nothing behind the Project, and nothing outside the documented shape.
+    const behind = /workspace|key_id|merchant|wallet|account|binding|secret/i.test(txt);
+    const extraKeys = Object.keys(body).filter((k) => !['environment', 'project', 'scopes', 'key_status'].includes(k));
+    const extraProjectKeys = Object.keys(body.project ?? {}).filter((k) => !['id', 'name', 'ref'].includes(k));
+    const leaks = behind || extraKeys.length > 0 || extraProjectKeys.length > 0;
+    rec('RT02.me-names-nothing-behind-the-project', !leaks,
+      leaks ? `LEAK: behind=${behind} extra=${[...extraKeys, ...extraProjectKeys].join(',')}` : 'only {environment, project{id,name,ref}, scopes, key_status}');
     rec('RT02.no-raw-secret-in-response', !txt.includes(kA.secret || 'zzz'));
   }
   // list cannot recover raw secret
@@ -108,7 +132,9 @@ try {
   // A's key still only resolves to A's own project identity (never B's)
   {
     const body = await (await fetch(`${GW}/v1/me`, { headers: { Authorization: `Bearer ${kA.secret}` } })).json().catch(() => ({}));
-    rec('RT02.key-A-resolves-only-to-own-identity', body.project === projectSlugA && typeof body.project === 'string');
+    rec('RT02.key-A-resolves-only-to-own-identity',
+      body.project?.id === projectSlugA && typeof body.project?.id === 'string',
+      `project.id stable across calls`);
   }
 
   // ── Privileged/credential-substitution denials ─────────────────────────────
