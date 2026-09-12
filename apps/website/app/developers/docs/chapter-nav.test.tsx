@@ -29,7 +29,7 @@ const navOf = (name: RegExp) => screen.getByRole('navigation', { name });
 describe('Chapter navigation — PT', () => {
   it('order matches the canonical AREAS_PT sequence', () => {
     expect(AREAS_PT.map((a) => a.label)).toEqual([
-      'Início', 'Começar', 'SDKs', 'Guias', 'Referência API', 'Testar no Sandbox', 'Segurança', 'Artefactos', 'Changelog', 'Glossário',
+      'Início', 'Começar', 'A Consola', 'SDKs', 'Guias', 'Implementação de referência', 'Referência API', 'Testar no Sandbox', 'Segurança', 'Artefactos', 'Changelog', 'Glossário',
     ]);
   });
   it('home (first) shows only Próximo capítulo → Começar', () => {
@@ -41,15 +41,15 @@ describe('Chapter navigation — PT', () => {
     expect(nextLink.getAttribute('href')).toBe('/docs/get-started');
     expect(within(nextLink).getByText('Começar')).toBeTruthy();
   });
-  it('sdk (middle) shows prev → Começar and next → Guias', () => {
+  it('sdk (middle) shows prev → A Consola and next → Guias', () => {
     render(<PtSdkPage />);
     const nav = navOf(/Navegação de capítulos/i);
     expect(within(nav).getByText(/Capítulo anterior/)).toBeTruthy();
     expect(within(nav).getByText(/Próximo capítulo/)).toBeTruthy();
     const links = within(nav).getAllByRole('link');
     expect(links).toHaveLength(2);
-    expect(links[0].getAttribute('href')).toBe('/docs/get-started');
-    expect(within(links[0]).getByText('Começar')).toBeTruthy();
+    expect(links[0].getAttribute('href')).toBe('/docs/console');
+    expect(within(links[0]).getByText('A Consola')).toBeTruthy();
     expect(links[1].getAttribute('href')).toBe('/docs/guides');
     expect(within(links[1]).getByText('Guias')).toBeTruthy();
   });
@@ -67,7 +67,7 @@ describe('Chapter navigation — PT', () => {
 describe('Chapter navigation — EN', () => {
   it('order matches the canonical AREAS_EN sequence and mirrors PT by index', () => {
     expect(AREAS_EN.map((a) => a.label)).toEqual([
-      'Home', 'Get started', 'SDKs', 'Guides', 'API Reference', 'Sandbox testing', 'Security', 'Artifacts', 'Changelog', 'Glossary',
+      'Home', 'Get started', 'The Console', 'SDKs', 'Guides', 'Reference implementation', 'API Reference', 'Sandbox testing', 'Security', 'Artifacts', 'Changelog', 'Glossary',
     ]);
     expect(AREAS_EN.map((a) => a.slug)).toEqual(AREAS_PT.map((a) => a.slug));
   });
@@ -79,12 +79,13 @@ describe('Chapter navigation — EN', () => {
     expect(nextLink.getAttribute('href')).toBe('/docs/en/get-started');
     expect(within(nextLink).getByText('Get started')).toBeTruthy();
   });
-  it('sdk (middle) shows prev → Get started and next → Guides', () => {
+  it('sdk (middle) shows prev → The Console and next → Guides', () => {
     render(<EnSdkPage />);
     const nav = navOf(/Chapter navigation/i);
     const links = within(nav).getAllByRole('link');
     expect(links).toHaveLength(2);
-    expect(links[0].getAttribute('href')).toBe('/docs/en/get-started');
+    expect(links[0].getAttribute('href')).toBe('/docs/en/console');
+    expect(within(links[0]).getByText('The Console')).toBeTruthy();
     expect(links[1].getAttribute('href')).toBe('/docs/en/guides');
     expect(within(links[1]).getByText('Guides')).toBeTruthy();
   });

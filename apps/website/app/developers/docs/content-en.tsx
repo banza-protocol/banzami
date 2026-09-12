@@ -357,6 +357,155 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
   );
 }
 
+export function EnConsole({ copy }: { copy: CopyFn }) {
+  return (
+    <>
+<Section id="console">
+              <H2>The Console</H2>
+              <PageLede>Everything that exists at <Code>developers.banzami.com</Code>, screen by screen — and what each thing means before you use it.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/get-started', text: 'Quickstart' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/trust', text: 'Security' }]} />
+
+              <H3 id="model">The model, before the screens</H3>
+              <P>
+                Four things, nested inside one another. Worth reading once, because nearly every
+                integration mistake is one of these four mistaken for another.
+              </P>
+              <CodeBlock label="model" onCopy={copy} raw={`Person (email + code)
+  └── is a member of ──▶ Workspace        ← who has access to what
+                           └── contains ──▶ Project          ← the unit of integration
+                                              ├── Financial Setup ──▶ Business   ← who receives the money
+                                              │                         └── Wallet ──▶ Accounts
+                                              ├── API keys                       ← how your app authenticates
+                                              └── Webhook endpoints              ← where events go`} />
+              <UL>
+                <LI><strong>Person ≠ Workspace.</strong> A person belongs to several workspaces; a workspace has several members.</LI>
+                <LI><strong>Workspace ≠ Project.</strong> The workspace is the access boundary. The project is the <em>integration</em> boundary: keys, webhooks and logs belong to the project.</LI>
+                <LI><strong>Project ≠ Business.</strong> The project is your application. The Business is the legal entity that receives the money. Financial Setup connects them, and a project without that connection can do everything except get paid.</LI>
+                <LI><strong>Business ≠ wallet account.</strong> The Business has a wallet; the wallet has segregated accounts. Accounts are where value separates by campaign, store or event.</LI>
+              </UL>
+              <Callout>
+                <strong>Authority flows down, never up.</strong> Your key identifies the Project;
+                the Project determines the Business; the Business determines the wallet and its
+                accounts. No field in your request picks the owner — the ids you send{' '}
+                <em>select</em> resources within what is already yours, they never grant access to
+                anything else.
+              </Callout>
+
+              <H3 id="account">Account</H3>
+              <P>
+                Your personal profile, at <Code>/conta</Code>. You sign in with an email and a
+                six-digit code: there is no password to choose, forget or reuse.
+              </P>
+              <UL>
+                <LI><strong>Profile</strong> — the name people who share a workspace with you see. The email is your identifier and is not editable.</LI>
+                <LI><strong>Security</strong> — describes the real model: a code by email, a session in a cookie. There are no password or MFA controls because neither exists.</LI>
+                <LI><strong>Sessions</strong> — your open sessions, with origin and last use, and a button to end all the others. This is the screen for the day you lose a laptop.</LI>
+                <LI><strong>Sign out</strong> — asks for confirmation. Cancel keeps the session; confirming ends it, and the browser back button does not bring it back.</LI>
+              </UL>
+
+              <H3 id="workspace">Workspaces, members and roles</H3>
+              <P>
+                A workspace is <em>who</em> has access. Creating one is immediate and involves
+                nobody at Banzami.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Role</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Can</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Owner', 'Everything, including inviting, changing roles, archiving and deleting. The last owner cannot leave — there is no workspace without one.'],
+                      ['Admin', 'Manage members, projects and keys. Cannot remove an owner.'],
+                      ['Developer', 'Create and manage projects, keys and webhooks. Does not manage members.'],
+                      ['Finance', 'See balances, transactions and settlements. Does not issue keys.'],
+                      ['Viewer', 'Read. Nothing else.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700 }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>Inviting</strong> produces a link the Console copies for you. Whoever accepts it signs in with their own email and their own code — the invitation names the role, not the person.</LI>
+                <LI><strong>Archiving</strong> a workspace is refused while it still has active projects, and the refusal says how many. Archive those first.</LI>
+                <LI><strong>Deleting</strong> is only possible when the workspace is genuinely empty. A workspace with history is archived; one that never held anything disappears.</LI>
+              </UL>
+
+              <H3 id="project">Projects</H3>
+              <P>
+                The project is the unit of integration: one application, one set of keys, its
+                webhooks and its logs. One application, one project.
+              </P>
+              <UL>
+                <LI><strong>The Project ID does not change.</strong> Renaming changes the label and nothing else — the id you wrote into your configuration stays valid.</LI>
+                <LI><strong>Deleting</strong> is possible while the project has no history at all: no key ever issued, no request logged, no financial connection. The Console says what is in the way.</LI>
+                <LI><strong>Archiving</strong> is what you do to a project that <em>had</em> history. Archiving revokes the active keys and says how many — and from then on a call with any of them answers <Code>401</Code>.</LI>
+                <LI>An archived project leaves the selector and returns behind &ldquo;Show archived&rdquo;, marked as archived.</LI>
+              </UL>
+
+              <H3 id="financial-setup">Financial Setup</H3>
+              <P>
+                This is where a project gains a financial owner. Without it everything works —
+                keys, webhooks, integration — <strong>except receiving money</strong>. That split
+                is deliberate: you can build and test the whole integration before there is a
+                verified legal entity behind it.
+              </P>
+              <P>There are two paths, and they are genuinely different:</P>
+              <UL>
+                <LI><strong>A new Business.</strong> You submit an application — entity, representative, documents — and Banzami verifies it. It is a human decision, and it takes as long as it takes.</LI>
+                <LI><strong>An existing Business.</strong> If the entity is already verified with Banzami, its owner issues you a <strong>consent code</strong>. Paste it, and the project connects to that Business without repeating the verification. The code is single-use: connecting consumes it.</LI>
+              </UL>
+              <P>
+                The state is readable over the API at <Code>GET /v1/financial-setup</Code>, so your
+                application knows what to show while it is not ready.
+              </P>
+              <Callout tone="warn">
+                The fee is not yours to choose. Banzami assigns pricing to the Business; no field
+                in your request selects it, and no path through the Console changes it.
+              </Callout>
+
+              <H3 id="keys">API keys</H3>
+              <UL>
+                <LI><strong>Scopes</strong> are chosen at creation and do not change. A read-only key will never write.</LI>
+                <LI>The secret appears <strong>exactly once</strong>, in the creation dialog, with a copy button. After that the list shows the prefix and a mask.</LI>
+                <LI><strong>Rotating</strong> creates the successor and revokes the predecessor in the same step — there is no window without a valid credential.</LI>
+                <LI><strong>Revoking</strong> is immediate: the next call with that key answers <Code>401</Code>.</LI>
+                <LI>The list shows <strong>last use</strong>, which is how you find the key nobody uses any more.</LI>
+              </UL>
+              <P>
+                Where to keep the key and what never to do with it is in{' '}
+                <a href="/docs/en/trust" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Security</a>.
+              </P>
+
+              <H3 id="console-webhooks">Webhooks</H3>
+              <UL>
+                <LI><strong>Registering</strong> an HTTPS endpoint returns the signing secret exactly once.</LI>
+                <LI><strong>Events</strong> lists what your project emitted; opening one shows its deliveries, with status and response code.</LI>
+                <LI><strong>Redelivering</strong> repeats the same delivery — it is that delivery again, not a new one.</LI>
+                <LI><strong>Rotating the secret</strong> issues a new one, revealed once; the endpoint stays.</LI>
+                <LI><strong>Disabling</strong> stops deliveries without deleting the endpoint or its history.</LI>
+              </UL>
+
+              <H3 id="logs">Balances, transactions and logs</H3>
+              <UL>
+                <LI><strong>Balances</strong> shows the accounts of the owner your project is bound to, and what is in each.</LI>
+                <LI><strong>Transactions</strong> shows the project&rsquo;s real movement — not a sample, not an example.</LI>
+                <LI><strong>Logs</strong> lists the requests your key made to the API, with <Code>request_id</Code>. It is the first place to open when something answered what you did not expect.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                No Console page renders illustrative data. If a list is empty it is because there
+                is nothing in it — not because the screen has not been wired up yet.
+              </P>
+            </Section>
+    </>
+  );
+}
+
 export function EnGuides({ copy }: { copy: CopyFn }) {
   return (
     <>
@@ -475,6 +624,189 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 in the current Sandbox are listed; nothing outside it is a contractual event name. Payment confirmation and
                 settlement are <strong>distinct</strong> events with distinct business effects: <Code>payment_session.paid</Code>{' '}
                 confirms the payment; <Code>application_settlement.completed</Code> concludes the settlement.
+              </P>
+            </Section>
+    </>
+  );
+}
+
+export function EnDoa({ copy }: { copy: CopyFn }) {
+  return (
+    <>
+<Section id="doa">
+              <H2>Reference implementation — DOA</H2>
+              <PageLede>A real application, running, integrating Banzami through exactly the public contracts in this documentation.</PageLede>
+              <NextSteps label="Next:" links={[{ href: '/docs/en/console', text: 'The Console' }, { href: '/docs/en/guides', text: 'Guides' }, { href: '/docs/en/reference', text: 'API Reference' }]} />
+
+              <H3 id="doa-what">What DOA is, and why it is here</H3>
+              <P>
+                <a href="https://www.doadoa.app" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>DOA</a>{' '}
+                is an Angolan crowdfunding platform. Someone creates a campaign, shares a link or
+                a QR, and anyone who wants to donates in Kwanza. It is a real application, with
+                real donors, running on the Banzami Sandbox.
+              </P>
+              <Callout>
+                <strong>DOA is not a special tenant.</strong> It has no endpoints of its own, no
+                scopes of its own, and no code path that names it. It does exactly what any
+                integration does, with the same contracts that are in this documentation — which
+                is precisely what makes it useful as an example. If anything here only worked for
+                DOA, it would not be documented.
+              </Callout>
+
+              <H3 id="doa-boundary">The boundary: what is yours, and what is Banzami&rsquo;s</H3>
+              <P>
+                This is the most important decision in any integration, and the easiest to get
+                wrong in the expensive direction: reimplementing money.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>DOA owns</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Banzami owns</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Campaigns: creating, editing, closing', 'The money: balances, accounts, the ledger'],
+                      ['The donor experience', 'Payment execution'],
+                      ['Campaign state (active, closed, settled)', 'Pricing and the fee'],
+                      ['Who can manage what, on DOA’s side', 'Receipts and their public verification'],
+                      ['The application’s business logic', 'Settlement to the beneficiary'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 600 }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>
+                DOA never stores a balance of its own. When it needs to know what a campaign has
+                received, it asks Banzami — because the alternative is two numbers that one day
+                diverge, and on that day one of them is wrong and nobody knows which.
+              </P>
+
+              <H3 id="doa-flow">The whole journey</H3>
+              <CodeBlock label="flow" onCopy={copy} raw={`Donor
+  │
+  ├─▶ DOA: picks a campaign, enters an amount          (DOA business logic)
+  │
+  ├─▶ Banzami: payment session created                 POST /v1/payment-sessions
+  │            link + QR returned                      GET  /v1/payment-sessions/{id}/link · /qr
+  │
+  ├─▶ Donor pays                                       (Banzami surface)
+  │
+  ├─▶ Banzami: money moves, financial truth recorded
+  │
+  ├─▶ webhook  payment_session.paid  ──▶ DOA           (signed, at-least-once)
+  │            DOA verifies the signature, processes idempotently,
+  │            marks the donation confirmed             (DOA state)
+  │
+  ├─▶ DOA: campaign closes                             (DOA's decision)
+  │
+  └─▶ Banzami: settlement                              POST /v1/application-settlements
+               gross read from Banzami, fee to DOA,
+               net to the beneficiary
+               webhook application_settlement.completed ──▶ DOA`} />
+
+              <H3 id="doa-accounts">One account per campaign</H3>
+              <P>
+                Every DOA campaign has its own segregated account under DOA&rsquo;s wallet. That is
+                why a campaign&rsquo;s balance is a question with an answer, rather than a running
+                total the application has to maintain.
+              </P>
+              <CodeBlock label="account per campaign" onCopy={copy} raw={`// When the campaign is activated, DOA opens the account that will receive it.
+const account = await banzami.walletAccounts.create({
+  purpose:        'CAMPAIGN',
+  reference_type: 'CAMPAIGN',
+  reference_id:   campaign.id,      // YOUR reference, not ours
+  label:          campaign.title,
+});
+
+// Keep the id. It is how settlement knows where to take the money from.
+await db.campaigns.update(campaign.id, { banzami_wallet_account_id: account.id });`} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                <Code>reference_type</Code> and <Code>reference_id</Code> are yours: Banzami stores
+                them and hands them back, and never interprets them. That is how your table joins
+                to ours without either needing to know about the other.
+              </P>
+
+              <H3 id="doa-webhook">The webhook, the way DOA handles it</H3>
+              <CodeBlock label="webhook" onCopy={copy} raw={`export async function POST(req) {
+  // 1. The RAW body. Re-serialising the JSON changes the bytes,
+  //    and the signature stops matching.
+  const raw = await req.text();
+
+  // 2. Verify BEFORE looking at the contents.
+  try {
+    banzami.webhooks.verify(raw, req.headers.get('banza-signature'), process.env.BANZAMI_WEBHOOK_SECRET);
+  } catch {
+    return new Response('invalid signature', { status: 400 });
+  }
+
+  const event = JSON.parse(raw);
+
+  // 3. Idempotent on the event id. Delivery is at-least-once:
+  //    this same event WILL arrive again, sooner or later.
+  if (await db.events.seen(event.id)) return new Response('ok');
+  await db.events.record(event.id);
+
+  // 4. Only now the business effect.
+  if (event.type === 'payment_session.paid') {
+    await confirmDonation(event.data.reference);
+  }
+
+  // 5. 2xx quickly. Slow work goes on a queue, not in here.
+  return new Response('ok');
+}`} />
+              <Callout tone="warn">
+                Steps 1 and 3 are the ones people forget. Without the raw body the signature fails
+                for a reason that looks like a Banzami bug; without deduplication on the event id,
+                an ordinary redelivery duplicates the donation.
+              </Callout>
+
+              <H3 id="doa-settlement">Settlement, and who decides what</H3>
+              <P>
+                When a campaign closes, DOA requests settlement of that campaign&rsquo;s account.
+                The request carries neither an amount nor a rate — and that is not an omission for
+                convenience, it is the design.
+              </P>
+              <CodeBlock label="settlement" onCopy={copy} raw={`const settlement = await banzami.applicationSettlements.create({
+  wallet_account_id: campaign.banzami_wallet_account_id,
+  beneficiary:       campaign.payout_banza,   // the @banza receiving it
+  owner_ref:         campaign.id,             // your reference, returned on the webhook
+});
+
+// What comes back is already the result, computed by Banzami:
+// {
+//   gross_amount_minor:         10000000,   // read from the account balance, not sent by you
+//   application_fee_minor:        200000,   // the pricing assigned to the Business (200 bps)
+//   net_amount_minor:            9800000,   // what goes to the beneficiary
+//   currency: "AOA", status: "COMPLETED"
+// }`} />
+              <P>
+                And the three parts sum to zero against the movement, which is the property that
+                makes this auditable: <Code>-10000000 + 200000 + 9800000 = 0</Code>.
+              </P>
+              <Callout>
+                <strong>A payment is not a settlement.</strong> A confirmed payment puts money in
+                the campaign&rsquo;s account. Settlement is a second act, requested by you, that
+                takes the money out. DOA requests it after the campaign closes — it does not
+                happen on its own.
+              </Callout>
+
+              <H3 id="doa-lessons">What DOA learned along the way</H3>
+              <UL>
+                <LI><strong>Never duplicate a balance.</strong> DOA shows what Banzami says. Two numbers that ought to be equal end up not being, and then someone has to decide which one is true.</LI>
+                <LI><strong>Keep the <Code>request_id</Code> of everything.</strong> It is the first thing support asks for and the last thing anyone thinks to log.</LI>
+                <LI><strong>One account per campaign, from the start.</strong> Separating value after it has been mixed is far harder than never mixing it.</LI>
+                <LI><strong>Campaign state is DOA&rsquo;s; money state is Banzami&rsquo;s.</strong> A closed campaign with a pending settlement is a normal state, and the application has to know how to show it.</LI>
+                <LI><strong>Financial readiness is a condition, not an error.</strong> Before Financial Setup is complete DOA lets you create campaigns and not activate them — rather than allowing everything and failing at the payment.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                The examples above are minimal and sanitised: fictitious identifiers, no keys, no
+                secrets and no internal ids. What they teach is the recommended pattern, not the
+                story of how DOA got there.
               </P>
             </Section>
     </>

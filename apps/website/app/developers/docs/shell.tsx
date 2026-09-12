@@ -14,8 +14,10 @@ export type CopyFn = (text: string, label: string) => void;
 export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
   { slug: '', label: 'Início', desc: 'Página inicial da documentação.' },
   { slug: 'get-started', label: 'Começar', desc: 'Visão geral, estado atual e quickstart.' },
+  { slug: 'console', label: 'A Consola', desc: 'Conta, workspaces, projetos, configuração financeira, chaves, webhooks e registos.' },
   { slug: 'sdk', label: 'SDKs', desc: 'Modelo SDK-first, pacotes publicados e onboarding.' },
   { slug: 'guides', label: 'Guias', desc: 'Cobranças, transferências, reembolsos e webhooks.' },
+  { slug: 'doa', label: 'Implementação de referência', desc: 'O DOA — uma aplicação real integrada pelos contratos públicos.' },
   { slug: 'reference', label: 'Referência API', desc: 'Credenciais, endpoints, erros e idempotência.' },
   { slug: 'testing', label: 'Testar no Sandbox', desc: 'O que o Sandbox é, validação e limites.' },
   { slug: 'trust', label: 'Segurança', desc: 'Credenciais, segredos de webhook, e o que o Sandbox garante.' },
@@ -27,8 +29,10 @@ export const AREAS_PT: { slug: string; label: string; desc: string }[] = [
 export const AREAS_EN: { slug: string; label: string; desc: string }[] = [
   { slug: '', label: 'Home', desc: 'Documentation home page.' },
   { slug: 'get-started', label: 'Get started', desc: 'Overview, current status and quickstart.' },
+  { slug: 'console', label: 'The Console', desc: 'Account, workspaces, projects, financial setup, keys, webhooks and logs.' },
   { slug: 'sdk', label: 'SDKs', desc: 'SDK-first model, published packages, and what each SDK handles.' },
   { slug: 'guides', label: 'Guides', desc: 'Payments, webhooks and task guides.' },
+  { slug: 'doa', label: 'Reference implementation', desc: 'DOA — a real application integrated through the public contracts.' },
   { slug: 'reference', label: 'API Reference', desc: 'Credentials, endpoints, errors and idempotency.' },
   { slug: 'testing', label: 'Sandbox testing', desc: 'What Sandbox means, validation and limits.' },
   { slug: 'trust', label: 'Security', desc: 'Credentials, webhook secrets, and what the Sandbox guarantees.' },

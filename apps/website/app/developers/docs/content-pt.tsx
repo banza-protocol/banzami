@@ -571,6 +571,154 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
   );
 }
 
+export function PtConsole({ copy }: { copy: CopyFn }) {
+  return (
+    <>
+<Section id="console">
+              <H2>A Consola</H2>
+              <PageLede>Tudo o que existe em <Code>developers.banzami.com</Code>, ecrã a ecrã — e o que cada coisa significa antes de a usar.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/get-started', text: 'Quickstart' }, { href: '/docs/guides', text: 'Guias' }, { href: '/docs/trust', text: 'Segurança' }]} />
+
+              <H3 id="modelo">O modelo, antes dos ecrãs</H3>
+              <P>
+                Quatro coisas, encaixadas umas nas outras. Vale a pena ler isto uma vez, porque
+                quase todos os erros de integração são um destes quatro confundido com outro.
+              </P>
+              <CodeBlock label="modelo" onCopy={copy} raw={`Pessoa (email + código)
+  └── é membro de ──▶ Workspace          ← quem tem acesso a quê
+                        └── contém ──▶ Projeto           ← a unidade de integração
+                                         ├── Configuração financeira ──▶ Business   ← quem recebe o dinheiro
+                                         │                                 └── Carteira ──▶ Contas
+                                         ├── Chaves de API                ← como a sua app se autentica
+                                         └── Endpoints de webhook         ← para onde vão os eventos`} />
+              <UL>
+                <LI><strong>Pessoa ≠ Workspace.</strong> Uma pessoa é membro de vários workspaces; um workspace tem vários membros.</LI>
+                <LI><strong>Workspace ≠ Projeto.</strong> O workspace é a fronteira de acesso. O projeto é a fronteira de <em>integração</em>: chaves, webhooks e registos pertencem ao projeto.</LI>
+                <LI><strong>Projeto ≠ Business.</strong> O projeto é a sua aplicação. O Business é a entidade legal que recebe o dinheiro. Ligam-se pela Configuração financeira, e um projeto sem essa ligação pode fazer tudo menos receber.</LI>
+                <LI><strong>Business ≠ conta de carteira.</strong> O Business tem uma carteira; a carteira tem contas segregadas. É nas contas que o valor se separa por campanha, loja ou evento.</LI>
+              </UL>
+              <Callout>
+                <strong>A autoridade desce, nunca sobe.</strong> A sua chave identifica o Projeto; o
+                Projeto determina o Business; o Business determina a carteira e as contas. Nenhum
+                campo do seu pedido escolhe o titular — os ids que envia <em>seleccionam</em>
+                recursos dentro do que já lhe pertence, nunca lhe dão acesso a mais nada.
+              </Callout>
+
+              <H3 id="conta">Conta</H3>
+              <P>
+                O seu perfil pessoal, em <Code>/conta</Code>. Entra-se com email e um código de
+                seis dígitos: não há palavra-passe para escolher, esquecer ou reutilizar.
+              </P>
+              <UL>
+                <LI><strong>Perfil</strong> — o nome que aparece a quem partilha workspace consigo. O email é o seu identificador e não se edita.</LI>
+                <LI><strong>Segurança</strong> — descreve o modelo real: código por email, sessão em cookie. Não há controlos de palavra-passe nem de MFA porque não existe nem uma nem outra.</LI>
+                <LI><strong>Sessões</strong> — as sessões abertas, com origem e última utilização, e um botão para terminar todas as outras. É o que se usa quando se perde um portátil.</LI>
+                <LI><strong>Sair</strong> — pede confirmação. Cancelar mantém a sessão; confirmar termina-a e o botão «voltar» do browser não a traz de volta.</LI>
+              </UL>
+
+              <H3 id="workspace">Workspaces, membros e papéis</H3>
+              <P>
+                Um workspace é <em>quem</em> tem acesso. Criá-lo é imediato e não envolve ninguém
+                do Banzami.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Papel</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>Pode</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Owner (Proprietário)', 'Tudo, incluindo convidar, mudar papéis, arquivar e apagar. O último owner não pode sair — não há workspace sem dono.'],
+                      ['Admin', 'Gerir membros, projetos e chaves. Não pode remover um owner.'],
+                      ['Developer', 'Criar e gerir projetos, chaves e webhooks. Não gere membros.'],
+                      ['Finance (Financeiro)', 'Ver saldos, transações e liquidações. Não emite chaves.'],
+                      ['Viewer (Observador)', 'Ler. Nada mais.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700 }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <UL>
+                <LI><strong>Convidar</strong> gera um link que a Consola copia para si. Quem o aceita entra com o seu próprio email e o seu próprio código — o convite nomeia o papel, não a pessoa.</LI>
+                <LI><strong>Arquivar</strong> um workspace é recusado enquanto tiver projetos ativos, e a recusa diz quantos. Arquive-os primeiro.</LI>
+                <LI><strong>Apagar</strong> só é possível se o workspace estiver realmente vazio. Um workspace com história arquiva-se; um que nunca teve nada desaparece.</LI>
+              </UL>
+
+              <H3 id="projeto">Projetos</H3>
+              <P>
+                O projeto é a unidade de integração: uma aplicação, um conjunto de chaves, os seus
+                webhooks e os seus registos. Uma aplicação, um projeto.
+              </P>
+              <UL>
+                <LI><strong>O Project ID não muda.</strong> Renomear altera a etiqueta e mais nada — o id que escreveu na sua configuração continua válido.</LI>
+                <LI><strong>Apagar</strong> é possível enquanto o projeto não tiver história nenhuma: nenhuma chave alguma vez emitida, nenhum pedido registado, nenhuma ligação financeira. A Consola diz o que está no caminho.</LI>
+                <LI><strong>Arquivar</strong> é o que se faz a um projeto que <em>teve</em> história. Arquivar revoga as chaves ativas e diz quantas — e a partir daí uma chamada com qualquer uma delas responde <Code>401</Code>.</LI>
+                <LI>Um projeto arquivado sai do seletor e volta atrás de «Mostrar arquivados», marcado como arquivado.</LI>
+              </UL>
+
+              <H3 id="financeiro">Configuração financeira</H3>
+              <P>
+                É aqui que um projeto ganha um titular financeiro. Sem isto, tudo funciona —
+                chaves, webhooks, integração — <strong>excepto receber dinheiro</strong>. É uma
+                distinção deliberada: pode construir e testar a integração inteira antes de haver
+                uma entidade legal verificada por trás dela.
+              </P>
+              <P>Há dois caminhos, e são genuinamente diferentes:</P>
+              <UL>
+                <LI><strong>Business novo.</strong> Submete uma candidatura — entidade, representante, documentos — e o Banzami verifica-a. É uma decisão humana, e demora o que demora.</LI>
+                <LI><strong>Business existente.</strong> Se a entidade já está verificada no Banzami, o dono dela emite-lhe um <strong>código de consentimento</strong>. Cola-o, e o projeto liga-se a esse Business sem repetir a verificação. O código é de uso único: ligar consome-o.</LI>
+              </UL>
+              <P>
+                O estado é legível por API em <Code>GET /v1/financial-setup</Code>, para que a sua
+                aplicação saiba o que mostrar enquanto não está pronta.
+              </P>
+              <Callout tone="warn">
+                A taxa não é escolhida por si. O Banzami atribui o preço ao Business; nenhum campo
+                do seu pedido a seleciona, e nenhum caminho da Consola a altera.
+              </Callout>
+
+              <H3 id="chaves">Chaves de API</H3>
+              <UL>
+                <LI>Os <strong>scopes</strong> escolhem-se na criação e não mudam. Uma chave só de leitura nunca poderá escrever.</LI>
+                <LI>O segredo aparece <strong>uma única vez</strong>, no diálogo de criação, com um botão para copiar. Depois disso a lista mostra o prefixo e uma máscara.</LI>
+                <LI><strong>Rodar</strong> cria a sucessora e revoga a anterior no mesmo passo — não há intervalo sem credencial válida.</LI>
+                <LI><strong>Revogar</strong> é imediato: a chamada seguinte com essa chave responde <Code>401</Code>.</LI>
+                <LI>A lista mostra a <strong>última utilização</strong>, que é como se descobre qual já ninguém usa.</LI>
+              </UL>
+              <P>
+                Onde guardar a chave e o que nunca fazer com ela está em{' '}
+                <a href="/docs/trust" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Segurança</a>.
+              </P>
+
+              <H3 id="webhooks-console">Webhooks</H3>
+              <UL>
+                <LI><strong>Registar</strong> um endpoint HTTPS devolve o segredo de assinatura uma única vez.</LI>
+                <LI><strong>Eventos</strong> lista o que o seu projeto emitiu; abrir um evento mostra as suas entregas, com estado e código de resposta.</LI>
+                <LI><strong>Reentregar</strong> repete a mesma entrega — é a mesma entrega outra vez, não uma nova.</LI>
+                <LI><strong>Rodar o segredo</strong> emite um novo, revelado uma vez; o endpoint mantém-se.</LI>
+                <LI><strong>Desativar</strong> pára as entregas sem apagar o endpoint nem a história.</LI>
+              </UL>
+
+              <H3 id="registos">Saldos, transações e registos</H3>
+              <UL>
+                <LI><strong>Saldos</strong> mostra as contas do titular a que o projeto está ligado, e o que há em cada uma.</LI>
+                <LI><strong>Transações</strong> mostra o movimento real do projeto — não uma amostra, não um exemplo.</LI>
+                <LI><strong>Registos</strong> lista os pedidos que a sua chave fez à API, com <Code>request_id</Code>. É o primeiro sítio a abrir quando algo responde o que não esperava.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Nenhuma página da Consola apresenta dados ilustrativos. Se uma lista está vazia, é
+                porque não há nada — não porque o ecrã ainda não foi ligado.
+              </P>
+            </Section>
+    </>
+  );
+}
+
 export function PtGuides({ copy }: { copy: CopyFn }) {
   return (
     <>
@@ -764,6 +912,188 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 <Code>payment_session.paid</Code> confirma a doação; <Code>application_settlement.completed</Code> conclui a liquidação da
                 campanha. É assim que o <strong>DOA</strong> valida webhooks assinados (<Code>banza-signature</Code>) e reage a cada evento
                 de forma idempotente.
+              </P>
+            </Section>
+    </>
+  );
+}
+
+export function PtDoa({ copy }: { copy: CopyFn }) {
+  return (
+    <>
+<Section id="doa">
+              <H2>Implementação de referência — DOA</H2>
+              <PageLede>Uma aplicação real, a correr, que integra o Banzami exactamente pelos contratos públicos desta documentação.</PageLede>
+              <NextSteps label="A seguir:" links={[{ href: '/docs/console', text: 'A Consola' }, { href: '/docs/guides', text: 'Guias' }, { href: '/docs/reference', text: 'Referência API' }]} />
+
+              <H3 id="doa-o-que-e">O que o DOA é, e porque está aqui</H3>
+              <P>
+                O <a href="https://www.doadoa.app" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>DOA</a>{' '}
+                é uma plataforma de vaquinhas angolana. Alguém cria uma campanha, partilha um link
+                ou um QR, e quem quiser doa em Kwanzas. É uma aplicação a sério, com doadores a
+                sério, a correr no Sandbox do Banzami.
+              </P>
+              <Callout>
+                <strong>O DOA não é um inquilino especial.</strong> Não tem endpoints próprios, nem
+                scopes próprios, nem um caminho de código que o nomeie. Faz exactamente o que
+                qualquer integração faz, com os mesmos contratos que estão nesta documentação —
+                que é precisamente o que o torna útil como exemplo. Se algo aqui só funcionasse
+                para o DOA, não estaria documentado.
+              </Callout>
+
+              <H3 id="doa-fronteira">A fronteira: o que é seu, e o que é do Banzami</H3>
+              <P>
+                Esta é a decisão mais importante de qualquer integração, e a mais fácil de errar
+                na direcção cara: reimplementar dinheiro.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 520, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>O DOA é dono de</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>O Banzami é dono de</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['Campanhas: criar, editar, encerrar', 'O dinheiro: saldos, contas, o livro-razão'],
+                      ['A experiência do doador', 'A execução do pagamento'],
+                      ['O estado da campanha (ativa, encerrada, liquidada)', 'O preço e a taxa'],
+                      ['Quem pode gerir o quê, do lado do DOA', 'Os recibos e a sua verificação pública'],
+                      ['A lógica de negócio da aplicação', 'A liquidação para o beneficiário'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 600 }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <P>
+                O DOA nunca guarda um saldo seu. Quando precisa de saber quanto uma campanha
+                recebeu, pergunta ao Banzami — porque a alternativa é ter dois números que um dia
+                divergem, e nesse dia um deles está errado sem que ninguém saiba qual.
+              </P>
+
+              <H3 id="doa-fluxo">O percurso completo</H3>
+              <CodeBlock label="fluxo" onCopy={copy} raw={`Doador
+  │
+  ├─▶ DOA: escolhe campanha, indica montante          (lógica de negócio do DOA)
+  │
+  ├─▶ Banzami: sessão de pagamento criada             POST /v1/payment-sessions
+  │            link + QR devolvidos                   GET  /v1/payment-sessions/{id}/link · /qr
+  │
+  ├─▶ Doador paga                                     (superfície do Banzami)
+  │
+  ├─▶ Banzami: dinheiro move-se, verdade financeira registada
+  │
+  ├─▶ webhook  payment_session.paid  ──▶ DOA          (assinado, at-least-once)
+  │            DOA verifica a assinatura, processa idempotentemente,
+  │            marca a doação confirmada                (estado do DOA)
+  │
+  ├─▶ DOA: campanha encerra                           (decisão do DOA)
+  │
+  └─▶ Banzami: liquidação                             POST /v1/application-settlements
+               bruto lido do Banzami, taxa para o DOA,
+               líquido para o beneficiário
+               webhook application_settlement.completed ──▶ DOA`} />
+
+              <H3 id="doa-contas">Uma conta por campanha</H3>
+              <P>
+                Cada campanha do DOA tem a sua própria conta segregada sob a carteira do DOA. É
+                por isso que o saldo de uma campanha é uma pergunta com resposta, e não uma soma
+                que a aplicação tem de manter.
+              </P>
+              <CodeBlock label="conta por campanha" onCopy={copy} raw={`// Ao activar a campanha, o DOA abre a conta que a vai receber.
+const conta = await banzami.walletAccounts.create({
+  purpose:        'CAMPAIGN',
+  reference_type: 'CAMPANHA',
+  reference_id:   campanha.id,      // a SUA referência, não a nossa
+  label:          campanha.titulo,
+});
+
+// Guarde o id. É por ele que a liquidação sabe de onde tirar o dinheiro.
+await db.campanhas.update(campanha.id, { banzami_wallet_account_id: conta.id });`} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                <Code>reference_type</Code> e <Code>reference_id</Code> são seus: o Banzami guarda-os
+                e devolve-os, e nunca os interpreta. É assim que se liga a sua tabela à nossa sem
+                que nenhuma das duas precise de conhecer a outra.
+              </P>
+
+              <H3 id="doa-webhook">O webhook, como o DOA o processa</H3>
+              <CodeBlock label="webhook" onCopy={copy} raw={`export async function POST(req) {
+  // 1. O corpo EM BRUTO. Voltar a serializar o JSON muda os bytes,
+  //    e a assinatura deixa de bater certo.
+  const raw = await req.text();
+
+  // 2. Verificar ANTES de olhar para o conteúdo.
+  try {
+    banzami.webhooks.verify(raw, req.headers.get('banza-signature'), process.env.BANZAMI_WEBHOOK_SECRET);
+  } catch {
+    return new Response('assinatura inválida', { status: 400 });
+  }
+
+  const evento = JSON.parse(raw);
+
+  // 3. Idempotente pelo id do evento. A entrega é at-least-once:
+  //    este mesmo evento VAI chegar outra vez, mais cedo ou mais tarde.
+  if (await db.eventos.existe(evento.id)) return new Response('ok');
+  await db.eventos.registar(evento.id);
+
+  // 4. Só agora o efeito de negócio.
+  if (evento.type === 'payment_session.paid') {
+    await confirmarDoacao(evento.data.reference);
+  }
+
+  // 5. 2xx depressa. O trabalho demorado vai para uma fila, não para aqui.
+  return new Response('ok');
+}`} />
+              <Callout tone="warn">
+                Os passos 1 e 3 são os que se esquecem. Sem o corpo em bruto a assinatura falha
+                por uma razão que parece um bug do Banzami; sem a deduplicação por id de evento,
+                uma reentrega normal duplica a doação.
+              </Callout>
+
+              <H3 id="doa-liquidacao">A liquidação, e quem decide o quê</H3>
+              <P>
+                Quando uma campanha encerra, o DOA pede a liquidação da conta dessa campanha. O
+                pedido não leva montante nem taxa — e não é uma omissão por conveniência: é o
+                desenho.
+              </P>
+              <CodeBlock label="liquidação" onCopy={copy} raw={`const liquidacao = await banzami.applicationSettlements.create({
+  wallet_account_id: campanha.banzami_wallet_account_id,
+  beneficiary:       campanha.destino_banza,   // o @banza de quem recebe
+  owner_ref:         campanha.id,              // a sua referência, devolvida no webhook
+});
+
+// O que volta já é o resultado, calculado pelo Banzami:
+// {
+//   gross_amount_minor:         10000000,   // lido do saldo da conta, não enviado por si
+//   application_fee_minor:        200000,   // preço atribuído ao Business (200 bps)
+//   net_amount_minor:            9800000,   // o que vai para o beneficiário
+//   currency: "AOA", status: "COMPLETED"
+// }`} />
+              <P>
+                E as três parcelas somam zero contra o movimento, que é a propriedade que torna
+                isto auditável: <Code>-10000000 + 200000 + 9800000 = 0</Code>.
+              </P>
+              <Callout>
+                <strong>Pagamento não é liquidação.</strong> Um pagamento confirmado põe dinheiro
+                na conta da campanha. A liquidação é um segundo acto, pedido por si, que tira o
+                dinheiro de lá. O DOA pede-a depois de a campanha encerrar — não acontece sozinha.
+              </Callout>
+
+              <H3 id="doa-licoes">O que o DOA aprendeu pelo caminho</H3>
+              <UL>
+                <LI><strong>Nunca duplicar um saldo.</strong> O DOA mostra o que o Banzami diz. Dois números que deviam ser iguais acabam por não ser, e depois alguém tem de decidir qual é o verdadeiro.</LI>
+                <LI><strong>Guardar o <Code>request_id</Code> de tudo.</strong> É a primeira coisa que o suporte pede e a última que alguém pensa em registar.</LI>
+                <LI><strong>Uma conta por campanha, desde o início.</strong> Separar valor depois de estar misturado é muito mais difícil do que nunca o misturar.</LI>
+                <LI><strong>O estado da campanha é do DOA; o estado do dinheiro é do Banzami.</strong> Uma campanha encerrada com uma liquidação pendente é um estado normal, e a aplicação tem de o saber mostrar.</LI>
+                <LI><strong>A prontidão financeira é uma condição, não um erro.</strong> Antes de a Configuração financeira estar completa, o DOA deixa criar campanhas e não deixa activá-las — em vez de deixar tudo e falhar no pagamento.</LI>
+              </UL>
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Os exemplos acima são mínimos e estão saneados: identificadores fictícios, nenhuma
+                chave, nenhum segredo e nenhum id interno. O que se quer ensinar é o padrão
+                recomendado, não a história de como o DOA lá chegou.
               </P>
             </Section>
     </>
