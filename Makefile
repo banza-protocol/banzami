@@ -380,6 +380,11 @@ check-deploy-parity:
 check-retired-surfaces:
 	node tools/check-retired-surfaces.mjs
 
+# Reads the live Sandbox; not part of check-all, which must run without a host.
+.PHONY: check-canonical-resources
+check-canonical-resources:
+	node tools/check-canonical-resources.mjs
+
 check-sdk-payment-boundary:
 	node tools/check-sdk-payment-boundary.mjs
 

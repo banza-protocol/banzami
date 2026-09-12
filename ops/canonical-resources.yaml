@@ -1,0 +1,122 @@
+# Canonical Sandbox resources — the complete answer to "what is still here, and why".
+#
+# Everything ACTIVE on the Sandbox must appear below. The classifier
+# (tools/check-canonical-resources.mjs) reads the live database and fails on
+# anything active that is not named here, so a resource cannot survive by being
+# forgotten — which is how 267 unreachable workspaces and a dozen fixture
+# identities accumulated before anyone counted.
+#
+# Identities are matched by email, everything else by name. No secrets, no
+# tokens, no key material: names, owners and reasons only.
+
+version: 1
+environment: SANDBOX
+classified_at: 2026-09-12
+
+identities:
+  - resource: fidel.monteiro@banzami.com
+    owner: Fidel Monteiro (operator)
+    purpose: The operator's own Developer Console identity.
+    why_now: >
+      Banzami's own account on its own product. Every Console proof in the launch
+      closure was signed in as a person, and this is the person. It was deleted by
+      a harness on 2026-09-12 and recreated through the canonical OTP flow.
+    classification: canonical
+    authority: owner
+    lifetime: permanent
+
+  - resource: fidelrmonteiro@gmail.com
+    owner: Fidel Monteiro (operator, external-integrator role)
+    purpose: The identity used to prove integration from OUTSIDE the operator's own domain.
+    why_now: >
+      An integrator arriving at developers.banzami.com is not on banzami.com. The
+      External Cleanroom exists to prove the journey from an address that has no
+      relationship to the operator, and this is that address.
+    classification: canonical
+    authority: owner
+    lifetime: permanent
+
+  - resource: contact@doadoa.app
+    owner: DOA (reference implementation)
+    purpose: DOA's integrator identity — owns the DOA workspace, project and runtime keys.
+    why_now: >
+      DOA is a live application taking real donations through this Sandbox. Its
+      identity is the account a real integrator holds, and it is documented as the
+      canonical reference implementation.
+    classification: canonical
+    authority: integrator
+    lifetime: as long as DOA integrates
+
+workspaces:
+  - resource: DOA
+    owner: contact@doadoa.app
+    purpose: The reference implementation's workspace.
+    why_now: It holds Doa-Sandbox, the only ACTIVE project on the platform.
+    classification: canonical
+    authority: integrator
+    lifetime: as long as DOA integrates
+
+  - resource: Cleanroom Dev
+    owner: contact@doadoa.app
+    purpose: A standing cleanroom for proving an integration from nothing.
+    why_now: >
+      A cleanroom is deliberately NOT a per-run fixture: it is a named, owner-held
+      workspace kept so a journey can be re-proved from a clean start without
+      minting a new identity each time. Its projects are archived between runs,
+      which is the state it should be found in.
+    classification: canonical
+    authority: operator
+    lifetime: standing — retire only when the journeys that use it are retired
+
+  - resource: External Cleanroom
+    owner: fidelrmonteiro@gmail.com
+    purpose: The same, from an address outside the operator's own domain.
+    why_now: >
+      Proves the developer journey for someone with no relationship to Banzami.
+      Its five projects are archived; the workspace is the standing part.
+    classification: canonical
+    authority: operator
+    lifetime: standing — retire only when the journeys that use it are retired
+
+projects:
+  - resource: Doa-Sandbox
+    owner: contact@doadoa.app (workspace DOA)
+    purpose: The Project behind DOA's donations — bound to DOA's Business, holds its runtime keys.
+    why_now: Live application traffic depends on it.
+    classification: canonical
+    authority: integrator
+    lifetime: as long as DOA integrates
+
+keys:
+  - resource: DOA web runtime
+    owner: Doa-Sandbox
+    purpose: The SECRET key www.doadoa.app uses server-side.
+    why_now: DOA's public donation flow authenticates with it.
+    classification: canonical
+    authority: integrator
+    lifetime: until rotated — rotation is routine and expected
+
+  - resource: DOA admin runtime
+    owner: Doa-Sandbox
+    purpose: The SECRET key admin.doadoa.app uses server-side.
+    why_now: DOA's operator surface authenticates with it.
+    classification: canonical
+    authority: integrator
+    lifetime: until rotated — rotation is routine and expected
+
+# Payee bindings are not listed individually and are not residue.
+#
+# A binding SEALS the moment a payer-facing artifact exists under it (ADR-055):
+# from then on the payee it names can never change, enforced by a database
+# trigger and not only by a service guard. 111 sealed bindings belong to fixture
+# projects that are archived — they are the immutable record that an owner once
+# issued an artifact, and that record does not stop being true because the
+# project closed. One sealed binding belongs to Doa-Sandbox and is live.
+#
+# An UNSEALED binding is different: it issued nothing, so nothing depends on it,
+# and archiving a project disables it. Eight were left ACTIVE by projects
+# archived before that convergence shipped; they were closed on 2026-09-12
+# through the product's own retire route, not by SQL. The invariant the
+# classifier holds is that this number stays at zero.
+bindings:
+  unsealed_active_on_archived_projects: 0
