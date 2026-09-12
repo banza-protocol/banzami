@@ -411,12 +411,19 @@ export function MembersManager() {
               onClick={invite}
               disabled={busy || !inviteEmail}
               className="bz-cta"
+              // A disabled control must say why it is disabled. This one was
+              // greyed out with nothing explaining it: the reader could see the
+              // button and not the reason, which is indistinguishable from a
+              // dead button.
+              title={busy ? 'A enviar o convite…' : !inviteEmail ? 'Escreva o email da pessoa que quer convidar.' : undefined}
+              aria-describedby="invite-hint"
               style={{ padding: '10px 16px', border: 'none', borderRadius: 10, background: ctaGradient, color: '#fff', fontWeight: 800, fontSize: 13, cursor: busy || !inviteEmail ? 'not-allowed' : 'pointer', opacity: busy || !inviteEmail ? 0.6 : 1 }}
             >
               Convidar
             </button>
           </div>
-          <p style={{ margin: '10px 0 0', fontSize: 12, color: '#6a5a5e', fontWeight: 700 }}>
+          <p id="invite-hint" style={{ margin: '10px 0 0', fontSize: 12, color: '#6a5a5e', fontWeight: 700 }}>
+            {!inviteEmail ? 'Escreva o email da pessoa que quer convidar. ' : ''}
             <strong>{roleLabel(inviteRole)}</strong> pode {roleSummary(inviteRole)}.
           </p>
           <p style={{ margin: '6px 0 0', fontSize: 11.5, color: '#a89a9e', fontWeight: 700 }}>
