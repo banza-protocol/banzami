@@ -4255,3 +4255,74 @@ exist, `.first()` revoking whichever key was on top, an endpoint subscribed to a
 event the run never caused, a replay asserted as a new row, and a key count that
 included the harness's own key. Each is recorded in the commits that fixed it.
 The product was right in all of them.
+
+---
+
+## RA-174 — a settlement paid to a consumer never appeared in their history
+
+- **Found:** 2026-09-12 (owner, on a real device, during the DOA §24 acceptance)
+- **Status:** FIXED (core/api), deployed cc4aadb7ba5e
+
+The owner of @fm65 received the net of a DOA campaign settlement — 98 000 minor
+— watched the balance go from 7 265 Kz to 8 245 Kz, opened Histórico, and found
+nothing. The payment OUT (−1 000 Kz to @doa) was listed; the credit back was not.
+
+A balance is a claim and the history is its evidence. A credit the account holder
+can see but cannot find is the one kind of money movement a payment product must
+never produce, and it is worse than a missing debit: the holder has no way to
+learn where it came from, or to dispute it.
+
+The activity feed is a `UNION ALL` over transfers, consumer deposits, refunds,
+restitution allocations and Sandbox top-ups. An application settlement credits
+the beneficiary's ledger account directly — no transfer, no deposit, no refund
+row — so no branch of the union saw it. The REFUND_RECEIVED branch exists for
+exactly this shape and says so in its own comment: "the money came back through
+the ledger with no transfer, so nothing above sees it." Settlements were the
+same case, and had no branch at all.
+
+`SETTLEMENT_RECEIVED` joins `app_settlements` through
+`consumer_wallets.available_account_id` — not the ledger account's display name
+— because a settlement names ACCOUNTS, and only that mapping says whether the
+beneficiary is a consumer or a business. `application_id` is TEXT against a UUID
+column and is cast explicitly; the query is assembled as a string and is not
+schema-checked at compile time, so the mismatch surfaced when the SQL was run
+against the real database rather than after deployment.
+
+On the deployed Sandbox the corrected query returns **four** settlements for that
+consumer — the acceptance one and three from 2026-09-10. The defect had hidden
+every one of them, for two days, on a real account.
+
+`every_credit_to_the_wallet_has_a_history_row` already carried the name of the
+invariant this broke while its body enumerated only the credit kinds known when
+it was written (A7-09: refund, restitution, top-up, deposit). A settlement is one
+of them now. Deleting the branch fails it with "no history row for
+SETTLEMENT_RECEIVED".
+
+The apps needed no change — the feed renders by direction and counterparty — and
+the owner confirmed the row on their own device after deploy.
+
+---
+
+## RA-175 — DOA promised automatic settlement on close and did not settle
+
+- **Found:** 2026-09-12 (§24 acceptance)
+- **Status:** OPEN — reported to DOA, not this operator's code
+
+The owner-facing campaign page states: "Quando a campanha fechar, o Banzami
+liquida automaticamente: a taxa do Doa vai para o Doa e o restante para o teu
+destino Banzami."
+
+It does not. `packages/core/campaigns/transitions.ts` defines
+`closed → settlement_pending → settled`, and its own comment says the settlement
+sub-lifecycle "is driven by ADMIN actions". Closing the campaign moved it to
+`closed` and stopped; the 100 000 sat in the campaign's segregated account until
+an operator settled it from admin.doadoa.app.
+
+The admin surface is accurate — "O Doa só solicita e regista", "O Banzami define
+a taxa: 2%". It is the owner-facing promise that is false, and it is the one a
+campaign owner reads while waiting for their money.
+
+Banzami's side is correct throughout: the settlement is an application-initiated
+operation, the operator does not settle on anybody's behalf, and the rate is the
+operator's. This is recorded here because it was found by this acceptance and
+because it affects a Banzami-facing claim, not because it is Banzami's to fix.
