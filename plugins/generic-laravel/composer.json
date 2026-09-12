@@ -1,10 +1,10 @@
 {
     "name": "banzami/banzami-laravel",
-    "description": "Banzami payment gateway for Laravel \u2014 service provider, facade, and webhook middleware",
+    "description": "Banzami payment gateway for Laravel — service provider, facade, and webhook middleware",
     "license": "UNLICENSED",
     "type": "library",
     "require": {
-        "php": ">=8.2",
+        "php": ">=8.4.1",
         "laravel/framework": "^12",
         "banzami/sdk-php": "@dev"
     },

@@ -801,7 +801,10 @@ jobs:
       - name: Set up PHP
         uses: shivammathur/setup-php@0f7f1d08e3e32076e51cae65eb0b0c871405b16e # v2.34.1
         with:
-          php-version: '8.3'
+          # 8.4, not 8.3: plugins/generic-laravel's lockfile carries Symfony 8.1,
+          # which requires php >=8.4.1. This job was added at 8.3 and passed
+          # locally on 8.5 — the first CI run is where the floor showed up.
+          php-version: '8.4'
           coverage: none
 
       - name: Install dependencies
