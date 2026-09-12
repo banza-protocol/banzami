@@ -234,6 +234,71 @@ func (s *Service) ArchiveWorkspace(ctx context.Context, actor, wsID, confirmName
 	return blockers, nil
 }
 
+// WorkspaceFootprintFor is what the workspace holds, for any member who can see
+// the workspace. Read-only, so it is not restricted to the owner: the Console
+// needs it to decide which ending to offer before anybody presses anything.
+func (s *Service) WorkspaceFootprintFor(ctx context.Context, actor, wsID string) (WorkspaceFootprint, error) {
+	if _, err := s.roleOf(ctx, wsID, actor); err != nil {
+		return WorkspaceFootprint{}, ErrForbidden
+	}
+	f, err := s.store.WorkspaceFootprint(ctx, wsID)
+	if err != nil {
+		return WorkspaceFootprint{}, ErrUnavailable
+	}
+	return f, nil
+}
+
+// DeleteWorkspace removes a workspace that never held a project.
+//
+// The counterpart of ArchiveWorkspace, and the same distinction DeleteProject
+// draws one level down: a workspace with a history is archived, a workspace
+// without one is a mistake the owner may take back. It is refused unless the
+// footprint is empty, and the statement re-checks that itself.
+//
+// "The audit log is append-only" is not a reason to keep it. developer.
+// audit_events has no foreign key to a workspace, so the record of this deletion
+// outlives the row it describes — which is what an append-only log owes, rather
+// than an empty workspace nobody can remove from their selector.
+func (s *Service) DeleteWorkspace(ctx context.Context, actor, wsID, confirmName, ip, reqID string) (WorkspaceFootprint, error) {
+	var f WorkspaceFootprint
+	role, err := s.roleOf(ctx, wsID, actor)
+	if err != nil {
+		return f, ErrForbidden
+	}
+	// Deleting is the owner's, as archiving is: it ends the workspace for
+	// everyone in it.
+	if role != RoleOwner {
+		return f, ErrForbidden
+	}
+	ws, err := s.store.Workspace(ctx, wsID)
+	if err != nil {
+		return f, ErrNotFound
+	}
+	if strings.TrimSpace(confirmName) != ws.Name {
+		return f, ErrValidation
+	}
+	f, err = s.store.WorkspaceFootprint(ctx, wsID)
+	if err != nil {
+		return f, ErrUnavailable
+	}
+	if !f.Empty() {
+		return f, ErrConflict
+	}
+	if err := s.store.DeleteWorkspace(ctx, wsID); err != nil {
+		if err == ErrConflict {
+			// The statement re-checked and disagreed: a project was created
+			// between the read and the delete. Refuse, do not retry.
+			return f, ErrConflict
+		}
+		if err == ErrNotFound {
+			return f, ErrNotFound
+		}
+		return f, ErrUnavailable
+	}
+	s.audit(ctx, &actor, &wsID, nil, "workspace.deleted", "WORKSPACE:"+wsID, ip, reqID, map[string]any{"name": ws.Name})
+	return f, nil
+}
+
 // LeaveWorkspace removes the caller's own membership.
 //
 // Distinct from RemoveMember, which is a manager acting on somebody else and is

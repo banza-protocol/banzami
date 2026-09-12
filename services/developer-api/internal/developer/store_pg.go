@@ -321,6 +321,39 @@ func (s *pgStore) ArchiveWorkspace(ctx context.Context, id string) error {
 	return nil
 }
 
+func (s *pgStore) WorkspaceFootprint(ctx context.Context, id string) (WorkspaceFootprint, error) {
+	var f WorkspaceFootprint
+	err := s.pool.QueryRow(ctx,
+		`SELECT count(*),
+		        count(*) FILTER (WHERE status <> 'ARCHIVED'),
+		        count(*) FILTER (WHERE status  = 'ARCHIVED')
+		   FROM developer.dev_projects WHERE workspace_id = $1`, id).
+		Scan(&f.Projects, &f.ActiveProjects, &f.ArchivedProjects)
+	return f, err
+}
+
+func (s *pgStore) DeleteWorkspace(ctx context.Context, id string) error {
+	// Re-checked here and not only in the service: dev_projects cascades from
+	// this row, so a DELETE that raced a project being created would take the
+	// project with it silently. A guard that lives only in a caller is a guard
+	// the next caller forgets.
+	//
+	// Members and invites DO cascade, deliberately: they say who could open a
+	// workspace that is ceasing to exist. Audit events have no foreign key here
+	// and are untouched — the record of the deletion outlives the workspace.
+	tag, err := s.pool.Exec(ctx,
+		`DELETE FROM developer.dev_workspaces w
+		  WHERE w.id = $1
+		    AND NOT EXISTS (SELECT 1 FROM developer.dev_projects WHERE workspace_id = w.id)`, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrConflict
+	}
+	return nil
+}
+
 func (s *pgStore) CountActiveProjects(ctx context.Context, workspaceID string) (int, error) {
 	var n int
 	err := s.pool.QueryRow(ctx,

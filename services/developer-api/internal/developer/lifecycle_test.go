@@ -397,3 +397,154 @@ func TestLifecycle_SlugStaysStableAcrossRepeatedRenames(t *testing.T) {
 		}
 	}
 }
+
+// ── workspace deletion ───────────────────────────────────────────────────────
+//
+// A workspace used to have only one ending: ARCHIVED, with the Console
+// asserting it "can never be deleted" because the audit log is append-only.
+// That reason does not hold. developer.audit_events has no foreign key to a
+// workspace, so the record of a deletion outlives the row it describes — which
+// is what an append-only log owes. What it does not owe is an empty workspace
+// staying in somebody's selector for ever because it was created by mistake.
+//
+// So the rule is the one projects already follow, one level up: never held a
+// project → delete; held one → archive.
+
+func TestWorkspace_EmptyIsDeletedOutright(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	name, _ := s.GetWorkspace(bg, "u_owner", ws)
+
+	f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
+	if err != nil {
+		t.Fatalf("delete an empty workspace: %v", err)
+	}
+	if !f.Empty() {
+		t.Errorf("footprint reported not empty: %+v", f)
+	}
+	// Gone, not marked: it must not come back as an ARCHIVED row.
+	if _, err := s.GetWorkspace(bg, "u_owner", ws); err == nil {
+		t.Fatal("the workspace is still readable after being deleted")
+	}
+	listed, err := s.ListWorkspaces(bg, "u_owner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range listed {
+		if w.ID == ws {
+			t.Fatal("the deleted workspace is still listed for its owner")
+		}
+	}
+}
+
+func TestWorkspace_DeleteNeedsTheNameTyped(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+
+	if _, err := s.DeleteWorkspace(bg, "u_owner", ws, "não é o nome", "", ""); err != ErrValidation {
+		t.Fatalf("delete with the wrong name: want Validation, got %v", err)
+	}
+	if _, err := s.GetWorkspace(bg, "u_owner", ws); err != nil {
+		t.Fatal("a refused delete removed the workspace anyway")
+	}
+}
+
+func TestWorkspace_DeleteIsOwnerOnly(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	name, _ := s.GetWorkspace(bg, "u_owner", ws)
+
+	for _, who := range []string{"u_admin", "u_dev", "u_viewer"} {
+		if _, err := s.DeleteWorkspace(bg, who, ws, name.Name, "", ""); err != ErrForbidden {
+			t.Errorf("%s deleting a workspace: want Forbidden, got %v", who, err)
+		}
+	}
+	if _, err := s.GetWorkspace(bg, "u_owner", ws); err != nil {
+		t.Fatal("a refused delete removed the workspace anyway")
+	}
+}
+
+func TestWorkspace_DeleteIsRefusedWhileItHoldsAnActiveProject(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	name, _ := s.GetWorkspace(bg, "u_owner", ws)
+	p, err := s.CreateProject(bg, "u_owner", ws, "Um", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
+	if err != ErrConflict {
+		t.Fatalf("delete with an active project: want Conflict, got %v", err)
+	}
+	if f.ActiveProjects != 1 || f.Projects != 1 {
+		t.Errorf("footprint = %+v, want 1 project, 1 active", f)
+	}
+	if want := []string{"ACTIVE_PROJECTS"}; len(f.Blockers()) != 1 || f.Blockers()[0] != want[0] {
+		t.Errorf("blockers = %v, want %v", f.Blockers(), want)
+	}
+	// Nothing cascaded: the project and the workspace are both untouched.
+	got, _ := s.GetProject(bg, "u_owner", p.ID)
+	if got.Status != "ACTIVE" {
+		t.Errorf("a refused workspace delete changed project status to %q", got.Status)
+	}
+	if _, err := s.GetWorkspace(bg, "u_owner", ws); err != nil {
+		t.Fatal("a refused delete removed the workspace anyway")
+	}
+}
+
+// The case the "append-only" argument was really about: a workspace whose
+// project was ARCHIVED because it had a history. That history must survive, so
+// the workspace is archived rather than deleted — and the refusal says which
+// kind of project is in the way, because "archive the active ones first" would
+// be wrong advice here.
+func TestWorkspace_HoldingAnArchivedProjectIsArchivedNotDeleted(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	name, _ := s.GetWorkspace(bg, "u_owner", ws)
+	p, err := s.CreateProject(bg, "u_owner", ws, "Com história", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ArchiveProject(bg, "u_owner", p.ID, p.Name, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	f, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", "")
+	if err != ErrConflict {
+		t.Fatalf("delete over an archived project: want Conflict, got %v", err)
+	}
+	if f.ArchivedProjects != 1 || f.ActiveProjects != 0 {
+		t.Errorf("footprint = %+v, want 1 archived, 0 active", f)
+	}
+	if len(f.Blockers()) != 1 || f.Blockers()[0] != "ARCHIVED_PROJECTS" {
+		t.Errorf("blockers = %v, want [ARCHIVED_PROJECTS]", f.Blockers())
+	}
+	// Archiving is what it CAN do, and it works: no active project blocks it.
+	if _, err := s.ArchiveWorkspace(bg, "u_owner", ws, name.Name, "", ""); err != nil {
+		t.Fatalf("archive a workspace holding only archived projects: %v", err)
+	}
+	after, err := s.GetWorkspace(bg, "u_owner", ws)
+	if err != nil {
+		t.Fatal("archiving removed the workspace")
+	}
+	if after.Status != "ARCHIVED" {
+		t.Errorf("status = %q, want ARCHIVED", after.Status)
+	}
+}
+
+// Deleting an empty project leaves the workspace empty again, and therefore
+// deletable. The two rules compose: a developer who made two mistakes can undo
+// both.
+func TestWorkspace_BecomesDeletableAgainOnceItsEmptyProjectIsDeleted(t *testing.T) {
+	s, _, ws := wsWithRoles(t)
+	name, _ := s.GetWorkspace(bg, "u_owner", ws)
+	p, err := s.CreateProject(bg, "u_owner", ws, "Engano", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.DeleteProject(bg, "u_owner", p.ID, p.Name, "", ""); err != nil {
+		t.Fatalf("delete an empty project: %v", err)
+	}
+	if _, err := s.DeleteWorkspace(bg, "u_owner", ws, name.Name, "", ""); err != nil {
+		t.Fatalf("delete the workspace once its only project is gone: %v", err)
+	}
+	if _, err := s.GetWorkspace(bg, "u_owner", ws); err == nil {
+		t.Fatal("the workspace survived its own deletion")
+	}
+}

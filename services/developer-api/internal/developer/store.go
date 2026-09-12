@@ -227,6 +227,52 @@ func (f ProjectFootprint) Blockers() []string {
 	return out
 }
 
+// WorkspaceFootprint is what a workspace still holds, and therefore what stands
+// between it and being deleted.
+//
+// The same rule as a project, one level up. A workspace nobody ever put a
+// project in is a mistake — the state every workspace is created in, and the one
+// it returns to when its last empty project is deleted — and the product should
+// let an owner take a mistake back. A workspace that HELD something is archived
+// instead.
+//
+// Projects are counted whatever their status. An ARCHIVED project is history:
+// it had keys, or a financial owner, or served requests, which is why it was
+// archived rather than deleted. Deleting the workspace over it would cascade
+// that history away, so its presence is a blocker for deletion and a reason to
+// archive.
+//
+// Members and invites are NOT blockers. They are memberships, not history: they
+// describe who may open a thing that is about to stop existing, and the schema
+// cascades them.
+//
+// Audit events are not blockers either, and this is the point the rule turns on.
+// developer.audit_events has no foreign key to a workspace, so "the workspace
+// was archived" and "the workspace was deleted" both survive the row they
+// describe. An append-only audit log is a reason to keep the RECORD, never a
+// reason to keep an empty resource selectable forever.
+type WorkspaceFootprint struct {
+	Projects         int `json:"projects"`
+	ActiveProjects   int `json:"active_projects"`
+	ArchivedProjects int `json:"archived_projects"`
+}
+
+// Empty reports whether the workspace can be deleted outright.
+func (f WorkspaceFootprint) Empty() bool { return f.Projects == 0 }
+
+// Blockers names, in a stable order, what stops this workspace being deleted.
+// Used verbatim in the API refusal so the Console never has to invent a reason.
+func (f WorkspaceFootprint) Blockers() []string {
+	var out []string
+	if f.ActiveProjects > 0 {
+		out = append(out, "ACTIVE_PROJECTS")
+	}
+	if f.ArchivedProjects > 0 {
+		out = append(out, "ARCHIVED_PROJECTS")
+	}
+	return out
+}
+
 // AuditEvent is a context-owned developer.audit_events record. Never carries raw
 // secrets (API key material, invite tokens).
 type AuditEvent struct {
@@ -258,6 +304,12 @@ type Store interface {
 	ArchiveWorkspace(ctx context.Context, id string) error
 	// CountActiveProjects is the blocker count for closing a workspace.
 	CountActiveProjects(ctx context.Context, workspaceID string) (int, error)
+	// WorkspaceFootprint counts what a workspace still holds. It is the
+	// difference between deleting it and archiving it.
+	WorkspaceFootprint(ctx context.Context, id string) (WorkspaceFootprint, error)
+	// DeleteWorkspace removes a workspace row outright. Only ever called for a
+	// workspace whose footprint is empty; the statement re-checks that itself.
+	DeleteWorkspace(ctx context.Context, id string) error
 
 	Membership(ctx context.Context, workspaceID, userID string) (*Member, error)
 	Members(ctx context.Context, workspaceID string) ([]Member, error)

@@ -22,8 +22,10 @@ import {
   detailsOf,
   isArchived,
   messageFor,
+  useWorkspaceFootprint,
   useWorkspaceRole,
   utcStamp,
+  workspaceFootprintSentence,
 } from '../settings-ui';
 
 // Workspace settings — the container, not the project.
@@ -45,7 +47,8 @@ function WorkspaceSettings() {
   const { flash } = useToast();
   const { role, load: roleLoad } = useWorkspaceRole();
 
-  const [dialog, setDialog] = useState<'leave' | 'archive' | null>(null);
+  const [dialog, setDialog] = useState<'leave' | 'archive' | 'delete' | null>(null);
+  const { reading: footprint, reload: reloadFootprint } = useWorkspaceFootprint(activeWs?.id ?? null);
   // The count the server sent back with a WORKSPACE_NOT_EMPTY refusal. Held so
   // the dialog can say "ainda tem 3 projetos ativos" instead of "conflito".
   const [activeProjectsBlocking, setActiveProjectsBlocking] = useState<number | null>(null);
@@ -73,6 +76,11 @@ function WorkspaceSettings() {
   const archived = isArchived(activeWs.status);
   const canManage = isManager(role ?? '');
   const isOwner = role === 'OWNER';
+  // What stands between this workspace and being deleted, as the server counts
+  // it. Read before either ending is offered, so the danger zone names the
+  // operation that will actually happen.
+  const wf = footprint.state === 'read' ? footprint.footprint : null;
+  const deletable = wf?.deletable === true;
 
   const rename = async (name: string) => {
     try {
@@ -90,6 +98,20 @@ function WorkspaceSettings() {
       await reloadWorkspaces();
       flash('Saiu do workspace');
     } catch (e) {
+      throw new Error(explain(e));
+    }
+  };
+
+  const remove = async () => {
+    try {
+      await developerApi.deleteWorkspace(activeWs.id, activeWs.name, csrf);
+      await reloadWorkspaces();
+      flash('Workspace eliminado');
+    } catch (e) {
+      // The footprint was read before the dialog opened. If a project was
+      // created in between, the server refuses with the counts as they are NOW —
+      // so re-read them rather than leaving the page offering the wrong ending.
+      if (codeOf(e) === 'WORKSPACE_NOT_EMPTY') reloadFootprint();
       throw new Error(explain(e));
     }
   };
@@ -186,30 +208,62 @@ function WorkspaceSettings() {
           onAction={() => setDialog('leave')}
         />
 
-        <DangerAction
-          title="Arquivar workspace"
-          description={
-            <>
-              Encerra o workspace. Não é uma eliminação e não pode ser: o registo de auditoria é
-              apenas-acrescento e os projetos podem conter histórico financeiro. Só é possível
-              depois de todos os projetos estarem arquivados.
-            </>
-          }
-          actionLabel="Arquivar workspace"
-          onAction={() => {
-            setActiveProjectsBlocking(null);
-            setDialog('archive');
-          }}
-          unavailableReason={
-            archived
-              ? 'Este workspace já está arquivado.'
-              : isOwner
-                ? null
-                : roleUnknown
-                  ? 'A confirmar o seu papel neste workspace…'
-                  : 'Só o Proprietário do workspace o pode arquivar.'
-          }
-        />
+        {/* One ending is offered, and it is the true one for this workspace's
+            state: a workspace that never held a project is DELETED; one that
+            held anything is ARCHIVED, because its projects carry history. */}
+        {deletable ? (
+          <DangerAction
+            title="Eliminar workspace"
+            description={
+              <>
+                Este workspace nunca teve projetos, por isso pode ser eliminado — deixa de existir
+                e sai do seletor. Os membros e os convites pendentes desaparecem com ele. O registo
+                de auditoria guarda que foi eliminado, e esse registo sobrevive ao workspace.
+              </>
+            }
+            actionLabel="Eliminar workspace"
+            onAction={() => setDialog('delete')}
+            unavailableReason={
+              archived
+                ? 'Este workspace está arquivado.'
+                : isOwner
+                  ? null
+                  : roleUnknown
+                    ? 'A confirmar o seu papel neste workspace…'
+                    : 'Só o Proprietário do workspace o pode eliminar.'
+            }
+          />
+        ) : (
+          <DangerAction
+            title="Arquivar workspace"
+            description={
+              <>
+                Encerra o workspace. {wf ? workspaceFootprintSentence(wf) : ''} Um projeto que já
+                teve chaves, pedidos ou uma configuração financeira é arquivado e não eliminado, e
+                o workspace que o contém segue a mesma regra. Só é possível depois de todos os
+                projetos ativos estarem arquivados.
+              </>
+            }
+            actionLabel="Arquivar workspace"
+            onAction={() => {
+              setActiveProjectsBlocking(null);
+              setDialog('archive');
+            }}
+            unavailableReason={
+              archived
+                ? 'Este workspace já está arquivado.'
+                : footprint.state === 'loading'
+                  ? 'A verificar o que este workspace já contém…'
+                  : footprint.state === 'unreadable'
+                    ? 'Não foi possível verificar o que este workspace já contém.'
+                    : isOwner
+                      ? null
+                      : roleUnknown
+                        ? 'A confirmar o seu papel neste workspace…'
+                        : 'Só o Proprietário do workspace o pode arquivar.'
+            }
+          />
+        )}
       </DangerZone>
 
       {dialog === 'leave' ? (
@@ -227,6 +281,25 @@ function WorkspaceSettings() {
           nameLabel="Escreva o nome do workspace para confirmar"
           confirmLabel="Sair"
           onConfirm={leave}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+
+      {dialog === 'delete' ? (
+        <ConfirmByName
+          title="Eliminar workspace"
+          body="Eliminar remove o workspace definitivamente. Não fica arquivado: deixa de existir e sai do seletor de toda a equipa."
+          consequence={
+            <>
+              Este workspace nunca teve projetos, por isso não há histórico financeiro a preservar.
+              Os membros e os convites pendentes são removidos com ele. O registo de auditoria
+              guarda que foi eliminado — esse registo não desaparece.
+            </>
+          }
+          name={activeWs.name}
+          nameLabel="Escreva o nome do workspace para confirmar"
+          confirmLabel="Eliminar workspace"
+          onConfirm={remove}
           onClose={() => setDialog(null)}
         />
       ) : null}

@@ -92,12 +92,40 @@ describe('the two surfaces are two surfaces', () => {
     expect(workspace).not.toMatch(/archiveProject|deleteProject/);
   });
 
-  // Archive-only by design: audit events are append-only and a workspace's
-  // projects may hold financial history. The copy has to mean it.
-  it('offers to archive a workspace and never to delete one', () => {
+  // This used to assert archive-ONLY, on the reasoning that audit events are
+  // append-only and a workspace's projects may hold financial history. The
+  // second half is a real constraint; the first is not. developer.audit_events
+  // has no foreign key to a workspace, so the record of a deletion outlives the
+  // row it describes — an append-only log owes the RECORD, not an empty
+  // workspace kept selectable for ever.
+  //
+  // So a workspace follows the rule its projects already followed: never held a
+  // project → delete; held one → archive. Both endings must exist in the page,
+  // and it must decide between them from what the workspace HOLDS rather than
+  // offering one unconditionally.
+  it('offers the ending that matches what the workspace holds', () => {
     const workspace = code(WORKSPACE_PAGE);
     expect(workspace).toMatch(/Arquivar workspace/);
-    expect(workspace).not.toMatch(/Eliminar workspace|Apagar workspace/);
+    expect(workspace).toMatch(/Eliminar workspace/);
+    // Decided from the footprint, not hard-coded.
+    expect(workspace).toMatch(/useWorkspaceFootprint/);
+    expect(workspace).toMatch(/deletable/);
+  });
+
+  it('asks what the workspace holds BEFORE offering either ending', () => {
+    const workspace = code(WORKSPACE_PAGE);
+    expect(workspace).toMatch(/useWorkspaceFootprint/);
+    expect(workspace).toMatch(/workspaceFootprintSentence/);
+  });
+
+  // The two calls are different verbs on different paths, exactly as the
+  // project's are: DELETE ends an empty one, POST /archive retires one with a
+  // history. One endpoint doing both by guessing would be the "two semantics"
+  // this codebase refuses.
+  it('deleting and archiving a workspace are two distinct calls', () => {
+    const api = read('lib/developer-api.ts');
+    expect(api).toMatch(/deleteWorkspace:[\s\S]*?method: 'DELETE'/);
+    expect(api).toMatch(/archiveWorkspace:[\s\S]*?\/archive`, \{ method: 'POST'/);
   });
 
   it('routes every destructive action through the type-the-name gate', () => {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ApiError, developerApi, type ProjectFootprint } from '@/lib/developer-api';
+import { ApiError, developerApi, type ProjectFootprint, type WorkspaceFootprint } from '@/lib/developer-api';
 import { Card } from '@/components/developers/portal/ui';
 import { IconCopy } from '@/components/developers/portal/icons';
 import { useDeveloperAuth } from '@/components/developers/portal/DeveloperAuth';
@@ -582,6 +582,63 @@ export function useProjectFootprint(projectID: string | null): {
   }, [projectID, nonce]);
 
   return { reading, reload };
+}
+
+export type WorkspaceFootprintReading =
+  | { state: 'loading' }
+  | { state: 'read'; footprint: WorkspaceFootprint }
+  | { state: 'unreadable' };
+
+/**
+ * What the workspace holds, asked BEFORE an ending is offered.
+ *
+ * The workspace counterpart of useProjectFootprint, and for the same reason: the
+ * danger zone must name the operation that will actually happen. A workspace
+ * that never held a project is deleted; one that held anything is archived,
+ * because its projects carry history.
+ */
+export function useWorkspaceFootprint(workspaceID: string | null): {
+  reading: WorkspaceFootprintReading;
+  reload: () => void;
+} {
+  const [reading, setReading] = useState<WorkspaceFootprintReading>({ state: 'loading' });
+  const [nonce, setNonce] = useState(0);
+  const reload = useCallback(() => setNonce((n) => n + 1), []);
+
+  useEffect(() => {
+    if (!workspaceID) {
+      setReading({ state: 'loading' });
+      return;
+    }
+    let live = true;
+    setReading({ state: 'loading' });
+    developerApi.workspaceFootprint(workspaceID).then(
+      (f) => {
+        if (live) setReading({ state: 'read', footprint: f });
+      },
+      () => {
+        if (live) setReading({ state: 'unreadable' });
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [workspaceID, nonce]);
+
+  return { reading, reload };
+}
+
+/** What a workspace holds, in one sentence, for a refusal the reader can act on. */
+export function workspaceFootprintSentence(f: WorkspaceFootprint): string {
+  const parts: string[] = [];
+  if (f.active_projects > 0) {
+    parts.push(f.active_projects === 1 ? '1 projeto ativo' : `${f.active_projects} projetos ativos`);
+  }
+  if (f.archived_projects > 0) {
+    parts.push(f.archived_projects === 1 ? '1 projeto arquivado' : `${f.archived_projects} projetos arquivados`);
+  }
+  if (parts.length === 0) return 'Este workspace não tem projetos.';
+  return `Este workspace tem ${parts.join(' e ')}.`;
 }
 
 // ── this member's authority ──────────────────────────────────────────────────

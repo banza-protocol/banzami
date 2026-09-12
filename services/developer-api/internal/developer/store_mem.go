@@ -135,6 +135,53 @@ func (m *memStore) CountActiveProjects(_ context.Context, workspaceID string) (i
 	return n, nil
 }
 
+func (m *memStore) WorkspaceFootprint(_ context.Context, id string) (WorkspaceFootprint, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var f WorkspaceFootprint
+	for _, p := range m.projects {
+		if p.WorkspaceID != id {
+			continue
+		}
+		f.Projects++
+		if p.Status == "ARCHIVED" {
+			f.ArchivedProjects++
+		} else {
+			f.ActiveProjects++
+		}
+	}
+	return f, nil
+}
+
+func (m *memStore) DeleteWorkspace(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if _, ok := m.workspaces[id]; !ok {
+		return ErrNotFound
+	}
+	for _, p := range m.projects {
+		if p.WorkspaceID == id {
+			return ErrConflict
+		}
+	}
+	delete(m.workspaces, id)
+	// Memberships and invites describe access to a workspace that no longer
+	// exists; postgres cascades them, and so does this.
+	kept := m.members[:0]
+	for _, mem := range m.members {
+		if mem.WorkspaceID != id {
+			kept = append(kept, mem)
+		}
+	}
+	m.members = kept
+	for k, inv := range m.invites {
+		if inv.WorkspaceID == id {
+			delete(m.invites, k)
+		}
+	}
+	return nil
+}
+
 func (m *memStore) memberRef(workspaceID, userID string) *Member {
 	for _, mem := range m.members {
 		if mem.WorkspaceID == workspaceID && mem.UserID == userID {

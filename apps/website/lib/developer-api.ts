@@ -205,6 +205,14 @@ export type ProjectFootprint = {
   deletable: boolean;
   blockers: string[];
 };
+/** What a workspace still holds — the difference between deleting and archiving it. */
+export type WorkspaceFootprint = {
+  projects: number;
+  active_projects: number;
+  archived_projects: number;
+  deletable: boolean;
+  blockers: string[];
+};
 export type Project = {
   id: string;
   workspace_id: string;
@@ -515,11 +523,16 @@ export const developerApi = {
     req<Workspace>('/workspaces', { method: 'POST', body: { name }, csrf }),
   renameWorkspace: (wsID: string, name: string, csrf: string) =>
     req<Workspace>(`/workspaces/${wsID}`, { method: 'PATCH', body: { name }, csrf }),
-  // Archive, not delete: audit events are append-only and a workspace's projects
-  // may hold financial history. The body repeats the workspace's own name, so
-  // the call cannot happen by a mis-click or a replayed request.
+  // The same pair a project has, one level up. A workspace that never held a
+  // project is DELETED; one that held anything is ARCHIVED, because its projects
+  // carry history. Both bodies repeat the workspace's own name, so neither can
+  // happen by a mis-click or a replayed request.
+  workspaceFootprint: (wsID: string) =>
+    req<WorkspaceFootprint>(`/workspaces/${wsID}/footprint`),
+  deleteWorkspace: (wsID: string, name: string, csrf: string) =>
+    req<void>(`/workspaces/${wsID}`, { method: 'DELETE', body: { name }, csrf }),
   archiveWorkspace: (wsID: string, name: string, csrf: string) =>
-    req<{ status: string }>(`/workspaces/${wsID}`, { method: 'DELETE', body: { name }, csrf }),
+    req<{ status: string }>(`/workspaces/${wsID}/archive`, { method: 'POST', body: { name }, csrf }),
   leaveWorkspace: (wsID: string, csrf: string) =>
     req<void>(`/workspaces/${wsID}/leave`, { method: 'POST', csrf }),
 

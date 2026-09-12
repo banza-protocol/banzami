@@ -255,12 +255,14 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/projects/{projID}/webhooks/events/{eventID}/deliveries", h.listWebhookDeliveries)
 	r.Get("/projects/{projID}/logs", h.listAPIRequestLogs)
 	r.Get("/projects/{projID}/footprint", h.projectFootprint)
+	r.Get("/workspaces/{wsID}/footprint", h.workspaceFootprint)
 
 	r.Group(func(r chi.Router) {
 		r.Use(csrf)
 		r.Post("/workspaces", h.createWorkspace)
 		r.Patch("/workspaces/{wsID}", h.renameWorkspace)
-		r.Delete("/workspaces/{wsID}", h.archiveWorkspace)
+		r.Delete("/workspaces/{wsID}", h.deleteWorkspace)
+		r.Post("/workspaces/{wsID}/archive", h.archiveWorkspace)
 		r.Post("/workspaces/{wsID}/leave", h.leaveWorkspace)
 		r.Patch("/projects/{projID}", h.renameProject)
 		r.Delete("/projects/{projID}", h.deleteProject)
@@ -921,7 +923,42 @@ func (h *Handlers) renameWorkspace(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, workspaceView(ws))
 }
 
-// DELETE /workspaces/{wsID} — archive.
+// DELETE /workspaces/{wsID} — delete a workspace that never held a project.
+//
+// The same shape as DELETE /projects/{projID} one level down, and for the same
+// reason: a workspace with a history is archived, a workspace without one can be
+// taken back. A workspace that still holds projects — active OR archived — is
+// refused with the counts, so the Console can say which.
+//
+// The body must repeat the workspace's own name.
+func (h *Handlers) deleteWorkspace(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	var in struct {
+		Name string `json:"name"`
+	}
+	if !body(r, &in) {
+		mapErr(w, ErrValidation)
+		return
+	}
+	ip, rid := reqMeta(r)
+	f, err := h.svc.DeleteWorkspace(r.Context(), u.ID, chi.URLParam(r, "wsID"), in.Name, ip, rid)
+	if err == ErrConflict {
+		httpx.ErrorWithDetails(w, http.StatusConflict, "WORKSPACE_NOT_EMPTY",
+			"this workspace has projects and can be archived, not deleted",
+			map[string]any{
+				"projects": f.Projects, "active_projects": f.ActiveProjects,
+				"archived_projects": f.ArchivedProjects, "blockers": f.Blockers(),
+			})
+		return
+	}
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// POST /workspaces/{wsID}/archive — archive.
 //
 // The body must repeat the workspace's own name. A destructive action reached by
 // a single verb on a single id is one stray request away from happening by
@@ -1154,6 +1191,23 @@ func (h *Handlers) projectFootprint(w http.ResponseWriter, r *http.Request) {
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"keys": f.Keys, "request_logs": f.RequestLogs, "bindings": f.Bindings,
 		"deletable": f.Empty(), "blockers": f.Blockers(),
+	})
+}
+
+// GET /workspaces/{wsID}/footprint — what the workspace holds, and therefore
+// whether it can be deleted or only archived. The Console asks this before it
+// offers either, so the danger zone names the real operation.
+func (h *Handlers) workspaceFootprint(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	f, err := h.svc.WorkspaceFootprintFor(r.Context(), u.ID, chi.URLParam(r, "wsID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"projects": f.Projects, "active_projects": f.ActiveProjects,
+		"archived_projects": f.ArchivedProjects,
+		"deletable":         f.Empty(), "blockers": f.Blockers(),
 	})
 }
 
