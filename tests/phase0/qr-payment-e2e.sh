@@ -46,6 +46,9 @@ mint(){ SECRET="$JWTSEC" K="$1" V="$2" node -e 'const c=require("crypto");const 
 acctbal(){ psqlro "SELECT COALESCE(SUM(CASE WHEN entry_type='CREDIT' THEN amount_minor ELSE -amount_minor END),0) FROM ledger_entries WHERE account_id='$1'"; }
 unbalanced(){ psqlro "SELECT COUNT(*) FROM (SELECT p.id FROM ledger_postings p JOIN ledger_entries e ON e.posting_id=p.id GROUP BY p.id HAVING SUM(CASE e.entry_type WHEN 'DEBIT' THEN -e.amount_minor ELSE e.amount_minor END) <> 0) x"; }
 
+. "$(cd "$(dirname "$0")" && pwd)/lib/e2e-run.sh"
+e2e_begin
+
 R="${RANDOM}${RANDOM}"
 AMOUNT=37500          # 375 Kz — a dynamic code's fixed amount
 STATIC_AMOUNT=12000   # 120 Kz — chosen by the payer on a static code
@@ -59,6 +62,7 @@ BOOTSTRAP=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
 call "$GW" 8080 POST /v1/merchants "{\"name\":\"QR E2E $R\",\"email\":\"qr-e2e-$R@synthetic.test\"}" "$BOOTSTRAP"
 MERCHANT=$(jget id)
 [ -n "$MERCHANT" ] || { echo "merchant fixture failed (http=$CODE): $LAST"; exit 1; }
+e2e_own merchant "$MERCHANT"
 MJWT=$(mint merchant_id "$MERCHANT")
 call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"
 WID=$(jget id)
@@ -73,6 +77,7 @@ call "$PUB" 8083 POST /v1/consumer/onboarding/verify-otp "{\"session_id\":\"$SID
 call "$PUB" 8083 POST /v1/consumer/onboarding/complete "{\"session_id\":\"$SID\",\"banza_handle\":\"$H\",\"pin\":\"1234\"}" -
 PAYER=$(jget consumer_id)
 [ -n "$PAYER" ] || { echo "payer onboarding failed"; exit 1; }
+e2e_own consumer "$PAYER"
 CJWT=$(mint customer_id "$PAYER")
 call "$GW" 8080 POST /v1/compliance/customers/verify \
   "{\"full_name\":\"QR PAY E2E\",\"document_type\":\"BILHETE_DE_IDENTIDADE\",\"document_number\":\"QR$R\",\"date_of_birth\":\"1990-01-01\",\"requested_level\":\"BASIC\"}" "$CJWT"
