@@ -54,7 +54,7 @@ function FinancialSetupBody() {
 export default function FinanceiroPage() {
   return (
     <PortalPage active="financeiro">
-      <div className="bz-view" style={{ maxWidth: 980 }}>
+      <div className="bz-view">
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Configuração financeira</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           O negócio em que este projeto recebe pagamentos, e a verificação que o Banzami faz dele.

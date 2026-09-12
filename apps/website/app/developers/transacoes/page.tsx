@@ -313,7 +313,7 @@ function Transactions() {
 export default function TransacoesPage() {
   return (
     <PortalPage active="transacoes">
-      <div className="bz-view" style={{ maxWidth: 980 }}>
+      <div className="bz-view">
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Transações</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           Pagamentos, reembolsos e transferências entre contas do negócio ligado a este projeto — de

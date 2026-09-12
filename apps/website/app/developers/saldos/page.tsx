@@ -206,7 +206,7 @@ function Balances() {
 export default function SaldosPage() {
   return (
     <PortalPage active="saldos">
-      <div className="bz-view" style={{ maxWidth: 980 }}>
+      <div className="bz-view">
         <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Saldos</h1>
         <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
           As contas do destinatário financeiro a que este projeto está ligado, e o que cada uma
