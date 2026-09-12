@@ -163,6 +163,20 @@ export async function getProof(ref: string, readerIp?: string): Promise<ProofRes
     // 5xx and 503 are OUR failure, never the receipt's.
     if (res.status >= 500) return unavailable(`upstream_${res.status}`);
 
+    // The verifier refused to answer THIS reader for now. Decided on the status
+    // alone, BEFORE the body is read: a 429 carries an error envelope, not a
+    // proof, so requiring `exists` of it would turn every limit into a claimed
+    // outage. It is neither — the receipt is not in question — and it keeps its
+    // own name so the page can answer 429.
+    if (res.status === 429) {
+      return {
+        exists: false,
+        status: 'RATE_LIMITED',
+        message: 'Demasiadas verificações a partir deste endereço. Tente novamente dentro de momentos.',
+        environment: asked,
+      };
+    }
+
     const j = (await res.json().catch(() => null)) as ProofResult | null;
 
     // A body we cannot read is an unknown, not a verdict.

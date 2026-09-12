@@ -64,14 +64,46 @@ export function payeeLabel(display?: string | null, handle?: string | null): str
 }
 
 /**
+ * The states in which the verifier did NOT reach a conclusion about the proof.
+ * None of them is an answer about the receipt, so none may become a 404 (or a
+ * "forged"): they are about us, not about the document in the reader's hand.
+ */
+const INCONCLUSIVE: Record<string, number> = {
+  // Our verifier is unreachable, erroring, or answering something unreadable.
+  UNAVAILABLE: 503,
+  ERROR: 503,
+  // We refused to answer THIS reader for now. The receipt is not in question.
+  RATE_LIMITED: 429,
+};
+
+/**
+ * The HTTP status the public verifier answers a reference with — the single
+ * decision, made once, from one lookup.
+ *
+ *   200  the verifier answered about a proof that exists (confirmed, pending,
+ *        reversed — the verdict is the page's, the status is only "we answered")
+ *   404  the verifier answered definitively that there is no such proof, or the
+ *        reference is not spelled as one
+ *   503  our verification backend could not be reached or could not be read
+ *   429  we declined to verify for this reader right now
+ *
+ * An outage must not be indistinguishable from a verdict: a 200 saying
+ * "indisponível" tells a crawler, a monitor and an integrator's HTTP client
+ * that we answered, when we did not.
+ */
+export function proofHttpStatus(p: Pick<ProofResult, 'exists' | 'status'>): number {
+  if (p.exists) return 200;
+  return INCONCLUSIVE[p.status] ?? 404;
+}
+
+/**
  * Whether the verifier's answer is that this proof definitively does not exist
  * — a malformed reference, or a 404 from the verifier. Only then does the page
- * answer HTTP 404. An unavailable or erroring verifier is not an answer about the
- * proof at all, and must never become a 404 (or a "forged").
+ * answer HTTP 404. An unavailable, rate-limited or erroring verifier is not an
+ * answer about the proof at all.
  */
 export function proofDefinitivelyAbsent(p: Pick<ProofResult, 'exists' | 'status'>): boolean {
-  if (p.exists) return false;
-  return p.status !== 'UNAVAILABLE' && p.status !== 'ERROR';
+  return proofHttpStatus(p) === 404;
 }
 
 export interface ProofRow { label: string; value: string; mono?: boolean }

@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { BrandMark } from '@/components/site/BrandMark';
 
 // The parts of the public verifier page that every outcome shares — the page
@@ -19,12 +18,12 @@ export function VerifierFrame({ sandbox, children }: { sandbox: boolean; childre
   return (
     <main style={{ minHeight: '100vh', background: '#FFF7F6', padding: '40px 20px' }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
-        <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#2a2024', fontWeight: 900, fontSize: 20, marginBottom: 24 }}>
+        <a href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#2a2024', fontWeight: 900, fontSize: 20, marginBottom: 24 }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 11, background: '#B5101F', boxShadow: '0 6px 14px -4px rgba(181,16,31,0.5)' }}>
             <BrandMark size={18} />
           </span>
           Banzami
-        </Link>
+        </a>
 
         {sandbox && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 14px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12.5, fontWeight: 800 }}>
@@ -45,7 +44,7 @@ export function VerifierFrame({ sandbox, children }: { sandbox: boolean; childre
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 18 }}>
-          <Link href="/verificar" style={{ fontSize: 13.5, fontWeight: 800, color: '#B5101F' }}>Verificar outro comprovativo →</Link>
+          <a href="/verificar" style={{ fontSize: 13.5, fontWeight: 800, color: '#B5101F' }}>Verificar outro comprovativo →</a>
         </div>
       </div>
     </main>

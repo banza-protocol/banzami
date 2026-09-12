@@ -71,10 +71,10 @@ describe('getProof forwards the reader to the gateway', () => {
   });
 });
 
-// The server page is where the request headers are; it must hand them on.
-describe('the /r/{ref} page', () => {
+// The route handler is where the request headers are; it must hand them on.
+describe('the /r/{ref} route', () => {
   it('looks the proof up on the reader’s behalf', () => {
-    const src = readFileSync(resolve(__dirname, '../app/r/[ref]/page.tsx'), 'utf8');
-    expect(src).toMatch(/getProof\(ref,\s*readerIpFrom\(await headers\(\)\)\)/);
+    const src = readFileSync(resolve(__dirname, '../app/r/[ref]/route.tsx'), 'utf8');
+    expect(src).toMatch(/getProof\(ref,\s*readerIpFrom\(req\.headers\)\)/);
   });
 });

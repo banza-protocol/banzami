@@ -39,6 +39,6 @@ describe('status codes are shown as Portuguese words', () => {
     const setup = read('components/developers/portal/FinancialSetup.tsx');
     expect(setup).not.toMatch(/value=\{r\.kyb\.status \?\? '—'\}/);
     expect(setup).not.toMatch(/\$\{r\.wallet\.status \?\? '—'\}/);
-    expect(read('app/r/[ref]/page.tsx')).not.toMatch(/Estado: \$\{p\.status\}/);
+    expect(read('app/r/[ref]/verifier-view.tsx')).not.toMatch(/Estado: \$\{p\.status\}/);
   });
 });
