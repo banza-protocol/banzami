@@ -42,16 +42,16 @@ export function Badge({ tone, children }: { tone: Tone; children?: ReactNode }) 
 
 // -- Small presentational helpers ----------------------------------------------
 export const P = ({ children, style }: { children: ReactNode; style?: React.CSSProperties }) => (
-  <p style={{ margin: '0 0 12px', fontSize: 14.5, lineHeight: 1.65, color: '#5a4a4e', fontWeight: 500, maxWidth: 660, ...style }}>{children}</p>
+  <p style={{ margin: '0 0 12px', fontSize: 14.5, lineHeight: 1.65, color: '#5a4a4e', fontWeight: 500, maxWidth: 660, overflowWrap: 'break-word', ...style }}>{children}</p>
 );
 export const UL = ({ children }: { children: ReactNode }) => (
   <ul style={{ margin: '0 0 14px', padding: '0 0 0 18px', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 6 }}>{children}</ul>
 );
 export const LI = ({ children }: { children: ReactNode }) => (
-  <li style={{ fontSize: 14, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>{children}</li>
+  <li style={{ fontSize: 14, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500, overflowWrap: 'break-word' }}>{children}</li>
 );
 export const Code = ({ children }: { children: ReactNode }) => (
-  <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>{children}</code>
+  <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700, overflowWrap: 'break-word' }}>{children}</code>
 );
 export const H2 = ({ children }: { children: ReactNode }) => (
   <h2 style={{ margin: '0 0 6px', fontSize: 22, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>{children}</h2>
