@@ -3951,3 +3951,101 @@ The Validation Studio reported "commit created" for a commit git refused.
 until the store grew past sixty: the tail came back 429 and the harness read it as proofs
 that do not verify (16 of 156). It pages them across its client pool, and the run is
 156/156.
+
+## RA-163 — a workspace could be made and never ended
+
+- **Found:** 2026-09-12 (Developer Platform productization, DP-PROD-001 §5/§6)
+- **Status:** FIXED (developer-api, db/migrations 0139, apps/website)
+
+There was no rename, no leave and no owner-reachable close. The only project
+retirement lived behind operator authority on an internal route, so a project
+created by a typo was permanent and every abandoned workspace stayed in its
+owner's switcher for ever.
+
+Workspaces gained PATCH (rename), POST /leave and DELETE (archive); projects
+gained PATCH, POST /archive, DELETE and GET /footprint; webhook endpoints gained
+DELETE. The rules that make ending things safe are the point: nothing cascades —
+closing a workspace that still holds an active project is refused and the refusal
+carries the count; a rename never moves the slug, because that value is in a
+developer's config file; delete is only for a project that never became anything,
+and a revoked key still counts, because the project issued a credential that once
+authorised requests; an endpoint that has delivered cannot be deleted, because its
+deliveries reference it; and every destructive call must repeat the resource's own
+name, so none can happen by a mis-click or a replayed request.
+
+Archive and not delete for a workspace: developer.audit_events is append-only and
+its projects may hold financial history. So the product says Arquivar.
+
+## RA-164 — the avatar showed two letters of an email address
+
+- **Found:** 2026-09-12 (DP-PROD-001 §3/§4)
+- **Status:** FIXED (developer-api, apps/website)
+
+Sign-up is email-OTP only and no code ever wrote the name column, so every
+Console avatar fell back to `email.slice(0,2)`: two colleagues at one domain
+rendered identically, and the only place the signed-in person appeared was a
+tooltip. POST /auth/me records a display name; with none set the avatar draws a
+person glyph rather than inventing initials.
+
+Signing out was one click on something that looked like a menu. It is in the menu
+now, behind a confirmation, and the client no longer swallows a failed
+revocation — the server deliberately keeps the cookie when it could not revoke,
+so the person can sign out again, and the UI used to throw that away and claim
+success.
+
+## RA-165 — nothing could pay a structured QR (CAP-PAY-003)
+
+- **Found:** 2026-09-12 (DP-PROD-001 §19)
+- **Status:** FIXED (core, public-api, api-gateway, sdk/flutter, db/migrations 0140–0141)
+
+QR codes could be created, decoded, read and marked used; core/qr could already
+resolve a payload into a verified target and roll a claim back. Nothing called
+either function, because the only route that ever paid a QR took the payer as a
+free-text field on a MERCHANT credential and was withdrawn rather than patched
+(RA-053).
+
+Rebuilt where the authority contract says it belongs: POST /v1/qr/pay on the
+consumer surface, with the payer taken from the session and absent from the
+request body. /internal/v1/qr/pay stays withdrawn — that path is the broken
+contract's name — and the core route is /internal/v1/consumer/qr/pay.
+
+The single-use claim is a conditional UPDATE inside the payment's own
+transaction, not the engine's mark_used/release_claim pair: claiming on one
+connection and posting on another leaves a window where the code is spent and the
+money has not moved. A dynamic code's amount is used, never compared, because
+"compared" invites a patch that tolerates a difference. 28/28 against the
+deployed Sandbox.
+
+## RA-166 — four harnesses remembered a product that had changed
+
+- **Found:** 2026-09-12 (DP-PROD-001 §14)
+- **Status:** FIXED (tests/phase0, tools/e2e)
+
+Each failed against the current product while asserting a rule that used to be
+right. The header must no longer read "Terminar sessão" (sign-out moved into a
+confirmed menu); a wallet payment's list row carries no `reference` (it was
+derived from the payment id, was never a proof, and returned NOT_FOUND in the
+public verifier); an unbound project answers 409 PROJECT_FINANCIAL_SETUP_REQUIRED
+rather than the 404 the step's own name calls "denied"; and /v1/me carries the
+Project's id on purpose — what must stay out is everything behind it.
+
+Three of the four are now stricter than they were.
+
+## RA-167 — the fixture audit called DOA's live tenant residue
+
+- **Found:** 2026-09-12 (DP-PROD-001 §23)
+- **Status:** FIXED (tools/ops)
+
+stale-fixture-audit.sh excluded a project named "DOA Sandbox". Nothing is called
+that: the project is `Doa-Sandbox` and the merchant `Sandbox · Doa-Sandbox`. So
+every run reported DOA's production authority — two runtime keys, its merchant,
+its active webhook endpoint — as stale fixture residue, and ended by naming the
+command that retires what it found.
+
+Fixing the name was not enough: the merchant's U+00B7 middle dot does not survive
+the shell and the SSH hop intact, so equality matched nothing either. Both scripts
+match an ASCII pattern now. Nothing was ever at risk — prune-fixture-authority's
+matcher is positive and neither real name matches a fixture shape — but a safety
+belt that names the wrong thing reads as protection and is not.
+
+With the exclusion working, every residue counter reads 0.
