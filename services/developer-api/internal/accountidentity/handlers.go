@@ -82,8 +82,15 @@ func (h *Handlers) Register(get, post func(pattern string, hf http.HandlerFunc))
 // GET /auth/sessions — the person's own live sessions. Never a token or a hash.
 func (h *Handlers) Sessions(w http.ResponseWriter, r *http.Request) {
 	list, err := h.svc.Sessions(r.Context(), h.rawSession(r))
-	if err != nil {
+	if errors.Is(err, ErrUnauthenticated) {
 		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "not authenticated")
+		return
+	}
+	if err != nil {
+		// A read that failed is not a statement about who the caller is. This
+		// mapped every error to 401, so a broken query read as "not signed in" —
+		// and that is exactly how the host(ip) fault below reached production.
+		httpx.Error(w, http.StatusServiceUnavailable, "SESSIONS_UNAVAILABLE", "could not read your sessions just now")
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"sessions": list})
@@ -102,8 +109,12 @@ func (h *Handlers) RevokeOtherSessions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	n, err := h.svc.RevokeOtherSessions(r.Context(), raw)
-	if err != nil {
+	if errors.Is(err, ErrUnauthenticated) {
 		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "not authenticated")
+		return
+	}
+	if err != nil {
+		httpx.Error(w, http.StatusServiceUnavailable, "SESSIONS_UNAVAILABLE", "could not end the other sessions just now")
 		return
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"revoked": n})

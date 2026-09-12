@@ -165,7 +165,9 @@ func (s *pgStore) LiveSessionByHash(ctx context.Context, tokenHash string) (*Ses
 
 func (s *pgStore) LiveSessions(ctx context.Context, userID string) ([]SessionView, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, COALESCE(user_agent,''), COALESCE(host(ip),''), created_at, last_seen_at, expires_at
+		// ip is TEXT here, not inet: host(ip) does not exist for it and the query
+		// failed at runtime, which the handler then reported as "not authenticated".
+		`SELECT id, COALESCE(user_agent,''), COALESCE(ip,''), created_at, last_seen_at, expires_at
 		   FROM account_identity.identity_sessions
 		  WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
 		  ORDER BY COALESCE(last_seen_at, created_at) DESC`, userID)
