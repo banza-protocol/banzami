@@ -372,6 +372,10 @@ check-assurance-release:
 check-openapi-drift:
 	node tools/check-openapi-route-drift.mjs
 
+.PHONY: check-deploy-parity
+check-deploy-parity:
+	node tools/check-deploy-parity.mjs
+
 check-sdk-payment-boundary:
 	node tools/check-sdk-payment-boundary.mjs
 
