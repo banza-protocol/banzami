@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Card } from './ui';
+import { useDialogFocus } from './use-dialog-focus';
 
 /**
  * Confirm a destructive action, in the product.
@@ -41,10 +42,15 @@ export function ConfirmDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const cancel = useRef<HTMLButtonElement>(null);
+  const surface = useRef<HTMLDivElement>(null);
 
-  // Focus lands on Cancel, not on the destructive action.
-  useEffect(() => { cancel.current?.focus(); }, []);
+  // Focus lands on Cancel, not on the destructive action, and returns to
+  // whatever opened the dialog when it closes.
+  useDialogFocus(surface, cancel);
+
   useEffect(() => {
+    // Escape cancels. Safe here — cancelling costs nothing — and deliberately
+    // not in the shared hook, because it is not safe in every dialog.
     const esc = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onClose(); };
     window.addEventListener('keydown', esc);
     return () => window.removeEventListener('keydown', esc);
@@ -73,7 +79,10 @@ export function ConfirmDialog({
         display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
       }}
     >
-      <Card style={{ maxWidth: 460, width: '100%', padding: 26 }}>
+      {/* The trap needs one element that contains every control; the sizing
+          moves here so the Card stays the flex item's full width. */}
+      <div ref={surface} style={{ maxWidth: 460, width: '100%' }}>
+      <Card style={{ width: '100%', padding: 26 }}>
         <h3 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 900 }}>{title}</h3>
         <p style={{ margin: '0 0 16px', fontSize: 13.5, lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600 }}>
           {body}
@@ -124,6 +133,7 @@ export function ConfirmDialog({
           </button>
         </div>
       </Card>
+      </div>
     </div>
   );
 }

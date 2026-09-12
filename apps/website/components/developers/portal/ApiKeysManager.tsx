@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { developerApi, type ApiKey, type NewKey } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
 import { Card, Pill, type PillKind } from './ui';
 import { ConfirmDialog } from './ConfirmDialog';
+import { useDialogFocus } from './use-dialog-focus';
 import { ScopeDrawer, domainLabel, scopeDomain } from './ScopeDrawer';
 import { IconCopy, IconRotate, IconSearch, IconShield } from './icons';
 
@@ -81,6 +82,12 @@ export function SecretRevealDialog({
 }) {
   const { flash } = useToast();
   const [ack, setAck] = useState(false);
+  const surface = useRef<HTMLDivElement>(null);
+  // Focus moves into the dialog and is trapped there. Escape is deliberately
+  // NOT wired: this is the one moment the secret exists, and a stray keypress
+  // that dismissed it would destroy something unrecoverable. The acknowledgement
+  // checkbox is the only way out, which is the point.
+  useDialogFocus(surface);
   return (
     <div
       role="dialog"
@@ -97,7 +104,8 @@ export function SecretRevealDialog({
         padding: 20,
       }}
     >
-      <Card style={{ maxWidth: 520, width: '100%', padding: 26 }}>
+      <div ref={surface} style={{ maxWidth: 520, width: '100%' }}>
+      <Card style={{ width: '100%', padding: 26 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 8 }}>
           <span style={{ width: 32, height: 32, borderRadius: 9, background: '#FFF1F0', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#B5101F' }}>
             <IconShield size={17} />
@@ -155,6 +163,7 @@ export function SecretRevealDialog({
           Fechar
         </button>
       </Card>
+      </div>
     </div>
   );
 }
