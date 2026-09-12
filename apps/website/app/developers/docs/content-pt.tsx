@@ -320,7 +320,10 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 ))}
               </div>
 
-              <H3>Três camadas</H3>
+              {/* h2, not h3: it follows the page h1 directly, and a skipped
+                  heading level is a screen reader announcing a subsection of
+                  something that is not there. */}
+              <H2>Três camadas</H2>
               <P>Ao integrar Banzami, distinga sempre três camadas:</P>
               <UL>
                 <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e <GlossaryTerm id="otp">OTP</GlossaryTerm>, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis, regista webhooks e consulta os registos da API. A Console não é uma API pública para terceiros chamarem diretamente. A Visão geral, os Saldos, as Transações, os Webhooks e os Registos mostram dados reais do seu projeto: os Saldos as contas do destinatário a que o projeto está ligado, as Transações os pagamentos, reembolsos e transferências que aconteceram, e os Registos cada pedido feito à API com uma chave do projeto. A Console não tem directório de clientes nem página de estado — nenhum dos dois existe como produto.</LI>

@@ -5,7 +5,7 @@
 // No new visual system: same styles, same components, same brand tokens. The
 // sidebar now navigates between area routes instead of in-page anchors.
 
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BrandTile } from '@/components/developers/portal/icons';
 import { INK, RED, backLinkStyle } from './ui';
 
@@ -72,6 +72,21 @@ export const areaHref = (lang: 'pt' | 'en', slug: string) => (slug ? `${base(lan
 export function DocsShell({ lang, active, children }: { lang: 'pt' | 'en'; active: string; children: (copy: CopyFn) => ReactNode }) {
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * The document language follows the page.
+   *
+   * Only the root layout renders <html>, and it declares pt — so every page
+   * under /docs/en told assistive technology it was Portuguese. A screen reader
+   * takes that literally and reads English prose with Portuguese pronunciation,
+   * which is worse than no declaration at all. Nothing else on the page can fix
+   * it, because nothing else owns the element.
+   */
+  useEffect(() => {
+    const previous = document.documentElement.lang;
+    document.documentElement.lang = lang;
+    return () => { document.documentElement.lang = previous; };
+  }, [lang]);
   const copy = useCallback<CopyFn>((text, label) => {
     const onOk = () => {
       setToast(label);

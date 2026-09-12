@@ -90,12 +90,16 @@ export function CodeBlock({ label, raw, onCopy, toastText = 'Copiado para a áre
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#E8434B' }} />
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#FBD2D0' }} />
         <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#5a4a4e' }} />
-        <span style={{ marginLeft: 6, fontFamily: mono, fontSize: 11.5, color: '#b8a4a6', fontWeight: 600 }}>{label}</span>
+        {/* The label must be allowed to shrink. Without minWidth:0 a long label
+            keeps its intrinsic width in this flex row and pushes the copy button
+            past the viewport — which is how /docs/reference scrolled sideways on
+            a 390px phone while every container around it behaved. */}
+        <span style={{ marginLeft: 6, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: mono, fontSize: 11.5, color: '#b8a4a6', fontWeight: 600 }}>{label}</span>
         <button
           type="button"
           onClick={() => onCopy(raw, toastText)}
           className="bz-icobtn"
-          style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+          style={{ marginLeft: 'auto', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid rgba(255,255,255,.14)', borderRadius: 9, background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
             <rect x="9" y="9" width="11" height="11" rx="2.5" stroke="#fff" strokeWidth="1.9" />

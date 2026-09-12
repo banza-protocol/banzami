@@ -124,7 +124,10 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 </UL>
               </div>
 
-              <H3>Three layers</H3>
+              {/* h2, not h3: it follows the page h1 directly, and a skipped
+                  heading level is a screen reader announcing a subsection of
+                  something that is not there. */}
+              <H2>Three layers</H2>
               <UL>
                 <LI><strong>Banzami Developers Console</strong> — where you sign in with email + OTP, create workspaces, Sandbox projects and <strong>test keys</strong>, and manage members and roles. The Console is not a public API for third parties to call directly. The Overview, Balances, Transactions, Webhooks and Logs show your project&rsquo;s real data: Balances the accounts of the payee the project is bound to, Transactions the payments, refunds and transfers that happened, and Logs every request made with one of the project&rsquo;s keys. There is no customer directory and no status page — neither exists as a product.</LI>
                 <LI><strong>Banzami integration layer</strong> — what your application uses for payments: payment links, sessions, QR, confirmation, receipts, signed webhooks and operator-controlled settlement.</LI>
