@@ -298,7 +298,10 @@ fn every_economic_source_is_either_in_the_feed_or_declared_invisible() {
         ("payouts", "the money leaves via a transfer, already shown"),
         // Operator fees are charged to the BUSINESS at settlement and payout, never
         // to a consumer's account, so a consumer has no fee to see.
-        ("app_settlement fee leg", "charged to the application, not the consumer"),
+        (
+            "app_settlement fee leg",
+            "charged to the application, not the consumer",
+        ),
     ] {
         assert!(!why.is_empty(), "{source} must say why it is invisible");
     }
