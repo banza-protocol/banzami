@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, available_account_id FROM consumer_wallets\n          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "available_account_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bpchar"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "4d966341ce59b41ea71467c53b5fc861a56767f3c865f419715c1aa0e6a5d6fc"
+}

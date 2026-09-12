@@ -43,6 +43,9 @@ mod payment_sessions_tests;
 pub mod payouts;
 pub mod pricing_rules;
 pub mod qr;
+pub mod qr_pay;
+#[cfg(test)]
+mod qr_pay_tests;
 #[cfg(test)]
 mod qr_wallet_account_tests;
 pub mod reconciliation;

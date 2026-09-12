@@ -697,6 +697,13 @@ async fn main() {
         .route("/internal/v1/qr/static", post(routes::qr::create_static))
         .route("/internal/v1/qr/dynamic", post(routes::qr::create_dynamic))
         .route("/internal/v1/qr/decode", post(routes::qr::decode))
+        // Paying a structured QR (CAP-PAY-003). NOT /internal/v1/qr/pay — that
+        // path names the withdrawn contract, where the payer was a free-text
+        // field on a merchant credential (RA-053), and it stays unmounted and
+        // guarded. Here the payer is the consumer the public API authenticated:
+        // the route lives under /consumer/ because that is the only surface
+        // allowed to assert who is paying.
+        .route("/internal/v1/consumer/qr/pay", post(routes::qr_pay::pay))
         // Split Sessions is SUPERSEDED by Collections (ADR-036). The legacy
         // routes are retired: every method + nested path under /internal/v1/splits
         // returns a deliberate 410 SPLIT_SESSIONS_SUPERSEDED without touching the

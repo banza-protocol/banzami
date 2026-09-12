@@ -854,6 +854,89 @@ func (c *CorePublicClient) PayConsumerPayLink(ctx context.Context, code string, 
 	return &out, nil
 }
 
+// ── Paying a structured QR (CAP-PAY-003) ────────────────────────────────────
+
+// PayQrRequest is what Core is told about a QR payment.
+//
+// PayerConsumerID is filled in by the handler from the authenticated session and
+// is never read from the request body. That is the whole authority model: the
+// old merchant route took the payer as free text and anyone with a merchant key
+// could name any consumer (RA-053). Here the only caller that can set it is the
+// one that authenticated the person.
+type PayQrRequest struct {
+	PayerConsumerID string `json:"payer_consumer_id"`
+	Payload         string `json:"payload"`
+	// Only meaningful for a static (open-amount) QR. Core ignores it for a
+	// dynamic one, whose amount is fixed in the signed record.
+	AmountMinor    *int64 `json:"amount_minor,omitempty"`
+	IdempotencyKey string `json:"idempotency_key"`
+}
+
+// QrPayment is the settled result of paying a QR.
+type QrPayment struct {
+	TransferID      string  `json:"transfer_id"`
+	WalletPaymentID *string `json:"wallet_payment_id,omitempty"`
+	AmountMinor     int64   `json:"amount_minor"`
+	Currency        string  `json:"currency"`
+	QrType          string  `json:"qr_type"`
+	PaidAt          string  `json:"paid_at"`
+}
+
+var (
+	ErrQrNotFound         = errors.New("qr code not found")
+	ErrQrInvalidPayload   = errors.New("qr payload is not a Banzami QR")
+	ErrQrInvalidSignature = errors.New("qr signature does not match")
+	ErrQrExpired          = errors.New("qr code has expired")
+	ErrQrAlreadyUsed      = errors.New("qr code has already been used")
+	ErrQrAmountRequired   = errors.New("amount is required for this qr code")
+	ErrQrAmountInvalid    = errors.New("amount must be positive")
+	ErrQrInvalidAccount   = errors.New("the account this qr routes to is unavailable")
+)
+
+func (c *CorePublicClient) PayQr(ctx context.Context, req PayQrRequest) (*QrPayment, error) {
+	var out QrPayment
+	if err := c.post(ctx, "/internal/v1/consumer/qr/pay", req, &out); err != nil {
+		return nil, mapQrPayError(err)
+	}
+	return &out, nil
+}
+
+// mapQrPayError turns Core's coded refusals into this package's sentinels, so
+// the handler answers with the protocol's status codes rather than inventing
+// its own vocabulary for the same situations.
+func mapQrPayError(err error) error {
+	if errors.Is(err, ErrNotFound) {
+		return ErrQrNotFound
+	}
+	msg := err.Error()
+	switch {
+	case contains(msg, "INVALID_PAYLOAD"):
+		return ErrQrInvalidPayload
+	case contains(msg, "INVALID_SIGNATURE"):
+		return ErrQrInvalidSignature
+	case contains(msg, "QR_EXPIRED"):
+		return ErrQrExpired
+	case contains(msg, "QR_ALREADY_USED"):
+		return ErrQrAlreadyUsed
+	case contains(msg, "AMOUNT_REQUIRED"):
+		return ErrQrAmountRequired
+	case contains(msg, "AMOUNT_NEGATIVE"):
+		return ErrQrAmountInvalid
+	case contains(msg, "INVALID_WALLET_ACCOUNT"):
+		return ErrQrInvalidAccount
+	case contains(msg, "INSUFFICIENT_FUNDS"):
+		return ErrTransferInsufficientFunds
+	case contains(msg, "WALLET_NOT_FOUND"):
+		return ErrTransferWalletNotFound
+	case contains(msg, "ACCOUNT_FROZEN"):
+		return ErrTransferWalletLocked
+	case contains(msg, "cannot pay your own QR"):
+		return ErrTransferSelfTransfer
+	default:
+		return err
+	}
+}
+
 func mapConsumerPayLinkPayError(err error) error {
 	if errors.Is(err, ErrNotFound) {
 		return ErrConsumerPayLinkNotFound

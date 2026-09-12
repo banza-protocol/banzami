@@ -94,6 +94,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	receiptH := handler.NewReceiptHandler(deps.CoreClient, deps.ProofClient, cfg.Environment)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc, deps.ProofClient, cfg.Environment)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
+	qrPayH := handler.NewQrPayHandler(deps.CoreClient)
 	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH := handler.NewOnboardingHandler(deps.CoreClient).WithCredentials(deps.CredStore).WithEnvironment(cfg.Environment)
 	debugPushH := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
@@ -179,6 +180,11 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		// Consumer pay links — create + pay
 		r.Post("/v1/consumer-pay-links", consumerPayLinkH.Create)
 		r.Post("/v1/consumer-pay-links/{code}/pay", consumerPayLinkH.Pay)
+
+		// Paying a structured Banzami QR (CAP-PAY-003). The payer is this
+		// session's consumer and is never a body field — that is the entire
+		// difference from the withdrawn merchant route (RA-053).
+		r.Post("/v1/qr/pay", qrPayH.Pay)
 
 		// Consumer identity verification (KYC) — ADR-020. The operator decides
 		// the level; the consumer never sends `requested_level`.
