@@ -543,6 +543,11 @@ capabilities:
         - services/developer-api workspace/project authz tests
       e2e_sandbox:
         - tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*)
+        - tools/e2e/dev-console/developer-journey-50.mjs (41 PASS · 9 BLOCKED · 0 FAIL, residue 0)
+        - tools/e2e/console/route-suite.mjs (15/0)
+        - tools/e2e/console/accessibility.mjs (29/0)
+        - tools/e2e/console/responsive.mjs (36/0 across 1440/1280/768/375)
+        - tools/e2e/console/locale-sweep.mjs (24/0, rendered DOM)
         - tools/e2e/dev-console/api-logs-correlation-e2e.mjs (LOG.overview-* — the Overview moves with real traffic and renders none of the old constants)
       negative_security:
         - unauth redirect, OTP single-use/invalid, CSRF-block, cross-tenant 403, logout-invalidates, no-secret-in-storage

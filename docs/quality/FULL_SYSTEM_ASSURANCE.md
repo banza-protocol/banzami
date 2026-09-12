@@ -389,6 +389,35 @@ The responsive suite is new and immediately caught a regression introduced in
 this same pass: the Live control's new explanation is a sentence, it was
 `flex: none`, and it held every authenticated page wider than a phone.
 
+### The 50-step journey
+
+One run through the whole developer product in a real browser against the
+deployed Console: **41 PASS · 9 BLOCKED · 0 FAIL · residue 0**.
+
+It reports three verdicts, not two, and the third is what makes the number
+honest. Nine steps need the Project to have a financial owner, and a developer
+alone cannot give it one: a new Business is decided by an operator in BANZADMIN,
+an existing one is connected with a single-use consent code issued by its owner.
+That is deliberate — it replaced a one-click Sandbox setup that created a
+synthetic Business and marked its KYB approved with nobody reviewing anything.
+Calling those nine FAIL would say the product is broken; calling them PASS would
+say a journey completed that did not. They are BLOCKED, each naming the authority
+it waits on, and a BLOCKED step is never counted as a pass.
+
+No application was submitted on the way past: it would leave a review-queue item
+the run cannot take back, and a residue count has to mean something.
+
+One deviation is disclosed in the run and in its evidence: sign-in uses the
+genuine request-otp + verify path, but the code is recovered server-side because
+no mailbox exists for a `@banzami-e2e.test` address (`otp-retrieve.sh`, which
+refuses any real address for exactly this reason). Email DELIVERY is not proven
+by this run; everything after sign-in is the product's own path.
+
+The journey is what found the two defects above — a rename that never reached
+the screen, and a webhooks page reporting a service outage for a state it had
+purpose-built copy for. Neither is visible from source: the first needs a second
+render, the second needs the API to answer.
+
 ### Four harnesses were wrong, and the product was right
 
 Each had remembered an older version of the product and failed against the
