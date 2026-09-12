@@ -32,11 +32,28 @@ skip()    { printf "  ${YELLOW}⊘${NC} %s\n" "$1"; SKIPPED+=("$1"); }
 # these stops passing, the corresponding weakness has been reintroduced.
 section "Security regression tests"
 
+# Some of these suites are DB-backed, and the Makefile exports .env — so a
+# developer database that is behind head makes them fail while SEEDING, long
+# before they assert anything. That failure is not a security regression, and
+# reporting it as one sends somebody hunting a reintroduced vulnerability that
+# does not exist. Say which it is.
+schema_is_stale() {
+  printf '%s\n' "$1" | grep -qE 'does not exist \(SQLSTATE 42(703|P01)\)|relation "[a-z_]+" does not exist'
+}
+
 run_go_tests() {
   local module="$1" pattern="$2" label="$3"
   if out=$(cd "$module" && go test ./... -run "$pattern" -count=1 2>&1); then
     ok "$label"
   else
+    if [ -n "${DATABASE_URL:-}" ] && schema_is_stale "$out"; then
+      bad "$label — NOT a security regression: the database at DATABASE_URL is behind the migrations"
+      printf '%s\n' "$out" | grep -E 'SQLSTATE|does not exist' | head -3
+      printf '    the suite could not seed its fixtures. Bring the database to head and re-run:\n'
+      printf '      make db-status    # what is pending\n'
+      printf '      make db-reset     # rebuild it from zero (destroys local dev data)\n'
+      return
+    fi
     bad "$label"
     printf '%s\n' "$out" | grep -E '^(---|\s+FAIL|FAIL|.*_test\.go:)' | head -25
   fi

@@ -604,7 +604,7 @@ async function signInViaUI(page, email) {
   await page.waitForURL(/\/verify/, { timeout: 20000 });
   const code = email.endsWith('@banzami-e2e.test')
     ? getOTP(email)
-    : await waitForOTP(email, argOf('--owner-otp-file') ?? '/tmp/bz-journey-otp.txt');
+    : await waitForOTP(email, argOf('--owner-otp-file') ?? '/tmp/bz-journey-otp.txt', Number(argOf('--otp-timeout') ?? 8 * 60 * 1000));
   if (!/^\d{6}$/.test(code)) throw new Error('otp not recovered');
   const digits = page.locator('input[inputmode="numeric"], input[maxlength="1"]');
   const n = await digits.count();
