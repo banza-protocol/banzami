@@ -26,8 +26,9 @@
  */
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
   ?? '/Users/fm65/doa/node_modules/@playwright/test/index.mjs');
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const ORIGIN = 'https://developers.banzami.com';
 const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/settings/workspace', '/go-live'];
@@ -41,9 +42,11 @@ const VIEWPORTS = [
   { name: 'mobile-375', width: 375, height: 812 },
 ];
 
+// Outside the worktree by default. A screenshot of a deployed page is a fact
+// ABOUT a revision, not part of it — writing it into the source tree makes the
+// verification dirty the thing it just verified (tools/e2e/lib/assurance-output.mjs).
 const outArg = process.argv.indexOf('--out');
-const OUT = outArg > -1 ? process.argv[outArg + 1] : join(process.cwd(), 'evidence/assurance/developer-platform/responsive');
-mkdirSync(OUT, { recursive: true });
+const OUT = outArg > -1 ? process.argv[outArg + 1] : assuranceDir('console-responsive');
 
 let pass = 0, fail = 0;
 const notes = [];
