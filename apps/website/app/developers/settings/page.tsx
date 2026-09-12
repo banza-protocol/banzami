@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
@@ -71,16 +71,50 @@ function ProjectSettings() {
       ? 'A confirmar o seu papel neste workspace…'
       : `O seu papel neste workspace não permite ${what}.`;
 
+  // The page frame — heading and tabs — is drawn for EVERY state, including the
+  // two below where there is no project to configure.
+  //
+  // It used to return early, before the tabs. A workspace with no project (the
+  // state every workspace starts in, and the one a workspace is left in after
+  // its last project closes) therefore showed one sentence and no way out:
+  // Definições do workspace, where the team is managed and the workspace is
+  // closed, was unreachable from Configurações at all. The one screen that can
+  // end an empty workspace was hidden precisely while the workspace was empty.
+  const frame = (children: ReactNode) => (
+    <>
+      <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Configurações</h1>
+      <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
+        O projeto tal como a plataforma o regista. A equipa e o encerramento do workspace estão em{' '}
+        <Link href="/settings/workspace" style={{ color: '#B5101F', fontWeight: 800 }}>
+          Workspace
+        </Link>
+        .
+      </p>
+      <SettingsTabs active="project" />
+      {children}
+    </>
+  );
+
   if (prjLoad === 'loading' && !activeProject) {
-    return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o projeto…</p>;
+    return frame(<p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o projeto…</p>);
   }
   if (!activeProject) {
-    return (
+    return frame(
       <Card style={{ padding: 24 }}>
-        <p style={{ margin: 0, fontSize: 14, color: '#8a7a7e', fontWeight: 700 }}>
-          Nenhum projeto selecionado. Escolha ou crie um projeto no seletor da barra lateral.
+        <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 900 }}>Nenhum projeto selecionado</h3>
+        <p style={{ margin: 0, fontSize: 14, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
+          Estas definições descrevem um projeto, por isso precisam de um. Escolha ou crie um projeto
+          no seletor da barra lateral.
         </p>
-      </Card>
+        <p style={{ margin: '12px 0 0', fontSize: 14, color: '#8a7a7e', fontWeight: 600, lineHeight: 1.6 }}>
+          Para gerir a equipa, sair do workspace ou encerrá-lo — incluindo um workspace sem projetos —
+          abra{' '}
+          <Link href="/settings/workspace" style={{ color: '#B5101F', fontWeight: 800 }}>
+            Definições do workspace
+          </Link>
+          .
+        </p>
+      </Card>,
     );
   }
 
@@ -136,19 +170,8 @@ function ProjectSettings() {
     return null;
   })();
 
-  return (
+  return frame(
     <>
-      <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Configurações</h1>
-      <p style={{ margin: '6px 0 22px', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
-        O projeto tal como a plataforma o regista. A equipa e o encerramento do workspace estão em{' '}
-        <Link href="/settings/workspace" style={{ color: '#B5101F', fontWeight: 800 }}>
-          Workspace
-        </Link>
-        .
-      </p>
-
-      <SettingsTabs active="project" />
-
       {archived ? <ArchivedBanner what="projeto" /> : null}
 
       <Card style={{ padding: 24, marginBottom: 16 }}>
