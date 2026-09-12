@@ -916,7 +916,48 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 campanha. É assim que o <strong>DOA</strong> valida webhooks assinados (<Code>banza-signature</Code>) e reage a cada evento
                 de forma idempotente.
               </P>
-            </Section>
+            
+              <H3 id="resolucao">Resolução de problemas</H3>
+              <P>
+                Os onze problemas que aparecem a sério, e o que fazer com cada um. Em todos,
+                guarde o <Code>request_id</Code> da resposta antes de fazer mais nada.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>O que vê</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>O que costuma ser</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>O que fazer</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['401 UNAUTHORIZED', 'A chave foi revogada, rodada, ou é de outro projeto.', 'Veja a chave em Chaves de API: se diz Revogada, use a sucessora. Se a criou há segundos, confirme que copiou o segredo inteiro.'],
+                      ['403 FORBIDDEN', 'Falta o scope. Os scopes fixam-se na criação e não mudam.', 'Compare os scopes da chave com os que a rota exige na referência. Se faltar um, crie uma chave nova — a existente nunca o ganhará.'],
+                      ['403 numa rota de pagamento', 'O projeto não tem titular financeiro.', 'GET /v1/financial-setup diz o estado. Complete a Configuração financeira; até lá o projeto pode tudo menos receber.'],
+                      ['404 num recurso que existe', 'Existe, mas é de outro projeto.', 'É deliberado: um 403 aqui deixaria enumerar os recursos alheios. Confirme que está a usar a chave do projeto que criou o recurso.'],
+                      ['409 CONFLICT numa criação', 'A mesma Idempotency-Key com um corpo diferente.', 'Uma chave de idempotência pertence a um pedido. Se o corpo mudou, é outro pedido: use outra chave.'],
+                      ['422 VALIDATION_ERROR', 'Um campo em falta ou com o tipo errado.', 'A mensagem nomeia o campo. Montantes são inteiros em unidades menores — 250 Kz são 25000, não 250.'],
+                      ['429 RATE_LIMITED', 'Demasiados pedidos, ou demasiados códigos pedidos.', 'Abrande e repita com backoff. Repetir imediatamente prolonga a janela em vez de a encurtar.'],
+                      ['Um pagamento fica pendente', 'O pagador ainda não concluiu.', 'Um pagamento pendente é um estado normal, não um erro. Espere pelo webhook; não confirme nada a partir de um tempo-limite.'],
+                      ['O webhook não chega', 'O endpoint não é HTTPS público, ou responde lento.', 'Veja as entregas do evento na Consola: mostram o código devolvido pelo seu servidor. Um 2xx lento é tratado como falha.'],
+                      ['A assinatura não bate certo', 'O corpo foi reserializado antes de verificar.', 'Verifique sobre o corpo EM BRUTO. Ler o JSON e voltar a serializá-lo muda os bytes, e a assinatura é sobre os bytes.'],
+                      ['Uma liquidação não avança', 'A conta não tem saldo, ou o beneficiário não é elegível.', 'GET /v1/financial-setup mostra o que bloqueia. O bruto é lido da conta: uma conta vazia não tem nada para liquidar.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                Quando pedir ajuda, envie o <Code>request_id</Code>, o carimbo temporal, o ambiente
+                e a operação. <strong>Nunca envie a chave, o segredo do webhook, um código OTP ou um
+                token de sessão</strong> — nada do que precisamos para ajudar é um segredo.
+              </Callout>
+              </Section>
     </>
   );
 }

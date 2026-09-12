@@ -33,6 +33,93 @@ const CONCEPTS: { term: string; def: string; code?: boolean }[] = [
 ];
 
 // -- Code samples (placeholders only, Sandbox-only) ------------------------------
+const SAMPLE_SESSION = `import { BanzamiClient } from '@banzami/sdk';
+
+// The bz_test_sk_ secret key lives on the server and nowhere else.
+const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
+
+// 1. Create a payment session.
+//    Do not name the destination account: with a Console key the recipient
+//    comes from the project's binding. Sending one is refused by the API.
+const session = await banzami.createPaymentSession({
+  purpose: 'ORDER',
+  referenceType: 'ORDER',
+  referenceId: 'order_123',
+  amountMinor: 25000,      // 250.00 Kz (minor units)
+  currency: 'AOA',
+  description: 'Order #123',
+});
+
+// 2. Show the payer the link or the QR
+const link = banzami.paymentSessionInterface(session, 'PAYMENT_LINK');
+// link.value  ->  https://pay.banzami.com/pay/{slug}`;
+
+const SAMPLE_CURL_SESSION = `# Create a payment session in the Sandbox (placeholder values).
+# With a developer key you do NOT send wallet_account_id: the recipient comes
+# from the project's binding, and the API refuses a client-supplied recipient.
+curl -X POST https://sandbox-api.banzami.com/v1/payment-sessions \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX" \\
+  -H "Content-Type: application/json" \\
+  -H "Idempotency-Key: idem_order_123" \\
+  -d '{
+    "purpose": "ORDER",
+    "reference_type": "ORDER",
+    "reference_id": "order_123",
+    "amount_minor": 25000,
+    "currency": "AOA",
+    "description": "Order #123"
+  }'
+
+# Response (201) — the main fields
+{
+  "session_id": "psess_example",
+  "wallet_account_id": "wacc_example",
+  "currency": "AOA",
+  "amount_minor": 25000,
+  "purpose": "ORDER",
+  "reference_type": "ORDER",
+  "reference_id": "order_123",
+  "status": "ACTIVE",
+  "created_at": "2026-07-11T11:45:00Z",
+  "interfaces": [
+    { "type": "PAYMENT_LINK", "value": "https://pay.banzami.com/pay/slug_example", "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z" },
+    { "type": "DEEP_LINK", "value": "banzami://pay/slug_example", "format": "URL",
+      "expires_at": "2026-07-11T12:00:00Z" },
+    { "type": "DYNAMIC_QR", "value": "https://pay.banzami.com/pay/slug_example", "format": "QR_PAYLOAD",
+      "qr_url": "/v1/payment-sessions/psess_example/qr", "expires_at": "2026-07-11T12:00:00Z" }
+  ]
+}`;
+
+const SAMPLE_WEBHOOK = `import { BanzamiClient } from '@banzami/sdk';
+const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
+
+// In your webhook endpoint (server)
+const sig = req.headers['banza-signature'];          // signature header
+const event = banzami.webhooks.constructEvent(rawBody, sig);
+
+switch (event.type) {
+  case 'payment_session.paid':             /* confirm the order (idempotently) */ break;
+  case 'application_settlement.completed': /* record the settlement */            break;
+}
+
+// Answer 2xx quickly; delivery is at-least-once, with no ordering guarantee.`;
+
+const SAMPLE_WEBHOOK_MANAGE = `import { BanzamiClient } from '@banzami/sdk';
+const banzami = new BanzamiClient({ apiKey: process.env.BANZAMI_API_KEY });
+
+// Register the endpoint. No merchant, no wallet: the owner comes from the project binding.
+const ep = await banzami.createWebhookEndpoint({
+  url:    'https://www.example.com/api/webhooks/banzami',
+  events: ['payment_session.paid'],
+});
+storeSecret(ep.secret);   // returned ONCE — no later read brings it back
+
+// See what happened
+const { data: endpoints } = await banzami.listWebhookEndpoints();
+const { data: events }    = await banzami.listWebhookEvents(20);
+const { data: deliveries } = await banzami.listWebhookDeliveries(events[0].id);`;
+
 const SAMPLE_CURL_ME = `# Verify your test key (placeholder) against the Sandbox API
 curl https://sandbox-api.banzami.com/v1/me \\
   -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"
@@ -188,6 +275,23 @@ export function EnGetStarted({ copy }: { copy: CopyFn }) {
                 and Go SDKs are <strong>not yet published</strong> to PyPI, Packagist or a module proxy — see{' '}
                 <a href="/docs/en/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
               </P>
+
+              <H3 id="first-payment">Your first payment</H3>
+              <P>
+                A payment session is the main flow: you create it, Banzami gives you a link and a
+                QR, and the payer uses either. With a project key you do <strong>not</strong> name
+                the destination account — the recipient comes from the project&rsquo;s binding, and
+                the API refuses a client-supplied one.
+              </P>
+              <CodeBlock label="curl · create a payment session (request + response)" raw={SAMPLE_CURL_SESSION} onCopy={copy} {...enCopy} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Failures worth expecting: <Code>401</Code> (key missing, revoked or live),{' '}
+                <Code>403</Code> (insufficient scope, or a project with no binding),{' '}
+                <Code>400 MISSING_FIELD / INVALID_BODY</Code>, and <Code>409 CONFLICT</Code> (an
+                Idempotency-Key already in flight). See{' '}
+                <a href="/docs/en/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
+              </P>
+              <CodeBlock label="ts · create a payment session (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} {...enCopy} />
 
               </Section>
     </>
@@ -602,6 +706,7 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 <LI>The signature is HMAC-SHA256 over <Code>&quot;{'{'}t{'}'}.{'{'}body{'}'}&quot;</Code>, with a <strong>5-minute</strong> replay tolerance.</LI>
                 <LI>Process <strong>idempotently</strong> and answer <Code>2xx</Code> fast; delivery is at-least-once, unordered, with redelivery on failure.</LI>
               </UL>
+              <CodeBlock label="ts · verify and handle an event" raw={SAMPLE_WEBHOOK} onCopy={copy} {...enCopy} />
               <CodeBlock label="json · event envelope (implemented in Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 The envelope above is the shape implemented in the Sandbox: <Code>id</Code> (dedupe on it), <Code>type</Code>{' '}
@@ -616,6 +721,20 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 <LI>Any <Code>2xx</Code> from your endpoint counts as delivered; answer fast and process asynchronously.</LI>
                 <LI><em>Note:</em> this is the contract implemented and verified in the Sandbox; Production behaviour is not claimed (Production in preparation).</LI>
               </UL>
+              <H3 id="manage-endpoint">Manage the endpoint with your project key <Badge tone="ok" /></H3>
+              <P>
+                The endpoint that receives <strong>your</strong> events is managed with the
+                <strong> project key</strong> — no merchant credential is needed, or possible.
+                The owner comes from the project binding; none of these requests accepts a{' '}
+                <Code>merchant_id</Code>, because there is no field for one.
+              </P>
+              <CodeBlock label="ts · register and rotate the secret" raw={SAMPLE_WEBHOOK_MANAGE} onCopy={copy} {...enCopy} />
+              <UL>
+                <LI>The <Code>secret</Code> is returned <strong>exactly once</strong>, on registration and on rotation. No later read brings it back — store it immediately.</LI>
+                <LI><Code>webhooks:read</Code> sees endpoints, events and deliveries. <Code>webhooks:write</Code> registers, disables, redelivers and rotates the secret. A read scope never authorises a write.</LI>
+                <LI>Another project&rsquo;s endpoint answers <Code>404</Code> — never <Code>403</Code> — so an id cannot be used to discover other people&rsquo;s integrations.</LI>
+              </UL>
+
               <H3>Events</H3>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, margin: '0 0 14px', maxWidth: 660 }}>
                 {EVENTS.map((e) => (
@@ -628,7 +747,48 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 settlement are <strong>distinct</strong> events with distinct business effects: <Code>payment_session.paid</Code>{' '}
                 confirms the payment; <Code>application_settlement.completed</Code> concludes the settlement.
               </P>
-            </Section>
+            
+              <H3 id="troubleshooting">Troubleshooting</H3>
+              <P>
+                The eleven problems that actually come up, and what to do about each. In every
+                case, keep the <Code>request_id</Code> from the response before doing anything else.
+              </P>
+              <div style={{ overflowX: 'auto', maxWidth: '100%', margin: '0 0 14px' }}>
+                <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 560, fontSize: 13 }}>
+                  <thead><tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What you see</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What it usually is</th>
+                    <th style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7' }}>What to do</th>
+                  </tr></thead>
+                  <tbody>
+                    {[
+                      ['401 UNAUTHORIZED', 'The key was revoked, rotated, or belongs to another project.', 'Check it under API keys: if it reads Revoked, use the successor. If you created it seconds ago, confirm you copied the whole secret.'],
+                      ['403 FORBIDDEN', 'A missing scope. Scopes are fixed at creation and never change.', 'Compare the key’s scopes with what the route requires in the reference. If one is missing, create a new key — the existing one will never gain it.'],
+                      ['403 on a payment route', 'The project has no financial owner.', 'GET /v1/financial-setup reports the state. Complete Financial Setup; until then the project can do everything except get paid.'],
+                      ['404 on a resource that exists', 'It exists, and belongs to another project.', 'That is deliberate: a 403 here would let you enumerate other people’s resources. Check you are using the key of the project that created it.'],
+                      ['409 CONFLICT on a create', 'The same Idempotency-Key with a different body.', 'An idempotency key belongs to one request. If the body changed, it is a different request: use a different key.'],
+                      ['422 VALIDATION_ERROR', 'A missing field, or one with the wrong type.', 'The message names the field. Amounts are integers in minor units — 250 Kz is 25000, not 250.'],
+                      ['429 RATE_LIMITED', 'Too many requests, or too many codes requested.', 'Slow down and retry with backoff. Retrying immediately extends the window rather than shortening it.'],
+                      ['A payment stays pending', 'The payer has not finished.', 'A pending payment is a normal state, not an error. Wait for the webhook; never confirm anything from a timeout.'],
+                      ['The webhook never arrives', 'The endpoint is not public HTTPS, or it answers slowly.', 'Open the event’s deliveries in the Console: they show the code your server returned. A slow 2xx is treated as a failure.'],
+                      ['The signature does not match', 'The body was re-serialised before verifying.', 'Verify over the RAW body. Parsing the JSON and serialising it again changes the bytes, and the signature is over the bytes.'],
+                      ['A settlement does not proceed', 'The account has no balance, or the beneficiary is not eligible.', 'GET /v1/financial-setup shows what is blocking. Gross is read from the account: an empty account has nothing to settle.'],
+                    ].map((r, i) => (
+                      <tr key={i}>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: INK, fontWeight: 700, whiteSpace: 'nowrap' }}>{r[0]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[1]}</td>
+                        <td style={{ padding: '8px 8px', borderBottom: '1px solid #F5E9E7', color: '#5a4a4e' }}>{r[2]}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Callout tone="warn">
+                When you ask for help, send the <Code>request_id</Code>, the timestamp, the
+                environment and the operation. <strong>Never send the key, the webhook secret, an
+                OTP code or a session token</strong> — nothing we need in order to help is a secret.
+              </Callout>
+              </Section>
     </>
   );
 }

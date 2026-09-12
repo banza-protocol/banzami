@@ -523,6 +523,13 @@ jobs:
       - name: Retired-surface gate
         run: node tools/check-retired-surfaces.mjs
 
+      # The published documentation and the product it describes. This is the
+      # source-side half — the endpoint/OpenAPI/registry claims that can be
+      # checked without a deployment. The deployed half (tools/e2e/docs/audit.mjs
+      # and sweep.mjs) runs against developers.banzami.com after a release.
+      - name: Documentation drift gate
+        run: node tools/check-docs-drift.mjs
+
       # BANZA is the protocol; Banzami is the operator. On the hosted checkout
       # the wordmark said BANZA — the protocol's name, on the one page whose
       # reader is a person about to pay.

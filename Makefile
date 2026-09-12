@@ -380,6 +380,10 @@ check-deploy-parity:
 check-retired-surfaces:
 	node tools/check-retired-surfaces.mjs
 
+.PHONY: check-docs-drift
+check-docs-drift:
+	node tools/check-docs-drift.mjs
+
 # Reads the live Sandbox; not part of check-all, which must run without a host.
 .PHONY: check-canonical-resources
 check-canonical-resources:
@@ -394,7 +398,7 @@ check-sdk-payment-boundary:
 banza-conformance-l0:
 	tools/banza-conformance-l0.sh
 
-check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout check-sdk-payment-boundary check-assurance check-component-coverage security-check check-openapi-drift check-retired-surfaces check-docs-drift
 	@printf "\nAll checks passed.\n"
 
 # ─── Assurance command bundles (docs/quality/E2E_METHODOLOGY.md) ──────────────
