@@ -836,6 +836,9 @@ try {
   });
 
   // ── 3 ──────────────────────────────────────────────────────────────────────
+  // On a REAL account the display name may already be set — this run's own step 6
+  // sets it, and the account outlives the run. Initials from that name are the
+  // correct rendering, not the email-derived ones this step exists to catch.
   await step('the header shows a user avatar — and derives NO initials from the email', async () => {
     const trigger = page.locator('button[aria-label^="A sua conta"]').first();
     const exists = (await trigger.count()) > 0;
@@ -1359,6 +1362,12 @@ try {
     }
     await register.click();
     await page.locator('#wh-url').fill(`https://webhook.${TAG}.example.com/banzami`);
+    // Subscribe to the event this run can actually cause. The form defaults to
+    // payment_session.paid, which is the canonical integration's event and needs
+    // a PAYER — this run opens a session and never pays it, so the default would
+    // correctly produce no delivery at all and step 31 would have nothing to read.
+    const subscribeCreated = page.locator('button', { hasText: 'payment_session.created' }).first();
+    if ((await subscribeCreated.count()) > 0) await subscribeCreated.click().catch(() => {});
     await page.getByRole('button', { name: 'Registar endpoint' }).last().click();
     await settle(page, 1200);
     const err = norm(await page.locator('p[role="alert"]').first().innerText().catch(() => ''));
@@ -1457,7 +1466,14 @@ try {
       caused = { status: sess.status(), ok: sess.ok() };
     } finally {
       // The key existed to cause one event. It does not outlive that.
-      if (keyId) await mutate(ctxA, 'delete', `${API}/projects/${J.projectId}/keys/${keyId}`).catch(() => {});
+      // DELETE /keys/{id} — NOT project-scoped. Addressed under /projects this
+      // 404'd, the .catch() swallowed it, and the key stayed ACTIVE at the top
+      // of the list. Step 40 then revoked THAT key instead of the journey's own
+      // and reported that revocation does not work, which it does.
+      if (keyId) {
+        const gone = await mutate(ctxA, 'delete', `${API}/keys/${keyId}`);
+        if (!gone.ok()) throw new Error(`the short-lived writing key was not revoked: ${gone.status()}`);
+      }
     }
     if (!caused.ok) return { ok: false, observed: `the payment session was refused: http ${caused.status}` };
 
@@ -1485,10 +1501,21 @@ try {
     if (!J._eventId) {
       return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no event exists to open (step 30)' };
     }
-    const r = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
-    if (!r.ok()) return { ok: false, observed: `deliveries are ${r.status()}` };
-    const { deliveries } = await r.json();
-    J._deliveries = deliveries ?? [];
+    // Delivery is dispatched, not synchronous: the endpoint is an address
+    // nothing answers, so the attempt is made and recorded on its own schedule.
+    let deliveries = [];
+    let last = null;
+    for (let i = 0; i < 12; i++) {
+      const r = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
+      last = r.status();
+      if (r.ok()) {
+        deliveries = (await r.json()).deliveries ?? [];
+        if (deliveries.length > 0) break;
+      }
+      await new Promise((r2) => setTimeout(r2, 2500));
+    }
+    if (last && last >= 400) return { ok: false, observed: `deliveries are ${last}` };
+    J._deliveries = deliveries;
     // A delivery record is only useful if it says what happened: which endpoint,
     // which attempt, when, with what result.
     const d = J._deliveries[0];
@@ -1631,7 +1658,10 @@ try {
   // ── 40 ─────────────────────────────────────────────────────────────────────
   await step('revoke the API key', async () => {
     await open(page, '/api-keys', 1000);
-    await page.locator('button[aria-label^="Revogar chave "]').first().click();
+    // The journey's own key, by name. Clicking whichever revoke button is first
+    // makes this step report on whatever else happens to be in the list.
+    const mine = page.locator(`button[aria-label="Revogar chave ${TAG} chave 1"]`);
+    await (((await mine.count()) > 0) ? mine : page.locator('button[aria-label^="Revogar chave "]').first()).first().click();
     const dlg = page.locator('div[role="dialog"][aria-label="Revogar chave"]');
     await dlg.waitFor({ state: 'visible', timeout: 8000 });
     await dlg.getByRole('button', { name: 'Revogar' }).click();

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 
 import 'package:banzami_mobile/services/push_notification_service.dart';
