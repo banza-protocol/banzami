@@ -256,10 +256,15 @@ pub async fn pay(
     // cache entry.
     let recipient_id = recipient.consumer_id.unwrap_or(target.owner_id);
     sqlx::query(
+        // `initiated_via = 'QR'` is recorded, not inferred. The receipt's channel
+        // used to be derived from the row's shape — joined to a payment link or
+        // not — and a QR payment joins none, so it would have been signed as
+        // "paid by @banza": a proof asserting the payer did something they did
+        // not do.
         "INSERT INTO transfers
              (id, idempotency_key, sender_id, recipient_id, amount_minor, currency,
-              status, ledger_posting_id, environment, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', $7, $8, $9, $9)
+              status, ledger_posting_id, environment, initiated_via, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', $7, $8, 'QR', $9, $9)
          ON CONFLICT (idempotency_key) DO NOTHING",
     )
     .bind(transfer_id)

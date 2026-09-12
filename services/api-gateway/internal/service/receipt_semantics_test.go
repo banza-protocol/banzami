@@ -386,3 +386,52 @@ func TestReceipt_TheBusinessAndThePayerHoldOneReference(t *testing.T) {
 		t.Fatalf("%d proofs for one operation", n)
 	}
 }
+
+// A QR payment's receipt says QR.
+//
+// The channel used to be derived from the row's shape: joined to a payment link
+// or not, and "not" meant @handle. That was complete while a handle and a link
+// were the only ways to move money. A QR payment to a person joins no link and
+// otherwise looks exactly like a handle transfer, so it would have been signed
+// as "paid by @banza" — a proof asserting the payer did something they did not
+// do, which is the one kind of error a signed document must never make.
+//
+// The transfer records `initiated_via` and the derivation reads it.
+func TestReceipt_AQrPaymentIsNotAHandlePayment(t *testing.T) {
+	f := newSemFixture(t)
+	suffix := strings.ReplaceAll(uuid.NewString()[:8], "-", "")
+	a := f.consumer("qra"+suffix, "Ana Teste")
+	b := f.consumer("qrb"+suffix, "Bia Teste")
+	txn := f.transfer(a, b, "qr-"+suffix, "")
+	f.exec(`UPDATE transfers SET initiated_via = 'QR' WHERE id = $1`, txn)
+
+	rec, err := semantics(f).TransferReceipt(f.ctx, txn, "SANDBOX", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Channel != documents.ChannelQR {
+		t.Fatalf("channel = %q, want %q", rec.Channel, documents.ChannelQR)
+	}
+	// It is still a person-to-person transfer: the channel says how it started,
+	// not what kind of operation it was.
+	if rec.OperationKind != documents.OperationP2PTransfer {
+		t.Errorf("operation = %q, want a P2P transfer", rec.OperationKind)
+	}
+}
+
+// A transfer that predates the column keeps the derivation that was correct for
+// it. Nothing has to be backfilled to be right.
+func TestReceipt_ATransferThatNamesNoChannelIsReadAsBefore(t *testing.T) {
+	f := newSemFixture(t)
+	suffix := strings.ReplaceAll(uuid.NewString()[:8], "-", "")
+	txn := f.transfer(f.consumer("olda"+suffix, ""), f.consumer("oldb"+suffix, ""), "old-"+suffix, "")
+
+	rec, err := semantics(f).TransferReceipt(f.ctx, txn, "SANDBOX", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rec.Channel != documents.ChannelHandle {
+		t.Fatalf("channel = %q, want %q for a transfer with no recorded channel",
+			rec.Channel, documents.ChannelHandle)
+	}
+}

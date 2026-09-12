@@ -138,6 +138,7 @@ SELECT t.id::text, t.sender_id::text, t.recipient_id::text, t.amount_minor, t.cu
        w.id IS NOT NULL, COALESCE(w.merchant_id::text, ''),
        COALESCE(bpi.handle, ''), COALESCE(bpi.display_name, ''),
        pl.id IS NOT NULL, COALESCE(pl.description, ''),
+       COALESCE(t.initiated_via, ''),
        COALESCE(ps.metadata ->> 'merchant_reference', ''), COALESCE(ps.metadata ->> 'display_context', '')
   FROM transfers t
   LEFT JOIN consumers cs ON cs.id = t.sender_id
@@ -166,14 +167,14 @@ func (s *ReceiptSemantics) ForTransfer(ctx context.Context, transferID, environm
 		recipientIsWallet                                                bool
 		merchantID, businessHandle, businessName                         string
 		fromLink                                                         bool
-		linkDescription, sessionRef, sessionContext                      string
+		linkDescription, initiatedVia, sessionRef, sessionContext        string
 	)
 	err = s.pool.QueryRow(ctx, transferSemanticsSQL, transferID).Scan(
 		&id, &senderID, &recipientID, &amount, &currency, &status, &description, &rowEnv, &updatedAt,
 		&senderIsConsumer, &senderHandle, &senderName,
 		&recipientIsConsumer, &recipientHandle, &recipientName,
 		&recipientIsWallet, &merchantID, &businessHandle, &businessName,
-		&fromLink, &linkDescription, &sessionRef, &sessionContext)
+		&fromLink, &linkDescription, &initiatedVia, &sessionRef, &sessionContext)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return ProofInput{}, ErrReceiptSourceNotFound
 	}
@@ -199,10 +200,24 @@ func (s *ReceiptSemantics) ForTransfer(ctx context.Context, transferID, environm
 		Method:        documents.FundingLabel(documents.FundingBanzamiBalance),
 	}
 
+	// A recorded channel beats a derived one. The derivation below reads the
+	// row's shape — joined to a payment link, or not — which was complete while
+	// a handle and a link were the only ways to move money. A QR payment joins no
+	// link and otherwise looks exactly like a handle transfer, so it would be
+	// signed as "paid by @banza": a proof asserting something the payer did not
+	// do. Transfers that predate the column say nothing and keep the derivation
+	// that was correct for them.
+	recordedChannel := func(fallback string) string {
+		if initiatedVia == "QR" {
+			return documents.ChannelQR
+		}
+		return fallback
+	}
+
 	switch {
 	case recipientIsConsumer:
 		in.OperationKind = documents.OperationP2PTransfer
-		in.Channel = documents.ChannelHandle
+		in.Channel = recordedChannel(documents.ChannelHandle)
 		in.PayeeSubjectType, in.PayeeSubjectID = "consumer", recipientID
 		in.PayeeDisplayName, in.PayeeHandle = personName(recipientName, recipientHandle), recipientHandle
 		in.Description = description // the sender's own note
@@ -219,7 +234,7 @@ func (s *ReceiptSemantics) ForTransfer(ctx context.Context, transferID, environm
 			in.DisplayContext = validOrEmpty(sessionContext, ValidDisplayContext)
 			in.Description = distinctText(linkDescription, in.MerchantReference, in.DisplayContext)
 		} else {
-			in.Channel = documents.ChannelHandle
+			in.Channel = recordedChannel(documents.ChannelHandle)
 			in.Description = description
 		}
 	default:
