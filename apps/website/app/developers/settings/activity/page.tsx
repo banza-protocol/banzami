@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card } from '@/components/developers/portal/ui';
 import { useDeveloperData } from '@/components/developers/portal/DeveloperData';
-import { developerApi, type ActivityEvent } from '@/lib/developer-api';
+import { developerApi, type ActivityEvent, type Member } from '@/lib/developer-api';
 import { isManager } from '@/lib/developer-roles';
 import { NOTE, SettingsTabs, messageFor, useWorkspaceRole, utcStamp } from '../settings-ui';
 import {
@@ -41,6 +41,10 @@ function WorkspaceActivity() {
   const [more, setMore] = useState(false);
   const [filter, setFilter] = useState<ActivityFilter>('all');
   const [query, setQuery] = useState('');
+  // The per-member view is asked of the SERVER, not of the rows on screen: a
+  // person's history is usually older than the page you happen to be looking at.
+  const [member, setMember] = useState('');
+  const [members, setMembers] = useState<Member[]>([]);
 
   const wsID = activeWs?.id ?? null;
   const canRead = isManager(role ?? '');
@@ -51,9 +55,23 @@ function WorkspaceActivity() {
   useEffect(() => {
     if (!wsID || roleLoad !== 'ready' || !canRead) return;
     let live = true;
+    developerApi.listMembers(wsID).then(
+      ({ members: ms }) => live && setMembers(ms ?? []),
+      // The member picker is a convenience. Losing it must not take the
+      // activity list with it.
+      () => live && setMembers([]),
+    );
+    return () => {
+      live = false;
+    };
+  }, [wsID, roleLoad, canRead]);
+
+  useEffect(() => {
+    if (!wsID || roleLoad !== 'ready' || !canRead) return;
+    let live = true;
     setLoad('loading');
     setEvents([]);
-    developerApi.workspaceActivity(wsID).then(
+    developerApi.workspaceActivity(wsID, { member: member || undefined }).then(
       (page) => {
         if (!live) return;
         setEvents(page.events ?? []);
@@ -69,13 +87,13 @@ function WorkspaceActivity() {
     return () => {
       live = false;
     };
-  }, [wsID, roleLoad, canRead, onApiError]);
+  }, [wsID, roleLoad, canRead, member, onApiError]);
 
   const loadMore = useCallback(async () => {
     if (!wsID || !cursor) return;
     setMore(true);
     try {
-      const page = await developerApi.workspaceActivity(wsID, cursor);
+      const page = await developerApi.workspaceActivity(wsID, { member: member || undefined, cursor });
       setEvents((prev) => [...prev, ...(page.events ?? [])]);
       setCursor(page.next_cursor ?? null);
     } catch (e) {
@@ -83,7 +101,7 @@ function WorkspaceActivity() {
     } finally {
       setMore(false);
     }
-  }, [wsID, cursor, onApiError]);
+  }, [wsID, cursor, member, onApiError]);
 
   if (wsLoad === 'loading' && !activeWs) {
     return <p style={{ margin: 0, fontSize: 14, color: '#a89a9e', fontWeight: 700 }}>A carregar o workspace…</p>;
@@ -157,6 +175,27 @@ function WorkspaceActivity() {
                   </button>
                 );
               })}
+              <select
+                value={member}
+                onChange={(e) => setMember(e.target.value)}
+                aria-label="Ver a atividade de um membro"
+                style={{
+                  padding: '7px 10px',
+                  borderRadius: 8,
+                  border: '1px solid #F2E2E0',
+                  background: '#fff',
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  color: member ? '#B5101F' : '#8a7a7e',
+                }}
+              >
+                <option value="">Todos os membros</option>
+                {members.map((m) => (
+                  <option key={m.user_id} value={m.user_id}>
+                    {m.name || m.email || m.user_id.slice(0, 8)}
+                  </option>
+                ))}
+              </select>
               <input
                 type="search"
                 value={query}
@@ -183,7 +222,9 @@ function WorkspaceActivity() {
             ) : shown.length === 0 ? (
               <p style={{ margin: 0, fontSize: 14, color: '#8a7a7e', fontWeight: 700 }}>
                 {events.length === 0
-                  ? 'Ainda não há atividade registada neste workspace.'
+                  ? member
+                    ? 'Não há atividade registada para este membro neste workspace.'
+                    : 'Ainda não há atividade registada neste workspace.'
                   : 'Nenhuma atividade corresponde ao que procura.'}
               </p>
             ) : (

@@ -105,7 +105,17 @@ const activityPageSize = 50
 // used to learn whether somebody else's workspace exists. Reading who holds
 // authority in a workspace is a management question, and the roles that can
 // change membership are the roles that can review it.
-func (s *Service) WorkspaceActivity(ctx context.Context, actor, wsID, cursor string) (ActivityPage, error) {
+// A member filter narrows it to one person: everything they did, and everything
+// that was done to them. That is what "a per-member access log" means, and it
+// has to be answered by the query rather than by the page — filtering only the
+// rows that happen to be on screen would answer "did anything happen to this
+// person" with "not in the last fifty events".
+//
+// It matches on user id, so the invitation that preceded somebody's account is
+// not in their filtered history: at the time it was sent there was no user to
+// name, and the row records the address it went to. The unfiltered list still
+// carries it, and searching for the address still finds it.
+func (s *Service) WorkspaceActivity(ctx context.Context, actor, wsID, member, cursor string) (ActivityPage, error) {
 	role, err := s.roleOf(ctx, wsID, actor)
 	if err != nil || !isManager(role) {
 		return ActivityPage{}, ErrForbidden
@@ -118,7 +128,7 @@ func (s *Service) WorkspaceActivity(ctx context.Context, actor, wsID, cursor str
 
 	// One more than the page, so "is there another page" is answered by the same
 	// read rather than by a count that can disagree with it.
-	events, err := s.store.WorkspaceActivity(ctx, wsID, activityActions, before, activityPageSize+1)
+	events, err := s.store.WorkspaceActivity(ctx, wsID, activityActions, strings.TrimSpace(member), before, activityPageSize+1)
 	if err != nil {
 		return ActivityPage{}, ErrUnavailable
 	}

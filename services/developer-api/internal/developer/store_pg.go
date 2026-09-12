@@ -1377,7 +1377,19 @@ func (s *pgStore) APIRequestLogSummary(ctx context.Context, projectID string, f 
 // inside a join condition, where a single malformed subject takes down the whole
 // page; and the project lookup is scoped to this workspace as well, so a subject
 // naming somebody else's project resolves to no name rather than to theirs.
-func (s *pgStore) WorkspaceActivity(ctx context.Context, workspaceID string, actions []string, before *time.Time, limit int) ([]ActivityEvent, error) {
+func (s *pgStore) WorkspaceActivity(ctx context.Context, workspaceID string, actions []string, member string, before *time.Time, limit int) ([]ActivityEvent, error) {
+	// The member filter matches the person on either side of the event: what
+	// they did, and what was done to them. Both halves, because "show me this
+	// person's history" means both, and an admin looking into a departure wants
+	// the removal as much as the logins that preceded it.
+	//
+	// It is an additional predicate, never a replacement for the workspace one.
+	if member != "" && !isUUID(member) {
+		// Not a user id, so it can match nothing. Answering with an empty page
+		// is the truthful answer; sending it to a uuid comparison would fail
+		// the query instead.
+		return nil, nil
+	}
 	rows, err := s.pool.Query(ctx,
 		`SELECT a.id::text, a.action, a.created_at,
 		        COALESCE(a.actor_user_id::text, ''), COALESCE(a.subject, ''),
@@ -1386,8 +1398,9 @@ func (s *pgStore) WorkspaceActivity(ctx context.Context, workspaceID string, act
 		  WHERE a.workspace_id = $1
 		    AND a.action = ANY($2)
 		    AND ($3::timestamptz IS NULL OR a.created_at < $3::timestamptz)
+		    AND ($5 = '' OR a.actor_user_id::text = $5 OR a.subject = 'USER:' || $5)
 		  ORDER BY a.created_at DESC, a.id DESC
-		  LIMIT $4`, workspaceID, actions, before, limit)
+		  LIMIT $4`, workspaceID, actions, before, limit, member)
 	if err != nil {
 		return nil, err
 	}

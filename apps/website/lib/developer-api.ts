@@ -588,10 +588,19 @@ export const developerApi = {
   // Distinct from `/projects/{id}/logs`, which is integration traffic: API
   // requests a key made. This answers a different question — who has authority
   // here, and who gave it to them.
-  workspaceActivity: (wsID: string, cursor?: string) =>
-    req<{ events: ActivityEvent[]; next_cursor?: string }>(
-      `/workspaces/${wsID}/activity${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
-    ),
+  // `member` narrows to one person's history — what they did and what was done
+  // to them — server-side. Applying that filter to the page instead would answer
+  // "nothing happened to this person" whenever their history is older than the
+  // fifty rows on screen.
+  workspaceActivity: (wsID: string, opts: { member?: string; cursor?: string } = {}) => {
+    const q = new URLSearchParams();
+    if (opts.member) q.set('member', opts.member);
+    if (opts.cursor) q.set('cursor', opts.cursor);
+    const qs = q.toString();
+    return req<{ events: ActivityEvent[]; next_cursor?: string }>(
+      `/workspaces/${wsID}/activity${qs ? `?${qs}` : ''}`,
+    );
+  },
   invite: (wsID: string, email: string, role: string, csrf: string) =>
     req<{ invite_id: string; email: string; role: string; token: string }>(
       `/workspaces/${wsID}/members`,

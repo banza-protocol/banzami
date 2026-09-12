@@ -351,7 +351,7 @@ func (m *memStore) InsertAudit(_ context.Context, ev AuditEvent) error {
 // newest first, and the same allow-listed metadata. Scoping is enforced here for
 // the same reason it is enforced in the query — a store that let a test read
 // another workspace's rows would make the isolation tests pass on a fiction.
-func (m *memStore) WorkspaceActivity(_ context.Context, workspaceID string, actions []string, before *time.Time, limit int) ([]ActivityEvent, error) {
+func (m *memStore) WorkspaceActivity(_ context.Context, workspaceID string, actions []string, member string, before *time.Time, limit int) ([]ActivityEvent, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -372,6 +372,10 @@ func (m *memStore) WorkspaceActivity(_ context.Context, workspaceID string, acti
 		}
 		st := m.auditStamps[i]
 		if before != nil && !st.at.Before(*before) {
+			continue
+		}
+		// Either side of the event, matching the SQL.
+		if member != "" && !(ev.ActorUserID != nil && *ev.ActorUserID == member) && ev.Subject != "USER:"+member {
 			continue
 		}
 		a := ActivityEvent{ID: st.id, Action: ev.Action, CreatedAt: st.at}

@@ -411,8 +411,10 @@ type Store interface {
 	// reviewable place in the service rather than by whatever happens to be in
 	// the table. `before` pages backwards through created_at; `limit` is the
 	// page size the caller asked for plus one, so it can tell whether more
-	// exists without a second count.
-	WorkspaceActivity(ctx context.Context, workspaceID string, actions []string, before *time.Time, limit int) ([]ActivityEvent, error)
+	// exists without a second count. `member`, when given, narrows to one
+	// person — as actor or as subject — so a per-member history is one query
+	// rather than a scan of pages.
+	WorkspaceActivity(ctx context.Context, workspaceID string, actions []string, member string, before *time.Time, limit int) ([]ActivityEvent, error)
 
 	// Webhook visibility (ADR-051 follow-up).
 	//

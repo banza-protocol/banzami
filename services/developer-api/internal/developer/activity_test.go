@@ -18,7 +18,7 @@ func TestWorkspaceActivity_AnswersWhoChangedWhat(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "")
+	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "", "")
 	if err != nil {
 		t.Fatalf("owner reading own workspace activity: %v", err)
 	}
@@ -51,7 +51,7 @@ func TestWorkspaceActivity_NeverCrossesWorkspaces(t *testing.T) {
 	addMember(t, s, "u_b", b.ID, "secret@b.co", RoleDeveloper, "u_b_dev")
 
 	// A's owner reading A's history must not see one row of B's.
-	page, err := s.WorkspaceActivity(bg, "u_a", a.ID, "")
+	page, err := s.WorkspaceActivity(bg, "u_a", a.ID, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,7 +61,7 @@ func TestWorkspaceActivity_NeverCrossesWorkspaces(t *testing.T) {
 		}
 	}
 	// And asking for B's history by id is refused outright, not filtered.
-	if _, err := s.WorkspaceActivity(bg, "u_a", b.ID, ""); err != ErrForbidden {
+	if _, err := s.WorkspaceActivity(bg, "u_a", b.ID, "", ""); err != ErrForbidden {
 		t.Fatalf("reading another workspace's activity: want Forbidden, got %v", err)
 	}
 }
@@ -72,13 +72,13 @@ func TestWorkspaceActivity_ManagersOnly(t *testing.T) {
 	addMember(t, s, "u_owner", ws.ID, "viewer@x.co", RoleViewer, "u_viewer")
 	addMember(t, s, "u_owner", ws.ID, "admin@x.co", RoleAdmin, "u_admin")
 
-	if _, err := s.WorkspaceActivity(bg, "u_viewer", ws.ID, ""); err != ErrForbidden {
+	if _, err := s.WorkspaceActivity(bg, "u_viewer", ws.ID, "", ""); err != ErrForbidden {
 		t.Errorf("VIEWER: want Forbidden, got %v", err)
 	}
-	if _, err := s.WorkspaceActivity(bg, "u_stranger", ws.ID, ""); err != ErrForbidden {
+	if _, err := s.WorkspaceActivity(bg, "u_stranger", ws.ID, "", ""); err != ErrForbidden {
 		t.Errorf("non-member: want Forbidden, got %v", err)
 	}
-	if _, err := s.WorkspaceActivity(bg, "u_admin", ws.ID, ""); err != nil {
+	if _, err := s.WorkspaceActivity(bg, "u_admin", ws.ID, "", ""); err != nil {
 		t.Errorf("ADMIN: want access, got %v", err)
 	}
 }
@@ -95,7 +95,7 @@ func TestWorkspaceActivity_ServesNoSecretOrOperationalField(t *testing.T) {
 	s.audit(bg, &actor, &wsID, nil, "apikey.created", "APIKEY:k_1", "203.0.113.9", "req_42",
 		map[string]any{"role": RoleViewer, "prefix": "bz_test_sk_ABCDEFGH", "kind": "SECRET"})
 
-	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "")
+	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -129,7 +129,7 @@ func TestWorkspaceActivity_ServesOnlyAllowListedActions(t *testing.T) {
 	actor, wsID := "u_owner", ws.ID
 	s.audit(bg, &actor, &wsID, nil, "account.otp_verified", "USER:u_owner", "", "", nil)
 
-	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "")
+	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "", "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,6 +137,52 @@ func TestWorkspaceActivity_ServesOnlyAllowListedActions(t *testing.T) {
 		if ev.Action == "account.otp_verified" {
 			t.Fatal("WORKSPACE_AUDIT_PERSONAL_SESSION_DISCLOSURE: an action outside the allow-list was served")
 		}
+	}
+}
+
+// "Log de acesso por membro legível" is a per-PERSON question, so it must be
+// answered by the query and not by the page: a filter applied to whatever fifty
+// rows came back would answer "nothing happened to this person" whenever their
+// history is older than the first page.
+func TestWorkspaceActivity_PerMemberHistory(t *testing.T) {
+	s, _ := newSvc(time.Hour)
+	ws, _ := s.CreateWorkspace(bg, "u_owner", "WS", "", "")
+	addMember(t, s, "u_owner", ws.ID, "dev@x.co", RoleDeveloper, "u_dev")
+	addMember(t, s, "u_owner", ws.ID, "other@x.co", RoleDeveloper, "u_other")
+	if err := s.SetMemberRole(bg, "u_owner", ws.ID, "u_dev", RoleViewer, "", ""); err != nil {
+		t.Fatal(err)
+	}
+
+	page, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "u_dev", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(page.Events) == 0 {
+		t.Fatal("the member has a history and the filter returned none of it")
+	}
+	var joined, changed bool
+	for _, ev := range page.Events {
+		// Both sides of the person: what they did, and what was done to them.
+		if ev.ActorUserID != "u_dev" && ev.TargetRef != "u_dev" {
+			t.Errorf("an event about somebody else survived the member filter: %+v", ev)
+		}
+		joined = joined || ev.Action == "member.joined"
+		changed = changed || ev.Action == "member.role_changed"
+	}
+	if !joined {
+		t.Error("what the member did (member.joined) is missing from their own history")
+	}
+	if !changed {
+		t.Error("what was done to the member (member.role_changed) is missing from their own history")
+	}
+
+	// A filter that names nobody returns nothing, rather than everything.
+	empty, err := s.WorkspaceActivity(bg, "u_owner", ws.ID, "u_nobody", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(empty.Events) != 0 {
+		t.Errorf("filtering by a stranger: want no events, got %d", len(empty.Events))
 	}
 }
 

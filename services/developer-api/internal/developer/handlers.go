@@ -1011,9 +1011,13 @@ func (h *Handlers) leaveWorkspace(w http.ResponseWriter, r *http.Request) {
 //
 // The service refuses a non-manager and a non-member identically, so this
 // handler has no membership logic of its own to get wrong.
+//
+// ?member=<user_id> narrows to one person's history — everything they did and
+// everything done to them — which is what a per-member access log is.
 func (h *Handlers) workspaceActivity(w http.ResponseWriter, r *http.Request) {
 	u, _ := actor(r)
-	page, err := h.svc.WorkspaceActivity(r.Context(), u.ID, chi.URLParam(r, "wsID"), r.URL.Query().Get("cursor"))
+	q := r.URL.Query()
+	page, err := h.svc.WorkspaceActivity(r.Context(), u.ID, chi.URLParam(r, "wsID"), q.Get("member"), q.Get("cursor"))
 	if err != nil {
 		mapErr(w, err)
 		return
