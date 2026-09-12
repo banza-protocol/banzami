@@ -31,7 +31,22 @@ type DataValue = {
   selectProject: (id: string) => void;
   createProject: (name: string) => Promise<Project>;
   reloadProjects: () => Promise<void>;
+  /**
+   * Whether `projects` also carries the archived ones.
+   *
+   * Off by default, and the default is the point: an archived project has no
+   * keys and no financial authority left, so building against one produces 401s
+   * for a reason the selector never mentioned. The Console offers it as an
+   * explicit "Mostrar arquivados" and marks what comes back.
+   */
+  showArchivedProjects: boolean;
+  setShowArchivedProjects: (v: boolean) => void;
 };
+
+/** ARCHIVED, decided in one place so the selector and the pages agree. */
+export function isArchivedProject(p: Project): boolean {
+  return p.status === 'ARCHIVED';
+}
 
 const Ctx = createContext<DataValue | null>(null);
 
@@ -62,6 +77,7 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
   const [prjError, setPrjError] = useState('');
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [showArchivedProjects, setShowArchivedProjects] = useState(false);
 
   // onApiError centralises 401 recovery (clear local state → guard returns to
   // login) and maps everything else to a safe message (never internals).
@@ -132,20 +148,25 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
     setPrjLoad('loading');
     setPrjError('');
     try {
-      const { projects: ps } = await developerApi.listProjects(activeWs.id);
+      const { projects: ps } = await developerApi.listProjects(activeWs.id, showArchivedProjects);
       const list = ps ?? [];
       setProjects(list);
       setActiveProject((cur) => {
         if (cur && list.some((p) => p.id === cur.id)) return cur;
+        // Never LAND on an archived project. It can be selected deliberately —
+        // that is how its settings page is reached — but a fallback that picks
+        // one drops the developer into a project whose keys have all been
+        // revoked, with nothing on screen saying why.
+        const usable = list.filter((p) => !isArchivedProject(p));
         const prefId = getActiveProjectId(activeWs.id);
-        return list.find((p) => p.id === prefId) ?? list[0] ?? null;
+        return usable.find((p) => p.id === prefId) ?? usable[0] ?? null;
       });
       setPrjLoad('ready');
     } catch (e) {
       setPrjError(onApiError(e));
       setPrjLoad('error');
     }
-  }, [activeWs, onApiError]);
+  }, [activeWs, onApiError, showArchivedProjects]);
 
   useEffect(() => {
     void reloadProjects();
@@ -193,6 +214,8 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
         selectProject,
         createProject,
         reloadProjects,
+        showArchivedProjects,
+        setShowArchivedProjects,
       }}
     >
       {children}

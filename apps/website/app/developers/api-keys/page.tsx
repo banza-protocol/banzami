@@ -5,6 +5,10 @@ import { ApiKeysManager } from '@/components/developers/portal/ApiKeysManager';
 
 // Sandbox API keys journey (ADR-033). Real data via developer-api; reveal-once,
 // rotate, revoke. No Live tab / production path (Slice 1 is Sandbox-only).
+//
+// The list opens on the project's ACTIVE keys: the API returns revoked ones in
+// the same response, and every rotation leaves one behind, so the unfiltered
+// list drifts towards being mostly dead credentials.
 export default function ApiKeysPage() {
   return (
     <PortalPage active="apikeys">

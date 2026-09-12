@@ -5,6 +5,12 @@
 export const ROLES = ['OWNER', 'ADMIN', 'DEVELOPER', 'FINANCE', 'VIEWER'] as const;
 export type Role = (typeof ROLES)[number];
 
+/**
+ * The wire vocabulary, in English, as the API names the roles.
+ *
+ * Kept because it is what FinancialOnboarding renders today and what its test
+ * asserts. It is NOT the word to show a user — see roleLabel below.
+ */
 export const ROLE_LABELS: Record<string, string> = {
   OWNER: 'Owner',
   ADMIN: 'Admin',
@@ -12,6 +18,34 @@ export const ROLE_LABELS: Record<string, string> = {
   FINANCE: 'Finance',
   VIEWER: 'Viewer',
 };
+
+/** The same five roles in the language the Console speaks to its user. */
+export const ROLE_LABELS_PT: Record<string, string> = {
+  OWNER: 'Proprietário',
+  ADMIN: 'Administrador',
+  DEVELOPER: 'Programador',
+  FINANCE: 'Financeiro',
+  VIEWER: 'Observador',
+};
+
+/**
+ * The role, for a person reading it.
+ *
+ * A role this build does not know is a role the server added after this bundle
+ * shipped. It renders as "Papel desconhecido" rather than as OWNER_DELEGATE,
+ * because a raw uppercase wire code in the middle of a Portuguese sentence is
+ * not a word — it is a leak of the transport, and the reader cannot tell whether
+ * it means more authority or less. The code itself still belongs somewhere a
+ * support conversation can reach it, so callers put it on `title`.
+ */
+export function roleLabel(role: string): string {
+  return ROLE_LABELS_PT[role] ?? 'Papel desconhecido';
+}
+
+/** True when this build recognises the role — i.e. roleLabel says a real word. */
+export function isKnownRole(role: string): boolean {
+  return role in ROLE_LABELS_PT;
+}
 
 export function isManager(role: string): boolean {
   return role === 'OWNER' || role === 'ADMIN';

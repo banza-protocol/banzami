@@ -1,12 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { developerApi, type ApiKey, type NewKey } from '@/lib/developer-api';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
-import { Card, Pill } from './ui';
+import { Card, Pill, type PillKind } from './ui';
 import { ConfirmDialog } from './ConfirmDialog';
-import { IconCopy, IconRotate, IconShield } from './icons';
+import { ScopeDrawer, domainLabel, scopeDomain } from './ScopeDrawer';
+import { IconCopy, IconRotate, IconSearch, IconShield } from './icons';
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 const mono = "'JetBrains Mono', ui-monospace, monospace";
@@ -158,7 +159,111 @@ export function SecretRevealDialog({
   );
 }
 
-const statusKind = (s: string) => (s === 'ACTIVE' ? 'success' : 'neutral') as 'success' | 'neutral';
+// ── key presentation ─────────────────────────────────────────────────────────
+
+// Every status the key table knows how to name. Anything else is rendered as the
+// server sent it: the previous mapping was `ACTIVE ? 'Ativa' : 'Revogada'`, so a
+// key in any third state would have been reported to the developer as revoked —
+// a credential described as dead while it still authorizes requests. An unknown
+// status is shown raw, and flagged as unknown rather than dressed as either.
+const STATUS_LABEL: Record<string, string> = {
+  ACTIVE: 'Ativa',
+  REVOKED: 'Revogada',
+};
+
+export function statusLabel(status: string): string {
+  return STATUS_LABEL[status] ?? status;
+}
+
+export function statusKind(status: string): PillKind {
+  if (status === 'ACTIVE') return 'success';
+  if (status === 'REVOKED') return 'neutral';
+  return 'pending'; // unknown: neither reassure nor condemn
+}
+
+// The mask that stands for the part of a secret key nobody can see again.
+export const SECRET_MASK = '••••••••';
+
+/**
+ * What the table shows in the Chave column.
+ *
+ * A publishable key is non-secret by definition — it ships in browser and mobile
+ * code — so its full value is displayed and copyable.
+ *
+ * A secret key cannot be: the server stores only HMAC-SHA-256 of it and returns
+ * the raw value exactly once, at creation. What it does return on every read is
+ * `prefix` — the environment/kind prefix plus the first 8 characters of the key
+ * body (services/developer-api/internal/developer/crypto.go, newAPIKey). That
+ * prefix is the key's published identity: it is what the developer can compare
+ * against the key they hold in order to tell two keys apart.
+ *
+ * So the mask goes where the undisclosed part actually is — at the end. This
+ * deliberately does NOT render a "last four" tail: the server never returns the
+ * end of a secret key, and it must not. A tail here could only be invented, or
+ * be the published head relabelled as the tail — and either one sends the
+ * developer to compare against characters of their key that will not match.
+ */
+export function maskedKeyValue(k: Pick<ApiKey, 'kind' | 'prefix' | 'public_value'>): string {
+  if (k.kind === 'PUBLISHABLE') return k.public_value || k.prefix;
+  return `${k.prefix}${SECRET_MASK}`;
+}
+
+/** What a copy button on a row puts on the clipboard — never anything secret. */
+export function copyableKeyValue(k: Pick<ApiKey, 'kind' | 'prefix' | 'public_value'>): string {
+  return k.kind === 'PUBLISHABLE' ? k.public_value || k.prefix : k.prefix;
+}
+
+export const KIND_LABEL: Record<ApiKey['kind'], string> = {
+  SECRET: 'Secreta',
+  PUBLISHABLE: 'Publicável',
+};
+
+export type KeyFilter = 'ACTIVE' | 'REVOKED' | 'ALL';
+
+/**
+ * Which keys the table shows, and in what order.
+ *
+ * The server returns every key of the project regardless of status, oldest
+ * first (store_pg.go, APIKeysForProject: `ORDER BY created_at`), and rotation
+ * leaves the predecessor REVOKED in that list. So a project that has rotated a
+ * few times opened on a screen led by dead credentials. Filtering and ordering
+ * are done here, over the full response, rather than asked of the API: the list
+ * is project-sized, and the alternative is a protocol/API change for a
+ * presentation concern.
+ *
+ * Order: active keys first — those are the ones that can be used, rotated or
+ * revoked — then newest first inside each group, so a key just created or just
+ * rotated is at the top where the developer is looking.
+ */
+export function visibleKeys(keys: ApiKey[], filter: KeyFilter, query = ''): ApiKey[] {
+  const q = query.trim().toLowerCase();
+  return keys
+    .filter((k) => (filter === 'ALL' ? true : filter === 'ACTIVE' ? k.status === 'ACTIVE' : k.status !== 'ACTIVE'))
+    .filter((k) => !q || k.name.toLowerCase().includes(q) || k.prefix.toLowerCase().includes(q))
+    .sort((a, b) => {
+      const act = Number(b.status === 'ACTIVE') - Number(a.status === 'ACTIVE');
+      if (act !== 0) return act;
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+}
+
+/** The Scopes cell: a count plus the domains involved — never the raw token list. */
+export function scopeSummary(scopes: string[] | null): { count: number; label: string; domains: string } {
+  const list = scopes ?? [];
+  const domains = [...new Set(list.map(scopeDomain))].map(domainLabel);
+  return {
+    count: list.length,
+    label: list.length === 1 ? '1 permissão' : `${list.length} permissões`,
+    domains: domains.length <= 2 ? domains.join(' · ') : `${domains.slice(0, 2).join(' · ')} +${domains.length - 2}`,
+  };
+}
+
+// Rows shown before "Mostrar mais". Keys accumulate — every rotation adds one —
+// and a long-lived project should not open on a table of a hundred of them.
+const PAGE = 20;
+
+const dateFmt = (iso: string | null | undefined) =>
+  iso ? new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 export function ApiKeysManager() {
   const data = useDeveloperData();
@@ -177,8 +282,19 @@ export function ApiKeysManager() {
   const [busy, setBusy] = useState(false);
   // The key an irreversible action is pending on — the dialog names it.
   const [confirming, setConfirming] = useState<{ action: 'revoke' | 'rotate'; key: ApiKey } | null>(null);
+  // Active keys are the default view: the API returns revoked ones too, and a
+  // project that has rotated a few times is mostly dead credentials.
+  const [filter, setFilter] = useState<KeyFilter>('ACTIVE');
+  const [query, setQuery] = useState('');
+  const [shown, setShown] = useState(PAGE);
+  // The key whose scopes are being read in full.
+  const [scopesOf, setScopesOf] = useState<ApiKey | null>(null);
 
   const projectId = activeProject?.id ?? null;
+
+  const rows = useMemo(() => visibleKeys(keys, filter, query), [keys, filter, query]);
+  // A new filter or search is a new list; keep paging from the top of it.
+  useEffect(() => setShown(PAGE), [filter, query, projectId]);
 
   const loadKeys = useCallback(async () => {
     if (!projectId) return;
@@ -231,7 +347,13 @@ export function ApiKeysManager() {
       const rotated = await developerApi.rotateKey(k.id, csrf);
       if (rotated.secret) setRevealSecret(rotated.secret);
       await loadKeys();
-      flash('Chave rotacionada — a antiga deixou de funcionar');
+      // Rotation produces two rows: a new ACTIVE key and the predecessor, now
+      // REVOKED. The default view hides the predecessor, so the developer would
+      // see one row replaced by another and have no confirmation of which one
+      // stopped working. Show both, once, right after the act that made them.
+      setFilter('ALL');
+      setQuery('');
+      flash('Chave rotacionada — a nova está ativa, a anterior ficou revogada');
     } catch (e) {
       throw new Error(onApiError(e));
     }
@@ -259,7 +381,7 @@ export function ApiKeysManager() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>API Keys</h1>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: '-.02em' }}>Chaves de API</h1>
           <p style={{ margin: '6px 0 0', fontSize: 14.5, color: '#8a7a7e', fontWeight: 600 }}>
             Projeto <strong>{activeProject.name}</strong> · apenas chaves de teste (Sandbox). Não há acesso a produção.
           </p>
@@ -290,13 +412,13 @@ export function ApiKeysManager() {
                 onClick={() => setNewKind(k)}
                 style={{ flex: 1, padding: '10px', borderRadius: 10, border: `1.5px solid ${newKind === k ? '#B5101F' : '#EBDBD9'}`, background: newKind === k ? '#FFF1F0' : '#fff', color: newKind === k ? '#B5101F' : '#6a5a5e', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
               >
-                {k === 'SECRET' ? 'Secret (sk_test)' : 'Publishable (pk_test)'}
+                {k === 'SECRET' ? 'Secreta (sk_test)' : 'Publicável (pk_test)'}
               </button>
             ))}
           </div>
-          <p id="scopes-label" style={{ fontSize: 13, fontWeight: 800, color: '#6a5a5e', margin: '0 0 4px' }}>Scopes</p>
+          <p id="scopes-label" style={{ fontSize: 13, fontWeight: 800, color: '#6a5a5e', margin: '0 0 4px' }}>Permissões da chave</p>
           <p style={{ margin: '0 0 10px', fontSize: 12, color: '#8a7a7e', lineHeight: 1.5 }}>
-            Cada scope é uma decisão de autoridade. <code style={{ fontFamily: mono }}>application_settlements:write</code>{' '}
+            Cada permissão (<em>scope</em>) é uma decisão de autoridade. <code style={{ fontFamily: mono }}>application_settlements:write</code>{' '}
             move dinheiro para um beneficiário — dá-o apenas a uma chave que precise de liquidar.
           </p>
           {/*
@@ -363,84 +485,202 @@ export function ApiKeysManager() {
       ) : load === 'error' ? (
         <ErrorState msg={error} />
       ) : keys.length === 0 ? (
+        // A project with no keys at all. An empty table says nothing; this says
+        // what is missing and where the one action is.
         <Card style={{ padding: '40px 24px', textAlign: 'center' }}>
-          <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não há chaves</p>
-          <p style={{ margin: '6px 0 0', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 800 }}>Ainda não há chaves neste projeto</p>
+          <p style={{ margin: '6px 0 14px', fontSize: 13.5, color: '#8a7a7e', fontWeight: 600 }}>
             Crie a sua primeira chave de teste para começar a integrar em Sandbox.
           </p>
+          <button
+            onClick={() => setCreating(true)}
+            className="bz-cta"
+            style={{ padding: '11px 18px', border: 'none', borderRadius: 12, background: ctaGradient, color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}
+          >
+            Criar a primeira chave
+          </button>
         </Card>
       ) : (
-        <Card style={{ overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
-                {['NOME', 'CHAVE', 'TIPO', 'SCOPES', 'ESTADO', 'ÚLTIMO USO', 'AÇÕES'].map((h, i) => (
-                  <th key={h} style={{ padding: i === 0 ? '13px 22px' : '13px 12px', fontSize: 11, fontWeight: 800, textAlign: h === 'AÇÕES' ? 'right' : 'left' }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map((k) => (
-                <tr key={k.id} className="bz-row" style={{ borderTop: '1px solid #F5E9E7' }}>
-                  <td style={{ padding: '14px 22px', fontWeight: 800 }}>{k.name}</td>
-                  <td style={{ padding: '14px 12px', fontFamily: mono, color: '#3a2a2e' }}>
-                    {k.kind === 'PUBLISHABLE' ? k.public_value || k.prefix : `${k.prefix}…`}
-                  </td>
-                  <td style={{ padding: '14px 12px' }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 800, color: k.kind === 'SECRET' ? '#C4303C' : '#8a7a7e' }}>
-                      {k.kind === 'SECRET' ? 'Secret' : 'Publishable'}
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
+            <div role="group" aria-label="Filtrar chaves por estado" style={{ display: 'flex', gap: 6 }}>
+              {([
+                ['ACTIVE', 'Ativas'],
+                ['REVOKED', 'Revogadas'],
+                ['ALL', 'Todas'],
+              ] as const).map(([value, label]) => {
+                const on = filter === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setFilter(value)}
+                    style={{
+                      padding: '8px 14px', borderRadius: 10,
+                      border: `1.5px solid ${on ? '#B5101F' : '#EBDBD9'}`,
+                      background: on ? '#FFF1F0' : '#fff',
+                      color: on ? '#B5101F' : '#6a5a5e',
+                      fontSize: 13, fontWeight: 800, cursor: 'pointer',
+                    }}
+                  >
+                    {label}
+                    <span style={{ marginLeft: 6, fontWeight: 700, opacity: 0.7 }}>
+                      {visibleKeys(keys, value).length}
                     </span>
-                  </td>
-                  <td style={{ padding: '14px 12px', fontFamily: mono, fontSize: 11, color: '#8a7a7e' }}>
-                    {(k.scopes ?? []).join(', ') || '—'}
-                  </td>
-                  <td style={{ padding: '14px 12px' }}>
-                    <Pill kind={statusKind(k.status)} dot>
-                      {k.status === 'ACTIVE' ? 'Ativa' : 'Revogada'}
-                    </Pill>
-                  </td>
-                  <td style={{ padding: '14px 12px', color: '#a89a9e', fontWeight: 700 }}>
-                    {k.last_used_at ? new Date(k.last_used_at).toLocaleDateString('pt-PT') : '—'}
-                  </td>
-                  <td style={{ padding: '14px 22px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {k.status === 'ACTIVE' ? (
-                      <>
-                        <button
-                          onClick={() => setConfirming({ action: 'rotate', key: k })}
-                          disabled={busy}
-                          title="Rotacionar"
-                          aria-label="Rotacionar chave"
-                          className="bz-icobtn"
-                          style={{ width: 32, height: 32, border: '1px solid #F0E2E0', borderRadius: 9, background: '#fff', cursor: 'pointer', color: '#B5101F', marginRight: 6 }}
-                        >
-                          <IconRotate size={14} />
-                        </button>
-                        <button
-                          onClick={() => setConfirming({ action: 'revoke', key: k })}
-                          disabled={busy}
-                          style={{ padding: '6px 12px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
-                        >
-                          Revogar
-                        </button>
-                      </>
-                    ) : (
-                      <span style={{ fontSize: 12, color: '#a89a9e', fontWeight: 700 }}>Inativa</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
+                  </button>
+                );
+              })}
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 200, border: '1.5px solid #EBDBD9', borderRadius: 10, padding: '0 12px', background: '#FFFDFD' }}>
+              <span style={{ color: '#a89a9e', display: 'inline-flex' }}><IconSearch size={14} /></span>
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Procurar por nome ou prefixo"
+                aria-label="Procurar chaves por nome ou prefixo"
+                style={{ flex: 1, padding: '10px 0', border: 'none', outline: 'none', background: 'transparent', fontSize: 13.5, fontWeight: 600 }}
+              />
+            </label>
+          </div>
+
+          {rows.length === 0 ? (
+            <Card style={{ padding: '32px 24px', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 14.5, fontWeight: 800 }}>
+                {query
+                  ? 'Nenhuma chave corresponde à pesquisa'
+                  : filter === 'ACTIVE'
+                    ? 'Nenhuma chave ativa neste projeto'
+                    : 'Nenhuma chave revogada neste projeto'}
+              </p>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: '#8a7a7e', fontWeight: 600 }}>
+                {filter === 'ALL' ? 'Limpe a pesquisa para ver todas as chaves.' : 'Mude o filtro para Todas para ver as restantes.'}
+              </p>
+            </Card>
+          ) : (
+            <Card style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#a89a9e' }}>
+                    {['NOME', 'CHAVE', 'PERMISSÕES', 'CRIADA', 'ÚLTIMO USO', 'ESTADO', 'AÇÕES'].map((h, i) => (
+                      <th key={h} scope="col" style={{ padding: i === 0 ? '13px 22px' : '13px 12px', fontSize: 11, fontWeight: 800, textAlign: h === 'AÇÕES' ? 'right' : 'left', whiteSpace: 'nowrap' }}>
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(0, shown).map((k) => {
+                    const scopes = scopeSummary(k.scopes);
+                    const revoked = k.status !== 'ACTIVE';
+                    return (
+                      <tr key={k.id} className="bz-row" style={{ borderTop: '1px solid #F5E9E7', opacity: revoked ? 0.62 : 1 }}>
+                        <td style={{ padding: '14px 22px', fontWeight: 800 }}>{k.name}</td>
+                        <td style={{ padding: '14px 12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <code style={{ fontFamily: mono, fontSize: 12, color: '#3a2a2e', whiteSpace: 'nowrap' }}>
+                              {maskedKeyValue(k)}
+                            </code>
+                            {/*
+                              The shell delegates any [data-copy] click to the
+                              clipboard and toasts it. For a secret key what is
+                              copied is the published prefix — the identity, which
+                              is all the server has — never the masked rendering.
+                            */}
+                            <button
+                              type="button"
+                              data-copy={copyableKeyValue(k)}
+                              aria-label={k.kind === 'PUBLISHABLE' ? `Copiar chave ${k.name}` : `Copiar identificador da chave ${k.name}`}
+                              title={k.kind === 'PUBLISHABLE' ? 'Copiar chave' : 'Copiar identificador'}
+                              className="bz-icobtn"
+                              style={{ flex: 'none', width: 26, height: 26, border: '1px solid #F0E2E0', borderRadius: 8, background: '#fff', cursor: 'pointer', color: '#8a7a7e' }}
+                            >
+                              <IconCopy size={12} strokeWidth={1.9} />
+                            </button>
+                          </div>
+                          <span style={{ display: 'block', marginTop: 3, fontSize: 11, fontWeight: 800, color: k.kind === 'SECRET' ? '#C4303C' : '#8a7a7e' }}>
+                            {KIND_LABEL[k.kind]}
+                          </span>
+                        </td>
+                        <td style={{ padding: '14px 12px' }}>
+                          {scopes.count === 0 ? (
+                            <span style={{ color: '#a89a9e', fontWeight: 700 }}>Nenhuma</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setScopesOf(k)}
+                              aria-label={`Ver as ${scopes.label} da chave ${k.name}`}
+                              style={{ padding: 0, border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer' }}
+                            >
+                              <span style={{ display: 'block', fontSize: 12.5, fontWeight: 800, color: '#B5101F' }}>{scopes.label}</span>
+                              <span style={{ display: 'block', marginTop: 1, fontSize: 11.5, fontWeight: 600, color: '#8a7a7e' }}>{scopes.domains}</span>
+                            </button>
+                          )}
+                        </td>
+                        <td style={{ padding: '14px 12px', color: '#8a7a7e', fontWeight: 700, whiteSpace: 'nowrap' }}>{dateFmt(k.created_at)}</td>
+                        <td style={{ padding: '14px 12px', color: '#a89a9e', fontWeight: 700, whiteSpace: 'nowrap' }}>{dateFmt(k.last_used_at)}</td>
+                        <td style={{ padding: '14px 12px' }}>
+                          <Pill kind={statusKind(k.status)} dot>
+                            {statusLabel(k.status)}
+                          </Pill>
+                        </td>
+                        <td style={{ padding: '14px 22px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                          {k.status === 'ACTIVE' ? (
+                            <>
+                              <button
+                                onClick={() => setConfirming({ action: 'rotate', key: k })}
+                                disabled={busy}
+                                title="Rotacionar"
+                                aria-label={`Rotacionar chave ${k.name}`}
+                                className="bz-icobtn"
+                                style={{ width: 32, height: 32, border: '1px solid #F0E2E0', borderRadius: 9, background: '#fff', cursor: 'pointer', color: '#B5101F', marginRight: 6 }}
+                              >
+                                <IconRotate size={14} />
+                              </button>
+                              <button
+                                onClick={() => setConfirming({ action: 'revoke', key: k })}
+                                disabled={busy}
+                                aria-label={`Revogar chave ${k.name}`}
+                                style={{ padding: '6px 12px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
+                              >
+                                Revogar
+                              </button>
+                            </>
+                          ) : (
+                            // The state is already on this row, in the Estado
+                            // column. Repeating it here in a different word —
+                            // "Inativa" beside a pill reading "Revogada" — read
+                            // as two different facts about the same key.
+                            <span aria-hidden style={{ fontSize: 12, color: '#c8b8ba', fontWeight: 700 }}>—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {rows.length > shown ? (
+                <div style={{ padding: '12px 22px', borderTop: '1px solid #F5E9E7', textAlign: 'center' }}>
+                  <button
+                    onClick={() => setShown((n) => n + PAGE)}
+                    style={{ padding: '9px 16px', border: '1.5px solid #EBDBD9', borderRadius: 10, background: '#fff', color: '#6a5a5e', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                  >
+                    Mostrar mais ({rows.length - shown})
+                  </button>
+                </div>
+              ) : null}
+            </Card>
+          )}
+        </>
       )}
 
       <p style={{ margin: '14px 2px 0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 700, color: '#9a8a8e' }}>
         <span style={{ color: '#B5101F', display: 'inline-flex' }}>
           <IconShield size={15} />
         </span>
-        Chaves revogadas e rotacionadas deixam de funcionar imediatamente. As chaves Live/produção não estão disponíveis.
+        Chaves revogadas e rotacionadas deixam de funcionar imediatamente. O segredo de uma chave secreta é
+        mostrado uma única vez, na criação — a consola só volta a mostrar o prefixo público. As chaves
+        Live/produção não estão disponíveis.
       </p>
 
       {confirming ? (
@@ -449,13 +689,22 @@ export function ApiKeysManager() {
           body={
             confirming.action === 'revoke'
               ? 'A chave deixa de funcionar imediatamente e não pode ser reactivada. Qualquer integração que a use passa a receber 401.'
-              : 'É emitido um segredo novo e o actual deixa de funcionar imediatamente. O novo segredo é mostrado uma única vez.'
+              : 'É emitido um segredo novo e o actual deixa de funcionar imediatamente — a chave anterior fica revogada na lista. O novo segredo é mostrado uma única vez e não é recuperável depois.'
           }
-          subject={`${confirming.key.name} · ${confirming.key.prefix}…`}
+          subject={`${confirming.key.name} · ${maskedKeyValue(confirming.key)}`}
           confirmLabel={confirming.action === 'revoke' ? 'Revogar' : 'Rotacionar'}
           danger
           onConfirm={() => (confirming.action === 'revoke' ? revoke(confirming.key) : rotate(confirming.key))}
           onClose={() => setConfirming(null)}
+        />
+      ) : null}
+
+      {scopesOf ? (
+        <ScopeDrawer
+          keyName={scopesOf.name}
+          scopes={scopesOf.scopes ?? []}
+          help={SCOPE_HELP}
+          onClose={() => setScopesOf(null)}
         />
       ) : null}
 

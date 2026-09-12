@@ -2,18 +2,19 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { developerApi } from '@/lib/developer-api';
 import { ToastProvider, useToast, copyText } from './Toast';
 import { DeveloperAuthProvider, useDeveloperAuth } from './DeveloperAuth';
 import { DeveloperDataProvider, useDeveloperData } from './DeveloperData';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import { PreviewNotice } from './PreviewNotice';
+import { UserMenu } from './UserMenu';
 import {
   BrandTile,
   IconArrowRight,
   IconBolt,
   IconBriefcase,
-  IconChevronDown,
   IconDoc,
   IconFlask,
   IconGear,
@@ -166,18 +167,56 @@ function Sidebar({ active }: { active: PortalKey }) {
   );
 }
 
-function initialsOf(user: { name?: string; email?: string } | null): string {
-  if (user?.name) {
-    const parts = user.name.trim().split(/\s+/);
-    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
-  }
-  return (user?.email ?? '?').slice(0, 2).toUpperCase();
+/**
+ * This member's role in the ACTIVE workspace, or null while it is not known.
+ *
+ * The role is a property of the membership, not of the session, so it is read
+ * the way the members table reads it: find yourself in the list. Null is a real
+ * answer and travels as one — defaulting to VIEWER would put a permission level
+ * on screen that nobody granted.
+ */
+function useWorkspaceRole(): string | null {
+  const { user } = useDeveloperAuth();
+  const { activeWs } = useDeveloperData();
+  const [role, setRole] = useState<string | null>(null);
+  const wsID = activeWs?.id ?? null;
+  const userID = user?.id ?? null;
+
+  useEffect(() => {
+    setRole(null);
+    if (!wsID || !userID) return;
+    let cancelled = false;
+    developerApi
+      .listMembers(wsID)
+      .then(({ members }) => {
+        if (!cancelled) setRole(members?.find((m) => m.user_id === userID)?.role ?? null);
+      })
+      .catch(() => {
+        /* unknown stays unknown — the menu shows no role rather than a guess */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [wsID, userID]);
+
+  return role;
 }
 
 function TopBar() {
-  const { user, logout } = useDeveloperAuth();
+  const { user, csrf, logout, setSession } = useDeveloperAuth();
   const { activeWs, activeProject } = useDeveloperData();
+  const role = useWorkspaceRole();
   const router = useRouter();
+
+  const setName = async (name: string) => {
+    const r = await developerApi.setName(name, csrf);
+    setSession(r.user, r.csrf_token);
+  };
+
+  // logout() now rejects when the server could not revoke the session. The
+  // rejection is passed straight to the confirmation dialog, which keeps it on
+  // screen — so a refused sign-out leaves the person signed in, which is what
+  // is actually true, and the redirect below never runs.
   const onLogout = async () => {
     await logout();
     router.push('/login');
@@ -199,6 +238,11 @@ function TopBar() {
       }}
     >
       <div className="bz-topmeta" style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+        {/* Which project is active — a label, and now dressed as one. It wore a
+            chevron and a pointer cursor and had no handler at all, so it read
+            as the project switcher and answered nothing when clicked. The
+            switcher is real and lives in the sidebar; a second one here would
+            be two controls for one selection. */}
         <span
           style={{
             display: 'inline-flex',
@@ -211,16 +255,12 @@ function TopBar() {
             fontSize: 13.5,
             fontWeight: 800,
             color: '#2a2024',
-            cursor: 'pointer',
           }}
         >
           <span style={{ color: '#B5101F', display: 'inline-flex' }}>
             <IconBriefcase size={15} />
           </span>
           {activeProject?.name ?? activeWs?.name ?? 'Sandbox'}
-          <span style={{ color: '#b8a4a6', marginLeft: 2, display: 'inline-flex' }}>
-            <IconChevronDown size={14} />
-          </span>
         </span>
         <span
           style={{
@@ -258,7 +298,7 @@ function TopBar() {
           }}
         >
           <IconBolt size={15} />
-          Switch to Live
+          Mudar para Live
         </Link>
         {/* No notification bell. It had no handler and a red unread dot that was
             always on, so it announced messages that did not exist and did
@@ -283,43 +323,10 @@ function TopBar() {
         >
           <IconHelp size={18} />
         </Link>
-        {/* An avatar with a chevron reads as a menu, and this one signed you out
-            on the first click. It is now labelled as what it does. */}
-        <button
-          onClick={onLogout}
-          aria-label={user?.email ? `Terminar sessão (${user.email})` : 'Terminar sessão'}
-          title={user?.email ? `${user.email} — Terminar sessão` : 'Terminar sessão'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '5px 12px 5px 5px',
-            border: '1px solid #F0E2E0',
-            borderRadius: 30,
-            background: '#fff',
-            cursor: 'pointer',
-          }}
-        >
-          <span
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              background: 'linear-gradient(150deg,#B5101F,#7C1016)',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: 13,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            {initialsOf(user)}
-          </span>
-          <span style={{ color: '#6a5a5e', fontSize: 12.5, fontWeight: 800, whiteSpace: 'nowrap' }}>
-            Terminar sessão
-          </span>
-        </button>
+        {/* The avatar is the menu it always looked like. Signing out is an item
+            inside it, behind a confirmation — it is no longer a control you can
+            hit by aiming at your own face. */}
+        <UserMenu user={user} role={role} onSetName={setName} onLogout={onLogout} />
       </div>
     </header>
   );
@@ -378,7 +385,7 @@ function SandboxBanner() {
           boxShadow: '0 12px 24px -10px rgba(181,16,31,.5)',
         }}
       >
-        Switch to Live
+        Mudar para Live
         <IconArrowRight size={15} />
       </Link>
     </div>

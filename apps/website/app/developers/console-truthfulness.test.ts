@@ -57,15 +57,21 @@ describe('Console navigation', () => {
     expect(SHELL).not.toMatch(/Notificações/);
   });
 
-  it('labels the account control as what it does', () => {
-    expect(SHELL).toMatch(/Terminar sessão/);
-    // A chevron next to an avatar promises a menu, and this one signed you out
-    // on the first click. Scoped to that control: the project selector is a
-    // real selector and its chevron is honest.
-    const i = SHELL.indexOf('onClick={onLogout}');
-    expect(i).toBeGreaterThan(-1);
-    const control = SHELL.slice(i, SHELL.indexOf('</button>', i));
-    expect(control).not.toMatch(/IconChevronDown/);
+  it('does not sign anyone out from the shell itself', () => {
+    // This assertion used to require the opposite: that the header's account
+    // control was LABELLED "Terminar sessão", because it was a button that
+    // signed you out on the first click while looking like a menu. Labelling it
+    // was the honest fix available at the time.
+    //
+    // The control is now a real menu (UserMenu.tsx), and signing out lives
+    // inside it behind a confirmation. So the shell must hold neither the label
+    // nor a logout handler — anything here would be a second, unconfirmed way
+    // out, which is the defect this test was written against.
+    //
+    // What the assertion was protecting is now held where the behaviour lives:
+    // UserMenu.test.tsx and console-user-identity.test.ts.
+    expect(SHELL).not.toMatch(/onClick=\{onLogout\}/);
+    expect(SHELL).toMatch(/UserMenu/);
   });
 });
 

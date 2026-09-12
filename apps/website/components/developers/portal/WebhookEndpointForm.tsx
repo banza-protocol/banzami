@@ -90,6 +90,12 @@ export function WebhookEndpointForm({ onCreated }: { onCreated: (ep: NewWebhookE
         O endereço tem de ser público e <strong>https</strong>. O Banzami assina cada entrega; verifique
         a assinatura com o segredo que aparece a seguir — é mostrado uma única vez.
       </p>
+      {/* There is no route that changes either of these after the fact — the API
+          accepts them on creation and nothing else edits them. Saying so here is
+          cheaper than saying it once the endpoint is live and undeletable. */}
+      <p style={{ margin: '0 0 16px', fontSize: 12.5, lineHeight: 1.55, color: '#8a7a7e', fontWeight: 600 }}>
+        O endereço e os eventos ficam fixos: para os mudar, registe outro endpoint.
+      </p>
 
       <label htmlFor="wh-url" style={{ display: 'block', fontSize: 12, fontWeight: 800, color: '#6a5a5e', marginBottom: 6 }}>
         Endereço
