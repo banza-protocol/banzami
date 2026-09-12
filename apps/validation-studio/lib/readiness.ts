@@ -39,9 +39,45 @@ export interface Blocker {
   externallyBlocked: boolean
 }
 
+/**
+ * The active surface, bucket by bucket.
+ *
+ * The single headline ratio (63/74) was doing two jobs badly: it hid what the
+ * eleven non-validated items actually ARE, and its denominator silently changed
+ * whenever something was retired — so deleting a product moved the number and
+ * nobody could say why. The buckets are named instead, and they add up:
+ *
+ *   required = validated + implemented + inProgress + blocked
+ *
+ * RETIRED is not in here at all. A retired product is not pending work, not a
+ * missing implementation, and not a blocker; it is reported separately, by name,
+ * so it is visible without being counted as debt.
+ */
+export interface ActiveSurface {
+  /** Items expected to be launch-ready: total − roadmap − baseline − retired. */
+  required: number
+  validated: number
+  implemented: number
+  inProgress: number
+  blocked: number
+  /** Of the non-validated: blocked by somebody outside our engineering. */
+  externallyBlocked: number
+  /** Of the non-validated: resolvable by us. */
+  internallyBlocked: number
+}
+
+export interface RetiredItem {
+  id: string
+  title: string
+}
+
 export interface Readiness {
   pillars: PillarReadiness[]
   canLaunch: boolean
+  /** The active surface, named rather than summarised. */
+  active: ActiveSurface
+  /** Retired products, listed rather than counted into anything. */
+  retiredItems: RetiredItem[]
   // Launch-ready (strict) — the headline.
   launchReady: number
   total: number          // every tracked item (incl. roadmap + baseline)
@@ -216,9 +252,26 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
   const retired = items.filter(isRetired).length
   const launchScope = items.length - roadmap - baseline - retired
 
+  // The active surface — everything the product is expected to be able to do
+  // today. Roadmap, baseline pointers and retired products are outside it, each
+  // for its own reason, and none of them is counted as work owed.
+  const activeItems = items.filter((i) => !isRoadmap(i) && !isBaseline(i) && !isRetired(i))
+  const active: ActiveSurface = {
+    required: activeItems.length,
+    validated: activeItems.filter((i) => i.status === 'VALIDATED').length,
+    implemented: activeItems.filter((i) => i.status === 'IMPLEMENTED').length,
+    inProgress: activeItems.filter((i) => i.status === 'IN_PROGRESS').length,
+    blocked: activeItems.filter((i) => i.status === 'BLOCKED').length,
+    externallyBlocked: activeItems.filter(isExternallyBlocked).length,
+    internallyBlocked: activeItems.filter(isInternallyBlocked).length,
+  }
+  const retiredItems: RetiredItem[] = items.filter(isRetired).map((i) => ({ id: i.id, title: i.title }))
+
   return {
     pillars,
     canLaunch: criticalLaunchReady === criticals.length,
+    active,
+    retiredItems,
     launchReady,
     total: items.length,
     launchScope,

@@ -28,6 +28,7 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
     canLaunch, blockers, pillars, banzaLevels,
     launchReady, codeComplete, launchScope, roadmap, externallyBlocked, internallyBlocked,
     criticalLaunchReady, criticalCodeComplete, criticalTotal,
+    active, retiredItems,
   } = readiness
 
   return (
@@ -56,6 +57,17 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
           <p className="mt-0.5 text-[13px] font-semibold text-emerald-700">
             {internallyBlocked} {internallyBlocked === 1 ? 'item' : 'items'} blocked on internal engineering
           </p>
+          {/* What the eleven non-validated items ARE. The single ratio above hid
+              that, and its denominator moved every time something was retired —
+              so deleting a product changed the score and nobody could say why. */}
+          <p className="mt-2 text-[12.5px] text-gray-600">
+            <span className="font-semibold text-gray-700">Active surface {active.required}</span>
+            {' — '}
+            <span className="tabular-nums">{active.validated} validated</span>
+            {active.implemented > 0 && <> · <span className="tabular-nums">{active.implemented} implemented</span></>}
+            {active.inProgress > 0 && <> · <span className="tabular-nums">{active.inProgress} in progress</span></>}
+            {active.blocked > 0 && <> · <span className="tabular-nums">{active.blocked} blocked</span></>}
+          </p>
         </div>
         <div className="flex gap-5 text-right">
           <Metric value={`${launchReady}/${launchScope}`} label="Launch-ready" tone="emerald" />
@@ -72,6 +84,16 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
         <span className="text-gray-300">·</span>
         <span className="tabular-nums text-gray-400">{criticalCodeComplete}/{criticalTotal} implemented</span>
       </div>
+
+      {/* Retired — named, never counted. A withdrawn product is not work owed,
+          and folding it into a ratio made deleting one look like acquiring debt. */}
+      {retiredItems.length > 0 && (
+        <p className="mt-2 text-[12.5px] text-gray-500">
+          <span className="font-semibold">Retired ({retiredItems.length})</span>
+          {' — outside the active surface, not a blocker and not missing implementation: '}
+          {retiredItems.map((r) => `${r.id} ${r.title}`).join(' · ')}
+        </p>
+      )}
 
       {/* Pillars */}
       <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">

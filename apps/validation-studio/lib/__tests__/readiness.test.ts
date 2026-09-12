@@ -241,3 +241,76 @@ describe('current matrix readiness snapshot', () => {
     expect(trust.codeComplete).toBe(7)
   })
 })
+
+// ─── RETIRED is not debt ───────────────────────────────────────────────────
+//
+// Retiring the merchant dashboard made the headline WORSE: BW-001 and BW-002
+// fell out of VALIDATED and landed in "blocked on internal engineering", which
+// reads as two things the team still owes. Deleting a product must not look like
+// acquiring a debt, and these three properties are what stops it.
+
+describe('a retired product is reported, never counted as work owed', () => {
+  const withRetired = matrix([
+    item({ id: 'A', status: 'VALIDATED' }),
+    item({ id: 'B', status: 'IN_PROGRESS' }),
+    item({ id: 'GONE', status: 'RETIRED', title: 'Merchant dashboard' }),
+  ])
+
+  it('RETIRED_COUNTS_AS_INTERNAL_BLOCKER = 0', () => {
+    const r = computeReadiness(withRetired)
+    expect(isInternallyBlocked(withRetired.items[2])).toBe(false)
+    expect(r.internallyBlocked).toBe(1) // B only
+    expect(r.active.internallyBlocked).toBe(1)
+  })
+
+  it('RETIRED_COUNTS_AS_MISSING_IMPLEMENTATION = 0', () => {
+    const r = computeReadiness(withRetired)
+    // The active surface is the two live items. The retired one is not a gap in
+    // it — it is not in it at all, so it can never read as something unbuilt.
+    expect(r.active.required).toBe(2)
+    expect(r.active.validated + r.active.implemented + r.active.inProgress + r.active.blocked)
+      .toBe(r.active.required)
+    expect(r.launchScope).toBe(2)
+  })
+
+  it('RETIRED_ITEMS_REPORTED_SEPARATELY = PASS', () => {
+    const r = computeReadiness(withRetired)
+    expect(r.retiredItems).toEqual([{ id: 'GONE', title: 'Merchant dashboard' }])
+    expect(r.retired).toBe(1)
+  })
+
+  it('retiring an item does not move the launch-ready ratio', () => {
+    const before = computeReadiness(matrix([
+      item({ id: 'A', status: 'VALIDATED' }),
+      item({ id: 'B', status: 'VALIDATED' }),
+      item({ id: 'C', status: 'VALIDATED' }),
+    ]))
+    const after = computeReadiness(matrix([
+      item({ id: 'A', status: 'VALIDATED' }),
+      item({ id: 'B', status: 'VALIDATED' }),
+      item({ id: 'C', status: 'RETIRED', title: 'withdrawn' }),
+    ]))
+    // 3/3 → 2/2. The denominator moves with the numerator, so withdrawing a
+    // product leaves readiness where it was instead of making it look worse.
+    expect(before.launchReadyPct).toBe(100)
+    expect(after.launchReadyPct).toBe(100)
+    expect(after.active.required).toBe(2)
+  })
+})
+
+describe('the active surface, on the real matrix', () => {
+  const r = computeReadiness(readMatrix())
+
+  it('the buckets add up to the active surface', () => {
+    const { required, validated, implemented, inProgress, blocked } = r.active
+    expect(validated + implemented + inProgress + blocked).toBe(required)
+  })
+
+  it('every active item is validated, or accounted for by a named bucket', () => {
+    // No item may be active and in none of the buckets: that is how an item
+    // disappears from the report while still being work somebody owes.
+    expect(r.active.required).toBeGreaterThan(0)
+    expect(r.active.internallyBlocked + r.active.externallyBlocked)
+      .toBe(r.active.required - r.active.validated)
+  })
+})

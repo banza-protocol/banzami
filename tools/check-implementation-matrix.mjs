@@ -7,21 +7,34 @@
  * it still reads VALIDATED, and nothing behind it can be opened. Nobody noticed
  * because nothing had ever checked that an evidence reference resolves.
  *
- * What it holds, and what it deliberately does not:
+ * The first version of this gate found the same problem in twenty more places
+ * and REPORTED them, on the reasoning that failing on somebody else's mess makes
+ * a gate unrunnable. That reasoning was wrong in a specific way: a finding that
+ * is printed and not enforced is a finding that survives every future run. The
+ * gate now FAILS on all of it, and the twenty were resolved rather than muted.
+ *
+ * What it holds:
  *
  *   · no item names a RETIRED SURFACE as current evidence. Prose that says a
  *     surface was retired is the record of the retirement, not a claim that it
  *     exists, so only evidence refs and revalidation globs are read;
- *   · every evidence reference SHAPED LIKE A REPOSITORY PATH resolves. Most
- *     evidence in this matrix is narrative — an SQL result, a latency figure, a
- *     cross-repo spec, a live URL — and a checker that treated prose as a path
- *     reported 139 dead references on its first run, none of them real. Only
- *     what claims to be a path is checked as one;
- *   · a VALIDATED item has evidence and does not declare its own gap.
+ *   · every evidence reference SHAPED LIKE A REPOSITORY PATH resolves — for
+ *     every item, retired ones included. Most evidence here is narrative (an SQL
+ *     result, a latency figure, a cross-repo spec, a live URL) and a checker
+ *     that treated prose as a path reported 139 dead references on its first
+ *     run, none of them real. Only what claims to be a path is checked as one;
+ *   · every item has at least one evidence reference. An item with none asserts
+ *     a status on nothing;
+ *   · a VALIDATED item declares no gap and carries no blocking issue. Those two
+ *     are the item telling you, in its own words, that it is not what its status
+ *     says;
+ *   · a RETIRED item carries retirement evidence — something that records the
+ *     withdrawal, not merely something that still opens. Otherwise RETIRED
+ *     becomes the bin every awkward item gets swept into;
+ *   · every status is one the matrix actually uses.
  *
- * Items outside this change that already carried blocking issues are REPORTED,
- * not failed: they are somebody's to resolve through their own proposal, and
- * failing the gate on them would make it unrunnable and therefore ignored.
+ * Every one of these is FAIL, not a note. The only thing this file prints
+ * without failing is the count of what passed.
  *
  *   node tools/check-implementation-matrix.mjs
  */
@@ -40,9 +53,9 @@ const ZONES = ['apps/', 'services/', 'core/', 'sdk/', 'plugins/', 'db/', 'docs/'
 let failures = 0;
 const fail = (m, d) => { console.error(`  ✗ ${m}${d ? `\n      ${d}` : ''}`); failures += 1; };
 const pass = (m) => console.log(`  ✓ ${m}`);
-const note = (m, d) => console.log(`  · ${m}${d ? `\n      ${d}` : ''}`);
 
 const refsOf = (it) => (it.evidence ?? []).map((e) => (typeof e === 'string' ? e : e.ref)).filter(Boolean);
+const isRetired = (it) => it.status === 'RETIRED';
 
 /** Is this reference claiming to be a path in this repository? */
 const looksLikePath = (ref) => {
@@ -79,7 +92,10 @@ console.log(`implementation matrix — ${MATRIX.items.length} items\n`);
     : pass('IMPLEMENTATION_MATRIX_DASHBOARD_REFERENCES = 0 — no item cites a retired surface as evidence');
 }
 
-// ── every path-shaped reference resolves ─────────────────────────────────────
+// ── every path-shaped reference resolves, in every item ──────────────────────
+//
+// Retired items included. A retired item still has to say WHY it was retired,
+// and evidence that cannot be opened says nothing at all.
 {
   const dead = [];
   let checked = 0, narrative = 0;
@@ -87,55 +103,82 @@ console.log(`implementation matrix — ${MATRIX.items.length} items\n`);
     for (const ref of refsOf(it)) {
       if (!looksLikePath(ref)) { narrative += 1; continue; }
       checked += 1;
-      if (!resolves(ref)) dead.push(`${it.id} → ${ref}`);
+      if (!resolves(ref)) dead.push(`${it.id} (${it.status}) → ${ref}`);
     }
   }
-  // Items re-evidenced under the 2026-09-12 authorisation must be clean. The
-  // rest are reported: twenty references in fifteen other items already pointed
-  // at files that had moved or gone before this change, and quietly editing
-  // items nobody authorised would be the same kind of silent rewrite this whole
-  // exercise exists to undo. A gate that can never pass is one people stop
-  // running, so the two are separated rather than merged.
-  const IN_SCOPE = ['BW-001', 'BW-002', 'BW-003', 'BW-004', 'IDT-002'];
-  const mine = dead.filter((d) => IN_SCOPE.some((id) => d.startsWith(`${id} `)));
-  const inherited = dead.filter((d) => !mine.includes(d));
-
-  mine.length
-    ? fail(`IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES = ${mine.length} in re-evidenced items`, mine.join('\n      '))
-    : pass(`IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES = 0 in the re-evidenced items (${checked} path references resolved overall; ${narrative} narrative references not treated as paths)`);
-
-  if (inherited.length) {
-    note(`${inherited.length} path reference(s) in ${new Set(inherited.map((d) => d.split(' ')[0])).size} OTHER item(s) point at files that have moved or gone. Each needs its own §16 proposal; listed so the next one is not a discovery`,
-         inherited.join('\n      '));
-  }
+  dead.length
+    ? fail(`IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES = ${dead.length} in ${new Set(dead.map((d) => d.split(' ')[0])).size} item(s)`, dead.join('\n      '))
+    : pass(`IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES = 0 (${checked} path references resolved; ${narrative} narrative references not treated as paths)`);
 }
 
-// ── a VALIDATED item has evidence and declares no gap of its own ─────────────
+// ── every item cites something ───────────────────────────────────────────────
 {
-  const hollow = [], preexisting = [];
+  const empty = MATRIX.items.filter((it) => refsOf(it).length === 0).map((it) => `${it.id} (${it.status}): no evidence at all`);
+  empty.length
+    ? fail(`IMPLEMENTATION_MATRIX_MISSING_EVIDENCE = ${empty.length}`, empty.join('\n      '))
+    : pass(`IMPLEMENTATION_MATRIX_MISSING_EVIDENCE = 0 — every item cites at least one thing`);
+}
+
+// ── a VALIDATED item declares no gap and no blocker ──────────────────────────
+//
+// These were two separate findings and are one rule: an item whose own fields
+// say "this is not done" while its status says VALIDATED is lying in the only
+// field anybody reads.
+{
+  const gapped = [], blocked = [];
   for (const it of MATRIX.items) {
     if (it.status !== 'VALIDATED') continue;
-    if (refsOf(it).length === 0) { hollow.push(`${it.id}: VALIDATED with no evidence at all`); continue; }
     const gaps = (it.evidence ?? []).filter((e) => typeof e === 'object' && e.type === 'gap');
-    if (gaps.length) hollow.push(`${it.id}: VALIDATED while declaring a gap — ${gaps.map((g) => g.label).join(', ')}`);
-    if ((it.blockingIssues ?? []).length) preexisting.push(`${it.id}: ${it.blockingIssues.length} blocking issue(s)`);
+    if (gaps.length) gapped.push(`${it.id}: VALIDATED while declaring a gap — ${gaps.map((g) => g.label).join(', ')}`);
+    for (const b of it.blockingIssues ?? []) blocked.push(`${it.id}: ${String(b).slice(0, 140)}`);
   }
-  hollow.length
-    ? fail('IMPLEMENTATION_MATRIX_VALIDATED_WITH_CURRENT_EVIDENCE = FAIL', hollow.join('\n      '))
-    : pass(`IMPLEMENTATION_MATRIX_VALIDATED_WITH_CURRENT_EVIDENCE = PASS (${MATRIX.items.filter((i) => i.status === 'VALIDATED').length} validated items, all with resolvable evidence)`);
-  if (preexisting.length) {
-    note(`${preexisting.length} VALIDATED item(s) carry blocking issues from before this change — each needs its own §16 proposal, and is reported rather than failed here`,
-         preexisting.join('\n      '));
+  gapped.length
+    ? fail(`IMPLEMENTATION_MATRIX_VALIDATED_WITH_UNMET_CRITERION = ${gapped.length}`, gapped.join('\n      '))
+    : pass('IMPLEMENTATION_MATRIX_VALIDATED_WITH_UNMET_CRITERION = 0 — no VALIDATED item declares a gap of its own');
+  blocked.length
+    ? fail(`IMPLEMENTATION_MATRIX_VALIDATED_WITH_BLOCKERS = ${blocked.length}`, blocked.join('\n      '))
+    : pass('IMPLEMENTATION_MATRIX_VALIDATED_WITH_BLOCKERS = 0 — no VALIDATED item carries a blocking issue');
+}
+
+// ── a RETIRED item says why it was retired ───────────────────────────────────
+//
+// Not merely "has evidence that opens". A retirement has a record — the repair
+// log entry, the superseding decision, the test that keeps the route unmounted,
+// the history entry that moved it — and without one, RETIRED is just a status
+// somebody typed. This is the rule that stops RETIRED becoming the place
+// awkward items go to stop being counted.
+{
+  const RETIREMENT = /retir|withdraw|supersed|removed|replaced|gone|410|unmounted|RA-\d+|SEC-\d+|decommission/i;
+  const thin = [];
+  for (const it of MATRIX.items) {
+    if (!isRetired(it)) continue;
+    const says = (it.evidence ?? []).some((e) => {
+      const text = typeof e === 'string' ? e : `${e.type ?? ''} ${e.label ?? ''} ${e.ref ?? ''}`;
+      return RETIREMENT.test(text);
+    }) || RETIREMENT.test(String(it.requirement ?? ''));
+    if (!says) thin.push(`${it.id}: RETIRED with no evidence of the retirement itself`);
   }
+  thin.length
+    ? fail(`IMPLEMENTATION_MATRIX_RETIRED_WITHOUT_RETIREMENT_EVIDENCE = ${thin.length}`, thin.join('\n      '))
+    : pass(`IMPLEMENTATION_MATRIX_RETIRED_WITHOUT_RETIREMENT_EVIDENCE = 0 (${MATRIX.items.filter(isRetired).length} retired item(s), each recording its own withdrawal)`);
 }
 
 // ── every status is one the matrix uses ──────────────────────────────────────
 {
-  const odd = MATRIX.items.filter((i) => !VALID_STATUS.includes(i.status)).map((i) => `${i.id}: ${i.status}`);
+  const odd = MATRIX.items.filter((i) => !VALID_STATUS.includes(i.status)).map((i) => `${i.id}: ${i.status ?? '(none)'}`);
   odd.length
     ? fail(`IMPLEMENTATION_MATRIX_UNRESOLVED_ITEMS = ${odd.length}`, odd.join('\n      '))
     : pass(`IMPLEMENTATION_MATRIX_UNRESOLVED_ITEMS = 0 (${[...new Set(MATRIX.items.map((i) => i.status))].sort().join(', ')})`);
 }
+
+// ── the gates, named ─────────────────────────────────────────────────────────
+console.log('');
+console.log('MATRIX_DEAD_EVIDENCE_GATE=FAIL_CLOSED');
+console.log('MATRIX_MISSING_EVIDENCE_GATE=FAIL_CLOSED');
+console.log('MATRIX_VALIDATED_WITH_BLOCKERS_GATE=FAIL_CLOSED');
+console.log('MATRIX_VALIDATED_WITH_UNMET_CRITERION_GATE=FAIL_CLOSED');
+console.log('MATRIX_RETIRED_EVIDENCE_GATE=FAIL_CLOSED');
+console.log('MATRIX_STATUS_ENUM_GATE=FAIL_CLOSED');
 
 if (failures) { console.error(`\n✗ ${failures} matrix failure(s)`); process.exit(1); }
 console.log('\n✓ every item cites something that can still be opened and checked');

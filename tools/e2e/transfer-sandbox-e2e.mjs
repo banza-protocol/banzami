@@ -101,8 +101,15 @@ async function main() {
   log(`registered @${A.handle} (${a0}) and @${B.handle} (${b0})`);
 
   // 2. Valid transfer — COMPLETED, exact debit/credit, currency preserved.
+  //
+  // /v1/transfers on the CONSUMER base. Not /v1/wallet-account-transfers: that
+  // is the merchant/developer surface on the gateway, between two child accounts
+  // of one bound owner, and a blanket rename to it pointed this harness at a
+  // route the consumer API does not mount. It 404'd on every call and nobody
+  // saw, because nothing ran it. This is the path the app's own
+  // ConsumerPublicClient posts to.
   const idem = uuid();
-  const t1 = await req('POST', '/v1/wallet-account-transfers', {
+  const t1 = await req('POST', '/v1/transfers', {
     token: A.token,
     body: { recipient: `@${B.handle}`, amount_minor: AMOUNT, currency: 'AOA', note: 'e2e', idempotency_key: idem },
   });
@@ -118,7 +125,7 @@ async function main() {
   log(`valid transfer ${txId} COMPLETED; balances moved by exactly ${AMOUNT}`);
 
   // 3. Idempotency replay — same key ⇒ same transfer, no second move.
-  const t2 = await req('POST', '/v1/wallet-account-transfers', {
+  const t2 = await req('POST', '/v1/transfers', {
     token: A.token,
     body: { recipient: `@${B.handle}`, amount_minor: AMOUNT, currency: 'AOA', note: 'e2e', idempotency_key: idem },
   });
@@ -149,7 +156,7 @@ async function main() {
     ['unauthorized', { recipient: `@${B.handle}`, amount_minor: 1000, currency: 'AOA', idempotency_key: uuid() }, undefined, 401, 'UNAUTHORIZED'],
   ];
   for (const [label, body, token, wantStatus, wantCode] of negatives) {
-    const r = await req('POST', '/v1/wallet-account-transfers', { token, body });
+    const r = await req('POST', '/v1/transfers', { token, body });
     assert.equal(r.status, wantStatus, `${label}: status ${r.status} != ${wantStatus}`);
     assert.equal(r.json.code, wantCode, `${label}: code ${r.json.code} != ${wantCode}`);
     log(`negative ${label} → ${r.status} ${r.json.code}`);
