@@ -103,7 +103,10 @@ const QUESTIONS = [
     n: 8, q: 'What is Sandbox?',
     needs: [
       [/sandbox/i],
-      [/(dinheiro fict|fictitious|não é dinheiro real|not real money|sem dinheiro real)/i],
+      // The substance, allowing for the markup the sentence is wrapped in:
+      // "O <strong>dinheiro no Sandbox é fictício</strong>" is the same claim as
+      // "money is fictitious", and an exact-adjacency pattern read it as absent.
+      [/dinheiro[^.]{0,60}fict[íi]cio|fictitious|n[ãa]o (é|e) dinheiro real|sem dinheiro real|no real money/i],
     ],
   },
   {
