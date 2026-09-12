@@ -38,7 +38,7 @@
  *
  * Run:
  *   PLAYWRIGHT_MODULE=/Users/fm65/doa/node_modules/@playwright/test/index.mjs \
- *     node tools/e2e/dev-console/developer-journey-50.mjs [--out <path>] [--headed]
+ *     node tools/e2e/dev-console/developer-journey-50.mjs [--out <dir>] [--headed]
  */
 
 import { execFileSync } from 'node:child_process';
@@ -46,6 +46,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { registerCleanup, cleanupRun } from '../console/lib/run-cleanup.mjs';
+import { assuranceDir } from '../lib/assurance-output.mjs';
 
 // Playwright lives in the DOA workspace on this machine; the operator repo has
 // no browser dependency of its own and should not grow one for a suite that
@@ -181,15 +182,55 @@ async function fieldValue(page, label) {
   }, label);
 }
 
-/** The toast text, once it says what we are waiting for. */
-async function toast(page, re, timeout = 8000) {
+/**
+ * The toast text, once it says what we are waiting for.
+ *
+ * Every live region on the page is read, not the first one: the Sandbox notice
+ * at the top of every portal page is also `role="status"` and comes first in the
+ * DOM, so `.first()` silently watched a banner that never changes and every
+ * confirmation this suite waits for timed out.
+ */
+async function toast(page, re, timeout = 10000) {
   return until(
     async () => {
-      const t = norm(await page.locator('[role="status"]').first().innerText());
-      return re.test(t) ? t : null;
+      const parts = await page.locator('[role="status"]').allInnerTexts();
+      const hit = parts.map(norm).find((t) => re.test(t));
+      return hit ?? null;
     },
     { timeout },
   );
+}
+
+/**
+ * The exact name a confirm-by-name dialog is asking for.
+ *
+ * It prints the name verbatim immediately above the field — deliberately, so
+ * this is a deliberate act and not a memory test — so the dialog's own words are
+ * what gets typed. Typing what the harness BELIEVES the name to be instead just
+ * leaves the confirm button disabled, with nothing on screen saying why.
+ */
+async function confirmName(dialog) {
+  return dialog.evaluate((el) => {
+    const input = el.querySelector('input[autocomplete="off"]');
+    const p = input?.previousElementSibling;
+    return p ? p.textContent.trim() : '';
+  });
+}
+
+/** The workspace, as the server holds it. The authority for its current name. */
+async function serverWorkspace(ctx, id) {
+  const r = await ctx.request.get(`${API}/workspaces`, { headers: { Origin: CONSOLE } });
+  const { workspaces } = await r.json();
+  return (workspaces ?? []).find((w) => w.id === id) ?? null;
+}
+
+/** The project, as the server holds it — archived ones included. */
+async function serverProject(ctx, wsId, id) {
+  const r = await ctx.request.get(`${API}/workspaces/${wsId}/projects?include_archived=true`, {
+    headers: { Origin: CONSOLE },
+  });
+  const { projects } = await r.json();
+  return (projects ?? []).find((p) => p.id === id) ?? null;
 }
 
 /** Sign in through the Console's own login + verify screens. */
@@ -440,14 +481,34 @@ try {
     await page.locator('input[aria-label="NOME DO WORKSPACE"]').fill(renamed);
     await page.getByRole('button', { name: 'Guardar' }).click();
     await toast(page, /Nome do workspace atualizado/);
-    await settle(page, 800);
-    const nameAfter = await fieldValue(page, 'NOME DO WORKSPACE');
+    // Wait for the rendered field to catch up, then take the name from the
+    // server: a local copy that drifts from the server's turns the type-the-name
+    // confirmations later in this journey into an unexplainable disabled button.
+    const shown = await until(async () => {
+      const v = await fieldValue(page, 'NOME DO WORKSPACE');
+      return v && v.includes(renamed) ? v : null;
+    }, { timeout: 10000 });
     const idAfter = await fieldValue(page, 'ID DO WORKSPACE');
     const slugAfter = await fieldValue(page, 'IDENTIFICADOR');
-    if (nameAfter?.includes(renamed)) J.wsName = renamed;
+    const server = await serverWorkspace(ctxA, J.wsId);
+    if (server?.name) J.wsName = server.name;
+    // A rename the reader cannot see is not a rename. If the field did not
+    // catch up in place, say whether a reload brings it — that is the difference
+    // between "the save failed" and "the save worked and the screen lied".
+    const afterReload = shown
+      ? null
+      : await (async () => {
+          await open(page, '/settings/workspace', 1000);
+          return until(async () => {
+            const v = await fieldValue(page, 'NOME DO WORKSPACE');
+            return v && v.includes(renamed) ? v : null;
+          }, { timeout: 8000 });
+        })();
     return {
-      ok: !!nameAfter?.includes(renamed) && idBefore === idAfter && slugBefore === slugAfter,
-      observed: `name -> "${renamed}", id stable=${idBefore === idAfter}, slug stable=${slugBefore === slugAfter} (${slugAfter})`,
+      ok: !!shown && server?.name === renamed && idBefore === idAfter && slugBefore === slugAfter,
+      observed: shown
+        ? `name -> "${server?.name}", id stable=${idBefore === idAfter}, slug stable=${slugBefore === slugAfter} (${norm(slugAfter ?? '')})`
+        : `server renamed to "${server?.name}" and the toast confirmed it, but the Console kept showing the OLD name in place; a page reload shows the new one=${!!afterReload}. id stable=${idBefore === idAfter}, slug stable=${slugBefore === slugAfter}`,
     };
   });
 
@@ -468,14 +529,20 @@ try {
       const t = norm(await bodyText(page));
       return /VOCÊ/.test(t) ? t : null;
     });
-    const namesAreUuids = await page.evaluate(() =>
-      [...document.querySelectorAll('p')]
-        .map((p) => p.firstChild?.textContent?.trim() ?? '')
-        .some((s) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s)));
+    // Only the member rows — the page also carries the workspace's own ID field,
+    // which IS a UUID and is supposed to be. What must not be a UUID is the line
+    // where a person's name goes.
+    const nameLines = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-testid^="member-avatar-"]')]
+        .map((a) => a.parentElement?.querySelector('p')?.textContent?.trim() ?? ''));
+    const uuidAsName = nameLines.some((s) =>
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(s));
     const showsPerson = !!row && row.includes(OWNER_NAME);
     return {
-      ok: showsPerson && !namesAreUuids,
-      observed: showsPerson ? `row shows "${OWNER_NAME}" + VOCÊ, no bare UUID in the name position` : 'signed-in member not found in the list',
+      ok: showsPerson && nameLines.length > 0 && !uuidAsName,
+      observed: showsPerson
+        ? `${nameLines.length} member row(s); the name line reads "${OWNER_NAME}" + VOCÊ, never a bare UUID`
+        : 'signed-in member not found in the list',
     };
   });
 
@@ -486,9 +553,14 @@ try {
     await page.getByRole('button', { name: 'Convidar' }).click();
     const t = await toast(page, /Convite criado/);
     const gotToken = await until(() => (J.inviteToken ? true : null), { timeout: 8000 });
+    const listed = await until(async () => {
+      const r = await ctxA.request.get(`${API}/workspaces/${J.wsId}/invites`, { headers: { Origin: CONSOLE } });
+      const { invites } = await r.json();
+      return (invites ?? []).some((i) => i.email === EMAIL_MEMBER) ? true : null;
+    });
     return {
-      ok: !!t && !!gotToken,
-      observed: `${t ?? 'no toast'}; accept link produced by the product=${!!gotToken}`,
+      ok: !!listed && !!gotToken,
+      observed: `${t ?? 'no toast'}; invite recorded for ${EMAIL_MEMBER}, accept link produced by the product=${!!gotToken}`,
     };
   });
 
@@ -576,10 +648,27 @@ try {
     await page.locator('input[aria-label="NOME DO PROJETO"]').fill(renamed);
     await page.getByRole('button', { name: 'Guardar' }).click();
     await toast(page, /Nome do projeto atualizado/);
-    await settle(page, 900);
-    const after = await fieldValue(page, 'NOME DO PROJETO');
-    if (after?.includes(renamed)) J.projectName = renamed;
-    return { ok: !!after?.includes(renamed), observed: `name now "${norm(after ?? '')}"` };
+    const shown = await until(async () => {
+      const v = await fieldValue(page, 'NOME DO PROJETO');
+      return v && v.includes(renamed) ? v : null;
+    }, { timeout: 10000 });
+    const server = await serverProject(ctxA, J.wsId, J.projectId);
+    if (server?.name) J.projectName = server.name;
+    const afterReload = shown
+      ? null
+      : await (async () => {
+          await open(page, '/settings', 1000);
+          return until(async () => {
+            const v = await fieldValue(page, 'NOME DO PROJETO');
+            return v && v.includes(renamed) ? v : null;
+          }, { timeout: 8000 });
+        })();
+    return {
+      ok: !!shown && server?.name === renamed,
+      observed: shown
+        ? `name now "${server?.name}"`
+        : `server renamed to "${server?.name}" and the toast confirmed it, but the Console kept showing the OLD name in place; a page reload shows the new one=${!!afterReload}`,
+    };
   });
 
   await step('the Project ID is unchanged by the rename', async () => {
@@ -999,9 +1088,10 @@ try {
     await page.getByRole('button', { name: 'Arquivar projeto' }).first().click();
     const dlg = page.locator('div[role="dialog"][aria-label="Arquivar projeto"]');
     await dlg.waitFor({ state: 'visible', timeout: 8000 });
-    await dlg.locator('input[autocomplete="off"]').fill(J.projectName);
+    const wanted = await confirmName(dlg);
+    await dlg.locator('input[autocomplete="off"]').fill(wanted || J.projectName);
     await dlg.getByRole('button', { name: 'Arquivar projeto' }).click();
-    const t = await toast(page, /Projeto arquivado/, 15000);
+    const t = await toast(page, /Projeto arquivado/, 20000);
     const namesCount = !!t && /(1 chave revogada|\d+ chaves revogadas|Não havia chaves ativas)/.test(t);
     return { ok: namesCount, observed: t ?? 'no archive confirmation appeared' };
   });
@@ -1064,7 +1154,7 @@ try {
     await dlg.waitFor({ state: 'visible', timeout: 8000 });
     const consequence = norm(await dlg.innerText());
     const namesCount = /ainda tem 1 projeto ativo|ainda tem \d+ projetos ativos/.test(consequence);
-    await dlg.locator('input[autocomplete="off"]').fill(J.wsName);
+    await dlg.locator('input[autocomplete="off"]').fill(await confirmName(dlg));
     await dlg.getByRole('button', { name: 'Arquivar workspace' }).click();
     const refusal = await until(async () => {
       const e = norm(await dlg.locator('p[role="alert"]').innerText().catch(() => ''));
@@ -1079,27 +1169,32 @@ try {
     await page.getByRole('button', { name: 'Arquivar projeto' }).first().click();
     const pd = page.locator('div[role="dialog"][aria-label="Arquivar projeto"]');
     await pd.waitFor({ state: 'visible', timeout: 8000 });
-    await pd.locator('input[autocomplete="off"]').fill(J.blockerProjectName);
+    await pd.locator('input[autocomplete="off"]').fill(await confirmName(pd));
     await pd.getByRole('button', { name: 'Arquivar projeto' }).click();
-    await toast(page, /Projeto arquivado/, 15000);
+    await toast(page, /Projeto arquivado/, 20000);
 
     await open(page, '/settings/workspace', 1500);
     await page.getByRole('button', { name: 'Arquivar workspace' }).first().click();
     dlg = page.locator('div[role="dialog"][aria-label="Arquivar workspace"]');
     await dlg.waitFor({ state: 'visible', timeout: 8000 });
-    await dlg.locator('input[autocomplete="off"]').fill(J.wsName);
+    await dlg.locator('input[autocomplete="off"]').fill(await confirmName(dlg));
     await dlg.getByRole('button', { name: 'Arquivar workspace' }).click();
-    const done = await toast(page, /Workspace arquivado/, 15000);
+    const done = await toast(page, /Workspace arquivado/, 20000);
+    const secondRefusal = done ? null : norm(await dlg.locator('p[role="alert"]').innerText().catch(() => ''));
+    // A workspace that is closed may simply stop being listed, which is also an
+    // answer: "gone from the list" and "listed as archived" both mean it closed.
     const finalStatus = await until(async () => {
       const r = await ctxA.request.get(`${API}/workspaces`, { headers: { Origin: CONSOLE } });
-      const w = ((await r.json()).workspaces ?? []).find((x) => x.id === J.wsId);
-      return w && w.status !== 'ACTIVE' ? w.status : null;
+      const list = (await r.json()).workspaces ?? [];
+      const w = list.find((x) => x.id === J.wsId);
+      if (!w) return 'no longer listed';
+      return w.status !== 'ACTIVE' ? w.status : null;
     });
     return {
       ok: namesCount && !!refusal && stillActive === 'ACTIVE' && !!finalStatus,
       observed:
         `refusal named the count=${namesCount} ("${(refusal ?? '').slice(0, 70)}"), workspace unchanged by the refusal (${stillActive}); ` +
-        `after archiving the project the workspace closed -> ${finalStatus ?? 'still ACTIVE'} ${done ? '' : '(no toast)'}`,
+        `after archiving the project it closed -> ${finalStatus ?? `still ACTIVE${secondRefusal ? ` (${secondRefusal})` : ''}`}`,
     };
   });
 
@@ -1179,15 +1274,14 @@ console.log(`DEVELOPER_E2E_POST_RUN_RESIDUE=${residue.total}`);
 if (cleanupError) console.log(`  cleanup reported: ${cleanupError}`);
 console.log(`\nDEVIATION: ${DEVIATION}`);
 
+// Outside the worktree by default, and deliberately so: this suite observes a
+// running deployment, so its result is a fact ABOUT a revision and cannot be
+// part of it. A default inside evidence/ makes the verification dirty the very
+// revision it just verified, and there is no sequence of commits that settles
+// that — see tools/e2e/lib/assurance-output.mjs. An explicit --out is the
+// operator asking for a specific destination, which is a different thing.
 const outArg = argOf('--out');
-const outFile = outArg
-  ? resolve(outArg)
-  : join(
-      process.env.EVIDENCE_OUT_DIR
-        ? resolve(process.env.EVIDENCE_OUT_DIR)
-        : join(ROOT, 'evidence/assurance/developer-platform'),
-      `developer-journey-50-${STAMP}.json`,
-    );
+const outFile = join(outArg ? resolve(outArg) : assuranceDir('developer-journey-50'), `developer-journey-50-${STAMP}.json`);
 mkdirSync(dirname(outFile), { recursive: true });
 writeFileSync(
   outFile,

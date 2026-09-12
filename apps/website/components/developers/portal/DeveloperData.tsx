@@ -63,7 +63,23 @@ const MSG: Record<string, string> = {
   VALIDATION: 'Dados inválidos.',
   NETWORK: 'Sem ligação ao serviço.',
   UNAVAILABLE: 'Serviço indisponível. Tente novamente.',
+  // A project with no financial owner is the ordinary state of a new project,
+  // not a fault. Without an entry here it fell through to UNAVAILABLE — "try
+  // again", which is advice to repeat the one thing that cannot help.
+  PROJECT_FINANCIAL_SETUP_REQUIRED:
+    'Este projeto ainda não tem titular financeiro. Conclua a Configuração financeira para continuar.',
 };
+
+// Is this the same row, in the same state? Used to decide whether a reload
+// should swap the object it already holds.
+//
+// Not `===` on the id alone — that kept a stale name on screen — and not a new
+// object every time either: an unchanged workspace whose identity churns on
+// every reload re-fires every effect that depends on it, for nothing. So the
+// content decides.
+function sameRow<T extends { id: string; name: string; slug: string; status: string }>(a: T, b: T): boolean {
+  return a.id === b.id && a.name === b.name && a.slug === b.slug && a.status === b.status;
+}
 
 export function DeveloperDataProvider({ children }: { children: ReactNode }) {
   const { csrf, clear } = useDeveloperAuth();
@@ -101,7 +117,18 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
       const list = ws ?? [];
       setWorkspaces(list);
       setActiveWs((cur) => {
-        if (cur && list.some((w) => w.id === cur.id)) return cur;
+        // Take the FRESH row, not the stale object that happens to share its id.
+        // Keeping `cur` here meant a rename never reached the screen: the server
+        // renamed it, the toast said so, and the field, the sidebar selector and
+        // the top-bar chip all kept the old name until a reload. Worse, the
+        // typed-name confirmation is fed from this object, so archiving straight
+        // after a rename sent the stale name and the server — which compares it
+        // to the real one — refused. The developer had typed exactly what the
+        // dialog printed.
+        if (cur) {
+          const fresh = list.find((w) => w.id === cur.id);
+          if (fresh) return sameRow(fresh, cur) ? cur : fresh;
+        }
         const prefId = getActiveWorkspaceId();
         return list.find((w) => w.id === prefId) ?? list[0] ?? null;
       });
@@ -152,7 +179,12 @@ export function DeveloperDataProvider({ children }: { children: ReactNode }) {
       const list = ps ?? [];
       setProjects(list);
       setActiveProject((cur) => {
-        if (cur && list.some((p) => p.id === cur.id)) return cur;
+        // The fresh row, for the same reason as the workspace above: a rename
+        // that the screen does not show is a rename the developer repeats.
+        if (cur) {
+          const fresh = list.find((p) => p.id === cur.id);
+          if (fresh) return sameRow(fresh, cur) ? cur : fresh;
+        }
         // Never LAND on an archived project. It can be selected deliberately —
         // that is how its settings page is reached — but a fallback that picks
         // one drops the developer into a project whose keys have all been

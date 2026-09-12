@@ -126,7 +126,21 @@ export function WebhooksManager() {
       // to fall through to the branch below, which then printed the exception's
       // own message — an English string written for a developer console, not for
       // this reader.
-      if (e instanceof ApiError && e.code === 'NOT_FOUND') { setState('unprovisioned'); return; }
+      // 409 PROJECT_FINANCIAL_SETUP_REQUIRED is the state this screen has
+      // purpose-built copy for, and it was unreachable: the branch still looked
+      // for NOT_FOUND, which is what the API answered BEFORE that code existed.
+      // So a project with no financial owner — the ordinary state of every new
+      // project — was told "Serviço indisponível. Tente novamente.", which is
+      // both false and advice to do the one thing that cannot help.
+      //
+      // NOT_FOUND is kept beside it: an older deployment still answers it, and a
+      // Console that is right against only the newest gateway is a Console that
+      // breaks during a rollout.
+      if (e instanceof ApiError
+        && (e.code === 'PROJECT_FINANCIAL_SETUP_REQUIRED' || e.code === 'NOT_FOUND')) {
+        setState('unprovisioned');
+        return;
+      }
       setError(onApiError(e));
       setState('error');
     }

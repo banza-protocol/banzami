@@ -227,6 +227,23 @@ describe('a project with no financial binding', () => {
     expect(document.body.textContent).toMatch(/não há eventos para mostrar/);
   });
 
+  // The code the API actually answers today. This screen had purpose-built copy
+  // for the state and could not reach it: the branch still looked for NOT_FOUND,
+  // which is what the API answered BEFORE the code existed, so every new project
+  // — the ordinary case — was told "Serviço indisponível. Tente novamente."
+  // That is false, and it is advice to repeat the one thing that cannot help.
+  // Found by the 50-step browser journey (step 28).
+  it('explains itself for the 409 the API answers now, not only the old 404', async () => {
+    api.listWebhookEndpoints.mockRejectedValue(
+      new ApiError('PROJECT_FINANCIAL_SETUP_REQUIRED', 409, 'this project has no Sandbox financial setup yet'),
+    );
+
+    mount();
+    expect(await screen.findByText('Projecto ainda sem titular financeiro')).toBeTruthy();
+    expect(document.body.textContent).not.toContain(MESSAGES.UNAVAILABLE);
+    expect(document.body.textContent).not.toMatch(/Tente novamente/);
+  });
+
   it('maps a failure that is not an ApiError instead of showing its own words', async () => {
     // A fetch that throws lands here with no `code` at all. Reading `.code` off
     // whatever was thrown used to miss it, and the fallback printed the
