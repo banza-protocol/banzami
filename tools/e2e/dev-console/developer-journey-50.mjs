@@ -1539,16 +1539,32 @@ try {
       return { ok: true, observed: `no failed delivery to retry — ${(J._deliveries ?? []).length} delivery record(s), none in a failed state; the surface answered, so this is an assertion rather than an absence` };
     }
     const before = failed[0];
+    const attemptsBefore = Number(before.attempt_count ?? (before.attempts ?? []).length ?? 0);
     const r = await mutate(ctxA, 'post', `${API}/projects/${J.projectId}/webhooks/deliveries/${before.id}/replay`);
     if (!r.ok()) return { ok: false, observed: `replay refused: ${r.status()}` };
-    await settle(page, 1500);
-    const after = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
-    const list = after.ok() ? (await after.json()).deliveries ?? [] : [];
-    // A retry adds an ATTEMPT; it must not add a second delivered event.
+
+    // A replay re-attempts THE SAME delivery — it does not create a second one.
+    // That is the guarantee worth asserting: an event that was delivered must
+    // never be delivered twice because somebody pressed Reenviar. So the row
+    // count must stay put while the attempt count grows.
+    let list = [];
+    let attemptsAfter = attemptsBefore;
+    for (let i = 0; i < 10; i++) {
+      await new Promise((r2) => setTimeout(r2, 2000));
+      const after = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
+      if (!after.ok()) continue;
+      list = (await after.json()).deliveries ?? [];
+      const mine = list.find((d) => d.id === before.id);
+      attemptsAfter = Number(mine?.attempt_count ?? (mine?.attempts ?? []).length ?? 0);
+      if (attemptsAfter > attemptsBefore) break;
+    }
+    const noDuplicateDelivery = list.length === (J._deliveries ?? []).length;
     const sameEvent = list.every((d) => String(d.event_id ?? J._eventId) === String(J._eventId));
     return {
-      ok: list.length > (J._deliveries ?? []).length && sameEvent,
-      observed: `replayed one failed delivery: ${(J._deliveries ?? []).length} → ${list.length} attempt(s), all for the same event id`,
+      ok: attemptsAfter > attemptsBefore && noDuplicateDelivery && sameEvent,
+      observed: `replayed one failed delivery: attempts ${attemptsBefore} → ${attemptsAfter} on the SAME delivery row; `
+        + `delivery rows ${(J._deliveries ?? []).length} → ${list.length} (a replay must not create a second delivery), `
+        + `all for the same event id=${sameEvent}`,
     };
   });
 
@@ -1728,15 +1744,21 @@ try {
     await open(page, '/api-keys', 1000);
     const r = await ctxA.request.get(`${API}/projects/${J.projectId}/keys`, { headers: { Origin: CONSOLE } });
     const { keys } = await r.json();
-    const active = (keys ?? []).filter((k) => k.status === 'ACTIVE');
-    const revoked = (keys ?? []).filter((k) => k.status === 'REVOKED');
+    // This project's key story is the journey's own: key 1, revoked at step 40,
+    // and the rotation pair from step 42. The short-lived writing key step 30
+    // opens and revokes is real and correctly revoked, but it is not what this
+    // step is about, so it is not counted here.
+    const mine = (keys ?? []).filter((k) => String(k.name ?? '').startsWith(`${TAG} chave`));
+    const active = mine.filter((k) => k.status === 'ACTIVE');
+    const revoked = mine.filter((k) => k.status === 'REVOKED');
     await page.getByRole('button', { name: /^Todas/ }).click().catch(() => {});
     await settle(page, 600);
     const t = await bodyText(page);
     const saysBoth = /Ativa/.test(t) && /Revogada/.test(t);
     return {
       ok: active.length === 1 && revoked.length === 2 && saysBoth,
-      observed: `${active.length} active, ${revoked.length} revoked; the table shows both "Ativa" and "Revogada"=${saysBoth}`,
+      observed: `of the journey's own keys: ${active.length} active, ${revoked.length} revoked `
+        + `(${(keys ?? []).length} on the project in total); the table shows both "Ativa" and "Revogada"=${saysBoth}`,
     };
   });
 
