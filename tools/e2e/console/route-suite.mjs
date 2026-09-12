@@ -49,9 +49,28 @@ for (const r of GONE) {
   /ERRO 404/.test(t) ? ok(`${r} is gone`) : bad(`${r} still serves something`);
 }
 // The account control and the absence of the bell.
+//
+// This used to require the header to READ "Terminar sessão", because the avatar
+// was a button that signed you out on the first click — labelling it was the
+// honest fix available then. It is a real menu now, so the header must NOT carry
+// that label (a second, unconfirmed way out is the defect this guards against)
+// and the avatar must announce itself as a menu.
 await page.goto(ORIGIN + '/dashboard', { waitUntil: 'networkidle' });
 const header = (await page.locator('header').innerText()).replace(/\s+/g,' ');
-/Terminar sessão/.test(header) ? ok('the account control says what it does') : bad('account control not labelled');
+const trigger = page.locator('header [aria-haspopup="menu"]');
+const hasTrigger = await trigger.count() > 0;
+const expanded = hasTrigger ? await trigger.first().getAttribute('aria-expanded') : null;
+if (/Terminar sessão/.test(header)) bad('the header still offers an unconfirmed sign-out');
+else if (!hasTrigger) bad('the account control does not announce itself as a menu');
+else if (expanded !== 'false') bad(`the account menu opens with aria-expanded=${expanded}`);
+else ok('the account control is a menu, and the header offers no bare sign-out');
+
+// It must open, and opening it must not end the session.
+await trigger.first().click();
+const menu = page.locator('[role="menu"]');
+if (await menu.count() === 0) bad('the account menu does not open');
+else if (!/\/dashboard/.test(page.url())) bad('opening the account menu signed the person out');
+else ok('the account menu opens without signing anyone out');
 /Notifica/.test(header) ? bad('the bell is back') : ok('no notification bell');
 console.log(`\nCONSOLE_ROUTE_SUITE: PASS=${pass} FAIL=${fail}`);
 await b.close();

@@ -347,6 +347,11 @@ function SandboxBanner() {
       style={{
         display: 'flex',
         alignItems: 'center',
+        // Wraps on a narrow screen. Without it the explanation link — which is
+        // a sentence, not a word — held the row wider than a phone and the
+        // whole page scrolled sideways at 375px (caught by
+        // tools/e2e/console/responsive.mjs).
+        flexWrap: 'wrap',
         gap: 16,
         padding: '16px 20px',
         borderRadius: 18,
@@ -380,9 +385,13 @@ function SandboxBanner() {
       <Link
         href="/go-live"
         style={{
-          flex: 'none',
+          // Allowed to shrink and to wrap its own words: a sentence-length label
+          // that refuses both is a label that decides the page's minimum width.
+          flex: '1 1 auto',
+          minWidth: 0,
           display: 'inline-flex',
           alignItems: 'center',
+          justifyContent: 'center',
           gap: 7,
           padding: '11px 16px',
           borderRadius: 12,
