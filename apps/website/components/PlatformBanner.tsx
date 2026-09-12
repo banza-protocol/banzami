@@ -7,15 +7,22 @@ import { getPlatformMode } from '@/lib/api';
 // whenever the platform is in SANDBOX. Driven by the central platform mode (no
 // rebuild needed to flip it). Hidden only when the mode is confirmed LIVE; on any
 // read failure it stays visible (never assume production on error).
+//
+// It starts shown, not hidden. Starting hidden meant the first paint of every
+// public page — and the whole of it for a reader whose JavaScript never runs —
+// carried no disclosure at all, and only grew one after hydration. On a platform
+// where no money is real, the disclosure is the first thing a reader is owed, so
+// it is present from the first byte and withdrawn only when the mode comes back
+// confirmed LIVE.
 export function PlatformBanner() {
-  const [show, setShow] = useState(false);
+  const [show, setShow] = useState(true);
 
   useEffect(() => {
     let active = true;
     void getPlatformMode().then((m) => {
       if (!active) return;
       // Production is silent — only show in SANDBOX.
-      setShow(m.public_banner || m.mode === 'SANDBOX');
+      setShow(m.public_banner || m.mode !== 'LIVE');
     });
     return () => { active = false; };
   }, []);
