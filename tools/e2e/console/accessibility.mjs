@@ -25,7 +25,16 @@ const bad = (m) => { fail += 1; console.error(`  ✗ ${m}`); };
 
 const b = await chromium.launch();
 const ctx = await b.newContext();
-await ctx.addCookies([{ name: '__Host-bz_dev_session', value: process.env.BZ_SESSION, url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'Lax' }]);
+  // The cookie must reach BOTH hosts. It was set only for the API host while
+  // every page is served from the Console host, so the browser sent nothing
+  // with the document request and every route rendered the LOGIN page. Three
+  // sweeps reported green against a screen that has no product on it.
+  import { requireLiveSession } from './lib/require-session.mjs';
+await requireLiveSession(process.env.BZ_SESSION);
+await ctx.addCookies([
+    { name: '__Host-bz_dev_session', value: process.env.BZ_SESSION, url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'None' },
+    { name: '__Host-bz_dev_session', value: process.env.BZ_SESSION, url: 'https://developers.banzami.com',    httpOnly: true, secure: true, sameSite: 'None' },
+  ]);
 const page = await ctx.newPage();
 
 for (const r of ROUTES) {

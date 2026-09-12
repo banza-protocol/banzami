@@ -53,18 +53,25 @@ const notes = [];
 const ok = (m) => { pass += 1; console.log(`  ✓ ${m}`); };
 const bad = (m) => { fail += 1; console.error(`  ✗ ${m}`); };
 
+import { requireLiveSession } from './lib/require-session.mjs';
+
 const session = process.env.BZ_SESSION;
 if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
+await requireLiveSession(session);
 
 const browser = await chromium.launch();
 const results = [];
 
 for (const vp of VIEWPORTS) {
   const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
-  await ctx.addCookies([{
-    name: '__Host-bz_dev_session', value: session,
-    url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'Lax',
-  }]);
+  // The cookie must reach BOTH hosts. It was set only for the API host while
+  // every page is served from the Console host, so the browser sent nothing
+  // with the document request and every route rendered the LOGIN page. Three
+  // sweeps reported green against a screen that has no product on it.
+  await ctx.addCookies([
+    { name: '__Host-bz_dev_session', value: session, url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'None' },
+    { name: '__Host-bz_dev_session', value: session, url: 'https://developers.banzami.com',    httpOnly: true, secure: true, sameSite: 'None' },
+  ]);
   const page = await ctx.newPage();
 
   for (const route of ROUTES) {

@@ -93,14 +93,24 @@ if (process.argv.includes('--selftest')) {
   process.exit(0);
 }
 
+import { requireLiveSession } from './lib/require-session.mjs';
+
 const session = process.env.BZ_SESSION;
 if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
+await requireLiveSession(session);
 
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });
+// The cookie must reach BOTH hosts. It was set only for the API host while every
+// page is served from the Console host, so the browser sent nothing with the
+// document request and every route rendered the LOGIN page — this sweep reported
+// "no English platform vocabulary" about a screen with no product on it.
 await ctx.addCookies([{
   name: '__Host-bz_dev_session', value: session,
-  url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'Lax',
+  url: 'https://developers.banzami.com', httpOnly: true, secure: true, sameSite: 'None',
+}, {
+  name: '__Host-bz_dev_session', value: session,
+  url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'None',
 }]);
 const page = await ctx.newPage();
 
