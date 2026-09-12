@@ -151,6 +151,19 @@ type Member struct {
 	Role        string
 	Status      string
 	CreatedAt   time.Time
+	// Who the member actually is. The Console rendered teammates as a truncated
+	// UUID because these were not selected: a workspace of four people showed
+	// four opaque ids, so nobody could tell who they were about to demote or
+	// remove. The name is whatever that person set and is often empty; the email
+	// is how they signed in and always exists.
+	//
+	// They come from account_identity.identity_users, a different schema this
+	// context normally references by opaque id only. Reading two display columns
+	// of a member's own row is the narrowest form of that: no authority crosses
+	// the boundary, and the alternative is a product where teams cannot see
+	// their own members.
+	Name  string
+	Email string
 }
 
 type Invite struct {
@@ -248,6 +261,11 @@ type Store interface {
 
 	Membership(ctx context.Context, workspaceID, userID string) (*Member, error)
 	Members(ctx context.Context, workspaceID string) ([]Member, error)
+	// PendingInvites lists a workspace's unaccepted, unrevoked, unexpired
+	// invites. Never the token or its hash — an invite token is a bearer
+	// capability, and a list that carried it would hand every manager the ability
+	// to accept on somebody else's behalf.
+	PendingInvites(ctx context.Context, workspaceID string) ([]Invite, error)
 	CountOwners(ctx context.Context, workspaceID string) (int, error)
 	SetMemberRole(ctx context.Context, workspaceID, userID, role string) error
 	RemoveMember(ctx context.Context, workspaceID, userID string) error
@@ -377,6 +395,15 @@ type Store interface {
 	CreateWebhookEndpoint(ctx context.Context, merchantID, url string, events []string, storedSecret string) (*WebhookEndpointView, error)
 	RotateWebhookEndpointSecret(ctx context.Context, merchantID, endpointID, storedSecret string) (*WebhookEndpointView, error)
 	SetWebhookEndpointActive(ctx context.Context, merchantID, endpointID string, active bool) (*WebhookEndpointView, error)
+	// ReplayWebhookDelivery re-queues a delivery that failed, so the dispatcher
+	// picks it up again. One delivery row per event per endpoint is the design —
+	// retries are counted on that row — so a replay resets the existing row and
+	// never creates a second one.
+	//
+	// A delivery that already SUCCEEDED is refused (ErrConflict). The integrator
+	// received that event and acted on it; sending it again is a second "payment
+	// received" for one payment. Replay is for a delivery that failed.
+	ReplayWebhookDelivery(ctx context.Context, merchantID, deliveryID string) error
 	// DeleteWebhookEndpoint removes an endpoint the merchant owns. Disabling
 	// stops deliveries; deleting is for an endpoint that should not be in the
 	// list at all — a typo'd URL, a service that no longer exists. Delivery

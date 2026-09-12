@@ -73,7 +73,7 @@ func (s *pgStore) WorkspacesForUser(ctx context.Context, userID string) ([]Works
 		`SELECT w.id, w.name, w.slug, w.created_by, w.status, w.created_at, w.updated_at
 		   FROM developer.dev_workspaces w
 		   JOIN developer.dev_workspace_members m ON m.workspace_id = w.id
-		  WHERE m.user_id = $1 AND m.status = 'ACTIVE'
+		  WHERE m.user_id = $1 AND m.status = 'ACTIVE' AND w.status <> 'ARCHIVED'
 		  ORDER BY w.created_at`, userID)
 	if err != nil {
 		return nil, err
@@ -119,10 +119,17 @@ func (s *pgStore) Membership(ctx context.Context, workspaceID, userID string) (*
 }
 
 func (s *pgStore) Members(ctx context.Context, workspaceID string) ([]Member, error) {
+	// LEFT JOIN, not JOIN: a membership whose identity row cannot be read is
+	// still a membership, and dropping it from the list would hide somebody who
+	// holds authority in the workspace. An unresolved member shows without a
+	// name, which is honest; showing nothing at all is not.
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, workspace_id, user_id, role, status, created_at
-		   FROM developer.dev_workspace_members
-		  WHERE workspace_id = $1 AND status = 'ACTIVE' ORDER BY created_at`, workspaceID)
+		`SELECT m.id, m.workspace_id, m.user_id, m.role, m.status, m.created_at,
+		        COALESCE(u.name, ''), COALESCE(u.email, '')
+		   FROM developer.dev_workspace_members m
+		   LEFT JOIN account_identity.identity_users u ON u.id = m.user_id
+		  WHERE m.workspace_id = $1 AND m.status = 'ACTIVE'
+		  ORDER BY m.created_at`, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -130,10 +137,35 @@ func (s *pgStore) Members(ctx context.Context, workspaceID string) ([]Member, er
 	var out []Member
 	for rows.Next() {
 		var m Member
-		if err := rows.Scan(&m.ID, &m.WorkspaceID, &m.UserID, &m.Role, &m.Status, &m.CreatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.WorkspaceID, &m.UserID, &m.Role, &m.Status,
+			&m.CreatedAt, &m.Name, &m.Email); err != nil {
 			return nil, err
 		}
 		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+func (s *pgStore) PendingInvites(ctx context.Context, workspaceID string) ([]Invite, error) {
+	// inviteCols carries no token and no token_hash, which is the point: an
+	// invite token is a bearer capability and this list is read by every manager.
+	rows, err := s.pool.Query(ctx,
+		`SELECT `+inviteCols+` FROM developer.dev_workspace_invites
+		  WHERE workspace_id = $1
+		    AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()
+		  ORDER BY created_at DESC`, workspaceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []Invite{}
+	for rows.Next() {
+		var i Invite
+		if err := rows.Scan(&i.ID, &i.WorkspaceID, &i.Email, &i.Role, &i.InvitedBy,
+			&i.ExpiresAt, &i.AcceptedAt, &i.RevokedAt, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		out = append(out, i)
 	}
 	return out, rows.Err()
 }
@@ -1044,6 +1076,42 @@ func (s *pgStore) SetWebhookEndpointActive(ctx context.Context, merchantID, endp
 		return nil, ErrNotFound
 	}
 	return &v, nil
+}
+
+func (s *pgStore) ReplayWebhookDelivery(ctx context.Context, merchantID, deliveryID string) error {
+	// Ownership is asserted inside the statement, through the endpoint that owns
+	// the delivery: holding a delivery id is not authority over it.
+	//
+	// The two refusals are told apart deliberately. A delivery that is not the
+	// caller's, or does not exist, is not-found; one that already succeeded is a
+	// conflict, because the caller CAN see it and the answer is "that one worked".
+	var status string
+	err := s.pool.QueryRow(ctx,
+		`SELECT d.status
+		   FROM webhook_deliveries d
+		   JOIN webhook_endpoints ep ON ep.id = d.endpoint_id
+		  WHERE d.id = $1 AND ep.merchant_id = $2`, deliveryID, merchantID).Scan(&status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if status == "SUCCESS" {
+		return ErrConflict
+	}
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE webhook_deliveries
+		    SET status = 'PENDING', scheduled_at = now(), last_error = NULL
+		  WHERE id = $1 AND status <> 'SUCCESS'`, deliveryID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		// It succeeded between the read and the update. Refuse rather than retry.
+		return ErrConflict
+	}
+	return nil
 }
 
 func (s *pgStore) DeleteWebhookEndpoint(ctx context.Context, merchantID, endpointID string) error {

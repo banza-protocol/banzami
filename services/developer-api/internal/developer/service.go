@@ -264,6 +264,20 @@ func (s *Service) ListMembers(ctx context.Context, actor, wsID string) ([]Member
 	return s.store.Members(ctx, wsID)
 }
 
+// ListPendingInvites shows the invites a workspace has out.
+//
+// Managers only, and never the token. An invite that was sent yesterday could
+// not be seen or revoked from the Console — revokeInvite existed with nothing
+// calling it — so a mis-typed address stayed a live way into the workspace until
+// it expired.
+func (s *Service) ListPendingInvites(ctx context.Context, actor, wsID string) ([]Invite, error) {
+	role, err := s.roleOf(ctx, wsID, actor)
+	if err != nil || !isManager(role) {
+		return nil, ErrForbidden
+	}
+	return s.store.PendingInvites(ctx, wsID)
+}
+
 // ── membership + invites ─────────────────────────────────────────────────────
 
 // InviteMember creates an invite and returns the raw invite token (shown once).

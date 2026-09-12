@@ -82,7 +82,7 @@ func (m *memStore) WorkspacesForUser(_ context.Context, userID string) ([]Worksp
 	var out []Workspace
 	for _, mem := range m.members {
 		if mem.UserID == userID && mem.Status == "ACTIVE" {
-			if w, ok := m.workspaces[mem.WorkspaceID]; ok {
+			if w, ok := m.workspaces[mem.WorkspaceID]; ok && w.Status != "ARCHIVED" {
 				out = append(out, *w)
 			}
 		}
@@ -163,6 +163,20 @@ func (m *memStore) Members(_ context.Context, workspaceID string) ([]Member, err
 			out = append(out, *mem)
 		}
 	}
+	return out, nil
+}
+
+func (m *memStore) PendingInvites(_ context.Context, workspaceID string) ([]Invite, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []Invite{}
+	for _, inv := range m.invites {
+		if inv.WorkspaceID == workspaceID && inv.AcceptedAt == nil && inv.RevokedAt == nil &&
+			time.Now().Before(inv.ExpiresAt) {
+			out = append(out, *inv)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.After(out[j].CreatedAt) })
 	return out, nil
 }
 
@@ -664,6 +678,14 @@ func (m *memStore) SetWebhookEndpointActive(_ context.Context, merchantID, endpo
 	e.view.Active = active
 	v := e.view
 	return &v, nil
+}
+
+// ReplayWebhookDelivery — the in-memory store keeps no deliveries (they are the
+// gateway's rows, read directly), so there is nothing here to re-queue. It
+// answers not-found, which is what a caller naming a delivery this store cannot
+// see should get.
+func (m *memStore) ReplayWebhookDelivery(_ context.Context, _, _ string) error {
+	return ErrNotFound
 }
 
 func (m *memStore) DeleteWebhookEndpoint(_ context.Context, merchantID, endpointID string) error {

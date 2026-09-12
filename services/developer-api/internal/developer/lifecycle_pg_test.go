@@ -179,3 +179,69 @@ func TestPgStore_ClosingAWorkspaceIsBlockedByItsActiveProjects(t *testing.T) {
 		t.Fatalf("close after archiving the project: %v", err)
 	}
 }
+
+// Members read across the schema boundary, and a member whose identity row is
+// missing is still listed.
+//
+// The Console rendered teammates as truncated UUIDs because name and email were
+// never selected. They live in account_identity.identity_users — a different
+// schema this context otherwise references by opaque id only — so the join is
+// the one place that boundary is crossed, and it is crossed read-only, for two
+// display columns of a member's own row.
+func TestPgStore_MembersCarryNameAndEmail(t *testing.T) {
+	ctx := context.Background()
+	svc, actor := pgLifecycleSvc(ctx, t)
+
+	pool := svc.store.(*pgStore).pool
+	email := "member-" + uuid.NewString()[:8] + "@example.test"
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO account_identity.identity_users (id, email, name, verified)
+		 VALUES ($1, $2, 'Ana Cruz', true)`, actor, email); err != nil {
+		t.Fatalf("seed identity user: %v", err)
+	}
+
+	ws, err := svc.CreateWorkspace(ctx, actor, "PG Members "+uuid.NewString()[:8], "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	members, err := svc.ListMembers(ctx, actor, ws.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(members) != 1 {
+		t.Fatalf("want 1 member, got %d", len(members))
+	}
+	if members[0].Name != "Ana Cruz" || members[0].Email != email {
+		t.Errorf("member identity not read: name=%q email=%q", members[0].Name, members[0].Email)
+	}
+
+	// A membership whose identity row cannot be read is still a membership:
+	// dropping it would hide somebody who holds authority in the workspace.
+	stranger := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO developer.dev_workspace_members (workspace_id, user_id, role, accepted_at, status)
+		 VALUES ($1, $2, 'VIEWER', now(), 'ACTIVE')`, ws.ID, stranger); err != nil {
+		t.Fatal(err)
+	}
+	members, err = svc.ListMembers(ctx, actor, ws.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(members) != 2 {
+		t.Fatalf("a member with no identity row was dropped from the list: got %d", len(members))
+	}
+
+	if _, err := svc.ArchiveWorkspace(ctx, actor, ws.ID, ws.Name, "", ""); err != nil {
+		t.Fatal(err)
+	}
+	// An archived workspace leaves the switcher.
+	all, err := svc.ListWorkspaces(ctx, actor)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range all {
+		if w.ID == ws.ID {
+			t.Error("an archived workspace is still listed for its owner")
+		}
+	}
+}

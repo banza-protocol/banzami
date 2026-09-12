@@ -189,6 +189,31 @@ func (s *Service) SetProjectWebhookEndpointActive(
 	return s.store.SetWebhookEndpointActive(ctx, merchant, endpointID, active)
 }
 
+// ReplayProjectWebhookDelivery asks for a failed delivery to be sent again.
+//
+// This is the one webhook operation a developer needs most and could not reach:
+// an endpoint that was down for ten minutes lost those events with no way to ask
+// for them back, so the only remedy was to reconcile by hand against the API.
+//
+// A delivery that already succeeded is refused rather than re-queued. The
+// integrator received that event and acted on it; sending it again is a second
+// "payment received" for one payment, and a webhook consumer that is not
+// idempotent would double-count it.
+func (s *Service) ReplayProjectWebhookDelivery(ctx context.Context, actor, projectID, deliveryID string) error {
+	_, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return err
+	}
+	if !canManageWebhooks(role) {
+		return ErrForbidden
+	}
+	merchant, err := s.projectMerchant(ctx, actor, projectID)
+	if err != nil {
+		return err
+	}
+	return s.store.ReplayWebhookDelivery(ctx, merchant, deliveryID)
+}
+
 // DeleteProjectWebhookEndpoint removes an endpoint that never delivered.
 //
 // Deleting and disabling answer different questions. Disabling stops deliveries

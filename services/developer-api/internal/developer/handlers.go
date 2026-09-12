@@ -237,6 +237,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/workspaces", h.listWorkspaces)
 	r.Get("/workspaces/{wsID}", h.getWorkspace)
 	r.Get("/workspaces/{wsID}/members", h.listMembers)
+	r.Get("/workspaces/{wsID}/invites", h.listInvites)
 	r.Get("/workspaces/{wsID}/projects", h.listProjects)
 	r.Get("/projects/{projID}", h.getProject)
 	r.Get("/projects/{projID}/keys", h.listKeys)
@@ -265,6 +266,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 		r.Delete("/projects/{projID}", h.deleteProject)
 		r.Post("/projects/{projID}/archive", h.archiveProjectByOwner)
 		r.Delete("/projects/{projID}/webhooks/endpoints/{epID}", h.deleteWebhookEndpoint)
+		r.Post("/projects/{projID}/webhooks/deliveries/{deliveryID}/replay", h.replayWebhookDelivery)
 		r.Post("/workspaces/{wsID}/members", h.inviteMember)
 		r.Patch("/workspaces/{wsID}/members/{userID}", h.setMemberRole)
 		r.Delete("/workspaces/{wsID}/members/{userID}", h.removeMember)
@@ -675,6 +677,26 @@ func (h *Handlers) setWebhookEndpointActive(w http.ResponseWriter, r *http.Reque
 	httpx.JSON(w, http.StatusOK, ep)
 }
 
+func (h *Handlers) replayWebhookDelivery(w http.ResponseWriter, r *http.Request) {
+	u, ok := actor(r)
+	if !ok {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "sign in")
+		return
+	}
+	err := h.svc.ReplayProjectWebhookDelivery(r.Context(), u.ID,
+		chi.URLParam(r, "projID"), chi.URLParam(r, "deliveryID"))
+	if err == ErrConflict {
+		httpx.Error(w, http.StatusConflict, "DELIVERY_ALREADY_SUCCEEDED",
+			"this delivery already succeeded — replay is for one that failed")
+		return
+	}
+	if err != nil {
+		mapWebhookErr(w, err)
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"status": "PENDING"})
+}
+
 func (h *Handlers) deleteWebhookEndpoint(w http.ResponseWriter, r *http.Request) {
 	u, ok := actor(r)
 	if !ok {
@@ -952,9 +974,35 @@ func (h *Handlers) listMembers(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]map[string]any, 0, len(ms))
 	for _, m := range ms {
-		out = append(out, map[string]any{"user_id": m.UserID, "role": m.Role, "status": m.Status})
+		// Name and email so a team can see who its members are. The Console
+		// rendered a truncated UUID per row, which told nobody who they were
+		// about to demote. Both are the member's own sign-in identity, visible
+		// to people who already share a workspace with them.
+		out = append(out, map[string]any{
+			"user_id": m.UserID, "role": m.Role, "status": m.Status,
+			"name": m.Name, "email": m.Email,
+		})
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{"members": out})
+}
+
+func (h *Handlers) listInvites(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	invs, err := h.svc.ListPendingInvites(r.Context(), u.ID, chi.URLParam(r, "wsID"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	out := make([]map[string]any, 0, len(invs))
+	for _, i := range invs {
+		// No token, no token hash. An invite token is a bearer capability: a list
+		// that carried one would let any manager accept on somebody else's behalf.
+		out = append(out, map[string]any{
+			"id": i.ID, "email": i.Email, "role": i.Role,
+			"expires_at": i.ExpiresAt, "created_at": i.CreatedAt,
+		})
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"invites": out})
 }
 
 func (h *Handlers) inviteMember(w http.ResponseWriter, r *http.Request) {
