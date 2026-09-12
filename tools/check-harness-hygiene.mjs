@@ -119,6 +119,20 @@ for (const f of consoleFiles) {
     console.log(`  ·  ${short.padEnd(44)} creates no console account`);
     continue;
   }
+  // One file is a primitive rather than a harness: mint-session.mjs exists to
+  // hand a session to something else, so disposing of the account on its own
+  // exit would return a token that is already dead — which is what it did, until
+  // every sweep given one reported that the session did not authenticate. It
+  // says so in its own source, names where disposal lives, and that claim is
+  // checked here rather than taken.
+  const isSessionPrimitive =
+    short === 'console/mint-session.mjs' &&
+    /does NOT dispose of what it mints/.test(src) &&
+    /sweep-console-fixtures\.mjs/.test(src);
+  if (isSessionPrimitive) {
+    console.log(`  ✓ ${short.padEnd(44)} session primitive — disposal is the caller's, and it says where`);
+    continue;
+  }
   if (!/\bregisterCleanup\s*\(/.test(src)) {
     bad(short, 'creates console accounts but never calls registerCleanup — the accounts, their sessions and their workspaces stay live forever');
     continue;

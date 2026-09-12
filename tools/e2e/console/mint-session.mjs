@@ -25,7 +25,6 @@
  *   node tools/e2e/console/mint-session.mjs --email x  # a specific fixture address
  */
 import { execFileSync } from 'node:child_process';
-import { registerCleanup } from './lib/run-cleanup.mjs';
 
 const API = process.env.BZ_DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = process.env.BZ_CONSOLE ?? 'https://developers.banzami.com';
@@ -42,15 +41,16 @@ if (!email.endsWith('@banzami-e2e.test')) {
 
 const say = (m) => console.error(`  ${m}`);
 
-// The identity this creates is disposable, and something has to dispose of it.
-// Callers that build their own fixtures register their own cleanup and this one
-// is subsumed by it; a bare `node mint-session.mjs` would otherwise leave an
-// account, a session and anything made with them live forever — which is how the
-// residue this whole closure is about accumulates.
+// This does NOT dispose of what it mints, and that is deliberate: its whole
+// output is a session for another process to use, so cleaning up on exit would
+// hand back a token that is already dead. It was written the other way first,
+// and every sweep given a token from it reported "the session does not
+// authenticate" — correctly.
 //
-// KEEP_FIXTURE=1 suppresses it, for the one case where the session has to outlive
-// the process that minted it.
-if (!process.env.KEEP_FIXTURE) registerCleanup({ emailPattern: email });
+// Disposal belongs to whoever holds the session: callers that build fixtures
+// register their own cleanup on the same address, and anything minted by hand is
+// swept by tools/ops/sweep-console-fixtures.mjs, which is what keeps this from
+// being the leak it would otherwise be.
 
 async function post(path, body, cookie) {
   const res = await fetch(API + path, {
@@ -134,5 +134,7 @@ if (!token) { console.error('verify succeeded but set no __Host-bz_dev_session c
 const me = await fetch(`${API}/auth/me`, { headers: { cookie: `__Host-bz_dev_session=${token}` } });
 if (me.status !== 200) { console.error(`the minted session does not authenticate: /auth/me ${me.status}`); process.exit(1); }
 say(`signed in — /auth/me 200 for ${email}`);
+
+say(`dispose of ${email} with: node tools/ops/sweep-console-fixtures.mjs --apply`);
 
 process.stdout.write(token + '\n');

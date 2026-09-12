@@ -28,16 +28,12 @@ const MINT = join(HERE, '..', 'mint-session.mjs');
  * Creates the identity if it does not exist, exactly as a first sign-in does.
  */
 export function mintSession(email) {
-  // KEEP_FIXTURE, because the identity has to outlive the process that minted it.
-  // mint-session.mjs registers its own cleanup so a bare CLI run does not leave an
-  // account behind; here the child exits the moment it prints, and that cleanup
-  // would delete the identity before the caller had used the token once. The
-  // caller owns disposal instead — registerCleanup on the same address — and
-  // check-harness-hygiene is what holds it to that.
+  // mint-session.mjs deliberately keeps what it mints — its output is a session
+  // that has to outlive it. Disposal is the caller's: registerCleanup on the same
+  // address, which check-harness-hygiene is what holds every caller to.
   let out;
   try {
-    out = execFileSync('node', [MINT, '--email', email],
-      { encoding: 'utf8', maxBuffer: 1 << 22, env: { ...process.env, KEEP_FIXTURE: '1' } });
+    out = execFileSync('node', [MINT, '--email', email], { encoding: 'utf8', maxBuffer: 1 << 22 });
   } catch (e) {
     // The child's own message says what went wrong — a rate limit, a 404 host, a
     // code that never arrived. Rethrowing the spawn object buries it under a
