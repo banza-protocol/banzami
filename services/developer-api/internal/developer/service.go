@@ -1097,6 +1097,27 @@ func (s *Service) RetireFixtureProject(ctx context.Context, projectID, actor, ip
 	}
 	s.audit(ctx, &actor, nil, &projectID, "project.fixture_retired", "PROJECT:"+projectID, ip, reqID,
 		map[string]any{"e2e_fixture": true, "keys_revoked": revoked})
+
+	// CreateFixtureProject makes a workspace AND a project; retiring only the
+	// project left the workspace ACTIVE forever. By the time anyone looked there
+	// were 267 of them on the Sandbox — every one created by an identity that had
+	// since been cleaned up, so nobody could sign in and close them, and the
+	// email-pattern cleanup could not reach them either because the email they
+	// belonged to no longer existed.
+	//
+	// The workspace is closed only when nothing active is left inside it. A
+	// fixture workspace holds exactly this project, so that is the normal case;
+	// the condition is there so a shared workspace is never closed out from under
+	// a project that is still running.
+	if proj, perr := s.store.Project(ctx, projectID); perr == nil && proj != nil {
+		if fp, ferr := s.store.WorkspaceFootprint(ctx, proj.WorkspaceID); ferr == nil && fp.ActiveProjects == 0 {
+			if aerr := s.store.ArchiveWorkspace(ctx, proj.WorkspaceID); aerr == nil {
+				s.audit(ctx, &actor, &proj.WorkspaceID, nil, "workspace.fixture_retired",
+					"WORKSPACE:"+proj.WorkspaceID, ip, reqID,
+					map[string]any{"e2e_fixture": true, "with_project": projectID})
+			}
+		}
+	}
 	return revoked, nil
 }
 

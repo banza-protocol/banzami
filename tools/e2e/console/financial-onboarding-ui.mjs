@@ -110,11 +110,11 @@ async function main() {
   console.log(`\n▸ Console · Configuração financeira — ${ORIGIN}\n`);
 
   // ── fixtures ────────────────────────────────────────────────────────────────
-  ssh(`${PRE}
-    for e in ${emailOf('owner')} ${emailOf('dev')}; do
-      q "insert into account_identity.identity_users (email, verified, status)
-         select '$e', true, 'ACTIVE' where not exists (select 1 from account_identity.identity_users where email='$e')" >/dev/null
-    done`);
+  // The identities come from signing in. These runs used to INSERT rows into
+  // account_identity.identity_users, because the old mint script could only sign in
+  // an account that already existed — a harness writing into the authentication
+  // store to give itself someone to be. Verifying a code creates the identity on
+  // the way through, exactly as it does for a first-time developer.
   const owner = session(emailOf('owner'));
   const dev = session(emailOf('dev'));
   const ws = (await call(owner, '/workspaces', 'POST', { name: `onbui-ws-${stamp}` })).body?.id;

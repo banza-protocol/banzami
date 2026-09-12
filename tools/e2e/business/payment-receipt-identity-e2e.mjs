@@ -230,9 +230,11 @@ async function main() {
   rec('a synthetic Business, its public identity, and a consent code', merchant && consentCode && identity === `${HANDLE}|${BUSINESS_NAME}`, `${identity} code ${consentCode ? 'issued' : 'missing'}`);
 
   // ── a Project with a DIFFERENT name, connected by consent ─────────────────
-  ssh(`${PRE}
-    q "insert into account_identity.identity_users (email, verified, status)
-       select '${emailOf('owner')}', true, 'ACTIVE' where not exists (select 1 from account_identity.identity_users where email='${emailOf('owner')}')" >/dev/null`);
+  // The identities come from signing in. These runs used to INSERT rows into
+  // account_identity.identity_users, because the old mint script could only sign in
+  // an account that already existed — a harness writing into the authentication
+  // store to give itself someone to be. Verifying a code creates the identity on
+  // the way through, exactly as it does for a first-time developer.
   const owner = session(emailOf('owner'));
   const ws = await dev(owner, '/workspaces', 'POST', { name: `rcpt-ws-${stamp}` });
   const pr = await dev(owner, `/workspaces/${ws.body?.id}/projects`, 'POST', { name: PROJECT_NAME });

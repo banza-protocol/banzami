@@ -167,3 +167,56 @@ func TestReleaseControl_FixtureKeyRejectsUnknownProjectAndScope(t *testing.T) {
 		t.Errorf("unknown scope: want ErrValidation, got %v", err)
 	}
 }
+
+// Retiring a fixture project closes the workspace it was created with.
+//
+// CreateFixtureProject mints a workspace AND a project; retirement only ever
+// archived the project. Every harness run therefore left an ACTIVE workspace
+// behind, owned by an identity that the run's own cleanup then deleted — so
+// nobody could sign in to close it and the email-pattern cleanup could not find
+// it either. By the time anyone counted there were 267 on the Sandbox.
+func TestRetireFixtureProject_ClosesTheWorkspaceItWasCreatedWith(t *testing.T) {
+	s, _, _ := wsWithRoles(t)
+	s.SetFixturesEnabled(true)
+
+	ws, proj, err := s.CreateFixtureProject(bg, "Synthetic Platform", "op", "", "")
+	if err != nil {
+		t.Fatalf("create fixture project: %v", err)
+	}
+	if _, err := s.RetireFixtureProject(bg, proj.ID, "op", "", ""); err != nil {
+		t.Fatalf("retire fixture project: %v", err)
+	}
+
+	after, err := s.store.Workspace(bg, ws.ID)
+	if err != nil {
+		t.Fatalf("workspace lookup after retirement: %v", err)
+	}
+	if after.Status == "ACTIVE" {
+		t.Errorf("workspace %s is still ACTIVE after its only project was retired — this is the 267-workspace leak", ws.ID)
+	}
+}
+
+// And it does not close a workspace that still has something running in it.
+func TestRetireFixtureProject_LeavesAWorkspaceThatStillHasAnActiveProject(t *testing.T) {
+	s, _, _ := wsWithRoles(t)
+	s.SetFixturesEnabled(true)
+
+	ws, proj, err := s.CreateFixtureProject(bg, "Synthetic Platform", "op", "", "")
+	if err != nil {
+		t.Fatalf("create fixture project: %v", err)
+	}
+	if _, err := s.CreateProject(bg, "op", ws.ID, "Segundo", "", ""); err != nil {
+		t.Fatalf("second project: %v", err)
+	}
+	if _, err := s.RetireFixtureProject(bg, proj.ID, "op", "", ""); err != nil {
+		t.Fatalf("retire fixture project: %v", err)
+	}
+
+	after, err := s.store.Workspace(bg, ws.ID)
+	if err != nil {
+		t.Fatalf("workspace lookup: %v", err)
+	}
+	if after.Status != "ACTIVE" {
+		t.Errorf("workspace closed while a project was still active in it (status %q)", after.Status)
+	}
+}

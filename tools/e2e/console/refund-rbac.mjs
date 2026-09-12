@@ -78,13 +78,11 @@ process.on('uncaughtException', (e) => { console.error(e); process.exit(1); });
 // ── the people ───────────────────────────────────────────────────────────────
 step('one member of every canonical role, on the bound project');
 const allEmails = [...ROLES.map(email), outsiderEmail];
-ssh(`${PRE}
-  for e in ${allEmails.join(' ')}; do
-    q "insert into account_identity.identity_users (email, verified, status)
-       select '$e', true, 'ACTIVE'
-        where not exists (select 1 from account_identity.identity_users where email='$e')" >/dev/null
-  done
-  echo done`);
+// The identities come from signing in. These runs used to INSERT rows into
+// account_identity.identity_users, because the old mint script could only sign in
+// an account that already existed — a harness writing into the authentication
+// store to give itself someone to be. Verifying a code creates the identity on
+// the way through, exactly as it does for a first-time developer.
 
 const tok = Object.fromEntries(ROLES.map((r) => [r, session(email(r))]));
 const outsiderTok = session(outsiderEmail);

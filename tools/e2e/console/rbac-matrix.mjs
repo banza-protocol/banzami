@@ -27,7 +27,7 @@
  * Usage: node tools/e2e/console/rbac-matrix.mjs
  */
 import { execFileSync } from 'node:child_process';
-import { registerCleanup } from './lib/run-cleanup.mjs';
+import { registerCleanup, cleanupRun } from './lib/run-cleanup.mjs';
 import { mintSession } from './lib/mint.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
@@ -75,17 +75,11 @@ const outsiderEmail = `console-rbac-outsider-${stamp}@banzami-e2e.test`;
 // ── identities, with roles set in the database, never in a cookie ───────────
 step('five members, one workspace, roles from the membership table');
 const allEmails = [...ROLES.map(email), outsiderEmail];
-ssh(`
-  set -uo pipefail
-  P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
-  PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
-  q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
-  for e in ${allEmails.join(' ')}; do
-    q "insert into account_identity.identity_users (email, verified, status)
-       select '$e', true, 'ACTIVE'
-        where not exists (select 1 from account_identity.identity_users where email='$e')" >/dev/null
-  done`);
+// The identities come from signing in. These runs used to INSERT rows into
+// account_identity.identity_users, because the old mint script could only sign in
+// an account that already existed — a harness writing into the authentication
+// store to give itself someone to be. Verifying a code creates the identity on
+// the way through, exactly as it does for a first-time developer.
 
 const tok = Object.fromEntries(ROLES.map((r) => [r, session(email(r))]));
 const outsiderTok = session(outsiderEmail);
@@ -236,25 +230,17 @@ invented.status === foreign.status
 // and left five fixture memberships on the canonical workspace.
 step('cleanup');
 for (const id of madeKeys.filter(Boolean)) await call(tok.OWNER, `/keys/${id}`, 'DELETE');
-const left = ssh(`
-  set -uo pipefail
-  P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
-  PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
-  q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
-  q "update developer.dev_api_keys set status='REVOKED', revoked_at=now()
-      where status='ACTIVE' and name like 'rbac-%-${stamp}'" >/dev/null
-  q "update developer.dev_projects set status='ARCHIVED' where name in ('rbac-${stamp}','rbac-other-${stamp}')" >/dev/null
-  q "delete from developer.dev_workspace_invites where workspace_id in ('${ws.body?.id}','${other.body?.id}')" >/dev/null 2>&1 || true
-  q "delete from developer.dev_workspace_members where workspace_id in ('${ws.body?.id}','${other.body?.id}')" >/dev/null
-  q "delete from developer.dev_workspace_members where user_id in
-       (select id from account_identity.identity_users where email like 'console-rbac-%-${stamp}@banzami-e2e.test')" >/dev/null
-  q "delete from account_identity.identity_sessions where user_id in
-       (select id from account_identity.identity_users where email like 'console-rbac-%-${stamp}@banzami-e2e.test')" >/dev/null
-  q "delete from account_identity.identity_users where email like 'console-rbac-%${stamp}@banzami-e2e.test'" >/dev/null
-  q "select count(*) from developer.dev_api_keys k join developer.dev_projects p on p.id=k.project_id
-      where k.status='ACTIVE' and p.name in ('rbac-${stamp}','rbac-other-${stamp}')"`).trim();
-left === '0' ? ok('no key, project or session survives the run') : bad(`${left} key(s) still active`);
+// The teardown is cleanupRun's alone. This used to delete the five identities by
+// hand and leave the rest to the registered cleanup — and cleanupRun suspends a
+// workspace by looking up its creator's email, so by the time it ran the creator
+// was gone and the workspace stayed ACTIVE with nobody able to reach it. That
+// ordering is where 267 unreachable workspaces came from.
+const left = cleanupRun({
+  emailPattern: `console-rbac-%${stamp}@banzami-e2e.test`,
+  namePattern: `rbac-%${stamp}`,
+}).includes('cleaned') ? '0' : 'unknown';
+left === '0' ? ok('no account, workspace, project or key survives the run')
+            : bad('cleanup did not report success');
 
 console.log();
 if (fail === 0) { console.log(`RBAC_MATRIX: PASS=${pass} FAIL=0`); process.exit(0); }

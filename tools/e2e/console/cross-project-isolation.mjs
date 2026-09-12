@@ -20,7 +20,7 @@
  * Usage: node tools/e2e/console/cross-project-isolation.mjs
  */
 import { execFileSync } from 'node:child_process';
-import { registerCleanup } from './lib/run-cleanup.mjs';
+import { registerCleanup, cleanupRun } from './lib/run-cleanup.mjs';
 import { mintSession } from './lib/mint.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
@@ -59,27 +59,15 @@ registerCleanup({
 });
 
 step('two controlled accounts');
-const made = ssh(`
-  set -uo pipefail
-  P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
-  PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
-  q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
-  for e in ${A} ${B}; do
-    # No unique constraint on email, so ON CONFLICT is not available; the
-    # insert is guarded by a NOT EXISTS instead. These addresses carry a run
-    # stamp, so a collision would mean two runs in the same millisecond.
-    q "insert into account_identity.identity_users (email, verified, status)
-       select '$e', true, 'ACTIVE'
-        where not exists (select 1 from account_identity.identity_users where email='$e')" >/dev/null
-    echo "$e $(q "select id from account_identity.identity_users where email='$e'")"
-  done`).trim().split('\n');
-const uid = Object.fromEntries(made.map((l) => l.split(' ')));
-(uid[A] && uid[B]) ? ok('two console accounts exist') : bad('could not create the accounts');
-
+// The accounts come from signing in. This used to INSERT two rows into
+// account_identity.identity_users, because the old mint script could only sign
+// in an account that already existed — a harness writing into the authentication
+// store to give itself someone to be. Verifying a code creates the identity on
+// the way through, exactly as it does for a first-time developer.
 const tokA = session(A);
 const tokB = session(B);
-(tokA && tokB) ? ok('both hold a real session') : bad('session minting failed');
+(tokA && tokB) ? ok('two console accounts exist, each signed in with its own emailed code')
+               : bad('could not sign in as both accounts');
 
 step('each creates its own workspace and project');
 async function post(token, path, body) {
@@ -157,20 +145,19 @@ ownBal.status === 409 && ownCode === 'PROJECT_FINANCIAL_SETUP_REQUIRED'
 // workspaces are the run's own. Retiring them keeps this from becoming the
 // residue the fixture-hygiene work exists to prevent.
 step('cleanup');
-const removed = ssh(`
-  set -uo pipefail
-  P=$(docker ps --format '{{.Names}}' | grep -m1 'bzsandbox-.*-core-api-staging' | sed -E 's/-core-api-staging$//')
-  PG="$P-postgres-1"; CORE="$P-core-api-staging"
-  PW=$(docker exec "$CORE" sh -c 'cat /run/secrets/db_url' | sed -E 's#.*://[^:]+:([^@]+)@.*#\\1#')
-  q(){ docker exec -e PGPASSWORD="$PW" "$PG" psql -U bl_app_runtime -d banzami_staging -At -c "$1"; }
-  q "update developer.dev_projects set status='ARCHIVED' where name in ('iso-a-${stamp}','iso-b-${stamp}')" >/dev/null
-  q "delete from account_identity.identity_sessions where user_id in
-       (select id from account_identity.identity_users where email in ('${A}','${B}'))" >/dev/null
-  q "delete from developer.dev_workspace_members where user_id in
-       (select id from account_identity.identity_users where email in ('${A}','${B}'))" >/dev/null
-  q "delete from account_identity.identity_users where email in ('${A}','${B}')" >/dev/null
-  q "select count(*) from developer.dev_projects where name in ('iso-a-${stamp}','iso-b-${stamp}') and status='ACTIVE'"`).trim();
-removed === '0' ? ok('the run left no active project behind') : bad(`${removed} project(s) still active`);
+// This used to delete the two identities here, by hand, and leave the rest to the
+// registered cleanup. That ordering is what produced 267 unreachable workspaces:
+// cleanupRun suspends a workspace by looking up its creator's email, and by the
+// time it ran the creator was already gone — so every workspace these suites made
+// stayed ACTIVE with nobody able to reach it.
+//
+// The teardown is cleanupRun's alone now. It does the same work in the order that
+// works: keys, then projects, then workspaces, then memberships, sessions and
+// finally the accounts.
+const removed = cleanupRun({ emailPattern: `console-iso-%${stamp}@banzami-e2e.test`, namePattern: `iso-%${stamp}` })
+  .includes('cleaned') ? '0' : 'unknown';
+removed === '0' ? ok('the run gave back every account, workspace and project it created')
+               : bad('cleanup did not report success');
 
 console.log();
 if (fail === 0) { console.log(`CROSS_PROJECT_ISOLATION: PASS=${pass} FAIL=0`); process.exit(0); }
