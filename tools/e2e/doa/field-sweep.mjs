@@ -31,6 +31,13 @@ import { execFileSync } from 'node:child_process';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const DOA = process.env.DOA_REPO ?? '/Users/fm65/doa';
+
+// Everything below shells out to tools that write beside the working directory —
+// the Supabase CLI leaves a supabase/.temp, which appeared as an undocumented
+// top-level entry in THIS repository and failed the layout check. The subject of
+// this sweep is the other repository, so that is where it runs from.
+process.chdir(DOA);
+
 const { chromium } = await import(`${DOA}/node_modules/@playwright/test/index.mjs`);
 const { supabaseKeys } = await import(`${DOA}/scripts/e2e/supabase-refs.mjs`);
 const { admin } = await import(`${DOA}/scripts/e2e/admin-session.mjs`);
