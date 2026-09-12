@@ -38,11 +38,19 @@ export type ApiErrorCode =
 export class ApiError extends Error {
   code: ApiErrorCode;
   status: number;
-  constructor(code: ApiErrorCode, status: number, message: string) {
+  /**
+   * The machine-readable specifics a refusal turns on — the counts and names
+   * that say WHAT is in the way, so a dialog can name the blocker instead of
+   * repeating the message. Facts about the caller's own resources; the same
+   * authority boundary as the rest of the reply.
+   */
+  details?: Record<string, unknown>;
+  constructor(code: ApiErrorCode, status: number, message: string, details?: Record<string, unknown>) {
     super(message);
     this.name = 'ApiError';
     this.code = code;
     this.status = status;
+    this.details = details;
   }
 }
 
@@ -69,6 +77,13 @@ export const MESSAGES: Record<string, string> = {
   NOT_FOUND: 'Não encontrado.',
   UNAVAILABLE: 'Serviço indisponível. Tente novamente.',
   NETWORK: 'Sem ligação ao serviço.',
+  INVALID_NAME: 'O nome não pode estar vazio e tem no máximo 80 caracteres.',
+  // The lifecycle refusals. Each one names what is in the way and what to do
+  // instead, because "conflito" tells a developer nothing they can act on. The
+  // counts travel in ApiError.details, so a dialog can be specific.
+  WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Arquive-os primeiro.',
+  PROJECT_NOT_EMPTY: 'Este projeto já tem histórico. Pode ser arquivado, não eliminado.',
+  ENDPOINT_HAS_DELIVERIES: 'Este endpoint já recebeu entregas. Desative-o em vez de o eliminar.',
 };
 
 /**
@@ -134,10 +149,12 @@ async function req<T>(
   }
 
   if (!res.ok) {
-    const err = (data as { error?: { code?: string; message?: string } } | null)?.error;
+    const err = (data as {
+      error?: { code?: string; message?: string; details?: Record<string, unknown> };
+    } | null)?.error;
     const code = codeFor(res.status, err?.code);
     throw new ApiError(code, res.status,
-      MESSAGES[code] ?? err?.message ?? MESSAGES.UNAVAILABLE);
+      MESSAGES[code] ?? err?.message ?? MESSAGES.UNAVAILABLE, err?.details);
   }
   return data as T;
 }
@@ -146,6 +163,18 @@ async function req<T>(
 export type User = { id: string; email: string; name: string; verified: boolean; status: string };
 export type Workspace = { id: string; name: string; slug: string; status: string; created_at: string };
 export type Member = { user_id: string; role: string; status: string };
+/**
+ * What a project still holds, and therefore what stands between it and being
+ * deleted. Counts are "ever", not "currently": a revoked key is still a
+ * credential the project once issued, so it is history and history is archived.
+ */
+export type ProjectFootprint = {
+  keys: number;
+  request_logs: number;
+  bindings: number;
+  deletable: boolean;
+  blockers: string[];
+};
 export type Project = {
   id: string;
   workspace_id: string;
@@ -443,12 +472,26 @@ export const developerApi = {
   verify: (email: string, code: string) =>
     req<{ ok: boolean; csrf_token: string; user: User }>('/auth/verify', { method: 'POST', body: { email, code } }),
   me: () => req<{ user: User; csrf_token: string }>('/auth/me'),
+  // The one thing an account holder can change about themselves. Until this
+  // existed no name was ever recorded, so the header avatar showed two letters
+  // of the email and two colleagues at a domain looked identical.
+  setName: (name: string, csrf: string) =>
+    req<{ user: User; csrf_token: string }>('/auth/me', { method: 'POST', body: { name }, csrf }),
   logout: (csrf: string) => req<{ ok: boolean }>('/auth/logout', { method: 'POST', csrf }),
 
   // Workspaces
   listWorkspaces: () => req<{ workspaces: Workspace[] }>('/workspaces'),
   createWorkspace: (name: string, csrf: string) =>
     req<Workspace>('/workspaces', { method: 'POST', body: { name }, csrf }),
+  renameWorkspace: (wsID: string, name: string, csrf: string) =>
+    req<Workspace>(`/workspaces/${wsID}`, { method: 'PATCH', body: { name }, csrf }),
+  // Archive, not delete: audit events are append-only and a workspace's projects
+  // may hold financial history. The body repeats the workspace's own name, so
+  // the call cannot happen by a mis-click or a replayed request.
+  archiveWorkspace: (wsID: string, name: string, csrf: string) =>
+    req<{ status: string }>(`/workspaces/${wsID}`, { method: 'DELETE', body: { name }, csrf }),
+  leaveWorkspace: (wsID: string, csrf: string) =>
+    req<void>(`/workspaces/${wsID}/leave`, { method: 'POST', csrf }),
 
   // Members + invites
   listMembers: (wsID: string) => req<{ members: Member[] }>(`/workspaces/${wsID}/members`),
@@ -467,9 +510,29 @@ export const developerApi = {
     req<{ ok: boolean }>(`/workspaces/${wsID}/invites/${inviteID}`, { method: 'DELETE', csrf }),
 
   // Projects
-  listProjects: (wsID: string) => req<{ projects: Project[] }>(`/workspaces/${wsID}/projects`),
+  //
+  // Archived projects are left out unless asked for: the selector is for work in
+  // progress, and an archived project in it invites building against something
+  // that has no keys and no financial authority left.
+  listProjects: (wsID: string, includeArchived = false) =>
+    req<{ projects: Project[] }>(
+      `/workspaces/${wsID}/projects${includeArchived ? '?include_archived=true' : ''}`),
   createProject: (wsID: string, name: string, csrf: string) =>
     req<Project>(`/workspaces/${wsID}/projects`, { method: 'POST', body: { name }, csrf }),
+  // A rename moves the display name only. The Project ID stays put — a developer
+  // has it in a config file and a deployed container.
+  renameProject: (projectID: string, name: string, csrf: string) =>
+    req<Project>(`/projects/${projectID}`, { method: 'PATCH', body: { name }, csrf }),
+  // What the project holds, and therefore whether it can be deleted or only
+  // archived. Asked before either is offered, so the dialog states the
+  // consequence instead of discovering it.
+  projectFootprint: (projectID: string) =>
+    req<ProjectFootprint>(`/projects/${projectID}/footprint`),
+  deleteProject: (projectID: string, name: string, csrf: string) =>
+    req<void>(`/projects/${projectID}`, { method: 'DELETE', body: { name }, csrf }),
+  archiveProject: (projectID: string, name: string, csrf: string) =>
+    req<{ status: string; keys_revoked: number }>(
+      `/projects/${projectID}/archive`, { method: 'POST', body: { name }, csrf }),
 
   // Sandbox API keys
   listKeys: (projectID: string) => req<{ keys: ApiKey[] }>(`/projects/${projectID}/keys`),
@@ -608,6 +671,13 @@ export const developerApi = {
     req<WebhookEndpoint>(`/projects/${projectID}/webhooks/endpoints/${endpointID}`, {
       method: 'PATCH', body: { active }, csrf,
     }),
+  // Deleting and disabling answer different questions. Disabling stops
+  // deliveries to an endpoint that is real; deleting is for one that should not
+  // be in the list at all — a URL typed wrong, a service that no longer exists.
+  // An endpoint that has delivered is refused (ENDPOINT_HAS_DELIVERIES): its
+  // delivery history is not the endpoint's to take with it.
+  deleteWebhookEndpoint: (projectID: string, endpointID: string, csrf: string) =>
+    req<void>(`/projects/${projectID}/webhooks/endpoints/${endpointID}`, { method: 'DELETE', csrf }),
 
   listApiRequestLogs: (projectID: string, q: RequestLogQuery = {}) => {
     const p = new URLSearchParams();
