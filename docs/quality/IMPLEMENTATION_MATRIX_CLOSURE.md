@@ -1,227 +1,206 @@
 # Implementation Matrix — Closure Report
 
 **Version:** 1.0
-**Date:** 2026-09-12
-**Commit:** `5dfab820` (CI red at `a70339c2` — deliberately; see §9)
-**Deployed:** developer-api + website-frontend at `badf5dc6`; deploy parity verified at HEAD
+**Date:** 2026-09-13
+
+| | |
+|---|---|
+| `FINAL_BANZAMI_SHA` | **`c059b7ce`** |
+| `FINAL_DOA_SHA` | **`2612573`** (clean) |
+| CI | **GREEN at `c059b7ce`** |
+| Deployed | developer-api + website-frontend at `badf5dc6`; parity verified at HEAD |
+| Verdict | see §12 |
 
 ---
 
-## 0. The short version
+## 1. What this closes
 
-BW-004 is fixed by building the thing, not by withdrawing the criterion: the
-Developer Console now has **Workspace Settings → Atividade**, reading the
-`developer.audit_events` rows that have been written since the domain shipped and
-that no route had ever read. 6/6 acceptance criteria and 4/4 tenant/privacy
-properties hold against the deployed system.
+BW-004 was fixed by building the product capability, not by withdrawing the
+criterion. Twenty dead evidence references were classified and resolved. Two
+VALIDATED-with-blockers were resolved. The matrix gate now **fails** on six
+states it used to print. The readiness model reports named buckets.
 
-All 20 dead evidence references are classified and resolved. Both
-VALIDATED-with-blockers are resolved. The matrix gate now **fails** on six states
-it used to print, each mutation-proved. The readiness model reports
-`ACTIVE_*`/`RETIRED` instead of one moving ratio.
+Along the way three things surfaced that nobody had asked for, and each was a
+live falsehood in a VALIDATED item:
 
-**Two things did not come out where the mandate asked, and both are findings, not
-excuses:**
+- **every public host completed a TLS 1.0 handshake**, `pay.banzami.com`
+  included, while SEC-001 read VALIDATED on "TLS 1.3 obrigatório";
+- **payment requests had been removed as a critical authorization defect** on
+  2026-09-01, and three items were still VALIDATED on the 404 it left behind;
+- **BANK-001 and BANK-002 asserted BLOCKED on no evidence at all.**
 
-| Required | Actual | Why |
-|---|---|---|
-| `ACTIVE_INTERNAL_BLOCKERS=0` | **2** | SEC-001 and APP-001 were VALIDATED on evidence that does not support it. Making them honest creates two blockers that were always there. |
-| `IMPLEMENTATION_MATRIX_*` all green | **green only after the §11 approval** | The matrix writes need the §16 phrase. The proposal is prepared and gate-verified; nothing was written. |
-
-The mandate says *"Do not optimize the score. The goal is not 74/74. The goal is
-truthful current-product readiness."* Both outcomes above follow that instruction
-rather than the counters beside it.
+`ACTIVE_INTERNAL_BLOCKERS` went 1 → 2 → **0** over the run: BW-004 closed, then
+SEC-001 and APP-001 appeared as real gaps once their evidence was examined, then
+both were genuinely fixed.
 
 ---
 
-## 1. BW-004 — the product gap, closed by building the product
+## 2. BW-004 — Workspace Activity
 
-### What was wrong
+`developer.audit_events` had been written on every invite, accept, role change,
+removal, revocation and workspace/project/key lifecycle event since the domain
+shipped. **No route had ever read it.** That is worse than not recording: the
+answer to "who removed this person" sat in a table nobody could reach.
 
-`developer.audit_events` (migration 0089) is written on every invite, accept,
-role change, removal, revocation, workspace rename/archive/delete, project
-lifecycle event and key lifecycle event. **No route had ever read it.** That is
-worse than not recording: "who removed this person" had an answer sitting in a
-table and nobody outside the database could reach it.
+**Configurações · Atividade** — `GET /workspaces/{wsID}/activity`,
+Console-internal, session-authenticated, no `/v1` prefix. **The public Developer
+API remains v1 and gained nothing.** No second audit system, no new table, no
+invented events. Rendered as sentences with a filter strip, a text search, a
+per-member selector and cursor paging — not a JSON dump.
 
-### What exists now
+Four properties, each mutation-proved:
 
-`GET /workspaces/{wsID}/activity` — **Console-internal**, session-authenticated,
-no `/v1` prefix. The public Developer API stays at **v1** and gains nothing: an
-integrator has no business reading who was removed from a workspace. No second
-audit system, no new table, no invented events.
-
-Rendered at **Configurações · Atividade**, beside Projeto and Workspace, as
-sentences — *"Ana mudou o papel de João de Programador para Leitor"* — with a
-filter strip (Tudo / Membros / Workspace / Projetos / Chaves), a text search, a
-per-member selector, and "Ver atividade mais antiga". Not a JSON dump.
-
-### The four properties, each mutation-proved
-
-| Property | How it is held | Mutation |
+| Property | Mechanism | Mutation |
 |---|---|---|
-| One workspace only | `WHERE a.workspace_id = $1` — a predicate on the indexed column, and the id comes from a membership already authorised | dropping the filter → the cross-tenant test fails naming B's event |
-| Managers only | non-member and VIEWER get the **identical** `ErrForbidden`, so an id cannot be used to discover somebody else's workspace | allowing any member → VIEWER reads it, test fails |
-| Action allow-list | an action appears by being named in the projection, never by being written | dropping the list → a planted `account.otp_verified` is served, test fails |
-| Metadata allow-list | `role` and `previous_role` only; `request_ip`/`request_id` are never selected | adding `prefix` → the planted `bz_test_sk_…` reaches the projection, test fails |
+| One workspace | `WHERE a.workspace_id = $1` on the indexed column, id from an already-authorised membership | drop it → the cross-tenant test fails naming B's event |
+| Managers only | non-member and VIEWER get the **identical** refusal | allow any member → VIEWER reads it |
+| Action allow-list | an action appears by being named in the projection | drop it → a planted `account.otp_verified` is served |
+| Metadata allow-list | `role`/`previous_role` only; `request_ip`/`request_id` never selected | add `prefix` → the planted key prefix reaches the projection |
 
-`member.role_changed` and `member.removed` now also record the role that was
-**held**. "Changed to VIEWER" does not say whether somebody was demoted from
-OWNER, which is the question a reader of an audit trail usually arrives with.
+`member.role_changed` and `member.removed` now also record the role **held** —
+"changed to VIEWER" does not say whether somebody was demoted from OWNER.
 
-### Runtime, against the deployed Console
+**Runtime, at the final SHA:**
 
 ```
-BW_004_CRITERIA=6/6
-BW_004_TENANCY=4/4
+BW_004_CRITERIA=6/6          BW_004_TENANCY=4/4
+BW_004_STATUS=VALIDATED      BW_004_BLOCKING_ISSUES=0
 WORKSPACE_AUDIT_CROSS_TENANT_DISCLOSURE=0
 WORKSPACE_AUDIT_SECRET_DISCLOSURE=0
 WORKSPACE_AUDIT_PERSONAL_SESSION_DISCLOSURE=0
-BW_004_BLOCKING_ISSUES=0
 ```
 
-The proof creates an owner and a workspace, invites a member by email, accepts
-with a real OTP, proves a VIEWER is refused by the **service**, promotes to
-DEVELOPER, removes, then reads the record back from the real Console surface,
-finds the affected member by filtering, and has a **second owner of a second
-workspace** ask for the first workspace's activity — 403.
-
-`evidence/assurance/matrix/bw-001-004-runtime-proof.json`
-
-### Criterion count
-
-The matrix listed five acceptance criteria; the proposal lists **six**. The added
-one is *"um papel pode ser alterado e a alteração produz efeito"* — the mandate's
-own §5 requires proving it, the proof was silently not exercising it (the member
-was only ever invited and removed, so no transition existed to read back), and
-the item's title is "Gestão de equipa e **permissões**". The bar went up, not
-down. No criterion was removed from BW-004.
-
-### Documentation
-
-PT `/docs/console#atividade` and EN `/docs/en/console#activity`, with the
-distinction stated where it is needed:
-
-> **Atividade não é Registos.** Atividade responde a «quem tem autoridade aqui, e
-> quem lha deu». `Registos` responde a «o que é que a minha aplicação pediu à
-> API». São páginas diferentes porque são perguntas diferentes.
-
-No implementation table name appears in either. `DOCS_AUDIT: PASS=50 FAIL=0`,
-`DOCS_SWEEP: PASS=314 FAIL=0`, `DOC_QUICKSTART_E2E=PASS`.
+A second owner of a second workspace asking for the first workspace's activity
+gets **403**. Documented PT (`/docs/console#atividade`) and EN
+(`/docs/en/console#activity`), with the distinction stated: Activity answers
+"who has authority here, and who gave it to them"; Logs answers "what did my
+application ask the API". No implementation table name appears in either.
 
 ---
 
-## 2. The 20 dead evidence references — every one classified
+## 3. SEC-001 — the TLS floor
 
-Classification per the mandate: **A** capability moved · **B** capability retired ·
-**C** still required, not implemented · **D** path changed, behaviour did not.
+The item read VALIDATED since June on *"Zero comunicação não encriptada. TLS 1.3
+obrigatório"*, with two pieces of evidence: an nginx file that no longer exists,
+and a Terraform directory containing a README saying *"configuration to be
+added"*. **Nobody had asked a server.**
 
-| Item | Dead reference | Class | Resolution |
-|---|---|---|---|
-| QR-003 | `sdk/flutter/…/structured_qr_pay_screen.dart` | D | → `qr_pay_screen.dart`; added the route that actually pays (`public-api/…/qr_pay.go`) and `tests/phase0/qr-payment-e2e.sh` |
-| P2P-002 | `split_pay_screen.dart`, `split_create_screen.dart` | **B** | Split Sessions superseded by Collections (ADR-016); `/v1/splits*` answers **410** at the gateway. Item → **RETIRED** |
-| PL-002 | `consumer_pay_links.go` | D | → `consumer_pay_link_handler.go` |
-| PL-002 | `apps/pay/app/[slug]/pay-client.tsx` | D | → `apps/pay/app/pay/[slug]/pay-client.tsx` (the bare `/<slug>` is now a 308) |
-| PR-001 | `handler/payment_requests.go`, `payment_requests_screen.dart` | **B** | Withdrawn 2026-09-01 as **RA-057**, critical. Item → **RETIRED** |
-| PR-002 | `handler/payment_requests.go` | **B** | Same withdrawal. Item → **RETIRED** |
-| BM-001 | `payment_requests_screen.dart` | **B** | The screen went with RA-057; that criterion removed with its retirement evidence, item stays VALIDATED on the rest |
-| SDK-003 | `sdk/flutter/…/banza_client.dart` | D | `banzami_client.dart` was already cited beside it; the stale twin removed |
-| SDK-005 | `sdk/python/banza/client.py` | D | `sdk/python/banzami/client.py` was already cited; stale twin removed |
-| API-001 | `handler/transfers.go` | **B+A** | The merchant `/v1/transfers` group was removed under **SEC-015/SEC-018** (it named the sender in the body). The capability lives at `wallet_account_transfers.go` and, for consumers, `public-api/…/transfers.go` |
-| API-002 | `handler/payment_requests.go` | **B** | RA-057. The `POST /payment-requests` criterion removed with its retirement evidence; title → "API REST — QR e links de pagamento" |
-| KYC-001 | `handler/transfers.go` | **B** | The SEND gate this cited went with SEC-015. Enforcement is `core/compliance/src/engine.rs`. Item stays IN_PROGRESS, externally blocked |
-| SEC-001 | `infra/nginx/banzami.conf` | **C** | See §4 — this one was hiding a real security gap |
-| BANZA-L0-001/002/003/005/ROADMAP-001 | `…/l0/banzami-sandbox-l0-report.json` (×5) | D | → `…/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json`, the canonical run; the earlier one is marked SUPERSEDED |
+The Cloudflare zone's Minimum TLS Version had been **1.0 since the zone was
+created**. The origin nginx was correct all along (`TLSv1.2 TLSv1.3`) — the
+origin was never the control. Reading the origin file is exactly how this went
+unnoticed for three months.
 
-**`IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES = 0` under the proposal, globally
-— 335 path references resolved, 76 narrative references correctly not treated as
-paths.**
-
-Two capabilities were genuinely retired, and both for the same reason, worth
-stating plainly: `POST /v1/payment-requests` and `/{id}/pay` **never read the
-principal**. Both participants came from the request body, so any merchant could
-create and execute a money request between two consumers it had no relationship
-with — confirmed against the deployed Sandbox, victim debited. It was removed
-rather than patched. Three matrix items had been VALIDATED on it ever since.
-
----
-
-## 3. The 2 VALIDATED-with-blockers
-
-**API-003** — the "blocker" was never one. *"Execução da liquidação bancária é
-rastreada em Money Out (PAY-002 / EMS-001/002 / BANK-002) — fora do scope da API
-REST"* is a scope note about another item. Moved into `requirement`,
-`blockingIssues: []`, status unchanged, routes re-verified (`payouts.go`,
-`refunds.go`, `disputes.go`, ownership tests).
-
-**APP-001** — a real contradiction. The item read **VALIDATED** while its own
-blocker said *"Runtime não verificado em dispositivo real — **obrigatório antes
-de VALIDATED**"*.
-
-- Blocker 2 (*"sem testes de integração contra API sandbox"*) is **resolved with
-  evidence**: `tools/e2e/transfer-sandbox-e2e.mjs` exercises the same
-  `POST /v1/transfers` the app's own `ConsumerPublicClient` posts to, end to end
-  against the deployed Sandbox — exact debit and credit, idempotent replay,
-  receipt PDF, seven negatives refused with balances intact.
-  *(That harness had been silently pointed at `/v1/wallet-account-transfers`, the
-  merchant surface, which the consumer API does not mount. It 404'd on every call
-  and nothing had run it. Fixed and passing.)*
-- Blocker 1 is **still true and I cannot clear it**: verification of the binary on
-  real hardware needs your iPhone. Code and tests re-proved today —
-  `flutter analyze` 0 issues, 262 app tests, 200 SDK tests.
-
-Proposed: **VALIDATED → IMPLEMENTED**, one blocker, precisely worded.
-
-`IMPLEMENTATION_MATRIX_VALIDATED_WITH_BLOCKERS = 0` under the proposal.
-
----
-
-## 4. Two findings nobody asked for
-
-### SEC-001 — every public host completes a TLS 1.0 handshake
-
-SEC-001 has read **VALIDATED** since June on *"Zero comunicação não encriptada.
-TLS 1.3 obrigatório"*, with two pieces of evidence: an nginx file that no longer
-exists, and `infra/terraform/cloudflare/` — a directory containing a README that
-says *"Placeholder — configuration to be added"*. Nobody had asked a server.
+Set to **1.2**, TLS 1.3 left **on** — not 1.3-only, which would cut off
+legitimate modern clients for no proven product requirement.
 
 ```
-TLS_FLOOR_REQUIRED=1.2
-TLS_FLOOR_OBSERVED=1.0
-TLS_BELOW_FLOOR_HOSTS=6
+TLS_1_0_ACCEPTED_HOSTS=0        TLS_1_1_ACCEPTED_HOSTS=0
+TLS_1_2_REQUIRED_HOSTS=11/11    TLS_1_3_SUPPORTED_HOSTS=11/11
+SEC_001_STATUS=VALIDATED        SEC_001_BLOCKING_ISSUES=0
 ```
 
-banzami.com · developers.banzami.com · sandbox-api.banzami.com ·
-sandbox-operator.banzami.com · admin.banzami.com · **pay.banzami.com** — all
-negotiate TLS 1.0, and TLS 1.1 serves a 200 with `ECDHE-ECDSA-AES128-SHA`.
+All eleven Cloudflare-proxied hosts — `banzami.com`, `www`, `developers`,
+`developer-api`, `api`, `sandbox-api`, `sandbox-operator`, `sandbox-webhook`,
+`pay`, `checkout`, `admin` — proved by handshake and confirmed independently with
+curl (TLS ≤1.1 → connect error; 1.2 → real 200/404). The mail hostnames are
+unproxied, serve no Banzami product, and the zone setting cannot reach them; they
+are named out of scope rather than silently omitted.
 
-The origin nginx is correct (`ssl_protocols TLSv1.2 TLSv1.3`). The floor is the
-**Cloudflare zone setting "Minimum TLS Version"**, which is what a client meets
-first — reading the origin file is exactly how this went unnoticed.
-
-`tools/check-tls-floor.mjs` makes the claim checkable and keeps it checkable. I
-have not changed the zone: it needs your Cloudflare access, and raising the floor
-cuts off old clients, which is your call, not mine.
-
-Proposed: **VALIDATED → IN_PROGRESS**, with the runtime evidence and the exact fix.
-
-### BANK-001 and BANK-002 assert BLOCKED on nothing
-
-Neither has a single piece of evidence. The new missing-evidence rule found them.
-Proposed evidence: ADR-018 (provider-agnostic money in/out — why a partner bank
-is pluggable), the launch-blockers dossier (where the blockage is recorded), and
-the engine on each side that is waiting for a rail. Status unchanged.
+The criterion wording is corrected to what the product actually enforces.
+`tools/check-tls-floor.mjs` keeps it checkable by handshake, never by config file.
 
 ---
 
-## 5. The gate now fails on what it used to print
+## 4. APP-001 — the device criterion, kept and met
 
-The first version reported 20 dead references and 2 VALIDATED-with-blockers on
-the reasoning that failing on inherited mess makes a gate unrunnable. That was
-wrong in a specific way: **a finding that is printed and not enforced survives
-every future run.**
+The item read **VALIDATED** while its own blocker said *"Runtime não verificado
+em dispositivo real — **obrigatório antes de VALIDATED**"*. The criterion was
+kept rather than reclassified as release QA.
 
-Six rules, all fail-closed, each mutation-proved:
+A real iPhone (iOS 26.5.2) ran the consumer/release build pointed at
+`sandbox-api.banzami.com`, installed and launched 2026-09-12 21:33Z.
+
+**Verified against the runtime, not the report.** The first report named a
+recipient that received nothing and a reference belonging to a harness probe; the
+second named the wrong recipient, the wrong amount and the same wrong reference.
+Searching the runtime found the real operation:
+
+```
+consumer  fidel       created 21:41:12.646Z
+grant     CREDIT 1 000 000 minor   21:41:12.699Z
+transfer  5ad6bea0-…  500 000 minor   fidel → fm65   COMPLETED   21:41:36.784Z
+posting   0767083f-…  DEBIT 500 000 · CREDIT 500 000 → sums to 0
+```
+
+| Required proof | Result |
+|---|---|
+| sender exists | `fidel`, `d6fbc4d2-…`, wallet created 21:41:12 |
+| transfer exists | one row, COMPLETED, idempotency key `d29c029e-…` |
+| recipient credited exactly once | `fm65`: **1** credit of 500 000 since install |
+| sender debited exactly once | `fidel`'s account has **exactly two entries in its life** — the grant and this debit |
+| double tap → no duplicate | **1** transfer on that idempotency key; **1** transfer on that posting |
+| reference correlates | **`5AD6BEA0`** (= transfer id, first 8, uppercased) |
+| history exists | the transfer row and both ledger entries |
+| ledger balanced | posting sums to 0; whole AOA ledger sums to **0** |
+
+```
+APP_001_DEVICE_RUNTIME=PASS   APP_001_STATUS=VALIDATED   APP_001_BLOCKING_ISSUES=0
+```
+
+**Stated limitation, recorded in the item.** The consumer API stores no
+user-agent and nothing reads the `X-Device-Id` header the app sends, so no
+server-side record distinguishes an iPhone from a script. Device origin rests on
+the install and launch performed in this session, the human-paced 24 seconds
+between registration and send, and the owner's attestation — not on a server
+attestation. That gap is a real property of the product and is written down
+rather than glossed.
+
+The 8-character consumer transaction reference is **not** the SECURE_V1 public
+receipt/proof contract. They are distinct and are not conflated anywhere here.
+
+---
+
+## 5. The 22 authorized dispositions
+
+Approved under diff hash `3c51d53e2606781f`; every fingerprint re-verified
+against `SHA256(item|diff)[0:16]` before a byte was written, and each item
+carries its own append-only `history[]` entry.
+
+| Item | From → To | Why |
+|---|---|---|
+| **BW-004** | IN_PROGRESS → **VALIDATED** | the read surface exists; 6/6 + 4/4 against runtime |
+| **APP-001** | VALIDATED → **VALIDATED** | device criterion met and independently verified |
+| **SEC-001** | VALIDATED → **VALIDATED** | TLS floor fixed; criterion now describes the real policy |
+| **API-003** | VALIDATED → **VALIDATED** | the "blocker" was a scope note about another item |
+| **QR-003** | VALIDATED | screen renamed, capability intact; added the route that pays |
+| **PL-002** | VALIDATED | files moved under `/pay/<slug>` and to `consumer_pay_link_handler.go` |
+| **BM-001** | VALIDATED | payment-requests screen went with RA-057; criterion removed with its retirement evidence |
+| **SDK-003** | VALIDATED | stale `banza_client.dart` twin removed |
+| **SDK-005** | VALIDATED | stale `sdk/python/banza` twin removed |
+| **API-001** | VALIDATED | merchant `/v1/transfers` removed under SEC-015/018; capability re-pointed |
+| **API-002** | VALIDATED | `POST /payment-requests` criterion removed with RA-057 evidence; title corrected |
+| **KYC-001** | IN_PROGRESS | the SEND gate it cited went with SEC-015; enforcement is the compliance engine |
+| **P2P-002** | VALIDATED → **RETIRED** | Split Sessions superseded by Collections; `/v1/splits*` answers 410 |
+| **PR-001** | VALIDATED → **RETIRED** | RA-057, removed 2026-09-01 as critical |
+| **PR-002** | VALIDATED → **RETIRED** | same withdrawal |
+| **BANZA-L0-001/002/003/005/ROADMAP-001** | VALIDATED | report moved to its dated canonical run directory |
+| **BANK-001 / BANK-002** | BLOCKED | asserted on no evidence; now cite ADR-018 and the blockers dossier |
+
+**The retirements are the substance, not bookkeeping.** `POST
+/v1/payment-requests` and `/{id}/pay` never read the principal — both
+participants came from the request body, so any merchant could create and execute
+a money request between two consumers it had no relationship with. Confirmed
+against the deployed Sandbox with a victim debited. Removed rather than patched.
+Three matrix items had been VALIDATED on it ever since.
+
+---
+
+## 6. The gate, fail-closed
+
+The first version reported twenty dead references and two VALIDATED-with-blockers
+rather than failing on them, reasoning that failing on inherited mess makes a gate
+unrunnable. That was wrong: **a finding printed and not enforced survives every
+future run.**
 
 ```
 MATRIX_DEAD_EVIDENCE_GATE=FAIL_CLOSED
@@ -232,28 +211,57 @@ MATRIX_RETIRED_EVIDENCE_GATE=FAIL_CLOSED
 MATRIX_STATUS_ENUM_GATE=FAIL_CLOSED
 ```
 
-| Rule | Mutation | Result |
-|---|---|---|
-| dead evidence | (no mutation needed) | fails **live** on the 20 real references |
-| missing evidence | (no mutation needed) | fails **live** on BANK-001/002 |
-| VALIDATED with blocker | (no mutation needed) | fails **live** on APP-001, API-003 |
-| VALIDATED declaring a gap | planted a `gap` evidence entry | `= 1`, failed |
-| RETIRED without retirement evidence | replaced a retired item's evidence with something that merely opens | `= 1`, failed |
-| unknown status | set one item to `PROBABLY_FINE` | `= 1`, failed |
-| retired surface cited | added an `apps/dashboard/…` reference | `= 1`, failed |
+Each of the six mutation-proved. **Retired items must carry evidence of the
+retirement itself** — not merely evidence that opens — which is what stops RETIRED
+becoming the bin awkward items get swept into. The missing-evidence rule is the
+one that found BANK-001/002.
 
-**Retired items must still carry evidence of the retirement itself** — not merely
-evidence that opens. The rule looks for the record of the withdrawal (a repair-log
-entry, a superseding decision, the test that keeps a route unmounted). This is
-what stops RETIRED becoming the bin awkward items get swept into.
+At `c059b7ce`, globally:
+
+```
+IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES=0   (336 path refs resolved)
+IMPLEMENTATION_MATRIX_MISSING_EVIDENCE=0
+IMPLEMENTATION_MATRIX_VALIDATED_WITH_BLOCKERS=0
+IMPLEMENTATION_MATRIX_VALIDATED_WITH_UNMET_CRITERION=0
+IMPLEMENTATION_MATRIX_RETIRED_WITHOUT_RETIREMENT_EVIDENCE=0
+IMPLEMENTATION_MATRIX_UNRESOLVED_ITEMS=0
+```
 
 ---
 
-## 6. Readiness: named buckets, not one moving ratio
+## 7. Readiness — internal vs external, kept apart
 
-`63/74` was doing two jobs badly. It hid what the eleven non-validated items
-actually *are*, and its denominator moved every time something was retired — so
-deleting a product changed the score and nobody could say why.
+```
+ACTIVE_REQUIRED=71
+ACTIVE_VALIDATED=61
+ACTIVE_IMPLEMENTED=2
+ACTIVE_IN_PROGRESS=3
+ACTIVE_BLOCKED=5
+RETIRED=5            ROADMAP=10   BASELINE=1
+
+ACTIVE_INTERNAL_BLOCKERS=0
+ACTIVE_EXTERNAL_DEPENDENCIES=10
+```
+
+**Internal blockers: none.**
+
+**External dependencies — ten, none of them ours to unblock:**
+
+| Item | Status | Dependency |
+|---|---|---|
+| WAL-004 | IMPLEMENTED | funding provider |
+| KYB-001 | IMPLEMENTED | KYB identity vendor |
+| KYC-001 | IN_PROGRESS | Angolan KYC partner decision |
+| KYC-002 | IN_PROGRESS | Angolan KYC partner decision |
+| PAY-001 | IN_PROGRESS | withdrawal/cash-out provider |
+| PAY-002 | BLOCKED | settlement rail |
+| EMS-001 | BLOCKED | EMIS operator certification |
+| EMS-002 | BLOCKED | BNA certification (via EMS-001) |
+| BANK-001 | BLOCKED | partner bank (funding) |
+| BANK-002 | BLOCKED | partner bank (payout) |
+
+**Retired — reported separately, counted in nothing:** BW-001, BW-002 (merchant
+dashboard), P2P-002 (Split Sessions → Collections), PR-001, PR-002 (RA-057).
 
 ```
 RETIRED_COUNTS_AS_INTERNAL_BLOCKER=0
@@ -261,153 +269,154 @@ RETIRED_COUNTS_AS_MISSING_IMPLEMENTATION=0
 RETIRED_ITEMS_REPORTED_SEPARATELY=PASS
 ```
 
-| | Now | Under the proposal |
-|---|---|---|
-| `ACTIVE_REQUIRED` | 74 | **71** |
-| `ACTIVE_VALIDATED` | 63 | **59** |
-| `ACTIVE_IMPLEMENTED` | 2 | **3** |
-| `ACTIVE_IN_PROGRESS` | 4 | **4** |
-| `ACTIVE_BLOCKED` | 5 | **5** |
-| `ACTIVE_EXTERNALLY_BLOCKED` | 10 | **10** |
-| `ACTIVE_INTERNAL_BLOCKERS` | 1 (BW-004) | **2 (APP-001, SEC-001)** |
-| `RETIRED` | 2 | **5** — BW-001, BW-002, P2P-002, PR-001, PR-002 |
-| `ROADMAP` / `BASELINE` | 10 / 1 | 10 / 1 |
-
-Retired items are listed by name in the dashboard, outside every count. A test
-asserts that retiring an item does not move the launch-ready percentage (3/3 →
-2/2, both 100%).
-
-**`ACTIVE_INTERNAL_BLOCKERS` goes from 1 to 2, not to 0.** BW-004 is closed; two
-items that were never honestly VALIDATED are now visible. The alternative was to
-leave a security item reading VALIDATED while every public host speaks TLS 1.0.
+A test asserts retiring an item does not move the launch-ready percentage
+(3/3 → 2/2, both 100%).
 
 ---
 
-## 7. Regression
+## 8. Acceptance residue
+
+Ten synthetic consumers retired through the canonical lifecycle — value returned
+by a balanced posting to transit, then the consumer suspended. **Nothing deleted,
+no row edited, no balance touched directly.**
+
+`@fidel` was selected **by its exact id, never by a shape**: a handle a person
+chose must not be matched by a pattern, because the pattern that caught it once
+would catch somebody else later. Its value went back the same way as any other
+synthetic value; `@fm65` remains the canonical identity and keeps the 5 000 Kz the
+device sent it.
+
+```
+APP001_TEST_CONSUMER_ACTIVE=0        APP001_FIXTURE_CONSUMERS_ACTIVE=0
+APP001_TEST_BALANCE_STRANDED=0       APP001_IMMUTABLE_EVIDENCE_PRESERVED=PASS
+```
+
+Preserved and verified after retirement: the registration grant entry, transfer
+`5ad6bea0`, its posting's two entries, its idempotency key.
+
+```
+SYNTHETIC_RESIDUE_ACTIVE=0           APP001_FIXTURE_RESIDUE=0
+UNCLASSIFIED_ACTIVE_IDENTITIES=0     UNCLASSIFIED_ACTIVE_WORKSPACES=0
+UNCLASSIFIED_ACTIVE_PROJECTS=0       UNCLASSIFIED_ACTIVE_KEYS=0
+```
+
+The only consumers still ACTIVE are the three real people: `fm65`, `oxfannio`,
+`priscila`.
+
+---
+
+## 9. Ledger
+
+```
+BOOK_SUMS_TO_ZERO=PASS      LEDGER_BALANCED=PASS
+AOA total = 0               DEBIT=1842  CREDIT=1842
+```
+
+Ten retirement postings were added after the device run; the book still sums to
+zero, which is the point of retiring value by posting rather than by edit.
+
+---
+
+## 10. Regression at the final SHA
 
 | Suite | Result |
 |---|---|
-| Rust workspace (real DB) | **671 passed, 0 failed** (68 suites) |
+| Rust workspace (real DB) | **671 passed, 0 failed** |
 | Go — gateway, public-api, admin-api, developer-api, sandbox-operator | **all PASS** |
-| Website (Console + docs) | **1068 passed** (85 files) |
+| Website (Console + docs) | **1068 passed** |
 | validation-studio | **114 passed** |
 | Flutter app / SDK | **262 / 200 passed**, `analyze` 0 issues |
-| Console: rbac-matrix | **22/22** |
-| Console: cross-project-isolation | **15/15** |
-| Console: refund-rbac | **31/31** |
+| Operator guards (`tests/ops`, no DB) | **110 passed** |
+| Console: rbac-matrix · cross-project-isolation · refund-rbac | **22 · 15 · 31** |
 | Console: route-suite · accessibility · responsive · locale · click-audit | **16 · 35 · 44 · 30 · 263 controls, 0 dead CTA** |
 | Docs: audit · sweep · quickstart E2E | **50 · 314 · PASS**, residue 0 |
 | Consumer P2P sandbox E2E | **PASS** — 7 negatives, balances intact |
-| 30 `tools/check-*` gates | all PASS except the two below |
+| 33 `tools/check-*` gates | **all PASS** |
+| **CI** | **GREEN at `c059b7ce`** |
 
-`check-schema-reality` (needs `DATABASE_URL`, runs on the VM) and
-`check-schema-manifest` (takes arguments) are not standalone gates here.
-**`check-implementation-matrix` fails by design** — see §9.
+**Deployment.** `check-deploy-parity` is green at HEAD: every deployed component
+runs the source in this tree. Everything changed since the last deploy
+(`badf5dc6`) is governance, evidence, tooling, tests and `apps/validation-studio`
+— which is not a deploy target. **No product-serving source changed, so no
+redeploy was performed**, and the parity gate proves that by comparing
+artefact-bound files against the working tree rather than trusting image tags.
 
-`/settings/activity` was added to all five Console sweeps. A page nothing sweeps
-is a page whose accessibility, responsiveness, locale and dead-CTA state nobody
-knows.
-
-**Canonical resources, after the acceptance work:**
+**Documentation.**
 
 ```
-UNCLASSIFIED_ACTIVE_IDENTITIES=0   UNCLASSIFIED_ACTIVE_WORKSPACES=0
-UNCLASSIFIED_ACTIVE_PROJECTS=0     UNCLASSIFIED_ACTIVE_KEYS=0
+PUBLIC_DOC_SINGLE_TRUTH=PASS    PUBLIC_DOC_STALE_CLAIMS=0
+PUBLIC_DOC_LEGACY_CONTRACTS=0   PUBLIC_DOC_REAL_SECRETS=0
+DOCS_CURRENT_API_VERSION=v1     DOCS_V2_REFERENCES=0
+DOCS_PT_EN_PAGE_PARITY=PASS     DOCS_PT_EN_CONTRACT_PARITY=PASS (12 pages, endpoint-for-endpoint)
+DOA_REFERENCE_IMPLEMENTATION=PASS   DOA_DOC_SPECIAL_CASES=0
+BROKEN_INTERNAL_DOC_LINKS=0     BROKEN_DOC_ANCHORS=0
+DOCS_ACCESSIBILITY=PASS         DOCS_RESPONSIVE=PASS
+```
+
+**Financial LIVE.** All six fail-closed invariants hold. A `bz_live_` key at the
+deployed gateway → **401**. `api.banzami.com` → **503**. No production key is
+issued by any path.
+
+---
+
+## 11. Final counters
+
+```
+ACTIVE_INTERNAL_BLOCKERS=0
+KNOWN_RELEASE_BLOCKING_DEFECTS=0
+KNOWN_UNRESOLVED_ACTIVE_PRODUCT_DEFECTS=0
+KNOWN_CONTRACT_CONTRADICTIONS=0
+
+IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES=0
+IMPLEMENTATION_MATRIX_MISSING_EVIDENCE=0
+IMPLEMENTATION_MATRIX_VALIDATED_WITH_BLOCKERS=0
+
 SYNTHETIC_RESIDUE_ACTIVE=0
+BLOCKED_ACCEPTANCE_STEPS=0
+FAILED_ACCEPTANCE_STEPS=0
+
+SEC_001_STATUS=VALIDATED    APP_001_STATUS=VALIDATED    BW_004_STATUS=VALIDATED
 ```
 
-Nothing the BW-004 proof or the sweeps created survives. `deploy.sh developer-api`
-and `deploy.sh website-frontend` both ran at `badf5dc6`; product-serving code
-changed, so it was redeployed, and `check-deploy-parity` confirms every deployed
-component runs the source in this tree.
-
 ---
 
-## 8. What is NOT claimed
+## 12. Verdict
 
-- **APP-001 is not verified on a real device.** I cannot do that. Everything
-  around it is proved; the binary on hardware is not.
-- **SEC-001 is not fixed.** The gap is proved and the fix is named. Changing a
-  production edge setting that cuts off old clients is your decision.
-- **The matrix is not written.** §16 needs your phrase; see §11.
-- **BW-001 and BW-002 remain RETIRED**, unchanged — `dashboard.banzami.com` does
-  not resolve and `/v1/analytics` is 404, as the runtime proof says again today.
+**BANZAMI PUBLIC SANDBOX — READY FOR PUBLIC RELEASE**
+— zero known release-blocking defects
+— zero known unresolved active product defects
+— zero known contract contradictions
+— zero internal implementation-matrix blockers
+— ten externally dependent capabilities, reported separately in §7
 
----
+**BANZAMI DEVELOPERS CONSOLE — READY FOR PUBLIC RELEASE**
 
-## 9. CI
+**BANZAMI DEVELOPERS DOCUMENTATION — READY FOR PUBLIC RELEASE**
+— one canonical public truth
+— Public API v1 only; zero v2 references
+— DOA canonical reference implementation, zero doc special cases
+— zero known stale public contracts
+— zero known documentation/product contradictions
 
-**CI is red at `a70339c2`, on the `Implementation-matrix gate` step, for exactly
-the right reason:** the hardened gate fails on the 25 findings this report
-describes. I verified the proposal turns every rule green — all six pass against
-the proposed file, with 335 path references resolved.
+**DOA PUBLIC SANDBOX — READY** (`2612573`)
 
-Leaving it red was the choice. Softening the gate until the data is fixed is the
-behaviour this whole exercise exists to stop.
-
----
-
-## 10. Verdict
-
-**NOT GREEN — and that is the honest answer.**
-
-BW-004 is genuinely closed: the capability exists, is documented, is swept, and
-holds 6/6 plus 4/4 against the deployed system. The dead references, the
-VALIDATED-with-blockers, the gate and the readiness model are all resolved in the
-proposal.
-
-What stops a green verdict is the pair of items that were reading VALIDATED
-without support. Finding them is the work; hiding them again would be the only
-way to reach `ACTIVE_INTERNAL_BLOCKERS=0` today.
+**Financial LIVE — NOT READY / FAIL-CLOSED**
 
 No freeze. No tag.
 
 ---
 
-## 11. What needs you
+## 13. What is honestly outside this verdict
 
-**One decision, then two governance phrases.**
+Stated so the verdict is not read as covering more than it does.
 
-**(a)** Cloudflare — raise **Minimum TLS Version** to 1.2 (or 1.3) on the
-`banzami.com` zone. Then `node tools/check-tls-floor.mjs` goes green and SEC-001
-can be re-proposed as VALIDATED. Tell me if you want it at 1.3 and I will set the
-gate's floor there.
-
-**(b)** APP-001 — either run the consumer flow on your iPhone and tell me, or
-tell me the device-runtime criterion is a release-QA step rather than an
-engineering criterion and I will propose it differently. I will not decide that
-for you.
-
-**(c)** The matrix writes. Per CLAUDE.md §16, each needs its exact phrase. The
-proposal is generated and gate-verified; nothing is written until you send these.
-
-```
-APPROVE VALIDATION BW-004                 71fcde8e41f48d50
-APPROVE VALIDATION APP-001                797e2c633e846ec8
-APPROVE VALIDATION API-003                7fbcc6f100c8581a
-APPROVE VALIDATION QR-003                 7a603bbb19c83495
-APPROVE VALIDATION P2P-002                5b410d29bd6ba843
-APPROVE VALIDATION PL-002                 2fecda55066dc722
-APPROVE VALIDATION PR-001                 34628ea441262b8f
-APPROVE VALIDATION PR-002                 6903e0fdb53e9da8
-APPROVE VALIDATION BM-001                 dd4b451af4140582
-APPROVE VALIDATION SDK-003                94c8e4be1ae200c8
-APPROVE VALIDATION SDK-005                1e3a2123f517f554
-APPROVE VALIDATION API-001                1b1c22521657bac0
-APPROVE VALIDATION API-002                e8b7f98348648659
-APPROVE VALIDATION KYC-001                b7cb822b68e0861a
-APPROVE VALIDATION SEC-001                4a11efcff1235689
-APPROVE VALIDATION BANZA-L0-001           71dfb2bfa23b54ca
-APPROVE VALIDATION BANZA-L0-002           a3c1c35b4d7b1340
-APPROVE VALIDATION BANZA-L0-003           1eb48e5447a44996
-APPROVE VALIDATION BANZA-L0-005           497ff5ef07c2a482
-APPROVE VALIDATION BANZA-L0-ROADMAP-001   7b2062e4f11ad4c3
-APPROVE VALIDATION BANK-001               bb566e25f2cd7a7f
-APPROVE VALIDATION BANK-002               e3b69e6df4887c35
-```
-
-Send them all, or send the ones you agree with — each item is applied
-independently, with its own append-only `history[]` entry carrying its
-fingerprint and its reason. If the matrix changes before you approve, the
-fingerprints stop matching and I will generate a new proposal rather than write
-against a stale one.
+- **Device origin is not server-attested.** §4's limitation is a property of the
+  product: the consumer API records nothing that distinguishes a device from a
+  script. Closing it would mean capturing and storing a client attestation, which
+  is a product decision, not a defect fixed here.
+- **The ten external dependencies are real.** The Sandbox verdict is about the
+  currently declared Sandbox scope. Money In and Money Out cannot be launched on
+  this evidence, and nothing here claims otherwise.
+- **The Cloudflare zone's full record and rule audit remains pending** (Phase 3/6
+  in `ops/asset-inventory.yaml`). What is proved is the TLS floor, per host, by
+  handshake.
