@@ -82,6 +82,32 @@ const argOf = (flag) => {
 const HEADED = argv.includes('--headed');
 const STAMP = process.env.E2E_TS || String(Math.floor(Date.now() / 1000));
 
+/**
+ * How this run gives the Project a financial owner — the authority nine steps
+ * wait on.
+ *
+ *   none         (default) submit nothing. The nine steps record BLOCKED and
+ *                name the authority, which is what a run without a human does.
+ *   application  submit the REAL Business application from the Console and wait
+ *                for an operator to decide it in BANZADMIN with their own MFA.
+ *                Nothing here approves anything: the run submits and waits.
+ *   consent      connect a Business that already exists, with the single-use
+ *                code its owner issues from their own app.
+ *
+ * Neither of the two real modes gives this run any authority it did not have.
+ * The decision is made by a person, in the operator's own console, and this
+ * harness can only observe that it happened.
+ */
+const FINANCIAL_OWNER = argOf('--financial-owner') ?? 'none';
+if (!['none', 'application', 'consent'].includes(FINANCIAL_OWNER)) {
+  console.error(`--financial-owner must be none|application|consent (got ${FINANCIAL_OWNER})`);
+  process.exit(2);
+}
+// Where the owner writes the consent code, and how long the run waits for an
+// operator's decision. Both are human timescales, not network ones.
+const CONSENT_FILE = argOf('--consent-file') ?? resolve(HERE, '.consent-code');
+const DECISION_TIMEOUT_MS = Number(argOf('--decision-timeout') ?? 30 * 60 * 1000);
+
 // The journey's own identity by default. `--owner-email` runs it on a REAL
 // account instead — which is the only way to prove the thing a synthetic
 // address cannot: that the sign-in email is actually delivered. A real address
@@ -172,6 +198,183 @@ async function waitForOTP(email, file, timeoutMs = 8 * 60 * 1000) {
     if (Date.now() > end) throw new Error(`no code appeared in ${path} within ${Math.round(timeoutMs / 60000)} minutes`);
     await new Promise((r) => setTimeout(r, 2000));
   }
+}
+
+/**
+ * Wait for a single-use consent code, issued by the owner of an EXISTING
+ * Business from their own app. Same shape as the sign-in code: the run asks,
+ * says so, waits for a file, and empties it once spent.
+ *
+ * The run never mints one. A code this process could generate would prove
+ * nothing about the path a real integrator walks, which is precisely that the
+ * Business's owner — not the developer — decides.
+ */
+async function waitForConsentCode(file, timeoutMs = 30 * 60 * 1000) {
+  const path = resolve(file);
+  console.log(`\n  waiting for a single-use consent code from an existing Business — write it to ${path}`);
+  const end = Date.now() + timeoutMs;
+  for (;;) {
+    try {
+      const raw = readFileSync(path, 'utf8').trim();
+      if (raw.length >= 6) {
+        writeFileSync(path, '');
+        console.log('  consent code received\n');
+        return raw;
+      }
+    } catch {
+      /* not written yet */
+    }
+    if (Date.now() > end) throw new Error(`no consent code appeared in ${path} within ${Math.round(timeoutMs / 60000)} minutes`);
+    await new Promise((r) => setTimeout(r, 2000));
+  }
+}
+
+/**
+ * Poll the Project's own financial-setup until an operator has decided the
+ * application, or the wait runs out.
+ *
+ * This is the only honest way for the run to observe an authority it does not
+ * hold: it asks the product, repeatedly, the same question a developer would
+ * ask by refreshing the page. It cannot approve, cannot see the review queue,
+ * and cannot tell BANZADMIN anything.
+ *
+ * Returns the terminal state it saw.
+ */
+async function waitForOperatorDecision(ctx, projectId, timeoutMs) {
+  const end = Date.now() + timeoutMs;
+  let last = null;
+  let announced = false;
+  for (;;) {
+    const r = await ctx.request.get(`${API}/projects/${projectId}/financial-setup`, { headers: { Origin: CONSOLE } });
+    const s = r.ok() ? await r.json() : {};
+    if (s.state !== last) {
+      last = s.state;
+      console.log(`      financial setup: ${s.state ?? `http ${r.status()}`}`);
+    }
+    // READY/SEALED is an approval; REJECTED and INFORMATION_REQUIRED are also
+    // decisions, and the run must report what actually happened rather than
+    // waiting out the clock on a "no".
+    if (['READY', 'SEALED', 'REJECTED', 'INFORMATION_REQUIRED'].includes(s.state)) return s;
+    if (!announced) {
+      console.log(`\n  waiting for an operator to decide this application in BANZADMIN (admin.banzami.com),`);
+      console.log(`  signed in with their own MFA. This run holds no operator authority and is only watching.\n`);
+      announced = true;
+    }
+    if (Date.now() > end) throw new Error(`no operator decision within ${Math.round(timeoutMs / 60000)} minutes`);
+    await new Promise((r2) => setTimeout(r2, 5000));
+  }
+}
+
+/**
+ * Fill and submit the Console's real Business application — the same five-step
+ * form, the same fields and the same two documents the public form submits, and
+ * the same operator review in BANZADMIN.
+ *
+ * Nothing here shortcuts the product. The documents are genuine files written
+ * for this run and uploaded through the Console's own signed-URL path to the
+ * KYB store; the handle is checked for availability by the product; the terms
+ * box is ticked by clicking it. What comes out is an application in review,
+ * which only a person can decide.
+ */
+async function fillAndSubmitApplication(page, ctx) {
+  const { writeFileSync: wf, mkdtempSync: mkd } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const dir = mkd(join(tmpdir(), 'banzami-kyb-'));
+
+  // Real files, not empty ones: a zero-byte upload is not what an integrator
+  // sends and would not exercise the store the same way.
+  const pdf = join(dir, 'certidao-comercial.pdf');
+  wf(pdf, Buffer.from(
+    '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n'
+    + '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 120]/Contents 4 0 R>>endobj\n'
+    + `4 0 obj<</Length 92>>stream\nBT /F1 11 Tf 20 60 Td (Banzami acceptance ${TAG} - certidao comercial) Tj ET\nendstream endobj\n`
+    + 'trailer<</Root 1 0 R>>\n%%EOF\n', 'latin1'));
+  const idDoc = join(dir, 'bilhete-identidade.pdf');
+  wf(idDoc, Buffer.from(
+    '%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj\n'
+    + '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 120]/Contents 4 0 R>>endobj\n'
+    + `4 0 obj<</Length 92>>stream\nBT /F1 11 Tf 20 60 Td (Banzami acceptance ${TAG} - documento de identidade) Tj ET\nendstream endobj\n`
+    + 'trailer<</Root 1 0 R>>\n%%EOF\n', 'latin1'));
+
+  const setIf = async (sel, value) => {
+    const el = page.locator(sel).first();
+    if ((await el.count()) === 0) return;
+    const tag = await el.evaluate((n) => n.tagName.toLowerCase()).catch(() => '');
+    if (tag === 'select') await el.selectOption({ label: value }).catch(async () => { await el.selectOption(value).catch(() => {}); });
+    else await el.fill(value);
+  };
+  const firstOption = async (sel) => {
+    const el = page.locator(sel).first();
+    if ((await el.count()) === 0) return null;
+    const opts = await el.locator('option').allTextContents();
+    return opts.find((o) => o && !/^—|^Selecion|^$/i.test(o.trim())) ?? null;
+  };
+  const cont = async () => { await page.getByRole('button', { name: 'Continuar' }).first().click(); await settle(page, 700); };
+
+  // 1 — Negócio
+  const BUSINESS_NAME = `Acceptance ${TAG}`;
+  await setIf('#fo-business-name', BUSINESS_NAME);
+  await setIf('#fo-nif', '5417' + STAMP.slice(-6));
+  const cat = await firstOption('#fo-category');
+  if (cat) await setIf('#fo-category', cat);
+  await settle(page, 400);
+  const sub = await firstOption('#fo-subcategory');
+  if (sub) await setIf('#fo-subcategory', sub);
+  await setIf('#fo-category-other', 'Serviços digitais');
+  await setIf('#fo-business-activity', 'Integração de pagamentos para aceitação do Banzami Public Sandbox.');
+  const vol = await firstOption('#fo-estimated-volume');
+  if (vol) await setIf('#fo-estimated-volume', vol);
+  await setIf('#fo-email', `negocio-${TAG}@banzami-e2e.test`);
+  await setIf('#fo-phone', '923456789');
+  const prov = await firstOption('#fo-province');
+  if (prov) await setIf('#fo-province', prov);
+  await settle(page, 400);
+  const mun = await firstOption('#fo-municipality');
+  if (mun) await setIf('#fo-municipality', mun);
+  await setIf('#fo-city', 'Maianga');
+  await setIf('#fo-address', 'Rua da Missão 12');
+  await setIf('#fo-address-reference', 'Junto ao Largo');
+  await cont();
+
+  // 2 — Responsável
+  await setIf('#fo-legal-representative', OWNER_NAME);
+  const role = await firstOption('#fo-representative-role');
+  if (role) await setIf('#fo-representative-role', role);
+  await setIf('#fo-representative-email', EMAIL_OWNER);
+  await setIf('#fo-representative-phone', '923456780');
+  await cont();
+
+  // 3 — Documentos, uploaded by the Console through its own signed-URL path.
+  await page.locator('#fo-doc-business_registration').setInputFiles(pdf).catch(() => {});
+  await page.locator('#fo-doc-representative_id').setInputFiles(idDoc).catch(() => {});
+  await settle(page, 1500);
+  await cont();
+
+  // 4 — @banza, checked for availability by the product itself.
+  const HANDLE = `acc${STAMP}`.slice(0, 30);
+  await setIf('#fo-desired-handle', HANDLE);
+  // Give the availability check time to answer before moving on.
+  await settle(page, 2500);
+  await cont();
+
+  // 5 — Revisão: accept the terms and send for verification.
+  const terms = page.locator('#fo-terms');
+  if ((await terms.count()) > 0) await terms.check().catch(async () => { await terms.click().catch(() => {}); });
+  await page.getByRole('button', { name: /Enviar para verifica/ }).first().click();
+  await settle(page, 4000);
+
+  const r = await ctx.request.get(`${API}/projects/${J.projectId}/financial-setup`, { headers: { Origin: CONSOLE } });
+  const fs = r.ok() ? await r.json() : {};
+  const reference = fs.application?.reference ?? fs.application?.id ?? null;
+  const inReview = ['IN_REVIEW', 'APPROVED_PROVISIONING', 'READY', 'SEALED', 'INFORMATION_REQUIRED'].includes(fs.state);
+  if (!inReview) {
+    const err = norm(await page.locator('[data-testid="business-application"] p[role="alert"]').first().innerText().catch(() => ''));
+    return { ok: false, observed: `application not submitted — state=${fs.state}${err ? `, the form said "${err}"` : ''}` };
+  }
+  J._applicationRef = reference;
+  J._applicationBusiness = { name: BUSINESS_NAME, handle: HANDLE };
+  console.log(`      application submitted: ${reference ?? '(reference not shown)'} — state ${fs.state}`);
+  return { ok: true, reference: reference ?? '(unnamed)' };
 }
 
 // The authority nine of these steps are waiting on. Named once so every blocked
@@ -790,18 +993,71 @@ try {
     }
     const pathNew = await page.locator('[data-testid="onboarding-path-new"]').count();
     const pathExisting = await page.locator('[data-testid="onboarding-path-existing"]').count();
+    const bothOffered = pathNew === 1 && pathExisting === 1;
+
     // Both paths end outside the developer: a new Business is decided by an
     // operator in BANZADMIN, and an existing one needs a consent code its owner
-    // issues from their own app. Neither is reachable by a developer alone, and
-    // this run is forbidden operator authority — so no application is submitted
-    // (one would also leave a review-queue item this run cannot take back).
+    // issues from their own app. Neither is reachable by a developer alone.
+    //
+    // Without a human in the loop the run stops here and says so, rather than
+    // submitting an application it cannot take back. With one (--financial-owner),
+    // it walks the real path: submit, or redeem a code the Business's owner
+    // issued — and then WAIT, holding no authority of its own.
+    if (FINANCIAL_OWNER === 'none') {
+      return {
+        ok: false,
+        blockedBy: BLOCKED_BY_BUSINESS,
+        observed:
+          `http ${res?.status()}, state=${state}, both paths offered=${bothOffered}; ` +
+          'the Console offers exactly the two paths that exist and neither ends with the developer; ' +
+          'no application submitted — it would leave a review-queue item this run cannot take back',
+      };
+    }
+    if (!bothOffered) {
+      return { ok: false, observed: `the Console did not offer both onboarding paths (new=${pathNew}, existing=${pathExisting}), state=${state}` };
+    }
+
+    if (FINANCIAL_OWNER === 'consent') {
+      await page.locator('[data-testid="onboarding-path-existing"] button').click();
+      await settle(page, 600);
+      const code = await waitForConsentCode(CONSENT_FILE);
+      J._consentCode = code;
+      const field = page.locator('#fo-link-code, input[name="code"], [data-testid="connect-code"]').first();
+      await field.fill(code);
+      await page.getByRole('button', { name: /Ligar|Confirmar/ }).first().click();
+      await settle(page, 2000);
+      const r = await ctxA.request.get(`${API}/projects/${J.projectId}/financial-setup`, { headers: { Origin: CONSOLE } });
+      const fs = await r.json();
+      const ready = fs.state === 'READY' || fs.state === 'SEALED';
+      J._financialOwner = ready ? 'consent' : null;
+      return {
+        ok: ready,
+        observed: ready
+          ? `an existing Business's single-use consent code bound this Project — state=${fs.state}; the code was issued by its owner, not by this run`
+          : `consent code redeemed but state=${fs.state}`,
+      };
+    }
+
+    // --financial-owner application: the real Business application, from the
+    // Console's own form, with the fields and documents the Gateway's policy
+    // requires — then an operator's decision, which this run only watches.
+    await page.locator('[data-testid="onboarding-path-new"] button').click();
+    await settle(page, 800);
+    const form = page.locator('[data-testid="business-application"]');
+    if ((await form.count()) === 0) return { ok: false, observed: 'the application form did not open' };
+
+    const submitted = await fillAndSubmitApplication(page, ctxA);
+    if (!submitted.ok) return submitted;
+
+    const decision = await waitForOperatorDecision(ctxA, J.projectId, DECISION_TIMEOUT_MS);
+    const ready = decision.state === 'READY' || decision.state === 'SEALED';
+    J._financialOwner = ready ? 'application' : null;
     return {
-      ok: false,
-      blockedBy: BLOCKED_BY_BUSINESS,
-      observed:
-        `http ${res?.status()}, state=${state}, both paths offered=${pathNew === 1 && pathExisting === 1}; ` +
-        'the Console offers exactly the two paths that exist and neither ends with the developer; ' +
-        'no application submitted — it would leave a review-queue item this run cannot take back',
+      ok: ready,
+      observed: ready
+        ? `application ${submitted.reference} submitted from the Console, decided by an operator in BANZADMIN, and this Project now receives — state=${decision.state}. `
+          + 'No KYB was self-approved: the run submitted and waited.'
+        : `application ${submitted.reference} submitted; the operator's decision was ${decision.state}`,
     };
   });
 
@@ -970,7 +1226,10 @@ try {
     if ((await register.count()) === 0) {
       return {
       ok: false,
-      blockedBy: BLOCKED_BY_BUSINESS,
+      // Without a financial owner the project may not register an endpoint —
+      // correct, and an authority this run does not hold. With one, the control
+      // is supposed to be there, and its absence is a defect.
+      blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS,
       observed:
 `no "Registar endpoint" control; page says: ${pageState.slice(0, 180)}` };
     }
@@ -984,56 +1243,207 @@ try {
     let code = null;
     try { code = JSON.parse(raw)?.error?.code ?? null; } catch { /* listed fine */ }
     const created = r.ok();
+    if (created) {
+      const { endpoints } = JSON.parse(raw);
+      const ep = (endpoints ?? []).find((e) => String(e.url ?? '').includes(TAG)) ?? (endpoints ?? [])[0];
+      J._webhookEndpointId = ep?.id ?? null;
+      // Whatever the list returns, it must not be the signing secret.
+      J._listedEndpointFields = Object.keys(ep ?? {});
+    }
     return {
       ok: created,
       observed: created
-        ? 'endpoint registered'
+        ? `endpoint registered (${J._webhookEndpointId ? 'id captured' : 'id not returned'})`
         : `refused: API says ${code} (${r.status()}); the Console showed "${err}" — see the defect note in the report`,
     };
   });
 
   // ── 29 ─────────────────────────────────────────────────────────────────────
-  await step('the webhook signing secret is revealed once', async () =>
-    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint exists (step 28), so no signing secret was ever issued' }));
+  await step('the webhook signing secret is revealed once', async () => {
+    if (!J._webhookEndpointId) {
+      return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint exists (step 28), so no signing secret was ever issued' };
+    }
+    // What the Console showed at creation, and what can be read back afterwards.
+    // The secret is asserted on SHAPE only; the value never reaches stdout or
+    // the evidence file.
+    const shownRaw = await page.locator('[data-testid="webhook-secret"], code, pre').allInnerTexts().catch(() => []);
+    const shown = shownRaw.map(norm).find((t) => /^whsec_[A-Za-z0-9_-]{16,}$/.test(t));
+    const shape = shown ? `whsec_ + ${shown.length - 6} chars` : 'not found on screen';
+
+    // Nothing may return it again: not the list, not the endpoint detail, not a
+    // reload of the page that showed it.
+    const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
+    const listBody = await list.text();
+    const inList = /whsec_[A-Za-z0-9_-]{16,}/.test(listBody);
+    await open(page, '/webhooks', 1200);
+    const afterReload = /whsec_[A-Za-z0-9_-]{16,}/.test(await bodyText(page));
+
+    const ok = !!shown && !inList && !afterReload;
+    return {
+      ok,
+      observed: ok
+        ? `revealed once at creation (${shape}); absent from the endpoint list and from the page after reload`
+        : `shown=${!!shown} (${shape}), re-readable in list=${inList}, present after reload=${afterReload}`,
+    };
+  });
 
   // ── 30 ─────────────────────────────────────────────────────────────────────
   await step('cause a real event and see it in the events list', async () => {
-    const r = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events?limit=25`, { headers: { Origin: CONSOLE } });
-    const raw = await r.text();
-    let code = null;
-    try { code = JSON.parse(raw)?.error?.code ?? null; } catch { /* a real list */ }
-    if (r.ok()) {
-      const { events } = JSON.parse(raw);
-      return { ok: (events ?? []).length > 0, observed: `${(events ?? []).length} event(s) listed` };
+    const probe = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events?limit=25`, { headers: { Origin: CONSOLE } });
+    if (!probe.ok()) {
+      let code = null;
+      try { code = JSON.parse(await probe.text())?.error?.code ?? null; } catch { /* not JSON */ }
+      return {
+        ok: false,
+        observed:
+          `events are ${probe.status()} ${code}: with no financial owner the project can emit nothing — ` +
+          'no payment session, payment link or settlement can be opened, so there is no genuine event to cause',
+        blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS,
+      };
     }
+    const before = ((await probe.json()).events ?? []).length;
+
+    // CAUSE one, rather than hope one exists. The journey's own key is read-only
+    // by design (step 21), so this opens a short-lived key that can charge, uses
+    // it once through the public Gateway exactly as an integrator would, and
+    // gives it back immediately.
+    const mk = await ctxA.request.post(`${API}/projects/${J.projectId}/keys`, {
+      headers: ORIGIN,
+      data: { name: `${TAG}-event`, scopes: ['payment_sessions:write', 'payment_sessions:read'] },
+    });
+    if (!mk.ok()) return { ok: false, observed: `could not create a writing key: ${mk.status()}` };
+    const made = await mk.json();
+    const secret = made.secret ?? made.key ?? made.plaintext;
+    const keyId = made.id ?? made.key_id;
+    let caused = null;
+    try {
+      const sess = await ctxA.request.post(`${GW}/v1/payment-sessions`, {
+        headers: {
+          Authorization: `Bearer ${secret}`,
+          'Content-Type': 'application/json',
+          'Idempotency-Key': `${TAG}-evt-1`,
+        },
+        data: { amount_minor: 150000, currency: 'AOA', description: `acceptance ${TAG}` },
+      });
+      caused = { status: sess.status(), ok: sess.ok() };
+    } finally {
+      // The key existed to cause one event. It does not outlive that.
+      if (keyId) await ctxA.request.delete(`${API}/projects/${J.projectId}/keys/${keyId}`, { headers: ORIGIN }).catch(() => {});
+    }
+    if (!caused.ok) return { ok: false, observed: `the payment session was refused: http ${caused.status}` };
+
+    // Events are dispatched, not synchronous: give the project a moment to say so.
+    let events = [];
+    for (let i = 0; i < 12; i++) {
+      await new Promise((r2) => setTimeout(r2, 1500));
+      const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events?limit=25`, { headers: { Origin: CONSOLE } });
+      if (!list.ok()) continue;
+      events = (await list.json()).events ?? [];
+      if (events.length > before) break;
+    }
+    J._eventId = events[0]?.id ?? null;
+    await open(page, '/webhooks', 1200);
+    const onScreen = J._eventId ? (await bodyText(page)).includes(String(events[0].type ?? '')) : false;
     return {
-      ok: false,
-      observed:
-        `events are ${r.status()} ${code}: with no financial owner the project can emit nothing — ` +
-        'no payment session, payment link or settlement can be opened, so there is no genuine event to cause',
-      blockedBy: BLOCKED_BY_BUSINESS,
+      ok: events.length > before && !!J._eventId,
+      observed: `opened a real payment session with a short-lived writing key (since revoked); events ${before} → ${events.length}`
+        + `${events[0]?.type ? `, newest "${events[0].type}"` : ''}, listed on the Console=${onScreen}`,
     };
   });
 
   // ── 31 ─────────────────────────────────────────────────────────────────────
-  await step('open the event and see its deliveries', async () =>
-    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no event exists to open (step 30)' }));
+  await step('open the event and see its deliveries', async () => {
+    if (!J._eventId) {
+      return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no event exists to open (step 30)' };
+    }
+    const r = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
+    if (!r.ok()) return { ok: false, observed: `deliveries are ${r.status()}` };
+    const { deliveries } = await r.json();
+    J._deliveries = deliveries ?? [];
+    // A delivery record is only useful if it says what happened: which endpoint,
+    // which attempt, when, with what result.
+    const d = J._deliveries[0];
+    const described = !!d && ['status', 'attempt', 'created_at'].every((k) => Object.keys(d).some((kk) => kk.includes(k.split('_')[0])));
+    return {
+      ok: J._deliveries.length > 0 && described,
+      observed: `${J._deliveries.length} delivery record(s); fields: ${d ? Object.keys(d).join(', ') : 'none'}`,
+    };
+  });
 
   // ── 32 ─────────────────────────────────────────────────────────────────────
-  await step('retry a failed delivery, or assert that none exists to retry', async () =>
-    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'neither: the deliveries surface answers 409 PROJECT_FINANCIAL_SETUP_REQUIRED, so "no failed delivery" cannot be asserted either' }));
+  await step('retry a failed delivery, or assert that none exists to retry', async () => {
+    if (!J._eventId) {
+      return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'the deliveries surface is unreachable without a financial owner, so "no failed delivery" cannot be asserted either' };
+    }
+    const failed = (J._deliveries ?? []).filter((d) => !/^2/.test(String(d.response_status ?? d.status_code ?? '')) || /fail/i.test(String(d.status ?? '')));
+    if (failed.length === 0) {
+      // The endpoint is an address nothing answers, so a delivery that has not
+      // yet been attempted is not a failure. Asserting "none to retry" is only
+      // honest if the surface actually answered, which it did.
+      return { ok: true, observed: `no failed delivery to retry — ${(J._deliveries ?? []).length} delivery record(s), none in a failed state; the surface answered, so this is an assertion rather than an absence` };
+    }
+    const before = failed[0];
+    const r = await ctxA.request.post(`${API}/projects/${J.projectId}/webhooks/deliveries/${before.id}/replay`, { headers: ORIGIN, data: {} });
+    if (!r.ok()) return { ok: false, observed: `replay refused: ${r.status()}` };
+    await settle(page, 1500);
+    const after = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/events/${J._eventId}/deliveries`, { headers: { Origin: CONSOLE } });
+    const list = after.ok() ? (await after.json()).deliveries ?? [] : [];
+    // A retry adds an ATTEMPT; it must not add a second delivered event.
+    const sameEvent = list.every((d) => String(d.event_id ?? J._eventId) === String(J._eventId));
+    return {
+      ok: list.length > (J._deliveries ?? []).length && sameEvent,
+      observed: `replayed one failed delivery: ${(J._deliveries ?? []).length} → ${list.length} attempt(s), all for the same event id`,
+    };
+  });
 
   // ── 33 ─────────────────────────────────────────────────────────────────────
-  await step('rotate the webhook secret; a new secret is revealed once', async () =>
-    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint to rotate (step 28)' }));
+  await step('rotate the webhook secret; a new secret is revealed once', async () => {
+    if (!J._webhookEndpointId) {
+      return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint to rotate (step 28)' };
+    }
+    const r = await ctxA.request.post(`${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}/rotate-secret`, { headers: ORIGIN, data: {} });
+    if (!r.ok()) return { ok: false, observed: `rotate refused: ${r.status()}` };
+    const body = await r.text();
+    const m = body.match(/whsec_[A-Za-z0-9_-]{16,}/);
+    // The successor is revealed in THIS response and nowhere else.
+    const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
+    const inList = /whsec_[A-Za-z0-9_-]{16,}/.test(await list.text());
+    return {
+      ok: !!m && !inList,
+      observed: m
+        ? `a successor secret was returned once (whsec_ + ${m[0].length - 6} chars); the endpoint list still returns none`
+        : 'rotate returned no secret',
+    };
+  });
 
   // ── 34 ─────────────────────────────────────────────────────────────────────
-  await step('disable the endpoint; the list says so', async () =>
-    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint to disable (step 28)' }));
+  await step('disable the endpoint; the list says so', async () => {
+    if (!J._webhookEndpointId) {
+      return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint to disable (step 28)' };
+    }
+    const r = await ctxA.request.patch(`${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}`, { headers: ORIGIN, data: { active: false } });
+    if (!r.ok()) return { ok: false, observed: `disable refused: ${r.status()}` };
+    const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
+    const ep = ((await list.json()).endpoints ?? []).find((e) => e.id === J._webhookEndpointId);
+    await open(page, '/webhooks', 1000);
+    const saysSo = /Inativo|Desativado/i.test(await bodyText(page));
+    return {
+      ok: ep && ep.active === false && saysSo,
+      observed: `endpoint active=${ep?.active}; the Console says so on screen=${saysSo}`,
+    };
+  });
 
   // ── 35 ─────────────────────────────────────────────────────────────────────
-  await step('enable it again', async () =>
-    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint to re-enable (step 28)' }));
+  await step('enable it again', async () => {
+    if (!J._webhookEndpointId) {
+      return { ok: false, blockedBy: J._financialOwner ? null : BLOCKED_BY_BUSINESS, observed: 'no endpoint to re-enable (step 28)' };
+    }
+    const r = await ctxA.request.patch(`${API}/projects/${J.projectId}/webhooks/endpoints/${J._webhookEndpointId}`, { headers: ORIGIN, data: { active: true } });
+    if (!r.ok()) return { ok: false, observed: `enable refused: ${r.status()}` };
+    const list = await ctxA.request.get(`${API}/projects/${J.projectId}/webhooks/endpoints`, { headers: { Origin: CONSOLE } });
+    const ep = ((await list.json()).endpoints ?? []).find((e) => e.id === J._webhookEndpointId);
+    return { ok: ep && ep.active === true, observed: `endpoint active=${ep?.active}` };
+  });
 
   // ── 36 ─────────────────────────────────────────────────────────────────────
   await step('balances page loads and shows the project’s real figures', async () => {
@@ -1411,6 +1821,12 @@ writeFileSync(
       builds,
       fixture_identities: [EMAIL_OWNER, EMAIL_MEMBER],
       fixture_namespace: TAG,
+      // How this run got the Project a financial owner, and what that means for
+      // the nine steps that wait on one. 'none' is a run without a human in the
+      // loop; the other two each walked a real authority path to its end.
+      financial_owner_mode: FINANCIAL_OWNER,
+      financial_owner_granted: J._financialOwner ?? null,
+      application_reference: J._applicationRef ?? null,
       total: results.length,
       pass,
       fail,
