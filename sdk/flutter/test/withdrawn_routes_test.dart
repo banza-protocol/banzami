@@ -30,11 +30,18 @@ void main() {
         'not mounted (RA-053): a merchant JWT cannot debit a consumer',
   };
 
-  // The consumer surface (public-api) mounts NO /v1/qr route at all — not
-  // decode, not get-by-id, not pay (QR pay withdrawn, RA-053). The gateway's
-  // merchant QR routes (static/dynamic/decode/{id}) stay in BanzamiClient.
+  // The consumer surface (public-api) mounts exactly one QR route: /v1/qr/pay,
+  // where the payer is the authenticated consumer (CAP-PAY-003). It does NOT
+  // mount decode or get-by-id, and it must not: a consumer has no reason to
+  // resolve a code separately from paying it, and a resolution that is not the
+  // one the payment verifies against is a second answer to the same question.
+  //
+  // This used to withdraw every '/v1/qr/' path from the consumer side, when no
+  // consumer QR route existed at all. Narrowed rather than deleted — the two
+  // routes that are still absent are still guarded.
   const withdrawnFromConsumer = {
-    '/v1/qr/': 'public-api mounts no /v1/qr/decode, /v1/qr/{id} or /v1/qr/pay',
+    '/v1/qr/decode': 'public-api mounts no consumer QR decode',
+    '/v1/qr/{': 'public-api mounts no consumer get-QR-by-id',
   };
 
   final sources = Directory('lib')

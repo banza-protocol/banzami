@@ -164,9 +164,20 @@ link** (see [Payment QR](#payment-qr)). It encodes the hosted pay URL, which any
 phone camera opens.
 
 `createStaticQr()` and `createDynamicQr()` issue structured Banzami QR codes.
-No route pays a structured QR today (the QR-pay route is being rebuilt on the
-consumer surface), so do not present them to payers. A server key never pays on
-a person's behalf, so the SDK has no "send money from this consumer" call.
+These are paid inside the Banzami app: the payer scans, the app posts the
+scanned payload to the consumer surface, and the payer is the person that
+surface authenticated. A **static** code is reusable and the payer chooses the
+amount; a **dynamic** code carries a fixed amount in its signed record, is
+single-use, and expires — a client-supplied amount is ignored, because a
+fixed-amount code that could be paid for less would not be fixed.
+
+There is no SDK method for paying one, and there will not be: a server key never
+pays on a person's behalf. That was the defect the old route had — it took the
+payer as a field on a merchant credential — and the rebuilt contract has no such
+field anywhere.
+
+Reach for a payment session's QR when you want any phone camera to work, and a
+structured QR when you want the Banzami app's scan-to-pay.
 
 ---
 

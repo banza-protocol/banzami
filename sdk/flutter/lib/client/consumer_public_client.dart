@@ -9,6 +9,7 @@ import '../models/consumer_pay_link.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/kyc.dart';
 import '../models/payment_link.dart';
+import '../models/qr_payment.dart';
 import '../models/receipt.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
@@ -370,14 +371,45 @@ class ConsumerPublicClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Structured QR (scan-to-pay) — WITHDRAWN
+  // Structured QR (scan-to-pay)
   //
-  // decodeQr / getQrCode / payStructuredQr called /v1/qr/decode, /v1/qr/{id}
-  // and /v1/qr/pay on the public-api, which mounts none of them (QR pay was
-  // withdrawn with RA-053): every call could only fail. The consumer app
-  // refuses a structured Banzami QR with an explicit message until a consumer
-  // QR-pay route exists; @banza and payment-link QRs keep working.
+  // Paying a structured Banzami QR is here now (CAP-PAY-003). What stays absent
+  // is decodeQr / getQrCode: the public-api mounts neither, and a consumer has
+  // no reason to read a QR's record separately — the pay call resolves and
+  // verifies the code itself, against the signed record, which is the only
+  // resolution that can be trusted.
+  //
+  // The old payStructuredQr called /v1/qr/pay on the MERCHANT surface, where the
+  // payer was a free-text field on a merchant credential (RA-053). The payer is
+  // now this session's consumer and appears in no request body.
   // ---------------------------------------------------------------------------
+
+  /// Pay a structured Banzami QR from the signed-in consumer's wallet.
+  ///
+  /// [payload] is the scanned string, exactly as read from the code. It names
+  /// the RECIPIENT; who is paying comes from the session, so there is nothing
+  /// here that can name another payer.
+  ///
+  /// [amountMinor] applies only to a static (open-amount) code, where the payer
+  /// chooses. A dynamic code carries a fixed amount in its signed record and the
+  /// server ignores any amount sent with it — the point of a fixed-amount code
+  /// is that the payer cannot change what they were asked for.
+  Future<QrPayment> payStructuredQr(
+    String payload, {
+    int? amountMinor,
+    String? idempotencyKey,
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/qr/pay',
+      body: <String, dynamic>{
+        'payload': payload,
+        'idempotency_key': idempotencyKey ?? _uuid.v4(),
+        if (amountMinor != null) 'amount_minor': amountMinor,
+      },
+    );
+    return QrPayment.fromJson(json);
+  }
 
   // Pre-protocol P2P bill-division (P2P-002) was retired in favour of BANZA
   // Collections (ADR-036). Dividing a bill is a merchant feature now
