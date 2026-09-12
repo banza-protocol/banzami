@@ -543,6 +543,28 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Deleting</strong> is only possible when the workspace is genuinely empty. A workspace with history is archived; one that never held anything disappears.</LI>
               </UL>
 
+              <H3 id="activity">Workspace activity</H3>
+              <P>
+                Under <Code>Settings · Activity</Code>, the workspace's administrative record: who
+                changed what, to whom, and when. Invitations, joins and departures, role changes
+                and removals, and the changes made to the workspace itself, to its projects and to
+                its keys. A role change shows <strong>both halves</strong> of the transition — from
+                which role to which — because that is usually the question.
+              </P>
+              <UL>
+                <LI><strong>This workspace and no other.</strong> The record is filtered by the workspace you are already a member of; there is no way to ask for somebody else's.</LI>
+                <LI><strong>Owners and Admins.</strong> Seeing who has access and who granted it is a management question, and those are the roles that can change it too.</LI>
+                <LI><strong>It is nobody's account security history.</strong> Personal sessions, sign-in codes and account settings are not here — they live under <Code>/conta</Code>, and belong to that person alone.</LI>
+                <LI><strong>No secrets.</strong> A key that was created appears as an event; its value, its prefix and webhook secrets appear nowhere.</LI>
+                <LI><strong>Permanent.</strong> It cannot be edited or deleted from the Console, and it outlives what it describes: a deleted project still appears here.</LI>
+              </UL>
+              <Callout>
+                <strong>Activity is not Logs.</strong> Activity answers "who has authority here, and
+                who gave it to them" — workspace administration. <Code>Logs</Code> answers "what did
+                my application ask the API" — one project's integration traffic. They are different
+                pages because they are different questions.
+              </Callout>
+
               <H3 id="project">Projects</H3>
               <P>
                 The project is the unit of integration: one application, one set of keys, its
@@ -602,7 +624,7 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Balances</strong> shows the accounts of the owner your project is bound to, and what is in each.</LI>
                 <LI><strong>Transactions</strong> shows the project&rsquo;s real movement — not a sample, not an example.</LI>
-                <LI><strong>Logs</strong> lists the requests your key made to the API, with <Code>request_id</Code>. It is the first place to open when something answered what you did not expect.</LI>
+                <LI><strong>Logs</strong> lists the requests your key made to the API, with <Code>request_id</Code>. It is the first place to open when something answered what you did not expect. For who changed what in the workspace, that is <a href="#activity" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Activity</a> — a different question, a different page.</LI>
               </UL>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 No Console page renders illustrative data. If a list is empty it is because there

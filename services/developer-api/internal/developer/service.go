@@ -438,7 +438,11 @@ func (s *Service) SetMemberRole(ctx context.Context, actor, wsID, targetUser, ne
 	if err := s.store.SetMemberRole(ctx, wsID, targetUser, newRole); err != nil {
 		return ErrUnavailable
 	}
-	s.audit(ctx, &actor, &wsID, nil, "member.role_changed", "USER:"+targetUser, ip, reqID, map[string]any{"role": newRole})
+	// Both roles, not just the new one. "changed to VIEWER" does not say whether
+	// someone was demoted from OWNER or promoted from nothing, and the reader of
+	// an audit trail is usually asking exactly that.
+	s.audit(ctx, &actor, &wsID, nil, "member.role_changed", "USER:"+targetUser, ip, reqID,
+		map[string]any{"role": newRole, "previous_role": target.Role})
 	return nil
 }
 
@@ -463,7 +467,10 @@ func (s *Service) RemoveMember(ctx context.Context, actor, wsID, targetUser, ip,
 	if err := s.store.RemoveMember(ctx, wsID, targetUser); err != nil {
 		return ErrUnavailable
 	}
-	s.audit(ctx, &actor, &wsID, nil, "member.removed", "USER:"+targetUser, ip, reqID, nil)
+	// The role they held is the thing you want when reading back why a removal
+	// mattered; after the row is gone there is nowhere else to find it.
+	s.audit(ctx, &actor, &wsID, nil, "member.removed", "USER:"+targetUser, ip, reqID,
+		map[string]any{"previous_role": target.Role})
 	return nil
 }
 

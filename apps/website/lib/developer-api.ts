@@ -178,6 +178,28 @@ export type Workspace = { id: string; name: string; slug: string; status: string
  */
 export type Member = { user_id: string; role: string; status: string; name?: string; email?: string };
 
+// One administrative change in a workspace, as the Console renders it.
+//
+// Deliberately not the audit row: no IP, no request id, no raw metadata. The
+// server decides what a workspace admin may read and this type is the shape of
+// that decision — widening it here would not widen what arrives.
+export type ActivityEvent = {
+  id: string;
+  action: string;
+  created_at: string;
+  actor_user_id?: string;
+  actor_name?: string;
+  actor_email?: string;
+  // target_kind says how to read target_ref: USER, PROJECT, APIKEY, WORKSPACE
+  // or INVITE. An invited address arrives as target_email with no ref.
+  target_kind?: string;
+  target_ref?: string;
+  target_name?: string;
+  target_email?: string;
+  role?: string;
+  previous_role?: string;
+};
+
 /**
  * An invite the workspace has out, to a person who has not accepted yet.
  *
@@ -555,6 +577,21 @@ export const developerApi = {
 
   // Members + invites
   listMembers: (wsID: string) => req<{ members: Member[] }>(`/workspaces/${wsID}/members`),
+
+  // The workspace's administrative history — who changed what, to whom, when.
+  //
+  // Console-internal, like everything else in this client: it reads the same
+  // session-authenticated developer-api the rest of the portal reads. This is
+  // NOT part of the public Developer API, which stays at v1 and has no route
+  // for one workspace's membership history.
+  //
+  // Distinct from `/projects/{id}/logs`, which is integration traffic: API
+  // requests a key made. This answers a different question — who has authority
+  // here, and who gave it to them.
+  workspaceActivity: (wsID: string, cursor?: string) =>
+    req<{ events: ActivityEvent[]; next_cursor?: string }>(
+      `/workspaces/${wsID}/activity${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`,
+    ),
   invite: (wsID: string, email: string, role: string, csrf: string) =>
     req<{ invite_id: string; email: string; role: string; token: string }>(
       `/workspaces/${wsID}/members`,

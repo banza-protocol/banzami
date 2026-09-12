@@ -25,6 +25,15 @@ type memStore struct {
 	webhookEndpoints map[string]*memWebhookEndpoint
 
 	Audits []AuditEvent
+	// auditStamps carries the id and time the database would have assigned, in
+	// step with Audits. Kept alongside rather than inside AuditEvent so existing
+	// tests that read m.Audits keep reading exactly what was written.
+	auditStamps []memAuditStamp
+}
+
+type memAuditStamp struct {
+	id string
+	at time.Time
 }
 
 // memWebhookEndpoint keeps the owner and the stored secret beside the view, so
@@ -329,8 +338,69 @@ func (m *memStore) RevokeInvite(_ context.Context, workspaceID, inviteID string)
 func (m *memStore) InsertAudit(_ context.Context, ev AuditEvent) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	m.seq++
 	m.Audits = append(m.Audits, ev)
+	m.auditStamps = append(m.auditStamps, memAuditStamp{
+		id: "aud_" + strconv.Itoa(m.seq),
+		at: time.Now().UTC(),
+	})
 	return nil
+}
+
+// WorkspaceActivity mirrors the SQL: one workspace, allow-listed actions only,
+// newest first, and the same allow-listed metadata. Scoping is enforced here for
+// the same reason it is enforced in the query — a store that let a test read
+// another workspace's rows would make the isolation tests pass on a fiction.
+func (m *memStore) WorkspaceActivity(_ context.Context, workspaceID string, actions []string, before *time.Time, limit int) ([]ActivityEvent, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	allowed := map[string]bool{}
+	for _, a := range actions {
+		allowed[a] = true
+	}
+	person := map[string]Member{}
+	for _, mem := range m.members {
+		person[mem.UserID] = *mem
+	}
+
+	var out []ActivityEvent
+	for i := len(m.Audits) - 1; i >= 0; i-- {
+		ev := m.Audits[i]
+		if ev.WorkspaceID == nil || *ev.WorkspaceID != workspaceID || !allowed[ev.Action] {
+			continue
+		}
+		st := m.auditStamps[i]
+		if before != nil && !st.at.Before(*before) {
+			continue
+		}
+		a := ActivityEvent{ID: st.id, Action: ev.Action, CreatedAt: st.at}
+		if ev.ActorUserID != nil {
+			a.ActorUserID = *ev.ActorUserID
+			if p, ok := person[a.ActorUserID]; ok {
+				a.ActorName, a.ActorEmail = p.Name, p.Email
+			}
+		}
+		a.Role, a.PreviousRole = activityMetadata(ev.Metadata)
+		a.TargetKind, a.TargetRef = splitSubject(ev.Subject)
+		switch a.TargetKind {
+		case "USER":
+			if p, ok := person[a.TargetRef]; ok {
+				a.TargetName, a.TargetEmail = p.Name, p.Email
+			}
+		case "EMAIL":
+			a.TargetEmail, a.TargetRef = a.TargetRef, ""
+		case "PROJECT":
+			if pr, ok := m.projects[a.TargetRef]; ok && pr.WorkspaceID == workspaceID {
+				a.TargetName = pr.Name
+			}
+		}
+		out = append(out, a)
+		if len(out) >= limit {
+			break
+		}
+	}
+	return out, nil
 }
 
 // ── projects ─────────────────────────────────────────────────────────────────

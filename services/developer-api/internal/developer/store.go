@@ -404,6 +404,16 @@ type Store interface {
 
 	InsertAudit(ctx context.Context, ev AuditEvent) error
 
+	// WorkspaceActivity reads back what InsertAudit wrote, for one workspace.
+	//
+	// The filter is (workspace_id, action) and the caller supplies the action
+	// list, so the set of actions a workspace admin can see is decided in one
+	// reviewable place in the service rather than by whatever happens to be in
+	// the table. `before` pages backwards through created_at; `limit` is the
+	// page size the caller asked for plus one, so it can tell whether more
+	// exists without a second count.
+	WorkspaceActivity(ctx context.Context, workspaceID string, actions []string, before *time.Time, limit int) ([]ActivityEvent, error)
+
 	// Webhook visibility (ADR-051 follow-up).
 	//
 	// These read the gateway's webhook tables directly, scoped by the merchant

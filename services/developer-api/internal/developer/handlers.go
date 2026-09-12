@@ -238,6 +238,7 @@ func (h *Handlers) Mount(r chi.Router, csrf func(http.Handler) http.Handler) {
 	r.Get("/workspaces/{wsID}", h.getWorkspace)
 	r.Get("/workspaces/{wsID}/members", h.listMembers)
 	r.Get("/workspaces/{wsID}/invites", h.listInvites)
+	r.Get("/workspaces/{wsID}/activity", h.workspaceActivity)
 	r.Get("/workspaces/{wsID}/projects", h.listProjects)
 	r.Get("/projects/{projID}", h.getProject)
 	r.Get("/projects/{projID}/keys", h.listKeys)
@@ -1001,6 +1002,28 @@ func (h *Handlers) leaveWorkspace(w http.ResponseWriter, r *http.Request) {
 }
 
 // ── members / invites ────────────────────────────────────────────────────────
+
+// GET /workspaces/{wsID}/activity — who changed what, to whom, and when.
+//
+// Console-internal, like every other route in this file: session-authenticated,
+// no /v1 prefix, not part of the public Developer API. The public API stays v1
+// and has no business exposing one workspace's administrative history.
+//
+// The service refuses a non-manager and a non-member identically, so this
+// handler has no membership logic of its own to get wrong.
+func (h *Handlers) workspaceActivity(w http.ResponseWriter, r *http.Request) {
+	u, _ := actor(r)
+	page, err := h.svc.WorkspaceActivity(r.Context(), u.ID, chi.URLParam(r, "wsID"), r.URL.Query().Get("cursor"))
+	if err != nil {
+		mapErr(w, err)
+		return
+	}
+	out := map[string]any{"events": page.Events}
+	if page.NextCursor != "" {
+		out["next_cursor"] = page.NextCursor
+	}
+	httpx.JSON(w, http.StatusOK, out)
+}
 
 func (h *Handlers) listMembers(w http.ResponseWriter, r *http.Request) {
 	u, _ := actor(r)

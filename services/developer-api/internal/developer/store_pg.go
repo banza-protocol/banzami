@@ -1357,3 +1357,166 @@ func (s *pgStore) APIRequestLogSummary(ctx context.Context, projectID string, f 
 	}
 	return out, rows.Err()
 }
+
+// WorkspaceActivity reads back the administrative history of one workspace.
+//
+// Three things are deliberate here.
+//
+// The WHERE clause is (workspace_id, action, created_at) and nothing else. The
+// workspace filter is the tenant boundary — it is a predicate on the indexed
+// column, not a check applied to rows after they are read — so there is no
+// ordering of parameters in which Workspace A receives a row belonging to B.
+//
+// request_ip and request_id are not selected. They are operational metadata
+// kept for incident work; a workspace admin asking who changed a role is not
+// asking where their colleague was sitting, and a column that is never selected
+// cannot be leaked by a later change to the projection.
+//
+// Names are resolved in a second and third query rather than by joining. Joining
+// identity_users on a substring of the subject would mean casting text to uuid
+// inside a join condition, where a single malformed subject takes down the whole
+// page; and the project lookup is scoped to this workspace as well, so a subject
+// naming somebody else's project resolves to no name rather than to theirs.
+func (s *pgStore) WorkspaceActivity(ctx context.Context, workspaceID string, actions []string, before *time.Time, limit int) ([]ActivityEvent, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT a.id::text, a.action, a.created_at,
+		        COALESCE(a.actor_user_id::text, ''), COALESCE(a.subject, ''),
+		        COALESCE(a.metadata, '{}'::jsonb)
+		   FROM developer.audit_events a
+		  WHERE a.workspace_id = $1
+		    AND a.action = ANY($2)
+		    AND ($3::timestamptz IS NULL OR a.created_at < $3::timestamptz)
+		  ORDER BY a.created_at DESC, a.id DESC
+		  LIMIT $4`, workspaceID, actions, before, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []ActivityEvent
+	userIDs, projectIDs := map[string]bool{}, map[string]bool{}
+	for rows.Next() {
+		var ev ActivityEvent
+		var subject string
+		var meta []byte
+		if err := rows.Scan(&ev.ID, &ev.Action, &ev.CreatedAt, &ev.ActorUserID, &subject, &meta); err != nil {
+			return nil, err
+		}
+		var m map[string]any
+		if len(meta) > 0 {
+			_ = json.Unmarshal(meta, &m) // a row with unreadable metadata is still an event
+		}
+		ev.Role, ev.PreviousRole = activityMetadata(m)
+		ev.TargetKind, ev.TargetRef = splitSubject(subject)
+		switch ev.TargetKind {
+		case "USER":
+			if isUUID(ev.TargetRef) {
+				userIDs[ev.TargetRef] = true
+			}
+		case "EMAIL":
+			// The invited address. A manager who sent the invitation already
+			// sees it on the invites list; nothing new is disclosed by naming
+			// who the invitation was for.
+			ev.TargetEmail, ev.TargetRef = ev.TargetRef, ""
+		case "PROJECT":
+			if isUUID(ev.TargetRef) {
+				projectIDs[ev.TargetRef] = true
+			}
+		}
+		// isUUID guards both ::uuid[] casts below: one malformed id sent to
+		// Postgres would fail the whole lookup and blank every name on the page.
+		if isUUID(ev.ActorUserID) {
+			userIDs[ev.ActorUserID] = true
+		}
+		out = append(out, ev)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if len(out) == 0 {
+		return nil, nil
+	}
+
+	people, err := s.identityNames(ctx, keysOf(userIDs))
+	if err != nil {
+		return nil, err
+	}
+	projects, err := s.projectNames(ctx, workspaceID, keysOf(projectIDs))
+	if err != nil {
+		return nil, err
+	}
+	for i := range out {
+		if p, ok := people[out[i].ActorUserID]; ok {
+			out[i].ActorName, out[i].ActorEmail = p.name, p.email
+		}
+		switch out[i].TargetKind {
+		case "USER":
+			if p, ok := people[out[i].TargetRef]; ok {
+				out[i].TargetName, out[i].TargetEmail = p.name, p.email
+			}
+		case "PROJECT":
+			out[i].TargetName = projects[out[i].TargetRef]
+		}
+	}
+	return out, nil
+}
+
+type identityName struct{ name, email string }
+
+// identityNames resolves user ids to a name and an address.
+//
+// Only the two fields the activity list renders. identity_users holds an account's
+// own security state as well, and a query that selected the row would put that
+// state one careless line away from a workspace-scoped surface.
+func (s *pgStore) identityNames(ctx context.Context, ids []string) (map[string]identityName, error) {
+	out := map[string]identityName{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT id::text, COALESCE(name, ''), COALESCE(email, '')
+		   FROM account_identity.identity_users WHERE id = ANY($1::uuid[])`, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, name, email string
+		if err := rows.Scan(&id, &name, &email); err != nil {
+			return nil, err
+		}
+		out[id] = identityName{name: name, email: email}
+	}
+	return out, rows.Err()
+}
+
+// projectNames resolves project ids to display names, within one workspace.
+func (s *pgStore) projectNames(ctx context.Context, workspaceID string, ids []string) (map[string]string, error) {
+	out := map[string]string{}
+	if len(ids) == 0 {
+		return out, nil
+	}
+	rows, err := s.pool.Query(ctx,
+		`SELECT id::text, name FROM developer.dev_projects
+		  WHERE workspace_id = $1 AND id = ANY($2::uuid[])`, workspaceID, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, err
+		}
+		out[id] = name
+	}
+	return out, rows.Err()
+}
+
+func keysOf(m map[string]bool) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	return out
+}

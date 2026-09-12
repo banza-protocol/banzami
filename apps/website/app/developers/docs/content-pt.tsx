@@ -669,6 +669,28 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Apagar</strong> só é possível se o workspace estiver realmente vazio. Um workspace com história arquiva-se; um que nunca teve nada desaparece.</LI>
               </UL>
 
+              <H3 id="atividade">Atividade do workspace</H3>
+              <P>
+                Em <Code>Configurações · Atividade</Code>, o registo administrativo do workspace:
+                quem mudou o quê, a quem e quando. Convites, entradas e saídas, mudanças de papel
+                e remoções, e as alterações ao próprio workspace, aos seus projetos e às suas
+                chaves. Uma mudança de papel mostra <strong>os dois lados</strong> da transição —
+                de que papel para que papel — porque é normalmente essa a pergunta.
+              </P>
+              <UL>
+                <LI><strong>É deste workspace e de mais nenhum.</strong> O registo é filtrado pelo workspace de que já é membro; não há forma de pedir o de outro.</LI>
+                <LI><strong>Proprietários e Administradores.</strong> Ver quem tem acesso e quem o concedeu é uma questão de gestão, e são esses os papéis que também o podem alterar.</LI>
+                <LI><strong>Não é o histórico de segurança de ninguém.</strong> Sessões pessoais, códigos de entrada e definições de conta não estão aqui — pertencem a <Code>/conta</Code>, e só à própria pessoa.</LI>
+                <LI><strong>Não mostra segredos.</strong> Uma chave criada aparece como acontecimento; o seu valor, o seu prefixo e os segredos de webhook não aparecem em lado nenhum.</LI>
+                <LI><strong>Permanente.</strong> Não se edita nem se apaga a partir da Consola, e sobrevive ao que descreve: um projeto eliminado continua a aparecer aqui.</LI>
+              </UL>
+              <Callout>
+                <strong>Atividade não é Registos.</strong> Atividade responde a «quem tem autoridade
+                aqui, e quem lha deu» — é administração do workspace. <Code>Registos</Code> responde
+                a «o que é que a minha aplicação pediu à API» — é tráfego de integração de um
+                projeto. São páginas diferentes porque são perguntas diferentes.
+              </Callout>
+
               <H3 id="projeto">Projetos</H3>
               <P>
                 O projeto é a unidade de integração: uma aplicação, um conjunto de chaves, os seus
@@ -728,7 +750,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI><strong>Saldos</strong> mostra as contas do titular a que o projeto está ligado, e o que há em cada uma.</LI>
                 <LI><strong>Transações</strong> mostra o movimento real do projeto — não uma amostra, não um exemplo.</LI>
-                <LI><strong>Registos</strong> lista os pedidos que a sua chave fez à API, com <Code>request_id</Code>. É o primeiro sítio a abrir quando algo responde o que não esperava.</LI>
+                <LI><strong>Registos</strong> lista os pedidos que a sua chave fez à API, com <Code>request_id</Code>. É o primeiro sítio a abrir quando algo responde o que não esperava. Para quem mudou o quê no workspace, é a <a href="#atividade" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Atividade</a> — outra pergunta, outra página.</LI>
               </UL>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 Nenhuma página da Consola apresenta dados ilustrativos. Se uma lista está vazia, é

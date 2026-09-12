@@ -43,11 +43,16 @@ export const NOTE: CSSProperties = {
 
 // ── navigation between the two surfaces ──────────────────────────────────────
 
-export type SettingsTab = 'project' | 'workspace';
+export type SettingsTab = 'project' | 'workspace' | 'activity';
 
 const TABS: { key: SettingsTab; label: string; href: string }[] = [
   { key: 'project', label: 'Projeto', href: '/settings' },
   { key: 'workspace', label: 'Workspace', href: '/settings/workspace' },
+  // Atividade sits beside Workspace because that is what it is about: who holds
+  // authority here and who granted it. It is not Registos — that page is the
+  // integration traffic a key made, and putting the two on one screen would
+  // answer "who changed the team" with a list of HTTP calls.
+  { key: 'activity', label: 'Atividade', href: '/settings/activity' },
 ];
 
 /**
