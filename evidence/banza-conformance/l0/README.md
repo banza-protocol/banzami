@@ -10,6 +10,14 @@ official BANZA conformance suite against the Banzami **sandbox** operator. Banza
 runs the suite as an **operator candidate** — to demonstrate that the sandbox is
 reference-compatible at Level 0. The result is **evidence, not certification.**
 
+> **Status (2026-09-13): the operator host is intentionally offline.**
+> `sandbox-operator.banzami.com` answers `503` from the Stage B public-routing
+> guard, the same deliberate maintenance response as the other offline
+> subdomains. The report below is the record of the run of 2026-06-26 and stays
+> valid as evidence of that run; it is not a claim that the endpoints are being
+> served today. Bringing the host back is `./deploy.sh sandbox-operator` plus
+> loading `infra/nginx/zz-sandbox-operator.conf` on the website proxy.
+
 > **Operator host: `sandbox-operator.banzami.com`** (dedicated; no hybrid). The
 > current run is stored under
 > [`20260626-2246-sandbox-operator-banzami-com/`](20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json)

@@ -17,6 +17,12 @@
  * 1.3-only, which would cut off legitimate modern clients for no proven product
  * requirement.
  *
+ * It also holds the two things the 2026-09-13 control-plane audit fixed, so
+ * neither can quietly come back: plain HTTP must redirect rather than error,
+ * and no public record may resolve to the origin IP. `ftp.banzami.com` was a
+ * zone-import leftover that CNAME'd to the apex, which Cloudflare flattened to
+ * 217.160.9.248 — publishing the address of the machine behind the proxy.
+ *
  *   node tools/check-tls-floor.mjs
  *   BZ_TLS_FLOOR=1.3 node tools/check-tls-floor.mjs   # only with a reason to
  */
@@ -121,6 +127,34 @@ for (const host of HOSTS) {
   else { console.error(`  ✗ ${host} — accepts TLS ${lowest}, below the floor of ${FLOOR} (${accepted.join(', ')})`); failures += 1; }
 }
 
+// ── plain HTTP redirects, and the origin stays hidden ────────────────────────
+//
+// Both were true findings of the control-plane audit: every host answered
+// http:// with 400 because the origin rules point at TLS ports, and one record
+// resolved straight to the origin. Asserted here because a zone setting can be
+// changed back by anyone with the dashboard.
+const ORIGIN_IP = process.env.BZ_ORIGIN_IP ?? '217.160.9.248';
+for (const host of HOSTS) {
+  let code = '', location = '';
+  try {
+    const out = execFileSync('curl', ['-s', '-o', '/dev/null', '-w', '%{http_code}|%{redirect_url}',
+      '--max-time', '15', `http://${host}/`], { encoding: 'utf8' });
+    [code, location] = out.split('|');
+  } catch { code = 'error'; }
+  const ok = code === '301' && location.startsWith('https://');
+  if (ok) console.log(`  ✓ ${host} — http:// redirects to ${location}`);
+  else { console.error(`  ✗ ${host} — http:// answered ${code}${location ? ` → ${location}` : ''}, expected a 301 to https`); failures += 1; }
+}
+for (const host of HOSTS) {
+  let addrs = '';
+  try { addrs = execFileSync('dig', ['+short', host, 'A'], { encoding: 'utf8' }); } catch { /* no dig, skip */ }
+  if (addrs.includes(ORIGIN_IP)) {
+    console.error(`  ✗ ${host} resolves to the origin ${ORIGIN_IP} — the proxy is bypassable for this name`);
+    failures += 1;
+  }
+}
+
+
 const worst = rows.reduce((w, r) => (ORDER.indexOf(r.lowest) < ORDER.indexOf(w) ? r.lowest : w), '1.3');
 const countAccepting = (v) => rows.filter((r) => r.accepted.includes(v)).length;
 console.log(`\nTLS_FLOOR_REQUIRED=${FLOOR}`);
@@ -130,6 +164,8 @@ console.log(`TLS_1_0_ACCEPTED_HOSTS=${countAccepting('1.0')}`);
 console.log(`TLS_1_1_ACCEPTED_HOSTS=${countAccepting('1.1')}`);
 console.log(`TLS_1_2_REQUIRED_HOSTS=${rows.filter((r) => r.lowest === '1.2').length}/${HOSTS.length}`);
 console.log(`TLS_1_3_SUPPORTED_HOSTS=${countAccepting('1.3')}/${HOSTS.length}`);
+console.log(`PLAIN_HTTP_NOT_REDIRECTED_HOSTS=${failures ? '(see above)' : 0}`);
+console.log(`ORIGIN_IP_EXPOSED_HOSTS=${failures ? '(see above)' : 0}`);
 
 // The handshakes, written down. SEC-001 was VALIDATED on a config file nobody
 // had compared against a server; an assertion about TLS is worth what the

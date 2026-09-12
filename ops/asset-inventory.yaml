@@ -155,14 +155,24 @@ ci_cd:
 
 edge_and_dns:
   - id: cloudflare-zone-banzami-com
-    purpose: banzami.com DNS + proxy + public TLS termination
+    purpose: banzami.com DNS + proxy + public TLS termination + origin routing
     lifecycle: active-required
     note: >-
       The public TLS policy lives here, not in origin nginx: Minimum TLS Version
       = 1.2 and TLS 1.3 = on (set 2026-09-12; it had been 1.0 since the zone was
       created, so every public host completed a TLS 1.0 handshake while SEC-001
-      read VALIDATED on an origin config file). Proved by handshake, per host, by
-      tools/check-tls-floor.mjs. Full record/rule audit still pending (Phase 3/6).
+      read VALIDATED on an origin config file). SSL mode is Full (strict).
+      Control plane audited end to end on 2026-09-13 — see
+      docs/quality/IMPLEMENTATION_MATRIX_CLOSURE.md §14. The zone holds exactly
+      one zone-owned ruleset (Origin Rules, three port-only routes) and no
+      redirect, transform, cache, rate-limit or custom-WAF ruleset, no page
+      rules, no Worker routes and no Access apps; redirects and rate limits are
+      the application's. always_use_https was turned on in that audit (every host
+      had been answering plain HTTP with 400), and ftp.banzami.com was removed —
+      a zone-import leftover that CNAME'd to the apex and was flattened to the
+      origin IP. tools/check-tls-floor.mjs holds all three by external probe:
+      the TLS floor, the http->https redirect, and no public name resolving to
+      the origin.
   - id: dns-banza-network
     purpose: BANZA protocol site
     lifecycle: active-required

@@ -418,6 +418,192 @@ Stated so the verdict is not read as covering more than it does.
 - **The ten external dependencies are real.** The Sandbox verdict is about the
   currently declared Sandbox scope. Money In and Money Out cannot be launched on
   this evidence, and nothing here claims otherwise.
-- **The Cloudflare zone's full record and rule audit remains pending** (Phase 3/6
-  in `ops/asset-inventory.yaml`). What is proved is the TLS floor, per host, by
-  handshake.
+- **The Cloudflare control plane was audited on 2026-09-13** — see §14. It is no
+  longer pending.
+- **`sandbox-operator.banzami.com` is intentionally offline** and answers 503
+  from the Stage B routing guard. The BANZA L0 conformance evidence remains a
+  valid record of the run of 2026-06-26; it is not a claim that those endpoints
+  are served today, and the L0 README now says so.
+
+
+---
+
+## 14. Cloudflare control plane — audited 2026-09-13
+
+Audited end to end on the authenticated account, zone `banzami.com`
+(`474867913af985e647cfcf09da452f9e`). Every finding below was confirmed by
+external probe, not by reading the dashboard.
+
+### What the zone actually holds
+
+| Surface | State |
+|---|---|
+| DNS records | 22 after the change (23 before) |
+| Zone-owned rulesets | **one** — Origin Rules, three rules, port-only |
+| Redirect rules | **none** (`http_request_dynamic_redirect`: no ruleset) |
+| Transform rules | **none** (request, late-request and response phases) |
+| Cache rules | **none** (`http_request_cache_settings`: no ruleset) |
+| Rate-limit rules | **none** (`http_ratelimit`: no ruleset) |
+| Custom WAF rules | **none** (`http_request_firewall_custom`: no ruleset) |
+| Page rules · Worker routes | **none** · **none** |
+| Access | not enabled on the account |
+| Certificates | universal, `banzami.com` + `*.banzami.com`, Google (active) + Let's Encrypt (backup). No custom or origin-auth certs |
+| SSL mode | **Full (strict)** — the origin certificate is validated |
+
+Redirects and rate limits are therefore **the application's**, not the edge's.
+Nothing at Cloudflare can rewrite a destination, so §8's requirement that edge
+limits must not contradict an application contract is satisfied by there being
+no edge limits at all. No new public limit was invented and none is documented.
+
+### DNS, classified
+
+| Class | Records |
+|---|---|
+| **CANONICAL_PRODUCT** (proxied) | `banzami.com`, `www`, `developers`, `developer-api`, `api`, `sandbox-api`, `sandbox-operator`, `sandbox-webhook`, `pay`, `checkout`, `admin` — all A/CNAME → the origin, all proxied |
+| **EXTERNAL_PROVIDER** (unproxied) | `mail` (mail provider), `imap`/`pop`/`smtp` → `mail`, `banzami.com` MX, `send` MX + SPF (Amazon SES / Resend), SPF, DKIM, `resend._domainkey`, DMARC |
+| **INFRASTRUCTURE_REQUIRED** | the certificate the universal pack covers; no separate validation records needed |
+| **STALE** | **`ftp.banzami.com`** — removed, see below |
+| **UNKNOWN** | none |
+
+```
+CLOUDFLARE_UNKNOWN_PRODUCT_RECORDS=0     CLOUDFLARE_STALE_PRODUCT_RECORDS=0
+```
+
+The mail statement from the TLS audit is **verified**: `mail`, `smtp`, `imap`,
+`pop` are unproxied provider records outside the web TLS boundary. They are not
+removed — the MX, SPF, DKIM and DMARC set is live and nothing proves them
+unused; SMTP/IMAP ports are unreachable from this network, which is not evidence
+of disuse. No provider credential or mail configuration detail appears here.
+
+### Two things were wrong, and both are fixed
+
+**`ftp.banzami.com` disclosed the origin.** A zone-import leftover from
+2026-06-21, a CNAME to the apex, unproxied — which Cloudflare flattened to
+`217.160.9.248`, publishing the address of the machine behind the proxy. It is
+referenced nowhere in the repository, nothing listens on 21 or 990 at the origin,
+and port 21 is closed from outside. Proven stale and actively harmful: **deleted**.
+No other public name resolves to the origin.
+
+**Plain HTTP returned 400 on every host.** `always_use_https` was off and the
+Origin Rules point at TLS ports, so `http://` produced an error rather than a
+redirect. **Turned on.** All eleven hosts now `301` to their own HTTPS URL.
+
+Both are Cloudflare-only. **No application source changed and nothing was
+redeployed** — §16 respected.
+
+### Routing
+
+Three Origin Rules, each naming its hosts with `eq` and overriding **only the
+port**, never the origin host:
+
+```
+banzami.com, www.banzami.com                → :8443   (website)
+developers.banzami.com                       → :8443   (Console)
+sandbox-api, developer-api, sandbox-webhook,
+pay, checkout, admin                         → :2053   (sandbox edge)
+```
+
+`api.banzami.com` and `sandbox-operator.banzami.com` are in no rule and fall to
+:443, where the Stage B guard answers 503. No rule can route one hostname to
+another's origin, and there is no rule, record or route of any kind for a
+retired dashboard — `dashboard.banzami.com` is NXDOMAIN, as are `docs`,
+`staging`, `app`, `business`, `console`, `webhook` and `status`.
+
+```
+CLOUDFLARE_RETIRED_DASHBOARD_ROUTES=0    CLOUDFLARE_UNKNOWN_ORIGIN_ROUTES=0
+```
+
+### Redirects
+
+There are no Cloudflare redirect rules, so the audit was run against the
+behaviour instead. Every chain terminates in at most two hops at a 200, and no
+query parameter steers a destination:
+
+```
+http://www.banzami.com/       → 2 hops → https://banzami.com/      200
+http://checkout.banzami.com/  → 2 hops → https://pay.banzami.com/  200
+?redirect= / ?next= / ?returnTo=https://evil.example  → no Location header
+Host: evil.example                                    → 403
+```
+
+```
+CLOUDFLARE_OPEN_REDIRECT_RULES=0   CLOUDFLARE_REDIRECT_LOOPS=0
+CLOUDFLARE_REDIRECTS_TO_RETIRED_SURFACES=0
+```
+
+### Security rules
+
+The managed WAF ruleset has **31 rules, every one enabled and every one
+`block`**, with no override, no skip and no exception. The DDoS L7 ruleset is
+Cloudflare-managed; its one disabled rule and its `blockme=` signature are
+Cloudflare's own shipped defaults, present in every zone, not operator
+additions. There is no custom firewall ruleset, so there is nowhere for a
+temporary bypass, a test IP exception or a stale developer allowance to live.
+`development_mode` is **off**.
+
+```
+CLOUDFLARE_TEMPORARY_SECURITY_BYPASSES=0   CLOUDFLARE_RETIRED_HOST_SECURITY_RULES=0
+```
+
+*(The legacy `waf` zone toggle reads `off`. That is the deprecated pre-ruleset
+switch; the modern managed ruleset above is what is active. Naming it here so
+the value is not read later as a disabled protection.)*
+
+### Cache
+
+Probed with real requests rather than inferred from `cache_level`:
+
+| Surface | Result |
+|---|---|
+| Console `/dashboard` | `cf-cache-status: DYNAMIC` · `private, no-cache, no-store` |
+| `developer-api /auth/me` | `DYNAMIC` |
+| gateway `/v1/me` with a bearer token | `DYNAMIC` |
+| consumer `/v1/me` | `DYNAMIC` |
+| BANZADMIN, pay, docs | `DYNAMIC` · `private, no-cache, no-store` |
+| published OpenAPI | `DYNAMIC` · `public, max-age=0` |
+
+```
+AUTHENTICATED_PRIVATE_RESPONSE_PUBLIC_CACHE=0   SECRET_BEARING_RESPONSE_CACHE=0
+```
+
+### Host exposure
+
+Every canonical host answers its intended public state, and nothing else is
+exposed:
+
+```
+banzami.com 200 · www 301→apex · developers 200 · pay 200 · admin 200
+checkout 308→pay · developer-api 404 · sandbox-api 404 · sandbox-webhook 404
+api 503 (Financial LIVE, fail-closed) · sandbox-operator 503 (Stage B guard)
+```
+
+The two 503s are different things and both are deliberate: `api.banzami.com`
+serves the Stage B maintenance page as the LIVE fail-closed response, and
+`sandbox-operator.banzami.com` is an offline subdomain named in that same guard.
+The L0 README now states the operator host's offline status rather than
+implying it is live.
+
+### Financial LIVE
+
+No rule, record or route sends `api.banzami.com` to a Sandbox origin: it is in
+no Origin Rule, reaches :443, and gets the maintenance 503. A `bz_live_`
+credential at the deployed gateway is refused **401**.
+
+```
+LIVE_TO_SANDBOX_ROUTING_PATHS=0    LIVE_FAIL_CLOSED=PASS
+```
+
+### TLS, re-confirmed after the changes
+
+```
+TLS_1_0_ACCEPTED_HOSTS=0          TLS_1_1_ACCEPTED_HOSTS=0
+TLS_1_2_REQUIRED_HOSTS=11/11      TLS_1_3_SUPPORTED_HOSTS=11/11
+PLAIN_HTTP_NOT_REDIRECTED_HOSTS=0 ORIGIN_IP_EXPOSED_HOSTS=0
+min_tls_version=1.2  tls_1_3=on  ssl=strict
+```
+
+`tools/check-tls-floor.mjs` now holds all three by external probe — the floor,
+the redirect and the origin's privacy — so a dashboard change cannot quietly
+undo any of them.
+
+**Cloudflare control-plane audit: PASS.**
