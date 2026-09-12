@@ -76,6 +76,18 @@ const englishControlNames = (names) =>
 const hasEnums = (text) => [...new Set(text.match(ENUM_RE) ?? [])]
   .filter((e) => !PRODUCT_NOUNS.includes(e));
 
+// The session is checked before anything prints. The detector selftest below is
+// about this file and not about the product, but a reader counting ticks cannot
+// see that, and a sweep whose first output is a tick is how the false-green runs
+// read. Nothing is printed until there is a live session to print about.
+import { requireLiveSession, assertAuthenticatedShell } from './lib/require-session.mjs';
+
+const session = process.env.BZ_SESSION;
+if (!process.argv.includes('--selftest')) {
+  if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
+  await requireLiveSession(session);
+}
+
 // A sweep run against an empty account passes because there is nothing on the
 // page, not because the page is right — so the detectors prove themselves on
 // fixed strings before the run, and the suite fails if they have gone blind.
@@ -141,12 +153,6 @@ if (process.argv.includes('--selftest')) {
   console.log('\nCONSOLE_LOCALE_SWEEP: selftest only');
   process.exit(0);
 }
-
-import { requireLiveSession, assertAuthenticatedShell } from './lib/require-session.mjs';
-
-const session = process.env.BZ_SESSION;
-if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
-await requireLiveSession(session);
 
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 900 } });

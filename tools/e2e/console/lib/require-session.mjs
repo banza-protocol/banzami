@@ -31,7 +31,7 @@ export async function requireLiveSession(session, api = 'https://developer-api.b
       `✗ the session is not valid (${api}/auth/me -> ${res.status}).\n` +
       '  Every route would render the sign-in page and this sweep would report green\n' +
       '  about a screen with no product on it. Mint a working session and re-run:\n' +
-      '    bash tools/e2e/console/mint-console-session.sh <email> 120',
+      '    node tools/e2e/console/mint-session.mjs',
     );
     process.exit(2);
   }

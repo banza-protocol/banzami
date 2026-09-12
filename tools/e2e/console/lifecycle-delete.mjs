@@ -28,6 +28,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { registerCleanup, cleanupRun } from './lib/run-cleanup.mjs';
 import { assuranceDir } from '../lib/assurance-output.mjs';
+import { mintSession } from './lib/mint.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = 'https://developers.banzami.com';
@@ -44,8 +45,7 @@ const record = (id, ok, observed) => {
 const step = (m) => console.log(`\n${m}`);
 
 const ssh = (s) => execFileSync('ssh', [REMOTE, s], { encoding: 'utf8', maxBuffer: 1 << 24 }).trim();
-const mint = (email) =>
-  execFileSync('bash', [`${HERE}mint-console-session.sh`, email, '90'], { encoding: 'utf8' }).trim().split('\n').pop();
+const mint = (email) => mintSession(email);
 
 async function call(token, path, method = 'GET', body) {
   const headers = { cookie: `__Host-bz_dev_session=${token}` };
@@ -85,12 +85,12 @@ const sql = (statement) => ssh(`${PRELUDE}\n  q ${JSON.stringify(statement)}`).t
 const rowExists = (table, id) => sql(`select count(*) from developer.${table} where id = '${id}'`) === '1';
 
 console.log(`\nWORKSPACE / PROJECT LIFECYCLE — endings proved by absence\n  api ${API}\n  identity ${EMAIL}\n`);
-// The identity first: mint-console-session signs in an account that exists, it
-// does not create one.
-ssh(`${PRELUDE}
-  q "insert into account_identity.identity_users (email, verified, status)
-     select '${EMAIL}', true, 'ACTIVE'
-      where not exists (select 1 from account_identity.identity_users where email='${EMAIL}')" >/dev/null`);
+// The identity comes from signing in. This used to INSERT a row into
+// account_identity.identity_users because the old mint script could only sign in
+// an account that already existed — a harness writing into the authentication
+// store to give itself someone to be. Verifying a code creates the identity on
+// the way through, exactly as it does for a first-time developer, so there is
+// nothing left to insert.
 const token = mint(EMAIL);
 
 const mkWorkspace = async (name) => {

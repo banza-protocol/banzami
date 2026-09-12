@@ -36,6 +36,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 import { join } from 'node:path';
 import { registerCleanup } from '../console/lib/run-cleanup.mjs';
+import { mintSession } from '../console/lib/mint.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const GW = process.env.GW_API ?? 'https://sandbox-api.banzami.com';
@@ -74,7 +75,7 @@ const emailOf = (r) => `receipt-${r}-${stamp}@banzami-e2e.test`;
 registerCleanup({ emailPattern: `receipt-%-${stamp}@banzami-e2e.test`, namePattern: `rcpt-%${stamp}` });
 
 const session = (email) =>
-  execFileSync('bash', [join(HERE, '../console/mint-console-session.sh'), email, '60'], { encoding: 'utf8' }).trim().split('\n').pop();
+  mintSession(email);
 
 async function dev(token, path, method = 'GET', body) {
   const headers = { cookie: `__Host-bz_dev_session=${token}` };

@@ -31,6 +31,7 @@ import { randomInt } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 import { join } from 'node:path';
+import { mintSession } from '../console/lib/mint.mjs';
 
 const GW = process.env.GW_API ?? 'https://sandbox-api.banzami.com';
 const DEVAPI = process.env.DEV_API ?? 'https://developer-api.banzami.com';
@@ -112,7 +113,7 @@ async function main() {
     rec('the application came from that Project', origin === 'DEVELOPER_PROJECT' && projectId === state.projectA, `${origin} ${projectId.slice(0, 8)}`);
     const bound = q(`select merchant_id::text||'|'||state from developer.dev_project_sandbox_binding where project_id='${state.projectA}' and state='ACTIVE'`);
     rec('approval bound the Project to the new Business', bound === `${mid}|ACTIVE` && projectBound === 'true', bound);
-    const sess = execFileSync('bash', [join(HERE, '../console/mint-console-session.sh'), state.owner, '30'], { encoding: 'utf8' }).trim().split('\n').pop();
+    const sess = mintSession(state.owner);
     const fs = await http(DEVAPI, `/projects/${state.projectA}/financial-setup`, { cookie: `__Host-bz_dev_session=${sess}` });
     const bus = fs.body?.onboarding?.business;
     rec('the Console shows that Business on the Project', ['READY', 'BLOCKED'].includes(fs.body?.onboarding?.state) && bus?.handle === `@${handle}` && bus?.verified === true,

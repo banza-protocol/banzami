@@ -25,6 +25,7 @@
  *   node tools/e2e/console/mint-session.mjs --email x  # a specific fixture address
  */
 import { execFileSync } from 'node:child_process';
+import { registerCleanup } from './lib/run-cleanup.mjs';
 
 const API = process.env.BZ_DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = process.env.BZ_CONSOLE ?? 'https://developers.banzami.com';
@@ -40,6 +41,16 @@ if (!email.endsWith('@banzami-e2e.test')) {
 }
 
 const say = (m) => console.error(`  ${m}`);
+
+// The identity this creates is disposable, and something has to dispose of it.
+// Callers that build their own fixtures register their own cleanup and this one
+// is subsumed by it; a bare `node mint-session.mjs` would otherwise leave an
+// account, a session and anything made with them live forever — which is how the
+// residue this whole closure is about accumulates.
+//
+// KEEP_FIXTURE=1 suppresses it, for the one case where the session has to outlive
+// the process that minted it.
+if (!process.env.KEEP_FIXTURE) registerCleanup({ emailPattern: email });
 
 async function post(path, body, cookie) {
   const res = await fetch(API + path, {
@@ -86,8 +97,21 @@ done
   return null;
 }
 
+// Sign-in is rate-limited per IP, which is the product working. A harness that
+// mints several sessions in a row will meet it, and dying there reports a
+// correct refusal as a broken sweep — so it waits the window out rather than
+// asking for an exemption from it.
 const started = Date.now();
-const req = await post('/auth/request-otp', { email });
+// The window is 15 minutes (20 requests per IP), so waiting it out means waiting
+// minutes, not seconds. Sitting through it is the correct behaviour: the limit is
+// the product's, and a harness is not entitled to an exemption from it.
+const ATTEMPTS = 17, SLEEP = 60;
+let req = await post('/auth/request-otp', { email });
+for (let attempt = 0; req.status === 429 && attempt < ATTEMPTS; attempt += 1) {
+  say(`rate-limited by the sign-in throttle — waiting ${SLEEP}s (${attempt + 1}/${ATTEMPTS}; the window is 15 minutes)`);
+  execFileSync('perl', ['-e', `select(undef,undef,undef,${SLEEP})`]);
+  req = await post('/auth/request-otp', { email });
+}
 if (req.status !== 200 && req.status !== 204) {
   console.error(`request-otp answered ${req.status}: ${JSON.stringify(req.json)}`);
   process.exit(1);

@@ -10,9 +10,9 @@
  * being linked is not a page that stops existing.
  *
  * The session is minted rather than typed — that bypasses email delivery and
- * nothing else; see mint-console-session.sh.
+ * nothing else; see tools/e2e/console/mint-session.mjs.
  *
- *   BZ_SESSION=$(bash tools/e2e/console/mint-console-session.sh you@example.com 90 | tail -1) \
+ *   BZ_SESSION=$(node tools/e2e/console/mint-session.mjs | tail -1) \
  *     node tools/e2e/console/route-suite.mjs
  */
 // Playwright lives in the DOA workspace on this machine; the operator repo has

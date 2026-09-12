@@ -28,6 +28,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 import { join } from 'node:path';
 import { registerCleanup } from './lib/run-cleanup.mjs';
+import { mintSession } from './lib/mint.mjs';
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
   ?? '/Users/fm65/doa/node_modules/@playwright/test/index.mjs');
@@ -65,7 +66,7 @@ const KEEP = process.argv.includes('--keep-for-review');
 if (!KEEP) registerCleanup({ emailPattern: `onbui-%-${stamp}@banzami-e2e.test`, namePattern: `onbui-%${stamp}` });
 
 const session = (email) =>
-  execFileSync('bash', [join(HERE, 'mint-console-session.sh'), email, '60'], { encoding: 'utf8' }).trim().split('\n').pop();
+  mintSession(email);
 
 async function call(token, path, method = 'GET', body) {
   const headers = { cookie: `__Host-bz_dev_session=${token}` };

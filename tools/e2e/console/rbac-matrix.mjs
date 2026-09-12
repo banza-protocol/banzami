@@ -28,6 +28,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { registerCleanup } from './lib/run-cleanup.mjs';
+import { mintSession } from './lib/mint.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const ORIGIN = 'https://developers.banzami.com';
@@ -40,8 +41,7 @@ const bad = (m) => { fail += 1; console.error(`  ✗ ${m}`); };
 const step = (m) => console.log(`\n${m}`);
 
 const ssh = (s) => execFileSync('ssh', [REMOTE, s], { encoding: 'utf8', maxBuffer: 1 << 24 });
-const session = (email) =>
-  execFileSync('bash', [`${HERE}mint-console-session.sh`, email, '90'], { encoding: 'utf8' }).trim().split('\n').pop();
+const session = (email) => mintSession(email);
 
 async function call(token, path, method = 'GET', body) {
   const headers = { cookie: `__Host-bz_dev_session=${token}` };

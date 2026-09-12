@@ -21,6 +21,7 @@
  */
 import { execFileSync } from 'node:child_process';
 import { registerCleanup } from './lib/run-cleanup.mjs';
+import { mintSession } from './lib/mint.mjs';
 
 const API = process.env.DEV_API ?? 'https://developer-api.banzami.com';
 const HERE = new URL('.', import.meta.url).pathname;
@@ -34,8 +35,7 @@ const ssh = (script) =>
   execFileSync('ssh', [process.env.BANZAMI_REMOTE ?? 'root@217.160.9.248', script], { encoding: 'utf8', maxBuffer: 1 << 24 });
 
 /** A console session for an account, minted the documented way. */
-const session = (email) =>
-  execFileSync('bash', [`${HERE}mint-console-session.sh`, email, '90'], { encoding: 'utf8' }).trim().split('\n').pop();
+const session = (email) => mintSession(email);
 
 async function api(token, path) {
   const r = await fetch(`${API}${path}`, { headers: { cookie: `__Host-bz_dev_session=${token}` } });
