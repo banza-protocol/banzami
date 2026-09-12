@@ -146,10 +146,10 @@ Public surfaces released: **16/17**. Full external launch requires 17/17.
 - **Public status:** public-sandbox · **Sandbox:** true · **Live:** false
 - **Authority:** operator-extension — Banzami QR engine spec (project_qr_engine)
 - **Threat category:** financial-money-movement
-- **Implementation:** services/api-gateway, apps/mobile
-- **API/UI surface:** POST /v1/qr/static (QR issuance only), POST /v1/qr/dynamic (QR issuance only)
+- **Implementation:** core/api/src/routes/qr_pay.rs, core/qr, services/public-api, services/api-gateway, sdk/flutter
+- **API/UI surface:** POST /v1/qr/static (QR issuance only), POST /v1/qr/dynamic (QR issuance only), POST /v1/qr/pay — public-api Consumer surface
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [] · integration [] · e2e_sandbox [] · negative/security []
+- **Tests:** unit [core/qr engine tests (HMAC sign/verify, resolve_for_payment, claim/release)] · integration [core/api/src/routes/qr_pay_tests.rs (16, real database), services/api-gateway receipt_semantics_test.go (a QR payment's receipt says QR)] · e2e_sandbox [] · negative/security [a payer-supplied amount does not override a fixed-amount code, a second payment of a single-use code moves nothing, a forged signature is refused and does not burn the code, a refused payment rolls the single-use claim back, an expiry edited in the database stops the code verifying]
 - **Evidence:** —
 - **Cleanup disposition:** active-required
 - **External surface:** public · **Disposition:** **pending-e2e**

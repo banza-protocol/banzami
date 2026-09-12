@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { developerApi, type Member } from '@/lib/developer-api';
+import { developerApi, type Invite, type Member } from '@/lib/developer-api';
 import { useDeveloperAuth } from './DeveloperAuth';
 import { useDeveloperData } from './DeveloperData';
 import { useToast, copyText } from './Toast';
@@ -20,30 +20,25 @@ const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 const mono = "'JetBrains Mono', ui-monospace, monospace";
 
 /**
- * The workspace's members, as much of them as the platform can actually answer
- * for.
+ * The workspace's members, by name.
  *
- * GET /workspaces/{wsID}/members returns `{user_id, role, status}` and nothing
- * else — no name, no email — because developer-api's listMembers handler builds
- * that map by hand from a Member row that has no name or email column, and the
- * query behind it (pgStore.Members) never joins dev_users. So this rendered
- * teammates as the first twelve characters of a UUID with an ellipsis, and gave
- * each one an avatar containing the first two characters of that UUID, which
- * read as initials and were not.
+ * GET /workspaces/{wsID}/members now answers with the member's own sign-in
+ * identity — `{user_id, role, status, name, email}` — so a row can say who it is
+ * about instead of showing a truncated UUID to somebody deciding whether to
+ * demote them.
  *
- * There is no way to fix that from here that does not involve inventing a
- * person, so this does not try. What it does instead:
+ * Two shapes come back that are not a name:
  *
- *   * says "Você" against your own row, with the name and email the SESSION
- *     already knows — that is real, and it is the row the reader most needs to
- *     find before pressing Remover;
- *   * says "Membro da equipa" for everyone else, plainly, rather than dressing
- *     a UUID up as a person;
- *   * shows the id as an id — monospaced, copyable — because it is what a
- *     support conversation and the audit log both name.
+ *   * name empty, email set — an account that never set a name. The email is
+ *     the identity then, and the avatar stays the glyph: initials sliced off an
+ *     email are a guess, and that guess was removed from this Console on
+ *     purpose.
+ *   * both empty — the identity row could not be read. That is the server
+ *     declining to answer, so the row says "Membro da equipa" rather than
+ *     dressing the id up as a person.
  *
- * The gap is written up in the report: the fix is a join in pgStore.Members and
- * two fields in the handler's map.
+ * The id stays reachable either way, monospaced and copyable, because it is what
+ * the API takes and what a support conversation and the audit log both name.
  */
 
 /** The member's status, in words. ACTIVE is the only one the list can return —
@@ -68,8 +63,38 @@ function shortId(userID: string): string {
   return userID.length > 10 ? `${userID.slice(0, 8)}…${userID.slice(-4)}` : userID;
 }
 
-/** An invite created in front of the reader, kept only so it can be revoked. */
-type SessionInvite = { id: string; email: string; role: string };
+/**
+ * Who the row is about: the name if there is one, the email if there is not.
+ *
+ * Falls back to words rather than to the id — a UUID in the place a name goes
+ * reads as a person's name and is not one — and the id is offered separately,
+ * as an id.
+ */
+function displayName(m: Member): string {
+  return m.name?.trim() || m.email?.trim() || 'Membro da equipa';
+}
+
+/**
+ * Initials, only from a real name.
+ *
+ * First and last word, so "Fidel Monteiro" is FM and a single name is one
+ * letter. An email is never sliced into initials: "fidel@…" would render as F,
+ * or FM for "fidel.monteiro@…", and neither is anybody's initials — that
+ * ambiguity was removed from this Console deliberately.
+ */
+function initialsOf(name: string | undefined): string | null {
+  const words = (name ?? '').trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return null;
+  const first = words[0][0];
+  const last = words.length > 1 ? words[words.length - 1][0] : '';
+  return (first + last).toUpperCase();
+}
+
+/** The same UTC rendering the rest of the Console uses for a server timestamp. */
+function when(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T', ' ').slice(0, 19) + 'Z';
+}
 
 export function MembersManager() {
   const { user } = useDeveloperAuth();
@@ -83,17 +108,39 @@ export function MembersManager() {
   const [inviteRole, setInviteRole] = useState('DEVELOPER');
   const [busy, setBusy] = useState(false);
   const [removing, setRemoving] = useState<Member | null>(null);
-  const [revoking, setRevoking] = useState<SessionInvite | null>(null);
-  // Invites this session created. The API has DELETE for an invite but no GET,
-  // so there is no way to list the invites that are already pending — see the
-  // note under the list. Only the id, the email and the role are kept: the
-  // token is a credential and is copied to the clipboard once, never held.
-  const [sessionInvites, setSessionInvites] = useState<SessionInvite[]>([]);
+  const [revoking, setRevoking] = useState<Invite | null>(null);
+  // The invites the workspace actually has out, from the server. This used to be
+  // the invites created in front of the reader and nothing else, because there
+  // was no route that listed them: an invite sent yesterday could not be seen or
+  // revoked, only left to expire.
+  const [invites, setInvites] = useState<Invite[]>([]);
+  const [invitesError, setInvitesError] = useState('');
 
   const wsID = activeWs?.id ?? null;
   const myRole = members.find((m) => m.user_id === user?.id)?.role ?? 'VIEWER';
   const canManage = isManager(myRole);
   const roleChoices = assignableRoles(myRole);
+
+  // Managers only — the list is 403 for anyone else, and that refusal is the
+  // server being right, not a failure to report. The role is passed in rather
+  // than read from state because this runs in the same pass that fetched it.
+  const loadInvites = useCallback(async (role: string) => {
+    if (!wsID || !isManager(role)) {
+      setInvites([]);
+      setInvitesError('');
+      return;
+    }
+    try {
+      const { invites: inv } = await developerApi.listInvites(wsID);
+      setInvites(inv ?? []);
+      setInvitesError('');
+    } catch (e) {
+      // A workspace whose invites could not be read still has members worth
+      // showing, so this does not take the whole screen down with it.
+      setInvites([]);
+      setInvitesError(onApiError(e));
+    }
+  }, [wsID, onApiError]);
 
   const loadMembers = useCallback(async () => {
     if (!wsID) return;
@@ -101,23 +148,19 @@ export function MembersManager() {
     setError('');
     try {
       const { members: m } = await developerApi.listMembers(wsID);
-      setMembers(m ?? []);
+      const list = m ?? [];
+      setMembers(list);
       setLoad('ready');
+      await loadInvites(list.find((x) => x.user_id === user?.id)?.role ?? 'VIEWER');
     } catch (e) {
       setError(onApiError(e));
       setLoad('error');
     }
-  }, [wsID, onApiError]);
+  }, [wsID, user?.id, onApiError, loadInvites]);
 
   useEffect(() => {
     void loadMembers();
   }, [loadMembers]);
-
-  // A different workspace has different invites. Carrying the previous one's
-  // across would offer a revoke that resolves to NOT_FOUND.
-  useEffect(() => {
-    setSessionInvites([]);
-  }, [wsID]);
 
   const invite = async () => {
     if (!wsID || busy) return;
@@ -125,9 +168,10 @@ export function MembersManager() {
     try {
       const inv = await developerApi.invite(wsID, inviteEmail, inviteRole, csrf);
       setInviteEmail('');
-      // Show the invite link once so the manager can share it.
+      // Show the invite link once so the manager can share it. The token is
+      // never kept: it goes to the clipboard and the pending list below comes
+      // from the server, which does not return one.
       void copyText(`${window.location.origin}/invites/accept?token=${inv.token}`);
-      setSessionInvites((prev) => [...prev, { id: inv.invite_id, email: inv.email, role: inv.role }]);
       flash('Convite criado — link copiado');
       await loadMembers();
     } catch (e) {
@@ -166,11 +210,14 @@ export function MembersManager() {
     }
   };
 
-  const revokeInvite = async (inv: SessionInvite) => {
+  // The list is re-read afterwards rather than filtered locally: the revoked
+  // invite is gone, and so is anything else that changed while the dialog was
+  // open — another manager's invite, or one that expired.
+  const revokeInvite = async (inv: Invite) => {
     if (!wsID) return;
     try {
       await developerApi.revokeInvite(wsID, inv.id, csrf);
-      setSessionInvites((prev) => prev.filter((x) => x.id !== inv.id));
+      await loadInvites(myRole);
       flash('Convite revogado');
     } catch (e) {
       throw new Error(onApiError(e));
@@ -193,26 +240,34 @@ export function MembersManager() {
         const self = m.user_id === user?.id;
         const modifiable = canManage && !self && canModifyTarget(myRole, m.role);
         const known = isKnownRole(m.role);
-        // The reader's own row is the one they need to find before pressing
-        // anything, so it is the one that carries a real name.
-        const who = self ? (user?.name?.trim() || user?.email || 'Você') : 'Membro da equipa';
+        // The member's own identity, with the session as a fallback on the
+        // reader's own row — the session knows the name and email of whoever is
+        // signed in even if this list came back thin.
+        const who = self
+          ? (m.name?.trim() || user?.name?.trim() || m.email?.trim() || user?.email || 'Você')
+          : displayName(m);
+        const initials = initialsOf(self ? (m.name || user?.name) : m.name);
         return (
           <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: '1px solid #F5E9E7' }}>
             <span
               aria-hidden="true"
+              data-testid={`member-avatar-${m.user_id}`}
               style={{
                 width: 36, height: 36, borderRadius: '50%', flex: 'none',
                 background: self ? '#FBD2D0' : '#F3EDEC', color: self ? '#9A1B22' : '#a89a9e',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12.5, fontWeight: 900, letterSpacing: '.02em',
               }}
             >
-              {/* Not initials. The previous avatar showed the first two
-                  characters of a UUID, which looked exactly like initials and
-                  belonged to nobody. */}
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="8.4" r="3.7" stroke="currentColor" strokeWidth="1.9" />
-                <path d="M4.9 19.5c.9-3.4 3.7-5.3 7.1-5.3s6.2 1.9 7.1 5.3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-              </svg>
+              {/* Initials only where there is a name to take them from. A member
+                  who never set one keeps the glyph: letters cut out of an email
+                  address look like initials and belong to nobody. */}
+              {initials ?? (
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="8.4" r="3.7" stroke="currentColor" strokeWidth="1.9" />
+                  <path d="M4.9 19.5c.9-3.4 3.7-5.3 7.1-5.3s6.2 1.9 7.1 5.3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+                </svg>
+              )}
             </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: 14, fontWeight: 800, color: '#2a2024', display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
@@ -224,6 +279,14 @@ export function MembersManager() {
                 ) : null}
               </p>
               <p style={{ margin: '2px 0 0', fontSize: 11.5, color: '#a89a9e', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {/* Only when it is not already the line above: a member with no
+                    name IS their email, and printing it twice says nothing. */}
+                {m.email && m.email.trim() !== who ? (
+                  <>
+                    <span style={{ wordBreak: 'break-all' }}>{m.email}</span>
+                    <span aria-hidden="true">·</span>
+                  </>
+                ) : null}
                 <span>{statusLabel(m.status)}</span>
                 <span aria-hidden="true">·</span>
                 <button
@@ -245,7 +308,7 @@ export function MembersManager() {
                 value={m.role}
                 onChange={(e) => changeRole(m, e.target.value)}
                 disabled={busy}
-                aria-label={`Papel do membro ${shortId(m.user_id)}`}
+                aria-label={`Papel de ${who}`}
                 // Same rule as the read-only pill below: a role this build does
                 // not know renders as words, and the wire code stays reachable
                 // on the title rather than in the sentence.
@@ -273,6 +336,7 @@ export function MembersManager() {
               <button
                 onClick={() => setRemoving(m)}
                 disabled={busy}
+                aria-label={`Remover ${who}`}
                 style={{ padding: '6px 11px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12.5, fontWeight: 800, cursor: 'pointer' }}
               >
                 Remover
@@ -282,36 +346,40 @@ export function MembersManager() {
         );
       })}
 
-      <p style={{ margin: '12px 0 0', fontSize: 11.5, color: '#b8a4a6', fontWeight: 700, lineHeight: 1.5 }}>
-        A plataforma ainda não devolve o nome nem o email dos outros membros — só o identificador
-        de utilizador. Até isso mudar, esta lista mostra o que existe, sem inventar o resto.
-      </p>
-
-      {sessionInvites.length > 0 ? (
+      {canManage ? (
         <Card style={{ padding: 16, marginTop: 16 }}>
-          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 800, color: '#6a5a5e' }}>Convites criados agora</p>
+          <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 800, color: '#6a5a5e' }}>Convites pendentes</p>
           <p style={{ margin: '0 0 10px', fontSize: 11.5, color: '#a89a9e', fontWeight: 700, lineHeight: 1.5 }}>
-            Só os convites criados nesta sessão. A plataforma ainda não tem forma de listar os
-            convites pendentes, por isso um convite criado noutro dia não aparece aqui e só pode ser
-            deixado a expirar.
+            Quem foi convidado e ainda não entrou. Revogar um convite invalida o link
+            imediatamente.
           </p>
-          {sessionInvites.map((inv) => (
-            <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid #F5E9E7' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#2a2024', wordBreak: 'break-all' }}>{inv.email}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 11.5, color: '#a89a9e', fontWeight: 700 }}>
-                  {roleLabel(inv.role)}
-                </p>
+
+          {invitesError ? (
+            <p role="alert" style={{ margin: 0, fontSize: 12, fontWeight: 800, color: '#C4303C' }}>{invitesError}</p>
+          ) : invites.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 12.5, color: '#a89a9e', fontWeight: 700 }}>
+              Não há convites pendentes neste workspace.
+            </p>
+          ) : (
+            invites.map((inv) => (
+              <div key={inv.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid #F5E9E7' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#2a2024', wordBreak: 'break-all' }}>{inv.email}</p>
+                  <p style={{ margin: '1px 0 0', fontSize: 11.5, color: '#a89a9e', fontWeight: 700 }}>
+                    {roleLabel(inv.role)} · expira em <span style={{ fontFamily: mono }}>{when(inv.expires_at)}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setRevoking(inv)}
+                  disabled={busy}
+                  aria-label={`Revogar o convite de ${inv.email}`}
+                  style={{ padding: '5px 11px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Revogar
+                </button>
               </div>
-              <button
-                onClick={() => setRevoking(inv)}
-                disabled={busy}
-                style={{ padding: '5px 11px', border: '1.5px solid #EBC7C4', borderRadius: 9, background: '#fff', color: '#B5101F', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}
-              >
-                Revogar
-              </button>
-            </div>
-          ))}
+            ))
+          )}
         </Card>
       ) : null}
 
@@ -365,7 +433,9 @@ export function MembersManager() {
         <ConfirmDialog
           title="Remover membro"
           body="O membro perde acesso a este workspace e a todos os seus projetos. Para voltar a entrar precisa de um convite novo."
-          subject={`${removing.user_id} · ${roleLabel(removing.role)}`}
+          // Who, not which id: the dialog is read by someone checking they are
+          // about to remove the right colleague.
+          subject={`${displayName(removing)} · ${roleLabel(removing.role)}`}
           confirmLabel="Remover"
           danger
           onConfirm={() => remove(removing)}

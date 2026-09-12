@@ -84,6 +84,11 @@ export const MESSAGES: Record<string, string> = {
   WORKSPACE_NOT_EMPTY: 'Este workspace ainda tem projetos ativos. Arquive-os primeiro.',
   PROJECT_NOT_EMPTY: 'Este projeto já tem histórico. Pode ser arquivado, não eliminado.',
   ENDPOINT_HAS_DELIVERIES: 'Este endpoint já recebeu entregas. Desative-o em vez de o eliminar.',
+  // Reenviar é para uma entrega que falhou. Uma que já foi aceite não se repete:
+  // o servidor do integrador recebeu esse evento e agiu sobre ele, e repeti-lo é
+  // um segundo "pagamento recebido" para um pagamento.
+  DELIVERY_ALREADY_SUCCEEDED:
+    'Esta entrega já foi recebida com sucesso. O reenvio existe para uma entrega que falhou.',
 };
 
 /**
@@ -162,7 +167,32 @@ async function req<T>(
 // ── Types (safe metadata only — never a secret hash or raw key) ──────────────
 export type User = { id: string; email: string; name: string; verified: boolean; status: string };
 export type Workspace = { id: string; name: string; slug: string; status: string; created_at: string };
-export type Member = { user_id: string; role: string; status: string };
+/**
+ * One member of a workspace, as the people who share it may see each other.
+ *
+ * `name` is often empty — an account that never set one — and `email` always
+ * exists, so the email is what a row falls back to. A member whose identity row
+ * could not be read comes back with both empty; that is the server declining to
+ * answer, not a member without an identity, and the UI says so rather than
+ * assembling a person out of the id.
+ */
+export type Member = { user_id: string; role: string; status: string; name?: string; email?: string };
+
+/**
+ * An invite the workspace has out, to a person who has not accepted yet.
+ *
+ * Managers only (OWNER/ADMIN); the list is 403 for everyone else. It carries no
+ * token and no token hash on purpose: an invite token is a bearer capability,
+ * and a list that returned one would let any manager accept in someone else's
+ * name.
+ */
+export type Invite = {
+  id: string;
+  email: string;
+  role: string;
+  expires_at: string;
+  created_at: string;
+};
 /**
  * What a project still holds, and therefore what stands between it and being
  * deleted. Counts are "ever", not "currently": a revoked key is still a
@@ -500,6 +530,10 @@ export const developerApi = {
       `/workspaces/${wsID}/members`,
       { method: 'POST', body: { email, role }, csrf },
     ),
+  // The invites still out. Without it a mis-typed address stayed a live way into
+  // the workspace until it expired, because revokeInvite could only be aimed at
+  // an invite created in front of the reader.
+  listInvites: (wsID: string) => req<{ invites: Invite[] }>(`/workspaces/${wsID}/invites`),
   acceptInvite: (token: string, csrf: string) =>
     req<{ workspace_id: string; role: string }>('/invites/accept', { method: 'POST', body: { token }, csrf }),
   setRole: (wsID: string, userID: string, role: string, csrf: string) =>
@@ -671,6 +705,16 @@ export const developerApi = {
     req<WebhookEndpoint>(`/projects/${projectID}/webhooks/endpoints/${endpointID}`, {
       method: 'PATCH', body: { active }, csrf,
     }),
+  // Re-queue a delivery the receiver never accepted. It resets the EXISTING
+  // delivery to PENDING — one delivery row per event per endpoint is the design,
+  // and the attempt counter continues on that row — so this never produces a
+  // second delivery. A delivery that already succeeded is refused
+  // (DELIVERY_ALREADY_SUCCEEDED): the integrator acted on that event once.
+  replayWebhookDelivery: (projectID: string, deliveryID: string, csrf: string) =>
+    req<{ status: string }>(`/projects/${projectID}/webhooks/deliveries/${deliveryID}/replay`, {
+      method: 'POST', csrf,
+    }),
+
   // Deleting and disabling answer different questions. Disabling stops
   // deliveries to an endpoint that is real; deleting is for one that should not
   // be in the list at all — a URL typed wrong, a service that no longer exists.

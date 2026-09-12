@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor, within } from '@testing-library/react';
-import { ApiError, MESSAGES, type WebhookEndpoint, type WebhookEvent } from '@/lib/developer-api';
+import {
+  ApiError,
+  MESSAGES,
+  type WebhookDelivery,
+  type WebhookEndpoint,
+  type WebhookEvent,
+} from '@/lib/developer-api';
 import { ToastProvider } from './Toast';
 import { WebhooksManager } from './WebhooksManager';
 
@@ -21,6 +27,7 @@ const api = vi.hoisted(() => ({
   rotateWebhookSecret: vi.fn(),
   setWebhookEndpointActive: vi.fn(),
   deleteWebhookEndpoint: vi.fn(),
+  replayWebhookDelivery: vi.fn(),
 }));
 
 vi.mock('@/lib/developer-api', async (orig) => {
@@ -109,6 +116,7 @@ beforeEach(() => {
   api.listWebhookDeliveries.mockResolvedValue({ deliveries: [] });
   api.deleteWebhookEndpoint.mockResolvedValue(undefined);
   api.setWebhookEndpointActive.mockResolvedValue(endpoint);
+  api.replayWebhookDelivery.mockResolvedValue({ status: 'PENDING' });
   installStorage();
 });
 afterEach(cleanup);
@@ -229,6 +237,90 @@ describe('a project with no financial binding', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toBe(MESSAGES.UNAVAILABLE);
     expect(document.body.textContent).not.toContain('Failed to fetch');
+  });
+});
+
+describe('reenviar uma entrega', () => {
+  const failed: WebhookDelivery = {
+    id: 'dlv_failed',
+    event_id: 'evt_aaa',
+    endpoint_id: 'ep_1',
+    status: 'FAILED',
+    status_code: 500,
+    attempt_count: 5,
+    delivered_at: null,
+    created_at: '2026-09-10T10:00:05Z',
+  };
+  const succeeded: WebhookDelivery = {
+    ...failed,
+    id: 'dlv_ok',
+    status: 'SUCCESS',
+    status_code: 200,
+    attempt_count: 1,
+    delivered_at: '2026-09-10T10:00:02Z',
+  };
+
+  /** Open the first event's deliveries. */
+  async function openDeliveries() {
+    mount();
+    fireEvent.click(await screen.findByText('evt_aaa'));
+    await screen.findByRole('columnheader', { name: 'ESTADO' });
+  }
+
+  it('is not offered on a delivery the receiver accepted', async () => {
+    // The integrator received that event and acted on it. Sending it again is a
+    // second "payment received" for one payment, and the server refuses it —
+    // so the Console does not ask.
+    api.listWebhookDeliveries.mockResolvedValue({ deliveries: [succeeded] });
+
+    await openDeliveries();
+    expect(screen.getByText('Entregue · 200')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Reenviar' })).toBeNull();
+  });
+
+  it('re-queues the delivery that failed, once confirmed, and re-reads the row', async () => {
+    api.listWebhookDeliveries.mockResolvedValue({ deliveries: [failed] });
+
+    await openDeliveries();
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar' }));
+
+    // Nothing has been sent yet, and the question names the address the delivery
+    // is going back to.
+    expect(api.replayWebhookDelivery).not.toHaveBeenCalled();
+    expect(within(dialog()).getByText(endpoint.url)).toBeTruthy();
+    // The same delivery goes back in the queue; no second delivery is created,
+    // and the copy must not say one is.
+    expect(within(dialog()).getByText(/não é criada uma entrega nova/)).toBeTruthy();
+
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Reenviar' }));
+    await waitFor(() =>
+      expect(api.replayWebhookDelivery).toHaveBeenCalledWith('prj_1', 'dlv_failed', 'csrf-token'));
+
+    // The row must show what the server now holds — PENDING — rather than the
+    // FAILED it was rendered from.
+    api.listWebhookDeliveries.mockResolvedValue({
+      deliveries: [{ ...failed, status: 'PENDING', status_code: null }],
+    });
+    await waitFor(() => expect(api.listWebhookDeliveries).toHaveBeenCalledTimes(2));
+  });
+
+  it('says what the server said when the delivery succeeded in the meantime', async () => {
+    // A delivery can succeed between the render and the click. The refusal is
+    // about this delivery and is answered in Portuguese, not as a generic
+    // failure — and the stale row is re-read.
+    api.listWebhookDeliveries.mockResolvedValue({ deliveries: [failed] });
+    api.replayWebhookDelivery.mockRejectedValue(
+      new ApiError('DELIVERY_ALREADY_SUCCEEDED', 409, MESSAGES.DELIVERY_ALREADY_SUCCEEDED),
+    );
+
+    await openDeliveries();
+    fireEvent.click(screen.getByRole('button', { name: 'Reenviar' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Reenviar' }));
+
+    const alert = await within(dialog()).findByRole('alert');
+    expect(alert.textContent).toBe(MESSAGES.DELIVERY_ALREADY_SUCCEEDED);
+    expect(alert.textContent).not.toBe(MESSAGES.CONFLICT);
+    await waitFor(() => expect(api.listWebhookDeliveries).toHaveBeenCalledTimes(2));
   });
 });
 

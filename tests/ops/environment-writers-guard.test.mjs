@@ -175,8 +175,15 @@ describe('environment-scoped writers', () => {
     for (const { table, line } of insertSites(tables)) {
       if (isTestFile(line)) continue;
       const [file, lineNo] = [line.slice(0, line.indexOf(':')), Number(line.split(':')[1])];
+      // Code only. A comment EXPLAINING that the column defaults to 'LIVE' — the
+      // exact sentence a careful writer puts beside the binding that avoids it —
+      // used to trip this, so the guard punished the documentation of the rule
+      // it enforces. Stripping line comments keeps every real literal in scope:
+      // a literal in a comment authorises nothing.
       const src = readFileSync(join(REPO, file), 'utf8').split('\n')
-        .slice(lineNo - 1, lineNo + 14).join('\n');
+        .slice(lineNo - 1, lineNo + 14)
+        .map((l) => l.replace(/\/\/.*$/, '').replace(/--.*$/, ''))
+        .join('\n');
       if (/VALUES[\s\S]{0,400}?'(LIVE|SANDBOX)'/i.test(src)) {
         offenders.push(`${file}:${lineNo} (INSERT INTO ${table})`);
       }

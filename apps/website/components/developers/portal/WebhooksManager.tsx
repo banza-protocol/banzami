@@ -99,6 +99,10 @@ export function WebhooksManager() {
   // refusal is permanent and correct, so it has to lead somewhere rather than
   // end in a red sentence.
   const [blocked, setBlocked] = useState<{ ep: WebhookEndpoint; message: string } | null>(null);
+  // The failed delivery a replay is pending on. A replay posts to the
+  // integrator's own server, so it is asked for rather than fired by a click on
+  // a row.
+  const [replaying, setReplaying] = useState<{ eventId: string; delivery: WebhookDelivery } | null>(null);
 
   const load = useCallback(async () => {
     if (!projectId) return;
@@ -141,6 +145,39 @@ export function WebhooksManager() {
       setDeliveries((prev) => ({ ...prev, [eventId]: [] }));
     }
   }, [open, deliveries, projectId]);
+
+  /** Re-read one event's deliveries, so a row shows what the server now holds. */
+  const refreshDeliveries = useCallback(async (eventId: string) => {
+    if (!projectId) return;
+    try {
+      const { deliveries: ds } = await developerApi.listWebhookDeliveries(projectId, eventId);
+      setDeliveries((prev) => ({ ...prev, [eventId]: ds }));
+    } catch {
+      // Keep what is on screen: an unreadable refresh is not evidence that the
+      // deliveries went away.
+    }
+  }, [projectId]);
+
+  // Re-queue a delivery the receiver never accepted. The SAME delivery goes back
+  // to PENDING — there is one delivery row per event per endpoint and the
+  // attempts are counted on it — so nothing here should suggest a second
+  // delivery was created.
+  const replay = async (eventId: string, d: WebhookDelivery) => {
+    if (!projectId) return;
+    try {
+      await developerApi.replayWebhookDelivery(projectId, d.id, csrf);
+      await refreshDeliveries(eventId);
+    } catch (e) {
+      // The button is only offered on a failed delivery, but a delivery can
+      // succeed between the render and the click. Then the row on screen is
+      // stale, so it is re-read, and the reader is told what the server said
+      // about THIS delivery rather than that something went wrong.
+      if (e instanceof ApiError && e.code === 'DELIVERY_ALREADY_SUCCEEDED') {
+        await refreshDeliveries(eventId);
+      }
+      throw new Error(onApiError(e));
+    }
+  };
 
   const rotate = async (ep: WebhookEndpoint) => {
     if (!projectId) return;
@@ -460,6 +497,9 @@ export function WebhooksManager() {
                                   <th scope="col" style={{ padding: '6px 0', fontSize: 10.5, fontWeight: 800, textAlign: 'left' }}>ESTADO</th>
                                   <th scope="col" style={{ padding: '6px 0', fontSize: 10.5, fontWeight: 800, textAlign: 'left' }}>TENTATIVAS</th>
                                   <th scope="col" style={{ padding: '6px 0', fontSize: 10.5, fontWeight: 800, textAlign: 'left' }}>ENTREGUE</th>
+                                  <th scope="col" style={{ padding: '6px 0', fontSize: 10.5, fontWeight: 800, textAlign: 'right' }}>
+                                    <span className="bz-sr-only">Acções</span>
+                                  </th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -474,10 +514,24 @@ export function WebhooksManager() {
                                         <td style={{ padding: '6px 0', color: '#a89a9e', fontWeight: 700 }}>
                                           {d.delivered_at ? when(d.delivered_at) : '—'}
                                         </td>
+                                        <td style={{ padding: '6px 0', textAlign: 'right' }}>
+                                          {/* Only on a delivery that failed. A delivery
+                                              that was accepted is not re-sent — the
+                                              integrator acted on that event — and one
+                                              still pending is already in the queue. */}
+                                          {d.status.toUpperCase() === 'FAILED' ? (
+                                            <button
+                                              onClick={() => setReplaying({ eventId: ev.id, delivery: d })}
+                                              style={{ ...ghostButton, padding: '5px 11px', fontSize: 12 }}
+                                            >
+                                              Reenviar
+                                            </button>
+                                          ) : null}
+                                        </td>
                                       </tr>
                                       {attempts.length > 0 && (
                                         <tr>
-                                          <td colSpan={3} style={{ padding: '2px 0 8px 0' }}>
+                                          <td colSpan={4} style={{ padding: '2px 0 8px 0' }}>
                                             <ol data-testid="webhook-attempts" style={{ margin: 0, paddingLeft: 18, color: '#6a5a5e', fontSize: 12 }}>
                                               {attempts.map((a) => (
                                                 <li key={a.attempt_number} style={{ padding: '2px 0' }}>
@@ -566,6 +620,19 @@ export function WebhooksManager() {
           danger={blocked.ep.active}
           onConfirm={blocked.ep.active ? () => setActive(blocked.ep, false) : async () => {}}
           onClose={() => setBlocked(null)}
+        />
+      ) : null}
+
+      {replaying ? (
+        <ConfirmDialog
+          title="Reenviar esta entrega"
+          body="A mesma entrega volta para a fila e é tentada outra vez — não é criada uma entrega nova, e as tentativas continuam a ser contadas nesta. O seu servidor recebe o mesmo evento, com o mesmo id, por isso deve tratá-lo de forma idempotente."
+          // The address it is going back to — the same thing every other dialog
+          // on this screen names, and the id if the endpoint is not in the list.
+          subject={endpoints.find((e) => e.id === replaying.delivery.endpoint_id)?.url ?? replaying.delivery.endpoint_id}
+          confirmLabel="Reenviar"
+          onConfirm={() => replay(replaying.eventId, replaying.delivery)}
+          onClose={() => setReplaying(null)}
         />
       ) : null}
 

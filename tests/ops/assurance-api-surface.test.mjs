@@ -40,9 +40,21 @@ test('a prefix of a mounted route is not a mounted route (/v1/qr)', () => {
   assert.deepEqual(apiSurfaceViolations(cap('POST /v1/qr/static', '/v1/qr/dynamic'), routes), []);
 });
 
-test('the QR pay route is not claimable anywhere', () => {
-  assert.equal(apiSurfaceViolations(cap('POST /v1/qr/pay'), routes).length, 1);
-  assert.equal(apiSurfaceViolations(cap('POST /v1/qr/pay (public-api)'), routes).length, 1);
+test('the QR pay route is claimable on the consumer surface and nowhere else', () => {
+  // This used to assert "not claimable anywhere", because nowhere mounted it:
+  // the merchant route was withdrawn (RA-053) and the consumer one did not
+  // exist. The consumer one exists now (CAP-PAY-003), so the assertion becomes
+  // the distinction that actually matters — and keeps the half that still holds.
+  //
+  // On the gateway it stays unclaimable. That is the surface where the payer was
+  // a free-text field on a merchant credential, and a manifest entry claiming it
+  // again would be the first step back to that.
+  assert.equal(apiSurfaceViolations(cap('POST /v1/qr/pay'), routes).length, 1,
+    'the merchant QR-pay route must stay unmountable and unclaimable');
+  assert.deepEqual(
+    apiSurfaceViolations(cap('POST /v1/qr/pay — public-api Consumer surface'), routes), [],
+    'the consumer QR-pay route is mounted and must be claimable',
+  );
 });
 
 test('a Consumer-surface route is checked against public-api only when the entry says so', () => {

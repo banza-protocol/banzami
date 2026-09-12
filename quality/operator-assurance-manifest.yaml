@@ -266,28 +266,50 @@ capabilities:
     authority: operator-extension
     authority_ref: Banzami QR engine spec (project_qr_engine)
     implementation:
+      - core/api/src/routes/qr_pay.rs
+      - core/qr
+      - services/public-api
       - services/api-gateway
-      - apps/mobile
+      - sdk/flutter
     api_surface:
       - POST /v1/qr/static (QR issuance only)
       - POST /v1/qr/dynamic (QR issuance only)
+      - POST /v1/qr/pay — public-api Consumer surface
     threat_category: financial-money-movement
     tests:
-      unit: []
-      integration: []
+      unit:
+        - core/qr engine tests (HMAC sign/verify, resolve_for_payment, claim/release)
+      integration:
+        - core/api/src/routes/qr_pay_tests.rs (16, real database)
+        - services/api-gateway receipt_semantics_test.go (a QR payment's receipt says QR)
       e2e_sandbox: []
-      negative_security: []
+      negative_security:
+        - a payer-supplied amount does not override a fixed-amount code
+        - a second payment of a single-use code moves nothing
+        - a forged signature is refused and does not burn the code
+        - a refused payment rolls the single-use claim back
+        - an expiry edited in the database stops the code verifying
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
     evidence: []
     surface: public
     disposition: pending-e2e
     status: blocked
-    # BLOCKED: no route pays a structured QR. POST /v1/qr/pay was removed from
-    # the merchant surface (RA-053) and the consumer route it must be rebuilt as
-    # does not exist (docs/security/QR-PAY-AUTHORITY-CONTRACT.md: "CAP-PAY-003
-    # cannot be released"). The api_surface is limited to what is mounted —
-    # QR issuance — and claims nothing about paying one.
+    # The route exists now. The status does not move on that alone.
+    #
+    # POST /v1/qr/pay was removed from the MERCHANT surface (RA-053) because it
+    # took the payer as a free-text field on a merchant credential. It has been
+    # rebuilt where the authority contract says it belongs
+    # (docs/security/QR-PAY-AUTHORITY-CONTRACT.md): the consumer surface, with
+    # the payer taken from the session and absent from the request body.
+    # /internal/v1/qr/pay stays on core's withdrawn-routes list — that path is
+    # the broken contract's name — and the rebuilt core route is
+    # /internal/v1/consumer/qr/pay.
+    #
+    # STILL BLOCKED on deployment_gate: sandbox-e2e-required. The harness exists
+    # (tests/phase0/qr-payment-e2e.sh) and has not yet run against a deployed
+    # runtime carrying this code. e2e_sandbox and evidence stay empty until it
+    # has; a capability is not released by describing it.
     #
     # This capability was marked verified/released in 8ad5eabd with the webhook
     # suite's tests and evidence (WH.*, cap-webhook-001-sandbox-e2e.json) — a
