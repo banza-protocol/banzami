@@ -245,3 +245,106 @@ func TestPgStore_MembersCarryNameAndEmail(t *testing.T) {
 		}
 	}
 }
+
+// No lifecycle operation may destroy the person.
+//
+// On 2026-09-12 a real Console account was deleted — not by the product, but by
+// a test harness whose cleanup ran `DELETE FROM identity_users WHERE email LIKE
+// …` over the owner's own address. That was fixed where it belonged, in the
+// harness. This is the other half: proving the PRODUCT never does it, so the
+// guarantee does not rest on one script being careful.
+//
+// Deleting a workspace, deleting a project, removing a membership and leaving a
+// workspace each end something the person HAS. None of them ends the person.
+// Only an explicit account close may do that, and it is a separate ceremony.
+func TestPgStore_NoLifecycleOperationDeletesTheGlobalIdentity(t *testing.T) {
+	ctx := context.Background()
+	svc, actor := pgLifecycleSvc(ctx, t)
+	pool := svc.store.(*pgStore).pool
+
+	email := "lifecycle-identity-" + uuid.NewString()[:8] + "@example.test"
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO account_identity.identity_users (id, email, name, verified)
+		 VALUES ($1, $2, 'Quem Fica', true)`, actor, email); err != nil {
+		t.Fatalf("seed identity user: %v", err)
+	}
+	stillThere := func(what string) {
+		t.Helper()
+		var n int
+		if err := pool.QueryRow(ctx,
+			`SELECT count(*) FROM account_identity.identity_users WHERE id = $1`, actor).Scan(&n); err != nil {
+			t.Fatalf("%s: reading the identity: %v", what, err)
+		}
+		if n != 1 {
+			t.Fatalf("%s DELETED THE GLOBAL IDENTITY — the person is gone, not just their %s", what, what)
+		}
+	}
+
+	// A project deleted outright.
+	ws, err := svc.CreateWorkspace(ctx, actor, "Identity WS "+uuid.NewString()[:8], "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := svc.CreateProject(ctx, actor, ws.ID, "Vazio", "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.DeleteProject(ctx, actor, p.ID, p.Name, "", ""); err != nil {
+		t.Fatalf("delete empty project: %v", err)
+	}
+	stillThere("PROJECT_DELETE")
+
+	// The workspace deleted outright, now that it holds nothing.
+	if _, err := svc.DeleteWorkspace(ctx, actor, ws.ID, ws.Name, "", ""); err != nil {
+		t.Fatalf("delete empty workspace: %v", err)
+	}
+	stillThere("WORKSPACE_DELETE")
+
+	// A membership removed, and a workspace left.
+	ws2, err := svc.CreateWorkspace(ctx, actor, "Identity WS2 "+uuid.NewString()[:8], "", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO account_identity.identity_users (id, email, verified)
+		 VALUES ($1, $2, true)`, other, "other-"+uuid.NewString()[:8]+"@example.test"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO developer.dev_workspace_members (workspace_id, user_id, role, accepted_at, status)
+		 VALUES ($1, $2, 'DEVELOPER', now(), 'ACTIVE')`, ws2.ID, other); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.RemoveMember(ctx, actor, ws2.ID, other, "", ""); err != nil {
+		t.Fatalf("remove member: %v", err)
+	}
+	var n int
+	if err := pool.QueryRow(ctx,
+		`SELECT count(*) FROM account_identity.identity_users WHERE id = $1`, other).Scan(&n); err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 {
+		t.Fatal("MEMBERSHIP_REMOVE DELETED THE GLOBAL IDENTITY — removing somebody from a workspace ended their account")
+	}
+	stillThere("REMOVE_MEMBER")
+
+	// And the actor leaving one of their own workspaces, once another owner exists.
+	// A distinct identity: `other` was just removed, and the membership table is
+	// unique on (workspace, user).
+	second := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO account_identity.identity_users (id, email, verified)
+		 VALUES ($1, $2, true)`, second, "second-"+uuid.NewString()[:8]+"@example.test"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO developer.dev_workspace_members (workspace_id, user_id, role, accepted_at, status)
+		 VALUES ($1, $2, 'OWNER', now(), 'ACTIVE')`, ws2.ID, second); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.LeaveWorkspace(ctx, actor, ws2.ID, "", ""); err != nil {
+		t.Fatalf("leave workspace: %v", err)
+	}
+	stillThere("WORKSPACE_LEAVE")
+}

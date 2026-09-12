@@ -41,7 +41,43 @@ const PRE = `
  * @param {string} [o.namePattern] SQL LIKE pattern matching this run's projects
  *   and developer keys, for anything created outside those accounts' ownership.
  */
+/**
+ * The only address space a harness may delete an identity from.
+ *
+ * On 2026-09-12 this function deleted the owner's real Console account. The
+ * journey guarded its REGISTERED cleanup with `if (OWNER_IS_SYNTHETIC)` and then
+ * called cleanupRun again, unconditionally, in a loop over
+ * `[EMAIL_OWNER, EMAIL_MEMBER]` — defeating the guard twenty lines above it.
+ * fidel.monteiro@banzami.com had signed in sixteen times that day and was gone
+ * by the end of the last run.
+ *
+ * A caller-side guard was never enough, because the destructive statement lives
+ * here. Fixture-ness is established HERE, positively, from the address space
+ * fixtures are minted in — and a pattern that could reach outside it is refused
+ * before any SQL runs. No email branch, no allow-list of real people: a real
+ * address is anything that is not a fixture address, which is the only rule that
+ * stays true for a developer nobody has met yet.
+ */
+const FIXTURE_EMAIL_DOMAIN = '@banzami-e2e.test';
+
+export function assertFixtureEmailPattern(emailPattern) {
+  if (typeof emailPattern !== 'string' || emailPattern.trim() === '') {
+    throw new Error('cleanupRun: emailPattern is required — a cleanup that matches nothing is not a cleanup');
+  }
+  // The pattern must END in the fixture domain, with no wildcard inside it: a
+  // pattern like '%@banzami%' or '%' reaches real accounts.
+  if (!emailPattern.endsWith(FIXTURE_EMAIL_DOMAIN)) {
+    throw new Error(
+      `cleanupRun: refusing to delete identities matching "${emailPattern}" — ` +
+      `a harness may only remove accounts in ${FIXTURE_EMAIL_DOMAIN}. ` +
+      'This guard exists because a real Console account was deleted by a run that meant not to.',
+    );
+  }
+  return emailPattern;
+}
+
 export function cleanupRun({ emailPattern, namePattern }) {
+  assertFixtureEmailPattern(emailPattern);
   const byName = namePattern ? `
       q "update developer.dev_api_keys set status='REVOKED', revoked_at=now()
           where status='ACTIVE' and name like '${namePattern}'" >/dev/null
@@ -73,10 +109,13 @@ export function cleanupRun({ emailPattern, namePattern }) {
          where status='ACTIVE'
            and created_by in (select id from account_identity.identity_users where email like '${emailPattern}')" >/dev/null
       q "delete from developer.dev_workspace_members where user_id in
-           (select id from account_identity.identity_users where email like '${emailPattern}')" >/dev/null
+           (select id from account_identity.identity_users
+             where email like '${emailPattern}' and email like '%${FIXTURE_EMAIL_DOMAIN}')" >/dev/null
       q "delete from account_identity.identity_sessions where user_id in
-           (select id from account_identity.identity_users where email like '${emailPattern}')" >/dev/null
-      q "delete from account_identity.identity_users where email like '${emailPattern}'" >/dev/null
+           (select id from account_identity.identity_users
+             where email like '${emailPattern}' and email like '%${FIXTURE_EMAIL_DOMAIN}')" >/dev/null
+      q "delete from account_identity.identity_users
+          where email like '${emailPattern}' and email like '%${FIXTURE_EMAIL_DOMAIN}'" >/dev/null
       echo cleaned`], { encoding: 'utf8', maxBuffer: 1 << 24 });
 }
 

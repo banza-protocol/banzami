@@ -1945,7 +1945,14 @@ try {
 // Explicit, before the report, so the number printed is measured rather than
 // promised. The registered handlers run again on exit and find nothing.
 let cleanupError = null;
-for (const emailPattern of [EMAIL_OWNER, EMAIL_MEMBER]) {
+// The owner's account is cleaned up ONLY when it is a fixture. This loop used to
+// run over both addresses unconditionally, which deleted the owner's real
+// Console account at the end of every real-mailbox run — defeating the
+// OWNER_IS_SYNTHETIC guard on the registered handler above. cleanupRun now
+// refuses a non-fixture pattern outright, and this is the caller saying the
+// same thing so the refusal is never reached by accident.
+const cleanupTargets = OWNER_IS_SYNTHETIC ? [EMAIL_OWNER, EMAIL_MEMBER] : [EMAIL_MEMBER];
+for (const emailPattern of cleanupTargets) {
   try {
     cleanupRun({ emailPattern, namePattern: `%${TAG}%` });
   } catch (e) {
