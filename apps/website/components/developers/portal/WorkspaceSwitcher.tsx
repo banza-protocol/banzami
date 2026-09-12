@@ -30,8 +30,14 @@ const selStyle: React.CSSProperties = {
 };
 const NEW = '__new__';
 
+// A text-only control with padding: 0 is only as tall as its text — about 13px
+// here, well under the 24px minimum target. The type stays exactly as it was;
+// the box around it grows to something a finger or an imprecise click can hit.
 const toggleStyle: React.CSSProperties = {
-  padding: 0,
+  display: 'inline-flex',
+  alignItems: 'center',
+  minHeight: 24,
+  padding: '0 2px',
   border: 'none',
   background: 'none',
   color: '#a89a9e',

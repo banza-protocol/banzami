@@ -297,7 +297,7 @@ export function MembersManager() {
                   }}
                   title={m.user_id}
                   aria-label={`Copiar o ID de utilizador ${m.user_id}`}
-                  style={{ padding: 0, border: 'none', background: 'none', fontFamily: mono, fontSize: 11.5, fontWeight: 700, color: '#a89a9e', cursor: 'pointer' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', minHeight: 24, padding: '0 2px', border: 'none', background: 'none', fontFamily: mono, fontSize: 11.5, fontWeight: 700, color: '#a89a9e', cursor: 'pointer' }}
                 >
                   {shortId(m.user_id)}
                 </button>

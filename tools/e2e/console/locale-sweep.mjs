@@ -57,10 +57,22 @@ let pass = 0, fail = 0;
 const ok = (m) => { pass += 1; console.log(`  ✓ ${m}`); };
 const bad = (m) => { fail += 1; console.error(`  ✗ ${m}`); };
 
+// Words that are English AND Portuguese. "Remove o projeto definitivamente" is
+// the imperative of *remover*, and reading it as the English verb reported a
+// correct Portuguese sentence as untranslated. Dropping the word would give up
+// on catching a real English button, so it is checked where the ambiguity does
+// not exist: as the exact name of a control. Prose says "Remove o projeto"; a
+// button says "Remove".
+const AMBIGUOUS = ['Remove'];
+
 const hasEnglish = (text) => ENGLISH.filter((w) => {
-  if (PRODUCT_NOUNS.includes(w)) return false;
+  if (PRODUCT_NOUNS.includes(w) || AMBIGUOUS.includes(w)) return false;
   return new RegExp(`(^|[^\\p{L}])${w}([^\\p{L}]|$)`, 'u').test(text);
 });
+
+/** Ambiguous words are English when they are the WHOLE name of a control. */
+const englishControlNames = (names) =>
+  [...new Set(names.map((n) => n.trim()).filter((n) => AMBIGUOUS.includes(n)))];
 const hasEnums = (text) => [...new Set(text.match(ENUM_RE) ?? [])]
   .filter((e) => !PRODUCT_NOUNS.includes(e));
 
@@ -86,6 +98,43 @@ const hasEnums = (text) => [...new Set(text.match(ENUM_RE) ?? [])]
   }
   if (broken) { console.error('the locale detectors no longer detect — refusing to report a clean sweep'); process.exit(2); }
   ok('the detectors catch a wire enum, an English role, and leave Portuguese alone');
+
+  // The literal rule, proven both ways. Relaxing a detector is how a sweep goes
+  // quietly blind, so the relaxation is held by its own cases: a wire value the
+  // page translates is documentation; the same value alone is residue.
+  const literalCases = [
+    ['Configuração financeira — Não configurado', 'NOT_CONFIGURED', []],
+    ['Estado da candidatura: Aprovada', 'APPROVED', []],
+    ['Estado da candidatura', 'NOT_CONFIGURED', ['NOT_CONFIGURED']],
+    ['Resultado', 'PAYMENT_LINK', ['PAYMENT_LINK']],
+  ];
+  let blind = 0;
+  for (const [prose, literal, want] of literalCases) {
+    const got = hasEnums(literal).filter((e) =>
+      !new RegExp(`(^|[^\\p{L}])(configurad|aprovad|pendente|rejeitad|ativ|revogad|arquivad|expirad|conclu|falh)`, 'iu').test(prose));
+    if (JSON.stringify(got) !== JSON.stringify(want)) {
+      console.error(`  ✗ selftest: <code>${literal}</code> beside ${JSON.stringify(prose)} → ${JSON.stringify(got)}, wanted ${JSON.stringify(want)}`);
+      blind += 1;
+    }
+  }
+  if (blind) { console.error('the literal rule no longer distinguishes a translated value from a leaked one'); process.exit(2); }
+  ok('a wire value the page translates is documentation; the same value alone is residue');
+
+  // And the English check, now that it reads prose only.
+  if (hasEnglish('Remove o projeto definitivamente').length !== 0) {
+    console.error('  ✗ selftest: "Remove o projeto" is Portuguese and was counted as English');
+    process.exit(2);
+  }
+  if (hasEnglish('Delete this project permanently').length === 0) {
+    console.error('  ✗ selftest: English prose is no longer detected');
+    process.exit(2);
+  }
+  if (englishControlNames(['Remover projeto', 'Guardar']).length !== 0
+    || JSON.stringify(englishControlNames(['Remove', 'Guardar'])) !== JSON.stringify(['Remove'])) {
+    console.error('  ✗ selftest: an ambiguous word is not being judged by whether it names a control');
+    process.exit(2);
+  }
+  ok('"Remove o projeto" is Portuguese prose; a button named exactly "Remove" is not');
 }
 
 if (process.argv.includes('--selftest')) {
@@ -114,13 +163,44 @@ await ctx.addCookies([{
 }]);
 const page = await ctx.newPage();
 
+/**
+ * The prose, and the literals, read separately.
+ *
+ * Two false reports came out of reading the page as one string. "Remove o
+ * projeto definitivamente" is Portuguese — the imperative of *remover* — and was
+ * counted as the English word. And `NOT_CONFIGURED` appears on /financeiro
+ * inside a <code>, immediately after "Não configurado": that is the API's own
+ * value shown beside its translation, which is the point of a developer console,
+ * not a wire value that escaped.
+ *
+ * So a literal marked up as a literal — <code>, <pre>, <kbd>, <samp> — is read
+ * out of the prose and checked only for being labelled, and the English check
+ * runs on the prose that remains.
+ */
+const readPage = () => page.evaluate(() => {
+  const clone = document.body.cloneNode(true);
+  const literals = [];
+  for (const el of clone.querySelectorAll('code, pre, kbd, samp')) {
+    literals.push((el.textContent ?? '').trim());
+    el.remove();
+  }
+  return { prose: (clone.innerText ?? clone.textContent ?? '').replace(/\s+/g, ' '), literals };
+});
+
 for (const route of ROUTES) {
   await page.goto(ORIGIN + route, { waitUntil: 'networkidle' });
   await assertAuthenticatedShell(page, route);
-  const text = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
+  const { prose, literals } = await readPage();
+  const text = prose;
 
-  const english = hasEnglish(text);
-  const enums = hasEnums(text);
+  const controlNames = await page.evaluate(() => [...document.querySelectorAll('a[href], button, [role="button"]')]
+    .filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; })
+    .map((el) => el.getAttribute('aria-label') || (el.textContent ?? '').trim()));
+  const english = [...hasEnglish(text), ...englishControlNames(controlNames)];
+  // A literal is fine where it is announced as one; it is residue where it is
+  // the only thing the reader is given.
+  const enums = [...hasEnums(text), ...literals.flatMap((l) => hasEnums(l))
+    .filter((e) => !new RegExp(`(^|[^\\p{L}])(configurad|aprovad|pendente|rejeitad|ativ|revogad|arquivad|expirad|conclu|falh)`, 'iu').test(text))];
 
   if (english.length) bad(`${route}: English on screen — ${english.join(', ')}`);
   else ok(`${route}: no English platform vocabulary`);

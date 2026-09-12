@@ -187,7 +187,9 @@ export function Overview() {
                 <Card style={{ overflow: 'hidden' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid #F5E9E7' }}>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>Actividade recente</h3>
-                    <Link href="/logs" style={{ fontSize: 12.5, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
+                    {/* minHeight/inline-flex so the link is a 24px target, not
+                        just as tall as its own text. */}
+                    <Link href="/logs" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 24, padding: '0 2px', fontSize: 12.5, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
                       Ver registos →
                     </Link>
                   </div>
