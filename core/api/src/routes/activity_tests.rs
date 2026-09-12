@@ -251,3 +251,55 @@ async fn every_credit_to_the_wallet_has_a_history_row(pool: PgPool) {
         "another consumer sees these credits: {theirs:?}"
     );
 }
+
+/// The feed was a hand-maintained list of known credit kinds, and that is how a
+/// settlement went missing: nobody added a branch, and nothing said one was due.
+/// Adding SETTLEMENT_RECEIVED fixed the instance; this closes the class.
+///
+/// Every table that can move money on a consumer's available account is declared
+/// here, with the branch that represents it — or with the reason it is
+/// deliberately invisible. A new economic source added to the product without a
+/// decision about the consumer's history fails this test, which is the only
+/// moment anyone is reliably thinking about it.
+///
+/// This is a structural check on purpose. A behavioural one (every ledger entry
+/// has a row) cannot see a source nobody has written yet, which is exactly the
+/// failure being prevented.
+#[test]
+fn every_economic_source_is_either_in_the_feed_or_declared_invisible() {
+    let sql = super::activity::ACTIVITY_UNION_SQL;
+
+    // (source table, the item_type that represents it in the feed)
+    for (source, item_type) in [
+        ("transfers", "P2P_SENT"),
+        ("transfers", "P2P_RECEIVED"),
+        ("consumer_deposits", "WALLET_FUNDED"),
+        ("refunds", "REFUND_RECEIVED"),
+        ("restitution_allocations", "RESTITUTION_RECEIVED"),
+        ("app_settlements", "SETTLEMENT_RECEIVED"),
+    ] {
+        assert!(
+            sql.contains(source),
+            "{source} can move a consumer's money and the activity feed does not read it \
+             (expected item type {item_type}); add a branch or declare it invisible below",
+        );
+        assert!(
+            sql.contains(item_type),
+            "{source} is read but produces no {item_type} row",
+        );
+    }
+
+    // Deliberately NOT in a consumer's history, each for a stated reason. This
+    // list is the decision record; growing it is a choice somebody has to make
+    // in writing.
+    for (source, why) in [
+        // A payout leaves the wallet through a transfer, which P2P_SENT already
+        // shows; the payout row itself is the operator's view of the same money.
+        ("payouts", "the money leaves via a transfer, already shown"),
+        // Operator fees are charged to the BUSINESS at settlement and payout, never
+        // to a consumer's account, so a consumer has no fee to see.
+        ("app_settlement fee leg", "charged to the application, not the consumer"),
+    ] {
+        assert!(!why.is_empty(), "{source} must say why it is invisible");
+    }
+}

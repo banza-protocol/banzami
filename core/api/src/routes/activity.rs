@@ -85,7 +85,7 @@ fn encode_cursor(created_at: DateTime<Utc>, activity_id: &str) -> String {
 // Core query — tested independently from the axum handler
 // ---------------------------------------------------------------------------
 
-const ACTIVITY_UNION_SQL: &str = r#"
+pub(super) const ACTIVITY_UNION_SQL: &str = r#"
 WITH activity AS (
     -- Outgoing transfer (this consumer is the sender).
     -- recipient_id holds EITHER a consumer id (true P2P) OR a merchant wallet
