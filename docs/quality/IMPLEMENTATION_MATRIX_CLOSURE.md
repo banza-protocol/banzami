@@ -5,7 +5,8 @@
 
 | | |
 |---|---|
-| `FINAL_BANZAMI_SHA` | **`c059b7ce`** |
+| `FINAL_BANZAMI_SHA` | **`c059b7ce`** — the last commit CI evaluates |
+| HEAD | `cb3063f8` — this report only; CI is configured `paths-ignore: docs/**`, so no run fires and none is claimed |
 | `FINAL_DOA_SHA` | **`2612573`** (clean) |
 | CI | **GREEN at `c059b7ce`** |
 | Deployed | developer-api + website-frontend at `badf5dc6`; parity verified at HEAD |
