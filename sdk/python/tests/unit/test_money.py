@@ -42,6 +42,27 @@ class TestFormatMinor:
         assert "99.99" in result
         assert "EUR" in result
 
+    @pytest.mark.parametrize(
+        "minor,expected",
+        [
+            (0, "0 Kz"),
+            (1, "0,01 Kz"),
+            (100, "1 Kz"),
+            (1_000, "10 Kz"),
+            (-1, "-0,01 Kz"),
+            (-1_000, "-10 Kz"),
+            (100_000_000_000, "1 000 000 000 Kz"),
+        ],
+    )
+    def test_aoa_boundary_amounts(self, minor, expected):
+        assert format_minor(minor, "AOA") == expected
+
+    def test_non_aoa_large_amount_keeps_its_last_centimos(self):
+        # Binary float division loses the tail of a large amount:
+        # 999_999_999_999_999_99 / 100 rounds to ...000.00 in float and prints
+        # a different number from the one held in the ledger. Decimal does not.
+        assert format_minor(99_999_999_999_999_999, "USD") == "USD 999,999,999,999,999.99"
+
 
 class TestToMinor:
     def test_aoa_multiplies_by_100(self):

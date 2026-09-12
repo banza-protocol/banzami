@@ -38,6 +38,21 @@ describe('formatMinor', () => {
     expect(formatMinor(50000, 'AOA')).not.toContain('50 000');
     expect(formatMinor(100, 'AOA')).toBe('1 Kz');
   });
+
+  // The amounts a caller reaches for first, and the ones that broke before:
+  // zero, one cêntimo, one kwanza, ten kwanzas, either sign, and an amount
+  // large enough that a grouping mistake is visible.
+  it.each([
+    [0, '0 Kz'],
+    [1, '0,01 Kz'],
+    [100, '1 Kz'],
+    [1_000, '10 Kz'],
+    [-1, '-0,01 Kz'],
+    [-1_000, '-10 Kz'],
+    [100_000_000_000, '1 000 000 000 Kz'],
+  ])('formats %i AOA minor units as %s', (minor, expected) => {
+    expect(formatMinor(minor as number, 'AOA')).toBe(expected);
+  });
 });
 
 describe('addMinor', () => {

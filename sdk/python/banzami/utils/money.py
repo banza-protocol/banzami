@@ -49,7 +49,11 @@ def format_minor(amount_minor: int, currency: str) -> str:
             out += f",{frac:02d}"
         sign = "-" if amount_minor < 0 else ""
         return f"{sign}{out} Kz"
-    major = amount_minor / _SUBUNIT
+    # Decimal, not float: `amount_minor / 100` is binary floating point, and a
+    # large enough amount stops being representable exactly — 999999999999999999
+    # minor units formats as ...0.00 instead of its true last cêntimos. Money is
+    # never divided in float here.
+    major = (Decimal(int(amount_minor)) / _SUBUNIT).quantize(Decimal("0.01"))
     return f"{cur} {major:,.2f}"
 
 

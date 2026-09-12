@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] — 2026-09-12
+
+Released to get the `formatMinor` fix below onto npm: 0.12.1 is published and
+prints every AOA amount 100 times too large, so any integrator formatting money
+with the SDK is showing the wrong number today.
+
+A minor bump rather than a patch, despite the headline being a bug fix:
+`Dispute.consumer_id` changes from `string` to `string | null`, which is a
+breaking type change for a caller that reads it unconditionally, and
+`replayWebhookDelivery` now answers 409 for an already-delivered delivery. A
+release that can break a compile is not a patch.
+
 ### Changed — a dispute names no consumer
 `Dispute.consumer_id` is `string | null`: a dispute is opened on an acquiring
 transaction, which has no Banzami consumer, so the API answers null for every
