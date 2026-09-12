@@ -1,0 +1,131 @@
+{
+  "schema": "banzami-lifecycle-delete/v1",
+  "suite": "Workspace and project endings, proved by absence",
+  "test": "tools/e2e/console/lifecycle-delete.mjs",
+  "timestamp": "2026-09-12T12:44:33.908Z",
+  "api_host": "https://developer-api.banzami.com",
+  "fixture_identity": "lifecycle-mtydn5k5@banzami-e2e.test",
+  "fixture_namespace": "lifecycle-mtydn5k5",
+  "note": "A deletion is asserted three ways — the API that owns the resource, the list the Console builds its selector from, and the database row over SSH. A delete that only rewrote a status field passes the first two and fails the third.",
+  "total": 23,
+  "pass": 23,
+  "fail": 0,
+  "verdict": "PASS",
+  "checks": [
+    {
+      "id": "EMPTY_PROJECT_DELETABLE",
+      "status": "PASS",
+      "observed": "footprint deletable=true, blockers=null"
+    },
+    {
+      "id": "EMPTY_PROJECT_HARD_DELETE",
+      "status": "PASS",
+      "observed": "DELETE -> 204"
+    },
+    {
+      "id": "DELETED_PROJECT_SELECTABLE",
+      "status": "PASS",
+      "observed": "GET -> 404, database row present=false"
+    },
+    {
+      "id": "PROJECT_HISTORY_CREATED",
+      "status": "PASS",
+      "observed": "issued an API key -> 201"
+    },
+    {
+      "id": "FINANCIAL_PROJECT_NOT_DELETABLE",
+      "status": "PASS",
+      "observed": "footprint deletable=false, blockers=[\"API_KEYS\"]"
+    },
+    {
+      "id": "FINANCIAL_PROJECT_HARD_DELETE_REFUSED",
+      "status": "PASS",
+      "observed": "DELETE -> 409 PROJECT_NOT_EMPTY"
+    },
+    {
+      "id": "REFUSED_DELETE_CHANGED_NOTHING",
+      "status": "PASS",
+      "observed": "the project still exists after the refusal"
+    },
+    {
+      "id": "FINANCIAL_PROJECT_ARCHIVE",
+      "status": "PASS",
+      "observed": "POST /archive -> 200, keys revoked=1"
+    },
+    {
+      "id": "ARCHIVED_PROJECT_STILL_EXISTS",
+      "status": "PASS",
+      "observed": "status=ARCHIVED — archived is a state, not a deletion: the history is kept on purpose"
+    },
+    {
+      "id": "ARCHIVED_PROJECT_OPERATIONAL_AUTHORITY",
+      "status": "PASS",
+      "observed": "0 active key(s) remain on the archived project"
+    },
+    {
+      "id": "WORKSPACE_FOOTPRINT_SEES_ARCHIVED",
+      "status": "PASS",
+      "observed": "projects=1 archived=1 deletable=false"
+    },
+    {
+      "id": "WORKSPACE_WITH_HISTORY_DELETE_REFUSED",
+      "status": "PASS",
+      "observed": "DELETE -> 409 WORKSPACE_NOT_EMPTY, blockers=[\"ARCHIVED_PROJECTS\"]"
+    },
+    {
+      "id": "HISTORICAL_WORKSPACE_ARCHIVE",
+      "status": "PASS",
+      "observed": "POST /archive -> 200 ARCHIVED"
+    },
+    {
+      "id": "ARCHIVED_WORKSPACE_STILL_EXISTS",
+      "status": "PASS",
+      "observed": "the row is kept, because its project is"
+    },
+    {
+      "id": "WORKSPACE_WITH_ACTIVE_PROJECT_DELETE_REFUSED",
+      "status": "PASS",
+      "observed": "DELETE -> 409 WORKSPACE_NOT_EMPTY, active_projects=1"
+    },
+    {
+      "id": "REFUSED_WORKSPACE_DELETE_CASCADED_NOTHING",
+      "status": "PASS",
+      "observed": "the active project is untouched by the refusal"
+    },
+    {
+      "id": "EMPTY_PROJECT_DELETE_CLEARS_THE_BLOCKER",
+      "status": "PASS",
+      "observed": "DELETE project -> 204"
+    },
+    {
+      "id": "WORKSPACE_BECOMES_DELETABLE_AGAIN",
+      "status": "PASS",
+      "observed": "projects=0 deletable=true — two mistakes, both undoable"
+    },
+    {
+      "id": "EMPTY_WORKSPACE_HARD_DELETE",
+      "status": "PASS",
+      "observed": "DELETE -> 204"
+    },
+    {
+      "id": "DELETED_WORKSPACE_SELECTABLE",
+      "status": "PASS",
+      "observed": "GET -> 403, in the Console's workspace list=false, database row present=false"
+    },
+    {
+      "id": "DELETED_WORKSPACE_MEMBERSHIPS_CASCADED",
+      "status": "PASS",
+      "observed": "0 membership row(s) remain"
+    },
+    {
+      "id": "DELETED_WORKSPACE_AUDIT_SURVIVES",
+      "status": "PASS",
+      "observed": "1 audit event(s) record the deletion — the log outlives the row, which is why deleting it is allowed"
+    },
+    {
+      "id": "LIFECYCLE_E2E_POST_RUN_RESIDUE",
+      "status": "PASS",
+      "observed": "cleanup \"cleaned\\n\""
+    }
+  ]
+}

@@ -4201,3 +4201,57 @@ stays: matching the shell widens the card, it does not make a six-column table
 fit a phone, and the body must never scroll sideways. Pages that are a narrow
 reading column on purpose are listed as such in the test rather than left
 looking like oversights.
+
+---
+
+## RA-173 — the nine blocked steps were closed by walking the authority, not around it
+
+- **Found:** 2026-09-12 (DP-PROD-001 §5, §40)
+- **Status:** CLOSED — BLOCKED=0 on both financial-owner paths
+
+Nine of the fifty developer-journey steps had recorded BLOCKED since the
+journey existed: financial setup, and the eight webhook steps behind it. A
+Project cannot give itself a financial owner — a new Business is decided by an
+operator in BANZADMIN, an existing one is connected with a single-use code its
+owner issues — and the harness had no way to involve the person who holds
+either authority. Six of the nine were not implemented at all; they returned a
+hardcoded BLOCKED naming step 28.
+
+Both paths have now been walked to their end, by a person, on the deployed
+Sandbox.
+
+**Application path.** The Console's real five-step Business application — the
+thirteen fields and two documents the Gateway's own requirements policy demands,
+uploaded through the product's signed-URL path to the KYB store — submitted from
+the Console, left IN_REVIEW, and decided by the owner in BANZADMIN with their own
+MFA. The Project then received. Nothing self-approved a KYB: the run submitted,
+polled its own financial-setup, and could not see the review queue, approve, or
+mint anything. Two applications submitted by earlier runs (while the harness was
+reading the wrong state field) were REJECTED by the same operator, so the queue
+carries no residue.
+
+**Consent path.** A single-use code issued in the Business App by the owner of an
+existing Business bound a second Project — `state=READY`, from a code the run
+could not produce. The code is single-use and ten-minute; a spent one is refused.
+
+With an owner present, the eight webhook steps are real: the signing secret is
+revealed once and is absent from the endpoint list and from a reloaded page, a
+genuine event is CAUSED (a short-lived writing key opens a payment session
+through the public Gateway and is revoked in the same step), its deliveries are
+read and their fields checked, a replay re-attempts THE SAME delivery row while
+the row count stays put — an event delivered once is never delivered twice
+because somebody pressed Reenviar — rotate returns a different successor once,
+and disable and enable are both reflected on screen.
+
+**50 PASS · 0 BLOCKED · 0 FAIL**, post-run residue 0,
+FULL_SECRET_OCCURRENCES=0 across eight surfaces, and no deviation: the sign-in
+code was delivered by email, read by the person who received it, and typed into
+the verify screen.
+
+Every failure encountered between the operator's approval and the clean run was
+the harness, not the product — the wrong state field, a missing CSRF token on
+direct API calls, a guessed reveal selector, a key-revoke route that does not
+exist, `.first()` revoking whichever key was on top, an endpoint subscribed to an
+event the run never caused, a replay asserted as a new row, and a key count that
+included the harness's own key. Each is recorded in the commits that fixed it.
+The product was right in all of them.
