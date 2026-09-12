@@ -24,6 +24,14 @@ type Store interface {
 	UpsertVerifiedUser(ctx context.Context, email string) (User, error)
 	// UserByID loads a user by id (for /auth/me and the session guard).
 	UserByID(ctx context.Context, id string) (User, error)
+	// SetUserName records the person's display name.
+	//
+	// The column shipped with the table and nothing ever wrote it. Sign-up is
+	// email-OTP only, so every account's name was empty, and the Console's header
+	// avatar — which falls back to the first two letters of the email — showed
+	// the same two characters for everybody at a domain. There was no way to tell
+	// two colleagues apart in a shared workspace.
+	SetUserName(ctx context.Context, id, name string) (User, error)
 
 	CreateSession(ctx context.Context, in SessionInsert) error
 	// LiveSessionByHash returns a non-revoked, non-expired session by token hash.

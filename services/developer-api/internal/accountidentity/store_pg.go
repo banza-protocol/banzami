@@ -124,6 +124,20 @@ func (s *pgStore) UserByID(ctx context.Context, id string) (User, error) {
 	return u, err
 }
 
+func (s *pgStore) SetUserName(ctx context.Context, id, name string) (User, error) {
+	var u User
+	err := s.pool.QueryRow(ctx,
+		`UPDATE account_identity.identity_users
+		    SET name = $2, updated_at = now()
+		  WHERE id = $1
+		 RETURNING id, email, COALESCE(name,''), verified, status, created_at, updated_at`,
+		id, name).Scan(&u.ID, &u.Email, &u.Name, &u.Verified, &u.Status, &u.CreatedAt, &u.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, ErrNotFound
+	}
+	return u, err
+}
+
 func (s *pgStore) CreateSession(ctx context.Context, in SessionInsert) error {
 	_, err := s.pool.Exec(ctx,
 		`INSERT INTO account_identity.identity_sessions

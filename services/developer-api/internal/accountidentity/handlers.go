@@ -2,6 +2,7 @@ package accountidentity
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -72,6 +73,7 @@ func (h *Handlers) Register(get, post func(pattern string, hf http.HandlerFunc))
 	post("/auth/request-otp", h.RequestOTP)
 	post("/auth/verify", h.Verify)
 	post("/auth/logout", h.Logout)
+	post("/auth/me", h.UpdateMe)
 	get("/auth/me", h.Me)
 }
 
@@ -193,6 +195,49 @@ func (h *Handlers) Me(w http.ResponseWriter, r *http.Request) {
 	}
 	httpx.JSON(w, http.StatusOK, map[string]any{
 		"user":       userView(user),
+		"csrf_token": h.svc.csrfFor(raw),
+	})
+}
+
+// POST /auth/me {name} — session-authenticated + Origin + CSRF.
+//
+// POST rather than PATCH because Register only wires GET and POST, and this is
+// the same authority as every other mutation on this surface; the semantics are
+// a partial update of the caller's own record and nobody else's — the id comes
+// from the session, so there is no field to forge.
+func (h *Handlers) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	if !h.originOK(r) {
+		httpx.Error(w, http.StatusForbidden, "FORBIDDEN_ORIGIN", "origin not allowed")
+		return
+	}
+	raw := h.rawSession(r)
+	user, err := h.svc.ValidateSession(r.Context(), raw)
+	if err != nil {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "not authenticated")
+		return
+	}
+	if !h.svc.ValidateCSRF(raw, r.Header.Get("X-CSRF-Token")) {
+		httpx.Error(w, http.StatusForbidden, "CSRF", "missing or invalid CSRF token")
+		return
+	}
+	var body struct {
+		Name string `json:"name"`
+	}
+	if !decode(r, &body) {
+		httpx.Error(w, http.StatusBadRequest, "INVALID_BODY", "name is required")
+		return
+	}
+	updated, err := h.svc.SetName(r.Context(), user.ID, body.Name, realIP(r), obs.RequestID(r.Context()))
+	switch {
+	case errors.Is(err, ErrInvalidName):
+		httpx.Error(w, http.StatusBadRequest, "INVALID_NAME", "name must not be empty and must be at most 80 characters")
+		return
+	case err != nil:
+		httpx.Error(w, http.StatusServiceUnavailable, "UNAVAILABLE", "service unavailable")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{
+		"user":       userView(updated),
 		"csrf_token": h.svc.csrfFor(raw),
 	})
 }

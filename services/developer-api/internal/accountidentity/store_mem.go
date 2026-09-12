@@ -121,6 +121,18 @@ func (m *memStore) UserByID(_ context.Context, id string) (User, error) {
 	return User{}, ErrNotFound
 }
 
+func (m *memStore) SetUserName(_ context.Context, id, name string) (User, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, u := range m.users {
+		if u.ID == id {
+			u.Name = name
+			return *u, nil
+		}
+	}
+	return User{}, ErrNotFound
+}
+
 func (m *memStore) CreateSession(_ context.Context, in SessionInsert) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

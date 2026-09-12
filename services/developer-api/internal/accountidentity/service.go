@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/banzami/banzami/services/common/clientip"
 )
@@ -224,6 +225,37 @@ func (s *Service) ValidateSession(ctx context.Context, raw string) (User, error)
 		return User{}, ErrUnauthenticated
 	}
 	_ = s.store.TouchSession(ctx, sess.ID)
+	return user, nil
+}
+
+// ErrInvalidName: the supplied display name is empty or longer than the column
+// is meant to hold. A name is a label a person chooses for themselves, so the
+// only rules are that it exists and stays a name.
+var ErrInvalidName = errors.New("invalid name")
+
+// MaxNameLen bounds the display name. Long enough for any real name including
+// its accents; short enough that it cannot be used as a free-text field.
+const MaxNameLen = 80
+
+// SetName records the person's display name and returns the updated user.
+//
+// This is the only thing an account holder can change about themselves, and it
+// exists because nothing could: sign-up is email-OTP only and no code ever wrote
+// the name column, so every Console avatar fell back to two letters of the email
+// and two colleagues at the same domain were indistinguishable.
+func (s *Service) SetName(ctx context.Context, userID, name, ip, requestID string) (User, error) {
+	name = strings.TrimSpace(name)
+	if name == "" || utf8.RuneCountInString(name) > MaxNameLen {
+		return User{}, ErrInvalidName
+	}
+	user, err := s.store.SetUserName(ctx, userID, name)
+	if err != nil {
+		return User{}, ErrUnavailable
+	}
+	// The name itself is not in the audit metadata: the event records that the
+	// person renamed themselves, which is the fact worth keeping. Storing the
+	// value again in an append-only log makes a name unerasable.
+	s.audit(ctx, &userID, "profile.name_set", "USER:"+userID, ip, requestID, nil)
 	return user, nil
 }
 
