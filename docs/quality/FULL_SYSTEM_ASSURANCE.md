@@ -344,4 +344,80 @@ Three findings were closed as decisions rather than code, and stay visible here:
 |---|---|
 | A7-07 — cancelling a Collection leaves its share links payable (`core/collections`) | the apps no longer claim otherwise and keep polling, so a late payment is seen; retiring a share on cancellation is a BANZA Collections (ADR-016) question, not an operator-local one |
 | A7-25 — the Console's balances and transactions read the whole Business, so a second Project on one Business sees the first's payments | the labels now say "Business", which is the truth; scoping value to a Project is a product decision about what a Project is |
-| A7-59 — a future consumer QR-pay route would mint receipts that say "Endereço @banza" | recorded as part of that route's definition of done in `docs/security/QR-PAY-AUTHORITY-CONTRACT.md`; inventing the channel before the route exists would be guessing |
+| ~~A7-59 — a future consumer QR-pay route would mint receipts that say "Endereço @banza"~~ | **closed 2026-09-12.** The route exists (CAP-PAY-003) and the channel is recorded rather than derived: `transfers.initiated_via` (migration 0141), read by `ReceiptSemantics.ForTransfer`. A transfer that predates the column keeps the derivation that was correct for it. |
+
+## 12. Developer Platform productization (DP-PROD-001, 2026-09-12)
+
+The assurance baseline said the system was sound. It did not say the Developer
+Platform was a product a developer could use end to end, and it was not: a
+workspace could be created and never ended, a project created by a typo was
+permanent, the header avatar showed two letters of an email address because no
+name was ever collected, one click on something that looked like a menu ended
+the session, the key list was dominated by keys revoked by rotation, and the
+most prominent control on every page promised an environment switch that cannot
+happen.
+
+### What was missing, and now is not
+
+| Gap | What exists now |
+|---|---|
+| No workspace or project lifecycle | rename, archive, leave, delete-when-empty, with blockers named and nothing cascading silently |
+| No human identity | `POST /auth/me` records a display name; the avatar draws a person glyph rather than inventing initials from an email |
+| Sign-out was one unconfirmed click | it lives in the account menu behind a confirmation, and a failed revocation no longer reports success |
+| API keys listed every key ever issued | opens on ACTIVE, filters and sorts, masks the secret half, groups scopes by domain |
+| Webhook endpoints could not be deleted and failed deliveries could not be retried | both exist; a delivery that already succeeded is refused, because re-sending it is a second "payment received" for one payment |
+| Workspace and project settings were one page | two routes, each with its own Danger Zone and a typed-name confirmation |
+| CAP-PAY-003 blocked — nothing could pay a structured QR | released, proven 28/28 against the deployed Sandbox |
+
+### The Live control
+
+It was a primary gradient button reading "Switch to Live". It now reads "Live
+indisponível" and links to the reason. Deliberately a link and not a disabled
+button: a disabled control cannot be focused or clicked, so the explanation
+would be unreachable by keyboard and the reader left with a dead button and no
+reason.
+
+### What the browser says
+
+Against the deployed Console, in Chromium: routes 15/0, accessibility 29/0,
+responsive across 1440/1280/768/375 36/0, a locale sweep of the rendered DOM
+24/0, cross-project isolation 16/0, the RBAC matrix 22/0, refund RBAC 31/0,
+financial onboarding 16/16, developer foundation 30/30, developer key → gateway
+20/20, API-log correlation 18/18.
+
+The responsive suite is new and immediately caught a regression introduced in
+this same pass: the Live control's new explanation is a sentence, it was
+`flex: none`, and it held every authenticated page wider than a phone.
+
+### Four harnesses were wrong, and the product was right
+
+Each had remembered an older version of the product and failed against the
+current one. They are recorded because the pattern matters more than the four:
+
+| Assertion | Why it was stale |
+|---|---|
+| the header must read "Terminar sessão" | the honest fix while the avatar signed you out on first click; the header must now NOT carry it |
+| a wallet payment's list row carries a `reference` | removed on purpose — it was derived from the payment id and was never a proof, so pasting it into the public verifier returned NOT_FOUND |
+| an unbound project answers 404 | it answers 409 `PROJECT_FINANCIAL_SETUP_REQUIRED`; 404 was the "denied" answer the step's own name rejects |
+| `/v1/me` must carry no UUID | the Project's id is the developer's to know; what must stay out is everything *behind* it |
+
+### The fixture audit was calling DOA's live tenant residue
+
+`stale-fixture-audit.sh` excluded a project named "DOA Sandbox". Nothing is
+called that — the project is `Doa-Sandbox` and the merchant `Sandbox ·
+Doa-Sandbox` — so every run reported DOA's production authority as stale fixture
+residue and ended by naming the command that retires it. Fixing the name was not
+enough: the merchant's U+00B7 middle dot does not survive the shell and the SSH
+hop, so equality matched nothing either. Both scripts match an ASCII pattern now.
+Nothing was ever at risk (the prune script's matcher is positive and neither real
+name matches a fixture shape), but a safety belt that names the wrong thing reads
+as protection and is not.
+
+With the exclusion working, every residue counter reads 0.
+
+### Human boundaries
+
+| # | Boundary | Why it cannot be crossed here |
+|---|---|---|
+| 1 | The Console's email OTP for a REAL mailbox | the only way in is an emailed code. The code is issued and delivered correctly (verified in the audit log); the IMAP connector's credentials are refused and no browser session is available. The pepper is in the container's secrets, and using it to recover a code for a real address would be operator authority fabricating a login — which `otp-retrieve.sh` refuses by design, for the same reason. |
+| 2 | Publishing `@banzami/sdk` 0.13.0 | npm requires browser authentication from the owner's machine. The published 0.12.1 prints `5 000 000 Kz` where it should print `50 000 Kz`; 0.13.0's packed tarball, installed into a clean project, prints the right value for every boundary amount. One command: `cd ~/banzami/sdk/typescript && npm publish --access public` |
