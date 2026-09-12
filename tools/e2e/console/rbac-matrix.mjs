@@ -162,9 +162,23 @@ readOk === ROLES.length * READS.length
   : bad(`${readOk}/${ROLES.length * READS.length} reads succeeded`);
 
 step('an unbound project answers "no payee", not "denied"');
+// 409 PROJECT_FINANCIAL_SETUP_REQUIRED, and the code matters as much as the
+// status. This asserted 404 — which is the "denied" answer the step's own name
+// rejects. A fresh project used to answer 404 on balances, transactions and
+// webhooks: the same answer as a project that does not exist or belongs to
+// somebody else, so the only signal that setup was missing was three routes
+// that looked broken. It cost an external developer their first hour.
+//
+// The privacy-safe 404 is untouched and is proven next door, in
+// cross-project-isolation.mjs: a stranger's project and an imaginary one must
+// still answer alike. The distinction is whose project it is, not what state
+// it is in.
 for (const [label, route] of READS.slice(0, 2)) {
   const res = await call(tok.OWNER, route(prj.body?.id));
-  res.status === 404 ? ok(`${label} on a project with no binding → 404`) : bad(`${label} unexpected ${res.status}`);
+  const code = res.body?.error?.code ?? res.body?.code ?? '';
+  res.status === 409 && code === 'PROJECT_FINANCIAL_SETUP_REQUIRED'
+    ? ok(`${label} on a project with no binding → 409 ${code}`)
+    : bad(`${label} unexpected ${res.status} ${code}`);
 }
 
 // ── writes: canBuild ────────────────────────────────────────────────────────
