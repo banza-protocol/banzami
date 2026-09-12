@@ -543,7 +543,7 @@ capabilities:
         - services/developer-api workspace/project authz tests
       e2e_sandbox:
         - tools/e2e/dev-console/developer-foundation-e2e.mjs (DEV-001.*)
-        - tools/e2e/dev-console/developer-journey-50.mjs (41 PASS · 9 BLOCKED · 0 FAIL, residue 0)
+        - tools/e2e/dev-console/developer-journey-50.mjs (41 PASS · 9 BLOCKED · 0 FAIL, residue 0, no deviation — real mailbox)
         - tools/e2e/console/route-suite.mjs (15/0)
         - tools/e2e/console/accessibility.mjs (29/0)
         - tools/e2e/console/responsive.mjs (36/0 across 1440/1280/768/375)
@@ -759,6 +759,7 @@ capabilities:
     evidence:
       - tools/check-sdk-contract.mjs
       - evidence/assurance/dev-foundation/sdk-clean-install-1783203531.json
+      - evidence/assurance/developer-platform/developer-journey-50-e240f0bd.json
       - evidence/assurance/cap-sdk-001-published-0.13.0-c15d7c74.json
       - docs/operations/SDK_REGISTRY_OWNERSHIP_AND_RELEASE.md
       - .github/workflows/sdk-publish.yml

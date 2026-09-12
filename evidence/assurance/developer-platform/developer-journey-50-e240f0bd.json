@@ -1,0 +1,415 @@
+{
+  "schema": "banzami-developer-journey/v1",
+  "suite": "Developer Platform — 50-step browser journey",
+  "test": "tools/e2e/dev-console/developer-journey-50.mjs",
+  "deviation": "None. Sign-in used the product's own screens end to end: the code was delivered by email to fidel.monteiro@banzami.com, read by the person who received it, and typed into the verify screen. Email delivery is part of what this run observed.",
+  "timestamp": "2026-09-12T09:57:12.605Z",
+  "started_at": "2026-09-12T09:50:40.868Z",
+  "date_stamp": "1789206640",
+  "console_host": "https://developers.banzami.com",
+  "blocked": 9,
+  "api_host": "https://developer-api.banzami.com",
+  "gateway_host": "https://sandbox-api.banzami.com",
+  "builds": {
+    "gateway": {
+      "build": "5f59aa3a284f",
+      "checks": {
+        "database": "ok",
+        "redis": "ok"
+      },
+      "environment": "sandbox",
+      "status": "ok",
+      "timestamp": "2026-09-12T09:50:40Z"
+    },
+    "developer_api": {
+      "db": "up",
+      "env": "sandbox",
+      "service": "developer-api",
+      "status": "ok"
+    }
+  },
+  "fixture_identities": [
+    "fidel.monteiro@banzami.com",
+    "dpmember-1789206640@banzami-e2e.test"
+  ],
+  "fixture_namespace": "dpj-1789206640",
+  "total": 50,
+  "pass": 41,
+  "fail": 0,
+  "verdict": "PASS",
+  "steps": [
+    {
+      "step": 1,
+      "name": "login page loads and asks for an email",
+      "status": "PASS",
+      "observed": "http 200, email input visible=true",
+      "blocked_by": null
+    },
+    {
+      "step": 2,
+      "name": "sign in (request OTP -> recover -> verify) and land in the Console",
+      "status": "PASS",
+      "observed": "landed on /",
+      "blocked_by": null
+    },
+    {
+      "step": 3,
+      "name": "the header shows a user avatar — and derives NO initials from the email",
+      "status": "PASS",
+      "observed": "avatar present=true, glyph=true, rendered letters=(none)",
+      "blocked_by": null
+    },
+    {
+      "step": 4,
+      "name": "the user menu opens from the avatar and does not sign anyone out",
+      "status": "PASS",
+      "observed": "menu visible=true, /auth/me -> 200",
+      "blocked_by": null
+    },
+    {
+      "step": 5,
+      "name": "the menu shows the person’s email visibly",
+      "status": "PASS",
+      "observed": "email rendered in the menu",
+      "blocked_by": null
+    },
+    {
+      "step": 6,
+      "name": "set a display name from the menu; the avatar’s initials then come from the NAME",
+      "status": "PASS",
+      "observed": "name \"Fidel Monteiro\" -> avatar \"FM\" (email would give FI)",
+      "blocked_by": null
+    },
+    {
+      "step": 7,
+      "name": "create a workspace",
+      "status": "PASS",
+      "observed": "workspace created, slug=dp-final-acceptance-1789206640",
+      "blocked_by": null
+    },
+    {
+      "step": 8,
+      "name": "rename the workspace; its slug/id does not change",
+      "status": "PASS",
+      "observed": "name -> \"DP Final Acceptance 1789206640 renomeado\", id stable=true, slug stable=true (dp-final-acceptance-1789206640)",
+      "blocked_by": null
+    },
+    {
+      "step": 9,
+      "name": "open workspace settings (/settings/workspace)",
+      "status": "PASS",
+      "observed": "http 200, active tab \"Workspace\", Membros section present=true",
+      "blocked_by": null
+    },
+    {
+      "step": 10,
+      "name": "the members list shows the signed-in person (name/email, not a bare UUID)",
+      "status": "PASS",
+      "observed": "1 member row(s); the name line reads \"Fidel Monteiro\" + VOCÊ, never a bare UUID",
+      "blocked_by": null
+    },
+    {
+      "step": 11,
+      "name": "invite the second persona by email",
+      "status": "PASS",
+      "observed": "Convite criado — link copiado; invite recorded for dpmember-1789206640@banzami-e2e.test, accept link produced by the product=true",
+      "blocked_by": null
+    },
+    {
+      "step": 12,
+      "name": "the pending invite appears in the invites list",
+      "status": "PASS",
+      "observed": "\"Convites pendentes\" lists dpmember-1789206640@banzami-e2e.test",
+      "blocked_by": null
+    },
+    {
+      "step": 13,
+      "name": "accept the invite as the second persona (second browser context)",
+      "status": "PASS",
+      "observed": "Convite aceite",
+      "blocked_by": null
+    },
+    {
+      "step": 14,
+      "name": "the members list now shows two people",
+      "status": "PASS",
+      "observed": "members=2, second persona rendered=true",
+      "blocked_by": null
+    },
+    {
+      "step": 15,
+      "name": "lower the second persona’s role (to VIEWER) and see it reflected",
+      "status": "PASS",
+      "observed": "role select reads VIEWER and the list says \"Observador\"",
+      "blocked_by": null
+    },
+    {
+      "step": 16,
+      "name": "create a project",
+      "status": "PASS",
+      "observed": "project created (slug dp-final-sandbox-1789206640)",
+      "blocked_by": null
+    },
+    {
+      "step": 17,
+      "name": "rename the project",
+      "status": "PASS",
+      "observed": "name now \"DP Final Sandbox 1789206640 renomeado\"",
+      "blocked_by": null
+    },
+    {
+      "step": 18,
+      "name": "the Project ID is unchanged by the rename",
+      "status": "PASS",
+      "observed": "Project ID identical before and after the rename",
+      "blocked_by": null
+    },
+    {
+      "step": 19,
+      "name": "open financial setup (/financeiro) and configure a financial owner",
+      "status": "BLOCKED",
+      "observed": "http 200, state=NOT_CONFIGURED, both paths offered=true; the Console offers exactly the two paths that exist and neither ends with the developer; no application submitted — it would leave a review-queue item this run cannot take back",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 20,
+      "name": "readiness reports the project ready, or names the blocker honestly",
+      "status": "PASS",
+      "observed": "state=UNCONFIGURED, readiness=null — the Console names the blocker: the legal entity behind the project is not verified",
+      "blocked_by": null
+    },
+    {
+      "step": 21,
+      "name": "create an API key (choosing scopes in the create dialog)",
+      "status": "PASS",
+      "observed": "key created; secret shape bz_test_sk_ + 43 chars; payment_sessions:read aria-checked=true",
+      "blocked_by": null
+    },
+    {
+      "step": 22,
+      "name": "the scopes chosen are the scopes shown on the key",
+      "status": "PASS",
+      "observed": "drawer lists identity:read + payment_sessions:read; unrequested scopes present=0",
+      "blocked_by": null
+    },
+    {
+      "step": 23,
+      "name": "the raw secret is revealed exactly once in the dialog",
+      "status": "PASS",
+      "observed": "reveal dialog gone after acknowledgement; the key list returns metadata + prefix only (raw secret present in list=false)",
+      "blocked_by": null
+    },
+    {
+      "step": 24,
+      "name": "the reveal dialog offers a copy control",
+      "status": "PASS",
+      "observed": "button[aria-label=\"Copiar chave secreta\"] present in the reveal dialog",
+      "blocked_by": null
+    },
+    {
+      "step": 25,
+      "name": "the key works: a REAL Gateway call with it returns 200",
+      "status": "PASS",
+      "observed": "GET https://sandbox-api.banzami.com/v1/me -> 200, environment=SANDBOX, key_status=active, scopes match=true",
+      "blocked_by": null
+    },
+    {
+      "step": 26,
+      "name": "reload the keys page; the raw secret is NOT on screen anywhere",
+      "status": "PASS",
+      "observed": "rendered text carries the published prefix + mask (masked=true); raw secret on screen=false",
+      "blocked_by": null
+    },
+    {
+      "step": 27,
+      "name": "the secret is unrecoverable (DOM, page source, flight data, network, storage, IndexedDB)",
+      "status": "PASS",
+      "observed": "FULL_SECRET_OCCURRENCES=0 across 8 surfaces",
+      "blocked_by": null
+    },
+    {
+      "step": 28,
+      "name": "create a webhook endpoint",
+      "status": "BLOCKED",
+      "observed": "no \"Registar endpoint\" control; page says: 🟡 SANDBOX Esta plataforma encontra-se em ambiente de testes. Banzami Developers WORKSPACE DP Final Acceptance 1789206640 renomeado + Novo workspace… PROJETO Mostrar arquivados DP ",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 29,
+      "name": "the webhook signing secret is revealed once",
+      "status": "BLOCKED",
+      "observed": "no endpoint exists (step 28), so no signing secret was ever issued",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 30,
+      "name": "cause a real event and see it in the events list",
+      "status": "BLOCKED",
+      "observed": "events are 409 PROJECT_FINANCIAL_SETUP_REQUIRED: with no financial owner the project can emit nothing — no payment session, payment link or settlement can be opened, so there is no genuine event to cause",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 31,
+      "name": "open the event and see its deliveries",
+      "status": "BLOCKED",
+      "observed": "no event exists to open (step 30)",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 32,
+      "name": "retry a failed delivery, or assert that none exists to retry",
+      "status": "BLOCKED",
+      "observed": "neither: the deliveries surface answers 409 PROJECT_FINANCIAL_SETUP_REQUIRED, so \"no failed delivery\" cannot be asserted either",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 33,
+      "name": "rotate the webhook secret; a new secret is revealed once",
+      "status": "BLOCKED",
+      "observed": "no endpoint to rotate (step 28)",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 34,
+      "name": "disable the endpoint; the list says so",
+      "status": "BLOCKED",
+      "observed": "no endpoint to disable (step 28)",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 35,
+      "name": "enable it again",
+      "status": "BLOCKED",
+      "observed": "no endpoint to re-enable (step 28)",
+      "blocked_by": "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner"
+    },
+    {
+      "step": 36,
+      "name": "balances page loads and shows the project’s real figures",
+      "status": "PASS",
+      "observed": "http 200; no balances exist yet and the page shows the financial-setup state rather than a fabricated 0 Kz (invented zero=false)",
+      "blocked_by": null
+    },
+    {
+      "step": 37,
+      "name": "transactions page loads",
+      "status": "PASS",
+      "observed": "http 200; renders the project's transaction surface (financial-setup state — no transactions exist yet)",
+      "blocked_by": null
+    },
+    {
+      "step": 38,
+      "name": "logs page loads and shows the request from the Gateway call",
+      "status": "PASS",
+      "observed": "\"Pedidos à API\" lists /v1/me from the step-25 call",
+      "blocked_by": null
+    },
+    {
+      "step": 39,
+      "name": "docs are reachable from the Console",
+      "status": "PASS",
+      "observed": "sidebar link -> /docs",
+      "blocked_by": null
+    },
+    {
+      "step": 40,
+      "name": "revoke the API key",
+      "status": "PASS",
+      "observed": "key status REVOKED",
+      "blocked_by": null
+    },
+    {
+      "step": 41,
+      "name": "the revoked key now FAILS the same Gateway call, and the failure is the key’s",
+      "status": "PASS",
+      "observed": "GET /v1/me with the same key: 200 before revocation -> 401 after",
+      "blocked_by": null
+    },
+    {
+      "step": 42,
+      "name": "create a successor key by rotation and prove the successor works",
+      "status": "PASS",
+      "observed": "successor /v1/me -> 200, rotated-away predecessor -> 401, secrets differ=true",
+      "blocked_by": null
+    },
+    {
+      "step": 43,
+      "name": "the keys list shows the successor active and the predecessor revoked",
+      "status": "PASS",
+      "observed": "1 active, 2 revoked; the table shows both \"Ativa\" and \"Revogada\"=true",
+      "blocked_by": null
+    },
+    {
+      "step": 44,
+      "name": "project settings shows Project ID, environment and created date",
+      "status": "PASS",
+      "observed": "ID=uuid(true), AMBIENTE=\"Sandbox\", CRIADO=\"2026-09-12 09:56 UTC\"",
+      "blocked_by": null
+    },
+    {
+      "step": 45,
+      "name": "archive the project; it reports how many keys were revoked",
+      "status": "PASS",
+      "observed": "Projeto arquivado. 1 chave revogada.",
+      "blocked_by": null
+    },
+    {
+      "step": 46,
+      "name": "the archived project’s authority is gone: its remaining key fails at the Gateway",
+      "status": "PASS",
+      "observed": "the key that worked at step 42 now answers 401",
+      "blocked_by": null
+    },
+    {
+      "step": 47,
+      "name": "the archived project leaves the default selector and returns behind \"Mostrar arquivados\"",
+      "status": "PASS",
+      "observed": "hidden by default=true; behind \"Mostrar arquivados\" it returns labelled \"(arquivado)\"=true",
+      "blocked_by": null
+    },
+    {
+      "step": 48,
+      "name": "workspace settings: remove the second member",
+      "status": "PASS",
+      "observed": "workspace is back to one member",
+      "blocked_by": null
+    },
+    {
+      "step": 49,
+      "name": "archive the workspace: refused while an active project remains, then succeeds",
+      "status": "PASS",
+      "observed": "refusal named the count=true (\"Este workspace ainda tem projetos ativos. Arquive-os primeiro.\"), workspace unchanged by the refusal (ACTIVE); after archiving the project it closed -> no longer listed",
+      "blocked_by": null
+    },
+    {
+      "step": 50,
+      "name": "sign out: confirmation appears, Cancel keeps the session, confirming ends it",
+      "status": "PASS",
+      "observed": "modal shown, Cancel kept the session (/auth/me 200), confirm ended it (/auth/me 401); Back -> /login blocked=true; second tab -> /login blocked=true",
+      "blocked_by": null
+    }
+  ],
+  "secret_occurrences": {
+    "total": 0,
+    "per": {
+      "dom": 0,
+      "page_source": 0,
+      "server_html_and_flight_data": 0,
+      "network_responses_after_reveal": 0,
+      "localStorage": 0,
+      "sessionStorage": 0,
+      "cookie": 0,
+      "indexedDB": 0
+    }
+  },
+  "secret_scan_note": "The secret is counted only from the moment the reveal-once dialog was acknowledged and dismissed. The creation response itself legitimately carries it — that IS the one reveal — so the scan measures whether it is recoverable AFTERWARDS, which is the property the product claims.",
+  "post_run_residue": {
+    "users": 0,
+    "workspaces": 0,
+    "projects": 0,
+    "keys": 0,
+    "total": 0
+  },
+  "cleanup_error": null,
+  "secrets_note": "No raw API key, webhook signing secret, session cookie, CSRF token, OTP or proof reference is printed or stored by this suite. Credentials are asserted on shape and on their masked rendering."
+}

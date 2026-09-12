@@ -413,11 +413,24 @@ it waits on, and a BLOCKED step is never counted as a pass.
 No application was submitted on the way past: it would leave a review-queue item
 the run cannot take back, and a residue count has to mean something.
 
-One deviation is disclosed in the run and in its evidence: sign-in uses the
-genuine request-otp + verify path, but the code is recovered server-side because
-no mailbox exists for a `@banzami-e2e.test` address (`otp-retrieve.sh`, which
-refuses any real address for exactly this reason). Email DELIVERY is not proven
-by this run; everything after sign-in is the product's own path.
+**No deviation.** The acceptance run signed in on the owner's real account:
+the code was delivered by email to `fidel.monteiro@banzami.com`, read by the
+person who received it, and typed into the verify screen. Email delivery is part
+of what the run observed, so nothing about the sign-in is asserted on trust.
+Evidence: `evidence/assurance/developer-platform/developer-journey-50-e240f0bd.json`.
+
+A synthetic run remains available and declares its own deviation: with no mailbox
+behind a `@banzami-e2e.test` address the code is recovered from the operator's
+store, which proves the verify path and proves delivery of nothing.
+`otp-retrieve.sh` refuses any real address so the two can never be quietly
+interchanged, and the notice is derived from which mailbox signed in rather than
+hardcoded — a real-mailbox run had been filing evidence that declared a deviation
+it did not have.
+
+The account is the owner's and is never cleaned up: it existed before the run.
+What the run made inside it — the workspace `DP Final Acceptance <stamp>` and the
+project `DP Final Sandbox <stamp>` — is retired by the journey's own archive
+steps, and the account ends with zero workspaces, as it began.
 
 The journey is what found the two defects above — a rename that never reached
 the screen, and a webhooks page reporting a service outage for a state it had
@@ -481,5 +494,5 @@ a receipt.
 
 | # | Boundary | Why it cannot be crossed here |
 |---|---|---|
-| 1 | The Console's email OTP for a REAL mailbox | the only way in is an emailed code. The code is issued and delivered correctly (verified in the audit log); the IMAP connector's credentials are refused and no browser session is available. The pepper is in the container's secrets, and using it to recover a code for a real address would be operator authority fabricating a login — which `otp-retrieve.sh` refuses by design, for the same reason. |
+| 1 | ~~The Console's email OTP for a REAL mailbox~~ | **crossed 2026-09-12.** The owner read the delivered code and supplied it, and the journey typed it into the verify screen. The harness now requests the code, says so, and waits for it — so a real-mailbox run needs one human action and no shortcut. The IMAP connector's credentials are still refused, which is why the person and not the machine read the mailbox; the pepper was never used for a real address, and `otp-retrieve.sh` still refuses one. |
 | 2 | ~~Publishing `@banzami/sdk` 0.13.0~~ | **crossed 2026-09-12.** The owner published it. Verified from the registry, not the working tree: `formatMinor` 9/9 on the boundary amounts in a clean install, the ESM entrypoint resolves, `Dispute.consumer_id: string \| null` shipped, no credential-shaped literal in any published file, and the three registry-installing harnesses at 11/11, 25/25 and 4/4. The registry shasum equals the repository tarball's. |
