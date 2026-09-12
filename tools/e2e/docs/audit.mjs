@@ -223,8 +223,14 @@ for (const p of PAGES) {
   const pt = await page('/docs' + p);
   const en = await page('/docs/en' + p);
   if (pt.status !== 200 || en.status !== 200) continue;
-  // Prose may differ between languages. The contract may not.
-  const eps = (t) => new Set((t.match(/\/v1\/[a-z0-9/_{}-]+/g) ?? []).map((x) => x.replace(/[.,;:)]+$/, '')));
+  // Prose may differ between languages. The contract may not — but an example id
+  // is prose: psess_exemplo and psess_example are the same route, and comparing
+  // the raw strings reported a translated placeholder as a contract gap. Each
+  // path is reduced to the spec template it matches before comparing.
+  const eps = (t) => new Set((t.match(/\/v1\/[a-z0-9/_{}-]+/g) ?? [])
+    .map((x) => x.replace(/[.,;:)]+$/, ''))
+    .map((x) => (specPaths.has(x) ? x : ([...specPaths].find((sp) =>
+      new RegExp(`^${sp.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\{[^}]+\}/g, '[^/]+')}$`).test(x)) ?? x))));
   const a = eps(pt.text), b = eps(en.text);
   const onlyPt = [...a].filter((x) => !b.has(x));
   const onlyEn = [...b].filter((x) => !a.has(x));
