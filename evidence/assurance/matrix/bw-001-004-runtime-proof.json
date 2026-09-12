@@ -1,71 +1,117 @@
 {
-  "ran_at": "2026-09-12T19:14:49.228Z",
+  "ran_at": "2026-09-12T21:10:53.612Z",
   "api": "https://developer-api.banzami.com",
   "gateway": "https://sandbox-api.banzami.com",
   "results": [
     {
       "item": "BW-003",
       "criterion": "a key is generated and its raw value returned exactly once",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "prefix bz_test_sk_…, 54 chars"
     },
     {
       "item": "BW-003",
       "criterion": "the active-key listing carries no raw value",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "1 key(s) listed; raw secret present = false"
     },
     {
       "item": "BW-003",
       "criterion": "revocation is immediate and the key stops authenticating",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "GET /v1/me: 200 before → 401 after (revoke http 200)"
     },
     {
       "item": "BW-003",
       "criterion": "a bz_live_ key is refused fail-closed; no production key is issued",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "bz_live_ → 401; every key this Console issues is bz_test_"
     },
     {
       "item": "BW-004",
       "criterion": "a member is invited by email",
+      "kind": "criterion",
       "verdict": "PASS",
-      "detail": "invite for bwproof-viewer-mtyrl5o4@banzami-e2e.test → http 201"
+      "detail": "invite for bwproof-viewer-mtyv70v3@banzami-e2e.test → http 201"
     },
     {
       "item": "BW-004",
       "criterion": "permissions are differentiated — at least two distinct levels exist",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "roles present: OWNER, VIEWER (accept http 200)"
     },
     {
       "item": "BW-004",
       "criterion": "a read-only role is refused by the service, not only by the UI",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "VIEWER POST /projects → 403"
     },
     {
       "item": "BW-004",
+      "criterion": "a role can be changed, and the change takes effect",
+      "kind": "criterion",
+      "verdict": "PASS",
+      "detail": "PATCH role VIEWER→DEVELOPER → 200; the member now holds DEVELOPER"
+    },
+    {
+      "item": "BW-004",
       "criterion": "removal is immediate",
+      "kind": "criterion",
       "verdict": "PASS",
       "detail": "DELETE → 200; the member is gone from the list"
     },
     {
       "item": "BW-004",
       "criterion": "a per-member access log is readable",
-      "verdict": "FAIL",
-      "detail": "no route reads developer.audit_events — the rows are written and never served"
+      "kind": "criterion",
+      "verdict": "PASS",
+      "detail": "GET /workspaces/{id}/activity → 200, 8 event(s); actions: member.removed, member.role_changed, member.joined, member.invited, apikey.revoked, apikey.created, project.created, workspace.created"
+    },
+    {
+      "item": "BW-004",
+      "criterion": "the record names actor, target, timestamp and the role transition",
+      "kind": "tenancy",
+      "verdict": "PASS",
+      "detail": "e7d93872-fb13-40af-a14f-abc8dee9fb26 → bwproof-viewer-mtyv70v3@banzami-e2e.test: VIEWER → DEVELOPER at 2026-09-12T21:10:51.300328Z"
+    },
+    {
+      "item": "BW-004",
+      "criterion": "the affected member can be found by filtering",
+      "kind": "tenancy",
+      "verdict": "PASS",
+      "detail": "?member=01091c4b… → 3 event(s), all about that member"
+    },
+    {
+      "item": "BW-004",
+      "criterion": "another Workspace cannot read this Workspace activity",
+      "kind": "tenancy",
+      "verdict": "PASS",
+      "detail": "a different workspace's owner asking for this workspace's activity → 403"
+    },
+    {
+      "item": "BW-004",
+      "criterion": "the activity surface carries no secret and no operator metadata",
+      "kind": "tenancy",
+      "verdict": "PASS",
+      "detail": "no key value, key prefix, IP or request id in the response"
     },
     {
       "item": "BW-001",
       "criterion": "the Banzami Business dashboard is reachable",
+      "kind": "criterion",
       "verdict": "FAIL",
       "detail": "dashboard.banzami.com does not resolve"
     },
     {
       "item": "BW-002",
       "criterion": "an analytics surface is publicly reachable",
+      "kind": "criterion",
       "verdict": "FAIL",
       "detail": "GET /v1/analytics → 404; the engine exists in core, no public route serves it"
     }
