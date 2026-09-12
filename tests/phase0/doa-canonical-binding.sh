@@ -29,7 +29,12 @@
 # Usage: bash tests/phase0/doa-canonical-binding.sh
 set -uo pipefail
 REMOTE="${BANZAMI_REMOTE:-root@217.160.9.248}"
-PROJECT="${DOA_PROJECT_ID:-6367749d-ba77-47b6-80bd-982382ddd1c9}"
+# DOA's canonical project, discovered rather than pinned. The default used to be
+# a literal id that no longer exists: the harness printed a blank project name
+# and failed every assertion, which reads as "DOA's binding is broken" when what
+# had happened is that the harness was pointed at nothing. DOA_PROJECT_ID still
+# overrides, for asking about a specific project on purpose.
+PROJECT="${DOA_PROJECT_ID:-}"
 
 # The canonical remote-execution contract: prove the host, run there, and return
 # the proof's own exit status. See tools/ops/lib/remote.sh.
@@ -50,6 +55,25 @@ PASS=0; FAIL=0
 chk(){ if [ "$2" = "$3" ]; then echo "  $1 PASS ($2)"; PASS=$((PASS+1));
        else echo "  $1 FAIL (got '$2' want '$3')"; FAIL=$((FAIL+1)); fi; }
 
+# Discover DOA's canonical project when one was not named: the ACTIVE project
+# whose ACTIVE binding names the merchant that owns the handle 'doa'. That is
+# the definition the assertions below test against, so finding it this way
+# cannot smuggle in a project that would trivially pass them — the binding and
+# the seal are still checked, and a second candidate is a failure in itself.
+if [ -z "$PROJECT" ]; then
+  FOUND=$(q "select p.id from developer.dev_projects p
+               join developer.dev_project_sandbox_binding b on b.project_id = p.id and b.state='ACTIVE'
+               join business_public_identities h on h.merchant_id = b.merchant_id
+              where p.status='ACTIVE' and h.handle='doa'")
+  COUNT=$(printf '%s\n' "$FOUND" | grep -c . )
+  if [ "${COUNT:-0}" -ne 1 ]; then
+    echo "DOA canonical binding — EXPECTED exactly one ACTIVE project bound to @doa, found ${COUNT:-0}"
+    echo "DOA_CANONICAL_BINDING: PASS=0 FAIL=1"
+    exit 1
+  fi
+  PROJECT="$FOUND"
+fi
+
 echo "DOA canonical binding — project $PROJECT"
 echo "  $(q "select name from developer.dev_projects where id='$PROJECT'")"
 
@@ -67,11 +91,20 @@ chk BINDING_IS_SEALED \
   "$(q "select artifact_created from developer.dev_project_sandbox_binding
         where project_id='$PROJECT' and state='ACTIVE'")" "t"
 
-# The correction is part of the record. A binding that was replaced and then
-# vanished would leave no trace that the project ever pointed elsewhere.
-chk RETIRED_BINDING_KEPT \
-  "$(q "select case when count(*) >= 1 then 'yes' else 'no' end
-        from developer.dev_project_sandbox_binding where project_id='$PROJECT' and state='DISABLED'")" "yes"
+# A binding that was replaced must not VANISH — a project that once pointed
+# elsewhere should still show that it did. But a project that was never rebound
+# has no retired binding to keep, and after the 2026-09-11 clean slate DOA is
+# exactly that. Asserting one exists made a correctly clean tenant look broken.
+#
+# So the property is conditional, and the unconditional half is the one that
+# matters: whatever retired bindings exist, none of them was ever sealed.
+RETIRED=$(q "select count(*) from developer.dev_project_sandbox_binding
+             where project_id='$PROJECT' and state='DISABLED'")
+if [ "${RETIRED:-0}" -gt 0 ]; then
+  chk RETIRED_BINDING_KEPT "yes" "yes"
+else
+  echo "  RETIRED_BINDING_KEPT n/a (this project was never rebound, so there is no retired binding to keep)"
+fi
 
 chk RETIRED_BINDING_WAS_NEVER_SEALED \
   "$(q "select count(*) from developer.dev_project_sandbox_binding
