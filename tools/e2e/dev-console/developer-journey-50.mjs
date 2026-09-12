@@ -108,16 +108,44 @@ registerCleanup({ emailPattern: EMAIL_MEMBER, namePattern: `%${TAG}%` });
 const getOTP = (email) =>
   execFileSync('bash', [resolve(HERE, 'otp-retrieve.sh'), email], { encoding: 'utf8' }).trim();
 
+// The authority nine of these steps are waiting on. Named once so every blocked
+// step says the same thing, and so changing it is one edit rather than nine.
+const BLOCKED_BY_BUSINESS =
+  "an operator KYB decision in BANZADMIN, or a consent code from an existing Business's owner";
+
 // ── result recording ─────────────────────────────────────────────────────────
 const results = [];
 let stepNo = 0;
 
-/** One step, one line. `observed` is what the product actually did. */
-function record(name, ok, observed = '') {
+/**
+ * One step, one line. `observed` is what the product actually did.
+ *
+ * Three verdicts, not two, and the third is the one that matters here.
+ *
+ *   PASS     the product did what the step describes
+ *   FAIL     the product is wrong
+ *   BLOCKED  the product REFUSED, correctly, and the refusal needs an authority
+ *            this run does not hold
+ *
+ * Nine steps of this journey need the Project to have a financial owner, and a
+ * developer alone cannot give it one: a new Business is decided by an operator
+ * in BANZADMIN, and an existing one is connected with a single-use consent code
+ * issued by its owner. That is deliberate — it replaced a one-click Sandbox
+ * setup that created a synthetic Business and marked its KYB approved with
+ * nobody reviewing anything (services/developer-api .../financial_onboarding.go).
+ *
+ * Reporting those nine as FAIL says the product is broken; reporting them as
+ * PASS says a journey completed that did not. Both are false, so they are
+ * BLOCKED, and each one names the authority it is waiting on. A BLOCKED step is
+ * never counted as a pass.
+ */
+function record(name, ok, observed = '', blockedBy = null) {
   stepNo += 1;
   const n = String(stepNo).padStart(2, '0');
-  results.push({ step: stepNo, name, status: ok ? 'PASS' : 'FAIL', observed });
-  console.log(`${n}. ${name} ... ${ok ? 'PASS' : 'FAIL'}${observed ? ` (${observed})` : ''}`);
+  const status = blockedBy ? 'BLOCKED' : ok ? 'PASS' : 'FAIL';
+  results.push({ step: stepNo, name, status, observed, blocked_by: blockedBy });
+  const tail = blockedBy ? `${observed ? observed + ' — ' : ''}needs: ${blockedBy}` : observed;
+  console.log(`${n}. ${name} ... ${status}${tail ? ` (${tail})` : ''}`);
 }
 
 /**
@@ -128,7 +156,7 @@ function record(name, ok, observed = '') {
 async function step(name, fn) {
   try {
     const r = await fn();
-    if (r && typeof r === 'object' && 'ok' in r) record(name, r.ok, r.observed ?? '');
+    if (r && typeof r === 'object' && 'ok' in r) record(name, r.ok, r.observed ?? '', r.blockedBy ?? null);
     else record(name, r !== false, typeof r === 'string' ? r : '');
   } catch (e) {
     record(name, false, `threw: ${String(e && e.message ? e.message : e).slice(0, 200)}`);
@@ -698,11 +726,11 @@ try {
     // (one would also leave a review-queue item this run cannot take back).
     return {
       ok: false,
+      blockedBy: BLOCKED_BY_BUSINESS,
       observed:
         `http ${res?.status()}, state=${state}, both paths offered=${pathNew === 1 && pathExisting === 1}; ` +
-        'NOT ACHIEVABLE by a developer alone — a new Business needs operator KYB approval in BANZADMIN and ' +
-        'an existing one needs a consent code from its owner; no application submitted (it would leave ' +
-        'review-queue residue this run cannot remove)',
+        'the Console offers exactly the two paths that exist and neither ends with the developer; ' +
+        'no application submitted — it would leave a review-queue item this run cannot take back',
     };
   });
 
@@ -869,7 +897,11 @@ try {
     const pageState = await bodyText(page);
     const register = page.getByRole('button', { name: 'Registar endpoint' }).first();
     if ((await register.count()) === 0) {
-      return { ok: false, observed: `no "Registar endpoint" control; page says: ${pageState.slice(0, 180)}` };
+      return {
+      ok: false,
+      blockedBy: BLOCKED_BY_BUSINESS,
+      observed:
+`no "Registar endpoint" control; page says: ${pageState.slice(0, 180)}` };
     }
     await register.click();
     await page.locator('#wh-url').fill(`https://webhook.${TAG}.example.com/banzami`);
@@ -891,7 +923,7 @@ try {
 
   // ── 29 ─────────────────────────────────────────────────────────────────────
   await step('the webhook signing secret is revealed once', async () =>
-    ({ ok: false, observed: 'no endpoint exists (step 28 refused), so no signing secret was ever issued' }));
+    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint exists (step 28), so no signing secret was ever issued' }));
 
   // ── 30 ─────────────────────────────────────────────────────────────────────
   await step('cause a real event and see it in the events list', async () => {
@@ -908,28 +940,29 @@ try {
       observed:
         `events are ${r.status()} ${code}: with no financial owner the project can emit nothing — ` +
         'no payment session, payment link or settlement can be opened, so there is no genuine event to cause',
+      blockedBy: BLOCKED_BY_BUSINESS,
     };
   });
 
   // ── 31 ─────────────────────────────────────────────────────────────────────
   await step('open the event and see its deliveries', async () =>
-    ({ ok: false, observed: 'no event exists to open (step 30)' }));
+    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no event exists to open (step 30)' }));
 
   // ── 32 ─────────────────────────────────────────────────────────────────────
   await step('retry a failed delivery, or assert that none exists to retry', async () =>
-    ({ ok: false, observed: 'neither: the deliveries surface is unreachable for this project (409 PROJECT_FINANCIAL_SETUP_REQUIRED), so "no failed delivery" cannot be asserted either' }));
+    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'neither: the deliveries surface answers 409 PROJECT_FINANCIAL_SETUP_REQUIRED, so "no failed delivery" cannot be asserted either' }));
 
   // ── 33 ─────────────────────────────────────────────────────────────────────
   await step('rotate the webhook secret; a new secret is revealed once', async () =>
-    ({ ok: false, observed: 'no endpoint to rotate (step 28)' }));
+    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint to rotate (step 28)' }));
 
   // ── 34 ─────────────────────────────────────────────────────────────────────
   await step('disable the endpoint; the list says so', async () =>
-    ({ ok: false, observed: 'no endpoint to disable (step 28)' }));
+    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint to disable (step 28)' }));
 
   // ── 35 ─────────────────────────────────────────────────────────────────────
   await step('enable it again', async () =>
-    ({ ok: false, observed: 'no endpoint to re-enable (step 28)' }));
+    ({ ok: false, blockedBy: BLOCKED_BY_BUSINESS, observed: 'no endpoint to re-enable (step 28)' }));
 
   // ── 36 ─────────────────────────────────────────────────────────────────────
   await step('balances page loads and shows the project’s real figures', async () => {
@@ -1266,10 +1299,16 @@ try {
 
 // ── report ───────────────────────────────────────────────────────────────────
 const pass = results.filter((r) => r.status === 'PASS').length;
-const fail = results.length - pass;
+const blocked = results.filter((r) => r.status === 'BLOCKED').length;
+const fail = results.filter((r) => r.status === 'FAIL').length;
 
 console.log('');
-console.log(`DEVELOPER_JOURNEY_50: PASS=${pass} FAIL=${fail}`);
+if (blocked) {
+  // Named, once, so the count cannot be read as a pass or as a defect.
+  const reasons = [...new Set(results.filter((r) => r.status === 'BLOCKED').map((r) => r.blocked_by))];
+  console.log(`BLOCKED (the product refused, correctly) — waiting on: ${reasons.join(' · ')}`);
+}
+console.log(`DEVELOPER_JOURNEY_50: PASS=${pass} BLOCKED=${blocked} FAIL=${fail}`);
 console.log(`DEVELOPER_E2E_POST_RUN_RESIDUE=${residue.total}`);
 if (cleanupError) console.log(`  cleanup reported: ${cleanupError}`);
 console.log(`\nDEVIATION: ${DEVIATION}`);
@@ -1295,6 +1334,7 @@ writeFileSync(
       started_at: startedAt,
       date_stamp: STAMP,
       console_host: CONSOLE,
+      blocked,
       api_host: API,
       gateway_host: GW,
       builds,
