@@ -1,0 +1,53 @@
+{
+  "suite": "PUBLIC SDK DISTRIBUTION — @banzami/sdk 0.13.0, from the registry",
+  "test": "clean-registry install + tests/phase0/{sdk-wallet-accounts-public,refund-published-sdk-e2e,sdk-types-cleanroom}.sh",
+  "environment": "deployed sandbox (sandbox-api.banzami.com); the SDK installed from registry.npmjs.org, never from the working tree",
+  "published_version": "0.13.0",
+  "supersedes": "0.12.1, which printed every AOA amount 100x too large",
+  "registry_shasum": "f9e51a22a9d7f45e6e522901c8ecd27d707b86d4",
+  "repository_tarball_shasum": "f9e51a22a9d7f45e6e522901c8ecd27d707b86d4",
+  "shasum_equal": true,
+  "generated_at": "2026-09-12T09:41:27.257198Z",
+  "checks": [
+    {
+      "id": "FORMATMINOR_BOUNDARIES",
+      "pass": true,
+      "observed": "9/9 from a clean registry install: 5 000 000->'50 000 Kz', 0, 1, 100, 1000, -1, -1000, 100 000 000 000, 5 000 050"
+    },
+    {
+      "id": "ESM_ENTRYPOINT",
+      "pass": true,
+      "observed": "import { formatMinor, addMinor } resolves and returns '50 000 Kz' / 1000000000"
+    },
+    {
+      "id": "DISPUTE_TYPE_NULLABLE_SHIPPED",
+      "pass": true,
+      "observed": "dist/types.d.ts: consumer_id: string | null — the change that made this a minor rather than a patch"
+    },
+    {
+      "id": "NO_CREDENTIAL_LITERAL_IN_PACKAGE",
+      "pass": true,
+      "observed": "no bz_(test|live)_(sk|pk)_ literal in any published file"
+    },
+    {
+      "id": "WALLET_ACCOUNTS_PUBLIC",
+      "pass": true,
+      "observed": "sdk-wallet-accounts-public.sh 11/11 on the deployed Sandbox"
+    },
+    {
+      "id": "REFUND_MATRIX_PUBLISHED",
+      "pass": true,
+      "observed": "refund-published-sdk-e2e.sh 25/25 (partial, idempotent replay, changed-payload conflict, remainder, over-refund refusal, cross-project denial)"
+    },
+    {
+      "id": "TYPES_CLEANROOM",
+      "pass": true,
+      "observed": "4/4 — strict, skipLibCheck:false, no @types/node, and an existing Buffer caller still compiles"
+    }
+  ],
+  "promotable": true,
+  "note": "The registry shasum equals the repository tarball's, so what integrators install is what the source builds.",
+  "total": 7,
+  "passed": 7,
+  "failed": 0
+}

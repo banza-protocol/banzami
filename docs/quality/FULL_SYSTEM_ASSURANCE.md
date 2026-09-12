@@ -156,10 +156,16 @@ A recorded run of every TypeScript SDK method against the gateway's route
 table maps every request to a mounted route. Publishing the SDK source fixes is
 the owner's npm step; the gateway fixes make already-published versions work.
 
-Registry state (2026-09-11): `@banzami/sdk` **0.12.1** is `latest` on npm (published
-by the owner; shasum 4c327d7f…, equal to the repository tarball) and is proved
-against the deployed Sandbox by `sdk-wallet-accounts-public.sh` (11/11) and
-`refund-published-sdk-e2e.sh` (25/25), both installing from the registry. `banzami_client` 0.1.0 on pub.dev equals the
+Registry state (2026-09-12): `@banzami/sdk` **0.13.0** is `latest` on npm
+(published by the owner; shasum f9e51a22…, equal to the repository tarball, so
+what an integrator installs is what the source builds). It supersedes 0.12.1,
+which printed every AOA amount 100 times too large — `formatMinor` read one minor
+unit as one kwanza, so anyone formatting money with the SDK showed the wrong
+number. A minor and not a patch because `Dispute.consumer_id` widened to
+`string | null`: a release that can break a caller's compile is not a patch.
+Proved from the registry at 0.13.0 by `sdk-wallet-accounts-public.sh` (11/11),
+`refund-published-sdk-e2e.sh` (25/25) and `sdk-types-cleanroom.sh` (4/4), plus
+`formatMinor` 9/9 across the boundary amounts in a clean install. `banzami_client` 0.1.0 on pub.dev equals the
 repository's library. The Python (`banzami-python`) and PHP (`banzami/sdk-php`)
 SDKs are not on PyPI or Packagist. `banzami_flutter` is internal (ADR-053).
 Published-SDK/server contract drift: **0**.
@@ -449,4 +455,4 @@ With the exclusion working, every residue counter reads 0.
 | # | Boundary | Why it cannot be crossed here |
 |---|---|---|
 | 1 | The Console's email OTP for a REAL mailbox | the only way in is an emailed code. The code is issued and delivered correctly (verified in the audit log); the IMAP connector's credentials are refused and no browser session is available. The pepper is in the container's secrets, and using it to recover a code for a real address would be operator authority fabricating a login — which `otp-retrieve.sh` refuses by design, for the same reason. |
-| 2 | Publishing `@banzami/sdk` 0.13.0 | npm requires browser authentication from the owner's machine. The published 0.12.1 prints `5 000 000 Kz` where it should print `50 000 Kz`; 0.13.0's packed tarball, installed into a clean project, prints the right value for every boundary amount. One command: `cd ~/banzami/sdk/typescript && npm publish --access public` |
+| 2 | ~~Publishing `@banzami/sdk` 0.13.0~~ | **crossed 2026-09-12.** The owner published it. Verified from the registry, not the working tree: `formatMinor` 9/9 on the boundary amounts in a clean install, the ESM entrypoint resolves, `Dispute.consumer_id: string \| null` shipped, no credential-shaped literal in any published file, and the three registry-installing harnesses at 11/11, 25/25 and 4/4. The registry shasum equals the repository tarball's. |

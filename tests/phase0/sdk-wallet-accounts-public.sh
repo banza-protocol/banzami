@@ -29,7 +29,11 @@ set -uo pipefail
 
 # The version an integrator installs today. It was 0.6.0 long after 0.6.0 stopped
 # matching the server: the proof kept testing a client nobody should install.
-SDK_VERSION="${SDK_VERSION:-0.12.1}"
+#
+# Pinned rather than `latest` on purpose — a suite whose subject changes when
+# somebody publishes is a suite that cannot fail the same way twice — so it has
+# to be moved by hand at each release, and this line is the reminder.
+SDK_VERSION="${SDK_VERSION:-0.13.0}"
 BASE_URL="${BASE_URL:-https://sandbox-api.banzami.com}"
 
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
