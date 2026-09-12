@@ -48,7 +48,9 @@ const REQUIRED = [
   { schema: 'account_identity', table: 'identity_otp_codes', needs: ['SELECT', 'INSERT', 'UPDATE'] },
   { schema: 'account_identity', table: 'identity_sessions',  needs: ['SELECT', 'INSERT', 'DELETE'] },
   { schema: 'account_identity', table: 'audit_events',       needs: ['SELECT', 'INSERT'] },
-  { schema: 'developer',        table: 'projects',           needs: ['SELECT', 'INSERT'] },
+  { schema: 'developer',        table: 'dev_workspaces',     needs: ['SELECT', 'INSERT'] },
+  { schema: 'developer',        table: 'dev_projects',       needs: ['SELECT', 'INSERT'] },
+  { schema: 'developer',        table: 'dev_api_keys',       needs: ['SELECT', 'INSERT'] },
 ];
 
 function psql(sql) {
