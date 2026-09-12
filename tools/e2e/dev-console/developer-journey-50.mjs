@@ -247,14 +247,23 @@ async function waitForOperatorDecision(ctx, projectId, timeoutMs) {
   for (;;) {
     const r = await ctx.request.get(`${API}/projects/${projectId}/financial-setup`, { headers: { Origin: CONSOLE } });
     const s = r.ok() ? await r.json() : {};
-    if (s.state !== last) {
-      last = s.state;
-      console.log(`      financial setup: ${s.state ?? `http ${r.status()}`}`);
+    // TWO states, and they answer different questions. `state` is FINANCIAL —
+    // whether the project can receive — and stays UNCONFIGURED until a Business
+    // is actually bound. `onboarding.state` is how it is getting one, and is
+    // where a submitted application shows up. Watching the outer one waits
+    // forever through a perfectly good review.
+    const onb = s.onboarding?.state ?? null;
+    const where = `${s.state ?? `http ${r.status()}`} / onboarding ${onb ?? '—'}`;
+    if (where !== last) {
+      last = where;
+      console.log(`      financial setup: ${where}`);
     }
     // READY/SEALED is an approval; REJECTED and INFORMATION_REQUIRED are also
     // decisions, and the run must report what actually happened rather than
     // waiting out the clock on a "no".
-    if (['READY', 'SEALED', 'REJECTED', 'INFORMATION_REQUIRED'].includes(s.state)) return s;
+    if (['READY', 'SEALED'].includes(s.state) || ['REJECTED', 'INFORMATION_REQUIRED'].includes(onb)) {
+      return { ...s, decision: ['READY', 'SEALED'].includes(s.state) ? s.state : onb };
+    }
     if (!announced) {
       console.log(`\n  waiting for an operator to decide this application in BANZADMIN (admin.banzami.com),`);
       console.log(`  signed in with their own MFA. This run holds no operator authority and is only watching.\n`);
@@ -427,19 +436,25 @@ async function fillAndSubmitApplication(page, ctx) {
 
   const r = await ctx.request.get(`${API}/projects/${J.projectId}/financial-setup`, { headers: { Origin: CONSOLE } });
   const fs = r.ok() ? await r.json() : {};
-  const reference = fs.application?.reference ?? fs.application?.id ?? null;
-  const inReview = ['IN_REVIEW', 'APPROVED_PROVISIONING', 'READY', 'SEALED', 'INFORMATION_REQUIRED'].includes(fs.state);
+  // The application lives under `onboarding`, not at the top level: `state` is
+  // the FINANCIAL state and stays UNCONFIGURED until a Business is bound, which
+  // is exactly what a review has not done yet.
+  const onb = fs.onboarding ?? {};
+  const reference = onb.application?.reference ?? onb.application?.id ?? null;
+  const inReview = ['IN_REVIEW', 'APPROVED_PROVISIONING', 'READY', 'SEALED', 'INFORMATION_REQUIRED'].includes(onb.state)
+    || ['READY', 'SEALED'].includes(fs.state);
   if (!inReview) {
     const alerts = (await page.locator('[data-testid="business-application"] [role="alert"], [data-testid="business-application"] p').allInnerTexts().catch(() => []))
       .map(norm).filter(Boolean).filter((t) => t.length > 8).slice(0, 6);
     return {
       ok: false,
-      observed: `application not submitted — financial setup still ${fs.state}; the form said: ${alerts.join(' | ') || '(nothing)'}`,
+      observed: `application not submitted — financial ${fs.state}, onboarding ${onb.state ?? '—'}; `
+        + `the form said: ${alerts.join(' | ') || '(nothing)'}`,
     };
   }
   J._applicationRef = reference;
   J._applicationBusiness = { name: BUSINESS_NAME, handle: HANDLE };
-  console.log(`      application submitted: ${reference ?? '(reference not shown)'} — state ${fs.state}`);
+  console.log(`      application submitted: ${reference ?? '(reference not shown)'} — onboarding ${onb.state}`);
   return { ok: true, reference: reference ?? '(unnamed)' };
 }
 
@@ -1100,7 +1115,7 @@ try {
         ok: ready,
         observed: ready
           ? `an existing Business's single-use consent code bound this Project — state=${fs.state}; the code was issued by its owner, not by this run`
-          : `consent code redeemed but state=${fs.state}`,
+          : `consent code redeemed but financial ${fs.state}, onboarding ${fs.onboarding?.state ?? '—'}`,
       };
     }
 
@@ -1123,7 +1138,7 @@ try {
       observed: ready
         ? `application ${submitted.reference} submitted from the Console, decided by an operator in BANZADMIN, and this Project now receives — state=${decision.state}. `
           + 'No KYB was self-approved: the run submitted and waited.'
-        : `application ${submitted.reference} submitted; the operator's decision was ${decision.state}`,
+        : `application ${submitted.reference} submitted; the operator's decision was ${decision.decision ?? decision.onboarding?.state ?? 'not made'}`,
     };
   });
 
