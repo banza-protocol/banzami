@@ -1,6 +1,6 @@
 # DOCS-PROD-001 — the public developer documentation
 
-**Banzami** `ae28ae2e` · **DOA** `2612573` (unchanged — no DOA source change was needed)
+**Banzami** `98c96b41` · **DOA** `2612573` (unchanged — no DOA source change was needed)
 Every deployed component runs the source in this tree (`make check-deploy-parity`).
 Nothing that reaches a deployed artefact changed after `a4995b98`, so no redeploy was required.
 
@@ -105,6 +105,29 @@ blocking issues from before it. Each needs its own §16 proposal. They are liste
 every time the gate runs so the next person meets them as a list, not a
 discovery — and the gate still passes, because one that can never pass is one
 people stop running.
+
+### Two things CI found that nothing else would have
+
+Both were in jobs added the day before, so nobody had seen them.
+
+**The Laravel plugin's lockfile needs PHP 8.4 and its manifest said 8.2.** The
+job ran at 8.3 and failed on its first run; it passed locally because this
+machine has 8.5. CI is at 8.4 now, and `plugins/generic-laravel/composer.json`
+declares `>=8.4.1` — what the installed tree actually requires. A manifest that
+understates its floor sends an integrator to an install error that looks like
+their own mistake.
+
+**Retiring a product made the launch headline worse.** Moving BW-001 and BW-002
+to RETIRED dropped launch-ready from 66 to 63 and put two items into "blocked on
+internal engineering" — two things the team appears to still owe. The readiness
+model had no notion of a retired item: anything not VALIDATED and not roadmap or
+baseline fell through to internally-blocked. RETIRED now sits outside the launch
+surface with them — never launch-ready, never code-complete, never a blocker,
+because there is nothing left to unblock.
+
+The headline is **63/74**, and exactly **one** item is blocked on internal
+engineering: BW-004's per-member access log. That number is the truth this whole
+exercise was for.
 
 ---
 
@@ -324,10 +347,17 @@ install command removed, where it fails.
 
 **NONE.**
 
-Two things are deliberately outstanding and are not defects:
+Four things are deliberately outstanding and are not documentation defects:
 
-- **The four matrix items above** need your approval phrase; §16 forbids me from
-  applying a validation status change without it.
+- **BW-004 is IN_PROGRESS, not VALIDATED.** Its per-member access log has no read
+  surface: `developer.audit_events` is written on every membership change and no
+  route serves it. Either that surface ships, or the criterion is withdrawn by
+  its own §16 proposal — it will not be dropped to make the item green.
+- **Twenty dead evidence references in seventeen other matrix items**, and two
+  VALIDATED items carrying pre-existing blocking issues. Outside this
+  authorisation; listed by `make check-implementation-matrix` on every run.
 - **Python, PHP and Go SDKs are not published.** The documentation says so and
   gives no install command for them, because a command pointing at a package no
   registry has returns an error that looks like the reader's mistake.
+- **`analytics.rs` has no public route.** The engine exists; nothing serves it.
+  BW-002 records that rather than implying a surface.
