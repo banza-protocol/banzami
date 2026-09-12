@@ -28,12 +28,20 @@ import { describe, expect, it } from 'vitest';
 const ROOT = process.cwd();
 const read = (p: string) => readFileSync(join(ROOT, p), 'utf8');
 /** Comments describe what was removed; only executable lines are evidence. */
+// Block comments are stripped WHOLE before the line filter, not line by line.
+// A JSX comment's continuation lines start with ordinary prose, so the filter
+// let them through — and a comment explaining that a control used to say
+// "Switch to Live" then failed the assertion that nothing says it. A guard that
+// punishes the documentation of the rule it enforces teaches people to delete
+// the explanation.
 const code = (src: string) =>
   src
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
     .split('\n')
     .filter((l) => {
       const t = l.trim();
-      return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('/*') && !t.startsWith('{/*');
+      return !t.startsWith('//') && !t.startsWith('*');
     })
     .join('\n');
 
@@ -114,8 +122,13 @@ describe('Console identity — controls that only looked like controls', () => {
 
 describe('Console identity — the words on screen', () => {
   it('speaks Portuguese in the shell and the menu', () => {
+    // Live does not exist for any account, so the control is not a call to
+    // action at all: it states the current state and links to the reason. The
+    // English label is gone, and so is the Portuguese one that still promised a
+    // switch the product cannot perform.
     expect(SHELL).not.toContain('Switch to Live');
-    expect(SHELL).toContain('Mudar para Live');
+    expect(SHELL).not.toContain('Mudar para Live');
+    expect(SHELL).toContain('Live indisponível');
     // The role a person sees comes from the shared Portuguese vocabulary, not
     // from ROLE_LABELS, which is the English wire word the API sends.
     expect(MENU).toMatch(/roleLabel/);

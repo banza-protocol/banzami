@@ -280,25 +280,34 @@ function TopBar() {
         </span>
       </div>
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Live does not exist for any account, so this is not a call to action.
+            It was a primary gradient button labelled "Switch to Live", and it
+            switched nothing — a promise the product cannot keep, offered at the
+            most prominent point on every page. It is now what it actually is: a
+            statement of the current state, and a link to the reason.
+
+            Not a disabled <button>: a disabled control cannot be focused or
+            clicked, so the explanation would be unreachable by keyboard and the
+            reader would be left with a dead button and no reason. */}
         <Link
           href="/go-live"
-          className="bz-cta"
+          title="Live ainda não está disponível — saiba porquê"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 7,
-            padding: '9px 16px',
+            padding: '9px 14px',
             borderRadius: 11,
-            background: ctaGradient,
-            color: '#fff',
+            background: '#FBF7F7',
+            border: '1.5px solid #EBDBD9',
+            color: '#8a7a7e',
             fontWeight: 800,
-            fontSize: 13.5,
+            fontSize: 13,
             textDecoration: 'none',
-            boxShadow: '0 10px 22px -9px rgba(181,16,31,.55)',
           }}
         >
-          <IconBolt size={15} />
-          Mudar para Live
+          <IconBolt size={14} />
+          Live indisponível
         </Link>
         {/* No notification bell. It had no handler and a red unread dot that was
             always on, so it announced messages that did not exist and did
@@ -364,28 +373,28 @@ function SandboxBanner() {
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: '#2a2024' }}>Você está no modo Sandbox</p>
         <p style={{ margin: '3px 0 0', fontSize: 13.5, fontWeight: 600, color: '#8a6a4e' }}>
-          Teste livremente. As alterações aqui não afetam dados reais.
+          Teste livremente — nada aqui afeta dinheiro real. Live ainda não está
+          disponível para nenhuma conta, por isso só são emitidas chaves de teste.
         </p>
       </div>
       <Link
         href="/go-live"
-        className="bz-cta"
         style={{
           flex: 'none',
           display: 'inline-flex',
           alignItems: 'center',
           gap: 7,
-          padding: '11px 18px',
+          padding: '11px 16px',
           borderRadius: 12,
-          background: ctaGradient,
-          color: '#fff',
+          background: '#fff',
+          border: '1.5px solid #EBD6C4',
+          color: '#8a6a4e',
           fontWeight: 800,
-          fontSize: 13.5,
+          fontSize: 13,
           textDecoration: 'none',
-          boxShadow: '0 12px 24px -10px rgba(181,16,31,.5)',
         }}
       >
-        Mudar para Live
+        Porque é que Live não está disponível
         <IconArrowRight size={15} />
       </Link>
     </div>

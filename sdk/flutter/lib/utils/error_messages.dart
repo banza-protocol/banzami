@@ -61,12 +61,6 @@ const String kPaymentOutcomeUnknownMessage =
 const String kBanzamiSessionEndedMessage =
     'A sua sessão terminou. Entre novamente.';
 
-/// Shown when a structured Banzami QR (a merchant's static/dynamic code) is
-/// scanned: this version of the app cannot pay one.
-const String kStructuredQrUnavailableMessage =
-    'Pagamento por QR ainda não disponível nesta versão — peça um link de '
-    'pagamento ou o @banza.';
-
 /// A QR or link from the other environment. "Sandbox" is the test
 /// environment with test money; the other side is real money — never the
 /// English word "live" on a user's screen.
@@ -145,6 +139,25 @@ String? _byCode(String code) {
       return 'Este QR expirou.';
     case 'QR_ALREADY_USED':
       return 'Este QR já foi utilizado.';
+
+    // Paying a structured QR (/v1/qr/pay, CAP-PAY-003). The payer scanned
+    // something; each of these tells them what to do about it.
+    case 'INVALID_PAYLOAD':
+      return 'Este código não é um QR Banzami.';
+    case 'QR_NOT_FOUND':
+      // 404 alone would say "Não encontrado", which reads as a lost page.
+      return 'Este QR já não existe. Peça um código novo.';
+    case 'INVALID_SIGNATURE':
+      // Not a permission problem: the code's own integrity did not verify.
+      return 'Este QR não pôde ser verificado. Peça um código novo.';
+    case 'AMOUNT_REQUIRED':
+      return 'Este QR não traz montante. Escreva quanto quer pagar.';
+    case 'AMOUNT_NEGATIVE':
+      return 'O montante tem de ser maior do que zero.';
+    case 'INVALID_WALLET_ACCOUNT':
+      return 'A conta para onde este QR envia já não está disponível.';
+    case 'SELF_PAYMENT_NOT_ALLOWED':
+      return 'Não pode pagar o seu próprio QR.';
     case 'MERCHANT_NOT_ACTIVE':
     case 'MERCHANT_INACTIVE':
       return 'Este negócio não está a aceitar pagamentos.';

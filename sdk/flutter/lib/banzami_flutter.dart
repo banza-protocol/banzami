@@ -71,6 +71,7 @@ export 'models/receipt.dart';
 export 'models/project_link_code.dart';
 export 'models/collection.dart';
 export 'models/qr_code.dart';
+export 'models/qr_payment.dart';
 
 // Theme
 export 'theme/banzami_theme.dart';
@@ -111,3 +112,4 @@ export 'screens/payment_link_screen.dart';
 export 'screens/receipt_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
+export 'screens/qr_pay_screen.dart';

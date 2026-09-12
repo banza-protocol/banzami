@@ -10,6 +10,7 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'payment_link_screen.dart';
 import 'payment_request_screen.dart';
+import 'qr_pay_screen.dart';
 import 'send_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
@@ -23,7 +24,7 @@ enum _ScanStep { scanning, resolving, error }
 ///  • Handle + fixed amount → [BanzamiPaymentRequestScreen] (locked, sendByHandle)
 ///  • Handle only           → [BanzamiSendScreen] (amount editable)
 ///  • Payment link          → [BanzamiPaymentLinkScreen]
-///  • Structured Banzami QR → refused with [kStructuredQrUnavailableMessage]
+///  • Structured Banzami QR → [BanzamiQrPayScreen] (confirm, then /v1/qr/pay)
 class BanzamiScanScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final String? ownHandle;
@@ -139,17 +140,12 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           await _openSendScreen(handle: handle);
         }
 
-      case BanzamiQrStructuredPayment(:final isStatic):
-        // No consumer route settles a structured Banzami QR: the public-api
-        // mounts no /v1/qr/* (QR pay withdrawn, RA-053). Say so plainly
-        // instead of opening a screen whose every call fails.
-        debugPrint('[QR-SCAN] route=StructuredQr (unsupported) static=$isStatic');
-        if (mounted) {
-          setState(() {
-            _error = kStructuredQrUnavailableMessage;
-            _step = _ScanStep.error;
-          });
-        }
+      case BanzamiQrStructuredPayment(:final payload, :final isStatic):
+        // A structured payload carries no environment marker — the resolving
+        // gateway is the environment, as with a payment link — so there is no
+        // sandbox check to make here.
+        debugPrint('[QR-SCAN] route=BanzamiQrPayScreen static=$isStatic');
+        await _openStructuredQr(payload: payload, isStatic: isStatic);
 
       case BanzamiQrSplitPayment():
         // Pre-protocol P2P split (/v1/splits) was retired in favour of BANZA
@@ -280,6 +276,24 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         currency: currency,
         locked: true,
         ownHandle: widget.ownHandle ?? '',
+        onSuccess: widget.onSuccess,
+        isSandbox: widget.isSandbox,
+      ),
+    ));
+    if (mounted) _rescan();
+  }
+
+  Future<void> _openStructuredQr({
+    required String payload,
+    required bool isStatic,
+  }) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(BanzamiPageRoute(
+      page: BanzamiQrPayScreen(
+        client: widget.client,
+        payload: payload,
+        isStatic: isStatic,
+        ownHandle: widget.ownHandle,
         onSuccess: widget.onSuccess,
         isSandbox: widget.isSandbox,
       ),

@@ -275,6 +275,12 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   /// already knew.
   String get _recipientLabel {
     if (_receipt != null) return _receipt!.payee.label;
+    // A QR payment's flow knew no payee — the scanned payload names none — so
+    // it passes an empty recipient. Say the payee is still being fetched, as
+    // the reference and the date do, rather than printing a bare "@".
+    if (widget.transfer.recipient.isEmpty) {
+      return _receiptFailed ? 'Indisponível — toque para tentar' : 'A obter…';
+    }
     return '${widget.recipientIsHandle ? '@' : ''}${widget.transfer.recipient}';
   }
 

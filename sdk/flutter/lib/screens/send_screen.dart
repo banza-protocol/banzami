@@ -18,6 +18,7 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'confirm_screen.dart';
 import 'payment_request_screen.dart';
+import 'qr_pay_screen.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
 ///
@@ -253,9 +254,11 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         if (_sandboxMismatch(isSandbox)) return;
         _prefillFromQr(handle: handle, amountMinor: amountMinor, note: note);
 
-      case BanzamiQrStructuredPayment():
-        // No consumer route pays a structured QR yet (see scan_screen).
-        BanzamiToast.showWarning(context, kStructuredQrUnavailableMessage);
+      case BanzamiQrStructuredPayment(:final payload, :final isStatic):
+        // A structured QR names no @handle to prefill — it is paid, not sent
+        // to. Open the screen that pays it rather than sending the payer back
+        // to the home scanner for the same code.
+        _openStructuredQr(payload: payload, isStatic: isStatic);
 
       case BanzamiQrSplitPayment():
         BanzamiToast.showWarning(
@@ -299,6 +302,20 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
 
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _validateHandleOnBlur());
+  }
+
+  void _openStructuredQr({required String payload, required bool isStatic}) {
+    Navigator.of(context).push(BanzamiPageRoute(
+      page: BanzamiQrPayScreen(
+        client: widget.client,
+        payload: payload,
+        isStatic: isStatic,
+        ownHandle: widget.ownHandle,
+        onSuccess: widget.onSuccess,
+        isSandbox: widget.isSandbox,
+        logoAssetPath: widget.logoAssetPath,
+      ),
+    ));
   }
 
   Future<void> _openPaymentRequestFromQr(String code) async {

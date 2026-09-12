@@ -89,6 +89,26 @@ who is paying.
 The request carries the scanned payload, which identifies the **recipient**, and
 an amount only for a static code. There is nothing in it to forge.
 
+### What the payer sees before confirming
+
+The Consumer app scans, confirms, pays — `BanzamiQrPayScreen`
+(`sdk/flutter/lib/screens/qr_pay_screen.dart`), reached from the scanner and from
+the send screen. One screen, one call.
+
+It shows only what it can honestly know, which is very little. A dynamic payload
+is an id and a signature; a static one is an unsigned owner id and type. So the
+screen names **no payee** — it does not read the static payload's `ot` to
+announce "Negócio", because that field is not signed — and invents **no amount**.
+A static code gets the amount field; a dynamic code gets none, because its amount
+is the signed record's and a field would invite the payer to change something the
+server ignores.
+
+The consequence, stated plainly in the screen's copy rather than hidden: for a
+dynamic code the payer confirms a fixed amount they have not seen. The settled
+figure comes back in the response and is what the receipt shows; the payee is
+named by the canonical receipt, from the ledger. A resolve-before-confirm route
+would remove that compromise — see "Future Compatibility".
+
 ---
 
 ## Verification Flow (Dynamic QR)
@@ -186,3 +206,18 @@ Dynamic:  ACTIVE → USED              (after successful payment)
 The payload format is designed to be extended:
 - Additional fields can be added without breaking existing parsers (JSON is forward-compatible).
 - EMVCo-compatible QR can be layered on top of this infrastructure when banking interoperability is required.
+
+### Showing a dynamic code's amount before it is paid
+
+Not built, and worth stating precisely rather than leaving as a gap: a payer
+confirming a dynamic code today confirms an amount they have not seen (above).
+The absent route is **not** `/v1/qr/decode` — a client-side decode the payment
+does not verify against really would be a second answer to the same question.
+
+What would work is a read-only preview on the consumer surface that resolves the
+**same signed record** the payment verifies against, with no claim and no state
+change — returning the qr type, amount, currency and payee — bound to the
+confirmation the payer then gives: the pay call would carry the previewed amount
+as an expectation and refuse if the record no longer matches. That binding is what
+keeps it one answer rather than two. Until it exists, the app says what it does
+not know; it must never render a preview it cannot verify.
