@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| `FINAL_BANZAMI_SHA` | **`4e7bf3a7`** |
+| `FINAL_BANZAMI_SHA` | **`bca0a0a5`** |
 | `FINAL_DOA_SHA` | **`2612573`** (clean) |
-| CI | **GREEN at `4e7bf3a7`** |
+| CI | **GREEN at `bca0a0a5`** |
 | Deployed | developer-api + website-frontend at `badf5dc6`; parity verified at HEAD. Nothing since is product-serving source, so nothing was redeployed |
 | Verdict | see §12 |
 
