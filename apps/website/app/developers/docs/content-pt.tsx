@@ -8,6 +8,7 @@
 
 import type { ReactNode } from 'react';
 import { GlossaryTerm } from './GlossaryTerm';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram } from './diagrams';
 import { GLOSSARY } from './glossary';
 import { BADGES, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono, type Tone } from './ui';
 import { ResourceReference } from './reference';
@@ -612,13 +613,18 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 Quatro coisas, encaixadas umas nas outras. Vale a pena ler isto uma vez, porque
                 quase todos os erros de integração são um destes quatro confundido com outro.
               </P>
-              <CodeBlock label="modelo" onCopy={copy} raw={`Pessoa (email + código)
-  └── é membro de ──▶ Workspace          ← quem tem acesso a quê
-                        └── contém ──▶ Projeto           ← a unidade de integração
-                                         ├── Configuração financeira ──▶ Business   ← quem recebe o dinheiro
-                                         │                                 └── Carteira ──▶ Contas
-                                         ├── Chaves de API                ← como a sua app se autentica
-                                         └── Endpoints de webhook         ← para onde vão os eventos`} />
+              <ConceptModelDiagram l={{
+                title: 'O modelo: pessoa, workspace, projeto, e o que cada projeto contém',
+                person: 'Pessoa (email + código)', workspace: 'Workspace', project: 'Projeto',
+                financialSetup: 'Configuração financeira', business: 'Business',
+                wallet: 'Carteira', accounts: 'Contas',
+                apiKeys: 'Chaves de API', webhooks: 'Endpoints de webhook',
+                noteWorkspace: 'quem tem acesso a quê',
+                noteProject: 'a unidade de integração',
+                noteBusiness: 'quem recebe o dinheiro',
+                noteKeys: 'como a sua app se autentica',
+                noteWebhooks: 'para onde vão os eventos',
+              }} />
               <UL>
                 <LI><strong>Pessoa ≠ Workspace.</strong> Uma pessoa é membro de vários workspaces; um workspace tem vários membros.</LI>
                 <LI><strong>Workspace ≠ Projeto.</strong> O workspace é a fronteira de acesso. O projeto é a fronteira de <em>integração</em>: chaves, webhooks e registos pertencem ao projeto.</LI>
@@ -790,11 +796,14 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 na sua própria conta, sem se misturar com as outras, e é dessa conta que se
                 liquida no fecho.
               </P>
-              <pre style={{ margin: '0 0 16px', padding: '14px 16px', borderRadius: 12, border: '1px solid #F2E2E0', background: '#FFF9F8', fontSize: 12.5, lineHeight: 1.6, overflowX: 'auto', color: INK }}>{`O seu projeto
-   └── dono financeiro (vem do binding — nunca do seu pedido)
-         ├── Campanha A     ← wallet account
-         ├── Campanha B     ← wallet account
-         └── Campanha C     ← wallet account`}</pre>
+              <SegregatedAccountsDiagram l={{
+                title: 'Contas segregadas: um dono financeiro, uma conta por campanha',
+                project: 'O seu projeto',
+                owner: 'dono financeiro (vem do binding)',
+                ownerNote: 'nunca do seu pedido',
+                accounts: ['Campanha A', 'Campanha B', 'Campanha C'],
+                accountNote: 'uma wallet account cada',
+              }} />
               <P>
                 Na prática, com a sua chave de developer:
               </P>
@@ -1066,27 +1075,17 @@ export function PtDoa({ copy }: { copy: CopyFn }) {
               </P>
 
               <H3 id="doa-fluxo">O percurso completo</H3>
-              <CodeBlock label="fluxo" onCopy={copy} raw={`Doador
-  │
-  ├─▶ DOA: escolhe campanha, indica montante          (lógica de negócio do DOA)
-  │
-  ├─▶ Banzami: sessão de pagamento criada             POST /v1/payment-sessions
-  │            link + QR devolvidos                   GET  /v1/payment-sessions/{id}/link · /qr
-  │
-  ├─▶ Doador paga                                     (superfície do Banzami)
-  │
-  ├─▶ Banzami: dinheiro move-se, verdade financeira registada
-  │
-  ├─▶ webhook  payment_session.paid  ──▶ DOA          (assinado, at-least-once)
-  │            DOA verifica a assinatura, processa idempotentemente,
-  │            marca a doação confirmada                (estado do DOA)
-  │
-  ├─▶ DOA: campanha encerra                           (decisão do DOA)
-  │
-  └─▶ Banzami: liquidação                             POST /v1/application-settlements
-               bruto lido do Banzami, taxa para o DOA,
-               líquido para o beneficiário
-               webhook application_settlement.completed ──▶ DOA`} />
+              <DonationFlowDiagram title="Do doador à liquidação: quem faz o quê, e com que chamada" steps={[
+                { actor: 'Doador', what: 'escolhe a campanha e indica o montante', how: 'lógica de negócio do DOA' },
+                { actor: 'DOA', what: 'pede uma sessão de pagamento', how: 'POST /v1/payment-sessions' },
+                { actor: 'Banzami', what: 'devolve link e QR', how: 'GET /v1/payment-sessions/{id}/link · /qr' },
+                { actor: 'Doador', what: 'paga na superfície do Banzami' },
+                { actor: 'Banzami', what: 'move o dinheiro e regista a verdade financeira' },
+                { actor: 'webhook', what: 'payment_session.paid — assinado, at-least-once', how: 'o DOA verifica a assinatura e processa idempotentemente' },
+                { actor: 'DOA', what: 'marca a doação confirmada', how: 'estado do DOA' },
+                { actor: 'DOA', what: 'fecha a campanha e pede a liquidação', how: 'POST /v1/application-settlements' },
+                { actor: 'webhook', what: 'application_settlement.completed — bruto, taxa e líquido' },
+              ]} />
 
               <H3 id="doa-contas">Uma conta por campanha</H3>
               <P>

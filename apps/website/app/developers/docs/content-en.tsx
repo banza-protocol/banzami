@@ -7,6 +7,7 @@
 
 import { BADGE_LABELS_EN, Badge, Callout, Code, CodeBlock, H2, H3, INK, LI, MUT, NextSteps, P, PageLede, RED, Section, UL, mono } from './ui';
 import { ResourceReference } from './reference';
+import { ConceptModelDiagram, SegregatedAccountsDiagram, DonationFlowDiagram } from './diagrams';
 import type { CopyFn } from './content-pt';
 
 // English concepts (translations of the canonical PT glossary — same 19 terms).
@@ -480,13 +481,18 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 Four things, nested inside one another. Worth reading once, because nearly every
                 integration mistake is one of these four mistaken for another.
               </P>
-              <CodeBlock label="model" onCopy={copy} raw={`Person (email + code)
-  └── is a member of ──▶ Workspace        ← who has access to what
-                           └── contains ──▶ Project          ← the unit of integration
-                                              ├── Financial Setup ──▶ Business   ← who receives the money
-                                              │                         └── Wallet ──▶ Accounts
-                                              ├── API keys                       ← how your app authenticates
-                                              └── Webhook endpoints              ← where events go`} />
+              <ConceptModelDiagram l={{
+                title: 'The model: person, workspace, project, and what each project holds',
+                person: 'Person (email + code)', workspace: 'Workspace', project: 'Project',
+                financialSetup: 'Financial setup', business: 'Business',
+                wallet: 'Wallet', accounts: 'Accounts',
+                apiKeys: 'API keys', webhooks: 'Webhook endpoints',
+                noteWorkspace: 'who has access to what',
+                noteProject: 'the unit of integration',
+                noteBusiness: 'who receives the money',
+                noteKeys: 'how your app authenticates',
+                noteWebhooks: 'where the events go',
+              }} />
               <UL>
                 <LI><strong>Person ≠ Workspace.</strong> A person belongs to several workspaces; a workspace has several members.</LI>
                 <LI><strong>Workspace ≠ Project.</strong> The workspace is the access boundary. The project is the <em>integration</em> boundary: keys, webhooks and logs belong to the project.</LI>
@@ -868,6 +874,14 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
+              <SegregatedAccountsDiagram l={{
+                title: 'Segregated accounts: one financial owner, one account per campaign',
+                project: 'Your project',
+                owner: 'financial owner (from the binding)',
+                ownerNote: 'never from your request',
+                accounts: ['Campaign A', 'Campaign B', 'Campaign C'],
+                accountNote: 'one wallet account each',
+              }} />
               <P>
                 DOA never stores a balance of its own. When it needs to know what a campaign has
                 received, it asks Banzami — because the alternative is two numbers that one day
@@ -875,27 +889,17 @@ export function EnDoa({ copy }: { copy: CopyFn }) {
               </P>
 
               <H3 id="doa-flow">The whole journey</H3>
-              <CodeBlock label="flow" onCopy={copy} raw={`Donor
-  │
-  ├─▶ DOA: picks a campaign, enters an amount          (DOA business logic)
-  │
-  ├─▶ Banzami: payment session created                 POST /v1/payment-sessions
-  │            link + QR returned                      GET  /v1/payment-sessions/{id}/link · /qr
-  │
-  ├─▶ Donor pays                                       (Banzami surface)
-  │
-  ├─▶ Banzami: money moves, financial truth recorded
-  │
-  ├─▶ webhook  payment_session.paid  ──▶ DOA           (signed, at-least-once)
-  │            DOA verifies the signature, processes idempotently,
-  │            marks the donation confirmed             (DOA state)
-  │
-  ├─▶ DOA: campaign closes                             (DOA's decision)
-  │
-  └─▶ Banzami: settlement                              POST /v1/application-settlements
-               gross read from Banzami, fee to DOA,
-               net to the beneficiary
-               webhook application_settlement.completed ──▶ DOA`} />
+              <DonationFlowDiagram title="From donor to settlement: who does what, and with which call" steps={[
+                { actor: 'Donor', what: 'picks a campaign and names an amount', how: "DOA's own business logic" },
+                { actor: 'DOA', what: 'asks for a payment session', how: 'POST /v1/payment-sessions' },
+                { actor: 'Banzami', what: 'returns the link and the QR', how: 'GET /v1/payment-sessions/{id}/link · /qr' },
+                { actor: 'Donor', what: 'pays on the Banzami surface' },
+                { actor: 'Banzami', what: 'moves the money and records the financial truth' },
+                { actor: 'webhook', what: 'payment_session.paid — signed, at-least-once', how: 'DOA verifies the signature and processes idempotently' },
+                { actor: 'DOA', what: 'marks the donation confirmed', how: "DOA's own state" },
+                { actor: 'DOA', what: 'closes the campaign and asks for settlement', how: 'POST /v1/application-settlements' },
+                { actor: 'webhook', what: 'application_settlement.completed — gross, fee and net' },
+              ]} />
 
               <H3 id="doa-accounts">One account per campaign</H3>
               <P>
