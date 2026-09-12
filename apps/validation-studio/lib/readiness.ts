@@ -26,6 +26,7 @@ export interface PillarReadiness {
   total: number
   roadmap: number         // FUTURE | PLANNED — tracked future scope, not launch surface
   baseline: number        // display-only baseline pointers (excluded from launch math)
+  retired: number         // withdrawn products — outside the launch surface, never a blocker
   externallyBlocked: number
   criticalGaps: number    // CRITICAL items not yet VALIDATED
   status: PillarStatus
@@ -47,6 +48,7 @@ export interface Readiness {
   launchScope: number    // total − roadmap − baseline: the current launch surface
   roadmap: number        // FUTURE | PLANNED: tracked future scope, not a blocker
   baseline: number       // display-only baseline pointers (e.g. L0 in the roadmap)
+  retired: number        // withdrawn products — outside the launch surface, never a blocker
   launchReadyPct: number
   criticalLaunchReady: number
   criticalTotal: number
@@ -137,15 +139,28 @@ export function isBaseline(i: ValidationItem): boolean {
   return i.roadmapBaseline === true
 }
 
+// A RETIRED item is not pending work. The product it described was withdrawn, so
+// it is outside the launch surface entirely: never launch-ready, never
+// code-complete, and never a blocker — there is nothing left to unblock.
+//
+// Without this, retiring the merchant dashboard made the launch headline worse:
+// BW-001 and BW-002 fell out of VALIDATED and landed in "blocked on internal
+// engineering", which reads as two things the team still owes. Deleting a
+// product should not look like acquiring a debt.
+export function isRetired(i: ValidationItem): boolean {
+  return i.status === 'RETIRED'
+}
+
 export function isInternallyBlocked(i: ValidationItem): boolean {
-  return i.status !== 'VALIDATED' && !isExternallyBlocked(i) && !isRoadmap(i) && !isBaseline(i)
+  return i.status !== 'VALIDATED' && !isExternallyBlocked(i) && !isRoadmap(i) && !isBaseline(i) && !isRetired(i)
 }
 
 // Per-item readiness lens for badges. An IMPLEMENTED item with an external blocker
 // reads as 'externally-blocked', not 'implemented'.
-export type ItemLens = 'validated' | 'implemented' | 'roadmap' | 'externally-blocked' | 'internally-blocked'
+export type ItemLens = 'validated' | 'implemented' | 'roadmap' | 'retired' | 'externally-blocked' | 'internally-blocked'
 
 export function itemLens(i: ValidationItem): ItemLens {
+  if (isRetired(i)) return 'retired'
   if (i.status === 'VALIDATED') return 'validated'
   if (isExternallyBlocked(i)) return 'externally-blocked'
   if (i.status === 'IMPLEMENTED') return 'implemented'
@@ -174,7 +189,8 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
     const its = items.filter((i) => i.validationDomain === domain)
     const roadmap = its.filter(isRoadmap).length
     const baseline = its.filter(isBaseline).length
-    const launchScope = its.length - roadmap - baseline // items expected to be launch-ready
+    const retired = its.filter(isRetired).length
+    const launchScope = its.length - roadmap - baseline - retired // items expected to be launch-ready
     const launchReady = its.filter((i) => isLaunchReady(i) && !isBaseline(i)).length
     const codeComplete = its.filter((i) => isCodeComplete(i) && !isBaseline(i)).length
     const externallyBlocked = its.filter(isExternallyBlocked).length
@@ -183,7 +199,7 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
     let status: PillarStatus = 'partial'
     if (launchScope > 0 && launchReady === launchScope) status = 'ready'
     else if (criticalGaps > 0 || externallyBlocked > 0) status = 'blocked'
-    return { domain, label, question, launchReady, codeComplete, total: its.length, roadmap, baseline, externallyBlocked, criticalGaps, status }
+    return { domain, label, question, launchReady, codeComplete, total: its.length, roadmap, baseline, retired, externallyBlocked, criticalGaps, status }
   })
 
   const criticals = items.filter((i) => i.priority === 'CRITICAL')
@@ -197,7 +213,8 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
   const codeComplete = items.filter((i) => isCodeComplete(i) && !isBaseline(i)).length
   const roadmap = items.filter(isRoadmap).length
   const baseline = items.filter(isBaseline).length
-  const launchScope = items.length - roadmap - baseline
+  const retired = items.filter(isRetired).length
+  const launchScope = items.length - roadmap - baseline - retired
 
   return {
     pillars,
@@ -205,6 +222,7 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
     launchReady,
     total: items.length,
     launchScope,
+    retired,
     roadmap,
     baseline,
     launchReadyPct: launchScope ? Math.round((launchReady / launchScope) * 100) : 0,

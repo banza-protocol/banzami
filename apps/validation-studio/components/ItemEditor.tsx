@@ -38,6 +38,7 @@ const STATUS_LABELS: Record<ValidationStatus, string> = {
   BLOCKED:               'Bloqueado',
   NEEDS_REVIEW:          'Em revisão',
   REVALIDATION_REQUIRED: 'Revalidação necessária',
+  RETIRED:               'Retirado',
 }
 
 const CONFIDENCE_BADGE_COLORS: Record<string, string> = {

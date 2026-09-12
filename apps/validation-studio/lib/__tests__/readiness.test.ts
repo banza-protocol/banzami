@@ -163,16 +163,19 @@ describe('readiness lenses', () => {
 describe('current matrix readiness snapshot', () => {
   const r = computeReadiness(readMatrix())
 
-  it('launch-ready is 66/76 launch scope, with 10 roadmap + 1 baseline tracked', () => {
-    // 87 tracked items = 76 launch-scope + 10 BANZA L1–L4 roadmap (FUTURE/PLANNED)
-    // + 1 L0 baseline pointer. Roadmap and baseline are excluded from the launch
-    // scope, so the launch headline is unchanged by adding them.
+  it('launch-ready is 63/74 launch scope, with 10 roadmap + 1 baseline + 2 retired tracked', () => {
+    // 87 tracked items = 74 launch-scope + 10 BANZA L1–L4 roadmap (FUTURE/PLANNED)
+    // + 1 L0 baseline pointer + 2 retired. Roadmap, baseline and retired are all
+    // excluded from the launch scope, so tracking them cannot make launch look
+    // worse — which is what happened when the merchant dashboard was withdrawn
+    // and its two items landed in "blocked on internal engineering".
     expect(r.total).toBe(87)
     expect(r.roadmap).toBe(10)
     expect(r.baseline).toBe(1)
-    expect(r.launchScope).toBe(76)
-    expect(r.launchReady).toBe(66)
-    expect(r.codeComplete).toBe(68)
+    expect(r.retired).toBe(2)
+    expect(r.launchScope).toBe(74)
+    expect(r.launchReady).toBe(63)
+    expect(r.codeComplete).toBe(65)
   })
 
   it('launch-critical is 19/24 and implemented-critical is 21/24', () => {
@@ -182,10 +185,12 @@ describe('current matrix readiness snapshot', () => {
     expect(r.criticalCodeComplete).toBe(21)
   })
 
-  it('10 items are externally blocked and 0 are blocked on internal engineering', () => {
+  it('10 items are externally blocked and 1 is blocked on internal engineering', () => {
     expect(r.externallyBlocked).toBe(10)
-    // Roadmap items (FUTURE/PLANNED) are never internal blockers.
-    expect(r.internallyBlocked).toBe(0)
+    // Roadmap items (FUTURE/PLANNED) and retired items are never internal
+    // blockers. The one that is: BW-004, whose per-member access log has no read
+    // surface — developer.audit_events is written and nothing serves it.
+    expect(r.internallyBlocked).toBe(1)
   })
 
   it('BANZA level path reads L0 validated → L1 planned → L2/L3/L4 future', () => {

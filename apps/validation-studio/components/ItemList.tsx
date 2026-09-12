@@ -23,6 +23,8 @@ const STATUS_COLORS: Record<ValidationStatus, { dot: string; badge: string }> = 
   BLOCKED:                 { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700' },
   NEEDS_REVIEW:            { dot: 'bg-purple-500',  badge: 'bg-purple-50 text-purple-700' },
   REVALIDATION_REQUIRED:   { dot: 'bg-orange-500',  badge: 'bg-orange-50 text-orange-700' },
+  // Grey, not red: a retired item is not a problem to solve.
+  RETIRED:                 { dot: 'bg-slate-300',   badge: 'bg-slate-100 text-slate-500' },
 }
 
 const PRIORITY_COLORS: Record<ValidationPriority, string> = {
@@ -41,6 +43,7 @@ const STATUS_LABELS: Record<ValidationStatus, string> = {
   BLOCKED:               'Bloqueado',
   NEEDS_REVIEW:          'Em revisão',
   REVALIDATION_REQUIRED: 'Revalidar',
+  RETIRED:               'Retirado',
 }
 
 const CONFIDENCE_COLORS: Record<ConfidenceLevel, string> = {

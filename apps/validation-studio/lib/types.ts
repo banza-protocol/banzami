@@ -7,6 +7,9 @@ export type ValidationStatus =
   | 'BLOCKED'
   | 'NEEDS_REVIEW'
   | 'REVALIDATION_REQUIRED'
+  // A product that was withdrawn. Distinct from BLOCKED, which is work waiting:
+  // a retired item has nothing left to do, so it sits outside the launch surface.
+  | 'RETIRED'
 
 export type ValidationPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 

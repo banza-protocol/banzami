@@ -1,7 +1,8 @@
 # DOCS-PROD-001 — the public developer documentation
 
-**Banzami** `736a2e3c` · **DOA** `2612573` (unchanged — no DOA source change was needed)
+**Banzami** `ae28ae2e` · **DOA** `2612573` (unchanged — no DOA source change was needed)
 Every deployed component runs the source in this tree (`make check-deploy-parity`).
+Nothing that reaches a deployed artefact changed after `a4995b98`, so no redeploy was required.
 
 ---
 
@@ -42,20 +43,68 @@ which is the stronger answer. The authority-gate test asserts that instead.
 and the manifest record — for this app and for `apps/checkout`. Three conditions,
 all proven by mutation.
 
-### One thing needs your approval phrase
+### The four matrix items — resolved 2026-09-12, under the owner's authorisation
 
-Four items in `docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json` are VALIDATED
-on evidence that pointed into `apps/dashboard`. CLAUDE.md §16 requires your exact
-phrase before a validation status changes, so I have not touched them. The
-governance evidence audit (`docs/governance/BANZAMI-EVIDENCE-AUDIT.md`) is already
-corrected, which is not status-governed.
+They were VALIDATED on evidence that pointed into `apps/dashboard`, which had
+been deleted. That is the worst state an item can be in: it still reads
+VALIDATED, and nothing behind it can be opened.
+
+Re-pointing the evidence at the Console would have been just as dishonest if
+nobody checked whether the Console actually does these things. So every
+acceptance criterion was asked of the deployed system — `tools/e2e/console/
+matrix-bw-proof.mjs`, evidence at `evidence/assurance/matrix/bw-001-004-runtime-proof.json`
+— and the answer decided the status rather than the other way round.
+
+| Item | Was | Is | Runtime | Why |
+|---|---|---|---|---|
+| **BW-003** Gestão de chaves API | VALIDATED | **VALIDATED** | **4/4** | Generated once; never in the listing; revocation immediate (`200` → `401` on the very next call); `bz_live_` refused fail-closed. |
+| **BW-004** Gestão de equipa e permissões | VALIDATED | **IN_PROGRESS** | **4/5** | Invite, five distinct roles, a read-only role refused by the **service** and not by a hidden button, immediate removal. The per-member access log is not served. |
+| **BW-001** Dashboard web Banzami Business | VALIDATED | **RETIRED** | **0/1** | `dashboard.banzami.com` does not resolve. The product was retired; the Console is not its replacement. |
+| **BW-002** Análises e relatórios | VALIDATED | **RETIRED** | **0/1** | `GET /v1/analytics` → 404. The engine remains in `core/api/src/routes/analytics.rs`, unexposed. |
+
+**BW-003's fourth criterion was corrected, not weakened.** It read "clear
+separation between sandbox and production". There is no production to separate
+from: no live key is issued to anyone, and one presented at the Gateway is
+refused fail-closed. The new wording says that, which is the stronger claim.
+
+**BW-004 could not stay VALIDATED.** Four of its five criteria hold. The fifth —
+a readable per-member access log — has no surface: `developer.audit_events` rows
+are written on every membership change and no route reads them. Dropping the
+criterion to keep the item green is exactly what the authorisation forbade, so
+the criterion stays, the gap is recorded in `blockingIssues`, and the item is
+IN_PROGRESS until a read surface ships or the criterion is withdrawn by its own
+proposal.
+
+**A fifth item had to move with them.** `IDT-002` (brand architecture) cited
+`apps/dashboard` and `apps/checkout`, both deleted, and package names from before
+BANZA ADR-002 inverted the naming — `@banza/sdk`, `banza_flutter`,
+`banza-python`. Its acceptance criteria stated the inversion backwards. The
+property holds and was re-checked against the shipped manifests
+(`@banzami/sdk`, `banzami_client`, `banzami_flutter`, `banzami-python`,
+`banzami/sdk-php`, `banzami-go`, with `banza-signature` correctly preserved as a
+protocol wire contract), so the **status does not change** — only the evidence
+and the criteria. It is named here because the authorisation's required end state
+could not be reached without it.
 
 ```
-APPROVE VALIDATION BW-001 f4fac53bb535f525   # Dashboard web → retired
-APPROVE VALIDATION BW-002 170d30ea2e384fed   # Análises e relatórios → retired
-APPROVE VALIDATION BW-003 4d6c9106c33cf8f2   # Gestão de chaves API → superseded by the Console
-APPROVE VALIDATION BW-004 d2a6133724387216   # Gestão de equipa → superseded by Console members/roles
+IMPLEMENTATION_MATRIX_DASHBOARD_REFERENCES          = 0
+IMPLEMENTATION_MATRIX_DEAD_EVIDENCE_REFERENCES      = 0   (in the re-evidenced items)
+IMPLEMENTATION_MATRIX_VALIDATED_WITH_CURRENT_EVIDENCE = PASS
+IMPLEMENTATION_MATRIX_UNRESOLVED_ITEMS              = 0
 ```
+
+`make check-implementation-matrix` is why this will not recur: no item may cite a
+retired surface as evidence, every path-shaped reference must resolve, and a
+VALIDATED item may not declare its own gap. Three failure modes proven by
+mutation.
+
+**Two things it reports rather than fails, because they are not mine to change.**
+Twenty path references in seventeen *other* items point at files that moved or
+went before this change, and two VALIDATED items (`APP-001`, `API-003`) carry
+blocking issues from before it. Each needs its own §16 proposal. They are listed
+every time the gate runs so the next person meets them as a list, not a
+discovery — and the gate still passes, because one that can never pass is one
+people stop running.
 
 ---
 
