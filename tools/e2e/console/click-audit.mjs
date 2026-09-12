@@ -38,7 +38,7 @@ if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
 await requireLiveSession(session);
 
 const ROUTES = ['/', '/saldos', '/transacoes', '/financeiro', '/api-keys', '/webhooks',
-                '/logs', '/settings', '/settings/workspace', '/suporte', '/conta', '/go-live'];
+                '/logs', '/settings', '/settings/workspace', '/settings/activity', '/suporte', '/conta', '/go-live'];
 
 /** Words that mean pressing this changes or destroys something. Never pressed. */
 // "Mostrar arquivados" is a FILTER, not a destruction: matching bare "arquiv"

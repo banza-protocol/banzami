@@ -29,7 +29,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
   ?? '/Users/fm65/doa/node_modules/@playwright/test/index.mjs');
 
 const ORIGIN = 'https://developers.banzami.com';
-const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/settings/workspace', '/financeiro', '/go-live', '/suporte', '/conta'];
+const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/settings/workspace', '/settings/activity', '/financeiro', '/go-live', '/suporte', '/conta'];
 
 // English words that have a Portuguese equivalent the product should be using.
 // Whole-word, case-sensitive where capitalisation is the tell.

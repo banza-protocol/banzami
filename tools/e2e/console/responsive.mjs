@@ -31,7 +31,7 @@ import { join } from 'node:path';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 
 const ORIGIN = 'https://developers.banzami.com';
-const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/settings/workspace', '/conta', '/go-live'];
+const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/settings/workspace', '/settings/activity', '/conta', '/go-live'];
 
 // The four the product is actually met on: a wide desktop, the laptop most
 // developers carry, a tablet, and a phone.

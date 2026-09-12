@@ -21,7 +21,7 @@
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
   ?? '/Users/fm65/doa/node_modules/@playwright/test/index.mjs');
 const ORIGIN = 'https://developers.banzami.com';
-const ROUTES = ['/dashboard','/saldos','/transacoes','/api-keys','/webhooks','/logs','/settings','/go-live','/suporte','/docs'];
+const ROUTES = ['/dashboard','/saldos','/transacoes','/api-keys','/webhooks','/logs','/settings','/settings/activity','/go-live','/suporte','/docs'];
 const GONE = ['/clientes','/status'];
 const b = await chromium.launch(); const ctx = await b.newContext();
 await ctx.addCookies([{ name: '__Host-bz_dev_session', value: process.env.BZ_SESSION, url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'Lax' }]);
