@@ -307,6 +307,69 @@ export const ENDPOINTS: EndpointSpec[] = [
     ],
   },
   {
+    id: 'ref-wacc-list',
+    method: 'GET',
+    path: '/v1/wallet-accounts',
+    tone: 'ok',
+    desc: {
+      pt: 'Lista as contas segregadas sob a carteira do titular a que o seu projeto está ligado. Com uma chave de projeto, o âmbito é essa carteira e um parâmetro wallet_id é recusado — a carteira nunca vem do pedido.',
+      en: 'Lists the segregated accounts under the wallet of the owner your project is bound to. With a project key the scope is that wallet and a wallet_id parameter is refused — the wallet never comes from the request.',
+    },
+    credential: { pt: 'Chave de projeto (scope wallet_accounts:read)', en: 'Project key (wallet_accounts:read scope)' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    curl: `curl https://sandbox-api.banzami.com/v1/wallet-accounts \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "data": [
+    {
+      "id": "wacc_exemplo",
+      "wallet_id": "wlt_exemplo",
+      "purpose": "CAMPAIGN",
+      "reference_type": "CAMPANHA",
+      "reference_id": "campanha_123",
+      "label": "Campanha 123",
+      "status": "ACTIVE",
+      "available_balance_minor": 250000,
+      "currency": "AOA"
+    }
+  ]
+}`,
+    errors: [
+      { code: '400 VALIDATION_ERROR', note: { pt: 'wallet_id enviado com uma chave de projeto — a carteira vem do binding', en: 'wallet_id sent with a project key — the wallet comes from the binding' } },
+      { code: '403 FORBIDDEN', note: { pt: 'falta o scope wallet_accounts:read', en: 'the wallet_accounts:read scope is missing' } },
+    ],
+  },
+  {
+    id: 'ref-wacc-get',
+    method: 'GET',
+    path: '/v1/wallet-accounts/{id}',
+    tone: 'ok',
+    desc: {
+      pt: 'Devolve uma conta sua. Uma conta de outro titular responde 404, não 403: um código que as distinguisse deixaria um projeto enumerar as contas de outro.',
+      en: 'Returns one of your accounts. An account belonging to another owner answers 404, not 403: a status code that distinguished them would let one project enumerate another’s accounts.',
+    },
+    credential: { pt: 'Chave de projeto (scope wallet_accounts:read)', en: 'Project key (wallet_accounts:read scope)' },
+    headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX'],
+    curl: `curl https://sandbox-api.banzami.com/v1/wallet-accounts/wacc_exemplo \\
+  -H "Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX"`,
+    response: `{
+  "id": "wacc_exemplo",
+  "wallet_id": "wlt_exemplo",
+  "purpose": "CAMPAIGN",
+  "reference_type": "CAMPANHA",
+  "reference_id": "campanha_123",
+  "label": "Campanha 123",
+  "status": "ACTIVE",
+  "available_balance_minor": 250000,
+  "currency": "AOA",
+  "created_at": "2026-07-11T11:45:00Z"
+}`,
+    errors: [
+      { code: '403 FORBIDDEN', note: { pt: 'falta o scope wallet_accounts:read', en: 'the wallet_accounts:read scope is missing' } },
+      { code: '404 NOT_FOUND', note: { pt: 'a conta não existe, ou não é sua — indistinguível de propósito', en: 'the account does not exist, or is not yours — deliberately indistinguishable' } },
+    ],
+  },
+  {
     id: 'ref-transfer-create',
     method: 'POST',
     path: '/v1/wallet-account-transfers',

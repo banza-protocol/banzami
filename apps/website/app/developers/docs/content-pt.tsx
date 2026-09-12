@@ -647,7 +647,8 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
                 não é sua responde <Code>404</Code>, indistinguível de uma que não existe.
               </Callout>
               <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Credencial: chave de projeto com o scope <Code>transfers:write</Code>. O
+                Credencial: chave de projeto com o scope <Code>transfers:write</Code>, em{' '}
+                <Code>POST /v1/wallet-account-transfers</Code>. O
                 titular vem do binding — não existe campo no pedido que o possa indicar. Ver a
                 matriz de{' '}
                 <a href="/docs/reference#credenciais" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>credenciais</a>.
