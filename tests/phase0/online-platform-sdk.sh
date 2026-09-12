@@ -160,8 +160,31 @@ gw wp GET "/v1/merchant/wallet-payments?limit=5" - "$MJWT"
 WPREF=$(printf '%s' "$LAST"|node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{let j=JSON.parse(s);let a=j.items||j.data||[];let x=a[0]||{};process.stdout.write([x.reference||"",x.status||"",x.payer_name||"",x.receipt_available].join("|"))}catch(e){}})')
 IFS='|' read -r RREF RST RPAYER RAVAIL <<<"$WPREF"
 note "receipt: reference=$RREF status=$RST payer=$RPAYER receipt_available=$RAVAIL"
-# reference queryable + state matches settled payment (COMPLETED) + receipt available
-chk F0-031-state "$([ -n "$RREF" ]&&[ "$RST" = COMPLETED ]&&[ "$RAVAIL" = true ]&&echo ok)" ok
+# State matches the settled payment, and a receipt is available for it.
+#
+# This used to also require a "reference" on the list row. That field was
+# REMOVED on purpose: it was derived from the payment id and was never a proof,
+# so after the proof-before-receipt change the two diverged and a merchant
+# pasting it into the public verifier got NOT_FOUND. A BZM- value must resolve
+# or not exist at all (services/api-gateway .../wallet_payments_test.go).
+#
+# So the assertion moves to where the real reference lives: the receipt itself,
+# below. Asserting on a field that was deliberately deleted tests the harness's
+# memory, not the product.
+chk F0-031-state "$([ "$RST" = COMPLETED ]&&[ "$RAVAIL" = true ]&&echo ok)" ok
+# The proof reference is deliberately NOT on this list and is not reachable with
+# a merchant credential: minting and reading it is /internal/v1/receipts/*,
+# behind the internal key, because issuing public proof capability is not a
+# merchant action. What a merchant holds is receipt_available (asserted above)
+# and the receipt document itself.
+#
+# A first draft of this check asked the internal route with a merchant JWT and
+# failed — correctly. It is recorded here rather than deleted so the next reader
+# does not re-add it: an assertion this credential cannot make is not a gap in
+# the product.
+#
+# That the reference resolves is proven where it belongs, against the deployed
+# runtime, by receipt-assurance.sh and proof-lookup-assurance.sh.
 # privacy: consumer payer shown handle-only (starts with @, no bare personal name)
 chk F0-031-privacy "$(printf '%s' "$RPAYER"|grep -qE '^@' && echo handle-only || echo exposed)" handle-only
 # non-fabricable: a forged/guessed reference does not resolve on the public verifier
