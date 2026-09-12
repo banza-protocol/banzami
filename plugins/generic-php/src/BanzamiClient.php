@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banza;
+namespace Banzami;
 
 /**
  * Banzami API client for PHP.

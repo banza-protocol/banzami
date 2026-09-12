@@ -100,9 +100,9 @@ func TestConstructEvent_Valid(t *testing.T) {
 
 func TestGenerateTestSignature_MatchesGolden(t *testing.T) {
 	// Golden vector V-001 from sdk-certification/vectors/webhook_signatures.json
-	secret  := "whsec_test_secret_for_vectors_32by"
-	body    := []byte(`{"type":"payment_link.paid","id":"evt_test_001"}`)
-	ts      := time.Unix(1716000000, 0)
+	secret := "whsec_test_secret_for_vectors_32by"
+	body := []byte(`{"type":"payment_link.paid","id":"evt_test_001"}`)
+	ts := time.Unix(1716000000, 0)
 	expected := "t=1716000000,v1=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb"
 
 	got := banzami.GenerateTestSignature(body, secret, ts)
@@ -112,7 +112,7 @@ func TestGenerateTestSignature_MatchesGolden(t *testing.T) {
 }
 
 func TestGenerateTestEvent(t *testing.T) {
-	data  := map[string]any{"amount_minor": float64(50000)}
+	data := map[string]any{"amount_minor": float64(50000)}
 	event := banzami.GenerateTestEvent(banzami.EventPaymentLinkPaid, data)
 	if event.Type != "payment_link.paid" {
 		t.Fatalf("unexpected event type: %s", event.Type)

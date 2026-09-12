@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="vendor/autoload.php" colors="true">
+<phpunit bootstrap="vendor/autoload.php" colors="true"
+         failOnWarning="true"
+         failOnRisky="true">
   <testsuites>
     <testsuite name="Banzami PHP SDK">
       <directory>tests</directory>

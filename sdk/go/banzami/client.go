@@ -98,10 +98,10 @@ func NewClient(opts ClientOptions) *Client {
 		base: strings.TrimRight(base, "/"),
 		http: httpClient,
 	}
-	c.Webhooks     = &WebhooksClient{secret: opts.WebhookSecret}
+	c.Webhooks = &WebhooksClient{secret: opts.WebhookSecret}
 	c.PaymentLinks = &PaymentLinksClient{c: c}
 	c.Transactions = &TransactionsClient{c: c}
-	c.Payouts      = &PayoutsClient{c: c}
+	c.Payouts = &PayoutsClient{c: c}
 	return c
 }
 
@@ -196,8 +196,8 @@ func (c *Client) delete(ctx context.Context, path string) error {
 
 func (c *Client) parseAPIError(resp *http.Response) error {
 	var payload struct {
-		Code      string `json:"code"`
-		Message   string `json:"message"`
+		Code    string `json:"code"`
+		Message string `json:"message"`
 	}
 	_ = json.NewDecoder(resp.Body).Decode(&payload)
 	if payload.Code == "" {
@@ -227,13 +227,13 @@ type PaymentLinksClient struct{ c *Client }
 
 // CreatePaymentLinkInput holds the parameters for creating a payment link.
 type CreatePaymentLinkInput struct {
-	MerchantID     string    `json:"merchant_id"`
-	WalletID       string    `json:"wallet_id"`
-	AmountMinor    *int64    `json:"amount_minor,omitempty"`
-	Currency       string    `json:"currency"`
-	Description    string    `json:"description,omitempty"`
+	MerchantID     string     `json:"merchant_id"`
+	WalletID       string     `json:"wallet_id"`
+	AmountMinor    *int64     `json:"amount_minor,omitempty"`
+	Currency       string     `json:"currency"`
+	Description    string     `json:"description,omitempty"`
 	ExpiresAt      *time.Time `json:"expires_at,omitempty"`
-	IdempotencyKey string    `json:"-"`
+	IdempotencyKey string     `json:"-"`
 }
 
 // Create creates a new payment link.

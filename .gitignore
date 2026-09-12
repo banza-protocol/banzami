@@ -103,3 +103,7 @@ infra/docker/website-certs/*.key
 # Release Train 01 E2E local deps (playwright + browser)
 tools/e2e/dev-console/node_modules/
 tools/e2e/dev-console/package-lock.json
+
+# PHPUnit result caches — per-run local state, never shared.
+.phpunit.result.cache
+.phpunit.cache/

@@ -17,11 +17,11 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("banzami: HTTP %d %s: %s", e.Status, e.Code, e.Message)
 }
 
-func (e *APIError) IsNotFound()          bool { return e.Status == 404 }
-func (e *APIError) IsUnauthorized()      bool { return e.Status == 401 }
-func (e *APIError) IsForbidden()         bool { return e.Status == 403 }
-func (e *APIError) IsConflict()          bool { return e.Status == 409 }
-func (e *APIError) IsRateLimited()       bool { return e.Status == 429 }
+func (e *APIError) IsNotFound() bool          { return e.Status == 404 }
+func (e *APIError) IsUnauthorized() bool      { return e.Status == 401 }
+func (e *APIError) IsForbidden() bool         { return e.Status == 403 }
+func (e *APIError) IsConflict() bool          { return e.Status == 409 }
+func (e *APIError) IsRateLimited() bool       { return e.Status == 429 }
 func (e *APIError) IsInsufficientFunds() bool { return e.Code == "INSUFFICIENT_FUNDS" }
 
 // WebhookSignatureError is returned when HMAC-SHA256 verification fails.

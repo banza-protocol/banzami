@@ -5,11 +5,11 @@
   "license": "UNLICENSED",
   "scripts": {
     "dev": "next dev --port 3099 --hostname localhost",
-    "build": "echo 'Validation Studio is local-only \u2014 production build is disabled.' && exit 1",
-    "start": "echo 'Validation Studio is local-only \u2014 production start is disabled.' && exit 1",
-    "lint": "next lint",
+    "build": "echo 'Validation Studio is local-only — production build is disabled.' && exit 1",
+    "start": "echo 'Validation Studio is local-only — production start is disabled.' && exit 1",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "next": "^15.5.25",

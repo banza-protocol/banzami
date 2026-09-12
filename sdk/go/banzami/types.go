@@ -26,12 +26,12 @@ type Page[T any] struct {
 type WebhookEventType = string
 
 const (
-	EventPaymentLinkPaid    WebhookEventType = "payment_link.paid"
+	EventPaymentLinkPaid      WebhookEventType = "payment_link.paid"
 	EventTransactionCompleted WebhookEventType = "transaction.completed"
-	EventTransactionFailed  WebhookEventType = "transaction.failed"
-	EventPayoutCreated      WebhookEventType = "payout.created"
-	EventPayoutCompleted    WebhookEventType = "payout.completed"
-	EventPayoutFailed       WebhookEventType = "payout.failed"
+	EventTransactionFailed    WebhookEventType = "transaction.failed"
+	EventPayoutCreated        WebhookEventType = "payout.created"
+	EventPayoutCompleted      WebhookEventType = "payout.completed"
+	EventPayoutFailed         WebhookEventType = "payout.failed"
 )
 
 // WebhookEndpointStatus is the lifecycle state of a webhook endpoint.

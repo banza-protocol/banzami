@@ -1,6 +1,6 @@
 {
     "name": "banzami/sdk-php",
-    "description": "Official Banzami PHP SDK \u2014 wallet-native payment network for Angola",
+    "description": "Official Banzami PHP SDK — wallet-native payment network for Angola",
     "type": "library",
     "license": "MIT",
     "keywords": [
@@ -51,5 +51,10 @@
     "config": {
         "sort-packages": true
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "scripts": {
+        "test": [
+            "phpunit"
+        ]
+    }
 }
