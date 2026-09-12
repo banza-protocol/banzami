@@ -81,8 +81,20 @@ M_SEL="m.id NOT IN ($DOA_MERCHANTS)
 # Consumers: a machine-numbered handle with no display name, or the two harness
 # families that set one (receipt-assurance ra<run>s<n>; the receipt E2E payers
 # rc[ab]m<run>). Real users choose a handle and a name.
+# The APP-001 acceptance run (2026-09-12) added three machine shapes and one
+# account that has to be named outright. @fidel was created on a real iPhone for
+# the APP-001 device ceremony and has real financial history — a registration
+# grant and transfer 5ad6bea0 to @fm65 — so it is selected by its EXACT ID and
+# never by a shape: a handle a person chose must not be matched by a pattern,
+# and the pattern that caught it once would catch somebody else later. Its value
+# is retired through the same balanced posting as any other synthetic value and
+# its ledger history survives untouched; @fm65 remains the canonical identity.
 C_SEL="((c.handle ~ '^[a-z]{1,4}[0-9]{4,}[a-z0-9]*\$' AND c.display_name IS NULL)
-        OR c.handle ~ '^ra[0-9]+s[0-9]+\$' OR c.handle ~ '^rc[ab]m[a-z0-9]{7}\$')
+        OR c.handle ~ '^ra[0-9]+s[0-9]+\$' OR c.handle ~ '^rc[ab]m[a-z0-9]{7}\$'
+        OR c.handle ~ '^e2e(send|rcv)[a-z0-9]+\$'
+        OR c.handle ~ '^shapeprobe[a-z0-9]+\$'
+        OR c.handle ~ '^app001recv[a-z0-9]+\$'
+        OR c.id = 'd6fbc4d2-e913-447c-84f8-3d3b7df677eb')
        AND c.handle NOT IN ('fm65','oxfannio','priscila')"
 # The demo campaign accounts tests/phase0/campaign-payment-segregation.sh opened
 # in DOA's tenants — ten under the canonical @doa project (2026-09-09..11) and
