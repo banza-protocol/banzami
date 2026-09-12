@@ -27,7 +27,7 @@ const ROOT = resolve(fileURLToPath(new URL('.', import.meta.url)), '../../..');
 const argv = process.argv.slice(2);
 const ORIGIN = argv.includes('--origin') ? argv[argv.indexOf('--origin') + 1] : 'https://developers.banzami.com';
 
-const PAGES = ['', '/get-started', '/sdk', '/guides', '/reference', '/testing', '/trust', '/artifacts', '/changelog', '/glossary'];
+const PAGES = ['', '/get-started', '/console', '/sdk', '/guides', '/doa', '/reference', '/testing', '/trust', '/artifacts', '/changelog', '/glossary'];
 
 let failures = 0;
 const findings = [];
