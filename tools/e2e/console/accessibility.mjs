@@ -17,7 +17,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE
   ?? '/Users/fm65/doa/node_modules/@playwright/test/index.mjs');
 
 const ORIGIN = 'https://developers.banzami.com';
-const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/suporte', '/go-live'];
+const ROUTES = ['/dashboard', '/saldos', '/transacoes', '/api-keys', '/webhooks', '/logs', '/settings', '/suporte', '/conta', '/go-live'];
 
 let pass = 0, fail = 0;
 const ok = (m) => { pass += 1; console.log(`  ✓ ${m}`); };
