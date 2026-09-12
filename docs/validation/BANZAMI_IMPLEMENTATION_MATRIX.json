@@ -1780,14 +1780,24 @@
           "ref": "sdk/flutter/lib/utils/qr_parser.dart"
         },
         {
-          "type": "component",
-          "label": "premium confirm/pay/success",
-          "ref": "sdk/flutter/lib/screens/structured_qr_pay_screen.dart"
-        },
-        {
           "type": "test",
           "label": "settlement + no-double-spend invariants (real DB)",
           "ref": "core/qr/tests/qr_payment_integration.rs"
+        },
+        {
+          "type": "component",
+          "label": "confirmar e pagar um QR estruturado (CAP-PAY-003)",
+          "ref": "sdk/flutter/lib/screens/qr_pay_screen.dart"
+        },
+        {
+          "type": "route",
+          "label": "POST /v1/qr/pay na API do consumidor — o pagador é a sessão, não um campo",
+          "ref": "services/public-api/internal/handler/qr_pay.go"
+        },
+        {
+          "type": "e2e",
+          "label": "pagar um QR contra o Sandbox implantado: crédito exacto, código de uso único, payload adulterado recusado",
+          "ref": "tests/phase0/qr-payment-e2e.sh"
         }
       ],
       "dependencies": [
@@ -1836,7 +1846,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-17T20:33:59.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "943a5acd18aa2a1daa5daacc39b52f660cd3ba25",
       "history": [
         {
@@ -1872,9 +1882,23 @@
             "core/api/src/routes/qr.rs",
             "core/qr/tests/qr_payment_integration.rs"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "e264e6c1b0d0c682",
+          "reason": "O ecrã mudou de nome, a capacidade não: qr_pay_screen.dart, e a rota que realmente paga é POST /v1/qr/pay na API do consumidor.",
+          "evidence": [
+            "core/qr/src/engine.rs",
+            "core/api/src/routes/qr.rs",
+            "services/api-gateway/internal/handler/qr.go",
+            "sdk/flutter/lib/utils/qr_parser.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "QR-004",
@@ -2247,8 +2271,8 @@
       "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§8.8, §13.8",
       "description": "QR dinâmico de grupo gerado para total de mesa. Cada pessoa faz scan e paga a sua parte. Mesa liquidada quando total atingido.",
-      "requirement": "Múltiplos consumidores pagam partes de um total via QR. Sistema reconcilia total automaticamente.",
-      "status": "VALIDATED",
+      "requirement": "RETIRADO. Split Sessions foi substituído por Collections (BANZA ADR-016) e a família de rotas /v1/splits* responde 410 SPLIT_SESSIONS_SUPERSEDED no gateway, sem sequer chegar ao Core. O produto que sobrevive é a cobrança dividida do COMERCIANTE, não a divisão de conta entre consumidores por QR que este item descreve, e os dois ecrãs de consumidor foram removidos com ela.",
+      "status": "RETIRED",
       "priority": "MEDIUM",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Go · Rust · Flutter",
@@ -2280,14 +2304,24 @@
           "ref": "services/api-gateway/internal/handler/splits.go"
         },
         {
-          "type": "component",
-          "label": "premium pay-into-split",
-          "ref": "sdk/flutter/lib/screens/split_pay_screen.dart"
+          "type": "retirement",
+          "label": "410 SPLIT_SESSIONS_SUPERSEDED para toda a família de rotas, no gateway",
+          "ref": "services/api-gateway/internal/handler/splits.go"
         },
         {
-          "type": "component",
-          "label": "premium create-split + live progress",
-          "ref": "sdk/flutter/lib/screens/split_create_screen.dart"
+          "type": "retirement",
+          "label": "o teste que mantém a recusa",
+          "ref": "services/api-gateway/internal/handler/splits_test.go"
+        },
+        {
+          "type": "replacement",
+          "label": "Collections (BANZA ADR-016) — cobrança dividida do comerciante",
+          "ref": "core/api/src/routes/collections.rs"
+        },
+        {
+          "type": "frontend",
+          "label": "acompanhar uma cobrança dividida, na app do comerciante",
+          "ref": "apps/mobile/lib/merchant/screens/split_track_screen.dart"
         }
       ],
       "dependencies": [
@@ -2326,7 +2360,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-17T21:40:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "aed989f899219c1f044fb1c83db0fd5bf2e95ffa",
       "history": [
         {
@@ -2350,9 +2384,23 @@
             "core/api/src/routes/splits.rs",
             "sdk/flutter/lib/screens/split_pay_screen.dart"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "RETIRED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "658b11ca0638d87b",
+          "reason": "Split Sessions foi substituído por Collections (BANZA ADR-016); /v1/splits* responde 410 no gateway. O produto de consumidor que este item descreve não existe.",
+          "evidence": [
+            "db/migrations/0042_split_sessions.sql",
+            "core/api/src/routes/splits.rs",
+            "services/api-gateway/internal/handler/splits.go",
+            "services/api-gateway/internal/handler/splits.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "P2P-003",
@@ -2533,7 +2581,7 @@
       "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§12.2, §14.1",
       "description": "App móvel Flutter para consumidores Banza: autenticação por PIN + biometria, saldo em tempo real, envio P2P com ecrã de confirmação obrigatório e comprovativo, feed de actividade. Wired to WAL-003 activity feed and P2P-003 canonical receipt.",
-      "requirement": "Consumidor completa o ciclo financeiro completo: login → saldo → enviar para @banza → confirmar → comprovativo → saldo actualizado. Ecrã de confirmação obrigatório antes do POST irreversível.",
+      "requirement": "Consumidor completa o ciclo financeiro completo: login → saldo → enviar para @banza → confirmar → comprovativo → saldo actualizado. Ecrã de confirmação obrigatório antes do POST irreversível. Verificado em iPhone real contra o Sandbox implantado, e verificado de forma independente do lado do destinatário, da API, do razão e da base de dados.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
@@ -2581,6 +2629,26 @@
           "type": "test",
           "label": "consumer widget tests",
           "ref": "apps/mobile/test/widget_test.dart"
+        },
+        {
+          "type": "runtime",
+          "label": "flutter analyze: 0 issues; 262 testes da app e 200 do SDK passam (2026-09-12)",
+          "ref": "apps/mobile/test"
+        },
+        {
+          "type": "e2e",
+          "label": "o mesmo caminho que a app usa, contra o Sandbox implantado: débito e crédito exactos, replay idempotente, recibo PDF, 7 negativos recusados sem mover saldo",
+          "ref": "tools/e2e/transfer-sandbox-e2e.mjs"
+        },
+        {
+          "type": "device-runtime",
+          "label": "iPhone real (iOS 26.5.2), build consumer/release apontado a sandbox-api.banzami.com, instalado e lançado 2026-09-12 21:33Z. Conta @fidel criada 21:41:12.646Z; concessão de registo CREDIT 1 000 000 minor a 21:41:12.699Z; transferência 5ad6bea0 de 500 000 minor para @fm65 a 21:41:36.784Z, COMPLETED. Verificado contra o runtime, não contra o relato: o duplo toque produziu UMA transferência (uma única chave de idempotência, um único posting 0767083f com duas entradas que somam zero); a conta do remetente tem exactamente duas entradas na sua vida inteira — a concessão e este débito — e a do destinatário exactamente um crédito de 500 000; o razão AOA soma zero no total. A referência de 8 caracteres do comprovativo é 5AD6BEA0, derivada do id da transferência.",
+          "ref": "tools/e2e/mobile/app-001-device-journey.mjs"
+        },
+        {
+          "type": "limitation",
+          "label": "O que o runtime NÃO atesta: a superfície do consumidor não guarda user-agent nem o X-Device-Id que a app envia, por isso nenhum registo do servidor distingue um iPhone de um script. A origem em dispositivo assenta na instalação e lançamento feitos nesta sessão, no intervalo humano entre o registo e o envio, e na declaração do proprietário — não num atestado do servidor.",
+          "ref": "apps/mobile/lib/services/device_identity.dart"
         }
       ],
       "dependencies": [
@@ -2597,10 +2665,7 @@
         "sdk/flutter/**",
         "apps/mobile/**"
       ],
-      "blockingIssues": [
-        "Runtime não verificado em dispositivo real — obrigatório antes de VALIDATED",
-        "Sem testes de integração contra API sandbox — pendente APP-001B"
-      ],
+      "blockingIssues": [],
       "invariants": [
         {
           "id": "INV-IDEM-001",
@@ -2610,16 +2675,17 @@
         }
       ],
       "confidence": {
-        "score": 82,
+        "score": 88,
         "level": "HIGH",
         "basis": [
-          "complete P2P flow: confirm screen, receipt, idempotency, double-submit guard",
-          "INV-IDEM-001 PASS",
-          "widget tests present"
+          "operação real em iPhone real 2026-09-12 21:41Z, verificada do lado do destinatário, da API, do razão e da base de dados",
+          "exactamente um débito e um crédito; o duplo toque não criou segunda operação económica",
+          "razão equilibrado: o posting soma zero e o total AOA soma zero",
+          "a origem em dispositivo não é atestada pelo servidor — a superfície do consumidor não guarda nada que o prove"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-17T20:52:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "0ac1769e7a27d07d213303fdcb7e0a5c97720b0e",
       "history": [
         {
@@ -2675,9 +2741,23 @@
             "sdk/flutter/lib/screens/confirm_screen.dart",
             "apps/mobile/test/widget_test.dart"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "e989c9921d03015c",
+          "reason": "Verificação em dispositivo real cumprida: iPhone real, transferência 5ad6bea0 de 500 000 minor de @fidel para @fm65, verificada do lado do destinatário, da API, do razão e da base de dados — um débito, um crédito, o duplo toque não criou segunda operação, razão equilibrado.",
+          "evidence": [
+            "sdk/flutter/lib/screens/confirm_screen.dart:81-130 — _confirm(): POST only on explicit tap; _sending guard line 82",
+            "sdk/flutter/lib/screens/confirm_screen.dart:240 — onPressed: _sending ? null : _confirm (button disabled while in-flight)",
+            "sdk/flutter/lib/screens/receipt_screen.dart:61-66 — ref = transferId[0:8].toUpperCase()",
+            "sdk/flutter/lib/screens/receipt_screen.dart:155-175 — receipt shows: recipient, amount, date, ref, note, método"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "PL-001",
@@ -2822,18 +2902,23 @@
       "evidence": [
         {
           "type": "component",
-          "label": "page.tsx",
-          "ref": "apps/pay/app/[slug]/page.tsx"
-        },
-        {
-          "type": "route",
-          "label": "consumer_pay_links.go",
-          "ref": "services/public-api/internal/handler/consumer_pay_links.go"
+          "label": "a página canónica — /pay/<slug>; o /<slug> nu redirecciona 308",
+          "ref": "apps/pay/app/pay/[slug]/page.tsx"
         },
         {
           "type": "component",
-          "label": "pay client (QR + status polling)",
-          "ref": "apps/pay/app/[slug]/pay-client.tsx"
+          "label": "cliente de pagamento (QR + polling de estado)",
+          "ref": "apps/pay/app/pay/[slug]/pay-client.tsx"
+        },
+        {
+          "type": "route",
+          "label": "links de pagamento do consumidor na API pública",
+          "ref": "services/public-api/internal/handler/consumer_pay_link_handler.go"
+        },
+        {
+          "type": "e2e",
+          "label": "ciclo de vida da página pública contra o Sandbox implantado",
+          "ref": "tests/phase0/pay-frontend-lifecycle-e2e.sh"
         }
       ],
       "dependencies": [
@@ -2856,7 +2941,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-17T21:00:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "b6d2c01391cb2648420b8bcd2c1d01b7716fcb02",
       "history": [
         {
@@ -2890,9 +2975,23 @@
           "evidence": [
             "apps/pay/app/[slug]/pay-client.tsx"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "36d862449be897aa",
+          "reason": "Os ficheiros mudaram para /pay/<slug> e para consumer_pay_link_handler.go; o comportamento não mudou.",
+          "evidence": [
+            "apps/pay/app/pay/[slug]/page.tsx",
+            "apps/pay/app/pay/[slug]/pay-client.tsx",
+            "services/public-api/internal/handler/consumer_pay_link_handler.go",
+            "tests/phase0/pay-frontend-lifecycle-e2e.sh"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "PL-003",
@@ -3003,8 +3102,8 @@
       "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.6, §7",
       "description": "Comerciante ou sistema cria pedido de pagamento com valor, descrição e @banza do destinatário. Enviado como notificação push.",
-      "requirement": "Pedido criado e entregue ao consumidor como notificação push. Referência e valor correctos.",
-      "status": "VALIDATED",
+      "requirement": "RETIRADO. POST /v1/payment-requests e /{id}/pay nunca liam o principal: ambos os participantes vinham do corpo do pedido, de modo que qualquer comerciante podia criar e executar um pedido entre dois consumidores com quem não tinha relação — confirmado contra o Sandbox, vítima debitada. Removido em vez de corrigido a 2026-09-01 (RA-057), porque não há relação de posse contra a qual delimitar. O que existe hoje é o link de pagamento do consumidor: um link que alguém abre, não um pedido empurrado a um pagador nomeado. É outro produto e este item não é reapontado para ele.",
+      "status": "RETIRED",
       "priority": "HIGH",
       "ownerArea": "Core / Payment Requests",
       "technicalArea": "Go · FCM · Flutter",
@@ -3021,19 +3120,24 @@
       "testCoverage": false,
       "evidence": [
         {
-          "type": "route",
-          "label": "payment_requests.go",
-          "ref": "services/api-gateway/internal/handler/payment_requests.go"
-        },
-        {
           "type": "config",
           "label": "0030_payment_requests.sql",
           "ref": "db/migrations/0030_payment_requests.sql"
         },
         {
-          "type": "component",
-          "label": "requests screen in app",
-          "ref": "apps/mobile/lib/merchant/screens/payment_requests_screen.dart"
+          "type": "retirement",
+          "label": "RA-057 — CLOSED 2026-09-01, superfície desmontada, criar → 404 e executar → 404 contra o runtime implantado",
+          "ref": "docs/quality/REPAIR_LOG.md"
+        },
+        {
+          "type": "retirement",
+          "label": "o teste que mantém /internal/v1/payment-requests fora do router do Core",
+          "ref": "core/api/src/routes/withdrawn_routes_tests.rs"
+        },
+        {
+          "type": "retirement",
+          "label": "nenhum cliente Flutter chama uma rota retirada",
+          "ref": "sdk/flutter/test/withdrawn_routes_test.dart"
         }
       ],
       "dependencies": [
@@ -3048,15 +3152,15 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 82,
+        "score": 90,
         "level": "HIGH",
         "basis": [
-          "create via API/SDK, push to consumer, visible in app, configurable expiry",
-          "deployed"
+          "RA-057 fechado contra o runtime implantado: 404 em criar e executar",
+          "testes de rota mantêm a retirada"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-17T21:05:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "1d51eb94b6646d2fb79a967cbfa5181c83caefd5",
       "history": [
         {
@@ -3091,9 +3195,23 @@
             "services/api-gateway/internal/handler/payment_requests.go",
             "db/migrations/0030_payment_requests.sql"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "RETIRED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "63a787e0940425f4",
+          "reason": "Capacidade retirada a 2026-09-01 (RA-057): POST /v1/payment-requests tomava ambos os participantes do corpo do pedido. Removida em vez de corrigida.",
+          "evidence": [
+            "db/migrations/0030_payment_requests.sql",
+            "docs/quality/REPAIR_LOG.md",
+            "core/api/src/routes/withdrawn_routes_tests.rs",
+            "sdk/flutter/test/withdrawn_routes_test.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "PR-002",
@@ -3102,8 +3220,8 @@
       "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.6, §13.6",
       "description": "Consumidor recebe pedido, vê detalhes, paga com um toque ou recusa. Liquidação instantânea. Notificação ao emissor.",
-      "requirement": "Consumidor pode pagar ou recusar com um toque. Liquidação instantânea se pago. Notificação ao emissor em ambos os casos.",
-      "status": "VALIDATED",
+      "requirement": "RETIRADO. POST /v1/payment-requests e /{id}/pay nunca liam o principal: ambos os participantes vinham do corpo do pedido, de modo que qualquer comerciante podia criar e executar um pedido entre dois consumidores com quem não tinha relação — confirmado contra o Sandbox, vítima debitada. Removido em vez de corrigido a 2026-09-01 (RA-057), porque não há relação de posse contra a qual delimitar. O que existe hoje é o link de pagamento do consumidor: um link que alguém abre, não um pedido empurrado a um pagador nomeado. É outro produto e este item não é reapontado para ele.",
+      "status": "RETIRED",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Rust · Go",
@@ -3121,9 +3239,19 @@
       "testCoverage": false,
       "evidence": [
         {
-          "type": "route",
-          "label": "payment_requests.go",
-          "ref": "services/api-gateway/internal/handler/payment_requests.go"
+          "type": "retirement",
+          "label": "RA-057 — CLOSED 2026-09-01, superfície desmontada, criar → 404 e executar → 404 contra o runtime implantado",
+          "ref": "docs/quality/REPAIR_LOG.md"
+        },
+        {
+          "type": "retirement",
+          "label": "o teste que mantém /internal/v1/payment-requests fora do router do Core",
+          "ref": "core/api/src/routes/withdrawn_routes_tests.rs"
+        },
+        {
+          "type": "retirement",
+          "label": "nenhum cliente Flutter chama uma rota retirada",
+          "ref": "sdk/flutter/test/withdrawn_routes_test.dart"
         }
       ],
       "dependencies": [
@@ -3139,15 +3267,15 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 82,
+        "score": 90,
         "level": "HIGH",
         "basis": [
-          "pay/decline endpoints, instant settlement, issuer notification, payment_request.paid/declined webhooks",
-          "deployed"
+          "RA-057 fechado contra o runtime implantado: 404 em criar e executar",
+          "testes de rota mantêm a retirada"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-17T21:07:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "1a79ce256e6111569aee4c4fd42645009b3aa303",
       "history": [
         {
@@ -3180,9 +3308,22 @@
           "evidence": [
             "services/api-gateway/internal/handler/payment_requests.go"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "RETIRED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "bbca531f8061651b",
+          "reason": "Mesma retirada (RA-057). O par criar/pagar saiu junto.",
+          "evidence": [
+            "docs/quality/REPAIR_LOG.md",
+            "core/api/src/routes/withdrawn_routes_tests.rs",
+            "sdk/flutter/test/withdrawn_routes_test.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BM-001",
@@ -3191,7 +3332,7 @@
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.1",
       "description": "App móvel para operação diária do comerciante — notificações, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
-      "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador.",
+      "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador. Os pedidos de pagamento saíram do âmbito com a retirada de PR-001/PR-002 (RA-057, 2026-09-01) e o ecrã correspondente foi removido com eles.",
       "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
@@ -3204,7 +3345,6 @@
         "Notificações de pagamento em tempo real",
         "Geração de QR estático e dinâmico",
         "Visualização de saldo e transacções recentes",
-        "Pedidos de pagamento geridos na app",
         "Levantamentos iniciáveis a partir da app"
       ],
       "testCoverage": false,
@@ -3226,8 +3366,18 @@
         },
         {
           "type": "frontend",
-          "label": "payment requests",
-          "ref": "apps/mobile/lib/merchant/screens/payment_requests_screen.dart"
+          "label": "cobrar — a operação diária do balcão",
+          "ref": "apps/mobile/lib/merchant/screens/charge_screen.dart"
+        },
+        {
+          "type": "frontend",
+          "label": "histórico de transacções",
+          "ref": "apps/mobile/lib/merchant/screens/history_screen.dart"
+        },
+        {
+          "type": "retirement",
+          "label": "RA-057 — pedidos de pagamento retirados",
+          "ref": "docs/quality/REPAIR_LOG.md"
         }
       ],
       "dependencies": [
@@ -3251,7 +3401,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-14T21:36:38Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "0d47135",
       "history": [
         {
@@ -3294,9 +3444,23 @@
             "apps/mobile/lib/merchant/screens/dashboard_screen.dart",
             "apps/mobile/lib/merchant/screens/payment_requests_screen.dart"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "03c935516bfabcda",
+          "reason": "O ecrã de pedidos de pagamento saiu com RA-057; o critério correspondente é removido com a evidência da retirada. Os restantes ecrãs de operação diária mantêm-se.",
+          "evidence": [
+            "apps/mobile/lib/merchant/screens/dashboard_screen.dart",
+            "apps/mobile/lib/merchant/screens/qr_screen.dart",
+            "apps/mobile/lib/merchant/screens/payout_screen.dart",
+            "apps/mobile/lib/merchant/screens/charge_screen.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BM-002",
@@ -3862,8 +4026,8 @@
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
-      "requirement": "Gestão de membros funcional com papéis distintos, na Consola de Developers. Quatro dos cinco critérios mantêm-se contra o runtime; o log de acesso por membro NÃO é servido — developer.audit_events é escrito e nenhuma rota o lê, por isso o item não pode estar VALIDATED.",
-      "status": "IN_PROGRESS",
+      "requirement": "Gestão de membros funcional com papéis distintos na Consola de Developers, e o registo administrativo do workspace legível pelos seus gestores. developer.audit_events era escrito desde sempre e nenhuma rota o lia; a superfície de leitura (Configurações · Atividade) existe e os cinco critérios mantêm-se contra o runtime.",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -3875,35 +4039,56 @@
         "convite de membro por email",
         "permissões diferenciadas — cinco papéis distintos (OWNER, ADMIN, DEVELOPER, FINANCE, VIEWER)",
         "um papel só de leitura é recusado pelo SERVIÇO, não apenas por um botão escondido",
+        "um papel pode ser alterado e a alteração produz efeito",
         "remoção de membro imediata",
-        "log de acesso por membro legível — NÃO CUMPRIDO: as linhas são escritas em developer.audit_events e nenhuma rota as serve"
+        "log de acesso por membro legível — quem mudou o quê, a quem e quando, com o papel anterior e o novo"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "runtime",
-          "label": "4/5 criteria asked of the deployed Console",
+          "label": "6/6 critérios + 4/4 propriedades de tenant/privacidade contra a Consola implantada",
           "ref": "evidence/assurance/matrix/bw-001-004-runtime-proof.json"
         },
         {
-          "type": "frontend",
-          "label": "workspace members and roles",
-          "ref": "apps/website/app/developers/settings/workspace/page.tsx"
+          "type": "service",
+          "label": "leitura do audit: um workspace, acções em allow-list, metadata em allow-list",
+          "ref": "services/developer-api/internal/developer/activity.go"
+        },
+        {
+          "type": "store",
+          "label": "a query: filtro por workspace_id, sem request_ip nem request_id",
+          "ref": "services/developer-api/internal/developer/store_pg.go"
         },
         {
           "type": "route",
-          "label": "invite / set role / remove",
+          "label": "GET /workspaces/{wsID}/activity — interno da Consola, fora da API pública v1",
           "ref": "services/developer-api/internal/developer/handlers.go"
         },
         {
+          "type": "frontend",
+          "label": "Configurações · Atividade",
+          "ref": "apps/website/app/developers/settings/activity/page.tsx"
+        },
+        {
+          "type": "test",
+          "label": "isolação entre workspaces, gestores apenas, allow-lists, histórico por membro",
+          "ref": "services/developer-api/internal/developer/activity_test.go"
+        },
+        {
+          "type": "test",
+          "label": "a linha lê-se como uma frase, e o membro afectado encontra-se",
+          "ref": "apps/website/app/developers/settings/activity/activity-ui.test.ts"
+        },
+        {
           "type": "e2e",
-          "label": "RBAC matrix on the deployed Console (22/22)",
+          "label": "RBAC matrix na Consola implantada (22/22)",
           "ref": "tools/e2e/console/rbac-matrix.mjs"
         },
         {
-          "type": "gap",
-          "label": "audit_events are written and never read",
-          "ref": "services/developer-api/internal/developer/store_pg.go"
+          "type": "docs",
+          "label": "documentado em PT e EN, com a distinção Atividade vs Registos",
+          "ref": "apps/website/app/developers/docs/content-pt.tsx"
         }
       ],
       "dependencies": [
@@ -3916,20 +4101,19 @@
         "services/developer-api/internal/developer/**",
         "tools/e2e/console/matrix-bw-proof.mjs"
       ],
-      "blockingIssues": [
-        "No route serves developer.audit_events, so a per-member access log cannot be read. Either ship a read surface, or the criterion must be withdrawn by its own proposal — not quietly dropped to keep the item green."
-      ],
+      "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 70,
+        "score": 95,
         "level": "HIGH",
         "basis": [
-          "runtime proof 2026-09-12T19:17:12Z: 4 of 5 acceptance criteria hold",
-          "the fifth has no surface: no route reads developer.audit_events"
+          "runtime 2026-09-12: 6/6 critérios de aceitação e 4/4 propriedades de tenant/privacidade",
+          "WORKSPACE_AUDIT_CROSS_TENANT_DISCLOSURE=0 · WORKSPACE_AUDIT_SECRET_DISCLOSURE=0",
+          "as quatro propriedades do serviço estão mutation-proved"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-09-12T19:17:12Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "0eea1565",
       "history": [
         {
@@ -3976,6 +4160,20 @@
           "evidence": [
             "evidence/assurance/matrix/bw-001-004-runtime-proof.json",
             "tools/e2e/console/rbac-matrix.mjs"
+          ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "a9341e3f68377593",
+          "reason": "A superfície de leitura do audit do workspace existe: Configurações · Atividade, interna da Consola, sobre developer.audit_events. 6/6 critérios e 4/4 propriedades de tenant/privacidade contra o runtime implantado.",
+          "evidence": [
+            "evidence/assurance/matrix/bw-001-004-runtime-proof.json",
+            "services/developer-api/internal/developer/activity.go",
+            "services/developer-api/internal/developer/store_pg.go",
+            "services/developer-api/internal/developer/handlers.go"
           ]
         }
       ],
@@ -4221,11 +4419,6 @@
       "evidence": [
         {
           "type": "component",
-          "label": "banza_client.dart",
-          "ref": "sdk/flutter/lib/client/banza_client.dart"
-        },
-        {
-          "type": "component",
           "label": "flutter client",
           "ref": "sdk/flutter/lib/client/banzami_client.dart"
         },
@@ -4261,7 +4454,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T13:35:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "b85ce586f96e824f6c4a08773f3d14459ed5bdfb",
       "history": [
         {
@@ -4295,9 +4488,21 @@
             "sdk/flutter/lib/client/banzami_client.dart",
             "sdk/flutter/test/banzami_client_test.dart"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "4babe9a205459790",
+          "reason": "Evidência gémea obsoleta removida: banza_client.dart foi renomeado para banzami_client.dart, que já estava citado ao lado.",
+          "evidence": [
+            "sdk/flutter/lib/client/banzami_client.dart",
+            "sdk/flutter/test/banzami_client_test.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "SDK-004",
@@ -4425,11 +4630,6 @@
       "evidence": [
         {
           "type": "component",
-          "label": "client.py",
-          "ref": "sdk/python/banza/client.py"
-        },
-        {
-          "type": "component",
           "label": "python client",
           "ref": "sdk/python/banzami/client.py"
         },
@@ -4437,6 +4637,11 @@
           "type": "test",
           "label": "unit + integration tests",
           "ref": "sdk/python/tests"
+        },
+        {
+          "type": "component",
+          "label": "pacote Python actual, sob o nome do operador",
+          "ref": "sdk/python/banzami"
         }
       ],
       "dependencies": [
@@ -4464,7 +4669,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T13:45:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "d81eb4ee46de89e424a7d6b66155b2dbdbef92bc",
       "history": [
         {
@@ -4498,9 +4703,22 @@
             "sdk/python/banzami/client.py",
             "sdk/python/tests"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "7afed500f260bae0",
+          "reason": "Mesma renomeação de marca: sdk/python/banza → sdk/python/banzami, já citado ao lado.",
+          "evidence": [
+            "sdk/python/banzami/client.py",
+            "sdk/python/tests",
+            "sdk/python/banzami"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "API-001",
@@ -4540,11 +4758,6 @@
           "ref": "services/api-gateway/internal/handler/wallets.go"
         },
         {
-          "type": "route",
-          "label": "transfers.go",
-          "ref": "services/api-gateway/internal/handler/transfers.go"
-        },
-        {
           "type": "handler",
           "label": "transactions handler + tests",
           "ref": "services/api-gateway/internal/handler/transactions_test.go"
@@ -4553,6 +4766,26 @@
           "type": "middleware",
           "label": "bearer auth tests",
           "ref": "services/api-gateway/internal/middleware/auth_test.go"
+        },
+        {
+          "type": "route",
+          "label": "transferências entre contas do mesmo titular, na superfície do developer",
+          "ref": "services/api-gateway/internal/handler/wallet_account_transfers.go"
+        },
+        {
+          "type": "route",
+          "label": "transferências do consumidor, na API pública — o remetente é a sessão",
+          "ref": "services/public-api/internal/handler/transfers.go"
+        },
+        {
+          "type": "retirement",
+          "label": "SEC-015/SEC-018 — /v1/transfers removido da superfície do comerciante: nomeava o remetente no corpo",
+          "ref": "docs/quality/REPAIR_LOG.md"
+        },
+        {
+          "type": "e2e",
+          "label": "transferência do consumidor contra o Sandbox implantado, com 7 negativos",
+          "ref": "tools/e2e/transfer-sandbox-e2e.mjs"
         }
       ],
       "dependencies": [
@@ -4577,7 +4810,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T12:40:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "a241db02f4ac20391397e7ac764bd906170871ac",
       "history": [
         {
@@ -4613,18 +4846,32 @@
             "services/api-gateway/internal/handler/transactions_test.go",
             "services/api-gateway/internal/middleware/auth_test.go"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "34907628fe7014f9",
+          "reason": "O grupo /v1/transfers do comerciante foi removido sob SEC-015/SEC-018 por nomear o remetente no corpo. A capacidade vive em wallet_account_transfers.go e, para consumidores, na API pública.",
+          "evidence": [
+            "services/api-gateway/internal/handler/transactions.go",
+            "services/api-gateway/internal/handler/wallets.go",
+            "services/api-gateway/internal/handler/transactions_test.go",
+            "services/api-gateway/internal/middleware/auth_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "API-002",
-      "title": "API REST — QR, links de pagamento e pedidos",
+      "title": "API REST — QR e links de pagamento",
       "categoryId": "cat-api",
       "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.8",
       "description": "Endpoints para criar/descodificar QR estático e dinâmico, gerir links de pagamento e pedidos de pagamento.",
-      "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado.",
+      "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado. POST /payment-requests saiu do âmbito: foi removido a 2026-09-01 (RA-057) por tomar ambos os participantes do corpo do pedido, e não existe nem existirá nesta forma.",
       "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / API Layer",
@@ -4636,8 +4883,7 @@
       "acceptanceCriteria": [
         "POST /qr/static e /qr/dynamic funcionais",
         "POST /payment-links com slug único",
-        "GET /payment-links/{slug}/status",
-        "POST /payment-requests com notificação"
+        "GET /payment-links/{slug}/status"
       ],
       "testCoverage": true,
       "evidence": [
@@ -4652,9 +4898,14 @@
           "ref": "services/api-gateway/internal/handler/payment_links.go"
         },
         {
-          "type": "route",
-          "label": "payment_requests.go",
-          "ref": "services/api-gateway/internal/handler/payment_requests.go"
+          "type": "retirement",
+          "label": "RA-057 — POST /payment-requests removido, criar → 404 contra o runtime implantado",
+          "ref": "docs/quality/REPAIR_LOG.md"
+        },
+        {
+          "type": "test",
+          "label": "QR e payment links: posse e isolação entre tenants",
+          "ref": "services/api-gateway/internal/handler/qr_tenant_isolation_test.go"
         }
       ],
       "dependencies": [
@@ -4678,7 +4929,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T12:45:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "c3c326f9c80dbad8cc916a93dae86b0d76fc39ea",
       "history": [
         {
@@ -4714,9 +4965,23 @@
             "services/api-gateway/internal/handler/qr.go",
             "services/api-gateway/internal/handler/payment_links.go"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "1067c6d8809fc534",
+          "reason": "POST /payment-requests saiu do âmbito com RA-057. Título e critérios corrigidos para descrever o produto que existe: QR e links de pagamento.",
+          "evidence": [
+            "services/api-gateway/internal/handler/qr.go",
+            "services/api-gateway/internal/handler/payment_links.go",
+            "docs/quality/REPAIR_LOG.md",
+            "services/api-gateway/internal/handler/qr_tenant_isolation_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "API-003",
@@ -4725,7 +4990,7 @@
       "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.8",
       "description": "Endpoints para criar levantamentos bancários, emitir reembolsos parciais/totais e gerir disputas.",
-      "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos.",
+      "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos. A execução da liquidação bancária pertence a Money Out (PAY-002 / EMS-001/002 / BANK-002) e não a este item: não é um bloqueio desta API, é o âmbito de outra.",
       "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Core / API Layer",
@@ -4761,6 +5026,11 @@
           "type": "component",
           "label": "payout state machine",
           "ref": "core/payouts/src/lib.rs"
+        },
+        {
+          "type": "test",
+          "label": "refunds e disputes: posse e autorização",
+          "ref": "services/api-gateway/internal/handler/disputes_ownership_test.go"
         }
       ],
       "dependencies": [
@@ -4774,9 +5044,7 @@
         "services/public-api/**",
         "services/admin-api/**"
       ],
-      "blockingIssues": [
-        "Execução da liquidação bancária (via o rail de settlement configurado) é rastreada em Money Out (PAY-002 / EMS-001/002 / BANK-002) — fora do scope da API REST"
-      ],
+      "blockingIssues": [],
       "invariants": [
         {
           "id": "INV-API-003-1",
@@ -4793,7 +5061,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T14:30:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "6380af4575dddea83806f76fbd40e4eafdaa4574",
       "history": [
         {
@@ -4840,9 +5108,23 @@
           "evidence": [
             "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "de5ae3cfa94cfddd",
+          "reason": "O bloqueio era uma nota de âmbito, não um bloqueio: a execução da liquidação bancária pertence a Money Out. Movida para requirement; os quatro critérios revalidados contra as rotas que existem.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payouts.go",
+            "services/api-gateway/internal/handler/refunds.go",
+            "services/api-gateway/internal/handler/disputes.go",
+            "core/payouts/src/lib.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "WH-001",
@@ -5814,8 +6096,13 @@
         },
         {
           "type": "enforcement",
-          "label": "fail-closed SEND gate",
-          "ref": "services/api-gateway/internal/handler/transfers.go"
+          "label": "o motor de compliance: KYC_REQUIRED / KYC_NOT_APPROVED / LIMIT_EXCEEDED, fail-closed",
+          "ref": "core/compliance/src/engine.rs"
+        },
+        {
+          "type": "retirement",
+          "label": "a porta de SEND que este item citava saiu com /v1/transfers da superfície do comerciante (SEC-015)",
+          "ref": "docs/quality/REPAIR_LOG.md"
         }
       ],
       "dependencies": [
@@ -5842,7 +6129,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": null,
       "history": [
         {
@@ -5877,9 +6164,23 @@
             "core/api/src/routes/compliance.rs",
             "apps/mobile/lib/screens/kyc_screen.dart"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "IN_PROGRESS",
+          "to": "IN_PROGRESS",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "7bf259ad61613e60",
+          "reason": "A porta de SEND citada saiu com /v1/transfers (SEC-015). A autoridade de KYC é o motor de compliance. O item mantém-se IN_PROGRESS e externamente bloqueado.",
+          "evidence": [
+            "core/compliance/src/engine.rs",
+            "core/api/src/routes/compliance.rs",
+            "apps/mobile/lib/screens/kyc_screen.dart",
+            "apps/mobile/lib/widgets/kyc_status_banner.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "KYC-002",
@@ -6327,12 +6628,12 @@
     },
     {
       "id": "SEC-001",
-      "title": "TLS 1.3 em todas as comunicações",
+      "title": "TLS 1.2 ou superior em todas as comunicações públicas",
       "categoryId": "cat-security",
       "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.6",
       "description": "Toda a comunicação cliente-servidor e serviço-serviço usa TLS 1.3. Cloudflare como terminação TLS pública.",
-      "requirement": "Zero comunicação não encriptada. TLS 1.3 obrigatório. Certificados geridos e renovados automaticamente.",
+      "requirement": "Zero comunicação não encriptada. Nenhum endpoint público negocia TLS abaixo de 1.2; TLS 1.3 é suportado e preferido onde o cliente o negoceia. O controlo é a zona Cloudflare (Minimum TLS Version + TLS 1.3), que é o que um cliente encontra primeiro — a origem nunca foi o controlo, e ler o ficheiro nginx da origem foi exactamente como isto passou despercebido.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Infrastructure / Security",
@@ -6342,7 +6643,10 @@
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Todas as APIs servidas sobre HTTPS/TLS 1.3",
+        "Nenhum host público aceita TLS 1.0",
+        "Nenhum host público aceita TLS 1.1",
+        "Todos os hosts públicos exigem TLS 1.2 ou superior",
+        "Todos os hosts públicos negoceiam TLS 1.3",
         "Cloudflare como WAF e terminação TLS",
         "Certificados renovados automaticamente",
         "Sem endpoints HTTP não encriptados"
@@ -6350,14 +6654,29 @@
       "testCoverage": true,
       "evidence": [
         {
-          "type": "infra",
-          "label": "production nginx TLS config",
-          "ref": "infra/nginx/banzami.conf"
+          "type": "runtime",
+          "label": "handshakes contra os 11 hosts públicos, 2026-09-12: TLS_1_0_ACCEPTED_HOSTS=0 · TLS_1_1_ACCEPTED_HOSTS=0 · TLS_1_2_REQUIRED_HOSTS=11/11 · TLS_1_3_SUPPORTED_HOSTS=11/11",
+          "ref": "evidence/assurance/tls/tls-floor-proof.json"
+        },
+        {
+          "type": "gate",
+          "label": "a sonda que o mantém verificável, por handshake e não por ficheiro de configuração",
+          "ref": "tools/check-tls-floor.mjs"
         },
         {
           "type": "infra",
-          "label": "cloudflare terraform",
-          "ref": "infra/terraform/cloudflare/"
+          "label": "o controlo público: zona Cloudflare banzami.com, Minimum TLS Version = 1.2 e TLS 1.3 = on (posto a 2026-09-12; estava em 1.0 desde a criação da zona)",
+          "ref": "ops/asset-inventory.yaml"
+        },
+        {
+          "type": "infra",
+          "label": "nginx da origem: ssl_protocols TLSv1.2 TLSv1.3",
+          "ref": "infra/nginx/website.conf"
+        },
+        {
+          "type": "infra",
+          "label": "nginx do edge do Sandbox: ssl_protocols TLSv1.2 TLSv1.3",
+          "ref": "infra/nginx/sandbox-edge.conf.template"
         }
       ],
       "dependencies": [],
@@ -6377,15 +6696,16 @@
         }
       ],
       "confidence": {
-        "score": 80,
+        "score": 92,
         "level": "HIGH",
         "basis": [
-          "Cloudflare-fronted TLS (edge 1.3 + WAF + auto-renew) -> nginx (TLS 1.2+1.3)",
-          "HTTP 301->HTTPS; no plaintext endpoints; config vendored to repo"
+          "runtime 2026-09-12: TLS 1.0 e 1.1 recusados em 11 de 11 hosts públicos, confirmado por openssl e independentemente por curl",
+          "TLS 1.3 negoceia em 11 de 11",
+          "o critério anterior dizia \"TLS 1.3 obrigatório\" e o runtime aceitava TLS 1.0 — a redacção passa a descrever a política real"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T15:55:00.000Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "3ed6181c3657b4da3458045b03eb150dfeef84a6",
       "history": [
         {
@@ -6416,9 +6736,23 @@
           "evidence": [
             "infra/nginx/banzami.conf"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "905d3a2ce183f135",
+          "reason": "A zona Cloudflare estava em Minimum TLS Version 1.0 desde a criação e todos os hosts públicos completavam handshake TLS 1.0. Posta em 1.2 com TLS 1.3 on; 11/11 hosts provados por handshake. A redacção passa a descrever a política real em vez de \"TLS 1.3 obrigatório\".",
+          "evidence": [
+            "evidence/assurance/tls/tls-floor-proof.json",
+            "tools/check-tls-floor.mjs",
+            "ops/asset-inventory.yaml",
+            "infra/nginx/website.conf"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "SEC-002",
@@ -7834,7 +8168,23 @@
         "Conforme requisitos regulatórios aplicáveis"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "architecture",
+          "label": "ADR-018 — Money In/Out é agnóstico ao provider, para que um banco parceiro seja ligável sem reescrever o núcleo",
+          "ref": "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+        },
+        {
+          "type": "readiness",
+          "label": "o dossiê que regista este bloqueio e o que depende dele",
+          "ref": "docs/readiness/BANZAMI_LAUNCH_BLOCKERS_DOSSIER.md"
+        },
+        {
+          "type": "component",
+          "label": "o lado que receberia o funding: carteiras de consumidor e crédito",
+          "ref": "core/consumer-wallets/src/lib.rs"
+        }
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -7855,7 +8205,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": null,
       "history": [
         {
@@ -7877,9 +8227,22 @@
           "fingerprint": "a5358cec954d55c2",
           "reason": "Integrity correction (descriptive): populated the required referenceSection, left empty when BANK-001 was created during the provider-agnostic Money Rails restructure. Mirrors its EMS twin EMS-001 (§6.7, §10.4) — BANK-001 is the partner-bank alternative rail. No status change (stays BLOCKED), no priority/confidence/blocker/evidence/readiness change; the item remains externally blocked pending a real partner bank.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "3fdca2711edec997",
+          "reason": "Item BLOCKED sem uma única evidência. Passa a citar a arquitectura que torna um banco parceiro ligável e o dossiê que regista o bloqueio. Estado inalterado.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md",
+            "docs/readiness/BANZAMI_LAUNCH_BLOCKERS_DOSSIER.md",
+            "core/consumer-wallets/src/lib.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-19"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANK-002",
@@ -7905,7 +8268,23 @@
         "Reconciliação com confirmações do banco parceiro"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "architecture",
+          "label": "ADR-018 — Money In/Out é agnóstico ao provider, para que um banco parceiro seja ligável sem reescrever o núcleo",
+          "ref": "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+        },
+        {
+          "type": "readiness",
+          "label": "o dossiê que regista este bloqueio e o que depende dele",
+          "ref": "docs/readiness/BANZAMI_LAUNCH_BLOCKERS_DOSSIER.md"
+        },
+        {
+          "type": "component",
+          "label": "a máquina de estados de payout, à espera de um rail",
+          "ref": "core/payouts/src/lib.rs"
+        }
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -7926,7 +8305,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": null,
       "history": [
         {
@@ -7948,9 +8327,22 @@
           "fingerprint": "e94c4f9365d6abde",
           "reason": "Integrity correction (descriptive): populated the required referenceSection, left empty when BANK-002 was created during the provider-agnostic Money Rails restructure. Mirrors its EMS twin EMS-002 (§6.7, §15.2) — BANK-002 is the partner-bank alternative rail. No status change (stays BLOCKED), no priority/confidence/blocker/evidence/readiness change; the item remains externally blocked pending a real partner bank.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "7f8da351c9afd23a",
+          "reason": "Item BLOCKED sem uma única evidência. Passa a citar a máquina de estados de payout à espera de um rail e o dossiê que regista o bloqueio. Estado inalterado.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md",
+            "docs/readiness/BANZAMI_LAUNCH_BLOCKERS_DOSSIER.md",
+            "core/payouts/src/lib.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-19"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANZA-L0-001",
@@ -7976,7 +8368,12 @@
       "evidence": [
         "https://sandbox-operator.banzami.com",
         "https://sandbox-operator.banzami.com/health",
-        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json"
+        "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json",
+        {
+          "type": "runtime",
+          "label": "a corrida canónica: host de operador dedicado, 5/5 PASS, Nível 0 — a anterior está marcada SUPERSEDED",
+          "ref": "evidence/banza-conformance/l0/README.md"
+        }
       ],
       "dependencies": [],
       "requires": [],
@@ -7998,7 +8395,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-20T23:47:01Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "4af755b9b1b3f311e46fb32a11d0ecad0709c0a2",
       "history": [
         {
@@ -8026,9 +8423,23 @@
             "https://sandbox-operator.banzami.com",
             "https://sandbox-operator.banzami.com/health"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "217d7e2c1949ffd7",
+          "reason": "O relatório de conformidade L0 mudou para o seu directório de corrida datado; a corrida canónica é a do host de operador dedicado (5/5 PASS), e a anterior está marcada SUPERSEDED.",
+          "evidence": [
+            "https://sandbox-operator.banzami.com",
+            "https://sandbox-operator.banzami.com/health",
+            "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json",
+            "evidence/banza-conformance/l0/README.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-21"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANZA-L0-002",
@@ -8055,7 +8466,12 @@
       "testCoverage": false,
       "evidence": [
         "https://sandbox-operator.banzami.com/health",
-        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
+        "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002",
+        {
+          "type": "runtime",
+          "label": "a corrida canónica: host de operador dedicado, 5/5 PASS, Nível 0 — a anterior está marcada SUPERSEDED",
+          "ref": "evidence/banza-conformance/l0/README.md"
+        }
       ],
       "dependencies": [],
       "requires": [],
@@ -8077,7 +8493,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-20T23:47:01Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "4af755b9b1b3f311e46fb32a11d0ecad0709c0a2",
       "history": [
         {
@@ -8105,9 +8521,22 @@
             "https://sandbox-operator.banzami.com/health",
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "4fa7267a55c8f9a0",
+          "reason": "O relatório de conformidade L0 mudou para o seu directório de corrida datado; a corrida canónica é a do host de operador dedicado (5/5 PASS), e a anterior está marcada SUPERSEDED.",
+          "evidence": [
+            "https://sandbox-operator.banzami.com/health",
+            "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002",
+            "evidence/banza-conformance/l0/README.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-21"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANZA-L0-003",
@@ -8135,7 +8564,12 @@
       "testCoverage": false,
       "evidence": [
         "https://sandbox-operator.banzami.com/.well-known/banza/operator.json",
-        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
+        "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003",
+        {
+          "type": "runtime",
+          "label": "a corrida canónica: host de operador dedicado, 5/5 PASS, Nível 0 — a anterior está marcada SUPERSEDED",
+          "ref": "evidence/banza-conformance/l0/README.md"
+        }
       ],
       "dependencies": [],
       "requires": [],
@@ -8157,7 +8591,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-20T23:47:01Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "4af755b9b1b3f311e46fb32a11d0ecad0709c0a2",
       "history": [
         {
@@ -8185,9 +8619,22 @@
             "https://sandbox-operator.banzami.com/.well-known/banza/operator.json",
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "5be726e8736cd15c",
+          "reason": "O relatório de conformidade L0 mudou para o seu directório de corrida datado; a corrida canónica é a do host de operador dedicado (5/5 PASS), e a anterior está marcada SUPERSEDED.",
+          "evidence": [
+            "https://sandbox-operator.banzami.com/.well-known/banza/operator.json",
+            "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003",
+            "evidence/banza-conformance/l0/README.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-21"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANZA-L0-004",
@@ -8287,8 +8734,13 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
-        "banza-conformance==0.1.0 (PyPI)"
+        "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json",
+        "banza-conformance==0.1.0 (PyPI)",
+        {
+          "type": "runtime",
+          "label": "a corrida canónica: host de operador dedicado, 5/5 PASS, Nível 0 — a anterior está marcada SUPERSEDED",
+          "ref": "evidence/banza-conformance/l0/README.md"
+        }
       ],
       "dependencies": [],
       "requires": [],
@@ -8310,7 +8762,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-20T23:47:01Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "4af755b9b1b3f311e46fb32a11d0ecad0709c0a2",
       "history": [
         {
@@ -8338,9 +8790,22 @@
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
             "banza-conformance==0.1.0 (PyPI)"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "bd52597d306778f8",
+          "reason": "O relatório de conformidade L0 mudou para o seu directório de corrida datado; a corrida canónica é a do host de operador dedicado (5/5 PASS), e a anterior está marcada SUPERSEDED.",
+          "evidence": [
+            "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json",
+            "banza-conformance==0.1.0 (PyPI)",
+            "evidence/banza-conformance/l0/README.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-21"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANZA-L0-006",
@@ -8752,10 +9217,15 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
+        "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json",
         "evidence/banza-conformance/l0/README.md",
         "tools/banza-conformance-l0.sh",
-        "Makefile:banza-conformance-l0"
+        "Makefile:banza-conformance-l0",
+        {
+          "type": "runtime",
+          "label": "a corrida canónica: host de operador dedicado, 5/5 PASS, Nível 0 — a anterior está marcada SUPERSEDED",
+          "ref": "evidence/banza-conformance/l0/README.md"
+        }
       ],
       "dependencies": [],
       "requires": [],
@@ -8777,7 +9247,7 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-21T00:27:59Z",
+      "lastValidatedAt": "2026-09-12T21:49:35.343Z",
       "validatedAgainstCommit": "d0517f434954992554d66646d9e510c378348b4c",
       "roadmapBaseline": true,
       "history": [
@@ -8805,9 +9275,23 @@
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
             "evidence/banza-conformance/l0/README.md"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T21:49:35.343Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (FINAL AUTHORIZATION — CLOSE EVERYTHING NOW, 2026-09-12)",
+          "fingerprint": "7f98138cbfbfa7ce",
+          "reason": "O relatório de conformidade L0 mudou para o seu directório de corrida datado; a corrida canónica é a do host de operador dedicado (5/5 PASS), e a anterior está marcada SUPERSEDED.",
+          "evidence": [
+            "evidence/banza-conformance/l0/20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json",
+            "evidence/banza-conformance/l0/README.md",
+            "tools/banza-conformance-l0.sh",
+            "Makefile:banza-conformance-l0"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-21"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BANZA-L1-ROADMAP-001",
