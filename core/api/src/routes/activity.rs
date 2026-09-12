@@ -190,6 +190,45 @@ WITH activity AS (
 
     UNION ALL
 
+    -- SETTLEMENT_RECEIVED: an application settled a campaign or collection to
+    -- this consumer as the beneficiary.
+    --
+    -- Like a refund, the money arrives through the ledger with no transfer, so
+    -- nothing above sees it — and unlike a refund it had no branch at all. A
+    -- consumer who received a payout watched their balance rise with nothing in
+    -- their history to account for it. A credit that cannot be found is the one
+    -- kind a payment product must never produce: the balance is the claim, the
+    -- history is the evidence, and the evidence was missing.
+    --
+    -- Joined through consumer_wallets.available_account_id, because a settlement
+    -- names ACCOUNTS: the beneficiary may be a consumer or a business, and only
+    -- the account mapping says which. The same join the Sandbox top-up branch
+    -- below uses — never the account's display name.
+    SELECT
+        s.id::text                   AS activity_id,
+        'SETTLEMENT_RECEIVED'::text  AS item_type,
+        'INCOMING'::text             AS direction,
+        s.net_amount_minor           AS amount_minor,
+        s.currency,
+        'COMPLETED'::text            AS status,
+        s.created_at,
+        s.completed_at,
+        b.handle                     AS counterparty_handle,
+        b.display_name               AS counterparty_display_name,
+        NULL::text                   AS note,
+        NULL::text                   AS transfer_id,
+        NULL::text                   AS funding_id
+    FROM app_settlements s
+    JOIN consumer_wallets cw
+      ON cw.available_account_id = s.beneficiary_account_id AND cw.consumer_id = $1
+    -- app_settlements.application_id is TEXT; business_public_identities.merchant_id
+    -- is UUID. Cast explicitly rather than leaving it to fail at runtime — this
+    -- query is built as a string and is not schema-checked at compile time.
+    LEFT JOIN business_public_identities b ON b.merchant_id = s.application_id::uuid
+    WHERE s.status = 'COMPLETED'
+
+    UNION ALL
+
     -- RESTITUTION_RECEIVED: a dispute on this consumer's wallet payment was
     -- decided for them. Refunds are counted above from `refunds`, so only the
     -- non-refund origins are read from the restitution ledger here.

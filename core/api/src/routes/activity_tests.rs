@@ -100,6 +100,14 @@ async fn a_link_payment_names_the_business_and_its_own_words(pool: PgPool) {
 /// a refund, a dispute restitution, a Sandbox top-up — and a real deposit, which
 /// is COMPLETED while the feed read only SETTLED. The balance moved; the history
 /// said nothing.
+///
+/// An application SETTLEMENT was the same defect, found later and the same way:
+/// the owner of @fm65 received the net of a DOA campaign, watched the balance
+/// rise by 980 Kz, and found nothing in Histórico to account for it. This test
+/// already carried the name of the invariant that forbids it — "every credit to
+/// the wallet has a history row" — while its body enumerated only the credit
+/// kinds known when it was written. A settlement is one of them now, so the test
+/// checks what its name promises.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn every_credit_to_the_wallet_has_a_history_row(pool: PgPool) {
     let me = Uuid::new_v4();
@@ -184,6 +192,29 @@ async fn every_credit_to_the_wallet_has_a_history_row(pool: PgPool) {
     .await
     .unwrap();
 
+    // An application settlement of 100 000 gross to this consumer as beneficiary:
+    // fee 2 000, net 98 000 credited straight to the available account, with no
+    // transfer, no refund and no deposit — which is exactly why nothing above saw it.
+    let app_merchant = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO app_settlements
+           (id, owner_ref, application_id, source_account_id, beneficiary_account_id,
+            application_fee_account_id, gross_amount_minor, application_fee_minor,
+            net_amount_minor, currency, pricing_profile, engine_version,
+            pricing_snapshot_json, status, environment, idempotency_key, completed_at)
+         VALUES (gen_random_uuid(), 'campaign-1', $1::text, $2, $3, $4,
+                 100000, 2000, 98000, 'AOA', 'sandbox-reference', 1,
+                 '{\"rate_bps\": 200, \"fee_minor\": 2000}'::jsonb,
+                 'COMPLETED', 'SANDBOX', 'settle-1', now())",
+    )
+    .bind(app_merchant)
+    .bind(ledger_account(&pool).await)
+    .bind(available)
+    .bind(ledger_account(&pool).await)
+    .execute(&pool)
+    .await
+    .unwrap();
+
     let (items, _, _) = fetch_activity(&pool, me, 50, None, None, None)
         .await
         .unwrap();
@@ -196,6 +227,7 @@ async fn every_credit_to_the_wallet_has_a_history_row(pool: PgPool) {
         ("RESTITUTION_RECEIVED", 200),
         ("WALLET_FUNDED", 5000),
         ("WALLET_FUNDED", 7000),
+        ("SETTLEMENT_RECEIVED", 98000),
     ] {
         assert!(
             seen.iter()
