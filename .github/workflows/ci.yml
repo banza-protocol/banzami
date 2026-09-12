@@ -530,6 +530,12 @@ jobs:
       - name: Documentation drift gate
         run: node tools/check-docs-drift.mjs
 
+      # An item can read VALIDATED while the files behind it have been deleted.
+      # Four did, for months, because nothing had ever opened an evidence
+      # reference to see whether it still resolved.
+      - name: Implementation-matrix gate
+        run: node tools/check-implementation-matrix.mjs
+
       # BANZA is the protocol; Banzami is the operator. On the hosted checkout
       # the wordmark said BANZA — the protocol's name, on the one page whose
       # reader is a person about to pay.

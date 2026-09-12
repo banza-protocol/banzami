@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-21",
+    "lastUpdated": "2026-09-12",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -126,7 +126,7 @@
       "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§1 — §16 (CLAUDE.md)",
       "description": "Regras vinculativas de marca: Banzami = organização/infraestrutura, Banza = produto principal. Género gramatical, hierarquia de produto e nomenclatura SDK.",
-      "requirement": "Todas as superfícies públicas (site, SDKs, documentação, código) devem seguir a arquitectura de marca definida. Banzami e Banza nunca confundidos.",
+      "requirement": "Todas as superfícies públicas — site, SDKs, documentação, código — seguem a arquitectura de marca da BANZA ADR-002: BANZA é o protocolo, Banzami é o operador e o produto. Nunca confundidos. Os nomes dos SDKs são do operador (Banzami); apenas o protocolo e os contratos de wire mantêm \"banza\".",
       "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Organização Banzami",
@@ -137,46 +137,89 @@
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Banzami usado apenas em contexto organizacional",
-        "Banza usado em contexto de produto",
-        "Género masculino aplicado correctamente (o Banza, o Banzami)",
-        "Nomenclatura SDK correcta (@banza/sdk, BanzaClient, etc.)"
+        "BANZA usado apenas em contexto de protocolo (especificação, kernel, certificação, ADRs do protocolo)",
+        "Banzami usado em contexto de operador e de produto (carteira, QR, Business, Consola, SDKs)",
+        "género masculino aplicado — o Banzami, o Banza — em todas as superfícies públicas",
+        "nomes de SDK com prefixo Banzami (@banzami/sdk, banzami_client, banzami_flutter, banzami-python, banzami/sdk-php, banzami-go)",
+        "os contratos de wire do protocolo mantêm-se inalterados: o header é banza-signature, e @banza é o termo Banzami para handle"
       ],
       "testCoverage": false,
       "evidence": [
-        "sdk/typescript/package.json:name=@banza/sdk",
-        "sdk/flutter/pubspec.yaml:name=banza_flutter",
-        "sdk/python/pyproject.toml:name=banza-python",
-        "sdk/go/banzami/webhook.go:SignatureHeader=Banza-Signature",
-        "sdk/typescript/src/webhooks.ts:SIGNATURE_HEADER=Banza-Signature",
-        "apps/dashboard/app/layout.tsx:title=Banzami Business",
-        "apps/pay/app/layout.tsx:title=Banzami Pay",
-        "apps/checkout/app/layout.tsx:title=Banzami Checkout"
+        {
+          "type": "package",
+          "label": "@banzami/sdk",
+          "ref": "sdk/typescript/package.json"
+        },
+        {
+          "type": "package",
+          "label": "banzami_client (pub.dev)",
+          "ref": "sdk/dart-client/pubspec.yaml"
+        },
+        {
+          "type": "package",
+          "label": "banzami_flutter (publish_to: none, ADR-053)",
+          "ref": "sdk/flutter/pubspec.yaml"
+        },
+        {
+          "type": "package",
+          "label": "banzami-python",
+          "ref": "sdk/python/pyproject.toml"
+        },
+        {
+          "type": "package",
+          "label": "banzami/sdk-php",
+          "ref": "sdk/php/composer.json"
+        },
+        {
+          "type": "package",
+          "label": "github.com/banzami/banzami-go",
+          "ref": "sdk/go/go.mod"
+        },
+        {
+          "type": "component",
+          "label": "the wire header stays banza-signature",
+          "ref": "sdk/go/banzami/webhook.go"
+        },
+        {
+          "type": "test",
+          "label": "no feminine article precedes Banzami or Banza",
+          "ref": "apps/website/lib/brand-gender.test.ts"
+        },
+        {
+          "type": "gate",
+          "label": "the payer surface names Banzami, not the protocol",
+          "ref": "tools/check-payer-surface-naming.mjs"
+        },
+        {
+          "type": "frontend",
+          "label": "Banzami Pay",
+          "ref": "apps/pay/app/layout.tsx"
+        }
       ],
       "dependencies": [],
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "core/identity/**",
-        "core/consumer-wallets/**",
-        "db/migrations/**"
+        "sdk/**/package.json",
+        "sdk/**/pubspec.yaml",
+        "sdk/**/pyproject.toml",
+        "sdk/**/composer.json",
+        "sdk/go/go.mod",
+        "apps/website/lib/brand-gender.test.ts"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
+        "score": 90,
         "level": "VERY_HIGH",
         "basis": [
-          "evidence",
-          "unit_tests",
-          "production_review",
-          "manual_ux",
-          "non_financial"
+          "package names read from the shipped manifests 2026-09-12T19:17:36Z",
+          "brand-gender guard green; payer-surface naming gate green"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-09-12T19:17:36Z",
+      "validatedAgainstCommit": "0eea1565",
       "history": [
         {
           "timestamp": "2026-05-20T11:22:24Z",
@@ -233,9 +276,25 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-09-12T19:17:36Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (explicit authorisation, DOCS-PROD-001 closure §1 — requirement 6/7/8)",
+          "fingerprint": "8c1dfbfa094f1d57",
+          "reason": "Evidência corrigida: apontava para apps/dashboard e apps/checkout, ambos apagados, e para nomes de pacote (@banza/sdk, banza_flutter, banza-python) que precedem a inversão da BANZA ADR-002. Os critérios afirmavam a inversão ao contrário. A propriedade mantém-se e foi reverificada contra os manifestos publicados; o status não muda.",
+          "evidence": [
+            "sdk/typescript/package.json",
+            "sdk/dart-client/pubspec.yaml",
+            "sdk/python/pyproject.toml",
+            "sdk/php/composer.json",
+            "sdk/go/go.mod",
+            "apps/website/lib/brand-gender.test.ts"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "IDT-003",
@@ -3430,13 +3489,13 @@
     },
     {
       "id": "BW-001",
-      "title": "Dashboard web Banzami Business",
+      "title": "Dashboard web Banzami Business — retirado",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Interface web avançada para comerciante — saldo, transacções, análises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
-      "requirement": "Dashboard web completo cobrindo todas as secções descritas em §11.2.2.",
-      "status": "VALIDATED",
+      "requirement": "O produto que este item descrevia — um dashboard web de comerciante, com saldo em tempo real, transacções filtráveis e acções de reembolso, disputa e levantamento — foi RETIRADO em 2026-09-12. apps/dashboard foi apagado: nunca esteve roteado, dashboard.banzami.com nunca resolveu, nenhum container o corria, nenhum job de CI o nomeava e nada o importava. O que o decidiu foi guardar uma chave secreta de API em localStorage e chamar o Gateway a partir do browser, que CLAUDE.md §13 proíbe. A Consola de Developers não o substitui: é um produto diferente, para um leitor diferente.",
+      "status": "RETIRED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · TypeScript · Go",
@@ -3445,32 +3504,32 @@
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Todas as secções da §11.2.2 implementadas",
-        "Saldo em tempo real no dashboard",
-        "Transacções listadas com filtros",
-        "Acções (reembolso, disputa, levantamento) funcionais"
+        "dashboard.banzami.com não resolve (verificado em runtime)",
+        "apps/dashboard não existe na árvore (make check-retired-surfaces)",
+        "CAP-APP-002 regista disposition e status \"removed\" no manifesto de assurance",
+        "nenhuma referência de build, deploy ou inventário o nomeia"
       ],
       "testCoverage": false,
       "evidence": [
         {
-          "type": "component",
-          "label": "page.tsx",
-          "ref": "apps/dashboard/app/(dashboard)/page.tsx"
+          "type": "runtime",
+          "label": "dashboard.banzami.com does not resolve",
+          "ref": "evidence/assurance/matrix/bw-001-004-runtime-proof.json"
         },
         {
-          "type": "frontend",
-          "label": "sidebar sections",
-          "ref": "apps/dashboard/components/layout/sidebar.tsx"
+          "type": "gate",
+          "label": "check-retired-surfaces",
+          "ref": "tools/check-retired-surfaces.mjs"
         },
         {
-          "type": "frontend",
-          "label": "refunds action",
-          "ref": "apps/dashboard/app/(dashboard)/refunds/page.tsx"
+          "type": "manifest",
+          "label": "CAP-APP-002 disposition: removed",
+          "ref": "quality/operator-assurance-manifest.yaml"
         },
         {
-          "type": "frontend",
-          "label": "payouts action",
-          "ref": "apps/dashboard/app/(dashboard)/payouts/page.tsx"
+          "type": "record",
+          "label": "why it was retired",
+          "ref": "docs/quality/DOCS_PROD_001_CLOSURE.md"
         }
       ],
       "dependencies": [
@@ -3480,21 +3539,22 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/dashboard/**"
+        "quality/operator-assurance-manifest.yaml",
+        "tools/check-retired-surfaces.mjs"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
+        "score": 95,
         "level": "VERY_HIGH",
         "basis": [
-          "dashboard sections + real-time balance verified 2026-06-14",
-          "code-level evidence audit 2026-06-14"
+          "runtime probe 2026-09-12T19:16:40Z: dashboard.banzami.com does not resolve",
+          "check-retired-surfaces, mutation-proven three ways"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-14T21:25:05Z",
-      "validatedAgainstCommit": "171cf97",
+      "lastValidatedAt": "2026-09-12T19:16:40Z",
+      "validatedAgainstCommit": "0eea1565",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -3536,19 +3596,32 @@
             "apps/dashboard/app/(dashboard)/page.tsx",
             "apps/dashboard/components/layout/sidebar.tsx"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T19:16:40Z",
+          "from": "VALIDATED",
+          "to": "RETIRED",
+          "approvedBy": "owner (explicit authorisation, DOCS-PROD-001 closure §1)",
+          "fingerprint": "d54eb8b17816deb4",
+          "reason": "O produto foi retirado; a evidência antiga apontava para apps/dashboard, que já não existe. Reavaliado contra o runtime: 0/1 critérios da versão antiga se mantinham.",
+          "evidence": [
+            "evidence/assurance/matrix/bw-001-004-runtime-proof.json",
+            "tools/check-retired-surfaces.mjs",
+            "quality/operator-assurance-manifest.yaml"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BW-002",
-      "title": "Análises e relatórios no Banzami Business",
+      "title": "Análises e relatórios no Banzami Business — retirado",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Volume diário/mensal, contagens de transacções, horas de pico e tendências para o comerciante.",
-      "requirement": "Análises precisas derivadas do ledger. Filtráveis por período. Exportáveis.",
-      "status": "VALIDATED",
+      "requirement": "A superfície que este item descrevia era uma página de análises dentro do dashboard de comerciante, retirado em 2026-09-12. O motor permanece em core/api/src/routes/analytics.rs e NÃO tem rota pública: GET /v1/analytics responde 404. Não há gráfico de horas de pico, filtros de período nem exportação CSV/PDF em nenhuma superfície pública.",
+      "status": "RETIRED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · PostgreSQL",
@@ -3556,32 +3629,32 @@
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "Volume diário e mensal correctos",
-        "Gráfico de horas de pico",
-        "Filtros por período funcionais",
-        "Exportação CSV ou PDF"
+        "nenhuma rota pública serve análises (GET /v1/analytics → 404, verificado em runtime)",
+        "o motor em core/api/src/routes/analytics.rs continua a existir e continua não exposto",
+        "a Consola de Developers não apresenta uma página de análises",
+        "nenhuma documentação pública promete análises, gráficos ou exportação"
       ],
       "testCoverage": false,
       "evidence": [
         {
-          "type": "component",
-          "label": "page.tsx",
-          "ref": "apps/dashboard/app/(dashboard)/transactions/page.tsx"
+          "type": "runtime",
+          "label": "GET /v1/analytics → 404",
+          "ref": "evidence/assurance/matrix/bw-001-004-runtime-proof.json"
         },
         {
           "type": "component",
-          "label": "analytics.rs",
+          "label": "the engine, unexposed",
           "ref": "core/api/src/routes/analytics.rs"
         },
         {
-          "type": "route",
-          "label": "wallet analytics proxy",
-          "ref": "services/api-gateway/internal/handler/wallets.go"
+          "type": "gate",
+          "label": "the published API and the reachable API are the same set",
+          "ref": "tools/check-openapi-route-drift.mjs"
         },
         {
-          "type": "frontend",
-          "label": "analytics page",
-          "ref": "apps/dashboard/app/(dashboard)/analytics/page.tsx"
+          "type": "record",
+          "label": "why it was retired",
+          "ref": "docs/quality/DOCS_PROD_001_CLOSURE.md"
         }
       ],
       "dependencies": [
@@ -3590,21 +3663,22 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/dashboard/**"
+        "core/api/src/routes/analytics.rs",
+        "docs/developer/openapi/banzami-sandbox.openapi.json"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
+        "score": 95,
         "level": "VERY_HIGH",
         "basis": [
-          "built end-to-end 2026-06-14 (analytics endpoint + dashboard page)",
-          "code-level evidence audit 2026-06-14"
+          "runtime probe 2026-09-12T19:16:40Z: GET /v1/analytics → 404",
+          "check-openapi-route-drift: the published contract and the reachable surface are the same set"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-14T21:19:50Z",
-      "validatedAgainstCommit": "3ebe027",
+      "lastValidatedAt": "2026-09-12T19:16:40Z",
+      "validatedAgainstCommit": "0eea1565",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -3637,18 +3711,30 @@
             "core/api/src/routes/analytics.rs",
             "apps/dashboard/app/(dashboard)/analytics/page.tsx"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T19:16:40Z",
+          "from": "VALIDATED",
+          "to": "RETIRED",
+          "approvedBy": "owner (explicit authorisation, DOCS-PROD-001 closure §1)",
+          "fingerprint": "f8a5520658fc28bf",
+          "reason": "A superfície foi retirada com o dashboard; o motor continua sem rota pública. Reavaliado contra o runtime: 0/1 critérios da versão antiga se mantinham.",
+          "evidence": [
+            "evidence/assurance/matrix/bw-001-004-runtime-proof.json",
+            "core/api/src/routes/analytics.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BW-003",
-      "title": "Gestão de chaves API no Banzami Business",
+      "title": "Gestão de chaves API na Consola de Developers",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2, §12",
       "description": "Interface para gerar, listar e revogar chaves API de sandbox e produção. Chave bruta visível apenas uma vez após criação.",
-      "requirement": "Chaves API geridas de forma segura. Chave bruta mostrada apenas uma vez. Revogação imediata.",
+      "requirement": "Chaves API geridas com segurança na Consola de Developers. O valor bruto é revelado uma única vez e nunca é recuperável. A revogação é imediata. Nenhuma chave de produção é emitida.",
       "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
@@ -3658,32 +3744,42 @@
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "Chave gerada e mostrada uma única vez",
-        "Listagem de chaves activas (sem valor bruto)",
-        "Revogação imediata e irreversível",
-        "Separação clara sandbox vs. produção"
+        "a chave é gerada e o valor bruto devolvido exactamente uma vez",
+        "a listagem de chaves activas não contém o valor bruto em nenhuma superfície",
+        "a revogação é imediata: a chamada seguinte com a chave responde 401",
+        "uma chave bz_live_ é recusada fail-closed e nenhuma chave de produção é emitida"
       ],
       "testCoverage": false,
       "evidence": [
         {
-          "type": "component",
-          "label": "page.tsx",
-          "ref": "apps/dashboard/app/(dashboard)/settings/page.tsx"
+          "type": "runtime",
+          "label": "4/4 criteria asked of the deployed Console",
+          "ref": "evidence/assurance/matrix/bw-001-004-runtime-proof.json"
         },
         {
-          "type": "config",
-          "label": "0015_public_api_credentials.sql",
-          "ref": "db/migrations/0015_public_api_credentials.sql"
+          "type": "frontend",
+          "label": "Console API keys surface",
+          "ref": "apps/website/app/developers/api-keys/page.tsx"
         },
         {
-          "type": "sdk",
-          "label": "createApiKey environment",
-          "ref": "sdk/typescript/src/client.ts"
+          "type": "route",
+          "label": "create / rotate / revoke",
+          "ref": "services/developer-api/internal/developer/handlers.go"
         },
         {
-          "type": "component",
-          "label": "api_key bz_live_/bz_test_",
-          "ref": "core/merchants/src/api_key.rs"
+          "type": "test",
+          "label": "the revealed secret is unrecoverable across 8 surfaces",
+          "ref": "apps/website/app/developers/api-key-secret-nonrecovery.test.ts"
+        },
+        {
+          "type": "test",
+          "label": "the scopes chosen are the scopes carried",
+          "ref": "apps/website/app/developers/api-key-scopes.test.ts"
+        },
+        {
+          "type": "e2e",
+          "label": "RBAC matrix on the deployed Console (22/22)",
+          "ref": "tools/e2e/console/rbac-matrix.mjs"
         }
       ],
       "dependencies": [
@@ -3692,21 +3788,23 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/dashboard/**"
+        "apps/website/app/developers/api-keys/**",
+        "services/developer-api/internal/developer/**",
+        "tools/e2e/console/matrix-bw-proof.mjs"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
+        "score": 92,
         "level": "VERY_HIGH",
         "basis": [
-          "sandbox/prod separation shipped 2026-06-14",
-          "code-level evidence audit 2026-06-14"
+          "runtime proof 2026-09-12T19:17:12Z: 4/4 acceptance criteria hold on the deployed Console",
+          "reveal-once non-recoverability proven across DOM, page source, flight data, network, storage and IndexedDB"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-14T21:23:39Z",
-      "validatedAgainstCommit": "b6749d5",
+      "lastValidatedAt": "2026-09-12T19:17:12Z",
+      "validatedAgainstCommit": "0eea1565",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -3740,19 +3838,32 @@
             "apps/dashboard/app/(dashboard)/settings/page.tsx",
             "sdk/typescript/src/client.ts"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T19:17:12Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "owner (explicit authorisation, DOCS-PROD-001 closure §1)",
+          "fingerprint": "f8322732698c6ff8",
+          "reason": "Evidência repontada do apps/dashboard retirado para a Consola de Developers, e reexecutada contra o runtime: 4/4 critérios mantêm-se. O quarto critério foi corrigido — não há produção de que separar, e uma chave bz_live_ é recusada fail-closed.",
+          "evidence": [
+            "evidence/assurance/matrix/bw-001-004-runtime-proof.json",
+            "apps/website/app/developers/api-keys/page.tsx",
+            "tools/e2e/console/rbac-matrix.mjs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "BW-004",
-      "title": "Gestão de equipa e permissões",
+      "title": "Gestão de equipa e permissões na Consola de Developers",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
-      "requirement": "Gestão de equipa funcional com pelo menos dois níveis de permissão distintos.",
-      "status": "VALIDATED",
+      "requirement": "Gestão de membros funcional com papéis distintos, na Consola de Developers. Quatro dos cinco critérios mantêm-se contra o runtime; o log de acesso por membro NÃO é servido — developer.audit_events é escrito e nenhuma rota o lê, por isso o item não pode estar VALIDATED.",
+      "status": "IN_PROGRESS",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -3761,37 +3872,38 @@
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Convite de membro de equipa por email",
-        "Permissões diferenciadas (leitura vs. operação)",
-        "Remoção de membro imediata",
-        "Log de acesso por membro"
+        "convite de membro por email",
+        "permissões diferenciadas — cinco papéis distintos (OWNER, ADMIN, DEVELOPER, FINANCE, VIEWER)",
+        "um papel só de leitura é recusado pelo SERVIÇO, não apenas por um botão escondido",
+        "remoção de membro imediata",
+        "log de acesso por membro legível — NÃO CUMPRIDO: as linhas são escritas em developer.audit_events e nenhuma rota as serve"
       ],
       "testCoverage": false,
       "evidence": [
         {
-          "type": "component",
-          "label": "page.tsx",
-          "ref": "apps/dashboard/app/(dashboard)/settings/page.tsx"
-        },
-        {
-          "type": "config",
-          "label": "merchant_team migration",
-          "ref": "db/migrations/0041_merchant_team.sql"
-        },
-        {
-          "type": "component",
-          "label": "team service",
-          "ref": "services/api-gateway/internal/service/team.go"
-        },
-        {
-          "type": "route",
-          "label": "team handler",
-          "ref": "services/api-gateway/internal/handler/team.go"
+          "type": "runtime",
+          "label": "4/5 criteria asked of the deployed Console",
+          "ref": "evidence/assurance/matrix/bw-001-004-runtime-proof.json"
         },
         {
           "type": "frontend",
-          "label": "team page",
-          "ref": "apps/dashboard/app/(dashboard)/team/page.tsx"
+          "label": "workspace members and roles",
+          "ref": "apps/website/app/developers/settings/workspace/page.tsx"
+        },
+        {
+          "type": "route",
+          "label": "invite / set role / remove",
+          "ref": "services/developer-api/internal/developer/handlers.go"
+        },
+        {
+          "type": "e2e",
+          "label": "RBAC matrix on the deployed Console (22/22)",
+          "ref": "tools/e2e/console/rbac-matrix.mjs"
+        },
+        {
+          "type": "gap",
+          "label": "audit_events are written and never read",
+          "ref": "services/developer-api/internal/developer/store_pg.go"
         }
       ],
       "dependencies": [
@@ -3800,20 +3912,25 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/dashboard/**"
+        "apps/website/app/developers/settings/**",
+        "services/developer-api/internal/developer/**",
+        "tools/e2e/console/matrix-bw-proof.mjs"
       ],
-      "blockingIssues": [],
+      "blockingIssues": [
+        "No route serves developer.audit_events, so a per-member access log cannot be read. Either ship a read surface, or the criterion must be withdrawn by its own proposal — not quietly dropped to keep the item green."
+      ],
       "invariants": [],
       "confidence": {
-        "score": 80,
+        "score": 70,
         "level": "HIGH",
         "basis": [
-          "team management: list/invite(role)/remove + per-member access log; postgres-backed"
+          "runtime proof 2026-09-12T19:17:12Z: 4 of 5 acceptance criteria hold",
+          "the fifth has no surface: no route reads developer.audit_events"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": "2026-06-18T17:50:00.000Z",
-      "validatedAgainstCommit": "3e1311ac961b99d6db0ce4a89b6557bb1eadfc02",
+      "lastValidatedAt": "2026-09-12T19:17:12Z",
+      "validatedAgainstCommit": "0eea1565",
       "history": [
         {
           "timestamp": "2026-06-14T08:50:48.376Z",
@@ -3848,9 +3965,21 @@
           "evidence": [
             "services/api-gateway/internal/handler/team.go"
           ]
+        },
+        {
+          "timestamp": "2026-09-12T19:17:12Z",
+          "from": "VALIDATED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "owner (explicit authorisation, DOCS-PROD-001 closure §1)",
+          "fingerprint": "068d1621d2461029",
+          "reason": "Evidência repontada do apps/dashboard retirado para a Consola de Developers e reexecutada contra o runtime: 4/5 critérios mantêm-se. O log de acesso por membro não é servido por nenhuma rota, por isso VALIDATED deixaria de significar o que diz.",
+          "evidence": [
+            "evidence/assurance/matrix/bw-001-004-runtime-proof.json",
+            "tools/e2e/console/rbac-matrix.mjs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-09-12"
     },
     {
       "id": "SDK-001",
