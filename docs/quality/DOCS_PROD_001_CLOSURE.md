@@ -1,8 +1,14 @@
 # DOCS-PROD-001 — the public developer documentation
 
-**Banzami** `98c96b41` · **DOA** `2612573` (unchanged — no DOA source change was needed)
+**FINAL_BANZAMI_SHA** `f8eda47e` · **FINAL_DOA_SHA** `2612573` (unchanged — no DOA source change was needed)
+
+CI is **green at `98c96b41`**, the last commit carrying code, tooling or workflow
+changes. `f8eda47e` touches only this file, and the workflow's `paths-ignore`
+skips `docs/**` by design — so it has no run of its own, rather than a missing one.
+
 Every deployed component runs the source in this tree (`make check-deploy-parity`).
-Nothing that reaches a deployed artefact changed after `a4995b98`, so no redeploy was required.
+Nothing reaching a deployed artefact changed after `a4995b98`, so no redeploy was
+required.
 
 ---
 
