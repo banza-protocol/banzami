@@ -18,7 +18,7 @@
  *
  *   node tools/e2e/doa/route-sweep.mjs [--campaign <slug>]
  */
-import { readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { assuranceDir } from '../lib/assurance-output.mjs';
 
@@ -80,7 +80,15 @@ for (const s of SURFACES) {
 
     if (status === 0) { verdict = 'UNREACHABLE'; bad(`${r.url}: ${res.error}`); }
     else if (status >= 500) { verdict = 'BROKEN'; bad(`${r.url}: ${detail}`); }
-    else if (status === 404) { verdict = 'DEAD'; bad(`${r.url}: the file exists and the URL 404s — ${r.file}`); }
+    else if (status === 404) {
+      // A 404 is only dead if nothing chose it. A route that answers 404 by its
+      // own decision — because the thing it belongs to is not active on this
+      // deployment — is doing its job, and the exemption is read from its source
+      // rather than kept as a list here that would rot the first time one moved.
+      const chose404 = /status:\s*404/.test(readFileSync(join(DOA, r.file), 'utf8'));
+      if (chose404) { verdict = 'OFF_ON_THIS_DEPLOYMENT'; ok(`${r.url} — 404 by its own decision (not mounted for this deployment's configuration)`); }
+      else { verdict = 'DEAD'; bad(`${r.url}: the file exists, the URL 404s, and nothing in it chose that — ${r.file}`); }
+    }
     else if (status === 405) { verdict = 'WRONG_METHOD'; ok(`${r.url} — ${detail} (API route, GET not offered)`); }
     else if (status >= 300 && status < 400) {
       verdict = /\/login/.test(loc) ? 'AUTH_GATED' : 'REDIRECT';
@@ -91,6 +99,25 @@ for (const s of SURFACES) {
 
     rows.push({ surface: s.name, ...r, url, status, verdict, detail });
   }
+}
+
+// A campaign page that does not exist must SAY it does not exist, in the status
+// line and not only in the body. This route used to render the not-found page
+// with HTTP 200: a crawler indexed URLs that were not there and an uptime check
+// read a dead link as healthy. It is asserted here rather than in a unit test
+// because the defect was in what the framework put on the wire, which is only
+// observable from outside.
+{
+  const url = 'https://www.doadoa.app/c/definitely-not-a-campaign-' + Date.now().toString(36);
+  const res = await fetch(url, { redirect: 'manual' }).catch(() => null);
+  const status = res ? res.status : 0;
+  const body = res ? await res.text().catch(() => '') : '';
+  const saysMissing = /não encontrada/i.test(body);
+  status === 404 && saysMissing
+    ? ok(`an unknown campaign slug answers a real 404 (status 404, body says "não encontrada")`)
+    : bad(`an unknown campaign slug answers http ${status} (body says missing=${saysMissing}) — a soft 404 is indexed as a real page`);
+  rows.push({ surface: 'www', url: '/c/<unknown>', kind: 'page', file: 'apps/web/app/(public)/c/[slug]/page.tsx',
+              status, verdict: status === 404 && saysMissing ? 'HARD_404' : 'SOFT_404', detail: `status ${status}` });
 }
 
 const counts = rows.reduce((a, r) => ({ ...a, [r.verdict]: (a[r.verdict] ?? 0) + 1 }), {});
