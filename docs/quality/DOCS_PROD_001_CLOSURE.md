@@ -1,10 +1,11 @@
 # DOCS-PROD-001 — the public developer documentation
 
-**FINAL_BANZAMI_SHA** `45f27fdf` · **FINAL_DOA_SHA** `2612573` (unchanged — no DOA source change was needed)
+**FINAL_BANZAMI_SHA** `98c96b41` · **FINAL_DOA_SHA** `2612573` (unchanged — no DOA source change was needed)
 
-CI is **green at `98c96b41`**, the last commit carrying code, tooling or workflow
-changes. `45f27fdf` and `f8eda47e` touch only this file, and the workflow's `paths-ignore`
-skips `docs/**` by design — so it has no run of its own, rather than a missing one.
+`98c96b41` is the last commit carrying product, tooling or workflow changes, and
+**CI is green on it**. Everything after it touches only this file, which the
+workflow's `paths-ignore` excludes by design — a report cannot name its own hash
+without changing it, so it names the SHA that CI actually covered.
 
 Every deployed component runs the source in this tree (`make check-deploy-parity`).
 Nothing reaching a deployed artefact changed after `a4995b98`, so no redeploy was
