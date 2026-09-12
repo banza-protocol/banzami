@@ -4049,3 +4049,71 @@ matcher is positive and neither real name matches a fixture shape — but a safe
 belt that names the wrong thing reads as protection and is not.
 
 With the exclusion working, every residue counter reads 0.
+
+---
+
+## RA-168 — an outage answered 200, and a limit was indistinguishable from one
+
+- **Found:** 2026-09-12 (DP-PROD-001 §8)
+- **Status:** FIXED (apps/website)
+
+`/r/{ref}` rendered "Verificação indisponível" on an HTTP 200. The page was
+truthful to a person and false to every machine: a crawler, an uptime monitor, a
+link checker and an integrator's HTTP client were all told we had answered when
+our verifier was unreachable.
+
+The page could not say otherwise, and the test suite said so in a comment: a page
+in the App Router can set no status but 404, and deciding the status in
+middleware would have meant asking the verifier twice about one reference — two
+answers to one question, which is the failure refused everywhere else in this
+codebase. The comment was a correct reading of the framework and the wrong
+conclusion about the product.
+
+The surface is a route handler now. One lookup, and `proofHttpStatus` decides the
+status and the view together: 200 for a proof that exists, 404 for no such proof
+and for a reference not spelled as one, 503 when our verifier fails, 429 when we
+decline to verify for this reader. The views are unchanged and shared; the
+handler decides, it does not present.
+
+A second defect was underneath. `getProof` read the 429 *after* requiring
+`exists` of the body — and a 429 carries an error envelope, not a proof — so
+every rate-limited reader was recorded as `unparseable_response`, an outage of
+ours, and got the 503 page. The status is read off the status line now, before
+the body. Both states stay amber: our limit and our downtime say nothing about
+the receipt, and red accuses it.
+
+Two defects here were invisible to vitest and appeared on the first real server
+run: `next/link` is a client component and cannot be rendered by a route handler
+(the verifier has no client router and uses plain anchors), and the 429 answered
+503 until the ordering was corrected. Verified on a running build against a
+stubbed verifier for all four states. Reverting 503 to 200 fails the suite with
+"expected 200 to be 503".
+
+---
+
+## RA-169 — the release gate reported an SDK version the registry had not served for a week
+
+- **Found:** 2026-09-12 (DP-PROD-001 §18)
+- **Status:** FIXED (tools, evidence)
+
+`make assure-sandbox-launch` passed while printing "SDK published and installable
+(@banzami/sdk@0.8.1); source is 0.13.0 — release in flight". The registry had
+served 0.13.0 as `latest` since 2026-09-12 and the publication was separately
+proved. Nothing was wrong with the SDK; the gate was reading a frozen artifact.
+
+`check-sdk-contract.mjs` judges publication from
+`evidence/assurance/sdk/cap-sdk-001-public-install.json`, which was written on
+2026-09-05 and never regenerated. There was no tool that produced it — it had
+been authored by hand — so nothing re-established the claim when the registry
+moved, and the gate's "release in flight" branch made the drift look deliberate.
+
+`tools/sdk-public-install-proof.mjs` now produces it, by doing the thing the
+artifact asserts: a clean project outside every Banzami repository, `npm install`
+by version range from registry.npmjs.org, and the **published** build executed —
+entrypoints, the money matrix, and webhook signature verification (valid,
+tampered payload, wrong secret, unconfigured secret, stale timestamp). 25/25
+against the registry as served, source and registry both 0.13.0.
+
+The gate now reads "installable from the public registry (@banzami/sdk@0.13.0)".
+Install instructions in docs and the Console were already unpinned, so no reader
+was ever sent to an old release.

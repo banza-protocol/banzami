@@ -283,7 +283,9 @@ the drift check reads 135 applied / 135 files, pending 0, checksum drift 0.
   refused and removed.
 - DOA's datastore reset and a fresh DOA reference payment and settlement on a new
   case — DOA sign-in and email OTP are the owner's.
-- ~~Publishing `@banzami/sdk` 0.12.1~~ — published and proved. Deciding on PyPI / Packagist remains.
+- ~~Publishing `@banzami/sdk`~~ — 0.13.0 is `latest` on npm and re-proved from the
+  registry by `tools/sdk-public-install-proof.mjs` (25/25, RA-169). Deciding on
+  PyPI / Packagist remains.
 
 ## 10. Closure — Sandbox clean slate (2026-09-11)
 
