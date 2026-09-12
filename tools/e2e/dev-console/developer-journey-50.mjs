@@ -1366,7 +1366,7 @@ try {
     // payment_session.paid, which is the canonical integration's event and needs
     // a PAYER — this run opens a session and never pays it, so the default would
     // correctly produce no delivery at all and step 31 would have nothing to read.
-    const subscribeCreated = page.locator('button', { hasText: 'payment_session.created' }).first();
+    const subscribeCreated = page.locator('button[role="switch"]', { hasText: 'payment_session.created' }).first();
     if ((await subscribeCreated.count()) > 0) await subscribeCreated.click().catch(() => {});
     await page.getByRole('button', { name: 'Registar endpoint' }).last().click();
     await settle(page, 1200);
