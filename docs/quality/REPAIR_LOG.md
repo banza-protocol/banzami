@@ -4117,3 +4117,87 @@ against the registry as served, source and registry both 0.13.0.
 The gate now reads "installable from the public registry (@banzami/sdk@0.13.0)".
 Install instructions in docs and the Console were already unpinned, so no reader
 was ever sent to an old release.
+
+---
+
+## RA-170 — a workspace with no project had no way out of the screen that manages it
+
+- **Found:** 2026-09-12 (owner, on the deployed Console)
+- **Status:** FIXED (apps/website)
+
+Configurações returned early when no project was selected, before the tab bar,
+so it rendered one sentence — "Escolha ou crie um projeto" — and nothing else.
+Definições do workspace, which is where the team is managed, where a member
+leaves and where a workspace is closed, was unreachable from that screen.
+
+That is the state every workspace starts in and the state it returns to when its
+last project closes, so the one screen able to end an empty workspace was hidden
+exactly while the workspace was empty. The owner found a workspace with no
+project, no visible way to remove it, and concluded the product had no delete at
+all — a reasonable reading of what was on screen.
+
+The heading and tabs are drawn in every state now, and the empty state names
+where an empty workspace is closed rather than only asking for a project.
+Restoring the early return fails the new test with "Unable to find an accessible
+element with the role navigation".
+
+---
+
+## RA-171 — "a workspace can never be deleted" was a rule with no invariant behind it
+
+- **Found:** 2026-09-12 (owner)
+- **Status:** FIXED (services/developer-api, apps/website)
+
+A workspace had one ending, ARCHIVED, and the Console stated the reason: "não é
+uma eliminação e não pode ser: o registo de auditoria é apenas-acrescento e os
+projetos podem conter histórico financeiro."
+
+Half of that is a real constraint and half is not, and the half that is not was
+carrying the rule. `developer.audit_events` has no foreign key to a workspace,
+so "the workspace was archived" and "the workspace was deleted" both survive the
+row they describe. An append-only log owes the RECORD. It does not owe an empty
+workspace kept in somebody's selector for ever because it was created by
+mistake. The real constraint is the narrower one: a workspace's PROJECTS may
+hold financial history, and that history must not cascade away.
+
+So a workspace follows the rule its projects already followed. Never held a
+project — active or archived — it is deleted, and members and pending invites
+cascade with it. Held anything, it is archived, and the refusal names which kind
+of project is in the way, because "archive the active ones first" is wrong
+advice when the blocker is an archived one.
+
+The API mirrors the project's shape rather than overloading one verb: `DELETE
+/workspaces/{id}` ends an empty one, `POST /workspaces/{id}/archive` retires one
+with a history, and `GET /workspaces/{id}/footprint` is what the Console asks
+before offering either — so the danger zone names the operation that will
+actually happen. The DELETE statement re-checks emptiness itself.
+
+Proved on the deployed stack by `tools/e2e/console/lifecycle-delete.mjs` (22/22),
+which asks three times whether a deleted resource is gone: the API that owns it,
+the list the Console builds its selector from, and the database row over SSH. A
+delete that only rewrote a status passes the first two and fails the third. The
+same run shows the `workspace.deleted` audit event still present after the row
+is gone — the fact that makes the deletion permissible.
+
+---
+
+## RA-172 — three Console pages rendered narrower than the banner above them
+
+- **Found:** 2026-09-12 (owner, on the deployed Console)
+- **Status:** FIXED (apps/website)
+
+Transações, Saldos and Configuração financeira capped their content at 980px
+inside the portal shell's 1200px column. Every card on those pages was visibly
+narrower than the Sandbox banner directly above it, and the transactions table
+lost its right-hand column: the Reembolsar action sat outside the card, where it
+could be neither read nor reached.
+
+API Keys, Logs and Webhooks never had the cap and always matched the shell,
+which is what made this read as a defect rather than a style — the same console
+disagreed with itself between menus.
+
+The three pages share the shell's width now. The horizontal scroll container
+stays: matching the shell widens the card, it does not make a six-column table
+fit a phone, and the body must never scroll sideways. Pages that are a narrow
+reading column on purpose are listed as such in the test rather than left
+looking like oversights.

@@ -629,21 +629,47 @@ async function serverProject(ctx, wsId, id) {
 }
 
 /** Sign in through the Console's own login + verify screens. */
-async function signInViaUI(page, email) {
-  await open(page, '/login');
-  await page.locator('input[type="email"]').first().fill(email);
-  await page.getByRole('button', { name: 'Continuar' }).click();
-  await page.waitForURL(/\/verify/, { timeout: 20000 });
-  const code = email.endsWith('@banzami-e2e.test')
-    ? getOTP(email)
-    : await waitForOTP(email, argOf('--owner-otp-file') ?? '/tmp/bz-journey-otp.txt', Number(argOf('--otp-timeout') ?? 8 * 60 * 1000));
-  if (!/^\d{6}$/.test(code)) throw new Error('otp not recovered');
-  const digits = page.locator('input[inputmode="numeric"], input[maxlength="1"]');
-  const n = await digits.count();
-  if (n < 6) throw new Error(`verify screen has ${n} code inputs, expected 6`);
-  for (let i = 0; i < 6; i += 1) await digits.nth(i).fill(code[i]);
-  await page.waitForURL((u) => !/\/verify|\/login/.test(new URL(u).pathname), { timeout: 25000 });
-  await settle(page, 900);
+/**
+ * Sign in through the product's own screens, with room for a human to get the
+ * code wrong.
+ *
+ * On a real mailbox the code comes from outside this process, and a person
+ * reading an inbox that holds several of them will sometimes type an older one
+ * — every re-request mints a new code and retires the last. A single attempt
+ * turned that into a dead run and a restart, which minted yet another code and
+ * made the next attempt likelier to be stale still.
+ *
+ * So a wrong code is not fatal: the run says so, asks for a fresh one, and
+ * tries again. Nothing about the authentication is weakened — each attempt is
+ * the genuine /auth/request-otp + /auth/verify path, and the server counts the
+ * guesses.
+ */
+async function signInViaUI(page, email, attempts = 3) {
+  const synthetic = email.endsWith('@banzami-e2e.test');
+  for (let attempt = 1; ; attempt += 1) {
+    await open(page, '/login');
+    await page.locator('input[type="email"]').first().fill(email);
+    await page.getByRole('button', { name: 'Continuar' }).click();
+    await page.waitForURL(/\/verify/, { timeout: 20000 });
+    const code = synthetic
+      ? getOTP(email)
+      : await waitForOTP(email, argOf('--owner-otp-file') ?? '/tmp/bz-journey-otp.txt', Number(argOf('--otp-timeout') ?? 8 * 60 * 1000));
+    if (!/^\d{6}$/.test(code)) throw new Error('otp not recovered');
+    const digits = page.locator('input[inputmode="numeric"], input[maxlength="1"]');
+    const n = await digits.count();
+    if (n < 6) throw new Error(`verify screen has ${n} code inputs, expected 6`);
+    for (let i = 0; i < 6; i += 1) await digits.nth(i).fill(code[i]);
+    try {
+      await page.waitForURL((u) => !/\/verify|\/login/.test(new URL(u).pathname), { timeout: 25000 });
+      await settle(page, 900);
+      return;
+    } catch (e) {
+      if (synthetic || attempt >= attempts) throw e;
+      const said = norm(await page.locator('[role="alert"]').first().innerText().catch(() => ''));
+      console.log(`\n  that code was not accepted${said ? ` — the screen said "${said}"` : ''}.`);
+      console.log(`  requesting a NEW one (attempt ${attempt + 1} of ${attempts}); use the newest email.\n`);
+    }
+  }
 }
 
 /** Open the account menu from the avatar. Returns the popup locator. */
