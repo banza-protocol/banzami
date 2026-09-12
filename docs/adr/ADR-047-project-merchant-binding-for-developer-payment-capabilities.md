@@ -113,6 +113,14 @@ For the current Sandbox release scope, a Project Sandbox payment binding is
   an artifact's settlement interpretation is fixed forever **by construction** —
   no route can alter a binding used by an existing artifact.
 
+> **Superseded by ADR-055 (2026-09-05).** The two "no endpoint exists" bullets and
+> the by-construction argument above describe this release only. ADR-055 replaced
+> blanket immutability with a **seal**: a binding is correctable while it is still
+> only a statement of intent, and fixed the moment the first payer-facing artifact
+> exists under it. The guarantee an artifact depends on is unchanged — the payee
+> of an artifact can never move — but it is now enforced by `artifact_created`
+> plus a database trigger rather than by the absence of a route.
+
 A future rebind/disable capability (with reason, controlled action and immutable
 audit, plus a transactional artifact seal) is **explicitly out of scope** here and
 will be designed in its own ADR + release train — it is deliberately *absent*,

@@ -184,7 +184,15 @@ scoped to named services.
 
 ### Payment release
 - `PAYMENT_CAPABILITY_RELEASED=false` until the deployed E2E passes. Ordinary
-  developers cannot receive payment scopes before then. Enforced at rest by check **F**.
+  developers cannot receive payment scopes before then.
+
+> **Released on 2026-09-12.** The deployed Sandbox E2E passed (ADR-055 binding
+> seal, 15/15 — `evidence/assurance/payment-binding/`), and the Sandbox stack now
+> sets `PAYMENT_CAPABILITY_RELEASED=true` in the same `docker create` that pins
+> `ENVIRONMENT=sandbox`. What check **F** enforces from here is the property that
+> made the switch safe rather than the switch being off: the flag is inert outside
+> a Sandbox (**F1**), nothing enables it in a unit that is not pinned to sandbox
+> (**F2**), and unset still means off (**F3**).
 
 ---
 
@@ -207,7 +215,7 @@ scoped to named services.
 | **Credential lifetime** | In memory only, in one process, for the migration step; cleared immediately after; never persisted. |
 | **Rollback boundaries** | Application code/config rollback only; **never** destructive/down migrations; **never** delete binding/payment/ledger/audit data; `PAYMENT_CAPABILITY_RELEASED` stays false on any failure. |
 | **Payee-key over-reach** | `CORE_PAYEE_VALIDATION_KEY` is Core+Dev-API only, authorizes only `validate-payee`, distinct from `CORE_INTERNAL_KEY`; static check **E**. |
-| **Default-on release** | `PAYMENT_CAPABILITY_RELEASED` defaults false (config forces false outside sandbox); static check **F**. |
+| **Default-on release** | `PAYMENT_CAPABILITY_RELEASED` defaults false and is inert outside a Sandbox (config gates it on `IsSandbox()`); every surface that enables it pins `ENVIRONMENT=sandbox`; static checks **F1–F3**. |
 
 ---
 

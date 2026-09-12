@@ -103,12 +103,36 @@ const isGateway = n => /gateway/.test(n);
   hits.length ? fail(`E: CORE_PAYEE_VALIDATION_KEY referenced outside Core/Developer-API: ${hits.join(', ')}`)
               : pass('E: CORE_PAYEE_VALIDATION_KEY absent from Gateway/frontend/SDK/plugin surfaces');
 }
-// ── F. Payment release never enabled by default ──────────────────────────────
+// ── F. Payment release can only ever take effect in a Sandbox ────────────────
+// The capability is released on the Sandbox (ADR-047 §6/§7; deployed E2E evidence
+// registered by check-project-payment-binding), so the rule is no longer "this
+// string must never be true anywhere" — a released capability has to be switched
+// on somewhere. What must still hold is the property that made the switch safe:
+//
+//   F1  the flag is inert unless the service is running as a Sandbox;
+//   F2  nothing turns it on in a unit that is not itself pinned to sandbox;
+//   F3  unset means off — there is no code path that enables it by default.
+//
+// Prose that merely mentions the flag (docs, evidence reports) is not a setting,
+// so only executable and container-config surfaces are scanned.
 {
+  const cfg = read('services/developer-api/internal/config/config.go');
+  const gated = /os\.Getenv\("PAYMENT_CAPABILITY_RELEASED"\) == "true" &&\s*\n?\s*env\.Parse\(cfg\.Environment\)\.IsSandbox\(\)/.test(cfg);
+  gated ? pass('F1: the flag is inert outside a Sandbox environment (config.go env gate)')
+        : fail('F1: PAYMENT_CAPABILITY_RELEASED is not gated on IsSandbox() — it could activate in Live');
+
+  const defaultedOn = /PaymentCapabilityReleased\s*:\s*true|cfg\.PaymentCapabilityReleased\s*=\s*true\s*$/m
+    .test(cfg.replace(/if os\.Getenv\("PAYMENT_CAPABILITY_RELEASED"\)[\s\S]*?\n\t\}/, ''));
+  defaultedOn ? fail('F3: PaymentCapabilityReleased is set true outside the env-gated branch — unset must mean off')
+              : pass('F3: unset means off (no ungated assignment of PaymentCapabilityReleased)');
+
   const re = /PAYMENT_CAPABILITY_RELEASED\s*[:=]\s*['"]?true\b/i;
-  const hits = textFiles.filter(f => f !== SELF && re.test(read(f)));
-  hits.length ? fail(`F: PAYMENT_CAPABILITY_RELEASED defaulted true in: ${hits.join(', ')}`)
-              : pass('F: payment release is not enabled by default anywhere');
+  const settingSurfaces = textFiles.filter(f =>
+    f !== SELF && !/\.(md|txt)$/i.test(f) && re.test(read(f)));
+  const unpinned = settingSurfaces.filter(f => !/ENVIRONMENT\s*[:=]\s*['"]?sandbox\b/i.test(read(f)));
+  unpinned.length
+    ? fail(`F2: PAYMENT_CAPABILITY_RELEASED=true set in a unit not pinned to sandbox: ${unpinned.join(', ')}`)
+    : pass(`F2: every surface that enables it also pins ENVIRONMENT=sandbox (${settingSurfaces.length} scanned)`);
 }
 // ── G. No tracing anywhere in the chain ──────────────────────────────────────
 {

@@ -1,0 +1,10 @@
+{
+  "harness": "tests/phase0/adr055-binding-seal-e2e.sh",
+  "adr": "ADR-055",
+  "target": "deployed Sandbox (ubuntu)",
+  "ran_at": "2026-09-12T15:32:04Z",
+  "passed": 15,
+  "failed": 0,
+  "result": "PASS",
+  "checks": [{"check":"project ce3bf182-aad8-4636-8cb8-d51c53b6905e","result":"PASS"},{"check":"bound to account A","result":"PASS"},{"check":"binding is unsealed","result":"PASS"},{"check":"rebind A→B allowed while unsealed","result":"PASS"},{"check":"the project now resolves to account B","result":"PASS"},{"check":"key minted with payment_sessions:write","result":"PASS"},{"check":"payment session created (201)","result":"PASS"},{"check":"the binding sealed on the first artifact","result":"PASS"},{"check":"rebind B→A refused after the seal (409)","result":"PASS"},{"check":"the payee did not move","result":"PASS"},{"check":"the trigger refused a direct UPDATE","result":"PASS"},{"check":"the trigger refused a direct DELETE","result":"PASS"},{"check":"the binding is exactly as it was","result":"PASS"},{"check":"exactly one ACTIVE binding after five concurrent artifacts","result":"PASS"},{"check":"and it is sealed","result":"PASS"}]
+}

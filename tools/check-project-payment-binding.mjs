@@ -63,21 +63,58 @@ svc.includes('PaymentScopes') && svc.includes('paymentReleased')
   ? pass('deploy-vs-release control present (payment scopes gated)')
   : fail('deploy-vs-release control missing');
 
-// Single-authority immutability (§2): no rebind/disable endpoint in this release.
+// The seal (ADR-055, which superseded RT04C §2's blanket immutability). A binding
+// is correctable while it is only a statement of intent and fixed once an artifact
+// exists under it, so the thing to check is no longer "no rebind route exists" —
+// it is that the route refuses a sealed binding, revalidates the payee, and is not
+// reachable without the internal key.
 const handlers = read('services/developer-api/internal/developer/handlers.go');
-/rebind|binding.*disable|disable.*binding/i.test(handlers)
-  ? fail('a rebind/disable binding endpoint exists — immutability decision (RT04C §2) is that none should')
-  : pass('immutability: no rebind/disable binding endpoint (bindings immutable this release)');
+const svcSrc = read('services/developer-api/internal/developer/service.go');
+const rebind = svcSrc.slice(svcSrc.indexOf('func (s *Service) RebindProjectSandbox'));
+const rebindBody = rebind.slice(0, rebind.indexOf('\nfunc ', 1));
+
+rebindBody && /current\.ArtifactCreated/.test(rebindBody) && /ErrConflict/.test(rebindBody)
+  ? pass('the seal holds in the service: a rebind of a SEALED binding is refused')
+  : fail('RebindProjectSandbox does not refuse a SEALED binding — ADR-055 §seal');
+
+rebindBody && /ValidatePayee/.test(rebindBody)
+  ? pass('a rebind revalidates the payee through Core, exactly as a first bind does')
+  : fail('RebindProjectSandbox does not revalidate the payee — a rebind could name a foreign wallet');
+
+/r\.Post\("\/internal\/v1\/projects\/\{projID\}\/binding"/.test(handlers) &&
+!/r\.Post\("\/v1\/projects\/\{projID\}\/binding"/.test(handlers)
+  ? pass('the binding route is internal-only (no public self-service rebind)')
+  : fail('the binding route is publicly mounted — a rebind must stay operator-controlled');
+
+/artifact_created/.test(read('db/migrations/0105_binding_seal_enforcement.sql'))
+  ? pass('the seal is also a property of the data (migration 0105 trigger)')
+  : fail('no database-level seal — the service guard would be the only defence');
 
 console.log('\n── deployed E2E evidence (§6/§7) ──');
 
 // Deployed E2E evidence artifact.
 const evDir = join(ROOT, 'evidence/assurance/payment-binding');
-const hasE2E = existsSync(evDir) &&
-  readdirSync(evDir).some(f => /payment-binding-e2e-.*\.json/.test(f));
-hasE2E
-  ? pass('deployed Sandbox payment-binding E2E evidence registered')
-  : fail('deployed Sandbox payment-binding E2E evidence missing — HOLD (controlled deployment + full matrix not yet run)');
+// A registered artifact is not enough: the run it records must have passed. The
+// harness writes an artifact whether it passes or fails, precisely so that a
+// failing run cannot be registered as if it were a success.
+const artifacts = existsSync(evDir)
+  ? readdirSync(evDir).filter(f => /^payment-binding-e2e-.*\.json$/.test(f))
+  : [];
+if (!artifacts.length) {
+  fail('deployed Sandbox payment-binding E2E evidence missing — HOLD (controlled deployment + full matrix not yet run)');
+} else {
+  const latest = artifacts.sort().at(-1);
+  let ev = null;
+  try { ev = JSON.parse(readFileSync(join(evDir, latest), 'utf8')); } catch { /* handled below */ }
+  if (!ev) fail(`deployed E2E evidence ${latest} is unreadable`);
+  else if (ev.result !== 'PASS' || ev.failed !== 0) {
+    fail(`deployed E2E evidence ${latest} records a failed run (${ev.passed} passed, ${ev.failed} failed)`);
+  } else if (!Array.isArray(ev.checks) || ev.checks.length === 0) {
+    fail(`deployed E2E evidence ${latest} carries no checks`);
+  } else {
+    pass(`deployed Sandbox payment-binding E2E evidence registered (${latest}: ${ev.checks.length} checks, ${ev.ran_at})`);
+  }
+}
 
 // Capabilities released.
 const { capabilities } = parseManifest(ROOT);

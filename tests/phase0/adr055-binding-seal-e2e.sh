@@ -29,8 +29,12 @@
 set -uo pipefail
 
 PASS=0; FAIL=0
-ok()   { PASS=$((PASS+1)); echo "  ✓ $1"; }
-bad()  { FAIL=$((FAIL+1)); echo "  ✗ $1"; }
+# Every check is recorded as it happens, so the evidence artifact this run writes
+# is the run's own transcript rather than a summary written about it afterwards.
+CHECKS=""
+rec()  { CHECKS="$CHECKS{\"check\":\"$(printf '%s' "$2" | sed 's/\\/\\\\/g; s/"/\\"/g')\",\"result\":\"$1\"},"; }
+ok()   { PASS=$((PASS+1)); rec PASS "$1"; echo "  ✓ $1"; }
+bad()  { FAIL=$((FAIL+1)); rec FAIL "$1"; echo "  ✗ $1"; }
 step() { echo; echo "$1"; }
 
 DEV=$(docker ps --format '{{.Names}}' | grep developer-api | head -1)
@@ -243,4 +247,15 @@ echo "  the sealed bindings are left sealed; their fixture projects are retired"
 echo
 [ "$FAIL" -eq 0 ] && echo "✓ ADR-055 holds on the deployed Sandbox — $PASS checks" \
                   || echo "✗ $FAIL of $((PASS+FAIL)) checks failed"
+
+# ── evidence ──────────────────────────────────────────────────────────────────
+# The gate that registers this run (tools/check-project-payment-binding.mjs)
+# reads the artifact, not this log. It is written unconditionally: a failed run
+# is evidence too, and a gate that only ever sees successes proves nothing.
+OUT="${BINDING_EVIDENCE_OUT:-/tmp/payment-binding-e2e-$(date -u +%Y%m%dT%H%M%SZ).json}"
+printf '{\n  "harness": "tests/phase0/adr055-binding-seal-e2e.sh",\n  "adr": "ADR-055",\n  "target": "deployed Sandbox (%s)",\n  "ran_at": "%s",\n  "passed": %s,\n  "failed": %s,\n  "result": "%s",\n  "checks": [%s]\n}\n' \
+  "$(hostname)" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PASS" "$FAIL" \
+  "$([ "$FAIL" -eq 0 ] && echo PASS || echo FAIL)" "${CHECKS%,}" > "$OUT"
+echo "evidence: $OUT"
+
 exit $([ "$FAIL" -eq 0 ] && echo 0 || echo 1)
