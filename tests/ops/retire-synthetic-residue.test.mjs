@@ -78,17 +78,38 @@ test("DOA's workspaces are excluded from every merchant and project selection", 
 });
 
 test('real consumers are excluded by name and by shape', () => {
-  const m = SRC.match(/C_SEL="\(\(c\.handle ~ '([^']+)' AND c\.display_name IS NULL\)\s+OR c\.handle ~ '([^']+)' OR c\.handle ~ '([^']+)'\)/);
-  assert.ok(m, 'C_SEL not found');
-  const [generic, ra, rc] = m.slice(1).map((r) => new RegExp(r.replace(/\\\$/g, '$')));
-  const synthetic = (h, name) => (generic.test(h) && !name) || ra.test(h) || rc.test(h);
-  for (const h of ['cs87374p', 'd21203s1', 'se497871', 'fin19727', 'ra89698s1', 'rcamtw1j2ce', 'wd22961p', 'k27158s1']) {
-    assert.ok(synthetic(h, null), h);
+  // The whole selector, however many shapes it grows. The first form of this
+  // test matched exactly three shapes in sequence, so adding a fourth broke the
+  // parse rather than the protection — and a guard that fails to read the thing
+  // it guards protects nothing.
+  const block = SRC.match(/C_SEL="([\s\S]*?)"\n/);
+  assert.ok(block, 'C_SEL not found');
+  const shapes = [...block[1].matchAll(/c\.handle ~ '([^']+)'/g)]
+    .map((x) => new RegExp(x[1].replace(/\\\$/g, '$')));
+  assert.ok(shapes.length >= 6, `expected the six machine shapes, found ${shapes.length}`);
+
+  const generic = shapes[0];
+  const byShape = (h, name) => (generic.test(h) && !name) || shapes.slice(1).some((r) => r.test(h));
+
+  // Machine-made handles, each from a harness that actually produced them.
+  for (const h of ['cs87374p', 'd21203s1', 'se497871', 'fin19727', 'ra89698s1', 'rcamtw1j2ce',
+                   'wd22961p', 'k27158s1', 'e2esend92b332', 'e2ercvcffe77',
+                   'shapeprobemtywfz64a', 'app001recvmtywgll7']) {
+    assert.ok(byShape(h, null), h);
   }
-  assert.ok(!synthetic('fm65', 'Fidel'), 'fm65');
-  assert.ok(!synthetic('joao2024', 'João'), 'a person who picked digits and a name');
-  assert.ok(!synthetic('oxfannio', 'Oxfannio'));
+
+  // People. A shape that catches one of these is a shape that closes a real
+  // account, which is the failure this whole selector is built to avoid.
+  assert.ok(!byShape('fm65', 'Fidel'), 'fm65');
+  assert.ok(!byShape('joao2024', 'João'), 'a person who picked digits and a name');
+  assert.ok(!byShape('oxfannio', 'Oxfannio'));
+  assert.ok(!byShape('fidel', null), 'fidel must NOT be reachable by any shape');
   assert.match(SRC, /c\.handle NOT IN \('fm65','oxfannio','priscila'\)/);
+
+  // @fidel is selected by its exact id and nothing else: it is a handle a person
+  // chose, and the pattern that caught it once would catch somebody else later.
+  assert.match(block[1], /c\.id = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'/,
+    'the APP-001 device account must be selected by exact id, never by a shape');
 });
 
 test('DOA demo accounts are chosen by the harness signature, never by owner alone', () => {
