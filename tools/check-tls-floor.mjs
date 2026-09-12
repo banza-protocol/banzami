@@ -32,32 +32,43 @@ import { join } from 'node:path';
 import { assuranceDir } from './e2e/lib/assurance-output.mjs';
 
 /**
- * Every banzami.com hostname that Cloudflare proxies — i.e. every public HTTPS
- * surface the zone's TLS policy governs.
+ * Every banzami.com hostname Cloudflare proxies, and what each one is supposed
+ * to answer.
  *
- * Written out rather than fetched, so the list is reviewable in a diff and a
- * host cannot quietly leave the check by leaving an API response. It is checked
- * against the zone's proxied DNS records whenever this runs (see the note at the
- * end of the file): add one here when you add one there.
+ * An expectation matrix, not a list, because the first version of this check
+ * asserted only that plain HTTP redirects — and the report it produced then went
+ * on to claim every chain ends at 200. Two of these hosts end at 503 ON PURPOSE:
+ * api.banzami.com is Financial LIVE held fail-closed, and sandbox-operator is an
+ * offline subdomain behind the Stage B routing guard. "Everything is 200" would
+ * have been a green check for a statement the same run disproved, and three more
+ * hosts end at 404 because their root path is not a route.
  *
- * The mail hostnames — ftp, imap, mail, pop, smtp — are deliberately absent.
- * They are unproxied CNAMEs to a mail provider, serve no Banzami product, and
+ * `terminal` is the status after following redirects; it differs from `https`
+ * only where a host canonicalises to another. Encoding the reason next to the
+ * number is the point: a status nobody can explain is a status nobody can
+ * defend when it changes.
+ *
+ * The mail hostnames — imap, mail, pop, smtp — are deliberately absent. They are
+ * unproxied records pointing at a mail provider, serve no Banzami product, and
  * the zone's Minimum TLS Version does not reach them; including them would mean
- * this gate reported on infrastructure it cannot govern.
+ * this gate reported on infrastructure it cannot govern. (ftp was removed from
+ * the zone on 2026-09-13: it CNAME'd to the apex and was flattened to the origin
+ * IP, which is what the origin-exposure check below now keeps out.)
  */
-const HOSTS = [
-  'banzami.com',
-  'www.banzami.com',
-  'developers.banzami.com',
-  'developer-api.banzami.com',
-  'api.banzami.com',
-  'sandbox-api.banzami.com',
-  'sandbox-operator.banzami.com',
-  'sandbox-webhook.banzami.com',
-  'pay.banzami.com',
-  'checkout.banzami.com',
-  'admin.banzami.com',
-];
+const EXPECT = {
+  'banzami.com':                  { https: 200, why: 'institutional website' },
+  'www.banzami.com':              { https: 301, terminal: 200, endsAt: 'https://banzami.com/',     why: 'canonicalises to the apex' },
+  'developers.banzami.com':       { https: 200, why: 'Developer Console' },
+  'developer-api.banzami.com':    { https: 404, why: 'Console-internal API — the root path is not a route' },
+  'api.banzami.com':              { https: 503, why: 'Financial LIVE, held fail-closed by the Stage B guard' },
+  'sandbox-api.banzami.com':      { https: 404, why: 'public API gateway — the root path is not a route, /v1/* is' },
+  'sandbox-operator.banzami.com': { https: 503, why: 'operator identity host, intentionally offline (Stage B guard)' },
+  'sandbox-webhook.banzami.com':  { https: 404, why: 'assurance webhook sink — the root path is not a route' },
+  'pay.banzami.com':              { https: 200, why: 'hosted payer surface' },
+  'checkout.banzami.com':         { https: 308, terminal: 200, endsAt: 'https://pay.banzami.com/', why: 'canonical alias to pay (ADR-052)' },
+  'admin.banzami.com':            { https: 200, why: 'BANZADMIN' },
+};
+const HOSTS = Object.keys(EXPECT);
 
 /** The lowest version that must be REFUSED. Everything below it must be refused too. */
 const FLOOR = process.env.BZ_TLS_FLOOR ?? '1.2';
@@ -127,33 +138,64 @@ for (const host of HOSTS) {
   else { console.error(`  ✗ ${host} — accepts TLS ${lowest}, below the floor of ${FLOOR} (${accepted.join(', ')})`); failures += 1; }
 }
 
-// ── plain HTTP redirects, and the origin stays hidden ────────────────────────
+// ── what each host answers, against what it is supposed to answer ───────────
 //
-// Both were true findings of the control-plane audit: every host answered
-// http:// with 400 because the origin rules point at TLS ports, and one record
-// resolved straight to the origin. Asserted here because a zone setting can be
-// changed back by anyone with the dashboard.
+// Three separate questions, kept separate: does plain HTTP redirect, does it
+// redirect to THIS host over HTTPS, and does the chain end where and how this
+// host is meant to end. Collapsing them into "it works" is how a report came to
+// say every chain ends at 200 while two of these hosts end at 503 by design.
 const ORIGIN_IP = process.env.BZ_ORIGIN_IP ?? '217.160.9.248';
+const curl = (args) => {
+  try { return execFileSync('curl', ['-s', '-o', '/dev/null', '--max-time', '20', ...args], { encoding: 'utf8' }); }
+  catch { return ''; }
+};
+
+let httpCanonical = 0, httpUnexpected = 0, httpsUnexpected = 0;
+console.log('\n── HTTP → HTTPS, and each host\'s canonical terminal status ──');
 for (const host of HOSTS) {
-  let code = '', location = '';
-  try {
-    const out = execFileSync('curl', ['-s', '-o', '/dev/null', '-w', '%{http_code}|%{redirect_url}',
-      '--max-time', '15', `http://${host}/`], { encoding: 'utf8' });
-    [code, location] = out.split('|');
-  } catch { code = 'error'; }
-  const ok = code === '301' && location.startsWith('https://');
-  if (ok) console.log(`  ✓ ${host} — http:// redirects to ${location}`);
-  else { console.error(`  ✗ ${host} — http:// answered ${code}${location ? ` → ${location}` : ''}, expected a 301 to https`); failures += 1; }
+  const want = EXPECT[host];
+  const wantTerminal = want.terminal ?? want.https;
+
+  const [httpCode, httpLoc] = curl(['-w', '%{http_code}|%{redirect_url}', `http://${host}/`]).split('|');
+  const redirectsHere = httpCode === '301' && httpLoc === `https://${host}/`;
+  if (redirectsHere) httpCanonical += 1;
+  else { httpUnexpected += 1; console.error(`  ✗ ${host} — http:// answered ${httpCode || 'nothing'}${httpLoc ? ` → ${httpLoc}` : ''}, expected 301 → https://${host}/`); }
+
+  const httpsCode = curl(['-w', '%{http_code}', `https://${host}/`]).trim();
+  const [hops, endCode, endUrl] = curl(['-w', '%{num_redirects}|%{http_code}|%{url_effective}', '-L', '--max-redirs', '6', `https://${host}/`]).split('|');
+
+  const statusOK = httpsCode === String(want.https);
+  const terminalOK = endCode === String(wantTerminal);
+  const endsWhereExpected = !want.endsAt || endUrl === want.endsAt;
+  const hopsOK = Number(hops) <= (want.endsAt ? 1 : 0);
+
+  if (statusOK && terminalOK && endsWhereExpected && hopsOK) {
+    console.log(`  ✓ ${host} — https ${httpsCode}${want.endsAt ? ` → ${hops} hop → ${endCode} ${endUrl}` : ''} · ${want.why}`);
+  } else {
+    httpsUnexpected += 1;
+    console.error(`  ✗ ${host} — https ${httpsCode} (expected ${want.https}), terminal ${endCode} after ${hops} hop(s) at ${endUrl} (expected ${wantTerminal}${want.endsAt ? ` at ${want.endsAt}` : ''}) · ${want.why}`);
+  }
 }
+failures += httpUnexpected + httpsUnexpected;
+
+// The two deliberate 503s, named rather than left to be inferred from the table.
+const liveFailClosed = curl(['-w', '%{http_code}', 'https://api.banzami.com/']).trim() === '503';
+const operatorOffline = curl(['-w', '%{http_code}', 'https://sandbox-operator.banzami.com/']).trim() === '503';
+if (!liveFailClosed) { console.error('  ✗ api.banzami.com is not answering 503 — Financial LIVE must stay fail-closed'); failures += 1; }
+if (!operatorOffline) { console.error('  ✗ sandbox-operator.banzami.com is not answering 503 — the documented offline expectation no longer holds'); failures += 1; }
+
+// No public name may resolve to the origin: the proxy is only a boundary while
+// nothing publishes a way around it.
+let originExposed = 0;
 for (const host of HOSTS) {
   let addrs = '';
   try { addrs = execFileSync('dig', ['+short', host, 'A'], { encoding: 'utf8' }); } catch { /* no dig, skip */ }
   if (addrs.includes(ORIGIN_IP)) {
     console.error(`  ✗ ${host} resolves to the origin ${ORIGIN_IP} — the proxy is bypassable for this name`);
-    failures += 1;
+    originExposed += 1;
   }
 }
-
+failures += originExposed;
 
 const worst = rows.reduce((w, r) => (ORDER.indexOf(r.lowest) < ORDER.indexOf(w) ? r.lowest : w), '1.3');
 const countAccepting = (v) => rows.filter((r) => r.accepted.includes(v)).length;
@@ -164,8 +206,12 @@ console.log(`TLS_1_0_ACCEPTED_HOSTS=${countAccepting('1.0')}`);
 console.log(`TLS_1_1_ACCEPTED_HOSTS=${countAccepting('1.1')}`);
 console.log(`TLS_1_2_REQUIRED_HOSTS=${rows.filter((r) => r.lowest === '1.2').length}/${HOSTS.length}`);
 console.log(`TLS_1_3_SUPPORTED_HOSTS=${countAccepting('1.3')}/${HOSTS.length}`);
-console.log(`PLAIN_HTTP_NOT_REDIRECTED_HOSTS=${failures ? '(see above)' : 0}`);
-console.log(`ORIGIN_IP_EXPOSED_HOSTS=${failures ? '(see above)' : 0}`);
+console.log(`HTTP_TO_HTTPS_CANONICAL_HOSTS=${httpCanonical}/${HOSTS.length}`);
+console.log(`UNEXPECTED_HTTP_TERMINAL_STATUS=${httpUnexpected}`);
+console.log(`UNEXPECTED_HTTPS_TERMINAL_STATUS=${httpsUnexpected}`);
+console.log(`ORIGIN_IP_EXPOSED_HOSTS=${originExposed}`);
+console.log(`LIVE_FAIL_CLOSED=${liveFailClosed ? 'PASS' : 'FAIL'}`);
+console.log(`SANDBOX_OPERATOR_OFFLINE_EXPECTATION=${operatorOffline ? 'PASS' : 'FAIL'}`);
 
 // The handshakes, written down. SEC-001 was VALIDATED on a config file nobody
 // had compared against a server; an assertion about TLS is worth what the
@@ -176,11 +222,20 @@ writeFileSync(out, `${JSON.stringify({
   policy: { floor: FLOOR, tls13: 'required' },
   control: 'Cloudflare zone banzami.com — Minimum TLS Version + TLS 1.3',
   hosts: rows,
+  expectations: Object.fromEntries(Object.entries(EXPECT).map(([h, e]) => [h, {
+    http: `301 -> https://${h}/`, https: e.https, terminal: e.terminal ?? e.https, ends_at: e.endsAt ?? null, reason: e.why,
+  }])),
   counters: {
     TLS_1_0_ACCEPTED_HOSTS: countAccepting('1.0'),
     TLS_1_1_ACCEPTED_HOSTS: countAccepting('1.1'),
     TLS_1_2_REQUIRED_HOSTS: `${rows.filter((r) => r.lowest === '1.2').length}/${HOSTS.length}`,
     TLS_1_3_SUPPORTED_HOSTS: `${countAccepting('1.3')}/${HOSTS.length}`,
+    HTTP_TO_HTTPS_CANONICAL_HOSTS: `${httpCanonical}/${HOSTS.length}`,
+    UNEXPECTED_HTTP_TERMINAL_STATUS: httpUnexpected,
+    UNEXPECTED_HTTPS_TERMINAL_STATUS: httpsUnexpected,
+    ORIGIN_IP_EXPOSED_HOSTS: originExposed,
+    LIVE_FAIL_CLOSED: liveFailClosed ? 'PASS' : 'FAIL',
+    SANDBOX_OPERATOR_OFFLINE_EXPECTATION: operatorOffline ? 'PASS' : 'FAIL',
   },
 }, null, 2)}\n`);
 console.log(`evidence: ${out}`);

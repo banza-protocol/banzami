@@ -515,15 +515,20 @@ CLOUDFLARE_RETIRED_DASHBOARD_ROUTES=0    CLOUDFLARE_UNKNOWN_ORIGIN_ROUTES=0
 ### Redirects
 
 There are no Cloudflare redirect rules, so the audit was run against the
-behaviour instead. Every chain terminates in at most two hops at a 200, and no
-query parameter steers a destination:
+behaviour instead. Only two hosts canonicalise to another; both resolve in a
+single HTTPS hop, and no query parameter steers a destination:
 
 ```
-http://www.banzami.com/       → 2 hops → https://banzami.com/      200
-http://checkout.banzami.com/  → 2 hops → https://pay.banzami.com/  200
+https://www.banzami.com/       → 1 hop → https://banzami.com/      200
+https://checkout.banzami.com/  → 1 hop → https://pay.banzami.com/  200
 ?redirect= / ?next= / ?returnTo=https://evil.example  → no Location header
 Host: evil.example                                    → 403
 ```
+
+Terminal status is **per host**, not universally 200 — see the expectation
+matrix below. An earlier draft of this section said "every chain terminates at
+200", which contradicted this same report's two deliberate 503s. The claim was
+wrong, the runtime was not, and the check now encodes the difference.
 
 ```
 CLOUDFLARE_OPEN_REDIRECT_RULES=0   CLOUDFLARE_REDIRECT_LOOPS=0
@@ -565,15 +570,31 @@ Probed with real requests rather than inferred from `cache_level`:
 AUTHENTICATED_PRIVATE_RESPONSE_PUBLIC_CACHE=0   SECRET_BEARING_RESPONSE_CACHE=0
 ```
 
-### Host exposure
+### Host exposure — the expectation matrix
 
-Every canonical host answers its intended public state, and nothing else is
-exposed:
+Every canonical host redirects plain HTTP to **its own** HTTPS URL, and then
+answers the status that host is supposed to answer. Six end at 200, three at
+404 because their root path is not a route, and two at 503 on purpose.
+
+| Host | HTTP | HTTPS | Terminal | Why |
+|---|---|---|---|---|
+| `banzami.com` | 301 → self | 200 | 200 | institutional website |
+| `www.banzami.com` | 301 → self | 301 | **200** at `banzami.com` | canonicalises to the apex |
+| `developers.banzami.com` | 301 → self | 200 | 200 | Developer Console |
+| `developer-api.banzami.com` | 301 → self | 404 | 404 | Console-internal API; the root path is not a route |
+| `api.banzami.com` | 301 → self | **503** | **503** | **Financial LIVE, held fail-closed** |
+| `sandbox-api.banzami.com` | 301 → self | 404 | 404 | gateway root is not a route; `/v1/*` is |
+| `sandbox-operator.banzami.com` | 301 → self | **503** | **503** | **operator identity host, intentionally offline** |
+| `sandbox-webhook.banzami.com` | 301 → self | 404 | 404 | assurance webhook sink; root is not a route |
+| `pay.banzami.com` | 301 → self | 200 | 200 | hosted payer surface |
+| `checkout.banzami.com` | 301 → self | 308 | **200** at `pay.banzami.com` | canonical alias to pay (ADR-052) |
+| `admin.banzami.com` | 301 → self | 200 | 200 | BANZADMIN |
 
 ```
-banzami.com 200 · www 301→apex · developers 200 · pay 200 · admin 200
-checkout 308→pay · developer-api 404 · sandbox-api 404 · sandbox-webhook 404
-api 503 (Financial LIVE, fail-closed) · sandbox-operator 503 (Stage B guard)
+HTTP_TO_HTTPS_CANONICAL_HOSTS=11/11
+UNEXPECTED_HTTP_TERMINAL_STATUS=0     UNEXPECTED_HTTPS_TERMINAL_STATUS=0
+LIVE_FAIL_CLOSED=PASS                 SANDBOX_OPERATOR_OFFLINE_EXPECTATION=PASS
+ORIGIN_IP_EXPOSED_HOSTS=0
 ```
 
 The two 503s are different things and both are deliberate: `api.banzami.com`
@@ -581,6 +602,12 @@ serves the Stage B maintenance page as the LIVE fail-closed response, and
 `sandbox-operator.banzami.com` is an offline subdomain named in that same guard.
 The L0 README now states the operator host's offline status rather than
 implying it is live.
+
+This matrix lives in `tools/check-tls-floor.mjs`, with the reason beside each
+status, and is mutation-proved three ways: claiming LIVE should be 200 fails,
+claiming checkout's chain ends at 404 fails, and requiring every host to
+redirect somewhere other than itself fails ten of eleven. A status nobody can
+explain is a status nobody can defend when it changes.
 
 ### Financial LIVE
 
@@ -601,8 +628,8 @@ PLAIN_HTTP_NOT_REDIRECTED_HOSTS=0 ORIGIN_IP_EXPOSED_HOSTS=0
 min_tls_version=1.2  tls_1_3=on  ssl=strict
 ```
 
-`tools/check-tls-floor.mjs` now holds all three by external probe — the floor,
-the redirect and the origin's privacy — so a dashboard change cannot quietly
-undo any of them.
+`tools/check-tls-floor.mjs` holds all of it by external probe — the floor, the
+redirect to self, each host's canonical terminal status, and the origin's
+privacy — so a dashboard change cannot quietly undo any of them.
 
 **Cloudflare control-plane audit: PASS.**
