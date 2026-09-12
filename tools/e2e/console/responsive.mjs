@@ -53,7 +53,7 @@ const notes = [];
 const ok = (m) => { pass += 1; console.log(`  ✓ ${m}`); };
 const bad = (m) => { fail += 1; console.error(`  ✗ ${m}`); };
 
-import { requireLiveSession } from './lib/require-session.mjs';
+import { requireLiveSession, assertAuthenticatedShell } from './lib/require-session.mjs';
 
 const session = process.env.BZ_SESSION;
 if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
@@ -76,6 +76,7 @@ for (const vp of VIEWPORTS) {
 
   for (const route of ROUTES) {
     await page.goto(ORIGIN + route, { waitUntil: 'networkidle' });
+    await assertAuthenticatedShell(page, `${vp.name} ${route}`);
     const m = await page.evaluate((w) => {
       const d = document.documentElement;
       // Elements wider than the viewport, and the ones that scroll sideways on

@@ -29,7 +29,7 @@ const ctx = await b.newContext();
   // every page is served from the Console host, so the browser sent nothing
   // with the document request and every route rendered the LOGIN page. Three
   // sweeps reported green against a screen that has no product on it.
-  import { requireLiveSession } from './lib/require-session.mjs';
+  import { requireLiveSession, assertAuthenticatedShell } from './lib/require-session.mjs';
 await requireLiveSession(process.env.BZ_SESSION);
 await ctx.addCookies([
     { name: '__Host-bz_dev_session', value: process.env.BZ_SESSION, url: 'https://developer-api.banzami.com', httpOnly: true, secure: true, sameSite: 'None' },
@@ -39,6 +39,7 @@ const page = await ctx.newPage();
 
 for (const r of ROUTES) {
   await page.goto(ORIGIN + r, { waitUntil: 'networkidle' });
+  await assertAuthenticatedShell(page, r);
   await page.waitForTimeout(1200);
 
   // 1. Every interactive control must have an accessible name. An icon button

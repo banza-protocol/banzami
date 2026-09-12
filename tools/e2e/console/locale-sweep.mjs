@@ -93,7 +93,7 @@ if (process.argv.includes('--selftest')) {
   process.exit(0);
 }
 
-import { requireLiveSession } from './lib/require-session.mjs';
+import { requireLiveSession, assertAuthenticatedShell } from './lib/require-session.mjs';
 
 const session = process.env.BZ_SESSION;
 if (!session) { console.error('BZ_SESSION is required'); process.exit(2); }
@@ -116,6 +116,7 @@ const page = await ctx.newPage();
 
 for (const route of ROUTES) {
   await page.goto(ORIGIN + route, { waitUntil: 'networkidle' });
+  await assertAuthenticatedShell(page, route);
   const text = (await page.locator('body').innerText()).replace(/\s+/g, ' ');
 
   const english = hasEnglish(text);
