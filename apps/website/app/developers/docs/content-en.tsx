@@ -737,6 +737,14 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
                 <LI>The signature is HMAC-SHA256 over <Code>&quot;{'{'}t{'}'}.{'{'}body{'}'}&quot;</Code>, with a <strong>5-minute</strong> replay tolerance.</LI>
                 <LI>Process <strong>idempotently</strong> and answer <Code>2xx</Code> fast; delivery is at-least-once, unordered, with redelivery on failure.</LI>
               </UL>
+              <Callout tone="warn">
+                <strong>Verify the signature before you parse the event.</strong> Read the raw body,
+                check it against <Code>banza-signature</Code>, and only then treat the JSON as
+                something that came from Banzami. Anything on the public internet can POST to your
+                endpoint; until the signature checks out, the body is a stranger&apos;s claim about
+                your money. Re-serialising the JSON before verifying changes the bytes and the
+                signature stops matching — read it once, as text.
+              </Callout>
               <CodeBlock label="ts · verify and handle an event" raw={SAMPLE_WEBHOOK} onCopy={copy} {...enCopy} />
               <CodeBlock label="json · event envelope (implemented in Sandbox)" raw={SAMPLE_WEBHOOK_ENVELOPE} onCopy={copy} {...enCopy} />
               <P style={{ fontSize: 13, color: '#a89a9e' }}>

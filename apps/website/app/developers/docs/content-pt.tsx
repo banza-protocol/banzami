@@ -305,6 +305,7 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 </div>
                 <UL>
                   <LI>Isto documenta o <strong>Sandbox</strong>, que é o único ambiente que existe. Os SDKs instalam-se a partir de registos públicos e a Consola é operacional; o que falta é dinheiro real, não capacidade.</LI>
+                  <LI>O <strong>dinheiro no Sandbox é fictício</strong>. Os saldos, os pagamentos e as liquidações são reais como mecânica e comportam-se como se comportarão em produção — mas nenhum kwanza sai ou entra de uma conta bancária, e nada do que aqui acontece tem efeito financeiro no mundo. É por isso que pode testar à vontade.</LI>
                   <LI><strong>Produção e trilhos de dinheiro real não estão disponíveis.</strong> Pay/checkout públicos, trilhos live e fornecedores externos não estão disponíveis.</LI>
                   <LI>A Consola é <strong>operacional em Sandbox</strong>. A Visão geral, os Webhooks e os Registos derivam do tráfego real do seu projeto — nenhuma página da Consola apresenta dados ilustrativos. O âmbito testado é o fluxo API/SDK no Sandbox e a gestão de workspaces, projetos, membros e chaves.</LI>
                 </UL>
