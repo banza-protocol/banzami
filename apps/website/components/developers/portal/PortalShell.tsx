@@ -94,6 +94,69 @@ function NavItem({
 
 const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
+/**
+ * The Console's navigation on a phone.
+ *
+ * The sidebar is `display: none` below 720px, and for a long time nothing took
+ * its place: a developer who opened the Console on a phone landed on one page
+ * and could not reach any other. Every link the product has was there in the
+ * markup and invisible — navigation hidden by CSS is not navigation, and the
+ * responsive sweep counted zero links on every route at 375px.
+ *
+ * The same NAV, horizontally scrollable, shown only where the sidebar is not.
+ * It carries Suporte too, because the sidebar's footer link disappears with it.
+ */
+function MobileNav({ active }: { active: PortalKey }) {
+  const items = [...NAV, { key: 'suporte' as PortalKey, href: '/suporte', label: 'Suporte', icon: IconHelp }];
+  return (
+    <nav
+      className="bz-mobilenav"
+      aria-label="Navegação principal"
+      style={{
+        display: 'none',
+        gap: 6,
+        overflowX: 'auto',
+        padding: '10px 14px',
+        borderBottom: '1px solid #F2E2E0',
+        background: '#fff',
+        position: 'sticky',
+        top: 0,
+        zIndex: 20,
+        WebkitOverflowScrolling: 'touch',
+      }}
+    >
+      {items.map((n) => {
+        const on = active === n.key;
+        return (
+          <Link
+            key={n.key}
+            href={n.href}
+            aria-current={on ? 'page' : undefined}
+            style={{
+              flex: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              minHeight: 36,
+              borderRadius: 10,
+              fontSize: 13.5,
+              fontWeight: 800,
+              textDecoration: 'none',
+              whiteSpace: 'nowrap',
+              color: on ? '#B5101F' : '#6b5a5e',
+              background: on ? '#FFF1F0' : 'transparent',
+              border: `1px solid ${on ? '#F6D5D2' : 'transparent'}`,
+            }}
+          >
+            {n.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 function Sidebar({ active }: { active: PortalKey }) {
   return (
     <aside
@@ -473,6 +536,7 @@ function PortalGuard({ active, showBanner, children }: PortalPageProps) {
         style={{ display: 'grid', gridTemplateColumns: '248px 1fr', minHeight: '100vh', background: '#FFF9F8' }}
       >
         <Sidebar active={active} />
+        <MobileNav active={active} />
         <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
           <TopBar />
           <Main showBanner={banner}>{children}</Main>

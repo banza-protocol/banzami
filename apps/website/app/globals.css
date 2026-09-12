@@ -322,7 +322,11 @@ body {
   .bz-docsnav { position: static !important; top: auto !important; margin-bottom: 18px; }
 }
 @media (max-width: 720px) {
+  /* The sidebar goes; its navigation does not. .bz-mobilenav carries the same
+     links horizontally — hiding navigation with CSS and replacing it with
+     nothing left the Console unnavigable on a phone. */
   .bz-side { display: none !important; }
+  .bz-mobilenav { display: flex !important; }
   .bz-shellgrid { grid-template-columns: 1fr !important; }
   .bz-topmeta { display: none !important; }
 }
