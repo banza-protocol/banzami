@@ -4326,3 +4326,47 @@ Banzami's side is correct throughout: the settlement is an application-initiated
 operation, the operator does not settle on anybody's behalf, and the rate is the
 operator's. This is recorded here because it was found by this acceptance and
 because it affects a Banzami-facing claim, not because it is Banzami's to fix.
+
+---
+
+## RA-176 — the §24 acceptance gave its Sandbox back
+
+- **Found/closed:** 2026-09-12 (DP-PROD-001 §12, §22, §50)
+- **Status:** CLOSED — residue 0
+
+What the DOA acceptance created, and what became of it.
+
+**Two settlements, both COMPLETED, each with its own durable idempotency key:**
+
+| gross | fee | net | profile | bps |
+|-------|-----|-----|---------|-----|
+| 100000 | 2000 | 98000 | sandbox-reference | 200 |
+| 105000 | 2100 | 102900 | sandbox-reference | 200 |
+
+The second was not planned. The owner's first donation carried a 5% platform
+contribution, so that campaign held 105 000 and — because an application
+settlement takes the source account's FULL available balance, read from Banzami
+and never sent by the caller — it could not settle at 100 000. A second campaign
+was created for the exact figure §24 asks for. Settling both turned an accident
+into better evidence than one settlement could give: two different amounts, the
+same profile, the fee tracking exactly. The rate is resolved, not hard-coded.
+
+Both campaign accounts are drained to 0. The settlements themselves stay: they
+are immutable financial evidence and the only thing §12 says to keep.
+
+**Retired through canonical APIs** (`tools/ops/retire-synthetic-residue.sh
+--apply`; nothing deleted, no row edited): the Acceptance business created for
+the Developer Platform acceptance → SUSPENDED, with 4 webhooks disabled, 1 API
+key revoked and its value returned; 5 open payment links cancelled; 3 open
+payment sessions cancelled; 24 synthetic consumers drained and suspended. 5/5
+merchants, 0 failures.
+
+**Deliberately untouched, and verified after:** `Sandbox · Doa-Sandbox` ACTIVE and
+typed APPLICATION; consumers @fm65, @oxfannio and @priscila ACTIVE with their
+balances whole. Selection is positive — an object is retired only when something
+about it says a machine made it — so a wrong pattern leaves a fixture alive
+rather than touching a real account. The dry run was read before the apply, and
+the survivors were checked again afterwards.
+
+Ledger after everything: 1812 postings, 3624 entries, 6/6, BOOK_SUMS_TO_ZERO.
+Fixture audit: every counter 0, no run manifests left behind.
