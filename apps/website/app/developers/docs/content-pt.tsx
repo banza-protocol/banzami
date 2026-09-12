@@ -401,6 +401,23 @@ export function PtGetStarted({ copy }: { copy: CopyFn }) {
                 <a href="/docs/sdk" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>SDKs</a>.
               </P>
 
+                            <H3 id="primeiro-pagamento">O seu primeiro pagamento</H3>
+              <P>
+                A sessão de pagamento é o fluxo principal: cria-a, o Banzami devolve um link e um
+                QR, e o pagador usa um dos dois. Com uma chave de projeto <strong>não</strong> indica
+                a conta de destino — o destinatário vem do binding do projeto, e a API recusa um
+                destinatário indicado pelo cliente.
+              </P>
+              <CodeBlock label="curl · criar sessão de pagamento (pedido + resposta)" raw={SAMPLE_CURL_SESSION} onCopy={copy} />
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Falhas que vale a pena esperar: <Code>401</Code> (chave em falta, revogada ou live),{' '}
+                <Code>403</Code> (scope insuficiente, ou projeto sem binding),{' '}
+                <Code>400 MISSING_FIELD / INVALID_BODY</Code> e <Code>409 CONFLICT</Code> (uma
+                Idempotency-Key já em curso). Ver{' '}
+                <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
+              </P>
+              <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
+
               </Section>
     </>
   );
@@ -1198,20 +1215,6 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                   </tbody>
                 </table>
               </div>
-
-              <H3>Integração Banzami</H3>
-              <P>
-                A sua aplicação autentica-se enviando a <GlossaryTerm id="api-key">API key</GlossaryTerm> Sandbox <Code>bz_test_</Code> diretamente
-                no header <Code>Authorization: Bearer …</Code> e chama a camada de integração em <Code>sandbox-api.banzami.com</Code>.
-                O fluxo principal é <strong>sessão de pagamento</strong> (link e QR), tal como usado pelo DOA.
-              </P>
-              <CodeBlock label="curl · criar sessão de pagamento (pedido + resposta)" raw={SAMPLE_CURL_SESSION} onCopy={copy} />
-              <P style={{ fontSize: 13, color: '#a89a9e' }}>
-                Erros comuns deste endpoint: <Code>401 UNAUTHORIZED</Code> (chave inválida), <Code>403 FORBIDDEN</Code> (scope
-                insuficiente ou projeto sem binding), <Code>400 MISSING_FIELD / INVALID_BODY</Code>, <Code>409 CONFLICT</Code>
-                (Idempotency-Key em curso). Ver <a href="/docs/reference#errors" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Errors</a>.
-              </P>
-              <CodeBlock label="ts · criar sessão de pagamento (@banzami/sdk)" raw={SAMPLE_SESSION} onCopy={copy} />
 
               <H3 id="idempotencia">Idempotência <Badge tone="ok" /></H3>
               <P>
