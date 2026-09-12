@@ -282,20 +282,39 @@ capabilities:
       integration:
         - core/api/src/routes/qr_pay_tests.rs (16, real database)
         - services/api-gateway receipt_semantics_test.go (a QR payment's receipt says QR)
-      e2e_sandbox: []
+      e2e_sandbox:
+        - tests/phase0/qr-payment-e2e.sh (28/28 on the deployed sandbox)
       negative_security:
         - a payer-supplied amount does not override a fixed-amount code
         - a second payment of a single-use code moves nothing
         - a forged signature is refused and does not burn the code
         - a refused payment rolls the single-use claim back
         - an expiry edited in the database stops the code verifying
+        - an unauthenticated caller pays nothing (401)
+        - a merchant credential naming a payer moves no money
     deployment_gate: sandbox-e2e-required
     cleanup_disposition: active-required
-    evidence: []
+    evidence:
+      - evidence/assurance/payments/cap-pay-003-a4d8c5a8.json
     surface: public
-    disposition: pending-e2e
-    status: blocked
-    # The route exists now. The status does not move on that alone.
+    disposition: released
+    status: verified
+    # Released on 2026-09-12, against the deployed Sandbox at 627958938ec2.
+    #
+    # The route was withdrawn from the MERCHANT surface (RA-053) because it took
+    # the payer as a free-text field on a merchant credential: anyone holding a
+    # merchant key could name any consumer and take their money. It has been
+    # rebuilt where the authority contract says it belongs
+    # (docs/security/QR-PAY-AUTHORITY-CONTRACT.md): the consumer surface, with
+    # the payer taken from the session and absent from the request body.
+    # /internal/v1/qr/pay stays on core's withdrawn-routes list — that path is
+    # the broken contract's name — and the rebuilt core route is
+    # /internal/v1/consumer/qr/pay.
+    #
+    # The harness asserts on money, not on status codes alone: the merchant is
+    # credited exactly the code's amount, a second payment of a single-use code
+    # moves nothing, a replayed key leaves one transfer, a forged signature is
+    # refused without burning the code, and the book balances before and after.
     #
     # POST /v1/qr/pay was removed from the MERCHANT surface (RA-053) because it
     # took the payer as a free-text field on a merchant credential. It has been

@@ -13,9 +13,9 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 
 | Status | Count |
 |---|---|
-| blocked | 6 |
+| blocked | 5 |
 | in-audit | 1 |
-| verified | 17 |
+| verified | 18 |
 | **total** | **24** |
 
 ## Capabilities
@@ -27,7 +27,7 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | CAP-TRANSFER-002 | Transferências between a project's own wallet accounts | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-001 | Payment sessions | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAY-002 | Payment links | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
-| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **pending-e2e** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
+| CAP-PAY-003 | QR payment flows (Banzami QR) | operator-payments | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-REFUND-001 | Typed-source refunds (refund_source) | core-refunds | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-PAYOUT-001 | Wallet withdrawal / payouts (0.75% fee, paired postings) | core-payouts | public | **released** | ✅ | 🔒 no | sandbox-e2e-required | verified |
 | CAP-COLLECT-001 | Collections (split charge, merchant-only) | operator-payments | none | **quarantined** | ✅ | 🔒 no | sandbox-e2e-required | blocked |
@@ -52,11 +52,10 @@ Programme: **BANZAMI-SANDBOX-RELEASE-ASSURANCE-001** · manifest updated: 2026-0
 | Disposition | Count |
 |---|---|
 | internal_only | 1 |
-| pending-e2e | 1 |
 | quarantined | 5 |
-| released | 17 |
+| released | 18 |
 
-Public surfaces released: **16/17**. Full external launch requires 17/17.
+Public surfaces released: **17/17**. Full external launch requires 17/17.
 
 ## Detail
 
@@ -149,12 +148,12 @@ Public surfaces released: **16/17**. Full external launch requires 17/17.
 - **Implementation:** core/api/src/routes/qr_pay.rs, core/qr, services/public-api, services/api-gateway, sdk/flutter
 - **API/UI surface:** POST /v1/qr/static (QR issuance only), POST /v1/qr/dynamic (QR issuance only), POST /v1/qr/pay — public-api Consumer surface
 - **Deployment gate:** sandbox-e2e-required
-- **Tests:** unit [core/qr engine tests (HMAC sign/verify, resolve_for_payment, claim/release)] · integration [core/api/src/routes/qr_pay_tests.rs (16, real database), services/api-gateway receipt_semantics_test.go (a QR payment's receipt says QR)] · e2e_sandbox [] · negative/security [a payer-supplied amount does not override a fixed-amount code, a second payment of a single-use code moves nothing, a forged signature is refused and does not burn the code, a refused payment rolls the single-use claim back, an expiry edited in the database stops the code verifying]
-- **Evidence:** —
+- **Tests:** unit [core/qr engine tests (HMAC sign/verify, resolve_for_payment, claim/release)] · integration [core/api/src/routes/qr_pay_tests.rs (16, real database), services/api-gateway receipt_semantics_test.go (a QR payment's receipt says QR)] · e2e_sandbox [tests/phase0/qr-payment-e2e.sh (28/28 on the deployed sandbox)] · negative/security [a payer-supplied amount does not override a fixed-amount code, a second payment of a single-use code moves nothing, a forged signature is refused and does not burn the code, a refused payment rolls the single-use claim back, an expiry edited in the database stops the code verifying, an unauthenticated caller pays nothing (401), a merchant credential naming a payer moves no money]
+- **Evidence:** evidence/assurance/payments/cap-pay-003-a4d8c5a8.json
 - **Cleanup disposition:** active-required
-- **External surface:** public · **Disposition:** **pending-e2e**
+- **External surface:** public · **Disposition:** **released**
 - **Launch scope:** sandbox
-- **Status:** **blocked**
+- **Status:** **verified**
 
 ### CAP-REFUND-001 — Typed-source refunds (refund_source)
 

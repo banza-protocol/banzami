@@ -1,0 +1,159 @@
+{
+  "suite": "CAP-PAY-003 — paying a structured Banzami QR (consumer surface)",
+  "test": "tests/phase0/qr-payment-e2e.sh",
+  "environment": "deployed sandbox — run on the Sandbox VM against running containers",
+  "builds": {
+    "core-api-staging": "627958938ec2",
+    "api-gateway-staging": "627958938ec2",
+    "public-api-staging": "627958938ec2"
+  },
+  "generated_at": "2026-09-12T07:12:12.509022Z",
+  "credential": "consumer session (the payer's own), never a merchant credential naming a payer",
+  "total": 28,
+  "passed": 28,
+  "failed": 0,
+  "harness_summary": "QR_PAYMENT_E2E: PASS=28 FAIL=0",
+  "promotable": true,
+  "assertions": [
+    {
+      "id": "DYNAMIC_QR_ISSUED",
+      "pass": true,
+      "observed": "201"
+    },
+    {
+      "id": "QR_PAID",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "PAID_THE_CODES_AMOUNT",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "MERCHANT_CREDITED",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "PAYER_DEBITED",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "LEDGER_BALANCED",
+      "pass": true,
+      "observed": "0"
+    },
+    {
+      "id": "WALLET_PAYMENT_RECORDED",
+      "pass": true,
+      "observed": "yes"
+    },
+    {
+      "id": "TRANSFER_SAYS_QR",
+      "pass": true,
+      "observed": "QR"
+    },
+    {
+      "id": "TRANSFER_IS_SANDBOX",
+      "pass": true,
+      "observed": "SANDBOX"
+    },
+    {
+      "id": "QR_AUDITED",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "SECOND_PAYMENT_REFUSED",
+      "pass": true,
+      "observed": "422"
+    },
+    {
+      "id": "SECOND_PAYMENT_NAMED",
+      "pass": true,
+      "observed": "QR_ALREADY_USED"
+    },
+    {
+      "id": "SECOND_PAYMENT_MOVED_NOTHING",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "REPLAY_MOVED_ONCE",
+      "pass": true,
+      "observed": "37500"
+    },
+    {
+      "id": "ONE_TRANSFER_PER_KEY",
+      "pass": true,
+      "observed": "1"
+    },
+    {
+      "id": "FORGERY_REFUSED",
+      "pass": true,
+      "observed": "422"
+    },
+    {
+      "id": "FORGERY_NAMED",
+      "pass": true,
+      "observed": "INVALID_SIGNATURE"
+    },
+    {
+      "id": "FORGERY_MOVED_NOTHING",
+      "pass": true,
+      "observed": "75000"
+    },
+    {
+      "id": "GENUINE_STILL_PAYABLE",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "JUNK_REFUSED",
+      "pass": true,
+      "observed": "refused"
+    },
+    {
+      "id": "STATIC_NEEDS_AMOUNT",
+      "pass": true,
+      "observed": "AMOUNT_REQUIRED"
+    },
+    {
+      "id": "STATIC_PAID",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "STATIC_PAYABLE_AGAIN",
+      "pass": true,
+      "observed": "200"
+    },
+    {
+      "id": "STATIC_CREDITED_TWICE",
+      "pass": true,
+      "observed": "24000"
+    },
+    {
+      "id": "ANON_REFUSED",
+      "pass": true,
+      "observed": "401"
+    },
+    {
+      "id": "MERCHANT_QR_PAY_REFUSED",
+      "pass": true,
+      "observed": "refused"
+    },
+    {
+      "id": "MERCHANT_CANNOT_DEBIT_A_PAYER",
+      "pass": true,
+      "observed": "63500"
+    },
+    {
+      "id": "LEDGER_STILL_BALANCED",
+      "pass": true,
+      "observed": "0"
+    }
+  ]
+}

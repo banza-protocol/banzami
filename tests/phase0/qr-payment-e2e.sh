@@ -51,18 +51,19 @@ AMOUNT=37500          # 375 Kz — a dynamic code's fixed amount
 STATIC_AMOUNT=12000   # 120 Kz — chosen by the payer on a static code
 
 echo "=== fixtures"
-# The merchant whose QR is paid. Created here rather than reused: a merchant left
-# over from another run makes the credited-balance assertions depend on state
-# this test does not control.
-MERCHANT=$(psqlro "INSERT INTO merchants (id, business_name, status, environment)
-                   VALUES (gen_random_uuid(), 'QR E2E $R', 'ACTIVE', 'SANDBOX') RETURNING id")
-[ -n "$MERCHANT" ] && [ "${MERCHANT#ERROR}" = "$MERCHANT" ] || { echo "merchant fixture failed: $MERCHANT"; exit 1; }
-AVAIL=$(psqlro "INSERT INTO ledger_accounts (id, account_type, name, currency)
-                VALUES (gen_random_uuid(),'LIABILITY','qr-e2e-$R','AOA') RETURNING id")
-RESV=$(psqlro "INSERT INTO ledger_accounts (id, account_type, name, currency)
-               VALUES (gen_random_uuid(),'LIABILITY','qr-e2e-r-$R','AOA') RETURNING id")
-psqlro "INSERT INTO wallets (id, merchant_id, currency, status, available_account_id, reserved_account_id)
-        VALUES (gen_random_uuid(), '$MERCHANT', 'AOA', 'ACTIVE', '$AVAIL', '$RESV')" >/dev/null
+# Provisioned through the product's own routes, never by writing financial rows
+# directly: a merchant and a wallet built by hand are not the merchant and
+# wallet the product makes, and a test that asserts on money must assert on the
+# real thing.
+BOOTSTRAP=$(mint merchant_id 00000000-0000-0000-0000-000000000001)
+call "$GW" 8080 POST /v1/merchants "{\"name\":\"QR E2E $R\",\"email\":\"qr-e2e-$R@synthetic.test\"}" "$BOOTSTRAP"
+MERCHANT=$(jget id)
+[ -n "$MERCHANT" ] || { echo "merchant fixture failed (http=$CODE): $LAST"; exit 1; }
+MJWT=$(mint merchant_id "$MERCHANT")
+call "$GW" 8080 POST /v1/wallets '{"currency":"AOA"}' "$MJWT"
+WID=$(jget id)
+[ -n "$WID" ] || { echo "wallet fixture failed (http=$CODE): $LAST"; exit 1; }
+AVAIL=$(psqlro "SELECT available_account_id FROM wallets WHERE id='$WID'")
 
 # The payer: onboarded, verified and funded in this run.
 PH="+2449${R:0:4}77"; H="qr${R:0:5}p"
@@ -78,8 +79,6 @@ call "$GW" 8080 POST /v1/compliance/customers/verify \
 call "$PUB" 8083 POST /v1/sandbox/fund "{\"amount_minor\":200000,\"currency\":\"AOA\"}" "$CJWT"
 [ "$CODE" = "200" ] || { echo "payer funding refused (http=$CODE): $LAST"; exit 1; }
 PAYER_ACC=$(psqlro "SELECT available_account_id FROM consumer_wallets WHERE consumer_id='$PAYER' AND currency='AOA'")
-
-MJWT=$(mint merchant_id "$MERCHANT")
 
 echo "### the merchant issues a dynamic QR"
 EXP=$(node -e 'process.stdout.write(new Date(Date.now()+30*60*1000).toISOString())')
@@ -162,8 +161,15 @@ call "$PUB" 8083 POST /v1/qr/pay "{\"payload\":\"$SP\",\"amount_minor\":100,\"id
 chk ANON_REFUSED "$CODE" "401"
 
 echo "### the withdrawn merchant route is still gone"
+# The router answers 405, not 404: /v1/qr/{id} is mounted for GET, so the path
+# matches with id="pay" and only the method is refused. Either answer is the
+# router saying the route does not exist; what must never happen is that it
+# works. So the assertion is on the outcome — a merchant credential naming a
+# payer moves no money — rather than on which refusal the router chose.
+PB=$(acctbal "$PAYER_ACC")
 call "$GW" 8080 POST /v1/qr/pay "{\"payer_consumer_id\":\"$PAYER\",\"payload\":\"$SP\",\"amount_minor\":100}" "$MJWT"
-chk MERCHANT_QR_PAY_NOT_MOUNTED "$CODE" "404"
+chk MERCHANT_QR_PAY_REFUSED "$([ "$CODE" != "200" ] && echo refused)" "refused"
+chk MERCHANT_CANNOT_DEBIT_A_PAYER "$(acctbal "$PAYER_ACC")" "$PB"
 
 echo "### the book still balances"
 chk LEDGER_STILL_BALANCED "$(unbalanced)" "0"
