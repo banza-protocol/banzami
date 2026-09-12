@@ -70,7 +70,17 @@ FIX="^(E2E |SYN |SYNTHETIC |E0[0-9] |E1 |E2 |[A-Z]{2,4}[0-9]{4,}$|M[0-9]+$)"
 # Nothing broke, because key authorisation does not consult project status, and
 # that is luck rather than a design — so the project is now named and skipped,
 # and the binding test asks only about ACTIVE bindings.
-CANON_PROJECT="DOA Sandbox"
+# The names as they actually are. This said "DOA Sandbox", which nothing is
+# called — the project is 'Doa-Sandbox' and the merchant 'Sandbox · Doa-Sandbox'
+# — so the exclusion excluded nothing. Nothing broke, because PFIX below is a
+# POSITIVE matcher of harness-generated shapes and neither real name matches one.
+# That is the guarantee; this is the second one, and a second guarantee that
+# names the wrong thing is not a guarantee.
+# Matched by pattern, not equality: the merchant's name carries a U+00B7 middle
+# dot that does not survive the shell and the SSH hop intact, so an equality test
+# against it silently matches nothing.
+CANON_PROJECT="Doa-Sandbox"
+CANON_LIKE="%Doa-Sandbox%"
 
 # Developer projects carry their own harness names, and most of them are never
 # bound to a merchant at all — an unbound project was the point of several
