@@ -228,6 +228,45 @@ func (s *Service) ValidateSession(ctx context.Context, raw string) (User, error)
 	return user, nil
 }
 
+// Sessions lists the person's own live sessions, marking the one asking.
+//
+// The caller's own session is identified by its hash, never by anything the
+// caller sends: a client that could name "the current session" could name
+// somebody else's and keep it alive while ending theirs.
+func (s *Service) Sessions(ctx context.Context, raw string) ([]SessionView, error) {
+	if raw == "" || s.cfg.SessionSecret == "" {
+		return nil, ErrUnauthenticated
+	}
+	me, err := s.store.LiveSessionByHash(ctx, hashToken(raw, s.cfg.SessionSecret))
+	if err != nil {
+		return nil, ErrUnauthenticated
+	}
+	list, err := s.store.LiveSessions(ctx, me.UserID)
+	if err != nil {
+		return nil, err
+	}
+	for i := range list {
+		list[i].Current = list[i].ID == me.ID
+	}
+	return list, nil
+}
+
+// RevokeOtherSessions signs the person out everywhere except here.
+//
+// The one recovery a person has when a device is lost. It deliberately keeps the
+// session making the request: ending that too would sign them out mid-recovery
+// and is what "terminar sessão" already does on its own.
+func (s *Service) RevokeOtherSessions(ctx context.Context, raw string) (int, error) {
+	if raw == "" || s.cfg.SessionSecret == "" {
+		return 0, ErrUnauthenticated
+	}
+	me, err := s.store.LiveSessionByHash(ctx, hashToken(raw, s.cfg.SessionSecret))
+	if err != nil {
+		return 0, ErrUnauthenticated
+	}
+	return s.store.RevokeOtherSessions(ctx, me.UserID, me.ID)
+}
+
 // ErrInvalidName: the supplied display name is empty or longer than the column
 // is meant to hold. A name is a label a person chooses for themselves, so the
 // only rules are that it exists and stays a name.

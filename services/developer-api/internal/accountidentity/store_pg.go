@@ -163,6 +163,38 @@ func (s *pgStore) LiveSessionByHash(ctx context.Context, tokenHash string) (*Ses
 	return &sess, nil
 }
 
+func (s *pgStore) LiveSessions(ctx context.Context, userID string) ([]SessionView, error) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, COALESCE(user_agent,''), COALESCE(host(ip),''), created_at, last_seen_at, expires_at
+		   FROM account_identity.identity_sessions
+		  WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+		  ORDER BY COALESCE(last_seen_at, created_at) DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []SessionView{}
+	for rows.Next() {
+		var v SessionView
+		if err := rows.Scan(&v.ID, &v.UserAgent, &v.IP, &v.CreatedAt, &v.LastSeenAt, &v.ExpiresAt); err != nil {
+			return nil, err
+		}
+		out = append(out, v)
+	}
+	return out, rows.Err()
+}
+
+func (s *pgStore) RevokeOtherSessions(ctx context.Context, userID, keepSessionID string) (int, error) {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE account_identity.identity_sessions
+		    SET revoked_at = now()
+		  WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL`, userID, keepSessionID)
+	if err != nil {
+		return 0, err
+	}
+	return int(tag.RowsAffected()), nil
+}
+
 func (s *pgStore) TouchSession(ctx context.Context, id string) error {
 	_, err := s.pool.Exec(ctx,
 		`UPDATE account_identity.identity_sessions SET last_seen_at = now() WHERE id = $1`, id)

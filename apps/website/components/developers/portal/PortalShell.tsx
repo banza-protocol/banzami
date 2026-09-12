@@ -44,6 +44,7 @@ type PortalKey =
   | 'docs'
   | 'settings'
   | 'golive'
+  | 'conta'
   | 'suporte';
 
 const NAV: { key: PortalKey; label: string; href: string; icon: (p: { size?: number }) => ReactNode }[] = [

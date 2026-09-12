@@ -206,6 +206,17 @@ export type ProjectFootprint = {
   blockers: string[];
 };
 /** What a workspace still holds — the difference between deleting and archiving it. */
+/** One live session of the signed-in person. Never carries a token or its hash. */
+export type DeveloperSession = {
+  id: string;
+  user_agent: string;
+  ip: string;
+  current: boolean;
+  created_at: string;
+  last_seen_at: string | null;
+  expires_at: string;
+};
+
 export type WorkspaceFootprint = {
   projects: number;
   active_projects: number;
@@ -533,6 +544,12 @@ export const developerApi = {
     req<void>(`/workspaces/${wsID}`, { method: 'DELETE', body: { name }, csrf }),
   archiveWorkspace: (wsID: string, name: string, csrf: string) =>
     req<{ status: string }>(`/workspaces/${wsID}/archive`, { method: 'POST', body: { name }, csrf }),
+  // The person's own live sessions, and the one recovery they have when a
+  // device is lost. Never a token: the list carries where and when, not what.
+  sessions: () => req<{ sessions: DeveloperSession[] }>('/auth/sessions'),
+  revokeOtherSessions: (csrf: string) =>
+    req<{ revoked: number }>('/auth/sessions/revoke-others', { method: 'POST', csrf }),
+
   leaveWorkspace: (wsID: string, csrf: string) =>
     req<void>(`/workspaces/${wsID}/leave`, { method: 'POST', csrf }),
 

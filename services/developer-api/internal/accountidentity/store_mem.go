@@ -152,6 +152,32 @@ func (m *memStore) LiveSessionByHash(_ context.Context, tokenHash string) (*Sess
 	return &Session{ID: r.id, UserID: r.userID, ExpiresAt: r.expiresAt}, nil
 }
 
+func (m *memStore) LiveSessions(_ context.Context, userID string) ([]SessionView, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	out := []SessionView{}
+	for _, r := range m.sessions {
+		if r.userID != userID || r.revoked || r.expiresAt.Before(time.Now()) {
+			continue
+		}
+		out = append(out, SessionView{ID: r.id, ExpiresAt: r.expiresAt})
+	}
+	return out, nil
+}
+
+func (m *memStore) RevokeOtherSessions(_ context.Context, userID, keepSessionID string) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	for _, r := range m.sessions {
+		if r.userID == userID && r.id != keepSessionID && !r.revoked {
+			r.revoked = true
+			n++
+		}
+	}
+	return n, nil
+}
+
 func (m *memStore) TouchSession(_ context.Context, _ string) error { return nil }
 
 func (m *memStore) RevokeSessionByHash(_ context.Context, tokenHash string) error {

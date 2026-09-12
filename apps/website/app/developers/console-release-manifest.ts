@@ -36,6 +36,9 @@ export const CONSOLE_SURFACES: ConsoleSurface[] = [
   { key: 'settings', route: '/settings', state: 'RELEASED' },
   { key: 'go_live_info', route: '/go-live', state: 'RELEASED' },
   { key: 'support', route: '/suporte', state: 'RELEASED' },
+  // The person's own account — distinct from the workspace, the project and the
+  // business. Profile, the real auth model, and where the account is signed in.
+  { key: 'account', route: '/conta', state: 'RELEASED' },
 
   {
     key: 'customers',

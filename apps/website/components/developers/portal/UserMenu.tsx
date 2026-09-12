@@ -359,8 +359,15 @@ export function UserMenu({
             >
               {name ? 'Alterar nome' : 'Complete o seu nome'}
             </button>
-            <Link role="menuitem" href="/settings" onClick={() => close(false)} style={ITEM}>
-              Segurança
+            {/* "Segurança" used to link to /settings — the PROJECT's settings.
+                A person's security is not a project's configuration, and sending
+                them there taught the wrong model of the product. Both entries
+                now go to the account, which is where the person actually is. */}
+            <Link role="menuitem" href="/conta" onClick={() => close(false)} style={ITEM}>
+              A minha conta
+            </Link>
+            <Link role="menuitem" href="/conta#seguranca" onClick={() => close(false)} style={ITEM}>
+              Segurança e sessões
             </Link>
             <div role="separator" style={{ height: 1, background: '#F6EBEA', margin: '6px 0' }} />
             <button

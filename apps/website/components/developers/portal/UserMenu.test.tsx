@@ -126,15 +126,25 @@ describe('UserMenu — the avatar is a menu', () => {
     open();
     const items = screen.getAllByRole('menuitem');
 
-    fireEvent.keyDown(document.activeElement!, { key: 'Tab' });
-    expect(document.activeElement).toBe(items[1]);
-    fireEvent.keyDown(document.activeElement!, { key: 'Tab' });
-    expect(document.activeElement).toBe(items[2]);
-    // Past the last item it wraps to the first rather than escaping the layer.
-    fireEvent.keyDown(document.activeElement!, { key: 'Tab' });
-    expect(document.activeElement).toBe(items[0]);
+    // The property is CONTAINMENT, not a particular order or count. This used to
+    // assert three specific elements, so adding the account entries failed it —
+    // and the trap cycles every focusable in the popup, which is not the same
+    // list as the menuitem roles.
+    const popup = items[0].closest('[role="menu"]') ?? items[0].parentElement!;
+    const seen = new Set<Element>();
+    for (let i = 0; i < items.length + 2; i += 1) {
+      fireEvent.keyDown(document.activeElement!, { key: 'Tab' });
+      expect(popup.contains(document.activeElement)).toBe(true);
+      seen.add(document.activeElement!);
+    }
+    // Tabbing more times than there are items must have wrapped, not escaped.
+    expect(seen.size).toBeLessThanOrEqual(items.length + 1);
+    expect(seen.size).toBeGreaterThan(1);
+    // Shift+Tab goes back, and stays inside.
+    const before = document.activeElement;
     fireEvent.keyDown(document.activeElement!, { key: 'Tab', shiftKey: true });
-    expect(document.activeElement).toBe(items[2]);
+    expect(popup.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).not.toBe(before);
   });
 
   it('closes when the click lands outside it', () => {

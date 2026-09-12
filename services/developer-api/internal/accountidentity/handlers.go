@@ -75,6 +75,38 @@ func (h *Handlers) Register(get, post func(pattern string, hf http.HandlerFunc))
 	post("/auth/logout", h.Logout)
 	post("/auth/me", h.UpdateMe)
 	get("/auth/me", h.Me)
+	get("/auth/sessions", h.Sessions)
+	post("/auth/sessions/revoke-others", h.RevokeOtherSessions)
+}
+
+// GET /auth/sessions — the person's own live sessions. Never a token or a hash.
+func (h *Handlers) Sessions(w http.ResponseWriter, r *http.Request) {
+	list, err := h.svc.Sessions(r.Context(), h.rawSession(r))
+	if err != nil {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "not authenticated")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"sessions": list})
+}
+
+// POST /auth/sessions/revoke-others — sign out everywhere but here.
+// Session-authenticated + Origin + CSRF, like every other mutation.
+func (h *Handlers) RevokeOtherSessions(w http.ResponseWriter, r *http.Request) {
+	if !h.originOK(r) {
+		httpx.Error(w, http.StatusForbidden, "FORBIDDEN_ORIGIN", "origin not allowed")
+		return
+	}
+	raw := h.rawSession(r)
+	if !h.svc.ValidateCSRF(raw, r.Header.Get("X-CSRF-Token")) {
+		httpx.Error(w, http.StatusForbidden, "CSRF", "missing or invalid CSRF token")
+		return
+	}
+	n, err := h.svc.RevokeOtherSessions(r.Context(), raw)
+	if err != nil {
+		httpx.Error(w, http.StatusUnauthorized, "UNAUTHENTICATED", "not authenticated")
+		return
+	}
+	httpx.JSON(w, http.StatusOK, map[string]any{"revoked": n})
 }
 
 func decode(r *http.Request, v any) bool {

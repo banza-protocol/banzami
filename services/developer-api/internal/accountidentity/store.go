@@ -22,6 +22,13 @@ type Store interface {
 	// UpsertVerifiedUser lazily creates the user on first successful verification
 	// and marks it verified. Canonical (lower) email.
 	UpsertVerifiedUser(ctx context.Context, email string) (User, error)
+	// LiveSessions lists the person's own unexpired, unrevoked sessions.
+	LiveSessions(ctx context.Context, userID string) ([]SessionView, error)
+	// RevokeOtherSessions ends every session of this person EXCEPT the one
+	// making the request. Signing out everywhere else is the one recovery a
+	// person has when a device is lost, and it must not end the session they are
+	// using to ask for it.
+	RevokeOtherSessions(ctx context.Context, userID, keepSessionID string) (int, error)
 	// UserByID loads a user by id (for /auth/me and the session guard).
 	UserByID(ctx context.Context, id string) (User, error)
 	// SetUserName records the person's display name.
@@ -77,6 +84,19 @@ type Session struct {
 	ID        string
 	UserID    string
 	ExpiresAt time.Time
+}
+
+// SessionView is one of the person's live sessions, as the Account surface
+// shows it. Never the token or its hash: a list that carried either would hand
+// every reader of the page the ability to become the person on another device.
+type SessionView struct {
+	ID         string     `json:"id"`
+	UserAgent  string     `json:"user_agent"`
+	IP         string     `json:"ip"`
+	Current    bool       `json:"current"`
+	CreatedAt  time.Time  `json:"created_at"`
+	LastSeenAt *time.Time `json:"last_seen_at"`
+	ExpiresAt  time.Time  `json:"expires_at"`
 }
 
 type SessionInsert struct {
