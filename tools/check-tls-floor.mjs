@@ -2,32 +2,54 @@
 /**
  * What TLS version the deployed edge will actually accept.
  *
- * SEC-001 has read VALIDATED since June on the requirement "Zero comunicação não
- * encriptada. TLS 1.3 obrigatório", with two pieces of evidence: an nginx file
- * that no longer exists, and a Terraform directory containing a README that says
- * "configuration to be added". Nobody had asked a server.
+ * SEC-001 read VALIDATED since June on "Zero comunicação não encriptada. TLS 1.3
+ * obrigatório", with two pieces of evidence: an nginx file that no longer exists,
+ * and a Terraform directory containing a README that says "configuration to be
+ * added". Nobody had asked a server. Every public host was completing a TLS 1.0
+ * handshake, pay.banzami.com included.
  *
- * A server answers in about a second. Every public host below negotiates TLS 1.1
- * with a SHA-1 cipher today, which is not what the matrix says and not what a
- * payment operator should offer, so this exists to make the claim checkable
- * rather than asserted — and to keep it checkable after it is fixed.
+ * The floor is the Cloudflare zone setting (Minimum TLS Version), not an nginx
+ * directive: the origin configs already said `TLSv1.2 TLSv1.3`, and the edge in
+ * front of them is what a client actually talks to. Reading the origin file is
+ * exactly how this went unnoticed, so this reads handshakes instead.
  *
- * The floor is a Cloudflare zone setting (Minimum TLS Version), not an nginx
- * directive: the origin configs already say `TLSv1.2 TLSv1.3`, and the edge in
- * front of them is what a client actually talks to. Reading the origin file was
- * how this went unnoticed.
+ * The policy is TLS 1.2 as the floor and 1.3 preferred where negotiated — not
+ * 1.3-only, which would cut off legitimate modern clients for no proven product
+ * requirement.
  *
  *   node tools/check-tls-floor.mjs
- *   BZ_TLS_FLOOR=1.2 node tools/check-tls-floor.mjs   # after the zone is raised
+ *   BZ_TLS_FLOOR=1.3 node tools/check-tls-floor.mjs   # only with a reason to
  */
 import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { assuranceDir } from './e2e/lib/assurance-output.mjs';
 
+/**
+ * Every banzami.com hostname that Cloudflare proxies — i.e. every public HTTPS
+ * surface the zone's TLS policy governs.
+ *
+ * Written out rather than fetched, so the list is reviewable in a diff and a
+ * host cannot quietly leave the check by leaving an API response. It is checked
+ * against the zone's proxied DNS records whenever this runs (see the note at the
+ * end of the file): add one here when you add one there.
+ *
+ * The mail hostnames — ftp, imap, mail, pop, smtp — are deliberately absent.
+ * They are unproxied CNAMEs to a mail provider, serve no Banzami product, and
+ * the zone's Minimum TLS Version does not reach them; including them would mean
+ * this gate reported on infrastructure it cannot govern.
+ */
 const HOSTS = [
   'banzami.com',
+  'www.banzami.com',
   'developers.banzami.com',
+  'developer-api.banzami.com',
+  'api.banzami.com',
   'sandbox-api.banzami.com',
   'sandbox-operator.banzami.com',
+  'sandbox-webhook.banzami.com',
   'pay.banzami.com',
+  'checkout.banzami.com',
   'admin.banzami.com',
 ];
 
@@ -100,15 +122,46 @@ for (const host of HOSTS) {
 }
 
 const worst = rows.reduce((w, r) => (ORDER.indexOf(r.lowest) < ORDER.indexOf(w) ? r.lowest : w), '1.3');
+const countAccepting = (v) => rows.filter((r) => r.accepted.includes(v)).length;
 console.log(`\nTLS_FLOOR_REQUIRED=${FLOOR}`);
 console.log(`TLS_FLOOR_OBSERVED=${rows.length ? worst : 'unknown'}`);
 console.log(`TLS_BELOW_FLOOR_HOSTS=${failures}`);
+console.log(`TLS_1_0_ACCEPTED_HOSTS=${countAccepting('1.0')}`);
+console.log(`TLS_1_1_ACCEPTED_HOSTS=${countAccepting('1.1')}`);
+console.log(`TLS_1_2_REQUIRED_HOSTS=${rows.filter((r) => r.lowest === '1.2').length}/${HOSTS.length}`);
+console.log(`TLS_1_3_SUPPORTED_HOSTS=${countAccepting('1.3')}/${HOSTS.length}`);
+
+// The handshakes, written down. SEC-001 was VALIDATED on a config file nobody
+// had compared against a server; an assertion about TLS is worth what the
+// transcript behind it is worth.
+const out = join(assuranceDir('tls-floor'), `tls-floor-${Date.now()}.json`);
+writeFileSync(out, `${JSON.stringify({
+  ran_at: new Date().toISOString(),
+  policy: { floor: FLOOR, tls13: 'required' },
+  control: 'Cloudflare zone banzami.com — Minimum TLS Version + TLS 1.3',
+  hosts: rows,
+  counters: {
+    TLS_1_0_ACCEPTED_HOSTS: countAccepting('1.0'),
+    TLS_1_1_ACCEPTED_HOSTS: countAccepting('1.1'),
+    TLS_1_2_REQUIRED_HOSTS: `${rows.filter((r) => r.lowest === '1.2').length}/${HOSTS.length}`,
+    TLS_1_3_SUPPORTED_HOSTS: `${countAccepting('1.3')}/${HOSTS.length}`,
+  },
+}, null, 2)}\n`);
+console.log(`evidence: ${out}`);
+
+// TLS 1.3 is required as well as permitted: the policy is "1.2 or newer, 1.3
+// preferred", and a host that has quietly lost 1.3 has drifted off it.
+const no13 = rows.filter((r) => !r.accepted.includes('1.3')).map((r) => r.host);
+if (no13.length) {
+  console.error(`\n  ✗ ${no13.length} host(s) do not negotiate TLS 1.3: ${no13.join(', ')}`);
+  failures += no13.length;
+}
 
 if (failures) {
-  console.error(`\n✗ ${failures} host(s) accept a TLS version below ${FLOOR}.`);
-  console.error('  The fix is the Cloudflare zone setting "Minimum TLS Version", not an origin');
-  console.error('  nginx directive — the origins already say TLSv1.2 TLSv1.3, and the edge is');
-  console.error('  what a client talks to. It needs the zone owner\'s Cloudflare access.');
+  console.error(`\n✗ ${failures} host(s) do not meet the policy: TLS ${FLOOR} floor, 1.3 supported.`);
+  console.error('  The control is the Cloudflare zone setting "Minimum TLS Version" (and TLS 1.3');
+  console.error('  = on), not an origin nginx directive — the origins already say TLSv1.2');
+  console.error('  TLSv1.3, and the edge is what a client talks to.');
   process.exit(1);
 }
-console.log('\n✓ nothing below the floor is negotiable on any public host');
+console.log(`\n✓ every public host refuses everything below TLS ${FLOOR} and negotiates 1.3`);

@@ -1,0 +1,104 @@
+{
+  "ran_at": "2026-09-12T21:27:25.845Z",
+  "policy": {
+    "floor": "1.2",
+    "tls13": "required"
+  },
+  "control": "Cloudflare zone banzami.com — Minimum TLS Version + TLS 1.3",
+  "hosts": [
+    {
+      "host": "banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "www.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "developers.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "developer-api.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "api.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "sandbox-api.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "sandbox-operator.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "sandbox-webhook.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "pay.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "checkout.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    },
+    {
+      "host": "admin.banzami.com",
+      "lowest": "1.2",
+      "accepted": [
+        "1.2",
+        "1.3"
+      ]
+    }
+  ],
+  "counters": {
+    "TLS_1_0_ACCEPTED_HOSTS": 0,
+    "TLS_1_1_ACCEPTED_HOSTS": 0,
+    "TLS_1_2_REQUIRED_HOSTS": "11/11",
+    "TLS_1_3_SUPPORTED_HOSTS": "11/11"
+  }
+}

@@ -155,9 +155,14 @@ ci_cd:
 
 edge_and_dns:
   - id: cloudflare-zone-banzami-com
-    purpose: banzami.com DNS + proxy
+    purpose: banzami.com DNS + proxy + public TLS termination
     lifecycle: active-required
-    note: full record/rule audit pending (Phase 3/6)
+    note: >-
+      The public TLS policy lives here, not in origin nginx: Minimum TLS Version
+      = 1.2 and TLS 1.3 = on (set 2026-09-12; it had been 1.0 since the zone was
+      created, so every public host completed a TLS 1.0 handshake while SEC-001
+      read VALIDATED on an origin config file). Proved by handshake, per host, by
+      tools/check-tls-floor.mjs. Full record/rule audit still pending (Phase 3/6).
   - id: dns-banza-network
     purpose: BANZA protocol site
     lifecycle: active-required
