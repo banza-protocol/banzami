@@ -35,7 +35,7 @@
       "scope": "sandbox",
       "production_contract": false,
       "recommended_integration_path": false,
-      "description": "Machine-readable statement of the SDK-first integration model (SDKs recommended; HTTP secondary; no public SDK packages published yet)."
+      "description": "Machine-readable statement of the SDK-first integration model (SDKs recommended; HTTP secondary; @banzami/sdk and banzami_client published, the other packages not)."
     },
     {
       "path": "/developers/examples/curl/get-me.sh",

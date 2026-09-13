@@ -340,7 +340,7 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
   },
   {
     name: 'PHP',
-    install: 'código-fonte (banzami/sdk — ainda não publicado em Packagist)',
+    install: 'código-fonte (banzami/sdk-php — ainda não publicado em Packagist)',
     desc: 'Cliente PHP (+ Laravel) para plataformas web e e-commerce server-side.',
     snippet: (
       <>

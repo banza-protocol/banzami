@@ -107,8 +107,8 @@ export const ENDPOINTS: EndpointSpec[] = [
       en: 'Creates a payment session and returns its id, status and the interfaces (link/QR) to present to the payer.',
     },
     credential: {
-      pt: 'Chave developer (scope payment_sessions, projeto com configuração financeira concluída) ou credencial de merchant',
-      en: 'Developer key (payment_sessions scope, project with completed financial setup) or merchant credential',
+      pt: 'Chave developer (payment_sessions:write, projeto com configuração financeira concluída) ou credencial de merchant',
+      en: 'Developer key (payment_sessions:write, project with completed financial setup) or merchant credential',
     },
     headers: ['Authorization: Bearer bz_test_sk_XXXXXXXXXXXXXXXX', 'Content-Type: application/json', 'Idempotency-Key: idem_pedido_123'],
     requestFields: [

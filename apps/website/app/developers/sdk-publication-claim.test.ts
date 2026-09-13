@@ -43,6 +43,6 @@ describe('SDK publication claims', () => {
     // Banzami's own application framework, deliberately never published
     // (ADR-053) — and then banzami_client, which has since been published. What
     // remains genuinely source-only is the PHP package.
-    expect(src).toMatch(/banzami\/sdk — ainda não publicado em Packagist/);
+    expect(src).toMatch(/banzami\/sdk-php — ainda não publicado em Packagist/);
   });
 });

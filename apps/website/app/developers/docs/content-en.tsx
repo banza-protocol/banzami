@@ -203,7 +203,7 @@ const EVENTS: string[] = [
 const SDKS: { name: string; lang: string; state: string }[] = [
   { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Published — npm, server SDK, recommended path' },
   { name: 'banzami-python', lang: 'Python', state: 'Complete (source code)' },
-  { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Complete (source code)' },
+  { name: 'banzami/sdk-php', lang: 'PHP (+ Laravel)', state: 'Complete (source code)' },
   { name: 'banzami_client', lang: 'Dart / Flutter (client)', state: 'Published — public client SDK, publishable key' },
   { name: '@banzami/checkout', lang: 'JavaScript (browser)', state: 'Complete (source code)' },
   { name: 'banzami-go', lang: 'Go', state: 'Partial — webhooks + payment links' },
@@ -553,7 +553,7 @@ export function EnSdk({ copy }: { copy: CopyFn }) {
                 <LI>Financial readiness: <Code>GET /v1/financial-setup</Code> returns your Project&apos;s state, and your application knows what to show while it is not ready.</LI>
                 <LI>Creating and reading the payment resource you will use — session or link — plus the QR payload, if you present a QR.</LI>
                 <LI>Idempotency: a retry with the <strong>same</strong> <Code>Idempotency-Key</Code> tested, and concurrent requests understood.</LI>
-                <LI>Errors: a validation <Code>422</Code> and a <Code>401</Code> tested, with the <Code>request_id</Code> reaching your logs.</LI>
+                <LI>Errors: a validation <Code>400</Code> and a <Code>401</Code> tested, with the <Code>request_id</Code> reaching your logs.</LI>
                 <LI>Webhooks: signature verified with the SDK&apos;s own method, duplicate deliveries treated as the same event, and the secret stored where secrets live.</LI>
                 <LI>Secrets: the secret key on the server only — never in a browser, never in a mobile app, never in the repository.</LI>
               </UL>
@@ -641,7 +641,7 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {[
                       ['Owner', 'Everything, including inviting, changing roles, archiving and deleting. The last owner cannot leave — there is no workspace without one.'],
-                      ['Admin', 'Manage members, projects and keys. Cannot remove an owner.'],
+                      ['Admin', 'Manage members, projects and keys. Cannot change or remove an Owner or another Admin, and cannot appoint Admins.'],
                       ['Developer', 'Create and manage projects, keys and webhooks. Does not manage members.'],
                       ['Finance', 'See balances, transactions and settlements. Does not issue keys.'],
                       ['Viewer', 'Read. Nothing else.'],
@@ -656,6 +656,8 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
               </div>
               <UL>
                 <LI><strong>Inviting</strong> produces a link the Console copies for you. Whoever accepts it signs in with their own email and their own code — the invitation names the role, not the person.</LI>
+                <LI><strong>Leaving</strong> a workspace is always possible, except for the last Owner: a workspace is never left without one.</LI>
+                <LI><strong>Transferring ownership</strong> takes two steps: an Owner gives the Owner role to another member and then leaves or changes their own role. There is no single button that hands the workspace over, so there is no moment without an owner.</LI>
                 <LI><strong>Archiving</strong> a workspace is refused while it still has active projects, and the refusal says how many. Archive those first.</LI>
                 <LI><strong>Deleting</strong> is only possible when the workspace is genuinely empty. A workspace with history is archived; one that never held anything disappears.</LI>
               </UL>
@@ -717,9 +719,10 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
 
               <H3 id="keys">API keys</H3>
               <UL>
+                <LI>The <strong>name</strong> is yours: it tells the key apart in the list and in Workspace activity, and changes nothing about what it can do.</LI>
                 <LI><strong>Scopes</strong> are chosen at creation and do not change. A read-only key will never write.</LI>
                 <LI>The secret appears <strong>exactly once</strong>, in the creation dialog, with a copy button. After that the list shows the prefix and a mask.</LI>
-                <LI><strong>Rotating</strong> creates the successor and revokes the predecessor in the same step — there is no window without a valid credential.</LI>
+                <LI><strong>Rotating</strong> creates the successor and revokes the predecessor in the same step: the new key works at once, and the old one stops working at that instant. To swap without failures on your server, create a new key first, put it in use, and only then revoke the old one.</LI>
                 <LI><strong>Revoking</strong> is immediate: the next call with that key answers <Code>401</Code>.</LI>
                 <LI>The list shows <strong>last use</strong>, which is how you find the key nobody uses any more.</LI>
               </UL>
@@ -734,7 +737,10 @@ export function EnConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Events</strong> lists what your project emitted; opening one shows its deliveries, with status and response code.</LI>
                 <LI><strong>Redelivering</strong> repeats the same delivery — it is that delivery again, not a new one.</LI>
                 <LI><strong>Rotating the secret</strong> issues a new one, revealed once; the endpoint stays.</LI>
-                <LI><strong>Disabling</strong> stops deliveries without deleting the endpoint or its history.</LI>
+                <LI><strong>Disabling</strong> stops queueing new events for this endpoint, without deleting it or its history. Events emitted while it is disabled are not delivered to it afterwards; <strong>re-enabling</strong> starts receiving again from that moment, and the ones it missed are still listed under Events.</LI>
+                <LI>A delivery that fails is <strong>retried</strong>, up to 5 attempts, with growing backoff. The full contract, and what to do when nothing arrives, are in{' '}
+                  <a href="/docs/en/guides#redelivery" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Redelivery contract</a> and{' '}
+                  <a href="/docs/en/guides#troubleshooting" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Troubleshooting</a>.</LI>
               </UL>
 
               <H3 id="logs">Balances, transactions and logs</H3>
@@ -969,8 +975,8 @@ export function EnGuides({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI>At-least-once delivery, no ordering guarantee — handle every event <strong>idempotently</strong> (dedupe by event id).</LI>
                 <LI>Signature in <Code>banza-signature</Code> with a <strong>5-minute</strong> timestamp (replay) tolerance.</LI>
-                <LI>Implemented in the Sandbox: up to <strong>5 attempts</strong> per delivery, with growing backoff of{' '}
-                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code> → <Code>8&nbsp;h</Code> after each failure.</LI>
+                <LI>Implemented in the Sandbox: up to <strong>5 attempts</strong> per delivery — the first and, after each failure, another after{' '}
+                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code>. After the fifth failure the delivery is <Code>FAILED</Code>; you can replay it.</LI>
                 <LI>Any <Code>2xx</Code> from your endpoint counts as delivered; answer fast and process asynchronously.</LI>
                 <LI><em>Note:</em> this is the contract implemented and verified in the Sandbox; Production behaviour is not claimed (Production in preparation).</LI>
               </UL>
@@ -1365,8 +1371,8 @@ export function EnReference({ copy }: { copy: CopyFn }) {
                       ['Console — sign in, workspaces, projects, members, keys', 'OTP session (email + code)', 'Operational in Sandbox'],
                       ['Console — Transactions, Webhooks, Logs and Workspace Activity', 'OTP session (email + code)', 'The project’s and workspace’s own real data'],
                       ['GET /v1/me (key identity)', 'Developer key bz_test_ (identity:read scope)', 'Available in Sandbox'],
-                      ['Payment sessions', 'Developer key (payment_sessions scope, project with financial setup complete)', 'Available in Sandbox'],
-                      ['Payment links', 'Developer key (payment_links scope, project with financial setup complete)', 'Available in Sandbox'],
+                      ['Payment sessions', 'Developer key (payment_sessions:write / :read, project with financial setup complete)', 'Available in Sandbox'],
+                      ['Payment links', 'Developer key (payment_links:write / :read, project with financial setup complete)', 'Available in Sandbox'],
                       ['Webhook endpoint registration (POST /v1/webhooks/endpoints)', 'Project key (webhooks:write); reads with webhooks:read', 'Available in Sandbox — the secret is returned exactly once'],
                       ['Outbound webhook delivery', '—', 'Available in Sandbox — real, signed deliveries to your HTTPS endpoint'],
                       ['Refunds (POST /v1/refunds)', 'Project key (refunds:write)', 'Available in Sandbox — the refund debits the account that received the payment'],
@@ -1542,10 +1548,11 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
 
               <H3 id="rotation">Rotation and revocation</H3>
               <P>
-                Rotating a key creates the successor and revokes the predecessor in the same
-                step, so there is no window without a valid credential. The predecessor stops
-                authenticating immediately: a call with it answers <Code>401</Code>, and the
-                failure belongs to the key, not to the request.
+                Rotating a key in the Console creates the successor and revokes the predecessor in
+                the same step. The predecessor stops authenticating immediately: a call with it
+                answers <Code>401</Code>, and the failure belongs to the key, not to the request. To
+                swap without failures on your server, first create a new key with the same scopes,
+                put it in use, and only then revoke the old one.
               </P>
               <UL>
                 <LI><strong>Rotate</strong> when someone with access leaves, when you change hosting provider, or on a schedule if your policy requires one.</LI>
@@ -1576,7 +1583,7 @@ export function EnTrust({ copy }: { copy: CopyFn }) {
                 <LI><strong>No real money, ever.</strong> Balances are fictitious Kwanza; no value leaves any bank.</LI>
                 <LI><strong>There is no financial Live environment.</strong> It is not switched off awaiting a request: it does not exist, and <Code>bz_live_…</Code> keys are issued to nobody.</LI>
                 <LI><strong>The data is real enough to hurt.</strong> Treat test data as you would a customer&apos;s: do not put real people&apos;s personal details in it.</LI>
-                <LI><strong>The public surface is the OpenAPI document, and nothing else.</strong> There are no additional public routes waiting to be discovered: what is not in the document is not mounted, and answers <Code>404</Code>.</LI>
+                <LI><strong>What your key reaches is the OpenAPI document, and nothing else.</strong> There are no hidden routes for project keys waiting to be discovered: a CI check compares the routes that accept your key with the document. Merchant, consumer and operator routes exist, and refuse your key with <Code>401</Code> or <Code>403</Code>.</LI>
               </UL>
               <Callout tone="warn">
                 If an SDK, an example or a page asks you for a <Code>bz_live_…</Code> key,
@@ -1623,7 +1630,7 @@ export function EnArtifacts({ copy }: { copy: CopyFn }) {
                 <LI><strong>Postman collection</strong> (protocol reference) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
                 <LI><strong>curl examples</strong> (diagnostic / protocol reference) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; full fixtures in <Code>docs/developer/examples/</Code>.</LI>
                 <LI><strong>Availability matrix</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (the machine-readable source of this documentation's states, checked by tests).</LI>
-                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (machine-readable SDK-first model; no SDK package published).</LI>
+                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (machine-readable SDK-first model; @banzami/sdk and banzami_client published, the others not).</LI>
               </UL>
                           <P style={{ fontSize: 13, color: '#a89a9e' }}>
                 The <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>artifact manifest</a> indexes every
@@ -1650,6 +1657,11 @@ export function EnChangelog({ copy }: { copy: CopyFn }) {
               </P>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {([
+                  ['13 Sep 2026', 'Docs', 'Error catalogue generated from the gateway, route by route, in both languages; the full DOA tutorial, with the settlement fee destination and the donor receipt; illustrations in SVG.'],
+                  ['13 Sep 2026', 'API', 'GET /v1/public/proofs/{ref} published in the reference and the OpenAPI.'],
+                  ['12 Sep 2026', 'Sandbox', '@banzami/sdk 0.13.0 published on npm; createApplicationSettlement retired in favour of createBusinessApplicationSettlement.'],
+                  ['11 Sep 2026', 'API', 'POST /v1/payment-links/{id}/mark-used retired: it answers 410 ROUTE_RETIRED.'],
+                  ['10 Sep 2026', 'Sandbox', 'Financial setup by reviewed application or by consent code; one-click setup retired.'],
                   ['11 Jul 2026', 'Docs', 'Resource reference (PT/EN), Sandbox testing guide, authentication and key management, webhook envelope and idempotent-retry examples.'],
                   ['11 Jul 2026', 'Docs', 'curl examples with request and response, credential↔capability matrix, error envelope, idempotency in code and the webhook redelivery contract.'],
                   ['July 2026', 'Sandbox', 'Sandbox Console available: email + OTP sign-in, workspaces, projects and test keys.'],

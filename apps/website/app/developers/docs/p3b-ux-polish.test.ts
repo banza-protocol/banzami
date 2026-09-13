@@ -203,8 +203,8 @@ describe('P3B — claim safety preserved across the polished corpus', () => {
     // the developer reading the page. The limitation it stood for is real and is
     // still stated, in words a reader can act on: the public surface is the
     // OpenAPI document and nothing else, and anything outside it answers 404.
-    expect(PT).toContain('A superfície pública é a do documento OpenAPI');
-    expect(EN).toContain('The public surface is the OpenAPI document');
+    expect(PT).toContain('O que a sua chave alcança é o documento OpenAPI');
+    expect(EN).toContain('What your key reaches is the OpenAPI document');
     // "Pendente E2E" must appear exactly where the manifest still withholds a
     // release — no more, and no less.
     for (const { id } of CARD_CAPABILITIES) {

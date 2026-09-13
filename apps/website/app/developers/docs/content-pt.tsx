@@ -21,7 +21,7 @@ export type CopyFn = (text: string, label: string) => void;
 const SDKS: { name: string; lang: string; state: string; tone: Tone; consume: string }[] = [
   { name: '@banzami/sdk', lang: 'TypeScript / Node', state: 'Publicado — servidor, chave secreta', tone: 'ok', consume: 'npm install @banzami/sdk' },
   { name: 'banzami-python', lang: 'Python', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
-  { name: 'banzami/sdk', lang: 'PHP (+ Laravel)', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
+  { name: 'banzami/sdk-php', lang: 'PHP (+ Laravel)', state: 'Completo (código-fonte)', tone: 'ok', consume: 'código-fonte / local' },
   // banzami_client is the PUBLIC client SDK; banzami_flutter is Banzami's own
   // application framework and is not published (Banzami ADR-053). Listing the
   // internal one as an integration SDK would send a developer to a package that
@@ -563,7 +563,7 @@ export function PtSdk({ copy }: { copy: CopyFn }) {
                 <LI>Prontidão financeira: <Code>GET /v1/financial-setup</Code> devolve o estado do seu Projeto, e a sua aplicação sabe o que mostrar quando ainda não está pronto.</LI>
                 <LI>Criação e consulta do recurso de pagamento que vai usar — sessão ou link — mais o payload QR, se apresentar QR.</LI>
                 <LI>Idempotência: um retry com a <strong>mesma</strong> <Code>Idempotency-Key</Code> testado, e o que acontece a pedidos concorrentes compreendido.</LI>
-                <LI>Erros: um <Code>422</Code> de validação e um <Code>401</Code> testados, com o <Code>request_id</Code> a aparecer nos seus logs.</LI>
+                <LI>Erros: um <Code>400</Code> de validação e um <Code>401</Code> testados, com o <Code>request_id</Code> a aparecer nos seus logs.</LI>
                 <LI>Webhooks: assinatura verificada com o método do SDK, entregas duplicadas tratadas como o mesmo evento, e o segredo guardado onde os segredos vivem.</LI>
                 <LI>Segredos: a chave secreta apenas no servidor — nunca no browser, nunca numa app móvel, nunca no repositório.</LI>
               </UL>
@@ -649,7 +649,7 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                   <tbody>
                     {[
                       ['Owner (Proprietário)', 'Tudo, incluindo convidar, mudar papéis, arquivar e apagar. O último owner não pode sair — não há workspace sem dono.'],
-                      ['Admin', 'Gerir membros, projetos e chaves. Não pode remover um owner.'],
+                      ['Admin', 'Gerir membros, projetos e chaves. Não altera nem remove um Owner ou outro Admin, e não nomeia Admins.'],
                       ['Developer', 'Criar e gerir projetos, chaves e webhooks. Não gere membros.'],
                       ['Finance (Financeiro)', 'Ver saldos, transações e liquidações. Não emite chaves.'],
                       ['Viewer (Observador)', 'Ler. Nada mais.'],
@@ -664,6 +664,8 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
               </div>
               <UL>
                 <LI><strong>Convidar</strong> gera um link que a Consola copia para si. Quem o aceita entra com o seu próprio email e o seu próprio código — o convite nomeia o papel, não a pessoa.</LI>
+                <LI><strong>Sair</strong> de um workspace é sempre possível, excepto para o último Owner: um workspace nunca fica sem dono.</LI>
+                <LI><strong>Transferir a propriedade</strong> faz-se em dois passos: um Owner dá o papel de Owner a outro membro e, depois, sai ou muda o seu próprio papel. Não há um botão que entregue o workspace de uma vez, e por isso não há um momento sem dono.</LI>
                 <LI><strong>Arquivar</strong> um workspace é recusado enquanto tiver projetos ativos, e a recusa diz quantos. Arquive-os primeiro.</LI>
                 <LI><strong>Apagar</strong> só é possível se o workspace estiver realmente vazio. Um workspace com história arquiva-se; um que nunca teve nada desaparece.</LI>
               </UL>
@@ -725,9 +727,10 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
 
               <H3 id="chaves">Chaves de API</H3>
               <UL>
+                <LI>O <strong>nome</strong> é seu: distingue a chave na lista e na Atividade do workspace, e não muda o que ela pode fazer.</LI>
                 <LI>Os <strong>scopes</strong> escolhem-se na criação e não mudam. Uma chave só de leitura nunca poderá escrever.</LI>
                 <LI>O segredo aparece <strong>uma única vez</strong>, no diálogo de criação, com um botão para copiar. Depois disso a lista mostra o prefixo e uma máscara.</LI>
-                <LI><strong>Rodar</strong> cria a sucessora e revoga a anterior no mesmo passo — não há intervalo sem credencial válida.</LI>
+                <LI><strong>Rodar</strong> cria a sucessora e revoga a anterior no mesmo passo: a nova vale logo, e a antiga deixa de valer nesse instante. Para trocar sem falhas no seu servidor, crie antes uma chave nova, ponha-a em uso e só depois revogue a antiga.</LI>
                 <LI><strong>Revogar</strong> é imediato: a chamada seguinte com essa chave responde <Code>401</Code>.</LI>
                 <LI>A lista mostra a <strong>última utilização</strong>, que é como se descobre qual já ninguém usa.</LI>
               </UL>
@@ -742,7 +745,10 @@ export function PtConsole({ copy }: { copy: CopyFn }) {
                 <LI><strong>Eventos</strong> lista o que o seu projeto emitiu; abrir um evento mostra as suas entregas, com estado e código de resposta.</LI>
                 <LI><strong>Reentregar</strong> repete a mesma entrega — é a mesma entrega outra vez, não uma nova.</LI>
                 <LI><strong>Rodar o segredo</strong> emite um novo, revelado uma vez; o endpoint mantém-se.</LI>
-                <LI><strong>Desativar</strong> pára as entregas sem apagar o endpoint nem a história.</LI>
+                <LI><strong>Desativar</strong> deixa de pôr eventos novos na fila deste endpoint, sem o apagar nem à sua história. Os eventos emitidos enquanto está desativado não lhe são entregues depois; <strong>reativar</strong> volta a recebê-los a partir desse momento, e os que perdeu continuam em Eventos.</LI>
+                <LI>Uma entrega que falha é <strong>tentada outra vez</strong>, até 5 vezes, com espera crescente. O contrato completo e o que fazer quando não chega estão em{' '}
+                  <a href="/docs/guides#reentrega" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Contrato de reentrega</a> e{' '}
+                  <a href="/docs/guides#resolucao" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>Resolução de problemas</a>.</LI>
               </UL>
 
               <H3 id="registos">Saldos, transações e registos</H3>
@@ -979,8 +985,8 @@ export function PtGuides({ copy }: { copy: CopyFn }) {
               <UL>
                 <LI>Entrega <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem — trate cada evento de forma <strong>idempotente</strong> (deduplique pelo id do evento).</LI>
                 <LI>Assinatura no header <Code>banza-signature</Code> com tolerância de timestamp (<GlossaryTerm id="replay">replay</GlossaryTerm>) de <strong>5 minutos</strong>.</LI>
-                <LI>Implementado no Sandbox: até <strong>5 tentativas</strong> por entrega, com backoff crescente de{' '}
-                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code> → <Code>8&nbsp;h</Code> após cada falha.</LI>
+                <LI>Implementado no Sandbox: até <strong>5 tentativas</strong> por entrega — a primeira e, depois de cada falha, novas tentativas ao fim de{' '}
+                  <Code>1&nbsp;min</Code> → <Code>5&nbsp;min</Code> → <Code>30&nbsp;min</Code> → <Code>2&nbsp;h</Code>. À quinta falha a entrega fica <Code>FAILED</Code>; pode reentregá-la.</LI>
                 <LI>Qualquer resposta <Code>2xx</Code> do seu endpoint conta como entregue; responda rapidamente e processe de forma assíncrona.</LI>
                 <LI><em>Nota:</em> este é o contrato implementado e verificado no Sandbox; o comportamento de Produção não é reivindicado (Produção em preparação).</LI>
               </UL>
@@ -1374,8 +1380,8 @@ export function PtReference({ copy }: { copy: CopyFn }) {
                       ['Consola — entrar, workspaces, projetos, membros, chaves', 'Sessão OTP (email + código)', 'Operacional em Sandbox'],
                       ['Consola — Transações, Webhooks, Registos e Atividade do workspace', 'Sessão OTP (email + código)', 'Dados reais do projeto e do workspace'],
                       ['GET /v1/me (identidade da chave)', 'Chave developer bz_test_ (scope identity:read)', 'Disponível em Sandbox'],
-                      ['Sessões de pagamento', 'Chave developer (scope payment_sessions, projeto com configuração financeira concluída)', 'Disponível em Sandbox'],
-                      ['Payment links', 'Chave developer (scope payment_links, projeto com configuração financeira concluída)', 'Disponível em Sandbox'],
+                      ['Sessões de pagamento', 'Chave developer (payment_sessions:write / :read, projeto com configuração financeira concluída)', 'Disponível em Sandbox'],
+                      ['Payment links', 'Chave developer (payment_links:write / :read, projeto com configuração financeira concluída)', 'Disponível em Sandbox'],
                       ['Registo de endpoints de webhooks (POST /v1/webhooks/endpoints)', 'Chave de projeto (webhooks:write); leitura com webhooks:read', 'Disponível em Sandbox — o segredo é devolvido uma única vez'],
                       ['Entrega outbound de webhooks', '—', 'Disponível em Sandbox — entregas reais, assinadas, para o seu endpoint HTTPS'],
                       ['Reembolsos (POST /v1/refunds)', 'Chave de projeto (refunds:write)', 'Disponível em Sandbox — o reembolso debita a conta que recebeu o pagamento'],
@@ -1552,10 +1558,11 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
 
               <H3 id="rotacao">Rotação e revogação</H3>
               <P>
-                Rodar uma chave cria a sucessora e revoga a anterior no mesmo passo, para que não
-                haja um intervalo sem credencial válida. A anterior deixa de autenticar
-                imediatamente: uma chamada com ela responde <Code>401</Code>, e a falha é da chave,
-                não do pedido.
+                Rodar uma chave na Consola cria a sucessora e revoga a anterior no mesmo passo. A
+                anterior deixa de autenticar imediatamente: uma chamada com ela responde{' '}
+                <Code>401</Code>, e a falha é da chave, não do pedido. Para trocar sem falhas no seu
+                servidor, crie primeiro uma chave nova com os mesmos scopes, ponha-a em uso, e só depois
+                revogue a antiga.
               </P>
               <UL>
                 <LI><strong>Rode</strong> quando alguém que teve acesso sai, quando muda de fornecedor de alojamento, ou periodicamente se a sua política o exigir.</LI>
@@ -1586,7 +1593,7 @@ export function PtTrust({ copy }: { copy: CopyFn }) {
                 <LI><strong>Nunca há dinheiro real.</strong> Os saldos são Kwanzas fictícios; nenhum valor sai de nenhum banco.</LI>
                 <LI><strong>Não existe ambiente financeiro Live.</strong> Não é que esteja desligado à espera de um pedido: não existe, e as chaves <Code>bz_live_…</Code> não são emitidas por ninguém.</LI>
                 <LI><strong>Os dados são reais o suficiente para doer.</strong> Trate os dados de teste como trataria os de um cliente: não ponha lá dados pessoais de gente verdadeira.</LI>
-                <LI><strong>A superfície pública é a do documento OpenAPI, e mais nenhuma.</strong> Não existem rotas públicas adicionais à espera de serem descobertas: o que não está no documento não está montado, e responde <Code>404</Code>.</LI>
+                <LI><strong>O que a sua chave alcança é o documento OpenAPI, e mais nada.</strong> Não há rotas escondidas para chaves de projeto à espera de serem descobertas: uma verificação no CI compara as rotas que aceitam a sua chave com o documento. As rotas de comerciantes, consumidores e operadores existem, mas recusam a sua chave com <Code>401</Code> ou <Code>403</Code>.</LI>
               </UL>
               <Callout tone="warn">
                 Se um SDK, um exemplo ou uma página lhe pedir uma chave <Code>bz_live_…</Code>,
@@ -1623,7 +1630,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
               <P>
                 A mesma superfície documentada existe em formato <strong>machine-readable</strong> — <strong>artefactos de
                 referência do protocolo</strong>, publicados como ficheiros estáticos. <strong>Não são a recomendação principal
-                de integração</strong> (o Banzami é SDK-first), descrevem apenas o âmbito Sandbox/Pré-visualização atual,
+                de integração</strong> (o Banzami é SDK-first), descrevem apenas o âmbito Sandbox atual,
                 <strong> não são contratos de Produção</strong>, não são trilhos live, não são aprovação regulatória e não
                 substituem os SDKs:
               </P>
@@ -1632,7 +1639,7 @@ export function PtArtifacts({ copy }: { copy: CopyFn }) {
                 <LI><strong>Coleção Postman</strong> (referência do protocolo) — <a href="/developers/postman/banzami-sandbox.postman_collection.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/postman/banzami-sandbox.postman_collection.json</a>.</LI>
                 <LI><strong>Exemplos curl</strong> (diagnóstico / referência do protocolo) — <a href="/developers/examples/curl/get-me.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>get-me.sh</a> · <a href="/developers/examples/curl/create-payment-session.sh" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>create-payment-session.sh</a>; fixtures completas em <Code>docs/developer/examples/</Code>.</LI>
                 <LI><strong>Matriz de disponibilidade</strong> — <a href="/developers/availability/banzami-developers-availability.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>/developers/availability/banzami-developers-availability.json</a> (fonte machine-readable dos estados, verificada por testes).</LI>
-                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (modelo SDK-first machine-readable; nenhum pacote SDK publicado).</LI>
+                <LI><strong>Manifests</strong> — <a href="/developers/artifacts/manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>manifest.json</a> · <a href="/developers/artifacts/sdk-first-manifest.json" style={{ color: RED, fontWeight: 700, textDecoration: 'none' }}>sdk-first-manifest.json</a> (modelo SDK-first machine-readable; @banzami/sdk e banzami_client publicados, os restantes não).</LI>
               </UL>
 
                             <P style={{ fontSize: 13, color: '#a89a9e' }}>
@@ -1659,6 +1666,11 @@ export function PtChangelog({ copy }: { copy: CopyFn }) {
               </P>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {([
+                  ['13 Set 2026', 'Docs', 'Catálogo de erros gerado a partir do gateway, rota a rota, nas duas línguas; tutorial DOA completo, com o destino da taxa na liquidação e o comprovativo do doador; ilustrações em SVG.'],
+                  ['13 Set 2026', 'API', 'GET /v1/public/proofs/{ref} publicado na referência e no OpenAPI.'],
+                  ['12 Set 2026', 'Sandbox', '@banzami/sdk 0.13.0 publicado em npm; createApplicationSettlement retirado a favor de createBusinessApplicationSettlement.'],
+                  ['11 Set 2026', 'API', 'POST /v1/payment-links/{id}/mark-used retirado: responde 410 ROUTE_RETIRED.'],
+                  ['10 Set 2026', 'Sandbox', 'Configuração financeira por candidatura revista ou por código de consentimento; a configuração num clique foi retirada.'],
                   ['11 Jul 2026', 'Docs', 'Referência por recurso (PT/EN), guia Testar no Sandbox, autenticação e gestão de chaves, envelope de webhooks e exemplos de repetição idempotente.'],
                   ['11 Jul 2026', 'Docs', 'Exemplos curl com pedido e resposta, matriz credencial↔capacidade, envelope de erros, idempotência em código e contrato de reentrega de webhooks.'],
                   ['Julho 2026', 'Sandbox', 'Consola Sandbox disponível: entrada por email + OTP, workspaces, projetos e chaves de teste.'],

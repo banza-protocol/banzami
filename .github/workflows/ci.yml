@@ -547,6 +547,9 @@ jobs:
           node tools/check-docs-illustrations.mjs
           node tools/check-webhook-event-catalogue.mjs
           node tools/check-docs-prod-001-spec.mjs
+          node tools/check-docs-coverage.mjs
+          node tools/e2e/docs/doa-tutorial-e2e.selftest.mjs
+          node tools/e2e/docs/quickstart-e2e.selftest.mjs
 
       # Every TypeScript example on the docs and the landing page, compiled
       # against @banzami/sdk as installed from the public registry.

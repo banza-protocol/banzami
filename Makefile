@@ -388,6 +388,9 @@ check-docs-drift:
 .PHONY: check-docs-prod
 check-docs-prod: check-docs-drift check-docs-claims
 	node tools/check-docs-prod-001-spec.mjs
+	node tools/check-docs-coverage.mjs
+	node tools/e2e/docs/doa-tutorial-e2e.selftest.mjs
+	node tools/e2e/docs/quickstart-e2e.selftest.mjs
 	node tools/check-docs-error-catalogue.mjs
 	node tools/check-docs-error-catalogue.selftest.mjs
 	node tools/check-docs-pt-en-structure.mjs
