@@ -23,16 +23,16 @@ html {
 }
 
 /* Nunito arrives from Google Fonts with display=swap. Until it does, text is
-   set in Arial resized to Nunito's measured width and line metrics (Chromium,
+   set in Arial resized to Nunito's measured width at the body weight (500) and its line metrics (Chromium,
    2026-09-13: width ratio 0.95–1.01 across weights 500–900, ascent 101, descent
    35 per 100px), so the swap re-wraps far fewer lines. Without it the API
    reference measured a cumulative layout shift of 0.11–0.16 at the swap. */
 @font-face {
   font-family: 'Nunito Fallback';
   src: local('Arial');
-  size-adjust: 98.5%;
-  ascent-override: 102.5%;
-  descent-override: 35.5%;
+  size-adjust: 100.6%;
+  ascent-override: 100.4%;
+  descent-override: 34.8%;
   line-gap-override: 0%;
 }
 
